@@ -22,15 +22,15 @@ describe('NavigationLink', () => {
   })
 
   it('applies custom className to the button', () => {
-    render(<NavigationLink text="Styled" className="nav-custom" />)
+    render(<NavigationLink text="Styled" className="mt-1" />)
     const button = screen.getByRole('button')
-    expect(button.classList.contains('nav-custom')).toBe(true)
+    expect(button.classList.contains('mt-1')).toBe(true)
   })
 
   it('applies custom textClassName to the text span', () => {
-    render(<NavigationLink text="Colored" textClassName="text-red" />)
+    render(<NavigationLink text="Colored" textClassName="text-brand" />)
     const textSpan = screen.getByText('Colored')
-    expect(textSpan.classList.contains('text-red')).toBe(true)
+    expect(textSpan.classList.contains('text-brand')).toBe(true)
   })
 
   it('does not fire onClick on unrelated keydown', () => {

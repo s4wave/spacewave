@@ -23,8 +23,11 @@ export function BrowserStartupPhaseRail({
       <BootLoadingCriticalStyle />
       <div aria-hidden="true" className="swb-rail-track">
         <div
-          className={cn('swb-rail-fill', failed && 'swb-rail-fill--error')}
-          style={{ width: `${fillPct}%` }}
+          className={cn(
+            'swb-rail-fill browser-progress-width',
+            failed && 'swb-rail-fill--error',
+          )}
+          style={{ '--browser-progress-width': `${fillPct}%` }}
         />
       </div>
       <ol className="swb-steps" aria-label="Startup phases">

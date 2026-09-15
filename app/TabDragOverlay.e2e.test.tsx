@@ -415,10 +415,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
       })
 
       return (
-        <div
-          style={{ width: '100%', height: '100%', position: 'relative' }}
-          data-testid="nested-layout-wrapper"
-        >
+        <div className="relative size-full" data-testid="nested-layout-wrapper">
           <Layout
             model={nestedModel}
             factory={() => <div>Nested content</div>}
@@ -651,7 +648,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
 
       return (
         <div
-          style={{ width: '100%', height: '100%', position: 'relative' }}
+          className="relative size-full"
           data-testid="nested-layout-wrapper-v2"
         >
           <Layout
@@ -906,7 +903,7 @@ describe('Grid Mode Visual Issues', () => {
               role="button"
               tabIndex={0}
               data-testid={`content-${node.getId()}`}
-              style={{ width: '100%', height: '100%', padding: '20px' }}
+              className="tab-drag-content"
               onClick={() => {
                 // Find parent tabset
                 let parent = node.getParent()
@@ -1213,22 +1210,14 @@ describe('Grid Mode Visual Issues', () => {
     model.doAction(Actions.setActiveTabset('left-tabset'))
 
     await render(
-      <div
-        className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
-        style={{ position: 'relative' }}
-      >
+      <div className="shell-flexlayout bg-editor-border relative flex flex-1 flex-col gap-1 overflow-hidden p-1">
         <OptimizedLayout
           model={model}
           renderTab={(node) => (
             <div
               data-testid={`optimized-content-${node.getId()}`}
-              style={{
-                width: '100%',
-                height: '100%',
-                padding: '20px',
-                backgroundColor:
-                  node.getId() === 'left-tab' ? '#2a2a4a' : '#4a2a2a',
-              }}
+              className="tab-drag-content"
+              data-tab-id={node.getId()}
             >
               OptimizedLayout Content for {node.getName()}
             </div>
@@ -1383,16 +1372,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           data-testid="shell-container"
@@ -1514,16 +1494,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           data-testid="shell-container"
@@ -1627,16 +1598,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1">
           <Layout
             model={gridModel}
@@ -1739,16 +1701,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           data-testid="shell-container"
@@ -1831,16 +1784,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout shell-flexlayout--with-menu bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           style={{ '--menu-bar-width': '233px' }}
@@ -1922,16 +1866,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     const { unmount } = await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           data-testid="shell-container"
@@ -1986,16 +1921,7 @@ describe('Grid Mode CSS Visual Issues', () => {
     })
 
     await render(
-      <div
-        style={{
-          width: '1024px',
-          height: '768px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-192 w-256 flex-col overflow-hidden">
         <div
           className="shell-flexlayout shell-flexlayout--with-menu bg-editor-border flex flex-1 flex-col gap-1 overflow-hidden p-1"
           data-testid="shell-container"

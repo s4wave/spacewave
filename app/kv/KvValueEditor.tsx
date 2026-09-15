@@ -55,7 +55,7 @@ export function KvValueEditor({
         spellCheck={false}
         className={cn(
           'border-foreground/10 bg-background/20 text-foreground w-full rounded-md border px-2.5 py-1.5 font-mono text-xs',
-          'placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 focus-visible:ring-[3px] focus-visible:outline-none',
+          'placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 focus-visible:ring-3 focus-visible:outline-none',
           'disabled:cursor-not-allowed disabled:opacity-50',
           parseError && 'border-destructive/60',
         )}

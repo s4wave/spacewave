@@ -278,7 +278,7 @@ function ToolbarPlugin() {
             <LuChevronDown className="size-3" />
           </button>
           {showBlockMenu && (
-            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-[140px] rounded-lg border py-1 shadow-lg">
+            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-35 rounded-lg border py-1 shadow-lg">
               {blockTypeOptions.map((type) => (
                 <button
                   key={type}

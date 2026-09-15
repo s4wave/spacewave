@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import { LuArrowDownAZ, LuArrowUpAZ } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
@@ -36,11 +35,8 @@ export function KvKeyListToolbar({
         onChange={handlePrefixChange}
         placeholder="Filter by key prefix"
         aria-label="Filter by key prefix"
-        className={cn(
-          'border-foreground/10 bg-background/20 h-7 flex-1 text-xs',
-          'placeholder:text-foreground-alt/40',
-          'focus-visible:border-brand/50 focus-visible:ring-brand/15',
-        )}
+        variant="toolbar"
+        className="flex-1"
       />
       <DashboardButton
         icon={

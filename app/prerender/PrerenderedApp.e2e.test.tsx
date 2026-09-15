@@ -6,16 +6,7 @@ import { PrerenderedApp } from './PrerenderedApp.js'
 
 function TestContainer({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        width: '1024px',
-        height: '768px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="relative flex h-192 w-256 flex-col overflow-hidden">
       {children}
     </div>
   )

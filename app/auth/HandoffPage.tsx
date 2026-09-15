@@ -213,7 +213,7 @@ export function HandoffPage() {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <Spinner size="xl" className="text-brand" />
+          <Spinner size="xl" variant="brand" />
           <h1 className="text-xl font-semibold tracking-wide">
             Completing sign-in…
           </h1>

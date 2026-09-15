@@ -113,7 +113,7 @@ function UploadProgressOverlay({
         </div>
       </div>
 
-      <div className="border-popover-border grid grid-cols-2 gap-px border-b bg-[color:var(--color-popover-border)] sm:grid-cols-4">
+      <div className="border-popover-border bg-popover-border grid grid-cols-2 gap-px border-b sm:grid-cols-4">
         <SummaryCell label="Overall" value={`${overallProgress}%`} />
         <SummaryCell
           label="Active"
@@ -132,8 +132,8 @@ function UploadProgressOverlay({
       <div className="border-popover-border px-5 py-4">
         <div className="bg-muted h-2 overflow-hidden rounded-full">
           <div
-            className="bg-brand h-full rounded-full transition-[width] duration-200"
-            style={{ width: `${overallProgress}%` }}
+            className="bg-brand upload-progress-width progress-width-transition h-full rounded-full"
+            style={{ '--upload-progress-width': `${overallProgress}%` }}
           />
         </div>
         <div className="text-foreground-alt mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -164,7 +164,7 @@ function UploadProgressOverlay({
 function SummaryCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-popover min-w-0 px-5 py-4">
-      <div className="text-foreground-alt text-xs tracking-[0.12em] uppercase">
+      <div className="text-foreground-alt tracking-brand-compact text-xs uppercase">
         {label}
       </div>
       <div className="text-foreground mt-1 truncate text-lg font-semibold">
@@ -217,7 +217,7 @@ function UploadItemRow({
           <span className="text-foreground min-w-0 truncate text-sm font-medium">
             {item.name}
           </span>
-          <span className="text-foreground-alt text-xs tracking-[0.12em] uppercase">
+          <span className="text-foreground-alt tracking-brand-compact text-xs uppercase">
             {item.kind}
           </span>
           <span
@@ -242,10 +242,10 @@ function UploadItemRow({
         )}
         <div className="text-foreground-alt truncate text-xs">{item.path}</div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-muted h-1.5 min-w-[10rem] flex-1 overflow-hidden rounded-full">
+          <div className="bg-muted h-1.5 min-w-40 flex-1 overflow-hidden rounded-full">
             <div
-              className="bg-brand h-full rounded-full transition-[width] duration-200"
-              style={{ width: `${progress}%` }}
+              className="bg-brand upload-progress-width progress-width-transition h-full rounded-full"
+              style={{ '--upload-progress-width': `${progress}%` }}
             />
           </div>
           <span className="text-foreground-alt text-xs tabular-nums">
@@ -395,7 +395,7 @@ export function UploadProgressBottomBar({
             onOpenAutoFocus={(e) => e.preventDefault()}
             onCloseAutoFocus={(e) => e.preventDefault()}
             data-testid="upload-feedback-popover"
-            className="w-72 p-3"
+            variant="compact"
           >
             <UploadFeedbackContent feedback={feedback} />
           </PopoverContent>

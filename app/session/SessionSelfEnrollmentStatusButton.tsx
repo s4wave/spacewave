@@ -52,7 +52,7 @@ export function SessionSelfEnrollmentStatusButton() {
           sideOffset={6}
           onEscapeKeyDown={onClick}
           onPointerDownOutside={onClick}
-          className="border-foreground/15 bg-background-card text-foreground z-50 w-80 max-w-[calc(100vw-1rem)] rounded-lg p-0 shadow-xl backdrop-blur-md"
+          variant="status"
         >
           <SessionSelfEnrollmentStatusPopover status={status} />
         </PopoverContent>
@@ -163,7 +163,7 @@ function SessionSelfEnrollmentStatusPopover({
 
       {status.failures.length > 0 && (
         <div className="border-foreground/8 space-y-1.5 border-t pt-2">
-          <div className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase">
+          <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
             Failed spaces
           </div>
           {status.failures.slice(0, 3).map((failure) => (

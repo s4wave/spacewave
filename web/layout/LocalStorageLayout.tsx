@@ -20,8 +20,8 @@ import {
 import { LuMaximize2, LuMinimize2 } from 'react-icons/lu'
 
 const icons: ILayoutProps['icons'] = {
-  maximize: <LuMaximize2 className="text-foreground-alt size-[1em]" />,
-  restore: <LuMinimize2 className="text-foreground-alt size-[1em]" />,
+  maximize: <LuMaximize2 className="text-foreground-alt icon-size-em" />,
+  restore: <LuMinimize2 className="text-foreground-alt icon-size-em" />,
 }
 
 // getSelectedTabIdFromModel extracts the selected tab ID for each tabset.

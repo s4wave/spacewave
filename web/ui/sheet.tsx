@@ -49,12 +49,14 @@ function SheetContent({
   position = 'fixed',
   showCloseButton = true,
   side = 'right',
+  variant,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   portalContainer?: HTMLElement | null
   position?: 'fixed' | 'absolute'
   showCloseButton?: boolean
   side?: 'top' | 'right' | 'bottom' | 'left'
+  variant?: 'default' | 'docs' | 'docsPlain'
 }) {
   return (
     <SheetPortal container={portalContainer}>
@@ -74,6 +76,7 @@ function SheetContent({
             'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b',
           side === 'bottom' &&
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
+          (variant === 'docs' || variant === 'docsPlain') && 'gap-0 p-0',
           className,
         )}
         {...props}
@@ -112,12 +115,21 @@ function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
 
 function SheetTitle({
   className,
+  variant,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Title>) {
+}: React.ComponentProps<typeof SheetPrimitive.Title> & {
+  variant?: 'default' | 'docs' | 'docsPlain'
+}) {
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn('text-foreground font-semibold', className)}
+      className={cn(
+        'text-foreground font-semibold',
+        (variant === 'docs' || variant === 'docsPlain') &&
+          'flex items-center gap-2 text-sm font-semibold tracking-tight',
+        variant === 'docsPlain' && 'gap-0',
+        className,
+      )}
       {...props}
     />
   )

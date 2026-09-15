@@ -57,7 +57,7 @@ import { SpacePlugins } from './SpacePlugins.js'
 // an InfoCard on the app background, so screenshots match production chrome.
 function PanelFrame() {
   return (
-    <div className="bg-background" style={{ width: '380px', padding: '16px' }}>
+    <div className="bg-background w-95 p-4">
       <InfoCard>
         <SpacePlugins />
       </InfoCard>

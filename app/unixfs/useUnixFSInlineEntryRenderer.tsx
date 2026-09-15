@@ -50,7 +50,8 @@ export function useUnixFSInlineEntryRenderer({
         return (
           <div
             role="presentation"
-            className="rename-actions flex min-w-[120px] flex-1 items-center gap-0.5 overflow-hidden"
+            className="flex min-w-30 flex-1 items-center gap-0.5 overflow-hidden"
+            data-rename-actions="true"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -83,7 +84,7 @@ export function useUnixFSInlineEntryRenderer({
               }}
               onBlur={(event) => {
                 const related = event.relatedTarget as HTMLElement | null
-                if (related?.closest('.rename-actions')) return
+                if (related?.closest('[data-rename-actions]')) return
                 onCancelRename()
               }}
             />
@@ -126,7 +127,7 @@ export function useUnixFSInlineEntryRenderer({
       return (
         <div
           role="presentation"
-          className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden"
+          className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden"
           onClick={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
         >

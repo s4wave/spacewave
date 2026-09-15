@@ -47,7 +47,7 @@ export function KeybindingDiscoverySettings() {
         type="button"
         variant="ghost"
         size="sm"
-        className="justify-start px-0"
+        className="justify-start"
         disabled={!selectedSettingsEditable}
         onClick={selectedController.resetLayer}
       >

@@ -153,7 +153,7 @@ export function OrgContainer() {
         {info && (
           <span
             className={cn(
-              'ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
+              'ml-1.5 rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
               roleBadgeClass,
             )}
           >

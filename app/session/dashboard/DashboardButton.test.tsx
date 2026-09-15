@@ -36,12 +36,12 @@ describe('DashboardButton', () => {
 
   it('applies custom className', () => {
     render(
-      <DashboardButton icon={<span>ic</span>} className="my-custom-class">
+      <DashboardButton icon={<span>ic</span>} className="mt-1">
         Styled
       </DashboardButton>,
     )
     const button = screen.getByRole('button')
-    expect(button.classList.contains('my-custom-class')).toBe(true)
+    expect(button.classList.contains('mt-1')).toBe(true)
   })
 
   it('supports the disabled prop', () => {

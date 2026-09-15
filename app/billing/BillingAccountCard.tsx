@@ -49,7 +49,7 @@ export function BillingAccountCard({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">
           <span className="text-foreground text-xs font-medium">{label}</span>
-          <span className={cn('text-[10px] font-semibold', stColor)}>
+          <span className={cn('micro-ten font-semibold', stColor)}>
             {statusLabel(status)}
           </span>
         </div>

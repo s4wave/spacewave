@@ -19,16 +19,7 @@ async function renderWithMenuShell(layout: IJsonRowNode) {
   const { OptimizedLayout, Model } = await import('@aptre/flex-layout')
   const model = Model.fromJson({ global: { tabEnableClose: false }, layout })
   await render(
-    <div
-      style={{
-        width: '1024px',
-        height: '600px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="relative flex h-150 w-256 flex-col overflow-hidden">
       <div
         className="shell-flexlayout shell-flexlayout--with-menu flex flex-1 flex-col overflow-hidden"
         style={{ '--menu-bar-width': '233px' }}
@@ -124,9 +115,7 @@ describe('Shell menu container collapse', () => {
         >
           <button aria-label="logo">L</button>
           <div className="shell-menu-collapsible" data-testid="menu-items">
-            <span style={{ display: 'inline-block', width: '180px' }}>
-              menus
-            </span>
+            <span className="inline-block w-45">menus</span>
           </div>
         </div>
       </div>,

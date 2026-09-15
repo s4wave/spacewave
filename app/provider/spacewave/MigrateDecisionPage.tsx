@@ -116,7 +116,7 @@ export function MigrateDecisionPage() {
         <div className="flex items-start gap-4">
           <div className="bg-foreground/5 flex size-10 shrink-0 items-center justify-center rounded-lg">
             {unlinking ? (
-              <Spinner size="md" className="text-foreground-alt" />
+              <Spinner size="md" variant="muted" />
             ) : (
               <LuUnlink className="text-foreground-alt size-5" />
             )}

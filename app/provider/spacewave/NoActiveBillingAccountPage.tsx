@@ -222,10 +222,10 @@ export function NoActiveBillingAccountPage() {
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-foreground-alt/60 text-[11px] font-medium tracking-[0.18em] uppercase">
+            <div className="text-foreground-alt/60 text-metadata tracking-brand-medium font-medium uppercase">
               Setting billing for
             </div>
-            <div className="text-foreground max-w-[16rem] truncate text-sm font-semibold tracking-tight">
+            <div className="text-foreground max-w-64 truncate text-sm font-semibold tracking-tight">
               {target.label}
             </div>
           </div>
@@ -265,7 +265,7 @@ export function NoActiveBillingAccountPage() {
       {checkout.polling && (
         <div className="border-brand/20 bg-brand/5 rounded-lg border p-3 text-sm backdrop-blur-sm">
           <div className="flex items-center gap-2">
-            <Spinner className="text-brand" />
+            <Spinner variant="brand" />
             <span className="text-foreground">
               Activating subscription, this page will update when confirmation
               arrives.
@@ -307,7 +307,7 @@ export function NoActiveBillingAccountPage() {
                     </span>
                     <span
                       className={cn(
-                        'rounded-full border px-2 py-0.5 text-[0.55rem] font-semibold tracking-widest uppercase',
+                        'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
                         subscriptionStatusBadgeColor(ba.subscriptionStatus),
                       )}
                     >
@@ -315,7 +315,7 @@ export function NoActiveBillingAccountPage() {
                     </span>
                   </div>
                   {ba.lifecycleState && (
-                    <div className="text-foreground-alt/50 text-[0.6rem] select-none">
+                    <div className="text-foreground-alt/50 micro-text select-none">
                       {lifecycleStateLabel(ba.lifecycleState)}
                     </div>
                   )}

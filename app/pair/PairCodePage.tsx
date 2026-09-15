@@ -225,7 +225,7 @@ export function PairCodePage(props: PairCodePageProps) {
                   maxLength={9}
                   disabled={loading}
                   className={cn(
-                    'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-[0.2em]',
+                    'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
                     'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
                     'disabled:cursor-not-allowed disabled:opacity-50',
                     'h-14 px-3',

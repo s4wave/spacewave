@@ -240,7 +240,7 @@ function AuthMutationWizardContent({
         <StepIndicator labels={labels} current={step} complete={complete} />
 
         {/* Step content */}
-        <div className="min-h-[120px]">
+        <div className="min-h-30">
           {complete ? (
             <CompleteView mode={mode} addMethodType={addMethodType} />
           ) : step === 0 ? (
@@ -388,7 +388,7 @@ function StepIndicator({
             />
             <span
               className={cn(
-                'text-[10px] leading-tight',
+                'micro-ten leading-tight',
                 done
                   ? 'text-brand'
                   : active
@@ -520,9 +520,9 @@ function Step1Unlock({
 
       <div className="bg-foreground/5 h-1.5 w-full overflow-hidden rounded-full">
         <div
-          className="bg-brand h-full transition-[width] duration-300"
+          className="bg-brand progress-width progress-width-transition-medium h-full"
           style={{
-            width: `${Math.min(100, (unlockedCount / required) * 100)}%`,
+            '--progress-width': `${Math.min(100, (unlockedCount / required) * 100)}%`,
           }}
         />
       </div>

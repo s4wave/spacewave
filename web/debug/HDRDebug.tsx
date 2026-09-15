@@ -4,30 +4,24 @@ import { LuArrowLeft } from 'react-icons/lu'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
-// extStyle accepts a style object with extended CSS properties (such as
-// dynamicRangeLimit) and returns it as React.CSSProperties. Centralizes the
-// single type widening needed for non-standard CSS properties.
-function extStyle(
-  s: React.CSSProperties & Record<string, unknown>,
-): React.CSSProperties {
-  return s
-}
-
 // Swatch renders a color sample with its token name.
 function Swatch({
   label,
   className,
-  style,
+  color,
 }: {
   label: string
   className?: string
-  style?: React.CSSProperties
+  color: string
 }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={cn('h-10 w-16 rounded border border-white/10', className)}
-        style={style}
+        className={cn(
+          'hdr-swatch-color h-10 w-16 rounded border border-white/10',
+          className,
+        )}
+        style={{ '--hdr-swatch-color': color }}
       />
       <span className="text-text-muted max-w-16 truncate text-center font-mono text-xs">
         {label}
@@ -50,16 +44,15 @@ function GlowBox({
 }) {
   return (
     <div
-      className="flex h-20 w-36 flex-col items-center justify-center rounded-lg border text-center"
-      style={extStyle({
-        dynamicRangeLimit: dynamicRange,
-        borderColor: color,
-        boxShadow: `0 0 12px 2px ${glow}`,
-        background: 'var(--color-background-deep)',
-      })}
+      className="hdr-glow-box flex h-20 w-36 flex-col items-center justify-center rounded-lg border text-center"
+      style={{
+        '--hdr-dynamic-range': dynamicRange,
+        '--hdr-border-color': color,
+        '--hdr-box-shadow': `0 0 12px 2px ${glow}`,
+      }}
     >
       <span className="text-text-primary text-xs font-semibold">{label}</span>
-      <span className="text-text-muted font-mono text-[9px]">
+      <span className="text-text-muted micro-nine font-mono">
         {dynamicRange}
       </span>
     </div>
@@ -76,12 +69,11 @@ function BrightnessStrip({ color, label }: { color: string; label: string }) {
         {levels.map((b) => (
           <div
             key={b}
-            className="flex h-8 w-12 items-center justify-center rounded font-mono text-[9px]"
-            style={extStyle({
-              dynamicRangeLimit: 'no-limit',
-              backgroundColor: color,
-              filter: `brightness(${b})`,
-            })}
+            className="hdr-brightness-sample micro-nine flex h-8 w-12 items-center justify-center rounded font-mono"
+            style={{
+              '--hdr-sample-color': color,
+              '--hdr-sample-filter': `brightness(${b})`,
+            }}
           >
             {b}x
           </div>
@@ -95,23 +87,20 @@ function BrightnessStrip({ color, label }: { color: string; label: string }) {
 function TextContrast({ bg, bgLabel }: { bg: string; bgLabel: string }) {
   return (
     <div
-      className="flex flex-col gap-2 rounded-lg p-3"
-      style={{ backgroundColor: bg }}
+      className="hdr-text-background flex flex-col gap-2 rounded-lg p-3"
+      style={{ '--hdr-text-background': bg }}
     >
       <span className="font-mono text-xs opacity-60">{bgLabel}</span>
-      <span className="text-xs" style={{ color: 'white' }}>
+      <span className="hdr-white-text text-xs">
         White 10px: The quick brown fox jumps over the lazy dog
       </span>
-      <span className="text-xs" style={{ color: 'white' }}>
+      <span className="hdr-white-text text-xs">
         White 12px: The quick brown fox jumps over the lazy dog
       </span>
-      <span className="text-sm" style={{ color: 'white' }}>
+      <span className="hdr-white-text text-sm">
         White 14px: The quick brown fox jumps over the lazy dog
       </span>
-      <span
-        className="text-xs"
-        style={{ color: 'white', textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
-      >
+      <span className="hdr-white-text-shadow text-xs">
         White 12px + shadow: The quick brown fox jumps over the lazy dog
       </span>
     </div>
@@ -144,35 +133,6 @@ export function HDRDebug() {
 
   return (
     <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
-      {/* Inline styles for CSS-only capability detection */}
-      <style>{`
-        @media (color-gamut: p3) {
-          .hdr-debug-gamut-p3 .cap-no { display: none !important; }
-          .hdr-debug-gamut-p3 .cap-yes { display: inline !important; }
-        }
-        @media (color-gamut: rec2020) {
-          .hdr-debug-gamut-rec2020 .cap-no { display: none !important; }
-          .hdr-debug-gamut-rec2020 .cap-yes { display: inline !important; }
-        }
-        @media (dynamic-range: high) {
-          .hdr-debug-dynamic-range .cap-no { display: none !important; }
-          .hdr-debug-dynamic-range .cap-yes { display: inline !important; }
-        }
-        @media (dynamic-range: standard) {
-          .hdr-debug-dynamic-range-sdr .cap-no { display: none !important; }
-          .hdr-debug-dynamic-range-sdr .cap-yes { display: inline !important; }
-        }
-
-        .hdr-debug-drl-test {
-          dynamic-range-limit: no-limit;
-        }
-
-        /* Overbright gradient ramp */
-        .hdr-debug-overbright-ramp {
-          dynamic-range-limit: no-limit;
-        }
-      `}</style>
-
       <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
         <button
           onClick={goBack}
@@ -201,7 +161,7 @@ export function HDRDebug() {
                 <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
-                <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                <span className="cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400">
                   YES
                 </span>
                 <span className="text-text-muted font-mono text-xs">
@@ -215,7 +175,7 @@ export function HDRDebug() {
                 <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
-                <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                <span className="cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400">
                   YES
                 </span>
                 <span className="text-text-muted font-mono text-xs">
@@ -229,7 +189,7 @@ export function HDRDebug() {
                 <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
-                <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                <span className="cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400">
                   YES
                 </span>
                 <span className="text-text-muted font-mono text-xs">
@@ -243,7 +203,7 @@ export function HDRDebug() {
                 <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
-                <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                <span className="cap-yes micro-ten hidden rounded bg-green-500/20 px-2 py-0.5 font-semibold text-green-400">
                   YES
                 </span>
                 <span className="text-text-muted font-mono text-xs">
@@ -265,32 +225,18 @@ export function HDRDebug() {
                   Brand
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="brand"
-                    style={{ backgroundColor: 'var(--color-brand)' }}
-                  />
+                  <Swatch label="brand" color="var(--color-brand)" />
                   <Swatch
                     label="brand-highlight"
-                    style={{ backgroundColor: 'var(--color-brand-highlight)' }}
+                    color="var(--color-brand-highlight)"
                   />
-                  <Swatch
-                    label="primary"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
-                  />
+                  <Swatch label="primary" color="var(--color-primary)" />
                   <Swatch
                     label="primary-fg"
-                    style={{
-                      backgroundColor: 'var(--color-primary-foreground)',
-                    }}
+                    color="var(--color-primary-foreground)"
                   />
-                  <Swatch
-                    label="accent"
-                    style={{ backgroundColor: 'var(--color-accent)' }}
-                  />
-                  <Swatch
-                    label="violet"
-                    style={{ backgroundColor: 'var(--color-violet)' }}
-                  />
+                  <Swatch label="accent" color="var(--color-accent)" />
+                  <Swatch label="violet" color="var(--color-violet)" />
                 </div>
               </div>
               <div>
@@ -298,18 +244,9 @@ export function HDRDebug() {
                   Status
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="success"
-                    style={{ backgroundColor: 'var(--color-success)' }}
-                  />
-                  <Swatch
-                    label="warning"
-                    style={{ backgroundColor: 'var(--color-warning)' }}
-                  />
-                  <Swatch
-                    label="error"
-                    style={{ backgroundColor: 'var(--color-error)' }}
-                  />
+                  <Swatch label="success" color="var(--color-success)" />
+                  <Swatch label="warning" color="var(--color-warning)" />
+                  <Swatch label="error" color="var(--color-error)" />
                 </div>
               </div>
               <div>
@@ -317,18 +254,9 @@ export function HDRDebug() {
                   Console
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="output"
-                    style={{ backgroundColor: 'var(--color-console-output)' }}
-                  />
-                  <Swatch
-                    label="info"
-                    style={{ backgroundColor: 'var(--color-console-info)' }}
-                  />
-                  <Swatch
-                    label="error"
-                    style={{ backgroundColor: 'var(--color-console-error)' }}
-                  />
+                  <Swatch label="output" color="var(--color-console-output)" />
+                  <Swatch label="info" color="var(--color-console-info)" />
+                  <Swatch label="error" color="var(--color-console-error)" />
                 </div>
               </div>
               <div>
@@ -336,18 +264,9 @@ export function HDRDebug() {
                   Logo
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="blue"
-                    style={{ backgroundColor: 'var(--color-logo-blue)' }}
-                  />
-                  <Swatch
-                    label="pink"
-                    style={{ backgroundColor: 'var(--color-logo-pink)' }}
-                  />
-                  <Swatch
-                    label="purple"
-                    style={{ backgroundColor: 'var(--color-logo-purple)' }}
-                  />
+                  <Swatch label="blue" color="var(--color-logo-blue)" />
+                  <Swatch label="pink" color="var(--color-logo-pink)" />
+                  <Swatch label="purple" color="var(--color-logo-purple)" />
                 </div>
               </div>
               <div>
@@ -355,37 +274,26 @@ export function HDRDebug() {
                   Backgrounds
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="bg"
-                    style={{ backgroundColor: 'var(--color-background)' }}
-                  />
+                  <Swatch label="bg" color="var(--color-background)" />
                   <Swatch
                     label="bg-dark"
-                    style={{ backgroundColor: 'var(--color-background-dark)' }}
+                    color="var(--color-background-dark)"
                   />
                   <Swatch
                     label="bg-primary"
-                    style={{
-                      backgroundColor: 'var(--color-background-primary)',
-                    }}
+                    color="var(--color-background-primary)"
                   />
                   <Swatch
                     label="bg-secondary"
-                    style={{
-                      backgroundColor: 'var(--color-background-secondary)',
-                    }}
+                    color="var(--color-background-secondary)"
                   />
                   <Swatch
                     label="bg-panel"
-                    style={{
-                      backgroundColor: 'var(--color-background-panel)',
-                    }}
+                    color="var(--color-background-panel)"
                   />
                   <Swatch
                     label="bg-deep"
-                    style={{
-                      backgroundColor: 'var(--color-background-deep)',
-                    }}
+                    color="var(--color-background-deep)"
                   />
                 </div>
               </div>
@@ -394,23 +302,15 @@ export function HDRDebug() {
                   Borders & UI
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <Swatch
-                    label="border"
-                    style={{ backgroundColor: 'var(--color-border)' }}
-                  />
-                  <Swatch
-                    label="ui-outline"
-                    style={{ backgroundColor: 'var(--color-ui-outline)' }}
-                  />
+                  <Swatch label="border" color="var(--color-border)" />
+                  <Swatch label="ui-outline" color="var(--color-ui-outline)" />
                   <Swatch
                     label="ui-outline-active"
-                    style={{
-                      backgroundColor: 'var(--color-ui-outline-active)',
-                    }}
+                    color="var(--color-ui-outline-active)"
                   />
                   <Swatch
                     label="window-border"
-                    style={{ backgroundColor: 'var(--color-window-border)' }}
+                    color="var(--color-window-border)"
                   />
                 </div>
               </div>
@@ -525,10 +425,7 @@ export function HDRDebug() {
               no-limit. On HDR displays, values above 1.0 should produce visibly
               brighter output.
             </p>
-            <div
-              className="flex flex-col gap-3"
-              style={extStyle({ dynamicRangeLimit: 'no-limit' })}
-            >
+            <div className="hdr-no-limit flex flex-col gap-3">
               <BrightnessStrip color="var(--color-brand)" label="brand" />
               <BrightnessStrip
                 color="var(--color-primary)"
@@ -549,20 +446,21 @@ export function HDRDebug() {
               Tests oklch lightness values beyond 1.0 under no-limit. On HDR
               displays, L &gt; 1.0 should be brighter than standard white.
             </p>
-            <div
-              className="flex gap-1"
-              style={extStyle({ dynamicRangeLimit: 'no-limit' })}
-            >
+            <div className="hdr-no-limit flex gap-1">
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className="flex h-12 w-10 items-end justify-center rounded pb-1 text-[8px]"
+                  className={cn(
+                    'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
+                    l > 0.6 ? 'text-black' : 'text-white',
+                  )}
                   style={{
-                    backgroundColor: `oklch(${l} 0 0)`,
-                    color: l > 0.6 ? 'black' : 'white',
+                    '--hdr-ramp-lightness': l,
+                    '--hdr-ramp-chroma': 0,
+                    '--hdr-ramp-hue': 0,
                   }}
                 >
                   {l.toFixed(1)}
@@ -572,20 +470,21 @@ export function HDRDebug() {
             <p className="text-text-muted text-xs">
               Same with chroma (hue 10, brand red):
             </p>
-            <div
-              className="flex gap-1"
-              style={extStyle({ dynamicRangeLimit: 'no-limit' })}
-            >
+            <div className="hdr-no-limit flex gap-1">
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className="flex h-12 w-10 items-end justify-center rounded pb-1 text-[8px]"
+                  className={cn(
+                    'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
+                    l > 0.6 ? 'text-black' : 'text-white',
+                  )}
                   style={{
-                    backgroundColor: `oklch(${l} 0.15 10)`,
-                    color: l > 0.6 ? 'black' : 'white',
+                    '--hdr-ramp-lightness': l,
+                    '--hdr-ramp-chroma': 0.15,
+                    '--hdr-ramp-hue': 10,
                   }}
                 >
                   {l.toFixed(1)}
@@ -595,20 +494,21 @@ export function HDRDebug() {
             <p className="text-text-muted text-xs">
               Same with chroma (hue 153, success green):
             </p>
-            <div
-              className="flex gap-1"
-              style={extStyle({ dynamicRangeLimit: 'no-limit' })}
-            >
+            <div className="hdr-no-limit flex gap-1">
               {[
                 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2,
                 1.3, 1.4, 1.5,
               ].map((l) => (
                 <div
                   key={l}
-                  className="flex h-12 w-10 items-end justify-center rounded pb-1 text-[8px]"
+                  className={cn(
+                    'hdr-ramp-sample flex h-12 w-10 items-end justify-center rounded pb-1 micro-eight',
+                    l > 0.6 ? 'text-black' : 'text-white',
+                  )}
                   style={{
-                    backgroundColor: `oklch(${l} 0.22 153)`,
-                    color: l > 0.6 ? 'black' : 'white',
+                    '--hdr-ramp-lightness': l,
+                    '--hdr-ramp-chroma': 0.22,
+                    '--hdr-ramp-hue': 153,
                   }}
                 >
                   {l.toFixed(1)}
@@ -626,53 +526,27 @@ export function HDRDebug() {
               dynamic-range-limit: standard with a receding shadow.
             </p>
             <div className="bg-background-dark flex gap-4 rounded-xl p-6">
-              <div
-                className="flex h-32 flex-1 flex-col items-center justify-center rounded-lg border"
-                style={extStyle({
-                  dynamicRangeLimit: 'no-limit',
-                  borderColor:
-                    'var(--hdr-glow-active-border, var(--color-ui-outline-active))',
-                  boxShadow:
-                    '0 0 10px 2px var(--hdr-glow-active-shadow, transparent)',
-                  background: 'var(--color-background-primary)',
-                })}
-              >
+              <div className="hdr-panel-active flex h-32 flex-1 flex-col items-center justify-center rounded-lg border">
                 <span className="text-text-primary text-sm font-semibold">
                   Active Panel
                 </span>
-                <span className="text-text-muted text-[10px]">
+                <span className="text-text-muted micro-ten">
                   no-limit + glow
                 </span>
               </div>
-              <div
-                className="flex h-32 flex-1 flex-col items-center justify-center rounded-lg border"
-                style={extStyle({
-                  dynamicRangeLimit: 'standard',
-                  borderColor: 'var(--color-window-border)',
-                  boxShadow:
-                    '0 2px 8px var(--hdr-shadow-recede, oklch(0 0 0 / 0.3))',
-                  background: 'var(--color-background-primary)',
-                })}
-              >
+              <div className="hdr-panel-inactive flex h-32 flex-1 flex-col items-center justify-center rounded-lg border">
                 <span className="text-text-secondary text-sm">
                   Inactive Panel
                 </span>
-                <span className="text-text-muted text-[10px]">
+                <span className="text-text-muted micro-ten">
                   standard + recede
                 </span>
               </div>
-              <div
-                className="flex h-32 flex-1 flex-col items-center justify-center rounded-lg border"
-                style={extStyle({
-                  dynamicRangeLimit: 'standard',
-                  borderColor: 'var(--color-window-border)',
-                  background: 'var(--color-background-primary)',
-                })}
-              >
+              <div className="hdr-panel-flat flex h-32 flex-1 flex-col items-center justify-center rounded-lg border">
                 <span className="text-text-secondary text-sm">
                   Inactive (no shadow)
                 </span>
-                <span className="text-text-muted text-[10px]">
+                <span className="text-text-muted micro-ten">
                   standard, flat
                 </span>
               </div>
@@ -719,31 +593,19 @@ export function HDRDebug() {
             <div className="flex flex-wrap gap-3">
               <Swatch
                 label="glow-focus"
-                style={{
-                  backgroundColor:
-                    'var(--hdr-glow-focus, oklch(0.4 0 0 / 0.3))',
-                }}
+                color="var(--hdr-glow-focus, oklch(0.4 0 0 / 0.3))"
               />
               <Swatch
                 label="glow-active-border"
-                style={{
-                  backgroundColor:
-                    'var(--hdr-glow-active-border, oklch(0.4 0 0 / 0.3))',
-                }}
+                color="var(--hdr-glow-active-border, oklch(0.4 0 0 / 0.3))"
               />
               <Swatch
                 label="glow-active-shadow"
-                style={{
-                  backgroundColor:
-                    'var(--hdr-glow-active-shadow, oklch(0.4 0 0 / 0.3))',
-                }}
+                color="var(--hdr-glow-active-shadow, oklch(0.4 0 0 / 0.3))"
               />
               <Swatch
                 label="shadow-recede"
-                style={{
-                  backgroundColor:
-                    'var(--hdr-shadow-recede, oklch(0.4 0 0 / 0.3))',
-                }}
+                color="var(--hdr-shadow-recede, oklch(0.4 0 0 / 0.3))"
               />
             </div>
           </Section>
@@ -771,8 +633,8 @@ export function HDRDebug() {
                   ].map(([name, color]) => (
                     <div key={name} className="flex items-center gap-2">
                       <div
-                        className="h-6 w-12 rounded"
-                        style={{ backgroundColor: color }}
+                        className="hdr-token-swatch h-6 w-12 rounded"
+                        style={{ '--hdr-token-color': color }}
                       />
                       <span className="text-text-muted font-mono text-xs">
                         {name}
@@ -797,8 +659,8 @@ export function HDRDebug() {
                   ].map(([name, color]) => (
                     <div key={name} className="flex items-center gap-2">
                       <div
-                        className="h-6 w-12 rounded"
-                        style={{ backgroundColor: color }}
+                        className="hdr-token-swatch h-6 w-12 rounded"
+                        style={{ '--hdr-token-color': color }}
                       />
                       <span className="text-text-muted font-mono text-xs">
                         {name}
@@ -817,17 +679,17 @@ export function HDRDebug() {
               displays, the hdr-window-glow class has no effect.
             </p>
             <div className="bg-background-dark flex gap-4 rounded-xl p-6">
-              <div className="hdr-window-glow flex h-24 flex-1 items-center justify-center rounded-lg border border-[var(--color-window-border)] bg-[var(--color-background-primary)]">
+              <div className="hdr-window-glow border-window-border bg-background-primary flex h-24 flex-1 items-center justify-center rounded-lg border">
                 <span className="text-text-secondary text-xs">
                   Hover me (window glow)
                 </span>
               </div>
-              <div className="hdr-window-glow flex h-24 flex-1 items-center justify-center rounded-lg border border-[var(--color-ui-outline)] bg-[var(--color-background-secondary)]">
+              <div className="hdr-window-glow border-ui-outline bg-background-secondary flex h-24 flex-1 items-center justify-center rounded-lg border">
                 <span className="text-text-secondary text-xs">
                   Hover me (outline glow)
                 </span>
               </div>
-              <div className="flex h-24 flex-1 items-center justify-center rounded-lg border border-[var(--color-window-border)] bg-[var(--color-background-primary)]">
+              <div className="border-window-border bg-background-primary flex h-24 flex-1 items-center justify-center rounded-lg border">
                 <span className="text-text-secondary text-xs">
                   No glow (control)
                 </span>
@@ -877,8 +739,8 @@ function StatusFlashDemoInner() {
       {statuses.map((status) => (
         <button
           key={status}
-          className="hdr-status-flash cursor-pointer rounded border border-white/10 px-3 py-2 font-mono text-xs font-bold"
-          style={{ color: statusColors[status] }}
+          className="hdr-status-color hdr-status-flash cursor-pointer rounded border border-white/10 px-3 py-2 font-mono text-xs font-bold"
+          style={{ '--hdr-status-color': statusColors[status] }}
           onClick={(e) => {
             const el = e.currentTarget
             el.removeAttribute('data-status-changed')

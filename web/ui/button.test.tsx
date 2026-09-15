@@ -36,9 +36,9 @@ describe('Button', () => {
   })
 
   it('applies custom className', () => {
-    render(<Button className="extra-class">Styled</Button>)
+    render(<Button className="mt-1">Styled</Button>)
     const button = screen.getByRole('button', { name: 'Styled' })
-    expect(button.className).toContain('extra-class')
+    expect(button.className).toContain('mt-1')
   })
 
   it('asChild renders as child element type', () => {

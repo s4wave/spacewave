@@ -337,11 +337,11 @@ describe('BottomBarItem', () => {
 
     it('applies custom className', () => {
       const { container } = render(
-        <BottomBarItem className="custom-class">Test Item</BottomBarItem>,
+        <BottomBarItem className="mt-1">Test Item</BottomBarItem>,
       )
 
       const item = container.firstChild as HTMLElement
-      expect(item.className).toContain('custom-class')
+      expect(item.className).toContain('mt-1')
     })
 
     it('sets cursor to not-allowed when disabled', () => {

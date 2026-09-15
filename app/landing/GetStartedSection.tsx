@@ -31,7 +31,7 @@ export function GetStartedSection({
   return (
     <div
       ref={homeRef}
-      className="relative flex min-h-full w-full flex-col pt-6 @lg:pt-8 @2xl:pt-[2.84rem]"
+      className="@2xl:pt-get-started-wide relative flex min-h-full w-full flex-col pt-6 @lg:pt-8"
     >
       {/* Spacer to center content on tall screens */}
       <div className="tall:block tall:flex-1 hidden" />
@@ -42,7 +42,7 @@ export function GetStartedSection({
           followMouse={true}
           containerClassName="very-short:hidden"
         />
-        <h1 className="ultra-short:hidden text-2xl font-semibold tracking-[0.1rem] whitespace-nowrap @lg:text-3xl @lg:tracking-[0.142rem]">
+        <h1 className="ultra-short:hidden tracking-brand-tight @lg:tracking-brand-lg text-2xl font-semibold whitespace-nowrap @lg:text-3xl">
           [SPACEWAVE]
         </h1>
 
@@ -100,11 +100,11 @@ export function GetStartedSection({
               : 'pointer-events-none opacity-0',
             showScrollIndicator &&
               animateScrollIndicator &&
-              'animate-[pulse_8s_ease-in-out_infinite]',
+              'animate-logo-medium',
           )}
           onClick={scrollDown}
         >
-          <span className="text-foreground-alt/60 text-[10px] tracking-wide uppercase select-none">
+          <span className="text-foreground-alt/60 micro-ten tracking-wide uppercase select-none">
             Learn more
           </span>
           <span className="text-foreground-alt/60 text-xs font-bold">▼</span>

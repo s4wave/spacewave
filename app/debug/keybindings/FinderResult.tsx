@@ -31,13 +31,9 @@ export function FinderResult({
       aria-selected={selected}
       type="button"
       tabIndex={-1}
-      variant="ghost"
-      className={cn(
-        'h-auto w-full justify-start rounded-lg px-3 py-2.5 text-left',
-        selected
-          ? 'border-brand/20 bg-brand/10 hover:bg-brand/10 border'
-          : 'border border-transparent hover:bg-foreground/4',
-      )}
+      variant={selected ? 'selectedFinder' : 'unselectedFinder'}
+      size="finderRow"
+      className="w-full justify-start text-left"
       onClick={select}
     >
       <span
@@ -57,7 +53,7 @@ export function FinderResult({
             <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
           ) : null}
         </span>
-        <span className="text-foreground-alt/45 mt-0.5 block truncate text-[11px] font-normal">
+        <span className="text-foreground-alt/45 text-metadata mt-0.5 block truncate font-normal">
           {command.category} · {command.context}
         </span>
       </span>

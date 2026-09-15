@@ -37,7 +37,7 @@ function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
           <LuCheck className="size-3" />
         </div>
       ) : active ? (
-        <Spinner className="text-brand" />
+        <Spinner variant="brand" />
       ) : (
         <div className="border-foreground/20 size-4 rounded-full border" />
       )}

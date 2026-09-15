@@ -8,7 +8,7 @@ import { AboutDialog } from './AboutDialog.js'
 function AboutDialogInAppFrame() {
   return (
     <>
-      <div style={{ minHeight: '100vh' }}>App frame</div>
+      <div className="min-h-dvh">App frame</div>
       <AboutDialog open={true} onOpenChange={() => {}} />
     </>
   )

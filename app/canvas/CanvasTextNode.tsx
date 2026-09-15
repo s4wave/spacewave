@@ -88,7 +88,7 @@ export function CanvasTextNode({
         ref={textareaRef}
         className={cn(
           'h-full w-full resize-none border-none bg-transparent p-2 text-sm outline-none',
-          'font-[family-name:var(--font-display)]',
+          'font-display',
           className,
         )}
         value={draft}
@@ -103,7 +103,7 @@ export function CanvasTextNode({
     <pre
       className={cn(
         'h-full w-full cursor-text overflow-auto p-2 text-sm whitespace-pre-wrap',
-        'font-[family-name:var(--font-display)]',
+        'font-display',
         className,
       )}
       onDoubleClick={handleDoubleClick}

@@ -167,7 +167,7 @@ export function DeviceViewer({
                   {capabilities.map((capability) => (
                     <div
                       key={capability.id}
-                      className="bg-background-secondary grid gap-2 p-3 sm:grid-cols-[1fr_auto]"
+                      className="bg-background-secondary sm:grid-cols-auto grid gap-2 p-3"
                     >
                       <div>
                         <div className="text-foreground text-sm font-medium">

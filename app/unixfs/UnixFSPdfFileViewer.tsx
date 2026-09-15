@@ -185,7 +185,7 @@ function UnixFSPdfViewerSurface({
           <div
             ref={frameRef}
             aria-label={`PDF preview: ${title}`}
-            className="relative flex min-h-[320px] flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
+            className="relative flex min-h-80 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4"
           >
             {!!state.numPages && (
               <div className="border-foreground/10 bg-background/78 text-foreground absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border px-2 py-1.5 shadow-sm backdrop-blur-sm select-none">
@@ -241,7 +241,7 @@ function UnixFSPdfViewerSurface({
               loading={
                 <div
                   data-testid="unixfs-pdf-loading"
-                  className="flex min-h-[240px] items-center justify-center p-6"
+                  className="flex min-h-60 items-center justify-center p-6"
                 >
                   <div className="w-full max-w-sm">
                     <LoadingCard

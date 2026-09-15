@@ -99,7 +99,7 @@ export function VmCreationProgressScreen({
       : 'Creating virtual machine'
 
   return (
-    <div className="bg-background flex min-h-[24rem] w-full flex-1 items-center justify-center p-6">
+    <div className="bg-background flex min-h-96 w-full flex-1 items-center justify-center p-6">
       <div className="border-foreground/10 bg-foreground/[0.02] w-full max-w-sm rounded-xl border p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="bg-brand/10 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
@@ -111,7 +111,7 @@ export function VmCreationProgressScreen({
             ) : progress.stage === 'ready' ? (
               <LuMonitor className="size-4" aria-hidden="true" />
             ) : (
-              <Spinner className="text-brand" />
+              <Spinner variant="brand" />
             )}
           </div>
           <div className="min-w-0">

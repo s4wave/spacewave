@@ -45,8 +45,9 @@ export function CategoryPanel({
     <article className="border-foreground/8 bg-background-card/30 overflow-hidden rounded-lg border backdrop-blur-sm">
       <Button
         type="button"
-        variant="ghost"
-        className="hover:bg-foreground/3 h-auto w-full justify-between rounded-none px-3.5 py-3 text-left"
+        variant="category"
+        size="category"
+        className="h-auto w-full justify-between text-left"
         aria-expanded={!collapsed}
         onClick={toggle}
       >
@@ -73,12 +74,7 @@ export function CategoryPanel({
         </span>
         <span className="flex items-center gap-2">
           {conflictCount > 0 ? (
-            <Badge
-              variant="destructive"
-              className="bg-destructive/15 text-destructive"
-            >
-              {conflictCount} conflicting
-            </Badge>
+            <Badge variant="conflict">{conflictCount} conflicting</Badge>
           ) : null}
           <LuChevronDown
             className={cn(

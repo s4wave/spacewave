@@ -208,7 +208,7 @@ export function SSOLinkDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle variant="withIcon">
             <ProviderIcon provider={provider} className="size-5" />
             Link {getProviderLabel(provider)}
           </DialogTitle>
@@ -247,7 +247,7 @@ export function SSOLinkDialog({
           {waiting && (
             <div className="border-brand/20 bg-brand/5 rounded-lg border px-3 py-2.5">
               <div className="flex items-center gap-2">
-                <Spinner className="text-brand" />
+                <Spinner variant="brand" />
                 <p className="text-foreground text-sm font-medium">
                   Waiting for {getProviderLabel(provider)}...
                 </p>

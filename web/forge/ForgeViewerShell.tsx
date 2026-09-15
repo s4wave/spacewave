@@ -97,13 +97,13 @@ export function ForgeViewerShell({
                     icon={action.icon}
                     onClick={action.onClick}
                     disabled={action.disabled}
-                    className={cn(
-                      'disabled:cursor-not-allowed disabled:opacity-50',
-                      action.variant === 'primary' &&
-                        'border-brand/30 bg-brand/10 text-foreground hover:border-brand/50 hover:bg-brand/15',
-                      action.variant === 'destructive' &&
-                        'text-destructive hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30',
-                    )}
+                    variant={
+                      action.variant === 'primary'
+                        ? 'primary'
+                        : action.variant === 'destructive'
+                          ? 'destructive'
+                          : undefined
+                    }
                   >
                     {action.label}
                   </DashboardButton>
@@ -161,13 +161,13 @@ export function ForgeViewerShell({
                   icon={action.icon}
                   onClick={action.onClick}
                   disabled={action.disabled}
-                  className={cn(
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    action.variant === 'primary' &&
-                      'border-brand/30 bg-brand/10 text-foreground hover:border-brand/50 hover:bg-brand/15',
-                    action.variant === 'destructive' &&
-                      'text-destructive hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30',
-                  )}
+                  variant={
+                    action.variant === 'primary'
+                      ? 'primary'
+                      : action.variant === 'destructive'
+                        ? 'destructive'
+                        : undefined
+                  }
                 >
                   {action.label}
                 </DashboardButton>

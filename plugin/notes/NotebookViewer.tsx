@@ -94,13 +94,12 @@ function NotebookViewer({
         {/* Sidebar - responsive: hidden on mobile unless toggled */}
         <div
           className={cn(
-            'border-border border-r',
+            'border-border w-50 min-w-50 border-r',
             'md:relative md:block',
             sidebarOpen
               ? 'bg-background-primary absolute inset-y-0 left-0 z-20 block'
               : 'hidden',
           )}
-          style={{ width: 200, minWidth: 200 }}
         >
           <NotebookSidebar
             sources={sources}
@@ -116,10 +115,9 @@ function NotebookViewer({
         {/* Note list - responsive: hidden on mobile when note is selected */}
         <div
           className={cn(
-            'border-border border-r',
+            'border-border w-62.5 min-w-62.5 border-r',
             selectedNote ? 'hidden md:block' : 'block',
           )}
-          style={{ width: 250, minWidth: 250 }}
         >
           <NoteList
             source={currentSource}

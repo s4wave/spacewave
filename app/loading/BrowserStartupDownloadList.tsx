@@ -69,7 +69,10 @@ function BrowserStartupDownloadRow({ download }: { download: BootDownload }) {
         {pct === undefined && !failed ? (
           <div className="swb-bar-fill swb-bar-fill--indeterminate" />
         ) : (
-          <div className="swb-bar-fill" style={{ width: `${pct ?? 0}%` }} />
+          <div
+            className="swb-bar-fill browser-progress-width"
+            style={{ '--browser-progress-width': `${pct ?? 0}%` }}
+          />
         )}
       </div>
     </div>

@@ -38,7 +38,9 @@ describe('PanelHeader', () => {
       </PanelHeader>,
     )
     const container = screen.getByText('Content').parentElement
-    expect(container?.style.height).toBe('25px')
+    expect(container?.style.getPropertyValue('--panel-header-height')).toBe(
+      '25px',
+    )
   })
 
   it('sets custom height', () => {
@@ -48,17 +50,19 @@ describe('PanelHeader', () => {
       </PanelHeader>,
     )
     const container = screen.getByText('Content').parentElement
-    expect(container?.style.height).toBe('40px')
+    expect(container?.style.getPropertyValue('--panel-header-height')).toBe(
+      '40px',
+    )
   })
 
   it('applies custom className', () => {
     render(
-      <PanelHeader className="my-custom-class">
+      <PanelHeader className="mt-1">
         <span>Content</span>
       </PanelHeader>,
     )
     const container = screen.getByText('Content').parentElement
-    expect(container?.className).toContain('my-custom-class')
+    expect(container?.className).toContain('mt-1')
   })
 
   it('renders without context and shows no selector', () => {
@@ -140,8 +144,8 @@ describe('PanelHeaderButton', () => {
   })
 
   it('applies custom className', () => {
-    render(<PanelHeaderButton className="extra-class">Btn</PanelHeaderButton>)
+    render(<PanelHeaderButton className="mt-1">Btn</PanelHeaderButton>)
     const button = screen.getByRole('button', { name: 'Btn' })
-    expect(button.className).toContain('extra-class')
+    expect(button.className).toContain('mt-1')
   })
 })

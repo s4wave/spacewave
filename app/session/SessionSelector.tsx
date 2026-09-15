@@ -236,20 +236,19 @@ function SpaceRootAliasCard(props: {
         variant={selected ? 'secondary' : 'outline'}
         onClick={handleSelect}
         disabled={!ready}
-        className="h-8 px-2 text-xs"
+        size="compact8"
       >
         <LuPlug className="size-3.5" />
         {selected ? 'Using' : 'Use'}
       </Button>
       <Button
-        variant="ghost"
-        size="icon"
         onClick={() => {
           void handleRemove()
         }}
         disabled={!root || removing}
         aria-label="Remove state root"
-        className="text-foreground-alt/60 hover:text-foreground size-8"
+        variant="muted"
+        size="iconSm"
       >
         <LuTrash2 className="size-4" />
       </Button>
@@ -439,17 +438,17 @@ function SessionCard(props: {
         <div className="flex items-center gap-2">
           <span className="text-foreground text-sm font-medium">{title}</span>
           {isCloudProvider && (
-            <span className="bg-brand/15 text-brand rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase">
+            <span className="bg-brand/15 text-brand micro-nine rounded-full px-1.5 py-0.5 font-semibold tracking-wider uppercase">
               Cloud
             </span>
           )}
           {isLinked && (
-            <span className="text-foreground-alt/80 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+            <span className="text-foreground-alt/80 micro-ten rounded-full px-1.5 py-0.5 font-medium">
               (linked)
             </span>
           )}
           {isInactive && (
-            <span className="bg-foreground/6 text-foreground-alt/75 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+            <span className="bg-foreground/6 text-foreground-alt/75 micro-ten rounded-full px-1.5 py-0.5 font-medium">
               (Inactive)
             </span>
           )}

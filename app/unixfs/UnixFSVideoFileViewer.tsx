@@ -48,7 +48,6 @@ const initialVideoPreviewState: VideoPreviewState = {
 
 const videoSkinStyle: CSSProperties = {
   '--media-border-radius': '0px',
-  borderRadius: 0,
 }
 
 function buildVideoErrorState(error: MediaError | null): VideoPreviewState {

@@ -102,7 +102,7 @@ export function PlanControls(props: {
           <DashboardButton
             icon={<LuX className="size-3" />}
             onClick={handleCancel}
-            className="text-destructive hover:bg-destructive/10"
+            variant="destructive"
           >
             Cancel subscription
           </DashboardButton>

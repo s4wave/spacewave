@@ -59,13 +59,12 @@ function DocsMobileNav({
         position="absolute"
         portalContainer={portalContainer}
         showCloseButton={false}
-        className="w-[280px] max-w-[calc(100%_-_32px)] gap-0 p-0"
+        variant="docs"
+        className="w-70 max-w-(--max-width-docs-sidebar)"
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <SheetTitle className="text-sm font-semibold">
-              Documentation
-            </SheetTitle>
+            <SheetTitle variant="docsPlain">Documentation</SheetTitle>
             <SheetClose asChild>
               <button
                 type="button"
@@ -114,7 +113,7 @@ export function DocsLayout({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - wide widths only */}
-        <aside className="hidden w-[232px] shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
+        <aside className="hidden w-58 shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
           {sidebar}
         </aside>
 

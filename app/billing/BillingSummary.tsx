@@ -53,7 +53,7 @@ export function BillingSummary() {
           <h4 className="text-foreground text-xs font-medium select-none">
             Billing
           </h4>
-          <span className={cn('text-[10px] font-semibold', stColor)}>
+          <span className={cn('micro-ten font-semibold', stColor)}>
             {statusLabel(status)}
           </span>
         </div>

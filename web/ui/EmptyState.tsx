@@ -12,7 +12,7 @@ interface EmptyStateProps {
     onClick: () => void
   }
   className?: string
-  variant?: 'default' | 'compact'
+  variant?: 'default' | 'compact' | 'panel'
 }
 
 // EmptyState renders a placeholder for empty lists or panels.
@@ -30,7 +30,11 @@ export function EmptyState({
     <div
       className={cn(
         'flex flex-col items-center justify-center text-center',
-        isCompact ? 'p-4' : 'p-8',
+        isCompact
+          ? 'p-4'
+          : variant === 'panel'
+            ? 'border-foreground/10 bg-foreground/5 rounded-md border'
+            : 'p-8',
         className,
       )}
     >

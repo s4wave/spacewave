@@ -3,7 +3,11 @@ import { cn } from '../style/utils.js'
 import { useObjectViewer } from '@s4wave/web/object/ObjectViewerContext.js'
 import { ComponentSelector } from '@s4wave/web/object/ComponentSelector.js'
 
-export type PanelHeaderVariant = 'default' | 'secondary' | 'transparent'
+export type PanelHeaderVariant =
+  | 'default'
+  | 'secondary'
+  | 'transparent'
+  | 'compact'
 
 interface PanelHeaderProps extends ComponentPropsWithRef<'div'> {
   children?: ReactNode
@@ -15,6 +19,7 @@ const variantStyles: Record<PanelHeaderVariant, string> = {
   default: 'bg-panel-header',
   secondary: 'bg-outliner-header',
   transparent: 'bg-transparent',
+  compact: 'bg-panel-header gap-1.5',
 }
 
 // PanelHeader renders a consistent header bar for panels with optional viewer selector.
@@ -22,7 +27,7 @@ export function PanelHeader({
   children,
   className,
   height = 25,
-  style,
+  style: _style,
   variant = 'default',
   ...props
 }: PanelHeaderProps) {
@@ -36,11 +41,11 @@ export function PanelHeader({
       {...props}
       data-drag-handle=""
       className={cn(
-        'text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
+        'panel-header-height text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
         variantStyles[variant],
         className,
       )}
-      style={{ height, ...style }}
+      style={{ '--panel-header-height': `${height}px` }}
     >
       {showSelector && viewer.selectedComponent && (
         <ComponentSelector

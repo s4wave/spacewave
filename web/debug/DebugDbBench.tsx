@@ -206,8 +206,8 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
       </div>
       <div className="bg-background-dark h-2 overflow-hidden rounded-full">
         <div
-          className="bg-primary h-full rounded-full transition-[width] duration-300"
-          style={{ width: `${progress.percentComplete ?? 0}%` }}
+          className="bg-primary progress-width progress-width-transition-medium h-full rounded-full"
+          style={{ '--progress-width': `${progress.percentComplete ?? 0}%` }}
         />
       </div>
       {progress.metricName ? (

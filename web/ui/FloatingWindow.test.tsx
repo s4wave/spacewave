@@ -247,7 +247,7 @@ describe('FloatingWindow', () => {
         title="Win"
         state={state}
         onStateChange={vi.fn()}
-        className="my-custom-class"
+        className="mt-1"
         testId="win"
       >
         <div>content</div>
@@ -255,7 +255,7 @@ describe('FloatingWindow', () => {
     )
 
     const el = screen.getByTestId('win')
-    expect(el.className).toContain('my-custom-class')
+    expect(el.className).toContain('mt-1')
   })
 
   it('minimize button calls onStateChange with expanded: false', () => {

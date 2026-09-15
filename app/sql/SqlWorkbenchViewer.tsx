@@ -186,8 +186,8 @@ export function SqlWorkbenchViewer({
       {workbench ? (
         <div className="flex min-h-0 flex-1">
           <div
-            className="border-foreground/8 flex shrink-0 flex-col overflow-auto border-r"
-            style={{ width: sidebarWidth }}
+            className="border-foreground/8 sql-sidebar-width flex shrink-0 flex-col overflow-auto border-r"
+            style={{ '--sql-sidebar-width': sidebarWidth }}
           >
             <SidebarSection title="Database">
               {targetDbKey ? (
@@ -259,7 +259,7 @@ function SidebarSection({
 }) {
   return (
     <section className="border-foreground/8 border-b">
-      <div className="text-foreground-alt/70 px-3 py-1.5 text-[0.65rem] font-medium tracking-wide uppercase">
+      <div className="text-foreground-alt/70 micro-label px-3 py-1.5 font-medium tracking-wide uppercase">
         {title}
       </div>
       {children}

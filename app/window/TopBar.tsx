@@ -128,7 +128,7 @@ export function TopBar({
   return (
     <div
       ref={topBarRef}
-      className="bg-topbar-back flex h-[var(--spacing-shell-header)] items-center overflow-hidden leading-tight"
+      className="bg-topbar-back h-shell-header flex items-center overflow-hidden leading-tight"
     >
       <div
         ref={menuContainerRef}
@@ -141,7 +141,7 @@ export function TopBar({
               className="flex items-center justify-center"
               title="Open app menu"
             >
-              <AppLogo className="size-[28px]" />
+              <AppLogo className="size-7" />
             </button>
           </DropdownMenuTrigger>
           {hideMenuItems && (
@@ -161,7 +161,7 @@ export function TopBar({
           {menuItems.map((menu) => (
             <button
               key={menu}
-              className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover text-topbar-menu text-shadow-glow flex h-5 items-center justify-center px-[7px] whitespace-nowrap transition-colors"
+              className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover text-topbar-menu ui-text-shadow flex h-5 items-center justify-center px-1.75 whitespace-nowrap transition-colors"
             >
               {menu}
             </button>
@@ -192,16 +192,12 @@ export function TopBar({
                 'group relative flex h-5 shrink-0 items-center transition-colors',
                 'border-foreground/8 border border-b-0',
                 'rounded-t-lg',
-                'max-w-[120px] min-w-[30px]',
+                'max-w-30 min-w-7.5',
                 activeWorkspace === workspace.id
                   ? 'bg-shell-tab-active text-shell-tab-text-active'
                   : 'bg-shell-tab-inactive text-shell-tab-text hover:bg-shell-tab-active/50',
               )}
-              style={
-                activeWorkspace === workspace.id
-                  ? { boxShadow: 'inset 0 -1px 0 var(--color-widget-emboss)' }
-                  : undefined
-              }
+              data-active={activeWorkspace === workspace.id || undefined}
             >
               <button
                 onClick={() => onWorkspaceChange(workspace.id)}
@@ -229,7 +225,7 @@ export function TopBar({
             <button
               onClick={onWorkspaceAdd}
               className={cn(
-                'h-5 shrink-0 px-2 pb-[1.5px] transition-colors',
+                'h-5 shrink-0 px-2 pb-hairline transition-colors',
                 'border-foreground/8 border border-b-0',
                 'rounded-t-lg',
                 'bg-shell-tab-inactive text-shell-tab-text hover:bg-shell-tab-active/50',
@@ -256,7 +252,7 @@ export function TopBar({
           <button
             onClick={onWorkspaceAdd}
             className={cn(
-              'h-5 shrink-0 px-2 pb-[1.5px] transition-colors',
+              'h-5 shrink-0 px-2 pb-hairline transition-colors',
               'border-foreground/8 border border-b-0',
               'rounded-t-lg',
               'bg-shell-tab-inactive text-shell-tab-text hover:bg-shell-tab-active/50',

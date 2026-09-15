@@ -122,7 +122,7 @@ export function KeybindingCommandList() {
               {row.label}
             </span>
             {row.displayBindings.length > 0 && (
-              <kbd className="bg-background-tertiary text-foreground-alt border-foreground/8 max-w-28 shrink-0 truncate rounded border px-1.5 py-1 font-mono text-[0.65rem]">
+              <kbd className="bg-background-tertiary text-foreground-alt border-foreground/8 micro-label max-w-28 shrink-0 truncate rounded border px-1.5 py-1 font-mono">
                 {formatKeybindingHint(row.displayBindings)}
               </kbd>
             )}

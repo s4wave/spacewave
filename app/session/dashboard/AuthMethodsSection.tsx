@@ -298,10 +298,9 @@ function AuthMethodsSectionContent({
                       <DashboardButton
                         icon={<LuTrash2 className="size-3" />}
                         disabled={authMethods.length <= 1}
-                        className={cn(
-                          authMethods.length > 1 &&
-                            'text-destructive hover:bg-destructive/10',
-                        )}
+                        variant={
+                          authMethods.length > 1 ? 'destructive' : undefined
+                        }
                         onClick={() => handleRemoveClick(peerId, label)}
                       >
                         Remove

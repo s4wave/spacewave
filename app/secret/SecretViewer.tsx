@@ -80,7 +80,7 @@ export function SecretViewer({
               icon={<LuLockKeyhole className="text-brand size-4" />}
               title="Protected value"
             >
-              <div className="border-foreground/8 bg-background-dark text-foreground rounded-md border px-3 py-2 font-mono text-sm tracking-[0.2em]">
+              <div className="border-foreground/8 bg-background-dark text-foreground tracking-brand-wide rounded-md border px-3 py-2 font-mono text-sm">
                 ••••••••••••
               </div>
               <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">

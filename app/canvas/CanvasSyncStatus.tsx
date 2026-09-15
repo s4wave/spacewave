@@ -74,10 +74,10 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
   return (
     <div
       className={cn(
-        'text-foreground-alt/50 pointer-events-none absolute bottom-10 left-4 flex items-center gap-1.5 font-mono text-xs transition-opacity',
+        'canvas-transition-duration text-foreground-alt/50 pointer-events-none absolute bottom-10 left-4 flex items-center gap-1.5 font-mono text-xs transition-opacity',
         state.fading && 'opacity-0',
       )}
-      style={{ transitionDuration: `${FADE_DURATION_MS}ms` }}
+      style={{ '--canvas-transition-duration': `${FADE_DURATION_MS}ms` }}
     >
       {pending > 0 ? (
         <>

@@ -31,12 +31,12 @@ export function CanvasColorPicker({
           aria-label={`Use color ${swatch}`}
           aria-pressed={color === swatch}
           className={cn(
-            'size-4 rounded-full border transition-transform',
+            'canvas-color-swatch size-4 rounded-full border transition-transform',
             color === swatch
               ? 'border-foreground scale-110'
               : 'border-foreground/20 hover:scale-110',
           )}
-          style={{ backgroundColor: swatch }}
+          style={{ '--canvas-swatch-color': swatch }}
           onClick={() => onColorChange(swatch)}
         />
       ))}

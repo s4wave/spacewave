@@ -116,7 +116,7 @@ export function WizardShell({
                 icon={<LuTrash2 className="size-3.5" />}
                 onClick={onCancel}
                 aria-label="Delete wizard"
-                className="hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+                variant="destructive"
               />
             </TooltipTrigger>
             <TooltipContent side="bottom">Delete wizard</TooltipContent>
@@ -126,7 +126,7 @@ export function WizardShell({
         <div className="flex-1 px-4 py-3">
           <div className="space-y-3">
             <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
-              <span className="text-[0.6rem] font-medium tracking-widest uppercase">
+              <span className="micro-text font-medium tracking-widest uppercase">
                 {totalSteps !== undefined
                   ? `Step ${step + 1} of ${totalSteps}`
                   : `Step ${step + 1}`}
@@ -152,7 +152,7 @@ export function WizardShell({
                     aria-describedby={
                       nameError ? 'wizard-name-error' : undefined
                     }
-                    className={nameError ? 'border-destructive/50' : undefined}
+                    variant={nameError ? 'error' : 'default'}
                     onFocus={handleNameFocus}
                   />
                   {nameError && (
@@ -186,20 +186,20 @@ export function WizardShell({
           <div className="flex gap-2">
             {onNext && step < (finalizeStep ?? 0) && (
               <Button
-                size="sm"
                 onClick={onNext}
                 disabled={nextBusy || !canNext}
-                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition duration-150"
+                variant="brandOutline"
+                size="toolbarWide"
               >
                 {nextBusy ? nextBusyLabel : nextLabel}
               </Button>
             )}
             {showFinalize && (
               <Button
-                size="sm"
                 onClick={onFinalize}
                 disabled={creating || !localName.trim() || !canFinalize}
-                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition duration-150"
+                variant="brandOutline"
+                size="toolbarWide"
               >
                 <LuCheck className="size-3.5" />
                 {creating ? creatingLabel : createLabel}

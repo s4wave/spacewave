@@ -10,7 +10,6 @@ export interface DropdownMenuGhostAnchorProps extends ComponentPropsWithRef<'div
 export function DropdownMenuGhostAnchor({
   x,
   y,
-  style,
   ...props
 }: DropdownMenuGhostAnchorProps) {
   if (typeof document === 'undefined') return null
@@ -18,14 +17,10 @@ export function DropdownMenuGhostAnchor({
   return createPortal(
     <div
       data-slot="dropdown-menu-ghost-anchor"
+      className="dropdown-ghost-anchor"
       style={{
-        position: 'fixed',
-        left: x,
-        top: y,
-        width: 0,
-        height: 0,
-        pointerEvents: 'none',
-        ...style,
+        '--dropdown-ghost-left': `${x}px`,
+        '--dropdown-ghost-top': `${y}px`,
       }}
       {...props}
     />,

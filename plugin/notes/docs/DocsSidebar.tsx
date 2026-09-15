@@ -224,10 +224,10 @@ function FolderNode({
       <button
         type="button"
         className={cn(
-          'flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
+          'docs-tree-indent flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
           'hover:bg-list-hover-background',
         )}
-        style={{ paddingLeft }}
+        style={{ '--docs-tree-padding-left': paddingLeft }}
         onClick={handleToggle}
       >
         {expanded ? (
@@ -280,12 +280,12 @@ function FileNode({ name, path, selected, onSelect, depth }: FileNodeProps) {
     <button
       type="button"
       className={cn(
-        'flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
+        'docs-tree-indent flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs',
         'hover:bg-list-hover-background',
         selected &&
           'bg-list-active-selection-background text-list-active-selection-foreground',
       )}
-      style={{ paddingLeft }}
+      style={{ '--docs-tree-padding-left': paddingLeft }}
       onClick={handleDocSelect}
     >
       <LuFile className="size-3 shrink-0" />

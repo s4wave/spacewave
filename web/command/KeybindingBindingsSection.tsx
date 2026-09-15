@@ -189,7 +189,7 @@ export function KeybindingBindingsSection() {
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant="errorGhost"
           size="sm"
           disabled={!selectedLayerEditable}
           onClick={resetSelectedCommand}
@@ -201,7 +201,6 @@ export function KeybindingBindingsSection() {
           type="button"
           variant="ghost"
           size="sm"
-          className="text-error hover:text-error"
           disabled={!selectedLayerEditable || selectedBindings.length === 0}
           onClick={clearSelectedBindings}
         >

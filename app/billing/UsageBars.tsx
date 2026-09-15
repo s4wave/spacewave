@@ -240,8 +240,11 @@ function UsageBar(props: {
       </div>
       <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
         <div
-          className={cn('h-full rounded-full transition-all', barClassName)}
-          style={{ width: `${pct}%` }}
+          className={cn(
+            'progress-width h-full rounded-full transition-all',
+            barClassName,
+          )}
+          style={{ '--progress-width': `${pct}%` }}
         />
       </div>
     </div>

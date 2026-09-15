@@ -75,7 +75,8 @@ function RenameTestHarness({
       return (
         <div
           role="presentation"
-          className="rename-actions flex flex-1 items-center gap-0.5"
+          className="flex flex-1 items-center gap-0.5"
+          data-rename-actions="true"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -100,7 +101,7 @@ function RenameTestHarness({
             }}
             onBlur={(e) => {
               const related = e.relatedTarget as HTMLElement | null
-              if (related?.closest('.rename-actions')) return
+              if (related?.closest('[data-rename-actions]')) return
               cancelRename()
             }}
           />

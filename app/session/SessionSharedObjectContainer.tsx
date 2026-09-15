@@ -350,6 +350,7 @@ function RemediationActionButton({
   disabledReason,
   disabled = false,
   active,
+  variant,
   className = '',
 }: {
   icon: ReactNode
@@ -358,6 +359,7 @@ function RemediationActionButton({
   disabledReason: string
   disabled?: boolean
   active?: boolean
+  variant?: 'active' | 'destructive'
   className?: string
 }) {
   const button = (
@@ -365,10 +367,8 @@ function RemediationActionButton({
       icon={icon}
       onClick={onClick}
       disabled={disabled || !!disabledReason}
-      className={cn(
-        active && 'border-foreground/15 bg-foreground/8 text-foreground',
-        className,
-      )}
+      variant={variant ?? (active ? 'active' : undefined)}
+      className={className}
     >
       {label}
     </DashboardButton>
@@ -462,7 +462,7 @@ function SharedObjectHealthCard({
             </div>
             <span
               className={cn(
-                'rounded-full border px-2 py-0.5 text-[0.55rem] font-semibold tracking-widest uppercase select-none',
+                'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase select-none',
                 tone.badgeTone,
               )}
             >
@@ -489,7 +489,7 @@ function SharedObjectHealthCard({
                   'Review the issue details below before choosing the next step.'}
               </p>
               {detail ? (
-                <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 mt-2.5 rounded-md border px-2.5 py-1.5 text-[0.7rem] leading-relaxed break-words whitespace-pre-wrap">
+                <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 micro-seven mt-2.5 rounded-md border px-2.5 py-1.5 leading-relaxed break-words whitespace-pre-wrap">
                   {detail}
                 </div>
               ) : null}
@@ -545,7 +545,7 @@ function SharedObjectHealthCard({
                   }
                   disabled={mutationPending}
                   active={selectedAction === 'reinitialize'}
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  variant="destructive"
                 />
               </div>
               {confirmingRepair ? (
@@ -577,7 +577,7 @@ function SharedObjectHealthCard({
                         onRepair()
                       }}
                       disabled={mutationPending}
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      variant="destructive"
                     >
                       Confirm repair
                     </DashboardButton>
@@ -613,7 +613,7 @@ function SharedObjectHealthCard({
                         onReinitialize()
                       }}
                       disabled={mutationPending}
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      variant="destructive"
                     >
                       Confirm reinitialize
                     </DashboardButton>
@@ -621,14 +621,14 @@ function SharedObjectHealthCard({
                 </div>
               ) : null}
               {selectedAction ? (
-                <p className="text-foreground-alt/55 mt-2.5 text-[0.7rem]">
+                <p className="text-foreground-alt/55 micro-seven mt-2.5">
                   {selectedAction === 'repair'
                     ? 'Repair is selected for this broken shared object.'
                     : 'Reinitialize is selected for this broken shared object.'}
                 </p>
               ) : null}
               {mutationError ? (
-                <p className="text-destructive mt-2.5 text-[0.7rem]">
+                <p className="text-destructive micro-seven mt-2.5">
                   {mutationError}
                 </p>
               ) : null}

@@ -32,12 +32,12 @@ export function WindowFrame(props: IWindowFrameProps) {
   let header: React.ReactNode = (
     <>
       <AppLogo
-        className={cn('select-none', !props.topBarHeight && 'max-h-bar')}
-        style={
-          props.topBarHeight
-            ? { maxHeight: `${props.topBarHeight}px` }
-            : undefined
-        }
+        className={cn(
+          'select-none',
+          !props.topBarHeight && 'max-h-bar',
+          props.topBarHeight && 'max-h-(--window-topbar-height)',
+        )}
+        topbarHeight={props.topBarHeight}
       />
       <span className="text-white/72 select-none">{props.title}</span>
     </>
@@ -53,8 +53,7 @@ export function WindowFrame(props: IWindowFrameProps) {
         key="close"
         title="Close Window"
         onClick={props.onClose}
-        className="text-zinc-500 hover:text-white focus:outline-none"
-        style={{ fontSize: '22px' }}
+        className="text-foreground-alt/50 hover:text-foreground text-xl focus:outline-none"
       >
         &times;
       </button>,
@@ -78,11 +77,14 @@ export function WindowFrame(props: IWindowFrameProps) {
           ...props.topBar?.style,
         },
         right: buttons,
-        left: header,
-        leftStyle: {
-          WebkitAppRegion: 'drag',
-          ...props.topBar?.leftStyle,
-        },
+        left: (
+          <div
+            className="flex flex-1 items-center"
+            data-window-drag-region="true"
+          >
+            {header}
+          </div>
+        ),
         ...props.topBar,
       }}
     >

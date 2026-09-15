@@ -26,7 +26,8 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="gap-0 overflow-hidden p-0 sm:max-w-sm"
+        variant="compact"
+        className="overflow-hidden sm:max-w-sm"
       >
         <DialogTitle className="sr-only">About Spacewave</DialogTitle>
         <DialogDescription className="sr-only">
@@ -39,11 +40,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
 
         {/* Header with logo */}
         <div className="flex flex-col items-center px-6 pt-8 pb-2">
-          <AppLogo
-            className="mb-4 size-20"
-            style={{ padding: 0 }}
-            alt="Spacewave"
-          />
+          <AppLogo className="mb-4 size-20" alt="Spacewave" />
           <h2 className="text-xl font-semibold tracking-tight">Spacewave</h2>
           {buildInfo.runtimeLabel && (
             <p className="text-foreground-alt/40 mt-1 text-xs">

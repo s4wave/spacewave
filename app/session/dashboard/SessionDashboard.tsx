@@ -200,7 +200,7 @@ function DashboardNav() {
       {links.map((link, i) => (
         <span key={link.text} className="flex items-center">
           {i > 0 && (
-            <span className="text-foreground-alt/30 px-1 text-[11px]">·</span>
+            <span className="text-foreground-alt/30 text-metadata px-1">·</span>
           )}
           <NavLink text={link.text} onClick={link.onClick} />
         </span>
@@ -668,7 +668,7 @@ function DashboardJoinGroup() {
 
   return (
     <>
-      <CommandGroup heading="Join" className="py-1">
+      <CommandGroup heading="Join" variant="compact">
         <DashboardItem
           value="join-space"
           icon={LuLogIn}
@@ -686,7 +686,7 @@ function DashboardJoinGroup() {
           onSelect={handleLinkDevice}
         />
       </CommandGroup>
-      <CommandSeparator className="bg-foreground/8" />
+      <CommandSeparator variant="subtle" />
     </>
   )
 }
@@ -709,7 +709,7 @@ function DashboardQuickstartGroups({
   return (
     <>
       {primaryQuickstart && (
-        <CommandGroup heading="Continue" className="py-1">
+        <CommandGroup heading="Continue" variant="compact">
           <DashboardItem
             value={`continue-${primaryQuickstart.id}`}
             icon={primaryQuickstart.icon}
@@ -727,7 +727,7 @@ function DashboardQuickstartGroups({
 
       {blankSpaceQuickstart &&
         blankSpaceQuickstart.id !== primaryQuickstart?.id && (
-          <CommandGroup heading="Other starts" className="py-1">
+          <CommandGroup heading="Other starts" variant="compact">
             <DashboardItem
               value={`create-${blankSpaceQuickstart.id}`}
               icon={blankSpaceQuickstart.icon}
@@ -744,7 +744,7 @@ function DashboardQuickstartGroups({
         )}
 
       {browseQuickstartOptions.length > 0 && (
-        <CommandGroup heading="Browse templates" className="py-1">
+        <CommandGroup heading="Browse templates" variant="compact">
           {browseQuickstartOptions.map((option) => (
             <DashboardItem
               key={option.id}
@@ -797,7 +797,7 @@ function DashboardSpaceGroups({
               count={personalSpaces.length}
             />
           }
-          className="py-1"
+          variant="compact"
         >
           {personalSpaces.map((space) => (
             <DashboardSpaceItem
@@ -820,7 +820,7 @@ function DashboardSpaceGroups({
               onLabelClick={() => navigate({ path: `./org/${org.id}` })}
             />
           }
-          className="py-1"
+          variant="compact"
         >
           {spaces.length === 0 ? (
             <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
@@ -841,7 +841,7 @@ function DashboardSpaceGroups({
       ))}
 
       {createQuickstartOptions.length > 0 && (
-        <CommandGroup heading="Create" className="py-1">
+        <CommandGroup heading="Create" variant="compact">
           {createQuickstartOptions.map((option) => (
             <DashboardItem
               key={option.id}
@@ -988,21 +988,16 @@ function DashboardCommandPalette({
   }, [recentSpaces, orgs])
 
   return (
-    <Command
-      className={cn(
-        'border-ui-outline bg-background-get-started/95 relative flex flex-col overflow-hidden rounded-lg border shadow-xl backdrop-blur-sm',
-        hasSpaces ? 'h-[min(380px,60vh)]' : 'max-h-[min(380px,60vh)]',
-      )}
-    >
+    <Command variant={hasSpaces ? 'dashboard' : 'dashboardEmpty'}>
       <CommandInput
         ref={inputRef}
-        className="border-ui-outline placeholder:text-foreground-alt/50 h-11 border-b"
+        variant="dashboard"
         placeholder={hasSpaces ? 'Search spaces...' : 'Get started...'}
         value={query}
         onValueChange={setQuery}
       />
-      <CommandList className="min-h-0 flex-1 overflow-y-auto bg-transparent">
-        <CommandEmpty className="text-foreground-alt py-8 text-center text-sm">
+      <CommandList variant="transparent">
+        <CommandEmpty variant="dashboard">
           {isLoading ? (
             <div className="flex items-center justify-center">
               <LoadingInline label="Loading spaces" tone="muted" size="sm" />
@@ -1036,7 +1031,7 @@ function DashboardCommandPalette({
       {showScrollCue && (
         <div
           role="note"
-          className="border-foreground/8 bg-background-card/80 text-foreground-alt/60 flex h-7 shrink-0 items-center justify-center gap-1 border-t text-[10px] select-none"
+          className="border-foreground/8 bg-background-card/80 text-foreground-alt/60 micro-ten flex h-7 shrink-0 items-center justify-center gap-1 border-t select-none"
         >
           <LuChevronDown className="size-3" />
           Scroll to see all {recentSpaces.length} spaces
@@ -1168,10 +1163,8 @@ function DashboardItem({
     <CommandItem
       value={value}
       keywords={keywords}
-      className={cn(
-        'group hover:!bg-background-card/30 focus:!bg-background-card/30 focus-visible:!bg-background-card/30 data-[selected=true]:hover:!bg-background-card/30 data-[selected=true]:focus:!bg-background-card/30 data-[selected=true]:focus-visible:!bg-background-card/30 flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5 data-[selected=true]:!bg-transparent',
-        identifier ? 'mx-0 pr-16' : 'mx-1',
-      )}
+      variant={identifier ? 'dashboardIdentifier' : 'dashboard'}
+      className={identifier ? 'mx-0' : 'mx-1'}
       onSelect={onSelect}
     >
       <IconButton icon={icon} tone={iconTone} />
@@ -1217,7 +1210,8 @@ function DashboardItem({
       <CopyButton
         text={identifier}
         label={`Copy ${label} ID`}
-        className="hover:bg-foreground/5 absolute right-8 bottom-2 size-6"
+        variant="toolbar"
+        className="absolute right-8 bottom-2 size-6"
       />
     </div>
   )

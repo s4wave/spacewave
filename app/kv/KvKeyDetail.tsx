@@ -5,7 +5,6 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -176,20 +175,18 @@ function KvKeyEditorPane({
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
-          size="sm"
           onClick={() => void handleSave()}
           disabled={!dirty || busy || parseError != null}
-          className="h-7 gap-1 text-xs"
+          size="toolbar"
         >
           <LuSave className="size-3.5" />
           Save
         </Button>
         <Button
           variant="ghost"
-          size="sm"
           onClick={handleDiscard}
           disabled={!dirty || busy}
-          className="h-7 gap-1 text-xs"
+          size="toolbar"
         >
           <LuUndo2 className="size-3.5" />
           Discard
@@ -200,34 +197,28 @@ function KvKeyEditorPane({
             <span className="text-destructive/80 text-xs">Delete key?</span>
             <Button
               variant="destructive"
-              size="sm"
               onClick={() => void handleConfirmDelete()}
               disabled={busy}
-              className="h-7 gap-1 text-xs"
+              size="toolbar"
             >
               <LuTrash2 className="size-3.5" />
               Confirm
             </Button>
             <Button
               variant="ghost"
-              size="sm"
               onClick={() => setConfirmingDelete(false)}
               disabled={busy}
-              className="h-7 text-xs"
+              size="toolbarText"
             >
               Cancel
             </Button>
           </div>
         ) : (
           <Button
-            variant="ghost"
-            size="sm"
             onClick={() => setConfirmingDelete(true)}
             disabled={busy}
-            className={cn(
-              'text-destructive/80 hover:text-destructive hover:bg-destructive/10',
-              'h-7 gap-1 text-xs',
-            )}
+            variant="dangerGhost"
+            size="toolbar"
           >
             <LuTrash2 className="size-3.5" />
             Delete

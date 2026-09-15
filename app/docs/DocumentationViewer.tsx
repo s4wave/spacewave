@@ -338,11 +338,12 @@ export function DocumentationViewer({
           position="absolute"
           portalContainer={portalContainer}
           showCloseButton={false}
-          className="w-[240px] max-w-[85%] gap-0 p-0"
+          variant="docs"
+          className="w-60 max-w-(--max-width-content)"
         >
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
-              <SheetTitle className="text-foreground flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <SheetTitle variant="docs">
                 <LuBookOpen className="size-4 shrink-0" />
                 {title}
               </SheetTitle>
@@ -363,7 +364,7 @@ export function DocumentationViewer({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - wide widths only */}
-        <div className="border-border hidden w-[220px] shrink-0 flex-col border-r @lg:flex">
+        <div className="border-border hidden w-55 shrink-0 flex-col border-r @lg:flex">
           {/* Header */}
           <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3">
             <LuBookOpen className="text-foreground size-4 shrink-0" />

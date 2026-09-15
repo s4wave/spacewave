@@ -66,7 +66,7 @@ function StatusIndicator({
   return (
     <span
       className={cn(
-        'hdr-status-flash text-[10px] font-bold',
+        'hdr-status-flash micro-ten font-bold',
         statusClassNames[status],
       )}
       {...(changed ? { 'data-status-changed': '' } : {})}
@@ -116,7 +116,7 @@ export function StatusList({
                 <span className="truncate">{item.label}</span>
               </div>
               {item.detail && (
-                <span className="text-foreground-alt shrink-0 text-[10px]">
+                <span className="text-foreground-alt micro-ten shrink-0">
                   {item.detail}
                 </span>
               )}

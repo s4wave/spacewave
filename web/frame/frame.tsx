@@ -22,8 +22,6 @@ export interface IFrameProps {
   children?: React.ReactNode
   // style are styles to apply to the outer flex
   style?: CSSProperties
-  // innerStyle are styles to apply to the inner content container.
-  innerStyle?: CSSProperties
   // className is a class name to apply to the outer flex.
   className?: string
   // overlay is content to show in an overlay dialog
@@ -81,7 +79,7 @@ export function Frame(props: IFrameProps) {
         <div
           ref={overlayRef}
           className={cn(
-            'border-frame-overlay-border bg-frame-overlay relative flex flex-1 overflow-hidden border-[0.21rem] border-solid break-words',
+            'border-frame-overlay-border bg-frame-overlay relative flex flex-1 overflow-hidden border-frame-overlay border-solid break-words',
             props.overlayClassName,
           )}
           role="dialog"
@@ -103,7 +101,6 @@ export function Frame(props: IFrameProps) {
           props.overlay && 'hidden',
           props.innerClassName,
         )}
-        style={props.innerStyle}
         aria-hidden={!!props.overlay}
         hidden={!!props.overlay}
       >

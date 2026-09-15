@@ -380,10 +380,10 @@ function SlashCommandPlugin() {
         ? createPortal(
             <div
               ref={menuRef}
-              className="bg-popover border-border fixed z-[200] min-w-[220px] rounded-lg border py-1 shadow-lg"
+              className="slash-command-position bg-popover border-border z-command-menu fixed min-w-55 rounded-lg border py-1 shadow-lg"
               style={{
-                top: position.top,
-                left: position.left,
+                '--slash-command-top': `${position.top}px`,
+                '--slash-command-left': `${position.left}px`,
               }}
             >
               {filteredItems.map((item, index) => (

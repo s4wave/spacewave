@@ -76,9 +76,8 @@ export function SqlQueryResultViewer({
         {container && grid?.sourceQueryObjectKey ? (
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={() => navigate(grid.sourceQueryObjectKey)}
-            className="h-6 gap-1 px-2 text-xs"
           >
             <LuExternalLink className="size-3" />
             Query
@@ -87,9 +86,8 @@ export function SqlQueryResultViewer({
         {container && grid?.targetDbObjectKey ? (
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={() => navigate(grid.targetDbObjectKey)}
-            className="h-6 gap-1 px-2 text-xs"
           >
             <LuExternalLink className="size-3" />
             Database

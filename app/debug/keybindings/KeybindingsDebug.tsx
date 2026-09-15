@@ -108,7 +108,7 @@ export function KeybindingsDebug() {
     <div className="bg-background @container flex h-full w-full flex-col overflow-hidden">
       <header className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
         <BackButton onClick={goBack}>Debug gallery</BackButton>
-        <span className="text-foreground-alt/40 text-[10px] tracking-wider uppercase">
+        <span className="text-foreground-alt/40 micro-ten tracking-wider uppercase">
           Local prototype · changes reset on reload
         </span>
       </header>
@@ -118,13 +118,8 @@ export function KeybindingsDebug() {
           <section className="flex flex-col gap-4 @lg:flex-row @lg:items-end @lg:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="border-brand/25 bg-brand/5 text-brand"
-                >
-                  UI exploration
-                </Badge>
-                <span className="text-foreground-alt/40 text-[10px] tracking-wider uppercase">
+                <Badge variant="brand">UI exploration</Badge>
+                <span className="text-foreground-alt/40 micro-ten tracking-wider uppercase">
                   Keyboard shortcuts
                 </span>
               </div>
@@ -139,36 +134,21 @@ export function KeybindingsDebug() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className="bg-foreground/5 font-normal"
-              >
+              <Badge variant="subtle">
                 {prototype.commands.length} commands
               </Badge>
               <Badge
-                variant={
-                  prototype.conflictCount > 0 ? 'destructive' : 'outline'
-                }
-                className={cn(
-                  'font-normal',
-                  prototype.conflictCount > 0 &&
-                    'bg-destructive/15 text-destructive',
-                )}
+                variant={prototype.conflictCount > 0 ? 'conflict' : 'subtle'}
               >
                 <LuTriangleAlert /> {prototype.conflictCount} conflicting
               </Badge>
-              <Badge
-                variant="outline"
-                className="border-foreground/10 font-normal"
-              >
+              <Badge variant="muted">
                 {prototype.customizedCommandIds.size} customized
               </Badge>
               {prototype.customizedCommandIds.size > 0 ? (
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-foreground-alt/60 hover:text-brand"
+                  variant="muted"
                   onClick={prototype.resetAllBindings}
                 >
                   <LuRotateCcw /> Reset all
@@ -177,16 +157,16 @@ export function KeybindingsDebug() {
             </div>
           </section>
 
-          <Tabs value={variant} onValueChange={changeVariant} className="gap-5">
+          <Tabs value={variant} onValueChange={changeVariant} variant="debug">
             <div className="overflow-x-auto pb-1">
-              <TabsList className="bg-foreground/5 h-auto min-w-max gap-1 rounded-lg p-1">
+              <TabsList variant="debug">
                 {VARIANTS.map((option) => {
                   const Icon = option.icon
                   return (
                     <TabsTrigger
                       key={option.id}
                       value={option.id}
-                      className="data-[state=active]:border-brand/20 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground border border-transparent px-3 py-2"
+                      variant="debug"
                     >
                       <Icon />
                       <span className="@max-lg:hidden">{option.label}</span>
@@ -213,7 +193,7 @@ export function KeybindingsDebug() {
                   <span className="block text-xs font-medium">
                     {option.label}
                   </span>
-                  <span className="mt-0.5 block text-[10px] font-normal">
+                  <span className="micro-ten mt-0.5 block font-normal">
                     {option.description}
                   </span>
                 </button>

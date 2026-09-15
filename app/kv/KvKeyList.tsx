@@ -77,7 +77,7 @@ function KvKeyListRow({ row, selected, onSelectKey }: KvKeyListRowProps) {
       <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
         {row.label}
       </span>
-      <span className="text-foreground-alt/50 shrink-0 text-[0.6rem] tabular-nums">
+      <span className="text-foreground-alt/50 micro-text shrink-0 tabular-nums">
         {row.byteLength} B
       </span>
     </button>

@@ -39,10 +39,10 @@ describe('Bar', () => {
     expect(div.className).toContain('my-bar')
   })
 
-  it('applies custom style', () => {
-    const { container } = render(<Bar style={{ height: '50px' }} />)
+  it('applies custom className styling', () => {
+    const { container } = render(<Bar className="h-12" />)
     const div = container.firstElementChild as HTMLElement
-    expect(div.style.height).toBe('50px')
+    expect(div.className).toContain('h-12')
   })
 
   it('shows top border by default (span element present)', () => {

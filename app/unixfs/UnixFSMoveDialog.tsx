@@ -127,7 +127,7 @@ export function UnixFSMoveDialog({
         </DialogHeader>
 
         <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
-          <Command className="bg-transparent">
+          <Command variant="folder">
             <CommandInput placeholder="Search folders…" />
             <CommandList className="max-h-72">
               {dirs.loading && (
@@ -146,7 +146,7 @@ export function UnixFSMoveDialog({
               )}
               {!dirs.loading && !dirs.error && (
                 <>
-                  <CommandEmpty className="text-foreground-alt/40 px-3 py-2 text-left text-xs">
+                  <CommandEmpty variant="folder">
                     No folders found.
                   </CommandEmpty>
                   <CommandGroup>
@@ -160,11 +160,13 @@ export function UnixFSMoveDialog({
                             setSelectedPath(dir.path)
                             setSubmitError(null)
                           }}
-                          className="flex items-center gap-2 text-xs"
+                          variant="compact"
                         >
                           <div
-                            className="flex min-w-0 flex-1 items-center gap-2"
-                            style={{ paddingLeft: `${dir.depth * 12}px` }}
+                            className="docs-tree-indent flex min-w-0 flex-1 items-center gap-2"
+                            style={{
+                              '--docs-tree-padding-left': `${dir.depth * 12}px`,
+                            }}
                           >
                             <LuFolder className="text-file-folder-icon size-3.5 shrink-0" />
                             <span className="truncate">{dir.name}</span>
@@ -185,7 +187,7 @@ export function UnixFSMoveDialog({
         {selectedPath && (
           <div className="text-foreground-alt/60 flex items-center gap-1.5 text-xs select-none">
             <span>Moving to</span>
-            <code className="text-foreground bg-foreground/5 truncate rounded px-1.5 py-0.5 font-mono text-[11px]">
+            <code className="text-foreground bg-foreground/5 text-metadata truncate rounded px-1.5 py-0.5 font-mono">
               {selectedPath}
             </code>
           </div>

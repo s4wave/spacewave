@@ -228,7 +228,7 @@ function TintedBadge({ label, tone }: StateSpec) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6rem] font-medium tracking-widest uppercase select-none',
+        'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
         TONE_TINT[tone],
       )}
     >
@@ -247,7 +247,7 @@ const TONE_DOT: Record<StateTone, string> = {
 
 function DotBadge({ label, tone }: StateSpec) {
   return (
-    <span className="text-foreground-alt/70 inline-flex items-center gap-1.5 text-[0.6rem] font-medium tracking-widest uppercase select-none">
+    <span className="text-foreground-alt/70 micro-text inline-flex items-center gap-1.5 font-medium tracking-widest uppercase select-none">
       <span className={cn('size-1.5 rounded-full', TONE_DOT[tone])} />
       {label}
     </span>
@@ -604,7 +604,7 @@ function CurrentTabs({
         >
           {label}
           {i === active && (
-            <span className="bg-foreground absolute right-1 bottom-0 left-1 h-[2px] rounded-t" />
+            <span className="bg-foreground absolute right-1 bottom-0 left-1 h-0.5 rounded-t" />
           )}
         </button>
       ))}
@@ -635,7 +635,7 @@ function BrandTabs({
         >
           {label}
           {i === active && (
-            <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-[2px] rounded-t" />
+            <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-0.5 rounded-t" />
           )}
         </button>
       ))}
@@ -689,7 +689,7 @@ function ViewerShellSection() {
             <span className="tracking-tight">Build pipeline</span>
             <TintedBadge label="RUNNING" tone="active" />
           </div>
-          <div className="text-foreground-alt/50 text-[0.6rem] tracking-widest uppercase">
+          <div className="text-foreground-alt/50 micro-text tracking-widest uppercase">
             Job
           </div>
         </div>
@@ -709,7 +709,7 @@ function ViewerShellSection() {
             >
               {label}
               {i === tab && (
-                <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-[2px] rounded-t" />
+                <span className="bg-brand/80 absolute right-2 bottom-0 left-2 h-0.5 rounded-t" />
               )}
             </button>
           ))}
@@ -813,7 +813,7 @@ function MiniStat({
         />
       </span>
       <div className="min-w-0">
-        <div className="text-foreground-alt/50 text-[0.55rem] tracking-widest uppercase">
+        <div className="text-foreground-alt/50 micro-fine tracking-widest uppercase">
           {label}
         </div>
         <div className="text-foreground text-sm font-semibold">{value}</div>

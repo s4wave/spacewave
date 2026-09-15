@@ -393,7 +393,7 @@ function InitiateDeleteView({
             placeholder="000000"
             className={cn(
               inputClass,
-              'text-center font-mono text-lg tracking-[0.3em]',
+              'text-center font-mono text-lg tracking-brand-extra-wide',
             )}
           />
         </div>
@@ -458,7 +458,7 @@ function PendingDeleteView({
           </span>
           <span className="text-foreground-alt text-xs">{countdown.sub}</span>
           {deleteAtLabel && (
-            <span className="text-foreground-alt/70 mt-1 text-[0.65rem]">
+            <span className="text-foreground-alt/70 micro-label mt-1">
               Deletion final at {deleteAtLabel}
             </span>
           )}

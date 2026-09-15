@@ -58,7 +58,7 @@ export function LinkDeviceDoneStep({
           {result ? (
             <LuCircleCheck className="text-brand size-6" />
           ) : (
-            <Spinner size="lg" className="text-brand" />
+            <Spinner size="lg" variant="brand" />
           )}
         </div>
         <h2 className="text-foreground text-sm font-medium">

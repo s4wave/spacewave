@@ -5,7 +5,6 @@ import { LuArrowLeft, LuRotateCw } from 'react-icons/lu'
 import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 import { cn } from '@s4wave/web/style/utils.js'
 
-import { LOADING_SCREEN_CSS } from './loading-screen-style.js'
 import type { LoadingView } from './types.js'
 import { useReducedMotion } from './useReducedMotion.js'
 
@@ -42,9 +41,6 @@ export function LoadingScreen({
       data-state={view.state}
       data-sw-reduced-motion={reducedMotion ? 'true' : undefined}
     >
-      <style href="sw-loading-screen" precedence="high">
-        {LOADING_SCREEN_CSS}
-      </style>
       {topLeftSlot}
       <div className="swl-main">
         <div className="swl-emblem" aria-hidden="true">
@@ -81,7 +77,10 @@ export function LoadingScreen({
                 aria-valuemax={100}
                 aria-valuenow={Math.round(progress * 100)}
               >
-                <div style={{ width: `${progress * 100}%` }} />
+                <div
+                  className="bg-brand progress-width h-full"
+                  style={{ '--progress-width': `${progress * 100}%` }}
+                />
               </div>
             </>
           ) : null}

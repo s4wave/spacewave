@@ -51,13 +51,9 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
   }, [item, navigate])
 
   return (
-    <CommandItem
-      key={item.id}
-      className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
-      onSelect={handleClick}
-    >
+    <CommandItem key={item.id} variant="landing" onSelect={handleClick}>
       <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
-        <item.icon className="size-5 stroke-[1.5]" />
+        <item.icon className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">{item.name}</div>
@@ -75,12 +71,12 @@ function AddStateRootItem() {
 
   return (
     <CommandItem
-      className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
+      variant="landing"
       disabled={!canAddRootAlias}
       onSelect={handleClick}
     >
       <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
-        <LuFolderOpen className="size-5 stroke-[1.5]" />
+        <LuFolderOpen className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">Open a local state root</div>
@@ -118,11 +114,11 @@ function SessionItem({ session }: { session: SessionListEntry }) {
   return (
     <CommandItem
       key={session.sessionIndex}
-      className="text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5"
+      variant="landing"
       onSelect={handleClick}
     >
       <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
-        <LuUser className="size-5 stroke-[1.5]" />
+        <LuUser className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">Account: {accountName}</div>
@@ -155,8 +151,8 @@ function StaticGetStarted({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'border-foreground/20 bg-background-get-started relative flex min-h-[200px] flex-col rounded-lg border shadow-lg backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
-        '@lg:max-h-[min(38vh,450px)] @lg:flex-initial @2xl:max-h-[min(50vh,550px)]',
+        'border-foreground/20 bg-background-get-started relative flex min-h-50 flex-col rounded-lg border shadow-lg backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
+        '@lg:max-h-(--max-height-get-started) @lg:flex-initial @2xl:max-h-(--max-height-get-started-wide)',
         className,
       )}
     >
@@ -184,7 +180,7 @@ function StaticGetStarted({ className }: { className?: string }) {
                 className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
               >
                 <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
-                  <item.icon className="size-5 stroke-[1.5]" />
+                  <item.icon className="icon-stroke-thin size-5" />
                 </div>
                 <div>
                   <div className="text-sm font-medium">{item.name}</div>
@@ -252,23 +248,17 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
   if (isStatic) return <StaticGetStarted className={className} />
 
   return (
-    <Command
-      className={cn(
-        'border-foreground/20 bg-background-get-started relative flex min-h-[200px] flex-1 flex-col overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm',
-        '@lg:max-h-[min(38vh,450px)] @lg:flex-initial @2xl:max-h-[min(50vh,550px)]',
-        className,
-      )}
-    >
+    <Command variant="landing" className={className}>
       <CommandInput
         ref={inputRef}
-        className="placeholder:text-foreground/70 border-foreground/10 border-b"
+        variant="landing"
         placeholder="Where would you like to start? Type here to get started instantly."
         onKeyDown={handleKeyDown}
       />
-      <CommandList className="bg-background-get-started min-h-0 flex-1 overflow-y-auto pb-2">
+      <CommandList variant="landing">
         <CommandEmpty>No templates found.</CommandEmpty>
         {sessions && sessions.length > 0 && (
-          <CommandGroup heading="Sessions" className="mb-0 py-0">
+          <CommandGroup heading="Sessions" variant="compact" className="mb-0">
             {sessions.map((session) => (
               <SessionItem key={session.sessionIndex} session={session} />
             ))}
@@ -278,7 +268,8 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
           <CommandGroup
             key={category}
             heading={category.charAt(0).toUpperCase() + category.slice(1)}
-            className="mb-0 py-0"
+            variant="compact"
+            className="mb-0"
           >
             {items.map((item, idx) => (
               <React.Fragment key={item.id}>

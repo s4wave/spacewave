@@ -180,11 +180,7 @@ function RecoveryActionButton({
       icon={icon}
       onClick={onClick}
       disabled={disabled || !!disabledReason}
-      className={
-        destructive
-          ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
-          : undefined
-      }
+      variant={destructive ? 'destructive' : undefined}
     >
       {label}
     </DashboardButton>
@@ -414,7 +410,7 @@ export function OrganizationDetails({
               <TooltipTrigger asChild>
                 <DashboardButton
                   icon={<LuLogOut className="size-4" />}
-                  className="text-destructive hover:bg-destructive/10"
+                  variant="destructive"
                   onClick={() => void handleLeave()}
                 >
                   <span className="hidden md:inline">Leave</span>
@@ -472,7 +468,7 @@ export function OrganizationDetails({
                         )}
                       >
                         {recoverySummary.tone === 'loading' ? (
-                          <Spinner className="text-foreground" />
+                          <Spinner variant="foreground" />
                         ) : recoverySummary.tone === 'degraded' ? (
                           <LuTriangleAlert className="text-warning size-4" />
                         ) : (
@@ -487,12 +483,12 @@ export function OrganizationDetails({
                           {recoverySummary.description}
                         </p>
                         {recoverySummary.hint && (
-                          <p className="text-foreground-alt/60 mt-2 text-[11px]">
+                          <p className="text-foreground-alt/60 text-metadata mt-2">
                             {recoverySummary.hint}
                           </p>
                         )}
                         {rootState?.health?.error && (
-                          <div className="border-foreground/8 bg-background-card/30 text-foreground-alt/70 mt-2 rounded-md border px-2 py-1.5 text-[0.65rem] break-words whitespace-pre-wrap">
+                          <div className="border-foreground/8 bg-background-card/30 text-foreground-alt/70 micro-label mt-2 rounded-md border px-2 py-1.5 break-words whitespace-pre-wrap">
                             {rootState.health.error}
                           </div>
                         )}
@@ -501,7 +497,7 @@ export function OrganizationDetails({
                   </div>
 
                   <div className="border-foreground/8 bg-background-card/20 rounded-md border px-3 py-2">
-                    <div className="text-foreground-alt/45 text-[0.58rem] font-medium tracking-widest uppercase">
+                    <div className="text-foreground-alt/45 micro-caption font-medium tracking-widest uppercase">
                       Remediation
                     </div>
                     <p className="text-foreground-alt/65 mt-1 text-xs">
@@ -538,7 +534,7 @@ export function OrganizationDetails({
                     </div>
                     {confirmingReinitialize && (
                       <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border px-3 py-2">
-                        <div className="text-destructive/80 text-[0.58rem] font-medium tracking-widest uppercase">
+                        <div className="text-destructive/80 micro-caption font-medium tracking-widest uppercase">
                           Confirm Reinitialize
                         </div>
                         <p className="text-foreground-alt/70 mt-1 text-xs">
@@ -560,7 +556,7 @@ export function OrganizationDetails({
                               void runRecoveryAction('reinitialize')
                             }}
                             disabled={mutationPending}
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            variant="destructive"
                           >
                             {mutationPending
                               ? 'Reinitializing…'

@@ -110,7 +110,7 @@ export function ReAuthOverlay({
               <span className="text-foreground text-sm font-medium">
                 {entityId}
               </span>
-              <span className="bg-brand/15 text-brand rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase">
+              <span className="bg-brand/15 text-brand micro-nine rounded-full px-1.5 py-0.5 font-semibold tracking-wider uppercase">
                 {providerLabel}
               </span>
             </div>

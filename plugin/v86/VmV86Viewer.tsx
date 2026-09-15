@@ -361,7 +361,7 @@ function VmHeader({
         <span className="tracking-tight">V86</span>
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+            'rounded px-1.5 py-0.5 micro-ten font-medium tracking-wide uppercase',
             vmStateBadgeClass(vmStateValue),
           )}
         >

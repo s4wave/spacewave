@@ -602,14 +602,6 @@ export function Canvas({
   // Transform and grid styles are initial values for React rendering.
   // During gestures, useCanvasViewport applies these directly to the
   // DOM via transformLayerRef/gridLayerRef for zero-cost panning.
-  const transformStyle = useMemo(
-    () => ({
-      transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})`,
-      transformOrigin: '0 0',
-    }),
-    [viewport.x, viewport.y, viewport.scale],
-  )
-
   const gridStyle = useMemo(() => computeGridStyle(viewport), [viewport])
 
   const nodeEntries = useMemo(() => {
@@ -657,7 +649,7 @@ export function Canvas({
         role="application"
         aria-label="Canvas"
         className={cn(
-          'relative flex-1 touch-none overflow-hidden bg-[var(--color-background-canvas)] outline-none',
+          'relative flex-1 touch-none overflow-hidden bg-background-canvas outline-none',
           tool === 'text' && 'cursor-crosshair',
           tool === 'object' && 'cursor-crosshair',
         )}
@@ -674,21 +666,26 @@ export function Canvas({
       >
         <div
           ref={gridLayerRef}
-          className="pointer-events-none absolute inset-0"
-          style={gridStyle}
+          className="canvas-grid pointer-events-none absolute inset-0"
+          style={{
+            '--canvas-grid-color': gridStyle.backgroundColor,
+            '--canvas-grid-image': gridStyle.backgroundImage,
+            '--canvas-grid-size': gridStyle.backgroundSize,
+            '--canvas-grid-position': gridStyle.backgroundPosition,
+            '--canvas-grid-opacity': gridStyle.opacity,
+          }}
         />
         {/* Gesture layer for viewport pan/drag-select. Sits below the
             transform layer so canvas nodes receive pointer events directly
             without viewport gesture interference. */}
-        <div
-          ref={gestureLayerRef}
-          className="absolute inset-0"
-          style={{ touchAction: 'none' }}
-        />
+        <div ref={gestureLayerRef} className="absolute inset-0 touch-none" />
         <div
           ref={transformLayerRef}
-          className="pointer-events-none"
-          style={transformStyle}
+          className="canvas-transform pointer-events-none"
+          style={{
+            '--canvas-transform': `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})`,
+            '--canvas-transform-origin': '0 0',
+          }}
         >
           <CanvasEdgeLayer
             edges={state.edges}
@@ -716,14 +713,12 @@ export function Canvas({
               role="presentation"
               ref={pendingTextRef}
               style={{
-                position: 'absolute',
-                left: pendingText.x - DEFAULT_TEXT_NODE_WIDTH / 2,
-                top: pendingText.y - MIN_TEXT_NODE_HEIGHT / 2,
-                width: DEFAULT_TEXT_NODE_WIDTH,
-                minHeight: MIN_TEXT_NODE_HEIGHT,
-                touchAction: 'none',
+                '--canvas-pending-left': `${pendingText.x - DEFAULT_TEXT_NODE_WIDTH / 2}px`,
+                '--canvas-pending-top': `${pendingText.y - MIN_TEXT_NODE_HEIGHT / 2}px`,
+                '--canvas-pending-width': `${DEFAULT_TEXT_NODE_WIDTH}px`,
+                '--canvas-pending-min-height': `${MIN_TEXT_NODE_HEIGHT}px`,
               }}
-              className="bg-background-card/30 text-card-foreground pointer-events-auto rounded-lg backdrop-blur-sm"
+              className="canvas-pending-text bg-background-card/30 text-card-foreground pointer-events-auto rounded-lg backdrop-blur-sm"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
@@ -745,12 +740,12 @@ export function Canvas({
         />
         {objectDragRect && (
           <div
-            className="border-brand/30 bg-brand/5 pointer-events-none absolute rounded-lg border border-dashed"
+            className="canvas-drag-rectangle border-brand/30 bg-brand/5 pointer-events-none absolute rounded-lg border border-dashed"
             style={{
-              left: objectDragRect.x * viewport.scale + viewport.x,
-              top: objectDragRect.y * viewport.scale + viewport.y,
-              width: objectDragRect.w * viewport.scale,
-              height: objectDragRect.h * viewport.scale,
+              '--canvas-drag-left': `${objectDragRect.x * viewport.scale + viewport.x}px`,
+              '--canvas-drag-top': `${objectDragRect.y * viewport.scale + viewport.y}px`,
+              '--canvas-drag-width': `${objectDragRect.w * viewport.scale}px`,
+              '--canvas-drag-height': `${objectDragRect.h * viewport.scale}px`,
             }}
           />
         )}

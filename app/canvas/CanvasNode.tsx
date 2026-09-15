@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react'
+import { useCallback, useRef, useState, useEffect, memo } from 'react'
 import { useDrag } from '@use-gesture/react'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -88,10 +88,9 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
     <div
       {...handlers}
       className={cn(
-        'border-brand/60 bg-background absolute h-2.5 w-2.5 rounded-full border',
+        'border-brand/60 bg-background touch-none absolute h-2.5 w-2.5 rounded-full border',
         posClass,
       )}
-      style={{ touchAction: 'none' }}
     />
   )
 }
@@ -328,19 +327,6 @@ function useCanvasNodeController({
     [node, onResize],
   )
 
-  const style = useMemo(
-    () => ({
-      position: 'absolute' as const,
-      left: resizeOverride?.x ?? node.x,
-      top: resizeOverride?.y ?? node.y,
-      width: resizeOverride?.w ?? node.width,
-      height: resizeOverride?.h ?? node.height,
-      zIndex: node.zIndex,
-      touchAction: 'none' as const,
-    }),
-    [node.x, node.y, node.width, node.height, node.zIndex, resizeOverride],
-  )
-
   return {
     callbacks,
     handleNodeKeyDown,
@@ -357,7 +343,7 @@ function useCanvasNodeController({
     scale,
     selected,
     showsBorderDragHandles,
-    style,
+    resizeOverride,
     visible,
     wasVisible,
     wrappedBind,
@@ -382,7 +368,7 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
     scale,
     selected,
     showsBorderDragHandles,
-    style,
+    resizeOverride,
     visible,
     wasVisible,
     wrappedBind,
@@ -440,9 +426,15 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
       {...wrappedBind()}
       onClick={handleNodeSelect}
       onKeyDown={handleNodeKeyDown}
-      style={style}
+      style={{
+        '--canvas-node-left': `${resizeOverride?.x ?? node.x}px`,
+        '--canvas-node-top': `${resizeOverride?.y ?? node.y}px`,
+        '--canvas-node-width': `${resizeOverride?.w ?? node.width}px`,
+        '--canvas-node-height': `${resizeOverride?.h ?? node.height}px`,
+        '--canvas-node-z-index': node.zIndex,
+      }}
       className={cn(
-        'text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
+        'canvas-node-position canvas-node-transform canvas-node-size canvas-node-input text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
         isOutlineOnly
           ? 'bg-background-card/50'
           : node.type === 'world_object'
@@ -480,21 +472,21 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
         <div
           data-interactive-content={hasInteractiveContent ? '' : undefined}
           style={{
-            transform:
-              internalScale < 1 ? `scale(${internalScale})` : undefined,
-            transformOrigin: 'top left',
-            width:
+            '--canvas-content-transform':
+              internalScale < 1 ? `scale(${internalScale})` : 'none',
+            '--canvas-content-transform-origin': 'top left',
+            '--canvas-content-width':
               internalScale < 1
                 ? `${(100 / internalScale).toFixed(2)}%`
                 : '100%',
-            height:
+            '--canvas-content-height':
               internalScale < 1
                 ? `${(100 / internalScale).toFixed(2)}%`
                 : '100%',
-            touchAction: isContentFocused ? 'auto' : undefined,
+            '--canvas-content-touch-action': isContentFocused ? 'auto' : 'none',
           }}
           className={cn(
-            'h-full w-full overflow-hidden',
+            'canvas-content-transform h-full w-full overflow-hidden',
             isContentFocused && 'cursor-default select-auto',
           )}
         >

@@ -88,10 +88,9 @@ export function SqlResultGrid({
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
               onClick={handlePrev}
               disabled={safePage === 0}
-              className="h-6 px-2 text-xs"
+              size="toolbarSm"
             >
               Prev
             </Button>
@@ -100,10 +99,9 @@ export function SqlResultGrid({
             </span>
             <Button
               variant="ghost"
-              size="sm"
               onClick={handleNext}
               disabled={safePage >= pageCount - 1}
-              className="h-6 px-2 text-xs"
+              size="toolbarSm"
             >
               Next
             </Button>
@@ -112,10 +110,9 @@ export function SqlResultGrid({
         {csvFileName ? (
           <Button
             variant="outline"
-            size="sm"
             onClick={handleExport}
             disabled={data.rows.length === 0}
-            className="h-6 gap-1 px-2 text-xs"
+            size="xs"
           >
             <LuDownload className="size-3" />
             CSV

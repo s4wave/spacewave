@@ -245,13 +245,14 @@ export function CanvasDrawingLayer({
     <canvas
       ref={canvasRef}
       className={cn(
+        'canvas-layer-z-index',
         'absolute inset-0 h-full w-full',
         visible
           ? 'pointer-events-auto cursor-crosshair'
           : 'pointer-events-none',
         className,
       )}
-      style={{ zIndex: visible ? 10 : -1 }}
+      style={{ '--canvas-layer-z-index': visible ? 10 : -1 }}
       data-canvas-drawing-color={color}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

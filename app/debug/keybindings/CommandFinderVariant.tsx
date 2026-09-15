@@ -101,16 +101,16 @@ export function CommandFinderVariant({
                 ? `${listboxId}-option-${selectedCommand.id}`
                 : undefined
             }
-            className="h-auto border-0 bg-transparent px-0 py-1 text-base shadow-none focus-visible:ring-0"
+            variant="command"
           />
           <span className="border-foreground/10 text-foreground-alt/45 hidden rounded border px-2 py-1 text-xs sm:inline-flex">
             ↑↓ navigate
           </span>
         </div>
 
-        <div className="grid min-h-120 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]">
+        <div className="lg:grid-cols-command-finder grid min-h-120">
           <div className="border-foreground/8 max-h-145 overflow-y-auto border-b p-2 lg:border-r lg:border-b-0">
-            <div className="text-foreground-alt/40 flex items-center justify-between p-2 text-[10px] font-semibold tracking-wider uppercase">
+            <div className="text-foreground-alt/40 micro-ten flex items-center justify-between p-2 font-semibold tracking-wider uppercase">
               <span>Matches</span>
               <span>{results.length}</span>
             </div>
@@ -141,7 +141,7 @@ export function CommandFinderVariant({
           <aside className="bg-background/20 p-5 sm:p-7">
             {selectedCommand ? (
               <div className="sticky top-5">
-                <span className="text-brand text-[10px] font-semibold tracking-wider uppercase">
+                <span className="text-brand micro-ten font-semibold tracking-wider uppercase">
                   Focused binding editor
                 </span>
                 <h2 className="mt-2 text-xl font-semibold">
@@ -152,17 +152,10 @@ export function CommandFinderVariant({
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Badge variant="outline" className="border-foreground/10">
-                    {selectedCommand.category}
-                  </Badge>
-                  <Badge variant="secondary" className="bg-foreground/5">
-                    {selectedCommand.context}
-                  </Badge>
+                  <Badge variant="muted">{selectedCommand.category}</Badge>
+                  <Badge variant="subtle">{selectedCommand.context}</Badge>
                   {conflictCommandIds.has(selectedCommand.id) ? (
-                    <Badge
-                      variant="destructive"
-                      className="bg-destructive/15 text-destructive"
-                    >
+                    <Badge variant="conflict">
                       <LuTriangleAlert /> Conflicting assignment
                     </Badge>
                   ) : null}
@@ -201,7 +194,7 @@ export function CommandFinderVariant({
                     <span className="text-foreground-alt/45 block">
                       Command ID
                     </span>
-                    <code className="text-foreground-alt/75 mt-2 block truncate font-mono text-[10px]">
+                    <code className="text-foreground-alt/75 micro-ten mt-2 block truncate font-mono">
                       {selectedCommand.id}
                     </code>
                   </div>

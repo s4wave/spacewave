@@ -71,12 +71,8 @@ describe('EmptyState', () => {
   })
 
   it('applies custom className', () => {
-    const { container } = render(
-      <EmptyState title="Empty" className="my-custom-class" />,
-    )
-    expect(
-      container.firstElementChild?.classList.contains('my-custom-class'),
-    ).toBe(true)
+    const { container } = render(<EmptyState title="Empty" className="mt-1" />)
+    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
   })
 
   it('renders compact variant without error', () => {

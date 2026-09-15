@@ -10,14 +10,7 @@ import { Landing } from './Landing.js'
 function renderGetStarted() {
   return render(
     <RouterProvider path="/" onNavigate={() => {}}>
-      <div
-        style={{
-          width: '640px',
-          height: '540px',
-          padding: '32px',
-          background: '#111',
-        }}
-      >
+      <div className="bg-background-dark h-135 w-160 p-8">
         <GetStarted />
       </div>
     </RouterProvider>,
@@ -72,14 +65,7 @@ describe('GetStarted browser layout', () => {
   it('keeps quickstart icon boxes square and distinct from the palette surface', async () => {
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div
-          style={{
-            width: '270px',
-            height: '540px',
-            padding: '16px',
-            background: '#111',
-          }}
-        >
+        <div className="bg-background-dark h-135 w-67.5 p-4">
           <GetStarted />
         </div>
       </RouterProvider>,
@@ -141,7 +127,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(710, 600)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div style={{ width: '100vw', height: '100vh', display: 'flex' }}>
+        <div className="flex h-dvh w-dvw">
           <Landing />
         </div>
       </RouterProvider>,
@@ -179,7 +165,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(1280, 800)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div style={{ width: '100vw', height: '100vh', display: 'flex' }}>
+        <div className="flex h-dvh w-dvw">
           <Landing />
         </div>
       </RouterProvider>,
@@ -206,10 +192,7 @@ describe('GetStarted browser layout', () => {
     await page.viewport(1280, 800)
     await render(
       <RouterProvider path="/" onNavigate={() => {}}>
-        <div
-          data-testid="landing-hierarchy-host"
-          style={{ width: '100vw', height: '100vh', display: 'flex' }}
-        >
+        <div data-testid="landing-hierarchy-host" className="flex h-dvh w-dvw">
           <Landing />
         </div>
       </RouterProvider>,

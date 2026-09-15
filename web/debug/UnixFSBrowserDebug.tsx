@@ -282,7 +282,7 @@ function CurrentRow({
         index % 2 === 1 && !selected && 'bg-file-row-alternate',
       )}
     >
-      <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
+      <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
         {row.isDir ? (
           <LuFolder className="text-file-folder-icon size-4 shrink-0" />
         ) : (
@@ -290,10 +290,10 @@ function CurrentRow({
         )}
         <span className="truncate">{row.name}</span>
       </div>
-      <div className="text-foreground-alt w-[140px] min-w-[100px] shrink text-xs opacity-70">
+      <div className="text-foreground-alt w-35 min-w-25 shrink text-xs opacity-70">
         {row.modTime}
       </div>
-      <div className="text-foreground-alt w-[70px] min-w-[50px] shrink text-right text-xs opacity-70">
+      <div className="text-foreground-alt w-17.5 min-w-12.5 shrink text-right text-xs opacity-70">
         {row.size}
       </div>
     </div>
@@ -327,9 +327,9 @@ function DenseRow({
       )}
     >
       {selected && (
-        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-[2px] rounded-r" />
+        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-0.5 rounded-r" />
       )}
-      <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
+      <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
         {row.isDir ? (
           <LuFolder
             className={cn(
@@ -347,10 +347,10 @@ function DenseRow({
         )}
         <span className="truncate">{row.name}</span>
       </div>
-      <div className="text-foreground-alt/50 w-[140px] min-w-[100px] shrink text-xs">
+      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
         {row.modTime}
       </div>
-      <div className="text-foreground-alt/50 w-[70px] min-w-[50px] shrink text-right text-xs">
+      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
         {row.size}
       </div>
     </div>
@@ -410,10 +410,10 @@ function CardRow({
       <div className="min-w-0 flex-1 truncate">
         <div className="text-foreground truncate font-medium">{row.name}</div>
       </div>
-      <div className="text-foreground-alt/50 hidden w-[120px] shrink truncate text-[0.65rem] sm:block">
+      <div className="text-foreground-alt/50 micro-label hidden w-30 shrink truncate sm:block">
         {row.modTime}
       </div>
-      <div className="text-foreground-alt/50 w-[60px] shrink text-right text-[0.65rem]">
+      <div className="text-foreground-alt/50 micro-label w-15 shrink text-right">
         {row.size}
       </div>
     </div>
@@ -454,21 +454,21 @@ function CurrentToolbar() {
         <button
           type="button"
           aria-label="Back"
-          className="hover:bg-pulldown-hover rounded p-[2px]"
+          className="hover:bg-pulldown-hover rounded p-0.5"
         >
           <LuChevronLeft className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           aria-label="Forward"
-          className="cursor-default rounded p-[2px] opacity-40"
+          className="cursor-default rounded p-0.5 opacity-40"
         >
           <LuChevronRight className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           aria-label="Up"
-          className="hover:bg-pulldown-hover rounded p-[2px]"
+          className="hover:bg-pulldown-hover rounded p-0.5"
         >
           <LuChevronUp className="text-foreground-alt size-4" />
         </button>
@@ -481,14 +481,14 @@ function CurrentToolbar() {
         <button
           type="button"
           title="New folder"
-          className="hover:bg-pulldown-hover rounded p-[2px]"
+          className="hover:bg-pulldown-hover rounded p-0.5"
         >
           <LuFolderPlus className="text-foreground-alt size-4" />
         </button>
         <button
           type="button"
           title="Upload files"
-          className="hover:bg-pulldown-hover rounded p-[2px]"
+          className="hover:bg-pulldown-hover rounded p-0.5"
         >
           <LuUpload className="text-foreground-alt size-4" />
         </button>
@@ -573,7 +573,7 @@ function EmptyStateSection() {
         label="A. Current (centered three-line)"
         note="text-foreground-alt + text-foreground-alt/70, no icon"
       >
-        <div className="bg-file-back flex min-h-[160px] items-center justify-center">
+        <div className="bg-file-back flex min-h-40 items-center justify-center">
           <div className="flex flex-col items-center text-center">
             <div className="text-foreground-alt text-sm">
               UnixFS object not found
@@ -592,7 +592,7 @@ function EmptyStateSection() {
         label="B. Compact card (design-system)"
         note="border-foreground/6 bg-background-card/30, muted icon + headline + helper"
       >
-        <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
+        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
           <div className="border-foreground/6 bg-background-card/30 w-full max-w-xs rounded-lg border p-4 backdrop-blur-sm">
             <div className="flex items-start gap-2.5">
               <span className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
@@ -618,7 +618,7 @@ function EmptyStateSection() {
         label="C. Single-line muted"
         note="Matches design-system 'compact empty state', text-foreground-alt/40"
       >
-        <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
+        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
           <div className="text-foreground-alt/40 flex items-center gap-2 text-xs">
             <LuFolder className="size-3.5 shrink-0" />
             <span>No UnixFS object yet. Create a drive via quickstart.</span>
@@ -643,7 +643,7 @@ function DragOverlaySection() {
         label="A. Current (large dashed border + h-8 icon)"
         note="border-brand/50, bg-brand/5, text-sm"
       >
-        <div className="bg-file-back relative h-[180px]">
+        <div className="bg-file-back relative h-45">
           <DummyRows />
           <div className="border-brand/50 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed">
             <div className="flex flex-col items-center gap-2">
@@ -660,7 +660,7 @@ function DragOverlaySection() {
         label="B. Glass card overlay"
         note="border-brand/30 dashed, glass background, compact icon + caption"
       >
-        <div className="bg-file-back relative h-[180px]">
+        <div className="bg-file-back relative h-45">
           <DummyRows />
           <div className="border-brand/30 bg-brand/5 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border border-dashed backdrop-blur-sm">
             <div className="border-brand/30 bg-background-card/40 flex items-center gap-2.5 rounded-lg border px-3.5 py-2 backdrop-blur-sm">
@@ -688,7 +688,7 @@ function DummyRows() {
     <div className="opacity-60">
       {FILE_ROWS.slice(0, 4).map((row) => (
         <div key={row.id} className="flex items-center px-3 py-1.5 text-xs">
-          <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
+          <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
             {row.isDir ? (
               <LuFolder className="text-foreground-alt/60 size-4 shrink-0" />
             ) : (
@@ -716,7 +716,7 @@ function ErrorStateSection() {
         label="A. Current (plain text + underline link)"
         note="text-destructive headline, text-brand underline retry"
       >
-        <div className="bg-file-back flex min-h-[160px] flex-col items-center justify-center p-6">
+        <div className="bg-file-back flex min-h-40 flex-col items-center justify-center p-6">
           <div className="text-destructive text-xs">Error loading files</div>
           <div className="text-foreground-alt/70 mt-1 text-xs">
             failed to read directory: permission denied
@@ -729,7 +729,7 @@ function ErrorStateSection() {
         label="B. Tinted destructive callout"
         note="border-destructive/20 bg-destructive/5 + LuCircleAlert + retry chip"
       >
-        <div className="bg-file-back flex min-h-[160px] items-center justify-center p-6">
+        <div className="bg-file-back flex min-h-40 items-center justify-center p-6">
           <div className="border-destructive/20 bg-destructive/5 w-full max-w-sm rounded-lg border p-3.5">
             <div className="flex items-start gap-2.5">
               <LuCircleAlert className="text-destructive mt-0.5 size-3.5 shrink-0" />
@@ -759,7 +759,7 @@ function ErrorStateSection() {
         label="C. Inline strip (one-line)"
         note="Slim banner, fits under the toolbar without disrupting the file list"
       >
-        <div className="bg-file-back min-h-[160px]">
+        <div className="bg-file-back min-h-40">
           <div className="border-destructive/20 bg-destructive/5 flex items-center gap-2 border-b px-3 py-1.5">
             <LuCircleAlert className="text-destructive size-3.5 shrink-0" />
             <p className="text-foreground/80 min-w-0 flex-1 truncate text-xs">

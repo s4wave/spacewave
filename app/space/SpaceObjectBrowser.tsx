@@ -373,7 +373,7 @@ function SpaceObjectBrowserView({
 
   const treeCard = (
     <InfoCard>
-      <div className="max-h-[300px] overflow-auto">
+      <div className="max-h-75 overflow-auto">
         <Tree
           nodes={treeNodes}
           onRowDefaultAction={handleOpen}
@@ -460,7 +460,7 @@ function SpaceObjectBrowserView({
                     }}
                     disabled={renameSaving}
                     aria-label="New object key"
-                    className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9 font-mono text-xs"
+                    variant="configMono"
                   />
                   <p className="text-foreground-alt/40 text-xs">
                     Press Enter to rename, or Escape to cancel.
@@ -481,7 +481,7 @@ function SpaceObjectBrowserView({
                   icon={<LuCheck className="size-3.5" />}
                   onClick={handleRenameConfirmClick}
                   disabled={!renameValue.trim() || renameSaving}
-                  className="border-brand/30 bg-brand/10 text-foreground hover:border-brand/50 hover:bg-brand/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  variant="primary"
                 >
                   {renameSaving ? 'Saving…' : 'Rename'}
                 </DashboardButton>

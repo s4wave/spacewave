@@ -81,8 +81,8 @@ export function IntroWizardOverlay({
                 key={callout.title || index}
                 className={
                   index === activeStep
-                    ? 'bg-brand h-1.5 w-4 rounded-full transition-[width,background-color]'
-                    : 'bg-foreground/20 h-1.5 w-1.5 rounded-full transition-[width,background-color]'
+                    ? 'bg-brand transition-progress h-1.5 w-4 rounded-full'
+                    : 'bg-foreground/20 transition-progress h-1.5 w-1.5 rounded-full'
                 }
               />
             ))}
@@ -90,33 +90,31 @@ export function IntroWizardOverlay({
         )}
         <div className="mt-1 flex items-center justify-between gap-2">
           <Button
-            size="sm"
-            variant="ghost"
             onClick={onSkip}
             disabled={finishing}
-            className="text-foreground-alt/70 hover:text-foreground h-8 rounded-md px-3 text-xs font-medium"
+            variant="muted"
+            size="sm"
           >
             Skip
           </Button>
           <div className="flex items-center gap-2">
             {activeStep > 0 && (
               <Button
-                size="sm"
-                variant="ghost"
                 onClick={() => setStep(activeStep - 1)}
                 disabled={finishing}
-                className="text-foreground-alt/70 hover:text-foreground h-8 rounded-md px-3 text-xs font-medium"
+                variant="muted"
+                size="sm"
               >
                 Back
               </Button>
             )}
             <Button
-              size="sm"
               onClick={() =>
                 isLastStep ? onFinish() : setStep(activeStep + 1)
               }
               disabled={finishing}
-              className="border-brand/60 bg-brand/25 hover:border-brand/80 hover:bg-brand/35 text-foreground h-8 rounded-md border px-3 text-xs font-medium"
+              variant="brandSoft"
+              size="sm"
             >
               {isLastStep ? (finishing ? 'Opening…' : finishLabel) : 'Next'}
             </Button>
@@ -138,11 +136,11 @@ function IntroCallout({ callout }: { callout: IntroWizardCallout }) {
   return (
     <div className={layout.container}>
       {layout.arrowPosition === 'before' && layout.arrow}
-      <div className="border-foreground/10 bg-background-card/95 max-w-[13rem] rounded-lg border px-3 py-2 shadow-md backdrop-blur">
+      <div className="border-foreground/10 bg-background-card/95 max-w-52 rounded-lg border px-3 py-2 shadow-md backdrop-blur">
         <div className="text-foreground text-xs font-semibold">
           {callout.title}
         </div>
-        <p className="text-foreground-alt/70 mt-0.5 text-[0.7rem] leading-relaxed">
+        <p className="text-foreground-alt/70 micro-seven mt-0.5 leading-relaxed">
           {callout.detail}
         </p>
       </div>

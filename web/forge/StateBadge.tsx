@@ -48,7 +48,7 @@ export function StateBadge({
   const tone = useMemo(() => stateTone(label), [label])
   if (variant === 'dot') {
     return (
-      <span className="text-foreground-alt/70 inline-flex items-center gap-1.5 text-[0.6rem] font-medium tracking-widest uppercase select-none">
+      <span className="text-foreground-alt/70 micro-text inline-flex items-center gap-1.5 font-medium tracking-widest uppercase select-none">
         <span className={cn('h-1.5 w-1.5 rounded-full', DOT_TONE[tone])} />
         {label}
       </span>
@@ -57,7 +57,7 @@ export function StateBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6rem] font-medium tracking-widest uppercase select-none',
+        'inline-flex items-center rounded-full border px-2 py-0.5 micro-text font-medium tracking-widest uppercase select-none',
         PILL_TONE[tone],
       )}
     >

@@ -138,11 +138,10 @@ function FloatingToolbarPlugin() {
       {isVisible && (
         <div
           ref={floatingRef}
-          className="bg-popover border-border absolute z-50 flex items-center gap-0.5 rounded-lg border p-1 shadow-lg"
+          className="floating-toolbar-position bg-popover border-border absolute z-50 flex items-center gap-0.5 rounded-lg border p-1 shadow-lg"
           style={{
-            top: position.top,
-            left: position.left,
-            transform: 'translateX(-50%)',
+            '--floating-toolbar-top': `${position.top}px`,
+            '--floating-toolbar-left': `${position.left}px`,
           }}
         >
           <button

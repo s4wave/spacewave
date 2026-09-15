@@ -79,11 +79,7 @@ describe('StatusList', () => {
   })
 
   it('applies custom className', () => {
-    const { container } = render(
-      <StatusList items={[]} className="my-custom-class" />,
-    )
-    expect(
-      container.firstElementChild?.classList.contains('my-custom-class'),
-    ).toBe(true)
+    const { container } = render(<StatusList items={[]} className="mt-1" />)
+    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
   })
 })

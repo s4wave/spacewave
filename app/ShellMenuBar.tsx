@@ -181,7 +181,7 @@ function MenuItemRenderer({
     <MenubarItem
       disabled={disabled}
       onSelect={() => !disabled && node.commandId && onSelectCommand(node)}
-      className={cn(disabled && 'opacity-50')}
+      variant={disabled ? 'dimmed' : 'default'}
     >
       {node.label}
       {node.keybindings && node.keybindings.length > 0 && (
@@ -195,7 +195,7 @@ function MenuItemRenderer({
 
 function EmptyMenuItem() {
   return (
-    <MenubarItem disabled className="opacity-50">
+    <MenubarItem disabled variant="dimmed">
       No items
     </MenubarItem>
   )
@@ -241,7 +241,7 @@ export function ShellMenuBar() {
         onClick={handleLogoClick}
         title="Open command palette"
       >
-        <AppLogo className="size-[28px]" />
+        <AppLogo className="size-7" />
       </button>
       <div
         className={cn(
@@ -249,14 +249,14 @@ export function ShellMenuBar() {
           'narrow:w-0 narrow:opacity-0',
         )}
       >
-        <Menubar className="h-full gap-px border-0 bg-transparent p-0 shadow-none">
+        <Menubar variant="shell" className="h-full">
           {topLevelMenus.map((name) => {
             const node = menuTree.get(name)
             const items = node ? sortedGroupedChildren(node.children) : []
             return (
               <MenubarMenu key={name}>
                 <MenubarTrigger asChild>
-                  <button className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover data-[state=open]:text-topbar-button-text-hi data-[state=open]:bg-pulldown-hover text-topbar-menu text-shadow-glow flex h-5 items-center justify-center px-[7px] whitespace-nowrap transition-colors">
+                  <button className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover data-[state=open]:text-topbar-button-text-hi data-[state=open]:bg-pulldown-hover text-topbar-menu ui-text-shadow flex h-5 items-center justify-center px-1.75 whitespace-nowrap transition-colors">
                     {name}
                   </button>
                 </MenubarTrigger>

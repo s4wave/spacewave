@@ -595,7 +595,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
                 >
                   {mobilePickerVisible ? 'Hide Sections' : 'Sections'}
                 </button>
-                <span className="text-foreground-alt/45 truncate text-[0.6rem]">
+                <span className="text-foreground-alt/45 micro-text truncate">
                   {selectedLabel}
                 </span>
               </div>
@@ -690,12 +690,12 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-baseline justify-between px-3 py-1">
-      <span className="text-foreground-alt/40 text-[0.55rem] tracking-wider uppercase">
+      <span className="text-foreground-alt/40 micro-fine tracking-wider uppercase">
         {label}
       </span>
       <span
         className={cn(
-          'text-foreground/70 text-[0.6rem]',
+          'text-foreground/70 micro-text',
           mono !== false && 'font-mono',
         )}
       >
@@ -828,23 +828,21 @@ function LogRow({ index, style, logs }: RowComponentProps<LogRowProps>) {
         log.level === 'error' && 'bg-destructive/[0.03]',
       )}
     >
-      <span className="text-foreground-alt/20 w-24 shrink-0 text-[0.55rem]">
+      <span className="text-foreground-alt/20 micro-fine w-24 shrink-0">
         {log.ts}
       </span>
       <span
         className={cn(
-          'w-10 shrink-0 text-[0.55rem] font-medium',
+          'w-10 shrink-0 micro-fine font-medium',
           logColor(log.level),
         )}
       >
         {log.level}
       </span>
-      <span className="text-brand/30 w-32 shrink-0 truncate text-[0.55rem]">
+      <span className="text-brand/30 micro-fine w-32 shrink-0 truncate">
         {log.source}
       </span>
-      <span className="text-foreground/50 min-w-0 text-[0.55rem]">
-        {log.msg}
-      </span>
+      <span className="text-foreground/50 micro-fine min-w-0">{log.msg}</span>
     </div>
   )
 }
@@ -900,7 +898,7 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
                 type="button"
                 onClick={() => setFilter(level)}
                 className={cn(
-                  'rounded px-1.5 py-0.5 font-mono text-[0.5rem] transition-colors',
+                  'rounded px-1.5 py-0.5 font-mono micro-tiny transition-colors',
                   filter === level
                     ? 'bg-foreground/10 text-foreground'
                     : 'text-foreground-alt/30 hover:text-foreground-alt/50',
@@ -917,8 +915,8 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
       </div>
       {!collapsed && (
         <div
-          className="bg-background-deep/30 font-mono"
-          style={{ height: listHeight }}
+          className="system-status-list bg-background-deep/30 font-mono"
+          style={{ '--system-status-height': listHeight }}
         >
           {filtered.length > 0 && (
             <VirtualList
@@ -1032,11 +1030,11 @@ function StatPill({
   return (
     <div className={cn('flex items-center gap-1.5', muted && 'opacity-40')}>
       {icon}
-      <span className="text-foreground/60 text-[0.6rem]">{label}</span>
+      <span className="text-foreground/60 micro-text">{label}</span>
       {delta != null && (
         <span
           className={cn(
-            'rounded-full px-1 py-0.5 font-mono text-[0.5rem] transition-opacity duration-300',
+            'rounded-full px-1 py-0.5 font-mono micro-tiny transition-opacity duration-300',
             delta > 0
               ? 'bg-success/10 text-success/80'
               : 'bg-warning/10 text-warning/80',
@@ -1605,11 +1603,11 @@ function SidebarTree({
               <span className="text-foreground-alt/40">
                 {getSidebarSectionIcon(entry.section)}
               </span>
-              <span className="text-foreground-alt/60 text-[0.6rem] font-medium tracking-wider uppercase">
+              <span className="text-foreground-alt/60 micro-text font-medium tracking-wider uppercase">
                 {entry.label}
               </span>
               {entry.count != null && (
-                <span className="text-foreground-alt/25 ml-auto font-mono text-[0.55rem]">
+                <span className="text-foreground-alt/25 micro-fine ml-auto font-mono">
                   {entry.count}
                 </span>
               )}
@@ -1651,7 +1649,7 @@ function SidebarTree({
               onFocus={() => setFocusedId(entry.id)}
               onKeyDown={(event) => handleEntryKeyDown(event, entry)}
               onClick={() => activateEntry(entry)}
-              className="text-foreground-alt/20 hover:text-foreground-alt/40 focus-visible:ring-brand/30 w-full py-0.5 pr-3 pl-7 text-left text-[0.55rem] transition-colors focus-visible:ring-1 focus-visible:outline-none"
+              className="text-foreground-alt/20 hover:text-foreground-alt/40 focus-visible:ring-brand/30 micro-fine w-full py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none"
             >
               {entry.label}
             </button>
@@ -1680,11 +1678,9 @@ function SidebarTree({
             )}
           >
             <span className={cn('size-1.5 shrink-0 rounded-full', entry.dot)} />
-            <span className="min-w-0 truncate text-[0.6rem]">
-              {entry.label}
-            </span>
+            <span className="micro-text min-w-0 truncate">{entry.label}</span>
             {entry.sublabel && (
-              <span className="text-foreground-alt/25 ml-auto shrink-0 font-mono text-[0.5rem]">
+              <span className="text-foreground-alt/25 micro-tiny ml-auto shrink-0 font-mono">
                 {entry.sublabel}
               </span>
             )}
@@ -1733,8 +1729,8 @@ function SessionSidebarItem({
       )}
     >
       <span className="bg-success size-1.5 shrink-0 rounded-full" />
-      <span className="min-w-0 truncate text-[0.6rem]">{label}</span>
-      <span className="text-foreground-alt/25 ml-auto shrink-0 font-mono text-[0.5rem]">
+      <span className="micro-text min-w-0 truncate">{label}</span>
+      <span className="text-foreground-alt/25 micro-tiny ml-auto shrink-0 font-mono">
         /u/{sessionIndex}
       </span>
     </button>
@@ -2530,17 +2526,17 @@ function ControllersDetail({
           >
             <span className="bg-success size-1.5 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">
-              <span className="text-foreground/80 block truncate font-mono text-[0.65rem]">
+              <span className="text-foreground/80 micro-label block truncate font-mono">
                 {controller.id || 'unknown'}
               </span>
               {controller.description && (
-                <span className="text-foreground-alt/30 block truncate text-[0.55rem]">
+                <span className="text-foreground-alt/30 micro-fine block truncate">
                   {controller.description}
                 </span>
               )}
             </div>
             {controller.version && (
-              <span className="text-foreground-alt/20 shrink-0 font-mono text-[0.55rem]">
+              <span className="text-foreground-alt/20 micro-fine shrink-0 font-mono">
                 v{controller.version}
               </span>
             )}
@@ -2697,18 +2693,18 @@ function DirectiveRow({
             expanded && 'rotate-90',
           )}
         />
-        <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-[0.65rem]">
+        <span className="text-foreground/80 micro-label min-w-0 flex-1 truncate font-mono">
           {directive.name}
         </span>
         <div className="bg-foreground/5 h-1.5 w-20 shrink-0 overflow-hidden rounded-full">
           <div
-            className="bg-warning/30 h-full rounded-full"
+            className="progress-width bg-warning/30 h-full rounded-full"
             style={{
-              width: `${(directive.count / maxCount) * 100}%`,
+              '--progress-width': `${(directive.count / maxCount) * 100}%`,
             }}
           />
         </div>
-        <span className="text-foreground-alt/40 w-8 shrink-0 text-right font-mono text-[0.6rem] tabular-nums">
+        <span className="text-foreground-alt/40 micro-text w-8 shrink-0 text-right font-mono tabular-nums">
           {directive.count}
         </span>
       </button>

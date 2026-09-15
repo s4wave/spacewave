@@ -147,11 +147,11 @@ export function ObjectLink({
           {objectType ? getObjectTypeIcon(objectType) : getObjectTypeIcon('')}
         </span>
         <span className="min-w-0">
-          <span className="block truncate font-mono text-[0.6rem] leading-4">
+          <span className="micro-text block truncate font-mono leading-4">
             {missing ? displayLabel || 'Missing ref' : displayLabel}
           </span>
           {(kindLabel || status) && !compact ? (
-            <span className="text-foreground-alt/50 block truncate text-[0.55rem] leading-3">
+            <span className="text-foreground-alt/50 micro-fine block truncate leading-3">
               {[kindLabel, status].filter(Boolean).join(' / ')}
             </span>
           ) : null}

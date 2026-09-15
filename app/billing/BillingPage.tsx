@@ -235,7 +235,7 @@ export function BillingPage() {
             <div className="flex items-center gap-3">
               <span
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+                  'rounded-full px-2 py-0.5 micro-ten font-semibold tracking-wider uppercase',
                   statusBadgeColor(status),
                 )}
               >

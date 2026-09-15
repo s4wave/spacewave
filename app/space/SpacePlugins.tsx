@@ -74,14 +74,15 @@ function SpacePluginAddPanel({
             aria-invalid={draftError != null}
             placeholder="spacewave-notes"
             disabled={!!pending}
-            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-8 flex-1 font-mono text-xs"
+            variant="plugin"
+            className="flex-1"
           />
           <Button
             type="button"
-            size="sm"
             onClick={() => onAdd(trimmedDraft)}
             disabled={!canSubmitDraft}
-            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-8 rounded-md border px-3 text-xs"
+            variant="brandOutline"
+            size="sm"
           >
             {pending !== '' && pending === trimmedDraft ? (
               <LuLoaderCircle className="size-3.5 animate-spin" />
@@ -97,7 +98,7 @@ function SpacePluginAddPanel({
 
       {suggestions.length > 0 && (
         <div className="space-y-1.5">
-          <span className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase select-none">
+          <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
             Available plugins
           </span>
           <div className="flex flex-col gap-1.5">
@@ -128,12 +129,12 @@ function SpacePluginAddPanel({
                         {plugin.name}
                       </span>
                       {plugin.revision && (
-                        <span className="text-foreground-alt/50 text-[0.6rem] tabular-nums">
+                        <span className="text-foreground-alt/50 micro-text tabular-nums">
                           rev {plugin.revision}
                         </span>
                       )}
                     </span>
-                    <span className="text-foreground-alt/70 truncate text-[0.6rem]">
+                    <span className="text-foreground-alt/70 micro-text truncate">
                       {plugin.description}
                     </span>
                   </span>
@@ -374,7 +375,7 @@ export function SpacePlugins() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase select-none">
+        <span className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase select-none">
           {plugins.length} installed
         </span>
         <DashboardButton

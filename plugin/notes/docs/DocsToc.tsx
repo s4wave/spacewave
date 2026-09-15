@@ -92,10 +92,10 @@ function DocsToc({ content, format }: DocsTocProps) {
               key={heading.id}
               type="button"
               className={cn(
-                'text-foreground-alt hover:text-foreground block w-full truncate py-1 pr-3 text-left text-xs',
+                'docs-tree-indent text-foreground-alt hover:text-foreground block w-full truncate py-1 pr-3 text-left text-xs',
                 'hover:bg-list-hover-background',
               )}
-              style={{ paddingLeft: 12 + indent }}
+              style={{ '--docs-tree-padding-left': `${12 + indent}px` }}
               onClick={() => handleClick(heading)}
             >
               {heading.text}

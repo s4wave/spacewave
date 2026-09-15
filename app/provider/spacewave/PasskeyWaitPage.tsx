@@ -292,7 +292,7 @@ export function PasskeyWaitPage() {
       }
     >
       <AuthStatusPanel
-        icon={<Spinner size="lg" className="text-brand" />}
+        icon={<Spinner size="lg" variant="brand" />}
         message={statusMessage}
       >
         {state.step === 'waiting' && (

@@ -236,16 +236,14 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
   return (
     <div
       className={cn(
+        hasEncryption
+          ? 'transform-config-shadow-encryption'
+          : 'transform-config-shadow-default',
         'divide-foreground/6 divide-y overflow-hidden rounded-lg border backdrop-blur-sm',
         hasEncryption
           ? 'border-brand/12 bg-background-card/40'
           : 'border-foreground/6 bg-background-card/30',
       )}
-      style={{
-        boxShadow: hasEncryption
-          ? '0 4px 20px rgba(0,0,0,0.25), 0 0 40px rgba(200,80,60,0.04)'
-          : '0 2px 8px rgba(0,0,0,0.15)',
-      }}
     >
       {contentSteps.map((step) => {
         const Icon = step.icon
@@ -264,7 +262,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
                   <span className="text-foreground-alt text-xs font-medium">
                     {step.label}
                   </span>
-                  <span className="text-foreground-alt/50 text-[0.6rem]">
+                  <span className="text-foreground-alt/50 micro-text">
                     {step.detail}
                   </span>
                 </div>
@@ -288,7 +286,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
                 <span className="text-foreground-alt text-xs font-medium">
                   Storage
                 </span>
-                <span className="text-foreground-alt/50 text-[0.6rem]">
+                <span className="text-foreground-alt/50 micro-text">
                   {formatBytes(storageBytes)}
                 </span>
               </div>
@@ -317,12 +315,12 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
                   hasEncryption ? 'text-brand/80' : 'text-foreground-alt/40',
                 )}
               />
-              <span className="text-[0.55rem] font-medium tracking-[0.14em] uppercase">
+              <span className="micro-fine tracking-brand-label font-medium uppercase">
                 Encryption
               </span>
               <span
                 className={cn(
-                  'truncate text-[0.65rem]',
+                  'truncate micro-label',
                   hasEncryption ? 'text-brand/90' : 'text-foreground-alt/60',
                 )}
               >
@@ -330,7 +328,7 @@ export function TransformConfigDisplay({ info }: TransformConfigDisplayProps) {
               </span>
             </div>
             {hasEncryption && grantCount > 0 && (
-              <div className="flex shrink-0 items-center gap-1 text-[0.55rem] font-medium">
+              <div className="micro-fine flex shrink-0 items-center gap-1 font-medium">
                 <LuUsers className="size-2.5" />
                 {grantCount} {grantCount === 1 ? 'key' : 'keys'}
               </div>

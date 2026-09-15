@@ -332,7 +332,7 @@ export function SharedObjectDetails({
                   Delete Object
                 </h4>
                 {!compact && (
-                  <p className="text-destructive/80 text-[0.6rem] select-none">
+                  <p className="text-destructive/80 micro-text select-none">
                     Permanently remove this object and all its data
                   </p>
                 )}

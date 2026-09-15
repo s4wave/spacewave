@@ -45,7 +45,6 @@ const initialAudioPreviewState: AudioPreviewState = {
 
 const audioSkinStyle: CSSProperties = {
   '--media-border-radius': '0px',
-  borderRadius: 0,
 }
 
 function buildAudioErrorState(error: MediaError | null): AudioPreviewState {

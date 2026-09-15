@@ -25,10 +25,10 @@ export function GraphLinkPill({
     (edge.direction === 'in' && edge.incomingTruncated)
 
   return (
-    <div className="flex h-[26px] max-w-64 items-center">
+    <div className="flex h-6.5 max-w-64 items-center">
       <button
         className={cn(
-          'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-[26px] min-w-0 items-center gap-1 rounded-l-md border border-r-0 px-1.5 py-0.5 text-[0.6rem] shadow-lg backdrop-blur-sm transition-colors',
+          'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 min-w-0 items-center gap-1 rounded-l-md border border-r-0 px-1.5 py-0.5 micro-text shadow-lg backdrop-blur-sm transition-colors',
         )}
         onClick={onPrimary}
         title={`${loaded ? 'Focus' : 'Load'} ${edge.linkedObjectLabel}`}
@@ -70,7 +70,7 @@ export function GraphLinkPill({
       {edge.hideable && onHide && (
         <button
           className={cn(
-            'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-[26px] items-center border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors',
+            'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 items-center border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors',
             edge.userRemovable && onDelete ? 'border-r-0' : 'rounded-r-md',
           )}
           onClick={onHide}
@@ -81,7 +81,7 @@ export function GraphLinkPill({
       )}
       {edge.userRemovable && onDelete && (
         <button
-          className="bg-background-card/50 text-destructive border-foreground/10 hover:border-destructive/20 hover:bg-destructive/10 flex h-[26px] items-center rounded-r-md border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors"
+          className="bg-background-card/50 text-destructive border-foreground/10 hover:border-destructive/20 hover:bg-destructive/10 flex h-6.5 items-center rounded-r-md border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors"
           onClick={onDelete}
           title={`Delete ${edge.predicate} link`}
         >

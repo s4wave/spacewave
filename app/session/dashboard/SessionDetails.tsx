@@ -414,7 +414,8 @@ export function SessionDetails({
                     <CopyButton
                       text={headerPeerId}
                       label="Copy session ID"
-                      className="hover:bg-foreground/5 size-5"
+                      variant="toolbar"
+                      className="size-5"
                     />
                   </span>
                 )}
@@ -452,7 +453,7 @@ export function SessionDetails({
                     <TooltipTrigger asChild>
                       <DashboardButton
                         icon={<LuLogOut className="size-4" />}
-                        className="text-destructive hover:bg-destructive/10"
+                        variant="destructive"
                         onClick={handleLogoutClick}
                         disabled={loggingOut}
                       >
@@ -531,7 +532,7 @@ export function SessionDetails({
                                   }}
                                   placeholder="Name this local account"
                                   aria-label="Display Name"
-                                  className="text-sm"
+                                  variant="displayName"
                                 />
                                 <DashboardButton
                                   icon={<LuSave className="size-3" />}

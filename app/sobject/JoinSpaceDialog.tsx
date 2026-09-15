@@ -194,15 +194,15 @@ export function JoinSpaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0">
-        <DialogHeader className="border-foreground/8 border-b px-6 py-5 text-left">
+      <DialogContent variant="panel">
+        <DialogHeader variant="panel">
           <div className="flex items-start gap-3">
             <div className="bg-brand/10 text-brand flex size-10 shrink-0 items-center justify-center rounded-lg">
               <LuLogIn className="size-4" />
             </div>
             <div className="min-w-0">
               <DialogTitle>Join Space</DialogTitle>
-              <DialogDescription className="mt-1.5 leading-relaxed">
+              <DialogDescription variant="relaxed" className="mt-1.5">
                 {isCloud
                   ? 'Enter an invite code or paste an invite link.'
                   : 'Paste an invite link to continue.'}
@@ -337,7 +337,7 @@ export function JoinSpaceDialog({
             <>
               {busy && (
                 <div className="flex items-center justify-center gap-2 py-2">
-                  <Spinner className="text-foreground-alt" />
+                  <Spinner variant="muted" />
                   <span className="text-foreground-alt text-xs">
                     {phaseLabels[state.phase]}
                   </span>

@@ -450,7 +450,7 @@ function ChooseOption({
         <div className="flex items-center gap-2">
           <span className="text-foreground text-sm font-medium">{label}</span>
           {recommended && (
-            <span className="bg-brand/15 text-brand rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+            <span className="bg-brand/15 text-brand micro-ten rounded-full px-1.5 py-0.5 font-medium tracking-wide uppercase">
               Recommended
             </span>
           )}
@@ -648,7 +648,7 @@ function PairingStep({
       </div>
 
       <div className="flex min-h-16 flex-col items-center justify-center gap-3">
-        {loading && <Spinner size="lg" className="text-foreground-alt" />}
+        {loading && <Spinner size="lg" variant="muted" />}
         {!loading && code && (
           <>
             <PairingCodeChip code={code} />
@@ -853,7 +853,7 @@ function CodeInput({
         maxLength={9}
         disabled={disabled}
         className={cn(
-          'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-[0.2em]',
+          'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
           'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'h-14 px-3',
@@ -1100,7 +1100,7 @@ function DirectOfferStep({
       </div>
 
       <div className="flex min-h-16 flex-col items-center justify-center gap-3">
-        {loading && <Spinner size="lg" className="text-foreground-alt" />}
+        {loading && <Spinner size="lg" variant="muted" />}
         {!loading && offerPayload && (
           <>
             {qrResult.data && (

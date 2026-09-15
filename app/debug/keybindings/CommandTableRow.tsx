@@ -49,21 +49,14 @@ export function CommandTableRow({
       </td>
       <td className="px-4 py-3 align-middle">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className="border-foreground/10 font-normal">
-            {command.category}
-          </Badge>
-          <Badge variant="secondary" className="bg-foreground/5 font-normal">
-            {command.context}
-          </Badge>
+          <Badge variant="muted">{command.category}</Badge>
+          <Badge variant="subtle">{command.context}</Badge>
         </div>
       </td>
       <td className="px-4 py-3 text-right align-middle">
         <div className="flex items-center justify-end gap-2">
           {hasConflict ? (
-            <Badge
-              variant="destructive"
-              className="bg-destructive/15 text-destructive"
-            >
+            <Badge variant="conflict">
               <LuTriangleAlert /> Conflict
             </Badge>
           ) : null}

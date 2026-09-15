@@ -92,7 +92,7 @@ export function DeleteBillingAccountSection({
       icon={<LuTrash2 className="size-3" />}
       onClick={() => handleOpenChange(true)}
       disabled={deleteDisabled}
-      className="text-destructive hover:bg-destructive/10 hover:text-destructive disabled:hover:bg-transparent"
+      variant="destructive"
     >
       Delete billing account
     </DashboardButton>

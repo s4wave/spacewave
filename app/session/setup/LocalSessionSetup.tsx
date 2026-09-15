@@ -74,7 +74,7 @@ function PreparingLocalStorageScreen() {
       subtitle="Opening your full local setup flow."
     >
       <div className="flex flex-col items-center gap-2">
-        <Spinner size="lg" className="text-foreground-alt" />
+        <Spinner size="lg" variant="muted" />
       </div>
     </SetupPageLayout>
   )
@@ -296,7 +296,7 @@ export function WarningCard({
           >
             <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
               {upgradeLoading ? (
-                <Spinner className="text-foreground-alt" />
+                <Spinner variant="muted" />
               ) : (
                 <LuCloud className="text-foreground-alt size-4" />
               )}

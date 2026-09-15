@@ -13,7 +13,7 @@ function EmbeddedViewer() {
 
   return (
     <div
-      className="space-flexlayout relative flex h-[600px] w-[900px] flex-col overflow-hidden"
+      className="space-flexlayout relative flex h-150 w-225 flex-col overflow-hidden"
       data-testid="object-layout"
     >
       <div className="relative flex h-full w-full flex-1 flex-col">

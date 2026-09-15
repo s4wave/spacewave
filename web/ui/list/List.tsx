@@ -440,7 +440,7 @@ export function List<T>({
             tabIndex={focusedIndexVisible ? -1 : 0}
             role="rowgroup"
             className={cn(
-              'p-[2px] outline-none',
+              'p-0.5 outline-none',
               autoHeight
                 ? 'flex flex-col'
                 : 'flex min-h-0 flex-1 flex-col overflow-hidden',
@@ -457,7 +457,7 @@ export function List<T>({
                   <RowComponentInternal
                     key={item.id}
                     index={index}
-                    style={{ height: rowHeight }}
+                    style={{ '--list-row-height': rowHeight }}
                     ariaAttributes={{
                       'aria-posinset': index + 1,
                       'aria-setsize': sortedItems.length,

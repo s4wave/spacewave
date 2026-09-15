@@ -76,10 +76,10 @@ export function CanvasScaleIndicator({ scale }: CanvasScaleIndicatorProps) {
   return (
     <div
       className={cn(
-        'text-foreground-alt/60 pointer-events-none absolute bottom-4 left-4 font-mono text-xs tabular-nums transition-opacity',
+        'canvas-transition-duration text-foreground-alt/60 pointer-events-none absolute bottom-4 left-4 font-mono text-xs tabular-nums transition-opacity',
         state.fading && 'opacity-0',
       )}
-      style={{ transitionDuration: `${FADE_MS}ms` }}
+      style={{ '--canvas-transition-duration': `${FADE_MS}ms` }}
     >
       {Math.round(scale * 100)}%
     </div>

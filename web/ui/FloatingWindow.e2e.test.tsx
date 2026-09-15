@@ -54,7 +54,7 @@ function TestWindow({
       onStateChange={handleStateChange}
       testId={`window-${id}`}
     >
-      <div data-testid={`window-content-${id}`} style={{ padding: '16px' }}>
+      <div data-testid={`window-content-${id}`} className="p-4">
         Content for {title}
       </div>
     </FloatingWindow>
@@ -64,7 +64,7 @@ function TestWindow({
 function TwoWindowsTest() {
   return (
     <FloatingWindowManagerProvider>
-      <div style={{ width: '800px', height: '600px', position: 'relative' }}>
+      <div className="relative h-150 w-200">
         <TestWindow
           id="window-1"
           title="Window 1"

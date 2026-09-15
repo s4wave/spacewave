@@ -287,7 +287,7 @@ function PendingDeleteNotice(props: {
   }, [props])
 
   return (
-    <div className="border-warning/20 bg-warning/5 mx-auto mt-3 w-[calc(100%-1.5rem)] max-w-3xl rounded-lg border px-4 py-3">
+    <div className="border-warning/20 bg-warning/5 w-content-inset mx-auto mt-3 max-w-3xl rounded-lg border px-4 py-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-3">
           <LuTriangleAlert className="text-warning mt-0.5 size-4 shrink-0" />

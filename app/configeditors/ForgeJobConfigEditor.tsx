@@ -42,9 +42,6 @@ export async function loadForgeClusterOptions(
   )
 }
 
-const inputClassName =
-  'border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9'
-
 // ForgeJobConfigEditor edits the config-specific fields of a ForgeJobCreateOp.
 // Renders a cluster picker and task definitions list.
 export function ForgeJobConfigEditor({
@@ -186,12 +183,7 @@ export function ForgeJobConfigEditor({
             <LuPlus className="size-3.5" />
             Initial Tasks
           </h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAddTask}
-            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition duration-150"
-          >
+          <Button onClick={handleAddTask} variant="quiet" size="toolbarSm">
             <LuPlus className="size-3.5" />
             Add Task
           </Button>
@@ -210,15 +202,13 @@ export function ForgeJobConfigEditor({
                 onChange={(e) => handleUpdateTaskDef(i, e.target.value)}
                 placeholder={`Task ${i + 1} name...`}
                 aria-label={`Task ${i + 1} name`}
-                className={inputClassName}
+                variant="config"
               />
               {displayedTaskDefs.length > 1 && (
                 <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => handleRemoveTask(i)}
                   aria-label={`Remove task ${i + 1}`}
-                  className="border-foreground/8 hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive h-9 bg-transparent px-2 transition duration-150"
+                  variant="destructiveSubtle"
                 >
                   <LuTrash className="size-3.5" />
                 </Button>

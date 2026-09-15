@@ -291,7 +291,7 @@ export function DesktopCLIInstallCard({
           <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
             Selected target
           </p>
-          <code className="text-foreground-alt/90 bg-foreground/5 block max-w-full truncate rounded px-1.5 py-1 font-mono text-[0.7rem]">
+          <code className="text-foreground-alt/90 bg-foreground/5 micro-seven block max-w-full truncate rounded px-1.5 py-1 font-mono">
             {selectedTarget?.path || 'Not selected'}
           </code>
           {selectedTarget && (
@@ -329,7 +329,7 @@ export function DesktopCLIInstallCard({
       {state?.conflictPath && (
         <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
           <p className="text-foreground text-xs font-medium">PATH conflict</p>
-          <code className="text-foreground-alt/90 mt-1 block max-w-full truncate font-mono text-[0.7rem]">
+          <code className="text-foreground-alt/90 micro-seven mt-1 block max-w-full truncate font-mono">
             {state.conflictPath}
           </code>
         </div>
@@ -385,10 +385,10 @@ function TargetOptions({
               <span className="text-foreground block text-xs font-medium">
                 {target.label || target.id || 'Target'}
               </span>
-              <code className="text-foreground-alt/90 mt-1 block truncate font-mono text-[0.68rem]">
+              <code className="text-foreground-alt/90 micro-compact mt-1 block truncate font-mono">
                 {target.path}
               </code>
-              <span className="text-foreground-alt mt-1 block text-[0.68rem]">
+              <span className="text-foreground-alt micro-compact mt-1 block">
                 {target.detail ||
                   (target.writable
                     ? 'Writable user target'
@@ -678,7 +678,7 @@ function MoreCommandRow({
 }) {
   return (
     <li className="flex flex-col gap-0.5">
-      <code className="text-foreground bg-foreground/5 w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-xs [font-variant-ligatures:none]">
+      <code className="text-foreground bg-foreground/5 font-no-ligatures w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-xs">
         {command}
       </code>
       <p className="text-foreground-alt text-xs">{explanation}</p>
@@ -703,7 +703,7 @@ function CommandStep({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="border-foreground/10 bg-background/40 flex items-center gap-2 rounded-md border px-2.5 py-1.5">
-          <code className="text-foreground min-w-0 flex-1 truncate font-mono text-xs [font-variant-ligatures:none]">
+          <code className="text-foreground font-no-ligatures min-w-0 flex-1 truncate font-mono text-xs">
             {command}
           </code>
           <CopyButton text={command} label="Copy command" />
@@ -747,7 +747,7 @@ function ListenerStatusChip() {
   let socketRow: ReactNode
   if (status?.socketPath) {
     socketRow = (
-      <code className="text-foreground-alt/80 bg-foreground/5 w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-[0.65rem]">
+      <code className="text-foreground-alt/80 bg-foreground/5 micro-label w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono">
         {status.socketPath}
       </code>
     )
@@ -772,7 +772,7 @@ function ListenerStatusChip() {
             {label}
           </span>
           {listening && (
-            <span className="text-foreground-alt inline-flex items-center gap-1 text-[0.65rem]">
+            <span className="text-foreground-alt micro-label inline-flex items-center gap-1">
               <LuUsers className="size-3" />
               {status?.connectedClients ?? 0} connected
             </span>
@@ -780,7 +780,7 @@ function ListenerStatusChip() {
         </div>
         {socketRow}
         {handoff.active && (
-          <span className="text-foreground-alt text-[0.7rem]">
+          <span className="text-foreground-alt micro-seven">
             Runtime is handed off to{' '}
             {handoff.requesterName || 'spacewave serve'}. Reclaim it from the
             banner above to resume listening.

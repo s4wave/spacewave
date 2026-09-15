@@ -54,7 +54,7 @@ function TestCanvas({ initialNodes }: { initialNodes: CanvasNodeData[] }) {
   }
 
   return (
-    <div style={{ width: 800, height: 600 }}>
+    <div className="h-150 w-200">
       <Canvas state={state} callbacks={callbacks} />
     </div>
   )

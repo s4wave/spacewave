@@ -140,7 +140,7 @@ export function useBillingConsent() {
         if (!value) finish()
       }}
     >
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="max-h-(--max-height-confirmation) overflow-y-auto">
         <DialogTitle>
           {choice?.spendingOnly ? 'Extra-usage maximum' : 'Cloud monthly offer'}
         </DialogTitle>

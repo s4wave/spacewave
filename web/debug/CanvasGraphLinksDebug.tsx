@@ -138,7 +138,7 @@ function GraphNode({
         </div>
         <span className="text-foreground text-xs font-semibold">{label}</span>
       </div>
-      <span className="text-foreground-alt/50 text-[0.6rem]">{detail}</span>
+      <span className="text-foreground-alt/50 micro-text">{detail}</span>
     </div>
   )
 }
@@ -174,10 +174,10 @@ function GraphLinkPill({
       className={cn(
         'bg-background-card/50 text-foreground flex items-center rounded-md border shadow-lg backdrop-blur-sm',
         compact
-          ? 'gap-1 px-1.5 py-0.5 text-[0.55rem]'
+          ? 'gap-1 px-1.5 py-0.5 micro-fine'
           : balanced
-            ? 'gap-1 px-1.5 py-0.5 text-[0.6rem]'
-            : 'gap-1.5 px-2 py-1 text-[0.6rem]',
+            ? 'gap-1 px-1.5 py-0.5 micro-text'
+            : 'gap-1.5 px-2 py-1 micro-text',
         metadata && 'px-2.5 py-1.5',
         loaded ? 'border-brand/20' : 'border-foreground/10',
         hidden && 'opacity-55',
@@ -306,16 +306,16 @@ function GraphLinkPreview({
 
       <div
         className={cn(
-          'border-foreground-alt/30 absolute top-[104px] right-[13rem] left-[13rem] border-t',
+          'border-foreground-alt/30 absolute top-26 right-52 left-52 border-t',
           !loaded && 'border-dashed',
         )}
       />
 
-      <div className="absolute top-[92px] left-1/2 z-20 -translate-x-1/2">
+      <div className="absolute top-23 left-1/2 z-20 -translate-x-1/2">
         <GraphLinkPill fixture={fixture} variant={variant} />
       </div>
 
-      <span className="text-foreground-alt/40 absolute bottom-3 left-3 text-[0.55rem] font-medium tracking-widest uppercase">
+      <span className="text-foreground-alt/40 micro-fine absolute bottom-3 left-3 font-medium tracking-widest uppercase">
         {fixture.direction === 'out' ? 'Outgoing' : 'Incoming'} /{' '}
         {hidden ? 'hidden' : fixture.state}
       </span>

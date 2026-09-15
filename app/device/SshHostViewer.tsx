@@ -339,7 +339,7 @@ function credentialSummary(refs?: SshHostCredentialRefs): string {
 
 function TrustPinRow({ pin }: { pin: SshHostKeyPin }) {
   return (
-    <div className="grid gap-1 py-2 first:pt-0 last:pb-0 sm:grid-cols-[8rem_1fr]">
+    <div className="sm:grid-cols-form grid gap-1 py-2 first:pt-0 last:pb-0">
       <div className="text-foreground-alt/70 text-xs">
         {pin.algorithm || 'unknown'}
       </div>

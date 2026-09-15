@@ -43,13 +43,14 @@ export function RefSelector({
           disabled={loading}
         >
           <LuGitBranch className="text-foreground-alt size-3.5 shrink-0" />
-          <span className="max-w-[120px] truncate">{displayName}</span>
+          <span className="max-w-30 truncate">{displayName}</span>
           <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="max-h-[300px] min-w-[180px] overflow-y-auto text-xs"
+        variant="compact"
+        className="max-h-75 min-w-45 overflow-y-auto"
       >
         {branches.length > 0 && (
           <DropdownMenuGroup>
@@ -63,7 +64,7 @@ export function RefSelector({
               <DropdownMenuItem
                 key={branch.name}
                 onClick={() => onRefSelect(branch.name ?? '')}
-                className={cn(effectiveRef === branch.name && 'bg-accent')}
+                variant={effectiveRef === branch.name ? 'selected' : 'default'}
               >
                 <span className="truncate">{branch.name}</span>
                 {branch.isHead && (
@@ -88,7 +89,7 @@ export function RefSelector({
               <DropdownMenuItem
                 key={tag.name}
                 onClick={() => onRefSelect(tag.name ?? '')}
-                className={cn(effectiveRef === tag.name && 'bg-accent')}
+                variant={effectiveRef === tag.name ? 'selected' : 'default'}
               >
                 <span className="truncate">{tag.name}</span>
               </DropdownMenuItem>

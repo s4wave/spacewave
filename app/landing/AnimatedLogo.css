@@ -26,6 +26,34 @@
   }
 }
 
+.animated-logo-fixed-size {
+  width: var(--animated-logo-size);
+  height: var(--animated-logo-size);
+}
+
+.animated-logo-transform {
+  transform: var(--animated-logo-transform);
+  transition: var(--animated-logo-transition);
+}
+
+.animated-logo-fixed-content,
+.animated-logo-fixed-content > img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+.animated-logo-blur {
+  animation: logoBlur 10s ease-in-out infinite;
+  animation-play-state: running;
+  dynamic-range-limit: no-limit;
+}
+
+.animated-logo-blur-paused {
+  animation: none;
+  dynamic-range-limit: no-limit;
+}
+
 @media (dynamic-range: high) {
   @keyframes logoBlur {
     0% {
