@@ -29,7 +29,7 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/bbolt v0.0.0-20260905054723-c936b6834b13 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260915093719-23c15f385f8b // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260915020808-46757a8a3b0e // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
