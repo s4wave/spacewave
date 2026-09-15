@@ -10,6 +10,8 @@ import (
 	resource_block_cursor "github.com/s4wave/spacewave/core/resource/block/cursor"
 	resource_block_transaction "github.com/s4wave/spacewave/core/resource/block/transaction"
 	"github.com/s4wave/spacewave/db/block"
+	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
 	"github.com/s4wave/spacewave/db/blocktype"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
@@ -18,9 +20,13 @@ import (
 
 // BucketLookupCursorResource wraps a bucket_lookup.Cursor for resource access.
 type BucketLookupCursorResource struct {
-	le     *logrus.Entry
-	b      bus.Bus
-	mux    srpc.Invoker
+	// le annotates operations on this mounted cursor.
+	le *logrus.Entry
+	// b resolves block types and resources requested through the cursor.
+	b bus.Bus
+	// mux serves decoded cursor operations and encoded bucket storage.
+	mux srpc.Invoker
+	// cursor holds the mounted bucket and its transformation configuration.
 	cursor *bucket_lookup.Cursor
 }
 
@@ -29,11 +35,14 @@ func NewBucketLookupCursorResource(le *logrus.Entry, b bus.Bus, cursor *bucket_l
 	blcResource := &BucketLookupCursorResource{le: le, b: b, cursor: cursor}
 	mux := srpc.NewMux()
 	_ = s4wave_bucket_lookup.SRPCRegisterBucketLookupCursorResourceService(mux, blcResource)
+	// Local cursors use the bucket's encoded StoreOps contract. Decoded cursor
+	// methods remain available to callers that delegate transforms to the host.
+	_ = block_rpc.SRPCRegisterBlockStore(mux, block_rpc_server.NewBlockStore(cursor.GetBucket()))
 	blcResource.mux = mux
 	return blcResource
 }
 
-// GetMux returns the rpc mux.
+// GetMux returns the cursor Resource's RPC mux.
 func (r *BucketLookupCursorResource) GetMux() srpc.Invoker {
 	return r.mux
 }
@@ -245,7 +254,7 @@ func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_
 		}, nil
 	}
 
-	// If no data provided, fetch the block
+	// Fetch through the cursor when the caller supplied no decoded data.
 	if len(data) == 0 {
 		if ref == nil {
 			ref = r.cursor.GetRef()
@@ -271,5 +280,5 @@ func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_
 	}, nil
 }
 
-// _ is a type assertion
+// _ verifies the cursor Resource service contract.
 var _ s4wave_bucket_lookup.SRPCBucketLookupCursorResourceServiceServer = (*BucketLookupCursorResource)(nil)
