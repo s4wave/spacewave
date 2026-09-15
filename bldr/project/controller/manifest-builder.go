@@ -207,10 +207,16 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	// set config fields
 	meta := bldr_manifest.NewManifestMeta(
 		t.conf.GetManifestId(),
-		bldr_manifest.BuildType(t.conf.GetBuildType()),
+		bldr_manifest.ToBuildType(t.conf.GetBuildType()),
 		t.conf.GetPlatformId(),
 		0,
 	)
+	// Revision lookup and the compiler must use the same platform identity.
+	meta, _, err = meta.Resolve()
+	if err != nil {
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "resolve platform", err)
+		return err
+	}
 	manifestID := meta.GetManifestId()
 
 	if manifestID == "" {
