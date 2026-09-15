@@ -274,6 +274,7 @@ func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []ok
 }
 
 func (t *Tx) setRootPage(ctx context.Context, page okraBuiltPage) error {
+	builtRoot := page.cursor
 	for page.page.GetLevel() > 1 && len(page.page.GetEntries()) == 1 {
 		childCursor := page.page.FollowChild(page.cursor, 0)
 		if childCursor == nil {
@@ -289,34 +290,54 @@ func (t *Tx) setRootPage(ctx context.Context, page okraBuiltPage) error {
 		page = okraBuiltPage{page: childPage, cursor: childCursor}
 	}
 	if page.page.GetSize() == 0 {
-		return t.setEmptyRoot(ctx)
+		err := t.setEmptyRoot(ctx)
+		discardPages(builtRoot)
+		return err
 	}
 	rootEntry := page.page.GetEntries()[0]
-	t.root = &Root{
+	t.replaceRoot(&Root{
 		Size:         page.page.GetSize(),
 		Height:       page.page.GetLevel(),
 		RootHash:     slices.Clone(rootEntry.GetHash()),
 		RootPageRef:  page.cursor.GetRef().Clone(),
 		HashSize:     HashSize,
 		FanoutDegree: FanoutDegree,
-	}
-	t.bcs.ClearAllRefs()
-	t.bcs.SetBlock(t.root, true)
-	t.bcs.SetRef(rootPageRefID, page.cursor)
-	if t.rootChangedCb != nil {
-		t.rootChangedCb(t.bcs)
-	}
+	}, page.cursor)
+	discardPages(builtRoot)
 	return ctx.Err()
 }
 
 func (t *Tx) setEmptyRoot(ctx context.Context) error {
-	t.root = &Root{}
+	t.replaceRoot(&Root{}, nil)
+	return ctx.Err()
+}
+
+// replaceRoot releases obsolete pages after attaching their replacement.
+// Shared descendants remain attached to the new root or an active iterator.
+func (t *Tx) replaceRoot(root *Root, page *block.Cursor) {
+	var previous *block.Cursor
+	if t.root.GetSize() != 0 {
+		previous = t.bcs.FollowRef(rootPageRefID, t.root.GetRootPageRef())
+	}
+	t.root = root
 	t.bcs.ClearAllRefs()
 	t.bcs.SetBlock(t.root, true)
+	if page != nil {
+		t.bcs.SetRef(rootPageRefID, page)
+	}
+	discardPages(previous)
 	if t.rootChangedCb != nil {
 		t.rootChangedCb(t.bcs)
 	}
-	return ctx.Err()
+}
+
+// discardPages releases only internal pages. Value cursors may outlive their key.
+func discardPages(cursor *block.Cursor) {
+	for id, child := range cursor.DiscardDetached() {
+		if _, ok := entryIndexFromChildRefID(id); ok {
+			discardPages(child)
+		}
+	}
 }
 
 func (t *Tx) buildPagesFromLevelNodes(level uint32, nodes []okraLevelNode, finalUpper []byte) ([]okraBuiltPage, error) {
@@ -516,7 +537,9 @@ func (t *Tx) stagedValueStore(ctx context.Context, btx *block.Transaction) *bloc
 }
 
 type walTrackingStore interface {
+	// HasWALAppender reports whether writes append to the garbage collection WAL.
 	HasWALAppender() bool
+	// GetStore returns the underlying store without WAL tracking.
 	GetStore() block.StoreOps
 }
 

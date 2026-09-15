@@ -19,11 +19,12 @@ type Iterator struct {
 	prefix []byte
 	upper  []byte
 
-	current iteratorEntry
-	path    okraPagePath
-	valid   bool
-	started bool
-	closed  bool
+	current  iteratorEntry
+	path     okraPagePath
+	snapshot *block.Cursor
+	valid    bool
+	started  bool
+	closed   bool
 }
 
 type iteratorEntry struct {
@@ -117,11 +118,18 @@ func (i *Iterator) Seek(key []byte) error {
 	if err := i.checkContext(); err != nil {
 		return err
 	}
+	i.releaseSnapshot()
 	i.valid = false
 	i.started = true
 	if i.tx.root.GetSize() == 0 {
 		return nil
 	}
+	// Pin the traversed tree until the next seek or close. Mutations replace
+	// pages without changing the iterator's existing path.
+	if _, _, err := i.tx.getRootPage(i.ctx); err != nil {
+		return err
+	}
+	i.snapshot = i.tx.bcs.Detach(true)
 	if i.reverse {
 		return i.seekReverse(key)
 	}
@@ -130,9 +138,19 @@ func (i *Iterator) Seek(key []byte) error {
 
 // Close closes the iterator.
 func (i *Iterator) Close() {
+	i.releaseSnapshot()
 	i.err = context.Canceled
 	i.valid = false
 	i.closed = true
+}
+
+func (i *Iterator) releaseSnapshot() {
+	for _, page := range i.snapshot.DiscardDetached() {
+		discardPages(page)
+	}
+	i.snapshot = nil
+	i.path = nil
+	i.current = iteratorEntry{}
 }
 
 // ValueCursor returns a cursor located at the current value.
