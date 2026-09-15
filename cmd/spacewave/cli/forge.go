@@ -45,6 +45,8 @@ func newForgeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			buildForgeCreateClusterCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 			buildForgeCreateJobCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 			buildForgeCreateWorkerCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
+			buildForgeWorkerProcessCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags), true),
+			buildForgeWorkerProcessCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags), false),
 		},
 	}
 }
