@@ -441,7 +441,8 @@ func materializeEntrypoint(ctx context.Context, dist *unixfs.FSHandle, entrypoin
 	defer source.Close()
 
 	destination := filepath.Join(dir, entrypoint)
-	file, err := os.CreateTemp(filepath.Dir(destination), ".entrypoint-*")
+	// Keep staging outside the checkout: another instance may sync its assets.
+	file, err := os.CreateTemp(filepath.Dir(dir), ".entrypoint-*")
 	if err != nil {
 		return err
 	}
