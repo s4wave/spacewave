@@ -33,9 +33,9 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		return
 	}
 	dev := &virtioHost9PDevice{
-		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
-		host:               h,
-		fs:                 fs,
+		featuresOK: true,
+		host:       h,
+		fs:         fs,
 	}
 	dev.deviceFeatures[0] = virtioHost9PMountTagFeature | virtqDescIndirectFeature | virtqEventIdxFeature
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.

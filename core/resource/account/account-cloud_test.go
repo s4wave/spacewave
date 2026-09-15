@@ -134,7 +134,7 @@ func TestCloudOnlyWatchesRejectLocalAccountResource(t *testing.T) {
 
 	err := r.WatchAuthMethods(
 		&s4wave_account.WatchAuthMethodsRequest{},
-		&testWatchAuthMethodsStream{testStream: testStream{ctx: ctx}},
+		&testWatchAuthMethodsStream{ctx: ctx},
 	)
 	if err == nil {
 		t.Fatal("expected local account resource auth-method watch to fail")

@@ -115,11 +115,10 @@ func (d *Dialector) DefaultValueOf(field *schema.Field) clause.Expression {
 }
 
 func (d *Dialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return Migrator{migrator.Migrator{Config: migrator.Config{
+	return Migrator{migrator.Migrator{
 		DB:                          db,
 		Dialector:                   d,
-		CreateIndexAfterCreateTable: true,
-	}}, d}
+		CreateIndexAfterCreateTable: true}, d}
 }
 
 func (d *Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v any) {

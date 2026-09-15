@@ -39,12 +39,10 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 			hooks.ReplayWAL != nil &&
 			hooks.AcquireSTW != nil {
 			manager := block_gc.NewManager(block_gc.ManagerConfig{
-				SweepConfig: block_gc.SweepConfig{
-					Graph:      hooks.Graph,
-					Target:     volumeSweepTarget{vol: vol},
-					ReplayWAL:  hooks.ReplayWAL,
-					AcquireSTW: hooks.AcquireSTW,
-				},
+				Graph:         hooks.Graph,
+				Target:        volumeSweepTarget{vol: vol},
+				ReplayWAL:     hooks.ReplayWAL,
+				AcquireSTW:    hooks.AcquireSTW,
 				SweepInterval: interval,
 				Maintenance:   hooks.Maintenance,
 			})
