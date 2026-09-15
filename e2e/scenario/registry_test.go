@@ -40,7 +40,7 @@ func TestRunnerUsesDeclaredOrderAndSessionBoundaries(t *testing.T) {
 		calls = append(calls, "reset:"+string(requirement))
 		return nil
 	}
-	rt := &recordingRuntime{testRuntime: testRuntime{name: "devwasm"}, reset: reset}
+	rt := &recordingRuntime{name: "devwasm", reset: reset}
 	registry := NewRegistry(
 		Scenario{Name: "warm-after-install", Tags: []string{"drive"}, Session: runtime.SessionAny, Run: func(context.Context, runtime.Runtime) error {
 			calls = append(calls, "warm-after-install")

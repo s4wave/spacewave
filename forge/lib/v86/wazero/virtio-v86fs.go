@@ -206,9 +206,9 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 		return
 	}
 	dev := &virtioV86FSDevice{
-		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
-		host:               h,
-		session:            unixfs_v86fs.NewLocalSession(ctx, server),
+		featuresOK: true,
+		host:       h,
+		session:    unixfs_v86fs.NewLocalSession(ctx, server),
 	}
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
 	for i := range dev.queues {

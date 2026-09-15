@@ -20,23 +20,21 @@ func TestManagerRetriesStartupReplay(t *testing.T) {
 	replays := 0
 	maintained := false
 	manager := NewManager(ManagerConfig{
-		SweepConfig: SweepConfig{
-			Graph:      graph,
-			Target:     target,
-			AcquireSTW: noopSTW,
-			ReplayWAL: func(ctx context.Context, graph CollectorGraph) (int, error) {
-				replays++
-				if replays <= 3 && len(target.deletedObjects) != 0 {
-					t.Fatal("swept objects before pending ownership was replayed")
-				}
-				if replays <= 2 {
-					return 0, errors.New("transaction attempts exhausted")
-				}
-				if replays == 3 {
-					return 1, graph.AddRef(ctx, "root", ObjectIRI("retained"))
-				}
-				return 0, nil
-			},
+		Graph:      graph,
+		Target:     target,
+		AcquireSTW: noopSTW,
+		ReplayWAL: func(ctx context.Context, graph CollectorGraph) (int, error) {
+			replays++
+			if replays <= 3 && len(target.deletedObjects) != 0 {
+				t.Fatal("swept objects before pending ownership was replayed")
+			}
+			if replays <= 2 {
+				return 0, errors.New("transaction attempts exhausted")
+			}
+			if replays == 3 {
+				return 1, graph.AddRef(ctx, "root", ObjectIRI("retained"))
+			}
+			return 0, nil
 		},
 		SweepInterval: time.Millisecond,
 		Maintenance: func(context.Context) error {
@@ -61,11 +59,9 @@ func TestManagerStartupReplayCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	manager := NewManager(ManagerConfig{
-		SweepConfig: SweepConfig{
-			ReplayWAL: func(context.Context, CollectorGraph) (int, error) {
-				cancel()
-				return 0, errors.New("replay interrupted")
-			},
+		ReplayWAL: func(context.Context, CollectorGraph) (int, error) {
+			cancel()
+			return 0, errors.New("replay interrupted")
 		},
 	})
 	if err := manager.Run(ctx); !errors.Is(err, context.Canceled) {

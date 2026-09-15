@@ -80,8 +80,8 @@ func TestRetainPublicationWorldRecoversPeerDependencies(t *testing.T) {
 	// The same overlay used by cloud stores exposes remote bytes on demand.
 	overlay := block.NewOverlay(ctx, le, source.GetBucket(), target.GetBucket(), block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
 	shared := &publicationTestSharedObject{
-		testSharedObject: testSharedObject{blockStore: newTestBlockStore("publication-test", overlay)},
-		bus:              local.Bus, retained: newTestRejectedCandidateStore(),
+		blockStore: newTestBlockStore("publication-test", overlay),
+		bus:        local.Bus, retained: newTestRejectedCandidateStore(),
 	}
 	c := &Controller{le: le, bus: local.Bus, sfs: local.StepFactorySet}
 	head := &bucket.ObjectRef{RootRef: ws.GetRootRef()}

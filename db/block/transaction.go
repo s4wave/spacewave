@@ -20,11 +20,9 @@ var maxWriteConcurrency = runtime.GOMAXPROCS(0)
 // maxEncodeConcurrency is the maximum concurrency for hashing & marshaling blocks.
 var maxEncodeConcurrency = maxWriteConcurrency
 
-// transactionReachableNode tracks one node in the marshal reachability
-// graph.
+// transactionReachableNode tracks one node in the marshal reachability graph.
 type transactionReachableNode struct {
-	// from is the list of nodes that we can reach from this node
-	// (child nodes)
+	// from lists child nodes whose encoding must finish before this node.
 	from []int64
 	// encodeDone is closed when encoding this node is done.
 	encodeDone chan struct{}
@@ -39,19 +37,19 @@ type transactionReachableNode struct {
 // Empty blocks are not written to storage: they are instead represented with a
 // nil BlockRef. SetBlockRef should handle nil BlockRef objects correctly.
 type Transaction struct {
-	// store is the block store handle
+	// store is the block store handle.
 	store StoreOps
-	// xfrm is an optional block transformer
+	// xfrm is an optional block transformer.
 	xfrm Transformer
-	// root is the root reference
+	// root is the root reference.
 	root *handle
-	// mtx guards the object
+	// mtx guards the transaction's cursor graph and write operations.
 	mtx sync.Mutex
-	// blockGraph is the graph of blocks
+	// blockGraph is the graph of blocks.
 	blockGraph *BlockGraph
-	// putOpts are put options (hashType is always filled with a value)
+	// putOpts are put options with a resolved hash type.
 	putOpts *PutOpts
-	// dirty indicates anything changed in the transaction
+	// dirty indicates whether anything changed in the transaction.
 	dirty bool
 	// bufferedStoreSettings overrides the default BufferedStore settings used
 	// inside WriteAtRoot. nil uses the defaults.
@@ -66,25 +64,23 @@ type Transaction struct {
 	writeBuffer *BufferedStore
 }
 
-// NewTransaction builds a new transaction with a root cursor.
+// NewTransaction builds a new transaction with a root cursor. The transformer,
+// root reference, and put options are optional.
 func NewTransaction(
-	// store is the block store
 	store StoreOps,
-	// transformer is an optional block transformer
 	transformer Transformer,
-	// rootRef is the root reference
 	rootRef *BlockRef,
-	// putOpts is optional
 	putOpts *PutOpts,
 ) (*Transaction, *Cursor) {
-	if putOpts == nil {
-		putOpts = &PutOpts{}
-	} else {
-		putOpts = putOpts.CloneVT()
-		putOpts.ForceBlockRef = nil
+	// Copy caller options so each write can assign its own block reference.
+	opts := &PutOpts{}
+	if putOpts != nil {
+		opts = putOpts.CloneVT()
 	}
+	opts.ForceBlockRef = nil
+	putOpts = opts
 
-	// determine which hash type to use
+	// Resolve the hash type from explicit options, the store, or the default.
 	hashType := putOpts.GetHashType()
 	if hashType == 0 && store != nil {
 		hashType = store.GetHashType()
@@ -94,6 +90,7 @@ func NewTransaction(
 	}
 	putOpts.HashType = hashType
 
+	// Attach the root to its own cursor graph.
 	t := &Transaction{
 		store:      store,
 		xfrm:       transformer,
@@ -189,6 +186,8 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 	if t == nil {
 		return
 	}
+
+	// Replace the borrowed cache under the cursor-graph lock.
 	t.mtx.Lock()
 	t.decodedBlocks = cache
 	t.mtx.Unlock()
@@ -199,9 +198,12 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 // be called before Write/WriteAtRoot begins committing for the override to
 // take effect on that commit.
 func (t *Transaction) SetBufferedStoreSettings(s *BufferedStoreSettings) {
+	// Ignore settings for an absent transaction.
 	if t == nil {
 		return
 	}
+
+	// Copy settings so later caller changes cannot alter this transaction.
 	t.mtx.Lock()
 	if s == nil {
 		t.bufferedStoreSettings = nil
@@ -216,12 +218,15 @@ func (t *Transaction) SetBufferedStoreSettings(s *BufferedStoreSettings) {
 // SetRoot sets the root of the transaction to a different position.
 // Clears all parent blocks from the new root.
 func (t *Transaction) SetRoot(cursor *Cursor) error {
+	// Only cursors from this transaction can become its root.
 	if t == nil {
 		return nil
 	}
 	if cursor.t != nil && cursor.t != t {
 		return errors.New("cursor block transaction mismatch")
 	}
+
+	// Detach the new root from its parents and mark it for writing.
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	_ = cursor.removeParent(nil)
@@ -257,6 +262,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	rcursor *Cursor,
 	rerr error,
 ) {
+	// Trace the complete write, including draining and worker settlement.
 	ctx, task := trace.NewTask(ctx, "hydra/block/transaction/write-at-root")
 	defer task.End()
 
@@ -264,7 +270,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return nil, nil, tx.ErrNotWrite
 	}
 
-	// determine the write root
+	// Select the full transaction root or the requested subtree.
 	writeRoot := t.root
 	if subRoot != nil {
 		if subRoot.t != nil && subRoot.t != t {
@@ -273,12 +279,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		writeRoot = subRoot.pos
 	}
 
-	// deferFlush batches GC ref-graph flushes for dirty writes (see below).
-	// registered BEFORE t.mtx.Lock so EndDeferFlush runs AFTER
-	// t.mtx.Unlock in LIFO order. The outermost EndDeferFlush calls the GC
-	// FlushPending, which must run after the cursor mutex is released because
-	// the RefGraph may share it. Uses the parent ctx because subCtxCancel runs
-	// first in LIFO.
+	// Close deferred GC flushing after unlocking the cursor graph: RefGraph
+	// may share that lock. Keep the caller context for this final flush.
 	var deferFlushActive bool
 	deferFlushCtx := ctx
 	writeStore := t.store
@@ -290,10 +292,11 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 	}()
 
+	// Serialize graph mutation and restore the returned cursor after writing.
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	defer func() {
-		// only clear the full tree and reset root when writing from the tx root
+		// Subtree writes leave the surrounding transaction graph intact.
 		if clearTree && subRoot == nil {
 			t.clearData()
 		}
@@ -302,6 +305,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 	}()
 
+	// Clean transactions neither write nor flush another transaction's refs.
 	if !t.dirty {
 		return writeRoot.ref, nil, nil
 	}
@@ -326,30 +330,27 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// by this write.
 	var buffered *BufferedStore
 	drainBuffered := false
-	if t.writeBuffer != nil {
+	switch {
+	case t.writeBuffer != nil:
 		buffered = t.writeBuffer
 		writeStore = buffered
-	} else if writeStore != nil {
+	case writeStore != nil:
 		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 		writeStore = buffered
 		drainBuffered = true
 	}
 
-	// begin deferred GC flushing.
-	// only activated for dirty transactions so a non-dirty WriteAtRoot
-	// never touches the shared flush counter or flushes another
-	// transaction's buffered refs.
+	// Batch GC reference updates for the dirty write.
 	if writeStore != nil {
 		deferFlushActive = true
 		BeginDeferFlush(writeStore)
 	}
 
-	// create a sub-context
+	// Cancel and join work before releasing transaction state.
 	ctx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	// mark blocks reachable from the write root.
-	// when writing the full tree, unreachable blocks are dropped (cut).
+	// Mark blocks reachable from the write root; full writes cut other blocks.
 	reachable := make(map[int64]transactionReachableNode, 1)
 	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	{
@@ -381,9 +382,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	}
 	subtask.End()
 
+	// Order encodes after their referenced blocks and shared marshal aliases.
 	t.addMarshalAliasWaits(reachable)
-
-	// topological sort to determine dependencies (references, etc).
 	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/topo-sort")
 	nods, err := SortBlockGraph(t.blockGraph)
 	subtask.End()
@@ -392,26 +392,31 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	}
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/topo", "nodes=%d", len(nods))
 
-	// hashType is the hash type we will use to build BlockRefs
+	// Use the transaction's resolved hash type for every new block reference.
 	hashType := t.putOpts.GetHashType()
 
-	// encodeQueue is the job queue to encode data.
-	encodeQueue := conc.NewConcurrentQueue(maxEncodeConcurrency)
-	// writeQueue is the job queue to write blocks to the store.
-	writeQueue := conc.NewConcurrentQueue(maxWriteConcurrency)
+	// A single reachable node has no parallel work. Run its encode and put on
+	// the caller; larger graphs use the existing bounded worker queues.
+	var encodeQueue, writeQueue *conc.ConcurrentQueue
+	if len(reachable) > 1 {
+		encodeQueue = conc.NewConcurrentQueue(maxEncodeConcurrency)
+		writeQueue = conc.NewConcurrentQueue(maxWriteConcurrency)
+	}
+
 	// Workers mutate transaction handles while the caller owns t.mtx. If an
 	// error makes WaitIdle return early, stop and join every worker before
 	// deferred transaction cleanup or unlock can run.
 	defer func() {
 		subCtxCancel()
-		waitCtx := context.WithoutCancel(ctx)
-		_ = encodeQueue.WaitIdle(waitCtx, nil)
-		_ = writeQueue.WaitIdle(waitCtx, nil)
+		if encodeQueue != nil {
+			waitCtx := context.WithoutCancel(ctx)
+			_ = encodeQueue.WaitIdle(waitCtx, nil)
+			_ = writeQueue.WaitIdle(waitCtx, nil)
+		}
 	}()
 
-	// mtx is locked while updating parents, as this may result in concurrent map writes otherwise.
+	// Serialize parent updates and retain the first worker failure.
 	var mtx sync.Mutex
-	// errCh is pushed to if there are any errors
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {
 		if err != nil {
@@ -422,7 +427,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 	}
 
-	// collect unreachable nodes for later cleanup (only for full-tree writes)
+	// Retain unreachable handles until every encoder has stopped using them.
 	var unreachableNodes []*handle
 	if clearTree && subRoot == nil {
 		_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/collect-unreachable")
@@ -441,13 +446,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		subtask.End()
 	}
 
-	// process the topological sort to schedule write jobs
-	// determine if the blocks are dirty or not before scheduling writing.
-	// nods is sorted by [root, ..., furthest child]
-	//
-	// concurrently marshal + transform + hash blocks.
-	// after hashing: write the updated BlockRef to parent blocks.
-	// push the marshalled blocks to the block write queue.
+	// Encode children before parents, propagating each new reference upward.
 	var dirtyNodes int
 	var encodedBlocks atomic.Int64
 	var putBlocks atomic.Int64
@@ -494,10 +493,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 		dirtyNodes++
 
-		encodeQueue.Enqueue(func() {
+		// Use the same encoder for inline leaves and queued graph nodes.
+		encode := func() {
+			// Signal completion even when a dependency or hook fails.
 			defer close(reachableNod.encodeDone)
-
-			// wait for all blocks downstream of this one to finish writing
 			for _, nodID := range reachableNod.from {
 				rnod := reachable[nodID]
 				select {
@@ -508,9 +507,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 				}
 			}
 
-			// encode this node & determine block ref for it
-			var blkRef *BlockRef
+			// Encode the final hooked block and retain its immutable reference.
+			blkRef := bn.ref
 			if bn.blk != nil {
+				blkRef = nil
 				bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
 				if bnpwOk {
 					if err := bnpw.BlockPreWriteHook(); err != nil {
@@ -518,21 +518,18 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 						return
 					}
 				}
-
 				if bn.blkPreWrite != nil {
 					if err := bn.blkPreWrite(bn.blk); err != nil {
 						handleErr(err)
 						return
 					}
 				}
-
 				if !bn.isSubBlock {
 					bk, err := CastToBlock(bn.blk)
 					if err != nil {
 						handleErr(err)
 						return
 					}
-
 					dat, err := bk.MarshalBlock()
 					if err != nil {
 						handleErr(err)
@@ -540,10 +537,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 					}
 					encodedBlocks.Add(1)
 
-					// use an empty BlockRef to represent empty blocks
-					if len(dat) == 0 {
-						blkRef = nil // NewBlockRef(nil)
-					} else {
+					// Empty blocks retain the nil reference without a storage write.
+					if len(dat) != 0 {
 						if t.xfrm != nil {
 							dat, err = t.xfrm.EncodeBlock(dat)
 							if err != nil {
@@ -551,13 +546,11 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 								return
 							}
 						}
-
 						datHash, err := hash.Sum(hashType, dat)
 						if err != nil {
 							handleErr(err)
 							return
 						}
-
 						blkRef = NewBlockRef(datHash)
 						putOpts := t.putOpts.CloneVT()
 						putOpts.HashType = hashType
@@ -571,37 +564,41 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							return
 						}
 
-						writeQueue.Enqueue(func() {
+						// Store content without a redundant existence probe.
+						put := func() {
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							putBlocks.Add(1)
-							// The encoded reference is known; storage deduplicates when
-							// the buffer drains, without probing disk for each block.
 							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false)
 							writeTask.End()
 							if err != nil {
 								handleErr(err)
 								return
 							}
-						})
+						}
+						if writeQueue == nil {
+							put()
+						} else {
+							writeQueue.Enqueue(put)
+						}
 					}
 				}
 				bn.ref = blkRef
-			} else {
-				blkRef = bn.ref
 			}
 
+			// Release written cursor data when the caller requested clearing.
 			bn.dirty = false
 			if clearTree {
 				bn.refHandles = nil
 				bn.blkPreWrite = nil
-				// TODO: delete node from graph here?
 			}
 
-			// lock while processing parents
+			// Release the parent-update lock on application errors as well as success.
 			mtx.Lock()
+			defer mtx.Unlock()
 			for _, ref := range bn.parents {
 				sblk := ref.src.blk
-				if !bn.isSubBlock {
+				switch {
+				case !bn.isSubBlock:
 					if clearTree {
 						bn.blk = nil // retain root block only
 					}
@@ -615,7 +612,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							return
 						}
 					}
-				} else {
+				default:
 					subBlk, ok := bn.blk.(SubBlock)
 					if !ok {
 						handleErr(ErrNotSubBlock)
@@ -636,28 +633,40 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 					delete(ref.src.refHandles, ref.id)
 				}
 			}
-			mtx.Unlock()
-		})
+		}
+
+		// A leaf finishes here; graph nodes keep their existing queue lifetime.
+		if encodeQueue == nil {
+			encode()
+			continue
+		}
+		encodeQueue.Enqueue(encode)
 	}
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/dirty", "nodes=%d reachable=%d", dirtyNodes, len(reachable))
 	subtask.End()
 
-	// wait for all tasks to complete
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-encode")
-	err = encodeQueue.WaitIdle(taskCtx, errCh)
-	subtask.End()
-	if err != nil {
-		return nil, nil, err
+	// Join scheduled encoders before joining the writes they submitted.
+	if encodeQueue != nil {
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-encode")
+		err = encodeQueue.WaitIdle(taskCtx, errCh)
+		subtask.End()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Encoders can no longer submit new writes.
+		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-write")
+		err = writeQueue.WaitIdle(taskCtx, errCh)
+		subtask.End()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/wait-write")
-	err = writeQueue.WaitIdle(taskCtx, errCh)
-	subtask.End()
-	if err != nil {
-		return nil, nil, err
-	}
+
+	// Drain only this write's coalescer; borrowed buffers belong to the caller.
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", encodedBlocks.Load(), putBlocks.Load())
 	if buffered != nil && drainBuffered {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
 		buffered.logPendingShape(taskCtx, "hydra/block/transaction/write-at-root/drain-write-store/before")
 		err = buffered.drainAll(taskCtx)
 		buffered.logPendingShape(taskCtx, "hydra/block/transaction/write-at-root/drain-write-store/after")
@@ -667,7 +676,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		}
 	}
 
-	// check there are no remaining queued errors
+	// Report cancellation or a queued failure before exposing the new root.
 	select {
 	case <-ctx.Done():
 		return nil, nil, context.Canceled
@@ -676,7 +685,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	default:
 	}
 
-	// clean up unreachable nodes after all workers complete (full-tree writes only)
+	// Remove unreachable nodes only after all workers have settled.
 	if clearTree && subRoot == nil {
 		_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/cleanup-unreachable")
 		for _, bn := range unreachableNodes {
@@ -687,12 +696,11 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		subtask.End()
 	}
 
-	// note: defer func builds new root cursor (second field)
+	// The deferred cursor cleanup supplies the returned root cursor.
 	return writeRoot.ref, nil, nil
 }
 
-// clearData clears all data. expects mtx to be locked by caller.
-// the root remains, and the root cursor will still be valid.
+// clearData resets the cursor graph under mtx, retaining the root handle.
 func (t *Transaction) clearData() {
 	t.dirty = false
 	t.root.dirty = false
@@ -707,6 +715,7 @@ func (t *Transaction) clearData() {
 // any alias-linked nodes it references, so alias identities are written
 // before the blocks that point at them.
 func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReachableNode) {
+	// Index handles sharing the same marshal identity.
 	if t == nil || t.blockGraph == nil {
 		return
 	}
@@ -722,6 +731,8 @@ func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReacha
 		}
 		handlesByBlock[identity] = append(handlesByBlock[identity], nodeID)
 	}
+
+	// Add alias dependencies to each reachable block's existing child waits.
 	for nodeID := range reachable {
 		h, _ := t.blockGraph.Node(nodeID).(*handle)
 		if h == nil || h.isSubBlock || h.blk == nil {
@@ -797,6 +808,7 @@ func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, vis
 
 // cloneDetached copies the transaction for use as a detached tx.
 func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
+	// Detached transactions retain storage policy but own their cursor graph.
 	if t == nil {
 		return nil
 	}
