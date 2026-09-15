@@ -15,9 +15,11 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr"
 	bldr_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/modfile"
 )
 
 const (
@@ -443,7 +445,9 @@ func GoScriptBundleReportPath(workDir string) string {
 func resolveGoScriptSourceRoot(bldrDistRoot string) string {
 	dir := bldrDistRoot
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+		// The extracted tool module vendors Bldr's dependencies only. Generated
+		// application bindings resolve against the enclosing project module.
+		if data, err := os.ReadFile(filepath.Join(dir, "go.mod")); err == nil && modfile.ModulePath(data) != bldr.DistGoMod {
 			return dir
 		}
 		parent := filepath.Dir(dir)

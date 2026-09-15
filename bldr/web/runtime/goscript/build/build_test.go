@@ -446,8 +446,10 @@ func TestBuildWebGoScriptPluginScriptResolvesExternalBldrRuntimeAliases(t *testi
 	sdkPath := filepath.Join(bldrDistRoot, "sdk", "plugin.ts")
 	spacewaveProtoPath := filepath.Join(bldrDistRoot, "vendor", "github.com", "s4wave", "spacewave", "bldr", "plugin", "plugin.pb.ts")
 	vendorProtoPath := filepath.Join(bldrDistRoot, "vendor", "github.com", "aperturerobotics", "controllerbus", "controller", "exec", "exec.pb.ts")
+	appProtoPath := filepath.Join(sourceRoot, "vendor", "github.com", "example", "geometry", "types.pb.ts")
 
 	writeTestFile(t, filepath.Join(sourceRoot, "go.mod"), "module github.com/example/app\n")
+	writeTestFile(t, filepath.Join(bldrDistRoot, "go.mod"), "module github.com/s4wave/spacewave/bldr-dist\n")
 	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
 import { BackendAPI } from "@aptre/bldr-sdk"
 
@@ -471,9 +473,14 @@ export const PluginStartInfo = 1
 	writeTestFile(t, vendorProtoPath, `
 export const ExecControllerRequest = 2
 `)
+	writeTestFile(t, appProtoPath, `
+export const Vector = 3
+`)
 	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
+import { Vector } from "@go/github.com/example/geometry/types.pb.js"
+
 export async function main() {
-  return 1
+  return Vector
 }
 `)
 
@@ -496,6 +503,7 @@ export async function main() {
 		sdkPath,
 		spacewaveProtoPath,
 		vendorProtoPath,
+		appProtoPath,
 	} {
 		input = canonicalTestPath(t, input)
 		if !slices.Contains(inputs, input) {
