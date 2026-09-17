@@ -86,6 +86,10 @@ func (t *Tx) Del(ctx context.Context, k kv.Key) error {
 // Expects them to arrive in order in the hidalgo kvtest.
 // Use hidalgo/options.WithKVPrefix to specify a prefix for scanning.
 func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
+	return t.scan(ctx, nil, opts...)
+}
+
+func (t *Tx) scan(ctx context.Context, beforeStart func(context.Context) error, opts ...kv.IteratorOption) *txScanIterator {
 	var pref kv.Key
 	for _, opt := range opts {
 		pkv, ok := opt.(options.PrefixKV)
@@ -93,7 +97,9 @@ func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 			pref = kv.KeyEscape(pkv.Pref)
 		}
 	}
-	return newTxScanIterator(ctx, t.tx, pref)
+	it := newTxScanIterator(ctx, t.tx, pref)
+	it.beforeStart = beforeStart
+	return it
 }
 
 // Commit applies all changes made in the transaction.

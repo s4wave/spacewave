@@ -28,7 +28,11 @@ func (k *KV) Tx(ctx context.Context, rw bool) (kv.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(tx), nil
+	out := NewTx(tx)
+	if batch, ok := tx.(kvtx.WriteBatchTxOps); rw && ok {
+		return &bufferedTx{Tx: out, batch: batch}, nil
+	}
+	return out, nil
 }
 
 // View creates a read transaction that will be discarded when fn returns.
