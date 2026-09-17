@@ -136,5 +136,10 @@ func checkBoltPaths(dbPath, lockPath string) error {
 	return nil
 }
 
+// SupportsAtomicCommit excludes unsafe or externally deferred durability modes.
+func (s *Store) SupportsAtomicCommit() bool {
+	return !s.db.NoSync && !s.db.NoFreelistSync
+}
+
 // _ is a type assertion
 var _ kvtx.Store = (*Store)(nil)

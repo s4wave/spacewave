@@ -486,3 +486,39 @@ var (
 	_ bucket.BucketHandle = (*bucketHandle)(nil)
 	_ block.DeferFlusher  = (*bucketHandle)(nil)
 )
+
+// SupportsAtomicPublication describes this handle's normal write domain, not a
+// transient read scope. No capability is manufactured for a remote/custom store.
+func (b *bucketHandle) SupportsAtomicPublication() bool {
+	if b.err != nil || b.readOps != nil || b.v == nil {
+		return false
+	}
+	publisher, ok := b.v.(block.AtomicPublisher)
+	return ok && publisher.SupportsAtomicPublication() && (b.gcOps == nil || !b.gcOps.HasWALAppender())
+}
+
+func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	if !b.SupportsAtomicPublication() {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	if p == nil {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	// Copy the envelope only. Entries remain borrowed until the returned receipt.
+	pub := *p
+	pub.BucketID = b.t.bucketID
+	pub.TrackGC = b.gcOps != nil
+	return b.v.(block.AtomicPublisher).SubmitAtomic(ctx, &pub)
+}
+
+func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublication) error {
+	receipt, err := b.SubmitAtomic(ctx, p)
+	if err != nil {
+		return err
+	}
+	return receipt.Wait(context.WithoutCancel(ctx))
+}
+
+var _ block.AtomicPublisher = (*bucketHandle)(nil)
+
+func (b *bucketHandle) AtomicPublicationVolumeID() string { return b.v.GetID() }

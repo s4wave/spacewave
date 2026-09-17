@@ -55,6 +55,8 @@ type AtomicPublication struct {
 // PublishAtomic is SubmitAtomic followed by an uncancelled durability wait after
 // admission, preserving the legacy Commit contract of an unambiguous result.
 type AtomicPublisher interface {
+	// AtomicPublicationVolumeID identifies the shared blocks/metadata domain.
+	AtomicPublicationVolumeID() string
 	SupportsAtomicPublication() bool
 	SubmitAtomic(ctx context.Context, publication *AtomicPublication) (*PublicationReceipt, error)
 	PublishAtomic(ctx context.Context, publication *AtomicPublication) error

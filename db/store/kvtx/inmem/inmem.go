@@ -111,5 +111,9 @@ func (s *Store) Execute(ctx context.Context) error {
 	return nil
 }
 
+// SupportsAtomicCommit advertises atomic, synchronous in-process transactions,
+// not process-persistent durability.
+func (s *Store) SupportsAtomicCommit() bool { return true }
+
 // _ is a type assertion
 var _ kvtx.Store = (*Store)(nil)

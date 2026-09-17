@@ -3,7 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
-	"sync/atomic"
+	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
@@ -50,7 +50,10 @@ type Volume struct {
 	// deleteFn removes the backing store after Close, may be nil.
 	deleteFn func() error
 	// closeOnce ensures Close is idempotent.
-	closeOnce atomic.Bool
+	closeOnce sync.Once
+	// publications owns bounded grouped writes in this volume's raw transaction domain.
+	publications  *publicationWriter
+	atomicHashGet bool
 	// closeErr stores the error from Close.
 	closeErr error
 }
@@ -96,6 +99,10 @@ func NewVolume(
 		return nil, err
 	}
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
+	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
+		v.atomicHashGet = !conf.GetDisableHashGet()
+		v.publications = newPublicationWriter(v)
+	}
 	return v, nil
 }
 
@@ -184,7 +191,7 @@ func initVolume(
 		return nil, err
 	}
 
-	rg, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
+	rg, err := block_gc.NewRefGraph(ctx, store, volumeRefGraphPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -346,6 +353,11 @@ func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // Sync forwards the durability barrier to the embedded store.
 func (v *Volume) Sync(ctx context.Context) (bool, error) {
+	if v.publications != nil {
+		if err := v.publications.fence(ctx); err != nil {
+			return false, err
+		}
+	}
 	fenced, err := v.Store.Sync(ctx)
 	if err != nil {
 		return false, err
@@ -396,17 +408,17 @@ func (v *Volume) SetGCManagerHooks(hooks block_gc.ManagerHooks) {
 // Close closes the volume, returning any errors.
 // Close is idempotent: subsequent calls return the same error.
 func (v *Volume) Close() error {
-	if v.closeOnce.CompareAndSwap(false, true) {
+	v.closeOnce.Do(func() {
+		if v.publications != nil {
+			v.publications.close()
+		}
 		if v.refGraph != nil {
-			if err := v.refGraph.Close(); err != nil {
-				v.closeErr = err
-				return v.closeErr
-			}
+			v.closeErr = v.refGraph.Close()
 		}
 		if v.closeFn != nil {
-			v.closeErr = v.closeFn()
+			v.closeErr = errors.Join(v.closeErr, v.closeFn())
 		}
-	}
+	})
 	return v.closeErr
 }
 

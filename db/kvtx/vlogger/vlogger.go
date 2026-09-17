@@ -41,5 +41,11 @@ func (l *VLoggerStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx,
 	return NewTx(le, ntx), nil
 }
 
+// SupportsAtomicCommit reports whether the wrapped store commits atomically.
+func (l *VLoggerStore) SupportsAtomicCommit() bool {
+	s, ok := l.Store.(kvtx.AtomicCommitStore)
+	return ok && s.SupportsAtomicCommit()
+}
+
 // _ is a type assertion
 var _ kvtx.Store = (*VLoggerStore)(nil)

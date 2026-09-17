@@ -103,7 +103,39 @@ func (b *bucketRW) EndDeferFlush(ctx context.Context) error {
 	return block.EndDeferFlush(ctx, b.store)
 }
 
+// SupportsAtomicPublication forwards the atomic publication capability of the
+// inner store.
+func (b *bucketRW) SupportsAtomicPublication() bool {
+	p, ok := b.store.(block.AtomicPublisher)
+	return ok && p.SupportsAtomicPublication()
+}
+
+// AtomicPublicationVolumeID returns the inner store's shared publication namespace.
+func (b *bucketRW) AtomicPublicationVolumeID() string {
+	if !b.SupportsAtomicPublication() {
+		return ""
+	}
+	return b.store.(block.AtomicPublisher).AtomicPublicationVolumeID()
+}
+
+// SubmitAtomic forwards admission to the inner store's publisher.
+func (b *bucketRW) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+	if !b.SupportsAtomicPublication() {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	return b.store.(block.AtomicPublisher).SubmitAtomic(ctx, p)
+}
+
+// PublishAtomic forwards the uncancelled durability wait to the inner store.
+func (b *bucketRW) PublishAtomic(ctx context.Context, p *block.AtomicPublication) error {
+	if !b.SupportsAtomicPublication() {
+		return block.ErrAtomicPublicationUnsupported
+	}
+	return b.store.(block.AtomicPublisher).PublishAtomic(ctx, p)
+}
+
 // _ is a type assertion
 var (
-	_ Bucket = (*bucketRW)(nil)
+	_ Bucket                = (*bucketRW)(nil)
+	_ block.AtomicPublisher = (*bucketRW)(nil)
 )
