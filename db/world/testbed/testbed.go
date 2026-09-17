@@ -2,6 +2,7 @@ package testbed
 
 import (
 	"context"
+	"testing"
 
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	"github.com/pkg/errors"
@@ -128,6 +129,19 @@ func Default(ctx context.Context, opts ...Option) (*Testbed, error) {
 		return nil, err
 	}
 	return tb2, nil
+}
+
+// MustDefault constructs the default testbed arrangement, failing t if
+// construction fails and releasing the testbed when the test finishes.
+func MustDefault(t testing.TB, ctx context.Context, opts ...Option) *Testbed {
+	t.Helper()
+	tb, err := Default(ctx, opts...)
+	if err != nil {
+		t.Fatal(err)
+		return nil
+	}
+	t.Cleanup(tb.Release)
+	return tb
 }
 
 // WithTestbedOptions constructs the testbed with the given testbed options.
