@@ -547,6 +547,17 @@ func (c *Cursor) GetBucket() bucket.BucketOps {
 	return c.bkt
 }
 
+// GetBlockStore returns the effective encoded store for this cursor. Resource
+// adapters must use this rather than GetBucket so implicit transaction staging
+// survives local and RPC object-construction paths. GetBucket still identifies
+// the underlying bucket and is intentionally unaffected.
+func (c *Cursor) GetBlockStore() block.StoreOps {
+	if c.transactionStore != nil {
+		return c.transactionStore
+	}
+	return c.bkt
+}
+
 // GetTransformer returns the bucket transformer.
 // May return nil.
 func (c *Cursor) GetTransformer() block.Transformer {
@@ -569,13 +580,13 @@ func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 			return nil, false, err
 		}
 	}
-	return c.bkt.PutBlock(ctx, data, opts)
+	return c.GetBlockStore().PutBlock(ctx, data, opts)
 }
 
 // PutBlockBatch writes a batch into the store, applying any configured transforms.
 func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	if c.xfrm == nil {
-		return c.bkt.PutBlockBatch(ctx, entries)
+		return c.GetBlockStore().PutBlockBatch(ctx, entries)
 	}
 
 	transformed := make([]*block.PutBatchEntry, len(entries))
@@ -595,14 +606,14 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 			Tombstone: entry.Tombstone,
 		}
 	}
-	return c.bkt.PutBlockBatch(ctx, transformed)
+	return c.GetBlockStore().PutBlockBatch(ctx, transformed)
 }
 
 // GetBlock gets a block with a cid reference, applying any configured transforms.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.
 func (c *Cursor) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	data, found, err := c.bkt.GetBlock(ctx, ref)
+	data, found, err := c.GetBlockStore().GetBlock(ctx, ref)
 	if err != nil || !found {
 		return nil, found, err
 	}
@@ -617,7 +628,7 @@ func (c *Cursor) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, boo
 
 // GetBlockExistsBatch checks whether all block references exist.
 func (c *Cursor) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	return c.bkt.GetBlockExistsBatch(ctx, refs)
+	return c.GetBlockStore().GetBlockExistsBatch(ctx, refs)
 }
 
 // GetRef returns a copy of the current object ref.

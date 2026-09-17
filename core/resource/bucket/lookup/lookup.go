@@ -37,7 +37,7 @@ func NewBucketLookupCursorResource(le *logrus.Entry, b bus.Bus, cursor *bucket_l
 	_ = s4wave_bucket_lookup.SRPCRegisterBucketLookupCursorResourceService(mux, blcResource)
 	// Local cursors use the bucket's encoded StoreOps contract. Decoded cursor
 	// methods remain available to callers that delegate transforms to the host.
-	_ = block_rpc.SRPCRegisterBlockStore(mux, block_rpc_server.NewBlockStore(cursor.GetBucket()))
+	_ = block_rpc.SRPCRegisterBlockStore(mux, block_rpc_server.NewBlockStore(cursor.GetBlockStore()))
 	blcResource.mux = mux
 	return blcResource
 }
