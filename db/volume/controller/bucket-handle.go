@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -224,6 +225,23 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	}
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 
+	// Preparation spills need the same atomic ownership guarantee as the final
+	// head publication. This synchronous path does not put large bodies in the
+	// bounded publication queue and preserves PutBlock's existence result.
+	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
+		owner := ""
+		if b.gcOps != nil {
+			owner = b.GetID()
+		}
+		ref, existed, err := prepare.PrepareOwnedBlock(ctx, owner, data, putOpts)
+		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
+			if err == nil && syncRequested {
+				_, err = b.Sync(ctx)
+			}
+			return ref, existed, err
+		}
+	}
+
 	// Route the write through GC tracking when enabled.
 	// Bucket writes do not have a later commit hook, so bucket-level GC
 	// refs must be flushed before returning.
@@ -282,6 +300,17 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	}
 	if b.readOps != nil {
 		return b.readOps.PutBlockBatch(ctx, entries)
+	}
+
+	if prepare, ok := b.v.(block.AtomicBlockPreparer); ok && b.SupportsAtomicPublication() {
+		owner := ""
+		if b.gcOps != nil {
+			owner = b.GetID()
+		}
+		err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
+		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
+			return err
+		}
 	}
 
 	if b.gcOps != nil {
@@ -497,6 +526,8 @@ func (b *bucketHandle) SupportsAtomicPublication() bool {
 	return ok && publisher.SupportsAtomicPublication() && (b.gcOps == nil || !b.gcOps.HasWALAppender())
 }
 
+// SubmitAtomic forwards admission to the underlying volume, scoping the
+// publication to this bucket's ownership.
 func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	if !b.SupportsAtomicPublication() {
 		return nil, block.ErrAtomicPublicationUnsupported
@@ -511,6 +542,8 @@ func (b *bucketHandle) SubmitAtomic(ctx context.Context, p *block.AtomicPublicat
 	return b.v.(block.AtomicPublisher).SubmitAtomic(ctx, &pub)
 }
 
+// PublishAtomic submits the publication and waits for its durable result with
+// cancellation disabled after admission.
 func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublication) error {
 	receipt, err := b.SubmitAtomic(ctx, p)
 	if err != nil {
@@ -519,6 +552,7 @@ func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublica
 	return receipt.Wait(context.WithoutCancel(ctx))
 }
 
-var _ block.AtomicPublisher = (*bucketHandle)(nil)
-
+// AtomicPublicationVolumeID returns the underlying volume's publication namespace.
 func (b *bucketHandle) AtomicPublicationVolumeID() string { return b.v.GetID() }
+
+var _ block.AtomicPublisher = (*bucketHandle)(nil)

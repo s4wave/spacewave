@@ -49,11 +49,20 @@ type Volume struct {
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
 	deleteFn func() error
-	// closeOnce ensures Close is idempotent.
-	closeOnce sync.Once
 	// publications owns bounded grouped writes in this volume's raw transaction domain.
-	publications  *publicationWriter
+	publications *publicationWriter
+	// atomicHashGet records whether hash verification reads are enabled for
+	// atomic publication block construction.
 	atomicHashGet bool
+	// closeBcast guards the closing, closed, and closeErr state below.
+	closeBcast broadcast.Broadcast
+	// closing records that Close has started and direct writes must stop.
+	closing bool
+	// closed records that the close sequence finished.
+	closed bool
+	// directMu joins synchronous preparation and GC transactions before closing.
+	directMu     sync.RWMutex
+	directClosed bool
 	// closeErr stores the error from Close.
 	closeErr error
 }
@@ -101,6 +110,11 @@ func NewVolume(
 	v.Coordinator = coord_inmem.ForVolume(v.GetID())
 	if atomicStore, ok := store.(kvtx.AtomicCommitStore); ok && atomicStore.SupportsAtomicCommit() {
 		v.atomicHashGet = !conf.GetDisableHashGet()
+		// Long-lived Cayley caches cannot be shared with transaction-local writes.
+		if v.refGraph != nil {
+			_ = v.refGraph.Close()
+		}
+		v.refGraph = &transactionRefGraph{volume: v}
 		v.publications = newPublicationWriter(v)
 	}
 	return v, nil
@@ -408,16 +422,43 @@ func (v *Volume) SetGCManagerHooks(hooks block_gc.ManagerHooks) {
 // Close closes the volume, returning any errors.
 // Close is idempotent: subsequent calls return the same error.
 func (v *Volume) Close() error {
-	v.closeOnce.Do(func() {
-		if v.publications != nil {
-			v.publications.close()
+	var waitCh <-chan struct{}
+	started := false
+	v.closeBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if v.closed {
+			return
 		}
-		if v.refGraph != nil {
-			v.closeErr = v.refGraph.Close()
+		if v.closing {
+			waitCh = getWaitCh()
+			return
 		}
-		if v.closeFn != nil {
-			v.closeErr = errors.Join(v.closeErr, v.closeFn())
+		v.closing = true
+		started = true
+		broadcast()
+	})
+	if !started {
+		if waitCh != nil {
+			<-waitCh
 		}
+		return v.closeErr
+	}
+	v.directMu.Lock()
+	v.directClosed = true
+	v.directMu.Unlock()
+	if v.publications != nil {
+		v.publications.close()
+	}
+	closeErr := error(nil)
+	if v.refGraph != nil {
+		closeErr = v.refGraph.Close()
+	}
+	if v.closeFn != nil {
+		closeErr = errors.Join(closeErr, v.closeFn())
+	}
+	v.closeBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		v.closeErr = closeErr
+		v.closed = true
+		broadcast()
 	})
 	return v.closeErr
 }

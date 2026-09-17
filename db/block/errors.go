@@ -31,6 +31,18 @@ var (
 	ErrBlockRefMismatch = errors.New("block: block ref hash mismatch")
 	// ErrBufferedStoreFull is returned when a buffered store reaches its memory limits.
 	ErrBufferedStoreFull = errors.New("block: buffered store is full")
+	// ErrAtomicPublicationUnsupported is returned before admission, with no side
+	// effects, when a store cannot atomically persist blocks, ownership and metadata.
+	// It is the only publication error for which a caller may use a legacy path.
+	ErrAtomicPublicationUnsupported = errors.New("atomic publication unsupported")
+	// ErrPublicationClosed means the publication writer no longer accepts work.
+	ErrPublicationClosed = errors.New("publication writer closed")
+	// ErrPublicationTooLarge rejects a publication that cannot fit the writer's
+	// bounded admission budget. Large block bodies should be prepared durably first.
+	ErrPublicationTooLarge = errors.New("publication exceeds bounded admission budget")
+	// ErrPublicationDependency means a predecessor failed or was not submitted to
+	// this writer before its dependent publication.
+	ErrPublicationDependency = errors.New("publication predecessor did not succeed")
 )
 
 // publicationDependencyError joins the dependency sentinel with the predecessor
