@@ -9,26 +9,42 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
+// okraNodeKey identifies one entry position: the anchor or a key.
 type okraNodeKey struct {
+	// anchor indicates the anchor entry, which has no key.
 	anchor bool
-	key    []byte
+	// key is the entry key, nil for the anchor.
+	key []byte
 }
 
+// okraLevelNode is one entry of a level being rebuilt, with the cursor of the
+// child page it references, if any.
 type okraLevelNode struct {
+	// entry is the node's key entry.
 	entry *Entry
+	// child is the child page cursor, nil for leaf entries.
 	child *block.Cursor
 }
 
+// okraPageFrame is one page along a descent from the root, with the cursor it
+// was loaded through and the child index used to reach the next frame.
 type okraPageFrame struct {
-	page   *Page
+	// page is the loaded page.
+	page *Page
+	// cursor is the cursor the page was loaded through.
 	cursor *block.Cursor
-	index  int
+	// index is the child index used to descend to the next frame, -1 for the root.
+	index int
 }
 
+// okraPagePath is a descent from the root page to a page at the target level.
 type okraPagePath []okraPageFrame
 
+// okraBuiltPage is a newly built page with the detached cursor holding it.
 type okraBuiltPage struct {
-	page   *Page
+	// page is the built page.
+	page *Page
+	// cursor is the detached cursor holding the page and its child refs.
 	cursor *block.Cursor
 }
 
@@ -50,6 +66,8 @@ func newLevelValueNode(next BuildEntry) (okraLevelNode, error) {
 	}, nil
 }
 
+// setEntry replaces one leaf entry, rebuilding only the affected page window
+// and propagating the parent change upward.
 func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
 	nextNode, err := newLevelValueNode(next)
 	if err != nil {
@@ -79,6 +97,7 @@ func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
 	return t.replaceLevelEntries(ctx, 0, oldKeys, []okraLevelNode{nextNode})
 }
 
+// deleteEntry removes one leaf entry, reporting whether the key was present.
 func (t *Tx) deleteEntry(ctx context.Context, key []byte) (bool, error) {
 	page, _, idx, err := t.findEntry(ctx, key)
 	if err != nil || page == nil {
@@ -91,6 +110,11 @@ func (t *Tx) deleteEntry(ctx context.Context, key []byte) (bool, error) {
 	return true, t.replaceLevelEntries(ctx, 0, []okraNodeKey{entryKey(old)}, nil)
 }
 
+// replaceLevelEntries rebuilds the affected windows at one level, then carries
+// all their parent changes upward together. Windows stay separate across
+// untouched pages. Removing a boundary includes its predecessor; overlapping
+// windows merge before any page is built, so a shared ancestor is not rebuilt
+// once per affected leaf. The old tree remains intact until the new root is set.
 func (t *Tx) replaceLevelEntries(
 	ctx context.Context,
 	level uint32,
@@ -100,6 +124,8 @@ func (t *Tx) replaceLevelEntries(
 	if len(oldKeys) == 0 && len(replacements) == 0 {
 		return ctx.Err()
 	}
+	slices.SortFunc(oldKeys, compareNodeKeys)
+	slices.SortFunc(replacements, compareLevelNodes)
 	locateKeys := make([]okraNodeKey, 0, len(oldKeys)+len(replacements))
 	locateKeys = append(locateKeys, oldKeys...)
 	for _, node := range replacements {
@@ -107,75 +133,94 @@ func (t *Tx) replaceLevelEntries(
 	}
 	slices.SortFunc(locateKeys, compareNodeKeys)
 
-	firstPath, err := t.findPagePath(ctx, level, locateKeys[0])
-	if err != nil {
-		return err
-	}
-	firstPage := firstPath.leaf().page
-	if containsNodeKey(oldKeys, pageStartKey(firstPage)) && !firstPage.GetStartsAtAnchor() {
-		prevPath, ok, err := t.previousPagePath(ctx, firstPath, level)
-		if err != nil {
-			return err
-		}
-		if ok {
-			firstPath = prevPath
-		}
-	}
-
-	lastKey := locateKeys[len(locateKeys)-1]
-	pagePaths := []okraPagePath{firstPath}
-	for !pageContainsKey(pagePaths[len(pagePaths)-1].leaf().page, lastKey) {
-		nextPath, ok, err := t.nextPagePath(ctx, pagePaths[len(pagePaths)-1], level)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return ErrUnexpectedPageMetadata
-		}
-		pagePaths = append(pagePaths, nextPath)
-	}
-
-	windowNodes := make([]okraLevelNode, 0)
-	oldParentKeys := make([]okraNodeKey, 0, len(pagePaths))
-	for _, path := range pagePaths {
-		frame := path.leaf()
-		page := frame.page
-		oldParentKeys = append(oldParentKeys, pageStartKey(page))
-		for idx, ent := range page.GetEntries() {
-			if containsNodeKey(oldKeys, entryKey(ent)) {
+	// Each window is an ordered list of paths into the unchanged source tree.
+	// A changed page may pull in its predecessor when its boundary disappears.
+	var windows [][]okraPagePath
+	for _, key := range locateKeys {
+		if len(windows) != 0 {
+			last := windows[len(windows)-1]
+			if pageContainsKey(last[len(last)-1].leaf().page, key) {
 				continue
 			}
-			var child *block.Cursor
-			if level > 0 {
-				child = page.FollowChild(frame.cursor, idx)
-			}
-			windowNodes = append(windowNodes, okraLevelNode{
-				entry: ent,
-				child: child,
-			})
 		}
-	}
-	windowNodes = append(windowNodes, replacements...)
-	slices.SortFunc(windowNodes, compareLevelNodes)
-	if err := validateLevelNodes(windowNodes); err != nil {
-		return err
-	}
-	if level == t.root.GetHeight() {
-		return t.setRootFromLevelNodes(ctx, level, windowNodes)
+		path, err := t.findPagePath(ctx, level, key)
+		if err != nil {
+			return err
+		}
+		page := path.leaf().page
+		window := []okraPagePath{path}
+		if containsSortedNodeKey(oldKeys, pageStartKey(page)) && !page.GetStartsAtAnchor() {
+			previous, ok, err := t.previousPagePath(ctx, path, level)
+			if err != nil {
+				return err
+			}
+			if ok {
+				window = []okraPagePath{previous, path}
+			}
+		}
+		if len(windows) != 0 {
+			last := windows[len(windows)-1]
+			if compareNodeKeys(pageStartKey(last[len(last)-1].leaf().page), pageStartKey(window[0].leaf().page)) == 0 {
+				windows[len(windows)-1] = append(last, window[1:]...)
+				continue
+			}
+		}
+		windows = append(windows, window)
 	}
 
-	upper := slices.Clone(pagePaths[len(pagePaths)-1].leaf().page.GetUpperBound())
-	pages, err := t.buildPagesFromLevelNodes(level, windowNodes, upper)
-	if err != nil {
-		return err
-	}
-	parentNodes, err := parentNodesForPages(pages)
-	if err != nil {
-		return err
+	var oldParentKeys []okraNodeKey
+	var parentNodes []okraLevelNode
+	nextReplacement := 0
+	for _, paths := range windows {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		var windowNodes []okraLevelNode
+		for _, path := range paths {
+			frame := path.leaf()
+			oldParentKeys = append(oldParentKeys, pageStartKey(frame.page))
+			for idx, ent := range frame.page.GetEntries() {
+				if containsSortedNodeKey(oldKeys, entryKey(ent)) {
+					continue
+				}
+				var child *block.Cursor
+				if level > 0 {
+					child = frame.page.FollowChild(frame.cursor, idx)
+				}
+				windowNodes = append(windowNodes, okraLevelNode{entry: ent, child: child})
+			}
+		}
+		upper := paths[len(paths)-1].leaf().page.GetUpperBound()
+		for nextReplacement < len(replacements) {
+			node := replacements[nextReplacement]
+			if len(upper) != 0 && !node.entry.GetAnchor() && bytes.Compare(node.entry.GetKey(), upper) >= 0 {
+				break
+			}
+			windowNodes = append(windowNodes, node)
+			nextReplacement++
+		}
+		slices.SortFunc(windowNodes, compareLevelNodes)
+		if err := validateLevelNodes(windowNodes); err != nil {
+			return err
+		}
+		if level == t.root.GetHeight() {
+			// There is one source root page, hence exactly one window at this level.
+			return t.setRootFromLevelNodes(ctx, level, windowNodes)
+		}
+		pages, err := t.buildPagesFromLevelNodes(level, windowNodes, upper)
+		if err != nil {
+			return err
+		}
+		parents, err := parentNodesForPages(pages)
+		if err != nil {
+			return err
+		}
+		parentNodes = append(parentNodes, parents...)
 	}
 	return t.replaceLevelEntries(ctx, level+1, oldParentKeys, parentNodes)
 }
 
+// findPagePath descends from the root to the page at level containing key.
 func (t *Tx) findPagePath(ctx context.Context, level uint32, key okraNodeKey) (okraPagePath, error) {
 	if t.root.GetSize() == 0 || level > t.root.GetHeight() {
 		return nil, ErrUnexpectedRootMetadata
@@ -207,6 +252,8 @@ func (t *Tx) findPagePath(ctx context.Context, level uint32, key okraNodeKey) (o
 	return path, ctx.Err()
 }
 
+// previousPagePath returns the path of the page preceding path's leaf at
+// level, or false when the leaf is the first page in the tree.
 func (t *Tx) previousPagePath(ctx context.Context, path okraPagePath, level uint32) (okraPagePath, bool, error) {
 	for depth := len(path) - 2; depth >= 0; depth-- {
 		childIdx := path[depth+1].index
@@ -218,6 +265,8 @@ func (t *Tx) previousPagePath(ctx context.Context, path okraPagePath, level uint
 	return nil, false, nil
 }
 
+// nextPagePath returns the path of the page following path's leaf at level,
+// or false when the leaf is the last page in the tree.
 func (t *Tx) nextPagePath(ctx context.Context, path okraPagePath, level uint32) (okraPagePath, bool, error) {
 	for depth := len(path) - 2; depth >= 0; depth-- {
 		parent := path[depth].page
@@ -230,6 +279,8 @@ func (t *Tx) nextPagePath(ctx context.Context, path okraPagePath, level uint32) 
 	return nil, false, nil
 }
 
+// descendPagePath descends from prefix's last frame through childIdx to the
+// page at level, taking the first or last child at each deeper level.
 func (t *Tx) descendPagePath(
 	ctx context.Context,
 	prefix okraPagePath,
@@ -260,6 +311,8 @@ func (t *Tx) descendPagePath(
 	return out, true, ctx.Err()
 }
 
+// setRootFromLevelNodes builds pages from the nodes and collapses upward until
+// a single-entry page above level becomes the new root.
 func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []okraLevelNode) error {
 	pages, err := t.buildPagesFromLevelNodes(level, nodes, nil)
 	if err != nil {
@@ -281,6 +334,8 @@ func (t *Tx) setRootFromLevelNodes(ctx context.Context, level uint32, nodes []ok
 	}
 }
 
+// setRootPage installs page's tree as the new root, descending through
+// single-entry pages so the root references the deepest single page.
 func (t *Tx) setRootPage(ctx context.Context, page okraBuiltPage) error {
 	builtRoot := page.cursor
 	for page.page.GetLevel() > 1 && len(page.page.GetEntries()) == 1 {
@@ -315,6 +370,7 @@ func (t *Tx) setRootPage(ctx context.Context, page okraBuiltPage) error {
 	return ctx.Err()
 }
 
+// setEmptyRoot replaces the root with the empty root metadata.
 func (t *Tx) setEmptyRoot(ctx context.Context) error {
 	t.replaceRoot(&Root{}, nil)
 	return ctx.Err()
@@ -348,6 +404,8 @@ func discardPages(cursor *block.Cursor) {
 	}
 }
 
+// buildPagesFromLevelNodes splits the nodes at page boundaries and builds one
+// page per group, using finalUpper as the last page's upper bound.
 func (t *Tx) buildPagesFromLevelNodes(level uint32, nodes []okraLevelNode, finalUpper []byte) ([]okraBuiltPage, error) {
 	if len(nodes) == 0 {
 		return nil, ErrUnexpectedPageMetadata
@@ -383,6 +441,7 @@ func (t *Tx) buildPagesFromLevelNodes(level uint32, nodes []okraLevelNode, final
 	return pages, nil
 }
 
+// buildLevelPage builds one page over the nodes with page-local entry storage.
 func buildLevelPage(level uint32, nodes []okraLevelNode, upper []byte) (*Page, error) {
 	page := &Page{
 		Level:      level,
@@ -399,6 +458,7 @@ func buildLevelPage(level uint32, nodes []okraLevelNode, upper []byte) (*Page, e
 	return page, nil
 }
 
+// refreshPage recomputes the page's derived metadata and validates it.
 func refreshPage(page *Page) error {
 	page.StartsAtAnchor = page.GetEntries()[0].GetAnchor()
 	page.LowerBound = nil
@@ -417,6 +477,8 @@ func refreshPage(page *Page) error {
 	return page.Validate()
 }
 
+// parentNodesForPages builds one parent entry per page, hashing each page's
+// entry range and referencing its cursor.
 func parentNodesForPages(pages []okraBuiltPage) ([]okraLevelNode, error) {
 	nodes := make([]okraLevelNode, len(pages))
 	for idx, page := range pages {
@@ -439,10 +501,13 @@ func parentNodesForPages(pages []okraBuiltPage) ([]okraLevelNode, error) {
 	return nodes, nil
 }
 
+// leaf returns the deepest frame of the path.
 func (p okraPagePath) leaf() okraPageFrame {
 	return p[len(p)-1]
 }
 
+// validateLevelNodes checks that the nodes are non-empty, non-anchor after the
+// first, and strictly sorted.
 func validateLevelNodes(nodes []okraLevelNode) error {
 	if len(nodes) == 0 {
 		return ErrUnexpectedPageMetadata
@@ -458,14 +523,17 @@ func validateLevelNodes(nodes []okraLevelNode) error {
 	return nil
 }
 
+// compareLevelNodes orders two level nodes by their entries.
 func compareLevelNodes(a, b okraLevelNode) int {
 	return compareEntries(a.entry, b.entry)
 }
 
+// compareEntries orders two entries by their node keys.
 func compareEntries(a, b *Entry) int {
 	return compareNodeKeys(entryKey(a), entryKey(b))
 }
 
+// compareNodeKeys orders node keys, with the anchor sorting before all keys.
 func compareNodeKeys(a, b okraNodeKey) int {
 	if a.anchor {
 		if b.anchor {
@@ -479,12 +547,13 @@ func compareNodeKeys(a, b okraNodeKey) int {
 	return bytes.Compare(a.key, b.key)
 }
 
-func containsNodeKey(keys []okraNodeKey, key okraNodeKey) bool {
-	return slices.ContainsFunc(keys, func(candidate okraNodeKey) bool {
-		return compareNodeKeys(candidate, key) == 0
-	})
+// containsSortedNodeKey reports whether the sorted key slice contains key.
+func containsSortedNodeKey(keys []okraNodeKey, key okraNodeKey) bool {
+	_, found := slices.BinarySearchFunc(keys, key, compareNodeKeys)
+	return found
 }
 
+// entryKey returns the node key identifying the entry.
 func entryKey(ent *Entry) okraNodeKey {
 	if ent.GetAnchor() {
 		return okraNodeKey{anchor: true}
@@ -492,10 +561,12 @@ func entryKey(ent *Entry) okraNodeKey {
 	return okraNodeKey{key: ent.GetKey()}
 }
 
+// pageStartKey returns the node key of the page's first entry.
 func pageStartKey(page *Page) okraNodeKey {
 	return entryKey(page.GetEntries()[0])
 }
 
+// pageContainsKey reports whether key falls within the page's key range.
 func pageContainsKey(page *Page, key okraNodeKey) bool {
 	if key.anchor {
 		return page.GetStartsAtAnchor()
@@ -509,10 +580,13 @@ func pageContainsKey(page *Page, key okraNodeKey) bool {
 	return true
 }
 
+// entryStartsPage reports whether the entry begins a new page: it is an
+// anchor or its hash is a page boundary.
 func entryStartsPage(ent *Entry) bool {
 	return ent.GetAnchor() || isBoundary(ent.GetHash())
 }
 
+// buildBlobValue materializes val as a blob block and returns its reference.
 func (t *Tx) buildBlobValue(ctx context.Context, val []byte) (*block.BlockRef, error) {
 	valueCursor := t.buildValueCursor(ctx)
 	valueCursor.ClearAllRefs()
@@ -526,6 +600,8 @@ func (t *Tx) buildBlobValue(ctx context.Context, val []byte) (*block.BlockRef, e
 	return t.materializeValueCursor(ctx, valueCursor)
 }
 
+// buildValueCursor returns a detached cursor for building a value block
+// against the staged value store.
 func (t *Tx) buildValueCursor(ctx context.Context) *block.Cursor {
 	if t.bcs == nil {
 		return nil
@@ -540,6 +616,8 @@ func (t *Tx) buildValueCursor(ctx context.Context) *block.Cursor {
 	return valueCursor
 }
 
+// stagedValueStore returns the store that stages value writes for the tree
+// transaction, skipping GC WAL journaling for eager value writes.
 func (t *Tx) stagedValueStore(ctx context.Context, btx *block.Transaction) *block.BufferedStore {
 	store, _ := t.bcs.GetBlockStore()
 	return btx.StageWrites(ctx, valueMaterializationStore(store))
@@ -552,6 +630,8 @@ type walTrackingStore interface {
 	GetStore() block.StoreOps
 }
 
+// valueMaterializationStore returns the store to materialize values against:
+// the untracked store while a GC WAL append is in progress, else the store.
 func valueMaterializationStore(store block.StoreOps) block.StoreOps {
 	if tracked, ok := store.(walTrackingStore); ok && tracked.HasWALAppender() {
 		// The containing Okra page records the value ref; avoid journaling the
@@ -561,6 +641,8 @@ func valueMaterializationStore(store block.StoreOps) block.StoreOps {
 	return store
 }
 
+// materializeValueCursor writes the cursor's block if dirty and returns its
+// reference, adopting staged writes into the owning tree when needed.
 func (t *Tx) materializeValueCursor(ctx context.Context, cursor *block.Cursor) (*block.BlockRef, error) {
 	if cursor == nil {
 		return nil, ctx.Err()
