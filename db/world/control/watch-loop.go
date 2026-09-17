@@ -106,6 +106,8 @@ func (c *WatchLoop) Wake() {
 	c.wake.Wake()
 }
 
+// Wake cancels the registered world wait, or records a pending wake when no
+// wait is registered.
 func (w *watchLoopWakeState) Wake() {
 	w.mtx.Lock()
 	if waiter := w.waiter; waiter != nil {
@@ -118,6 +120,8 @@ func (w *watchLoopWakeState) Wake() {
 	w.mtx.Unlock()
 }
 
+// beginWait registers a cancellable world wait, or reports a skipped wait when
+// a pending wake already arrived. The returned finish function unregisters.
 func (w *watchLoopWakeState) beginWait(ctx context.Context) (context.Context, func(), bool) {
 	waitCtx, cancel := context.WithCancel(ctx)
 	w.mtx.Lock()
@@ -240,7 +244,10 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		_, err = ws.WaitSeqno(wakeCtx, seqno+1)
 	}
 	finishWake()
-	if err != nil && err != context.Canceled {
+	// Wake cancels the wait context. Storage snapshot initialization may wrap
+	// that cancellation (for example while reading the GC journal), but it is
+	// still a request to reconcile again, not a terminal controller failure.
+	if err != nil && !errors.Is(err, context.Canceled) {
 		return true, err
 	}
 	return false, nil

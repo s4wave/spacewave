@@ -246,13 +246,24 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 	go func() {
 		watchErr <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
 	}()
-	state := recvSpaceRuntimeWatchState(t, stream)
-	if len(state.GetPlugins()) != 1 || !state.GetPlugins()[0].GetLoaded() ||
-		state.GetPlugins()[0].GetState() != s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED {
-		t.Fatalf("plugin lifecycle = %#v", state.GetPlugins())
+	// Receiving LoadPlugin does not mean its response has reached every status
+	// observer. Accept intermediate watch snapshots; wait for the actual loaded
+	// acknowledgment under the existing bounded stream context.
+	for {
+		state := recvSpaceRuntimeWatchState(t, stream)
+		if len(state.GetPlugins()) != 1 {
+			t.Fatalf("plugin count = %d, want 1", len(state.GetPlugins()))
+		}
+		status := state.GetPlugins()[0]
+		if status.GetState() == s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED {
+			t.Fatalf("plugin failed: %s", status.GetDetail())
+		}
+		if status.GetLoaded() && status.GetState() == s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED {
+			break
+		}
 	}
 	watchCancel()
-	if err := <-watchErr; err != nil && err != context.Canceled {
+	if err := <-watchErr; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchState: %v", err)
 	}
 
@@ -552,7 +563,7 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 		t.Fatalf("plugin state = %#v", state.GetPlugins()[0])
 	}
 	watchCancel()
-	if err := <-watchErr; err != nil && err != context.Canceled {
+	if err := <-watchErr; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchState: %v", err)
 	}
 }
@@ -603,7 +614,7 @@ func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
 	}
 	waitSpaceRuntimeReleased(t, resource)
 	watchCancel()
-	if err := <-watchErr; err != nil && err != context.Canceled {
+	if err := <-watchErr; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchState: %v", err)
 	}
 }
