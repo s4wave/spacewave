@@ -29,19 +29,24 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 		t.Fatalf("decoded read: found=%v err=%v", found, err)
 	}
 
-	// Both local and remote StoreOps must return the exact content-addressed
-	// ciphertext. The enclosing cursor alone applies the storage transform.
-	stored, found, err := tb.Volume.GetBlock(ctx, ref)
-	if err != nil || !found || bytes.Equal(stored, data) || len(stored) >= len(data) {
-		t.Fatalf("stored payload: found=%v bytes=%d err=%v", found, len(stored), err)
-	}
-	if err := ref.VerifyData(stored, true); err != nil {
-		t.Fatal(err)
-	}
+	// Resource StoreOps expose the cursor's effective (possibly staged) store.
+	// The enclosing cursor alone applies the transform, so its raw read must
+	// already return the exact content-addressed ciphertext. Durability is a
+	// separate fence: construction must not require a physical write.
 	raw := cursor.GetBucket()
 	remote, found, err := raw.GetBlock(ctx, ref)
-	if err != nil || !found || !bytes.Equal(remote, stored) {
-		t.Fatalf("encoded read: found=%v err=%v", found, err)
+	if err != nil || !found || bytes.Equal(remote, data) || len(remote) >= len(data) {
+		t.Fatalf("encoded read: found=%v bytes=%d err=%v", found, len(remote), err)
+	}
+	if err := ref.VerifyData(remote, true); err != nil {
+		t.Fatal(err)
+	}
+	if fenced, err := raw.Sync(ctx); err != nil || !fenced {
+		t.Fatalf("initial durability fence: fenced=%v err=%v", fenced, err)
+	}
+	stored, found, err := tb.Volume.GetBlock(ctx, ref)
+	if err != nil || !found || !bytes.Equal(stored, remote) {
+		t.Fatalf("stored payload after fence: found=%v bytes=%d err=%v", found, len(stored), err)
 	}
 
 	entries := make([]*block.PutBatchEntry, 12)
