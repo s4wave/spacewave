@@ -531,3 +531,32 @@ func TestEngineSessionOnlyUnsupportedFallsBack(t *testing.T) {
 	defer reader.Discard()
 	sessionHas(t, reader, "legacy", true)
 }
+
+func TestEngineSessionSyncFencesRetainedConstructionWithoutPublishingHead(t *testing.T) {
+	f := newSessionFixture(t)
+	initial := f.engine.GetRootRef()
+	cursor, err := f.engine.BuildStorageCursor(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cursor.Release()
+	ref, _, err := cursor.PutBlock(t.Context(), []byte("retained construction awaiting a later transaction"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found, err := f.engine.writeBlockStore.GetBlockExists(t.Context(), ref); err != nil || found {
+		t.Fatalf("construction bypassed staging: %v %v", found, err)
+	}
+	if fenced, err := f.engine.Sync(t.Context()); err != nil || !fenced {
+		t.Fatalf("engine fence: %v %v", fenced, err)
+	}
+	if found, err := f.engine.writeBlockStore.GetBlockExists(t.Context(), ref); err != nil || !found {
+		t.Fatalf("Sync omitted retained construction: %v %v", found, err)
+	}
+	if !initial.EqualsRef(f.engine.GetRootRef()) {
+		t.Fatal("block fence advanced the World head")
+	}
+	if head, err := f.load(t.Context()); err != nil || head != nil {
+		t.Fatalf("block fence published metadata: %v %v", head, err)
+	}
+}
