@@ -121,7 +121,7 @@ func TestCayleyWriteBatchMatchesScalarStorage(t *testing.T) {
 	closeFixture(scalar)
 	batch, scalar = open(br, true), open(sr, false)
 	for _, f := range []fixture{batch, scalar} {
-		for i := 0; i < 32; i++ {
+		for i := range 32 {
 			if err := f.graph.RemoveQuad(ctx, quads[i]); err != nil {
 				t.Fatal(err)
 			}
