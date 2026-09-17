@@ -170,3 +170,80 @@ func TestBufferedReplacementsPreserveSingleQueueEntry(t *testing.T) {
 		t.Fatal("duplicate or stale queued operation")
 	}
 }
+
+// Reference lists are retained too: bounding only payload bytes leaves a small
+// block with arbitrarily many reference records outside the staging budget.
+func TestBufferedPublicationMetadataCapacityRetainsBorrow(t *testing.T) {
+	inner := newCountStore(0)
+	s := NewBufferedStoreWithSettings(t.Context(), inner, &BufferedStoreSettings{MaxPendingMetadataBytes: 1024})
+	r, _, err := s.PutBlock(t.Context(), []byte("reference"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	opts := &PutOpts{Refs: []*BlockRef{r, r}}
+	_, _, err = s.PutBlock(t.Context(), []byte("first"), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.TakePending(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Complete(errors.New("test cleanup"))
+	charged := s.pendingMetadataBytes
+	if charged < 512 || charged > 1024 {
+		t.Fatalf("metadata accounting: %d", charged)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	if _, _, err := s.PutBlock(ctx, []byte("second"), opts); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("metadata capacity bypassed: %v", err)
+	}
+	if s.pendingMetadataBytes != charged {
+		t.Fatal("borrow released metadata prematurely")
+	}
+	if err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
+		t.Fatal(err)
+	}
+	b.Complete(nil)
+	if s.pendingMetadataBytes != 0 {
+		t.Fatal("metadata accounting leaked")
+	}
+	if _, _, err := s.PutBlock(t.Context(), []byte("second"), opts); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if s.pendingMetadataBytes != 0 {
+		t.Fatal("drained metadata accounting leaked")
+	}
+}
+
+func TestBufferedOversizedMetadataUsesPreparation(t *testing.T) {
+	inner := newCountStore(0)
+	s := NewBufferedStoreWithSettings(t.Context(), inner, &BufferedStoreSettings{MaxPendingMetadataBytes: 1024})
+	r, _, err := inner.PutBlock(t.Context(), []byte("referent"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs := make([]*BlockRef, 100)
+	for i := range refs {
+		refs[i] = r
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	ref, _, err := s.PutBlock(ctx, []byte("small payload"), &PutOpts{Refs: refs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.pendingMetadataBytes != 0 || len(s.pending) != 0 {
+		t.Fatal("oversized references retained")
+	}
+	if found, err := inner.GetBlockExists(ctx, ref); err != nil || !found {
+		t.Fatalf("preparation: %v %v", found, err)
+	}
+}

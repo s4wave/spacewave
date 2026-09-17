@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"slices"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -13,12 +12,13 @@ import (
 )
 
 type pendingBlock struct {
-	ref       *BlockRef
-	data      []byte
-	refs      []*BlockRef
-	tombstone bool
-	queued    bool
-	borrowed  bool
+	ref           *BlockRef
+	data          []byte
+	refs          []*BlockRef
+	tombstone     bool
+	queued        bool
+	borrowed      bool
+	metadataBytes int
 }
 
 type drainBatch struct {
@@ -41,6 +41,9 @@ type BufferedStore struct {
 	pending map[string]*pendingBlock
 	// pendingBytes is the total size of queued blocks.
 	pendingBytes int
+	// pendingMetadataBytes includes reference content and fixed entry overhead.
+	pendingMetadataBytes    int
+	maxPendingMetadataBytes int
 	// maxPendingBytes caps pendingBytes before a forced drain.
 	maxPendingBytes int
 	// maxPendingBlocks caps len(pending) before a forced drain.
@@ -71,11 +74,12 @@ func NewBufferedStoreWithSettings(
 ) *BufferedStore {
 	settings = normalizeBufferedStoreSettings(settings)
 	return &BufferedStore{
-		inner:             inner,
-		pending:           make(map[string]*pendingBlock),
-		maxPendingBytes:   settings.MaxPendingBytes,
-		maxPendingBlocks:  settings.MaxPendingEntries,
-		drainBatchEntries: settings.DrainBatchEntries,
+		inner:                   inner,
+		pending:                 make(map[string]*pendingBlock),
+		maxPendingBytes:         settings.MaxPendingBytes,
+		maxPendingMetadataBytes: settings.MaxPendingMetadataBytes,
+		maxPendingBlocks:        settings.MaxPendingEntries,
+		drainBatchEntries:       settings.DrainBatchEntries,
 	}
 }
 
@@ -167,7 +171,9 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 	// A single entry larger than the buffer cannot make progress by draining an
 	// empty queue. Persist it through the existing durable preparation path.
 	// This deliberately reports extra I/O rather than exceeding the memory cap.
-	if s.maxPendingBytes > 0 && len(data) > s.maxPendingBytes {
+	metadataBytes := bufferedMetadataSize(key, ref, opts.GetRefs(), s.maxPendingMetadataBytes)
+	if (s.maxPendingBytes > 0 && len(data) > s.maxPendingBytes) ||
+		metadataBytes > s.maxPendingMetadataBytes {
 		if err := s.drainAll(ctx); err != nil {
 			return nil, false, err
 		}
@@ -181,9 +187,10 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue")
 	defer subtask.End()
 	pendingClone := &pendingBlock{
-		ref:  ref.Clone(),
-		data: bytes.Clone(data),
-		refs: CloneBlockRefs(opts.GetRefs()),
+		ref:           ref.Clone(),
+		data:          bytes.Clone(data),
+		refs:          CloneBlockRefs(opts.GetRefs()),
+		metadataBytes: metadataBytes,
 	}
 	for {
 		if err := ctx.Err(); err != nil {
@@ -325,9 +332,17 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 	if err != nil {
 		return err
 	}
+	metadataBytes := bufferedMetadataSize(key, ref, nil, s.maxPendingMetadataBytes)
+	if metadataBytes > s.maxPendingMetadataBytes {
+		if err := s.drainAll(ctx); err != nil {
+			return err
+		}
+		return s.inner.RmBlock(ctx, ref)
+	}
 	pendingClone := &pendingBlock{
-		ref:       ref.Clone(),
-		tombstone: true,
+		ref:           ref.Clone(),
+		tombstone:     true,
+		metadataBytes: metadataBytes,
 	}
 	for {
 		if err := ctx.Err(); err != nil {
@@ -477,7 +492,7 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 		}
 		var subtask *trace.Task
 		_, subtask = trace.NewTask(ctx, "hydra/block/buffered-store/drain/take-batch")
-		batch = s.takeDrainBatchLocked()
+		batch = s.takeDrainBatchLocked(s.drainBatchEntries)
 		subtask.End()
 	})
 	if drainErr != nil {
@@ -521,17 +536,17 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// takeDrainBatchLocked pops the next batch from the queue. Caller must
-// hold bcast lock.
-func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
+// takeDrainBatchLocked pops the next batch from the queue, bounded by
+// maxEntries when positive. Caller must hold bcast lock.
+func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 	if len(s.queue) == 0 {
 		return nil
 	}
 
 	keys := s.queue
-	if s.drainBatchEntries > 0 && len(keys) > s.drainBatchEntries {
-		keys = slices.Clone(keys[:s.drainBatchEntries])
-		s.queue = s.queue[s.drainBatchEntries:]
+	if maxEntries > 0 && len(keys) > maxEntries {
+		keys = slices.Clone(keys[:maxEntries])
+		s.queue = s.queue[maxEntries:]
 	} else {
 		keys = slices.Clone(keys)
 		s.queue = nil
@@ -585,6 +600,7 @@ func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
 			retry = append(retry, key)
 		} else {
 			s.pendingBytes -= len(p.data)
+			s.pendingMetadataBytes -= p.metadataBytes
 			delete(s.pending, key)
 		}
 	}
@@ -595,12 +611,16 @@ func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
 // called exactly once after the publisher is finished, even on admission failure.
 // Entries remain readable through the BufferedStore until successful completion.
 type PendingBatch struct {
-	Entries  []*PutBatchEntry
+	// Entries are the borrowed batch entries.
+	Entries []*PutBatchEntry
+	// complete resolves the borrow with the publication result.
 	complete func(error)
-	once     sync.Once
+	// completed records that Complete already ran; further calls are no-ops.
+	completed bool
 }
 
-func (b *PendingBatch) Complete(err error) { b.once.Do(func() { b.complete(err) }) }
+// Complete resolves the borrow exactly once with the publication result.
+func (b *PendingBatch) Complete(err error) { b.complete(err) }
 
 // TakePending borrows all currently queued entries without writing or forgetting
 // them. Further writes can prepare the next publication while this borrow is in
@@ -619,10 +639,7 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 		if err = s.drainErr; err != nil {
 			return
 		}
-		limit := s.drainBatchEntries
-		s.drainBatchEntries = 0
-		batch = s.takeDrainBatchLocked()
-		s.drainBatchEntries = limit
+		batch = s.takeDrainBatchLocked(0)
 	})
 	if err != nil {
 		return nil, err
@@ -632,6 +649,10 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 		out.Entries = batch.entries
 		out.complete = func(err error) {
 			s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+				if out.completed {
+					return
+				}
+				out.completed = true
 				s.completeBatchLocked(batch, err)
 				broadcastFn()
 			})
@@ -682,14 +703,20 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 		return ErrBufferedStoreFull
 	}
 	prevBytes := 0
+	prevMetadataBytes := 0
 	if prev != nil {
 		prevBytes = len(prev.data)
+		prevMetadataBytes = prev.metadataBytes
 	}
 	pendingBytes := 0
 	if pending != nil {
 		pendingBytes = len(pending.data)
 	}
 	nextBytes := s.pendingBytes - prevBytes + pendingBytes
+	nextMetadataBytes := s.pendingMetadataBytes - prevMetadataBytes + pending.metadataBytes
+	if nextMetadataBytes > s.maxPendingMetadataBytes {
+		return ErrBufferedStoreFull
+	}
 	if prev == nil && s.maxPendingBlocks > 0 && len(s.pending) >= s.maxPendingBlocks {
 		return ErrBufferedStoreFull
 	}
@@ -701,11 +728,30 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 	pending.queued = true
 	s.pending[key] = pending
 	s.pendingBytes = nextBytes
+	s.pendingMetadataBytes = nextMetadataBytes
 	if enqueue {
 		s.queue = append(s.queue, key)
 		broadcastFn()
 	}
 	return nil
+}
+
+// bufferedMetadataSize charges reference bytes and conservative fixed object,
+// slice/map, and queue overhead. This is an admission accounting bound, not a
+// claim about allocator RSS. Stop once oversized rather than overflow the sum.
+func bufferedMetadataSize(key string, ref *BlockRef, refs []*BlockRef, limit int) int {
+	size := len(key) + ref.SizeVT() + 256
+	if size > limit {
+		return limit + 1
+	}
+	for _, r := range refs {
+		charge := r.SizeVT() + 128
+		if charge > limit-size {
+			return limit + 1
+		}
+		size += charge
+	}
+	return size
 }
 
 // _ is a type assertion.

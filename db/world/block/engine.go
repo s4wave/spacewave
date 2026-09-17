@@ -228,7 +228,7 @@ func NewEngine(
 		// that content readable; capacity pressure prepares it durably without
 		// publishing a head. No state proportional to unrelated history is kept.
 		e.stagedStore = block.NewBufferedStoreWithSettings(ctx, rawWriteStore,
-			&block.BufferedStoreSettings{MaxPendingBytes: 4 << 20, MaxPendingEntries: 4096})
+			&block.BufferedStoreSettings{MaxPendingBytes: 4 << 20, MaxPendingMetadataBytes: 4 << 20, MaxPendingEntries: 4096})
 	}
 
 	// Publish a complete read head before returning the engine.
@@ -297,8 +297,15 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 		return false, ErrEngineClosed
 	}
 
-	// Drain and fence every buffered block write durable.
-	fenced, err := e.writeBlockStore.Sync(ctx)
+	// Construction cursors write into the engine-retained overlay even before
+	// a World transaction is submitted. Fence those bytes as durable preparation
+	// as well, without changing a head. Completed borrows are returned before
+	// their completion goroutine needs bcast, so this cannot block publication.
+	store := e.writeBlockStore
+	if e.stagedStore != nil {
+		store = e.stagedStore
+	}
+	fenced, err := store.Sync(ctx)
 	if err != nil {
 		return false, err
 	}
