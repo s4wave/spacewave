@@ -23,6 +23,7 @@ type EngineTx struct {
 	writeTx     *Tx
 	baseHeadRef *bucket.ObjectRef
 	lease       coord.WriteLease
+	staged      *block.BufferedStore
 }
 
 // newEngineTx constructs a new EngineTx.
@@ -129,20 +130,29 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 				// read the raw bucket and miss buffered, undrained blocks.
 				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
 				if !deferred {
-					_, commitErr = e.engine.writeBlockStore.Sync(ctx)
-					if commitErr == nil {
-						commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+					var published bool
+					if e.staged != nil {
+						published, commitErr = e.publishAtomic(ctx, nextRootRef)
 					}
-					if errors.Is(commitErr, block.ErrNotFound) {
-						commitErr = errors.Wrap(coord.ErrStaleGeneration, "validate committed root")
-					}
-
-					// Publish the durable root through the configured callback.
-					if commitErr == nil && e.engine.commitFn != nil {
-						commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
-						if commitErr == nil {
-							e.engine.durableHeadRef = nextRootRef.Clone()
+					if commitErr == nil && !published {
+						if e.staged != nil {
+							_, commitErr = e.staged.Sync(ctx)
 						}
+						if commitErr == nil {
+							_, commitErr = e.engine.writeBlockStore.Sync(ctx)
+						}
+						if commitErr == nil {
+							commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
+						}
+						if errors.Is(commitErr, block.ErrNotFound) {
+							commitErr = errors.Wrap(coord.ErrStaleGeneration, "validate committed root")
+						}
+						if commitErr == nil && e.engine.commitFn != nil {
+							commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
+						}
+					}
+					if commitErr == nil {
+						e.engine.durableHeadRef = nextRootRef.Clone()
 					}
 				}
 
@@ -265,3 +275,26 @@ var (
 	_ world.WorldState         = (*EngineTx)(nil)
 	_ world.ForkableWorldState = (*EngineTx)(nil)
 )
+
+// publishAtomic borrows staged blocks until the physical durability result is
+// known. Only a pre-admission unsupported result permits the legacy path.
+// The Engine guard is held by the synchronous publication caller.
+func (e *EngineTx) publishAtomic(ctx context.Context, next *bucket.ObjectRef) (bool, error) {
+	batch, err := e.staged.TakePending(ctx)
+	if err != nil {
+		return false, err
+	}
+	publication := &block.AtomicPublication{
+		Entries: batch.Entries,
+		Head:    e.engine.atomicHeadFn(e.baseHeadRef, next),
+		Validate: func(ctx context.Context, store block.StoreOps) error {
+			return e.engine.validatePreparedRoot(ctx, next, store)
+		},
+	}
+	err = e.engine.atomicPublisher.PublishAtomic(ctx, publication)
+	batch.Complete(err)
+	if errors.Is(err, block.ErrAtomicPublicationUnsupported) {
+		return false, nil
+	}
+	return err == nil, err
+}

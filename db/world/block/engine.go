@@ -79,7 +79,11 @@ type Engine struct {
 	committing int
 	// commitFn is a function to be called just before a commit is confirmed.
 	// It can be nil.
-	commitFn CommitFn
+	commitFn        CommitFn
+	atomicPublisher block.AtomicPublisher
+	atomicHeadFn    AtomicHeadFn
+	// stagedStore retains immutable construction bytes independently of attempts.
+	stagedStore *block.BufferedStore
 	// durableHeadRef is the head last written to durable storage via commitFn.
 	// Distinct from root, which tracks the current in-memory root. In the
 	// single-writer path the durable head is advanced only by Sync, so root can
@@ -123,6 +127,16 @@ type Engine struct {
 // If an error is returned the change will be rolled back.
 // Do not mutate the supplied references during this call.
 type CommitFn func(ctx context.Context, baseRef, nref *bucket.ObjectRef) error
+
+// AtomicHeadFn constructs a side-effect-free head CAS for one candidate root.
+type AtomicHeadFn func(baseRef, nref *bucket.ObjectRef) *block.AtomicHeadUpdate
+
+// WithAtomicPublication enables bounded implicit staging and atomic publication
+// for a coordinated engine whose metadata is in the publisher's volume. The
+// caller must verify the volume identity; unsupported stores keep the old path.
+func WithAtomicPublication(publisher block.AtomicPublisher, headFn AtomicHeadFn) EngineOption {
+	return func(e *Engine) { e.atomicPublisher = publisher; e.atomicHeadFn = headFn }
+}
 
 // EngineOption configures optional Engine integrations.
 type EngineOption func(*Engine)
@@ -199,6 +213,15 @@ func NewEngine(
 			// BufferedStore that accumulates writes in memory until Sync.
 			e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
 		}
+	}
+
+	if e.writeCoordinator != nil && e.atomicPublisher != nil && e.atomicHeadFn != nil && e.atomicPublisher.SupportsAtomicPublication() {
+		// Content-addressed bytes are engine-retained, not transaction authority.
+		// A discarded attempt can leave a cursor or ref in use by a retry. Keep
+		// that content readable; capacity pressure prepares it durably without
+		// publishing a head. No state proportional to unrelated history is kept.
+		e.stagedStore = block.NewBufferedStoreWithSettings(ctx, rawWriteStore,
+			&block.BufferedStoreSettings{MaxPendingBytes: 4 << 20, MaxPendingEntries: 4096})
 	}
 
 	// Publish a complete read head before returning the engine.
@@ -658,7 +681,12 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// Pin the base head used by commit validation while building write state.
 	baseHeadRef := e.head.root.GetRef().Clone()
-	world, err := e.buildWorldState(taskCtx, false)
+	var world *WorldState
+	if e.stagedStore != nil {
+		world, err = e.buildWorldStateForRoot(taskCtx, false, e.head.root, e.stagedStore)
+	} else {
+		world, err = e.buildWorldState(taskCtx, false)
+	}
 	subtask.End()
 	if err != nil {
 		locked.Unlock()
@@ -677,6 +705,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	// and lease.
 	engTx := newEngineTx(e, NewTx(world))
 	engTx.baseHeadRef = baseHeadRef
+	engTx.staged = e.stagedStore
 	engTx.lease = lease
 	e.writeTx = engTx
 	e.writeTxRel = relLock
@@ -817,6 +846,9 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 	}
 	ncs := e.baseRoot.Clone()
 	ncs.SetRootRef(nil)
+	if e.stagedStore != nil {
+		ncs.SetTransactionStore(e.stagedStore)
+	}
 	return ncs, nil
 }
 
@@ -840,6 +872,9 @@ func (e *Engine) AccessWorldState(
 		return ErrEngineClosed
 	}
 	ncs := e.head.root.Clone()
+	if ref != nil && e.stagedStore != nil {
+		ncs.SetTransactionStore(e.stagedStore)
+	}
 	locked.Unlock()
 	defer ncs.Release()
 
@@ -1085,7 +1120,7 @@ func (e *Engine) buildWorldStateForRoot(
 		store = e.writeBlockStore
 	}
 	worldStore := store
-	if !readOnly && e.writeCoordinator != nil {
+	if !readOnly && e.writeCoordinator != nil && transactionStore == nil {
 		worldStore = nil
 	}
 	subtask.End()

@@ -75,36 +75,9 @@ func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStor
 	if err != nil {
 		return err
 	}
-	if found {
-		if !c.conf.GetStateTransformConf().GetEmpty() {
-			data, err = c.stateXfrm.DecodeBlock(data)
-			if err != nil {
-				return err
-			}
-		}
-		s := &HeadState{}
-		if err := s.UnmarshalVT(data); err != nil {
-			return err
-		}
-		if !headRefsEqual(s.GetHeadRef(), baseRef) {
-			return coord.ErrStaleGeneration
-		}
-	} else if baseRef != nil && !baseRef.GetRootRef().GetEmpty() {
-		return coord.ErrStaleGeneration
-	}
-
-	// Encode the replacement head under the configured storage transform.
-	v := &HeadState{HeadRef: nref}
-	data, err = v.MarshalVT()
+	data, err = c.replaceHeadState(ctx, data, found, baseRef, nref)
 	if err != nil {
 		return err
-	}
-
-	if !c.conf.GetStateTransformConf().GetEmpty() {
-		data, err = c.stateXfrm.EncodeBlock(data)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Publish the validated replacement in the same transaction.
@@ -112,6 +85,45 @@ func (c *Controller) writeHeadState(ctx context.Context, store object.ObjectStor
 		return err
 	}
 	return ktx.Commit(ctx)
+}
+
+// replaceHeadState is the common decoded CAS/encoding step. It performs no
+// I/O and can run inside a volume-owned atomic publication transaction.
+func (c *Controller) replaceHeadState(ctx context.Context, data []byte, found bool, baseRef, nref *bucket.ObjectRef) ([]byte, error) {
+	var err error
+	if found {
+		if !c.conf.GetStateTransformConf().GetEmpty() {
+			data, err = c.stateXfrm.DecodeBlock(data)
+			if err != nil {
+				return nil, err
+			}
+		}
+		s := &HeadState{}
+		if err := s.UnmarshalVT(data); err != nil {
+			return nil, err
+		}
+		if !headRefsEqual(s.GetHeadRef(), baseRef) {
+			return nil, coord.ErrStaleGeneration
+		}
+	} else if baseRef != nil && !baseRef.GetRootRef().GetEmpty() {
+		return nil, coord.ErrStaleGeneration
+	}
+
+	// Encode the replacement head under the configured storage transform.
+	v := &HeadState{HeadRef: nref}
+	data, err = v.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.conf.GetStateTransformConf().GetEmpty() {
+		data, err = c.stateXfrm.EncodeBlock(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return data, nil
 }
 
 // headRefsEqual compares optional persisted World references.

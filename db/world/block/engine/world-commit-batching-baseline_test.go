@@ -90,6 +90,11 @@ func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(eng.Release)
+	// Controller initialization creates the empty World lazily. Warm it before
+	// measuring construction so setup writes do not masquerade as batch savings.
+	if _, err := eng.GetSeqno(ctx); err != nil {
+		t.Fatal(err)
+	}
 	db := volume_bolt.GetBoltDB(tb.Volume)
 	if db == nil {
 		t.Fatal("not a native Bolt volume")

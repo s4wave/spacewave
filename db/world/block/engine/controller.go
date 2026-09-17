@@ -341,6 +341,24 @@ buildWorldEngine:
 		))
 	}
 
+	// Only fuse blocks and metadata when both resolve to the same atomic volume.
+	// Otherwise retain the existing Sync + validated ObjectStore CAS path.
+	if publisher, ok := cursor.GetBucket().(block.AtomicPublisher); ok &&
+		useStateCoordinator && publisher.SupportsAtomicPublication() &&
+		publisher.AtomicPublicationVolumeID() == stateCoordScope.VolumeID {
+		engineOpts = append(engineOpts, world_block.WithAtomicPublication(publisher,
+			func(baseRef, nref *bucket.ObjectRef) *block.AtomicHeadUpdate {
+				baseRef, nref = baseRef.Clone(), nref.Clone()
+				return &block.AtomicHeadUpdate{
+					ObjectStoreID: stateCoordScope.ObjectStoreID,
+					Key:           c.objectStoreHeadKeyPrefix(),
+					Replace: func(ctx context.Context, data []byte, found bool) ([]byte, error) {
+						return c.replaceHeadState(ctx, data, found, baseRef, nref)
+					},
+				}
+			}))
+	}
+
 	// Construct the engine with its storage and observation policies.
 	engine, err := world_block.NewEngine(
 		ctx,
