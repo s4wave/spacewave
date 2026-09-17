@@ -390,8 +390,9 @@ func buildLevelPage(level uint32, nodes []okraLevelNode, upper []byte) (*Page, e
 		Entries:    make([]*Entry, len(nodes)),
 	}
 	for idx, node := range nodes {
-		page.Entries[idx] = node.entry.CloneVT()
+		page.Entries[idx] = node.entry
 	}
+	clonePageEntries(page.Entries)
 	if err := refreshPage(page); err != nil {
 		return nil, err
 	}

@@ -19,9 +19,12 @@ type BuildEntry struct {
 	ValueBlob   *blob.Blob
 }
 
+// buildNode is one entry of the in-memory level being built, with the cursor
+// of the child page it references, if any.
 type buildNode struct {
+	// entry is the node's key entry.
 	entry *Entry
-
+	// childCursor is the child page cursor, nil for leaf entries.
 	childCursor *block.Cursor
 }
 
@@ -55,6 +58,8 @@ func BuildTreeWithEntries(
 	return tx, rootCursor, nil
 }
 
+// buildTreeAtCursor builds the packed page DAG under rootCursor from the
+// sorted entries, returning the completed root metadata.
 func buildTreeAtCursor(rootCursor *block.Cursor, entries iter.Seq[BuildEntry]) (*Root, error) {
 	root := &Root{}
 	rootCursor.SetBlock(root, true)
@@ -126,6 +131,8 @@ func buildTreeAtCursor(rootCursor *block.Cursor, entries iter.Seq[BuildEntry]) (
 	}
 }
 
+// buildParentLevel groups the current level's nodes at page boundaries and
+// returns one parent node per built page.
 func buildParentLevel(root *block.Cursor, level uint32, current []*buildNode) ([]*buildNode, error) {
 	parent := make([]*buildNode, 0, len(current)/FanoutDegree+1)
 	for start := 0; start < len(current); {
@@ -159,6 +166,8 @@ func buildParentLevel(root *block.Cursor, level uint32, current []*buildNode) ([
 	return parent, nil
 }
 
+// createPage builds one page cursor over the nodes, recording each node's
+// child cursor as a page reference.
 func createPage(root *block.Cursor, level uint32, nodes []*buildNode, upper []byte) (*block.Cursor, error) {
 	page := &Page{
 		Level:          level,
@@ -167,12 +176,13 @@ func createPage(root *block.Cursor, level uint32, nodes []*buildNode, upper []by
 		Entries:        make([]*Entry, len(nodes)),
 	}
 	for idx, node := range nodes {
-		page.Entries[idx] = node.entry.CloneVT()
+		page.Entries[idx] = node.entry
 		page.Size += node.entry.GetSize()
 		if !node.entry.GetAnchor() && len(page.LowerBound) == 0 {
 			page.LowerBound = slices.Clone(node.entry.GetKey())
 		}
 	}
+	clonePageEntries(page.Entries)
 	pageHash, err := hashPage(page)
 	if err != nil {
 		return nil, err
@@ -190,6 +200,7 @@ func createPage(root *block.Cursor, level uint32, nodes []*buildNode, upper []by
 	return cursor, nil
 }
 
+// nodeRangeSize sums the entry sizes across the node range.
 func nodeRangeSize(nodes []*buildNode) uint64 {
 	var size uint64
 	for _, node := range nodes {
@@ -198,6 +209,8 @@ func nodeRangeSize(nodes []*buildNode) uint64 {
 	return size
 }
 
+// mustAnchorHash returns the anchor entry's hash, panicking only if the
+// package's own digest fails, which prevents the package from operating.
 func mustAnchorHash() []byte {
 	hash, err := okraDigest(nil)
 	if err != nil {
