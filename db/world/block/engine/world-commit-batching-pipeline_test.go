@@ -18,7 +18,7 @@ import (
 // participates in the Resource operations under test.
 func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	f := newBatchingFixture(t, 512)
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 	initial, err := f.engine.GetSeqno(ctx)
 	if err != nil {

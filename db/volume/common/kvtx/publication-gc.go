@@ -143,5 +143,7 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 	return swept && err == nil, err
 }
 
-var _ block_gc.AtomicSweepStore = (*Volume)(nil)
-var _ block.AtomicBlockPreparer = (*Volume)(nil)
+var (
+	_ block_gc.AtomicSweepStore = (*Volume)(nil)
+	_ block.AtomicBlockPreparer = (*Volume)(nil)
+)
