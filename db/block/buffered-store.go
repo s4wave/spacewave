@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -17,11 +18,13 @@ type pendingBlock struct {
 	refs      []*BlockRef
 	tombstone bool
 	queued    bool
+	borrowed  bool
 }
 
 type drainBatch struct {
 	keys    []string
 	entries []*PutBatchEntry
+	pending []*pendingBlock
 }
 
 // BufferedStore buffers PutBlock calls in memory and drains them explicitly on
@@ -47,6 +50,9 @@ type BufferedStore struct {
 
 	// queue preserves block arrival order across the pending map.
 	queue []string
+
+	// inFlight counts borrowed batches, which remain readable and capacity-accounted.
+	inFlight int
 
 	// drainErr captures the last drain error to surface on subsequent calls.
 	drainErr error
@@ -156,6 +162,20 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		if err != nil {
 			return nil, false, err
 		}
+	}
+
+	// A single entry larger than the buffer cannot make progress by draining an
+	// empty queue. Persist it through the existing durable preparation path.
+	// This deliberately reports extra I/O rather than exceeding the memory cap.
+	if s.maxPendingBytes > 0 && len(data) > s.maxPendingBytes {
+		if err := s.drainAll(ctx); err != nil {
+			return nil, false, err
+		}
+		ref, existed, err := s.inner.PutBlock(ctx, data, opts)
+		if err != nil {
+			return nil, existed, err
+		}
+		return finish(ref, existed)
 	}
 
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/enqueue")
@@ -310,6 +330,9 @@ func (s *BufferedStore) RmBlock(ctx context.Context, ref *BlockRef) error {
 		tombstone: true,
 	}
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		var done bool
 		var rmErr error
 		s.bcast.HoldLock(func(broadcastFn func(), getWaitCh func() <-chan struct{}) {
@@ -461,6 +484,20 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 		return false, drainErr
 	}
 	if batch == nil {
+		var wait <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+			if s.inFlight != 0 {
+				wait = getWait()
+			}
+		})
+		if wait != nil {
+			select {
+			case <-ctx.Done():
+				return false, ctx.Err()
+			case <-wait:
+			}
+			return true, nil // Retry after the borrowed publication settles.
+		}
 		return false, nil
 	}
 
@@ -468,35 +505,18 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	err := s.writeBatch(writeCtx, batch.entries)
 	writeTask.End()
 
-	var returnErr error
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-		if err != nil {
-			s.returnDrainBatchLocked(batch)
-			if ctx.Err() == nil {
-				s.drainErr = err
-			}
-			broadcastFn()
-			returnErr = err
-			return
-		}
-		for _, key := range batch.keys {
-			pending := s.pending[key]
-			if pending == nil {
-				continue
-			}
-			if pending.queued {
-				continue
-			}
-			s.pendingBytes -= len(pending.data)
-			delete(s.pending, key)
+		s.completeBatchLocked(batch, err)
+		if err != nil && ctx.Err() == nil {
+			s.drainErr = err
 		}
 		broadcastFn()
 	})
-	if returnErr != nil {
+	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return true, ctxErr
 		}
-		return true, returnErr
+		return true, err
 	}
 	return true, nil
 }
@@ -526,7 +546,12 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 		if pending == nil {
 			continue
 		}
+		if !pending.queued || pending.borrowed {
+			continue
+		}
 		pending.queued = false
+		pending.borrowed = true
+		batch.pending = append(batch.pending, pending)
 		// Pending content is immutable after enqueue; replacements allocate a
 		// new pendingBlock. The drain borrows the same content as its data bytes.
 		batch.entries = append(batch.entries, &PutBatchEntry{
@@ -536,30 +561,83 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 			Tombstone: pending.tombstone,
 		})
 	}
+	if len(batch.entries) == 0 {
+		return nil
+	}
+	s.inFlight++
 	return batch
 }
 
-// returnDrainBatchLocked requeues a failed batch in arrival order.
-// Caller must hold bcast lock.
-func (s *BufferedStore) returnDrainBatchLocked(batch *drainBatch) {
-	if batch == nil || len(batch.keys) == 0 {
-		return
-	}
-	requeue := make([]string, 0, len(batch.keys))
-	for _, key := range batch.keys {
-		pending := s.pending[key]
-		if pending == nil {
+// completeBatchLocked releases immutable borrowed content after its writer has
+// stopped using it. Failure restores it for retry without poisoning the buffer:
+// a rejected head CAS is not a block-storage failure.
+func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
+	s.inFlight--
+	var retry []string
+	for _, p := range batch.pending {
+		key, _ := marshalRefKey(p.ref)
+		p.borrowed = false
+		if s.pending[key] != p {
 			continue
 		}
-		if pending.queued {
-			continue
+		if err != nil {
+			p.queued = true
+			retry = append(retry, key)
+		} else {
+			s.pendingBytes -= len(p.data)
+			delete(s.pending, key)
 		}
-		pending.queued = true
-		requeue = append(requeue, key)
 	}
-	if len(requeue) != 0 {
-		s.queue = append(requeue, s.queue...)
+	s.queue = append(retry, s.queue...)
+}
+
+// PendingBatch is an immutable borrow of buffered entries. Complete must be
+// called exactly once after the publisher is finished, even on admission failure.
+// Entries remain readable through the BufferedStore until successful completion.
+type PendingBatch struct {
+	Entries  []*PutBatchEntry
+	complete func(error)
+	once     sync.Once
+}
+
+func (b *PendingBatch) Complete(err error) { b.once.Do(func() { b.complete(err) }) }
+
+// TakePending borrows all currently queued entries without writing or forgetting
+// them. Further writes can prepare the next publication while this borrow is in
+// flight. Both queued and borrowed content count against the existing bounds.
+func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) {
+	release, err := s.drainMu.Lock(ctx)
+	if err != nil {
+		return nil, err
 	}
+	defer release()
+	var batch *drainBatch
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if err = ctx.Err(); err != nil {
+			return
+		}
+		if err = s.drainErr; err != nil {
+			return
+		}
+		limit := s.drainBatchEntries
+		s.drainBatchEntries = 0
+		batch = s.takeDrainBatchLocked()
+		s.drainBatchEntries = limit
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := &PendingBatch{complete: func(error) {}}
+	if batch != nil {
+		out.Entries = batch.entries
+		out.complete = func(err error) {
+			s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+				s.completeBatchLocked(batch, err)
+				broadcastFn()
+			})
+		}
+	}
+	return out, nil
 }
 
 // writeBatch writes the entries to the inner store as one put batch.
@@ -599,6 +677,10 @@ func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 // bcast lock.
 func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending *pendingBlock) error {
 	prev := s.pending[key]
+	// Keep the last submitted operation on this key ordered before a replacement.
+	if prev != nil && prev.borrowed {
+		return ErrBufferedStoreFull
+	}
 	prevBytes := 0
 	if prev != nil {
 		prevBytes = len(prev.data)
@@ -615,10 +697,11 @@ func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending
 		return ErrBufferedStoreFull
 	}
 
-	pending.queued = prev == nil || !prev.queued
+	enqueue := prev == nil || !prev.queued
+	pending.queued = true
 	s.pending[key] = pending
 	s.pendingBytes = nextBytes
-	if pending.queued {
+	if enqueue {
 		s.queue = append(s.queue, key)
 		broadcastFn()
 	}
