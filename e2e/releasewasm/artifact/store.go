@@ -49,6 +49,7 @@ func publish(storeDir, releaseDir, prerenderDir string, identity *Identity, hook
 	if err := validateRequiredFiles(releaseDir, prerenderDir); err != nil {
 		return Generation{}, err
 	}
+	// #nosec G703 -- storeDir is the caller-selected artifact store root.
 	if err := os.MkdirAll(filepath.Join(storeDir, generationsDir), 0o755); err != nil {
 		return Generation{}, errors.Wrap(err, "create release artifact store")
 	}
@@ -60,7 +61,7 @@ func publish(storeDir, releaseDir, prerenderDir string, identity *Identity, hook
 	removeStage := true
 	defer func() {
 		if removeStage {
-			os.RemoveAll(stageDir)
+			os.RemoveAll(stageDir) // #nosec G703 -- stageDir is the MkdirTemp staging directory above.
 		}
 	}()
 
@@ -81,6 +82,7 @@ func publish(storeDir, releaseDir, prerenderDir string, identity *Identity, hook
 	if err != nil {
 		return Generation{}, errors.Wrap(err, "digest staged prerender output")
 	}
+	// #nosec G703 -- stagedRelease is the MkdirTemp staging directory joined with a constant name.
 	if err := os.WriteFile(
 		filepath.Join(stagedRelease, identityFilename),
 		marshalManifest(identity, releaseDigest, prerenderDigest),
@@ -97,6 +99,7 @@ func publish(storeDir, releaseDir, prerenderDir string, identity *Identity, hook
 	if hooks.beforeRename != nil {
 		hooks.beforeRename()
 	}
+	// #nosec G703 -- both paths live under the caller-selected storeDir; generation is a digest plus MkdirTemp suffix.
 	if err := os.Rename(stageDir, generationDir); err != nil {
 		return Generation{}, errors.Wrap(err, "commit release artifact generation")
 	}
@@ -268,6 +271,7 @@ func Validate(releaseDir, prerenderDir string, expected *Identity) error {
 
 func validateRequiredFiles(releaseDir, prerenderDir string) error {
 	descriptorPath := filepath.Join(releaseDir, "browser-release.json")
+	// #nosec G703 -- releaseDir is the caller-selected release output directory.
 	data, err := os.ReadFile(descriptorPath)
 	if err != nil {
 		return errors.Wrap(err, "read browser-release.json")
@@ -284,6 +288,7 @@ func validateRequiredFiles(releaseDir, prerenderDir string) error {
 		len(descriptor.GetStringBytes("shellAssets", "sharedWorker")) == 0 {
 		return errors.New("browser-release.json is incomplete")
 	}
+	// #nosec G703 -- prerenderDir is the caller-selected prerender output directory.
 	indexInfo, err := os.Stat(filepath.Join(prerenderDir, "index.html"))
 	if err != nil {
 		return errors.Wrap(err, "stat prerender index.html")
@@ -303,7 +308,7 @@ func writeCurrent(storeDir, generation string) error {
 	remove := true
 	defer func() {
 		if remove {
-			os.Remove(path)
+			os.Remove(path) // #nosec G703 -- path is the CreateTemp pointer file above.
 		}
 	}()
 	if _, err := f.WriteString(generation + "\n"); err != nil {
@@ -317,6 +322,7 @@ func writeCurrent(storeDir, generation string) error {
 	if err := f.Close(); err != nil {
 		return errors.Wrap(err, "close current release artifact pointer")
 	}
+	// #nosec G703 -- both paths live under the caller-selected storeDir with constant names.
 	if err := os.Rename(path, filepath.Join(storeDir, currentFilename)); err != nil {
 		return errors.Wrap(err, "publish current release artifact pointer")
 	}
@@ -342,6 +348,7 @@ func marshalManifest(identity *Identity, releaseDigest, prerenderDigest string) 
 }
 
 func readManifest(path string) (*Identity, string, string, error) {
+	// #nosec G703 -- path is the caller-selected identity manifest path.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "read release artifact identity")
@@ -374,6 +381,7 @@ func readManifest(path string) (*Identity, string, string, error) {
 
 func treeDigest(root string) (string, error) {
 	h := sha256.New()
+	// #nosec G703 -- root is the caller-selected staging directory being digested.
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -398,6 +406,7 @@ func treeDigest(root string) (string, error) {
 }
 
 func copyTree(src, dst string) error {
+	// #nosec G122 -- src and dst are caller-selected staging directories under the artifact store.
 	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -412,6 +421,7 @@ func copyTree(src, dst string) error {
 			return err
 		}
 		if entry.IsDir() {
+			// #nosec G703 -- target is dst joined with the walked relative path.
 			return os.MkdirAll(target, info.Mode().Perm())
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
@@ -419,15 +429,19 @@ func copyTree(src, dst string) error {
 			if err != nil {
 				return err
 			}
+			// #nosec G122 -- target is dst joined with the walked relative path.
 			return os.Symlink(link, target)
 		}
 		if !info.Mode().IsRegular() {
 			return errors.Errorf("artifact output %s has unsupported mode %s", path, info.Mode())
 		}
+		// #nosec G703 -- path is the walked source file under the caller-selected src.
+		// #nosec G122 -- the walk root is the caller-selected staging directory.
 		in, err := os.Open(path)
 		if err != nil {
 			return err
 		}
+		// #nosec G703 -- target is dst joined with the walked relative path.
 		out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
 		if err != nil {
 			in.Close()

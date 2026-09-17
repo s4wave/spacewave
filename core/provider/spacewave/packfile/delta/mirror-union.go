@@ -207,6 +207,7 @@ func OpenMirrorUnion(
 		if !strings.HasSuffix(d.Name(), ".kvf") {
 			return nil
 		}
+		// #nosec G122 -- p is the walked pack file path under the caller-selected packsDir.
 		f, openErr := os.Open(p)
 		if openErr != nil {
 			return errors.Wrapf(openErr, "open mirror pack %s", p)

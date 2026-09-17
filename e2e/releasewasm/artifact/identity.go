@@ -168,6 +168,7 @@ func isLockfile(path string) bool {
 // digest. Source inputs retain modes, while transported output trees do not.
 func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 	fullPath := filepath.Join(repoRoot, filepath.FromSlash(path))
+	// #nosec G703 -- fullPath is the caller-selected repo root joined with the manifest path.
 	info, err := os.Lstat(fullPath)
 	if os.IsNotExist(err) {
 		writeDigestField(h, path, "deleted")
@@ -194,6 +195,7 @@ func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 	}
 
 	writeDigestField(h, "size", strconv.FormatInt(info.Size(), 10))
+	// #nosec G703 -- fullPath is the caller-selected repo root joined with the manifest path.
 	f, err := os.Open(fullPath)
 	if err != nil {
 		return errors.Wrapf(err, "open release artifact input %s", path)

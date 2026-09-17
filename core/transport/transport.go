@@ -259,6 +259,7 @@ func (t *SessionTransport) ensureStartupDeadline(ctx context.Context) {
 		if t.startupDeadlineStarted {
 			return
 		}
+		// #nosec G118 -- startupDeadlineCancel is invoked on terminal outcomes (see lines below).
 		deadlineCtx, t.startupDeadlineCancel = context.WithTimeout(
 			context.WithoutCancel(ctx),
 			t.startupTimeout,

@@ -1616,6 +1616,7 @@ func validJournalHeaderPrefixForSequence(header []byte, expectedSequence uint64)
 		var expected [8]byte
 		binary.BigEndian.PutUint64(expected[:], expectedSequence)
 		for index := 8; index < len(header) && index < 16; index++ {
+			// #nosec G602 -- index < len(header) is the loop's first condition.
 			if header[index] != expected[index-8] {
 				return false
 			}

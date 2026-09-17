@@ -652,11 +652,15 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 		http.Error(rw, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	// The upstream host is operator-configured (webAppEndpoint); JoinPath cleans dot
+	// segments, so the forwarded request path cannot escape that host.
+	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	remoteURL, err := url.JoinPath(webAppEndpoint(), releaseWebRemotePath(req.URL.Path))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	upstreamReq, err := http.NewRequestWithContext(req.Context(), req.Method, remoteURL, nil)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -668,6 +672,7 @@ func (l *webListener) serveReleaseWebHTTP(rw http.ResponseWriter, req *http.Requ
 	if auth := webAppAuthorization(); auth != "" {
 		upstreamReq.Header.Set("Authorization", auth)
 	}
+	// #nosec G704 -- intentional reverse proxy to the configured web app endpoint.
 	resp, err := http.DefaultClient.Do(upstreamReq)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadGateway)

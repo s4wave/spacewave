@@ -755,6 +755,7 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 			rw.Header().Set("Content-Type", "application/javascript")
 		}
 		if after, ok := strings.CutPrefix(req.URL.Path, "/static/"); ok {
+			// #nosec G703 -- http.ServeFile rejects paths escaping the served root.
 			http.ServeFile(rw, req, filepath.Join(staticDir, after))
 			return
 		}
@@ -804,7 +805,9 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 	if strings.Contains(clean, "..") {
 		return "", false
 	}
+	// clean rejects ".." above; the join stays inside staticDir.
 	path := filepath.Join(staticDir, clean+".html")
+	// #nosec G703 -- traversal rejected above; path stays inside staticDir.
 	if _, err := os.Stat(path); err == nil {
 		return path, true
 	}

@@ -131,9 +131,12 @@ func execute(rctx context.Context) error {
 	}
 
 	objKey := "test-filesystem"
-	_, exists, err := ws.GetObject(ctx, objKey)
+	obj, exists, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		return err
+	}
+	if exists {
+		world.ReleaseObjectState(obj)
 	}
 	if !exists {
 		_, _, err = ws.ApplyWorldOp(

@@ -80,7 +80,6 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 		rd.input.Reset(nil)
 		if rd.reader != nil {
 			_ = rd.reader.Close()
-			rd.reader.Header = gzip.Header{}
 		}
 		gzipReaders.Put(rd)
 	}()

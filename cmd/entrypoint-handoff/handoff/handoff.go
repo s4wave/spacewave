@@ -711,6 +711,7 @@ func signMacOSCliEntrypoints(ctx context.Context, repoDir string, platforms []st
 			return errors.New("BLDR_MACOS_SIGN_IDENTITY is required to sign macOS CLI artifacts")
 		}
 		binPath := filepath.Join(repoDir, ".tmp", "dist-cli", platform, "spacewave")
+		// #nosec G702 -- fixed program name, no shell; arguments are repo-relative build paths.
 		cmd := exec.CommandContext(
 			ctx,
 			"codesign",
@@ -913,6 +914,7 @@ func notarizeMacOSCliArchives(ctx context.Context, repoDir string, platforms []s
 			continue
 		}
 		archivePath := filepath.Join(repoDir, "dist", "cli", cliArchiveName(goos, platform))
+		// #nosec G702 -- fixed program name, no shell; arguments are repo-relative build paths.
 		cmd := exec.CommandContext(
 			ctx,
 			"xcrun",
@@ -1328,6 +1330,7 @@ func copyTree(srcRoot, dstRoot string) error {
 			if err := os.Remove(dst); err != nil && !os.IsNotExist(err) {
 				return errors.Wrap(err, "remove "+dst)
 			}
+			// #nosec G122 -- dst is the walked destination path inside the release bundle.
 			if err := os.Symlink(target, dst); err != nil {
 				return errors.Wrap(err, "symlink "+dst)
 			}

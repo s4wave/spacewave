@@ -29,10 +29,12 @@ func AcquireBuildLock(ctx context.Context, le *logrus.Entry, lockDir, name strin
 	if name == "" || name == "." || name == ".." || filepath.Base(name) != name || strings.ContainsAny(name, `/\\`) {
 		return nil, errors.Errorf("invalid build lock name %q", name)
 	}
+	// #nosec G703 -- lockDir is the caller-selected build lock directory.
 	if err := os.MkdirAll(lockDir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create build lock directory")
 	}
 	lockPath := filepath.Join(lockDir, name+".lock")
+	// #nosec G703 -- name is validated above: a single path element without separators.
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, errors.Wrap(err, "open build lock")
@@ -64,6 +66,7 @@ func AcquireBuildLock(ctx context.Context, le *logrus.Entry, lockDir, name strin
 	}
 	pid := strconv.AppendInt(nil, int64(os.Getpid()), 10)
 	pid = append(pid, '\n')
+	// #nosec G703 -- pidPath is the validated lock path plus a constant suffix.
 	if err := os.WriteFile(lock.pidPath, pid, 0o644); err != nil {
 		lock.Release()
 		return nil, errors.Wrap(err, "write build lock pid")

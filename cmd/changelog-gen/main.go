@@ -23,6 +23,7 @@ func run() error {
 	}
 
 	orgPath := filepath.Join(rootDir, "CHANGELOG.org")
+	// #nosec G703 -- rootDir is the operator-provided repository directory.
 	orgData, err := os.ReadFile(orgPath)
 	if err != nil {
 		return errors.Wrap(err, "read CHANGELOG.org")
@@ -37,6 +38,7 @@ func run() error {
 	if err != nil {
 		return errors.Wrap(err, "marshal changelog binary")
 	}
+	// #nosec G703 -- rootDir is the operator-provided repository directory.
 	if err := os.WriteFile(
 		filepath.Join(rootDir, "core", "changelog", "changelog.bin"),
 		binData,
@@ -56,7 +58,7 @@ func repoDir(args []string) (string, error) {
 		if args[0] != "--repo" {
 			return "", errors.New("usage: changelog-gen [--repo /path/to/spacewave]")
 		}
-		return filepath.Clean(args[1]), nil
+		return filepath.Clean(args[1]), nil // #nosec G602 -- len(args)==2 is checked by this case.
 	default:
 		return "", errors.New("usage: changelog-gen [--repo /path/to/spacewave]")
 	}
