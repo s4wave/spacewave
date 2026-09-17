@@ -3,9 +3,9 @@ package world_block
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
+	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
@@ -28,9 +28,11 @@ type engineWriteSession struct {
 	tail     *enginePublication
 	pending  int
 	failed   error
-	blocking bool // a legacy fallback must finish before further admission
+	// fallbackPending holds admission while a legacy (non-atomic) publication
+	// completes, because successors must order after its physical writes.
+	fallbackPending bool
+	// retiring marks authority scheduled for exactly-once release.
 	retiring bool
-	done     chan struct{}
 }
 
 type enginePublication struct {
@@ -42,9 +44,10 @@ type enginePublication struct {
 	batch    *block.PendingBatch
 }
 
-// resumeWriteSession is called with the local writer mutex held. It either
-// constructs the next private revision or waits for failed/retiring authority
-// to be released. Completion never needs that writer mutex.
+// resumeWriteSession requires the engine's single-writer slot, which the
+// caller holds until releaseWriter. It either constructs the next private
+// revision or waits for failed, retiring, or blocked authority to be released.
+// Completion never needs that writer slot.
 func (e *Engine) resumeWriteSession(ctx context.Context, releaseWriter func()) (*EngineTx, bool, error) {
 	for {
 		locked := e.bcast.Lock()
@@ -57,7 +60,7 @@ func (e *Engine) resumeWriteSession(ctx context.Context, releaseWriter func()) (
 			locked.Unlock()
 			return nil, false, nil
 		}
-		if s.failed != nil || s.retiring || s.blocking || s.pending >= maxEnginePublications {
+		if s.failed != nil || s.retiring || s.fallbackPending || s.pending >= maxEnginePublications {
 			wait := locked.WaitCh()
 			locked.Unlock()
 			select {
@@ -109,7 +112,6 @@ func (e *Engine) releaseWriteSession(s *engineWriteSession) error {
 	if e.writeSession == s {
 		e.writeSession = nil
 	}
-	close(s.done)
 	locked.Broadcast()
 	locked.Unlock()
 	return err
@@ -118,16 +120,16 @@ func (e *Engine) releaseWriteSession(s *engineWriteSession) error {
 // Submit seals a revision and returns its explicit completion fence. A failed
 // admission retains staged content for independently owned cursors and retries,
 // but does not advance the private revision or invalidate prior accepted work.
-func (t *EngineTx) Submit(ctx context.Context) (world.CommitReceipt, error) {
-	_, receipt, err := t.SubmitBlockTransaction(ctx)
+func (e *EngineTx) Submit(ctx context.Context) (world.CommitReceipt, error) {
+	_, receipt, err := e.SubmitBlockTransaction(ctx)
 	return receipt, err
 }
 
 // SubmitBlockTransaction is Submit with the immutable prepared root identity.
 // The returned reference is not a promise of durability: await the receipt.
-func (t *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, world.CommitReceipt, error) {
-	if t.staged == nil || t.session == nil {
-		root, err := t.CommitBlockTransaction(ctx)
+func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, world.CommitReceipt, error) {
+	if e.staged == nil || e.session == nil {
+		root, err := e.CommitBlockTransaction(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -135,31 +137,31 @@ func (t *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		r.Resolve(nil)
 		return root, r, nil
 	}
-	if t.writeTx == nil {
-		t.Discard()
+	if e.writeTx == nil {
+		e.Discard()
 		return nil, nil, tx.ErrNotWrite
 	}
-	if t.rel.Swap(true) {
+	if e.rel.Swap(true) {
 		return nil, nil, tx.ErrDiscarded
 	}
-	e, s := t.engine, t.session
-	locked := e.bcast.Lock()
-	if e.writeTx != t || e.closed {
+	s := e.session
+	locked := e.engine.bcast.Lock()
+	if e.engine.writeTx != e || e.engine.closed {
 		locked.Unlock()
 		return nil, nil, tx.ErrDiscarded
 	}
-	e.committing++ // baseRoot stays alive through preparation and completion
+	e.engine.committing++ // baseRoot stays alive through preparation and completion
 	locked.Unlock()
 	transferred := false
 	defer func() {
 		if !transferred {
-			e.finishCommit()
+			e.engine.finishCommit()
 		}
 	}()
 
-	root, err := t.writeTx.CommitBlockTransaction(ctx)
+	root, err := e.writeTx.CommitBlockTransaction(ctx)
 	if isCoordinatedWriteSnapshotError(err) {
-		err = fmt.Errorf("%w: prepare world blocks", coord.ErrStaleGeneration)
+		err = pkgerrors.Wrap(coord.ErrStaleGeneration, "prepare world blocks")
 	}
 	if err == nil {
 		err = root.Validate(false)
@@ -171,28 +173,28 @@ func (t *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	}
 	// Recheck authority after the sealing operation, which can race Close or a
 	// failed predecessor. No failed/stale attempt may fall back to old commit.
-	locked = e.bcast.Lock()
-	if err == nil && (e.closed || e.writeTx != t || e.writeSession != s) {
+	locked = e.engine.bcast.Lock()
+	if err == nil && (e.engine.closed || e.engine.writeTx != e || e.engine.writeSession != s) {
 		err = tx.ErrDiscarded
 	}
 	if err == nil && s.failed != nil {
-		err = fmt.Errorf("%w: %v", block.ErrPublicationDependency, s.failed)
+		err = block.NewPublicationDependencyError(s.failed)
 	}
 	var batch *block.PendingBatch
 	if err == nil {
-		batch, err = t.staged.TakePending(ctx)
+		batch, err = e.staged.TakePending(ctx)
 	}
 	var next *bucket.ObjectRef
 	var durable *block.PublicationReceipt
 	var fallback bool
 	if err == nil {
-		next = t.baseHeadRef.Clone()
+		next = e.baseHeadRef.Clone()
 		next.RootRef = root.Clone()
 		publication := &block.AtomicPublication{
 			Entries: batch.Entries,
-			Head:    e.atomicHeadFn(t.baseHeadRef, next),
+			Head:    e.engine.atomicHeadFn(e.baseHeadRef, next),
 			Validate: func(ctx context.Context, store block.StoreOps) error {
-				return e.validatePreparedRoot(ctx, next, store)
+				return e.engine.validatePreparedRoot(ctx, next, store)
 			},
 		}
 		if s.tail != nil {
@@ -201,7 +203,7 @@ func (t *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		// Queue backpressure may wait for a physical completion, which does not
 		// acquire bcast. Keep authority stable through admission. Completion
 		// returns the staged borrow before acquiring bcast as well.
-		durable, err = e.atomicPublisher.SubmitAtomic(ctx, publication)
+		durable, err = e.engine.atomicPublisher.SubmitAtomic(ctx, publication)
 		if errors.Is(err, block.ErrAtomicPublicationUnsupported) {
 			// This is the only error allowed to select durable-on-write behavior.
 			// Block successors until that non-atomic physical sequence completes.
@@ -214,42 +216,50 @@ func (t *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 			batch.Complete(err)
 		}
 		var retired engineRetirement
-		if e.writeTx == t {
-			retired = e.beginRetirementLocked(t.detachLocked())
+		if e.engine.writeTx == e {
+			retired = e.engine.beginRetirementLocked(e.detachLocked())
 		}
 		locked.Unlock()
-		_ = e.drainRetirement(context.Background(), retired)
+		_ = e.engine.drainRetirement(context.Background(), retired)
 		return nil, nil, err
 	}
 
-	p := &enginePublication{root: next, previous: s.tail, durable: durable,
-		complete: block.NewPublicationReceipt(), session: s, batch: batch}
+	p := &enginePublication{
+		root:     next,
+		previous: s.tail,
+		durable:  durable,
+		complete: block.NewPublicationReceipt(),
+		session:  s,
+		batch:    batch,
+	}
 	s.pending++
 	s.prepared, s.tail = next.Clone(), p
-	s.blocking = fallback
-	e.submitted = p.complete
+	s.fallbackPending = fallback
+	e.engine.submitted = p.complete
 	// Increment pending before detaching so the session cannot be released
 	// between sealing N and beginning its durable completion.
-	retired := e.beginRetirementLocked(t.detachLocked())
+	retired := e.engine.beginRetirementLocked(e.detachLocked())
 	locked.Broadcast()
 	locked.Unlock()
 	transferred = true
 	// Drain the old mutable state before allowing completion to release shared
 	// coordinator authority. A next writer can then prepare while the durable
 	// result is pending. Committing retains baseRoot across this handoff.
-	_ = e.drainRetirement(context.Background(), retired)
+	_ = e.engine.drainRetirement(context.Background(), retired)
+	// Completion goroutines outlive the request context: admission already
+	// committed the caller to the durable result.
+	durableCtx := context.WithoutCancel(ctx)
 	if fallback {
-		go e.persistLegacyPublication(p, t.baseHeadRef.Clone())
+		go e.engine.persistLegacyPublication(durableCtx, p, e.baseHeadRef.Clone())
 	}
-	go e.finishPublication(p)
+	go e.engine.finishPublication(durableCtx, p)
 	return next.Clone(), p.complete, nil
 }
 
 // persistLegacyPublication preserves the old preparation/Sync/CAS ordering only
 // for a publisher that explicitly refuses before admission. There is no retry
 // through this path after a comparison, storage, or uncertain-result failure.
-func (e *Engine) persistLegacyPublication(p *enginePublication, base *bucket.ObjectRef) {
-	ctx := context.Background()
+func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublication, base *bucket.ObjectRef) {
 	var err error
 	if p.previous != nil {
 		err = p.previous.complete.Wait(ctx)
@@ -273,23 +283,27 @@ func (e *Engine) persistLegacyPublication(p *enginePublication, base *bucket.Obj
 	p.durable.Resolve(err)
 }
 
-func (e *Engine) finishPublication(p *enginePublication) {
+// finishPublication awaits durable admission, installs the new canonical head
+// in order, and resolves the caller-facing completion receipt.
+func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
 	defer e.finishCommit()
-	ctx := context.Background()
 	err := p.durable.Wait(ctx)
 	// Return the immutable borrow even while the publication guard is held by
 	// a capacity-bound producer. Raw durability is sufficient for block reads.
 	p.batch.Complete(err)
+	// Completed revisions retain only identity/receipts while an active
+	// successor holds the session. Do not pin an already returned data borrow.
+	p.batch = nil
 	if p.previous != nil {
 		if prior := p.previous.complete.Wait(ctx); err == nil && prior != nil {
-			err = fmt.Errorf("%w: %v", block.ErrPublicationDependency, prior)
+			err = block.NewPublicationDependencyError(prior)
 		}
 	}
 	p.previous = nil // do not retain an unbounded completed revision chain
 	s := p.session
 	locked := e.bcast.Lock()
 	if err == nil && s.failed != nil {
-		err = fmt.Errorf("%w: %v", block.ErrPublicationDependency, s.failed)
+		err = block.NewPublicationDependencyError(s.failed)
 	}
 	var retired engineRetirement
 	if err == nil && !e.closed {
