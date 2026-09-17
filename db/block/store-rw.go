@@ -8,8 +8,9 @@ import (
 
 // StoreRW combines a read and write store together.
 type StoreRW struct {
-	readHandle  StoreOps
-	writeHandle StoreOps
+	readHandle          StoreOps
+	writeHandle         StoreOps
+	publicationReadOnly bool
 }
 
 // NewStoreRW constructs a new Store handle using a read handle and an optional
@@ -57,7 +58,7 @@ func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	return NewStoreRW(readHandle, readHandle), release, nil
+	return &StoreRW{readHandle: readHandle, writeHandle: readHandle, publicationReadOnly: true}, release, nil
 }
 
 // EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read handle.
@@ -127,8 +128,42 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 	return EndDeferFlush(ctx, b.writeHandle)
 }
 
+// SupportsAtomicPublication follows the write domain, never a cross-volume lookup.
+func (b *StoreRW) SupportsAtomicPublication() bool {
+	if b.publicationReadOnly {
+		return false
+	}
+	p, ok := b.writeHandle.(AtomicPublisher)
+	return ok && p.SupportsAtomicPublication()
+}
+
+// AtomicPublicationVolumeID returns the write domain's shared publication namespace.
+func (b *StoreRW) AtomicPublicationVolumeID() string {
+	if !b.SupportsAtomicPublication() {
+		return ""
+	}
+	return b.writeHandle.(AtomicPublisher).AtomicPublicationVolumeID()
+}
+
+// SubmitAtomic forwards admission to the write handle's publisher.
+func (b *StoreRW) SubmitAtomic(ctx context.Context, p *AtomicPublication) (*PublicationReceipt, error) {
+	if !b.SupportsAtomicPublication() {
+		return nil, ErrAtomicPublicationUnsupported
+	}
+	return b.writeHandle.(AtomicPublisher).SubmitAtomic(ctx, p)
+}
+
+// PublishAtomic forwards the uncancelled durability wait to the write handle.
+func (b *StoreRW) PublishAtomic(ctx context.Context, p *AtomicPublication) error {
+	if !b.SupportsAtomicPublication() {
+		return ErrAtomicPublicationUnsupported
+	}
+	return b.writeHandle.(AtomicPublisher).PublishAtomic(ctx, p)
+}
+
 // _ is a type assertion
 var (
 	_ StoreOps                   = (*StoreRW)(nil)
 	_ DecodedBlockCacheFreshener = (*StoreRW)(nil)
+	_ AtomicPublisher            = (*StoreRW)(nil)
 )

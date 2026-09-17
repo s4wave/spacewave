@@ -136,3 +136,14 @@ type Tx interface {
 	// Tx contains the transaction confirm.
 	tx.Tx
 }
+
+// AtomicCommitStore opts into using one physical transaction as a publication
+// fence. Commit must synchronously finish the transaction (including its normal
+// durability barrier), and Discard must roll back every mutation. Wrappers that
+// defer Commit across calls, and stores that split blocks into another domain,
+// must not advertise this capability. In-memory stores can implement it for
+// transactional tests; this does not make their data process-persistent.
+type AtomicCommitStore interface {
+	Store
+	SupportsAtomicCommit() bool
+}

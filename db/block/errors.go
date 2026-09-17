@@ -32,3 +32,25 @@ var (
 	// ErrBufferedStoreFull is returned when a buffered store reaches its memory limits.
 	ErrBufferedStoreFull = errors.New("block: buffered store is full")
 )
+
+// publicationDependencyError joins the dependency sentinel with the predecessor
+// failure. Callers match the sentinel with errors.Is while the original cause
+// stays inspectable.
+type publicationDependencyError struct {
+	cause error
+}
+
+func (e *publicationDependencyError) Error() string {
+	return ErrPublicationDependency.Error() + ": " + e.cause.Error()
+}
+
+// Unwrap returns both parents: the dependency sentinel and the predecessor result.
+func (e *publicationDependencyError) Unwrap() []error {
+	return []error{ErrPublicationDependency, e.cause}
+}
+
+// NewPublicationDependencyError wraps a failed or unordered predecessor result
+// with ErrPublicationDependency. Use it to reject a dependent publication.
+func NewPublicationDependencyError(cause error) error {
+	return &publicationDependencyError{cause: cause}
+}
