@@ -232,7 +232,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 		if isCoordinatedWriteSnapshotError(err) {
 			// Commit and retirement move the lease under the Engine lock.
 			locked := e.engine.bcast.Lock()
-			leased := e.lease != nil
+			leased := e.lease != nil || e.session != nil
 			locked.Unlock()
 			if leased {
 				e.Discard()
@@ -308,7 +308,10 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 	}
 
 	// Adopt the durable head before rebuilding this transaction's snapshot.
-	retirement, err := e.engine.applyDurableHeadLocked(ctx, headRef)
+	var retirement engineRetirement
+	if e.engine.writeSession == nil && e.engine.writeTx == nil {
+		retirement, err = e.engine.applyDurableHeadLocked(ctx, headRef)
+	}
 	if err != nil {
 		locked.Unlock()
 		e.engine.drainRetirement(ctx, retirement)

@@ -111,7 +111,6 @@ func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int) (time.Duration, time.Duration, time.Duration, uint64, uint64, uint32) {
 	t.Helper()
 	ctx := t.Context()
-	prefix := fmt.Sprintf("batch/%04d/", sample)
 	before := f.db.CommitCounter()
 	start := time.Now()
 	wtx, err := f.engine.NewTransaction(ctx, true)
@@ -120,6 +119,31 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 	}
 	defer wtx.Release()
 	defer wtx.Discard(context.Background()) // independently release the remote resource
+	keys := batchingResourcePopulate(t, ctx, f, wtx, sample, count)
+	prepared := f.db.CommitCounter()
+	commitStart := time.Now()
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	commitElapsed := time.Since(commitStart)
+	totalElapsed := time.Since(start)
+	after := f.db.CommitCounter()
+	if b, ok := t.(*testing.B); ok {
+		b.StopTimer()
+	}
+	readStart := time.Now()
+	parity := batchingResourceReadback(t, ctx, f, keys)
+	readElapsed := time.Since(readStart)
+	if b, ok := t.(*testing.B); ok {
+		b.StartTimer()
+	}
+	return totalElapsed, commitElapsed, readElapsed, prepared - before, after - prepared, parity
+}
+
+// batchingResourcePopulate uses only the public Resource cursor and World APIs.
+func batchingResourcePopulate(t testing.TB, ctx context.Context, f *batchingFixture, wtx *sdk_world.Tx, sample, count int) []string {
+	t.Helper()
+	prefix := fmt.Sprintf("batch/%04d/", sample)
 	keys := make([]string, count)
 	for i := 0; i < count; i++ {
 		keys[i] = fmt.Sprintf("%s%04d", prefix, i)
@@ -149,15 +173,11 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 			}
 		}
 	}
-	prepared := f.db.CommitCounter()
-	commitStart := time.Now()
-	if err := wtx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	commitElapsed := time.Since(commitStart)
-	totalElapsed := time.Since(start)
-	after := f.db.CommitCounter()
-	readStart := time.Now()
+	return keys
+}
+
+func batchingResourceReadback(t testing.TB, ctx context.Context, f *batchingFixture, keys []string) uint32 {
+	t.Helper()
 	rtx, err := f.engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -203,7 +223,7 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 			}
 		}
 	}
-	return totalElapsed, commitElapsed, time.Since(readStart), prepared - before, after - prepared, h.Sum32()
+	return h.Sum32()
 }
 
 func TestWorldCommitBatchingResourceBaseline(t *testing.T) {

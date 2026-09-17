@@ -24,6 +24,7 @@ type EngineTx struct {
 	baseHeadRef *bucket.ObjectRef
 	lease       coord.WriteLease
 	staged      *block.BufferedStore
+	session     *engineWriteSession
 }
 
 // newEngineTx constructs a new EngineTx.
@@ -51,6 +52,18 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
+	if e.staged != nil && e.session != nil {
+		ref, receipt, err := e.SubmitBlockTransaction(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// Admission is not a success result. Existing Commit callers keep the
+		// unambiguous durable fence even if their request context is canceled.
+		if err := receipt.Wait(context.WithoutCancel(ctx)); err != nil {
+			return nil, err
+		}
+		return ref, nil
+	}
 	// Start the commit trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction")
 	defer task.End()
@@ -130,11 +143,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 				// read the raw bucket and miss buffered, undrained blocks.
 				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
 				if !deferred {
-					var published bool
-					if e.staged != nil {
-						published, commitErr = e.publishAtomic(ctx, nextRootRef)
-					}
-					if commitErr == nil && !published {
+					if commitErr == nil {
 						if e.staged != nil {
 							_, commitErr = e.staged.Sync(ctx)
 						}
@@ -255,7 +264,9 @@ func (e *EngineTx) detachLocked() engineRetirement {
 		e.engine.writeTxRel = nil
 	}
 
-	// Return the detached resources for retirement outside the Engine lock.
+	// A shared session outlives this mutable handle while accepted publications
+	// or its successor still use the coordinator authority.
+	retirement.session = e.engine.takeWriteSessionRetirementLocked(e.session)
 	return retirement
 }
 
@@ -275,26 +286,3 @@ var (
 	_ world.WorldState         = (*EngineTx)(nil)
 	_ world.ForkableWorldState = (*EngineTx)(nil)
 )
-
-// publishAtomic borrows staged blocks until the physical durability result is
-// known. Only a pre-admission unsupported result permits the legacy path.
-// The Engine guard is held by the synchronous publication caller.
-func (e *EngineTx) publishAtomic(ctx context.Context, next *bucket.ObjectRef) (bool, error) {
-	batch, err := e.staged.TakePending(ctx)
-	if err != nil {
-		return false, err
-	}
-	publication := &block.AtomicPublication{
-		Entries: batch.Entries,
-		Head:    e.engine.atomicHeadFn(e.baseHeadRef, next),
-		Validate: func(ctx context.Context, store block.StoreOps) error {
-			return e.engine.validatePreparedRoot(ctx, next, store)
-		},
-	}
-	err = e.engine.atomicPublisher.PublishAtomic(ctx, publication)
-	batch.Complete(err)
-	if errors.Is(err, block.ErrAtomicPublicationUnsupported) {
-		return false, nil
-	}
-	return err == nil, err
-}
