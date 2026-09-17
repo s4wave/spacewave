@@ -146,7 +146,8 @@ func testCopyObjectPrunesSharedSubtrees(t *testing.T, batchExistence bool) {
 	var root *block.BlockRef
 	for range depth + 1 {
 		blk := &sharedCopyBlock{
-			ExamplePtr: &bucket.ObjectRef{BucketId: "child", RootRef: root}}
+			ExamplePtr: &bucket.ObjectRef{BucketId: "child", RootRef: root},
+		}
 		data, err := blk.MarshalBlock()
 		if err != nil {
 			t.Fatal(err)

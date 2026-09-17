@@ -86,7 +86,6 @@ func TestInlineValuesRetainExistingDataAndCursors(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(got, values["small"]) {
 		t.Fatalf("adopted inline cursor: %q, %v, %v", got, found, err)
 	}
-
 }
 
 // TestInlineReplaceAllMatchesSet preserves deterministic packed roots across
