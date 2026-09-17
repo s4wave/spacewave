@@ -1,280 +1,248 @@
+//go:build !js && !wasip1
+
 package world_block_engine_test
 
 import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"testing"
 	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/s4wave/spacewave/db/block"
-	block_byteslice "github.com/s4wave/spacewave/db/block/byteslice"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	"github.com/s4wave/spacewave/db/bucket"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
-	"github.com/s4wave/spacewave/db/util/blockenc"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
-	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
-	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	sdk_cursor "github.com/s4wave/spacewave/sdk/bucket/lookup"
+	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
+	sdk_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
-// baselineSample records one measured workload sample.
-type baselineSample struct {
-	commits uint64
-	elapsed time.Duration
+type batchingFixture struct {
+	tb     *world_testbed.Testbed
+	client *resource_client.Client
+	engine *sdk_world.Engine
+	db     *bdb.DB
 }
 
-// TestWorldCommitBatchingBaseline measures the matched complete-update and
-// commit-only workloads through the native world engine testbed on a synced
-// Bolt volume. Physical commit counts come from the vendored bbolt fork's
-// CommitCounter: one increment per physical write transaction.
-func TestWorldCommitBatchingBaseline(t *testing.T) {
-	ctx := context.Background()
-	eng, bdb, cleanup := setupWorldEngineBaseline(t, ctx)
-	defer cleanup()
-
-	sampleIdx := 0
-	measure := func(name string, run func() error) []baselineSample {
-		var out []baselineSample
-		for range 10 {
-			sampleIdx++
-			before := bdb.CommitCounter()
-			start := time.Now()
-			if err := run(); err != nil {
-				t.Fatalf("%s: %v", name, err)
-			}
-			out = append(out, baselineSample{bdb.CommitCounter() - before, time.Since(start)})
-		}
-		for _, s := range out {
-			t.Logf("%s: commits=%d elapsed=%s", name, s.commits, s.elapsed)
-		}
-		return out
-	}
-
-	// Seed 32 objects before any measured sample.
-	seedTx, err := eng.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := range 32 {
-		key := "baseline/seed/" + strconv.Itoa(i)
-		created, _, err := world.CreateWorldObject(ctx, seedTx, key, func(bcs *block.Cursor) error {
-			body := []byte("seed-" + key)
-			bcs.SetBlock(block_byteslice.NewByteSlice(&body), true)
-			return nil
-		})
-		world.ReleaseObjectState(created)
-		if err != nil {
-			seedTx.Discard()
-			t.Fatal(err)
-		}
-	}
-	if err := seedTx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Warm the commit-only path once so the first write transaction's lazy
-	// initialization does not pollute the measured counts.
-	warmMutateTx, err := eng.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := world.AccessWorldObject(ctx, warmMutateTx, "baseline/seed/1", true, func(bcs *block.Cursor) error {
-		body := []byte("warm-mutate")
-		bcs.SetBlock(block_byteslice.NewByteSlice(&body), true)
-		return nil
-	}); err != nil {
-		warmMutateTx.Discard()
-		t.Fatal(err)
-	}
-	if err := warmMutateTx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Commit-only: one transaction mutating one existing object body.
-	commitOnly := measure("commit-only", func() error {
-		tx, err := eng.NewTransaction(ctx, true)
-		if err != nil {
-			return err
-		}
-		if _, _, err := world.AccessWorldObject(ctx, tx, "baseline/seed/0", true, func(bcs *block.Cursor) error {
-			body := []byte("mutated-" + strconv.Itoa(sampleIdx))
-			bcs.SetBlock(block_byteslice.NewByteSlice(&body), true)
-			return nil
-		}); err != nil {
-			tx.Discard()
-			return err
-		}
-		return tx.Commit(ctx)
-	})
-	for _, s := range commitOnly {
-		if s.commits != commitOnly[0].commits {
-			t.Fatalf("commit-only commit count varied: %v", commitOnly)
-		}
-	}
-
-	// Complete update: one transaction creating 32 objects.
-	complete := measure("complete-update", func() error {
-		tx, err := eng.NewTransaction(ctx, true)
-		if err != nil {
-			return err
-		}
-		for i := range 32 {
-			key := "baseline/complete/" + strconv.Itoa(sampleIdx) + "/" + strconv.Itoa(i)
-			created, _, err := world.CreateWorldObject(ctx, tx, key, func(bcs *block.Cursor) error {
-				body := []byte("body-" + key)
-				bcs.SetBlock(block_byteslice.NewByteSlice(&body), true)
-				return nil
-			})
-			world.ReleaseObjectState(created)
-			if err != nil {
-				tx.Discard()
-				return err
-			}
-		}
-		return tx.Commit(ctx)
-	})
-	for _, s := range complete {
-		if s.commits != complete[0].commits {
-			t.Fatalf("complete-update commit count varied: %v", complete)
-		}
-	}
-
-	t.Logf("commit-only: %d commits, median %v", commitOnly[0].commits, medianElapsed(commitOnly))
-	t.Logf("complete-update: %d commits, median %v", complete[0].commits, medianElapsed(complete))
-
-	// Parity hash over the complete- prefix keys.
-	readTx, err := eng.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer readTx.Discard()
-	h := fnv.New32a()
-	iter := readTx.IterateObjects(ctx, "baseline/complete/", false)
-	defer iter.Close()
-	for iter.Next() {
-		key := iter.Key()
-		obj, found, err := readTx.GetObject(ctx, key)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !found {
-			continue
-		}
-		ref, rev, err := obj.GetRootRef(ctx)
-		world.ReleaseObjectState(obj)
-		if err != nil {
-			t.Fatal(err)
-		}
-		refString := ""
-		if ref != nil {
-			refString = ref.MarshalString()
-		}
-		_, _ = fmt.Fprintf(h, "%s;%d;%s;", key, rev, refString)
-	}
-	if err := iter.Err(); err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("parity_hash=%d", h.Sum32())
-}
-
-// setupWorldEngineBaseline constructs the synced native world engine testbed
-// on a fresh Bolt volume and returns the engine, its bolt DB, and cleanup.
-func setupWorldEngineBaseline(t testing.TB, ctx context.Context) (world.Engine, *bdb.DB, func()) {
+func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 	t.Helper()
+	ctx := t.Context()
 	log := logrus.New()
-	log.SetLevel(logrus.WarnLevel)
-	boltPath := filepath.Join(t.TempDir(), "world-commit-batching-baseline.bolt")
+	log.SetLevel(logrus.ErrorLevel)
 	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_bolt.Config{
-		Path: boltPath,
+		Path:         filepath.Join(t.TempDir(), "world.bolt"),
+		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
-
-	engineID := "world-commit-batching-baseline-engine"
-	objectStoreID := "world-commit-batching-baseline-store"
-	encKey := make([]byte, 32)
-	blake3.DeriveKey("spacewave/test/world-commit-batching-baseline", []byte(objectStoreID), encKey)
-	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_blockenc.Config{
-			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
-			Key:      encKey,
-		},
-	})
+	t.Cleanup(tb.Release)
+	// Prepopulate an unrelated object store in one transaction outside the timer.
+	store, rel, err := tb.Volume.AccessObjectStore(ctx, "unrelated-history", nil)
 	if err != nil {
-		tb.Release()
 		t.Fatal(err)
 	}
-	initWorldRef := &bucket.ObjectRef{
-		BucketId:      tb.BucketId,
-		TransformConf: transformConf,
-	}
-
-	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
-		ctx,
-		tb.Bus,
-		world_block_engine.NewConfig(
-			engineID,
-			tb.Volume.GetID(),
-			tb.BucketId,
-			objectStoreID,
-			initWorldRef,
-			transformConf,
-			true,
-		),
-	)
+	defer rel()
+	ktx, err := store.NewTransaction(ctx, true)
 	if err != nil {
-		tb.Release()
 		t.Fatal(err)
 	}
-
-	opc := world.NewLookupOpController(engineID+"-ops", engineID, world_mock.LookupMockOp)
-	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
-	if err != nil {
-		worldCtrlRef.Release()
-		tb.Release()
+	defer ktx.Discard()
+	for i := 0; i < history; i++ {
+		if err := ktx.Set(ctx, []byte(fmt.Sprintf("history/%08d", i)), make([]byte, 4096)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := ktx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-
-	eng, err := worldCtrl.GetWorldEngine(ctx)
+	wtb, err := world_testbed.NewTestbed(tb)
 	if err != nil {
-		relOpc()
-		worldCtrlRef.Release()
-		tb.Release()
 		t.Fatal(err)
 	}
-
-	boltDB := volume_bolt.GetBoltDB(tb.Volume)
-	if boltDB == nil {
-		relOpc()
-		worldCtrlRef.Release()
-		tb.Release()
-		t.Fatal("testbed volume is not bolt-backed")
+	client, cleanup := resource_testbed.SetupResourceClient(ctx, t, wtb)
+	t.Cleanup(cleanup)
+	root := client.AccessRootResource()
+	t.Cleanup(root.Release)
+	srpc, err := root.GetClient()
+	if err != nil {
+		t.Fatal(err)
 	}
+	resp, err := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpc).CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{EngineId: "batching-resource-world"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := client.CreateResourceReference(resp.ResourceId)
+	eng, err := sdk_world.NewEngine(client, ref)
+	if err != nil {
+		ref.Release()
+		t.Fatal(err)
+	}
+	t.Cleanup(eng.Release)
+	db := volume_bolt.GetBoltDB(tb.Volume)
+	if db == nil {
+		t.Fatal("not a native Bolt volume")
+	}
+	if db.NoSync || db.NoFreelistSync {
+		t.Fatal("durability must remain enabled")
+	}
+	return &batchingFixture{tb: wtb, client: client, engine: eng, db: db}
+}
 
-	return eng, boltDB, func() {
-		relOpc()
-		worldCtrlRef.Release()
-		tb.Release()
+// batchingResourceUpdate times the entire public Resource operation, and records
+// construction and Commit separately. Setup and exact readback are outside the
+// complete-update timer. Physical counts come from bbolt, not logical wrappers.
+func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int) (time.Duration, time.Duration, time.Duration, uint64, uint64, uint32) {
+	t.Helper()
+	ctx := t.Context()
+	prefix := fmt.Sprintf("batch/%04d/", sample)
+	before := f.db.CommitCounter()
+	start := time.Now()
+	wtx, err := f.engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtx.Release()
+	defer wtx.Discard(context.Background()) // independently release the remote resource
+	keys := make([]string, count)
+	for i := 0; i < count; i++ {
+		keys[i] = fmt.Sprintf("%s%04d", prefix, i)
+		id, err := wtx.BuildStorageCursor(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = sdk_cursor.AccessCursor(ctx, f.client, id, func(c *bucket_lookup.Cursor) error {
+			btx, bcs := c.BuildTransaction(nil)
+			bcs.SetBlock(block_mock.NewExample(fmt.Sprintf("complete payload %04d\n%s", i, keys[i])), true)
+			root, _, err := btx.Write(ctx, true)
+			if err != nil {
+				return err
+			}
+			ref := c.GetRef().Clone()
+			ref.RootRef = root
+			obj, err := wtx.CreateObject(ctx, keys[i], ref)
+			world.ReleaseObjectState(obj)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i > 0 {
+			if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(keys[i-1], "next", keys[i], "")); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	prepared := f.db.CommitCounter()
+	commitStart := time.Now()
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	commitElapsed := time.Since(commitStart)
+	totalElapsed := time.Since(start)
+	after := f.db.CommitCounter()
+	readStart := time.Now()
+	rtx, err := f.engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rtx.Release()
+	defer rtx.Discard(context.Background())
+	h := fnv.New32a()
+	for i, key := range keys {
+		obj, found, err := rtx.GetObject(ctx, key)
+		if err != nil || !found {
+			world.ReleaseObjectState(obj)
+			t.Fatalf("read %s: found=%v err=%v", key, found, err)
+		}
+		ref, _, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, err := rtx.AccessWorldState(ctx, ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = sdk_cursor.AccessCursor(ctx, f.client, id, func(c *bucket_lookup.Cursor) error {
+			_, bcs := c.BuildTransaction(nil)
+			body, err := block_mock.UnmarshalExample(ctx, bcs)
+			if err != nil {
+				return err
+			}
+			want := fmt.Sprintf("complete payload %04d\n%s", i, key)
+			if body.GetMsg() != want {
+				return fmt.Errorf("body mismatch %s: %q", key, body.GetMsg())
+			}
+			fmt.Fprintln(h, want)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i > 0 {
+			qs, err := rtx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(keys[i-1], "next", key, ""), 0)
+			if err != nil || len(qs) != 1 {
+				t.Fatalf("relationship %s: %d %v", key, len(qs), err)
+			}
+		}
+	}
+	return totalElapsed, commitElapsed, time.Since(readStart), prepared - before, after - prepared, h.Sum32()
+}
+
+func TestWorldCommitBatchingResourceBaseline(t *testing.T) {
+	samples := 3
+	if s := os.Getenv("SPACEWAVE_BATCHING_SAMPLES"); s != "" {
+		var err error
+		samples, err = strconv.Atoi(s)
+		if err != nil || samples < 1 {
+			t.Fatal("invalid sample count")
+		}
+	}
+	for _, history := range []int{0, 512} {
+		t.Run(fmt.Sprintf("history=%d", history), func(t *testing.T) {
+			f := newBatchingFixture(t, history)
+			for sample := 0; sample < samples; sample++ {
+				total, commit, read, constructionCommits, publicationCommits, parity := batchingResourceUpdate(t, f, sample, 32)
+				t.Logf("sample=%d objects=32 history=%d total_ns=%d commit_ns=%d readback_ns=%d construction_commits=%d publication_commits=%d parity=%d", sample, history, total, commit, read, constructionCommits, publicationCommits, parity)
+			}
+		})
 	}
 }
 
-func medianElapsed(samples []baselineSample) time.Duration {
-	times := make([]time.Duration, 0, len(samples))
-	for _, s := range samples {
-		times = append(times, s.elapsed)
+func BenchmarkWorldCommitBatchingResource(b *testing.B) {
+	for _, n := range []int{1, 32, 128} {
+		b.Run(fmt.Sprintf("objects=%d", n), func(b *testing.B) {
+			f := newBatchingFixture(b, 512)
+			b.ReportAllocs()
+			b.ResetTimer()
+			var total, commit, read time.Duration
+			var construction, publication uint64
+			for sample := 0; sample < b.N; sample++ {
+				a, c, r, x, y, _ := batchingResourceUpdate(b, f, sample, n)
+				total += a
+				commit += c
+				read += r
+				construction += x
+				publication += y
+			}
+			b.StopTimer()
+			b.ReportMetric(float64(total.Nanoseconds())/float64(b.N), "complete-ns/op")
+			b.ReportMetric(float64(commit.Nanoseconds())/float64(b.N), "commit-ns/op")
+			b.ReportMetric(float64(read.Nanoseconds())/float64(b.N), "readback-ns/op")
+			b.ReportMetric(float64(construction)/float64(b.N), "construction-commits/op")
+			b.ReportMetric(float64(publication)/float64(b.N), "publication-commits/op")
+		})
 	}
-	slices.Sort(times)
-	return times[len(times)/2]
 }
