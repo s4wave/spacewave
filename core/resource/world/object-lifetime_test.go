@@ -86,9 +86,11 @@ type rpcLifetimeWorld struct {
 func (w *rpcLifetimeWorld) CreateObject(context.Context, string, *bucket.ObjectRef) (world.ObjectState, error) {
 	return w.obj, w.err
 }
+
 func (w *rpcLifetimeWorld) GetObject(context.Context, string) (world.ObjectState, bool, error) {
 	return w.obj, true, w.err
 }
+
 func (w *rpcLifetimeWorld) RenameObject(context.Context, string, string, bool) (world.ObjectState, error) {
 	return w.obj, w.err
 }
