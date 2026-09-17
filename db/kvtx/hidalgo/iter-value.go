@@ -9,14 +9,24 @@ import (
 
 // txScanIterator implements kv.Iterator
 type txScanIterator struct {
-	ctx     context.Context
-	tx      kvtx.Tx
-	prefix  []byte
-	iter    kvtx.Iterator
-	err     error
+	// ctx is the context the iterator was created with.
+	ctx context.Context
+	// tx is the transaction the iterator reads from.
+	tx kvtx.Tx
+	// prefix restricts iteration to keys starting with it.
+	prefix []byte
+	// iter is the lazily created underlying iterator.
+	iter kvtx.Iterator
+	// err is the first error encountered during iteration.
+	err error
+	// started indicates whether the underlying iterator has begun traversing.
 	started bool
-	key     kv.Key
-	value   kv.Value
+	// beforeStart fences buffered writes before a new or reset lazy snapshot.
+	beforeStart func(context.Context) error
+	// key is the current key.
+	key kv.Key
+	// value is the current value.
+	value kv.Value
 }
 
 func newTxScanIterator(ctx context.Context, tx kvtx.Tx, prefix []byte) *txScanIterator {
@@ -39,6 +49,12 @@ func (i *txScanIterator) Next(ctx context.Context) bool {
 	i.key = nil
 	i.value = nil
 
+	if !i.started && i.beforeStart != nil {
+		if err := i.beforeStart(ctx); err != nil {
+			i.err = err
+			return false
+		}
+	}
 	iter := i.getIterator()
 	if iter == nil {
 		return false
