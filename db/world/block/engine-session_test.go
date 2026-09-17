@@ -51,6 +51,7 @@ func (p *sessionPublisher) arm(t *testing.T, err error) *sessionGate {
 	t.Cleanup(g.open)
 	return g
 }
+
 func (p *sessionPublisher) SubmitAtomic(ctx context.Context, publication *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	p.mu.Lock()
 	g, unsupported := p.gate, p.unsupported
@@ -198,6 +199,7 @@ func sessionWriter(t *testing.T, f *sessionFixture) *EngineTx {
 	t.Cleanup(w.Discard)
 	return w
 }
+
 func sessionObject(t *testing.T, w *EngineTx, key string) (*bucket_lookup.Cursor, *bucket.ObjectRef) {
 	t.Helper()
 	c, err := w.BuildStorageCursor(t.Context())
@@ -220,6 +222,7 @@ func sessionObject(t *testing.T, w *EngineTx, key string) (*bucket_lookup.Cursor
 	}
 	return c, next
 }
+
 func sessionSubmit(t *testing.T, w *EngineTx) world.CommitReceipt {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
@@ -230,12 +233,14 @@ func sessionSubmit(t *testing.T, w *EngineTx) world.CommitReceipt {
 	}
 	return r
 }
+
 func sessionWait(t *testing.T, r world.CommitReceipt) error {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	return r.Wait(ctx)
 }
+
 func sessionHas(t *testing.T, w world.WorldState, key string, want bool) {
 	t.Helper()
 	got, err := w.HasObject(t.Context(), key)
@@ -243,6 +248,7 @@ func sessionHas(t *testing.T, w world.WorldState, key string, want bool) {
 		t.Fatalf("HasObject(%s)=%v,%v want %v", key, got, err, want)
 	}
 }
+
 func sessionEntered(t *testing.T, g *sessionGate) {
 	t.Helper()
 	select {
@@ -323,6 +329,12 @@ func TestEngineSessionCompletionPreservesActiveSuccessor(t *testing.T) {
 	g.open()
 	if err := sessionWait(t, r); err != nil {
 		t.Fatal(err)
+	}
+	locked := f.engine.bcast.Lock()
+	retainsBatch := f.engine.writeSession.tail.batch != nil
+	locked.Unlock()
+	if retainsBatch {
+		t.Fatal("completed publication retained returned data borrow")
 	}
 	sessionHas(t, second, "one", true)
 	sessionHas(t, second, "two", true)
@@ -459,7 +471,7 @@ func TestEngineSessionBoundedAdmissionAndSyncFence(t *testing.T) {
 	f := newSessionFixture(t)
 	g := f.publisher.arm(t, nil)
 	var receipts []world.CommitReceipt
-	for i := 0; i < maxEnginePublications; i++ {
+	for i := range maxEnginePublications {
 		w := sessionWriter(t, f)
 		sessionObject(t, w, fmt.Sprintf("object/%02d", i))
 		receipts = append(receipts, sessionSubmit(t, w))

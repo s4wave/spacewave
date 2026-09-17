@@ -765,7 +765,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	engTx.baseHeadRef = baseHeadRef
 	engTx.staged = e.stagedStore
 	if e.stagedStore != nil {
-		session := &engineWriteSession{lease: lease, prepared: baseHeadRef.Clone(), done: make(chan struct{})}
+		session := &engineWriteSession{lease: lease, prepared: baseHeadRef.Clone()}
 		e.writeSession = session
 		engTx.session = session
 	} else {
