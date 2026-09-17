@@ -7,6 +7,7 @@ import (
 
 	flat "github.com/aperturerobotics/cayley/kv/flat"
 	"github.com/s4wave/spacewave/db/kvtx"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
 func TestTxGetBatchUsesUnderlyingBatchAndAlignsResults(t *testing.T) {
@@ -159,4 +160,23 @@ func cloneByteSlices(in [][]byte) [][]byte {
 		out[i] = bytes.Clone(value)
 	}
 	return out
+}
+
+func TestGetBatchPreservesPresentNilValues(t *testing.T) {
+	ctx := context.Background()
+	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	if err := tx.Set(ctx, []byte("empty"), nil); err != nil {
+		t.Fatal(err)
+	}
+	values, err := NewTx(tx).GetBatch(ctx, []flat.Key{[]byte("empty"), []byte("missing")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values[0] == nil || len(values[0]) != 0 || values[1] != nil {
+		t.Fatalf("present empty value became missing: %#v", values)
+	}
 }

@@ -59,6 +59,11 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 	for i, index := range lowerIndexes {
 		if found[i] {
 			vals[index] = lowerVals[i]
+			// The lower API carries presence separately. The flat API reserves
+			// nil for missing keys, including after a buffered batch is flushed.
+			if vals[index] == nil {
+				vals[index] = kv.Value{}
+			}
 		}
 	}
 	return vals, nil
