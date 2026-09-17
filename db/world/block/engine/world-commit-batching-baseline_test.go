@@ -37,11 +37,16 @@ type batchingFixture struct {
 
 func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 	t.Helper()
+	return newBatchingFixtureAt(t, history, filepath.Join(t.TempDir(), "world.bolt"))
+}
+
+func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixture {
+	t.Helper()
 	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
 	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_bolt.Config{
-		Path:         filepath.Join(t.TempDir(), "world.bolt"),
+		Path:         path,
 		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	}))
 	if err != nil {
@@ -59,7 +64,7 @@ func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 		t.Fatal(err)
 	}
 	defer ktx.Discard()
-	for i := 0; i < history; i++ {
+	for i := range history {
 		if err := ktx.Set(ctx, []byte(fmt.Sprintf("history/%08d", i)), make([]byte, 4096)); err != nil {
 			t.Fatal(err)
 		}
@@ -145,7 +150,7 @@ func batchingResourcePopulate(t testing.TB, ctx context.Context, f *batchingFixt
 	t.Helper()
 	prefix := fmt.Sprintf("batch/%04d/", sample)
 	keys := make([]string, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		keys[i] = fmt.Sprintf("%s%04d", prefix, i)
 		id, err := wtx.BuildStorageCursor(ctx)
 		if err != nil {
