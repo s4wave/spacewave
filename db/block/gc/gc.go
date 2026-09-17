@@ -19,8 +19,23 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// ErrAtomicSweepUnsupported allows the legacy collector path only before any
+// graph or block mutation. A store must reject graphs outside its own scope.
+var ErrAtomicSweepUnsupported = errors.New("atomic sweep unsupported")
+
+// AtomicSweepStore rechecks current ownership and removes a still-orphaned node
+// and its physical block in one transaction, serialized with publication. A
+// candidate snapshot alone never authorizes deletion. The graph argument binds
+// this operation to the collector's reachability scope.
+type AtomicSweepStore interface {
+	SweepUnreferenced(ctx context.Context, graph RefGraphOps, node string) (bool, error)
+}
+
 // Stats holds GC cycle statistics.
 type Stats struct {
+	// AtomicSweepCount and AtomicSweepDuration include atomic ownership rechecks.
+	AtomicSweepCount    int
+	AtomicSweepDuration time.Duration
 	// NodesSwept is the number of nodes swept.
 	NodesSwept int
 	// UnreferencedNodeCount is the number of unreferenced node entries read.
@@ -123,6 +138,31 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 
 			if IsPermanentRoot(node) {
 				continue
+			}
+
+			// A stale snapshot must not delete a block rescued by an intervening
+			// publication. Use the store's physical atomic sweep where available.
+			// Graph-only and callback collectors keep their established contract.
+			if atomic, ok := c.store.(AtomicSweepStore); ok && removeBlocks && c.onSwept == nil {
+				phaseStart = time.Now()
+				removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, node)
+				stats.AtomicSweepDuration += time.Since(phaseStart)
+				stats.AtomicSweepCount++
+				if !errors.Is(err, ErrAtomicSweepUnsupported) {
+					if err != nil {
+						return stats, errors.Wrap(err, "atomic sweep")
+					}
+					if removed {
+						swept++
+						stats.NodesSwept++
+						stats.RemoveNodeRefsCount++
+						stats.RemoveUnreferencedEdgeCount++
+						if _, ok := ParseBlockIRI(node); ok {
+							stats.RemoveBlockCount++
+						}
+					}
+					continue
+				}
 			}
 
 			// Remove all outgoing gc/ref edges and mark orphaned targets.
