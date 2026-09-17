@@ -133,6 +133,7 @@ func execute(rctx context.Context) error {
 	objKey := "test-filesystem"
 	obj, exists, err := ws.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return err
 	}
 	if exists {
