@@ -167,6 +167,7 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 
 	// Create the private lock directory before opening this scope's file.
 	lockDir := filepath.Join(c.dir, lockDirName)
+	// #nosec G703 -- lockDir is the coordinator's configured root directory joined with a constant name.
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
 		return nil, false, pkgerrors.Wrap(err, "create lock directory")
 	}
@@ -176,6 +177,7 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 
 	// Open and validate the lock file, then acquire its advisory lock.
 	path := filepath.Join(lockDir, lockDigest(c.storeID, scope)+".lock")
+	// #nosec G703 -- path is the managed lock directory joined with a hex digest filename.
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, false, pkgerrors.Wrap(err, "open lock file")
