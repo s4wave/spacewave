@@ -25,7 +25,11 @@ func (p *Prefixer) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, err
 	if err != nil {
 		return nil, err
 	}
-	return newTx(btx, p.prefix), nil
+	tx := newTx(btx, p.prefix)
+	if batch, ok := btx.(kvtx.WriteBatchTxOps); write && ok {
+		return &writeBatchTx{tx: tx, batch: batch}, nil
+	}
+	return tx, nil
 }
 
 // RefreshForCoordinationLock forwards coordination-boundary refreshes to the

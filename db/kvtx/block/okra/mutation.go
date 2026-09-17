@@ -32,23 +32,30 @@ type okraBuiltPage struct {
 	cursor *block.Cursor
 }
 
-func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
-	key := slices.Clone(next.Key)
-	valueRef := next.ValueRef.Clone()
+// newLevelValueNode snapshots the public builder input at the ownership boundary.
+func newLevelValueNode(next BuildEntry) (okraLevelNode, error) {
 	leafHash, err := hashBuildEntry(next)
 	if err != nil {
-		return err
+		return okraLevelNode{}, err
 	}
-	nextNode := okraLevelNode{
+	return okraLevelNode{
 		entry: &Entry{
-			Key:         key,
+			Key:         slices.Clone(next.Key),
 			Hash:        leafHash,
 			Size:        1,
-			ValueRef:    valueRef,
+			ValueRef:    next.ValueRef.Clone(),
 			ValueIsBlob: next.ValueIsBlob,
 			ValueBlob:   next.ValueBlob.CloneVT(),
 		},
+	}, nil
+}
+
+func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
+	nextNode, err := newLevelValueNode(next)
+	if err != nil {
+		return err
 	}
+	key, leafHash := nextNode.entry.Key, nextNode.entry.Hash
 
 	if t.root.GetSize() == 0 {
 		return t.setRootFromLevelNodes(ctx, 0, []okraLevelNode{
