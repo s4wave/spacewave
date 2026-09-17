@@ -40,7 +40,12 @@ func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, read
 }
 
 // Commit commits the transaction.
-// After commit, the transaction should be discarded.
+// After commit, the transaction should be discarded and its resource released.
+// Commit waits for the server's durable publication, not merely admission. A
+// concurrent Engine.NewTransaction may prepare the next revision after this
+// transaction seals but before this call completes. Keep every outstanding
+// Commit result and join them before reporting success; canceling an RPC does
+// not establish that an already admitted write was rolled back.
 func (tx *Tx) Commit(ctx context.Context) error {
 	_, err := tx.txService.Commit(ctx, &CommitRequest{})
 	return err
