@@ -320,6 +320,7 @@ func (f *FSTree) Mkdir(permissions fs.FileMode, ts *timestamppb.Timestamp, dirs 
 				return nil, unixfs_errors.ErrExist
 			}
 		}
+		// #nosec G602 -- dirs[i-1] is guarded by the i != 0 short-circuit in this condition.
 		if match || (i != 0 && dirs[i] == dirs[i-1]) {
 			skipDirs[i] = true
 			continue
