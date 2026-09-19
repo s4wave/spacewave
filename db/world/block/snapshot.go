@@ -31,11 +31,39 @@ func BuildSnapshot(
 	storage world.WorldStorage,
 	populate func(context.Context, *WorldState) error,
 ) (*bucket.ObjectRef, error) {
+	return writeSnapshot(ctx, le, storage, nil, populate)
+}
+
+// UpdateSnapshot stages changes to an immutable World in memory and syncs only
+// its final reachable new blocks. Unchanged blocks and the prior root remain
+// readable. The caller publishes the returned root in its enclosing transaction.
+// Update must not retain the state or cursors; changed state must fit in memory.
+func UpdateSnapshot(
+	ctx context.Context,
+	le *logrus.Entry,
+	storage world.WorldStorage,
+	base *bucket.ObjectRef,
+	update func(context.Context, *WorldState) error,
+) (*bucket.ObjectRef, error) {
+	if base.GetRootRef() == nil {
+		return nil, errors.New("snapshot update requires an existing World root")
+	}
+	return writeSnapshot(ctx, le, storage, base, update)
+}
+
+// writeSnapshot shares staging and durable copying for construction and updates.
+func writeSnapshot(
+	ctx context.Context,
+	le *logrus.Entry,
+	storage world.WorldStorage,
+	base *bucket.ObjectRef,
+	populate func(context.Context, *WorldState) error,
+) (*bucket.ObjectRef, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/build-snapshot")
 	defer task.End()
 
 	var result *bucket.ObjectRef
-	err := storage.AccessWorldState(ctx, nil, func(bucketCursor *bucket_lookup.Cursor) error {
+	err := storage.AccessWorldState(ctx, base, func(bucketCursor *bucket_lookup.Cursor) error {
 		// Retain writes until the final indexes exist. Sync still sends bounded
 		// batches through the destination's normal RPC, GC and durability path.
 		writes := block.NewBufferedStoreWithSettings(ctx, bucketCursor.GetBucket(), &block.BufferedStoreSettings{
@@ -44,7 +72,7 @@ func BuildSnapshot(
 			DrainBatchEntries: 4096,
 		})
 		bucketCursor.SetTransactionStore(writes)
-		root, err := buildSnapshot(ctx, le, bucketCursor, populate)
+		root, err := buildSnapshot(ctx, le, bucketCursor, base.GetRootRef(), populate)
 		if err != nil {
 			return err
 		}
@@ -67,11 +95,14 @@ func buildSnapshot(
 	ctx context.Context,
 	le *logrus.Entry,
 	bucketCursor *bucket_lookup.Cursor,
+	base *block.BlockRef,
 	populate func(context.Context, *WorldState) error,
 ) (*block.BlockRef, error) {
 	local := world.NewWorldStorageFromCursor(bucketCursor)
-	transaction, cursor := bucketCursor.BuildTransactionAtRef(nil, nil)
-	cursor.SetBlock(NewWorld(true), true)
+	transaction, cursor := bucketCursor.BuildTransactionAtRef(nil, base)
+	if base == nil {
+		cursor.SetBlock(NewWorld(true), true)
+	}
 	state, err := NewWorldState(ctx, le, true, nil, cursor, nil, nil, nil, local, nil, false)
 	if err != nil {
 		return nil, err
