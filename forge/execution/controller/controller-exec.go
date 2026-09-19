@@ -19,8 +19,15 @@ const targetWorldInput = "world"
 
 // executeWithConfig is the routine to execute the Execution controller.
 func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfig) error {
+	// Interrupt setup and target execution, but retain the routine context for
+	// the durable completion after processExec has drained and closed the target.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
+	stopCancel := context.AfterFunc(c.cancelCtx, ctxCancel)
+	defer stopCancel()
+	if c.cancelCtx.Err() != nil {
+		ctxCancel()
+	}
 
 	// process the execution
 	execErr := c.processExec(ctx, execConf)
@@ -39,7 +46,7 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 
 	var res *forge_value.Result
 	if canceling {
-		if execErr != nil {
+		if execErr != nil && !errors.Is(execErr, context.Canceled) {
 			return errors.Wrap(execErr, "drain canceled execution")
 		}
 		c.le.Info("marking execution as canceled after drain")
@@ -52,13 +59,13 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		res = forge_value.NewResultWithSuccess()
 	}
 
-	completeTx, err := c.busEngine.NewTransaction(ctx, true)
+	completeTx, err := c.busEngine.NewTransaction(rctx, true)
 	if err != nil {
 		return err
 	}
 	defer completeTx.Discard()
 
-	execObjState, err := world.MustGetObject(ctx, completeTx, c.conf.GetObjectKey())
+	execObjState, err := world.MustGetObject(rctx, completeTx, c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(execObjState)
 	if err != nil {
 		return err
@@ -68,12 +75,12 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		res,
 		execConf.GetExecution().GetClaim(),
 	)
-	_, _, err = execObjState.ApplyObjectOp(ctx, txd, c.peerID)
+	_, _, err = execObjState.ApplyObjectOp(rctx, txd, c.peerID)
 	if err != nil {
 		return err
 	}
 
-	return completeTx.Commit(ctx)
+	return completeTx.Commit(rctx)
 }
 
 // processExec processes the exec portion of the Target config.
@@ -151,6 +158,8 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "construct exec controller")
 	}
 
+	defer ctrl.Close()
+
 	// Resolve the target world input when configured.
 	var targetWorld forge_target.InputValueWorld
 	if tgtWorldID := c.conf.GetInputWorld().GetEngineId(); tgtWorldID != "" {
@@ -226,7 +235,6 @@ func (c *Controller) processExec(
 			execCtrlHandle,
 		)
 	} else if !c.conf.GetAllowNonExecController() {
-		_ = ctrl.Close()
 		return ErrNotExecController
 	} else {
 		le.Debug("controller does not implement exec-controller interface")
@@ -257,7 +265,6 @@ func (c *Controller) executeTargetController(
 		Info("starting exec controller")
 	t1 := time.Now()
 	err := tgtBus.ExecuteController(ctx, ctrl)
-	_ = ctrl.Close()
 	durLe := c.le.WithField("exec-dur", time.Since(t1))
 	if err != nil {
 		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
