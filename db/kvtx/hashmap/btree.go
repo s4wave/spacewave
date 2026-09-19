@@ -84,13 +84,24 @@ func (m *BTreeMap[V]) Exists(ctx context.Context, key []byte) (bool, error) {
 // deadlock. Instead, collect the items to modify during iteration and modify
 // them afterwards.
 func (m *BTreeMap[V]) Iterate(ctx context.Context, cb func(ctx context.Context, key []byte, value V) error) error {
-	m.tree.Ascend(nil, func(item *valType[V]) bool {
-		if err := cb(ctx, item.key, item.val); err != nil {
+	return m.IteratePrefix(ctx, nil, cb)
+}
+
+// IteratePrefix seeks to the first matching key and stops after the prefix.
+// Callbacks run under the tree's read lock and must not mutate the map.
+func (m *BTreeMap[V]) IteratePrefix(ctx context.Context, prefix []byte, cb func(ctx context.Context, key []byte, value V) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	var result error
+	m.tree.Ascend(&valType[V]{key: prefix}, func(item *valType[V]) bool {
+		if result = ctx.Err(); result != nil || !bytes.HasPrefix(item.key, prefix) {
 			return false
 		}
-		return true
+		result = cb(ctx, item.key, item.val)
+		return result == nil
 	})
-	return nil
+	return result
 }
 
 // _ is a type assertion

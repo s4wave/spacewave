@@ -1,7 +1,6 @@
 package hashmap
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -49,10 +48,7 @@ func (o *kvtxTxOps) Delete(ctx context.Context, key []byte) error {
 //
 // Note: the ordering of the scan is not necessarily sorted.
 func (o *kvtxTxOps) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	return o.m.m.Iterate(ctx, func(ctx context.Context, key, dat []byte) error {
-		if !bytes.HasPrefix(key, prefix) {
-			return nil
-		}
+	return o.m.m.IteratePrefix(ctx, prefix, func(ctx context.Context, key, dat []byte) error {
 		return cb(key, dat)
 	})
 }
