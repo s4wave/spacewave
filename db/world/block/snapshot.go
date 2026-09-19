@@ -69,9 +69,10 @@ func writeSnapshot(
 		// Retain writes until the final indexes exist. Sync still sends bounded
 		// batches through the destination's normal RPC, GC and durability path.
 		writes := block.NewBufferedStoreWithSettings(ctx, bucketCursor.GetBucket(), &block.BufferedStoreSettings{
-			MaxPendingEntries: math.MaxInt,
-			MaxPendingBytes:   math.MaxInt,
-			DrainBatchEntries: 4096,
+			MaxPendingEntries:       math.MaxInt,
+			MaxPendingBytes:         math.MaxInt,
+			MaxPendingMetadataBytes: math.MaxInt,
+			DrainBatchEntries:       4096,
 		})
 		bucketCursor.SetTransactionStore(writes)
 		root, err := buildSnapshot(ctx, le, bucketCursor, base.GetRootRef(), populate)
