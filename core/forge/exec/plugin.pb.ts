@@ -34,6 +34,13 @@ export interface PluginExecConfig {
    * @generated from field: bytes controller_config = 3;
    */
   controllerConfig?: Uint8Array
+  /**
+   * AttachWorld grants the plugin the execution's World through a Resource
+   * connection that remains alive only for this execution.
+   *
+   * @generated from field: bool attach_world = 4;
+   */
+  attachWorld?: boolean
 }
 
 export const PluginExecConfig: MessageType<PluginExecConfig> =
@@ -43,6 +50,7 @@ export const PluginExecConfig: MessageType<PluginExecConfig> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'controller_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'controller_config', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'attach_world', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -71,6 +79,13 @@ export interface PluginExecRequest {
    * @generated from field: repeated forge.value.Value inputs = 3;
    */
   inputs?: Value[]
+  /**
+   * AttachedEngineResourceId identifies the caller's attached World resource.
+   * It is scoped to this Resource client generation and is never persisted.
+   *
+   * @generated from field: uint32 attached_engine_resource_id = 4;
+   */
+  attachedEngineResourceId?: number
 }
 
 export const PluginExecRequest: MessageType<PluginExecRequest> =
@@ -85,6 +100,12 @@ export const PluginExecRequest: MessageType<PluginExecRequest> =
         kind: 'message',
         T: () => Value,
         repeated: true,
+      },
+      {
+        no: 4,
+        name: 'attached_engine_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
