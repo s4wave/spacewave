@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -57,11 +56,10 @@ type Controller struct {
 	// execRoutine is the execution routine resolving execResult
 	// note: value_set and result are set to nil
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
-	// cancelBcast guards canceled below; its wait channel closes once
-	// durable cancellation is observed.
-	cancelBcast broadcast.Broadcast
-	// canceled records that durable cancellation was observed.
-	canceled bool
+	// cancelCtx closes once durable cancellation is observed, including for late listeners.
+	cancelCtx context.Context
+	// cancel signals durable cancellation independently of controller restarts.
+	cancel context.CancelFunc
 }
 
 // NewController constructs a new Execution controller.
@@ -85,6 +83,7 @@ func NewController(
 		peerID:   peerID,
 		claimID:  claimID,
 	}
+	c.cancelCtx, c.cancel = context.WithCancel(context.Background())
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
 	c.ws = world.NewEngineWorldState(c.busEngine, true)
 	c.objLoop = world_control.NewWatchLoop(
@@ -127,11 +126,7 @@ func StartControllerWithConfig(
 // CancelWaitCh returns a channel that closes once durable cancellation of
 // the execution has been observed.
 func (c *Controller) CancelWaitCh() <-chan struct{} {
-	var waitCh <-chan struct{}
-	c.cancelBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
-	})
-	return waitCh
+	return c.cancelCtx.Done()
 }
 
 // GetControllerInfo returns information about the controller.
@@ -215,12 +210,7 @@ func (c *Controller) processExecutionState(
 	// check if completed
 	currState := exState.GetExecutionState()
 	if currState == forge_execution.State_ExecutionState_CANCELING {
-		c.cancelBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if !c.canceled {
-				c.canceled = true
-				broadcast()
-			}
-		})
+		c.cancel()
 	}
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
@@ -263,7 +253,7 @@ func (c *Controller) processExecutionState(
 	}
 
 	// RUNNING and CANCELING both retain adapter custody. Cancellation is
-	// delivered without tearing down the routine context.
+	// delivered to the target while the routine retains its settlement context.
 	if currState != forge_execution.State_ExecutionState_RUNNING &&
 		currState != forge_execution.State_ExecutionState_CANCELING {
 		return nil, true, errors.Wrapf(
