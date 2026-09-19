@@ -94,7 +94,7 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 // insertGraphDeltas bulk-builds a fresh index instead of rewriting its pages
 // for every Cayley key. Existing graphs retain their incremental update path.
 func (t *WorldState) insertGraphDeltas(ctx context.Context, deltas []graph.Delta) error {
-	tree, packed := t.graphTree.(*kvtx_block_okra.Tx)
+	_, packed := t.graphTree.(*kvtx_block_okra.Tx)
 	if !packed || len(deltas) < 2 {
 		return t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{})
 	}
@@ -116,18 +116,11 @@ func (t *WorldState) insertGraphDeltas(ctx context.Context, deltas []graph.Delta
 	if err := staged.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		return errors.Wrap(err, "build graph import index")
 	}
-	if err := tree.ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
-		_ = index.Iterate(ctx, func(_ context.Context, key, value []byte) error {
-			if !yield(key, value) {
-				return context.Canceled
-			}
-			return nil
-		})
-	}); err != nil {
+	if err := t.packSnapshotGraph(ctx, index); err != nil {
 		return errors.Wrap(err, "write graph import index")
 	}
 	// Reopen Cayley so its cached counts and node IDs describe the new index.
-	replacement, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(tree), opts)
+	replacement, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(t.graphTree), opts)
 	if err != nil {
 		return errors.Wrap(err, "open graph import index")
 	}
