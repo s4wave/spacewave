@@ -21,6 +21,9 @@ type Hashmap[V any] interface {
 	//
 	// Iterator (might) not include items added during iteration.
 	Iterate(ctx context.Context, cb func(ctx context.Context, key []byte, value V) error) error
+	// IteratePrefix visits only matching keys and stops on cancellation or a
+	// callback error. The callback must not mutate the map.
+	IteratePrefix(ctx context.Context, prefix []byte, cb func(ctx context.Context, key []byte, value V) error) error
 }
 
 // NewHashmap constructs a new hash map of default type.
