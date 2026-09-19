@@ -13,6 +13,9 @@ message PluginExecConfig {
   string controller_id = 2;
   // ControllerConfig is opaque config bytes for the plugin-owned controller.
   bytes controller_config = 3;
+  // AttachWorld grants the plugin the execution's World through a Resource
+  // connection that remains alive only for this execution.
+  bool attach_world = 4;
 }
 
 // PluginExecRequest asks a loaded plugin to execute a controller.
@@ -23,6 +26,9 @@ message PluginExecRequest {
   bytes controller_config = 2;
   // Inputs are the Forge execution inputs.
   repeated forge.value.Value inputs = 3;
+  // AttachedEngineResourceId identifies the caller's attached World resource.
+  // It is scoped to this Resource client generation and is never persisted.
+  uint32 attached_engine_resource_id = 4;
 }
 
 // PluginExecLog is a log entry emitted by a plugin execution controller.

@@ -33,6 +33,7 @@ type pluginExecClientLoader func(
 // pluginExecHandler forwards execution to a plugin-owned controller.
 type pluginExecHandler struct {
 	b      bus.Bus
+	le     *logrus.Entry
 	handle forge_target.ExecControllerHandle
 	inputs forge_target.InputMap
 	conf   *PluginExecConfig
@@ -58,6 +59,14 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 		ControllerConfig: h.conf.GetControllerConfig(),
 		Inputs:           h.inputs.BuildValueSet().GetInputs(),
 	}
+	if h.conf.GetAttachWorld() {
+		return h.executeWithWorld(ctx, client, req)
+	}
+	return h.executeClient(ctx, client, req)
+}
+
+// executeClient relays plugin progress and joins the execution stream.
+func (h *pluginExecHandler) executeClient(ctx context.Context, client SRPCPluginExecServiceClient, req *PluginExecRequest) error {
 	strm, err := client.ExecuteStream(ctx, req)
 	if err == nil {
 		defer strm.Close()
@@ -259,6 +268,7 @@ func newPluginExecHandler(b bus.Bus, load pluginExecClientLoader) HandlerFactory
 		}
 		return &pluginExecHandler{
 			b:      b,
+			le:     le,
 			handle: handle,
 			inputs: inputs,
 			conf:   conf,
