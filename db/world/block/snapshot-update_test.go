@@ -2,6 +2,7 @@ package world_block_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -46,8 +47,11 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 		if _, err := write(ctx, state, "change", "final"); err != nil {
 			return err
 		}
-		_, err = state.DeleteObject(ctx, "remove")
-		return err
+		if _, err := state.DeleteObject(ctx, "remove"); err != nil {
+			return err
+		}
+		// Refill an emptied graph through the same batch API as initial import.
+		return state.InsertGraphQuads(ctx, []world.GraphQuad{world.NewGraphQuadWithKeys("keep", "<edge>", "change", "")})
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -77,13 +81,17 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 				return err
 			}
 			if !objects[0].Exists || objects[1].Exists != (ref == base) {
-				t.Fatal("snapshot changed the wrong object set")
+				t.Fatalf("snapshot changed the wrong object set: base=%v keep=%v remove=%v", ref == base, objects[0].Exists, objects[1].Exists)
 			}
 			quads, err := state.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 0)
 			if err != nil {
 				return err
 			}
-			if (len(quads) == 1) != (ref == base) {
+			wantObject := world.KeyToGraphValue("remove").String()
+			if ref == next {
+				wantObject = world.KeyToGraphValue("change").String()
+			}
+			if len(quads) != 1 || quads[0].GetObj() != wantObject {
 				t.Fatal("snapshot did not preserve its relationship set")
 			}
 			found, err := cursor.GetBucket().GetBlockExists(ctx, superseded.RootRef)
@@ -105,5 +113,50 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 	})
 	if err == nil || ref != nil {
 		t.Fatalf("canceled update returned ref=%v err=%v", ref, err)
+	}
+}
+
+// BenchmarkUpdateSnapshot measures deleting one eighth of an existing graph,
+// including final index packing and durable copying in the in-memory testbed.
+func BenchmarkUpdateSnapshot(b *testing.B) {
+	ctx := b.Context()
+	tb := world_testbed.MustDefault(b, ctx)
+	const size = 1024
+	keys := make([]string, size)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("object-%04d", i)
+	}
+	base, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
+		quads := make([]world.GraphQuad, 0, size-1)
+		for i, key := range keys {
+			_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
+				cursor.SetBlock(block_mock.NewExample(key), true)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			if i != 0 {
+				quads = append(quads, world.NewGraphQuadWithKeys(keys[i-1], "<edge>", key, ""))
+			}
+		}
+		return state.InsertGraphQuads(ctx, quads)
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, err := world_block.UpdateSnapshot(ctx, tb.Logger, tb.Engine, base, func(ctx context.Context, state *world_block.WorldState) error {
+			for _, key := range keys[:size/8] {
+				if _, err := state.DeleteObject(ctx, key); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
