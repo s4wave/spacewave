@@ -219,6 +219,10 @@ export class DevelopmentEnvironment {
       })
     })
     const listener = this.listener
+    // Bun can expire keep-alive while a completed write is still draining to
+    // Bldr's RPC proxy. The compiler lifetime owns these private connections;
+    // close() releases them explicitly after cancellation or replacement.
+    listener.keepAliveTimeout = 0
     await new Promise<void>((resolve, reject) => {
       listener.once('error', reject)
       listener.listen(0, '127.0.0.1', () => {

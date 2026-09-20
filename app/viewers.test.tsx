@@ -1,4 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// Catalog queries must not import feature implementations before selection.
+vi.mock('./unixfs/DriveViewer.js', () => {
+  throw new Error('Drive implementation loaded while reading viewer metadata')
+})
+vi.mock('@s4wave/web/object/LayoutObjectViewer.js', () => {
+  throw new Error('Layout implementation loaded while reading viewer metadata')
+})
 
 import {
   getAllObjectViewers,
