@@ -22,6 +22,7 @@ import {
 } from '@aptre/flex-layout'
 import { LuExternalLink, LuPlus, LuX } from 'react-icons/lu'
 
+import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { BASE_MODEL } from '@s4wave/web/layout/layout.js'
 import {
   useAppEnvironment,
@@ -272,7 +273,9 @@ export interface ShellTabStripProps {
 export function ShellTabStrip({ children, entry }: ShellTabStripProps) {
   return (
     <ShellTabsProvider entry={entry}>
-      <ShellTabStripInner>{children}</ShellTabStripInner>
+      <CliTerminalSessionProvider>
+        <ShellTabStripInner>{children}</ShellTabStripInner>
+      </CliTerminalSessionProvider>
     </ShellTabsProvider>
   )
 }
@@ -428,9 +431,6 @@ function ShellTabStripInner({
         if (select) {
           selectShellTab(existingTab.id)
           model.doAction(Actions.selectTab(existingTab.id))
-          if (!gridMode && existingTab.path !== getAppPath()) {
-            setAppPath(existingTab.path)
-          }
         }
         return existingTab.id
       }
@@ -441,8 +441,8 @@ function ShellTabStripInner({
         select,
         onCommitted: () => {
           if (select) {
+            // Publish the route through the active-tab effect after selection commits.
             addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-content')
-            if (!gridMode) setAppPath(path)
           } else {
             addShellModelTab(model, tabsetId, newTab, 'shell-content')
           }
@@ -450,7 +450,7 @@ function ShellTabStripInner({
       })
       return newTab.id
     },
-    [addShellTab, isGridMode, model, selectShellTab, setAppPath, getAppPath],
+    [addShellTab, isGridMode, model, selectShellTab],
   )
 
   useEffect(
@@ -708,14 +708,6 @@ function ShellTabStripInner({
         tabs.some((tab) => tab.id === newActiveId)
       ) {
         selectShellTab(newActiveId)
-        // Update URL to match selected tab (only if not in grid mode)
-        if (!isGridMode()) {
-          // Get path from current tabs state
-          const selectedTab = tabs.find((tab) => tab.id === newActiveId)
-          if (selectedTab) {
-            setAppPath(selectedTab.path)
-          }
-        }
         markShellEngaged()
       }
     },
@@ -725,7 +717,6 @@ function ShellTabStripInner({
       markShellEngaged,
       activeTabId,
       tabs,
-      isGridMode,
       setAppPath,
       getAppPath,
       environment.documentStorage,

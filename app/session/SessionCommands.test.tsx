@@ -117,7 +117,7 @@ describe('SessionCommands', () => {
       '/u/7/settings/cli/terminal',
       {
         afterTabId: 'tab-session',
-        focusExisting: true,
+        focusExisting: false,
         select: true,
       },
     )

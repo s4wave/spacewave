@@ -21,7 +21,6 @@ import {
   useDocumentTitle,
 } from '@s4wave/web/title/DocumentTitleContext.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
-import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
 import { getTabDisplayName } from './shell-tab.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
@@ -103,9 +102,7 @@ export function EditorShell() {
   const environment = useAppEnvironment()
   return (
     <DocumentTitleProvider enabled={!environment.id}>
-      <CliTerminalSessionProvider>
-        <EditorShellContent />
-      </CliTerminalSessionProvider>
+      <EditorShellContent />
     </DocumentTitleProvider>
   )
 }

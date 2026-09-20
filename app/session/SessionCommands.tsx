@@ -118,7 +118,7 @@ export function SessionCommands() {
           : '/settings/cli/terminal'
       openPathInActiveTabset(terminalPath, {
         afterTabId: activeTabId,
-        focusExisting: true,
+        focusExisting: false,
         select: true,
       })
     }, [activeTabId, openPathInActiveTabset, sessionIdx]),

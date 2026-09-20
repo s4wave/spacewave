@@ -692,9 +692,10 @@ export async function runBuild(
     plugins,
     onLog(level, log, _defaultHandler) {
       recordLog(level, log)
-      if (isUndefinedImport(log)) {
+      const unresolved = log.code === 'UNRESOLVED_IMPORT'
+      if (unresolved || isUndefinedImport(log)) {
         const error = new Error(
-          `undefined GoScript import${log.id ? ` in ${log.id}` : ''}: ${log.message || log.code || 'missing export'}`,
+          `${unresolved ? 'unresolved import' : 'undefined GoScript import'}${log.id ? ` in ${log.id}` : ''}: ${log.message || log.code || 'missing export'}`,
         ) as RunnerError
         error.diagnostic = {
           ...(diagnostics[diagnostics.length - 1] ?? {}),

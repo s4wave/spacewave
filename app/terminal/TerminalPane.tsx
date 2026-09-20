@@ -308,6 +308,9 @@ function errorMessage(error: unknown): string | undefined {
 
 export function safeTerminalFailureDetail(rawError?: string): string {
   const normalized = rawError?.toLowerCase() ?? ''
+  if (normalized.includes('cli-session-failed')) {
+    return 'The Spacewave CLI connection ended. Retry to start a new CLI session.'
+  }
   if (normalized.includes('native runtime')) {
     return 'SSH needs a native connector. Open this terminal in the desktop app or use a managed Device.'
   }
