@@ -18,11 +18,11 @@ import (
 
 // jobTracker tracks a Job managed by the Cluster.
 type jobTracker struct {
-	// c is the controller
+	// c is the controller.
 	c *Controller
-	// objKey is the job object key
+	// objKey is the job object key.
 	objKey string
-	// objLoop is the object watcher loop
+	// objLoop is the object watcher loop.
 	objLoop *world_control.WatchLoop
 	// taskTrackers manages the list of task tracker routines.
 	taskTrackers *keyed.Keyed[string, *taskTracker]
@@ -153,8 +153,10 @@ func (jt *jobTracker) processState(
 		return true, err
 	}
 
-	// Complete the job when no tasks remain.
-	if len(pendingTasks) == 0 {
+	// Reconcile changed results without admitting a writer for completed replays.
+	// The operation rechecks current tasks after writer admission.
+	result := forge_job.CompletionResult(tasks, taskKeys)
+	if result != nil && (!job.IsComplete() || !job.GetResult().EqualVT(result)) {
 		jt.c.le.Info("marking job as complete")
 		_, _, err = forge_cluster.CompleteJob(ctx, ws, clusterKey, jobKey, jt.c.peerID)
 		if err != nil {
