@@ -4,6 +4,7 @@ package resource_world
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -138,4 +139,35 @@ func assertNoChannel(t *testing.T, ch <-chan struct{}, action string) {
 		t.Fatalf("unexpected %s", action)
 	default:
 	}
+}
+
+// failedCommitTx models a storage error before the transaction releases its writer.
+type failedCommitTx struct {
+	world.Tx
+	err error
+}
+
+func (tx *failedCommitTx) Commit(context.Context) error { return tx.err }
+
+func TestTxResourceFailedCommitReleasesWriter(t *testing.T) {
+	ctx := t.Context()
+	tb := world_testbed.MustDefault(t, ctx)
+	tx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failure := errors.New("commit failed")
+	resource := NewTxResource(nil, nil, &failedCommitTx{Tx: tx, err: failure}, nil, nil)
+	defer resource.Release()
+	if _, err := resource.Commit(ctx, &s4wave_world.CommitRequest{}); !errors.Is(err, failure) {
+		t.Fatalf("commit: %v", err)
+	}
+	// No client reference release or Discard RPC is needed to admit the next writer.
+	nextCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	next, err := tb.Engine.NewTransaction(nextCtx, true)
+	if err != nil {
+		t.Fatalf("failed commit retained writer: %v", err)
+	}
+	next.Discard()
 }

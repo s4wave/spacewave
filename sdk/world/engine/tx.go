@@ -2,6 +2,7 @@ package sdk_world_engine
 
 import (
 	"context"
+	"sync/atomic"
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/world"
@@ -13,6 +14,7 @@ import (
 type SDKTx struct {
 	*SDKWorldState
 	txService s4wave_world.SRPCTxResourceServiceClient
+	finished  atomic.Bool // a terminal RPC has returned; only reference release remains
 }
 
 // NewSDKTx creates a new SDKTx wrapping a resource reference.
@@ -40,6 +42,7 @@ func (tx *SDKTx) CommitMutations(
 	mutations []*s4wave_world.TransactionMutation,
 ) ([]*s4wave_world.TransactionMutationResult, error) {
 	resp, err := tx.txService.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{Mutations: mutations})
+	tx.finished.Store(true)
 	tx.ref.Release()
 	if err != nil {
 		return nil, err
@@ -50,13 +53,18 @@ func (tx *SDKTx) CommitMutations(
 // Commit commits the transaction to storage.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	_, err := tx.txService.Commit(ctx, &s4wave_world.CommitRequest{})
+	tx.finished.Store(true)
+	tx.ref.Release()
 	return err
 }
 
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 func (tx *SDKTx) Discard() {
-	_, _ = tx.txService.Discard(context.Background(), &s4wave_world.DiscardRequest{})
+	if !tx.finished.Load() {
+		_, _ = tx.txService.Discard(context.Background(), &s4wave_world.DiscardRequest{})
+		tx.finished.Store(true)
+	}
 	tx.ref.Release()
 }
 
