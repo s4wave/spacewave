@@ -401,6 +401,11 @@ func decodeRefBatch(data []byte) (adds, removes []block_gc.RefEdge, err error) {
 	}
 	numAdds := binary.BigEndian.Uint32(data[0:4])
 	numRemoves := binary.BigEndian.Uint32(data[4:8])
+	// Every encoded edge needs at least its two length fields. Validate the
+	// count before allocating slices from a stored record.
+	if uint64(numAdds)+uint64(numRemoves) > (uint64(len(data))-8)/4 {
+		return nil, nil, errors.New("gc journal edge count exceeds entry length")
+	}
 	off := 8
 
 	adds = make([]block_gc.RefEdge, numAdds)
@@ -416,6 +421,9 @@ func decodeRefBatch(data []byte) (adds, removes []block_gc.RefEdge, err error) {
 		if err != nil {
 			return nil, nil, err
 		}
+	}
+	if off != len(data) {
+		return nil, nil, errors.New("gc journal entry has trailing data")
 	}
 	return adds, removes, nil
 }

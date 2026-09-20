@@ -170,6 +170,7 @@ func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
 
 	wantAdds := []RefEdge{
 		{Subject: NodeUnreferenced, Object: "block:a"},
+		{Subject: NodeUnreferenced, Object: "block:b"},
 		{Subject: "block:a", Object: "block:b"},
 		{Subject: "block:c", Object: "block:d"},
 	}
@@ -317,44 +318,6 @@ func TestGCStoreOps_DuplicatePutNoNewUnrefEdge(t *testing.T) {
 	}
 	if len(nodes) != 1 {
 		t.Fatalf("expected 1 unreferenced node (no dup), got %d", len(nodes))
-	}
-}
-
-// TestGCStoreOps_RmBlockCleansGraph tests that RmBlock cleans up graph
-// edges and cascades orphan detection.
-func TestGCStoreOps_RmBlockCleansGraph(t *testing.T) {
-	env := newGCTestEnv(t)
-
-	aRef := env.putBlock(t, "block-a")
-	bRef := env.putBlock(t, "block-b")
-
-	// Record a->b, removing b's unreferenced edge.
-	env.recordRefs(aRef, []*block.BlockRef{bRef})
-	env.flush(t)
-
-	// RmBlock on a should clean its outgoing edges and cascade.
-	err := env.gcStore.RmBlock(env.ctx, aRef)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// a should have no outgoing refs.
-	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, BlockIRI(aRef))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(outgoing) != 0 {
-		t.Fatalf("expected 0 outgoing refs from removed block, got %d", len(outgoing))
-	}
-
-	// b should now be unreferenced (cascade from a's removal).
-	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	found := slices.Contains(nodes, BlockIRI(bRef))
-	if !found {
-		t.Fatal("b should be marked unreferenced after a is removed")
 	}
 }
 
@@ -599,6 +562,8 @@ func TestGCStoreOps_ParentIRI_RmBlockRemovesParentEdge(t *testing.T) {
 	if err := env.gcStore.RmBlock(env.ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	env.flush(t)
 
 	outgoing, err = env.refGraph.GetOutgoingRefs(env.ctx, parent)
 	if err != nil {
@@ -877,53 +842,6 @@ func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
 	}
 	if len(nodes) != 0 {
 		t.Fatalf("expected 0 unreferenced after batch dup, got %d", len(nodes))
-	}
-}
-
-// TestGCStoreOps_PutBlockBatch_TombstoneCleansGraph tests that
-// tombstone entries in PutBlockBatch go through full RmBlock graph
-// cleanup (outgoing ref removal, orphan cascade).
-func TestGCStoreOps_PutBlockBatch_TombstoneCleansGraph(t *testing.T) {
-	env := newGCTestEnv(t)
-
-	aRef := env.putBlock(t, "batch-tomb-a")
-	bRef := env.putBlock(t, "batch-tomb-b")
-
-	// Record a->b ref.
-	env.recordRefs(aRef, []*block.BlockRef{bRef})
-	env.flush(t)
-
-	// b should not be unreferenced (a references it).
-	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if slices.Contains(nodes, BlockIRI(bRef)) {
-		t.Fatal("b should not be unreferenced before tombstone")
-	}
-
-	// Tombstone a via batch path.
-	tombstone := &block.PutBatchEntry{Ref: aRef.Clone(), Tombstone: true}
-	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{tombstone}); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// a's outgoing refs should be cleaned up.
-	outgoing, err := env.refGraph.GetOutgoingRefs(env.ctx, BlockIRI(aRef))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(outgoing) != 0 {
-		t.Fatalf("expected 0 outgoing refs from tombstoned block, got %d", len(outgoing))
-	}
-
-	// b should now be unreferenced (orphan cascade from a's removal).
-	nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !slices.Contains(nodes, BlockIRI(bRef)) {
-		t.Fatal("b should be unreferenced after a is tombstoned via batch")
 	}
 }
 

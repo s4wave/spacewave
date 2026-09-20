@@ -2,6 +2,8 @@ package block_gc
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
 )
 
 // Color represents the tri-color state of a node during marking.
@@ -64,15 +66,15 @@ func (m *Marker) Mark(ctx context.Context) (sweepCandidates []string, colors map
 	}
 	grey := make([]string, 0, len(roots))
 	for _, r := range roots {
-		if _, exists := colors[r]; exists {
+		if colors[r] != Grey {
 			colors[r] = Grey
 			grey = append(grey, r)
 		}
 	}
 
-	// Also seed permanent roots if they appear in the node inventory.
+	// Permanent roots retain their descendants even with incomplete inventory.
 	for _, pr := range []string{NodeGCRoot, NodeUnreferenced} {
-		if c, exists := colors[pr]; exists && c == White {
+		if colors[pr] == White {
 			colors[pr] = Grey
 			grey = append(grey, pr)
 		}
@@ -87,21 +89,18 @@ func (m *Marker) Mark(ctx context.Context) (sweepCandidates []string, colors map
 		node := grey[len(grey)-1]
 		grey = grey[:len(grey)-1]
 
-		targets, err := m.graph.GetOutgoingRefs(ctx, node)
-		if err != nil {
-			// Dangling edge: the node is in the graph but has no
-			// outgoing directory. Treat as already-swept, mark black.
+		// Staging marks identify garbage candidates, not ownership.
+		if node == NodeUnreferenced {
 			colors[node] = Black
 			continue
 		}
+
+		targets, err := m.graph.GetOutgoingRefs(ctx, node)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "read outgoing references of %q", node)
+		}
 		for _, t := range targets {
-			c, exists := colors[t]
-			if !exists {
-				// Target not in node inventory. Dangling reference
-				// from an interrupted sweep. Skip during marking,
-				// the sweep will clean up the stale edge.
-				continue
-			}
+			c := colors[t]
 			if c == White {
 				colors[t] = Grey
 				grey = append(grey, t)

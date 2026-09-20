@@ -103,3 +103,30 @@ func TestRefBatchReplayDoesNotCommit(t *testing.T) {
 		}
 	}
 }
+
+// TestOwnershipTransferCommitsOnce checks the durable boundary and owner set.
+func TestOwnershipTransferCommitsOnce(t *testing.T) {
+	ctx := t.Context()
+	store := &refGraphTrackingStore{Store: store_kvtx_inmem.NewStore()}
+	graph, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer graph.Close()
+	old := []RefEdge{{Subject: "old", Object: "shared"}}
+	next := []RefEdge{{Subject: "next", Object: "shared"}}
+	if err := graph.ApplyRefBatch(ctx, old, nil); err != nil {
+		t.Fatal(err)
+	}
+	before := store.commits.Load()
+	if err := graph.ApplyRefBatch(ctx, next, old); err != nil {
+		t.Fatal(err)
+	}
+	if got := store.commits.Load() - before; got != 1 {
+		t.Fatalf("transfer used %d commits", got)
+	}
+	owners, err := graph.GetIncomingRefs(ctx, "shared")
+	if err != nil || len(owners) != 1 || owners[0] != "next" {
+		t.Fatalf("owners=%v err=%v", owners, err)
+	}
+}
