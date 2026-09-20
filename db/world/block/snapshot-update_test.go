@@ -47,6 +47,9 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 		if _, err := write(ctx, state, "change", "final"); err != nil {
 			return err
 		}
+		if _, err := write(ctx, state, "added", "new"); err != nil {
+			return err
+		}
 		if _, err := state.DeleteObject(ctx, "remove"); err != nil {
 			return err
 		}
@@ -67,7 +70,7 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 			defer state.Discard()
 			body, err := world.LookupObjectBody[*block_mock.Example](ctx, state, "change", block_mock.NewExampleBlock)
 			if err != nil {
-				return err
+				return fmt.Errorf("read change body from next=%v: %w", ref == next, err)
 			}
 			want := "change"
 			if ref == next {
@@ -76,16 +79,25 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 			if body.Msg != want {
 				t.Fatalf("body %q, want %q", body.Msg, want)
 			}
+			if ref == next {
+				added, err := world.LookupObjectBody[*block_mock.Example](ctx, state, "added", block_mock.NewExampleBlock)
+				if err != nil {
+					return fmt.Errorf("read added body: %w", err)
+				}
+				if added.Msg != "new" {
+					t.Fatalf("added body %q, want new", added.Msg)
+				}
+			}
 			objects, err := state.GetObjectRootRefsBatch(ctx, []string{"keep", "remove"})
 			if err != nil {
-				return err
+				return fmt.Errorf("read object refs from next=%v: %w", ref == next, err)
 			}
 			if !objects[0].Exists || objects[1].Exists != (ref == base) {
 				t.Fatalf("snapshot changed the wrong object set: base=%v keep=%v remove=%v", ref == base, objects[0].Exists, objects[1].Exists)
 			}
 			quads, err := state.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 0)
 			if err != nil {
-				return err
+				return fmt.Errorf("read graph from next=%v: %w", ref == next, err)
 			}
 			wantObject := world.KeyToGraphValue("remove").String()
 			if ref == next {
@@ -98,7 +110,10 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 			if found {
 				t.Fatal("superseded body was durably copied")
 			}
-			return err
+			if err != nil {
+				return fmt.Errorf("check superseded body from next=%v: %w", ref == next, err)
+			}
+			return nil
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -158,5 +173,53 @@ func BenchmarkUpdateSnapshot(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+// BenchmarkUpdateSnapshotFixedChange measures one object replacement against
+// growing unchanged object and graph indexes.
+func BenchmarkUpdateSnapshotFixedChange(b *testing.B) {
+	for _, size := range []int{128, 512, 2048} {
+		b.Run(fmt.Sprintf("objects-%d", size), func(b *testing.B) {
+			ctx := b.Context()
+			tb := world_testbed.MustDefault(b, ctx)
+			keys := make([]string, size)
+			for i := range keys {
+				keys[i] = fmt.Sprintf("object-%05d", i)
+			}
+			base, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
+				quads := make([]world.GraphQuad, 0, size-1)
+				for i, key := range keys {
+					_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
+						cursor.SetBlock(block_mock.NewExample(key), true)
+						return nil
+					})
+					if err != nil {
+						return err
+					}
+					if i != 0 {
+						quads = append(quads, world.NewGraphQuadWithKeys(keys[i-1], "<edge>", key, ""))
+					}
+				}
+				return state.InsertGraphQuads(ctx, quads)
+			})
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				_, err := world_block.UpdateSnapshot(ctx, tb.Logger, tb.Engine, base, func(ctx context.Context, state *world_block.WorldState) error {
+					_, _, err := world.AccessWorldObject(ctx, state, keys[0], true, func(cursor *block.Cursor) error {
+						cursor.SetBlock(block_mock.NewExample("changed"), true)
+						return nil
+					})
+					return err
+				})
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

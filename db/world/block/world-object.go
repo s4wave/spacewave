@@ -84,7 +84,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 	if exists {
 		return nil, world.ErrObjectExists
 	}
-	obj := NewObject(key, rootRef)
+	obj := NewObject(key, t.localSnapshotObjectRef(rootRef))
 	nbcs := t.bcs.Detach(false)
 	nbcs.ClearAllRefs()
 	nbcs.SetBlock(obj, true)
