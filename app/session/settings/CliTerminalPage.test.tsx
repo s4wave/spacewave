@@ -10,6 +10,10 @@ import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSess
 
 const cliPageMocks = vi.hoisted(() => ({
   navigate: vi.fn(),
+  tabId: 'terminal-1',
+  tabs: [
+    { id: 'terminal-1', name: 'Terminal', path: '/u/7/settings/cli/terminal' },
+  ],
   buildWebViewHostOpenStream: vi.fn((webViewUuid: string) => ({
     webViewUuid,
   })),
@@ -22,6 +26,11 @@ const cliPageMocks = vi.hoisted(() => ({
   runCliInputFrames: [] as TerminalFrame[],
   runCliSignals: [] as AbortSignal[],
   terminalConnector: null as unknown,
+}))
+
+vi.mock('@s4wave/app/ShellTabContext.js', () => ({
+  useTabId: () => cliPageMocks.tabId,
+  useShellTabs: () => ({ tabs: cliPageMocks.tabs }),
 }))
 
 vi.mock('@aptre/bldr-react', () => ({
@@ -80,6 +89,14 @@ function waitForAbort(signal: AbortSignal): Promise<void> {
 
 describe('CliTerminalPage', () => {
   beforeEach(() => {
+    cliPageMocks.tabId = 'terminal-1'
+    cliPageMocks.tabs = [
+      {
+        id: 'terminal-1',
+        name: 'Terminal',
+        path: '/u/7/settings/cli/terminal',
+      },
+    ]
     cliPageMocks.navigate.mockReset()
     cliPageMocks.buildWebViewHostOpenStream.mockClear()
     cliPageMocks.srpcClient.mockClear()
@@ -264,6 +281,67 @@ describe('CliTerminalPage', () => {
     expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(false)
 
     secondPane.abort()
+    await secondOutput.return?.()
+  })
+
+  it('isolates terminal tabs and releases a stream when its tab closes', async () => {
+    const view = render(
+      <CliTerminalSessionProvider>
+        <BottomBarRoot>
+          <CliTerminalPage />
+        </BottomBarRoot>
+      </CliTerminalSessionProvider>,
+    )
+    const first = cliPageMocks.terminalConnector as (
+      frames: AsyncIterable<TerminalFrame>,
+      signal: AbortSignal,
+    ) => AsyncIterable<TerminalFrame>
+    const input = { kind: TerminalFrameKind.INPUT, data: new Uint8Array([104]) }
+    const pane = new AbortController()
+    const output = first(asyncValues(input), pane.signal)[
+      Symbol.asyncIterator
+    ]()
+    await output.next()
+
+    cliPageMocks.tabId = 'terminal-2'
+    cliPageMocks.tabs = [
+      ...cliPageMocks.tabs,
+      {
+        id: 'terminal-2',
+        name: 'Terminal',
+        path: '/u/7/settings/cli/terminal',
+      },
+    ]
+    view.rerender(
+      <CliTerminalSessionProvider>
+        <BottomBarRoot>
+          <CliTerminalPage />
+        </BottomBarRoot>
+      </CliTerminalSessionProvider>,
+    )
+    const second = cliPageMocks.terminalConnector as typeof first
+    const secondOutput = second(asyncValues(input), pane.signal)[
+      Symbol.asyncIterator
+    ]()
+    await secondOutput.next()
+    expect(cliPageMocks.runCliSignals).toHaveLength(2)
+
+    cliPageMocks.tabs = cliPageMocks.tabs.filter(
+      (tab) => tab.id !== 'terminal-1',
+    )
+    view.rerender(
+      <CliTerminalSessionProvider>
+        <BottomBarRoot>
+          <CliTerminalPage />
+        </BottomBarRoot>
+      </CliTerminalSessionProvider>,
+    )
+    await waitFor(() =>
+      expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(true),
+    )
+    expect(cliPageMocks.runCliSignals[1]?.aborted).toBe(false)
+    pane.abort()
+    await output.return?.()
     await secondOutput.return?.()
   })
 

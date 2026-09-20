@@ -185,22 +185,25 @@ describe('direct Rolldown/Oxc owner', () => {
     expect(main).toContain('sourceMappingURL=data:application/json;base64,')
   })
 
-  it('reports structured missing-import diagnostics', async () => {
-    const project = await makeProject()
-    await fs.writeFile(
-      join(project.root, 'main.ts'),
-      `import './does-not-exist.js'\n`,
-    )
-    const result = await runBuild(project.request(), dependencyRoot)
-    const diagnostics = result.diagnostics ?? []
-    expect(diagnostics.length).toBeGreaterThan(0)
-    expect(
-      diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
-    ).toBe(true)
-    expect(
-      diagnostics.some((diagnostic) => (diagnostic.message ?? '').length > 0),
-    ).toBe(true)
-  })
+  it.each(['./does-not-exist.js', 'missing-codec-package/stream.js'])(
+    'rejects an unresolved import: %s',
+    async (specifier) => {
+      const project = await makeProject()
+      await fs.writeFile(
+        join(project.root, 'main.ts'),
+        `import '${specifier}'\n`,
+      )
+      const result = await runBuild(project.request(), dependencyRoot)
+      const diagnostics = result.diagnostics ?? []
+      expect(diagnostics.length).toBeGreaterThan(0)
+      expect(
+        diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
+      ).toBe(true)
+      expect(
+        diagnostics.some((diagnostic) => (diagnostic.message ?? '').length > 0),
+      ).toBe(true)
+    },
+  )
 
   it('bundles injected overrides and leaves bare packages external', async () => {
     const project = await makeProject()

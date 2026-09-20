@@ -798,8 +798,9 @@ describe('ShellTabStrip', () => {
   })
 
   it('opens and selects the command-line terminal in the active flex tabset with the Terminal name', async () => {
+    window.location.hash = '#/u/7/settings/cli'
     seedShellTabs([
-      { id: 'home', name: 'Home', path: '/' },
+      { id: 'home', name: 'Settings', path: '/u/7/settings/cli' },
       { id: 'blog', name: 'Blog', path: '/blog' },
     ])
 
@@ -815,7 +816,11 @@ describe('ShellTabStrip', () => {
       const stored = readShellTabsSnapshot()
       expect(stored.records).toHaveLength(3)
       expect(stored.records.map((tab) => tab.path)).toEqual(
-        expect.arrayContaining(['/', '/u/7/settings/cli/terminal', '/blog']),
+        expect.arrayContaining([
+          '/u/7/settings/cli',
+          '/u/7/settings/cli/terminal',
+          '/blog',
+        ]),
       )
       expect(getAppPath()).toBe('/u/7/settings/cli/terminal')
       expect(window.location.hash).toBe('#/u/7/settings/cli/terminal')

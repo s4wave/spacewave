@@ -9,6 +9,7 @@ import { isDesktop } from '@aptre/bldr'
 import { useBldrContext } from '@aptre/bldr-react'
 import {
   LuArrowLeft,
+  LuArrowUpRight,
   LuDownload,
   LuCircle,
   LuRefreshCw,
@@ -43,6 +44,7 @@ import { useRootResourceWithClient } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
+import { Button } from '@s4wave/web/ui/button.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -52,9 +54,7 @@ import {
   type CommandOptions,
 } from './command-line-commands.js'
 
-// CommandLineSetupPage renders the session-local /settings/cli page.
-// It walks the user through connecting the spacewave CLI to the
-// current desktop session.
+// CommandLineSetupPage launches the session CLI and offers desktop installation.
 export function CommandLineSetupPage() {
   const navigate = useNavigate()
   const sessionIdx = useSessionIndex()
@@ -74,7 +74,7 @@ export function CommandLineSetupPage() {
         : '/settings/cli/terminal'
     openPathInActiveTabset(terminalPath, {
       afterTabId: activeTabId,
-      focusExisting: true,
+      focusExisting: false,
       select: true,
     })
   }, [activeTabId, openPathInActiveTabset, sessionIdx])
@@ -100,32 +100,30 @@ export function CommandLineSetupPage() {
   )
 
   return (
-    <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
-      <div className="mx-auto w-full max-w-2xl">
+    <div className="bg-background-landing @container flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto w-full max-w-3xl px-5 py-6 @lg:px-10 @lg:py-8">
         <button
+          type="button"
           onClick={handleBack}
-          className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
+          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand mb-6 inline-flex min-h-9 items-center gap-1.5 rounded text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
-          <LuArrowLeft className="size-4" />
+          <LuArrowLeft aria-hidden="true" className="size-4" />
           Back to dashboard
         </button>
 
-        <div className="mb-6 flex items-start gap-3">
-          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
-            <LuTerminal className="text-brand size-4" />
-          </div>
-          <div>
-            <h1 className="text-foreground text-lg font-semibold tracking-wide">
-              Command Line
-            </h1>
-            <p className="text-foreground-alt mt-1 text-sm">
-              Session {sessionIdx}
-            </p>
-          </div>
-        </div>
+        <header className="mb-7">
+          <h1 className="text-foreground text-lg font-semibold">
+            Command Line
+          </h1>
+          <p className="text-foreground-alt mt-1 text-sm">
+            Work with your spaces from the Spacewave CLI.
+          </p>
+        </header>
 
-        <div className="space-y-4">
-          <InAppTerminalLauncher onOpen={handleOpenTerminal} />
+        <InAppTerminalLauncher onOpen={handleOpenTerminal} />
+
+        <div className="border-foreground/10 mt-8 space-y-4 border-t pt-6">
+          <InstallGuidanceSection />
           {isDesktop && (
             <DesktopCLIInstallCard
               state={cliInstall.value?.state}
@@ -136,7 +134,6 @@ export function CommandLineSetupPage() {
           )}
           {isDesktop && <ListenerStatusChip />}
           {isDesktop && <WalkthroughSection opts={opts} />}
-          <InstallGuidanceSection />
           {isDesktop && <MoreCommandsSection opts={opts} />}
         </div>
       </div>
@@ -144,32 +141,60 @@ export function CommandLineSetupPage() {
   )
 }
 
+// InAppTerminalLauncher introduces the built-in CLI and its first commands.
 function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
   return (
-    <section className="border-brand/20 bg-brand/5 rounded-lg border p-4 backdrop-blur-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-md">
-            <LuTerminal className="text-brand size-4" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-foreground text-sm font-semibold tracking-tight">
-              Open CLI terminal
-            </h2>
-            <p className="text-foreground-alt mt-1 text-xs">
-              Run the Spacewave CLI in this browser tab without installing a
-              desktop command first.
-            </p>
-          </div>
+    <section aria-labelledby="built-in-cli-title">
+      <div className="flex flex-col items-start gap-4 @lg:flex-row @lg:justify-between">
+        <div className="min-w-0">
+          <h2
+            id="built-in-cli-title"
+            className="text-foreground text-sm font-semibold"
+          >
+            Built-in terminal
+          </h2>
+          <p className="text-foreground-alt mt-1 max-w-md text-sm leading-relaxed">
+            Open a new shell tab with the Spacewave CLI, connected to this
+            session. No installation needed.
+          </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onOpen}
-          className="bg-brand text-brand-foreground hover:bg-brand/90 inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors"
+          className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand shrink-0 shadow-none"
         >
-          <LuTerminal className="size-3.5" />
-          Open CLI terminal
-        </button>
+          <LuTerminal aria-hidden="true" />
+          Open terminal
+        </Button>
+      </div>
+
+      <div className="border-foreground/10 mt-5 overflow-hidden rounded-md border">
+        <div className="bg-foreground/3 text-foreground-alt border-foreground/10 border-b px-4 py-2 text-xs">
+          Try these at the{' '}
+          <code className="text-foreground font-mono">spacewave&gt;</code>{' '}
+          prompt
+        </div>
+        <dl className="divide-foreground/8 divide-y">
+          {[
+            ['help', 'Explore available commands'],
+            ['status', 'Check the current session'],
+            ['space list', 'List your spaces'],
+          ].map(([command, description]) => (
+            <div
+              key={command}
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5"
+            >
+              <dt className="text-foreground w-24 font-mono text-sm">
+                {command}
+              </dt>
+              <dd className="text-foreground-alt flex-1 text-sm">
+                {description}
+              </dd>
+              <CopyButton text={command} label={`Copy ${command}`} />
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   )
@@ -469,14 +494,14 @@ function desktopCLIInstallPresentation(
         tone: 'muted',
         label: 'Desktop CLI install unavailable',
         detail:
-          'This desktop build has not exposed managed CLI install yet. You can still use the in-app terminal below.',
+          'This desktop build has not exposed managed CLI install yet. You can still use the built-in terminal.',
       }
     }
     return {
       tone: 'error',
       label: 'Install state unavailable',
       detail:
-        'The desktop runtime could not load managed CLI install state. Use the in-app terminal below, then check desktop logs if this persists.',
+        'The desktop runtime could not load managed CLI install state. Use the built-in terminal, then check desktop logs if this persists.',
     }
   }
   if (loading || !state) {
@@ -485,7 +510,7 @@ function desktopCLIInstallPresentation(
         tone: 'error',
         label: 'Install state check timed out',
         detail:
-          'The desktop runtime did not report CLI install state. Use the in-app terminal above, or restart the desktop app and reopen this page.',
+          'The desktop runtime did not report CLI install state. Use the built-in terminal, or restart the desktop app and reopen this page.',
       }
     }
     return {
@@ -583,42 +608,40 @@ export function WalkthroughSection({ opts }: { opts: CommandOptions }) {
   )
 }
 
-// InstallGuidanceSection renders the install-guidance block shown
-// above the walkthrough's "More commands" panel. Links out to
-// /download/cli for the packaged binary and to the user-facing install
-// and quickstart guide.
+// InstallGuidanceSection links to the desktop CLI for an external shell.
 function InstallGuidanceSection() {
   const cliDownloadHref = useStaticHref('/download/cli')
   const cliInstallHref = useStaticHref('/docs/users/cli/install')
 
   return (
-    <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
-      <h2 className="text-foreground mb-2 text-sm font-semibold tracking-tight">
-        Install the CLI
+    <section aria-labelledby="desktop-cli-title">
+      <h2
+        id="desktop-cli-title"
+        className="text-foreground text-sm font-semibold"
+      >
+        Use your own terminal
       </h2>
-      <p className="text-foreground-alt mb-3 text-xs">
-        Grab a packaged build for your platform. The CLI connects to this
-        session out of the box when the desktop app is running.
+      <p className="text-foreground-alt mt-1 text-sm leading-relaxed">
+        Install the desktop CLI to run{' '}
+        <code className="font-mono">spacewave</code> commands from your
+        computer’s shell. It connects to the Spacewave desktop app.
       </p>
-      <ul className="space-y-1.5 text-xs">
-        <li>
-          <a
-            href={cliDownloadHref}
-            className="text-brand hover:text-brand/80 transition-colors"
-          >
-            Download the spacewave CLI
-          </a>
-          <span className="text-foreground-alt"> for your platform</span>
-        </li>
-        <li>
-          <a
-            href={cliInstallHref}
-            className="text-brand hover:text-brand/80 transition-colors"
-          >
-            Install and quickstart guide
-          </a>
-        </li>
-      </ul>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        <a
+          href={cliDownloadHref}
+          className="text-foreground hover:text-brand focus-visible:ring-brand inline-flex min-h-9 items-center gap-1.5 rounded focus-visible:ring-2 focus-visible:outline-none"
+        >
+          <LuDownload aria-hidden="true" className="size-4" />
+          Download the spacewave CLI
+        </a>
+        <a
+          href={cliInstallHref}
+          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand inline-flex min-h-9 items-center gap-1 rounded focus-visible:ring-2 focus-visible:outline-none"
+        >
+          Install and quickstart guide
+          <LuArrowUpRight aria-hidden="true" className="size-3.5" />
+        </a>
+      </div>
     </section>
   )
 }

@@ -134,7 +134,7 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.getByText('Desktop CLI install unavailable')).toBeDefined()
     expect(
       screen.getByText(
-        'This desktop build has not exposed managed CLI install yet. You can still use the in-app terminal below.',
+        'This desktop build has not exposed managed CLI install yet. You can still use the built-in terminal.',
       ),
     ).toBeDefined()
     expect(screen.queryByText('unimplemented')).toBeNull()
@@ -154,7 +154,7 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.getByText('Install state check timed out')).toBeDefined()
     expect(
       screen.getByText(
-        'The desktop runtime did not report CLI install state. Use the in-app terminal above, or restart the desktop app and reopen this page.',
+        'The desktop runtime did not report CLI install state. Use the built-in terminal, or restart the desktop app and reopen this page.',
       ),
     ).toBeDefined()
   })
@@ -374,18 +374,18 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.getByRole('heading', { name: 'Command Line' })).toBeDefined()
     expect(
       screen.getByText(
-        'Run the Spacewave CLI in this browser tab without installing a desktop command first.',
+        'Open a new shell tab with the Spacewave CLI, connected to this session. No installation needed.',
       ),
     ).toBeDefined()
     expect(screen.queryByText('Desktop CLI install')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open terminal' }))
 
     expect(commandLinePageMocks.openPathInActiveTabset).toHaveBeenCalledWith(
       '/u/7/settings/cli/terminal',
       {
         afterTabId: 'tab-settings',
-        focusExisting: true,
+        focusExisting: false,
         select: true,
       },
     )
@@ -402,13 +402,13 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.getByText('/run/spacewave-session-7.sock')).toBeDefined()
     expect(screen.getByText('Try it out')).toBeDefined()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open terminal' }))
 
     expect(commandLinePageMocks.openPathInActiveTabset).toHaveBeenCalledWith(
       '/u/7/settings/cli/terminal',
       {
         afterTabId: 'tab-settings',
-        focusExisting: true,
+        focusExisting: false,
         select: true,
       },
     )

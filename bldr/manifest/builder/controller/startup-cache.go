@@ -31,9 +31,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V13 requires the Rolldown runner in
-// the compiler input manifest so bundling policy edits invalidate its outputs.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V13"
+// without changing a plugin source file. V14 recompiles GoScript plugins with
+// value-copy semantics for struct and array arguments passed to append.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V14"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {
