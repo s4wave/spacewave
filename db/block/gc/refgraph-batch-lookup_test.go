@@ -1,8 +1,8 @@
 package block_gc
 
 import (
-	"fmt"
 	"slices"
+	"strconv"
 	"testing"
 
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
@@ -20,7 +20,7 @@ func TestRefBatchLookup(t *testing.T) {
 	defer rg.Close()
 	var adds, removes, want []RefEdge
 	for i := range 512 {
-		edge := RefEdge{Subject: fmt.Sprintf("owner-%d", i), Object: "target"}
+		edge := RefEdge{Subject: "owner-" + strconv.Itoa(i), Object: "target"}
 		removes = append(removes, edge)
 		if i%2 == 0 {
 			adds = append(adds, edge)
@@ -34,7 +34,7 @@ func TestRefBatchLookup(t *testing.T) {
 	removes = append(removes, added, adds[0])
 	want = append(want, added, adds[0])
 	before := store.opens.Load()
-	got, err := rg.filterExistingRemoves(ctx, []RefEdge{added}, removes)
+	_, got, err := rg.filterRefChanges(ctx, []RefEdge{added}, removes)
 	if err != nil || !slices.Equal(got, want) {
 		t.Fatalf("mixed removals: count=%d err=%v", len(got), err)
 	}

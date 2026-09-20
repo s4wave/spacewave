@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
@@ -58,4 +59,47 @@ func removeSharedOwnerReadCost(t *testing.T, owners int) int64 {
 		t.Fatalf("shared object marked orphaned: found=%v err=%v", found, err)
 	}
 	return reads
+}
+
+// TestRefBatchReplayDoesNotCommit verifies idempotent ownership replay without
+// another durable write, including removal of already absent staging edges.
+func TestRefBatchReplayDoesNotCommit(t *testing.T) {
+	ctx := t.Context()
+	store := &refGraphTrackingStore{Store: store_kvtx_inmem.NewStore()}
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rg.Close()
+	adds := make([]RefEdge, 722)
+	removes := make([]RefEdge, len(adds))
+	for i := range adds {
+		object := "block/" + strconv.Itoa(i)
+		adds[i] = RefEdge{Subject: "parent", Object: object}
+		removes[i] = RefEdge{Subject: NodeUnreferenced, Object: object}
+	}
+	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+		t.Fatal(err)
+	}
+	before := store.commits.Load()
+	start := time.Now()
+	for range 5 {
+		if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+			t.Fatal(err)
+		}
+	}
+	commits := store.commits.Load() - before
+	t.Logf("five replays of 722 references: %s; commits=%d", time.Since(start), commits)
+	if commits != 0 {
+		t.Fatalf("unchanged ownership committed %d transactions", commits)
+	}
+	found, err := rg.hasRefs(ctx, adds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, present := range found {
+		if !present {
+			t.Fatalf("replay lost reference %d", i)
+		}
+	}
 }
