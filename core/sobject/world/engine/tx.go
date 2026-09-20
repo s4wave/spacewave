@@ -63,6 +63,13 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
+	// Empty transactions have no candidate to flush or submit to authority.
+	txBatch := t.GetTxBatch()
+	txns := txBatch.GetTxs()
+	if len(txns) == 0 {
+		return nil
+	}
+
 	// Commit every block generated for the candidate world root.
 	var nroot *block.BlockRef
 	{
@@ -84,13 +91,6 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	// Empty transactions have no operation to submit to authority.
-	txBatch := t.GetTxBatch()
-	txns := txBatch.GetTxs()
-	if len(txns) == 0 {
-		return nil
 	}
 
 	// Serialize the complete mutation as one replayable transaction batch.

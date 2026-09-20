@@ -267,7 +267,7 @@ func refBatchSliceCounts(adds, removes []RefEdge) (int, int) {
 }
 
 func cloneRefEdges(edges []RefEdge) []RefEdge {
-	return append([]RefEdge(nil), edges...)
+	return slices.Clone(edges)
 }
 
 func appendRefEdges(first, second []RefEdge) []RefEdge {
@@ -331,8 +331,8 @@ func (rg *RefGraph) prepareRefBatch(
 	adds, removes []RefEdge,
 	markOrphaned bool,
 ) ([]RefEdge, []RefEdge, error) {
-	// Filter missing removals before deriving orphan markers.
-	removes, err := rg.filterExistingRemoves(ctx, adds, removes)
+	// Remove idempotent changes before deriving orphan markers.
+	adds, removes, err := rg.filterRefChanges(ctx, adds, removes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -394,32 +394,35 @@ func (rg *RefGraph) prepareOrphanMarks(
 	return adds, removes, nil
 }
 
-// filterExistingRemoves drops removals of edges the graph does not hold, so a
-// missing exact removal stays a no-op. An edge this batch adds counts as
-// present whether or not the durable graph already had it.
-func (rg *RefGraph) filterExistingRemoves(
-	ctx context.Context,
-	adds, removes []RefEdge,
-) ([]RefEdge, error) {
+// filterRefChanges checks exact membership once for the whole slice. Existing
+// additions and absent removals need no write. An edge added by this batch exists
+// for a following removal even when it was absent in the durable graph.
+func (rg *RefGraph) filterRefChanges(ctx context.Context, adds, removes []RefEdge) ([]RefEdge, []RefEdge, error) {
 	added := make(map[RefEdge]struct{}, len(adds))
+	probes := make([]RefEdge, 0, len(adds)+len(removes))
+	probes = append(probes, adds...)
 	for _, edge := range adds {
 		added[edge] = struct{}{}
 	}
-
-	// Resolve all unknown edges together. The caller bounds each slice and
-	// holds writeMu, so one lookup can serve the whole ownership transition.
-	var unknown []RefEdge
 	for _, edge := range removes {
 		if _, ok := added[edge]; !ok {
-			unknown = append(unknown, edge)
+			probes = append(probes, edge)
 		}
 	}
-	found, err := rg.hasRefs(ctx, unknown)
+	found, err := rg.hasRefs(ctx, probes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	existing := make([]RefEdge, 0, len(removes))
-	var index int
+
+	// Preserve caller order without modifying retry inputs.
+	newAdds := make([]RefEdge, 0, len(adds))
+	for i, edge := range adds {
+		if !found[i] {
+			newAdds = append(newAdds, edge)
+		}
+	}
+	existingRemoves := make([]RefEdge, 0, len(removes))
+	index := len(adds)
 	for _, edge := range removes {
 		present := true
 		if _, ok := added[edge]; !ok {
@@ -427,10 +430,11 @@ func (rg *RefGraph) filterExistingRemoves(
 			index++
 		}
 		if present {
-			existing = append(existing, edge)
+			existingRemoves = append(existingRemoves, edge)
 		}
 	}
-	return existing, nil
+	trace.Logf(ctx, "hydra/block-gc/refgraph/filter-changes", "adds=%d new_adds=%d removes=%d existing_removes=%d", len(adds), len(newAdds), len(removes), len(existingRemoves))
+	return newAdds, existingRemoves, nil
 }
 
 // hasRef reports whether the durable graph holds the exact gc/ref edge. It

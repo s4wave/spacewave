@@ -153,7 +153,7 @@ func TestRemoveNonExistentRef(t *testing.T) {
 	}
 }
 
-func TestFilterExistingRemovesPreservesBatchAndGraphEdges(t *testing.T) {
+func TestFilterRefChangesPreservesBatchAndGraphEdges(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)
 
@@ -167,7 +167,7 @@ func TestFilterExistingRemovesPreservesBatchAndGraphEdges(t *testing.T) {
 		{Subject: "graph", Object: "in-graph"},
 		{Subject: "absent", Object: "absent"},
 	}
-	got, err := rg.filterExistingRemoves(ctx, adds, removes)
+	_, got, err := rg.filterRefChanges(ctx, adds, removes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestFilterExistingRemovesPreservesBatchAndGraphEdges(t *testing.T) {
 
 	// An absent edge whose node names collide with the predicate IRI adds no
 	// lookup entries; it must still be probed, not assumed to exist.
-	got, err = rg.filterExistingRemoves(ctx, nil, []RefEdge{
+	_, got, err = rg.filterRefChanges(ctx, nil, []RefEdge{
 		{Subject: PredGCRef, Object: PredGCRef},
 	})
 	if err != nil {
@@ -971,8 +971,10 @@ func TestApplyRefBatchPreparesEachSliceAfterPriorCommit(t *testing.T) {
 	if store.commits.Load() == 0 {
 		t.Fatal("expected a committed add slice before the removal slice")
 	}
-	if got := store.readsBeforeCommit.Load(); got != 0 {
-		t.Fatalf("read transactions before first slice commit = %d, want 0", got)
+	// The first add slice probes node IDs and exact edges in two snapshots.
+	// Removal preparation must still wait until that slice commits.
+	if got := store.readsBeforeCommit.Load(); got > 2 {
+		t.Fatalf("read transactions before first slice commit = %d, want at most 2", got)
 	}
 
 	refs, err := rg.GetOutgoingRefs(ctx, "batch-owner")
