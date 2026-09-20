@@ -70,6 +70,9 @@ type WorldState struct {
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
+	// snapshotBucketID marks same-bucket object roots as local DAG edges.
+	// Only snapshot updates set it; ordinary World operations retain refs.
+	snapshotBucketID string
 
 	// objectExistsMemo remembers object keys known to exist during the current
 	// transaction so repeated HasObject calls skip redundant object-tree reads.

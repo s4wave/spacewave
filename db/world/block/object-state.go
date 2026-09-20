@@ -75,6 +75,7 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	if err := nref.Validate(); err != nil {
 		return 0, err
 	}
+	nref = o.w.localSnapshotObjectRef(nref)
 	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return 0, err

@@ -11,7 +11,6 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -35,11 +34,11 @@ func BuildSnapshot(
 	return writeSnapshot(ctx, le, storage, nil, populate)
 }
 
-// UpdateSnapshot stages changes to an immutable World in memory and syncs only
-// its final reachable new blocks. Unchanged blocks and the prior root remain
-// readable. The caller publishes the returned root in its enclosing transaction.
-// Update must not retain the state or cursors. The object and graph indexes and
-// encoded changes must fit in memory.
+// UpdateSnapshot applies ordinary World mutations to copy-on-write indexes and
+// syncs only final reachable new blocks. Unchanged blocks and the prior root
+// remain readable. The caller publishes the returned root in its enclosing
+// transaction. Update must not retain the state or its cursors. Encoded changes
+// are buffered in memory until the final root is known.
 func UpdateSnapshot(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -111,28 +110,17 @@ func buildSnapshot(
 		return nil, err
 	}
 	defer state.Discard()
-
-	var graphIndex *hashmap.BTreeMap[[]byte]
 	if base != nil {
-		if err := state.stageSnapshotObjects(ctx); err != nil {
-			return nil, err
-		}
-		graphIndex, err = state.stageSnapshotGraph(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer state.graphHd.Close()
+		state.snapshotBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
 	}
+
 	if err := populate(ctx, state); err != nil {
 		return nil, err
 	}
-	if graphIndex != nil {
-		if err := state.packSnapshotGraph(ctx, graphIndex); err != nil {
-			return nil, err
+	if base == nil {
+		if err := state.packSnapshotObjects(ctx, bucketCursor.GetRefWithOpArgs().GetBucketId()); err != nil {
+			return nil, errors.Wrap(err, "build snapshot object index")
 		}
-	}
-	if err := state.packSnapshotObjects(ctx, bucketCursor.GetRefWithOpArgs().GetBucketId()); err != nil {
-		return nil, errors.Wrap(err, "build snapshot object index")
 	}
 	if err := state.Commit(ctx); err != nil {
 		return nil, err
@@ -142,6 +130,16 @@ func buildSnapshot(
 		return nil, errors.Wrap(err, "write snapshot")
 	}
 	return root, nil
+}
+
+// localSnapshotObjectRef keeps newly written bodies in the snapshot DAG.
+func (t *WorldState) localSnapshotObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
+	if t.snapshotBucketID == "" || ref.GetRootRef() == nil || ref.GetBucketId() != t.snapshotBucketID {
+		return ref
+	}
+	local := ref.Clone()
+	local.BucketId = ""
+	return local
 }
 
 // packSnapshotObjects replaces the temporary mutable index with one packed
