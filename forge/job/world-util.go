@@ -180,7 +180,7 @@ func ListJobTasks(ctx context.Context, w world.WorldState, jobKeys ...string) ([
 	)
 }
 
-// CollectJobTasks collects all Executions linked to by the Job.
+// CollectJobTasks collects all Tasks linked to by the Job.
 // If any of the linked tasks are invalid, returns an error.
 func CollectJobTasks(
 	ctx context.Context,
@@ -192,12 +192,16 @@ func CollectJobTasks(
 		return nil, nil, err
 	}
 
-	tasks := make([]*forge_task.Task, len(kpObjectKeys))
-	for i, objKey := range kpObjectKeys {
-		tasks[i], err = forge_task.LookupTaskBody(ctx, ws, objKey)
-		if err != nil {
-			return nil, nil, err
+	bodies, err := world.LookupObjectBodies[*forge_task.Task](ctx, ws, kpObjectKeys, forge_task.NewTaskBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+	tasks := make([]*forge_task.Task, len(bodies))
+	for i, body := range bodies {
+		if !body.Exists {
+			return nil, nil, world.ErrObjectNotFound
 		}
+		tasks[i] = body.Body
 	}
 
 	return tasks, kpObjectKeys, nil

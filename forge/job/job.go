@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
@@ -113,6 +114,22 @@ func (e *Job) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 		return forge_value.NewResultSubBlockCtor(&e.Result)
 	}
 	return nil
+}
+
+// CompletionResult aggregates completed tasks in their supplied order. It returns
+// nil while any task is incomplete. taskKeys must correspond to tasks, as returned
+// by CollectJobTasks. The first failed task determines the failure summary.
+func CompletionResult(tasks []*forge_task.Task, taskKeys []string) *forge_value.Result {
+	result := forge_value.NewResultWithSuccess()
+	for i, task := range tasks {
+		if !task.IsComplete() {
+			return nil
+		}
+		if result.GetSuccess() && !task.GetResult().GetSuccess() {
+			result = forge_value.NewResultWithError(errors.Errorf("task %s failed: %s", taskKeys[i], task.GetResult().GetFailError()))
+		}
+	}
+	return result
 }
 
 // _ is a type assertion

@@ -7,7 +7,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	forge_job "github.com/s4wave/spacewave/forge/job"
-	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +22,7 @@ func NewClusterCompleteJobOp(clusterKey, jobKey string) *ClusterCompleteJobOp {
 	}
 }
 
-// CompleteJob starts an existing Job linked to the Cluster.
+// CompleteJob completes an existing Job linked to the Cluster.
 // Returns seqno, sysErr, error.
 func CompleteJob(
 	ctx context.Context,
@@ -80,7 +79,6 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	}
 
 	// Read the current Job before deriving its aggregate result.
-	var jobResult *forge_value.Result
 	var job *forge_job.Job
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, false, func(bcs *block.Cursor) error {
 		job, err = forge_job.UnmarshalJob(ctx, bcs)
@@ -102,19 +100,11 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
-	jobResult = forge_value.NewResultWithSuccess()
-	for i, task := range tasks {
-		if !task.IsComplete() {
-			// A watched input can restart a Task after the controller's read.
-			// Keep the Job unchanged; its Task watcher schedules reconciliation.
-			return false, nil
-		}
-		if res := task.GetResult(); !res.GetSuccess() {
-			jobResult = forge_value.NewResultWithError(errors.Errorf(
-				"task %s failed: %s", taskKeys[i], res.GetFailError(),
-			))
-			break
-		}
+	jobResult := forge_job.CompletionResult(tasks, taskKeys)
+	if jobResult == nil {
+		// A watched input can restart a Task after the controller's read.
+		// Its watcher schedules reconciliation when the new result is ready.
+		return false, nil
 	}
 
 	// A repeated reconciliation of the same result must not write another
