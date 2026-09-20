@@ -19,27 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestPackfileBytesFileReadAt(t *testing.T) {
-	f := newPackfileBytesFile("pack-test.pack", []byte("abcdef"))
-
-	buf := make([]byte, 3)
-	n, err := f.ReadAt(buf, 2)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if n != 3 || string(buf) != "cde" {
-		t.Fatalf("ReadAt got n=%d data=%q", n, string(buf))
-	}
-
-	n, err = f.ReadAt(buf, 4)
-	if err != io.EOF {
-		t.Fatalf("expected EOF, got %v", err)
-	}
-	if n != 2 || string(buf[:n]) != "ef" {
-		t.Fatalf("partial ReadAt got n=%d data=%q", n, string(buf[:n]))
-	}
-}
-
 func TestStoragePackfileWriter(t *testing.T) {
 	ctx, oc, store := newPackfileTestStore(t)
 	defer store.Close()

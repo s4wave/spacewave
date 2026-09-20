@@ -53,7 +53,13 @@ func (r *Store) DeleteOldObjectPackAndIndex(ph plumbing.Hash, t time.Time) error
 	if !t.IsZero() {
 		return nil
 	}
-	delete(r.packCache, ph)
+	// Release the cached reader before dropping its metadata.
+	if entry := r.packCache[ph]; entry != nil {
+		if err := entry.pack.Close(); err != nil {
+			return err
+		}
+		delete(r.packCache, ph)
+	}
 	return r.packTree.Delete(r.ctx, slices.Clone(ph.Bytes()))
 }
 
@@ -207,20 +213,24 @@ func (r *Store) buildPackfileReader(cs *block.Cursor) (*go_git_packfile.Packfile
 		return entry.pack, nil
 	}
 
-	packData, err := blob.FetchToBytes(r.ctx, cs.FollowSubBlock(1))
+	// Decode the index without materializing its backing blob.
+	idxReader, err := NewPackfileFile(r.ctx, "idx-"+packHash.String()+".idx", cs.FollowSubBlock(2))
 	if err != nil {
 		return nil, err
 	}
-	idxData, err := blob.FetchToBytes(r.ctx, cs.FollowSubBlock(2))
-	if err != nil {
-		return nil, err
-	}
+	defer idxReader.Close()
 	idx := idxfile.NewMemoryIndex(packHash.Size())
-	if err := idxfile.NewDecoder(newPackfileBytesFile("idx-"+packHash.String()+".idx", idxData), hash.New(crypto.SHA1)).Decode(idx); err != nil {
+	if err := idxfile.NewDecoder(idxReader, hash.New(crypto.SHA1)).Decode(idx); err != nil {
+		return nil, err
+	}
+
+	// The pack owns a bounded reader, not a copy of the entire Git archive.
+	file, err := NewPackfileFile(r.ctx, "pack-"+packHash.String()+".pack", cs.FollowSubBlock(1))
+	if err != nil {
 		return nil, err
 	}
 	packReader := go_git_packfile.NewPackfile(
-		newPackfileBytesFile("pack-"+packHash.String()+".pack", packData),
+		file,
 		go_git_packfile.WithIdx(idx),
 		go_git_packfile.WithObjectIDSize(packHash.Size()),
 	)
