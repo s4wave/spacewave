@@ -1,387 +1,416 @@
+import { lazy } from 'react'
+
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
-import {
-  createViewerCatalog,
-  getBaseObjectViewers,
-} from '@s4wave/web/sdk/app/index.js'
-import { DriveViewer } from '@s4wave/app/unixfs/DriveViewer.js'
-import { UnixFSGalleryViewer } from '@s4wave/app/unixfs/UnixFSGalleryViewer.js'
-import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
-import { GitRepoViewer, GitRepoTypeID } from '@s4wave/app/git/GitRepoViewer.js'
-import {
-  GitWorktreeViewer,
-  GitWorktreeTypeID,
-} from '@s4wave/app/git/GitWorktreeViewer.js'
-import {
-  CanvasViewer,
-  CanvasTypeID,
-} from '@s4wave/app/canvas/viewer/CanvasViewer.js'
-import {
-  ForgeTaskViewer,
-  ForgeTaskTypeID,
-} from '@s4wave/app/forge/ForgeTaskViewer.js'
-import {
-  ForgeJobViewer,
-  ForgeJobTypeID,
-} from '@s4wave/app/forge/ForgeJobViewer.js'
-import {
-  ForgeClusterViewer,
-  ForgeClusterTypeID,
-} from '@s4wave/app/forge/ForgeClusterViewer.js'
-import {
-  ForgeWorkerViewer,
-  ForgeWorkerTypeID,
-} from '@s4wave/app/forge/ForgeWorkerViewer.js'
-import {
-  ForgePassViewer,
-  ForgePassTypeID,
-} from '@s4wave/app/forge/ForgePassViewer.js'
-import {
-  ForgeExecutionViewer,
-  ForgeExecutionTypeID,
-} from '@s4wave/app/forge/ForgeExecutionViewer.js'
-import {
-  ForgeDashboardViewer,
-  ForgeDashboardTypeID,
-} from '@s4wave/app/forge/ForgeDashboardViewer.js'
-import {
-  ManifestViewer,
-  ManifestTypeID,
-} from '@s4wave/app/manifest/ManifestViewer.js'
-import {
-  ChatChannelViewer,
-  ChatChannelTypeID,
-} from '@s4wave/app/chat/ChatChannelViewer.js'
-import {
-  ChatMessageViewer,
-  ChatMessageTypeID,
-} from '@s4wave/app/chat/ChatMessageViewer.js'
-import { DeviceViewer, DeviceTypeID } from '@s4wave/app/device/DeviceViewer.js'
-import {
-  SshHostViewer,
-  SshHostTypeID,
-} from '@s4wave/app/device/SshHostViewer.js'
-import {
-  ComputersDashboardViewer,
-  ComputersDashboardTypeID,
-} from '@s4wave/app/device/ComputersDashboardViewer.js'
-import {
-  AddDeviceWizardViewer,
-  AddDeviceWizardTypeID,
-} from '@s4wave/app/device/AddDeviceWizardViewer.js'
-import {
-  TerminalViewer,
-  TerminalTypeID,
-} from '@s4wave/app/terminal/TerminalViewer.js'
-import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
-import { SecretViewer, SecretTypeID } from '@s4wave/app/secret/SecretViewer.js'
-import { KvStoreViewer, KvStoreTypeID } from '@s4wave/app/kv/KvStoreViewer.js'
-import { SqlDbViewer, SqlDbTypeID } from '@s4wave/app/sql/SqlDbViewer.js'
-import {
-  SqlQueryViewer,
-  SqlQueryTypeID,
-} from '@s4wave/app/sql/SqlQueryViewer.js'
-import {
-  SqlQueryResultViewer,
-  SqlQueryResultTypeID,
-} from '@s4wave/app/sql/SqlQueryResultViewer.js'
-import {
-  SqlSchemaViewer,
-  SqlSchemaTypeID,
-} from '@s4wave/app/sql/SqlSchemaViewer.js'
-import {
-  SqlTableViewViewer,
-  SqlTableViewTypeID,
-} from '@s4wave/app/sql/SqlTableViewViewer.js'
-import {
-  SqlWorkbenchViewer,
-  SqlWorkbenchTypeID,
-} from '@s4wave/app/sql/SqlWorkbenchViewer.js'
-import {
-  WizardViewer,
-  WizardTypePrefix,
-} from '@s4wave/app/wizard/WizardViewer.js'
-import {
-  ForgeJobWizardViewer,
-  ForgeJobWizardTypeID,
-} from '@s4wave/app/wizard/ForgeJobWizardViewer.js'
-import {
-  ForgeTaskWizardViewer,
-  ForgeTaskWizardTypeID,
-} from '@s4wave/app/wizard/ForgeTaskWizardViewer.js'
-import {
-  GitRepoWizardViewer,
-  GitRepoWizardTypeID,
-} from '@s4wave/app/wizard/GitRepoWizardViewer.js'
-import { IntroWizardViewer } from '@s4wave/app/wizard/IntroWizardViewer.js'
-import { IntroWizardTypeID } from '@s4wave/app/wizard/intro.js'
-import {
-  VmV86WizardViewer,
-  VmV86WizardTypeID,
-} from '@s4wave/app/wizard/VmV86WizardViewer.js'
+import { getBaseObjectViewers } from '@s4wave/web/sdk/app/base-viewers.js'
+import { createViewerCatalog } from '@s4wave/web/sdk/app/viewer-catalog.js'
 import { getViewersForType } from '@s4wave/web/hooks/useViewerRegistry.js'
 
+// Viewer metadata is available synchronously; implementations load only when
+// ObjectViewerContent renders them within its existing Suspense boundary.
 const productObjectViewers: ObjectViewerComponent[] = [
   {
     componentID: 'spacewave.unixfs.viewer',
-    typeID: UnixFSTypeID,
+    typeID: 'unixfs/fs-node',
     name: 'UnixFS Viewer',
     category: 'Files',
     requiresObjectState: false,
-    component: DriveViewer,
+    component: lazy(() =>
+      import('@s4wave/app/unixfs/DriveViewer.js').then((module) => ({
+        default: module.DriveViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.unixfs.gallery',
-    typeID: UnixFSTypeID,
+    typeID: 'unixfs/fs-node',
     name: 'UnixFS Gallery',
     category: 'Files',
     requiresObjectState: false,
-    component: UnixFSGalleryViewer,
+    component: lazy(() =>
+      import('@s4wave/app/unixfs/UnixFSGalleryViewer.js').then((module) => ({
+        default: module.UnixFSGalleryViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.git.repo',
-    typeID: GitRepoTypeID,
+    typeID: 'git/repo',
     name: 'Git Repo',
     category: 'Code',
-    component: GitRepoViewer,
+    component: lazy(() =>
+      import('@s4wave/app/git/GitRepoViewer.js').then((module) => ({
+        default: module.GitRepoViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.git.worktree',
-    typeID: GitWorktreeTypeID,
+    typeID: 'git/worktree',
     name: 'Git Worktree',
     category: 'Code',
-    component: GitWorktreeViewer,
+    component: lazy(() =>
+      import('@s4wave/app/git/GitWorktreeViewer.js').then((module) => ({
+        default: module.GitWorktreeViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.canvas.viewer',
-    typeID: CanvasTypeID,
+    typeID: 'canvas',
     name: 'Canvas',
     category: 'Layout',
     disablePadding: true,
-    component: CanvasViewer,
+    component: lazy(() =>
+      import('@s4wave/app/canvas/viewer/CanvasViewer.js').then((module) => ({
+        default: module.CanvasViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.task',
-    typeID: ForgeTaskTypeID,
+    typeID: 'forge/task',
     name: 'Task',
     category: 'Forge',
-    component: ForgeTaskViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeTaskViewer.js').then((module) => ({
+        default: module.ForgeTaskViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.job',
-    typeID: ForgeJobTypeID,
+    typeID: 'forge/job',
     name: 'Job',
     category: 'Forge',
-    component: ForgeJobViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeJobViewer.js').then((module) => ({
+        default: module.ForgeJobViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.cluster',
-    typeID: ForgeClusterTypeID,
+    typeID: 'forge/cluster',
     name: 'Cluster',
     category: 'Forge',
-    component: ForgeClusterViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeClusterViewer.js').then((module) => ({
+        default: module.ForgeClusterViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.worker',
-    typeID: ForgeWorkerTypeID,
+    typeID: 'forge/worker',
     name: 'Worker',
     category: 'Forge',
-    component: ForgeWorkerViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeWorkerViewer.js').then((module) => ({
+        default: module.ForgeWorkerViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.pass',
-    typeID: ForgePassTypeID,
+    typeID: 'forge/pass',
     name: 'Pass',
     category: 'Forge',
-    component: ForgePassViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgePassViewer.js').then((module) => ({
+        default: module.ForgePassViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.execution',
-    typeID: ForgeExecutionTypeID,
+    typeID: 'forge/execution',
     name: 'Execution',
     category: 'Forge',
-    component: ForgeExecutionViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeExecutionViewer.js').then((module) => ({
+        default: module.ForgeExecutionViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.forge.dashboard',
-    typeID: ForgeDashboardTypeID,
+    typeID: 'spacewave/forge/dashboard',
     name: 'Forge Dashboard',
     category: 'Forge',
-    component: ForgeDashboardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/forge/ForgeDashboardViewer.js').then((module) => ({
+        default: module.ForgeDashboardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.manifest.viewer',
-    typeID: ManifestTypeID,
+    typeID: 'bldr/manifest',
     name: 'Manifest',
     category: 'Build',
-    component: ManifestViewer,
+    component: lazy(() =>
+      import('@s4wave/app/manifest/ManifestViewer.js').then((module) => ({
+        default: module.ManifestViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.chat.channel',
-    typeID: ChatChannelTypeID,
+    typeID: 'spacewave-chat/channel',
     name: 'Chat Channel',
     category: 'Chat',
-    component: ChatChannelViewer,
+    component: lazy(() =>
+      import('@s4wave/app/chat/ChatChannelViewer.js').then((module) => ({
+        default: module.ChatChannelViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.chat.message',
-    typeID: ChatMessageTypeID,
+    typeID: 'spacewave-chat/message',
     name: 'Chat Message',
     category: 'Chat',
-    component: ChatMessageViewer,
+    component: lazy(() =>
+      import('@s4wave/app/chat/ChatMessageViewer.js').then((module) => ({
+        default: module.ChatMessageViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.organization.viewer',
-    typeID: OrganizationTypeID,
+    typeID: 'spacewave/organization',
     name: 'Organization',
     category: 'Management',
-    component: OrgViewer,
+    component: lazy(() =>
+      import('@s4wave/app/org/OrgViewer.js').then((module) => ({
+        default: module.OrgViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.secret.viewer',
-    typeID: SecretTypeID,
+    typeID: 'spacewave/secret',
     name: 'Secret',
     category: 'Management',
-    component: SecretViewer,
+    component: lazy(() =>
+      import('@s4wave/app/secret/SecretViewer.js').then((module) => ({
+        default: module.SecretViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.kv.store',
-    typeID: KvStoreTypeID,
+    typeID: 'kv/store',
     name: 'Key/Value Store',
     category: 'Data',
-    component: KvStoreViewer,
+    component: lazy(() =>
+      import('@s4wave/app/kv/KvStoreViewer.js').then((module) => ({
+        default: module.KvStoreViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.db',
-    typeID: SqlDbTypeID,
+    typeID: 'sql/db',
     name: 'SQL Database',
     category: 'Data',
-    component: SqlDbViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlDbViewer.js').then((module) => ({
+        default: module.SqlDbViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.query',
-    typeID: SqlQueryTypeID,
+    typeID: 'sql/query',
     name: 'SQL Query',
     category: 'Data',
-    component: SqlQueryViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlQueryViewer.js').then((module) => ({
+        default: module.SqlQueryViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.query-result',
-    typeID: SqlQueryResultTypeID,
+    typeID: 'sql/query-result',
     name: 'SQL Query Result',
     category: 'Data',
-    component: SqlQueryResultViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlQueryResultViewer.js').then((module) => ({
+        default: module.SqlQueryResultViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.schema',
-    typeID: SqlSchemaTypeID,
+    typeID: 'sql/schema',
     name: 'SQL Schema',
     category: 'Data',
-    component: SqlSchemaViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlSchemaViewer.js').then((module) => ({
+        default: module.SqlSchemaViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.table-view',
-    typeID: SqlTableViewTypeID,
+    typeID: 'sql/table-view',
     name: 'SQL Table View',
     category: 'Data',
-    component: SqlTableViewViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlTableViewViewer.js').then((module) => ({
+        default: module.SqlTableViewViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.sql.workbench',
-    typeID: SqlWorkbenchTypeID,
+    typeID: 'sql/workbench',
     name: 'SQL Workbench',
     category: 'Data',
-    component: SqlWorkbenchViewer,
+    component: lazy(() =>
+      import('@s4wave/app/sql/SqlWorkbenchViewer.js').then((module) => ({
+        default: module.SqlWorkbenchViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.device.viewer',
-    typeID: DeviceTypeID,
+    typeID: 'spacewave/device',
     name: 'Device',
     category: 'Devices',
-    component: DeviceViewer,
+    component: lazy(() =>
+      import('@s4wave/app/device/DeviceViewer.js').then((module) => ({
+        default: module.DeviceViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.ssh-host.viewer',
-    typeID: SshHostTypeID,
+    typeID: 'spacewave/ssh-host',
     name: 'SSH Host',
     category: 'Devices',
-    component: SshHostViewer,
+    component: lazy(() =>
+      import('@s4wave/app/device/SshHostViewer.js').then((module) => ({
+        default: module.SshHostViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.computers.viewer',
-    typeID: ComputersDashboardTypeID,
+    typeID: 'spacewave/computers',
     name: 'Computers',
     category: 'Devices',
-    component: ComputersDashboardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/device/ComputersDashboardViewer.js').then(
+        (module) => ({ default: module.ComputersDashboardViewer }),
+      ),
+    ),
   },
   {
     componentID: 'spacewave.terminal.viewer',
-    typeID: TerminalTypeID,
+    typeID: 'spacewave/terminal',
     name: 'Terminal',
     category: 'Devices',
-    component: TerminalViewer,
+    component: lazy(() =>
+      import('@s4wave/app/terminal/TerminalViewer.js').then((module) => ({
+        default: module.TerminalViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.add-device',
-    typeID: AddDeviceWizardTypeID,
+    typeID: 'wizard/device/add',
     name: 'Add Device',
     category: 'Devices',
     requiresObjectState: false,
-    component: AddDeviceWizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/device/AddDeviceWizardViewer.js').then((module) => ({
+        default: module.AddDeviceWizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.forge-job',
-    typeID: ForgeJobWizardTypeID,
+    typeID: 'wizard/forge/job',
     name: 'Job Wizard',
     category: 'Forge',
     requiresObjectState: false,
-    component: ForgeJobWizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/ForgeJobWizardViewer.js').then((module) => ({
+        default: module.ForgeJobWizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.forge-task',
-    typeID: ForgeTaskWizardTypeID,
+    typeID: 'wizard/forge/task',
     name: 'Task Wizard',
     category: 'Forge',
     requiresObjectState: false,
-    component: ForgeTaskWizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/ForgeTaskWizardViewer.js').then((module) => ({
+        default: module.ForgeTaskWizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.git-repo',
-    typeID: GitRepoWizardTypeID,
+    typeID: 'wizard/git/repo',
     name: 'Git Repo Wizard',
     category: 'Code',
     requiresObjectState: false,
-    component: GitRepoWizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/GitRepoWizardViewer.js').then((module) => ({
+        default: module.GitRepoWizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.intro',
-    typeID: IntroWizardTypeID,
+    typeID: 'wizard/intro',
     name: 'New User Intro',
     category: 'System',
     requiresObjectState: false,
-    component: IntroWizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/IntroWizardViewer.js').then((module) => ({
+        default: module.IntroWizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.v86',
-    typeID: VmV86WizardTypeID,
+    typeID: 'wizard/vm/v86',
     name: 'V86 Wizard',
     category: 'VM',
     requiresObjectState: false,
-    component: VmV86WizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/VmV86WizardViewer.js').then((module) => ({
+        default: module.VmV86WizardViewer,
+      })),
+    ),
   },
   {
     componentID: 'spacewave.wizard.generic',
-    typeID: WizardTypePrefix + '*',
+    typeID: 'wizard/*',
     name: 'Wizard',
     category: 'System',
     requiresObjectState: false,
-    component: WizardViewer,
+    component: lazy(() =>
+      import('@s4wave/app/wizard/WizardViewer.js').then((module) => ({
+        default: module.WizardViewer,
+      })),
+    ),
   },
 ]
 
+/** getProductObjectViewers returns the product catalog in default selection order. */
 export function getProductObjectViewers(): ObjectViewerComponent[] {
   return [...productObjectViewers]
 }
 
+/** getObjectViewersForType orders matching product and plugin viewers. */
 export function getObjectViewersForType(
   typeID: string,
   dynamicViewers?: ObjectViewerComponent[],
@@ -390,6 +419,7 @@ export function getObjectViewersForType(
   return getViewersForType(typeID, all)
 }
 
+/** getAllObjectViewers combines built-in and plugin metadata without loading viewers. */
 export function getAllObjectViewers(
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
