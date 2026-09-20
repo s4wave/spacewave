@@ -2,6 +2,7 @@ package sdk_world_engine
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -43,7 +44,7 @@ func (c *AttachedResourceClient) CreateResourceReference(resourceID uint32) reso
 type attachedResourceRef struct {
 	resourceCtx resource_server.ResourceClientContext
 	resourceID  uint32
-	released    bool
+	released    atomic.Bool
 }
 
 func (r *attachedResourceRef) GetResourceID() uint32 {
@@ -51,7 +52,7 @@ func (r *attachedResourceRef) GetResourceID() uint32 {
 }
 
 func (r *attachedResourceRef) GetClient() (srpc.Client, error) {
-	if r.released {
+	if r.released.Load() {
 		return nil, resource.ErrResourceOrClientReleased
 	}
 	if r.resourceCtx == nil {
@@ -61,10 +62,9 @@ func (r *attachedResourceRef) GetClient() (srpc.Client, error) {
 }
 
 func (r *attachedResourceRef) Release() {
-	if r.released {
+	if r.released.Swap(true) {
 		return
 	}
-	r.released = true
 	if r.resourceCtx == nil {
 		return
 	}

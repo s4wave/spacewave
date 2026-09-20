@@ -3,6 +3,7 @@ package sdk_world_engine_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -22,6 +23,7 @@ func TestAttachedResourceClientUsesAttachedResourceLifetime(t *testing.T) {
 
 	client := sdk_world_engine.NewAttachedResourceClient(resourceCtx)
 	ref := client.CreateResourceReference(42)
+	defer ref.Release()
 	if ref.GetResourceID() != 42 {
 		t.Fatalf("resource id: got %d want 42", ref.GetResourceID())
 	}
@@ -33,8 +35,11 @@ func TestAttachedResourceClientUsesAttachedResourceLifetime(t *testing.T) {
 		t.Fatal("GetClient returned nil client")
 	}
 
-	ref.Release()
-	ref.Release()
+	var callers sync.WaitGroup
+	for range 32 {
+		callers.Go(ref.Release)
+	}
+	callers.Wait()
 	if got := resourceCtx.releases[42]; got != 1 {
 		t.Fatalf("release count: got %d want 1", got)
 	}

@@ -162,7 +162,10 @@ func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest
 		return nil, errors.New("transaction is closed")
 	}
 	r.terminal = true
-	defer r.terminalLocker.Unlock()
+	defer func() {
+		r.terminalLocker.Unlock()
+		r.Release()
+	}()
 
 	if r.typedResource != nil {
 		r.typedResource.Close()
