@@ -42,10 +42,11 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
 	store := so.GetBlockStore()
 	const maxPendingBytes = 4 << 20
+	const proofBatchEntries = 1024
 	writes := block.NewBufferedStoreWithSettings(ctx, store, &block.BufferedStoreSettings{
-		MaxPendingEntries: 128,
+		MaxPendingEntries: proofBatchEntries,
 		MaxPendingBytes:   maxPendingBytes,
-		DrainBatchEntries: 128,
+		DrainBatchEntries: proofBatchEntries,
 	})
 
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, sfs, head.GetTransformConf())
@@ -68,6 +69,9 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 	// subtrees, but never records a parent whose descendants failed.
 	pending := make(map[string]struct{})
 	flush := func() error {
+		if len(pending) == 0 {
+			return nil
+		}
 		fenced, err := writes.Sync(ctx)
 		if err != nil {
 			return err
@@ -93,7 +97,11 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 	key := func(domain string, ref *block.BlockRef) string {
 		return "world-publication/" + bucketID + "/" + domain + "/" + ref.MarshalString()
 	}
+	constructors := make(map[string]block.Ctor)
 	err = ws.WalkBlocks(ctx, func(ctx context.Context, typeID string) (block.Ctor, error) {
+		if ctor := constructors[typeID]; ctor != nil {
+			return ctor, nil
+		}
 		lookupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		info, release, err := blocktype.ExLookupBlockType(lookupCtx, so.GetBus(), typeID)
@@ -106,6 +114,7 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		if info == nil {
 			return nil, errors.Errorf("block type unavailable: %s", typeID)
 		}
+		constructors[typeID] = info.Constructor
 		return info.Constructor, nil
 	}, func(ref *block.BlockRef, data []byte) error {
 		// Presence alone does not prove destination bucket ownership. Batch
@@ -137,7 +146,7 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		},
 		Complete: func(domain string, ref *block.BlockRef) error {
 			pending[key(domain, ref)] = struct{}{}
-			if len(pending) >= 1024 {
+			if len(pending) >= proofBatchEntries {
 				return flush()
 			}
 			return nil
