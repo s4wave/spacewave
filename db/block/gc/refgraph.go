@@ -44,7 +44,8 @@ const (
 	// refGraphApplySliceLimit bounds preparation and application together.
 	refGraphApplySliceLimit = 4096
 	// Commit each bounded ownership slice without subdividing it into extra
-	// fsyncs. Additions still commit before removals, and slices release writeMu.
+	// fsyncs. Additions precede removals within and across commits.
+	// Each slice releases writeMu.
 	refGraphApplyBatchLimit = refGraphApplySliceLimit
 )
 
@@ -287,24 +288,21 @@ func (rg *RefGraph) applyRefBatchSliceLocked(
 	ctx context.Context,
 	adds, removes []RefEdge,
 ) ([]RefEdge, []RefEdge, error) {
-	// Commit additions in bounded chunks before committing removals.
+	// Derive orphan markers before removing opposing input edges.
+	adds, removes = normalizeRefEdges(adds, removes)
+	// Keep additions before removals within each bounded atomic commit.
 	chunks := 0
-	for len(adds) != 0 {
-		count := min(len(adds), refGraphApplyBatchLimit)
+	for len(adds) != 0 || len(removes) != 0 {
+		addCount := min(len(adds), refGraphApplyBatchLimit)
+		removeCount := min(len(removes), refGraphApplyBatchLimit-addCount)
 		chunks++
-		if err := rg.applyRefBatchChunk(ctx, adds[:count], nil); err != nil {
+		if err := rg.applyRefBatchChunk(ctx, adds[:addCount], removes[:removeCount]); err != nil {
 			return adds, removes, err
 		}
-		adds = adds[count:]
+		adds = adds[addCount:]
+		removes = removes[removeCount:]
 	}
-	for len(removes) != 0 {
-		count := min(len(removes), refGraphApplyBatchLimit)
-		chunks++
-		if err := rg.applyRefBatchChunk(ctx, nil, removes[:count]); err != nil {
-			return adds, removes, err
-		}
-		removes = removes[count:]
-	}
+
 	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/chunks", "chunks=%d", chunks)
 	return nil, nil, nil
 }
@@ -316,14 +314,14 @@ func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefE
 
 	// Materialize one transaction preserving additions-before-removals order.
 	n := len(adds) + len(removes)
-	tx := graph.NewTransactionN(n)
+	deltas := make([]graph.Delta, 0, n)
 	for _, e := range adds {
-		tx.AddQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
+		deltas = append(deltas, graph.Delta{Quad: quad.MakeIRI(e.Subject, PredGCRef, e.Object, ""), Action: graph.Add})
 	}
 	for _, e := range removes {
-		tx.RemoveQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
+		deltas = append(deltas, graph.Delta{Quad: quad.MakeIRI(e.Subject, PredGCRef, e.Object, ""), Action: graph.Delete})
 	}
-	return rg.handle.ApplyTransaction(ctx, tx)
+	return rg.handle.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{IgnoreDup: true, IgnoreMissing: true})
 }
 
 func (rg *RefGraph) prepareRefBatch(

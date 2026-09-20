@@ -68,6 +68,9 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 		return nil, errors.Wrap(err, "phase 1 mark")
 	}
 	result.SweepCandidates = len(candidates)
+	if len(candidates) == 0 {
+		return result, nil
+	}
 
 	// Build will-delete set for fast lookup.
 	willDelete := make(map[string]bool, len(candidates))
@@ -92,23 +95,17 @@ func SweepCycle(ctx context.Context, cfg SweepConfig) (*SweepResult, error) {
 	}
 	result.WALEntriesPhase2 = n2
 
-	// 2b: Re-mark after Phase 2 WAL replay. Nodes that were white in
-	// Phase 1 but are now reachable (due to edges added during Phase 2)
-	// are rescued. Only nodes white in both marks are swept.
-	if n2 > 0 {
-		marker2 := NewMarker(cfg.Graph)
-		_, colors2, err := marker2.Mark(phase2Ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "phase 2 re-mark")
+	// 2b: Re-mark under the exclusive fence even if another replayer already
+	// drained the WAL. Only nodes white in both marks are swept.
+	_, colors2, err := NewMarker(cfg.Graph).Mark(phase2Ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "phase 2 re-mark")
+	}
+	for c := range willDelete {
+		if colors2[c] != White {
+			delete(willDelete, c)
+			result.Rescued++
 		}
-		rescued := 0
-		for c := range willDelete {
-			if colors2[c] != White {
-				delete(willDelete, c)
-				rescued++
-			}
-		}
-		result.Rescued = rescued
 	}
 
 	// 2c: Execute sweep. Delete-first ordering for crash safety.

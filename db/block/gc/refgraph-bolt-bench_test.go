@@ -38,3 +38,66 @@ func BenchmarkRefGraphDurableBatch(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkRefGraphOwnershipTransfer compares the same prepared transition
+// under two synced commits and the combined commit, using a fresh Bolt store.
+func BenchmarkRefGraphOwnershipTransfer(b *testing.B) {
+	for _, separate := range []bool{true, false} {
+		name := "combined"
+		if separate {
+			name = "separate"
+		}
+		b.Run(name, func(b *testing.B) {
+			ctx := b.Context()
+			store, err := store_kvtx_bolt.Open(filepath.Join(b.TempDir(), "refs.db"), 0o600, nil, []byte("test"))
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer store.GetDB().Close()
+			rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer rg.Close()
+			old, next := make([]RefEdge, 722), make([]RefEdge, 722)
+			for i := range old {
+				object := "block-" + strconv.Itoa(i)
+				old[i] = RefEdge{Subject: "owner-a", Object: object}
+				next[i] = RefEdge{Subject: "owner-b", Object: object}
+			}
+			if err := rg.ApplyRefBatch(ctx, old, nil); err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				adds, removes, err := rg.prepareRefBatch(ctx, next, old, true)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if separate {
+					err = rg.applyRefBatchChunk(ctx, adds, nil)
+					if err == nil {
+						err = rg.applyRefBatchChunk(ctx, nil, removes)
+					}
+				} else {
+					_, _, err = rg.applyRefBatchSliceLocked(ctx, adds, removes)
+				}
+				if err != nil {
+					b.Fatal(err)
+				}
+				old, next = next, old
+			}
+			b.StopTimer()
+			found, err := rg.hasRefs(ctx, old)
+			if err != nil {
+				b.Fatal(err)
+			}
+			for _, exists := range found {
+				if !exists {
+					b.Fatal("transfer lost an owner")
+				}
+			}
+		})
+	}
+}

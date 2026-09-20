@@ -465,3 +465,17 @@ func storeGCJournalCountForTest(t *testing.T, tree *gcJournalTestTree, count uin
 
 // _ is a type assertion.
 var _ kvtx.BlockTx = (*gcJournalTestTree)(nil)
+
+func TestGCJournalRejectsMalformedBatch(t *testing.T) {
+	valid := encodeRefBatch([]block_gc.RefEdge{{Subject: "owner", Object: "block"}}, nil)
+	if _, _, err := decodeRefBatch(valid); err != nil {
+		t.Fatal(err)
+	}
+	oversized := make([]byte, 8)
+	binary.BigEndian.PutUint32(oversized, ^uint32(0))
+	for _, data := range [][]byte{oversized, append(valid, 0), valid[:len(valid)-1]} {
+		if _, _, err := decodeRefBatch(data); err == nil {
+			t.Fatal("accepted corrupt reference batch")
+		}
+	}
+}

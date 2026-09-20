@@ -19,8 +19,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// ErrAtomicSweepUnsupported allows the legacy collector path only before any
-// graph or block mutation. A store must reject graphs outside its own scope.
+// ErrAtomicSweepUnsupported rejects a sweep outside the store's atomic
+// ownership domain before graph or block mutation.
 var ErrAtomicSweepUnsupported = errors.New("atomic sweep unsupported")
 
 // AtomicSweepStore rechecks current ownership and removes a still-orphaned node
@@ -77,7 +77,8 @@ type Collector struct {
 // NewCollector constructs a new GC collector.
 // The store is the underlying physical store for block deletion.
 // The onSwept callback is optional; if non-nil it is called for each
-// node before physical deletion.
+// node before physical deletion. Without atomic sweeping, the caller must
+// serialize collection with reference publication for this graph and store.
 func NewCollector(
 	refGraph RefGraphOps,
 	store block.StoreOps,
@@ -107,11 +108,12 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 	// Start timing and accumulate cycle statistics across cascaded sweeps.
 	start := time.Now()
 	stats := &Stats{}
+	defer func() { stats.Duration = time.Since(start) }()
 
 	// Scan unreferenced nodes until an iteration makes no progress.
 	for {
 		if err := ctx.Err(); err != nil {
-			return stats, context.Canceled
+			return stats, ctx.Err()
 		}
 
 		// Read the current unreferenced set and account for scan time.
@@ -120,7 +122,7 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 		stats.UnreferencedScanDuration += time.Since(phaseStart)
 		if err != nil {
 			if ctx.Err() != nil {
-				return stats, context.Canceled
+				return stats, ctx.Err()
 			}
 			return stats, errors.Wrap(err, "get unreferenced nodes")
 		}
@@ -133,7 +135,7 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 		var swept int
 		for _, node := range nodes {
 			if err := ctx.Err(); err != nil {
-				return stats, context.Canceled
+				return stats, ctx.Err()
 			}
 
 			if IsPermanentRoot(node) {
@@ -148,50 +150,44 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 				removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, node)
 				stats.AtomicSweepDuration += time.Since(phaseStart)
 				stats.AtomicSweepCount++
-				if !errors.Is(err, ErrAtomicSweepUnsupported) {
-					if err != nil {
-						return stats, errors.Wrap(err, "atomic sweep")
-					}
-					if removed {
-						swept++
-						stats.NodesSwept++
-						stats.RemoveNodeRefsCount++
-						stats.RemoveUnreferencedEdgeCount++
-						if _, ok := ParseBlockIRI(node); ok {
-							stats.RemoveBlockCount++
-						}
-					}
-					continue
+				if err != nil {
+					return stats, errors.Wrap(err, "atomic sweep")
 				}
+				if removed {
+					swept++
+					stats.NodesSwept++
+					stats.RemoveNodeRefsCount++
+					stats.RemoveUnreferencedEdgeCount++
+					if _, ok := ParseBlockIRI(node); ok {
+						stats.RemoveBlockCount++
+					}
+				}
+				continue
+			}
+
+			// Graph-only callers serialize mutations in their World transaction.
+			// Recheck stale staging marks before removing any live dependencies.
+			owned, err := c.refGraph.HasIncomingRefs(ctx, node)
+			if err != nil {
+				return stats, errors.Wrap(err, "recheck orphan ownership")
+			}
+			if owned {
+				continue
 			}
 
 			// Remove all outgoing gc/ref edges and mark orphaned targets.
 			phaseStart = time.Now()
-			if _, err := c.refGraph.RemoveNodeRefs(ctx, node, true); err != nil {
-				stats.RemoveNodeRefsDuration += time.Since(phaseStart)
+			_, err = c.refGraph.RemoveNodeRefs(ctx, node, true)
+			stats.RemoveNodeRefsDuration += time.Since(phaseStart)
+			if err != nil {
 				if ctx.Err() != nil {
-					return stats, context.Canceled
+					return stats, ctx.Err()
 				}
 				if !errors.Is(err, block.ErrNotFound) {
 					return stats, errors.Wrap(err, "remove node refs")
 				}
 			}
-			stats.RemoveNodeRefsDuration += time.Since(phaseStart)
 			stats.RemoveNodeRefsCount++
-
-			// Remove the unreferenced -> node edge.
-			phaseStart = time.Now()
-			if err := c.refGraph.RemoveRef(ctx, NodeUnreferenced, node); err != nil {
-				stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
-				if ctx.Err() != nil {
-					return stats, context.Canceled
-				}
-				if !errors.Is(err, block.ErrNotFound) {
-					return stats, errors.Wrap(err, "remove unreferenced edge")
-				}
-			}
-			stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
-			stats.RemoveUnreferencedEdgeCount++
 
 			// Call onSwept callback.
 			if c.onSwept != nil {
@@ -199,7 +195,7 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 				if err := c.onSwept(ctx, node); err != nil {
 					stats.OnSweptDuration += time.Since(phaseStart)
 					if ctx.Err() != nil {
-						return stats, context.Canceled
+						return stats, ctx.Err()
 					}
 					return stats, errors.Wrap(err, "on swept callback")
 				}
@@ -214,13 +210,27 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 				if err := c.store.RmBlock(ctx, ref); err != nil {
 					stats.RemoveBlockDuration += time.Since(phaseStart)
 					if ctx.Err() != nil {
-						return stats, context.Canceled
+						return stats, ctx.Err()
 					}
 					return stats, errors.Wrap(err, "remove block")
 				}
 				stats.RemoveBlockDuration += time.Since(phaseStart)
 				stats.RemoveBlockCount++
 			}
+
+			// Remove the unreferenced -> node edge.
+			phaseStart = time.Now()
+			err = c.refGraph.RemoveRef(ctx, NodeUnreferenced, node)
+			stats.RemoveUnreferencedEdgeDuration += time.Since(phaseStart)
+			if err != nil {
+				if ctx.Err() != nil {
+					return stats, ctx.Err()
+				}
+				if !errors.Is(err, block.ErrNotFound) {
+					return stats, errors.Wrap(err, "remove unreferenced edge")
+				}
+			}
+			stats.RemoveUnreferencedEdgeCount++
 
 			swept++
 			stats.NodesSwept++
@@ -234,6 +244,5 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 		}
 	}
 
-	stats.Duration = time.Since(start)
 	return stats, nil
 }

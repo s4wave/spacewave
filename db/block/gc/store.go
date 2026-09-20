@@ -2,9 +2,11 @@ package block_gc
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -42,12 +44,15 @@ type GCStoreOps struct {
 	flushTask  string
 	deferFlush atomic.Int64
 
-	mu             sync.Mutex
-	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
-	pendingRefs    []pendingRef // source -> target block ref edges
-	pendingUnunref []string     // block IRIs to remove from unreferenced
-	pendingAdds    []RefEdge    // normalized add edges left by a failed direct flush
-	pendingRemoves []RefEdge    // normalized remove edges left by a failed direct flush
+	// flushMu preserves delivery order and joins overlapping flushes.
+	flushMu         csync.Mutex
+	mu              sync.Mutex
+	pendingReleases map[string]struct{} // latest parent releases, canceled by a later put
+	pendingUnref    []string            // block IRIs needing parent/unreferenced -> block edges
+	pendingRefs     []pendingRef        // source -> target block ref edges
+	pendingUnunref  []string            // block IRIs to remove from unreferenced
+	pendingAdds     []RefEdge           // normalized add edges left by a failed direct flush
+	pendingRemoves  []RefEdge           // normalized remove edges left by a failed direct flush
 }
 
 type storeTrackingDisabledContextKey struct{}
@@ -119,7 +124,7 @@ func NewGCStoreOpsWithParentAndTraceTask(store block.StoreOps, refGraph RefGraph
 
 // SetWALAppender sets the WAL appender for deferred ref graph updates.
 // When set, FlushPending writes to the WAL instead of calling
-// ApplyRefBatch on the RefGraph directly.
+// ApplyRefBatch on the RefGraph directly. Configure it before concurrent use.
 func (g *GCStoreOps) SetWALAppender(wal WALAppender) {
 	g.wal = wal
 }
@@ -197,6 +202,7 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		iri := BlockIRI(ref)
 		g.mu.Lock()
 		g.pendingUnref = append(g.pendingUnref, iri)
+		delete(g.pendingReleases, iri)
 		g.mu.Unlock()
 		subtask.End()
 	}
@@ -214,35 +220,26 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 // GC ref edges for all non-tombstone blocks. The inner store decides whether
 // the batch flows through a native path or an internal fallback.
 //
-// Tombstone entries are handled via GCStoreOps.RmBlock so refgraph cleanup
-// (outgoing edge removal, orphan cascade) is preserved. Existing entries skip
-// unreferenced staging, but a configured parent owns every block it writes.
+// Tombstone entries release parent ownership through GCStoreOps.RmBlock.
+// The collector owns outgoing edges and physical deletion. Existing entries
+// skip unreferenced staging; a configured parent owns every block it writes.
 func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
 	defer task.End()
 
-	// Separate tombstones from puts. Tombstones must go through
-	// GCStoreOps.RmBlock for refgraph cleanup.
-	var puts []*block.PutBatchEntry
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := g.RmBlock(ctx, entry.Ref.Clone()); err != nil {
-				return err
-			}
-			continue
-		}
-		puts = append(puts, entry)
+	if storeTrackingDisabled(ctx) {
+		return g.store.PutBlockBatch(ctx, entries)
 	}
 
-	if len(puts) == 0 {
-		return nil
-	}
-	if storeTrackingDisabled(ctx) {
-		return g.store.PutBlockBatch(ctx, puts)
+	var puts []*block.PutBatchEntry
+	for _, entry := range entries {
+		if !entry.Tombstone {
+			puts = append(puts, entry)
+		}
 	}
 
 	var existing []bool
-	if g.parentIRI == "" {
+	if g.parentIRI == "" && len(puts) != 0 {
 		// Staging an existing block under unreferenced could revive a block
 		// that already has real parents.
 		checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
@@ -271,12 +268,23 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 
 	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
 	g.mu.Lock()
-	for i, entry := range puts {
+	putIndex := 0
+	for _, entry := range entries {
+		if entry.Tombstone {
+			if g.parentIRI != "" && entry.Ref != nil && !entry.Ref.GetEmpty() {
+				g.bufferReleaseLocked(BlockIRI(entry.Ref))
+			}
+			continue
+		}
+		i := putIndex
+		putIndex++
 		if entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
 		if g.parentIRI != "" || !existing[i] {
-			g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
+			iri := BlockIRI(entry.Ref)
+			g.pendingUnref = append(g.pendingUnref, iri)
+			delete(g.pendingReleases, iri)
 		}
 		if len(entry.Refs) != 0 {
 			g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
@@ -309,30 +317,29 @@ func (g *GCStoreOps) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 	return g.store.StatBlock(ctx, ref)
 }
 
-// RmBlock cleans up the ref graph for a block without performing a
-// physical delete. The Collector handles physical deletion. This
-// removes all outgoing gc/ref edges from the block, removes the
-// parent/unreferenced -> block edge, and cascades orphan detection
-// to any targets that lost their last incoming reference.
-//
-// When parentIRI is set, the parentIRI -> block edge is buffered as
-// a pending unref removal. When parentIRI is empty, the unreferenced
-// -> block edge is removed directly.
+// RmBlock buffers release of this store's parent ownership. Outgoing edges
+// belong to the immutable block and remain until the collector sweeps it.
+// FlushPending delivers the release. An unparented store owns no reference
+// to release; its staging mark remains.
 func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	iri := BlockIRI(ref)
-
-	if _, err := g.refGraph.RemoveNodeRefs(ctx, iri, true); err != nil {
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
-		return errors.Wrap(err, "remove outgoing refs")
+	if iri == "" || g.parentIRI == "" {
+		return nil
 	}
+	g.mu.Lock()
+	g.bufferReleaseLocked(iri)
+	g.mu.Unlock()
+	return nil
+}
 
-	parent := g.parentIRI
-	if parent == "" {
-		parent = NodeUnreferenced
+func (g *GCStoreOps) bufferReleaseLocked(iri string) {
+	if g.pendingReleases == nil {
+		g.pendingReleases = make(map[string]struct{})
 	}
-	return g.refGraph.RemoveRef(ctx, parent, iri)
+	g.pendingReleases[iri] = struct{}{}
 }
 
 // Sync forwards the durability barrier to the inner store. Applying buffered
@@ -374,9 +381,16 @@ func (g *GCStoreOps) BeginDeferFlush() {
 // scope ends, calls FlushPending to flush all accumulated operations
 // in one batch. Also forwards to the inner store.
 func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
-	depth := g.deferFlush.Add(-1)
-	if depth < 0 {
-		return errors.New("block gc: EndDeferFlush called more than BeginDeferFlush")
+	var depth int64
+	for {
+		depth = g.deferFlush.Load()
+		if depth == 0 {
+			return errors.New("block gc: EndDeferFlush called more than BeginDeferFlush")
+		}
+		if g.deferFlush.CompareAndSwap(depth, depth-1) {
+			depth--
+			break
+		}
 	}
 	innerErr := block.EndDeferFlush(ctx, g.store)
 	if depth == 0 {
@@ -396,6 +410,11 @@ func (g *GCStoreOps) EndDeferFlush(ctx context.Context) error {
 // returns nil without flushing. The pending operations accumulate
 // and are flushed when EndDeferFlush closes the outermost scope.
 func (g *GCStoreOps) FlushPending(ctx context.Context) error {
+	release, err := g.flushMu.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
 	if g.deferFlush.Load() > 0 {
 		return nil
 	}
@@ -407,21 +426,30 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, taskName)
 	defer task.End()
 
+	// Finish an older failed delivery before taking newer ownership changes.
+	g.mu.Lock()
+	retryAdds, retryRemoves := g.pendingAdds, g.pendingRemoves
+	g.pendingAdds, g.pendingRemoves = nil, nil
+	g.mu.Unlock()
+	if len(retryAdds)+len(retryRemoves) != 0 {
+		if err := g.flushRefEdges(ctx, retryAdds, retryRemoves); err != nil {
+			return err
+		}
+	}
+
 	g.mu.Lock()
 	unrefs := g.pendingUnref
 	refs := g.pendingRefs
 	ununrefs := g.pendingUnunref
-	pendingAdds := g.pendingAdds
-	pendingRemoves := g.pendingRemoves
+	releases := g.pendingReleases
 	g.pendingUnref = nil
 	g.pendingRefs = nil
 	g.pendingUnunref = nil
-	g.pendingAdds = nil
-	g.pendingRemoves = nil
+	g.pendingReleases = nil
 	g.mu.Unlock()
 
 	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 &&
-		len(pendingAdds) == 0 && len(pendingRemoves) == 0 {
+		len(releases) == 0 {
 		return nil
 	}
 	path := "direct"
@@ -431,13 +459,12 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	trace.Logf(
 		ctx,
 		"hydra/block-gc/store/flush-pending/pending",
-		"path=%s unrefs=%d refs=%d ununrefs=%d retry_adds=%d retry_removes=%d",
+		"path=%s unrefs=%d refs=%d ununrefs=%d releases=%d",
 		path,
 		len(unrefs),
 		len(refs),
 		len(ununrefs),
-		len(pendingAdds),
-		len(pendingRemoves),
+		len(releases),
 	)
 
 	parent := g.parentIRI
@@ -446,13 +473,11 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	}
 	// Parent-backed writes remove their staging edge in the same batch as the
 	// parent edge. RefGraph treats removal of a missing edge as a no-op.
-	adds := make([]RefEdge, 0, len(pendingAdds)+len(unrefs)+len(refs))
-	removes := make([]RefEdge, 0, len(pendingRemoves)+len(ununrefs)+len(unrefs))
-	adds = append(adds, pendingAdds...)
-	removes = append(removes, pendingRemoves...)
+	adds := make([]RefEdge, 0, len(unrefs)+len(refs)+len(releases))
+	removes := make([]RefEdge, 0, len(ununrefs)+len(unrefs)+len(releases))
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
-		if g.parentIRI != "" {
+		if _, released := releases[iri]; g.parentIRI != "" && !released {
 			removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
 		}
 	}
@@ -462,10 +487,17 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}
+	for iri := range releases {
+		// Materialize and release the owner together, so a never-published
+		// put also receives an orphan mark after the final owner check.
+		edge := RefEdge{Subject: parent, Object: iri}
+		adds = append(adds, edge)
+		removes = append(removes, edge)
+	}
 	preNormalizeAdds := len(adds)
 	preNormalizeRemoves := len(removes)
 	_, normalizeTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/normalize")
-	adds, removes = normalizeRefEdges(adds, removes)
+	adds, removes = deduplicateRefEdges(adds), deduplicateRefEdges(removes)
 	normalizeTask.End()
 	trace.Logf(
 		ctx,
@@ -481,12 +513,18 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		return nil
 	}
 
+	return g.flushRefEdges(ctx, adds, removes)
+}
+
+// flushRefEdges retains every undelivered edge before reporting an error.
+func (g *GCStoreOps) flushRefEdges(ctx context.Context, adds, removes []RefEdge) error {
 	if g.wal != nil {
 		walCtx, walTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/wal-append")
 		if err := g.wal.Append(walCtx, adds, removes); err != nil {
 			walTask.End()
+			g.rebufferEdges(adds, removes)
 			if ctx.Err() != nil {
-				return context.Canceled
+				return ctx.Err()
 			}
 			return errors.Wrap(err, "flush WAL append")
 		}
@@ -500,10 +538,10 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		if remainderAdds, remainderRemoves, ok := RefBatchRemainder(err); ok {
 			g.rebufferEdges(remainderAdds, remainderRemoves)
 		} else {
-			g.rebufferSourceBuffers(unrefs, refs, ununrefs)
+			g.rebufferEdges(adds, removes)
 		}
 		if ctx.Err() != nil {
-			return context.Canceled
+			return ctx.Err()
 		}
 		return errors.Wrap(err, "flush ref batch")
 	}
@@ -516,33 +554,30 @@ func (g *GCStoreOps) rebufferEdges(adds, removes []RefEdge) {
 		return
 	}
 	g.mu.Lock()
-	g.pendingAdds = append(append([]RefEdge(nil), adds...), g.pendingAdds...)
-	g.pendingRemoves = append(append([]RefEdge(nil), removes...), g.pendingRemoves...)
+	g.pendingAdds = append(slices.Clone(adds), g.pendingAdds...)
+	g.pendingRemoves = append(slices.Clone(removes), g.pendingRemoves...)
 	g.mu.Unlock()
 }
 
-func (g *GCStoreOps) rebufferSourceBuffers(
-	unrefs []string,
-	refs []pendingRef,
-	ununrefs []string,
-) {
-	g.mu.Lock()
-	g.pendingUnref = append(append([]string(nil), unrefs...), g.pendingUnref...)
-	g.pendingRefs = append(append([]pendingRef(nil), refs...), g.pendingRefs...)
-	g.pendingUnunref = append(append([]string(nil), ununrefs...), g.pendingUnunref...)
-	g.mu.Unlock()
-}
-
-type refEdgeKey struct {
-	subject string
-	object  string
+// deduplicateRefEdges preserves operation order and opposing changes for the
+// RefGraph to derive orphan marks before collapsing the final delta.
+func deduplicateRefEdges(edges []RefEdge) []RefEdge {
+	seen := make(map[RefEdge]struct{}, len(edges))
+	out := make([]RefEdge, 0, len(edges))
+	for _, edge := range edges {
+		if _, ok := seen[edge]; !ok {
+			seen[edge] = struct{}{}
+			out = append(out, edge)
+		}
+	}
+	return out
 }
 
 func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
-	removeKeys := make(map[refEdgeKey]struct{}, len(removes))
+	removeKeys := make(map[RefEdge]struct{}, len(removes))
 	normalizedRemoves := make([]RefEdge, 0, len(removes))
 	for _, edge := range removes {
-		key := refEdgeKey{subject: edge.Subject, object: edge.Object}
+		key := edge
 		if _, ok := removeKeys[key]; ok {
 			continue
 		}
@@ -550,10 +585,10 @@ func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
 		normalizedRemoves = append(normalizedRemoves, edge)
 	}
 
-	addKeys := make(map[refEdgeKey]struct{}, len(adds))
+	addKeys := make(map[RefEdge]struct{}, len(adds))
 	normalizedAdds := make([]RefEdge, 0, len(adds))
 	for _, edge := range adds {
-		key := refEdgeKey{subject: edge.Subject, object: edge.Object}
+		key := edge
 		if _, removed := removeKeys[key]; removed {
 			continue
 		}
@@ -569,13 +604,10 @@ func normalizeRefEdges(adds, removes []RefEdge) ([]RefEdge, []RefEdge) {
 // AddGCRef adds a gc/ref edge from subject to object and removes
 // the unreferenced edge from the object (it now has a real reference).
 func (g *GCStoreOps) AddGCRef(ctx context.Context, subject, object string) error {
-	if err := g.refGraph.AddRef(ctx, subject, object); err != nil {
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
-		return errors.Wrap(err, "add gc ref")
-	}
-	return g.refGraph.RemoveRef(ctx, NodeUnreferenced, object)
+	return g.refGraph.ApplyRefBatch(ctx,
+		[]RefEdge{{Subject: subject, Object: object}},
+		[]RefEdge{{Subject: NodeUnreferenced, Object: object}},
+	)
 }
 
 // RemoveGCRef removes a gc/ref edge from subject to object and marks
@@ -586,7 +618,7 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 		Object:  object,
 	}}); err != nil {
 		if ctx.Err() != nil {
-			return context.Canceled
+			return ctx.Err()
 		}
 		return errors.Wrap(err, "remove gc ref")
 	}

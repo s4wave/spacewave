@@ -279,10 +279,7 @@ func TestMarkerPermanentRoots(t *testing.T) {
 	if colors[NodeUnreferenced] != Black {
 		t.Errorf("unreferenced not black")
 	}
-	if colors["orphan-tracked"] != Black {
-		t.Errorf("orphan-tracked not black (reachable via unreferenced)")
-	}
-	if len(candidates) != 0 {
-		t.Errorf("unexpected sweep candidates: %v", candidates)
+	if colors["orphan-tracked"] != White || !slices.Equal(candidates, []string{"orphan-tracked"}) {
+		t.Errorf("staging marker retained garbage: colors=%v candidates=%v", colors, candidates)
 	}
 }
