@@ -33,7 +33,9 @@ func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
 	return func(c *Controller) { c.statusBroker = broker }
 }
 
-// NewFactory constructs the component factory.
+// NewFactory constructs the component factory. Hosted plugins have no local
+// listener and start with an inactive status broker; a process that owns a
+// listener injects its shared broker through WithListenerStatusBroker.
 func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,
@@ -45,7 +47,10 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
-			c := &Controller{BusController: base}
+			c := &Controller{
+				BusController: base,
+				statusBroker:  resource_listener.NewStatusBroker(),
+			}
 			for _, opt := range opts {
 				opt(c)
 			}

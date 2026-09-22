@@ -1,5 +1,16 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.7
+<2026-09-22 Tue>
+
+Spacewave 0.57.7 fixes startup in desktop and command-line release packages.
+
+** Fixes
+- Desktop and command-line executables now include the bootstrap data they need
+  to start after installation or an update.
+- Native plugin releases include the desktop renderer, and desktop status
+  reporting starts correctly when hosted in a plugin.
+
 * v0.57.6
 <2026-09-22 Tue>
 

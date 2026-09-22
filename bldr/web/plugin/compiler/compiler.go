@@ -294,6 +294,11 @@ func (c *Controller) BundleElectronHook(
 		return nil, err
 	}
 
+	// Branding changes executable resources, so sign before the manifest hashes them.
+	if err := entrypoint_electron_bundle.SignElectron(ctx, le, stateDir, buildPlatform, electronDistPath, electronBinName); err != nil {
+		return nil, err
+	}
+
 	// TODO: set webStartupSrcPath to control the root component in the WebView.
 	var webStartupSrcPath string
 
