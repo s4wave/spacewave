@@ -17,7 +17,7 @@ replace (
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d // aperture-7
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260905023630-65a0b75d77a7
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
-	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.10.2-0.20260913213951-7d7e1a12b0ec // master
+	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.10.2-0.20260922042813-73f013325281 // master
 
 	// https://github.com/wazero/wazero/pull/2479
 	// https://github.com/wazero/wazero/pull/2481
@@ -31,7 +31,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/aperturerobotics/bbolt v0.0.0-20260915093719-23c15f385f8b // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20260920182249-23f107c8d9b5 // master
+	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337 // master
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20260914072924-dabddff0abae // master

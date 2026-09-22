@@ -2,9 +2,9 @@ package world_block_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -23,6 +23,7 @@ func TestWalkBlocksCopiesObjectDescendants(t *testing.T) {
 }
 
 func testWalkBlocksCopiesObjectDescendants(t *testing.T, disableChangelog bool) {
+	t.Helper()
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	source, err := testbed.NewTestbed(ctx, le)
@@ -126,7 +127,8 @@ func testWalkBlocksCopiesObjectDescendants(t *testing.T, disableChangelog bool) 
 	if err := ws.WalkBlocks(ctx, func(context.Context, string) (block.Ctor, error) { return nil, nil }, copyBlock); err == nil {
 		t.Fatal("unknown object decoder must prevent completion")
 	}
-	if err := cursor.GetBucket().RmBlock(ctx, leaf); err != nil {
+	// Simulate lost physical data below bucket ownership and GC protection.
+	if err := source.Volume.RmBlock(ctx, leaf); err != nil {
 		t.Fatal(err)
 	}
 	clear(complete)

@@ -446,9 +446,9 @@ func (b *bucketHandle) StatBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	return b.v.StatBlock(ctx, ref)
 }
 
-// RmBlock deletes a block from the bucket.
-// Does not return an error if the block was not present.
-// In some cases, will return before confirming delete.
+// RmBlock releases the bucket's ownership through the batch mutation path.
+// With GC enabled, physical deletion waits until the collector finds no owners.
+// Removing an absent block succeeds.
 func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	if b.bucketConf == nil {
 		return nil
@@ -457,26 +457,7 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return b.readOps.RmBlock(ctx, ref)
 	}
 
-	if !b.t.c.config.GetDisableEventBlockRm() {
-		ok, err := b.v.GetBlockExists(ctx, ref)
-		if err == nil && !ok {
-			// An absent block needs no removal event.
-			return nil
-		}
-	}
-
-	// Clean up GC ref graph if available, then physically delete.
-	if b.gcOps != nil {
-		if err := b.gcOps.RmBlock(ctx, ref); err != nil {
-			return err
-		}
-	}
-	rmErr := b.v.RmBlock(ctx, ref)
-	if rmErr != nil || b.t.c.config.GetDisableEventBlockRm() {
-		return rmErr
-	}
-
-	return nil
+	return b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 }
 
 // Sync makes bucket-level GC writes durable, then fences the volume.
