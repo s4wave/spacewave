@@ -156,7 +156,6 @@ function useSessionContainerController(props: SessionContainerProps) {
   const path = usePath()
   const parentPaths = useParentPaths()
   const currentLevelPath = parentPaths[parentPaths.length - 1] ?? path
-  const accountButtonKey = peerId ?? '?'
 
   const stateNamespace = useStateNamespace(['session'])
 
@@ -289,6 +288,9 @@ function useSessionContainerController(props: SessionContainerProps) {
     : isCloudProvider
       ? 'bg-brand/15 text-brand'
       : 'bg-foreground/10 text-foreground-alt/70'
+
+  // Refresh the registered button when metadata arrives or its badge changes.
+  const accountButtonKey = `${peerId ?? '?'}/${props.metadata ? badgeLabel : ''}`
 
   const accountButton = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (
