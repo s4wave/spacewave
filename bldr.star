@@ -205,6 +205,7 @@ def release_world_config_set(
             "cacheBlockStoreId": cache_block_store_id,
         }),
     }
+    configs.update(release_world_cdn_config_set(space_id))
     if include_fetch:
         configs["release-world-fetch"] = config_entry("bldr/manifest/fetch/world", 1, {
             "engineId": RELEASE_WORLD_ENGINE_ID,
@@ -212,18 +213,23 @@ def release_world_config_set(
         })
     return configs
 
-def release_world_cdn_config_set(bucket_store_id=""):
+def release_world_cdn_config_set(space_id=RELEASE_WORLD_SPACE_ID):
+    # Published refs use the Space ID. Keep the logical name for cached refs
+    # from older releases; both buckets borrow the same CDN store.
     cdn_block_store_id = RELEASE_WORLD_BLOCK_STORE_ID
-    if bucket_store_id == "":
-        bucket_store_id = cdn_block_store_id
     return {
         "release-world-cdn-bucket": config_entry("hydra/block/store/bucket", 1, {
             "blockStoreId": cdn_block_store_id,
-            "bucketStoreId": bucket_store_id,
+            "bucketStoreId": cdn_block_store_id,
             "bucketConfig": {
                 "id": RELEASE_WORLD_BUCKET_ID,
                 "rev": 1,
             },
+        }),
+        "release-world-space-bucket": config_entry("hydra/block/store/bucket", 1, {
+            "blockStoreId": cdn_block_store_id,
+            "bucketStoreId": cdn_block_store_id,
+            "bucketConfig": {"id": space_id, "rev": 1},
         }),
     }
 
@@ -244,12 +250,12 @@ def release_world_reader_config_set(
     # read traverses the host block store rpc, so this bus opens no CDN
     # transport, no pack reader, and no writeback cache of its own. Only the
     # CDN root pointer is fetched here so the reader can build its world head.
-    return {
+    configs = {
         "release-world-cdn-store": config_entry("hydra/block/store/rpc", 1, {
             "blockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
             "serviceId": "plugin-host/" + RELEASE_WORLD_BLOCK_STORE_SERVICE_ID,
             "readOnly": True,
-            "bucketIds": [RELEASE_WORLD_BUCKET_ID],
+            "bucketIds": [space_id, RELEASE_WORLD_BUCKET_ID],
             "lookupOnStart": True,
         }),
         "release-world": config_entry("spacewave/cdn/world", 1, {
@@ -259,6 +265,8 @@ def release_world_reader_config_set(
             "suppliedBlockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
         }),
     }
+    configs.update(release_world_cdn_config_set(space_id))
+    return configs
 
 
 def spacewave_launcher_config(
@@ -280,7 +288,6 @@ def spacewave_launcher_config(
         # the Release World, so it mounts a world engine, but reads every block
         # through the plugin host's authority instead of a second CDN transport.
         config_set.update(release_world_reader_config_set())
-        config_set.update(release_world_cdn_config_set())
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
@@ -289,7 +296,6 @@ def spacewave_launcher_config(
         # Release World providers must be applied to the plugin-host bus as
         # host configuration so they mount before plugin startup begins.
         conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
-        conf["hostConfigSet"].update(release_world_cdn_config_set())
         conf["hostConfigSet"].update(release_world_serve_config_set())
     if web_go_compiler:
         conf["platformTypes"] = {
@@ -308,7 +314,6 @@ def browser_release_launcher_config(web_go_compiler=None):
         include_release_world=False,
     )
     conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
-    conf["hostConfigSet"].update(release_world_cdn_config_set())
     return conf
 
 def e2e_release_wasm_launcher_config(web_go_compiler=None):
