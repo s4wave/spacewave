@@ -12,7 +12,7 @@ import (
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
-	pion_transport "github.com/pion/transport/v4"
+	pion_transport "github.com/pion/transport/v5"
 	"github.com/pion/webrtc/v4"
 	"github.com/s4wave/spacewave/net/crypto"
 	p2ptls "github.com/s4wave/spacewave/net/crypto/tls"

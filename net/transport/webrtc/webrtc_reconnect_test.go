@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pion/logging"
-	"github.com/pion/transport/v4/vnet"
+	"github.com/pion/transport/v5/vnet"
 	"github.com/s4wave/spacewave/net/link"
 	signaling "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
