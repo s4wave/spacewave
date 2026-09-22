@@ -1,4 +1,19 @@
 
+Ð
+0.57.6
+2026-09-22…Spacewave 0.57.6 reduces unnecessary local storage growth, improves saving and synchronization, and adds more ways to open a session."…Spacewave 0.57.6 reduces unnecessary local storage growth, improves saving and synchronization, and adds more ways to open a session.2ä
+pObsolete storage roots are reclaimed while preserving current data, explicit history, forks, and active readers.pObsolete storage roots are reclaimed while preserving current data, explicit history, forks, and active readers.2À
+^Garbage collection avoids duplicate references and preserves blocks shared by multiple owners.^Garbage collection avoids duplicate references and preserves blocks shared by multiple owners.2¨
+RCompleted transactions and remote object handles release their resources promptly.RCompleted transactions and remote object handles release their resources promptly.2–
+IOpening an ordinary Space no longer fetches unrelated public CDN content.IOpening an ordinary Space no longer fetches unrelated public CDN content.2à
+nDevice pairing and synchronization recover from reconnects, publication conflicts, and interrupted enrollment.nDevice pairing and synchronization recover from reconnects, publication conflicts, and interrupted enrollment.2è
+rNative plugins replace their executable before launch, and canceled Forge work stops and drains before completion.rNative plugins replace their executable before launch, and canceled Forge work stops and drains before completion.2–
+ICLI tables render correctly, and terminal commands open independent tabs.ICLI tables render correctly, and terminal commands open independent tabs.:º
+[Sign-in offers cloud accounts, local accounts, device pairing, and existing database files.[Sign-in offers cloud accounts, local accounts, device pairing, and existing database files.:¼
+\Saving batches storage work and reuses unchanged snapshot indexes, reducing repeated writes.\Saving batches storage work and reuses unchanged snapshot indexes, reducing repeated writes.:°
+VGit file reads seek directly into stored archives instead of loading entire packfiles.VGit file reads seek directly into stored archives instead of loading entire packfiles.:°
+VBrowser startup defers optional viewers and preserves loading progress between stages.VBrowser startup defers optional viewers and preserves loading progress between stages.:ò
+wDevelopers can build isolated applications with persistent World-backed storage and typed, recoverable synchronization.wDevelopers can build isolated applications with persistent World-backed storage and typed, recoverable synchronization.
 ï
 0.57.5
 2026-09-08¨Spacewave 0.57.5 speeds up browser startup and local storage, improves connection recovery, and preserves more useful collaboration history. This release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated."¨Spacewave 0.57.5 speeds up browser startup and local storage, improves connection recovery, and preserves more useful collaboration history. This release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated.2’

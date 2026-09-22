@@ -1,5 +1,37 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.6
+<2026-09-22 Tue>
+
+Spacewave 0.57.6 reduces unnecessary local storage growth, improves saving and
+synchronization, and adds more ways to open a session.
+
+** Improvements
+- Sign-in offers cloud accounts, local accounts, device pairing, and existing
+  database files.
+- Saving batches storage work and reuses unchanged snapshot indexes, reducing
+  repeated writes.
+- Git file reads seek directly into stored archives instead of loading entire
+  packfiles.
+- Browser startup defers optional viewers and preserves loading progress between
+  stages.
+- Developers can build isolated applications with persistent World-backed
+  storage and typed, recoverable synchronization.
+
+** Fixes
+- Obsolete storage roots are reclaimed while preserving current data, explicit
+  history, forks, and active readers.
+- Garbage collection avoids duplicate references and preserves blocks shared by
+  multiple owners.
+- Completed transactions and remote object handles release their resources
+  promptly.
+- Opening an ordinary Space no longer fetches unrelated public CDN content.
+- Device pairing and synchronization recover from reconnects, publication
+  conflicts, and interrupted enrollment.
+- Native plugins replace their executable before launch, and canceled Forge work
+  stops and drains before completion.
+- CLI tables render correctly, and terminal commands open independent tabs.
+
 * v0.57.5
 <2026-09-08 Tue>
 
