@@ -18,16 +18,19 @@ func (s *CoreRootServer) GetCdn(
 	ctx context.Context,
 	req *s4wave_root.GetCdnRequest,
 ) (*s4wave_root.GetCdnResponse, error) {
+	// Resolve the caller's resource lifetime before accessing the CDN.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reuse the process-wide instance for the requested CDN.
 	instance, err := s.cdnRegistry.Lookup(req.GetCdnId())
 	if err != nil {
 		return nil, err
 	}
 
+	// Mount a client resource without transferring the shared instance's lifetime.
 	cdnResource := resource_cdn.NewCdnResource(s.le, s.b, instance)
 	id, err := resourceCtx.AddResource(cdnResource.GetMux(), func() {})
 	if err != nil {
@@ -49,14 +52,14 @@ func (s *CoreRootServer) GetCdn(
 func (s *CoreRootServer) lookupCdnSharedObject(
 	sharedObjectID string,
 ) (sobject.SharedObject, *sobject.SharedObjectMeta) {
+	// An absent Space ID must not resolve through the default CDN alias.
 	if sharedObjectID == "" {
 		return nil, nil
 	}
-	inst, err := s.cdnRegistry.Lookup("") // empty = default ID
+
+	// Let the registry reject ordinary Spaces before initializing any transport.
+	inst, err := s.cdnRegistry.Lookup(sharedObjectID)
 	if err != nil || inst == nil {
-		return nil, nil
-	}
-	if inst.GetSpaceID() != sharedObjectID {
 		return nil, nil
 	}
 	cdnSO := inst.GetSharedObject()

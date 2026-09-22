@@ -17,19 +17,20 @@ var ErrUnknownCdn = errors.New("unknown cdn id")
 // ErrRegistryClosed is returned when a lookup occurs after registry shutdown.
 var ErrRegistryClosed = errors.New("cdn registry is closed")
 
-// Registry owns the process-scoped map of CdnInstances keyed by cdn_id.
-// The default instance (empty id) is lazily constructed on first lookup
-// against the production or SPACEWAVE_CDN_SPACE_ID-overridden Space id.
-// Future configs can register additional instances via a constructor
-// extension once the first non-default CDN is introduced.
+// Registry owns one process-scoped instance per canonical CDN Space ID.
+// The empty ID and configured Space ID resolve to the same lazy instance.
 type Registry struct {
+	// le records CDN failures.
 	le *logrus.Entry
-	b  bus.Bus
-
-	ctx       context.Context
+	// b resolves shared CDN resources.
+	b bus.Bus
+	// ctx bounds instance refresh routines until Close.
+	ctx context.Context
+	// ctxCancel ends the registry lifetime.
 	ctxCancel context.CancelFunc
-
-	mtx       sync.Mutex
+	// mtx guards instances and lazy construction.
+	mtx sync.Mutex
+	// instances holds mounted CDNs, or nil after Close.
 	instances map[string]*CdnInstance
 }
 
@@ -50,27 +51,30 @@ func NewRegistry(le *logrus.Entry, b bus.Bus) *Registry {
 	}
 }
 
-// Lookup returns the CdnInstance registered under cdnID, constructing the
-// default slot on first call. Unknown non-default ids return ErrUnknownCdn.
+// Lookup returns the shared instance for the empty alias or configured CDN ID.
+// Unknown IDs return ErrUnknownCdn without initializing or fetching a CDN.
 func (r *Registry) Lookup(cdnID string) (*CdnInstance, error) {
-	if cdnID != "" && cdnID != cdn.SpaceID() {
+	// Validate before lazy construction and canonicalize both accepted names.
+	spaceID := cdn.SpaceID()
+	if cdnID != "" && cdnID != spaceID {
 		return nil, errors.Wrapf(ErrUnknownCdn, "cdn id %q", cdnID)
 	}
 
+	// Serialize construction so all aliases share the same instance and cache.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if r.instances == nil {
 		return nil, ErrRegistryClosed
 	}
-	if inst, ok := r.instances[cdnID]; ok {
+	if inst, ok := r.instances[spaceID]; ok {
 		return inst, nil
 	}
 
-	inst, err := newCdnInstance(r.ctx, r.le, r.b, cdn.SpaceID())
+	inst, err := newCdnInstance(r.ctx, r.le, r.b, spaceID)
 	if err != nil {
 		return nil, err
 	}
-	r.instances[cdnID] = inst
+	r.instances[spaceID] = inst
 	return inst, nil
 }
 
@@ -81,16 +85,17 @@ func (r *Registry) Lookup(cdnID string) (*CdnInstance, error) {
 // so future CDNs that this process has not registered yet do not produce
 // spurious errors. Returns true when a matching instance was found.
 func (r *Registry) NotifyRootChanged(spaceID string) bool {
+	// Ignore notifications without a Space identity.
 	if spaceID == "" {
 		return false
 	}
+
+	// Refresh only an instance already mounted by a consumer.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	for _, inst := range r.instances {
-		if inst.GetSpaceID() == spaceID {
-			inst.Refresh()
-			return true
-		}
+	if inst := r.instances[spaceID]; inst != nil {
+		inst.Refresh()
+		return true
 	}
 	return false
 }
@@ -98,11 +103,13 @@ func (r *Registry) NotifyRootChanged(spaceID string) bool {
 // Close tears down every registered instance and cancels the registry
 // lifecycle context. Safe to call more than once.
 func (r *Registry) Close() {
+	// Withdraw the registry before releasing any mounted instance.
 	r.mtx.Lock()
 	instances := r.instances
 	r.instances = nil
 	r.mtx.Unlock()
 
+	// End refresh routines and their shared block-store caches.
 	for _, inst := range instances {
 		inst.Close()
 	}
