@@ -1,5 +1,5 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   resolvePath,
@@ -27,6 +27,52 @@ import type { Root } from '@s4wave/sdk/root/root.js'
 import { consumeQuickstartSessionHandoff } from './quickstart/session-handoff.js'
 import { markQuickstartStartupBoundary } from './quickstart/startup-boundary.js'
 
+// useSessionAttachmentVersion changes only when an established Session moves
+// between provider accounts. Initial metadata hydration describes the Session
+// already being mounted and must not restart that mount.
+function useSessionAttachmentVersion(
+  sessionIdx: number | null,
+  attachmentKey: string | null,
+  deferRefresh: boolean,
+): number {
+  const [version, setVersion] = useState(0)
+  const attachment = useRef<{
+    sessionIdx: number | null
+    key: string | null
+  }>({ sessionIdx, key: null })
+  const refreshPending = useRef(false)
+
+  useEffect(() => {
+    if (attachment.current.sessionIdx !== sessionIdx) {
+      attachment.current = { sessionIdx, key: attachmentKey }
+      refreshPending.current = false
+      return
+    }
+    if (attachmentKey === null) return
+    if (attachment.current.key === null) {
+      attachment.current.key = attachmentKey
+      return
+    }
+    if (attachment.current.key === attachmentKey) return
+
+    attachment.current.key = attachmentKey
+    if (deferRefresh) {
+      refreshPending.current = true
+      return
+    }
+    refreshPending.current = false
+    setVersion((value) => value + 1)
+  }, [attachmentKey, deferRefresh, sessionIdx])
+
+  useEffect(() => {
+    if (deferRefresh || !refreshPending.current) return
+    refreshPending.current = false
+    setVersion((value) => value + 1)
+  }, [deferRefresh])
+
+  return version
+}
+
 // AppSession handles the /u/{session-idx}/* path.
 export function AppSession() {
   const environment = useAppEnvironment()
@@ -43,9 +89,15 @@ export function AppSession() {
   // Pairing keeps its original Session until the user leaves the flow so its
   // approval and completion remain available through an account transition.
   const isPairing = /\/(?:pair|setup\/link-device)(?:\/|$)/.test(path)
-  const attachmentKey = isPairing
-    ? undefined
-    : `${metadata?.providerId ?? ''}/${metadata?.providerAccountId ?? ''}`
+  const attachmentKey =
+    metadata?.providerId && metadata.providerAccountId
+      ? `${metadata.providerId}/${metadata.providerAccountId}`
+      : null
+  const attachmentVersion = useSessionAttachmentVersion(
+    sessionIdx,
+    attachmentKey,
+    isPairing,
+  )
 
   const isPinLocked = metadata?.lockMode === SessionLockMode.PIN_ENCRYPTED
 
@@ -114,7 +166,7 @@ export function AppSession() {
       })
       return cleanup(result.session)
     },
-    [sessionIdx, attachmentKey],
+    [sessionIdx, attachmentVersion],
     {
       onSuccess: () => {
         markInteracted(environment.storage)

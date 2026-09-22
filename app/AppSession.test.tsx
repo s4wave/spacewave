@@ -203,9 +203,46 @@ describe('AppSession', () => {
 
     mockUsePath.mockReturnValue('/u/1/so/drive')
     rerender(<AppSession />)
-    expect(dependencies()).toEqual([1, 'local/destination'])
+    expect(dependencies()).toEqual([1, 1])
     mockUsePath.mockReturnValue('/u/1/so/another-drive')
     rerender(<AppSession />)
-    expect(dependencies()).toEqual([1, 'local/destination'])
+    expect(dependencies()).toEqual([1, 1])
+  })
+
+  it('does not remount when initial Session metadata arrives', () => {
+    mockUseParams.mockReturnValue({ sessionIndex: '1' })
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockUseResource.mockReturnValue({ value: null, loading: true })
+    mockUseSessionMetadata.mockReturnValue(null)
+    const { rerender } = render(<AppSession />)
+    const dependencies = () => mockUseResource.mock.lastCall?.[2]
+    expect(dependencies()).toEqual([1, 0])
+
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      providerAccountId: 'source',
+    })
+    rerender(<AppSession />)
+    expect(dependencies()).toEqual([1, 0])
+  })
+
+  it('remounts when an established Session moves accounts', () => {
+    mockUseParams.mockReturnValue({ sessionIndex: '1' })
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockUseResource.mockReturnValue({ value: null, loading: true })
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      providerAccountId: 'source',
+    })
+    const { rerender } = render(<AppSession />)
+    const dependencies = () => mockUseResource.mock.lastCall?.[2]
+    expect(dependencies()).toEqual([1, 0])
+
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      providerAccountId: 'destination',
+    })
+    rerender(<AppSession />)
+    expect(dependencies()).toEqual([1, 1])
   })
 })

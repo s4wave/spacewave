@@ -88,7 +88,6 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 func waitPairingPageCopy(t *testing.T, page playwright.Page, accountID string, ids ...string) uint32 {
 	t.Helper()
 	result, err := page.Evaluate(`async ({ accountID, ids }) => {
-		const root = globalThis.__s4wave_debug.root
 		const deadline = Date.now() + 120000
 		let latest = null
 		let lastError = null
@@ -97,6 +96,7 @@ func waitPairingPageCopy(t *testing.T, page playwright.Page, accountID string, i
 			let session = null
 			let invariantError = null
 			try {
+				const root = globalThis.__s4wave_debug.root
 				const entries = (await root.listSessions(signal)).sessions ?? []
 				const entry = entries.find(
 					(entry) => entry.sessionRef?.providerResourceRef?.providerAccountId === accountID,
