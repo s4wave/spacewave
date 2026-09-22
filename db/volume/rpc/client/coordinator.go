@@ -68,6 +68,12 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 		cancel()
 		return nil, normalizeCoordError(err)
 	}
+	// The server acknowledges after registering its underlying watch. Waiting
+	// here closes the gap where non-generational contention events could be lost.
+	if _, err := stream.Recv(); err != nil {
+		cancel()
+		return nil, normalizeCoordError(err)
+	}
 
 	watch := &watch{
 		stream:  stream,

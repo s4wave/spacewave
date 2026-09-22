@@ -162,6 +162,12 @@ func (v *ProxyVolume) WatchCoordinatorEvents(
 	}
 	defer watch.Close()
 
+	// Acknowledge registration before the client can initiate work whose
+	// non-generational events must be observed by this watch.
+	if err := strm.Send(&volume_rpc.WatchCoordinatorEventsResponse{}); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-ctx.Done():

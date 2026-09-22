@@ -83,31 +83,68 @@ func TestPairingBrowserDesktopJourney(t *testing.T) {
 }
 
 // waitPairingPageCopy checks the actual SDK stream exposed by either runtime.
-// Session totals must equal their peer breakdown before the file is accepted.
+// Account transitions can replace a mounted resource, so the watch remounts
+// within one deadline. Session totals must equal their peer breakdown.
 func waitPairingPageCopy(t *testing.T, page playwright.Page, accountID string, ids ...string) uint32 {
 	t.Helper()
 	result, err := page.Evaluate(`async ({ accountID, ids }) => {
 		const root = globalThis.__s4wave_debug.root
-		const signal = AbortSignal.timeout(120000)
-		const entries = (await root.listSessions(signal)).sessions ?? []
-		const entry = entries.find((entry) => entry.sessionRef?.providerResourceRef?.providerAccountId === accountID)
-		if (!entry) throw new Error('paired account has no Session')
-		const { session } = await root.mountSessionByIdx({ sessionIdx: entry.sessionIndex }, signal)
-		if (!session) throw new Error('paired Session did not mount')
+		const deadline = Date.now() + 120000
 		let latest = null
-		try {
-			for await (const state of session.watchSyncStatus({}, signal)) {
-				latest = state
-				const uploaded = (state.peers ?? []).reduce((sum, peer) => sum + BigInt(peer.uploadedBytes ?? 0), 0n)
-				const downloaded = (state.peers ?? []).reduce((sum, peer) => sum + BigInt(peer.downloadedBytes ?? 0), 0n)
-				if (uploaded !== BigInt(state.peerUploadBytes ?? 0) || downloaded !== BigInt(state.peerDownloadBytes ?? 0)) throw new Error('peer byte totals differ from Session totals')
-				if (ids.every((id) => state.localCopies?.some((copy) => copy.sharedObjectId === id && copy.complete))) return entry.sessionIndex
+		let lastError = null
+		while (Date.now() < deadline) {
+			const signal = AbortSignal.timeout(Math.min(10000, deadline - Date.now()))
+			let session = null
+			let invariantError = null
+			try {
+				const entries = (await root.listSessions(signal)).sessions ?? []
+				const entry = entries.find(
+					(entry) => entry.sessionRef?.providerResourceRef?.providerAccountId === accountID,
+				)
+				if (!entry) throw new Error('paired account has no Session')
+				const mounted = await root.mountSessionByIdx(
+					{ sessionIdx: entry.sessionIndex },
+					signal,
+				)
+				session = mounted.session
+				if (!session) throw new Error('paired Session did not mount')
+				for await (const state of session.watchSyncStatus({}, signal)) {
+					latest = state
+					const uploaded = (state.peers ?? []).reduce(
+						(sum, peer) => sum + BigInt(peer.uploadedBytes ?? 0),
+						0n,
+					)
+					const downloaded = (state.peers ?? []).reduce(
+						(sum, peer) => sum + BigInt(peer.downloadedBytes ?? 0),
+						0n,
+					)
+					const totalsMatch =
+						uploaded === BigInt(state.peerUploadBytes ?? 0) &&
+						downloaded === BigInt(state.peerDownloadBytes ?? 0)
+					if (!totalsMatch) {
+						invariantError = new Error('peer byte totals differ from Session totals')
+						throw invariantError
+					}
+					const copied = ids.every((id) => state.localCopies?.some(
+						(copy) => copy.sharedObjectId === id && copy.complete,
+					))
+					if (copied) return entry.sessionIndex
+				}
+				lastError = new Error('copy stream closed before files became durable')
+			} catch (error) {
+				if (error === invariantError) throw error
+				lastError = error
+			} finally {
+				try {
+					session?.release()
+				} catch (error) {
+					lastError = error
+				}
 			}
-			throw new Error('copy stream closed before files became durable')
-		} catch (error) {
-			const state = JSON.stringify(latest, (_, value) => typeof value === 'bigint' ? value.toString() : value)
-			throw new Error('copy state for ' + accountID + ' / ' + ids.join(', ') + ': ' + state, { cause: error })
-		} finally { session.release() }
+			await new Promise((resolve) => setTimeout(resolve, 100))
+		}
+		const state = JSON.stringify(latest, (_, value) => typeof value === 'bigint' ? value.toString() : value)
+		throw new Error('copy state for ' + accountID + ' / ' + ids.join(', ') + ': ' + state + '; last error: ' + lastError)
 	}`, map[string]any{"accountID": accountID, "ids": ids})
 	if err != nil {
 		t.Fatal(err)
