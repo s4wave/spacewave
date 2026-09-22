@@ -950,7 +950,7 @@
     },
     {
       "name": "github.com/bwesterb/go-ristretto",
-      "version": "v1.2.3",
+      "version": "v1.2.4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/bwesterb/go-ristretto",
