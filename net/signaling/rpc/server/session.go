@@ -12,13 +12,13 @@ import (
 type sessionTracker struct {
 	// wait is a channel that is closed when below changes.
 	wait chan struct{}
-	// seqno is incremented when peerA or peerB changes
+	// seqno is incremented when peerA or peerB changes.
 	seqno uint64
 	// peerA is the tracker for peer A.
-	// nil until connected
+	// nil until connected.
 	peerA *sessionPeerTracker
 	// peerB is the tracker for peer B.
-	// nil until connected
+	// nil until connected.
 	peerB *sessionPeerTracker
 }
 
@@ -30,10 +30,10 @@ type sessionPeerTracker struct {
 	// if set, recv is nil.
 	recvSent *uint64
 	// recvClear indicates the remote end cleared a packet w/o acking.
-	// this clear will be transmitted to the local peer
+	// this clear will be transmitted to the local peer.
 	recvClear *uint64
 	// outAcked indicates a remote peer acked a packet.
-	// this ack will be transmitted to the local peer
+	// this ack will be transmitted to the local peer.
 	outAcked *uint64
 }
 
@@ -47,7 +47,7 @@ func (t *sessionTracker) getWaitCh() <-chan struct{} {
 	return wait
 }
 
-// broadcast closes the wait channel if any
+// broadcast closes the wait channel if any.
 func (t *sessionTracker) broadcast() {
 	if t.wait != nil {
 		close(t.wait)
@@ -56,13 +56,11 @@ func (t *sessionTracker) broadcast() {
 }
 
 // getCurrPeers returns the current peers for the session.
-func (t *sessionTracker) getCurrPeers(srcIsPeerA bool) (currSrcPeer, currDstPeer *sessionPeerTracker) {
+func (t *sessionTracker) getCurrPeers(srcIsPeerA bool) (*sessionPeerTracker, *sessionPeerTracker) {
 	if srcIsPeerA {
-		currSrcPeer, currDstPeer = t.peerA, t.peerB
-	} else {
-		currSrcPeer, currDstPeer = t.peerB, t.peerA
+		return t.peerA, t.peerB
 	}
-	return
+	return t.peerB, t.peerA
 }
 
 // checkSeqno checks if a seqno is equal to the current and is a reasonable value.
@@ -74,14 +72,14 @@ func (t *sessionTracker) checkSeqno(seqno uint64) (bool, error) {
 	return t.seqno == seqno, nil
 }
 
-// sessionKey is the key for the sessions map
+// sessionKey is the key for the sessions map.
 type sessionKey struct {
-	// peerA is the lower-sorted peer ID string
+	// peerA is the lower-sorted peer ID string; peerB is the other peer.
 	peerA, peerB string
 }
 
 // newSessionKey constructs a session key from two session peer ids.
-// returns true if p1 is peer A and false if p1 is peer B.
+// Returns true if p1 is peer A and false if p1 is peer B.
 func newSessionKey(p1, p2 string) (sessionKey, bool) {
 	if strings.Compare(p1, p2) < 0 {
 		return sessionKey{peerA: p1, peerB: p2}, true
@@ -91,6 +89,7 @@ func newSessionKey(p1, p2 string) (sessionKey, bool) {
 
 // Session opens a session with a remote peer.
 func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
+	// Bind the stream to its authenticated source peer.
 	ctx := strm.Context()
 	srcPeerID, err := s.ident(ctx)
 	if err != nil {
@@ -109,6 +108,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		return err
 	}
 
+	// Resolve the destination before registering either session endpoint.
 	peerID, err := req.GetInit().ParsePeerID()
 	if err != nil {
 		le.WithError(err).Warn("invalid destination peer id")
@@ -124,6 +124,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		return errors.New("signaling: cannot open session with self")
 	}
 
+	// Create the endpoint identity used to fence replacement and cleanup.
 	le = le.WithField("dst-peer", dstPeerIDStr)
 	le.Debug("signaling: server: starting session")
 	sessKey, localIsPeerA := newSessionKey(srcPeerIDStr, dstPeerIDStr)
@@ -146,11 +147,12 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	} else {
 		sess.peerB = ourPeerTkr
 	}
-	// If there was a remote attached previously, clear any pending state.
+	// Pending messages and acknowledgments belong to the replaced generation.
 	if _, prevRemotePeer := sess.getCurrPeers(localIsPeerA); prevRemotePeer != nil {
-		prevRemotePeer.recv, prevRemotePeer.recvSent = nil, nil
+		*prevRemotePeer = sessionPeerTracker{}
 	}
 
+	// Publish the new generation after both endpoint slots are consistent.
 	sess.seqno++
 	sess.broadcast()
 
@@ -171,8 +173,8 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			*currLocalPeer = nil
 			// Get the current remote peer.
 			if _, currRemotePeer := sess.getCurrPeers(localIsPeerA); currRemotePeer != nil {
-				// Clear the pending packet to recv if any.
-				currRemotePeer.recv, currRemotePeer.recvSent = nil, nil
+				// Drop all control state from the closed generation.
+				*currRemotePeer = sessionPeerTracker{}
 			}
 			sess.seqno++
 			sess.broadcast()
@@ -270,6 +272,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 				currRemotePeer.recvSent = nil
 				currRemotePeer.recvClear = &clear
 			}
+			sess.broadcast()
 		}
 
 		return nil
@@ -285,7 +288,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 				return
 			}
 
-			// le.Debugf("signaling: server: got packet: %v", msg.String())
+			// Apply the request only to its announced session generation.
 			sessSeqno := msg.GetSessionSeqno()
 			switch bdy := msg.GetBody().(type) {
 			case *signaling.SessionRequest_AckMsg:
@@ -304,27 +307,27 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		}
 	}()
 
-	// Start write / monitor loop.
+	// Reconcile endpoint state before waiting for another change. Zero denotes
+	// a closed session; copy the sequence value so replacement remains visible
+	// even when the session never transitions through an observed closed state.
 	var waitCh <-chan struct{}
-	var prevSentOpenToLocal *uint64 // Tracks if we have sent open=true to the local peer.
+	var prevSentOpenToLocal uint64
 	for {
 		s.mtx.Lock()
 		// Check if we are still the active session for this key.
 		currLocalPeer, currRemotePeer := sess.getCurrPeers(localIsPeerA)
-		currUserped := currLocalPeer != ourPeerTkr
-		var currOpen *uint64
-		var currOpenSeqno uint64
+		currUsurped := currLocalPeer != ourPeerTkr
+		var currOpen uint64
 		if currRemotePeer != nil {
-			currOpen = &sess.seqno
-			currOpenSeqno = sess.seqno
+			currOpen = sess.seqno
 		}
 		waitCh = sess.getWaitCh()
 
-		// If we aren't userped & stream is open check if there is a message to send or clear.
+		// Snapshot pending protocol messages for this active endpoint.
 		var msgToRecv *signaling.SessionMsg
 		var msgToAck *uint64
 		var msgToClear *uint64
-		if !currUserped && currOpen != nil {
+		if !currUsurped && currOpen != 0 {
 			// Get the message the remote peer wants to send out or clear or ack.
 			msgToRecv, msgToClear, msgToAck = currLocalPeer.recv, currLocalPeer.recvClear, currLocalPeer.outAcked
 			currLocalPeer.recv, currLocalPeer.recvClear, currLocalPeer.outAcked = nil, nil, nil
@@ -338,24 +341,22 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 		}
 		s.mtx.Unlock()
 
-		// If userped, return.
-		if currUserped {
+		// A replacement endpoint owns the session from this point forward.
+		if currUsurped {
 			return signaling.ErrUserpedSession
 		}
 
-		// Send the opened or closed message if opened or closed.
+		// Announce every generation change before delivering its messages.
 		if prevSentOpenToLocal != currOpen {
 			var err error
-			if currOpen != nil {
+			if currOpen != 0 {
 				err = strm.Send(&signaling.SessionResponse{
-					Body: &signaling.SessionResponse_Opened{Opened: currOpenSeqno},
-				},
-				)
+					Body: &signaling.SessionResponse_Opened{Opened: currOpen},
+				})
 			} else {
 				err = strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_Closed{Closed: true},
-				},
-				)
+				})
 			}
 			if err != nil {
 				return err
@@ -363,10 +364,10 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			prevSentOpenToLocal = currOpen
 		}
 
-		if currOpen != nil {
+		// Forward the pending acknowledgment, cancellation, and payload in order.
+		if currOpen != 0 {
 			// Ack msg
 			if msgToAck != nil {
-				// le.Debugf("signaling: server: sending ack msg: %v", *msgToAck)
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_AckMsg{AckMsg: *msgToAck},
 				}); err != nil {
@@ -376,7 +377,6 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 			// Clear msg
 			if msgToClear != nil {
-				// le.Debugf("signaling: server: sending clear msg: %v", *msgToClear)
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_ClearMsg{ClearMsg: *msgToClear},
 				}); err != nil {
@@ -386,7 +386,6 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 			// Tx message
 			if msgToRecv != nil {
-				// le.Debugf("signaling: server: sending tx msg: %v", msgToRecv.String())
 				if err := strm.Send(&signaling.SessionResponse{
 					Body: &signaling.SessionResponse_RecvMsg{RecvMsg: msgToRecv},
 				}); err != nil {
@@ -395,6 +394,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			}
 		}
 
+		// Resume on endpoint changes, incoming protocol errors, or shutdown.
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -416,7 +416,7 @@ func (s *Server) getSession(sess sessionKey) (*sessionTracker, bool) {
 }
 
 // maybeReleaseSession releases the session tracker if it has no references.
-// returns if it was found & released
+// Returns if it was found and released.
 func (s *Server) maybeReleaseSession(sess sessionKey) bool {
 	tkr := s.sessions[sess]
 	if tkr == nil || tkr.peerA != nil || tkr.peerB != nil {
