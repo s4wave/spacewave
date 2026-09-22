@@ -151,6 +151,9 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 							_, commitErr = e.engine.writeBlockStore.Sync(ctx)
 						}
 						if commitErr == nil {
+							commitErr = block.MarkRootComplete(ctx, e.engine.writeBlockStore, nroot)
+						}
+						if commitErr == nil {
 							commitErr = e.engine.validateRootRefLocked(ctx, nextRootRef)
 						}
 						if errors.Is(commitErr, block.ErrNotFound) {

@@ -111,7 +111,7 @@ func buildSnapshot(
 	}
 	defer state.Discard()
 	if base != nil {
-		state.snapshotBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
+		state.localBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
 	}
 
 	if err := populate(ctx, state); err != nil {
@@ -132,9 +132,9 @@ func buildSnapshot(
 	return root, nil
 }
 
-// localSnapshotObjectRef keeps newly written bodies in the snapshot DAG.
-func (t *WorldState) localSnapshotObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
-	if t.snapshotBucketID == "" || ref.GetRootRef() == nil || ref.GetBucketId() != t.snapshotBucketID {
+// localObjectRef keeps same-bucket bodies in the World DAG.
+func (t *WorldState) localObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
+	if t.localBucketID == "" || ref.GetRootRef() == nil || ref.GetBucketId() != t.localBucketID {
 		return ref
 	}
 	local := ref.Clone()

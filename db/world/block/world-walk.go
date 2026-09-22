@@ -20,15 +20,19 @@ type WalkBlocksOptions struct {
 
 // WalkBlocks visits World metadata and each current object's complete block graph.
 // resolve supplies dynamic object decoders; an unknown type prevents completion.
+// visit receives encoded bytes and outgoing dependencies after their descendants.
 // Callbacks are sequential. Completion records prune unchanged Merkle branches.
 // The caller serializes World access and keeps retained bytes through later walks.
-func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Context, string) (block.Ctor, error), visit func(*block.BlockRef, []byte) error, options ...*WalkBlocksOptions) error {
+func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Context, string) (block.Ctor, error), visit func(*block.BlockRef, []byte, []*block.BlockRef) error, options ...*WalkBlocksOptions) error {
 	var opts *WalkBlocksOptions
 	if len(options) != 0 {
 		opts = options[0]
 	}
 	var walk func(*bucket_lookup.WalkObjectBlocksEntry, block.StoreOps, block.Transformer, string) error
 	walk = func(root *bucket_lookup.WalkObjectBlocksEntry, store block.StoreOps, xfrm block.Transformer, domain string) error {
+		// Dynamic object bodies can name another bucket. Once copied, their
+		// local bytes are dependencies of the copied object record as well.
+		dynamicRefs := make(map[*bucket_lookup.WalkObjectBlocksEntry][]*block.BlockRef)
 		return bucket_lookup.WalkObjectGraph(ctx, root, func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
 			if entry.Err != nil {
 				return false, entry.Err
@@ -44,9 +48,6 @@ func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Contex
 				if err != nil || known {
 					return false, err
 				}
-			}
-			if err := visit(entry.Ref, entry.Data); err != nil {
-				return false, err
 			}
 			if domain != "objects" || entry.Ctor != nil {
 				return true, nil
@@ -92,9 +93,24 @@ func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Contex
 			err = object.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 				return walk(bucket_lookup.NewWalkObjectBlocksWithRef(objectRef.GetRootRef(), ctor), cursor.GetBucket(), cursor.GetTransformer(), "type/"+typeID)
 			})
+			if err == nil {
+				dynamicRefs[entry] = []*block.BlockRef{objectRef.GetRootRef(), objectRef.GetTransformConfRef()}
+			}
 			return err == nil, err
 		}, func(entry *bucket_lookup.WalkObjectBlocksEntry) error {
-			if opts != nil && opts.Complete != nil && !entry.IsSubBlock && !entry.Ref.GetEmpty() {
+			if entry.IsSubBlock || entry.Ref.GetEmpty() {
+				return nil
+			}
+			refs, err := block.ExtractBlockRefs(entry.Blk)
+			if err != nil {
+				return err
+			}
+			refs = append(refs, dynamicRefs[entry]...)
+			delete(dynamicRefs, entry)
+			if err := visit(entry.Ref, entry.Data, refs); err != nil {
+				return err
+			}
+			if opts != nil && opts.Complete != nil {
 				return opts.Complete(domain, entry.Ref)
 			}
 			return nil
@@ -103,12 +119,12 @@ func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Contex
 
 	// Metadata and dynamic object graphs have distinct completion domains: a
 	// copied opaque value does not prove that its typed descendants were copied.
-	if err := walk(bucket_lookup.NewWalkObjectBlocksWithRef(t.GetRootRef(), NewWorldBlock), t.store, t.xfrm, "metadata"); err != nil {
-		return err
-	}
 	root, err := t.GetRoot(ctx)
 	if err != nil {
 		return err
 	}
-	return walk(bucket_lookup.NewWalkObjectBlocksWithSubBlock(root.GetObjectKeyValue()), t.store, t.xfrm, "objects")
+	if err := walk(bucket_lookup.NewWalkObjectBlocksWithSubBlock(root.GetObjectKeyValue()), t.store, t.xfrm, "objects"); err != nil {
+		return err
+	}
+	return walk(bucket_lookup.NewWalkObjectBlocksWithRef(t.GetRootRef(), NewWorldBlock), t.store, t.xfrm, "metadata")
 }

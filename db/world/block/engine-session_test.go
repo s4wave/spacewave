@@ -20,7 +20,9 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/db/volume"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -87,6 +89,7 @@ type sessionFixture struct {
 	engine    *Engine
 	publisher *sessionPublisher
 	db        *bdb.DB
+	volume    volume.Volume
 	load      func(context.Context) (*bucket.ObjectRef, error)
 	legacy    atomic.Int64
 }
@@ -117,7 +120,7 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(rel)
-	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}, db: volume_bolt.GetBoltDB(tb.Volume)}
+	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}, db: volume_bolt.GetBoltDB(tb.Volume), volume: tb.Volume}
 	if f.db == nil || f.db.NoSync || f.db.NoFreelistSync {
 		t.Fatal("test requires durable native Bolt")
 	}
@@ -262,7 +265,9 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	f := newSessionFixture(t)
 	initial := f.engine.GetRootRef()
 	g := f.publisher.arm(t, nil)
-	before := f.db.CommitCounter()
+	before := f.volume.(interface {
+		GetPublicationStats() volume_kvtx.PublicationStats
+	}).GetPublicationStats().PhysicalCommits
 	first := sessionWriter(t, f)
 	sessionObject(t, first, "one")
 	r1 := sessionSubmit(t, first)
@@ -301,7 +306,9 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	if err := sessionWait(t, r2); err != nil {
 		t.Fatal(err)
 	}
-	if n := f.db.CommitCounter() - before; n != 1 {
+	if n := f.volume.(interface {
+		GetPublicationStats() volume_kvtx.PublicationStats
+	}).GetPublicationStats().PhysicalCommits - before; n != 1 {
 		t.Fatalf("two revisions used %d physical commits, want 1", n)
 	}
 	reader2, err := f.engine.NewBlockEngineTransaction(t.Context(), false)

@@ -247,8 +247,8 @@ func TestExecuteGCSweepMaintenanceQueuesThresholdJournal(t *testing.T) {
 	}
 }
 
-// TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep reconciles remote deletions through authorized signed maintenance operations.
-func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
+// Remote changes must not replicate a second graph of physical ownership.
+func TestTwoPeerRemoteDeleteDoesNotReplicateGCBookkeeping(t *testing.T) {
 	ctx := t.Context()
 
 	c, so, headState := newProcessTestWorld(t, ctx)
@@ -279,52 +279,24 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 
 	deleteHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
 	pending := getGCSweepTestJournalEntries(t, ctx, c, so, deleteHead)
-	if pending <= baselineEntries {
-		t.Fatalf("remote deletes left %d pending gc journal entries, want more than baseline %d", pending, baselineEntries)
+	if pending != 0 || baselineEntries != 0 {
+		t.Fatalf("replicated physical GC metadata: baseline=%d after-deletes=%d", baselineEntries, pending)
 	}
-
-	queueSO := &testGCSweepSharedObject{
-		snapshot:   maintenanceSnap,
-		blockStore: so.blockStore,
-	}
-	queued, err := c.queueGCSweepTx(ctx, queueSO)
+	ws, err := c.buildBlkEngine(ctx, c.le, so, deleteHead.GetHeadRef(), deleteHead.GetHeadRef().GetTransformConf())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !queued {
-		t.Fatal("authorized maintenance peer did not queue gc sweep")
-	}
-	if len(queueSO.queueOps) != 1 {
-		t.Fatalf("expected 1 queued maintenance op, got %d", len(queueSO.queueOps))
-	}
-	queuedOp := &SOWorldOp{}
-	if err := queuedOp.UnmarshalVT(queueSO.queueOps[0]); err != nil {
+	defer ws.Release()
+	reader, err := ws.bengine.NewTransaction(ctx, false)
+	if err != nil {
 		t.Fatal(err)
 	}
-	body, ok := queuedOp.GetBody().(*SOWorldOp_ApplyTxOp)
-	if !ok {
-		t.Fatal("expected maintenance peer to queue ApplyTxOp")
-	}
-	if body.ApplyTxOp.GetTx().GetTxType() != world_block_tx.TxType_TxType_GC_SWEEP {
-		t.Fatalf("expected queued GC_SWEEP tx, got %s", body.ApplyTxOp.GetTx().GetTxType().String())
-	}
-
-	// Maintenance reconciles a bounded journal chunk, and committing its new
-	// root can append another entry. Require progress across signed operations
-	// and retain the original final garbage-reduction bound.
-	for nonce := uint64(1); nonce <= 4; nonce++ {
-		queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, nonce, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
-		sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
-		entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead)
-		if entries >= pending {
-			t.Fatalf("maintenance operation %d left %d entries after %d: no progress", nonce, entries, pending)
+	defer reader.Discard()
+	for _, key := range keys {
+		if found, err := reader.HasObject(ctx, key); err != nil || found {
+			t.Fatalf("deleted object %s remains: %v %v", key, found, err)
 		}
-		if entries <= baselineEntries {
-			return
-		}
-		pending = entries
 	}
-	t.Fatalf("bounded maintenance left %d pending journal entries, want at most baseline %d", pending, baselineEntries)
 }
 
 // newGCSweepTestPeer creates an independent signer for operation authority checks.

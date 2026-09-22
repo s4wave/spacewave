@@ -155,7 +155,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 	if drainErr != nil {
 		return nil, false, drainErr
 	}
-	if existingPending != nil && !existingPending.tombstone {
+	if existingPending != nil && !existingPending.tombstone && containsBlockRefs(existingPending.refs, opts.GetRefs()) {
 		return finish(ref, true)
 	}
 
@@ -207,22 +207,32 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 			}
 			if p := s.pending[key]; p != nil && !p.tombstone {
 				alreadyExists = true
+				if containsBlockRefs(p.refs, pendingClone.refs) {
+					done = true
+					return
+				}
+				// An opaque copy may acquire a decoder later. Preserve both
+				// sets of dependencies without mutating a borrowed entry.
+				merged := *pendingClone
+				merged.refs = CloneBlockRefs(p.refs)
+				for _, child := range pendingClone.refs {
+					if !containsBlockRefs(merged.refs, []*BlockRef{child}) {
+						merged.refs = append(merged.refs, child.Clone())
+					}
+				}
+				merged.metadataBytes = bufferedMetadataSize(key, ref, merged.refs, s.maxPendingMetadataBytes)
+				putErr = s.putPendingLocked(broadcastFn, key, &merged)
+			} else {
+				// Presence does not establish ownership in the destination.
+				// Forward the write even when the physical bytes already exist.
+				alreadyExists = exists
+				putErr = s.putPendingLocked(broadcastFn, key, pendingClone)
+			}
+			if putErr == nil {
 				done = true
 				return
 			}
-			// A queued deletion takes precedence over the still-present durable block.
-			if exists && s.pending[key] == nil {
-				alreadyExists = true
-				done = true
-				return
-			}
-			err := s.putPendingLocked(broadcastFn, key, pendingClone)
-			if err == nil {
-				done = true
-				return
-			}
-			if err != ErrBufferedStoreFull {
-				putErr = err
+			if putErr != ErrBufferedStoreFull {
 				done = true
 				return
 			}
@@ -243,6 +253,19 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		}
 		drainTask.End()
 	}
+}
+
+// containsBlockRefs checks dependency coverage independently of ordering.
+func containsBlockRefs(have, want []*BlockRef) bool {
+	for _, ref := range want {
+		if ref.GetEmpty() {
+			continue
+		}
+		if !slices.ContainsFunc(have, ref.EqualsRef) {
+			return false
+		}
+	}
+	return true
 }
 
 // PutBlockBatch buffers verified entries without per-block existence probes.

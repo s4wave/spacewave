@@ -22,7 +22,20 @@ func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (
 	if !v.SupportsAtomicPublication() {
 		return nil, block.ErrAtomicPublicationUnsupported
 	}
-	return v.publications.submit(ctx, p)
+	var owner string
+	var release func()
+	if p != nil && p.TrackGC && p.RootName != "" && !p.Root.GetEmpty() {
+		var err error
+		owner, release, err = v.pinRoot(ctx, p.Root, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+	receipt, err := v.publications.submit(ctx, p, owner, release)
+	if err != nil && release != nil {
+		release()
+	}
+	return receipt, err
 }
 
 // PublishAtomic submits an atomic publication and waits for its durable result
@@ -32,6 +45,7 @@ func (v *Volume) PublishAtomic(ctx context.Context, p *block.AtomicPublication) 
 	if err != nil {
 		return err
 	}
+	defer receipt.Release()
 	return receipt.Wait(context.WithoutCancel(ctx))
 }
 

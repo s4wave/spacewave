@@ -341,7 +341,24 @@ func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.Object
 	// Preserve the authority reference while resolving its blocks locally.
 	ref := headRef.CloneVT()
 	ref.BucketId = e.so.GetBlockStore().GetID()
-	return e.bengine.SetRootRef(ctx, ref)
+	if err := e.bengine.SetRootRef(ctx, ref); err != nil {
+		return err
+	}
+	store := e.so.GetBlockStore()
+	if ref.GetRootRef().GetEmpty() || !block.SupportsRootRetention(store) {
+		return nil
+	}
+	// Retire only accepted, completely local graphs. This runs under the
+	// controller's existing writer lock, including accepted-root watches.
+	proofs, release, err := e.so.AccessLocalStateStore(ctx, "accepted-world-retention", nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if err := RetainWorld(ctx, e.c.le, e.c.sfs, e.so, ref, proofs, nil); err != nil {
+		return err
+	}
+	return block.SetRetainedRoot(ctx, store, "accepted-world", ref.GetRootRef())
 }
 
 // _ is a type assertion

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/coord"
@@ -65,6 +66,12 @@ type Volume struct {
 	directClosed bool
 	// closeErr stores the error from Close.
 	closeErr error
+	// rootPinMu serializes reader reference counts and their volume lease.
+	rootPinMu      csync.Mutex
+	rootPinOwner   string
+	rootPinLease   coord.WriteLease
+	rootPins       map[string]int
+	rootPinsClosed bool
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -442,15 +449,15 @@ func (v *Volume) Close() error {
 		}
 		return v.closeErr
 	}
+	closeErr := v.closeRootPins()
 	v.directMu.Lock()
 	v.directClosed = true
 	v.directMu.Unlock()
 	if v.publications != nil {
 		v.publications.close()
 	}
-	closeErr := error(nil)
 	if v.refGraph != nil {
-		closeErr = v.refGraph.Close()
+		closeErr = errors.Join(closeErr, v.refGraph.Close())
 	}
 	if v.closeFn != nil {
 		closeErr = errors.Join(closeErr, v.closeFn())

@@ -67,12 +67,13 @@ type WorldState struct {
 	gcJournalTree  kvtx.BlockTx
 	gcJournal      *gcJournal
 	gcJournalDirty bool
+	// trackGC enables the legacy World-local reference graph for direct callers.
+	trackGC bool
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
-	// snapshotBucketID marks same-bucket object roots as local DAG edges.
-	// Only snapshot updates set it; ordinary World operations retain refs.
-	snapshotBucketID string
+	// localBucketID marks same-bucket object roots as local DAG edges.
+	localBucketID string
 
 	// objectExistsMemo remembers object keys known to exist during the current
 	// transaction so repeated HasObject calls skip redundant object-tree reads.
@@ -111,6 +112,23 @@ func NewWorldState(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	return newWorldState(ctx, le, write, btx, bcs, store, xfrm, onSwept, storage, lookupOp, verbose, true)
+}
+
+// newWorldState can leave physical ownership entirely to the backing volume.
+func newWorldState(
+	ctx context.Context,
+	le *logrus.Entry,
+	write bool,
+	btx *block.Transaction,
+	bcs *block.Cursor,
+	store block.StoreOps,
+	xfrm block.Transformer,
+	onSwept func(context.Context, string) error,
+	storage world.WorldStorage,
+	lookupOp world.LookupOp,
+	verbose, trackGC bool,
+) (*WorldState, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
 
@@ -121,6 +139,7 @@ func NewWorldState(
 		le:      le,
 		write:   write,
 		verbose: verbose,
+		trackGC: trackGC,
 
 		store:   store,
 		xfrm:    xfrm,
@@ -152,7 +171,17 @@ func BuildWorldStateFromCursor(
 	store := bls.GetBucket()
 	xfrm := bls.GetTransformer()
 	btx, bcs := bls.BuildTransaction(nil)
-	return NewWorldState(ctx, le, write, btx, bcs, store, xfrm, nil, storage, lookupOp, verbose)
+	releaseRoot, err := block.PinRoot(ctx, store, bls.GetRef().GetRootRef())
+	if err != nil {
+		return nil, err
+	}
+	state, err := NewWorldState(ctx, le, write, btx, bcs, store, xfrm, nil, storage, lookupOp, verbose)
+	if err != nil {
+		releaseRoot()
+		return nil, err
+	}
+	state.readRelease = releaseRoot
+	return state, nil
 }
 
 // GetReadOnly returns if the world handle is read-only.
@@ -168,7 +197,11 @@ func (t *WorldState) Sync(ctx context.Context) (bool, error) {
 	if t.store == nil {
 		return true, nil
 	}
-	return t.store.Sync(ctx)
+	fenced, err := t.store.Sync(ctx)
+	if err == nil && fenced && t.write && !t.trackGC {
+		err = block.MarkRootComplete(ctx, t.store, t.GetRootRef())
+	}
+	return fenced, err
 }
 
 // SetBufferedStoreSettings overrides the BufferedStore settings used by the
@@ -344,7 +377,11 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		blkv = &World{}
 		bcs.SetBlock(blkv, true)
 	}
-	ows, err := NewWorldState(
+	release, err := block.PinRoot(ctx, t.store, t.GetRootRef())
+	if err != nil {
+		return nil, err
+	}
+	ows, err := newWorldState(
 		ctx,
 		t.le,
 		t.write,
@@ -356,10 +393,14 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		t.storage,
 		t.lookupOp,
 		t.verbose,
+		t.trackGC,
 	)
 	if err != nil {
+		release()
 		return nil, err
 	}
+	ows.readRelease = release
+	ows.localBucketID = t.localBucketID
 	return ows, nil
 }
 
@@ -405,7 +446,7 @@ func (t *WorldState) setBlockTransaction(
 	var refGraph *block_gc.RefGraph
 	var initGCRootEdge bool
 	var gcTreeIsolated bool
-	if t.write && t.store != nil {
+	if t.write && t.store != nil && t.trackGC {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
 		gcTree, refGraph, initGCRootEdge, gcTreeIsolated, err = t.buildGCTree(taskCtx, bcs)
 		subtask.End()
@@ -421,7 +462,7 @@ func (t *WorldState) setBlockTransaction(
 	// Read-side uses it for Entries(); write-side also uses it as a WAL.
 	var journalTree kvtx.BlockTx
 	var journal *gcJournal
-	if t.store != nil {
+	if t.store != nil && t.trackGC {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-journal")
 		journalTree, err = kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(gcJournalSubBlock), t.write)
 		subtask.End()

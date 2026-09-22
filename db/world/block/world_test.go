@@ -2332,9 +2332,9 @@ func TestWorldState_GC_FullLifecycle(t *testing.T) {
 	}
 }
 
-// TestWorldState_GC_SweepTx verifies that a TxGCSweep transaction executed
-// through the EngineTx path sweeps unreferenced objects.
-func TestWorldState_GC_SweepTx(t *testing.T) {
+// Engine writes leave physical collection to the volume. A legacy sweep
+// operation remains readable without recreating replicated GC bookkeeping.
+func TestWorldState_GCSweepDoesNotRecreateBookkeeping(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -2403,15 +2403,16 @@ func TestWorldState_GC_SweepTx(t *testing.T) {
 		}
 	}
 
-	// Verify the deletion remains journaled until the explicit sweep.
+	// Deletion must not generate another replicated maintenance journal.
 	{
 		ocs.SetRootRef(eng.GetRootRef().GetRootRef())
 		ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		if entries := ws.GetGCJournalEntries(); entries == 0 {
-			t.Fatal("expected pending GC journal entries before sweep")
+		defer ws.Discard()
+		if entries := ws.GetGCJournalEntries(); entries != 0 {
+			t.Fatalf("unexpected replicated GC journal entries: %d", entries)
 		}
 	}
 

@@ -316,7 +316,10 @@ buildWorldEngine:
 				Debug("updated root")
 		}
 		if stateStore != nil {
-			return c.writeHeadState(ctx, stateStore, baseRef, nref)
+			if err := c.writeHeadState(ctx, stateStore, baseRef, nref); err != nil {
+				return err
+			}
+			return block.SetRetainedRoot(ctx, cursor.GetBucket(), world_block.RetainedRootName(stateCoordScope.ObjectStoreID, c.objectStoreHeadKeyPrefix()), nref.GetRootRef())
 		}
 		return nil
 	}

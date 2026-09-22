@@ -26,6 +26,8 @@ type publicationRequest struct {
 	receipt     *block.PublicationReceipt
 	// bytes is the computed admission cost of the publication.
 	bytes int
+	// rootOwner keeps this revision alive until its consumer takes a reader pin.
+	rootOwner string
 }
 
 // publicationWriter serializes atomic publications into bounded physical groups.
@@ -56,7 +58,7 @@ func publicationSize(p *block.AtomicPublication) (int, error) {
 	if len(p.Entries) > publicationMaxEntries {
 		return 0, block.ErrPublicationTooLarge
 	}
-	size := len(p.Head.Key) + len(p.Head.ObjectStoreID) + len(p.BucketID) + 128
+	size := len(p.Head.Key) + len(p.Head.ObjectStoreID) + len(p.BucketID) + len(p.RootName) + p.Root.SizeVT() + 128
 	for _, entry := range p.Entries {
 		if entry == nil {
 			return 0, errInvalidPublication
@@ -78,7 +80,7 @@ func publicationSize(p *block.AtomicPublication) (int, error) {
 
 // submit admits a publication under the bounded budget, returning its receipt.
 // It blocks while the queue is full and the admission context stays live.
-func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
+func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublication, rootOwner string, release func()) (*block.PublicationReceipt, error) {
 	size, err := publicationSize(p)
 	if err != nil {
 		return nil, err
@@ -96,8 +98,10 @@ func (w *publicationWriter) submit(ctx context.Context, p *block.AtomicPublicati
 				return
 			}
 			if w.stats.Pending < publicationMaxPending && w.stats.PendingBytes+size <= publicationMaxBytes && w.stats.PendingEntries+len(p.Entries) <= publicationMaxEntries {
-				receipt = block.NewPublicationReceipt()
-				w.queue = append(w.queue, &publicationRequest{context.WithoutCancel(ctx), p, receipt, size})
+				receipt = block.NewRetainedPublicationReceipt(release)
+				w.queue = append(w.queue, &publicationRequest{
+					ctx: context.WithoutCancel(ctx), publication: p, receipt: receipt, bytes: size, rootOwner: rootOwner,
+				})
 				w.stats.Accepted++
 				w.stats.Pending++
 				w.stats.PendingBytes += size
@@ -257,6 +261,20 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 						err = gc.PutBlockBatch(ctx, p.Entries)
 						if err == nil {
 							err = gc.FlushPending(ctx)
+						}
+						if err == nil && p.RootName != "" {
+							// A temporary reader owner bridges publication and
+							// consumer handoff, and can be reaped after a crash.
+							err = setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root)
+							if err == nil && req.rootOwner != "" {
+								err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+									{Subject: block_gc.NodeGCRoot, Object: req.rootOwner},
+									{Subject: req.rootOwner, Object: block_gc.BlockIRI(p.Root)},
+								}, nil)
+							}
+							if err == nil && !p.Root.GetEmpty() {
+								err = rg.AddRef(ctx, block_gc.BlockIRI(p.Root), completeWorldNode)
+							}
 						}
 					}
 				}

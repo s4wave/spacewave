@@ -69,6 +69,11 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		case <-timer.C:
 		}
 
+		if reaper, ok := vol.(interface{ ReapRootPins(context.Context) error }); ok {
+			if err := reaper.ReapRootPins(ctx); err != nil {
+				return err
+			}
+		}
 		stats, err := collector.Collect(ctx)
 		if err != nil {
 			if ctx.Err() != nil {

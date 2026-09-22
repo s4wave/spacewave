@@ -900,6 +900,14 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	if err != nil {
 		return nil, err
 	}
+	if write {
+		release, err := block.PinRoot(ctx, e.writeBlockStore, e.head.root.GetRef().GetRootRef())
+		if err != nil {
+			ws.Discard()
+			return nil, err
+		}
+		ws.readRelease = release
+	}
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
 	tx := NewTx(ws)
 	subtask.End()
@@ -943,6 +951,13 @@ func (e *Engine) AccessWorldState(
 		return ErrEngineClosed
 	}
 	ncs := e.head.root.Clone()
+	release, err := block.PinRoot(ctx, e.writeBlockStore, ncs.GetRef().GetRootRef())
+	if err != nil {
+		locked.Unlock()
+		ncs.Release()
+		return err
+	}
+	defer release()
 	if ref != nil && e.stagedStore != nil {
 		ncs.SetTransactionStore(e.stagedStore)
 	}
@@ -1191,10 +1206,6 @@ func (e *Engine) buildWorldStateForRoot(
 	if store == nil {
 		store = e.writeBlockStore
 	}
-	worldStore := store
-	if !readOnly && e.writeCoordinator != nil && transactionStore == nil {
-		worldStore = nil
-	}
 	subtask.End()
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
 	xfrm := root.GetTransformer()
@@ -1202,6 +1213,14 @@ func (e *Engine) buildWorldStateForRoot(
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
 	btx, bcs := root.BuildTransactionWithStore(nil, store)
 	subtask.End()
+	releaseRoot := func() {}
+	if readOnly {
+		var err error
+		releaseRoot, err = block.PinRoot(ctx, store, root.GetRef().GetRootRef())
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// The published read head already holds this immutable root. Clone its
 	// decoded value so each new handle owns its mutable sub-block fields.
@@ -1209,30 +1228,48 @@ func (e *Engine) buildWorldStateForRoot(
 		e.head.readTx.state.GetRootRef().EqualsRef(root.GetRef().GetRootRef()) {
 		rootBlock, err := e.head.readTx.state.GetRoot(ctx)
 		if err != nil {
+			releaseRoot()
 			return nil, err
 		}
 		bcs.SetBlock(rootBlock.CloneVT(), false)
 	}
 	if readOnly {
 		btx = nil
+	} else {
+		rootBlock, err := UnmarshalWorld(ctx, bcs)
+		if err != nil {
+			releaseRoot()
+			return nil, err
+		}
+		if rootBlock.GetGcGraph() != nil || rootBlock.GetGcJournal() != nil {
+			rootBlock = rootBlock.CloneVT()
+			rootBlock.GcGraph, rootBlock.GcJournal = nil, nil
+			bcs.SetBlock(rootBlock, true)
+		}
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
-	ws, err := NewWorldState(
+	// Physical reachability belongs to the volume. Replicating a graph of
+	// our own block writes cannot reclaim shared bytes and amplifies writes.
+	ws, err := newWorldState(
 		taskCtx,
 		e.le,
 		!readOnly,
 		btx, bcs,
-		worldStore,
+		store,
 		xfrm,
 		nil,
 		e,
 		e.lookupOp,
 		e.verbose,
+		false,
 	)
 	subtask.End()
 	if err != nil {
+		releaseRoot()
 		return nil, err
 	}
+	ws.readRelease = releaseRoot
+	ws.localBucketID = root.GetRefWithOpArgs().GetBucketId()
 	return ws, nil
 }
 
