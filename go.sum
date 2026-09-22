@@ -68,8 +68,8 @@ github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05 h1:u7Wq
 github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05/go.mod h1:EkJEy0eZ9hdcUbSxh6kBf2YC3V97ziyr9EWY7kCnB5A=
 github.com/aperturerobotics/json-iterator-lite v1.1.0 h1:ZLLqHhHTKYlmCAP873ras2e/yVU/THtwC+ji3tXLMMg=
 github.com/aperturerobotics/json-iterator-lite v1.1.0/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
-github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008 h1:eSXCl4Xfl/zS2J04S1kNpgPrRroxa/fmC2pirWxWez8=
-github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008/go.mod h1:1IuiZEtDbe75SMjyk2Fk+Fa+Yp56kf3WM1wYgorqc6o=
+github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746 h1:waXip7d6NNFUiUVYMw4OWHtfApfz6J6EODfiJaM1dCM=
+github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746/go.mod h1:1IuiZEtDbe75SMjyk2Fk+Fa+Yp56kf3WM1wYgorqc6o=
 github.com/aperturerobotics/logrus v1.10.2-0.20260922042813-73f013325281 h1:YMsWWq3jormNtuY2fKlkPceZDhkHonwnH1kQgK4gqXk=
 github.com/aperturerobotics/logrus v1.10.2-0.20260922042813-73f013325281/go.mod h1:SLEg8TqYulVKKfIGHldVp2K2aYz2DKSVBq4g/H5bR7Q=
 github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260902093134-beabc67bc5d7 h1:QVnuMp/kAZKSjsObfUTcRGhsuatozDYC4izHwbwSXUI=

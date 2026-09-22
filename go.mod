@@ -13,7 +13,7 @@ replace (
 
 	// aperture: use ext-engines forks
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8 // aperture-7
-	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
+	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d // aperture-7
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260905023630-65a0b75d77a7
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
