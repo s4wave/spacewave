@@ -18,10 +18,6 @@ replace (
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260905023630-65a0b75d77a7
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.10.2-0.20260922042813-73f013325281 // master
-
-	// https://github.com/wazero/wazero/pull/2479
-	// https://github.com/wazero/wazero/pull/2481
-	github.com/tetratelabs/wazero => github.com/aperturerobotics/wazero v0.0.0-20260304193718-46de011b30f6 // aperture-2
 )
 
 require (
@@ -48,7 +44,7 @@ require (
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
-	github.com/aperturerobotics/protobuf-go-lite v0.18.1-0.20260922073011-561b6c171b0f // master
+	github.com/aperturerobotics/protobuf-go-lite v0.19.0 // master
 	github.com/aperturerobotics/starpc v0.52.1
 	github.com/aperturerobotics/util v1.34.10-0.20260908052533-9b98f88c3976 // master
 	github.com/cloudflare/circl v1.6.5
@@ -92,7 +88,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
-	github.com/tetratelabs/wazero v1.12.0
+	github.com/tetratelabs/wazero v1.12.1-0.20260922015707-c267b507d336
 	github.com/tidwall/btree v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
