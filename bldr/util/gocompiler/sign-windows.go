@@ -3,6 +3,7 @@ package gocompiler
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"sync"
 
 	uexec "github.com/aperturerobotics/util/exec"
@@ -12,8 +13,17 @@ import (
 
 // WindowsSignProfileEnv is the env var holding the Trusted Signing
 // certificate profile name (Invoke-TrustedSigning -CertificateProfileName).
-// When unset, SignWindows is a no-op.
+// When neither this nor WindowsSignCommandEnv is set, SignWindows is a no-op.
 const WindowsSignProfileEnv = "BLDR_WINDOWS_SIGN_PROFILE"
+
+// WindowsSignCommandEnv selects an executable that signs one absolute file path
+// in place before Bldr commits its manifest. The command is invoked without a
+// shell and must return only after signing and verifying the file.
+const WindowsSignCommandEnv = "BLDR_WINDOWS_SIGN_COMMAND"
+
+// WindowsSignIdentityEnv identifies the external command's product and publisher
+// policy for build caching. Change it when the selected signing identity changes.
+const WindowsSignIdentityEnv = "BLDR_WINDOWS_SIGN_IDENTITY"
 
 // WindowsSignAccountEnv is the env var holding the Trusted Signing signing
 // account name (Invoke-TrustedSigning -CodeSigningAccountName).
@@ -62,17 +72,45 @@ Invoke-TrustedSigning ` +
 	`-ExcludeAzureDeveloperCliCredential ` +
 	`-ExcludeInteractiveBrowserCredential`
 
-// SignWindows signs a PE binary via Azure Trusted Signing using the
-// Invoke-TrustedSigning cmdlet from the TrustedSigning PowerShell module.
+// WindowsSignStartupCacheEnvKeys returns the configuration that changes signed
+// executable identity, including the explicit unsigned configuration.
+func WindowsSignStartupCacheEnvKeys() []string {
+	return []string{
+		WindowsSignCommandEnv,
+		WindowsSignIdentityEnv,
+		WindowsSignProfileEnv,
+		WindowsSignAccountEnv,
+		WindowsSignEndpointEnv,
+		WindowsSignDescriptionEnv,
+	}
+}
+
+// SignWindows signs a PE binary through an external command or Azure Artifact
+// Signing. External commands support signing a cross-build through a remote job.
 //
-// The TrustedSigning module must be installed on the host
+// For direct Azure signing, the TrustedSigning module must be installed on the host
 // (Install-Module -Name TrustedSigning). Authentication uses
 // environment, workload identity, or a prior az login (azure/login@v3 in CI).
 // Developer-tool and interactive credentials are excluded for unattended builds.
 //
-// No-op when BLDR_WINDOWS_SIGN_PROFILE is unset. Caller is responsible
-// for gating on GOOS=windows.
+// No-op when both signing options are unset. The caller gates on GOOS=windows.
 func SignWindows(ctx context.Context, le *logrus.Entry, binPath string) error {
+	// A remote signer retains its own credentials and verifies the returned bytes.
+	command := os.Getenv(WindowsSignCommandEnv)
+	if command != "" {
+		if os.Getenv(WindowsSignProfileEnv) != "" {
+			return errors.New("select either a Windows signing command or an Azure profile")
+		}
+		if os.Getenv(WindowsSignIdentityEnv) == "" {
+			return errors.Errorf("%s requires %s for build caching", WindowsSignCommandEnv, WindowsSignIdentityEnv)
+		}
+		absolute, err := filepath.Abs(binPath)
+		if err != nil {
+			return err
+		}
+		return errors.Wrap(uexec.ExecCmd(le, uexec.NewCmd(ctx, command, absolute)), "sign windows executable")
+	}
+
 	// Resolve the optional signing configuration before starting PowerShell.
 	profile := os.Getenv(WindowsSignProfileEnv)
 	if profile == "" {

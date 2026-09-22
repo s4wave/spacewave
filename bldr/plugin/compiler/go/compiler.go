@@ -1302,68 +1302,6 @@ func newGoScriptBuildFlags(buildPlatform bldr_platform.Platform, buildType bldr_
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
-// addCompilerStartupCacheInputs records the environment-dependent inputs that
-// must invalidate the startup cache for the selected compiler.
-func addCompilerStartupCacheInputs(
-	inputManifest *bldr_manifest_builder.InputManifest,
-	goCompilerOpt GoCompiler,
-	goCompiler gocompiler.GoCompiler,
-) {
-	if goCompiler.IsTinyGo() {
-		addTinyGoStartupCacheInputs(inputManifest)
-	}
-	if goCompilerOpt == GoCompiler_GO_COMPILER_DEFAULT {
-		addGoCompilerStartupCacheInputs(inputManifest)
-	}
-	if goCompiler == gocompiler.GoCompilerGo {
-		addGoWasmOptimizeStartupCacheInputs(inputManifest)
-		addGoWasmDiagnosticStartupCacheInputs(inputManifest)
-	}
-	if goCompiler.IsGoScript() {
-		addGoScriptStartupCacheInputs(inputManifest)
-	}
-}
-
-// addTinyGoStartupCacheInputs adds tinygo env cache inputs to the manifest.
-func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
-		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
-	}
-	inputManifest.SortStartupInputs()
-}
-
-// addGoCompilerStartupCacheInputs adds default go compiler env cache inputs.
-func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.GoCompilerStartupCacheEnvKeys() {
-		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
-	}
-	inputManifest.SortStartupInputs()
-}
-
-// addGoWasmOptimizeStartupCacheInputs adds go wasm optimize env cache inputs.
-func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.GoWasmOptimizeStartupCacheEnvKeys() {
-		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
-	}
-	inputManifest.SortStartupInputs()
-}
-
-// addGoWasmDiagnosticStartupCacheInputs adds go wasm diagnostic env cache inputs.
-func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.GoWasmDiagnosticStartupCacheEnvKeys() {
-		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
-	}
-	inputManifest.SortStartupInputs()
-}
-
-// addGoScriptStartupCacheInputs adds goscript env cache inputs to the manifest.
-func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
-	for _, envKey := range gocompiler.GoScriptStartupCacheEnvKeys() {
-		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
-	}
-	inputManifest.SortStartupInputs()
-}
-
 // appendInputManifestFiles records source-relative file paths of the given kind
 // in the input manifest. Go source files outside the source root are dropped.
 func appendInputManifestFiles(

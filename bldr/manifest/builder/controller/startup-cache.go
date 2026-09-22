@@ -31,9 +31,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V14 recompiles GoScript plugins with
-// value-copy semantics for struct and array arguments passed to append.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V14"
+// without changing a plugin source file. V15 rebuilds old manifests that did
+// not record Windows signing configuration in their startup inputs.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V15"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {

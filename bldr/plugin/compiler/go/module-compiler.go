@@ -4,9 +4,9 @@ package bldr_plugin_compiler_go
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,10 +24,13 @@ import (
 // "go build" commands and produce a plugin with unique import paths for the
 // changed packages.
 type ModuleCompiler struct {
+	// le records compiler operations.
 	le *logrus.Entry
 
+	// pluginCodegenPath contains the generated module and its source files.
 	pluginCodegenPath string
-	pluginGoModule    string
+	// pluginGoModule identifies the generated plugin module.
+	pluginGoModule string
 }
 
 // NewModuleCompiler constructs a new module compiler.
@@ -36,6 +39,7 @@ func NewModuleCompiler(
 	pluginCodegenPath string,
 	pluginGoModule string,
 ) (*ModuleCompiler, error) {
+	// Resolve the generated directory once for all compiler operations.
 	if pluginCodegenPath == "" {
 		return nil, errors.New("codegen path cannot be empty")
 	}
@@ -43,6 +47,8 @@ func NewModuleCompiler(
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the target and logging dependency without starting a build.
 	return &ModuleCompiler{
 		le: le,
 
@@ -53,11 +59,11 @@ func NewModuleCompiler(
 
 // GenerateModule builds the module files in the codegen path.
 //
-// if configSetBinary is set and len() != 0, will be embedded as a config set.
+// A nonempty configSetBinary is embedded as a config set.
 //
 // devInfoFile will be loaded at runtime and used to populate variables init().
-// if devInfoFile is empty, the values of the go variable defs are hardcoded into init().
-// if devInfoFile is set, the file will be written at that path.
+// If devInfoFile is empty, variable values are embedded in init(). Otherwise,
+// the generated development information is written below the codegen directory.
 func (m *ModuleCompiler) GenerateModule(
 	ctx context.Context,
 	analysis *Analysis,
@@ -66,10 +72,14 @@ func (m *ModuleCompiler) GenerateModule(
 	goVarDefs []*vardef.PluginVar,
 	devInfoFile string,
 ) (*vardef.PluginDevInfo, error) {
-	if _, err := os.Stat(m.pluginCodegenPath); err != nil {
+	// Keep generated writes inside the compiler's directory, including through links.
+	root, err := os.OpenRoot(m.pluginCodegenPath)
+	if err != nil {
 		return nil, err
 	}
+	defer root.Close()
 
+	// Compose the generated module from the loaded source modules.
 	loadedModules := analysis.GetImportedModules()
 	if len(loadedModules) == 0 {
 		return nil, errors.New("must load at least one module")
@@ -82,8 +92,7 @@ func (m *ModuleCompiler) GenerateModule(
 	var configSetBinFiles []string
 	if len(configSetBinary) != 0 {
 		configSetBinFilename := "config-set.bin"
-		outConfigSetBinPath := filepath.Join(m.pluginCodegenPath, configSetBinFilename)
-		if err := os.WriteFile(outConfigSetBinPath, configSetBinary, 0o644); err != nil {
+		if err := root.WriteFile(configSetBinFilename, configSetBinary, 0o644); err != nil {
 			return nil, err
 		}
 		configSetBinFiles = append(configSetBinFiles, configSetBinFilename)
@@ -92,12 +101,11 @@ func (m *ModuleCompiler) GenerateModule(
 	// Create the dev info file if necessary.
 	pluginDevInfo := &vardef.PluginDevInfo{PluginVars: goVarDefs}
 	if len(devInfoFile) != 0 && len(goVarDefs) != 0 {
-		outDevInfoFilePath := filepath.Join(m.pluginCodegenPath, devInfoFile)
 		devInfoBin, err := pluginDevInfo.MarshalVT()
 		if err != nil {
 			return nil, err
 		}
-		if err := os.WriteFile(outDevInfoFilePath, devInfoBin, 0o644); err != nil {
+		if err := root.WriteFile(devInfoFile, devInfoBin, 0o644); err != nil {
 			return nil, err
 		}
 	}
@@ -118,15 +126,18 @@ func (m *ModuleCompiler) GenerateModule(
 	if err != nil {
 		return nil, err
 	}
-	// remove any unused imports
+
+	// Remove unused imports before writing the generated entrypoint.
 	outPluginCodeFilePath := filepath.Join(m.pluginCodegenPath, "plugin.go")
 	pluginCodeData, err = imports.Process(outPluginCodeFilePath, pluginCodeData, nil)
 	if err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(outPluginCodeFilePath, pluginCodeData, 0o644); err != nil {
+	if err := root.WriteFile("plugin.go", pluginCodeData, 0o644); err != nil {
 		return nil, err
 	}
+
+	// Resolve the generated module's dependencies before compilation.
 	if err := gocompiler.RunGoModTidy(ctx, m.le, m.pluginCodegenPath); err != nil {
 		return nil, err
 	}
@@ -134,7 +145,9 @@ func (m *ModuleCompiler) GenerateModule(
 	return pluginDevInfo, nil
 }
 
+// writeModuleFiles preserves source dependencies and rewrites local replacements.
 func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
+	// Read source dependency policy before creating the generated module.
 	sourceGoModPath := filepath.Join(analysis.workDir, "go.mod")
 	sourceGoModData, err := os.ReadFile(sourceGoModPath)
 	if err != nil {
@@ -147,6 +160,8 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	if err := absolutizeModuleReplaces(modFile, analysis.workDir); err != nil {
 		return err
 	}
+
+	// Give the plugin its own module path while resolving the source tree locally.
 	sourceModulePath := modFile.Module.Mod.Path
 	pluginModulePath, err := generatedPluginModulePath(m.pluginGoModule)
 	if err != nil {
@@ -165,15 +180,23 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	if err := modFile.AddReplace(sourceModulePath, "", sourceModuleDir, ""); err != nil {
 		return err
 	}
+
+	// Confine dependency-file writes to the existing generated directory.
+	root, err := os.OpenRoot(m.pluginCodegenPath)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
 	modFile.Cleanup()
 	pluginGoModData, err := modFile.Format()
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(m.pluginCodegenPath, "go.mod"), pluginGoModData, 0o644); err != nil {
+	if err := root.WriteFile("go.mod", pluginGoModData, 0o644); err != nil {
 		return err
 	}
 
+	// Preserve the source's dependency checksums when they exist.
 	sourceGoSumPath := filepath.Join(analysis.workDir, "go.sum")
 	sourceGoSumData, err := os.ReadFile(sourceGoSumPath)
 	if os.IsNotExist(err) {
@@ -182,14 +205,18 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	if err != nil {
 		return errors.Wrapf(err, "read source go.sum at %s", sourceGoSumPath)
 	}
-	return os.WriteFile(filepath.Join(m.pluginCodegenPath, "go.sum"), sourceGoSumData, 0o644)
+	return root.WriteFile("go.sum", sourceGoSumData, 0o644)
 }
 
+// absolutizeModuleReplaces keeps local replacements relative to the source module.
 func absolutizeModuleReplaces(modFile *modfile.File, sourceDir string) error {
+	// Resolve replacements against the original module's absolute directory.
 	absSourceDir, err := filepath.Abs(sourceDir)
 	if err != nil {
 		return err
 	}
+
+	// Versioned and already absolute replacements retain their original meaning.
 	for _, replace := range modFile.Replace {
 		if replace.New.Version != "" {
 			continue
@@ -210,11 +237,15 @@ func absolutizeModuleReplaces(modFile *modfile.File, sourceDir string) error {
 	return nil
 }
 
+// generatedPluginModulePath maps a plugin ID into the generated-module namespace.
 func generatedPluginModulePath(moduleID string) (string, error) {
+	// Require a nonempty identifier before deriving its import-path component.
 	moduleID = strings.TrimSpace(moduleID)
 	if moduleID == "" {
 		return "", errors.New("plugin module id cannot be empty")
 	}
+
+	// Replace characters that cannot occur in the generated module's final component.
 	var b strings.Builder
 	for _, r := range strings.ToLower(moduleID) {
 		switch {
@@ -271,6 +302,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	overrideDirs []string,
 	deferredFunctions []string,
 ) (string, error) {
+	// Resolve the generated main package and its JavaScript binding roots.
 	mainPackagePath, err := gocompiler.GoListImportPath(ctx, m.pluginCodegenPath, buildFlags, "GOOS=js", "GOARCH=wasm")
 	if err != nil {
 		return "", err
@@ -279,6 +311,8 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	if err != nil {
 		return "", err
 	}
+
+	// Compile the generated module with its dependencies and binding policy.
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
 		WorkDir:                   m.pluginCodegenPath,
 		OutputPath:                outPath,
@@ -310,7 +344,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
 ) error {
-	// write the plugin dev wrapper entrypoint
+	// Create the host-only development wrapper below the generated directory.
 	devSrcDir := filepath.Join(m.pluginCodegenPath, "dev")
 	devSrcMain := filepath.Join(devSrcDir, "main.go")
 	if err := os.MkdirAll(devSrcDir, 0o755); err != nil {
@@ -321,21 +355,18 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 		return err
 	}
 
-	// add build flags for the target plugin binary
+	// Carry compiler and target flags into the wrapper's runtime build command.
 	goArgs := gocompiler.GetDefaultArgs()
 
-	// build tags
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-
-	// add build tags to build args
 	if len(buildTags) != 0 {
 		goArgs = append(goArgs, "-tags="+strings.Join(buildTags, ","))
 	}
 
-	// note: no -trimpath here
-	// disables inlining and optimizations for debugging purposes
+	// Retain source paths and disable optimizations for debugger attachment.
 	goArgs = append(goArgs, "-gcflags", "-N -l")
 
+	// The development wrapper runs on the build host.
 	goEnv := gocompiler.GetDefaultEnv()
 	goEnv = append(goEnv, "GOOS=", "GOARCH=")
 	if enableCgo {
@@ -344,17 +375,26 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 		goEnv = append(goEnv, "CGO_ENABLED=0")
 	}
 
-	devWrapperSrc = fmt.Sprintf(
-		"%s\nfunc init() {\n\tBuildFlags = %#v\n\tBuildEnv = %#v\n}\n",
-		devWrapperSrc,
-		goArgs,
-		goEnv,
-	)
-	if err := os.WriteFile(devSrcMain, []byte(devWrapperSrc), 0o644); err != nil {
+	// Quote runtime arguments as Go string literals without interpreting their contents.
+	var source strings.Builder
+	source.WriteString(devWrapperSrc)
+	source.WriteString("\nfunc init() {\n")
+	for _, binding := range []struct {
+		name   string
+		values []string
+	}{{"BuildFlags", goArgs}, {"BuildEnv", goEnv}} {
+		source.WriteString(binding.name + " = []string{")
+		for _, value := range binding.values {
+			source.WriteString(strconv.Quote(value) + ",")
+		}
+		source.WriteString("}\n")
+	}
+	source.WriteString("}\n")
+	if err := os.WriteFile(devSrcMain, []byte(source.String()), 0o644); err != nil {
 		return err
 	}
 
-	// go build the wrapper
+	// Compile the wrapper with an optional validated debugger address.
 	args := append([]string{"build", "-trimpath", "-o", outFile}, gocompiler.GetDefaultArgs()...)
 
 	if dlvAddr != "" {
@@ -364,7 +404,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 		args = append(args, "-ldflags", "-X 'main.DelveAddr="+dlvAddr+"'")
 	}
 
-	// build path: .
+	// Run in the generated wrapper module and retain the host's environment.
 	args = append(args, ".")
 
 	ecmd := gocompiler.NewGoCompilerCmd(ctx, "go", args...)
