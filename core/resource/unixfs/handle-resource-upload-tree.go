@@ -37,7 +37,12 @@ func (r *FSHandleResource) UploadTree(
 		return nil, errors.New("batch tree upload unavailable for detached handle resource")
 	}
 
-	nt, err := r.handle.GetNodeType(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
+	if err != nil {
+		return nil, err
+	}
+	nt, err := handle.GetNodeType(ctx)
+	releaseHandle()
 	if err != nil {
 		return nil, err
 	}
@@ -69,13 +74,16 @@ func (r *FSHandleResource) UploadTree(
 			return nil, err
 		}
 	}
-	// Blob ingestion can overlap, but the commit, reloadHandle swap, and change
+	// Blob ingestion can overlap, but the commit, handle reload, and change
 	// broadcast run under writeMtx so this root republication serializes against
-	// every other writer (per-op edits and other uploads) for this world object.
-	// Commit re-reads the current root under the lock and merges onto it, so a
-	// concurrent Remove/Rename that committed first is preserved instead of lost.
+	// every other writer for this world object. The handle barrier additionally
+	// keeps reads on the prior generation from overlapping publication. Commit
+	// re-reads the current root under the locks and merges onto it, so a concurrent
+	// Remove or Rename that committed first is preserved instead of lost.
 	r.writeMtx.Lock()
 	defer r.writeMtx.Unlock()
+	r.handleMtx.Lock()
+	defer r.handleMtx.Unlock()
 
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
 	if err := state.b.Commit(ctx); err != nil {
@@ -83,7 +91,7 @@ func (r *FSHandleResource) UploadTree(
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-start"})
-	if err := r.reloadHandle(ctx); err != nil {
+	if err := r.reloadHandleLocked(ctx); err != nil {
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "reload-complete"})

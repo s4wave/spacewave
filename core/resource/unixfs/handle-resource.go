@@ -50,11 +50,12 @@ type FSHandleResource struct {
 	// merges onto the other's committed root. Shared across child resources so
 	// an edit on a child and an upload on its parent serialize together.
 	writeMtx *sync.Mutex
-	// handleMtx guards the handle pointer against the reloadHandle swap so
-	// unsynchronized read RPCs never observe a torn pointer or use the handle
-	// after Release frees its cursor. Readers clone under RLock; reload swaps
-	// under Lock. Per-instance: each resource owns its own handle.
-	handleMtx sync.RWMutex
+	// handleMtx fences read RPCs across batch root publication and the following
+	// handle reload. Readers hold RLock for the complete handle operation;
+	// UploadTree holds Lock from before Commit until the replacement handle is
+	// installed. Shared across child resources because one commit invalidates
+	// cursors throughout the resource tree.
+	handleMtx *sync.RWMutex
 	ws        world.WorldState
 	objKey    string
 	fsType    unixfs_world.FSType
@@ -66,7 +67,7 @@ type FSHandleResource struct {
 // The handle-only form never constructs an object-backed cursor, so no logger
 // entry is needed.
 func NewFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
-	return newFSHandleResource(nil, handle, nil, nil, nil, "", 0, nil)
+	return newFSHandleResource(nil, handle, nil, nil, nil, nil, "", 0, nil)
 }
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
@@ -80,7 +81,7 @@ func NewFSHandleObjectResource(
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
-	return newFSHandleResource(le, handle, bcast, nil, ws, objKey, fsType, path)
+	return newFSHandleResource(le, handle, bcast, nil, nil, ws, objKey, fsType, path)
 }
 
 func newFSHandleResource(
@@ -88,6 +89,7 @@ func newFSHandleResource(
 	handle *unixfs.FSHandle,
 	bcast *broadcast.Broadcast,
 	writeMtx *sync.Mutex,
+	handleMtx *sync.RWMutex,
 	ws world.WorldState,
 	objKey string,
 	fsType unixfs_world.FSType,
@@ -99,15 +101,19 @@ func newFSHandleResource(
 	if writeMtx == nil {
 		writeMtx = &sync.Mutex{}
 	}
+	if handleMtx == nil {
+		handleMtx = &sync.RWMutex{}
+	}
 	r := &FSHandleResource{
-		le:       le,
-		handle:   handle,
-		bcast:    bcast,
-		writeMtx: writeMtx,
-		ws:       ws,
-		objKey:   objKey,
-		fsType:   fsType,
-		path:     slices.Clone(path),
+		le:        le,
+		handle:    handle,
+		bcast:     bcast,
+		writeMtx:  writeMtx,
+		handleMtx: handleMtx,
+		ws:        ws,
+		objKey:    objKey,
+		fsType:    fsType,
+		path:      slices.Clone(path),
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_unixfs.SRPCRegisterFSHandleResourceService(mux, r)
@@ -142,6 +148,7 @@ func (r *FSHandleResource) registerChildResource(
 		childHandle,
 		r.bcast,
 		r.writeMtx,
+		r.handleMtx,
 		r.ws,
 		r.objKey,
 		r.fsType,
@@ -195,23 +202,30 @@ func (r *FSHandleResource) mutate(fn func() error) error {
 	return nil
 }
 
-// cloneHandle returns an independent clone of the current handle, snapshotting
-// the handle pointer under handleMtx so a concurrent reloadHandle swap can
-// neither tear the read nor free the handle while the caller reads it. Clone
-// adds its own reference under the inode lock, so releasing the resource's
-// handle later leaves the returned clone valid. Callers Release the clone.
-func (r *FSHandleResource) cloneHandle(ctx context.Context) (*unixfs.FSHandle, error) {
+// borrowHandle returns an independent clone while retaining the resource-tree
+// read barrier. The caller invokes the returned release function after the
+// complete handle operation so UploadTree cannot publish a new root and
+// invalidate the borrowed cursor before it installs the replacement handle.
+func (r *FSHandleResource) borrowHandle(
+	ctx context.Context,
+) (*unixfs.FSHandle, func(), error) {
 	r.handleMtx.RLock()
-	defer r.handleMtx.RUnlock()
-	return r.handle.Clone(ctx)
+	handle, err := r.handle.Clone(ctx)
+	if err != nil {
+		r.handleMtx.RUnlock()
+		return nil, nil, err
+	}
+	return handle, func() {
+		handle.Release()
+		r.handleMtx.RUnlock()
+	}, nil
 }
 
-// reloadHandle reloads the current handle from world state at r.path. Callers
-// hold writeMtx (reload runs only after a committed root change), so this never
-// races another writer; handleMtx additionally fences unsynchronized readers
-// during the pointer swap. The previous handle is released after the swap so any
-// reader that already cloned it keeps its own reference until done.
-func (r *FSHandleResource) reloadHandle(ctx context.Context) error {
+// reloadHandleLocked reloads the current handle from world state at r.path.
+// The caller holds writeMtx and handleMtx from before publishing the new root,
+// so neither another writer nor a read operation can observe the invalidated
+// handle generation before this replacement is installed.
+func (r *FSHandleResource) reloadHandleLocked(ctx context.Context) error {
 	if r.ws == nil || r.objKey == "" {
 		return nil
 	}
@@ -219,10 +233,8 @@ func (r *FSHandleResource) reloadHandle(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	r.handleMtx.Lock()
 	prev := r.handle
 	r.handle = nextHandle
-	r.handleMtx.Unlock()
 	prev.Release()
 	return nil
 }
@@ -264,31 +276,27 @@ func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHan
 	return nextHandle, nil
 }
 
-// resolveDestParentHandle resolves a destination parent resource ID to a FSHandle.
-func resolveDestParentHandle(
+// borrowDestParentHandle resolves and borrows a destination parent resource.
+func borrowDestParentHandle(
 	ctx context.Context,
 	destParentResourceID uint32,
-) (*unixfs.FSHandle, error) {
+) (*unixfs.FSHandle, func(), error) {
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	value, err := client.GetResourceValue(destParentResourceID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	destParentResource, ok := value.(*FSHandleResource)
 	if !ok {
-		return nil, errors.New("destination parent is not a unixfs handle resource")
+		return nil, nil, errors.New("destination parent is not a unixfs handle resource")
 	}
 
-	destParentHandle, err := destParentResource.cloneHandle(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return destParentHandle, nil
+	return destParentResource.borrowHandle(ctx)
 }
 
 // getFileInfo gets FileInfo from a handle.
@@ -311,11 +319,11 @@ func getFileInfo(ctx context.Context, handle *unixfs.FSHandle) (*s4wave_unixfs.F
 func (r *FSHandleResource) Lookup(ctx context.Context, req *s4wave_unixfs.HandleLookupRequest) (*s4wave_unixfs.HandleLookupResponse, error) {
 	name := req.GetName()
 
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	childHandle, err := handle.Lookup(ctx, name)
 	if err != nil {
@@ -349,11 +357,11 @@ func (r *FSHandleResource) Lookup(ctx context.Context, req *s4wave_unixfs.Handle
 func (r *FSHandleResource) LookupPath(ctx context.Context, req *s4wave_unixfs.HandleLookupPathRequest) (*s4wave_unixfs.HandleLookupPathResponse, error) {
 	path := req.GetPath()
 
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	childHandle, traversedPath, err := handle.LookupPath(ctx, path)
 	if err != nil {
@@ -392,11 +400,11 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 	offset := req.GetOffset()
 	length := req.GetLength()
 
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	// length<=0 requests the remaining file from offset, but only when that
 	// fits in one bounded resource response. Larger reads must use GetSize and
@@ -482,11 +490,11 @@ func (r *FSHandleResource) Truncate(ctx context.Context, req *s4wave_unixfs.Hand
 
 // GetSize returns the current size of the file.
 func (r *FSHandleResource) GetSize(ctx context.Context, req *s4wave_unixfs.HandleGetSizeRequest) (*s4wave_unixfs.HandleGetSizeResponse, error) {
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	size, err := handle.GetSize(ctx)
 	if err != nil {
@@ -500,11 +508,11 @@ func (r *FSHandleResource) GetSize(ctx context.Context, req *s4wave_unixfs.Handl
 
 // GetFileInfo returns file metadata for the handle's location.
 func (r *FSHandleResource) GetFileInfo(ctx context.Context, req *s4wave_unixfs.HandleGetFileInfoRequest) (*s4wave_unixfs.HandleGetFileInfoResponse, error) {
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	info, err := getFileInfo(ctx, handle)
 	if err != nil {
@@ -518,11 +526,11 @@ func (r *FSHandleResource) GetFileInfo(ctx context.Context, req *s4wave_unixfs.H
 
 // GetNodeType returns the node type (file, directory, symlink).
 func (r *FSHandleResource) GetNodeType(ctx context.Context, req *s4wave_unixfs.HandleGetNodeTypeRequest) (*s4wave_unixfs.HandleGetNodeTypeResponse, error) {
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	nodeType, err := handle.GetNodeType(ctx)
 	if err != nil {
@@ -543,11 +551,11 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 	ctx := strm.Context()
 	skip := req.GetSkip()
 
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	err = handle.ReaddirAll(ctx, skip, func(ent unixfs.FSCursorDirent) error {
 		entry := dirEntryFromCursor(ent)
@@ -661,15 +669,19 @@ func (r *FSHandleResource) Rename(ctx context.Context, req *s4wave_unixfs.Handle
 		defer sourceHandle.Release()
 
 		var destParentHandle *unixfs.FSHandle
+		var releaseDestParent func()
 		if destParentResourceID == 0 {
 			destParentHandle, err = r.handle.Clone(ctx)
+			if err == nil {
+				releaseDestParent = destParentHandle.Release
+			}
 		} else {
-			destParentHandle, err = resolveDestParentHandle(ctx, destParentResourceID)
+			destParentHandle, releaseDestParent, err = borrowDestParentHandle(ctx, destParentResourceID)
 		}
 		if err != nil {
 			return err
 		}
-		defer destParentHandle.Release()
+		defer releaseDestParent()
 
 		return sourceHandle.Rename(ctx, destParentHandle, destName, time.Now())
 	}); err != nil {
@@ -776,11 +788,11 @@ func (r *FSHandleResource) UploadFile(strm s4wave_unixfs.SRPCFSHandleResourceSer
 
 // Readlink reads the target of a symbolic link at this handle.
 func (r *FSHandleResource) Readlink(ctx context.Context, req *s4wave_unixfs.HandleReadlinkRequest) (*s4wave_unixfs.HandleReadlinkResponse, error) {
-	handle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer handle.Release()
+	defer releaseHandle()
 
 	parts, isAbsolute, err := handle.Readlink(ctx, "")
 	if err != nil {
@@ -793,7 +805,13 @@ func (r *FSHandleResource) Readlink(ctx context.Context, req *s4wave_unixfs.Hand
 
 // Clone creates a copy of this handle pointing to the same location.
 func (r *FSHandleResource) Clone(ctx context.Context, req *s4wave_unixfs.HandleCloneRequest) (*s4wave_unixfs.HandleCloneResponse, error) {
-	clonedHandle, err := r.cloneHandle(ctx)
+	handle, releaseHandle, err := r.borrowHandle(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseHandle()
+
+	clonedHandle, err := handle.Clone(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +854,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 	var prev *s4wave_unixfs.HandleWatchReaddirResponse
 	var lastObjRev uint64
 	var haveObjRev bool
-	watchHandle := r.handle
+	var watchHandle *unixfs.FSHandle
 	if r.ws != nil && r.objKey != "" {
 		var err error
 		watchHandle, err = r.newObjectFSHandle(ctx)
@@ -844,6 +862,15 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			return err
 		}
 		defer func() { watchHandle.Release() }()
+	} else {
+		var err error
+		r.handleMtx.RLock()
+		watchHandle, err = r.handle.Clone(ctx)
+		r.handleMtx.RUnlock()
+		if err != nil {
+			return err
+		}
+		defer watchHandle.Release()
 	}
 	for {
 		var ch <-chan struct{}
@@ -865,7 +892,9 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			watchHandle = nextWatchHandle
 		}
 
+		r.handleMtx.RLock()
 		entries, err := readWatchEntries(ctx, watchHandle)
+		r.handleMtx.RUnlock()
 		if err != nil {
 			world.ReleaseObjectState(objState)
 			return err
