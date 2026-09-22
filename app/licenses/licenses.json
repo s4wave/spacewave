@@ -926,7 +926,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.18.1-0.20260922073011-561b6c171b0f",
+      "version": "v0.19.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1575,7 +1575,7 @@
     },
     {
       "name": "github.com/tetratelabs/wazero",
-      "version": "=>",
+      "version": "v1.12.1-0.20260922015707-c267b507d336",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/tetratelabs/wazero",
