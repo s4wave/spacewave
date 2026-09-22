@@ -35,6 +35,12 @@ type AtomicPublication struct {
 	After *PublicationReceipt
 	// Head is the optional metadata compare-and-swap applied with Entries.
 	Head *AtomicHeadUpdate
+	// RootName and Root transfer the published DAG from bucket staging to a
+	// durable named root in the same transaction as Head. Empty RootName keeps
+	// the caller's existing retention policy. A submitted named root also stays
+	// pinned until the caller releases its PublicationReceipt.
+	RootName string
+	Root     *BlockRef
 	// Validate optionally inspects the prepared overlay before mutation.
 	Validate func(ctx context.Context, prepared StoreOps) error
 	// BucketID scopes GC ownership; populated by the bucket capability.

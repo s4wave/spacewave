@@ -530,6 +530,7 @@ func (b *bucketHandle) PublishAtomic(ctx context.Context, p *block.AtomicPublica
 	if err != nil {
 		return err
 	}
+	defer receipt.Release()
 	return receipt.Wait(context.WithoutCancel(ctx))
 }
 

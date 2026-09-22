@@ -166,6 +166,7 @@ func copyObjectToBucket(
 	// seenMtx guards the set of block references claimed by copy workers.
 	var seenMtx sync.Mutex
 	seenBlocks := make(map[string]struct{})
+	childRefs := make(map[string]*block.BlockRef)
 	var seenBlockCount atomic.Int64
 	var copiedBlocks atomic.Int64
 	var dedupedBlocks atomic.Int64
@@ -222,7 +223,6 @@ func copyObjectToBucket(
 	})
 
 	// GetBlockRefCtor supplies the decoder for each child in the block graph.
-	// TODO: handle garbage collection (set parent in PutOpts).
 	ctx = withCopyWorkerTrace(ctx)
 	err = WalkObjectBlocks(
 		ctx,
@@ -259,6 +259,15 @@ func copyObjectToBucket(
 				}
 				return false, nil
 			}
+			refs, err := block.ExtractBlockRefs(ent.Blk)
+			if err != nil {
+				return false, err
+			}
+			seenMtx.Lock()
+			for _, ref := range refs {
+				childRefs[ref.MarshalString()] = ref
+			}
+			seenMtx.Unlock()
 
 			// The selected policy determines when existence accounting resolves.
 			// All payloads still receive destination ownership writes.
@@ -274,7 +283,7 @@ func copyObjectToBucket(
 				if len(ent.Data) > maxPendingBytes {
 					batchTarget = target
 				}
-				err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data}})
+				err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs}})
 			}
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())
@@ -312,6 +321,27 @@ func copyObjectToBucket(
 	// updates have reached the destination's durability fence.
 	if err == nil {
 		_, err = writes.Sync(ctx)
+	}
+	if err == nil && block.SupportsRootRetention(writeBkt) {
+		// Concurrent traversal can write a child after its parent. Once all
+		// immutable edges are durable, only the copied root needs bucket
+		// ownership; release descendant staging through the bucket API.
+		cleanup := block.NewBufferedStoreWithSettings(ctx, writeBkt, &block.BufferedStoreSettings{
+			MaxPendingEntries: 128,
+			MaxPendingBytes:   maxPendingBytes,
+			DrainBatchEntries: 128,
+		})
+		for _, ref := range childRefs {
+			if ref.EqualsRef(srcRef.GetRootRef()) {
+				continue
+			}
+			if err = cleanup.RmBlock(ctx, ref); err != nil {
+				break
+			}
+		}
+		if err == nil {
+			_, err = cleanup.Sync(ctx)
+		}
 	}
 
 	// Preserve logical accounting even when the copy fails to complete.

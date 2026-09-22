@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
@@ -76,6 +77,9 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 					cached.baseRootRef.EqualsRef(headState.GetHeadRef().GetRootRef()) &&
 					bytes.Equal(cached.opData, opInner.GetOpData()) {
 					headState = cached.resultState
+					if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "validator-world", headState.GetHeadRef().GetRootRef()); err != nil {
+						return nil, nil, err
+					}
 					opPeerID, _ := opInner.ParsePeerID()
 					opResults = append(opResults, sobject.BuildSOOperationResult(
 						opPeerID.String(), opInner.GetNonce(), true, nil,
@@ -107,6 +111,11 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 				}
 				if nhs != nil {
 					headState = nhs
+					// Only the current replay candidate needs its own root. Its
+					// immutable history and the accepted head retain their data.
+					if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "validator-world", headState.GetHeadRef().GetRootRef()); err != nil {
+						return nil, nil, err
+					}
 				}
 			}
 

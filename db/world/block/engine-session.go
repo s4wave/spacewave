@@ -191,8 +191,10 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		next = e.baseHeadRef.Clone()
 		next.RootRef = root.Clone()
 		publication := &block.AtomicPublication{
-			Entries: batch.Entries,
-			Head:    e.engine.atomicHeadFn(e.baseHeadRef, next),
+			Entries:  batch.Entries,
+			Head:     e.engine.atomicHeadFn(e.baseHeadRef, next),
+			RootName: e.engine.retainedRootName(),
+			Root:     root.Clone(),
 			Validate: func(ctx context.Context, store block.StoreOps) error {
 				return e.engine.validatePreparedRoot(ctx, next, store)
 			},
@@ -271,12 +273,18 @@ func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublicat
 		_, err = e.writeBlockStore.Sync(ctx)
 	}
 	if err == nil {
+		err = block.MarkRootComplete(ctx, e.writeBlockStore, p.root.GetRootRef())
+	}
+	if err == nil {
 		err = e.validatePreparedRoot(ctx, p.root, e.writeBlockStore)
 	}
 	if err == nil {
 		locked := e.bcast.Lock()
 		if e.commitFn != nil {
 			err = e.commitFn(ctx, base, p.root.Clone())
+		}
+		if err == nil {
+			err = block.SetRetainedRoot(ctx, e.writeBlockStore, e.retainedRootName(), p.root.GetRootRef())
 		}
 		locked.Unlock()
 	}
@@ -314,6 +322,9 @@ func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
 	}
 	locked.Unlock()
 	_ = e.drainRetirement(ctx, retired)
+	// The installed reader pin now replaces temporary publication ownership.
+	// Release on errors and Engine.Close too; the durable head owns live data.
+	p.durable.Release()
 	if err == nil && s.lease != nil {
 		s.leaseMu.Lock()
 		_, err = s.lease.Publish(ctx, coord.Event{

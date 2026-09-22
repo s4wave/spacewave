@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 )
@@ -17,11 +18,33 @@ type PublicationReceipt struct {
 	resolved bool
 	// err is the durable result, meaningful only after resolved.
 	err error
+	// release drops optional publication ownership after durable completion.
+	release     func()
+	releaseOnce sync.Once
 }
 
 // NewPublicationReceipt constructs an unresolved completion owned by a writer.
 func NewPublicationReceipt() *PublicationReceipt {
 	return &PublicationReceipt{doneCh: make(chan struct{})}
+}
+
+// NewRetainedPublicationReceipt retains a prepared root until Release. Its
+// owner supplies an idempotent cleanup that is valid after either outcome.
+func NewRetainedPublicationReceipt(release func()) *PublicationReceipt {
+	r := NewPublicationReceipt()
+	r.release = release
+	return r
+}
+
+// Release waits for resolution and releases publication ownership once. A
+// consumer must first install its own reader pin if it will keep using the root.
+func (r *PublicationReceipt) Release() {
+	<-r.doneCh
+	r.releaseOnce.Do(func() {
+		if r.release != nil {
+			r.release()
+		}
+	})
 }
 
 // Done returns a channel that closes when the owning publisher resolves the

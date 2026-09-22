@@ -68,8 +68,8 @@ func CopyWorld(ctx context.Context, b bus.Bus, le *logrus.Entry, factories *bloc
 				return nil, errors.Errorf("block type unavailable: %s", typeID)
 			}
 			return info.Constructor, nil
-		}, func(ref *block.BlockRef, data []byte) error {
-			_, _, err := destination.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
+		}, func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
+			_, _, err := destination.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs})
 			return err
 		})
 		if err != nil {

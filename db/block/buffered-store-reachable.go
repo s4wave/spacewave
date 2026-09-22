@@ -72,6 +72,7 @@ func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (
 			if _, retained := keep[key]; !retained {
 				delete(s.pending, key)
 				s.pendingBytes -= len(pending.data)
+				s.pendingMetadataBytes -= pending.metadataBytes
 			}
 		}
 		broadcast()

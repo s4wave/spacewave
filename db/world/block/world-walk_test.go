@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -81,8 +82,8 @@ func testWalkBlocksCopiesObjectDescendants(t *testing.T, disableChangelog bool) 
 		t.Fatal(err)
 	}
 	resolve := func(context.Context, string) (block.Ctor, error) { return block_mock.NewRootBlock, nil }
-	copyBlock := func(ref *block.BlockRef, data []byte) error {
-		_, _, err := target.GetBucket().PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
+	copyBlock := func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
+		_, _, err := target.GetBucket().PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs})
 		return err
 	}
 	if err := ws.WalkBlocks(ctx, resolve, copyBlock); err != nil {
@@ -117,7 +118,7 @@ func testWalkBlocksCopiesObjectDescendants(t *testing.T, disableChangelog bool) 
 	if err := ws.WalkBlocks(ctx, resolve, copyBlock, options); err != nil {
 		t.Fatal(err)
 	}
-	if err := ws.WalkBlocks(ctx, resolve, func(*block.BlockRef, []byte) error {
+	if err := ws.WalkBlocks(ctx, resolve, func(*block.BlockRef, []byte, []*block.BlockRef) error {
 		t.Error("unchanged completed graph copied again")
 		return nil
 	}, options); err != nil {
@@ -126,6 +127,24 @@ func testWalkBlocksCopiesObjectDescendants(t *testing.T, disableChangelog bool) 
 
 	if err := ws.WalkBlocks(ctx, func(context.Context, string) (block.Ctor, error) { return nil, nil }, copyBlock); err == nil {
 		t.Fatal("unknown object decoder must prevent completion")
+	}
+	// The copied root owns its descendants through the destination graph.
+	// Releasing that root must release the payload rather than leave staging
+	// references attached to every copied block indefinitely.
+	for _, keep := range []bool{true, false} {
+		var retained *block.BlockRef
+		if keep {
+			retained = ws.GetRootRef()
+		}
+		if err := block.SetRetainedRoot(ctx, target.GetBucket(), "copied-world", retained); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := block_gc.NewCollector(receiver.Volume.GetRefGraph(), receiver.Volume, nil).Collect(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if found, err := target.GetBucket().GetBlockExists(ctx, leaf); err != nil || found != keep {
+			t.Fatalf("copied descendant retention: want=%v found=%v err=%v", keep, found, err)
+		}
 	}
 	// Simulate lost physical data below bucket ownership and GC protection.
 	if err := source.Volume.RmBlock(ctx, leaf); err != nil {

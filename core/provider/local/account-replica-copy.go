@@ -81,12 +81,18 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 		return err
 	}
 	if progress.GetComplete() && progress.GetHead().EqualVT(head) {
+		if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef()); err != nil {
+			return err
+		}
 		state.publishCopyProgress(progress)
 		return nil
 	}
 	progress = &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head.CloneVT()}
 	state.publishCopyProgress(progress)
 	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
+	if err == nil {
+		err = block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef())
+	}
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}

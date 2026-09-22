@@ -41,6 +41,23 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 // visited observes newly traversed blocks; cached complete subtrees are omitted.
 func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
 	store := so.GetBlockStore()
+	if complete, err := block.RootComplete(ctx, store, head.GetRootRef()); err != nil {
+		return err
+	} else if complete {
+		// A proof is volume-wide; a second bucket still needs root ownership.
+		data, found, err := store.GetBlock(ctx, head.GetRootRef())
+		if err != nil {
+			return err
+		}
+		if !found {
+			return block.ErrNotFound
+		}
+		if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: head.GetRootRef(), Data: data}}); err != nil {
+			return err
+		}
+		_, err = store.Sync(ctx)
+		return err
+	}
 	const maxPendingBytes = 4 << 20
 	const proofBatchEntries = 1024
 	writes := block.NewBufferedStoreWithSettings(ctx, store, &block.BufferedStoreSettings{
@@ -68,6 +85,8 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 	// Fence bytes before recording proofs. Failure may preserve complete
 	// subtrees, but never records a parent whose descendants failed.
 	pending := make(map[string]struct{})
+	var proofs []block.RootProof
+	volumeProofs := block.SupportsRootRetention(store)
 	flush := func() error {
 		if len(pending) == 0 {
 			return nil
@@ -78,6 +97,14 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		}
 		if !fenced {
 			return errors.New("local block store has no durability fence")
+		}
+		if volumeProofs {
+			if err := block.MarkRootsComplete(ctx, store, proofs); err != nil {
+				return err
+			}
+			proofs = nil
+			clear(pending)
+			return nil
 		}
 		err = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 			return local.NewTransaction(ctx, true)
@@ -95,7 +122,8 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		return err
 	}
 	key := func(domain string, ref *block.BlockRef) string {
-		return "world-publication/" + bucketID + "/" + domain + "/" + ref.MarshalString()
+		// Earlier proofs covered bytes but omitted their ownership graph.
+		return "world-publication-v2/" + bucketID + "/" + domain + "/" + ref.MarshalString()
 	}
 	constructors := make(map[string]block.Ctor)
 	err = ws.WalkBlocks(ctx, func(ctx context.Context, typeID string) (block.Ctor, error) {
@@ -116,14 +144,14 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		}
 		constructors[typeID] = info.Constructor
 		return info.Constructor, nil
-	}, func(ref *block.BlockRef, data []byte) error {
+	}, func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
 		// Presence alone does not prove destination bucket ownership. Batch
 		// every visited block, bypassing the bounded buffer for large payloads.
 		var target block.StoreOps = writes
 		if len(data) > maxPendingBytes {
 			target = store
 		}
-		if err := target.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
+		if err := target.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: refs}}); err != nil {
 			return err
 		}
 		if visited != nil {
@@ -136,16 +164,27 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 			if _, ok := pending[k]; ok {
 				return true, nil
 			}
+			if volumeProofs {
+				return block.RootComplete(ctx, store, ref, domain)
+			}
 			tx, err := local.NewTransaction(ctx, false)
 			if err != nil {
 				return false, err
 			}
-			defer tx.Discard()
 			_, found, err := tx.Get(ctx, []byte(k))
-			return found, err
+			tx.Discard()
+			if err != nil || !found {
+				return false, err
+			}
+			// Collection can invalidate an older completion record. A live
+			// parent still retains its descendants through the volume graph.
+			return store.GetBlockExists(ctx, ref)
 		},
 		Complete: func(domain string, ref *block.BlockRef) error {
 			pending[key(domain, ref)] = struct{}{}
+			if volumeProofs {
+				proofs = append(proofs, block.RootProof{Domain: domain, Ref: ref})
+			}
 			if len(pending) >= proofBatchEntries {
 				return flush()
 			}
@@ -155,5 +194,8 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 	if err != nil {
 		return err
 	}
-	return flush()
+	if err := flush(); err != nil {
+		return err
+	}
+	return block.MarkRootComplete(ctx, store, head.GetRootRef())
 }

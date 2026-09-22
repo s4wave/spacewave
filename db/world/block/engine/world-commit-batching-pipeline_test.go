@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	sdk_world "github.com/s4wave/spacewave/sdk/world"
 )
@@ -38,6 +39,10 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	}
 	defer physical.Rollback()
 	before := f.db.CommitCounter()
+	publications := f.tb.Volume.(interface {
+		GetPublicationStats() volume_kvtx.PublicationStats
+	})
+	beforePublications := publications.GetPublicationStats().PhysicalCommits
 	keys1 := batchingResourcePopulate(t, ctx, f, first, 0, 32)
 	done1 := make(chan error, 1)
 	go func() { done1 <- first.Commit(ctx) }()
@@ -97,9 +102,11 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
-	if n := f.db.CommitCounter() - before; n != 1 {
-		t.Fatalf("two Resource revisions used %d physical commits, want 1", n)
+	if n := publications.GetPublicationStats().PhysicalCommits - beforePublications; n != 1 {
+		t.Fatalf("two Resource revisions used %d publication commits, want 1", n)
 	}
+	// Reader pins and their release are separate ownership transactions.
+	t.Logf("physical commits including reader ownership: %d", f.db.CommitCounter()-before)
 	p1 := batchingResourceReadback(t, ctx, f, keys1)
 	p2 := batchingResourceReadback(t, ctx, f, keys2)
 	if p1 != 3919745061 || p2 != 3325196325 {
