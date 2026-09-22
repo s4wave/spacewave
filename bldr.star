@@ -565,6 +565,10 @@ def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
     )
+    # Installers and native updates carry a single executable. Its bootstrap
+    # World must survive packaging without an adjacent volume file.
+    if entrypoint_role != "browser":
+        conf["embedNativeVolume"] = "ENABLE"
     if go_compiler:
         conf["goCompiler"] = go_compiler
     if entrypoint_role == "browser":
@@ -907,12 +911,11 @@ for host_key, platform_id in RELEASE_HOSTS:
         },
     )
 
-# Per-host plugin-only release builds. These produce just the native
-# spacewave-core manifests for the plugin channel; the browser-side wasm + JS
-# manifests are built once by plugin-release-browser.
+# Per-host plugin releases include the Electron host needed to load the UI.
+# Shared JavaScript manifests are built once by plugin-release-browser.
 for host_key, platform_id in RELEASE_HOSTS:
     build("plugin-release-" + host_key,
-        manifests=["spacewave-loader", "spacewave-core", "spacewave-sql"],
+        manifests=["spacewave-loader", "spacewave-core", "spacewave-sql", "web"],
         platform_ids=[platform_id],
     )
 

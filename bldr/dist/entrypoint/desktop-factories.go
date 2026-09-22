@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector"
-	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 )
 
@@ -22,8 +21,5 @@ func addDesktopFactories(b bus.Bus, sr *static.Resolver) {
 
 	// The desktop host runs the status projector without the resource
 	// listener controller; it projects a locally-owned status broker.
-	sr.AddFactory(statusprojector.NewFactory(
-		b,
-		statusprojector.WithListenerStatusBroker(resource_listener.NewStatusBroker()),
-	))
+	sr.AddFactory(statusprojector.NewFactory(b))
 }

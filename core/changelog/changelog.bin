@@ -1,4 +1,9 @@
 
+¢
+0.57.7
+2026-09-22LSpacewave 0.57.7 fixes startup in desktop and command-line release packages."LSpacewave 0.57.7 fixes startup in desktop and command-line release packages.2ò
+wDesktop and command-line executables now include the bootstrap data they need to start after installation or an update.wDesktop and command-line executables now include the bootstrap data they need to start after installation or an update.2ú
+{Native plugin releases include the desktop renderer, and desktop status reporting starts correctly when hosted in a plugin.{Native plugin releases include the desktop renderer, and desktop status reporting starts correctly when hosted in a plugin.
 Ð
 0.57.6
 2026-09-22…Spacewave 0.57.6 reduces unnecessary local storage growth, improves saving and synchronization, and adds more ways to open a session."…Spacewave 0.57.6 reduces unnecessary local storage growth, improves saving and synchronization, and adds more ways to open a session.2ä
