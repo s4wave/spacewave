@@ -406,43 +406,77 @@ func treeDigest(root string) (string, error) {
 }
 
 func copyTree(src, dst string) error {
-	// #nosec G122 -- src and dst are caller-selected staging directories under the artifact store.
-	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(src, path)
+	srcRoot, err := os.OpenRoot(src)
+	if err != nil {
+		return err
+	}
+	defer srcRoot.Close()
+
+	srcInfo, err := srcRoot.Stat(".")
+	if err != nil {
+		return err
+	}
+	// #nosec G703 -- dst is the caller-selected artifact output directory.
+	if err := os.MkdirAll(dst, srcInfo.Mode().Perm()); err != nil {
+		return err
+	}
+	dstRoot, err := os.OpenRoot(dst)
+	if err != nil {
+		return err
+	}
+	defer dstRoot.Close()
+
+	return copyTreeEntries(srcRoot, dstRoot, ".")
+}
+
+// copyTreeEntries copies one directory through root-scoped operations.
+func copyTreeEntries(srcRoot, dstRoot *os.Root, dir string) error {
+	srcDir, err := srcRoot.Open(dir)
+	if err != nil {
+		return err
+	}
+	entries, readErr := srcDir.ReadDir(-1)
+	closeErr := srcDir.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+
+	for _, entry := range entries {
+		rel := filepath.Join(dir, entry.Name())
+		info, err := srcRoot.Lstat(rel)
 		if err != nil {
 			return err
 		}
-		target := filepath.Join(dst, rel)
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() {
-			// #nosec G703 -- target is dst joined with the walked relative path.
-			return os.MkdirAll(target, info.Mode().Perm())
+		if info.IsDir() {
+			if err := dstRoot.MkdirAll(rel, info.Mode().Perm()); err != nil {
+				return err
+			}
+			if err := copyTreeEntries(srcRoot, dstRoot, rel); err != nil {
+				return err
+			}
+			continue
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
-			link, err := os.Readlink(path)
+			link, err := srcRoot.Readlink(rel)
 			if err != nil {
 				return err
 			}
-			// #nosec G122 -- target is dst joined with the walked relative path.
-			return os.Symlink(link, target)
+			if err := dstRoot.Symlink(link, rel); err != nil {
+				return err
+			}
+			continue
 		}
 		if !info.Mode().IsRegular() {
-			return errors.Errorf("artifact output %s has unsupported mode %s", path, info.Mode())
+			return errors.Errorf("artifact output %s has unsupported mode %s", rel, info.Mode())
 		}
-		// #nosec G703 -- path is the walked source file under the caller-selected src.
-		// #nosec G122 -- the walk root is the caller-selected staging directory.
-		in, err := os.Open(path)
+		in, err := srcRoot.Open(rel)
 		if err != nil {
 			return err
 		}
-		// #nosec G703 -- target is dst joined with the walked relative path.
-		out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
+		out, err := dstRoot.OpenFile(rel, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm())
 		if err != nil {
 			in.Close()
 			return err
@@ -456,6 +490,9 @@ func copyTree(src, dst string) error {
 		if closeOutErr != nil {
 			return closeOutErr
 		}
-		return closeInErr
-	})
+		if closeInErr != nil {
+			return closeInErr
+		}
+	}
+	return nil
 }

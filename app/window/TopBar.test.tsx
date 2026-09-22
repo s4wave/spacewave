@@ -55,17 +55,20 @@ describe('TopBar', () => {
       />,
     )
 
-    // The active tab wrapper gets an inline boxShadow style; inactive tabs do not
     const modelingButton = screen.getByText('Modeling').closest('button')
     const layoutButton = screen.getByText('Layout').closest('button')
 
     const activeTabWrapper = modelingButton?.parentElement
     const inactiveTabWrapper = layoutButton?.parentElement
 
-    // Active tab has a boxShadow style applied
-    expect(activeTabWrapper?.style.boxShadow).toBeTruthy()
-    // Inactive tab does not
-    expect(inactiveTabWrapper?.style.boxShadow).toBeFalsy()
+    expect(activeTabWrapper?.getAttribute('data-active')).toBe('true')
+    expect(activeTabWrapper?.classList.contains('bg-shell-tab-active')).toBe(
+      true,
+    )
+    expect(inactiveTabWrapper?.hasAttribute('data-active')).toBe(false)
+    expect(
+      inactiveTabWrapper?.classList.contains('bg-shell-tab-inactive'),
+    ).toBe(true)
   })
 
   it('should render menu buttons', () => {

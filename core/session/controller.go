@@ -6,23 +6,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 )
 
-// FindSessionMetadata looks up a session's index and metadata by ref.
-// Returns 0, nil if the session is not found.
-func FindSessionMetadata(ctx context.Context, ctrl SessionController, ref *SessionRef) (uint32, *SessionMetadata) {
-	sessions, err := ctrl.ListSessions(ctx)
-	if err != nil {
-		return 0, nil
-	}
-	for _, entry := range sessions {
-		if entry.GetSessionRef().EqualVT(ref) {
-			idx := entry.GetSessionIndex()
-			meta, _ := ctrl.GetSessionMetadata(ctx, idx)
-			return idx, meta
-		}
-	}
-	return 0, nil
-}
-
 // SessionController is the session list controller.
 type SessionController interface {
 	// GetSessionByIdx looks up the given session index.

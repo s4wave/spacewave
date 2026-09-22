@@ -18,6 +18,10 @@ function makeState(
   }
 }
 
+function getStyleNumber(element: HTMLElement, name: string): number {
+  return Number.parseInt(element.style.getPropertyValue(name), 10)
+}
+
 // -- FloatingWindowManagerProvider tests --
 
 describe('FloatingWindowManagerProvider', () => {
@@ -55,8 +59,8 @@ describe('FloatingWindowManagerProvider', () => {
     const winA = screen.getByTestId('win-a')
     const winB = screen.getByTestId('win-b')
 
-    const zIndexA = parseInt(winA.style.zIndex, 10)
-    const zIndexB = parseInt(winB.style.zIndex, 10)
+    const zIndexA = getStyleNumber(winA, '--floating-window-z-index')
+    const zIndexB = getStyleNumber(winB, '--floating-window-z-index')
 
     // Both should have valid z-index values
     expect(zIndexA).toBeGreaterThanOrEqual(1000)
@@ -96,16 +100,16 @@ describe('FloatingWindowManagerProvider', () => {
     const winB = screen.getByTestId('win-b')
 
     // Initially, win-b is on top
-    expect(parseInt(winB.style.zIndex, 10)).toBeGreaterThan(
-      parseInt(winA.style.zIndex, 10),
+    expect(getStyleNumber(winB, '--floating-window-z-index')).toBeGreaterThan(
+      getStyleNumber(winA, '--floating-window-z-index'),
     )
 
     // Click on win-a to bring it to front (mousedown triggers bringToFront)
     fireEvent.mouseDown(winA)
 
     // Now win-a should have a higher z-index than win-b
-    expect(parseInt(winA.style.zIndex, 10)).toBeGreaterThan(
-      parseInt(winB.style.zIndex, 10),
+    expect(getStyleNumber(winA, '--floating-window-z-index')).toBeGreaterThan(
+      getStyleNumber(winB, '--floating-window-z-index'),
     )
   })
 
@@ -161,7 +165,9 @@ describe('FloatingWindowManagerProvider', () => {
     // win-a should be gone, win-b should still have a valid z-index
     expect(screen.queryByTestId('win-a')).toBeNull()
     const winB = screen.getByTestId('win-b')
-    expect(parseInt(winB.style.zIndex, 10)).toBeGreaterThanOrEqual(1000)
+    expect(
+      getStyleNumber(winB, '--floating-window-z-index'),
+    ).toBeGreaterThanOrEqual(1000)
   })
 })
 
@@ -419,10 +425,10 @@ describe('FloatingWindow', () => {
     )
 
     const win = screen.getByTestId('win')
-    expect(win.style.left).toBe('42px')
-    expect(win.style.top).toBe('84px')
-    expect(win.style.width).toBe('500px')
-    expect(win.style.height).toBe('350px')
+    expect(win.style.getPropertyValue('--floating-window-left')).toBe('42px')
+    expect(win.style.getPropertyValue('--floating-window-top')).toBe('84px')
+    expect(win.style.getPropertyValue('--floating-window-width')).toBe('500px')
+    expect(win.style.getPropertyValue('--floating-window-height')).toBe('350px')
   })
 })
 
@@ -464,8 +470,8 @@ describe('FloatingWindowManagerProvider + FloatingWindow integration', () => {
     const w2 = screen.getByTestId('w2')
 
     // Both should have z-index set from the manager (base 1000)
-    const z1 = parseInt(w1.style.zIndex, 10)
-    const z2 = parseInt(w2.style.zIndex, 10)
+    const z1 = getStyleNumber(w1, '--floating-window-z-index')
+    const z2 = getStyleNumber(w2, '--floating-window-z-index')
 
     expect(z1).toBe(1000)
     expect(z2).toBe(1001)
@@ -502,16 +508,16 @@ describe('FloatingWindowManagerProvider + FloatingWindow integration', () => {
     const w2 = screen.getByTestId('w2')
 
     // Initially w2 is on top
-    expect(parseInt(w2.style.zIndex, 10)).toBeGreaterThan(
-      parseInt(w1.style.zIndex, 10),
+    expect(getStyleNumber(w2, '--floating-window-z-index')).toBeGreaterThan(
+      getStyleNumber(w1, '--floating-window-z-index'),
     )
 
     // Click on w1 to bring it to front
     fireEvent.mouseDown(w1)
 
     // Now w1 should have the higher z-index
-    expect(parseInt(w1.style.zIndex, 10)).toBeGreaterThan(
-      parseInt(w2.style.zIndex, 10),
+    expect(getStyleNumber(w1, '--floating-window-z-index')).toBeGreaterThan(
+      getStyleNumber(w2, '--floating-window-z-index'),
     )
   })
 })

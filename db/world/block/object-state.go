@@ -48,7 +48,7 @@ func (o *ObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64
 	if err != nil {
 		return nil, 0, err
 	}
-	return root.GetRootRef(), root.GetRev(), nil
+	return o.w.externalObjectRef(root.GetRootRef()), root.GetRev(), nil
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.

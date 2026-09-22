@@ -142,6 +142,16 @@ func (t *WorldState) localObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
 	return local
 }
 
+// externalObjectRef restores the current bucket on a local World DAG edge.
+func (t *WorldState) externalObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef {
+	if t.localBucketID == "" || ref.GetRootRef() == nil || ref.GetBucketId() != "" {
+		return ref
+	}
+	external := ref.Clone()
+	external.BucketId = t.localBucketID
+	return external
+}
+
 // packSnapshotObjects replaces the temporary mutable index with one packed
 // tree. Only final object values are materialized; intermediate AVL nodes are
 // never written. Ordinary World mutations own object and revision semantics.

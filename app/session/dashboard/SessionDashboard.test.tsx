@@ -183,11 +183,9 @@ describe('SessionDashboard', () => {
       .getByText('Link a device')
       .closest('[cmdk-item]')
     expect(linkDeviceItem?.getAttribute('class')).toContain(
-      'data-[selected=true]:!bg-transparent',
+      'data-[selected=true]:bg-menu-selected',
     )
-    expect(linkDeviceItem?.getAttribute('class')).toContain(
-      'hover:!bg-background-card/30',
-    )
+    expect(linkDeviceItem?.getAttribute('class')).toContain('bg-transparent')
   })
 
   it('keeps returning sessions join-first before spaces and create actions', () => {

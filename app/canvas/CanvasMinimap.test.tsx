@@ -35,11 +35,10 @@ describe('CanvasMinimap', () => {
         onViewportChange={vi.fn()}
       />,
     )
-    const minimap = document.querySelector(
-      '[style*="width: 200px"]',
-    ) as HTMLElement
+    const minimap = document.querySelector('.minimap-size') as HTMLElement
     expect(minimap).toBeTruthy()
-    expect(minimap.style.height).toBe('150px')
+    expect(minimap.style.getPropertyValue('--minimap-width')).toBe('200px')
+    expect(minimap.style.getPropertyValue('--minimap-height')).toBe('150px')
   })
 
   it('renders node rectangles in the minimap', () => {
@@ -90,9 +89,7 @@ describe('CanvasMinimap', () => {
         onViewportChange={onViewportChange}
       />,
     )
-    const minimap = document.querySelector(
-      '[style*="width: 200px"]',
-    ) as HTMLElement
+    const minimap = document.querySelector('.minimap-size') as HTMLElement
     // We need to mock getBoundingClientRect for the click handler.
     minimap.getBoundingClientRect = () => ({
       left: 0,
@@ -140,9 +137,7 @@ describe('CanvasMinimap', () => {
         onViewportChange={onViewportChange}
       />,
     )
-    const minimap = document.querySelector(
-      '[style*="width: 200px"]',
-    ) as HTMLElement
+    const minimap = document.querySelector('.minimap-size') as HTMLElement
     minimap.getBoundingClientRect = () => ({
       left: 0,
       top: 0,

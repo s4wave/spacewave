@@ -298,8 +298,8 @@ func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode,
 	return nil
 }
 
-// updateSessionMetadata updates the session controller metadata with the current lock mode.
-// Reads existing metadata first to avoid clobbering other fields.
+// updateSessionMetadata updates the session controller metadata with the
+// current lock mode. It reads existing metadata first to preserve other fields.
 func (s *Session) updateSessionMetadata(ctx context.Context, mode session.SessionLockMode) {
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.GetBus(), "", true, nil)
 	if err != nil || sessionCtrl == nil {
@@ -307,16 +307,50 @@ func (s *Session) updateSessionMetadata(ctx context.Context, mode session.Sessio
 	}
 	defer sessionCtrlRef.Release()
 
-	ref := s.GetSessionRef()
-	_, meta := session.FindSessionMetadata(ctx, sessionCtrl, ref)
+	_ = updateSessionLockModeMetadata(ctx, sessionCtrl, s.GetSessionRef(), mode)
+}
+
+// updateSessionLockModeMetadata mirrors the lock mode without replacing the
+// stable identity that keeps a mounted Session attached.
+func updateSessionLockModeMetadata(
+	ctx context.Context,
+	ctrl session.SessionController,
+	ref *session.SessionRef,
+	mode session.SessionLockMode,
+) error {
+	meta, err := lookupSessionMetadata(ctx, ctrl, ref)
+	if err != nil {
+		return err
+	}
 	if meta == nil {
+		providerRef := ref.GetProviderResourceRef()
 		meta = &session.SessionMetadata{
 			ProviderDisplayName: "Local",
-			ProviderId:          "local",
+			ProviderId:          providerRef.GetProviderId(),
+			ProviderAccountId:   providerRef.GetProviderAccountId(),
 		}
 	}
 	meta.LockMode = mode
-	_ = sessionCtrl.UpdateSessionMetadata(ctx, ref, meta)
+	return ctrl.UpdateSessionMetadata(ctx, ref, meta)
+}
+
+// lookupSessionMetadata resolves metadata for one Session reference.
+func lookupSessionMetadata(
+	ctx context.Context,
+	ctrl session.SessionController,
+	ref *session.SessionRef,
+) (*session.SessionMetadata, error) {
+	entries, err := ctrl.ListSessions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if !entry.GetSessionRef().EqualVT(ref) {
+			continue
+		}
+		return ctrl.GetSessionMetadata(ctx, entry.GetSessionIndex())
+	}
+	return nil, nil
 }
 
 // WatchLockState calls the callback with the current lock state and on changes.
@@ -342,9 +376,9 @@ func (s *Session) WatchLockState(ctx context.Context, cb func(mode session.Sessi
 
 // sessionTracker tracks a Session in the ProviderAccount.
 type sessionTracker struct {
-	// a is the provider account
+	// a is the provider account.
 	a *ProviderAccount
-	// id is the session id
+	// id is the session ID.
 	id string
 	// cloudAccountID links this local session to a cloud account (empty for standalone).
 	cloudAccountID string
@@ -352,10 +386,9 @@ type sessionTracker struct {
 	// session has no stored key yet. An existing stored key wins so the
 	// session reopens with its durable identity.
 	seedPEM []byte
-	// ref is the reference to the session
-	// set when instantiating the tracker
+	// ref is the reference set when instantiating the tracker.
 	ref *promise.Promise[*session.SessionRef]
-	// sessionProm is the session promise container
+	// sessionProm is the session promise container.
 	sessionProm *promise.PromiseContainer[*Session]
 	// unlockProm is set when PIN-locked. Unblocks when UnlockSession is called.
 	unlockProm *promise.PromiseContainer[[]byte]
@@ -699,7 +732,7 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 
 // MountSession attempts to mount a Session returning the session and a release function.
 //
-// usually called by the provider controller
+// It is usually called by the provider controller.
 func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.SessionRef, released func()) (session.Session, func(), error) {
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
@@ -826,7 +859,7 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 	return nil
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var (
 	_ session.SessionProvider = (*ProviderAccount)(nil)
 	_ session.Session         = (*Session)(nil)

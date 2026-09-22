@@ -49,6 +49,25 @@ type sessionTransportFollowHook struct {
 	once     sync.Once
 }
 
+type sessionMetadataControllerStub struct {
+	core_session.SessionController
+	listErr error
+	updated *core_session.SessionMetadata
+}
+
+func (s *sessionMetadataControllerStub) ListSessions(context.Context) ([]*core_session.SessionListEntry, error) {
+	return nil, s.listErr
+}
+
+func (s *sessionMetadataControllerStub) UpdateSessionMetadata(
+	_ context.Context,
+	_ *core_session.SessionRef,
+	metadata *core_session.SessionMetadata,
+) error {
+	s.updated = metadata
+	return nil
+}
+
 func (h *sessionTransportFollowHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
@@ -60,6 +79,50 @@ func (h *sessionTransportFollowHook) Fire(entry *logrus.Entry) error {
 		})
 	}
 	return nil
+}
+
+func TestSessionLockModeMetadataPreservesAttachmentIdentity(t *testing.T) {
+	ref := &core_session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
+		Id:                "session",
+		ProviderId:        "local",
+		ProviderAccountId: "account",
+	}}
+
+	t.Run("lookup failure", func(t *testing.T) {
+		lookupErr := errors.New("metadata unavailable")
+		ctrl := &sessionMetadataControllerStub{listErr: lookupErr}
+		err := updateSessionLockModeMetadata(
+			t.Context(),
+			ctrl,
+			ref,
+			core_session.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED,
+		)
+		if !errors.Is(err, lookupErr) {
+			t.Fatalf("update error = %v, want %v", err, lookupErr)
+		}
+		if ctrl.updated != nil {
+			t.Fatal("metadata update replaced identity after a failed lookup")
+		}
+	})
+
+	t.Run("missing metadata", func(t *testing.T) {
+		ctrl := &sessionMetadataControllerStub{}
+		err := updateSessionLockModeMetadata(
+			t.Context(),
+			ctrl,
+			ref,
+			core_session.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ctrl.updated == nil {
+			t.Fatal("metadata was not updated")
+		}
+		if ctrl.updated.GetProviderId() != "local" || ctrl.updated.GetProviderAccountId() != "account" {
+			t.Fatalf("updated identity = %s/%s, want local/account", ctrl.updated.GetProviderId(), ctrl.updated.GetProviderAccountId())
+		}
+	})
 }
 
 func TestMountedPINUnlockRestoresLocalSessionStateLowCost(t *testing.T) {

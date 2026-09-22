@@ -29,10 +29,14 @@ describe('CanvasSelectionOverlay', () => {
     const overlay = document.querySelector(
       '.pointer-events-none',
     ) as HTMLElement
-    expect(overlay.style.left).toBe('50px')
-    expect(overlay.style.top).toBe('30px')
-    expect(overlay.style.width).toBe('150px')
-    expect(overlay.style.height).toBe('150px')
+    expect(overlay.style.getPropertyValue('--canvas-selection-left')).toBe('50')
+    expect(overlay.style.getPropertyValue('--canvas-selection-top')).toBe('30')
+    expect(overlay.style.getPropertyValue('--canvas-selection-width')).toBe(
+      '150',
+    )
+    expect(overlay.style.getPropertyValue('--canvas-selection-height')).toBe(
+      '150',
+    )
   })
 
   it('handles inverted (dragged backwards) coordinates', () => {
@@ -43,10 +47,14 @@ describe('CanvasSelectionOverlay', () => {
       '.pointer-events-none',
     ) as HTMLElement
     // Math.min picks the smaller coordinate for left/top.
-    expect(overlay.style.left).toBe('50px')
-    expect(overlay.style.top).toBe('30px')
-    expect(overlay.style.width).toBe('150px')
-    expect(overlay.style.height).toBe('150px')
+    expect(overlay.style.getPropertyValue('--canvas-selection-left')).toBe('50')
+    expect(overlay.style.getPropertyValue('--canvas-selection-top')).toBe('30')
+    expect(overlay.style.getPropertyValue('--canvas-selection-width')).toBe(
+      '150',
+    )
+    expect(overlay.style.getPropertyValue('--canvas-selection-height')).toBe(
+      '150',
+    )
   })
 
   it('handles zero-size selection rectangle', () => {
@@ -55,7 +63,9 @@ describe('CanvasSelectionOverlay', () => {
     const overlay = document.querySelector(
       '.pointer-events-none',
     ) as HTMLElement
-    expect(overlay.style.width).toBe('0px')
-    expect(overlay.style.height).toBe('0px')
+    expect(overlay.style.getPropertyValue('--canvas-selection-width')).toBe('0')
+    expect(overlay.style.getPropertyValue('--canvas-selection-height')).toBe(
+      '0',
+    )
   })
 })

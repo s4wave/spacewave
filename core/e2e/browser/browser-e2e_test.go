@@ -26,7 +26,6 @@ import (
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
-	"github.com/s4wave/spacewave/bldr/testbed"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	s4wave_core_e2e "github.com/s4wave/spacewave/core/e2e"
 	s4wave_core_e2e_browser "github.com/s4wave/spacewave/core/e2e/browser"
@@ -52,11 +51,11 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Skip("SKIP_BROWSER_E2E is set, skipping browser E2E tests")
 	}
 
-	// Determine which vitest mode to run
+	// Select the requested Vitest mode.
 	uiMode := os.Getenv("BROWSER_TEST_UI") != ""
 	watchMode := os.Getenv("BROWSER_TEST_WATCH") != ""
 
-	// Use signal context - exits on Ctrl+C or when vitest exits
+	// Stop the testbed on Ctrl+C, termination, or Vitest exit.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
@@ -64,7 +63,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	log.SetLevel(logrus.InfoLevel) // avoid too much log spam
 	le := logrus.NewEntry(log)
 
-	// get path to repo root
+	// Resolve the repository and testbed paths.
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -76,7 +75,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
 	pluginDistDir := filepath.Join(workDir, "plugin", "dist")
 
-	// cleanup the build dir if it exists
+	// Reset disposable build and plugin state directories.
 	if err := fsutil.CleanCreateDir(buildDir); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -87,20 +86,21 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check out the web dist sources
+	// Check out the web distribution sources.
 	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// build the bldr testbed
-	tb, err := testbed.BuildTestbed(ctx, le)
+	// Build the native bldr testbed. The browser under test consumes the native
+	// core API while frontend and fixture plugins run in QuickJS.
+	tb, err := s4wave_core_e2e.NewNativeTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
-	// add the controllers we will need
+	// Register the controllers required by the browser build.
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
@@ -112,7 +112,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
-	// start a peer controller to serve GetPeer directives
+	// Start a peer controller to serve GetPeer directives.
 	volPeer, err := tb.GetVolume().GetPeer(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -124,7 +124,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	}
 	defer relPeerCtrl()
 
-	// start objecttype controller to resolve LookupObjectType directives
+	// Start the object-type controller for LookupObjectType directives.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	}
 	defer relObjectTypeCtrl()
 
-	// load the go plugin host
+	// Load the Go plugin host.
 	processHost, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
 		ctx,
 		tb.GetBus(),
@@ -145,7 +145,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer processRef.Release()
 	_ = processHost
 
-	// load the js plugin host
+	// Load the JavaScript plugin host.
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		tb.GetBus(),
@@ -158,7 +158,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer quickjsHostRef.Release()
 	_ = quickjsHost
 
-	// load the merged project config
+	// Load the merged project configuration.
 	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
 	if err == nil {
 		err = projectConfig.Validate()
@@ -167,7 +167,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// apply the devtool remote for building manifests
+	// Route manifest builds through the devtool remote.
 	projectConfig.Remotes = map[string]*bldr_project.RemoteConfig{
 		"devtool": {
 			EngineId:       tb.GetWorldEngineID(),
@@ -177,11 +177,10 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		},
 	}
 
-	// configure the project controller
+	// Configure and run the project controller.
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, workDir, projectConfig, false, true)
 	projCtrlConf.FetchManifestRemote = "devtool"
 
-	// run the project controller, which also compiles and starts the plugins
 	projCtrl, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
 		ctx,
 		tb.GetBus(),
@@ -194,7 +193,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer projCtrlRef.Release()
 	_ = projCtrl
 
-	// Start the browser test server that exposes the full resource API
+	// Start the browser test server that exposes the full resource API.
 	browserServer := s4wave_core_e2e_browser.NewBrowserTestServer(le, b)
 	port, err := browserServer.Start(ctx)
 	if err != nil {
@@ -205,11 +204,11 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	t.Logf("browser test server started on port %d", port)
 
 	// Build vitest command arguments.
-	// Base command: vitest --config=vitest.browser.config.ts
+	// Every mode uses the browser Vitest configuration.
 	vitestBaseArgs := []string{"vitest", "--config=vitest.browser.config.ts"}
 
 	if uiMode {
-		// Use browser-based UI for interactive debugging
+		// Use the browser UI for interactive debugging.
 		vitestArgs := append(slices.Clone(vitestBaseArgs), "--ui")
 		if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {
 			vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
@@ -223,7 +222,7 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 		}
 	} else if watchMode {
 		// Terminal watch mode - keyboard shortcuts work (h for help, a to rerun all, etc.)
-		// Don't add --run so vitest stays in watch mode
+		// Omit --run so Vitest stays in watch mode.
 		vitestArgs := slices.Clone(vitestBaseArgs)
 		if testFilter := os.Getenv("BROWSER_TEST_FILTER"); testFilter != "" {
 			vitestArgs = append(vitestArgs, "--testNamePattern", testFilter)
@@ -305,7 +304,7 @@ func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
 	}
 	defer ptmx.Close()
 
-	// Handle pty size changes
+	// Propagate terminal resizes to the pseudo-terminal.
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)
 	go func() {
@@ -316,7 +315,7 @@ func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
 	defer signal.Stop(ch)
 	_ = pty.InheritSize(os.Stdin, ptmx)
 
-	// Set stdin in raw mode if it's a terminal
+	// Put terminal input in raw mode for interactive controls.
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err == nil {
@@ -324,11 +323,11 @@ func runWithPTY(ctx context.Context, cmd *exec.Cmd) error {
 		}
 	}
 
-	// Copy stdin to the pty and pty to stdout
+	// Bridge the parent terminal to the child pseudo-terminal.
 	go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
 	go func() { _, _ = io.Copy(os.Stdout, ptmx) }()
 
-	// Wait for the command to finish or context to be cancelled
+	// Wait for the command to finish or its context to be canceled.
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 

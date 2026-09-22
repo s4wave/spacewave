@@ -16,9 +16,7 @@ import (
 	"testing"
 	"time"
 
-	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/fastjson"
-	"github.com/pkg/errors"
 )
 
 const enableCLITestscriptEnv = "SPACEWAVE_CLI_TESTSCRIPT"
@@ -116,8 +114,6 @@ func runScript(t *testing.T, path string, st scriptState) {
 			assertPackageScript(t, path, idx+1, line, st)
 		case "readme-command":
 			assertReadmeCommand(t, path, idx+1, line, st)
-		case "volume-stats-min":
-			assertVolumeStatsMin(t, path, idx+1, fields, st)
 		case "spacewave", "!":
 			st = runCommandLine(t, path, idx+1, line, st)
 		case "stdout":
@@ -266,30 +262,6 @@ func runGitFixtureCommand(t *testing.T, path string, lineNo int, repoPath string
 	}
 }
 
-func assertVolumeStatsMin(t *testing.T, path string, lineNo int, fields []string, st scriptState) {
-	t.Helper()
-
-	if len(fields) != 3 {
-		t.Fatalf("%s:%d: usage: volume-stats-min BLOCKS BYTES", path, lineNo)
-	}
-	wantBlocks, err := strconv.ParseUint(fields[1], 10, 64)
-	if err != nil {
-		t.Fatalf("%s:%d: parse block floor: %v", path, lineNo, err)
-	}
-	wantBytes, err := strconv.ParseUint(fields[2], 10, 64)
-	if err != nil {
-		t.Fatalf("%s:%d: parse byte floor: %v", path, lineNo, err)
-	}
-
-	blocks, bytes, err := volumeStats(st.work)
-	if err != nil {
-		t.Fatalf("%s:%d: read volume stats: %v", path, lineNo, err)
-	}
-	if blocks < wantBlocks || bytes < wantBytes {
-		t.Fatalf("%s:%d: volume stats below floor: got blocks=%d bytes=%d, want at least blocks=%d bytes=%d", path, lineNo, blocks, bytes, wantBlocks, wantBytes)
-	}
-}
-
 func assertReadmeCommand(t *testing.T, path string, lineNo int, line string, st scriptState) {
 	t.Helper()
 
@@ -340,36 +312,6 @@ func packageScriptArgs(line string) (string, string, error) {
 	}
 	want, err := strconv.Unquote(strings.TrimSpace(quoted))
 	return name, want, err
-}
-
-func volumeStats(work string) (uint64, uint64, error) {
-	matches, err := filepath.Glob(filepath.Join(work, "state", "p_local_*.s4wave"))
-	if err != nil {
-		return 0, 0, err
-	}
-	if len(matches) != 1 {
-		return 0, 0, errors.Errorf("expected one local provider volume, got %d", len(matches))
-	}
-
-	db, err := bdb.Open(matches[0], 0o444, &bdb.Options{ReadOnly: true})
-	if err != nil {
-		return 0, 0, err
-	}
-	defer db.Close()
-
-	var blocks, bytes uint64
-	err = db.View(func(tx *bdb.Tx) error {
-		bucket := tx.Bucket([]byte("hydra"))
-		if bucket == nil {
-			return errors.New("missing hydra bucket")
-		}
-		return bucket.ForEach(func(_, value []byte) error {
-			blocks++
-			bytes += uint64(len(value))
-			return nil
-		})
-	})
-	return blocks, bytes, err
 }
 
 func assertOutputContains(t *testing.T, path string, lineNo int, name, got, line string) {

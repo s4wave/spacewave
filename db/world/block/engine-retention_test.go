@@ -27,7 +27,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 	var firstRoot, firstBody *block.BlockRef
 	var reader *Tx
 	var fork *Tx
-	var records, fileBytes uint64
+	var records, liveBytes uint64
 	for i := range 64 {
 		w := sessionWriter(t, f)
 		if i == 0 {
@@ -104,11 +104,29 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Logf("writes=%d records=%d file-bytes=%d", i+1, stats.GetBlockCount(), stats.GetTotalBytes())
+			boltStats := f.db.Stats()
+			freeBytes := uint64(boltStats.FreePageN+boltStats.PendingPageN) * uint64(f.db.Info().PageSize)
+			if freeBytes > stats.GetTotalBytes() {
+				t.Fatalf("free bytes %d exceed file bytes %d", freeBytes, stats.GetTotalBytes())
+			}
+			currentLiveBytes := stats.GetTotalBytes() - freeBytes
+			t.Logf(
+				"writes=%d records=%d live-bytes=%d file-bytes=%d",
+				i+1,
+				stats.GetBlockCount(),
+				currentLiveBytes,
+				stats.GetTotalBytes(),
+			)
 			if i == 31 {
-				records, fileBytes = stats.GetBlockCount(), stats.GetTotalBytes()
-			} else if stats.GetBlockCount() != records || stats.GetTotalBytes() > fileBytes {
-				t.Fatalf("fixed live state grew: records %d -> %d, bytes %d -> %d", records, stats.GetBlockCount(), fileBytes, stats.GetTotalBytes())
+				records, liveBytes = stats.GetBlockCount(), currentLiveBytes
+			} else if stats.GetBlockCount() != records || currentLiveBytes > liveBytes {
+				t.Fatalf(
+					"fixed live state grew: records %d -> %d, bytes %d -> %d",
+					records,
+					stats.GetBlockCount(),
+					liveBytes,
+					currentLiveBytes,
+				)
 			}
 		}
 	}

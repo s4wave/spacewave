@@ -103,10 +103,10 @@ describe('Canvas', () => {
       '[data-canvas-node="pos-test"]',
     ) as HTMLElement
     expect(el).toBeTruthy()
-    expect(el.style.left).toBe('50px')
-    expect(el.style.top).toBe('75px')
-    expect(el.style.width).toBe('120px')
-    expect(el.style.height).toBe('80px')
+    expect(el.style.getPropertyValue('--canvas-node-left')).toBe('50px')
+    expect(el.style.getPropertyValue('--canvas-node-top')).toBe('75px')
+    expect(el.style.getPropertyValue('--canvas-node-width')).toBe('120px')
+    expect(el.style.getPropertyValue('--canvas-node-height')).toBe('80px')
   })
 
   it('renders text node content', () => {
@@ -280,8 +280,8 @@ describe('Canvas', () => {
     const el2 = document.querySelector(
       '[data-canvas-node="ta-2"]',
     ) as HTMLElement
-    expect(el1.style.touchAction).toBe('none')
-    expect(el2.style.touchAction).toBe('none')
+    expect(el1.classList.contains('canvas-node-input')).toBe(true)
+    expect(el2.classList.contains('canvas-node-input')).toBe(true)
   })
 
   it('does not fire onNodesChange during drag, only on drop', () => {

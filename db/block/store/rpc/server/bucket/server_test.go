@@ -14,19 +14,27 @@ import (
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_test "github.com/s4wave/spacewave/db/block/store/test"
 	"github.com/s4wave/spacewave/db/testbed"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/net/hash"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlockStoreBucketRPCServer tests the bucket block store rpc server and client.
+// TestBlockStoreBucketRPCServer tests the bucket block store RPC server and client.
 func TestBlockStoreBucketRPCServer(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
+	serverTb, err := testbed.NewTestbed(
+		ctx,
+		le.WithField("testbed", "server"),
+		testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
+			VolumeConfig: &volume_controller.Config{GcIntervalDur: "0"},
+		}),
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -41,7 +49,7 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 	}
 	le.Infof("put sample block ref %v", sampleBlockRef.MarshalString())
 
-	// Create the RPC server, handles LookupRpcService
+	// Create the RPC server that handles LookupRpcService.
 	serviceID := block_rpc.SRPCBlockStoreServiceID
 	bucketID := serverTb.BucketId
 	serverCtrl := NewController(serverTb.Bus, &Config{
@@ -55,7 +63,7 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 	}
 	defer serverRel()
 
-	// create the srpc server
+	// Connect the SRPC client to the in-memory server.
 	server := srpc.NewServer(bifrost_rpc.NewInvoker(serverTb.Bus, "test-server", false))
 	srpcClient := srpc.NewClient(srpc.NewServerPipe(server))
 

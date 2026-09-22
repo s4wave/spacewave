@@ -12,14 +12,22 @@ describe('ProgressBar', () => {
     const { container } = render(<ProgressBar value={42} />)
     const fill = container.querySelector('div.bg-brand')
     expect(fill).toBeTruthy()
-    expect(fill instanceof HTMLElement ? fill.style.width : '').toBe('42%')
+    expect(
+      fill instanceof HTMLElement
+        ? fill.style.getPropertyValue('--progress-width')
+        : '',
+    ).toBe('42%')
     expect(screen.getByText('42%')).toBeTruthy()
   })
 
   it('clamps determinate values outside 0..100', () => {
     const { container } = render(<ProgressBar value={175} />)
     const fill = container.querySelector('div.bg-brand')
-    expect(fill instanceof HTMLElement ? fill.style.width : '').toBe('100%')
+    expect(
+      fill instanceof HTMLElement
+        ? fill.style.getPropertyValue('--progress-width')
+        : '',
+    ).toBe('100%')
   })
 
   it('renders an animated indeterminate bar with no percent label', () => {

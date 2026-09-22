@@ -119,6 +119,36 @@ func TestValidateRejectsStaleIdentity(t *testing.T) {
 	}
 }
 
+func TestPublishCopiesNestedFilesAndSymlinks(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	releaseDir, prerenderDir := newArtifactFixture(t, "nested")
+	nestedPath := filepath.Join(releaseDir, "assets", "nested.txt")
+	writeTestFile(t, nestedPath, "nested artifact")
+	if err := os.Symlink("nested.txt", filepath.Join(releaseDir, "assets", "nested.link")); err != nil {
+		t.Fatal(err)
+	}
+
+	generation, err := PublishGeneration(filepath.Join(t.TempDir(), "store"), releaseDir, prerenderDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(generation.ReleaseDir, "assets", "nested.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "nested artifact" {
+		t.Fatalf("nested artifact = %q, want %q", data, "nested artifact")
+	}
+	link, err := os.Readlink(filepath.Join(generation.ReleaseDir, "assets", "nested.link"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if link != "nested.txt" {
+		t.Fatalf("nested symlink = %q, want %q", link, "nested.txt")
+	}
+}
+
 func TestForeignIdentityMissesSilentlyAndStaysReportable(t *testing.T) {
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())

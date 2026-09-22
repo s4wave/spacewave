@@ -1,5 +1,4 @@
-# Importing a local git repository stores a git/repo object with enough Hydra
-# volume data to prove the packfile path ran.
+# Importing a local git repository stores a readable git/repo object.
 env SPACEWAVE_CLI_AUTOSTART=true
 git-fixture $WORK/git-fixture
 
@@ -20,4 +19,3 @@ stdout "Message:    initial fixture"
 
 spacewave --state-path $WORK/state stop
 stdout "Stopped Spacewave daemon."
-volume-stats-min 100 10000

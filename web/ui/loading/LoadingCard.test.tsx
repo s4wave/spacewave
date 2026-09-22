@@ -66,7 +66,11 @@ describe('LoadingCard', () => {
     )
     const fill = container.querySelector('div.bg-brand')
     expect(fill).toBeInstanceOf(HTMLElement)
-    expect(fill instanceof HTMLElement ? fill.style.width : '').toBe('62%')
+    expect(
+      fill instanceof HTMLElement
+        ? fill.style.getPropertyValue('--progress-width')
+        : '',
+    ).toBe('62%')
     expect(screen.getByText('4.8 MiB/s')).toBeTruthy()
   })
 

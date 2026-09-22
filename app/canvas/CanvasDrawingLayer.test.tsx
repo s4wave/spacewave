@@ -37,13 +37,13 @@ describe('CanvasDrawingLayer', () => {
   it('sets higher z-index when visible', () => {
     render(<CanvasDrawingLayer visible={true} viewport={defaultViewport} />)
     const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.style.zIndex).toBe('10')
+    expect(canvas.style.getPropertyValue('--canvas-layer-z-index')).toBe('10')
   })
 
   it('sets lower z-index when not visible', () => {
     render(<CanvasDrawingLayer visible={false} viewport={defaultViewport} />)
     const canvas = document.querySelector('canvas') as HTMLElement
-    expect(canvas.style.zIndex).toBe('-1')
+    expect(canvas.style.getPropertyValue('--canvas-layer-z-index')).toBe('-1')
   })
 
   it('uses the selected color for the live and committed stroke', () => {

@@ -350,14 +350,14 @@ describe('BottomBarItem', () => {
       )
 
       const item = container.firstChild as HTMLElement
-      expect(item.style.cursor).toBe('not-allowed')
+      expect(item.classList.contains('cursor-not-allowed')).toBe(true)
     })
 
     it('sets cursor to pointer when not disabled', () => {
       const { container } = render(<BottomBarItem>Test Item</BottomBarItem>)
 
       const item = container.firstChild as HTMLElement
-      expect(item.style.cursor).toBe('pointer')
+      expect(item.classList.contains('cursor-pointer')).toBe(true)
     })
   })
 

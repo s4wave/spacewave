@@ -55,7 +55,7 @@ describe('CanvasNode', () => {
       '[data-canvas-node="touch-test"]',
     ) as HTMLElement
     expect(el).toBeTruthy()
-    expect(el.style.touchAction).toBe('none')
+    expect(el.classList.contains('canvas-node-input')).toBe(true)
   })
 
   it('positions node with correct style properties', () => {
@@ -84,11 +84,11 @@ describe('CanvasNode', () => {
     const el = document.querySelector(
       '[data-canvas-node="style-test"]',
     ) as HTMLElement
-    expect(el.style.left).toBe('50px')
-    expect(el.style.top).toBe('75px')
-    expect(el.style.width).toBe('120px')
-    expect(el.style.height).toBe('80px')
-    expect(el.style.zIndex).toBe('5')
+    expect(el.style.getPropertyValue('--canvas-node-left')).toBe('50px')
+    expect(el.style.getPropertyValue('--canvas-node-top')).toBe('75px')
+    expect(el.style.getPropertyValue('--canvas-node-width')).toBe('120px')
+    expect(el.style.getPropertyValue('--canvas-node-height')).toBe('80px')
+    expect(el.style.getPropertyValue('--canvas-node-z-index')).toBe('5')
   })
 
   it('returns null when not visible and after unmount debounce', () => {

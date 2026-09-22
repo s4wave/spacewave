@@ -24,7 +24,7 @@ func (t *WorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) 
 		if !exists {
 			continue
 		}
-		ref.RootRef = obj.GetRootRef()
+		ref.RootRef = t.externalObjectRef(obj.GetRootRef())
 		ref.Rev = obj.GetRev()
 	}
 	return out, nil
@@ -44,5 +44,5 @@ func (t *WorldState) getObjectRootRef(ctx context.Context, key string) (*Object,
 	return obj, true, nil
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ world.ObjectRootRefBatcher = (*WorldState)(nil)
