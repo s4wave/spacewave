@@ -540,6 +540,40 @@ def encodeFrame (record : Record) (encoding : FrameEncoding) : Option (List Nat)
       beBytes 4 encoding.headerCRC ++ beBytes 4 encoding.frameCRC
     some (header ++ payload ++ [69, 78, 68, 33] ++ beBytes 4 payload.length)
 
+/-- GenerationMarker is the complete retained segment/checkpoint binding. -/
+structure GenerationMarker where
+  identity : String
+  generation : Nat
+  nextSequence : Nat
+  snapshotLength : Nat
+  snapshotDigest : String
+  retiredLength : Nat
+  retiredDigest : String
+  deriving DecidableEq, Repr, Inhabited
+
+/-- MarkerObservation exposes raw field decoding and a separately computed checksum. -/
+structure MarkerObservation where
+  size : Nat
+  magic : String
+  format : Nat
+  crc : Nat
+  computedCRC : Nat
+  marker : GenerationMarker
+  deriving Repr, Inhabited
+
+/-- readMarker mirrors unmarshalJournalGenerationMarker's complete admission. -/
+def readMarker (identity : String) (input : MarkerObservation) : Option GenerationMarker :=
+  if input.size != 144 || input.magic != "53574731" || input.format != 1 ||
+      identity.length != digestLength || input.marker.identity != identity || input.crc != input.computedCRC ||
+      input.marker.generation == 0 || input.marker.nextSequence == 0 || input.marker.snapshotLength == 0 then none
+  else some input.marker
+
+/-- PendingActivation retains the marker and floor captured before authority verification. -/
+structure PendingActivation where
+  marker : GenerationMarker
+  floor : Nat
+  deriving DecidableEq, Repr, Inhabited
+
 /-- WriterState is the state protected by journalWriter.mu during Append. -/
 structure WriterState where
   bytes : MemoryBytes
@@ -548,7 +582,9 @@ structure WriterState where
   records : List Record
   state : State
   poisoned : Bool
-  pending : Bool
+  pending : Option PendingActivation
+  identity : String
+  generation : Nat
   deriving Repr, Inhabited
 
 /-- AppendEffects supplies concrete WriteAt and Sync outcomes for the existing memory storage. -/
@@ -585,7 +621,7 @@ def persistRecord (before : WriterState) (record : Record) (frame : List Nat)
 Authentication is the journal-pipeline dependency; encoding supplies only serialization/CRC primitives. -/
 def appendWriter (before : WriterState) (record : Option Record)
     (authenticate : Record → Bool) (effects : AppendEffects) : AppendResult :=
-  if before.poisoned || before.pending then ⟨false, before⟩
+  if before.poisoned || before.pending.isSome then ⟨false, before⟩
   else match prepareRecord before.sequence record with
   | none => ⟨false, before⟩
   | some record =>
@@ -718,7 +754,7 @@ theorem append_failure_preserves_durable (before : WriterState) (record : Option
 /-- A fenced or unactivated writer cannot change storage or acknowledge another append. -/
 theorem append_fenced (before : WriterState) (record : Option Record)
     (authenticate : Record → Bool) (effects : AppendEffects)
-    (h : before.poisoned = true ∨ before.pending = true) :
+    (h : before.poisoned = true ∨ before.pending.isSome = true) :
     appendWriter before record authenticate effects = ⟨false, before⟩ := by
   rcases h with h | h <;> simp [appendWriter, h]
 
@@ -730,6 +766,101 @@ theorem append_exhausted (before : WriterState) (record : Option Record)
   | none => simp [appendWriter, prepareRecord]
   | some record =>
     by_cases zero : record.sequence = 0 <;> simp [appendWriter, prepareRecord, h, zero, validRecord]
+
+/-- ActivationInput supplies storage reads and injected publication effects.
+Faults are 1/2 floor failure before/after write, 3/4 truncate failure before/after
+change, and 5 failed Sync. Other values complete normally. -/
+structure ActivationInput where
+  generationSupported : Bool
+  floorSupported : Bool
+  floor : Nat
+  floorReadOK : Bool
+  marker : Option MarkerObservation
+  retiredReadOK : Bool
+  retiredDigest : String
+  fault : Int
+  deriving Repr, Inhabited
+
+/-- ActivationResult retains partial storage effects on failure. -/
+structure ActivationResult where
+  ok : Bool
+  result : WriterState
+  floor : Nat
+  deriving Repr, Inhabited
+
+/-- activateWriter rechecks the observed generation before retiring its exact segment. -/
+def activateWriter (before : WriterState) (input : ActivationInput) : ActivationResult :=
+  match before.pending with
+  | none => ⟨true, before, input.floor⟩
+  | some pending =>
+    if before.poisoned || !input.generationSupported || !input.floorSupported ||
+        !input.floorReadOK || input.floor != pending.floor then ⟨false, before, input.floor⟩
+    else match input.marker.bind (readMarker before.identity) with
+    | none => ⟨false, before, input.floor⟩
+    | some marker =>
+      if marker.generation != pending.marker.generation || marker.nextSequence != pending.marker.nextSequence ||
+          marker.snapshotLength != pending.marker.snapshotLength || marker.snapshotDigest != pending.marker.snapshotDigest ||
+          marker.retiredLength != pending.marker.retiredLength || marker.retiredDigest != pending.marker.retiredDigest ||
+          (marker.generation != input.floor && marker.generation != (input.floor + 1) % seqnoLimit) ||
+          !input.retiredReadOK || before.bytes.data.length != marker.retiredLength || input.retiredDigest != marker.retiredDigest then
+        ⟨false, before, input.floor⟩
+      else
+        let advance := marker.generation == (input.floor + 1) % seqnoLimit
+        if advance && input.fault == 1 then ⟨false, before, input.floor⟩
+        else
+          let floor := if advance then max input.floor marker.generation else input.floor
+          if advance && input.fault == 2 then ⟨false, before, floor⟩
+          else if input.fault == 3 then ⟨false, {before with poisoned := true}, floor⟩
+          else
+            let truncated := {before with bytes := {before.bytes with data := []}}
+            if input.fault == 4 then ⟨false, {truncated with poisoned := true}, floor⟩
+            else if input.fault == 5 then
+              ⟨false, {truncated with bytes := syncBytes truncated.bytes false, poisoned := true}, floor⟩
+            else ⟨true, {truncated with
+              bytes := syncBytes truncated.bytes true
+              offset := 0
+              sequence := marker.nextSequence
+              records := []
+              generation := marker.generation
+              pending := none}, floor⟩
+
+/-- Activation never lowers the durable generation floor, even after a partial failure. -/
+theorem activation_floor_monotone (before : WriterState) (input : ActivationInput) :
+    input.floor ≤ (activateWriter before input).floor := by
+  unfold activateWriter
+  dsimp only
+  repeat' first | split | (simp_all <;> omega)
+
+/-- Retirement preserves the authenticated reducer snapshot already held by the writer. -/
+theorem activation_preserves_state (before : WriterState) (input : ActivationInput) :
+    (activateWriter before input).result.state = before.state := by
+  unfold activateWriter
+  dsimp only
+  repeat' first | split | simp_all
+
+/-- A failed activation remains blocked from append by pending activation or poison. -/
+theorem activation_failure_fenced {before : WriterState} {input : ActivationInput}
+    (h : (activateWriter before input).ok = false) :
+    (activateWriter before input).result.pending = before.pending ∧
+    ((activateWriter before input).result.poisoned = true ∨
+      (activateWriter before input).result.pending.isSome = true) := by
+  unfold activateWriter at *
+  repeat' first | split at * | simp_all
+
+/-- Successful pending activation retires bytes only after checking the captured binding. -/
+theorem activation_success {before : WriterState} {input : ActivationInput} {pending : PendingActivation}
+    (waiting : before.pending = some pending) (h : (activateWriter before input).ok = true) :
+    input.floor = pending.floor ∧
+    input.retiredDigest = pending.marker.retiredDigest ∧
+    before.bytes.data.length = pending.marker.retiredLength ∧
+    (activateWriter before input).result.pending = none ∧
+    (activateWriter before input).result.bytes.durable = [] ∧
+    (activateWriter before input).result.sequence = pending.marker.nextSequence ∧
+    (activateWriter before input).result.generation = pending.marker.generation ∧
+    (activateWriter before input).result.records = [] := by
+  unfold activateWriter at *
+  rw [waiting] at *
+  repeat' first | split at * | simp_all [syncBytes]
 
 /-- PublicationState retains the observable writer and storage state during checkpoint publication.
 Checkpoint contents are handled by buildCheckpoint/readCheckpoint; this view tracks their durable slots. -/

@@ -262,9 +262,14 @@ func projectLeanJournalWriter(t *testing.T, writer *journalWriter, storage *memo
 	for index, record := range writer.records {
 		records[index] = projectLeanJournalRecord(t, record)
 	}
+	var pending any
+	if writer.pending != nil {
+		pending = map[string]any{"marker": projectLeanJournalMarker(writer.pending.marker), "floor": writer.pending.floor}
+	}
 	return map[string]any{
 		"bytes":    map[string]any{"data": leanJournalBytes(storage.bytes()), "durable": leanJournalBytes(storage.durable)},
 		"sequence": writer.sequence, "offset": uint64(writer.offset), "records": records,
-		"state": projectLeanJournalState(t, writer.reducer.Snapshot()), "poisoned": writer.poisoned != nil, "pending": writer.pending != nil,
+		"state": projectLeanJournalState(t, writer.reducer.Snapshot()), "poisoned": writer.poisoned != nil, "pending": pending,
+		"identity": hex.EncodeToString(writer.identity), "generation": writer.generation,
 	}
 }
