@@ -4,26 +4,35 @@ import (
 	"context"
 	"os"
 	oexec "os/exec"
+	"path/filepath"
 
 	"github.com/aperturerobotics/util/autobun"
 	"github.com/aperturerobotics/util/exec"
 	"github.com/sirupsen/logrus"
 )
 
-// BunX runs "bunx" to execute a npm package without installing.
+// BunTool installs the npm package pkg and returns a command that runs its
+// executable bin with args.
 //
-// pkg is the package name, optionally with the version:
-//   - @electron/asar
-//   - @electron/asar@3.2.3
-func BunX(ctx context.Context, le *logrus.Entry, stateDir, pkg string, cmd ...string) (*oexec.Cmd, error) {
+// pkg is the package name with a pinned version, such as @electron/asar@4.3.0.
+// The package installs once into stateDir/bun-tools/<bin> through
+// EnsureBunAdd, which gives the directory its own download cache and install
+// lock. Concurrent builds therefore share one install instead of racing on
+// Bun's global cache. The command runs in the tool directory, so path
+// arguments must be absolute.
+func BunTool(ctx context.Context, le *logrus.Entry, stateDir, pkg, bin string, args ...string) (*oexec.Cmd, error) {
+	toolDir := filepath.Join(stateDir, "bun-tools", bin)
+	if err := EnsureBunAdd(ctx, le, stateDir, toolDir, pkg); err != nil {
+		return nil, err
+	}
 	bunPath, err := ResolveBunPath(ctx, le, stateDir)
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{"x", pkg}
-	args = append(args, cmd...)
-	return exec.NewCmd(ctx, bunPath, args...), nil
+	cmd := exec.NewCmd(ctx, bunPath, append([]string{"run", bin}, args...)...)
+	cmd.Dir = toolDir
+	return cmd, nil
 }
 
 // BunInstall runs "bun install" with the given arguments.

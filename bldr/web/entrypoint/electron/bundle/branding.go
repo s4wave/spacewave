@@ -222,9 +222,9 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 		}
 	}
 
-	// Run resedit-cli via bunx to produce the rebranded exe.
+	// Run resedit-cli to produce the rebranded exe.
 	edited := false
-	if cmd, err := npm.BunX(ctx, le, stateDir, "resedit-cli", reseditArgs...); err != nil {
+	if cmd, err := npm.BunTool(ctx, le, stateDir, "resedit-cli@3.1.1", "resedit", reseditArgs...); err != nil {
 		le.WithError(err).Warn("resedit setup failed, skipping metadata edit")
 	} else if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 		le.WithError(err).Warn("resedit failed, skipping metadata edit")
@@ -251,7 +251,7 @@ func applyWindowsBranding(ctx context.Context, le *logrus.Entry, electronDistPat
 // convertPngToIco converts a PNG to ICO using png-to-ico via bunx.
 // png-to-ico outputs .ico to stdout, so we capture and write to file.
 func convertPngToIco(ctx context.Context, le *logrus.Entry, stateDir, srcPng, destIco string) error {
-	cmd, err := npm.BunX(ctx, le, stateDir, "png-to-ico", srcPng)
+	cmd, err := npm.BunTool(ctx, le, stateDir, "png-to-ico@3.0.2", "png-to-ico", srcPng)
 	if err != nil {
 		return errors.Wrap(err, "setup png-to-ico")
 	}

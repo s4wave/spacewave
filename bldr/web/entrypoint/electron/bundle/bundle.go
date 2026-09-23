@@ -303,11 +303,11 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 
 // BuildAsar builds the app asar using the @electron/asar tool.
 //
-// stateDir is the directory where bun will be downloaded if not found in PATH.
+// stateDir holds the installed tool and bun, when bun is not in PATH.
 // buildDir should be pre-prepared using BuildElectronBundle.
-// outPath should be the path to the output .asar file
+// buildDir and outPath must be absolute.
 func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPath string) error {
-	cmd, err := npm.BunX(ctx, le, stateDir, "@electron/asar", "pack", buildDir, outPath)
+	cmd, err := npm.BunTool(ctx, le, stateDir, "@electron/asar@4.3.0", "asar", "pack", buildDir, outPath)
 	if err != nil {
 		return err
 	}
