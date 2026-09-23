@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -446,6 +447,16 @@ func (d *DevtoolBus) executeWebWasm(
 		if frontendService != nil && strings.HasPrefix(req.URL.Path, "/bldr-dev/frontend-") {
 			frontendService.ServeBootstrap(rw, req, bundleResult.EntrypointPath)
 			return
+		}
+
+		// Serve the entrypoint page for extensionless page paths such as
+		// /landing/drive, which the startup UI routes by pathname.
+		if path.Ext(req.URL.Path) == "" {
+			if f, err := entryFs.Open(req.URL.Path); err != nil {
+				req.URL.Path = "/"
+			} else {
+				_ = f.Close()
+			}
 		}
 		entrySrv.ServeHTTP(rw, req)
 	}
