@@ -72,6 +72,27 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 	if changedRef.EqualVT(firstRef) {
 		t.Fatal("changed content produced the first manifest ref")
 	}
+
+	// A same-revision build must leave both exact implementations rooted in the
+	// World, including after callers release their build results.
+	ws := secondWorld.GetWorldState()
+	for _, ref := range []*bucket.ObjectRef{secondRef, changedRef} {
+		key := bldr_manifest.NewManifestArtifactKey(ref)
+		_, retained, err := bldr_manifest_world.LookupManifest(ctx, ws, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !retained.EqualVT(ref) {
+			t.Fatal("a same-revision build replaced an immutable artifact")
+		}
+	}
+	linked, err := bldr_manifest_world.ListManifests(ctx, ws, secondWorld.GetPluginHostObjKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(linked) != 2 {
+		t.Fatalf("retained %d linked artifacts, want both same-revision outputs", len(linked))
+	}
 }
 
 func commitManifestForTest(
@@ -95,7 +116,6 @@ func commitManifestForTest(
 		DistSourcePath: t.TempDir(),
 		WorkingPath:    t.TempDir(),
 		EngineId:       tb.GetWorldEngineID(),
-		ObjectKey:      bldr_manifest.NewManifestKey(tb.GetPluginHostObjKey(), meta),
 		LinkObjectKeys: []string{tb.GetPluginHostObjKey()},
 		PeerId:         tb.GetVolume().GetPeerID().String(),
 	}

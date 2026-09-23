@@ -41,6 +41,9 @@ message QuickstartRegistration {
   string space_name = 10;
   // RequiredPluginIds are Space plugin manifest IDs this Quickstart declares.
   repeated string required_plugin_ids = 11;
+  // ManifestRoot pins a prepared plugin generation's seed implementation.
+  // The registry sets it from the registration scope, never from the caller.
+  string manifest_root = 12;
 }
 
 // RegisterQuickstartRequest is the request for RegisterQuickstart.
@@ -56,7 +59,10 @@ message RegisterQuickstartResponse {
 }
 
 // ListQuickstartsRequest is the request for ListQuickstarts.
-message ListQuickstartsRequest {}
+message ListQuickstartsRequest {
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 1;
+}
 
 // ListQuickstartsResponse is the response for ListQuickstarts.
 message ListQuickstartsResponse {
@@ -65,7 +71,10 @@ message ListQuickstartsResponse {
 }
 
 // WatchQuickstartsRequest is the request for WatchQuickstarts.
-message WatchQuickstartsRequest {}
+message WatchQuickstartsRequest {
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 1;
+}
 
 // WatchQuickstartsResponse is the response for WatchQuickstarts.
 message WatchQuickstartsResponse {

@@ -1316,12 +1316,10 @@ async function replaceSpaceIndexIfWizardIsCurrent(
   ) {
     return
   }
-  await applySpaceIndexPath(
-    ws.spaceWorld,
-    ws.spaceSettings,
-    dashboardKey,
-    ws.sessionPeerId,
-  )
+  await applySpaceIndexPath(ws.spaceWorld, dashboardKey, {
+    sender: ws.sessionPeerId,
+    expectedIndexPath: ws.spaceSettings?.indexPath ?? '',
+  })
 }
 
 async function createSshCredentialSecrets({

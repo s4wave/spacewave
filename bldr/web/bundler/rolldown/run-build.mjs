@@ -160,12 +160,12 @@ async function runBuild(request, dependencyRoot) {
   };
   const existingSourcePath = (filePath) => {
     if (existingFile(filePath))
-      return filePath;
+      return canonicalPath(filePath);
     if (filePath.endsWith(".js")) {
       for (const extension of [".ts", ".tsx"]) {
         const candidate = filePath.slice(0, -3) + extension;
         if (existingFile(candidate))
-          return candidate;
+          return canonicalPath(candidate);
       }
     }
     return null;
@@ -191,7 +191,7 @@ async function runBuild(request, dependencyRoot) {
     trackInput(configFile);
   }
   const resolveBldrSourcePath = (sourceRel) => {
-    return existingSourcePath(join(bldrDistRoot, "bldr", sourceRel)) ?? existingSourcePath(join(bldrDistRoot, sourceRel));
+    return existingSourcePath(join(sourceRoot, "bldr", sourceRel)) ?? existingSourcePath(join(bldrDistRoot, "bldr", sourceRel)) ?? existingSourcePath(join(bldrDistRoot, sourceRel));
   };
   const resolveBldrAlias = (source) => {
     if (source === "@aptre/bldr-sdk")
@@ -478,7 +478,10 @@ ${original}`;
     resolve: {
       alias: { ...request.aliases ?? {} },
       extensionAlias: { ".js": [".ts", ".tsx", ".js"] },
-      modules: [join(dependencyRoot, "node_modules")]
+      modules: [
+        join(sourceRoot, "node_modules"),
+        join(dependencyRoot, "node_modules")
+      ]
     },
     transform: {
       target: request.target || undefined,
@@ -487,8 +490,9 @@ ${original}`;
     plugins,
     onLog(level, log, _defaultHandler) {
       recordLog(level, log);
-      if (isUndefinedImport(log)) {
-        const error = new Error(`undefined GoScript import${log.id ? ` in ${log.id}` : ""}: ${log.message || log.code || "missing export"}`);
+      const unresolved = log.code === "UNRESOLVED_IMPORT";
+      if (unresolved || isUndefinedImport(log)) {
+        const error = new Error(`${unresolved ? "unresolved import" : "undefined GoScript import"}${log.id ? ` in ${log.id}` : ""}: ${log.message || log.code || "missing export"}`);
         error.diagnostic = {
           ...diagnostics[diagnostics.length - 1] ?? {},
           severity: "error",

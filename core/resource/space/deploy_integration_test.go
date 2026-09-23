@@ -182,7 +182,7 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	}
 	ws := world.NewEngineWorldState(eng, false)
 	for _, ref := range []*bldr_manifest.ManifestRef{native, js} {
-		key := bldr_manifest.NewManifestKey("plugin-host", ref.GetMeta())
+		key := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
 		{
 			objectState, ok, e := ws.GetObject(ctx, key)
 			world.ReleaseObjectState(objectState)

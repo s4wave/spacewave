@@ -15,6 +15,7 @@ import FrontmatterDisplay from './FrontmatterDisplay.js'
 import LexicalEditor from './LexicalEditor.js'
 import { getNoteFileFormat, stripNoteFileExtension } from './note-files.js'
 import { useNoteWrite } from './useNoteWrite.js'
+import type { parseNote } from './frontmatter.js'
 
 interface NoteContentViewProps {
   worldState: Resource<IWorldState>

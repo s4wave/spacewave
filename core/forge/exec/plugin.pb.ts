@@ -11,6 +11,64 @@ import { Value } from '../../../forge/value/value.pb.js'
 export const protobufPackage = 'space.exec'
 
 /**
+ * PluginBuildConfig builds an immutable artifact or retains a frontend compiler.
+ *
+ * @generated from message space.exec.PluginBuildConfig
+ */
+export interface PluginBuildConfig {
+  /**
+   * ManifestId selects the JavaScript plugin manifest for an immutable build.
+   *
+   * @generated from field: string manifest_id = 1;
+   */
+  manifestId?: string
+  /**
+   * ConfigPath is relative to the source tree; empty selects bldr.yaml.
+   *
+   * @generated from field: string config_path = 2;
+   */
+  configPath?: string
+  /**
+   * FrontendId grants a temporary live compiler attachment instead of building.
+   * Its UUID namespaces the device RPC service for this execution only.
+   *
+   * @generated from field: string frontend_id = 3;
+   */
+  frontendId?: string
+  /**
+   * FrontendPeerId is the only authenticated Session allowed to use that service.
+   * Releasing its authoring Resource cancels the execution and this grant.
+   *
+   * @generated from field: string frontend_peer_id = 4;
+   */
+  frontendPeerId?: string
+  /**
+   * FrontendRoutePrefix routes same-origin modules back to the authoring Resource.
+   *
+   * @generated from field: string frontend_route_prefix = 5;
+   */
+  frontendRoutePrefix?: string
+}
+
+export const PluginBuildConfig: MessageType<PluginBuildConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.exec.PluginBuildConfig',
+    fields: [
+      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'config_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'frontend_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'frontend_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'frontend_route_prefix',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * PluginExecConfig configures the generic plugin execution bridge.
  *
  * @generated from message space.exec.PluginExecConfig

@@ -1,15 +1,13 @@
+// @vitest-environment node
+
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { runBuild, validateBuildRequest } from './run-build.js'
 import type { BuildRequest } from './rolldown.pb.js'
 
-const dependencyRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../dist/deps',
-)
+const dependencyRoot = resolve('bldr/dist/deps')
 const temporaryDirectories: string[] = []
 
 async function makeProject(): Promise<{
@@ -48,6 +46,72 @@ afterEach(async () => {
 })
 
 describe('direct Rolldown/Oxc owner', () => {
+  it('resolves source dependencies when the working directory is elsewhere', async () => {
+    const project = await makeProject()
+    const packageRoot = join(project.root, 'node_modules', 'project-value')
+    await fs.mkdir(packageRoot, { recursive: true })
+    await fs.writeFile(
+      join(packageRoot, 'package.json'),
+      JSON.stringify({
+        name: 'project-value',
+        type: 'module',
+        exports: './index.js',
+      }),
+    )
+    await fs.writeFile(
+      join(packageRoot, 'index.js'),
+      "export const value = 'source-owned-dependency'\n",
+    )
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      "import { value } from 'project-value'\nimport { z } from 'zod'\nconsole.log(z.string().parse(value))\n",
+    )
+    const result = await runBuild(
+      project.request({ workingDir: project.output }),
+      dependencyRoot,
+    )
+    expect(result.diagnostics ?? []).toEqual([])
+    expect(
+      await fs.readFile(join(project.output, 'main.js'), 'utf8'),
+    ).toContain('source-owned-dependency')
+    expect(result.inputs).toContain(
+      await fs.realpath(join(packageRoot, 'index.js')),
+    )
+  })
+
+  it('shares SDK module identity with local imports', async () => {
+    const project = await makeProject()
+    const distRoot = join(project.root, 'packaged')
+    for (const root of [join(project.root, 'bldr'), distRoot]) {
+      await fs.mkdir(join(root, 'sdk'), { recursive: true })
+      await fs.writeFile(
+        join(root, 'sdk', 'plugin.ts'),
+        'export const context = {}\n',
+      )
+    }
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      [
+        "import { context as publicContext } from '@aptre/bldr-sdk'",
+        "import { context as localContext } from './bldr/sdk/plugin.js'",
+        'export const same = publicContext === localContext',
+      ].join('\n'),
+    )
+    const result = await runBuild(
+      project.request({ bldrDistRoot: distRoot, format: 'cjs' }),
+      dependencyRoot,
+    )
+    expect(result.diagnostics ?? []).toEqual([])
+    const loaded = { exports: {} as { same: boolean } }
+    const code = await fs.readFile(join(project.output, 'main.js'), 'utf8')
+    new Function('module', 'exports', code)(loaded, loaded.exports)
+    expect(loaded.exports.same).toBe(true)
+    expect(result.inputs).toContain(
+      await fs.realpath(join(project.root, 'bldr', 'sdk', 'plugin.ts')),
+    )
+    expect(result.inputs).not.toContain(join(distRoot, 'sdk', 'plugin.ts'))
+  })
+
   it('keeps the default export of an injected entry', async () => {
     const project = await makeProject()
     await fs.writeFile(

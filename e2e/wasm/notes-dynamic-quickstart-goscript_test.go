@@ -10,7 +10,7 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const notesDynamicQuickstartWaitMS = 240000
+const notesDynamicQuickstartWaitMS = 30000
 
 type notesDynamicQuickstartScenario struct {
 	sessionIndex uint32

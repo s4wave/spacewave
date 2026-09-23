@@ -4,6 +4,7 @@ import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
 import type { NotebookHandle } from './sdk/notebook.js'
+import type { SavedView } from './saved-views.js'
 
 interface UseNotebookViewerStateOptions {
   sources: NotebookSource[]
@@ -42,6 +43,8 @@ export function useNotebookViewerState({
     undefined,
   )
 
+  const [sort, setSort] = useState<SavedView['sort']>('name')
+
   // Responsive sidebar visibility.
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addSourceOpen, setAddSourceOpen] = useState(false)
@@ -61,6 +64,27 @@ export function useNotebookViewerState({
       setFilterStatus(undefined)
     },
     [setSelectedSource, setCurrentPath, setSelectedNote, setEditing],
+  )
+
+  /** handleLoadView applies a shared definition only on this viewer's explicit action. */
+  const handleLoadView = useCallback(
+    (view: SavedView): string | null => {
+      // A deleted source cannot redirect the user to an unrelated source index.
+      const index = sources.findIndex((source) => source.ref === view.sourceRef)
+      if (index < 0)
+        return 'This view’s source was removed. Choose a current source and save the view again.'
+
+      // Keep the loaded configuration in the existing personal and draft state owners.
+      setSelectedSource(index)
+      setCurrentPath(view.path)
+      setSelectedNote('')
+      setEditing(false)
+      setFilterTag(view.filterTag ?? undefined)
+      setFilterStatus(view.filterStatus ?? undefined)
+      setSort(view.sort)
+      return null
+    },
+    [sources, setSelectedSource, setCurrentPath, setSelectedNote, setEditing],
   )
 
   const handleAddSource = useCallback(() => {
@@ -187,6 +211,9 @@ export function useNotebookViewerState({
     editing,
     filterTag,
     filterStatus,
+    sort,
+    setSort,
+    handleLoadView,
     sidebarOpen,
     addSourceOpen,
     removeSourceIndex,

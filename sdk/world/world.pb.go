@@ -214,6 +214,8 @@ type GetEngineInfoResponse struct {
 	unknownFields []byte
 	// EngineInfo is the engine information.
 	EngineInfo *EngineInfo `protobuf:"bytes,1,opt,name=engine_info,json=engineInfo,proto3" json:"engineInfo,omitempty"`
+	// SessionPeerId is the authenticated sender bound to this Resource, when present.
+	SessionPeerId string `protobuf:"bytes,2,opt,name=session_peer_id,json=sessionPeerId,proto3" json:"sessionPeerId,omitempty"`
 }
 
 func (x *GetEngineInfoResponse) Reset() {
@@ -227,6 +229,13 @@ func (x *GetEngineInfoResponse) GetEngineInfo() *EngineInfo {
 		return x.EngineInfo
 	}
 	return nil
+}
+
+func (x *GetEngineInfoResponse) GetSessionPeerId() string {
+	if x != nil {
+		return x.SessionPeerId
+	}
+	return ""
 }
 
 // WorldRootSnapshot identifies one committed Engine root.
@@ -1965,6 +1974,10 @@ type ApplyWorldOpResponse struct {
 	SysErr bool `protobuf:"varint,2,opt,name=sys_err,json=sysErr,proto3" json:"sysErr,omitempty"`
 	// ErrorCode identifies a typed operation error when the RPC succeeds.
 	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
+	// RejectionCode is a stable application-defined rejection code.
+	RejectionCode string `protobuf:"bytes,4,opt,name=rejection_code,json=rejectionCode,proto3" json:"rejectionCode,omitempty"`
+	// RejectionMessage is the safe explanation of a rejected operation.
+	RejectionMessage string `protobuf:"bytes,5,opt,name=rejection_message,json=rejectionMessage,proto3" json:"rejectionMessage,omitempty"`
 }
 
 func (x *ApplyWorldOpResponse) Reset() {
@@ -1992,6 +2005,20 @@ func (x *ApplyWorldOpResponse) GetErrorCode() WorldErrorCode {
 		return x.ErrorCode
 	}
 	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *ApplyWorldOpResponse) GetRejectionCode() string {
+	if x != nil {
+		return x.RejectionCode
+	}
+	return ""
+}
+
+func (x *ApplyWorldOpResponse) GetRejectionMessage() string {
+	if x != nil {
+		return x.RejectionMessage
+	}
+	return ""
 }
 
 // WatchWorldStateRequest is the request type for WatchWorldState.
@@ -2471,6 +2498,10 @@ type ApplyObjectOpResponse struct {
 	SysErr bool `protobuf:"varint,2,opt,name=sys_err,json=sysErr,proto3" json:"sysErr,omitempty"`
 	// ErrorCode identifies a typed operation error when the RPC succeeds.
 	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
+	// RejectionCode is a stable application-defined rejection code.
+	RejectionCode string `protobuf:"bytes,4,opt,name=rejection_code,json=rejectionCode,proto3" json:"rejectionCode,omitempty"`
+	// RejectionMessage is the safe explanation of a rejected operation.
+	RejectionMessage string `protobuf:"bytes,5,opt,name=rejection_message,json=rejectionMessage,proto3" json:"rejectionMessage,omitempty"`
 }
 
 func (x *ApplyObjectOpResponse) Reset() {
@@ -2498,6 +2529,20 @@ func (x *ApplyObjectOpResponse) GetErrorCode() WorldErrorCode {
 		return x.ErrorCode
 	}
 	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *ApplyObjectOpResponse) GetRejectionCode() string {
+	if x != nil {
+		return x.RejectionCode
+	}
+	return ""
+}
+
+func (x *ApplyObjectOpResponse) GetRejectionMessage() string {
+	if x != nil {
+		return x.RejectionMessage
+	}
+	return ""
 }
 
 // IncrementRevRequest is the request type for IncrementRev.
@@ -2630,6 +2675,113 @@ func (x *AccessTypedObjectResponse) GetTypeId() string {
 	return ""
 }
 
+// ObjectRecordBase identifies a previous immutable root for one watched collection.
+type ObjectRecordBase struct {
+	unknownFields []byte
+	// ObjectKey identifies the collection object in this World.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RootRef is the immutable root from the previous query snapshot.
+	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+}
+
+func (x *ObjectRecordBase) Reset() {
+	*x = ObjectRecordBase{}
+}
+
+func (*ObjectRecordBase) ProtoMessage() {}
+
+func (x *ObjectRecordBase) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ObjectRecordBase) GetRootRef() *bucket.ObjectRef {
+	if x != nil {
+		return x.RootRef
+	}
+	return nil
+}
+
+// CompareObjectRecordsRequest selects previous roots to compare with this snapshot.
+type CompareObjectRecordsRequest struct {
+	unknownFields []byte
+	// Bases contains at most 256 watched collection roots.
+	Bases []*ObjectRecordBase `protobuf:"bytes,1,rep,name=bases,proto3" json:"bases,omitempty"`
+}
+
+func (x *CompareObjectRecordsRequest) Reset() {
+	*x = CompareObjectRecordsRequest{}
+}
+
+func (*CompareObjectRecordsRequest) ProtoMessage() {}
+
+func (x *CompareObjectRecordsRequest) GetBases() []*ObjectRecordBase {
+	if x != nil {
+		return x.Bases
+	}
+	return nil
+}
+
+// ObjectRecordChanges lists changed keys without materializing unchanged records.
+type ObjectRecordChanges struct {
+	unknownFields []byte
+	// ObjectKey identifies the requested collection.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Keys contains inserted, deleted, and changed record keys.
+	Keys [][]byte `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
+	// Unknown requires full reevaluation when a root is unavailable or the comparison exceeds its bounds.
+	Unknown bool `protobuf:"varint,3,opt,name=unknown,proto3" json:"unknown,omitempty"`
+}
+
+func (x *ObjectRecordChanges) Reset() {
+	*x = ObjectRecordChanges{}
+}
+
+func (*ObjectRecordChanges) ProtoMessage() {}
+
+func (x *ObjectRecordChanges) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ObjectRecordChanges) GetKeys() [][]byte {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+func (x *ObjectRecordChanges) GetUnknown() bool {
+	if x != nil {
+		return x.Unknown
+	}
+	return false
+}
+
+// CompareObjectRecordsResponse contains one result per requested base, in request order.
+type CompareObjectRecordsResponse struct {
+	unknownFields []byte
+	// Changes corresponds to Bases in request order.
+	Changes []*ObjectRecordChanges `protobuf:"bytes,1,rep,name=changes,proto3" json:"changes,omitempty"`
+}
+
+func (x *CompareObjectRecordsResponse) Reset() {
+	*x = CompareObjectRecordsResponse{}
+}
+
+func (*CompareObjectRecordsResponse) ProtoMessage() {}
+
+func (x *CompareObjectRecordsResponse) GetChanges() []*ObjectRecordChanges {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
 // ObjectAccess represents a tracked object access.
 type TrackedWorldStateSnapshot_ObjectAccess struct {
 	unknownFields []byte
@@ -2727,6 +2879,7 @@ func (m *GetEngineInfoResponse) CloneVT() *GetEngineInfoResponse {
 		return (*GetEngineInfoResponse)(nil)
 	}
 	r := new(GetEngineInfoResponse)
+	r.SessionPeerId = m.SessionPeerId
 	r.EngineInfo = protobuf_go_lite.CloneVTValue(m.EngineInfo)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -3934,6 +4087,8 @@ func (m *ApplyWorldOpResponse) CloneVT() *ApplyWorldOpResponse {
 	r.Seqno = m.Seqno
 	r.SysErr = m.SysErr
 	r.ErrorCode = m.ErrorCode
+	r.RejectionCode = m.RejectionCode
+	r.RejectionMessage = m.RejectionMessage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4379,6 +4534,8 @@ func (m *ApplyObjectOpResponse) CloneVT() *ApplyObjectOpResponse {
 	r.Rev = m.Rev
 	r.SysErr = m.SysErr
 	r.ErrorCode = m.ErrorCode
+	r.RejectionCode = m.RejectionCode
+	r.RejectionMessage = m.RejectionMessage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4486,6 +4643,73 @@ func (m *AccessTypedObjectResponse) CloneMessageVT() protobuf_go_lite.CloneMessa
 	return m.CloneVT()
 }
 
+func (m *ObjectRecordBase) CloneVT() *ObjectRecordBase {
+	if m == nil {
+		return (*ObjectRecordBase)(nil)
+	}
+	r := new(ObjectRecordBase)
+	r.ObjectKey = m.ObjectKey
+	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectRecordBase) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompareObjectRecordsRequest) CloneVT() *CompareObjectRecordsRequest {
+	if m == nil {
+		return (*CompareObjectRecordsRequest)(nil)
+	}
+	r := new(CompareObjectRecordsRequest)
+	r.Bases = protobuf_go_lite.CloneVTSlice(m.Bases)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareObjectRecordsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectRecordChanges) CloneVT() *ObjectRecordChanges {
+	if m == nil {
+		return (*ObjectRecordChanges)(nil)
+	}
+	r := new(ObjectRecordChanges)
+	r.ObjectKey = m.ObjectKey
+	r.Unknown = m.Unknown
+	r.Keys = protobuf_go_lite.CloneBytesSlice(m.Keys)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectRecordChanges) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompareObjectRecordsResponse) CloneVT() *CompareObjectRecordsResponse {
+	if m == nil {
+		return (*CompareObjectRecordsResponse)(nil)
+	}
+	r := new(CompareObjectRecordsResponse)
+	r.Changes = protobuf_go_lite.CloneVTSlice(m.Changes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareObjectRecordsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *SyncRequest) EqualVT(that *SyncRequest) bool {
 	if this == that {
 		return true
@@ -4570,6 +4794,9 @@ func (this *GetEngineInfoResponse) EqualVT(that *GetEngineInfoResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.EngineInfo, that.EngineInfo) {
+		return false
+	}
+	if this.SessionPeerId != that.SessionPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6148,6 +6375,12 @@ func (this *ApplyWorldOpResponse) EqualVT(that *ApplyWorldOpResponse) bool {
 	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
+	if this.RejectionCode != that.RejectionCode {
+		return false
+	}
+	if this.RejectionMessage != that.RejectionMessage {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6699,6 +6932,12 @@ func (this *ApplyObjectOpResponse) EqualVT(that *ApplyObjectOpResponse) bool {
 	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
+	if this.RejectionCode != that.RejectionCode {
+		return false
+	}
+	if this.RejectionMessage != that.RejectionMessage {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6827,6 +7066,95 @@ func (this *AccessTypedObjectResponse) EqualVT(that *AccessTypedObjectResponse) 
 
 func (this *AccessTypedObjectResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AccessTypedObjectResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectRecordBase) EqualVT(that *ObjectRecordBase) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectRecordBase) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectRecordBase)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareObjectRecordsRequest) EqualVT(that *CompareObjectRecordsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Bases, that.Bases, func() *ObjectRecordBase { return &ObjectRecordBase{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareObjectRecordsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareObjectRecordsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectRecordChanges) EqualVT(that *ObjectRecordChanges) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytesSlice(this.Keys, that.Keys) {
+		return false
+	}
+	if this.Unknown != that.Unknown {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectRecordChanges) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectRecordChanges)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareObjectRecordsResponse) EqualVT(that *CompareObjectRecordsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Changes, that.Changes, func() *ObjectRecordChanges { return &ObjectRecordChanges{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareObjectRecordsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareObjectRecordsResponse)
 	if !ok {
 		return false
 	}
@@ -7118,6 +7446,11 @@ func (x *GetEngineInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("engineInfo")
 		x.EngineInfo.MarshalProtoJSON(s.WithField("engineInfo"))
 	}
+	if x.SessionPeerId != "" || s.HasField("sessionPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionPeerId")
+		s.WriteString(x.SessionPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7142,6 +7475,9 @@ func (x *GetEngineInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.EngineInfo = &EngineInfo{}
 			x.EngineInfo.UnmarshalProtoJSON(s.WithField("engine_info", true))
+		case "session_peer_id", "sessionPeerId":
+			s.AddField("session_peer_id")
+			x.SessionPeerId = s.ReadString()
 		}
 	})
 }
@@ -10583,6 +10919,16 @@ func (x *ApplyWorldOpResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("errorCode")
 		x.ErrorCode.MarshalProtoJSON(s)
 	}
+	if x.RejectionCode != "" || s.HasField("rejectionCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejectionCode")
+		s.WriteString(x.RejectionCode)
+	}
+	if x.RejectionMessage != "" || s.HasField("rejectionMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejectionMessage")
+		s.WriteString(x.RejectionMessage)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10609,6 +10955,12 @@ func (x *ApplyWorldOpResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error_code", "errorCode":
 			s.AddField("error_code")
 			x.ErrorCode.UnmarshalProtoJSON(s)
+		case "rejection_code", "rejectionCode":
+			s.AddField("rejection_code")
+			x.RejectionCode = s.ReadString()
+		case "rejection_message", "rejectionMessage":
+			s.AddField("rejection_message")
+			x.RejectionMessage = s.ReadString()
 		}
 	})
 }
@@ -11737,6 +12089,16 @@ func (x *ApplyObjectOpResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("errorCode")
 		x.ErrorCode.MarshalProtoJSON(s)
 	}
+	if x.RejectionCode != "" || s.HasField("rejectionCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejectionCode")
+		s.WriteString(x.RejectionCode)
+	}
+	if x.RejectionMessage != "" || s.HasField("rejectionMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejectionMessage")
+		s.WriteString(x.RejectionMessage)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11763,6 +12125,12 @@ func (x *ApplyObjectOpResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error_code", "errorCode":
 			s.AddField("error_code")
 			x.ErrorCode.UnmarshalProtoJSON(s)
+		case "rejection_code", "rejectionCode":
+			s.AddField("rejection_code")
+			x.RejectionCode = s.ReadString()
+		case "rejection_message", "rejectionMessage":
+			s.AddField("rejection_message")
+			x.RejectionMessage = s.ReadString()
 		}
 	})
 }
@@ -12028,6 +12396,248 @@ func (x *AccessTypedObjectResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ObjectRecordBase message to JSON.
+func (x *ObjectRecordBase) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RootRef != nil || s.HasField("rootRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRef")
+		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectRecordBase to JSON.
+func (x *ObjectRecordBase) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectRecordBase message from JSON.
+func (x *ObjectRecordBase) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "root_ref", "rootRef":
+			if s.ReadNil() {
+				x.RootRef = nil
+				return
+			}
+			x.RootRef = &bucket.ObjectRef{}
+			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectRecordBase from JSON.
+func (x *ObjectRecordBase) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareObjectRecordsRequest message to JSON.
+func (x *CompareObjectRecordsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Bases) > 0 || s.HasField("bases") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bases")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Bases {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("bases"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareObjectRecordsRequest to JSON.
+func (x *CompareObjectRecordsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareObjectRecordsRequest message from JSON.
+func (x *CompareObjectRecordsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "bases":
+			s.AddField("bases")
+			if s.ReadNil() {
+				x.Bases = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Bases = append(x.Bases, nil)
+					return
+				}
+				v := &ObjectRecordBase{}
+				v.UnmarshalProtoJSON(s.WithField("bases", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Bases = append(x.Bases, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareObjectRecordsRequest from JSON.
+func (x *CompareObjectRecordsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectRecordChanges message to JSON.
+func (x *ObjectRecordChanges) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if len(x.Keys) > 0 || s.HasField("keys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("keys")
+		s.WriteBytesArray(x.Keys)
+	}
+	if x.Unknown || s.HasField("unknown") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unknown")
+		s.WriteBool(x.Unknown)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectRecordChanges to JSON.
+func (x *ObjectRecordChanges) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectRecordChanges message from JSON.
+func (x *ObjectRecordChanges) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "keys":
+			s.AddField("keys")
+			if s.ReadNil() {
+				x.Keys = nil
+				return
+			}
+			x.Keys = s.ReadBytesArray()
+		case "unknown":
+			s.AddField("unknown")
+			x.Unknown = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectRecordChanges from JSON.
+func (x *ObjectRecordChanges) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareObjectRecordsResponse message to JSON.
+func (x *CompareObjectRecordsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Changes) > 0 || s.HasField("changes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Changes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("changes"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareObjectRecordsResponse to JSON.
+func (x *CompareObjectRecordsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareObjectRecordsResponse message from JSON.
+func (x *CompareObjectRecordsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "changes":
+			s.AddField("changes")
+			if s.ReadNil() {
+				x.Changes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Changes = append(x.Changes, nil)
+					return
+				}
+				v := &ObjectRecordChanges{}
+				v.UnmarshalProtoJSON(s.WithField("changes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Changes = append(x.Changes, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareObjectRecordsResponse from JSON.
+func (x *CompareObjectRecordsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *SyncRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -12199,6 +12809,11 @@ func (m *GetEngineInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SessionPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionPeerId)
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.EngineInfo != nil {
 		size, err := m.EngineInfo.MarshalToSizedBufferVT(dAtA[:i])
@@ -15171,6 +15786,16 @@ func (m *ApplyWorldOpResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RejectionMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RejectionMessage)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.RejectionCode) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RejectionCode)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.ErrorCode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
 		i--
@@ -16218,6 +16843,16 @@ func (m *ApplyObjectOpResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RejectionMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RejectionMessage)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.RejectionCode) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RejectionCode)
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.ErrorCode != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
 		i--
@@ -16463,6 +17098,190 @@ func (m *AccessTypedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *ObjectRecordBase) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectRecordBase) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectRecordBase) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RootRef != nil {
+		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompareObjectRecordsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareObjectRecordsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareObjectRecordsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Bases) > 0 {
+		for iNdEx := len(m.Bases) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Bases[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ObjectRecordChanges) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectRecordChanges) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectRecordChanges) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Unknown {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Unknown)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Keys) > 0 {
+		for iNdEx := len(m.Keys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Keys[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompareObjectRecordsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareObjectRecordsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareObjectRecordsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Changes) > 0 {
+		for iNdEx := len(m.Changes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Changes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SyncRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -16516,6 +17335,7 @@ func (m *GetEngineInfoResponse) SizeVT() (n int) {
 		l = m.EngineInfo.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17456,6 +18276,8 @@ func (m *ApplyWorldOpResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SysErr)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionCode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionMessage)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17773,6 +18595,8 @@ func (m *ApplyObjectOpResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SysErr)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionCode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RejectionMessage)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17840,6 +18664,62 @@ func (m *AccessTypedObjectResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectRecordBase) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.RootRef != nil {
+		l = m.RootRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompareObjectRecordsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Bases {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ObjectRecordChanges) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeBytesSlice(1, m.Keys)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Unknown)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompareObjectRecordsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Changes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17914,6 +18794,10 @@ func (x *GetEngineInfoResponse) MarshalProtoText() string {
 	if x.EngineInfo != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "engine_info")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.EngineInfo)
+	}
+	if x.SessionPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SessionPeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -19161,6 +20045,14 @@ func (x *ApplyWorldOpResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
 		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
+	if x.RejectionCode != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection_code")
+		protobuf_go_lite.TextWriteString(&sb, x.RejectionCode)
+	}
+	if x.RejectionMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection_message")
+		protobuf_go_lite.TextWriteString(&sb, x.RejectionMessage)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -19561,6 +20453,14 @@ func (x *ApplyObjectOpResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
 		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
+	if x.RejectionCode != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection_code")
+		protobuf_go_lite.TextWriteString(&sb, x.RejectionCode)
+	}
+	if x.RejectionMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection_message")
+		protobuf_go_lite.TextWriteString(&sb, x.RejectionMessage)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -19653,6 +20553,94 @@ func (x *AccessTypedObjectResponse) MarshalProtoText() string {
 }
 
 func (x *AccessTypedObjectResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectRecordBase) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectRecordBase")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.RootRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectRecordBase) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareObjectRecordsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CompareObjectRecordsRequest")
+	if len(x.Bases) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "bases")
+		for i, v := range x.Bases {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ObjectRecordBase{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareObjectRecordsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectRecordChanges) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectRecordChanges")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if len(x.Keys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "keys")
+		for i, v := range x.Keys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBytes(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Unknown != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unknown")
+		protobuf_go_lite.TextWriteBool(&sb, x.Unknown)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectRecordChanges) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareObjectRecordsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CompareObjectRecordsResponse")
+	if len(x.Changes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "changes")
+		for i, v := range x.Changes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ObjectRecordChanges{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareObjectRecordsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -19893,6 +20881,16 @@ func (m *GetEngineInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SessionPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -23973,6 +24971,26 @@ func (m *ApplyWorldOpResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectionCode", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RejectionCode = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectionMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RejectionMessage = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -25436,6 +26454,26 @@ func (m *ApplyObjectOpResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectionCode", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RejectionCode = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectionMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RejectionMessage = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -25760,6 +26798,259 @@ func (m *AccessTypedObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TypeId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectRecordBase) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectRecordBase: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectRecordBase: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootRef == nil {
+				m.RootRef = &bucket.ObjectRef{}
+			}
+			if err := m.RootRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareObjectRecordsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareObjectRecordsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareObjectRecordsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bases", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Bases = append(m.Bases, &ObjectRecordBase{})
+			if err := m.Bases[len(m.Bases)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectRecordChanges) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectRecordChanges: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectRecordChanges: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Keys", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.Keys = append(m.Keys, v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unknown", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Unknown = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareObjectRecordsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareObjectRecordsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareObjectRecordsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Changes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Changes = append(m.Changes, &ObjectRecordChanges{})
+			if err := m.Changes[len(m.Changes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

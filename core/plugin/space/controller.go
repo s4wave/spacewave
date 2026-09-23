@@ -3,6 +3,7 @@ package plugin_space
 import (
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -44,14 +45,20 @@ type processConfig struct {
 	typeID string
 	ws     world.WorldState
 }
+
 type pluginReference struct {
-	ref          directive.Reference
-	releaseState func()
+	ref             directive.Reference
+	releaseState    func()
+	manifestKeys    []string
+	releasePrevious func()
 }
 
 func (r pluginReference) release() {
 	r.releaseState()
 	r.ref.Release()
+	if r.releasePrevious != nil {
+		r.releasePrevious()
+	}
 }
 
 var processRetryBackoff = &backoff.Backoff{
@@ -187,14 +194,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if conf.GetHostPluginId() == "" {
 			return errors.New("host_plugin_id is required when world_bucket_id is set")
 		}
+		// The host connection and mounted bucket belong to the same bus that
+		// receives plugin loads. Keep their RPC service on that bus as well.
+		forwardBus := c.GetBus()
+		if c.loadTarget != nil {
+			forwardBus = c.loadTarget
+		}
+		engine := world.NewBusEngine(ctx, c.GetBus(), engineID)
+		defer engine.ClearContext()
 		forwarder := NewCloudBlockStoreForwarder(
 			c.GetLogger().WithField("subsystem", "cloud-block-store-forwarding"),
-			c.GetBus(),
+			forwardBus,
 			conf.GetSpaceId(),
 			conf.GetWorldBucketId(),
 			conf.GetHostPluginId(),
+			engine.AccessWorldState,
 		)
-		forwarderRef, err := c.GetBus().AddController(ctx, forwarder, nil)
+		forwarderRef, err := forwardBus.AddController(ctx, forwarder, nil)
 		if err != nil {
 			return errors.Wrap(err, "start cloud block store forwarder")
 		}
@@ -396,10 +412,29 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 	}
 
-	// Add directives for newly-listed plugins.
+	// Add a replacement demand before releasing the previous one. The scheduler
+	// retains the admitted worker while preparing this exact installation target.
 	for _, pid := range ids {
-		if _, ok := refs[pid]; ok {
+		keys := settings.GetPluginInstallations()[pid].GetManifestKeys()
+		previous, existed := refs[pid]
+		if existed && slices.Equal(previous.manifestKeys, keys) {
 			continue
+		}
+		demand := bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId())
+		if len(keys) != 0 {
+			var selected []*manifest.ManifestRef
+			for _, key := range keys {
+				ref, err := space_world.LookupSpacePluginManifest(ctx, ws, pid, key)
+				if err != nil {
+					warnOnErrorUnlessCanceled(ctx, le, err, "failed to resolve installed plugin artifact")
+					continue
+				}
+				selected = append(selected, ref)
+			}
+			if len(selected) == 0 {
+				continue
+			}
+			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), selected...)
 		}
 
 		loadTarget := c.loadTarget
@@ -407,7 +442,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			loadTarget = c.GetBus()
 		}
 		di, ref, err := loadTarget.AddDirective(
-			bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId()),
+			demand,
 			nil,
 		)
 		if err != nil {
@@ -416,6 +451,14 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			continue
 		}
 		pluginID := pid
+		releasePrevious := sync.OnceFunc(func() {
+			if existed {
+				previous.release()
+			}
+		})
+		if existed {
+			previous.releaseState()
+		}
 		releaseState := di.AddStateCallback(func(
 			isIdle bool,
 			_ []error,
@@ -431,8 +474,16 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 				}
 			}
 			c.loadedPlugins.SetPluginState(pluginID, running, isIdle)
+			if running {
+				releasePrevious()
+			}
 		})
-		refs[pid] = pluginReference{ref: ref, releaseState: releaseState}
+		refs[pid] = pluginReference{
+			ref:             ref,
+			releaseState:    releaseState,
+			manifestKeys:    slices.Clone(keys),
+			releasePrevious: releasePrevious,
+		}
 	}
 }
 

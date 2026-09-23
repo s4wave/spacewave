@@ -21,8 +21,8 @@ import {
   waitFor,
 } from '@testing-library/react'
 
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import {
   SpaceLinkCallback,
   SpaceLinkCallbackStatus,
@@ -419,7 +419,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
 
     await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())
     expect(h.applyWorldOp).toHaveBeenCalledWith(
-      SET_SPACE_SETTINGS_OP_ID,
+      SET_SPACE_INDEX_PATH_OP_ID,
       expect.any(Uint8Array),
       '12D3KooWSession',
     )
@@ -427,9 +427,9 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     if (!(settingsOpData instanceof Uint8Array)) {
       throw new Error('expected settings op bytes')
     }
-    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsOpData)
-    expect(settingsOp.settings?.indexPath).toBe('computers')
-    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+    const settingsOp = SetSpaceIndexPathOp.fromBinary(settingsOpData)
+    expect(settingsOp.indexPath).toBe('computers')
+
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])
   })

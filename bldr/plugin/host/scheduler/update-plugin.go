@@ -12,9 +12,17 @@ import (
 func (t *pluginInstance) setExecutePluginState(args *executePluginArgs) bool {
 	t.pluginUpdateMtx.Lock()
 	defer t.pluginUpdateMtx.Unlock()
+	return t.setExecutePluginStateLocked(args)
+}
+
+// setExecutePluginStateLocked applies candidate ordering under pluginUpdateMtx.
+func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bool {
+	if !t.acceptsManifest(args) {
+		return false
+	}
 
 	current := t.executePluginRoutine.GetState()
-	if current != nil && args != nil {
+	if t.selectedManifest.Load() == nil && current != nil && args != nil {
 		currentMeta := current.manifestSnapshot.GetManifest().GetMeta()
 		nextMeta := args.manifestSnapshot.GetManifest().GetMeta()
 		if currentMeta != nil && nextMeta != nil &&
@@ -61,6 +69,9 @@ func (t *pluginInstance) execGuardedPluginUpdate(ctx context.Context, args *exec
 	defer t.pluginUpdateMtx.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if !t.acceptsManifest(args) {
+		return context.Canceled
 	}
 	t.executePluginRoutine.SetState(args)
 	return nil

@@ -262,7 +262,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 
 	manifestID := pluginID
 	manifestMeta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, 1)
-	manifest, _, err := t.Testbed.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
+	manifest, manifestRef, err := t.Testbed.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
 	if err != nil {
 		return nil, err
 	}
@@ -283,8 +283,8 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	}
 
 	// Register plugin host service for GetPluginInfo etc.
-	manifestSnapshot := &bldr_manifest.ManifestSnapshot{Manifest: manifest}
-	pluginHostSrv := bldr_plugin_host.NewPluginHostServer(ctx, t.Bus, t.Logger, pluginID, "", manifestSnapshot, nil, "")
+	manifestSnapshot := &bldr_manifest.ManifestSnapshot{Manifest: manifest, ManifestRef: manifestRef.GetManifestRef()}
+	pluginHostSrv := bldr_plugin_host.NewPluginHostServer(ctx, t.Bus, t.Logger, pluginID, "", manifestSnapshot, nil, "", false)
 	_ = bldr_plugin.SRPCRegisterPluginHost(hostMux, pluginHostSrv)
 
 	// Convert billy FS handles to unixfs handles for ExecutePlugin.
@@ -309,6 +309,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 			pluginCtx,
 			pluginID,
 			"",
+			manifestRef.GetManifestRef().GetRootRef().GetHash().MarshalString(),
 			scriptPath,
 			distRef,
 			assetsRef,
@@ -405,7 +406,6 @@ func RunTypeScriptTest(
 	// tsFilePath is relative to the test directory (e.g. "my-test.ts")
 	// templatePath is in the same directory as this file
 	templatePath := filepath.Join(filepath.Dir(tsFilePath), "testbed-wrapper.ts.tmpl")
-	wrapperPath := filepath.Join(filepath.Dir(tsFilePath), pluginID+"-wrapper.ts")
 
 	// Read the wrapper template
 	templateBytes, err := os.ReadFile(templatePath)
@@ -417,12 +417,21 @@ func RunTypeScriptTest(
 	testFileName := strings.TrimSuffix(filepath.Base(tsFilePath), ".ts")
 	wrapperContents := strings.ReplaceAll(string(templateBytes), "{{TEST_FILE_NAME}}", testFileName)
 
-	// Write the wrapper to a temporary file
-	err = os.WriteFile(wrapperPath, []byte(wrapperContents), 0o644) //nolint:gosec // Test callers select their source and generated wrapper paths.
+	// Keep relative imports beside the test without overwriting a tracked fixture.
+	wrapper, err := os.CreateTemp(filepath.Dir(tsFilePath), "testbed-wrapper-*.ts")
 	if err != nil {
-		return false, "", fmt.Errorf("failed to write wrapper file: %w", err)
+		return false, "", errors.Wrap(err, "create wrapper file")
 	}
-	defer os.Remove(wrapperPath) // Clean up wrapper file
+	wrapperPath := wrapper.Name()
+	defer os.Remove(wrapperPath)
+	_, writeErr := wrapper.WriteString(wrapperContents)
+	closeErr := wrapper.Close()
+	if writeErr != nil {
+		return false, "", errors.Wrap(writeErr, "write wrapper file")
+	}
+	if closeErr != nil {
+		return false, "", errors.Wrap(closeErr, "close wrapper file")
+	}
 
 	// Determine the repo root for resolving vendor paths.
 	// The test CWD is typically the package directory (e.g. sdk/world/types/).

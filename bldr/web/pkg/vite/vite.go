@@ -13,6 +13,7 @@ import (
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	determine_cjs_exports "github.com/s4wave/spacewave/bldr/web/pkg/esbuild/determine-cjs-exports"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,6 +96,9 @@ func BuildWebPkgsViteWithManagedRoot(
 		siblingIDs := slices.DeleteFunc(slices.Clone(webPkgIDs), func(id string) bool {
 			return id == webPkgID
 		})
+		externalIDs := slices.DeleteFunc(slices.Clone(web_pkg_external.BldrExternal), func(id string) bool {
+			return id == webPkgID
+		})
 
 		le.
 			WithField("web-pkg-id", webPkgID).
@@ -117,6 +121,7 @@ func BuildWebPkgsViteWithManagedRoot(
 			PkgRoot:        pkgRoot,
 			Imports:        imports,
 			SiblingPkgIds:  siblingIDs,
+			ExternalPkgs:   externalIDs,
 			OutDir:         pkgOutputPath,
 			WebPkgBasePath: webPkgBasePath,
 			IsRelease:      isRelease,

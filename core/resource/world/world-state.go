@@ -245,7 +245,7 @@ func (r *WorldStateResource) CreateObject(ctx context.Context, req *s4wave_world
 	}
 
 	key := obj.GetKey()
-	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
+	objResource := r.newObjectStateResource(obj)
 	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -273,7 +273,7 @@ func (r *WorldStateResource) GetObject(ctx context.Context, req *s4wave_world.Ge
 	}
 
 	key := obj.GetKey()
-	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
+	objResource := r.newObjectStateResource(obj)
 	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -319,7 +319,7 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 	}
 
 	key := obj.GetKey()
-	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
+	objResource := r.newObjectStateResource(obj)
 	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
 		world.ReleaseObjectState(obj)
@@ -694,13 +694,23 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		return nil, err
 	}
 
-	opSender, err := req.ParsePeerID()
-	if err != nil {
-		return nil, err
+	opSender := r.sessionPeerID
+	if !r.sessionPeerIDBound {
+		opSender, err = req.ParsePeerID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	seqno, sysErr, err := r.ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
+		var rejection *world.OperationRejection
+		if errors.As(err, &rejection) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
+			}, nil
+		}
+
 		if errors.Is(err, world.ErrUnhandledOp) {
 			return &s4wave_world.ApplyWorldOpResponse{
 				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
@@ -803,3 +813,11 @@ func graphEdgeBucketDirectionFromProto(dir s4wave_world.GraphEdgeBucketDirection
 
 // _ is a type assertion
 var _ s4wave_world.SRPCWorldStateResourceServiceServer = (*WorldStateResource)(nil)
+
+// newObjectStateResource carries the World capability's authenticated sender to its objects.
+func (r *WorldStateResource) newObjectStateResource(obj world.ObjectState) *ObjectStateResource {
+	resource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
+	resource.sessionPeerID = r.sessionPeerID
+	resource.sessionPeerIDBound = r.sessionPeerIDBound
+	return resource
+}

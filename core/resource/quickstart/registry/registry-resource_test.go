@@ -17,7 +17,7 @@ func setupQuickstartRegistryClient(t *testing.T) (context.Context, *resource_cli
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 	clientPipe, serverPipe := net.Pipe()
 
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
@@ -119,7 +119,7 @@ func (c *testQuickstartResourceClient) GetAttachedResource(id uint32) (srpc.Clie
 var _ resource_server.ResourceClientContext = (*testQuickstartResourceClient)(nil)
 
 func TestNewQuickstartRegistryResource(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 	if r == nil {
 		t.Fatal("expected non-nil resource")
 	}
@@ -135,7 +135,7 @@ func TestNewQuickstartRegistryResource(t *testing.T) {
 }
 
 func TestRegisterQuickstartValidation(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 
 	_, err := r.RegisterQuickstart(context.Background(), &s4wave_quickstart_registry.RegisterQuickstartRequest{})
 	if err != ErrRegistrationRequired {
@@ -143,8 +143,8 @@ func TestRegisterQuickstartValidation(t *testing.T) {
 	}
 
 	base := &s4wave_quickstart_registry.QuickstartRegistration{
-		QuickstartId: "glados-workspace",
-		PluginId:     "glados-web",
+		QuickstartId: "sample-workspace",
+		PluginId:     "sample-web",
 		Name:         "Glados Workspace",
 		Description:  "Operator workspace",
 		Category:     "tools",
@@ -218,14 +218,14 @@ func TestRegisterQuickstartListWatchAndRelease(t *testing.T) {
 
 	resp, err := svc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId:      "glados-workspace",
-			PluginId:          "glados-web",
+			QuickstartId:      "sample-workspace",
+			PluginId:          "sample-web",
 			Name:              "Glados Workspace",
 			Description:       "Operator workspace",
 			Category:          "tools",
 			IconName:          "bot",
 			SpaceName:         "Glados Workspace",
-			RequiredPluginIds: []string{"glados-core", "glados-web"},
+			RequiredPluginIds: []string{"sample-core", "sample-web"},
 		},
 	})
 	if err != nil {
@@ -246,10 +246,10 @@ func TestRegisterQuickstartListWatchAndRelease(t *testing.T) {
 	if reg.GetRegistrationId() == 0 {
 		t.Fatal("expected assigned registration id")
 	}
-	if reg.GetQuickstartId() != "glados-workspace" {
-		t.Fatalf("expected glados-workspace, got %s", reg.GetQuickstartId())
+	if reg.GetQuickstartId() != "sample-workspace" {
+		t.Fatalf("expected sample-workspace, got %s", reg.GetQuickstartId())
 	}
-	if got := reg.GetRequiredPluginIds(); len(got) != 2 || got[0] != "glados-core" || got[1] != "glados-web" {
+	if got := reg.GetRequiredPluginIds(); len(got) != 2 || got[0] != "sample-core" || got[1] != "sample-web" {
 		t.Fatalf("unexpected required plugin ids: %v", got)
 	}
 
@@ -274,14 +274,14 @@ func TestRegisterQuickstartListWatchAndRelease(t *testing.T) {
 }
 
 func TestRegisterQuickstartRejectsDuplicateIdFromDifferentPlugin(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 	clientCtx := newTestQuickstartResourceClient(context.Background())
 	ctx := resource_server.WithResourceClientContext(context.Background(), clientCtx)
 
 	resp, err := r.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId: "glados-workspace",
-			PluginId:     "glados-web",
+			QuickstartId: "sample-workspace",
+			PluginId:     "sample-web",
 			Name:         "Glados Workspace",
 			Description:  "Operator workspace",
 			Category:     "tools",
@@ -296,7 +296,7 @@ func TestRegisterQuickstartRejectsDuplicateIdFromDifferentPlugin(t *testing.T) {
 
 	_, err = r.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId: "glados-workspace",
+			QuickstartId: "sample-workspace",
 			PluginId:     "spacewave-v86",
 			Name:         "V86 Workspace",
 			Description:  "VM workspace",
@@ -315,7 +315,7 @@ func TestRegisterQuickstartRejectsDuplicateIdFromDifferentPlugin(t *testing.T) {
 	if len(regs) != 1 {
 		t.Fatalf("expected duplicate rejection to leave exactly 1 registration, got %d", len(regs))
 	}
-	if regs[0].GetPluginId() != "glados-web" {
+	if regs[0].GetPluginId() != "sample-web" {
 		t.Fatalf("duplicate rejection replaced original plugin: %s", regs[0].GetPluginId())
 	}
 }
@@ -332,14 +332,14 @@ func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.
 
 	firstResp, err := svc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId:      "glados-workspace",
-			PluginId:          "glados-web",
+			QuickstartId:      "sample-workspace",
+			PluginId:          "sample-web",
 			Name:              "Glados Workspace",
 			Description:       "Operator workspace",
 			Category:          "tools",
 			IconName:          "bot",
 			SpaceName:         "Glados Workspace",
-			RequiredPluginIds: []string{"glados-core"},
+			RequiredPluginIds: []string{"sample-core"},
 		},
 	})
 	if err != nil {
@@ -363,14 +363,14 @@ func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.
 
 	latestResp, err := svc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId:      "glados-workspace",
-			PluginId:          "glados-web",
+			QuickstartId:      "sample-workspace",
+			PluginId:          "sample-web",
 			Name:              "Glados Workspace Reconnected",
 			Description:       "Operator workspace after browser restart",
 			Category:          "browser-tools",
 			IconName:          "sparkles",
 			SpaceName:         "Reconnected Workspace",
-			RequiredPluginIds: []string{"glados-core", "glados-web", "spacewave-sql"},
+			RequiredPluginIds: []string{"sample-core", "sample-web", "spacewave-sql"},
 		},
 	})
 	if err != nil {
@@ -398,8 +398,8 @@ func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.
 	if latest.GetRegistrationId() == firstRegistrationID {
 		t.Fatalf("expected reconnect to assign a new registration id, got %d", latest.GetRegistrationId())
 	}
-	if latest.GetQuickstartId() != "glados-workspace" ||
-		latest.GetPluginId() != "glados-web" ||
+	if latest.GetQuickstartId() != "sample-workspace" ||
+		latest.GetPluginId() != "sample-web" ||
 		latest.GetName() != "Glados Workspace Reconnected" ||
 		latest.GetDescription() != "Operator workspace after browser restart" ||
 		latest.GetCategory() != "browser-tools" ||
@@ -408,8 +408,8 @@ func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.
 		t.Fatalf("latest registration metadata did not win: %#v", latest)
 	}
 	if got := latest.GetRequiredPluginIds(); len(got) != 3 ||
-		got[0] != "glados-core" ||
-		got[1] != "glados-web" ||
+		got[0] != "sample-core" ||
+		got[1] != "sample-web" ||
 		got[2] != "spacewave-sql" {
 		t.Fatalf("latest required plugin ids did not win: %v", got)
 	}
@@ -446,7 +446,7 @@ func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.
 }
 
 func TestExecuteQuickstartValidation(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 
 	_, err := r.ExecuteQuickstart(context.Background(), &s4wave_quickstart_registry.ExecuteQuickstartRequest{})
 	if err != ErrQuickstartIdRequired {
@@ -454,25 +454,17 @@ func TestExecuteQuickstartValidation(t *testing.T) {
 	}
 
 	_, err = r.ExecuteQuickstart(context.Background(), &s4wave_quickstart_registry.ExecuteQuickstartRequest{
-		QuickstartId: "glados-workspace",
+		QuickstartId: "sample-workspace",
 	})
 	if err != ErrSpaceResourceIdRequired {
 		t.Fatalf("expected ErrSpaceResourceIdRequired, got %v", err)
 	}
 
-	_, err = r.ExecuteQuickstart(context.Background(), &s4wave_quickstart_registry.ExecuteQuickstartRequest{
-		QuickstartId:    "glados-workspace",
-		SpaceResourceId: 1,
-	})
-	if err != ErrQuickstartNotRegistered {
-		t.Fatalf("expected ErrQuickstartNotRegistered, got %v", err)
-	}
-
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId:   "glados-workspace",
+			QuickstartId:   "sample-workspace",
 			RegistrationId: 1,
-			PluginId:       "glados-web",
+			PluginId:       "sample-web",
 			Name:           "Glados Workspace",
 			Description:    "Operator workspace",
 			Category:       "tools",
@@ -480,7 +472,7 @@ func TestExecuteQuickstartValidation(t *testing.T) {
 		broadcast()
 	})
 	_, err = r.ExecuteQuickstart(context.Background(), &s4wave_quickstart_registry.ExecuteQuickstartRequest{
-		QuickstartId:    "glados-workspace",
+		QuickstartId:    "sample-workspace",
 		SpaceResourceId: 1,
 	})
 	if err != ErrQuickstartExecutionUnavailable {
@@ -490,19 +482,19 @@ func TestExecuteQuickstartValidation(t *testing.T) {
 
 func TestMergePluginIDsDedupesInOrder(t *testing.T) {
 	ids := mergePluginIDs(
-		[]string{"glados-core", "glados-web"},
-		[]string{"glados-web", "spacewave-v86", ""},
+		[]string{"sample-core", "sample-web"},
+		[]string{"sample-web", "spacewave-v86", ""},
 	)
 	if len(ids) != 3 {
 		t.Fatalf("expected 3 plugin ids, got %d: %v", len(ids), ids)
 	}
-	if ids[0] != "glados-core" || ids[1] != "glados-web" || ids[2] != "spacewave-v86" {
+	if ids[0] != "sample-core" || ids[1] != "sample-web" || ids[2] != "spacewave-v86" {
 		t.Fatalf("unexpected plugin ids: %v", ids)
 	}
 }
 
 func TestListQuickstartsSortsById(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[2] = &s4wave_quickstart_registry.QuickstartRegistration{
 			QuickstartId:   "zeta",
@@ -537,11 +529,11 @@ func TestListQuickstartsSortsById(t *testing.T) {
 }
 
 func TestLookupQuickstartRegistrationReturnsClone(t *testing.T) {
-	r := NewQuickstartRegistryResource(nil, nil)
+	r := NewQuickstartRegistryResource(nil, nil, nil)
 	orig := &s4wave_quickstart_registry.QuickstartRegistration{
-		QuickstartId:   "glados-workspace",
+		QuickstartId:   "sample-workspace",
 		RegistrationId: 1,
-		PluginId:       "glados-web",
+		PluginId:       "sample-web",
 		Name:           "Glados Workspace",
 		Description:    "Operator workspace",
 		Category:       "tools",
@@ -551,16 +543,16 @@ func TestLookupQuickstartRegistrationReturnsClone(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistration("glados-workspace")
+	reg := r.LookupRegistration("sample-workspace", "")
 	if reg == nil {
 		t.Fatal("expected registration")
 	}
 	reg.QuickstartId = "mutated"
-	reg = r.LookupRegistration("glados-workspace")
+	reg = r.LookupRegistration("sample-workspace", "")
 	if reg == nil {
 		t.Fatal("expected registration after mutating clone")
 	}
-	if reg.GetQuickstartId() != "glados-workspace" {
+	if reg.GetQuickstartId() != "sample-workspace" {
 		t.Fatalf("stored registration was mutated: got %s", reg.GetQuickstartId())
 	}
 }

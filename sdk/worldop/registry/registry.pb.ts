@@ -3,10 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import {
-  createEmptyMessageType,
-  createMessageType,
-} from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
@@ -117,13 +114,23 @@ export const RegisterWorldOpResponse: MessageType<RegisterWorldOpResponse> =
  *
  * @generated from message s4wave.worldop.registry.WatchWorldOpsRequest
  */
-export interface WatchWorldOpsRequest {}
+export interface WatchWorldOpsRequest {
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const WatchWorldOpsRequest: MessageType<WatchWorldOpsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchWorldOpsRequest>(
-    's4wave.worldop.registry.WatchWorldOpsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.worldop.registry.WatchWorldOpsRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchWorldOpsResponse is the response for WatchWorldOps.
@@ -178,6 +185,13 @@ export interface ApplyWorldOpRequest {
    * @generated from field: uint32 attached_world_state_resource_id = 3;
    */
   attachedWorldStateResourceId?: number
+  /**
+   * Sender is the authenticated peer identity supplied by World execution, in base58.
+   * It is separate from OpData and cannot be chosen by the operation payload.
+   *
+   * @generated from field: string sender = 4;
+   */
+  sender?: string
 }
 
 export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
@@ -197,6 +211,7 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
+      { no: 4, name: 'sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -213,6 +228,18 @@ export interface ApplyWorldOpResponse {
    * @generated from field: bool system_error = 1;
    */
   systemError?: boolean
+  /**
+   * RejectionCode is a stable application-defined rejection code.
+   *
+   * @generated from field: string rejection_code = 2;
+   */
+  rejectionCode?: string
+  /**
+   * RejectionMessage is the safe explanation of a rejected operation.
+   *
+   * @generated from field: string rejection_message = 3;
+   */
+  rejectionMessage?: string
 }
 
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
@@ -220,6 +247,13 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
     typeName: 's4wave.worldop.registry.ApplyWorldOpResponse',
     fields: [
       { no: 1, name: 'system_error', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'rejection_code', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'rejection_message',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -254,6 +288,13 @@ export interface ApplyWorldObjectOpRequest {
    * @generated from field: uint32 attached_object_state_resource_id = 4;
    */
   attachedObjectStateResourceId?: number
+  /**
+   * Sender is the authenticated peer identity supplied by World execution, in base58.
+   * Historical replay uses the accepted sender recorded with the operation.
+   *
+   * @generated from field: string sender = 5;
+   */
+  sender?: string
 }
 
 export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
@@ -274,6 +315,7 @@ export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
+      { no: 5, name: 'sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -290,6 +332,18 @@ export interface ApplyWorldObjectOpResponse {
    * @generated from field: bool system_error = 1;
    */
   systemError?: boolean
+  /**
+   * RejectionCode is a stable application-defined rejection code.
+   *
+   * @generated from field: string rejection_code = 2;
+   */
+  rejectionCode?: string
+  /**
+   * RejectionMessage is the safe explanation of a rejected operation.
+   *
+   * @generated from field: string rejection_message = 3;
+   */
+  rejectionMessage?: string
 }
 
 export const ApplyWorldObjectOpResponse: MessageType<ApplyWorldObjectOpResponse> =
@@ -297,6 +351,13 @@ export const ApplyWorldObjectOpResponse: MessageType<ApplyWorldObjectOpResponse>
     typeName: 's4wave.worldop.registry.ApplyWorldObjectOpResponse',
     fields: [
       { no: 1, name: 'system_error', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'rejection_code', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'rejection_message',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

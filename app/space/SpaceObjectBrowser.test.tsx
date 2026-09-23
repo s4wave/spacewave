@@ -12,7 +12,7 @@ import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContex
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: {
@@ -301,9 +301,8 @@ describe('SpaceObjectBrowser', () => {
     const settingsData = vi.mocked(mockSpaceWorld.applyWorldOp).mock
       .calls[0]?.[1]
     expect(settingsData).toBeInstanceOf(Uint8Array)
-    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData)
-    expect(settingsOp.settings?.indexPath).toBe('myrepo')
-    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
+    const settingsOp = SetSpaceIndexPathOp.fromBinary(settingsData)
+    expect(settingsOp.indexPath).toBe('myrepo')
   })
 
   it('sets the selected object as the index while preserving existing plugin settings', async () => {
@@ -334,9 +333,8 @@ describe('SpaceObjectBrowser', () => {
     const settingsData = vi.mocked(mockSpaceWorld.applyWorldOp).mock
       .calls[0]?.[1]
     expect(settingsData).toBeInstanceOf(Uint8Array)
-    const settingsOp = SetSpaceSettingsOp.fromBinary(settingsData)
-    expect(settingsOp.settings?.indexPath).toBe('files')
-    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-app'])
+    const settingsOp = SetSpaceIndexPathOp.fromBinary(settingsData)
+    expect(settingsOp.indexPath).toBe('files')
   })
 
   it('anchors the context menu in document.body at the click position', async () => {

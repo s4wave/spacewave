@@ -50,7 +50,7 @@ func WithWorldStateOperationObserver(observer WorldStateOperationObserver) World
 	}
 }
 
-// WithSessionPeerID configures the trusted session peer for typed object access.
+// WithSessionPeerID binds typed access and operation execution to the authenticated session peer.
 func WithSessionPeerID(sessionPeerID peer.ID) WorldStateResourceOption {
 	return func(r *WorldStateResource) {
 		r.sessionPeerID = sessionPeerID

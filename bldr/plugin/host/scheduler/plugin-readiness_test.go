@@ -218,13 +218,13 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 
 	_, relRef := ctrl.AddPluginReference("test-plugin", "")
 	defer relRef()
-	instance, ok := ctrl.pluginInstances.GetKey(pluginInstanceKey("test-plugin", ""))
+	instance, ok := ctrl.pluginInstances.GetKey(pluginReference{pluginID: "test-plugin"})
 	if !ok {
 		t.Fatal("plugin instance was not created for LoadPlugin reference")
 	}
 
 	handler := newLoadPluginValuesHandler()
-	resolver := bldr_plugin_host.NewLoadPluginResolver(ctrl, "test-plugin", "")
+	resolver := bldr_plugin_host.NewLoadPluginResolver(ctrl, "test-plugin", "", "", nil)
 	resolveDone := make(chan error, 1)
 	go func() { resolveDone <- resolver.Resolve(ctx, handler) }()
 

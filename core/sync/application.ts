@@ -1,15 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 import { ItState } from '../../bldr/web/bldr/it-state.js'
-import {
-  KvScanLimitError,
-  KvStore,
-  type KvTransaction,
-} from '../../sdk/kv/kv.js'
-import {
-  KvObjectTypeError,
-  openWorldKvStore,
-} from '../../sdk/kv/world/store.js'
+import { KvScanLimitError, KvStore } from '../../sdk/kv/kv.js'
+import { KvObjectTypeError } from '../../sdk/kv/world/store.js'
 import { Engine } from '../../sdk/world/engine.js'
 import type { Tx } from '../../sdk/world/tx.js'
 import { getObjectType } from '../../sdk/world/types/types.js'
@@ -28,15 +21,17 @@ import {
   receiptKey,
 } from '../../sdk/sync/keys.js'
 import {
-  validate,
   defineSchema,
   type CallOptions,
   type Principal,
   type Schema,
-  type Transaction,
-  type TransactionCollection,
   type RecordEntry,
 } from '../../sdk/sync/schema.js'
+
+import { ApplicationTransaction } from '../../sdk/sync/transaction.js'
+import { AppQueries } from '../../sdk/sync/live-query.js'
+import type { AppSource } from '../../sdk/sync/app.js'
+import { createAccess, type DatabaseAccess } from '../../sdk/sync/access.js'
 
 import type { ApplicationConfig, Migration } from './config.js'
 export type { Access, Migration } from './config.js'
@@ -46,12 +41,6 @@ export interface ApplicationOptions<
   P extends Principal,
 > extends ApplicationConfig<S, P> {
   engine: Engine
-}
-
-interface Receipt {
-  fingerprint: string
-  result: JsonValue
-  accesses: { collection: string; action: 'read' | 'write' }[]
 }
 
 interface StoredVersion {
@@ -77,6 +66,7 @@ const versionKey = encoder.encode('version')
 // All application writes, including metadata and receipts, commit through one Tx.
 export class Application<S extends Schema, P extends Principal> {
   readonly schema: S
+  readonly instance: string
   readonly signal: AbortSignal
   readonly limits: {
     maxRecords: number
@@ -87,14 +77,16 @@ export class Application<S extends Schema, P extends Principal> {
   private readonly controller = new AbortController()
   private readonly active = new Set<Promise<unknown>>()
   private readonly queries = new Map<string, SharedQuery>()
+  private readonly functionQueries = new Set<AppQueries<S, P>>()
   private closing?: Promise<void>
 
   constructor(private readonly options: ApplicationOptions<S, P>) {
     this.schema = defineSchema(options.schema)
+    this.instance = options.instance ?? this.schema.id
     try {
-      receiptKey(this.schema.id, 'schema')
+      receiptKey(this.instance, 'schema')
       for (const [name, validator] of Object.entries(this.schema.collections)) {
-        collectionKey(this.schema.id, 'schema', name)
+        collectionKey(this.instance, 'schema', name)
         if (validator['~standard']?.version !== 1)
           throw new Error('invalid validator')
       }
@@ -130,9 +122,9 @@ export class Application<S extends Schema, P extends Principal> {
   // initialize runs explicit maintenance before any application caller is admitted.
   async initialize(migration?: Migration<S>): Promise<void> {
     const tx = await this.engine.newTransaction(true, this.signal)
-    const unit = new Unit(tx, true, this.signal)
+    const unit = this.transaction(tx, true, this.signal, true)
     try {
-      const metadata = await unit.store(metadataKey)
+      const metadata = await unit.store(metadataKey(this.instance))
       if (!metadata) throw new Error('missing metadata store')
       const stored = await metadata.get(versionKey, this.signal)
       const previous = stored.found
@@ -164,8 +156,7 @@ export class Application<S extends Schema, P extends Principal> {
             )
             return entries.map((entry) => decodeJSON(entry.value) as string)
           },
-          scope: (scope) =>
-            this.collections(unit, { subject: 'admin', scope } as P, true, []),
+          scope: (scope) => unit.collections({ subject: 'admin', scope } as P),
         })
       }
       await metadata.set(
@@ -176,11 +167,16 @@ export class Application<S extends Schema, P extends Principal> {
         }),
         this.signal,
       )
-      await unit.commit()
-      if (!(await this.engine.sync()))
-        throw new SyncError('STORAGE', 'Durable storage is unavailable')
+      await unit.flush()
+      await tx.commit()
+      await this.engine.sync()
     } finally {
       await unit.release()
+      try {
+        await tx.discard()
+      } finally {
+        tx.release()
+      }
     }
   }
 
@@ -230,9 +226,52 @@ export class Application<S extends Schema, P extends Principal> {
     return work
   }
 
+  /** access binds local calls and function queries to one authenticated identity. */
+  access(principal: P): DatabaseAccess<S> & AppSource<S> {
+    const identity = { ...principal }
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- The access object's generator has its own receiver; retain the application owner.
+    const application = this
+    let queries: AppQueries<S, P> | undefined
+    let users = 0
+    return {
+      ...createAccess<S>((operation, options) =>
+        this.execute(identity, operation, options),
+      ),
+      async *watch(definition, args, signal) {
+        if (application.closing)
+          throw new SyncError('CLOSED', 'Server is closed')
+        const source = (queries ??= new AppQueries({
+          schema: application.schema,
+          instance: application.instance,
+          mutations: application.options.mutations,
+          engine: application.engine,
+          limits: application.limits,
+          principal: identity,
+          signal: application.signal,
+          authorize: (caller, collection, action) =>
+            application.authorize(caller, collection, action),
+        }))
+        application.functionQueries.add(source)
+        users++
+        try {
+          yield* source.watch(definition, args, signal)
+        } finally {
+          if (--users === 0) {
+            queries = undefined
+            application.functionQueries.delete(source)
+            await source.close()
+          }
+        }
+      },
+    }
+  }
+
   close(): Promise<void> {
     this.closing ??= (async () => {
       this.controller.abort(new SyncError('CLOSED', 'Server is closing'))
+      await Promise.all(
+        Array.from(this.functionQueries, (queries) => queries.close()),
+      )
       await Promise.allSettled(this.active)
       this.engine.release()
     })()
@@ -337,7 +376,7 @@ export class Application<S extends Schema, P extends Principal> {
   ): AsyncIterable<readonly RecordEntry<JsonValue>[]> {
     let store: KvStore | undefined
     try {
-      const key = collectionKey(this.schema.id, scope, collection)
+      const key = collectionKey(this.instance, scope, collection)
       const bytes = prefix ? this.recordKey(prefix) : new Uint8Array()
       let emptyDelivered = false
       for (;;) {
@@ -406,7 +445,7 @@ export class Application<S extends Schema, P extends Principal> {
       throw new SyncError('AUTHENTICATION', 'Authentication is no longer valid')
     }
     try {
-      receiptKey(this.schema.id, principal.scope)
+      receiptKey(this.instance, principal.scope)
       if (encodeRecordKey(principal.subject).length > 256)
         throw new Error('invalid subject')
     } catch {
@@ -423,7 +462,9 @@ export class Application<S extends Schema, P extends Principal> {
     options: CallOptions,
     admin: boolean,
   ): Promise<JsonValue> {
-    let unit: Unit | undefined
+    // One World transaction owns records and the stable request receipt.
+    let tx: Tx | undefined
+    let unit: ApplicationTransaction<S, P> | undefined
     let committing = false
     const write = operation.kind !== 'get' && operation.kind !== 'scan'
     const requestId = options.requestId ?? randomUUID()
@@ -436,140 +477,43 @@ export class Application<S extends Schema, P extends Principal> {
     try {
       this.checkPrincipal(principal)
       signal.throwIfAborted()
-      if (!requestId || requestId.length > 128)
-        throw new SyncError(
-          'VALIDATION',
-          'Request ID must contain 1 to 128 characters',
-        )
-      const fingerprint = createHash('sha256')
-        .update(canonicalJSON({ version: this.schema.version, operation }))
-        .digest('hex')
-      const tx = await this.engine.newTransaction(write, signal)
-      unit = new Unit(tx, write, signal)
-      const accesses: Receipt['accesses'] = []
-      const collections = this.collections(unit, principal, admin, accesses)
-      if ('collection' in operation)
-        await this.authorize(
-          principal,
-          operation.collection,
-          write ? 'write' : 'read',
-          admin,
-        )
-      const receipts = write
-        ? await unit.store(receiptKey(this.schema.id, principal.scope))
-        : undefined
-      const receiptId = encoder.encode(
-        canonicalJSON([principal.subject, requestId]),
-      )
-      if (receipts) {
-        const stored = await receipts.get(receiptId, signal)
-        if (stored.found) {
-          const receipt = decodeJSON(stored.data) as unknown as Receipt
-          if (receipt.fingerprint !== fingerprint)
-            throw new SyncError(
-              'CONFLICT',
-              'Request ID was already used for different input',
-              requestId,
-            )
-          await Promise.all(
-            receipt.accesses.map((access) =>
-              this.authorize(
-                principal,
-                access.collection,
-                access.action,
-                admin,
-              ),
-            ),
-          )
-          // A previous response may have failed while its durability fence was pending.
-          await unit.release()
-          unit = undefined
-          if (!(await this.engine.sync()))
-            throw new SyncError('STORAGE', 'Durable storage is unavailable')
-          return receipt.result
-        }
-      }
-      let result: JsonValue
-      if (operation.kind === 'mutate') {
-        const definition = Object.hasOwn(this.schema.mutations, operation.name)
-          ? this.schema.mutations[operation.name]
-          : undefined
-        const handler = Object.hasOwn(this.options.mutations, operation.name)
-          ? this.options.mutations[operation.name]
-          : undefined
-        if (!definition || !handler)
-          throw new SyncError(
-            'VALIDATION',
-            'Mutation is not declared and implemented',
-          )
-        const input = await validate(
-          definition.input,
-          operation.input,
-          'Mutation input',
-        )
-        const output = await handler(
-          { ...collections, principal, scope: principal.scope, signal },
-          input,
-        )
-        result = await validate(definition.output, output, 'Mutation output')
-      } else {
-        const collection = collections.collection(operation.collection)
-        switch (operation.kind) {
-          case 'get': {
-            const value = await collection.get(operation.key)
-            result =
-              value === undefined
-                ? { found: false }
-                : { found: true, value: value as JsonValue }
-            break
-          }
-          case 'scan':
-            result = (await collection.scan({
-              prefix: operation.prefix,
-            })) as unknown as JsonValue
-            break
-          case 'put':
-            await collection.put(operation.key, operation.value)
-            result = null
-            break
-          case 'delete':
-            await collection.delete(operation.key)
-            result = null
-            break
-        }
+      tx = await this.engine.newTransaction(write, signal)
+      unit = this.transaction(tx, write, signal, admin)
+      const result = await unit.execute(principal, operation, requestId)
+
+      // Commit fresh work exactly once; duplicate acceptance still needs its fence.
+      this.checkPrincipal(principal)
+      signal.throwIfAborted()
+      if (write && !result.duplicate) {
+        await unit.flush()
+        signal.throwIfAborted()
+        committing = true
+        await tx.commit()
       }
       if (write) {
-        const metadata = await unit.store(metadataKey)
-        await metadata!.set(
-          encoder.encode(`scope/${canonicalJSON(principal.scope)}`),
-          encodeJSON(principal.scope),
-          signal,
-        )
-        await receipts!.set(
-          receiptId,
-          encodeJSON({ fingerprint, result, accesses }),
-          signal,
-        )
-        this.checkPrincipal(principal)
-        signal.throwIfAborted()
-        await unit.commit(() => {
-          committing = true
-        })
-        if (!(await this.engine.sync()))
-          throw new SyncError('STORAGE', 'Durable storage is unavailable')
+        // Release the writer before fencing an already accepted duplicate.
+        await unit.release()
+        unit = undefined
+        await tx.discard()
+        tx.release()
+        tx = undefined
+        await this.engine.sync()
       }
-      return result
+      return result.value
     } catch (error) {
-      if (error instanceof KvObjectTypeError)
+      if (error instanceof KvObjectTypeError) {
         throw new SyncError('SCHEMA_MISMATCH', error.message)
-      if (committing)
+      }
+      if (committing) {
         throw new SyncError(
           'UNCERTAIN',
           'Acceptance could not be confirmed; retry the same request ID and input',
           requestId,
         )
-      if (error instanceof KvScanLimitError)
+      }
+      if (error instanceof KvScanLimitError) {
         throw new SyncError('QUERY_LIMIT', error.message)
+      }
       if (signal.aborted) {
         this.checkPrincipal(principal)
         throw new SyncError(
@@ -579,81 +523,37 @@ export class Application<S extends Schema, P extends Principal> {
       }
       throw publicError(error)
     } finally {
+      // Subordinate KV Resources release before the caller-owned World writer.
       await unit?.release()
+      if (tx) {
+        try {
+          await tx.discard()
+        } catch {
+          // Transport failure already rejects the operation.
+        } finally {
+          tx.release()
+        }
+      }
     }
   }
 
-  private collections(
-    unit: Unit,
-    principal: P,
+  /** transaction lends collection access without transferring World ownership. */
+  private transaction(
+    tx: Tx,
+    write: boolean,
+    signal: AbortSignal,
     admin: boolean,
-    accesses: Receipt['accesses'],
-  ): Transaction<S> {
-    return {
-      collection: <K extends keyof S['collections'] & string>(name: K) => {
-        const validator = this.schema.collections[name]
-        const access = async (action: 'read' | 'write') => {
-          await this.authorize(principal, name, action, admin)
-          if (
-            !accesses.some(
-              (access) =>
-                access.collection === name && access.action === action,
-            )
-          )
-            accesses.push({ collection: name, action })
-          return unit.store(
-            collectionKey(this.schema.id, principal.scope, name),
-          )
-        }
-        return {
-          get: async (key) => {
-            const bytes = this.recordKey(key)
-            const store = await access('read')
-            const entry = await store?.get(bytes, unit.signal)
-            return entry?.found ? decodeJSON(entry.data) : undefined
-          },
-          scan: async (query = {}) => {
-            const prefix = query.prefix ?? ''
-            const bytes = prefix ? this.recordKey(prefix) : new Uint8Array()
-            const store = await access('read')
-            if (!store) return []
-            const entries = await store.scanRecords(
-              bytes,
-              {
-                maxRecords: this.limits.maxRecords,
-                maxBytes: this.limits.maxSnapshotBytes,
-              },
-              unit.signal,
-            )
-            return entries.map((entry) => ({
-              key: decoder.decode(entry.key),
-              value: decodeJSON(entry.value),
-            }))
-          },
-          put: async (key, value) => {
-            const bytes = this.recordKey(key)
-            const store = await access('write')
-            if (!unit.write || !store)
-              throw new SyncError('DENIED', 'Transaction is read-only')
-            const validated = await validate(validator, value, 'Record')
-            const encoded = encodeJSON(validated)
-            if (encoded.length > this.limits.maxRecordBytes)
-              throw new SyncError(
-                'QUERY_LIMIT',
-                'Record exceeds the configured byte limit',
-              )
-            await store.set(bytes, encoded, unit.signal)
-          },
-          delete: async (key) => {
-            const bytes = this.recordKey(key)
-            const store = await access('write')
-            if (!unit.write || !store)
-              throw new SyncError('DENIED', 'Transaction is read-only')
-            await store.delete(bytes, unit.signal)
-          },
-        } as TransactionCollection<S['collections'][K]>
-      },
-    }
+  ): ApplicationTransaction<S, P> {
+    return new ApplicationTransaction(tx, {
+      schema: this.schema,
+      instance: this.instance,
+      mutations: this.options.mutations,
+      limits: this.limits,
+      write,
+      signal,
+      authorize: (principal, collection, action) =>
+        this.authorize(principal, collection, action, admin),
+    })
   }
 
   private recordKey(key: string): Uint8Array {
@@ -664,86 +564,6 @@ export class Application<S extends Schema, P extends Principal> {
         'VALIDATION',
         'Record key must be nonempty UTF-8 within 1024 bytes',
       )
-    }
-  }
-}
-
-// Unit keeps typed KV transactions subordinate to one World writer lifetime.
-class Unit {
-  private readonly stores = new Map<
-    string,
-    Promise<{ store: KvStore; tx: KvTransaction } | undefined>
-  >()
-  private released = false
-
-  constructor(
-    private readonly tx: Tx,
-    readonly write: boolean,
-    readonly signal: AbortSignal,
-  ) {}
-
-  async store(key: string): Promise<KvTransaction | undefined> {
-    if (this.released) throw new SyncError('CLOSED', 'Transaction is closed')
-    let pending = this.stores.get(key)
-    if (!pending) {
-      pending = (async () => {
-        const store = await openWorldKvStore(
-          this.tx,
-          key,
-          this.write,
-          this.signal,
-        )
-        if (!store) return undefined
-        try {
-          return {
-            store,
-            tx: await store.openTransaction(this.write, this.signal),
-          }
-        } catch (error) {
-          store.release()
-          throw error
-        }
-      })()
-      this.stores.set(key, pending)
-    }
-    return (await pending)?.tx
-  }
-
-  async commit(onCommit?: () => void): Promise<void> {
-    const stores = await Promise.all(this.stores.values())
-    for (const store of stores) {
-      // Each root publication uses the same physical SQLite writer.
-      // eslint-disable-next-line react-doctor/async-await-in-loop
-      await store?.tx.commit(this.signal)
-    }
-    this.signal.throwIfAborted()
-    onCommit?.()
-    // Once sent, the World commit and durability fence must finish despite caller cancellation.
-    await this.tx.commit()
-  }
-
-  async release(): Promise<void> {
-    if (this.released) return
-    this.released = true
-    const stores = await Promise.allSettled(this.stores.values())
-    await Promise.all(
-      stores.map(async (result) => {
-        if (result.status !== 'fulfilled' || !result.value) return
-        try {
-          await result.value.tx.discard()
-        } catch {
-          /* Transport failure already rejects the operation. */
-        } finally {
-          result.value.store.release()
-        }
-      }),
-    )
-    try {
-      await this.tx.discard()
-    } catch {
-      /* Release the local ref even after transport failure. */
-    } finally {
-      this.tx.release()
     }
   }
 }

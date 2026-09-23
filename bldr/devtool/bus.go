@@ -525,17 +525,26 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 	directive.Reference,
 	error,
 ) {
-	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, start, false)
+	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, start, false, "", nil)
 }
 
 // StartFrontendProjectController enables the retained graph for watched web startup.
 func (d *DevtoolBus) StartFrontendProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, development bool) (*bldr_project_watcher.Controller, directive.Reference, error) {
-	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, startWithRemote != "", development && d.watch)
+	return d.startProjectController(ctx, b, repoRoot, configPath, startWithRemote, extraPlugins, startWithRemote != "", development && d.watch, "", nil)
+}
+
+// StartProjectControllerWithRemote builds into an already-mounted World capability.
+// The caller retains the mount until the returned project reference is released.
+func (d *DevtoolBus) StartProjectControllerWithRemote(ctx context.Context, repoRoot, configPath, remoteID string, remote *bldr_project.RemoteConfig, frontendRoutePrefix string) (*bldr_project_watcher.Controller, directive.Reference, error) {
+	return d.startProjectController(ctx, d.b, repoRoot, configPath, remoteID, nil, false, frontendRoutePrefix != "" && d.watch, frontendRoutePrefix, map[string]*bldr_project.RemoteConfig{remoteID: remote})
 }
 
 // startProjectController selects the build mode before registering any builders.
-func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, start, frontendDevelopment bool) (*bldr_project_watcher.Controller, directive.Reference, error) {
-	absConfigPath := filepath.Join(repoRoot, configPath)
+func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, start, frontendDevelopment bool, frontendRoutePrefix string, remotes map[string]*bldr_project.RemoteConfig) (*bldr_project_watcher.Controller, directive.Reference, error) {
+	absConfigPath := configPath
+	if configPath != "" && !filepath.IsAbs(configPath) {
+		absConfigPath = filepath.Join(repoRoot, configPath)
+	}
 
 	// Validate the config file upfront so parse errors surface immediately
 	// instead of causing the controller to retry indefinitely.
@@ -580,10 +589,12 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 	)
 	projCtrlConf.FetchManifestRemote = startWithRemote
 	projCtrlConf.FrontendDevelopment = frontendDevelopment
+	projCtrlConf.FrontendRoutePrefix = frontendRoutePrefix
 	projWatcherConfig := &bldr_project_watcher.Config{
 		ConfigPath:              absConfigPath,
 		DisableWatch:            !d.watch,
 		ProjectControllerConfig: projCtrlConf,
+		BoundRemotes:            remotes,
 	}
 
 	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(

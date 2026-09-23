@@ -24,11 +24,13 @@ func acquireStateLock(ctx context.Context, le *logrus.Entry, stateRoot string) (
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	// #nosec G703 -- stateRoot is the caller-selected local build state directory.
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, err
 	}
 
 	lockPath := filepath.Join(stateRoot, stateLockFileName)
+	// #nosec G703 -- lockPath adds a fixed filename to the selected build state directory.
 	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, errors.Wrap(err, "open bldr state lock")

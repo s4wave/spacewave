@@ -343,13 +343,11 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 
 	// build plugin manifest metadata and builder config
 	meta.Rev = rev
-	manifestKey := bldr_manifest.NewManifestKey(storeObjKey, meta)
 	manifestBuilderConf := &bldr_manifest_builder.BuilderConfig{
 		ProjectId:         projectConfig.GetId(),
 		ManifestMeta:      meta,
 		EngineId:          remoteConf.GetEngineId(),
 		PeerId:            remoteConf.GetPeerId(),
-		ObjectKey:         manifestKey,
 		LinkObjectKeys:    storeLinkObjKeys,
 		DistSourcePath:    distSrcPath,
 		WorkingPath:       buildWorkingPath,

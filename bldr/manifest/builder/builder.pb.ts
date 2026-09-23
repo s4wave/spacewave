@@ -89,12 +89,6 @@ export interface BuilderConfig {
    */
   engineId?: string
   /**
-   * ObjectKey is the key to store the manifest.
-   *
-   * @generated from field: string object_key = 6;
-   */
-  objectKey?: string
-  /**
    * LinkObjectKeys is the list of object keys to link to the manifest.
    * NOTE: also used to search for other manifests in the dist compiler.
    *
@@ -141,7 +135,6 @@ export const BuilderConfig: MessageType<BuilderConfig> =
       { no: 3, name: 'dist_source_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'working_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 7,
         name: 'link_object_keys',
@@ -443,6 +436,13 @@ export interface BuilderResult {
    * @generated from field: map<string, bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
    */
   subManifestResults?: { [key: string]: BuilderResult }
+  /**
+   * SourceRef retains the exact Space source filesystem in this result's bucket.
+   * Native checkout builds omit it; Space builds store a local DAG reference.
+   *
+   * @generated from field: bucket.ObjectRef source_ref = 5;
+   */
+  sourceRef?: ObjectRef
 }
 
 export const BuilderResult: MessageType<BuilderResult> =
@@ -464,6 +464,7 @@ export const BuilderResult: MessageType<BuilderResult> =
         K: ScalarType.STRING,
         V: { kind: 'message', T: () => BuilderResult },
       },
+      { no: 5, name: 'source_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

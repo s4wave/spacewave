@@ -5,6 +5,8 @@
 import {
   AddSourceRequest,
   AddSourceResponse,
+  GetSavedViewsAppRequest,
+  GetSavedViewsAppResponse,
   RemoveSourceRequest,
   RemoveSourceResponse,
   ReorderSourcesRequest,
@@ -62,6 +64,17 @@ export const NotebookResourceServiceDefinition = {
       O: ReorderSourcesResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * GetSavedViewsApp identifies the current executable for an explicit first save.
+     *
+     * @generated from rpc notes.NotebookResourceService.GetSavedViewsApp
+     */
+    GetSavedViewsApp: {
+      name: 'GetSavedViewsApp',
+      I: GetSavedViewsAppRequest,
+      O: GetSavedViewsAppResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -100,6 +113,16 @@ export interface NotebookResourceService {
     request: ReorderSourcesRequest,
     abortSignal?: AbortSignal,
   ): Promise<ReorderSourcesResponse>
+
+  /**
+   * GetSavedViewsApp identifies the current executable for an explicit first save.
+   *
+   * @generated from rpc notes.NotebookResourceService.GetSavedViewsApp
+   */
+  GetSavedViewsApp(
+    request: GetSavedViewsAppRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSavedViewsAppResponse>
 }
 
 /**
@@ -141,6 +164,17 @@ export interface NotebookResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ReorderSourcesResponse>
+
+  /**
+   * GetSavedViewsApp identifies the current executable for an explicit first save.
+   *
+   * @generated from rpc notes.NotebookResourceService.GetSavedViewsApp
+   */
+  GetSavedViewsApp(
+    request: GetSavedViewsAppRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSavedViewsAppResponse>
 }
 
 export const NotebookResourceServiceServiceName =
@@ -156,6 +190,7 @@ export class NotebookResourceServiceClient implements NotebookResourceService {
     this.AddSource = this.AddSource.bind(this)
     this.RemoveSource = this.RemoveSource.bind(this)
     this.ReorderSources = this.ReorderSources.bind(this)
+    this.GetSavedViewsApp = this.GetSavedViewsApp.bind(this)
   }
   /**
    * @generated from rpc notes.NotebookResourceService.WatchNotebook
@@ -223,5 +258,24 @@ export class NotebookResourceServiceClient implements NotebookResourceService {
       abortSignal || undefined,
     )
     return ReorderSourcesResponse.fromBinary(result)
+  }
+
+  /**
+   * GetSavedViewsApp identifies the current executable for an explicit first save.
+   *
+   * @generated from rpc notes.NotebookResourceService.GetSavedViewsApp
+   */
+  async GetSavedViewsApp(
+    request: GetSavedViewsAppRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetSavedViewsAppResponse> {
+    const requestMsg = GetSavedViewsAppRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      NotebookResourceServiceDefinition.methods.GetSavedViewsApp.name,
+      GetSavedViewsAppRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetSavedViewsAppResponse.fromBinary(result)
   }
 }

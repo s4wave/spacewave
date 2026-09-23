@@ -102,14 +102,15 @@ func (c *BuilderConfig) CommitManifest(
 		return nil, manifestRef, err
 	}
 
+	objectKey := manifest.NewManifestArtifactKey(manifestRef)
 	manifestValue.GetMeta().Logger(le).
-		WithField("object-key", c.GetObjectKey()).
+		WithField("object-key", objectKey).
 		WithField("link-object-keys", c.GetLinkObjectKeys()).
 		Info("committing manifest to world")
 	_, _, err = ws.ApplyWorldOp(
 		ctx,
 		manifest_world.NewStoreManifestOp(
-			c.GetObjectKey(),
+			objectKey,
 			c.GetLinkObjectKeys(),
 			manifest.NewManifestRef(
 				manifestValue.GetMeta(),

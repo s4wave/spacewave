@@ -27,7 +27,7 @@ func TestNativeCoreResourceRouteUsesLocalRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
+	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	server := resource_server.NewResourceServer(registry.GetMux())
 	mux := srpc.NewMux()
 	if err := server.Register(mux); err != nil {

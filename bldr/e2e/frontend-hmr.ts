@@ -89,7 +89,7 @@ async function startNative(): Promise<void> {
     native!.once('error', reject)
     native!.once('exit', () => done())
   })
-  const deadline = Date.now() + 120000
+  const deadline = Date.now() + 90000
   while (Date.now() < deadline) {
     if (native.exitCode !== null || native.signalCode !== null) {
       throw new Error('Bldr exited during startup; see ' + logPath)
@@ -132,10 +132,24 @@ try {
   await writeFile(sharedPath, sharedSource)
   await startNative()
   for (const [name, engine] of Object.entries({ chromium, webkit })) {
+    if (
+      process.env.BLDR_FRONTEND_TEST_BROWSER &&
+      process.env.BLDR_FRONTEND_TEST_BROWSER !== name
+    )
+      continue
     const browser = await engine.launch({ headless: true })
+    const deadline = setTimeout(() => void browser.close(), 110000)
     const page = await browser.newPage()
+    page.setDefaultTimeout(15000)
     let workers = 0
     const pageErrors: string[] = []
+    const diagnostics: string[] = []
+    page.on('console', (message) => {
+      if (/frontend|devtool|dial|WebSocket/i.test(message.text())) {
+        diagnostics.push(message.text())
+        if (diagnostics.length > 30) diagnostics.shift()
+      }
+    })
     page.on('worker', () => workers++)
     page.on('pageerror', (error) => pageErrors.push(error.message))
     await page.addInitScript(() => {
@@ -240,6 +254,7 @@ try {
         documentID,
       )
       assert.equal(await page.locator('#hmr-count').innerText(), 'Count 0')
+      console.log(name, 'configuration replacement passed')
 
       // Interrupt the real devtool transport and edit while its owner is absent.
       await stopNative()
@@ -248,7 +263,7 @@ try {
         appSource.replace('HMR before', 'HMR reconnected'),
       )
       const reconnectNavigation = page.waitForEvent('domcontentloaded', {
-        timeout: 120000,
+        timeout: 30000,
       })
       await startNative()
       await reconnectNavigation
@@ -260,7 +275,11 @@ try {
         name,
         'syntax, rapid saves, idle, config replacement, and devtool restart passed',
       )
+    } catch (error) {
+      console.error(name, 'browser transport diagnostics', diagnostics)
+      throw error
     } finally {
+      clearTimeout(deadline)
       await browser.close()
       await writeFile(appPath, appSource)
       await writeFile(cssPath, cssSource)

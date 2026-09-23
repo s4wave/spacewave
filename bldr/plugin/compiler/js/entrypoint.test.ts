@@ -122,13 +122,31 @@ describe('plugin JS entrypoint retry logging', () => {
 })
 
 describe('plugin JS backend entrypoint startup', () => {
+  test('rejects an asset import without an exact worker binding', async () => {
+    const load = vi.fn()
+    const api = {
+      startInfo: { pluginId: 'colors' },
+      utils: { pluginAssetHttpPath: vi.fn() },
+    }
+    await expect(
+      startBackendEntrypoint(
+        { importPath: '/assets/backend.js' },
+        api as never,
+        new AbortController().signal,
+        load,
+      ),
+    ).rejects.toThrow('immutable manifest binding')
+    expect(load).not.toHaveBeenCalled()
+    expect(api.utils.pluginAssetHttpPath).not.toHaveBeenCalled()
+  })
+
   test('does not wait for long-lived backend lifecycle promises before startup resolves', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-app' },
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-app/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -146,7 +164,7 @@ describe('plugin JS backend entrypoint startup', () => {
 
       expect(entrypointFn).toHaveBeenCalledOnce()
       expect(debug).toHaveBeenCalledWith(
-        'Executing backend entrypoint: /p/spacewave-app/a/backend.js#default',
+        'Executing backend entrypoint: /b/pa/spacewave-app/manifest/old-manifest/backend.js#default',
       )
     } finally {
       abortController.abort()
@@ -157,10 +175,10 @@ describe('plugin JS backend entrypoint startup', () => {
   test('waits for declared backend startup lifecycle before startup resolves', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-notes' },
+      startInfo: { pluginId: 'spacewave-notes', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-notes/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -191,7 +209,7 @@ describe('plugin JS backend entrypoint startup', () => {
       await result
       expect(resolved).toBe(true)
       expect(debug).toHaveBeenCalledWith(
-        'Executing backend entrypoint: /p/spacewave-notes/a/backend.js#default',
+        'Executing backend entrypoint: /b/pa/spacewave-notes/manifest/old-manifest/backend.js#default',
       )
     } finally {
       abortController.abort()
@@ -203,10 +221,10 @@ describe('plugin JS backend entrypoint startup', () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-notes' },
+      startInfo: { pluginId: 'spacewave-notes', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-notes/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -235,10 +253,10 @@ describe('plugin JS backend entrypoint startup', () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-app' },
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-app/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -255,7 +273,7 @@ describe('plugin JS backend entrypoint startup', () => {
       await Promise.resolve()
 
       expect(error).toHaveBeenCalledWith(
-        'Backend entrypoint failed after startup /p/spacewave-app/a/backend.js#default: late failure',
+        'Backend entrypoint failed after startup /b/pa/spacewave-app/manifest/old-manifest/backend.js#default: late failure',
       )
       expect(error).toHaveBeenCalledWith(expect.any(Error))
     } finally {
@@ -268,10 +286,10 @@ describe('plugin JS backend entrypoint startup', () => {
   test('loads only selected backend startup entrypoints', async () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-app' },
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-app/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -288,8 +306,12 @@ describe('plugin JS backend entrypoint startup', () => {
         },
       )
 
-      expect(imported).toEqual(['/p/spacewave-app/a/notes.js'])
-      expect(imported).not.toContain('/p/spacewave-app/a/vm.js')
+      expect(imported).toEqual([
+        '/b/pa/spacewave-app/manifest/old-manifest/notes.js',
+      ])
+      expect(imported).not.toContain(
+        '/b/pa/spacewave-app/manifest/old-manifest/vm.js',
+      )
     } finally {
       abortController.abort()
       debug.mockRestore()
@@ -300,10 +322,10 @@ describe('plugin JS backend entrypoint startup', () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-app' },
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-app/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()
@@ -332,10 +354,10 @@ describe('plugin JS backend entrypoint startup', () => {
     const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     const backendAPI = {
-      startInfo: { pluginId: 'spacewave-app' },
+      startInfo: { pluginId: 'spacewave-app', manifestRoot: 'old-manifest' },
       utils: {
-        pluginAssetHttpPath: (_pluginId: string, path: string) =>
-          '/p/spacewave-app/a/' + path,
+        pluginAssetHttpPath: (pluginId: string, path: string) =>
+          '/b/pa/' + pluginId + '/' + path,
       },
     }
     const abortController = new AbortController()

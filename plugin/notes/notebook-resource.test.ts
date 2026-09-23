@@ -2,51 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Notebook, NotebookSource } from './proto/notebook.pb.js'
 
 // Mock cursor returned by objectState.accessWorldState().
-function createMockCursor(
-  blockData?: Uint8Array,
-  options?: {
-    buildTransaction?: () => Promise<{
-      transaction: {
-        write: ReturnType<typeof vi.fn>
-        release: ReturnType<typeof vi.fn>
-      }
-      cursor: {
-        setBlock: ReturnType<typeof vi.fn>
-        release: ReturnType<typeof vi.fn>
-      }
-    }>
-    getRef?: () => Promise<{ ref?: string }>
-  },
-) {
+function createMockCursor(blockData?: Uint8Array) {
   const release = vi.fn()
   return {
-    getBlock: vi.fn(() =>
-      Promise.resolve({
-        found: !!blockData,
-        data: blockData,
+    getBlock: vi.fn(async () => ({ found: !!blockData, data: blockData })),
+    putBlock: vi.fn(
+      async (_request: { data: Uint8Array }, _signal?: AbortSignal) => ({
+        ref: { hash: { hash: new Uint8Array([1, 2, 3]) } },
       }),
     ),
-    buildTransaction:
-      options?.buildTransaction ??
-      vi.fn(() =>
-        Promise.resolve({
-          transaction: {
-            write: vi.fn(() => Promise.resolve({})),
-            release: vi.fn(),
-          },
-          cursor: {
-            setBlock: vi.fn(() => Promise.resolve()),
-            markDirty: vi.fn(() => Promise.resolve()),
-            release: vi.fn(),
-          },
-        }),
-      ),
-    getRef:
-      options?.getRef ?? vi.fn(() => Promise.resolve({ ref: 'next-ref' })),
+    getRef: vi.fn(async () => ({ ref: { bucketId: 'test' } })),
     release,
-    [Symbol.dispose]: () => {
-      release()
-    },
+    [Symbol.dispose]: release,
   }
 }
 
@@ -56,13 +23,17 @@ function createMockObjectState(
     | ReturnType<typeof createMockCursor>
     | ReturnType<typeof createMockCursor>[],
 ) {
-  const cursors =
-    Array.isArray(cursor) ? cursor : [cursor ?? createMockCursor()]
+  const cursors = Array.isArray(cursor)
+    ? cursor
+    : [cursor ?? createMockCursor()]
   let idx = 0
   return {
     getRootRef: vi.fn(() =>
       Promise.resolve({
-        rootRef: { bucketId: 'test', rootRef: { hash: { hash: new Uint8Array([1]) } } },
+        rootRef: {
+          bucketId: 'test',
+          rootRef: { hash: { hash: new Uint8Array([1]) } },
+        },
       }),
     ),
     accessWorldState: vi.fn(() => {
@@ -72,6 +43,9 @@ function createMockObjectState(
     }),
     setRootRef: vi.fn(() => Promise.resolve({ rev: 1n })),
     release: vi.fn(),
+    [Symbol.dispose]() {
+      this.release()
+    },
   }
 }
 
@@ -80,6 +54,7 @@ function createMockTx(
   objectState?: ReturnType<typeof createMockObjectState> | null,
 ) {
   return {
+    getSeqno: vi.fn(() => Promise.resolve({ seqno: 1n })),
     getObject: vi.fn(() => Promise.resolve(objectState ?? null)),
     commit: vi.fn(() => Promise.resolve()),
     discard: vi.fn(() => Promise.resolve()),
@@ -104,14 +79,20 @@ function createMockEngine(tx?: ReturnType<typeof createMockTx>) {
           signal?.addEventListener('abort', onAbort, { once: true })
         }),
     ),
+    resourceRef: createMockEngineRef(),
+    id: 1,
     release: vi.fn(),
+    [Symbol.dispose]() {
+      this.release()
+    },
   }
 }
 
 let mockEngineInstance: ReturnType<typeof createMockEngine>
 
 vi.mock('@s4wave/sdk/world/engine.js', () => ({
-  Engine: vi.fn(function () {
+  Engine: vi.fn(function (ref) {
+    mockEngineInstance.resourceRef = ref
     return mockEngineInstance
   }),
 }))
@@ -124,7 +105,7 @@ function createMockEngineRef() {
     resourceId: 1,
     released: false,
     client: {},
-    createRef: vi.fn(),
+    createRef: vi.fn(() => createMockEngineRef()),
     createResource: vi.fn(),
     release: vi.fn(),
     [Symbol.dispose]: vi.fn(),
@@ -250,6 +231,89 @@ describe('NotebookResource', () => {
       expect(result.done).toBe(true)
     })
 
+    it('delivers a commit between the snapshot read and the next wait', async () => {
+      // Keep the first transaction pinned while the live Engine advances.
+      const before = createMockObjectState(
+        createMockCursor(makeNotebookBytes('Before', [])),
+      )
+      const after = createMockObjectState(
+        createMockCursor(makeNotebookBytes('After', [])),
+      )
+      after.getRootRef.mockResolvedValue({
+        rootRef: {
+          bucketId: 'test',
+          rootRef: { hash: { hash: new Uint8Array([2]) } },
+        },
+      })
+      const firstTx = createMockTx(before)
+      const secondTx = createMockTx(after)
+      secondTx.getSeqno.mockResolvedValue({ seqno: 2n })
+      mockEngineInstance = createMockEngine(firstTx)
+      mockEngineInstance.newTransaction
+        .mockResolvedValueOnce(firstTx)
+        .mockResolvedValue(secondTx)
+      const controller = new AbortController()
+      const resource = new NotebookResource(
+        'key',
+        createMockEngineRef() as never,
+      )
+      const stream = resource
+        .WatchNotebook({}, controller.signal)
+        [Symbol.asyncIterator]()
+      expect((await stream.next()).value?.notebook?.name).toBe('Before')
+
+      // A commit arrives while the consumer is displaying the first value.
+      mockEngineInstance.getSeqno.mockResolvedValue({ seqno: 2n })
+      mockEngineInstance.waitSeqno.mockImplementation(async (seqno) => {
+        if (seqno > 2n) {
+          controller.abort()
+          throw new DOMException('Aborted', 'AbortError')
+        }
+        return { seqno: 2n }
+      })
+      const second = await stream.next()
+      await stream.return?.(undefined)
+      expect(second.value?.notebook?.name).toBe('After')
+      expect(mockEngineInstance.waitSeqno).toHaveBeenCalledWith(
+        2n,
+        controller.signal,
+      )
+    })
+
+    it('skips decoding on unrelated World changes and retains the resource Engine', async () => {
+      // Two World snapshots refer to the same Notebook root.
+      const cursor = createMockCursor(makeNotebookBytes('Notebook', []))
+      const object = createMockObjectState(cursor)
+      const tx = createMockTx(object)
+      tx.getSeqno
+        .mockResolvedValueOnce({ seqno: 1n })
+        .mockResolvedValue({ seqno: 2n })
+      mockEngineInstance = createMockEngine(tx)
+      const engineRef = createMockEngineRef()
+      const resource = new NotebookResource('key', engineRef as never)
+      const controller = new AbortController()
+      const stream = resource
+        .WatchNotebook({}, controller.signal)
+        [Symbol.asyncIterator]()
+      await stream.next()
+
+      // Wake once for the unrelated edit, then cancel at the next live wait.
+      mockEngineInstance.waitSeqno.mockImplementation(async (seqno) => {
+        if (seqno === 3n) {
+          controller.abort()
+          throw new DOMException('Aborted', 'AbortError')
+        }
+        return { seqno: 2n }
+      })
+      expect((await stream.next()).done).toBe(true)
+      expect(cursor.getBlock).toHaveBeenCalledTimes(1)
+      expect(tx.discard).toHaveBeenCalledTimes(2)
+      expect(engineRef.createRef).toHaveBeenCalledWith(engineRef.resourceId)
+      expect(engineRef.release).not.toHaveBeenCalled()
+      resource.dispose()
+      expect(engineRef.release).toHaveBeenCalledOnce()
+    })
+
     it('re-reads after waitSeqno resolves', async () => {
       const nb1 = makeNotebookBytes('Version 1', [])
       const nb2 = makeNotebookBytes('Version 2', [
@@ -261,8 +325,17 @@ describe('NotebookResource', () => {
       const cursor2 = createMockCursor(nb2)
       const objectState1 = createMockObjectState(cursor1)
       const objectState2 = createMockObjectState(cursor2)
+      objectState2.getRootRef.mockResolvedValue({
+        rootRef: {
+          bucketId: 'test',
+          rootRef: { hash: { hash: new Uint8Array([2]) } },
+        },
+      })
 
       const tx = {
+        getSeqno: vi.fn(() =>
+          Promise.resolve({ seqno: BigInt(readCount + 1) }),
+        ),
         getObject: vi.fn(() => {
           readCount++
           return Promise.resolve(readCount === 1 ? objectState1 : objectState2)
@@ -274,6 +347,7 @@ describe('NotebookResource', () => {
 
       let waitResolve: (() => void) | undefined
       mockEngineInstance = {
+        ...createMockEngine(),
         newTransaction: vi.fn(() => Promise.resolve(tx)),
         getSeqno: vi.fn(() => Promise.resolve({ seqno: BigInt(readCount) })),
         waitSeqno: vi.fn(
@@ -321,6 +395,7 @@ describe('NotebookResource', () => {
       expect(nb2Result.sources).toHaveLength(1)
 
       ac.abort()
+      await iter.return?.()
     })
   })
 
@@ -337,27 +412,7 @@ describe('NotebookResource', () => {
         NotebookSource.create({ name: 'Docs', ref: 'fs/-/docs' }),
       ])
       const readCursor = createMockCursor(notebookData)
-      const blockCursor = {
-        setBlock: vi.fn(
-          (
-            _req: { data: Uint8Array; markDirty?: boolean },
-            _signal?: AbortSignal,
-          ) => Promise.resolve(),
-        ),
-        markDirty: vi.fn(() => Promise.resolve()),
-        release: vi.fn(),
-      }
-      const writtenRootRef = { hash: { hash: new Uint8Array([1, 2, 3]) } }
-      const blockTx = {
-        write: vi.fn(() => Promise.resolve({ rootRef: writtenRootRef })),
-        release: vi.fn(),
-      }
-      const writeCursor = createMockCursor(undefined, {
-        buildTransaction: vi.fn(() =>
-          Promise.resolve({ transaction: blockTx, cursor: blockCursor }),
-        ),
-        getRef: vi.fn(() => Promise.resolve({ ref: undefined })),
-      })
+      const writeCursor = createMockCursor()
       const objectState = createMockObjectState([readCursor, writeCursor])
       const tx = createMockTx(objectState)
       mockEngineInstance = createMockEngine(tx)
@@ -368,16 +423,18 @@ describe('NotebookResource', () => {
         source: { name: 'Archive', ref: 'fs/-/archive' },
       })
 
-      expect(blockCursor.setBlock).toHaveBeenCalledTimes(1)
-      const req = blockCursor.setBlock.mock.calls[0]?.[0] as {
+      expect(writeCursor.putBlock).toHaveBeenCalledTimes(1)
+      const req = writeCursor.putBlock.mock.calls[0]?.[0] as {
         data: Uint8Array
       }
       const nextNotebook = Notebook.fromBinary(req.data)
       expect(nextNotebook.sources).toHaveLength(2)
       expect(nextNotebook.sources?.[1]?.ref).toBe('fs/-/archive')
-      expect(blockTx.write).toHaveBeenCalled()
       expect(objectState.setRootRef).toHaveBeenCalledWith(
-        { bucketId: '', rootRef: writtenRootRef, transformConf: undefined },
+        {
+          bucketId: 'test',
+          rootRef: { hash: { hash: new Uint8Array([1, 2, 3]) } },
+        },
         undefined,
       )
       expect(tx.commit).toHaveBeenCalled()
@@ -396,30 +453,7 @@ describe('NotebookResource', () => {
         NotebookSource.create({ name: 'Two', ref: 'fs/-/two' }),
       ])
       const readCursor = createMockCursor(notebookData)
-      const blockCursor = {
-        setBlock: vi.fn(
-          (
-            _req: { data: Uint8Array; markDirty?: boolean },
-            _signal?: AbortSignal,
-          ) => Promise.resolve(),
-        ),
-        markDirty: vi.fn(() => Promise.resolve()),
-        release: vi.fn(),
-      }
-      const blockTx = {
-        write: vi.fn(() =>
-          Promise.resolve({
-            rootRef: { hash: { hash: new Uint8Array([1, 2, 3]) } },
-          }),
-        ),
-        release: vi.fn(),
-      }
-      const writeCursor = createMockCursor(undefined, {
-        buildTransaction: vi.fn(() =>
-          Promise.resolve({ transaction: blockTx, cursor: blockCursor }),
-        ),
-        getRef: vi.fn(() => Promise.resolve({ ref: undefined })),
-      })
+      const writeCursor = createMockCursor()
       const objectState = createMockObjectState([readCursor, writeCursor])
       const tx = createMockTx(objectState)
       mockEngineInstance = createMockEngine(tx)
@@ -428,7 +462,7 @@ describe('NotebookResource', () => {
       const resource = new NotebookResource('key', engineRef as never)
       await resource.ReorderSources({ order: [1, 0] })
 
-      const req = blockCursor.setBlock.mock.calls[0]?.[0] as {
+      const req = writeCursor.putBlock.mock.calls[0]?.[0] as {
         data: Uint8Array
       }
       const nextNotebook = Notebook.fromBinary(req.data)

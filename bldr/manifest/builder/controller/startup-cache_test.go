@@ -860,6 +860,12 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	if secondResult.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
 	}
+	if firstResult.GetManifest().GetMeta().GetRev() != 1 || secondResult.GetManifest().GetMeta().GetRev() != 2 {
+		t.Fatal("a watch rebuild must publish a newer selectable revision")
+	}
+	if builderConfig.GetManifestMeta().GetRev() != 1 {
+		t.Fatal("a watch rebuild mutated the shared builder configuration")
+	}
 	hot := sink.waitFor(t, ctx, func(status ManifestBuilderLifecycleStatus) bool {
 		return status.HotRebuild && status.DependencyRebuildReason == changedFilesSummary(1)
 	})

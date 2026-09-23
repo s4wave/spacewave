@@ -37,11 +37,26 @@ func (r *SpaceResource) AddSpacePlugin(
 		settings = &space_world.SpaceSettings{}
 	}
 
-	// Add plugin ID if not already present.
-	if slices.Contains(settings.PluginIds, pid) {
+	key := req.GetManifestKey()
+	keys := settings.GetPluginInstallations()[pid].GetManifestKeys()
+	if key != "" {
+		if _, err := space_world.LookupSpacePluginManifest(ctx, tx, pid, key); err != nil {
+			return nil, err
+		}
+	}
+	if slices.Contains(settings.PluginIds, pid) && (key == "" || len(keys) != 0 && keys[0] == key) {
 		return &s4wave_space.AddSpacePluginResponse{}, nil
 	}
-	settings.PluginIds = append(settings.PluginIds, pid)
+	if !slices.Contains(settings.PluginIds, pid) {
+		settings.PluginIds = append(settings.PluginIds, pid)
+	}
+	if key != "" {
+		if settings.PluginInstallations == nil {
+			settings.PluginInstallations = make(map[string]*space_world.SpacePluginInstallation)
+		}
+		keys = slices.DeleteFunc(keys, func(previous string) bool { return previous == key })
+		settings.PluginInstallations[pid] = &space_world.SpacePluginInstallation{ManifestKeys: append([]string{key}, keys...)}
+	}
 
 	// Write back via SetSpaceSettings operation.
 	_, _, err = space_world_ops.SetSpaceSettings(
@@ -90,6 +105,7 @@ func (r *SpaceResource) RemoveSpacePlugin(
 		return &s4wave_space.RemoveSpacePluginResponse{}, nil
 	}
 	settings.PluginIds = slices.Delete(settings.PluginIds, idx, idx+1)
+	delete(settings.PluginInstallations, pid)
 
 	_, _, err = space_world_ops.SetSpaceSettings(
 		ctx, tx, "", space_world_ops.DefaultSpaceSettingsObjectKey,

@@ -1,102 +1,49 @@
-import type { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
-import type { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
-import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
 
-function buildObjectRootRef(
-  currentRef: ObjectRef | undefined,
-  rootRef: BlockRef | undefined,
-): ObjectRef {
-  if (!rootRef) {
-    throw new Error('failed to write object root ref')
-  }
-  return {
-    bucketId: currentRef?.bucketId ?? '',
-    rootRef,
-    transformConf: currentRef?.transformConf,
-  }
-}
-
-async function runObjectBlockStep<T>(
-  label: string,
-  cb: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await cb()
-  } catch (err) {
-    throw new Error(
-      label + ': ' + (err instanceof Error ? err.message : String(err)),
-      { cause: err },
-    )
-  }
-}
-
+/**
+ * setObjectBlockData replaces an opaque Notes protobuf through its existing bucket.
+ * These blocks contain no nested block references and need no mutable block tree.
+ * The supplied World transaction owns acceptance of the new object root.
+ */
 export async function setObjectBlockData(
   objectState: IObjectState,
   data: Uint8Array,
-  abortSignal?: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<void> {
-  using cursor = await accessObjectRootWorldState(objectState, abortSignal)
-  const { transaction, cursor: blockCursor } = await cursor.buildTransaction(
-    {},
-    abortSignal,
+  // Write bytes using the object's existing bucket and transform configuration.
+  const current = await objectState.getRootRef(signal)
+  using cursor = await objectState.accessWorldState(current.rootRef, signal)
+  const written = await cursor.putBlock({ data }, signal)
+
+  // Publish the reference only after the block is available in storage.
+  await objectState.setRootRef(
+    { ...current.rootRef, rootRef: written.ref },
+    signal,
   )
-  try {
-    // eslint-disable-next-line react-doctor/async-parallel
-    await runObjectBlockStep('mark existing object root dirty', async () => {
-      await blockCursor.markDirty(abortSignal)
-    })
-    await runObjectBlockStep('write existing object block data', async () => {
-      await blockCursor.setBlock(
-        {
-          data,
-          markDirty: true,
-        },
-        abortSignal,
-      )
-    })
-    const currentRef = await runObjectBlockStep(
-      'capture existing object ref',
-      async () => (await cursor.getRef(abortSignal)).ref,
-    )
-    const writeResp = await runObjectBlockStep(
-      'commit existing object block',
-      async () => transaction.write({ clearTree: true }, abortSignal),
-    )
-    await runObjectBlockStep('update existing object root ref', async () => {
-      await objectState.setRootRef(
-        buildObjectRootRef(currentRef, writeResp.rootRef),
-        abortSignal,
-      )
-    })
-  } finally {
-    blockCursor.release()
-    transaction.release()
-  }
 }
 
+/** createObjectWithBlockData creates an opaque Notes block in the supplied World transaction. */
 export async function createObjectWithBlockData(
   worldState: IWorldState,
   objectKey: string,
   data: Uint8Array,
-  abortSignal?: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<void> {
-  using cursor = await worldState.buildStorageCursor(abortSignal)
+  // Write the canonical protobuf into this World's storage.
+  using cursor = await worldState.buildStorageCursor(signal)
+  const [current, written] = await Promise.all([
+    cursor.getRef(signal),
+    cursor.putBlock({ data }, signal),
+  ])
 
-  const putResp = await runObjectBlockStep('put new object block', async () => {
-    return cursor.putBlock({ data }, abortSignal)
-  })
-  // eslint-disable-next-line react-doctor/server-sequential-independent-await
-  const currentRef = await runObjectBlockStep(
-    'capture storage cursor ref',
-    async () => (await cursor.getRef(abortSignal)).ref,
+  // The created object handle is local to this call; the World owns its root.
+  using _object = await worldState.createObject(
+    objectKey,
+    {
+      ...current.ref,
+      rootRef: written.ref,
+    },
+    signal,
   )
-  await runObjectBlockStep('create world object', async () => {
-    await worldState.createObject(
-      objectKey,
-      buildObjectRootRef(currentRef, putResp.ref),
-      abortSignal,
-    )
-  })
 }

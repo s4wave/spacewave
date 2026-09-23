@@ -19,7 +19,6 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
 	"github.com/s4wave/spacewave/db/block"
-	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -74,18 +73,12 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 	}
 
 	bucketID := "p/spacewave/acct/blk/space"
-	storeCtrl := block_store_inmem.NewController(le, &block_store_inmem.Config{BlockStoreId: bucketID})
-	relStore, err := pluginBus.AddController(ctx, storeCtrl, nil)
+	// Only the mounted capability can read these bytes. A generic bucket lookup
+	// must not replace it with the provider's local-only cache.
+	store, _, err := block_store_inmem.NewBlockStoreBuilder(le, &block_store_inmem.Config{BlockStoreId: bucketID})(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer relStore()
-
-	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, pluginBus, bucketID, false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer storeRef.Release()
 	body := []byte("forwarded block")
 	ref, _, err := store.PutBlock(ctx, body, &block.PutOpts{HashType: hash.HashType_HashType_SHA256})
 	if err != nil {
@@ -115,6 +108,9 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		t.Fatal(err)
 	}
 	manifestObjRef := &bucket.ObjectRef{BucketId: bucketID, RootRef: manifestRootRef}
+	mountedCursor := bucket_lookup.NewCursor(ctx, pluginBus, le, nil, store, nil, nil,
+		&bucket.BucketOpArgs{BucketId: bucketID}, nil)
+	defer mountedCursor.Release()
 
 	forwarder := NewCloudBlockStoreForwarder(
 		le,
@@ -122,6 +118,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 		"space/spacewave/acct/space",
 		bucketID,
 		testHostPluginID,
+		world.NewAccessWorldStateFunc(mountedCursor),
 	)
 	forwarderRef, err := pluginBus.AddController(ctx, forwarder, nil)
 	if err != nil {

@@ -646,7 +646,7 @@ func newSQLObjectTypeBridgeHarness(
 		}
 	}
 
-	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
+	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	registryClient, registryRootClient, cleanupRegistry := newSQLResourceClient(t, registry.GetMux())
 	cleanupFns = append(cleanupFns, cleanupRegistry)
 	otRegistry := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(registryRootClient)
@@ -667,7 +667,7 @@ func newSQLObjectTypeBridgeHarness(
 		cleanupFns = append(cleanupFns, regRef.Release)
 	}
 
-	worldOpRegistry := resource_worldop_registry.NewWorldOpRegistryResource()
+	worldOpRegistry := resource_worldop_registry.NewWorldOpRegistryResource(nil)
 	worldOpRegistryClient, worldOpRegistryRootClient, cleanupWorldOpRegistry := newSQLResourceClient(t, worldOpRegistry.GetMux())
 	cleanupFns = append(cleanupFns, cleanupWorldOpRegistry)
 	worldOpRegistryService := s4wave_worldop_registry.NewSRPCWorldOpRegistryResourceServiceClient(worldOpRegistryRootClient)

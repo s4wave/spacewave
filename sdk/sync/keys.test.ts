@@ -107,7 +107,7 @@ describe('parseCollectionKey', () => {
   })
 
   test('rejects the reserved metadata key', () => {
-    expect(parseCollectionKey(metadataKey)).toBeUndefined()
+    expect(parseCollectionKey(metadataKey('notes'))).toBeUndefined()
   })
 
   test('parses every valid hex application, including short names', () => {

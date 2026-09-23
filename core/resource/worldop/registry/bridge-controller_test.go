@@ -2,9 +2,11 @@ package resource_worldop_registry
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -13,10 +15,13 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	"github.com/s4wave/spacewave/sdk/world/objecttype"
+	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 	"github.com/sirupsen/logrus"
 )
@@ -31,6 +36,32 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	t.Cleanup(tb.Release)
 
 	sender := tb.Volume.GetPeerID()
+	// Typed factories must use the same supplied transaction and authenticated sender.
+	typed := objecttype.NewObjectType("test/supplied-state", func(
+		ctx context.Context, le *logrus.Entry, b bus.Bus, engine world.Engine,
+		ws world.WorldState, key string,
+	) (srpc.Invoker, func(), error) {
+		if engine != nil || ws.GetReadOnly() || objecttype.SessionPeerIDFromContext(ctx) != sender {
+			return nil, nil, fmt.Errorf("typed factory escaped the operation context")
+		}
+		obj, err := ws.CreateObject(ctx, "test/typed-op-created", nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return nil, nil, err
+		}
+		return srpc.NewMux(), func() {}, nil
+	})
+	typedController := objecttype_controller.NewController(func(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
+		if typeID == "test/supplied-state" {
+			return typed, nil
+		}
+		return nil, nil
+	})
+	typedRelease, err := tb.Bus.AddController(ctx, typedController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer typedRelease()
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, &testWorldOpHandler{sender: sender}); err != nil {
 		t.Fatal(err)
@@ -47,7 +78,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	}
 	defer rel()
 
-	registry := NewWorldOpRegistryResource()
+	registry := NewWorldOpRegistryResource(nil)
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test/plugin-op",
 		RegistrationId:  1,
@@ -107,6 +138,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatalf("Commit world op tx: %v", err)
 	}
 	assertWorldObjectExists(t, ctx, tb.Engine, "test/world-op-created")
+	assertWorldObjectExists(t, ctx, tb.Engine, "test/typed-op-created")
 
 	objectTx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -161,7 +193,7 @@ func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
 	}
 	defer rel()
 
-	registry := NewWorldOpRegistryResource()
+	registry := NewWorldOpRegistryResource(nil)
 	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test/plugin-op",
 		RegistrationId:  1,
@@ -295,6 +327,9 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	if req.GetOperationTypeId() != "test/plugin-op" || string(req.GetOpData()) != "op-data" {
 		return nil, resource.ErrInvalidResourceID
 	}
+	if req.GetSender() != h.sender.String() {
+		return nil, resource.ErrInvalidResourceID
+	}
 	if req.GetAttachedWorldStateResourceId() == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -316,6 +351,25 @@ func (h *testWorldOpHandler) ApplyWorldOp(
 	if objID := objResp.GetResourceId(); objID != 0 {
 		defer resourceCtx.ReleaseResource(objID)
 	}
+	// The bridge exposes typed access alongside the operation-scoped WorldState.
+	if _, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
+		ObjectKey: "types/test/supplied-state",
+	}); err != nil {
+		return nil, err
+	}
+	if _, err := worldState.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{
+		Quad: &quad.Quad{
+			Subject: "<test/world-op-created>", Predicate: "<type>", Obj: "<types/test/supplied-state>",
+		},
+	}); err != nil {
+		return nil, err
+	}
+	typed := s4wave_world.NewSRPCTypedObjectResourceServiceClient(worldClient)
+	if _, err := typed.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+		ObjectKey: "test/world-op-created",
+	}); err != nil {
+		return nil, err
+	}
 	return &s4wave_worldop_registry.ApplyWorldOpResponse{}, nil
 }
 
@@ -327,6 +381,9 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 		return nil, resource.ErrInvalidResourceID
 	}
 	if req.GetObjectKey() != "test/object-op-target" {
+		return nil, resource.ErrInvalidResourceID
+	}
+	if req.GetSender() != h.sender.String() {
 		return nil, resource.ErrInvalidResourceID
 	}
 	if req.GetAttachedObjectStateResourceId() == 0 {
@@ -368,7 +425,7 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 	applyResp, err := objectState.ApplyObjectOp(ctx, &s4wave_world.ApplyObjectOpRequest{
 		OpTypeId: nestedOp.GetOperationTypeId(),
 		OpData:   opData,
-		OpSender: h.sender.String(),
+		OpSender: "caller-chosen-invalid-peer",
 	})
 	if err != nil {
 		return nil, err
@@ -390,7 +447,8 @@ func (h *testWorldOpHandler) ValidateOp(
 }
 
 type testWorldOpPluginLoadController struct {
-	client srpc.Client
+	client    srpc.Client
+	manifests map[string]srpc.Client
 }
 
 func (c *testWorldOpPluginLoadController) GetControllerInfo() *controller.Info {
@@ -407,7 +465,14 @@ func (c *testWorldOpPluginLoadController) HandleDirective(_ context.Context, ins
 	if !ok || dir.LoadPluginID() != "test-plugin" {
 		return nil, nil
 	}
-	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{bldr_plugin.NewRunningPlugin(c.client)}), nil)
+	client := c.client
+	if root := dir.LoadPluginManifestRoot(); root != "" {
+		client = c.manifests[root]
+	}
+	if client == nil {
+		return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{}), nil)
+	}
+	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{bldr_plugin.NewRunningPlugin(client)}), nil)
 }
 
 func (c *testWorldOpPluginLoadController) Close() error {

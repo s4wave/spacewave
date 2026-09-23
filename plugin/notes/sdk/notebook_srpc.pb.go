@@ -21,6 +21,8 @@ type SRPCNotebookResourceServiceClient interface {
 	RemoveSource(ctx context.Context, in *RemoveSourceRequest) (*RemoveSourceResponse, error)
 
 	ReorderSources(ctx context.Context, in *ReorderSourcesRequest) (*ReorderSourcesResponse, error)
+	// GetSavedViewsApp identifies the current executable for an explicit first save.
+	GetSavedViewsApp(ctx context.Context, in *GetSavedViewsAppRequest) (*GetSavedViewsAppResponse, error)
 }
 
 type srpcNotebookResourceServiceClient struct {
@@ -102,6 +104,15 @@ func (c *srpcNotebookResourceServiceClient) ReorderSources(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcNotebookResourceServiceClient) GetSavedViewsApp(ctx context.Context, in *GetSavedViewsAppRequest) (*GetSavedViewsAppResponse, error) {
+	out := new(GetSavedViewsAppResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetSavedViewsApp", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCNotebookResourceServiceServer interface {
 	WatchNotebook(*WatchNotebookRequest, SRPCNotebookResourceService_WatchNotebookStream) error
 
@@ -110,6 +121,8 @@ type SRPCNotebookResourceServiceServer interface {
 	RemoveSource(context.Context, *RemoveSourceRequest) (*RemoveSourceResponse, error)
 
 	ReorderSources(context.Context, *ReorderSourcesRequest) (*ReorderSourcesResponse, error)
+	// GetSavedViewsApp identifies the current executable for an explicit first save.
+	GetSavedViewsApp(context.Context, *GetSavedViewsAppRequest) (*GetSavedViewsAppResponse, error)
 }
 
 const SRPCNotebookResourceServiceServiceID = "notes.NotebookResourceService"
@@ -142,6 +155,7 @@ func (SRPCNotebookResourceServiceHandler) GetMethodIDs() []string {
 		"AddSource",
 		"RemoveSource",
 		"ReorderSources",
+		"GetSavedViewsApp",
 	}
 }
 
@@ -162,6 +176,8 @@ func (d *SRPCNotebookResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_RemoveSource(d.impl, strm)
 	case "ReorderSources":
 		return true, d.InvokeMethod_ReorderSources(d.impl, strm)
+	case "GetSavedViewsApp":
+		return true, d.InvokeMethod_GetSavedViewsApp(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -212,6 +228,18 @@ func (SRPCNotebookResourceServiceHandler) InvokeMethod_ReorderSources(impl SRPCN
 	return strm.MsgSend(out)
 }
 
+func (SRPCNotebookResourceServiceHandler) InvokeMethod_GetSavedViewsApp(impl SRPCNotebookResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetSavedViewsAppRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetSavedViewsApp(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCNotebookResourceService_WatchNotebookStream interface {
 	srpc.Stream
 	Send(*WatchNotebookResponse) error
@@ -256,5 +284,13 @@ type SRPCNotebookResourceService_ReorderSourcesStream interface {
 }
 
 type srpcNotebookResourceService_ReorderSourcesStream struct {
+	srpc.Stream
+}
+
+type SRPCNotebookResourceService_GetSavedViewsAppStream interface {
+	srpc.Stream
+}
+
+type srpcNotebookResourceService_GetSavedViewsAppStream struct {
 	srpc.Stream
 }

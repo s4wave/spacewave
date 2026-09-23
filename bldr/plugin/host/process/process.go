@@ -158,7 +158,7 @@ func (h *ProcessHost) ListPlugins(ctx context.Context) ([]string, error) {
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *ProcessHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, instanceKey, entrypoint string,
+	pluginID, instanceKey, manifestRoot, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
@@ -201,7 +201,7 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, entrypoint, pluginDist)
+	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, manifestRoot, entrypoint, pluginDist)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (h *ProcessHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(0)
-	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey)
+	pluginStartInfo := bldr_plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey, manifestRoot)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err
@@ -394,8 +394,8 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 
 // syncPluginDist materializes or updates the plugin's dist checkout from
 // its FS handle and returns the directory.
-func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, entrypoint string, pluginDist *unixfs.FSHandle) (string, error) {
-	pluginDistDir := h.pluginDistDir(pluginID)
+func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, manifestRoot, entrypoint string, pluginDist *unixfs.FSHandle) (string, error) {
+	pluginDistDir := h.pluginDistDir(bldr_plugin.PluginArtifactID(pluginID, manifestRoot))
 	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
 		return "", err

@@ -24,7 +24,7 @@ func CollectStartupManifestEligibilityForManifestID(
 	traceCtx, task := startuptrace.NewTask(ctx, "bldr/manifest-world/eligibility/collect")
 	defer task.End()
 	startuptrace.Log(traceCtx, "manifest-id", manifestID)
-	candidates, err := collectStartupManifestEligibilityForManifestID(traceCtx, ws, manifestID, filterPlatformIDs, objKeys...)
+	candidates, err := collectStartupManifestEligibilityForManifestID(traceCtx, ws, manifestID, "", filterPlatformIDs, objKeys...)
 	if err != nil {
 		startuptrace.Log(traceCtx, "outcome", "error")
 		return nil, err

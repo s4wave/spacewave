@@ -1,7 +1,12 @@
 import { parseAst } from 'rolldown/parseAst'
 
+import { remapWebPkgSpecifier } from './plugin.js'
+
 /** adaptDevelopmentClient replaces only Vite's transport initializer. */
-export function adaptDevelopmentClient(code: string): string {
+export function adaptDevelopmentClient(
+  code: string,
+  sessionID: string,
+): string {
   // Require the upstream seam before replacing any executable source.
   const program = parseAst(code)
   const bindings = program.body.flatMap((statement) =>
@@ -25,15 +30,16 @@ export function adaptDevelopmentClient(code: string): string {
     )
   }
 
-  // The document owns the RPC resource; Vite retains its update algorithm.
+  // Each compiler uses its own attachment; Vite retains its update algorithm.
+  const frontend = `globalThis.__bldrFrontends?.get(${JSON.stringify(sessionID)})`
   const replacement = `normalizeModuleRunnerTransport({
     connect(handlers) {
-      const frontend = globalThis.__bldrFrontend;
+      const frontend = ${frontend};
       if (!frontend) throw new Error('Bldr frontend transport is not attached');
       return frontend.connect(handlers);
     },
-    send(payload) { return globalThis.__bldrFrontend.send(payload); },
-    disconnect() { globalThis.__bldrFrontend.disconnect(); }
+    send(payload) { return ${frontend}?.send(payload); },
+    disconnect() { ${frontend}?.disconnect(); }
   })`
   return (
     code.slice(0, initializer.start) + replacement + code.slice(initializer.end)
@@ -46,6 +52,7 @@ export function bindDevelopmentImports(
   prefix: string,
   external: string[],
   refreshPath: string,
+  webPkgIDs: string[] = [],
 ): string {
   if (
     !code.includes(prefix + '@react-refresh') &&
@@ -65,7 +72,11 @@ export function bindDevelopmentImports(
     if (source === prefix + '@react-refresh') target = refreshPath
     else if (source.startsWith(prefix + '@id/')) {
       const id = source.slice((prefix + '@id/').length)
-      if (external.some((pkg) => id === pkg || id.startsWith(pkg + '/')))
+      target = remapWebPkgSpecifier(id, webPkgIDs, '/b/pkg')?.remapped
+      if (
+        !target &&
+        external.some((pkg) => id === pkg || id.startsWith(pkg + '/'))
+      )
         target = id
     }
     if (target)

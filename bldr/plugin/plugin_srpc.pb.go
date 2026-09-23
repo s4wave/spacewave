@@ -721,3 +721,145 @@ type SRPCUpdateGuard_PrepareStream interface {
 type srpcUpdateGuard_PrepareStream struct {
 	srpc.Stream
 }
+
+type SRPCActivationClient interface {
+	// SRPCClient returns the underlying SRPC client.
+	SRPCClient() srpc.Client
+
+	// Check confirms support for private startup and atomic registration admission.
+	Check(ctx context.Context, in *CheckActivationRequest) (*CheckActivationResponse, error)
+	// Activate admits this worker's prepared registrations after startup succeeds.
+	Activate(ctx context.Context, in *ActivatePluginRequest) (*ActivatePluginResponse, error)
+}
+
+type srpcActivationClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCActivationClient(cc srpc.Client) SRPCActivationClient {
+	return &srpcActivationClient{cc: cc, serviceID: SRPCActivationServiceID}
+}
+
+func NewSRPCActivationClientWithServiceID(cc srpc.Client, serviceID string) SRPCActivationClient {
+	if serviceID == "" {
+		serviceID = SRPCActivationServiceID
+	}
+	return &srpcActivationClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcActivationClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcActivationClient) Check(ctx context.Context, in *CheckActivationRequest) (*CheckActivationResponse, error) {
+	out := new(CheckActivationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Check", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcActivationClient) Activate(ctx context.Context, in *ActivatePluginRequest) (*ActivatePluginResponse, error) {
+	out := new(ActivatePluginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Activate", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type SRPCActivationServer interface {
+	// Check confirms support for private startup and atomic registration admission.
+	Check(context.Context, *CheckActivationRequest) (*CheckActivationResponse, error)
+	// Activate admits this worker's prepared registrations after startup succeeds.
+	Activate(context.Context, *ActivatePluginRequest) (*ActivatePluginResponse, error)
+}
+
+const SRPCActivationServiceID = "bldr.plugin.Activation"
+
+type SRPCActivationHandler struct {
+	serviceID string
+	impl      SRPCActivationServer
+}
+
+// NewSRPCActivationHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: bldr.plugin.Activation
+func NewSRPCActivationHandler(impl SRPCActivationServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCActivationServiceID
+	}
+	return &SRPCActivationHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterActivation registers the implementation with the mux.
+// Uses the default serviceID: bldr.plugin.Activation
+func SRPCRegisterActivation(mux srpc.Mux, impl SRPCActivationServer) error {
+	return mux.Register(NewSRPCActivationHandler(impl, ""))
+}
+
+func (d *SRPCActivationHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCActivationHandler) GetMethodIDs() []string {
+	return []string{
+		"Check",
+		"Activate",
+	}
+}
+
+func (d *SRPCActivationHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "Check":
+		return true, d.InvokeMethod_Check(d.impl, strm)
+	case "Activate":
+		return true, d.InvokeMethod_Activate(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCActivationHandler) InvokeMethod_Check(impl SRPCActivationServer, strm srpc.Stream) error {
+	req := new(CheckActivationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Check(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCActivationHandler) InvokeMethod_Activate(impl SRPCActivationServer, strm srpc.Stream) error {
+	req := new(ActivatePluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Activate(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCActivation_CheckStream interface {
+	srpc.Stream
+}
+
+type srpcActivation_CheckStream struct {
+	srpc.Stream
+}
+
+type SRPCActivation_ActivateStream interface {
+	srpc.Stream
+}
+
+type srpcActivation_ActivateStream struct {
+	srpc.Stream
+}

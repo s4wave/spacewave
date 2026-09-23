@@ -346,6 +346,13 @@ export interface WebDocumentStatus {
    * @generated from field: bool closed = 5;
    */
   closed?: boolean
+  /**
+   * PluginWorkersBlocked indicates another document owns plugin worker creation.
+   * Ownership changes wake the scheduler independently of document visibility.
+   *
+   * @generated from field: bool plugin_workers_blocked = 6;
+   */
+  pluginWorkersBlocked?: boolean
 }
 
 export const WebDocumentStatus: MessageType<WebDocumentStatus> =
@@ -369,6 +376,12 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
         repeated: true,
       },
       { no: 5, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 6,
+        name: 'plugin_workers_blocked',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

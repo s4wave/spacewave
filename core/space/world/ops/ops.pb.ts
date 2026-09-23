@@ -95,6 +95,50 @@ export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
   })
 
 /**
+ * SetSpaceIndexPathOp changes the default object while preserving other settings.
+ *
+ * @generated from message space.world.ops.SetSpaceIndexPathOp
+ */
+export interface SetSpaceIndexPathOp {
+  /**
+   * IndexPath is the new default object path, or empty to clear it.
+   *
+   * @generated from field: string index_path = 1;
+   */
+  indexPath?: string
+  /**
+   * Timestamp is the modification time.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 2;
+   */
+  timestamp?: Date
+  /**
+   * ExpectedIndexPath makes automatic repair conditional on the current path.
+   * A different current path leaves the settings unchanged.
+   *
+   * @generated from field: optional string expected_index_path = 3;
+   */
+  expectedIndexPath?: string
+}
+
+export const SetSpaceIndexPathOp: MessageType<SetSpaceIndexPathOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.ops.SetSpaceIndexPathOp',
+    fields: [
+      { no: 1, name: 'index_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      {
+        no: 3,
+        name: 'expected_index_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        opt: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
  *
  * @generated from message space.world.ops.InitUnixFSOp

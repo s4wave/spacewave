@@ -20,6 +20,7 @@ type EngineTx struct {
 	engine *Engine
 
 	readTx      *Tx
+	readRoot    *bucket.ObjectRef
 	writeTx     *Tx
 	baseHeadRef *bucket.ObjectRef
 	lease       coord.WriteLease
@@ -36,7 +37,13 @@ func newEngineTx(e *Engine, writeTx *Tx) *EngineTx {
 //
 // Creates a new block transaction.
 func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
-	return e.engine.ForkBlockTransaction(ctx, true)
+	var fork world.WorldState
+	err := e.performOp(ctx, func(tx *Tx) error {
+		var err error
+		fork, err = tx.Fork(ctx)
+		return err
+	})
+	return fork, err
 }
 
 // Commit commits the transaction to storage.
@@ -245,13 +252,13 @@ func (e *EngineTx) Discard() {
 	e.engine.drainRetirement(context.Background(), retirement)
 }
 
-// detachLocked removes this transaction from Engine.coordinatorTxs and
+// detachLocked removes this transaction from Engine.snapshotTxs and
 // Engine.writeTx without waiting for its transaction locks or coordinator
 // lease.
 func (e *EngineTx) detachLocked() engineRetirement {
 	// Mark the transaction discarded before removing its Engine registrations.
 	e.rel.Store(true)
-	delete(e.engine.coordinatorTxs, e)
+	delete(e.engine.snapshotTxs, e)
 	retirement := engineRetirement{
 		readTx:  e.readTx,
 		writeTx: e.writeTx,

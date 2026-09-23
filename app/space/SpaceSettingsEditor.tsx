@@ -39,9 +39,9 @@ export function SpaceSettingsEditor({
   const handleIndexPathChange = useCallback(
     async (newPath: string) => {
       if (!spaceWorld || newPath === indexPath) return
-      await applySpaceIndexPath(spaceWorld, spaceState.settings, newPath)
+      await applySpaceIndexPath(spaceWorld, newPath)
     },
-    [spaceWorld, spaceState.settings, indexPath],
+    [spaceWorld, indexPath],
   )
 
   const content = (

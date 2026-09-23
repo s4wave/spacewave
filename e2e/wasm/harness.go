@@ -293,6 +293,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	h.projConfig = projConfig
 
 	// Start the project controller which builds plugin manifests.
+	frontendDevelopment := os.Getenv("E2E_WASM_FRONTEND_DEVELOPMENT") == "true"
 	projCtrlConf := bldr_project_controller.NewConfig(
 		repoRoot,
 		stateRoot,
@@ -301,7 +302,8 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		true,  // fetchManifests
 	)
 	projCtrlConf.FetchManifestRemote = "devtool"
-	_, _, projRef, err := loader.WaitExecControllerRunning(
+	projCtrlConf.FrontendDevelopment = frontendDevelopment
+	projCtrl, _, projRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
 		hctx,
 		d.GetBus(),
 		resolver.NewLoadControllerWithConfig(projCtrlConf),
@@ -341,15 +343,13 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,
+			projCtrl.GetFrontendService(),
 		)
 		close(h.wasmDone)
 	}()
 
 	if err := h.waitForReady(hctx); err != nil {
 		return nil, errors.Wrap(err, "wait for wasm readiness")
-	}
-	if err := h.writeBrowserReleaseDescriptor(); err != nil {
-		return nil, errors.Wrap(err, "write browser release descriptor")
 	}
 
 	if err := h.settleStartupManifests(hctx); err != nil {
@@ -386,38 +386,6 @@ func (h *Harness) SetScripts(scripts CompiledScripts) { h.scripts = scripts }
 // Scripts returns the compiled test scripts. Returns nil if CompileScripts
 // has not been called.
 func (h *Harness) Scripts() CompiledScripts { return h.scripts }
-
-func (h *Harness) writeBrowserReleaseDescriptor() error {
-	entryDir := filepath.Join(h.devtool.GetStateRoot(), "entry", "web", "wasm")
-	assets := []string{
-		"/entrypoint/entrypoint.mjs",
-		"/entrypoint/runtime.wasm",
-		"/sw.mjs",
-		"/shw.mjs",
-	}
-	for _, asset := range assets {
-		path := filepath.Join(entryDir, strings.TrimPrefix(asset, "/"))
-		if _, err := os.Stat(path); err != nil {
-			return errors.Wrap(err, "stat "+asset)
-		}
-	}
-
-	const descriptor = `{
-  "schemaVersion": 1,
-  "generationId": "e2e-dev",
-  "shellAssets": {
-    "entrypoint": "/entrypoint/entrypoint.mjs",
-    "serviceWorker": "/sw.mjs",
-    "sharedWorker": "/shw.mjs",
-    "wasm": "/entrypoint/runtime.wasm",
-    "css": []
-  },
-  "prerenderedRoutes": [],
-  "requiredStaticAssets": []
-}
-`
-	return os.WriteFile(filepath.Join(entryDir, "browser-release.json"), []byte(descriptor), 0o644)
-}
 
 // Script returns a JS expression that dynamically imports the named test
 // script and calls its default export with the provided args. The expression
@@ -1360,13 +1328,16 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 	if err != nil {
 		return "", errors.Wrap(err, "get executable path")
 	}
-	tokenInput := scope + "|" + filepath.Base(exe)
+	cacheIdentity := scope + "|" + filepath.Base(exe)
+	if os.Getenv("E2E_WASM_FRONTEND_DEVELOPMENT") == "true" {
+		cacheIdentity += "|frontend-development"
+	}
 	if !preserveStartupBuildCache {
 		// Cache-disabled runs should not share a devtool DB. Concurrent same
 		// package e2e boots otherwise delete or close each other's state root.
-		tokenInput += "|" + exe + "|" + strconv.Itoa(os.Getpid())
+		cacheIdentity += "|" + exe + "|" + strconv.Itoa(os.Getpid())
 	}
-	sum := sha256.Sum256([]byte(tokenInput))
+	sum := sha256.Sum256([]byte(cacheIdentity))
 	token := hex.EncodeToString(sum[:4])
 	return filepath.Join(stateRoot, label+"-"+token), nil
 }

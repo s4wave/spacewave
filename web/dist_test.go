@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	spacewave "github.com/s4wave/spacewave"
+	"github.com/s4wave/spacewave/bldr"
 )
 
 func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
@@ -122,8 +123,11 @@ func embeddedImportTarget(source, importPath string) (string, bool) {
 }
 
 func embeddedSourceExists(target string) (bool, error) {
-	fsys := spacewave.DistSources
-	if target == "web" {
+	var fsys fs.FS = spacewave.DistSources
+	if strings.HasPrefix(target, "bldr/") {
+		fsys = bldr.DistSources
+		target = strings.TrimPrefix(target, "bldr/")
+	} else if target == "web" {
 		fsys = DistSources
 		target = "."
 	} else if strings.HasPrefix(target, "web/") {

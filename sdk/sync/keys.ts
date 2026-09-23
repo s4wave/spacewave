@@ -3,12 +3,10 @@
 // canonical key text and back. Fingerprints and storage consume these keys
 // verbatim. No normalization or hashing: keys are bytes rendered as text.
 
-/**
- * MetadataKey is the reserved key holding collection metadata.
- * It is never generated for a collection or receipt and parseCollectionKey
- * rejects it.
- */
-export const metadataKey = 'sync/v1/metadata'
+/** metadataKey identifies the version and scope catalog for one application instance. */
+export function metadataKey(instance: string): string {
+  return `${keyPrefix}${encodeComponent('application', instance)}/metadata`
+}
 
 // keyPrefix begins every generated sync key.
 const keyPrefix = 'sync/v1/'

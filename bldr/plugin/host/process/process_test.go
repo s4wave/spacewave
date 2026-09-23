@@ -13,8 +13,36 @@ import (
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
+
+// TestProcessHostImmutableDist preserves files loaded later by an older executable.
+func TestProcessHostImmutableDist(t *testing.T) {
+	host := newTestProcessHost(t)
+	paths := make(map[string]string)
+	for _, version := range []string{"old", "new"} {
+		root, err := hash.Sum(hash.RecommendedHashType, []byte(version))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dist := newTestDistHandle(t, map[string][]byte{
+			"entrypoint": []byte(version), "shared.dat": []byte(version + " data"),
+		})
+		defer dist.Release()
+		paths[version], err = host.syncPluginDist(t.Context(), "colors", root.MarshalString(), "entrypoint", dist)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if paths["old"] == paths["new"] {
+		t.Fatal("different immutable revisions share a distribution directory")
+	}
+	for version, path := range paths {
+		assertFileContents(t, filepath.Join(path, "entrypoint"), version)
+		assertFileContents(t, filepath.Join(path, "shared.dat"), version+" data")
+	}
+}
 
 func TestProcessHostSyncReplacesExecutableInode(t *testing.T) {
 	host := newTestProcessHost(t)
@@ -30,7 +58,7 @@ func TestProcessHostSyncReplacesExecutableInode(t *testing.T) {
 		"entrypoint": []byte("new executable"),
 	})
 	defer dist.Release()
-	if _, err := host.syncPluginDist(t.Context(), "sample", "entrypoint", dist); err != nil {
+	if _, err := host.syncPluginDist(t.Context(), "sample", "", "entrypoint", dist); err != nil {
 		t.Fatal(err)
 	}
 	assertFileContents(t, entrypoint, "new executable")
@@ -93,7 +121,7 @@ func TestProcessHostSyncPluginDistRebuildsSelectedDistAndPreservesState(t *testi
 	})
 	defer selectedDist.Release()
 
-	distDir, err := host.syncPluginDist(ctx, pluginID, "entrypoint", selectedDist)
+	distDir, err := host.syncPluginDist(ctx, pluginID, "", "entrypoint", selectedDist)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

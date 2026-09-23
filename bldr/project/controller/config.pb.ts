@@ -77,6 +77,12 @@ export interface Config {
    * @generated from field: bool frontend_development = 8;
    */
   frontendDevelopment?: boolean
+  /**
+   * FrontendRoutePrefix overrides the browser namespace for an attached compiler.
+   *
+   * @generated from field: string frontend_route_prefix = 9;
+   */
+  frontendRoutePrefix?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -95,6 +101,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
     { no: 8, name: 'frontend_development', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 9,
+      name: 'frontend_route_prefix',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -4,8 +4,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import {
   GitCloneProgressState,
   type GitCloneProgress,
@@ -266,12 +266,12 @@ describe('GitRepoWizardViewer', () => {
     await user.click(screen.getByRole('button', { name: /create/i }))
 
     expect(h.applyWorldOp).toHaveBeenCalledTimes(2)
-    expect(h.applyWorldOp.mock.calls[1]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
-    const settingsOp = SetSpaceSettingsOp.fromBinary(
+    expect(h.applyWorldOp.mock.calls[1]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
+    const settingsOp = SetSpaceIndexPathOp.fromBinary(
       h.applyWorldOp.mock.calls[1]?.[1] as Uint8Array,
     )
-    expect(settingsOp.settings?.indexPath).toBe('cli-1')
-    expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+    expect(settingsOp.indexPath).toBe('cli-1')
+
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/git/repo/test')
     expect(h.navigateToObjects).toHaveBeenCalledWith(['cli-1'])
   })

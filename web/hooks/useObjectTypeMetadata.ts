@@ -5,7 +5,7 @@ import { ObjectTypeRegistryResourceServiceClient } from '@s4wave/sdk/objecttype/
 import {
   WatchObjectTypesRequest,
   WatchObjectTypesResponse,
-  type ObjectTypeRegistration,
+  ObjectTypeRegistration,
 } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
 import {
   buildObjectTypeMetadataMap,
@@ -15,11 +15,11 @@ import { useDynamicRegistrations } from './useDynamicRegistrations.js'
 
 const objectTypeCreateStream = (
   root: Root,
-  _req: WatchObjectTypesRequest,
+  req: WatchObjectTypesRequest,
   signal: AbortSignal,
 ) =>
   new ObjectTypeRegistryResourceServiceClient(root.client).WatchObjectTypes(
-    {},
+    req,
     signal,
   )
 
@@ -28,15 +28,17 @@ const objectTypeGetRegs = (resp: WatchObjectTypesResponse | null) =>
 
 export function useObjectTypeMetadata(
   rootResource: Resource<Root>,
+  instanceKey = '',
 ): ObjectTypeMetadataById {
   const registrations = useDynamicRegistrations(
     rootResource.value,
     objectTypeCreateStream,
-    {},
+    { instanceKey },
     WatchObjectTypesRequest.equals,
     WatchObjectTypesResponse.equals,
     objectTypeGetRegs,
     keepObjectTypeRegistration,
+    ObjectTypeRegistration.equals,
   )
   return useMemo(
     () => buildObjectTypeMetadataMap(registrations),

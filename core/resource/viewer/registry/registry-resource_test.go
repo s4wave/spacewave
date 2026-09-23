@@ -17,7 +17,7 @@ func setupViewerRegistryClient(t *testing.T) (context.Context, *resource_client.
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r := NewViewerRegistryResource()
+	r := NewViewerRegistryResource(nil)
 	clientPipe, serverPipe := net.Pipe()
 
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
@@ -177,7 +177,7 @@ func TestViewerRegistryFiltersRegistrationsBySurface(t *testing.T) {
 }
 
 func TestViewerRegistryNotifiesOnlyChangedSurface(t *testing.T) {
-	r := NewViewerRegistryResource()
+	r := NewViewerRegistryResource(nil)
 	webWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB)
 	terminalWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI)
 

@@ -42,10 +42,12 @@ async function runEngineOp<T>(
     }
     return result
   } finally {
-    // Always discard to clean up (catches panic cases)
-    await tx.discard(abortSignal).catch(() => {
-      // Ignore errors during cleanup
-    })
+    // Cleanup outlives caller cancellation and releases the pinned snapshot.
+    try {
+      await tx.discard()
+    } finally {
+      tx.release()
+    }
   }
 }
 
@@ -137,7 +139,8 @@ export class EngineWorldState implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<IObjectState> {
     await this.performOp(true, abortSignal, async (tx) => {
-      await tx.createObject(key, rootRef, abortSignal)
+      const obj = await tx.createObject(key, rootRef, abortSignal)
+      obj.release()
     })
     // Return a new EngineWorldStateObject that wraps this engine + key
     return new EngineWorldStateObject(this, key)
@@ -149,7 +152,7 @@ export class EngineWorldState implements IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<IObjectState | null> {
     const found = await this.performOp(false, abortSignal, async (tx) => {
-      const obj = await tx.getObject(key, abortSignal)
+      using obj = await tx.getObject(key, abortSignal)
       return obj !== null
     })
 
@@ -166,9 +169,14 @@ export class EngineWorldState implements IWorldState {
     reversed?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<ObjectIterator> {
-    // Create a transaction and return the iterator from it
     const tx = await this.engine.newTransaction(false, abortSignal)
-    return tx.iterateObjects(prefix, reversed, abortSignal)
+    try {
+      const iterator = await tx.iterateObjects(prefix, reversed, abortSignal)
+      return new TxOwnedObjectIterator(iterator, tx)
+    } catch (error) {
+      tx.release()
+      throw error
+    }
   }
 
   // renameObject renames an object key and associated graph quads
@@ -340,11 +348,11 @@ class EngineWorldStateObject implements IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<GetRootRefResponse> {
     return runEngineOp(this.engineState, false, abortSignal, async (tx) => {
-      const obj = await tx.getObject(this.objectKey, abortSignal)
+      using obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
       }
-      return obj.getRootRef(abortSignal)
+      return await obj.getRootRef(abortSignal)
     })
   }
 
@@ -353,11 +361,11 @@ class EngineWorldStateObject implements IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<SetRootRefResponse> {
     return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      const obj = await tx.getObject(this.objectKey, abortSignal)
+      using obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
       }
-      return obj.setRootRef(rootRef, abortSignal)
+      return await obj.setRootRef(rootRef, abortSignal)
     })
   }
 
@@ -393,11 +401,11 @@ class EngineWorldStateObject implements IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<ApplyObjectOpResponse> {
     return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      const obj = await tx.getObject(this.objectKey, abortSignal)
+      using obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
       }
-      return obj.applyObjectOp(opTypeId, opData, opSender, abortSignal)
+      return await obj.applyObjectOp(opTypeId, opData, opSender, abortSignal)
     })
   }
 
@@ -405,11 +413,11 @@ class EngineWorldStateObject implements IObjectState {
     abortSignal?: AbortSignal,
   ): Promise<IncrementRevResponse> {
     return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
-      const obj = await tx.getObject(this.objectKey, abortSignal)
+      using obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
       }
-      return obj.incrementRev(abortSignal)
+      return await obj.incrementRev(abortSignal)
     })
   }
 
@@ -418,13 +426,29 @@ class EngineWorldStateObject implements IObjectState {
     ignoreNotFound?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<WaitRevResponse> {
-    return runEngineOp(this.engineState, false, abortSignal, async (tx) => {
-      const obj = await tx.getObject(this.objectKey, abortSignal)
-      if (!obj) {
-        throw new Error(`Object not found: ${this.objectKey}`)
+    // Each observation uses one snapshot; the live Engine owns the wait.
+    for (;;) {
+      const current = await runEngineOp(
+        this.engineState,
+        false,
+        abortSignal,
+        async (tx) => {
+          const { seqno } = await tx.getSeqno(abortSignal)
+          // eslint-disable-next-line react-doctor/server-sequential-independent-await -- A failed sequence read must not leave an unowned object Resource.
+          using obj = await tx.getObject(this.objectKey, abortSignal)
+          if (!obj && !ignoreNotFound) {
+            throw new Error(`Object not found: ${this.objectKey}`)
+          }
+          return { seqno, root: await obj?.getRootRef(abortSignal) }
+        },
+      )
+      if (current.root && (current.root.rev ?? 0n) >= rev) {
+        return { rev: current.root.rev }
       }
-      return obj.waitRev(rev, ignoreNotFound, abortSignal)
-    })
+      await this.engineState
+        .getEngine()
+        .waitSeqno((current.seqno ?? 0n) + 1n, abortSignal)
+    }
   }
 
   // release is a no-op for EngineWorldStateObject since it doesn't own any resources
@@ -459,5 +483,33 @@ class TxOwnedBucketLookupCursor extends BucketLookupCursor {
       .finally(() => {
         this.tx.release()
       })
+  }
+}
+
+// TxOwnedObjectIterator keeps its immutable snapshot alive until close or release.
+class TxOwnedObjectIterator extends ObjectIterator {
+  private closed = false
+
+  constructor(
+    private readonly iterator: ObjectIterator,
+    private readonly tx: Tx,
+  ) {
+    super(iterator.resourceRef)
+  }
+
+  public async close(abortSignal?: AbortSignal): Promise<void> {
+    if (this.closed) return
+    try {
+      await this.iterator.close(abortSignal)
+    } finally {
+      this.release()
+    }
+  }
+
+  public release(): void {
+    if (this.closed) return
+    this.closed = true
+    this.iterator.release()
+    this.tx.release()
   }
 }

@@ -57,7 +57,10 @@ function useSpaceObjectBrowserController() {
     objectKey: currentObjectKey,
   } = SpaceContainerContext.useContext()
   const rootResource = RootContext.useContext()
-  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
+  const objectTypeMetadataById = useObjectTypeMetadata(
+    rootResource,
+    spaceState.engineId,
+  )
   const openCommand = useOpenCommand()
   const indexPath = spaceState.settings?.indexPath ?? ''
   const renameInputId = useId()
@@ -84,10 +87,10 @@ function useSpaceObjectBrowserController() {
 
   const setAsIndex = useCallback(
     async (objectKey: string) => {
-      await applySpaceIndexPath(spaceWorld, spaceState.settings, objectKey)
+      await applySpaceIndexPath(spaceWorld, objectKey)
       toast.success(`Default object set to ${objectKey}`)
     },
-    [spaceWorld, spaceState.settings],
+    [spaceWorld],
   )
 
   const handleSetAsIndexClick = useCallback(

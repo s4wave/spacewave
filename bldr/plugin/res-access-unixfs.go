@@ -48,8 +48,8 @@ func ValidatePluginUnixfsID(unixfsID string, allowEmpty bool) (pluginID string, 
 		return "", "", errors.New("unixfs id prefix must be plugin-dist or plugin-assets")
 	}
 
-	// Validate plugin ID
-	if err := ValidatePluginID(pluginID, allowEmpty); err != nil {
+	// A filesystem may select an immutable manifest instead of the current plugin.
+	if _, _, err := ParsePluginArtifactID(pluginID, allowEmpty); err != nil {
 		return "", "", err
 	}
 

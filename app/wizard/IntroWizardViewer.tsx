@@ -53,12 +53,10 @@ export function IntroWizardViewer(props: ObjectViewerComponentProps) {
         parseObjectUri(ws.spaceSettings?.indexPath ?? '').objectKey ===
         ws.objectKey
       ) {
-        await applySpaceIndexPath(
-          ws.spaceWorld,
-          ws.spaceSettings,
-          targetObjectKey,
-          ws.sessionPeerId,
-        )
+        await applySpaceIndexPath(ws.spaceWorld, targetObjectKey, {
+          sender: ws.sessionPeerId,
+          expectedIndexPath: ws.spaceSettings?.indexPath ?? '',
+        })
       }
       await deleteWizardObject(ws.spaceWorld, ws.objectKey)
       ws.navigateToObjects([targetObjectKey])

@@ -36,7 +36,8 @@ const h = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('starpc', () => ({
+vi.mock('starpc', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('starpc')>()),
   createMux: vi.fn(() => ({ lookupMethod: vi.fn(), register: vi.fn() })),
   createHandler: vi.fn((definition: unknown, handler: unknown) => {
     const created = { definition, handler }
@@ -206,10 +207,23 @@ vi.mock(
 )
 
 import main from './backend.js'
+import { Hash } from '../../net/hash/hash.pb.js'
+import { base58Encode } from '../../net/peer/base58.js'
+import { pinnedOperationID } from '../../sdk/sync/instance.js'
+
+const manifestHash = { hash: new Uint8Array([1]) }
+const manifestRoot = base58Encode(Hash.toBinary(manifestHash))
 
 function buildApi(pluginId: string) {
   return {
     startInfo: { pluginId },
+    pluginHost: {
+      GetPluginInfo: vi.fn(async () => ({
+        pluginId,
+        manifestRef: { manifestRef: { rootRef: { hash: manifestHash } } },
+        historical: false,
+      })),
+    },
     client: {},
     handleStreamCtr: { set: h.handleStreamSet },
     buildPluginOpenStream: vi.fn((target: string) => target),
@@ -285,6 +299,13 @@ describe('notes backend registration', () => {
       { typeId: 'notes/docs', pluginId: 'spacewave-notes' },
     ])
     expect(h.worldOpRegistrations).toEqual([
+      ...['create', 'mutate', 'upgrade'].map((action) => ({
+        operationTypeId: pinnedOperationID(
+          { pluginId: 'spacewave-notes', manifestRoot },
+          `notes/saved-views/${action}`,
+        ),
+        pluginId: 'spacewave-notes',
+      })),
       { operationTypeId: 'notes/notebook/init', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/blog/create', pluginId: 'spacewave-notes' },
       { operationTypeId: 'notes/docs/create', pluginId: 'spacewave-notes' },
@@ -373,48 +394,48 @@ describe('notes backend registration', () => {
         typeId: 'notes/notebook',
         viewerName: 'Notebook',
         componentId: 'notes.notebook.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notebook.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/notebook.mjs`,
         surface: ViewerSurface.WEB,
       },
       {
         typeId: 'notes/blog',
         viewerName: 'Blog',
         componentId: 'notes.blog.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/blog.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/blog.mjs`,
         surface: ViewerSurface.WEB,
       },
       {
         typeId: 'notes/docs',
         viewerName: 'Documentation',
         componentId: 'notes.docs.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/docs.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/docs.mjs`,
         surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/notebook',
         viewerName: 'Notebook Wizard',
         componentId: 'notes.notebook-wizard.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/notes-wizard.mjs`,
         surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/docs',
         viewerName: 'Documentation Wizard',
         componentId: 'notes.docs-wizard.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/notes-wizard.mjs`,
         surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/blog',
         viewerName: 'Blog Wizard',
         componentId: 'notes.blog-wizard.viewer',
-        scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        scriptPath: `/asset/spacewave-notes/manifest/${manifestRoot}/v/b/fe/assets/notes-wizard.mjs`,
         surface: ViewerSurface.WEB,
       },
     ])
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(18)
+    expect(h.rootRef.createRef).toHaveBeenCalledTimes(21)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).not.toHaveBeenCalled()
@@ -520,9 +541,9 @@ describe('notes backend registration', () => {
       h.wizardRegistrations.map((registration) => registration.typeId),
     ).toEqual(['notes/notebook', 'notes/docs', 'notes/blog'])
     expect(h.viewerRegistrations).toHaveLength(1)
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(9)
+    expect(h.rootRef.createRef).toHaveBeenCalledTimes(12)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
@@ -555,9 +576,9 @@ describe('notes backend registration', () => {
       ),
     ).toEqual(['notebook', 'docs', 'blog'])
     expect(h.viewerRegistrations).toHaveLength(6)
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(17)
+    expect(h.rootRef.createRef).toHaveBeenCalledTimes(20)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)

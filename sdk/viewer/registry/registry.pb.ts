@@ -175,6 +175,12 @@ export interface ListViewersRequest {
    * @generated from field: s4wave.viewer.registry.ViewerSurface surface = 1;
    */
   surface?: ViewerSurface
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
 }
 
 export const ListViewersRequest: MessageType<ListViewersRequest> =
@@ -182,6 +188,7 @@ export const ListViewersRequest: MessageType<ListViewersRequest> =
     typeName: 's4wave.viewer.registry.ListViewersRequest',
     fields: [
       { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -227,6 +234,12 @@ export interface WatchViewersRequest {
    * @generated from field: s4wave.viewer.registry.ViewerSurface surface = 1;
    */
   surface?: ViewerSurface
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
 }
 
 export const WatchViewersRequest: MessageType<WatchViewersRequest> =
@@ -234,6 +247,7 @@ export const WatchViewersRequest: MessageType<WatchViewersRequest> =
     typeName: 's4wave.viewer.registry.WatchViewersRequest',
     fields: [
       { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

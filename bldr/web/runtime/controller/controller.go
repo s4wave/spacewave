@@ -208,11 +208,18 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		c.le.Debugf("serve /b/ path: %s", rpath)
 
-		// Live frontend modules use the existing devtool connection.
+		// Modules use an existing compiler grant. Expired attachments settle
+		// instead of waiting for a service that will never be recreated.
 		if strings.HasPrefix(rpath, "/b/fe/") {
 			setNoCacheHeaders(rw.Header())
-			client := frontend.NewSRPCFrontendClientWithServiceID(bifrost_rpc.NewBusClient(c.bus), "devtool/"+frontend.SRPCFrontendServiceID)
-			err := fetch.Fetch(req.Context(), func(ctx context.Context) (fetch.SRPCFetchService_FetchClient, error) { return client.Fetch(ctx) }, req, rw)
+			serviceID, err := frontend.RouteService(rpath)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusBadRequest)
+				return
+			}
+			client := frontend.NewSRPCFrontendClientWithServiceID(bifrost_rpc.NewBusClientWithWait(c.bus,
+				!strings.HasPrefix(rpath, "/b/fe/rpc/")), serviceID)
+			err = fetch.Fetch(req.Context(), func(ctx context.Context) (fetch.SRPCFetchService_FetchClient, error) { return client.Fetch(ctx) }, req, rw)
 			if err != nil && req.Context().Err() == nil {
 				c.le.WithError(err).Warn("frontend module request failed")
 				http.Error(rw, "frontend module unavailable", http.StatusBadGateway)
@@ -231,7 +238,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		// /b/pd/ is for Web plugin distribution files
 		bPdPrefix := bldr_plugin.PluginDistHttpPrefix
 		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
-			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginDistHttpPrefix):])
+			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginArtifact(rpath[len(bldr_plugin.PluginDistHttpPrefix):])
 			if err != nil {
 				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
 				return
@@ -245,7 +252,7 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		// /b/pa/ is for Web plugin distribution files
 		bPaPrefix := bldr_plugin.PluginAssetsHttpPrefix
 		if strings.HasPrefix(rpath, bPaPrefix) && len(rpath) > len(bPaPrefix) {
-			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginID(rpath[len(bldr_plugin.PluginAssetsHttpPrefix):])
+			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginArtifact(rpath[len(bldr_plugin.PluginAssetsHttpPrefix):])
 			if err != nil {
 				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
 				return

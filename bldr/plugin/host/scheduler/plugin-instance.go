@@ -2,7 +2,6 @@ package plugin_host_scheduler
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,6 +30,31 @@ type pluginInstance struct {
 	pluginID string
 	// instanceKey is the instance key (empty for shared instances).
 	instanceKey string
+	// bindingKey is the logical installation, without a physical generation suffix.
+	bindingKey string
+	// manifestRoot restricts selection to the requested executable.
+	manifestRoot string
+	// start opens only after the first reference installs its selection policy.
+	start *ccontainer.CContainer[bool]
+	// selectedManifest is the explicit installation target, independent of catalog order.
+	selectedManifest atomic.Pointer[installedManifests]
+	// selections and selectionSequence track retained installation demands under pluginUpdateMtx.
+	selections        map[uint64]*installedManifests
+	selectionSequence uint64
+	// physical marks an isolated worker whose parent publishes public status.
+	physical bool
+	// prepared delays this worker's registration admission until explicit activation.
+	prepared bool
+	// onLoadState projects an admitted worker's state into its logical binding.
+	onLoadState func(bldr_plugin.PluginLoadState)
+	// executions owns worker lifetimes independently of candidate-selection retries.
+	executions *keyed.KeyedRefCount[executionReference, *pluginInstance]
+	// activeExecution is the admitted worker, protected by pluginUpdateMtx.
+	activeExecution *pluginInstance
+	// releaseExecution retains the admitted worker through candidate changes.
+	releaseExecution func()
+	// executionsClosed prevents a finishing candidate from publishing after shutdown.
+	executionsClosed bool
 	// loggedNotFound indicates if we logged no manifests were found
 	loggedNotFound atomic.Bool
 	// manifestCopyAccounting owns demand and copy counters for the selected candidate.
@@ -86,28 +110,18 @@ func (t *pluginInstance) GetPluginLoadStateCtr() ccontainer.Watchable[bldr_plugi
 
 // newPluginInstance constructs a new execute plugin routine.
 // key is the composite key: pluginID or pluginID/instanceKey.
-func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstance) {
-	pluginID, instanceKey, _ := strings.Cut(key, "/")
+func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *pluginInstance) {
+	pluginID, instanceKey := key.pluginID, key.executionKey()
 	le := c.le.WithField("plugin-id", pluginID)
 	if instanceKey != "" {
 		le = le.WithField("instance-key", instanceKey)
 	}
-	tr := &pluginInstance{
-		c:                c,
-		le:               le,
-		pluginID:         pluginID,
-		instanceKey:      instanceKey,
-		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
-		pluginLoadStateCtr: ccontainer.NewCContainer[bldr_plugin.PluginLoadState](
-			bldr_plugin.NewPluginLoadState(
-				nil,
-				bldr_plugin.InitialCapabilityRegistrationPending,
-			),
-		),
-		manifestCopyStatus: ccontainer.NewCContainer[*manifestCopyStatus](nil),
-		distAccess:         unixfs_access.NewRotatingAccess(),
-		assetsAccess:       unixfs_access.NewRotatingAccess(),
+	tr := newPluginState(c, le, pluginID, instanceKey, key.manifestRoot)
+	tr.bindingKey = key.instanceKey
+	if tr.bindingKey == "" {
+		tr.bindingKey = c.conf.GetInstanceKey()
 	}
+	tr.executions = keyed.NewKeyedRefCountWithLogger(tr.newExecution, le)
 
 	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
 
@@ -128,7 +142,7 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 		le,
 		routine.WithRetry(execBackoff),
 	)
-	tr.executePluginRoutine.SetStateRoutine(tr.execPlugin)
+	tr.executePluginRoutine.SetStateRoutine(tr.execSelectedPlugin)
 
 	tr.updatePluginRoutine = routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le, routine.WithRetry(fetchBackoff))
 	tr.updatePluginRoutine.SetStateRoutine(tr.execGuardedPluginUpdate)
@@ -136,8 +150,34 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 	return tr.execute, tr
 }
 
+// newPluginState constructs the state shared by logical bindings and isolated workers.
+func newPluginState(c *Controller, le *logrus.Entry, pluginID, instanceKey, manifestRoot string) *pluginInstance {
+	return &pluginInstance{
+		c:                c,
+		le:               le,
+		pluginID:         pluginID,
+		instanceKey:      instanceKey,
+		manifestRoot:     manifestRoot,
+		start:            ccontainer.NewCContainer(false),
+		selections:       make(map[uint64]*installedManifests),
+		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		pluginLoadStateCtr: ccontainer.NewCContainer[bldr_plugin.PluginLoadState](
+			bldr_plugin.NewPluginLoadState(
+				nil,
+				bldr_plugin.InitialCapabilityRegistrationPending,
+			),
+		),
+		manifestCopyStatus: ccontainer.NewCContainer[*manifestCopyStatus](nil),
+		distAccess:         unixfs_access.NewRotatingAccess(),
+		assetsAccess:       unixfs_access.NewRotatingAccess(),
+	}
+}
+
 // execute executes the routine.
 func (t *pluginInstance) execute(ctx context.Context) error {
+	if _, err := t.start.WaitValue(ctx, nil); err != nil {
+		return err
+	}
 	if err := t.c.ensureManifestStore(ctx); err != nil {
 		return err
 	}
@@ -161,19 +201,32 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	)
 
 	// Fetch manifests
-	if t.c.conf.GetWatchFetchManifest() {
+	if t.manifestRoot == "" && t.c.conf.GetWatchFetchManifest() {
 		t.fetchWorldManifestRoutine.SetContext(ctx, true)
 		defer t.fetchWorldManifestRoutine.ClearContext()
 	}
 
-	// Watch the world state for the latest fully-downloaded manifest.
-	t.watchWorldManifestRoutine.SetContext(ctx, true)
-	defer t.watchWorldManifestRoutine.ClearContext()
+	// Direct fetch owns the current target in no-store mode. Retained replay
+	// artifacts must not compete with that target after a compiler update.
+	// Exact historical requests still resolve through the stored manifest graph.
+	if t.manifestRoot != "" || !t.c.conf.GetWatchFetchManifest() || !t.c.conf.GetDisableStoreManifest() {
+		t.watchWorldManifestRoutine.SetContext(ctx, true)
+		defer t.watchWorldManifestRoutine.ClearContext()
+	}
 
 	// Download manifests when the FetchManifest directive changes values.
 	// Managed by the watchWorldManifestRoutine.
 	t.downloadManifestRoutine.SetContext(ctx, true)
 	defer t.downloadManifestRoutine.ClearContext()
+
+	// Workers outlive a candidate-selection attempt. Release the admitted worker
+	// only when replaced, explicitly removed, or this logical binding closes.
+	t.pluginUpdateMtx.Lock()
+	t.executionsClosed = false
+	t.pluginUpdateMtx.Unlock()
+	t.executions.SetContext(ctx, true)
+	defer t.executions.ClearContext()
+	defer t.closeExecutions()
 
 	// Set the context for the execute plugin routine.
 	t.executePluginRoutine.SetContext(ctx, true)
@@ -183,6 +236,9 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	defer t.updatePluginRoutine.ClearContext()
 
 	distFsID := bldr_plugin.PluginDistFsId(t.pluginID)
+	if t.manifestRoot != "" {
+		distFsID += "/manifest/" + t.manifestRoot
+	}
 	distAccessCtrl := unixfs_access.NewController(
 		t.le,
 		t.c.bus,
@@ -203,6 +259,9 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	defer relDistAccessCtrl()
 
 	assetsFsID := bldr_plugin.PluginAssetsFsId(t.pluginID)
+	if t.manifestRoot != "" {
+		assetsFsID += "/manifest/" + t.manifestRoot
+	}
 	assetsAccessCtrl := unixfs_access.NewController(
 		t.le,
 		t.c.bus,
@@ -230,6 +289,9 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		func(msg *pluginHostSet) error {
 			t.fetchWorldManifestRoutine.SetState(msg)
 			t.watchWorldManifestRoutine.SetState(msg)
+			t.pluginUpdateMtx.Lock()
+			t.selectInstalledManifestLocked(msg)
+			t.pluginUpdateMtx.Unlock()
 			return nil
 		},
 		nil,

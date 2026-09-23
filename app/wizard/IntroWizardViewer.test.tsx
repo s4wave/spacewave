@@ -4,8 +4,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { IntroWizardConfig } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 
 import { IntroWizardViewer } from './IntroWizardViewer.js'
@@ -92,14 +92,13 @@ async function advanceToFinish(user: ReturnType<typeof userEvent.setup>) {
 
 function expectAppliedIndexPath(indexPath: string) {
   expect(h.applyWorldOp).toHaveBeenCalledTimes(1)
-  expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_SETTINGS_OP_ID)
+  expect(h.applyWorldOp.mock.calls[0]?.[0]).toBe(SET_SPACE_INDEX_PATH_OP_ID)
   const opData: unknown = h.applyWorldOp.mock.calls[0]?.[1]
   if (!(opData instanceof Uint8Array)) {
     throw new Error('expected settings op bytes')
   }
-  const settingsOp = SetSpaceSettingsOp.fromBinary(opData)
-  expect(settingsOp.settings?.indexPath).toBe(indexPath)
-  expect(settingsOp.settings?.pluginIds).toEqual(['spacewave-web'])
+  const settingsOp = SetSpaceIndexPathOp.fromBinary(opData)
+  expect(settingsOp.indexPath).toBe(indexPath)
 }
 
 describe('IntroWizardViewer', () => {

@@ -6,11 +6,8 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
-	resource_world "github.com/s4wave/spacewave/core/resource/world"
-	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
-	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // ExecuteQuickstart runs a registered Quickstart seed handler against a mounted Space.
@@ -24,10 +21,6 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 	if req.GetSpaceResourceId() == 0 {
 		return nil, ErrSpaceResourceIdRequired
-	}
-	reg := r.LookupRegistration(quickstartID)
-	if reg == nil {
-		return nil, ErrQuickstartNotRegistered
 	}
 	if r.b == nil {
 		return nil, ErrQuickstartExecutionUnavailable
@@ -46,25 +39,22 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		return nil, ErrSpaceResourceRequired
 	}
 
+	reg := r.LookupRegistration(quickstartID, spaceResource.GetWorldEngineID())
+	if reg == nil {
+		return nil, ErrQuickstartNotRegistered
+	}
+
 	resourceClientCtx := resourceCtx.Context()
-	resources, err := s4wave_plugin.ConnectPluginResources(resourceClientCtx, r.b, reg.GetPluginId())
+	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(resourceClientCtx, r.b, reg.GetPluginId(), reg.GetManifestRoot())
 	if err != nil {
 		return nil, errors.Wrap(err, "connect to quickstart plugin")
 	}
 	defer resources.Release()
 
-	lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, spaceResource.GetWorldEngineID())
-	engineInfo := &s4wave_world.EngineInfo{
-		EngineId: spaceResource.GetWorldEngineID(),
-		BucketId: spaceResource.GetWorldEngineBucketID(),
+	engineResource, err := spaceResource.NewWorldEngineResource()
+	if err != nil {
+		return nil, err
 	}
-	engineResource := resource_world.NewEngineResource(
-		r.le,
-		r.b,
-		spaceResource.GetWorldEngine(),
-		lookupOp,
-		engineInfo,
-	)
 	engineResourceID, err := resources.Client.AttachResource(ctx, "quickstart-world-engine", engineResource.GetMux())
 	if err != nil {
 		return nil, errors.Wrap(err, "attach quickstart world engine")

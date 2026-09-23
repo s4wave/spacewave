@@ -76,7 +76,10 @@ describe('useAllViewers', () => {
 
     h.useDynamicRegistrations.mockImplementationOnce((...args: unknown[]) => {
       const request = args[2] as { surface?: ViewerSurface }
-      expect(request).toEqual({ surface: ViewerSurface.WEB })
+      expect(request).toEqual({
+        surface: ViewerSurface.WEB,
+        instanceKey: 'space/one',
+      })
       const mapper = args[6] as (
         registration: ViewerRegistration,
       ) => ObjectViewerComponent | null
@@ -96,7 +99,7 @@ describe('useAllViewers', () => {
       retry: vi.fn(),
     }
 
-    renderHook(() => useAllViewers(rootResource))
+    renderHook(() => useAllViewers(rootResource, 'space/one'))
 
     expect(mappedRegistrations).toEqual([webRegistration])
   })

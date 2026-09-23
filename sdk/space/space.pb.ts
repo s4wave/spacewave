@@ -8,9 +8,9 @@ import {
   createEmptyMessageType,
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
-import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { StepConfig } from '../../db/block/transform/transform.pb.js'
 import {
   SpaceSettings,
   WorldContents,
@@ -105,6 +105,103 @@ export const SpacePluginLifecycleState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * BuildSpacePluginRequest selects a Space source tree and authorized build device.
+ *
+ * @generated from message s4wave.space.BuildSpacePluginRequest
+ */
+export interface BuildSpacePluginRequest {
+  /**
+   * SourceKey is a UnixFS directory containing a TypeScript Bldr project.
+   *
+   * @generated from field: string source_key = 1;
+   */
+  sourceKey?: string
+  /**
+   * DeviceKey identifies a Device with a selectable Forge worker capability.
+   *
+   * @generated from field: string device_key = 2;
+   */
+  deviceKey?: string
+  /**
+   * ManifestId selects the JavaScript plugin manifest in the project.
+   *
+   * @generated from field: string manifest_id = 3;
+   */
+  manifestId?: string
+  /**
+   * ConfigPath is relative to the source directory; empty selects bldr.yaml.
+   *
+   * @generated from field: string config_path = 4;
+   */
+  configPath?: string
+}
+
+export const BuildSpacePluginRequest: MessageType<BuildSpacePluginRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.BuildSpacePluginRequest',
+    fields: [
+      { no: 1, name: 'source_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'device_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'config_path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BuildSpacePluginResponse identifies the durable queued build.
+ *
+ * @generated from message s4wave.space.BuildSpacePluginResponse
+ */
+export interface BuildSpacePluginResponse {
+  /**
+   * ExecutionKey identifies the Forge Execution with logs and build results.
+   *
+   * @generated from field: string execution_key = 1;
+   */
+  executionKey?: string
+}
+
+export const BuildSpacePluginResponse: MessageType<BuildSpacePluginResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.BuildSpacePluginResponse',
+    fields: [
+      { no: 1, name: 'execution_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * OpenPluginFrontendResponse identifies the authoring attachment and its logs.
+ *
+ * @generated from message s4wave.space.OpenPluginFrontendResponse
+ */
+export interface OpenPluginFrontendResponse {
+  /**
+   * ResourceId owns the compiler connection and its Forge execution.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * ExecutionKey identifies the Forge Execution with startup and failure logs.
+   *
+   * @generated from field: string execution_key = 2;
+   */
+  executionKey?: string
+}
+
+export const OpenPluginFrontendResponse: MessageType<OpenPluginFrontendResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.OpenPluginFrontendResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'execution_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchSpaceStateRequest is a request to watch the Workspace state.
  *
  * @generated from message s4wave.space.WatchSpaceStateRequest
@@ -191,6 +288,13 @@ export interface SpaceState {
    * @generated from field: s4wave.space.TransformInfo transform_info = 4;
    */
   transformInfo?: TransformInfo
+  /**
+   * EngineId is the host World binding used for Space-local plugin discovery.
+   * It is an address, not an authority grant.
+   *
+   * @generated from field: string engine_id = 5;
+   */
+  engineId?: string
 }
 
 export const SpaceState: MessageType<SpaceState> =
@@ -211,6 +315,7 @@ export const SpaceState: MessageType<SpaceState> =
         kind: 'message',
         T: () => TransformInfo,
       },
+      { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -971,6 +1076,13 @@ export interface AddSpacePluginRequest {
    * @generated from field: string plugin_id = 1;
    */
   pluginId?: string
+  /**
+   * ManifestKey selects an immutable manifest artifact in this Space.
+   * Empty preserves an existing pin or follows the configured catalog for a new plugin.
+   *
+   * @generated from field: string manifest_key = 2;
+   */
+  manifestKey?: string
 }
 
 export const AddSpacePluginRequest: MessageType<AddSpacePluginRequest> =
@@ -978,6 +1090,7 @@ export const AddSpacePluginRequest: MessageType<AddSpacePluginRequest> =
     typeName: 's4wave.space.AddSpacePluginRequest',
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'manifest_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

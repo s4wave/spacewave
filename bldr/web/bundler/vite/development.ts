@@ -21,6 +21,7 @@ import {
   bindDevelopmentImports,
 } from './development-client.js'
 import { goTsResolver } from './go-ts-resolver.js'
+import { isWebPkgModule } from './plugin.js'
 
 /** DevelopmentEnvironment retains one Vite graph behind the compiler RPC. */
 export class DevelopmentEnvironment {
@@ -56,9 +57,13 @@ export class DevelopmentEnvironment {
     }
 
     // Only Bldr's route namespace crosses into browser-visible source.
+    const routePrefix = config.routePrefix || '/b/fe/'
+    if (!/^\/b\/fe\/(?:rpc\/[a-zA-Z0-9_-]+\/)?$/.test(routePrefix)) {
+      throw new Error('Bldr frontend: invalid route prefix')
+    }
     this.session = Session.create({
       id: config.sessionId,
-      routePrefix: `/b/fe/${config.sessionId}/`,
+      routePrefix: `${routePrefix}${config.sessionId}/`,
       entrypoints: config.entrypoints,
       viteVersion: version,
     })
@@ -91,7 +96,8 @@ export class DevelopmentEnvironment {
       { command: 'serve', mode: 'development' },
       ...configPaths,
     )
-    const external = this.config.externalPkgs ?? []
+    const webPkgIDs = this.config.webPkgIds ?? []
+    const external = [...(this.config.externalPkgs ?? []), ...webPkgIDs]
     const isExternal = (source: string) =>
       external.some((pkg) => source === pkg || source.startsWith(pkg + '/'))
     const aliases = Array.isArray(config.resolve?.alias)
@@ -99,21 +105,39 @@ export class DevelopmentEnvironment {
       : Object.entries(config.resolve?.alias ?? {}).map(
           ([find, replacement]) => ({ find, replacement }),
         )
-    const refreshPath = `/bldr-dev/frontend-refresh/${this.session.id}.mjs`
+    const refreshPath = `${this.session.routePrefix}@react-refresh`
+    const sessionID = this.session.id!
 
     // Keep canonical import-map modules external before Vite resolves aliases.
     const adapter: Plugin = {
       name: 'bldr-frontend',
       enforce: 'pre',
-      resolveId(source) {
+      async resolveId(source, importer) {
         if (source === '/@react-refresh')
           return { id: refreshPath, external: true }
-        if (isExternal(source)) return { id: source, external: true }
+        if (!isExternal(source)) return null
+        if (isWebPkgModule(source)) return { id: source, external: true }
+
+        // External package aliases still own stylesheet and asset locations.
+        // Resolve those files normally, without remapping them to shared JS.
+        const alias = aliases.find(({ find }) =>
+          typeof find === 'string'
+            ? source === find || source.startsWith(find + '/')
+            : find.test(source),
+        )
+        if (alias)
+          return this.resolve(
+            source.replace(alias.find, alias.replacement),
+            importer,
+            {
+              skipSelf: true,
+            },
+          )
         return null
       },
       transform(code, id) {
         if (id.split('?')[0].endsWith('/vite/dist/client/client.mjs')) {
-          return { code: adaptDevelopmentClient(code), map: null }
+          return { code: adaptDevelopmentClient(code, sessionID), map: null }
         }
         return null
       },
@@ -129,6 +153,7 @@ export class DevelopmentEnvironment {
             this.session.routePrefix!,
             external,
             refreshPath,
+            webPkgIDs,
           )
           return bound === code ? null : { code: bound, map: null }
         },
@@ -150,6 +175,7 @@ export class DevelopmentEnvironment {
       appType: 'custom',
       mode: 'development',
       clearScreen: false,
+      oxc: config.oxc === false ? false : { target: 'es2022', ...config.oxc },
       customLogger: createSilentViteLogger(),
       plugins: [
         adapter,
@@ -162,7 +188,9 @@ export class DevelopmentEnvironment {
         alias: aliases.filter(
           ({ find }) =>
             !external.some((pkg) =>
-              typeof find === 'string' ? find === pkg : find.test(pkg),
+              typeof find === 'string'
+                ? find === pkg
+                : find.test(pkg) || find.test(pkg + '/'),
             ),
         ),
       },

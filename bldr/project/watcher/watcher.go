@@ -233,6 +233,14 @@ func (c *Controller) loadProjectControllerConfig(ctx context.Context) (*bldr_pro
 		}
 	}
 
+	if len(c.GetConfig().GetBoundRemotes()) != 0 {
+		if ctrlConfig.ProjectConfig.Remotes == nil {
+			ctrlConfig.ProjectConfig.Remotes = make(map[string]*bldr_project.RemoteConfig)
+		}
+		for id, remote := range c.GetConfig().GetBoundRemotes() {
+			ctrlConfig.ProjectConfig.Remotes[id] = remote.CloneVT()
+		}
+	}
 	return ctrlConfig, nil
 }
 

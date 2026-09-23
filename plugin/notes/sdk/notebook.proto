@@ -12,6 +12,9 @@ service NotebookResourceService {
     returns (RemoveSourceResponse);
   rpc ReorderSources(ReorderSourcesRequest)
     returns (ReorderSourcesResponse);
+  // GetSavedViewsApp identifies the current executable for an explicit first save.
+  rpc GetSavedViewsApp(GetSavedViewsAppRequest)
+    returns (GetSavedViewsAppResponse);
 }
 
 // WatchNotebookRequest is the request for WatchNotebook.
@@ -49,3 +52,17 @@ message ReorderSourcesRequest {
 
 // ReorderSourcesResponse is the response for ReorderSources.
 message ReorderSourcesResponse {}
+
+// GetSavedViewsAppRequest requests the additive saved-view application binding.
+message GetSavedViewsAppRequest {}
+
+// GetSavedViewsAppResponse identifies the dataset and this plugin's immutable executable.
+// Reading this metadata creates no data and shares no personal preferences.
+message GetSavedViewsAppResponse {
+  // ObjectKey is the saved-view application object within the same World.
+  string object_key = 1;
+  // PluginId is the plugin family that serves saved-view operations.
+  string plugin_id = 2;
+  // ManifestRoot identifies the exact executable used to create the dataset.
+  string manifest_root = 3;
+}

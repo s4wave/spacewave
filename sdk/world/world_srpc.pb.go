@@ -21,6 +21,9 @@ type SRPCEngineResourceServiceClient interface {
 	WatchWorldRootSnapshots(ctx context.Context, in *WatchWorldRootSnapshotsRequest) (SRPCEngineResourceService_WatchWorldRootSnapshotsClient, error)
 
 	NewTransaction(ctx context.Context, in *NewTransactionRequest) (*NewTransactionResponse, error)
+	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+	// The authenticated Resource sender overrides the payload sender.
+	ExecuteWorldOp(ctx context.Context, in *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
 
 	Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error)
 
@@ -112,6 +115,15 @@ func (c *srpcEngineResourceServiceClient) NewTransaction(ctx context.Context, in
 	return out, nil
 }
 
+func (c *srpcEngineResourceServiceClient) ExecuteWorldOp(ctx context.Context, in *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error) {
+	out := new(ApplyWorldOpResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ExecuteWorldOp", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcEngineResourceServiceClient) Sync(ctx context.Context, in *SyncRequest) (*SyncResponse, error) {
 	out := new(SyncResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "Sync", in, out)
@@ -165,6 +177,9 @@ type SRPCEngineResourceServiceServer interface {
 	WatchWorldRootSnapshots(*WatchWorldRootSnapshotsRequest, SRPCEngineResourceService_WatchWorldRootSnapshotsStream) error
 
 	NewTransaction(context.Context, *NewTransactionRequest) (*NewTransactionResponse, error)
+	// ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+	// The authenticated Resource sender overrides the payload sender.
+	ExecuteWorldOp(context.Context, *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
 
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
 
@@ -207,6 +222,7 @@ func (SRPCEngineResourceServiceHandler) GetMethodIDs() []string {
 		"GetWorldRootSnapshot",
 		"WatchWorldRootSnapshots",
 		"NewTransaction",
+		"ExecuteWorldOp",
 		"Sync",
 		"GetSeqno",
 		"WaitSeqno",
@@ -232,6 +248,8 @@ func (d *SRPCEngineResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWorldRootSnapshots(d.impl, strm)
 	case "NewTransaction":
 		return true, d.InvokeMethod_NewTransaction(d.impl, strm)
+	case "ExecuteWorldOp":
+		return true, d.InvokeMethod_ExecuteWorldOp(d.impl, strm)
 	case "Sync":
 		return true, d.InvokeMethod_Sync(d.impl, strm)
 	case "GetSeqno":
@@ -286,6 +304,18 @@ func (SRPCEngineResourceServiceHandler) InvokeMethod_NewTransaction(impl SRPCEng
 		return err
 	}
 	out, err := impl.NewTransaction(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCEngineResourceServiceHandler) InvokeMethod_ExecuteWorldOp(impl SRPCEngineResourceServiceServer, strm srpc.Stream) error {
+	req := new(ApplyWorldOpRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ExecuteWorldOp(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -399,6 +429,14 @@ type srpcEngineResourceService_NewTransactionStream struct {
 	srpc.Stream
 }
 
+type SRPCEngineResourceService_ExecuteWorldOpStream interface {
+	srpc.Stream
+}
+
+type srpcEngineResourceService_ExecuteWorldOpStream struct {
+	srpc.Stream
+}
+
 type SRPCEngineResourceService_SyncStream interface {
 	srpc.Stream
 }
@@ -442,6 +480,9 @@ type srpcEngineResourceService_AccessWorldStateStream struct {
 type SRPCWorldStateResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
+
+	// CompareObjectRecords compares immutable record roots within this snapshot.
+	CompareObjectRecords(ctx context.Context, in *CompareObjectRecordsRequest) (*CompareObjectRecordsResponse, error)
 
 	GetReadOnly(ctx context.Context, in *GetReadOnlyRequest) (*GetReadOnlyResponse, error)
 
@@ -509,6 +550,15 @@ func NewSRPCWorldStateResourceServiceClientWithServiceID(cc srpc.Client, service
 }
 
 func (c *srpcWorldStateResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcWorldStateResourceServiceClient) CompareObjectRecords(ctx context.Context, in *CompareObjectRecordsRequest) (*CompareObjectRecordsResponse, error) {
+	out := new(CompareObjectRecordsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CompareObjectRecords", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *srpcWorldStateResourceServiceClient) GetReadOnly(ctx context.Context, in *GetReadOnlyRequest) (*GetReadOnlyResponse, error) {
 	out := new(GetReadOnlyResponse)
@@ -727,6 +777,9 @@ func (c *srpcWorldStateResourceServiceClient) ApplyWorldOp(ctx context.Context, 
 }
 
 type SRPCWorldStateResourceServiceServer interface {
+	// CompareObjectRecords compares immutable record roots within this snapshot.
+	CompareObjectRecords(context.Context, *CompareObjectRecordsRequest) (*CompareObjectRecordsResponse, error)
+
 	GetReadOnly(context.Context, *GetReadOnlyRequest) (*GetReadOnlyResponse, error)
 
 	Sync(context.Context, *SyncRequest) (*SyncResponse, error)
@@ -802,6 +855,7 @@ func (d *SRPCWorldStateResourceServiceHandler) GetServiceID() string { return d.
 
 func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
+		"CompareObjectRecords",
 		"GetReadOnly",
 		"Sync",
 		"GetSeqno",
@@ -838,6 +892,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "CompareObjectRecords":
+		return true, d.InvokeMethod_CompareObjectRecords(d.impl, strm)
 	case "GetReadOnly":
 		return true, d.InvokeMethod_GetReadOnly(d.impl, strm)
 	case "Sync":
@@ -889,6 +945,18 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_CompareObjectRecords(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(CompareObjectRecordsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CompareObjectRecords(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetReadOnly(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
@@ -1177,6 +1245,14 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_ApplyWorldOp(impl SRPCW
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+type SRPCWorldStateResourceService_CompareObjectRecordsStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_CompareObjectRecordsStream struct {
+	srpc.Stream
 }
 
 type SRPCWorldStateResourceService_GetReadOnlyStream interface {

@@ -188,7 +188,7 @@ describe('createWebPkgRemapPlugin', () => {
     })
   })
 
-  it('maps a dist root export to the served index URL without declared imports', async () => {
+  it('keeps the package root directory when no served imports override it', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-'))
     try {
       const pkgRoot = path.join(
@@ -198,8 +198,8 @@ describe('createWebPkgRemapPlugin', () => {
         'protobuf-es-lite',
       )
       fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
-      // exports["."] points at ./dist/index.js. With no declared webPkgImports
-      // map, the package root export still serves as index.mjs, not dist/index.mjs.
+      // The provider's input name is relative to its package root. Consumers
+      // preserve that directory unless the provider declares different imports.
       fs.writeFileSync(
         path.join(pkgRoot, 'package.json'),
         JSON.stringify({
@@ -244,9 +244,8 @@ describe('createWebPkgRemapPlugin', () => {
         {} as never,
       )
       expect(rendered).toContain(
-        '"/entrypoint/pkgs/@aptre/protobuf-es-lite/index.mjs"',
+        '"/entrypoint/pkgs/@aptre/protobuf-es-lite/dist/index.mjs"',
       )
-      expect(rendered).not.toContain('/dist/')
       expect(rendered).not.toContain('"/b/pkg/@aptre/protobuf-es-lite/')
 
       const resolveId = plugin.resolveId
@@ -266,7 +265,7 @@ describe('createWebPkgRemapPlugin', () => {
         { isEntry: false },
       )
       expect(resolved).toEqual({
-        id: '/entrypoint/pkgs/@aptre/protobuf-es-lite/index.mjs',
+        id: '/entrypoint/pkgs/@aptre/protobuf-es-lite/dist/index.mjs',
         external: true,
       })
     } finally {

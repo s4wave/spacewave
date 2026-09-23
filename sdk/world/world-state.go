@@ -446,7 +446,7 @@ func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData 
 	if err != nil {
 		return 0, false, err
 	}
-	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
+	if err := resp.GetError(); err != nil {
 		return 0, false, err
 	}
 	return resp.Seqno, resp.SysErr, nil

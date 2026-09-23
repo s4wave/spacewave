@@ -55,6 +55,8 @@ import type {
 } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
 import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
+import { createAppPluginOperations } from '@s4wave/sdk/sync/plugin-operations.js'
+import type { AppRevision } from '@s4wave/sdk/sync/instance.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
@@ -95,6 +97,11 @@ import { InitNotebookOp, Notebook } from './proto/notebook.pb.js'
 import { CreateBlogOp } from './proto/blog.pb.js'
 import { CreateDocumentationOp, Documentation } from './proto/docs.pb.js'
 import { uploadSeedTree } from './unixfs-seed.js'
+import { notebookViews } from './saved-views.js'
+
+type SavedViewOperations = ReturnType<
+  typeof createAppPluginOperations<typeof notebookViews.schema>
+>
 
 type ViteManifestEntry = {
   frontendBinding?: Binding
@@ -155,6 +162,7 @@ async function resolveAssetPath(
   api: BackendAPI,
   signal: AbortSignal,
   srcPath: string,
+  manifestRoot: string,
 ): Promise<string> {
   const key = srcPath.replace(/^\.\//, '')
   const fsSvc = new FSCursorServiceClient(api.client, {
@@ -175,7 +183,10 @@ async function resolveAssetPath(
   if (entry?.frontendBinding) return frontendBindingPath(entry.frontendBinding)
   if (entry?.file) {
     const pluginId = api.startInfo.pluginId
-    return api.utils.pluginAssetHttpPath(pluginId!, 'v/b/fe/' + entry.file)
+    return api.utils.pluginAssetHttpPath(
+      `${pluginId}/manifest/${manifestRoot}`,
+      'v/b/fe/' + entry.file,
+    )
   }
   return srcPath
 }
@@ -184,6 +195,8 @@ async function resolveAssetPath(
 // notes plugin object types (notebook, blog, docs). Dispatches on typeId to
 // create the appropriate resource handler.
 class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
+  constructor(private readonly revision: Promise<AppRevision>) {}
+
   InvokeObjectType(
     request: InvokeObjectTypeRequest,
     _abortSignal: AbortSignal,
@@ -225,7 +238,11 @@ class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
           }
         }
         case 'notes/notebook': {
-          const resource = new NotebookResource(objectKey, engineRef)
+          const resource = new NotebookResource(
+            objectKey,
+            engineRef,
+            this.revision,
+          )
           return {
             mux: newResourceMux(
               createHandler(NotebookResourceServiceDefinition, resource),
@@ -248,12 +265,22 @@ class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
 // NotesWorldOpHandler implements WorldOpHandlerService for the notes plugin.
 // Handles world-level and object-level operations for notes types.
 class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
+  constructor(private readonly savedViews: SavedViewOperations) {}
+
   async ApplyWorldOp(
     request: ApplyWorldOpRequest,
     _abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const opTypeId = request.operationTypeId ?? ''
+    if (this.savedViews.handles(opTypeId)) {
+      return this.savedViews.handler.ApplyWorldOp(
+        request,
+        _abortSignal,
+        context,
+      )
+    }
+
     switch (opTypeId) {
       case INIT_NOTEBOOK_OP_ID:
         return this.applyInitNotebook(request, context)
@@ -566,8 +593,9 @@ export function startNotesBackend(
   }
 
   // Build root mux with ObjectTypeHandler and WorldOpHandler services.
-  const otHandler = new NotesObjectTypeHandler()
-  const opHandler = new NotesWorldOpHandler()
+  const savedViews = createAppPluginOperations(api, notebookViews, signal)
+  const otHandler = new NotesObjectTypeHandler(savedViews.revision)
+  const opHandler = new NotesWorldOpHandler(savedViews)
   const quickstartHandler = new NotesQuickstartHandler(pluginId)
   const rootMux = newResourceMux(
     createHandler(ObjectTypeHandlerServiceDefinition, otHandler),
@@ -583,6 +611,7 @@ export function startNotesBackend(
   const resourceRpcServer = new Server(outerMux.lookupMethod)
   const plugin = new NotesPlugin(resourceRpcServer)
   const pluginMux = createMux()
+  resourceServer.register(pluginMux)
   pluginMux.register(createHandler(PluginDefinition, plugin))
   const pluginServer = new Server(pluginMux.lookupMethod)
   api.handleStreamCtr.set((channel) => {
@@ -590,13 +619,7 @@ export function startNotesBackend(
     return Promise.resolve()
   })
 
-  // Connect to spacewave-core via plugin open stream.
-  const coreClient = new SRPCClient(api.buildPluginOpenStream('spacewave-core'))
-  const resourcesService = new ResourceServiceClient(coreClient)
-  const resourcesClient = new ResourcesClient(resourcesService, signal)
   const retained: unknown[] = [
-    coreClient,
-    resourcesClient,
     otHandler,
     opHandler,
     quickstartHandler,
@@ -614,6 +637,19 @@ export function startNotesBackend(
     const refs: ClientResourceRef[] = []
     const releaseRetained = retainUntilAbort(signal, refs, retained)
     try {
+      // Historical workers replay their exact operations without current registrations.
+      if ((await savedViews.info).historical) {
+        await waitForAbort(signal)
+        return
+      }
+      const coreClient = new SRPCClient(
+        api.buildPluginOpenStream('spacewave-core'),
+      )
+      const resourcesClient = new ResourcesClient(
+        new ResourceServiceClient(coreClient),
+        signal,
+      )
+      retained.push(coreClient, resourcesClient)
       const rootRef = await resourcesClient.accessRootResource()
       refs.push(rootRef)
       const retainRegistration = (
@@ -645,6 +681,9 @@ export function startNotesBackend(
         signal,
       )
       refs.push(retainRegistration(docsType.resourceId, 'docs object type'))
+
+      // Register typed saved-view operations alongside the existing Notes operations.
+      await savedViews.register(rootRef, (ref) => refs.push(ref))
 
       // Register WorldOps.
       const woSvc = new WorldOpRegistryResourceServiceClient(rootRef.client)
@@ -734,17 +773,38 @@ export function startNotesBackend(
       )
       refs.push(retainRegistration(blogWizard.resourceId, 'blog wizard'))
 
-      // Resolve viewer attachments from the current build's entrypoint manifest.
+      // Pin viewer assets to the same executable as the registered operations.
+      const { manifestRoot } = await savedViews.revision
       const [
         notebookViewerScript,
         blogViewerScript,
         docsViewerScript,
         notesWizardViewerScript,
       ] = await Promise.all([
-        resolveAssetPath(api, signal, './plugin/notes/NotebookViewer.tsx'),
-        resolveAssetPath(api, signal, './plugin/notes/BlogViewer.tsx'),
-        resolveAssetPath(api, signal, './plugin/notes/DocsViewer.tsx'),
-        resolveAssetPath(api, signal, './plugin/notes/NotesWizardViewer.tsx'),
+        resolveAssetPath(
+          api,
+          signal,
+          './plugin/notes/NotebookViewer.tsx',
+          manifestRoot,
+        ),
+        resolveAssetPath(
+          api,
+          signal,
+          './plugin/notes/BlogViewer.tsx',
+          manifestRoot,
+        ),
+        resolveAssetPath(
+          api,
+          signal,
+          './plugin/notes/DocsViewer.tsx',
+          manifestRoot,
+        ),
+        resolveAssetPath(
+          api,
+          signal,
+          './plugin/notes/NotesWizardViewer.tsx',
+          manifestRoot,
+        ),
       ])
 
       // Register Viewers.
@@ -913,7 +973,7 @@ export function startNotesBackend(
   })()
 
   return {
-    startup: Promise.resolve(),
+    startup: savedViews.revision.then(() => {}),
     done,
   }
 }

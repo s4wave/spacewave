@@ -2,11 +2,15 @@ package bldr_plugin
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/routine"
+	"github.com/pkg/errors"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // LoadPlugin is a directive to execute a plugin by ID using the best available host.
@@ -23,6 +27,14 @@ type LoadPlugin interface {
 	// key, creating a separate worker per instance.
 	// When empty, a single shared instance per plugin_id is used.
 	LoadPluginInstanceKey() string
+
+	// LoadPluginManifestRoot selects an exact manifest content hash.
+	// Empty follows the latest eligible manifest. A missing exact root never falls back.
+	LoadPluginManifestRoot() string
+
+	// LoadPluginManifests selects the installation and its recovery artifacts, newest first.
+	// Replacement uses prepared admission; nil follows normal catalog selection.
+	LoadPluginManifests() []*manifest.ManifestRef
 }
 
 // LoadPluginValue is the result type for LoadPlugin.
@@ -31,8 +43,10 @@ type LoadPluginValue = RunningPlugin
 
 // loadPlugin implements LoadPlugin
 type loadPlugin struct {
-	pluginID    string
-	instanceKey string
+	pluginID     string
+	instanceKey  string
+	manifestRoot string
+	manifests    []*manifest.ManifestRef
 }
 
 // NewLoadPlugin constructs a new LoadPlugin directive.
@@ -43,6 +57,20 @@ func NewLoadPlugin(pluginID string) LoadPlugin {
 // NewLoadPluginInstanced constructs a new LoadPlugin directive with an instance key.
 func NewLoadPluginInstanced(pluginID, instanceKey string) LoadPlugin {
 	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey}
+}
+
+// NewLoadPluginAtManifest requests an immutable executable within an existing binding.
+func NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot string) LoadPlugin {
+	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot}
+}
+
+// NewLoadPluginWithManifests selects an installation and its recovery artifacts.
+func NewLoadPluginWithManifests(pluginID, instanceKey string, refs ...*manifest.ManifestRef) LoadPlugin {
+	cloned := make([]*manifest.ManifestRef, len(refs))
+	for i, ref := range refs {
+		cloned[i] = ref.CloneVT()
+	}
+	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifests: cloned}
 }
 
 // ExLoadPlugin executes the LoadPlugin directive.
@@ -105,6 +133,19 @@ func ExPluginLoadInstancedWaitClient(
 ) (srpc.Client, directive.Reference, error) {
 	rp, _, rpRef, err := ExLoadPluginInstanced(ctx, b, false, pluginID, instanceKey, valDisposeCb)
 	return waitRunningPluginClient(rp, rpRef, err)
+}
+
+// ExPluginLoadAtManifestWaitClient loads exactly one retained manifest.
+// A missing or ineligible artifact returns an error rather than selecting newer code.
+func ExPluginLoadAtManifestWaitClient(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (srpc.Client, directive.Reference, error) {
+	rp, _, ref, err := bus.ExecWaitValue[RunningPlugin](
+		ctx, b, NewLoadPluginAtManifest(pluginID, "", manifestRoot),
+		bus.ReturnIfIdle(true), nil, nil,
+	)
+	if err == nil && rp == nil {
+		err = errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
+	}
+	return waitRunningPluginClient(rp, ref, err)
 }
 
 func waitRunningPluginClient(
@@ -194,6 +235,21 @@ func (d *loadPlugin) Validate() error {
 		return ErrEmptyPluginID
 	}
 
+	if d.manifestRoot != "" {
+		var root hash.Hash
+		if err := root.ParseFromB58(d.manifestRoot); err != nil {
+			return err
+		}
+		return root.Validate()
+	}
+	for _, ref := range d.manifests {
+		if err := ref.Validate(); err != nil {
+			return err
+		}
+		if ref.GetMeta().GetManifestId() != d.pluginID {
+			return errors.New("selected manifest does not match plugin ID")
+		}
+	}
 	return nil
 }
 
@@ -212,6 +268,16 @@ func (d *loadPlugin) LoadPluginInstanceKey() string {
 	return d.instanceKey
 }
 
+// LoadPluginManifestRoot returns the exact manifest root, or empty for latest selection.
+func (d *loadPlugin) LoadPluginManifestRoot() string {
+	return d.manifestRoot
+}
+
+// LoadPluginManifests returns immutable installation choices, newest first.
+func (d *loadPlugin) LoadPluginManifests() []*manifest.ManifestRef {
+	return d.manifests
+}
+
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
@@ -221,7 +287,9 @@ func (d *loadPlugin) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 	return d.LoadPluginID() == od.LoadPluginID() &&
-		d.LoadPluginInstanceKey() == od.LoadPluginInstanceKey()
+		d.LoadPluginInstanceKey() == od.LoadPluginInstanceKey() &&
+		d.LoadPluginManifestRoot() == od.LoadPluginManifestRoot() &&
+		slices.EqualFunc(d.LoadPluginManifests(), od.LoadPluginManifests(), (*manifest.ManifestRef).EqualVT)
 }
 
 // GetName returns the directive's type name.
@@ -237,6 +305,12 @@ func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 	vals["plugin-id"] = []string{d.LoadPluginID()}
 	if ik := d.LoadPluginInstanceKey(); ik != "" {
 		vals["instance-key"] = []string{ik}
+	}
+	if root := d.manifestRoot; root != "" {
+		vals["manifest-root"] = []string{root}
+	}
+	if len(d.manifests) != 0 {
+		vals["installed-root"] = []string{d.manifests[0].GetManifestRef().GetRootRef().GetHash().MarshalString()}
 	}
 	return vals
 }

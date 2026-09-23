@@ -119,6 +119,36 @@ export const WorldContents: MessageType<WorldContents> =
   })
 
 /**
+ * SpacePluginInstallation retains explicit installation choices across reopen.
+ *
+ * @generated from message space.world.SpacePluginInstallation
+ */
+export interface SpacePluginInstallation {
+  /**
+   * ManifestKeys lists immutable artifacts, newest installation first.
+   * Earlier choices recover a working plugin when the requested version fails.
+   *
+   * @generated from field: repeated string manifest_keys = 1;
+   */
+  manifestKeys?: string[]
+}
+
+export const SpacePluginInstallation: MessageType<SpacePluginInstallation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'space.world.SpacePluginInstallation',
+    fields: [
+      {
+        no: 1,
+        name: 'manifest_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * SpaceSettings is an object containing the settings for a Space.
  *
  * Note: the space name and other "public" details are in the SpaceSoMeta.
@@ -145,6 +175,13 @@ export interface SpaceSettings {
    * @generated from field: s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
    */
   keybindingOverrides?: KeybindingOverrideSet
+  /**
+   * PluginInstallations pins plugins to immutable World artifacts.
+   * Plugins without an installation follow their configured application catalog.
+   *
+   * @generated from field: map<string, space.world.SpacePluginInstallation> plugin_installations = 4;
+   */
+  pluginInstallations?: { [key: string]: SpacePluginInstallation }
 }
 
 export const SpaceSettings: MessageType<SpaceSettings> =
@@ -164,6 +201,13 @@ export const SpaceSettings: MessageType<SpaceSettings> =
         name: 'keybinding_overrides',
         kind: 'message',
         T: () => KeybindingOverrideSet,
+      },
+      {
+        no: 4,
+        name: 'plugin_installations',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => SpacePluginInstallation },
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

@@ -331,8 +331,6 @@ def e2e_release_wasm_launcher_config(web_go_compiler=None):
 # Web packages excluded by JS plugins that consume spacewave-web packages.
 EXCLUDED_WEB_PKGS = [
     web_pkg("@s4wave/web", exclude=True),
-    web_pkg("@fontsource-variable/manrope", exclude=True),
-    web_pkg("@fontsource/commit-mono", exclude=True),
     web_pkg("sonner", exclude=True),
 ]
 
@@ -490,11 +488,9 @@ manifest("spacewave-web",
                 "./dnd", "./download", "./editors/file-browser", "./forge", "./frame",
                 "./hooks", "./images", "./launcher", "./layout", "./object",
                 "./platform", "./router", "./sdk/app", "./space", "./state",
-                "./style", "./transform", "./ui", "./ui/credential",
+                "./style", "./sync", "./title", "./transform", "./ui", "./ui/credential",
                 "./ui/list", "./ui/loading", "./ui/tree",
             ]),
-            web_pkg("@fontsource-variable/manrope"),
-            web_pkg("@fontsource/commit-mono"),
             web_pkg("sonner"),
         ],
     },
@@ -525,6 +521,12 @@ js_plugin("spacewave-notes", rev=1, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/BlogViewer.tsx"),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/DocsViewer.tsx"),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotesWizardViewer.tsx"),
+])
+
+js_plugin("spacewave-colors", rev=1, modules=[
+    js_module("JS_MODULE_KIND_BACKEND", "./plugin/colors/backend.ts",
+              entrypoint=True),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/colors/ColorViewer.tsx"),
 ])
 
 js_plugin("spacewave-v86", rev=1, modules=[

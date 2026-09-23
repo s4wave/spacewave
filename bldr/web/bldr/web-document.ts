@@ -1,4 +1,3 @@
-import { FrontendResource } from './frontend.js'
 import {
   Client,
   RpcStreamHandler,
@@ -16,6 +15,11 @@ import {
 } from 'starpc'
 import { Workbox } from 'workbox-window'
 
+import {
+  FrontendClient,
+  FrontendDefinition,
+} from '../../frontend/frontend_srpc.pb.js'
+import { FrontendResource } from './frontend.js'
 import {
   WebViewStatus,
   WebDocumentStatus,
@@ -828,6 +832,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // pluginSingletonLockEnabled records whether this document contends for the
   // dedicated plugin worker singleton lock.
   private pluginSingletonLockEnabled = false
+  // pluginSingletonAcquired allows the host to schedule new workers in this document.
+  private pluginSingletonAcquired = false
   // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
   // firstWorkerCreationMarked records the first worker boundary once per document.
@@ -1073,7 +1079,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.client.setOpenStreamFn(this.openWebDocumentHostStream.bind(this))
     if (globalThis.__bldrFrontendEnabled) {
       this.frontend = new FrontendResource(
-        this.openWebDocumentHostStream.bind(this),
+        new FrontendClient(this.client, {
+          service: `devtool/${FrontendDefinition.typeName}`,
+        }),
       )
     }
 
@@ -1344,7 +1352,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       )
     }
     this.frontend ??= new FrontendResource(
-      this.openWebDocumentHostStream.bind(this),
+      new FrontendClient(this.client, {
+        service: `devtool/${FrontendDefinition.typeName}`,
+      }),
     )
     return this.frontend.resolve(entrypoint)
   }
@@ -1463,6 +1473,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       hidden: this.hidden,
       webViews,
       webWorkers,
+      pluginWorkersBlocked:
+        this.pluginSingletonLockEnabled && !this.pluginSingletonAcquired,
     }
   }
 
@@ -2128,6 +2140,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // pushChangeEvent pushes a change event to the webStatusStream
   private async pushChangeEvent(status: WebDocumentStatus) {
+    status.pluginWorkersBlocked =
+      this.pluginSingletonLockEnabled && !this.pluginSingletonAcquired
     this.webStatusStream.pushChangeEvent(status)
     if (this.hasListener('webdocumentstatuschange')) {
       const snap = await this.webStatusStream.snapshot
@@ -2196,6 +2210,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   private releasePluginSingletonLock() {
+    this.pluginSingletonAcquired = false
     if (this.singletonAbort) {
       this.singletonAbort.abort()
       this.singletonAbort = undefined
@@ -2225,6 +2240,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           `bldr-plugin-singleton-${this.webRuntimeId}`,
           { signal: this.singletonAbort!.signal },
           () => {
+            this.pluginSingletonAcquired = true
+            void this.pushChangeEvent({ hidden: this.hidden })
             console.log('WebDocument: acquired plugin singleton lock')
             markStartupBoundary('singleton-lock.acquired', {
               source: 'browser',

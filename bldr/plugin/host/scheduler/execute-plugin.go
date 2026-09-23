@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -22,12 +23,22 @@ import (
 type executePluginArgs struct {
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
 	pluginHost       bldr_plugin_host.PluginHost
+	installation     *installedManifests
+	fallbacks        []*executePluginArgs
 }
 
 // executePluginArgsEqual compares two executePluginArgs for equality.
 func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	if a == nil || b == nil {
 		return a == b
+	}
+	if a.installation != b.installation || len(a.fallbacks) != len(b.fallbacks) {
+		return false
+	}
+	for i, fallback := range a.fallbacks {
+		if !executePluginArgsEqual(fallback, b.fallbacks[i]) {
+			return false
+		}
 	}
 
 	manifestEqual := (a.manifestSnapshot == nil) == (b.manifestSnapshot == nil)
@@ -49,9 +60,7 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	return pluginHostEqual
 }
 
-// execPlugin executes the plugin.
-// execPlugin executes the plugin with the given manifest snapshot on a
-// plugin host.
+// execPlugin runs one immutable worker until its owned execution ends.
 func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) (rerr error) {
 	if args == nil ||
 		args.manifestSnapshot == nil ||
@@ -61,14 +70,19 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	}
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
 	defer task.End()
+	defer t.updateRpcClient(nil)
 	t.ensureAccessProviders()
 	defer func() {
 		if rerr != nil {
 			trace.Log(ctx, "manifest-copy-phase", "error")
-			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
+			if !t.physical {
+				t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
+			}
 			return
 		}
-		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
+		if !t.physical {
+			t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
+		}
 	}()
 	pluginManifest := args.manifestSnapshot
 	pluginID, le := t.pluginID, t.le
@@ -134,6 +148,16 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		distFS,
 		assetsFS *unixfs.FSHandle,
 	) error {
+		// Retain executable identity even when startup bypasses the catalog store.
+		// Exact replay needs the reference, without requiring an eager DAG copy.
+		if t.manifestRoot == "" && (t.c.conf.GetDisableStoreManifest() || args.installation != nil) {
+			ref := bldr_manifest.NewManifestRef(manifest.GetMeta(), pluginManifest.GetManifestRef())
+			if err := manifest_world.ExStoreManifestOp(ctx, ws, t.c.peerID,
+				bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef()), []string{t.c.objKey}, ref); err != nil {
+				return err
+			}
+		}
+
 		if demandObservation != nil {
 			snapshot := demandObservation.snapshot()
 			if snapshot.BlockReadCount != 0 {
@@ -146,7 +170,33 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		defer t.distAccess.SetBlocked()
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
 		defer t.assetsAccess.SetBlocked()
-		t.emitPluginManifestRoot(pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString())
+		manifestRoot := pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString()
+		if !t.physical {
+			t.emitPluginManifestRoot(manifestRoot)
+		}
+
+		// Current executions also publish immutable files. A viewer or module URL
+		// must never silently resolve to a later revision with the same plugin ID.
+		if t.manifestRoot == "" {
+			artifactID := bldr_plugin.PluginArtifactID(pluginID, manifestRoot)
+			for _, files := range []struct {
+				id string
+				fs *unixfs.FSHandle
+			}{
+				{bldr_plugin.PluginDistFsId(artifactID), distFS},
+				{bldr_plugin.PluginAssetsFsId(artifactID), assetsFS},
+			} {
+				ctrl := unixfs_access.NewController(t.le, t.c.bus,
+					controller.NewInfo(ControllerID+"/"+files.id, Version, "immutable plugin files"),
+					[]string{files.id}, unixfs_access.NewAccessUnixFSFunc(files.fs))
+				defer ctrl.Close()
+				release, err := t.c.bus.AddController(ctx, ctrl, nil)
+				if err != nil {
+					return err
+				}
+				defer release()
+			}
+		}
 
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
 			ctx,
@@ -173,6 +223,9 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			assetsFS,
 			hostRoot,
 			t.finishInitialCapabilityRegistration,
+			t.manifestRoot != "",
+			t.prepared,
+			t.bindingKey,
 		)
 		defer relHostMux()
 
@@ -180,15 +233,13 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			ctx,
 			pluginID,
 			t.instanceKey,
+			manifestRoot,
 			manifest.GetEntrypoint(),
 			distFS,
 			assetsFS,
 			hostMux,
 			func(client srpc.Client) error { t.updateRpcClient(client); return nil },
 		)
-
-		// clear the rpc client after the plugin exits
-		t.updateRpcClient(nil)
 
 		// handle if the plugin returned an error
 		if execErr != nil {
@@ -276,6 +327,12 @@ func (t *pluginInstance) updatePluginLoadState(
 func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadState) {
 	running := state.GetRunningPlugin()
 	t.runningPluginCtr.SetValue(running)
+	if t.onLoadState != nil {
+		t.onLoadState(state)
+	}
+	if t.physical {
+		return
+	}
 	if running == nil {
 		t.le.Debug("plugin is awaiting initial capability registration")
 		t.c.setPluginStatus(

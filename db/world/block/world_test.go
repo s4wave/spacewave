@@ -1331,6 +1331,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer rtx.Discard()
 
 	// Capture the second published root reference.
 	state2 := eng.GetRootRef()
@@ -1355,19 +1356,34 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Roll back the engine root and verify the read transaction follows it.
+	// Roll back the engine root while retaining the reader's immutable revision.
 	err = eng.SetRootRef(ctx, state1)
 
-	// Re-read the current revision through the existing read transaction.
+	// The existing reader remains at its captured revision.
 	if err == nil {
 		var rev uint64
 		_, rev, err = obj1.GetRootRef(ctx)
-		if err == nil && rev != rev2-1 {
-			err = errors.Errorf("expected rev %d - 1 = %d but got %d", rev2, rev2-1, rev)
+		if err == nil && rev != rev2 {
+			err = errors.Errorf("expected snapshot rev %d but got %d", rev2, rev)
 		}
 	}
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+
+	fresh, err := eng.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fresh.Discard()
+	rolledBack, err := world.MustGetObject(ctx, fresh, objKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer world.ReleaseObjectState(rolledBack)
+	_, rollbackRev, err := rolledBack.GetRootRef(ctx)
+	if err != nil || rollbackRev != rev2-1 {
+		t.Fatalf("new reader after rollback: rev=%d err=%v", rollbackRev, err)
 	}
 
 	// Confirm the prior write transaction was discarded by the rollback.

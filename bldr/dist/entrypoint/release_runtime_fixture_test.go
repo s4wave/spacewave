@@ -432,7 +432,7 @@ func (h *releaseFixturePluginHost) ListPlugins(context.Context) ([]string, error
 // ExecutePlugin records admission and holds the executable until cancellation.
 func (h *releaseFixturePluginHost) ExecutePlugin(
 	ctx context.Context,
-	pluginID, instanceKey, entrypoint string,
+	pluginID, instanceKey, manifestRoot, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostRpcMux srpc.Mux,
 	rpcInit bldr_plugin_host.PluginRpcInitCb,

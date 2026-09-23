@@ -2,10 +2,13 @@ package plugin_host
 
 import (
 	"context"
+	"sync/atomic"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
@@ -15,19 +18,20 @@ import (
 
 // pluginHostServerFsTracker tracks a plugin fs for ongoing rpc calls for the plugin host server.
 type pluginHostServerFsTracker struct {
-	// s is the server
+	// s owns the bus and tracker lifetime.
 	s *PluginHostServer
-	// pluginID is the plugin id
+	// pluginID selects the family and optional immutable manifest.
 	pluginID string
-	// resultPromiseCtr contains the plugin reference.
+	// resultPromiseCtr publishes available services or their load failure.
 	resultPromiseCtr *promise.PromiseContainer[*pluginHostServerFsTrackerResult]
 }
 
-// pluginHostServerFsTrackerResult is the loaded result of the pluginHostServerFsTracker
+// pluginHostServerFsTrackerResult exposes filesystem services for one retained execution.
 type pluginHostServerFsTrackerResult struct {
-	assetsUnixFSID, distUnixFSID string
-	assetsFSCursor, distFSCursor unixfs.FSCursor
-	assetsMux, distMux           srpc.Mux
+	// assetsMux serves immutable plugin assets.
+	assetsMux srpc.Mux
+	// distMux serves immutable plugin distribution files.
+	distMux srpc.Mux
 }
 
 // newPluginHostServerFsTracker constructs a new plugin host server fs tracker.
@@ -40,79 +44,120 @@ func (s *PluginHostServer) newPluginHostServerFsTracker(pluginID string) (keyed.
 	return tr.execute, tr
 }
 
-// execute executes the tracker.
-func (t *pluginHostServerFsTracker) execute(rctx context.Context) error {
-	resolve := func() error {
-		t.resultPromiseCtr.SetPromise(nil)
-
-		ctx, ctxCancel := context.WithCancel(rctx)
-		defer ctxCancel()
-
-		pluginID := t.pluginID
-		if pluginID != t.s.pluginID {
-			// if the plugin id is not the same as the plugin host (cross-plugin reference) add a plugin load directive
-			_, _, pluginRef, err := bldr_plugin.ExLoadPlugin(ctx, t.s.b, false, pluginID, ctxCancel)
-			if err != nil {
-				return err
-			}
-			defer pluginRef.Release()
+// execute retains the demanded plugin and filesystem services until release or load failure.
+func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
+	// The keyed tracker owns retry; publish each terminal load failure to waiters.
+	t.resultPromiseCtr.SetPromise(nil)
+	defer func() {
+		if rerr != nil && rctx.Err() == nil {
+			t.resultPromiseCtr.SetResult(nil, rerr)
 		}
+	}()
 
-		// build the plugin unixfs ids
-		assetsUnixFSID := bldr_plugin.PluginAssetsFsId(pluginID)
-		distUnixFSID := bldr_plugin.PluginDistFsId(pluginID)
+	ctx, ctxCancel := context.WithCancelCause(rctx)
+	defer ctxCancel(context.Canceled)
 
-		// build the access funcs
-		assetsAccessFunc := unixfs_access.NewAccessUnixFSViaBusFunc(t.s.b, assetsUnixFSID, false)
-		distAccessFunc := unixfs_access.NewAccessUnixFSViaBusFunc(t.s.b, distUnixFSID, false)
-
-		// build the fscursors
-		assetsFsCursor := unixfs_access.NewFSCursor(assetsAccessFunc)
-		defer assetsFsCursor.Release()
-
-		distFsCursor := unixfs_access.NewFSCursor(distAccessFunc)
-		defer distFsCursor.Release()
-
-		// build the muxes
-		assetsMux, distMux := srpc.NewMux(nil), srpc.NewMux(nil)
-
-		// build the servers
-		assetsFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(assetsFsCursor)
-		defer assetsFsCursorServiceServer.Release(true)
-
-		distFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(distFsCursor)
-		defer distFsCursorServiceServer.Release(true)
-
-		// register to muxes
-		_ = unixfs_rpc.SRPCRegisterFSCursorService(assetsMux, assetsFsCursorServiceServer)
-		_ = unixfs_rpc.SRPCRegisterFSCursorService(distMux, distFsCursorServiceServer)
-
-		// write result
-		t.resultPromiseCtr.SetResult(&pluginHostServerFsTrackerResult{
-			assetsUnixFSID: assetsUnixFSID,
-			distUnixFSID:   distUnixFSID,
-			assetsFSCursor: assetsFsCursor,
-			distFSCursor:   distFsCursor,
-			assetsMux:      assetsMux,
-			distMux:        distMux,
-		}, nil)
-
-		// await context cancel
-		<-ctx.Done()
-
-		return context.Canceled
+	pluginID := t.pluginID
+	familyID, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(pluginID, false)
+	if err != nil {
+		return err
+	}
+	self := familyID == t.s.pluginID && (manifestRoot == "" || manifestRoot == t.s.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString())
+	if !self {
+		// Retain execution without waiting for startup: a worker needs these files
+		// before it can connect and report capability-registration completion.
+		var running atomic.Int32
+		load, pluginRef, err := t.s.b.AddDirective(
+			bldr_plugin.NewLoadPluginAtManifest(familyID, t.s.instanceKey, manifestRoot),
+			directive.NewCallbackHandler(
+				func(directive.AttachedValue) { running.Add(1) },
+				func(directive.AttachedValue) { running.Add(-1) },
+				func() { ctxCancel(errors.New("plugin file provider was released")) },
+			),
+		)
+		if err != nil {
+			return err
+		}
+		defer pluginRef.Release()
+		defer load.AddIdleCallback(func(idle bool, errs []error) {
+			if !idle || running.Load() != 0 {
+				return
+			}
+			for _, err := range errs {
+				if err != nil && !errors.Is(err, context.Canceled) {
+					ctxCancel(err)
+					return
+				}
+			}
+			ctxCancel(errors.New("plugin executable is unavailable: " + pluginID))
+		})()
 	}
 
-	// retry loop (if plugins reload)
-	for {
-		rerr := resolve()
+	// Resolve filesystem providers without waiting for backend registration.
+	assetsUnixFSID := bldr_plugin.PluginAssetsFsId(pluginID)
+	distUnixFSID := bldr_plugin.PluginDistFsId(pluginID)
 
-		// if outer context canceled, return error. otherwise retry.
-		if err := rctx.Err(); err != nil {
-			return context.Canceled
+	assetsAccessFunc := t.accessFiles(ctx, assetsUnixFSID)
+	distAccessFunc := t.accessFiles(ctx, distUnixFSID)
+
+	// Retain cursors and their RPC services for this execution.
+	assetsFsCursor := unixfs_access.NewFSCursor(assetsAccessFunc)
+	defer assetsFsCursor.Release()
+
+	distFsCursor := unixfs_access.NewFSCursor(distAccessFunc)
+	defer distFsCursor.Release()
+
+	assetsMux, distMux := srpc.NewMux(nil), srpc.NewMux(nil)
+
+	assetsFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(assetsFsCursor)
+	defer assetsFsCursorServiceServer.Release(true)
+
+	distFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(distFsCursor)
+	defer distFsCursorServiceServer.Release(true)
+
+	// Publish services only after both cursors have cleanup registered.
+	_ = unixfs_rpc.SRPCRegisterFSCursorService(assetsMux, assetsFsCursorServiceServer)
+	_ = unixfs_rpc.SRPCRegisterFSCursorService(distMux, distFsCursorServiceServer)
+
+	t.resultPromiseCtr.SetResult(&pluginHostServerFsTrackerResult{
+		assetsMux: assetsMux,
+		distMux:   distMux,
+	}, nil)
+
+	// A terminal load failure cancels active reads before retrying the tracker.
+	<-ctx.Done()
+
+	return context.Cause(ctx)
+}
+
+// accessFiles binds filesystem acquisition to the tracked execution without waiting
+// for registration. Worker startup can fetch its modules before it reports ready;
+// failed loading cancels a blocked read and invalidates acquired cursors.
+func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id string) unixfs_access.AccessUnixFSFunc {
+	access := unixfs_access.NewAccessUnixFSViaBusFunc(t.s.b, id, false)
+	return func(caller context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		ctx, cancel := context.WithCancelCause(caller)
+		stop := context.AfterFunc(lifetime, func() {
+			cancel(context.Cause(lifetime))
+			if released != nil {
+				released()
+			}
+		})
+		handle, release, err := access(ctx, released)
+		if err != nil {
+			stop()
+			cause := context.Cause(ctx)
+			cancel(context.Canceled)
+			if cause != nil {
+				err = cause
+			}
+			return nil, nil, err
 		}
-		if rerr != nil && rerr != context.Canceled {
-			return rerr
-		}
+
+		return handle, func() {
+			stop()
+			cancel(context.Canceled)
+			release()
+		}, nil
 	}
 }

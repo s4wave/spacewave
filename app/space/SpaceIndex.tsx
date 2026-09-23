@@ -124,11 +124,9 @@ export function SpaceIndex() {
       return
     }
     repairedIndexPathRef.current = repairKey
-    void applySpaceIndexPath(
-      spaceWorld,
-      spaceState.settings,
-      redirectPath,
-    ).then(
+    void applySpaceIndexPath(spaceWorld, redirectPath, {
+      expectedIndexPath: indexPath ?? '',
+    }).then(
       () => {
         const label = parseObjectUri(redirectPath).objectKey || redirectPath
         toast.success(`Default object updated to ${label}`)

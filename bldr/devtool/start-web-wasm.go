@@ -177,8 +177,9 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	startupManifestPreflights []StartupManifestPreflight,
 	webStartupSrcPath string,
 	forceDedicatedWorkers bool,
+	frontendService *bldr_project_controller.FrontendService,
 ) error {
-	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, nil, nil)
+	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, frontendService, nil)
 }
 
 // executeWebWasm builds the wasm web entrypoint and serves it over HTTP

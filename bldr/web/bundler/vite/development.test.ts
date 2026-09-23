@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { Agent, get } from 'node:http'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
@@ -14,6 +21,7 @@ import {
 } from './development-client.js'
 import { DevelopmentConfig } from './vite.pb.js'
 import { SendRequest } from '../../../frontend/frontend.pb.js'
+import { FrontendResource } from '../../bldr/frontend.js'
 
 const require = createRequire(import.meta.url)
 const repoRoot = resolve(
@@ -27,12 +35,16 @@ it('guards the installed Vite client and rewrites module specifiers only', async
     'dist/client/client.mjs',
   )
   const code = await readFile(clientPath, 'utf8')
-  expect(adaptDevelopmentClient(code)).toContain(
+  expect(adaptDevelopmentClient(code, 'test')).toContain(
     'return frontend.connect(handlers)',
+  )
+  expect(adaptDevelopmentClient(code, 'test')).toContain(
+    'globalThis.__bldrFrontends?.get("test")',
   )
   expect(() =>
     adaptDevelopmentClient(
       code.replace('const transport =', 'const changedTransport ='),
+      'test',
     ),
   ).toThrow('unsupported Vite client')
   expect(
@@ -55,7 +67,16 @@ it('serves a real graph, emits CSS and custom updates, and closes its listener',
   const cssPath = join(root, 'app.css')
   await writeFile(
     appPath,
-    'import React from "react"; export { useResource } from "@aptre/bldr-sdk/hooks/useResource.js"; import "./app.css"; export default function App() { return <button>before</button> }',
+    `import React from "react"
+export { useResource } from "@aptre/bldr-sdk/hooks/useResource.js"
+export { useAppQuery } from "@s4wave/web/sync/app-hooks.js"
+import "./app.css"
+export default function App() { return <button>before</button> }
+export async function releaseProvider() {
+  using provider = { [Symbol.dispose]() {} }
+  return provider
+}
+`,
   )
   await writeFile(cssPath, 'button { color: red }')
   await writeFile(
@@ -80,10 +101,14 @@ export default { server: { watch: { ignored: [] } }, plugins: [react(), { name: 
       cacheDir: join(root, 'cache'),
       entrypoints: ['App.tsx'],
       externalPkgs: ['react', 'react-dom'],
+      webPkgIds: ['@s4wave/web'],
       sessionId: 'test',
     }),
   )
   const abort = new AbortController()
+  const attachments: FrontendResource[] = []
+  let secondEnvironment: DevelopmentEnvironment | undefined
+  let secondRoot: string | undefined
   let privateURL: string | undefined
   try {
     const result = await environment.start()
@@ -93,12 +118,78 @@ export default { server: { watch: { ignored: [] } }, plugins: [react(), { name: 
     expect((await updates.next()).value?.session?.routePrefix).toBe(
       '/b/fe/test/',
     )
+
+    // Two retained compilers in one document keep independent transports.
+    secondRoot = await mkdtemp(join(temporaryRoot, 'frontend-environment-'))
+    for (const file of ['App.tsx', 'app.css', 'vite.config.ts']) {
+      await copyFile(join(root, file), join(secondRoot, file))
+    }
+    secondEnvironment = new DevelopmentEnvironment(
+      DevelopmentConfig.create({
+        rootDir: secondRoot,
+        distDir: join(repoRoot, 'bldr'),
+        cacheDir: join(secondRoot, 'cache'),
+        entrypoints: ['App.tsx'],
+        externalPkgs: ['react', 'react-dom'],
+        webPkgIds: ['@s4wave/web'],
+        sessionId: 'second',
+      }),
+    )
+    await secondEnvironment.start()
+    const invalidated: Error[] = []
+    for (const compiler of [environment, secondEnvironment]) {
+      attachments.push(
+        new FrontendResource(
+          {
+            Watch: (_request, signal) => compiler.watch(signal),
+            Send: async (request) => {
+              compiler.send(request)
+              return {}
+            },
+          },
+          (error) => invalidated.push(error),
+        ),
+      )
+    }
+    const [first, second] = attachments
+    expect((await first.getSession()).routePrefix).toBe('/b/fe/test/')
+    expect((await second.getSession()).routePrefix).toBe('/b/fe/second/')
+    expect(globalThis.__bldrFrontends?.get('test')).toBe(first)
+    expect(globalThis.__bldrFrontends?.get('second')).toBe(second)
+
+    // Releasing one authoring view leaves the other compiler connected.
+    first.release()
+    await expect(first.resolve('App.tsx')).rejects.toThrow('attachment closed')
+    expect(globalThis.__bldrFrontends?.has('test')).toBe(false)
+    const received: unknown[] = []
+    let resolveReply!: () => void
+    const receivedReply = new Promise<void>((resolve) => {
+      resolveReply = resolve
+    })
+    await second.connect({
+      onMessage(payload) {
+        received.push(payload)
+        if ((payload as { type: string }).type === 'custom') resolveReply()
+      },
+    })
+    await second.send({ type: 'custom', event: 'bldr:echo', data: 19 })
+    await receivedReply
+    expect(received).toEqual([
+      { type: 'connected' },
+      { type: 'custom', event: 'bldr:reply', data: 19 },
+    ])
+    expect(invalidated).toEqual([])
+
+    // The first compiler remains available to its independent raw subscriber.
     const module = await fetch(privateURL + '/b/fe/test/App.tsx?t=1')
     expect(module.status).toBe(200)
     const source = await module.text()
+    expect(source).toContain('releaseProvider')
+    expect(source).not.toMatch(/\busing provider\b/)
     expect(source).toContain('from "react"')
+    expect(source).toContain('/b/pkg/@s4wave/web/sync/app-hooks.mjs')
     expect(source).toContain('/sdk/hooks/useResource.tsx')
-    expect(source).toContain('/bldr-dev/frontend-refresh/test.mjs')
+    expect(source).toContain('/b/fe/test/@react-refresh')
     const css = await fetch(privateURL + '/b/fe/test/app.css')
     expect(await css.text()).toContain('__vite__updateStyle')
 
@@ -150,8 +241,11 @@ export default { server: { watch: { ignored: [] } }, plugins: [react(), { name: 
       agent.destroy()
     }
   } finally {
+    for (const attachment of attachments) attachment.release()
     abort.abort()
+    await secondEnvironment?.close()
     await environment.close()
+    if (secondRoot) await rm(secondRoot, { recursive: true, force: true })
     await rm(root, { recursive: true, force: true })
   }
   await expect(fetch(privateURL + '/b/fe/test/App.tsx')).rejects.toThrow()

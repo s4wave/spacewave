@@ -24,3 +24,17 @@ export type {
 export { SyncError } from '../../sdk/sync/errors.js'
 export type { SyncErrorCode } from '../../sdk/sync/errors.js'
 export type { JsonValue } from '../../sdk/sync/json.js'
+export { defineApp } from '../../sdk/sync/app.js'
+export type {
+  AppDefinition,
+  AppMutation,
+  AppSource,
+  AppMigration,
+  AppMigrationContext,
+} from '../../sdk/sync/app.js'
+export { defineQuery } from '../../sdk/sync/query.js'
+export type {
+  QueryContext,
+  QueryDefinition,
+  LiveQuerySnapshot,
+} from '../../sdk/sync/query.js'

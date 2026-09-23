@@ -129,14 +129,12 @@ func TestPluginCompilerJs(t *testing.T) {
 	// start the manifest builder controller
 	engineID := tb.GetWorldEngineID()
 	peerID := tb.GetVolume().GetPeerID().String()
-	manifestKey := bldr_manifest.NewManifestKey(pluginHostKey, manifestMeta)
 	storeLinkObjKeys := []string{pluginHostKey}
 	manifestBuilderConf := &bldr_manifest_builder.BuilderConfig{
 		ProjectId:      projectID,
 		ManifestMeta:   manifestMeta,
 		EngineId:       engineID,
 		PeerId:         peerID,
-		ObjectKey:      manifestKey,
 		LinkObjectKeys: storeLinkObjKeys,
 		// Use the monorepo root as the dist source path so vendor/ and sibling
 		// packages are visible during test builds.

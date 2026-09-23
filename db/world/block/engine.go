@@ -74,8 +74,8 @@ type Engine struct {
 	writeTx *EngineTx
 	// writeTxRel releases wmtx after the detached write transaction drains.
 	writeTxRel func()
-	// coordinatorTxs tracks dedicated read snapshots owned by caller-held EngineTx values.
-	coordinatorTxs map[*EngineTx]struct{}
+	// snapshotTxs tracks immutable read snapshots owned by caller-held EngineTx values.
+	snapshotTxs map[*EngineTx]struct{}
 	// retiring counts detached resource sets that have not finished draining.
 	retiring int
 	// committing counts write commits that own coordinator cleanup outside bcast.
@@ -200,7 +200,7 @@ func NewEngine(
 		commitFn:       commitFn,
 		durableHeadRef: root.GetRef().Clone(),
 		verbose:        verbose,
-		coordinatorTxs: make(map[*EngineTx]struct{}),
+		snapshotTxs:    make(map[*EngineTx]struct{}),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -633,8 +633,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/new-block-engine-transaction")
 	defer task.End()
 
-	// Read-only transactions share the Engine head unless coordinator mode needs
-	// a dedicated snapshot.
+	// Read-only transactions retain one immutable World revision until Discard.
 	if !write {
 		if err := e.refreshReadHead(ctx); err != nil {
 			return nil, err
@@ -647,14 +646,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 			return nil, ErrEngineClosed
 		}
 
-		// Uncoordinated readers use the shared head through performOp retries.
-		if e.writeCoordinator == nil {
-			engTx := newEngineTx(e, nil)
-			locked.Unlock()
-			return engTx, nil
-		}
-
-		// Coordinator readers own a dedicated snapshot tracked for Engine.Close.
+		// Each reader owns a dedicated snapshot tracked for Engine.Close.
 		world, err := e.buildWorldState(ctx, true)
 		if err != nil {
 			locked.Unlock()
@@ -662,7 +654,8 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		}
 		engTx := newEngineTx(e, nil)
 		engTx.readTx = NewTx(world)
-		e.coordinatorTxs[engTx] = struct{}{}
+		engTx.readRoot = e.head.root.GetRef().Clone()
+		e.snapshotTxs[engTx] = struct{}{}
 		locked.Unlock()
 		return engTx, nil
 	}
@@ -1097,7 +1090,7 @@ func (e *Engine) Close() error {
 	e.closed = true
 
 	// Detach every Engine-owned resource while publication is closed.
-	retirements := make([]engineRetirement, 0, len(e.coordinatorTxs)+1)
+	retirements := make([]engineRetirement, 0, len(e.snapshotTxs)+1)
 	retirement := engineRetirement{head: e.head}
 	e.head = nil
 	if e.writeTx != nil {
@@ -1111,7 +1104,7 @@ func (e *Engine) Close() error {
 	if !retirement.empty() {
 		retirements = append(retirements, e.beginRetirementLocked(retirement))
 	}
-	for tx := range e.coordinatorTxs {
+	for tx := range e.snapshotTxs {
 		txRetirement := e.beginRetirementLocked(tx.detachLocked())
 		if !txRetirement.empty() {
 			retirements = append(retirements, txRetirement)

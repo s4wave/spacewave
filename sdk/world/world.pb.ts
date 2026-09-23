@@ -221,6 +221,12 @@ export interface GetEngineInfoResponse {
    * @generated from field: s4wave.world.EngineInfo engine_info = 1;
    */
   engineInfo?: EngineInfo
+  /**
+   * SessionPeerId is the authenticated sender bound to this Resource, when present.
+   *
+   * @generated from field: string session_peer_id = 2;
+   */
+  sessionPeerId?: string
 }
 
 export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
@@ -228,6 +234,7 @@ export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
     typeName: 's4wave.world.GetEngineInfoResponse',
     fields: [
       { no: 1, name: 'engine_info', kind: 'message', T: () => EngineInfo },
+      { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2210,6 +2217,18 @@ export interface ApplyWorldOpResponse {
    * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
    */
   errorCode?: WorldErrorCode
+  /**
+   * RejectionCode is a stable application-defined rejection code.
+   *
+   * @generated from field: string rejection_code = 4;
+   */
+  rejectionCode?: string
+  /**
+   * RejectionMessage is the safe explanation of a rejected operation.
+   *
+   * @generated from field: string rejection_message = 5;
+   */
+  rejectionMessage?: string
 }
 
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
@@ -2219,6 +2238,13 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
+      { no: 4, name: 'rejection_code', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'rejection_message',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2808,6 +2834,18 @@ export interface ApplyObjectOpResponse {
    * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
    */
   errorCode?: WorldErrorCode
+  /**
+   * RejectionCode is a stable application-defined rejection code.
+   *
+   * @generated from field: string rejection_code = 4;
+   */
+  rejectionCode?: string
+  /**
+   * RejectionMessage is the safe explanation of a rejected operation.
+   *
+   * @generated from field: string rejection_message = 5;
+   */
+  rejectionMessage?: string
 }
 
 export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
@@ -2817,6 +2855,13 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
+      { no: 4, name: 'rejection_code', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'rejection_message',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2960,6 +3005,137 @@ export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ObjectRecordBase identifies a previous immutable root for one watched collection.
+ *
+ * @generated from message s4wave.world.ObjectRecordBase
+ */
+export interface ObjectRecordBase {
+  /**
+   * ObjectKey identifies the collection object in this World.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RootRef is the immutable root from the previous query snapshot.
+   *
+   * @generated from field: bucket.ObjectRef root_ref = 2;
+   */
+  rootRef?: ObjectRef
+}
+
+export const ObjectRecordBase: MessageType<ObjectRecordBase> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectRecordBase',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CompareObjectRecordsRequest selects previous roots to compare with this snapshot.
+ *
+ * @generated from message s4wave.world.CompareObjectRecordsRequest
+ */
+export interface CompareObjectRecordsRequest {
+  /**
+   * Bases contains at most 256 watched collection roots.
+   *
+   * @generated from field: repeated s4wave.world.ObjectRecordBase bases = 1;
+   */
+  bases?: ObjectRecordBase[]
+}
+
+export const CompareObjectRecordsRequest: MessageType<CompareObjectRecordsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CompareObjectRecordsRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'bases',
+        kind: 'message',
+        T: () => ObjectRecordBase,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ObjectRecordChanges lists changed keys without materializing unchanged records.
+ *
+ * @generated from message s4wave.world.ObjectRecordChanges
+ */
+export interface ObjectRecordChanges {
+  /**
+   * ObjectKey identifies the requested collection.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Keys contains inserted, deleted, and changed record keys.
+   *
+   * @generated from field: repeated bytes keys = 2;
+   */
+  keys?: Uint8Array[]
+  /**
+   * Unknown requires full reevaluation when a root is unavailable or the comparison exceeds its bounds.
+   *
+   * @generated from field: bool unknown = 3;
+   */
+  unknown?: boolean
+}
+
+export const ObjectRecordChanges: MessageType<ObjectRecordChanges> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectRecordChanges',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'keys',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        repeated: true,
+      },
+      { no: 3, name: 'unknown', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CompareObjectRecordsResponse contains one result per requested base, in request order.
+ *
+ * @generated from message s4wave.world.CompareObjectRecordsResponse
+ */
+export interface CompareObjectRecordsResponse {
+  /**
+   * Changes corresponds to Bases in request order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectRecordChanges changes = 1;
+   */
+  changes?: ObjectRecordChanges[]
+}
+
+export const CompareObjectRecordsResponse: MessageType<CompareObjectRecordsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CompareObjectRecordsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'changes',
+        kind: 'message',
+        T: () => ObjectRecordChanges,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

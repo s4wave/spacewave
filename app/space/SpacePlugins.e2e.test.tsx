@@ -1,11 +1,4 @@
-/**
- * Browser E2E screenshots for the SpacePlugins management panel.
- *
- * Renders the panel in the same InfoCard the space details panel wraps it in
- * and captures each interactive state (installed list, empty, add form, remove
- * confirm) for visual review. Runs with no backend: the Space resource and the
- * contents watch stream are mocked.
- */
+// Exercise the plugin panel with a controlled Space contents stream.
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
@@ -34,15 +27,22 @@ const spaceMock = {
   removeSpacePlugin: mocks.removeSpacePlugin,
 }
 
-vi.mock('@aptre/bldr-react', () => ({
+vi.mock('@aptre/bldr-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@aptre/bldr-react')>()),
   useWatchStateRpc: mocks.useWatchStateRpc,
 }))
 
-vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
+vi.mock('@aptre/bldr-sdk/hooks/useResource.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@aptre/bldr-sdk/hooks/useResource.js')
+  >()),
   useResourceValue: mocks.useResourceValue,
 }))
 
-vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@s4wave/web/contexts/contexts.js')
+  >()),
   SpaceContext: { useContext: () => spaceResource },
   SpaceContentsContext: { useContext: () => contentsResource },
 }))
@@ -53,8 +53,7 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 
 import { SpacePlugins } from './SpacePlugins.js'
 
-// PanelFrame mimics the space details panel column that wraps SpacePlugins in
-// an InfoCard on the app background, so screenshots match production chrome.
+// PanelFrame uses the Space details panel layout.
 function PanelFrame() {
   return (
     <div className="bg-background w-95 p-4">
@@ -65,7 +64,7 @@ function PanelFrame() {
   )
 }
 
-describe('SpacePlugins panel screenshots', () => {
+describe('SpacePlugins panel', () => {
   beforeEach(() => {
     contentsState = null
     mocks.useResourceValue.mockImplementation((res: unknown) =>
@@ -75,7 +74,7 @@ describe('SpacePlugins panel screenshots', () => {
     void cleanup()
   })
 
-  it('captures the installed plugin list', async () => {
+  it('shows the installed plugin list', async () => {
     contentsState = {
       plugins: [
         {
@@ -96,27 +95,24 @@ describe('SpacePlugins panel screenshots', () => {
 
     await render(<PanelFrame />)
     await expect.element(page.getByText('spacewave-notes')).toBeInTheDocument()
-    await page.screenshot({ path: 'spaceplugins-01-installed.png' })
   })
 
-  it('captures the empty state', async () => {
+  it('shows the empty state', async () => {
     await render(<PanelFrame />)
     await expect
       .element(page.getByText('No plugins installed'))
       .toBeInTheDocument()
-    await page.screenshot({ path: 'spaceplugins-02-empty.png' })
   })
 
-  it('captures the add form with suggestions', async () => {
+  it('shows the add form with suggestions', async () => {
     await render(<PanelFrame />)
     await userEvent.click(page.getByLabelText('Add plugin'))
     await expect
       .element(page.getByText('Available plugins'))
       .toBeInTheDocument()
-    await page.screenshot({ path: 'spaceplugins-03-add-form.png' })
   })
 
-  it('captures the remove confirm affordance', async () => {
+  it('shows the remove confirm affordance', async () => {
     contentsState = {
       plugins: [
         {
@@ -131,6 +127,5 @@ describe('SpacePlugins panel screenshots', () => {
     await expect
       .element(page.getByText('Remove spacewave-notes?'))
       .toBeInTheDocument()
-    await page.screenshot({ path: 'spaceplugins-04-remove-confirm.png' })
   })
 })

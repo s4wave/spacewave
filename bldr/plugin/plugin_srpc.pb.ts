@@ -3,6 +3,10 @@
 /* eslint-disable */
 
 import {
+  ActivatePluginRequest,
+  ActivatePluginResponse,
+  CheckActivationRequest,
+  CheckActivationResponse,
   GetPluginInfoRequest,
   GetPluginInfoResponse,
   LoadPluginRequest,
@@ -530,5 +534,146 @@ export class UpdateGuardClient implements UpdateGuard {
       abortSignal || undefined,
     )
     return PrepareUpdateResponse.fromBinary(result)
+  }
+}
+/**
+ * Activation is implemented by plugins that stage their complete registration
+ * set before the scheduler replaces an already running generation.
+ *
+ * @generated from service bldr.plugin.Activation
+ */
+export const ActivationDefinition = {
+  typeName: 'bldr.plugin.Activation',
+  methods: {
+    /**
+     * Check confirms support for private startup and atomic registration admission.
+     *
+     * @generated from rpc bldr.plugin.Activation.Check
+     */
+    Check: {
+      name: 'Check',
+      I: CheckActivationRequest,
+      O: CheckActivationResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Activate admits this worker's prepared registrations after startup succeeds.
+     *
+     * @generated from rpc bldr.plugin.Activation.Activate
+     */
+    Activate: {
+      name: 'Activate',
+      I: ActivatePluginRequest,
+      O: ActivatePluginResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * Activation is implemented by plugins that stage their complete registration
+ * set before the scheduler replaces an already running generation.
+ *
+ * @generated from service bldr.plugin.Activation
+ */
+export interface Activation {
+  /**
+   * Check confirms support for private startup and atomic registration admission.
+   *
+   * @generated from rpc bldr.plugin.Activation.Check
+   */
+  Check(
+    request: CheckActivationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CheckActivationResponse>
+
+  /**
+   * Activate admits this worker's prepared registrations after startup succeeds.
+   *
+   * @generated from rpc bldr.plugin.Activation.Activate
+   */
+  Activate(
+    request: ActivatePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ActivatePluginResponse>
+}
+
+/**
+ * Activation is implemented by plugins that stage their complete registration
+ * set before the scheduler replaces an already running generation.
+ *
+ * @generated from service bldr.plugin.Activation
+ */
+export interface ActivationHandler {
+  /**
+   * Check confirms support for private startup and atomic registration admission.
+   *
+   * @generated from rpc bldr.plugin.Activation.Check
+   */
+  Check(
+    request: CheckActivationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CheckActivationResponse>
+
+  /**
+   * Activate admits this worker's prepared registrations after startup succeeds.
+   *
+   * @generated from rpc bldr.plugin.Activation.Activate
+   */
+  Activate(
+    request: ActivatePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ActivatePluginResponse>
+}
+
+export const ActivationServiceName = ActivationDefinition.typeName
+
+export class ActivationClient implements Activation {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || ActivationServiceName
+    this.rpc = rpc
+    this.Check = this.Check.bind(this)
+    this.Activate = this.Activate.bind(this)
+  }
+  /**
+   * Check confirms support for private startup and atomic registration admission.
+   *
+   * @generated from rpc bldr.plugin.Activation.Check
+   */
+  async Check(
+    request: CheckActivationRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CheckActivationResponse> {
+    const requestMsg = CheckActivationRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ActivationDefinition.methods.Check.name,
+      CheckActivationRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CheckActivationResponse.fromBinary(result)
+  }
+
+  /**
+   * Activate admits this worker's prepared registrations after startup succeeds.
+   *
+   * @generated from rpc bldr.plugin.Activation.Activate
+   */
+  async Activate(
+    request: ActivatePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ActivatePluginResponse> {
+    const requestMsg = ActivatePluginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ActivationDefinition.methods.Activate.name,
+      ActivatePluginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ActivatePluginResponse.fromBinary(result)
   }
 }

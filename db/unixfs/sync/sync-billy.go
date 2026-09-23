@@ -36,23 +36,34 @@ func SyncToBilly(
 	deleteMode DeleteMode,
 	filterCb FilterCb,
 ) error {
+	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, false)
+}
+
+// SyncToBillyContents compares regular-file bytes even when size and mtime match.
+// Unchanged files are left intact so source watchers only observe actual edits.
+func SyncToBillyContents(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, deleteMode DeleteMode, filterCb FilterCb) error {
+	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, true)
+}
+
+// syncToBilly applies the selected deletion policy and content comparison mode.
+func syncToBilly(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, deleteMode DeleteMode, filterCb FilterCb, compareContents bool) error {
 	switch deleteMode {
 	case DeleteMode_DeleteMode_BEFORE:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents)
 	case DeleteMode_DeleteMode_DURING:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, filterCb)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, filterCb, compareContents)
 	case DeleteMode_DeleteMode_AFTER:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb); err != nil {
+		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents)
 	case DeleteMode_DeleteMode_ONLY:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb)
+		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents)
 	case DeleteMode_DeleteMode_NONE:
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb)
+		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents)
 	default:
 		return errors.Errorf("unknown delete mode: %s", deleteMode.String())
 	}
@@ -66,6 +77,7 @@ func syncToBillyOnce(
 	doDelete bool,
 	doWrite bool,
 	filterCb FilterCb,
+	compareContents bool,
 ) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
@@ -316,7 +328,7 @@ func syncToBillyOnce(
 
 			// Skip if the size and modification time are identical
 			srcModTime, outModTime := srcFileInfo.ModTime(), outFileInfo.ModTime()
-			dstIdenticalToSrc = outFileInfo.Size() == srcFileInfo.Size() &&
+			dstIdenticalToSrc = !compareContents && outFileInfo.Size() == srcFileInfo.Size() &&
 				!outModTime.IsZero() && outModTime.Equal(srcModTime)
 		}
 

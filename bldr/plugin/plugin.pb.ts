@@ -117,6 +117,58 @@ export const PluginStatus: MessageType<PluginStatus> =
   })
 
 /**
+ * CheckActivationRequest queries the running generation's replacement contract.
+ *
+ * @generated from message bldr.plugin.CheckActivationRequest
+ */
+export interface CheckActivationRequest {}
+
+export const CheckActivationRequest: MessageType<CheckActivationRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CheckActivationRequest>(
+    'bldr.plugin.CheckActivationRequest',
+    true,
+  )
+
+/**
+ * CheckActivationResponse confirms support for staged replacement.
+ *
+ * @generated from message bldr.plugin.CheckActivationResponse
+ */
+export interface CheckActivationResponse {}
+
+export const CheckActivationResponse: MessageType<CheckActivationResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CheckActivationResponse>(
+    'bldr.plugin.CheckActivationResponse',
+    true,
+  )
+
+/**
+ * ActivatePluginRequest asks a ready candidate to become the current generation.
+ *
+ * @generated from message bldr.plugin.ActivatePluginRequest
+ */
+export interface ActivatePluginRequest {}
+
+export const ActivatePluginRequest: MessageType<ActivatePluginRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ActivatePluginRequest>(
+    'bldr.plugin.ActivatePluginRequest',
+    true,
+  )
+
+/**
+ * ActivatePluginResponse confirms admission of the complete registration set.
+ *
+ * @generated from message bldr.plugin.ActivatePluginResponse
+ */
+export interface ActivatePluginResponse {}
+
+export const ActivatePluginResponse: MessageType<ActivatePluginResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ActivatePluginResponse>(
+    'bldr.plugin.ActivatePluginResponse',
+    true,
+  )
+
+/**
  * PrepareUpdateRequest asks the current generation to relinquish its work.
  *
  * @generated from message bldr.plugin.PrepareUpdateRequest
@@ -194,6 +246,26 @@ export interface GetPluginInfoResponse {
    * @generated from field: string host_storage_id = 5;
    */
   hostStorageId?: string
+  /**
+   * Historical reports an immutable execution used for accepted-operation replay.
+   * The plugin serves handlers without publishing current UI or type registrations.
+   *
+   * @generated from field: bool historical = 6;
+   */
+  historical?: boolean
+  /**
+   * Prepared requires private registrations until Activation.Activate is called.
+   *
+   * @generated from field: bool prepared = 7;
+   */
+  prepared?: boolean
+  /**
+   * InstanceKey is the logical installation binding, or empty for shared plugins.
+   * A Space uses its World engine ID. Physical worker generations do not change it.
+   *
+   * @generated from field: string instance_key = 8;
+   */
+  instanceKey?: string
 }
 
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
@@ -205,6 +277,9 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
       { no: 3, name: 'host_volume_info', kind: 'message', T: () => VolumeInfo },
       { no: 4, name: 'standalone', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'host_storage_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'historical', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 7, name: 'prepared', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -231,6 +306,18 @@ export interface LoadPluginRequest {
    * @generated from field: string instance_key = 2;
    */
   instanceKey?: string
+  /**
+   * Manifests selects the installation and its recovery artifacts, newest first.
+   *
+   * @generated from field: repeated bldr.manifest.ManifestRef manifests = 3;
+   */
+  manifests?: ManifestRef[]
+  /**
+   * ManifestRoot loads an exact historical executable without current registrations.
+   *
+   * @generated from field: string manifest_root = 4;
+   */
+  manifestRoot?: string
 }
 
 export const LoadPluginRequest: MessageType<LoadPluginRequest> =
@@ -239,6 +326,14 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'manifests',
+        kind: 'message',
+        T: () => ManifestRef,
+        repeated: true,
+      },
+      { no: 4, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -338,6 +433,13 @@ export interface PluginStartInfo {
    * @generated from field: string instance_key = 3;
    */
   instanceKey?: string
+  /**
+   * ManifestRoot identifies the exact executable whose assets this worker imports.
+   * It is the base58-encoded manifest block hash, independent of the current revision.
+   *
+   * @generated from field: string manifest_root = 4;
+   */
+  manifestRoot?: string
 }
 
 export const PluginStartInfo: MessageType<PluginStartInfo> =
@@ -347,6 +449,7 @@ export const PluginStartInfo: MessageType<PluginStartInfo> =
       { no: 1, name: 'instance_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

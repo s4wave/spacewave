@@ -219,7 +219,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	locked := engine.bcast.Lock()
-	registered := len(engine.coordinatorTxs)
+	registered := len(engine.snapshotTxs)
 	readTx := snapshot.readTx
 	locked.Unlock()
 	if registered != 1 {
@@ -243,7 +243,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 		}
 	}
 	locked = engine.bcast.Lock()
-	registered = len(engine.coordinatorTxs)
+	registered = len(engine.snapshotTxs)
 	locked.Unlock()
 	if registered != 0 {
 		t.Fatalf("coordinator snapshot registrations after Close = %d, want 0", registered)
@@ -346,7 +346,7 @@ func TestCoordinatorSnapshotDeregistersOnDiscard(t *testing.T) {
 		}
 		snapshot.Discard()
 		locked := engine.bcast.Lock()
-		registered := len(engine.coordinatorTxs)
+		registered := len(engine.snapshotTxs)
 		locked.Unlock()
 		if registered != 0 {
 			t.Fatalf("coordinator snapshot registrations after discard %d = %d, want 0", i, registered)

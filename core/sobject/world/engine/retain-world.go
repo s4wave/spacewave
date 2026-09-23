@@ -137,7 +137,7 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 			defer release.Release()
 		}
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "resolve retained World block type %q", typeID)
 		}
 		if info == nil {
 			return nil, errors.Errorf("block type unavailable: %s", typeID)

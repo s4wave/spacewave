@@ -4,7 +4,7 @@ import type { Rollup } from 'vite'
 import { Plugin } from 'vite'
 
 // List of file extensions that should be remapped to .mjs
-const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
+const JS_EXTENSIONS = ['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx']
 const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
 
 // Extensions stripped when deriving a served web pkg entry name. Must match the
@@ -20,6 +20,12 @@ const KNOWN_EXTENSIONS = new Set([
   '.pb',
   '.css',
 ])
+
+/** isWebPkgModule keeps styles and assets in Vite's normal loading pipeline. */
+export function isWebPkgModule(source: string): boolean {
+  const extension = path.extname(source.split('?')[0]!)
+  return !extension || JS_EXTENSION_SET.has(extension)
+}
 
 export interface WebPkgRemapPluginConfig {
   // List of packages that can be bundled as web pkgs
@@ -108,16 +114,14 @@ export function readPackageRootServedName(pkgRoot: string): string | null {
 
       const resolved = normalizePackageRootExport(rootExport)
       if (resolved) {
-        const name = normalizePackageImportPath(resolved)
-        return name.startsWith('dist/') ? name.substring('dist/'.length) : name
+        return normalizePackageImportPath(resolved)
       }
     }
 
     for (const key of ['module', 'main']) {
       const resolved = pkgJSON[key]
       if (typeof resolved === 'string' && resolved) {
-        const name = normalizePackageImportPath(resolved)
-        return name.startsWith('dist/') ? name.substring('dist/'.length) : name
+        return normalizePackageImportPath(resolved)
       }
     }
   } catch {
@@ -175,7 +179,7 @@ function lookupDeclaredServedURL(
 
 // remapWebPkgSpecifier rewrites a web pkg import specifier to a served URL.
 // Returns null if the id does not match any webPkgID.
-function remapWebPkgSpecifier(
+export function remapWebPkgSpecifier(
   id: string,
   webPkgIDs: string[],
   basePath: string,
@@ -291,11 +295,9 @@ export function createWebPkgRemapPlugin(
             // Not resolvable from node_modules, will use empty root
           }
         }
-        // Declared imports (webPkgImports) own the served-name map: they map the
-        // bare specifier to the dist-stripped served index buildWebPkg emits.
-        // Only fall back to the package.json root export (whose dist/ subdir
-        // differs from the served names) when the package has no declared map,
-        // so the on-disk path never clobbers an authoritative declared entry.
+        // Declared imports own served names relative to the provider's root.
+        // Without them, use the package's root export and retain its directory
+        // path, matching the entries emitted by buildWebPkg.
         const rootServedName =
           !servedNameMaps[pkgID] && webPkgRoots[pkgID]
             ? readPackageRootServedName(webPkgRoots[pkgID])
@@ -331,6 +333,10 @@ export function createWebPkgRemapPlugin(
 
       const normalizedImportId = importId.trim().replace(/^\//, '')
       if (normalizedImportId.length === 0) return null
+
+      // CSS and assets belong to Vite's asset pipeline, even when their package
+      // supplies shared JavaScript modules from another plugin.
+      if (!isWebPkgModule(normalizedImportId)) return null
 
       let pkgID: string
       if (normalizedImportId.startsWith('@')) {

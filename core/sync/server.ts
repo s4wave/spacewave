@@ -1,4 +1,5 @@
 import type { Engine } from '../../sdk/world/engine.js'
+import type { AppSource } from '../../sdk/sync/app.js'
 import type { Server as HTTPServer } from 'node:http'
 import { createAccess, type DatabaseAccess } from '../../sdk/sync/access.js'
 import { publicError, SyncError } from '../../sdk/sync/errors.js'
@@ -44,11 +45,8 @@ export class SyncServer<
     private readonly owner?: OwnedEngine,
   ) {}
 
-  as(principal: P): DatabaseAccess<S> {
-    const identity = { ...principal }
-    return createAccess((operation, options) =>
-      this.application.execute(identity, operation, options),
-    )
+  as(principal: P): DatabaseAccess<S> & AppSource<S> {
+    return this.application.access(principal)
   }
 
   admin(scope: string): DatabaseAccess<S> {

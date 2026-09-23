@@ -7,7 +7,9 @@ import (
 	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/block"
+	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
 // NewBuilderResult builds the result object.
@@ -44,6 +46,14 @@ func (r *BuilderResult) Validate() error {
 	if !r.GetManifest().GetMeta().EqualVT(r.GetManifestRef().GetMeta()) {
 		return errors.New("manifest meta must match manifest ref meta")
 	}
+	if source := r.GetSourceRef(); !source.GetEmpty() {
+		if err := source.Validate(); err != nil {
+			return errors.Wrap(err, "source_ref")
+		}
+		if source.GetBucketId() != "" || source.GetRootRef().GetEmpty() {
+			return errors.New("source_ref must retain a local source DAG")
+		}
+	}
 	if err := r.GetInputManifest().Validate(); err != nil {
 		return errors.Wrap(err, "input_manifest")
 	}
@@ -61,6 +71,41 @@ func (r *BuilderResult) Validate() error {
 	return nil
 }
 
+// ApplyBlockRef updates the retained source DAG or its transform configuration.
+func (r *BuilderResult) ApplyBlockRef(id uint32, next *block.BlockRef) error {
+	if id != 5 && id != 6 {
+		return nil
+	}
+	if r.SourceRef == nil {
+		r.SourceRef = &bucket.ObjectRef{}
+	}
+	if id == 5 {
+		r.SourceRef.RootRef = next
+	} else {
+		r.SourceRef.TransformConfRef = next
+	}
+	return nil
+}
+
+// GetBlockRefs exposes the local source snapshot to retention and collection.
+func (r *BuilderResult) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{
+		5: r.GetSourceRef().GetRootRef(),
+		6: r.GetSourceRef().GetTransformConfRef(),
+	}, nil
+}
+
+// GetBlockRefCtor traverses source directories after the editable tree changes.
+func (r *BuilderResult) GetBlockRefCtor(id uint32) block.Ctor {
+	switch id {
+	case 5:
+		return unixfs_block.NewFSNodeBlock
+	case 6:
+		return block_transform.NewTransformConfigBlock
+	}
+	return nil
+}
+
 // MarshalBlock marshals the block to binary.
 func (r *BuilderResult) MarshalBlock() ([]byte, error) {
 	return r.MarshalVT()
@@ -71,7 +116,7 @@ func (r *BuilderResult) UnmarshalBlock(data []byte) error {
 	return r.UnmarshalVT(data)
 }
 
-// Validate validates the InputManifest
+// Validate validates the InputManifest.
 func (m *InputManifest) Validate() error {
 	seenPaths := make(map[string]struct{})
 	for i, file := range m.GetFiles() {
@@ -108,5 +153,8 @@ func (m *InputManifest) Validate() error {
 	return nil
 }
 
-// _ is a type assertion
-var _ block.Block = (*BuilderResult)(nil)
+// _ asserts the stored build result and its source retention contract.
+var (
+	_ block.Block         = (*BuilderResult)(nil)
+	_ block.BlockWithRefs = (*BuilderResult)(nil)
+)

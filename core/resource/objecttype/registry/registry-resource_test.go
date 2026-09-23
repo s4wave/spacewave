@@ -13,7 +13,7 @@ import (
 
 // TestNewObjectTypeRegistryResource tests basic construction.
 func TestNewObjectTypeRegistryResource(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 	if r == nil {
 		t.Fatal("expected non-nil resource")
 	}
@@ -29,7 +29,7 @@ func TestNewObjectTypeRegistryResource(t *testing.T) {
 }
 
 func TestRegisterObjectTypeRejectsDuplicateTypeID(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 	r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test-plugin/duplicate",
 		RegistrationId: 1,
@@ -51,7 +51,7 @@ func TestRegisterObjectTypeRejectsDuplicateTypeID(t *testing.T) {
 	if r.nextID != 2 {
 		t.Fatalf("next registration ID = %d, want 2", r.nextID)
 	}
-	registration := r.LookupRegistration("test-plugin/duplicate")
+	registration := r.LookupRegistration("test-plugin/duplicate", "")
 	if registration.GetPluginId() != "test-plugin" {
 		t.Fatalf("duplicate changed plugin ID to %q", registration.GetPluginId())
 	}
@@ -59,8 +59,8 @@ func TestRegisterObjectTypeRejectsDuplicateTypeID(t *testing.T) {
 
 // TestLookupRegistrationEmpty tests that LookupRegistration returns nil for unknown types.
 func TestLookupRegistrationEmpty(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
-	reg := r.LookupRegistration("unknown/type")
+	r := NewObjectTypeRegistryResource(nil)
+	reg := r.LookupRegistration("unknown/type", "")
 	if reg != nil {
 		t.Fatal("expected nil for unknown type")
 	}
@@ -68,7 +68,7 @@ func TestLookupRegistrationEmpty(t *testing.T) {
 
 // TestLookupRegistrationFound tests that LookupRegistration finds a manually added registration.
 func TestLookupRegistrationFound(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
@@ -85,7 +85,7 @@ func TestLookupRegistrationFound(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistration("test-plugin/test-type")
+	reg := r.LookupRegistration("test-plugin/test-type", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
 	}
@@ -111,7 +111,7 @@ func TestLookupRegistrationFound(t *testing.T) {
 
 // TestLookupRegistrationReturnsClone tests that LookupRegistration returns a clone.
 func TestLookupRegistrationReturnsClone(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	orig := &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test-plugin/cloned",
@@ -128,7 +128,7 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistration("test-plugin/cloned")
+	reg := r.LookupRegistration("test-plugin/cloned", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
 	}
@@ -136,7 +136,7 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 	// Mutating the returned value should not affect the stored one.
 	reg.TypeId = "mutated"
 	reg.Metadata.DisplayName = "mutated"
-	reg2 := r.LookupRegistration("test-plugin/cloned")
+	reg2 := r.LookupRegistration("test-plugin/cloned", "")
 	if reg2 == nil {
 		t.Fatal("expected registration to still exist after mutating clone")
 	}
@@ -150,7 +150,7 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 
 // TestLookupRegistrationMultiple tests lookup with multiple registrations.
 func TestLookupRegistrationMultiple(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
@@ -171,7 +171,7 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistration("plugin-b/type-two")
+	reg := r.LookupRegistration("plugin-b/type-two", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-b/type-two")
 	}
@@ -179,7 +179,7 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 2, got %d", reg.GetRegistrationId())
 	}
 
-	reg = r.LookupRegistration("plugin-a/type-three")
+	reg = r.LookupRegistration("plugin-a/type-three", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-a/type-three")
 	}
@@ -187,7 +187,7 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 3, got %d", reg.GetRegistrationId())
 	}
 
-	reg = r.LookupRegistration("nonexistent/type")
+	reg = r.LookupRegistration("nonexistent/type", "")
 	if reg != nil {
 		t.Fatal("expected nil for nonexistent type")
 	}
@@ -195,12 +195,12 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 
 // TestGetRegistrationsLocked tests the snapshot helper.
 func TestGetRegistrationsLocked(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	// Empty registry should return empty slice.
 	var regs []*s4wave_objecttype_registry.ObjectTypeRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 0 {
 		t.Fatalf("expected 0 registrations, got %d", len(regs))
@@ -222,7 +222,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	})
 
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 2 {
 		t.Fatalf("expected 2 registrations, got %d", len(regs))
@@ -231,7 +231,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 // TestRegistrationRemoval tests that deleting a registration makes it unfindable.
 func TestRegistrationRemoval(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
@@ -242,7 +242,7 @@ func TestRegistrationRemoval(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistration("test-plugin/removable")
+	reg := r.LookupRegistration("test-plugin/removable", "")
 	if reg == nil {
 		t.Fatal("expected registration before removal")
 	}
@@ -252,7 +252,7 @@ func TestRegistrationRemoval(t *testing.T) {
 		broadcast()
 	})
 
-	reg = r.LookupRegistration("test-plugin/removable")
+	reg = r.LookupRegistration("test-plugin/removable", "")
 	if reg != nil {
 		t.Fatal("expected nil after removal")
 	}
@@ -260,7 +260,7 @@ func TestRegistrationRemoval(t *testing.T) {
 
 // TestBroadcastOnChange tests that the broadcast channel fires when registrations change.
 func TestBroadcastOnChange(t *testing.T) {
-	r := NewObjectTypeRegistryResource()
+	r := NewObjectTypeRegistryResource(nil)
 
 	var waitCh <-chan struct{}
 	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -304,7 +304,7 @@ func TestRegisterObjectTypeAttachedHandlerRequiresOwnedResource(t *testing.T) {
 	}); err == nil {
 		t.Fatal("RegisterObjectType accepted an unowned attached handler")
 	}
-	if registry.LookupRegistration("test/unowned") != nil {
+	if registry.LookupRegistration("test/unowned", "") != nil {
 		t.Fatal("unowned attached handler created a registration")
 	}
 
@@ -338,7 +338,7 @@ func TestRegisterObjectTypeAttachedHandlerEndsWithClientGeneration(t *testing.T)
 	if err != nil {
 		t.Fatalf("RegisterObjectType attached handler: %v", err)
 	}
-	if registry.LookupRegistration("test/attached") == nil {
+	if registry.LookupRegistration("test/attached", "") == nil {
 		t.Fatal("attached handler registration is not visible")
 	}
 
@@ -349,7 +349,7 @@ func TestRegisterObjectTypeAttachedHandlerEndsWithClientGeneration(t *testing.T)
 	case <-ctx.Done():
 		t.Fatal("client generation close did not reach registry")
 	}
-	if registry.LookupRegistration("test/attached") != nil {
+	if registry.LookupRegistration("test/attached", "") != nil {
 		t.Fatal("registration remained after its client generation closed")
 	}
 }
@@ -359,7 +359,7 @@ func newRegistryResourceClient(
 	ctx context.Context,
 ) (*ObjectTypeRegistryResource, *resource_client.Client, s4wave_objecttype_registry.SRPCObjectTypeRegistryResourceServiceClient) {
 	t.Helper()
-	registry := NewObjectTypeRegistryResource()
+	registry := NewObjectTypeRegistryResource(nil)
 	serviceMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(registry.GetMux()).Register(serviceMux); err != nil {
 		t.Fatalf("register registry ResourceService: %v", err)

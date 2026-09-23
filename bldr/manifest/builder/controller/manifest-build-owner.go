@@ -78,8 +78,14 @@ func (o *manifestBuildOwner) nextResultPromise() *promise.Promise[*bldr_manifest
 // buildArgs builds the manifest build arguments from the previous result
 // and any changed files, clearing the changed-file set.
 func (o *manifestBuildOwner) buildArgs() *bldr_manifest_builder.BuildManifestArgs {
+	// Each watch result is a newer selectable revision; the shared configuration
+	// stays unchanged for concurrent child builders and startup validation.
+	config := o.builderConfig.CloneVT()
+	if previous := o.prevResult.GetManifest().GetMeta(); previous != nil && previous.GetRev() >= config.GetManifestMeta().GetRev() {
+		config.ManifestMeta.Rev = previous.GetRev() + 1
+	}
 	args := &bldr_manifest_builder.BuildManifestArgs{
-		BuilderConfig:     o.builderConfig,
+		BuilderConfig:     config,
 		PrevBuilderResult: o.prevResult,
 		ChangedFiles:      o.changedFiles,
 	}

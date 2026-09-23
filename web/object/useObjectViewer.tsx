@@ -183,9 +183,16 @@ export function useObjectViewer({
 
   // For unixfs objects, resolve typeID directly.
   const isUnixfs = infoCase === 'unixfsObjectInfo'
+  const spaceContext = SpaceContainerContext.useContextSafe()
   const rootResource = RootContext.useContext()
-  const allViewers = useAllViewers(rootResource)
-  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
+  const allViewers = useAllViewers(
+    rootResource,
+    spaceContext?.spaceState.engineId,
+  )
+  const objectTypeMetadataById = useObjectTypeMetadata(
+    rootResource,
+    spaceContext?.spaceState.engineId,
+  )
 
   const unixfsComponents = useMemo(() => {
     if (!isUnixfs) return []
@@ -255,7 +262,6 @@ export function useObjectViewer({
   // Bottom bar state.
   const isLastItem = useIsLastBottomBarItem(barId)
   const setOpenMenu = useBottomBarSetOpenMenu()
-  const spaceContext = SpaceContainerContext.useContextSafe()
   const tabContext = useTabContext()
 
   const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'

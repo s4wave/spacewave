@@ -129,8 +129,8 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 	}
 
 	// Mutate deterministic child Manifest objects and their host edges.
-	for i, ref := range refs {
-		childKey := bldr_manifest.NewManifestKey(objectKey, ref.GetMeta())
+	for i := range refs {
+		childKey := bldr_manifest.NewManifestArtifactKey(storedRefs[i])
 		// Store the exact copied reference at the deterministic child key.
 		if _, _, err := bldr_manifest_world.SetManifest(ctx, txws, "", childKey, storedRefs[i]); err != nil {
 			return sendDeployManifestsResult(strm, errors.Wrapf(err, "set manifest_refs[%d]", i).Error())

@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
@@ -41,6 +42,17 @@ func ConnectPluginResources(
 	b bus.Bus,
 	pluginID string,
 ) (*PluginResources, error) {
+	return connectPluginResources(ctx, b, pluginID, "")
+}
+
+// ConnectPluginResourcesAtManifest connects to an exact retained executable.
+// The caller releases both the resource connection and immutable plugin reference.
+func ConnectPluginResourcesAtManifest(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (*PluginResources, error) {
+	return connectPluginResources(ctx, b, pluginID, manifestRoot)
+}
+
+// connectPluginResources acquires a client within the selected executable's lifetime.
+func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (*PluginResources, error) {
 	var lastErr error
 	for range pluginResourceConnectAttempts {
 		if err := ctx.Err(); err != nil {
@@ -48,7 +60,14 @@ func ConnectPluginResources(
 		}
 
 		// Wait for the target plugin to be loaded and get its SRPC client.
-		pluginClient, pluginRef, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+		var pluginClient srpc.Client
+		var pluginRef directive.Reference
+		var err error
+		if manifestRoot == "" {
+			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+		} else {
+			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadAtManifestWaitClient(ctx, b, pluginID, manifestRoot)
+		}
 		if err != nil {
 			return nil, errors.Wrap(err, "load plugin")
 		}

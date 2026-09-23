@@ -24,6 +24,7 @@ func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
 	RegisterExportZip(r)
 	RegisterV86(r, b)
 	RegisterPluginExec(r, b)
+	RegisterBuildPlugin(r, b)
 	return r
 }
 

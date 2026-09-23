@@ -214,7 +214,7 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(directive_controller.NewController(ctx, le))
 
-	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
+	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
 	coreMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(registry.GetMux()).Register(coreMux); err != nil {
 		t.Fatal(err)
@@ -266,7 +266,7 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registration := registry.LookupRegistration("test/type")
+	registration := registry.LookupRegistration("test/type", "")
 	if registration == nil {
 		t.Fatal("expected core ObjectType registration")
 	}

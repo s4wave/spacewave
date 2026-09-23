@@ -31,7 +31,7 @@ const goLicenses = JSON.parse(
     GOOS: 'js',
     GOARCH: 'wasm',
     CGO_ENABLED: '0',
-    GOFLAGS: '-tags=goscript,skip_e2e,purego',
+    GOFLAGS: '-mod=readonly -tags=goscript,skip_e2e,purego',
   }),
 ) as { name: string; version: string; licenseText: string }[]
 const notices = new Map<string, string>()
@@ -71,7 +71,7 @@ for (const file of ['build-report.json', 'client-build-report.json']) {
       const specifier = entry.moduleRequest.value
       if (
         isBuiltin(specifier) ||
-        /^(\.|\/|node:|@go\/|@goscript\/|@s4wave\/|@aptre\/bldr)/.test(
+        /^(\.|\/|#|node:|@go\/|@goscript\/|@s4wave\/|@aptre\/bldr)/.test(
           specifier,
         ) ||
         specifier === 'react' ||

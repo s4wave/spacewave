@@ -28,6 +28,7 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 			existingBundle.ExternalPkgs = appendMissingStrings(existingBundle.ExternalPkgs, bundle.GetExternalPkgs())
 			existingBundle.ViteConfigPaths = appendMissingStrings(existingBundle.ViteConfigPaths, bundle.GetViteConfigPaths())
 			existingBundle.DisableProjectConfig = existingBundle.GetDisableProjectConfig() || bundle.GetDisableProjectConfig()
+			existingBundle.BundleWebPkgs = existingBundle.GetBundleWebPkgs() || bundle.GetBundleWebPkgs()
 			if existingBundle.GetPublicPath() == "" {
 				existingBundle.PublicPath = bundle.GetPublicPath()
 			}

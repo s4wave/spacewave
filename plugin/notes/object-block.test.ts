@@ -58,7 +58,6 @@ describe('object block helpers', () => {
             hash: new Uint8Array([1, 2, 3]),
           },
         },
-        transformConf: undefined,
       },
       undefined,
     )

@@ -201,11 +201,17 @@ func createPluginReadinessManifest(
 	tb *testbed.Testbed,
 ) *bldr_manifest.ManifestRef {
 	t.Helper()
+	return createSpacePluginManifest(t, ctx, tb, pluginReadinessPluginID, pluginReadinessPlatformID, 1)
+}
+
+// createSpacePluginManifest retains a distinct manifest in the test World's bucket.
+func createSpacePluginManifest(t *testing.T, ctx context.Context, tb *testbed.Testbed, id, platform string, rev uint64) *bldr_manifest.ManifestRef {
+	t.Helper()
 	meta := bldr_manifest.NewManifestMeta(
-		pluginReadinessPluginID,
+		id,
 		bldr_manifest.BuildType_DEV,
-		pluginReadinessPlatformID,
-		1,
+		platform,
+		rev,
 	)
 	var manifestRef *bldr_manifest.ManifestRef
 	if err := tb.Engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {

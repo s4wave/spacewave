@@ -70,7 +70,10 @@ message RegisterObjectTypeResponse {
 }
 
 // WatchObjectTypesRequest is the request for WatchObjectTypes.
-message WatchObjectTypesRequest {}
+message WatchObjectTypesRequest {
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 1;
+}
 
 // WatchObjectTypesResponse is the response for WatchObjectTypes.
 message WatchObjectTypesResponse {
