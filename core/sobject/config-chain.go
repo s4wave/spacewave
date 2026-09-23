@@ -53,17 +53,22 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 	// Track the current effective config for authorization checks. After an
 	// entry is accepted, the config-chain head becomes that entry's hash/seqno
 	// even though entry.Config still carries the pre-head metadata snapshot.
+	// Genesis must grant owner authority before any later change can be signed.
 	currentConfig := genesis.GetConfig()
+	if len(currentConfig.GetParticipants()) == 0 {
+		return errors.Wrap(ErrEmptyParticipants, "genesis entry")
+	}
+	if err := currentConfig.Validate(); err != nil {
+		return errors.Wrap(err, "genesis entry")
+	}
 
 	// Cloud bootstrap currently emits an unsigned genesis entry before any
 	// client-signed config changes exist. Accept that legacy shape, but keep
 	// requiring signatures for every subsequent config change.
-	if genesis.GetSignature() == nil {
-		if err := validateUnsignedGenesisConfig(currentConfig); err != nil {
+	if genesis.GetSignature() != nil {
+		if err := verifyConfigChangeSignature(genesis, currentConfig); err != nil {
 			return errors.Wrap(err, "genesis entry")
 		}
-	} else if err := verifyConfigChangeSignature(genesis, currentConfig); err != nil {
-		return errors.Wrap(err, "genesis entry")
 	}
 
 	// Establish the effective genesis head before verifying later transitions.
@@ -90,6 +95,7 @@ func VerifyConfigChain(entries []*SOConfigChange) error {
 
 // VerifyConfigChange verifies one signed transition against the held configuration
 // and returns an independent configuration with its resulting chain head.
+// The resulting configuration must pass Validate, so a nonempty result keeps an OWNER.
 // An empty held head permits sequence zero for locally authorized bootstrap.
 // SELF_ENROLL_PEER requires a separate authenticated peer-to-entity binding.
 func VerifyConfigChange(current *SharedObjectConfig, entry *SOConfigChange) (*SharedObjectConfig, error) {
@@ -119,7 +125,13 @@ func VerifyConfigChange(current *SharedObjectConfig, entry *SOConfigChange) (*Sh
 	if err != nil {
 		return nil, errors.Wrap(err, "hash config change entry")
 	}
-	return configWithAppliedConfigChainHead(entry.GetConfig(), entry.GetConfigSeqno(), entryHash), nil
+	next := configWithAppliedConfigChainHead(entry.GetConfig(), entry.GetConfigSeqno(), entryHash)
+
+	// An authorized signer still cannot produce an unusable configuration.
+	if err := next.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config change result")
+	}
+	return next, nil
 }
 
 // VerifyConfigChainSuffix authenticates a candidate configuration from a held,
@@ -152,9 +164,6 @@ func VerifyConfigChainSuffix(current, candidate *SharedObjectConfig, entries []*
 		if err != nil {
 			return errors.Wrapf(err, "entry[%d]", i)
 		}
-		if err := next.Validate(); err != nil {
-			return errors.Wrapf(err, "entry[%d] config", i)
-		}
 		current = next
 	}
 
@@ -181,27 +190,6 @@ func configWithAppliedConfigChainHead(
 	next.ConfigChainSeqno = seqno
 	next.ConfigChainHash = bytes.Clone(hash)
 	return next
-}
-
-// validateUnsignedGenesisConfig validates the legacy unsigned genesis config
-// emitted by cloud bootstrap. This is a compatibility carve-out only for the
-// first config-chain entry.
-func validateUnsignedGenesisConfig(cfg *SharedObjectConfig) error {
-	// Bootstrap requires a structurally valid configuration with an owner.
-	if cfg == nil {
-		return errors.New("missing config")
-	}
-	if err := cfg.Validate(); err != nil {
-		return err
-	}
-
-	// Require authority for subsequent signed changes.
-	for _, p := range cfg.GetParticipants() {
-		if IsOwner(p.GetRole()) {
-			return nil
-		}
-	}
-	return errors.New("genesis config has no owner")
 }
 
 // BuildSOConfigChange constructs and signs a SOConfigChange entry.

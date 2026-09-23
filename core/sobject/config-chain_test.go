@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestVerifyConfigChain(t *testing.T) {
@@ -199,6 +201,74 @@ func TestVerifyConfigChain(t *testing.T) {
 			selfEnrollEntry,
 		}); err != nil {
 			t.Fatalf("VerifyConfigChain returned error: %v", err)
+		}
+	})
+}
+
+func TestVerifyConfigChangeRequiresOwner(t *testing.T) {
+	ctx := context.Background()
+	peers := createMockPeers(t, 2)
+	ownerPriv, err := peers[0].GetPrivKey(ctx)
+	if err != nil {
+		t.Fatalf("get owner private key: %v", err)
+	}
+
+	// Start from a signed genesis held by one owner and one writer.
+	owner := &SOParticipantConfig{
+		PeerId: peers[0].GetPeerID().String(),
+		Role:   SOParticipantRole_SOParticipantRole_OWNER,
+	}
+	writer := &SOParticipantConfig{
+		PeerId: peers[1].GetPeerID().String(),
+		Role:   SOParticipantRole_SOParticipantRole_WRITER,
+	}
+	genesisConfig := &SharedObjectConfig{Participants: []*SOParticipantConfig{owner, writer}}
+	genesis, err := BuildSOConfigChange(
+		&SharedObjectConfig{},
+		genesisConfig,
+		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_GENESIS,
+		ownerPriv,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("build genesis entry: %v", err)
+	}
+	genesisHash, err := HashSOConfigChange(genesis)
+	if err != nil {
+		t.Fatalf("hash genesis entry: %v", err)
+	}
+	current := configWithAppliedConfigChainHead(genesisConfig, 0, genesisHash)
+
+	// buildRemoval signs a REMOVE_PARTICIPANT change leaving the given participants.
+	buildRemoval := func(remaining ...*SOParticipantConfig) *SOConfigChange {
+		next := current.CloneVT()
+		next.Participants = remaining
+		entry, err := BuildSOConfigChange(
+			current,
+			next,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
+			ownerPriv,
+			nil,
+		)
+		if err != nil {
+			t.Fatalf("build removal entry: %v", err)
+		}
+		return entry
+	}
+
+	t.Run("rejects removing the last owner while others remain", func(t *testing.T) {
+		entry := buildRemoval(writer)
+		if _, err := VerifyConfigChange(current, entry); !errors.Is(err, ErrNoOwner) {
+			t.Fatalf("expected ErrNoOwner, got %v", err)
+		}
+		if err := VerifyConfigChain([]*SOConfigChange{genesis, entry}); !errors.Is(err, ErrNoOwner) {
+			t.Fatalf("expected chain to reject ownerless result, got %v", err)
+		}
+	})
+
+	t.Run("accepts a terminal empty configuration", func(t *testing.T) {
+		if _, err := VerifyConfigChange(current, buildRemoval()); err != nil {
+			t.Fatalf("expected terminal departure to verify: %v", err)
 		}
 	})
 }

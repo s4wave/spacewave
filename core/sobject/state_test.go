@@ -17,13 +17,17 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// createMockSOState creates a mock SOState for testing
+// createMockSOState creates a mock SOState for testing.
+// Unspecified roles default to OWNER for the first peer and VALIDATOR otherwise.
 func createMockSOState(peers []peer.Peer, roles []SOParticipantRole) *SOState {
 	participants := make([]*SOParticipantConfig, len(peers))
 
 	for i, p := range peers {
 		peerIDStr := p.GetPeerID().String()
 		role := SOParticipantRole_SOParticipantRole_VALIDATOR
+		if i == 0 {
+			role = SOParticipantRole_SOParticipantRole_OWNER
+		}
 		if i < len(roles) {
 			role = roles[i]
 		}
@@ -468,6 +472,49 @@ func TestUpdateRootState(t *testing.T) {
 		}
 		if len(state.OpRejections[0].GetRejections()) != 1 {
 			t.Fatalf("Expected 1 rejection for peer, got %d", len(state.OpRejections[0].GetRejections()))
+		}
+	})
+
+	t.Run("Replayed rejection is recorded once", func(t *testing.T) {
+		state := createMockSOState(peers, nil)
+		ctx := context.Background()
+		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
+		localID := NewSOOperationLocalID()
+		rejection, err := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), 1, localID, nil)
+		if err != nil {
+			t.Fatalf("Failed to build operation rejection: %v", err)
+		}
+
+		// Deliver the same rejection with two consecutive roots.
+		for seqno := uint64(2); seqno <= 3; seqno++ {
+			nextRoot := createMockSORoot(t, seqno, peer1, peer2)
+			err = state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, []*SOOperationRejection{rejection}, nil)
+			if err != nil {
+				t.Fatalf("UpdateRootState(seqno %d): %v", seqno, err)
+			}
+		}
+		if len(state.OpRejections) != 1 || len(state.OpRejections[0].GetRejections()) != 1 {
+			t.Fatalf("Expected one recorded rejection, got %v", state.OpRejections)
+		}
+	})
+
+	t.Run("Conflicting rejection for one nonce is invalid", func(t *testing.T) {
+		state := createMockSOState(peers, nil)
+		ctx := context.Background()
+		peer2PrivKey, _ := peer2.GetPrivKey(ctx)
+		first, err := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), 1, NewSOOperationLocalID(), nil)
+		if err != nil {
+			t.Fatalf("Failed to build first rejection: %v", err)
+		}
+		second, err := BuildSOOperationRejection(peer2PrivKey, mockSharedObjectID, peer1.GetPeerID(), 1, NewSOOperationLocalID(), nil)
+		if err != nil {
+			t.Fatalf("Failed to build second rejection: %v", err)
+		}
+
+		nextRoot := createMockSORoot(t, 2, peer1, peer2)
+		err = state.UpdateRootState(mockSharedObjectID, nextRoot, peer1IDStr, []*SOOperationRejection{first, second}, nil)
+		if err == nil {
+			t.Fatal("Expected UpdateRootState to reject two rejections of one nonce")
 		}
 	})
 

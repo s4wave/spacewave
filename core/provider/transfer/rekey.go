@@ -23,7 +23,7 @@ type SOStateRewriter func(ctx context.Context, soID string, state *sobject.SOSta
 
 // RekeySOState re-keys an SO state from the source peer to the target peer.
 // Decrypts the root inner using the source key, re-encrypts with a fresh key
-// for the target peer, and re-signs the root.
+// for the target peer, and re-signs the root as the target, its sole OWNER.
 func RekeySOState(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -53,11 +53,11 @@ func RekeySOState(
 	}
 	targetPeerIDStr := targetPeerID.String()
 
-	// Build new participants config with the target peer.
+	// The target peer becomes the sole owner of the re-keyed state.
 	newConfig := &sobject.SharedObjectConfig{
 		Participants: []*sobject.SOParticipantConfig{{
 			PeerId: targetPeerIDStr,
-			Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
+			Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
 		}},
 	}
 
