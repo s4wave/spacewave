@@ -23,6 +23,9 @@ const maxHistoryPageEntries = 128
 // catchupTimeout bounds a pinned advertisement and its request through acknowledgment.
 const catchupTimeout = 60 * time.Second
 
+// denialGrace bounds how long a failed write waits for frames the peer sent before closing.
+const denialGrace = 250 * time.Millisecond
+
 // syncReceive retains an untrusted suffix until its complete target snapshot arrives.
 type syncReceive struct {
 	// head pins the target and its revision for this request.
@@ -57,6 +60,38 @@ type syncIncoming struct {
 	message *SOSyncMessage
 	// err terminates the exchange when transport stops.
 	err error
+}
+
+// handleDenial reports a peer's explicit rejection and ends the exchange.
+func (s *SOSync) handleDenial(remoteID peer.ID, authorization *SOSyncAuthorization) error {
+	if !authorization.GetAccepted() && s.peerAdmission != nil {
+		s.peerAdmission(remoteID, false)
+	}
+	return ErrAccessDenied
+}
+
+// drainDenial prefers a denial the peer sent before closing over the write
+// failure its close caused. The reader delivers frames in order, so frames
+// received before the close precede its terminal error. Returns writeErr when
+// no denial arrives within denialGrace.
+func (s *SOSync) drainDenial(ctx context.Context, incoming <-chan syncIncoming, remoteID peer.ID, writeErr error) error {
+	timer := time.NewTimer(denialGrace)
+	defer timer.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return writeErr
+		case <-timer.C:
+			return writeErr
+		case received := <-incoming:
+			if received.err != nil {
+				return writeErr
+			}
+			if authorization := received.message.GetAuthorization(); authorization != nil {
+				return s.handleDenial(remoteID, authorization)
+			}
+		}
+	}
 }
 
 // synchronize owns head negotiation, bounded catch-up and continuing state updates.
@@ -97,9 +132,9 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 	})
 
 	// Recheck current admission immediately before each serialized outbound frame.
+	// A failed write leaves the session open so the loop can drain delivered frames.
 	writer := routine.NewRoutineContainer()
 	writer.SetRoutine(func(ctx context.Context) error {
-		defer sess.Close()
 		for {
 			var message *SOSyncMessage
 			select {
@@ -232,7 +267,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			inFlight, outgoing = outgoing, nil
 		case err := <-sent:
 			if err != nil {
-				return err
+				return s.drainDenial(ctx, incoming, remoteID, err)
 			}
 			if inFlight.GetRecoveryRequired() != nil {
 				return sobject.ErrConfigHistoryUnavailable
@@ -252,10 +287,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			}
 			switch body := received.message.GetBody().(type) {
 			case *SOSyncMessage_Authorization:
-				if !body.Authorization.GetAccepted() && s.peerAdmission != nil {
-					s.peerAdmission(remoteID, false)
-				}
-				return ErrAccessDenied
+				return s.handleDenial(remoteID, body.Authorization)
 			case *SOSyncMessage_Head:
 				head := body.Head
 				if len(head.GetConfigHash()) == 0 {
