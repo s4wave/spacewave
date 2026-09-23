@@ -2,8 +2,11 @@ package s4wave_world
 
 import (
 	"context"
+	"strings"
 
+	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/db/coord"
 )
 
 // Tx represents a transaction against the world state.
@@ -46,9 +49,30 @@ func NewTx(client *resource_client.Client, ref resource_client.ResourceRef, read
 // transaction seals but before this call completes. Keep every outstanding
 // Commit result and join them before reporting success; canceling an RPC does
 // not establish that an already admitted write was rolled back.
+//
+// A commit rejected because another writer advanced the World returns an error
+// matching coord.ErrStaleGeneration; the caller may retry from a new
+// transaction.
 func (tx *Tx) Commit(ctx context.Context) error {
 	_, err := tx.txService.Commit(ctx, &CommitRequest{})
-	return err
+	return CommitError(err)
+}
+
+// CommitError restores the stale-generation classification that the RPC
+// boundary flattens to text in a Commit error.
+func CommitError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg, stale := strings.CutSuffix(err.Error(), coord.ErrStaleGeneration.Error())
+	if !stale {
+		return err
+	}
+	msg = strings.TrimSuffix(msg, ": ")
+	if msg == "" {
+		return coord.ErrStaleGeneration
+	}
+	return errors.Wrap(coord.ErrStaleGeneration, msg)
 }
 
 // Discard discards the transaction without committing changes.

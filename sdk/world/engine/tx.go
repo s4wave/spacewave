@@ -50,12 +50,14 @@ func (tx *SDKTx) CommitMutations(
 	return resp.GetResults(), nil
 }
 
-// Commit commits the transaction to storage.
+// Commit commits the transaction to storage. A commit rejected because
+// another writer advanced the World returns an error matching
+// coord.ErrStaleGeneration.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	_, err := tx.txService.Commit(ctx, &s4wave_world.CommitRequest{})
 	tx.finished.Store(true)
 	tx.ref.Release()
-	return err
+	return s4wave_world.CommitError(err)
 }
 
 // Discard cancels the transaction.
