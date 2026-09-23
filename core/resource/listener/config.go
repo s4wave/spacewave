@@ -17,8 +17,8 @@ func (c *Config) Validate() error {
 }
 
 // DetermineSocketPath returns the configured socket path. An explicit path
-// takes precedence; otherwise a project state path, when present, scopes the
-// socket before the shared storage root fallback.
+// takes precedence; otherwise the socket lives under the project storage
+// root, which the invocation's state path scopes when present.
 func (c *Config) DetermineSocketPath() (string, error) {
 	if socketPath := c.GetListenerSocketPath(); socketPath != "" {
 		return socketPath, nil
@@ -29,9 +29,6 @@ func (c *Config) DetermineSocketPath() (string, error) {
 	}
 	if socketPath := os.Getenv(storagepath.SocketPathEnvVar(projectID)); socketPath != "" {
 		return socketPath, nil
-	}
-	if statePath := os.Getenv(storagepath.StatePathEnvVar(projectID)); statePath != "" {
-		return filepath.Join(statePath, projectID+".sock"), nil
 	}
 	storageRoot, err := storagepath.DetermineStorageRoot(projectID)
 	if err != nil {

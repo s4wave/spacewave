@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,20 +51,8 @@ func runCliMain(
 
 	ensureBus := func() error {
 		busInitOnce.Do(func() {
-			root := statePath
-			if !filepath.IsAbs(root) {
-				cwd, err := os.Getwd()
-				if err != nil {
-					busInitErr = err
-					return
-				}
-				root = filepath.Join(cwd, root)
-			}
-			if err := os.MkdirAll(root, 0o755); err != nil {
-				busInitErr = err
-				return
-			}
-			if err := storagepath.PublishResolvedPaths(projectID, root, socketPath); err != nil {
+			root, err := storagepath.ResolveStatePath(projectID, statePath, socketPath)
+			if err != nil {
 				busInitErr = err
 				return
 			}
@@ -165,6 +152,11 @@ func runCliMain(
 		}
 		log.SetLevel(lvl)
 		le = logrus.NewEntry(log)
+
+		// Publish the state path first so the log directory follows it.
+		if _, err := storagepath.ResolveStatePath(projectID, statePath, socketPath); err != nil {
+			return err
+		}
 
 		if raw := logFiles.Value(); len(raw) != 0 {
 			specs, err := logfile.ParseLogFileSpecs(raw, time.Now())

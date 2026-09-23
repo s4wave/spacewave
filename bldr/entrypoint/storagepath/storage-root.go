@@ -2,6 +2,7 @@ package storagepath
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -29,20 +30,29 @@ func SocketPathEnvVar(projectID string) string {
 	return projectIDPrefix(projectID) + "_SOCKET_PATH"
 }
 
-// PublishResolvedPaths publishes the resolved state root and optional
-// explicit socket path to the project's environment variables so
-// bus-hosted components (such as the resource listener) scope their
-// default paths to the invocation's state root instead of the shared
-// process default. socketPath may be empty when no explicit socket
-// path was requested.
-func PublishResolvedPaths(projectID, stateRoot, socketPath string) error {
-	if err := os.Setenv(StatePathEnvVar(projectID), stateRoot); err != nil {
-		return err
+// ResolveStatePath makes statePath absolute, creates it, and publishes it
+// with the optional explicit socket path to the project's environment
+// variables. Logs, bus-hosted components, and child processes then scope
+// their default paths to the invocation's state root instead of the shared
+// process default. socketPath may be empty when no explicit socket path was
+// requested. Returns the absolute state root.
+func ResolveStatePath(projectID, statePath, socketPath string) (string, error) {
+	root, err := filepath.Abs(statePath)
+	if err != nil {
+		return "", err
 	}
-	if socketPath == "" {
-		return nil
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return "", err
 	}
-	return os.Setenv(SocketPathEnvVar(projectID), socketPath)
+	if err := os.Setenv(StatePathEnvVar(projectID), root); err != nil {
+		return "", err
+	}
+	if socketPath != "" {
+		if err := os.Setenv(SocketPathEnvVar(projectID), socketPath); err != nil {
+			return "", err
+		}
+	}
+	return root, nil
 }
 
 // LogRetentionDaysEnvVar returns the environment variable that overrides
@@ -66,12 +76,15 @@ func projectIDPrefix(projectID string) string {
 }
 
 // DetermineStorageRoot determines the root dir to store data.
+//
+// The resolved state path takes precedence over the data directory so every
+// component of one invocation (stores, logs, and helpers) shares the root the
+// CLI selected. Without either override the platform config dir is used.
 func DetermineStorageRoot(projectID string) (string, error) {
-	envVar := StorageRootEnvVar(projectID)
-	envVal := os.Getenv(envVar)
-	if envVal != "" {
-		return envVal, nil
+	for _, envVar := range []string{StatePathEnvVar(projectID), StorageRootEnvVar(projectID)} {
+		if envVal := os.Getenv(envVar); envVal != "" {
+			return envVal, nil
+		}
 	}
-
 	return DetermineConfigDir(projectID)
 }
