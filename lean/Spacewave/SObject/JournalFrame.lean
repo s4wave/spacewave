@@ -432,4 +432,96 @@ theorem failed_sync_preserves_durable (storage : MemoryBytes) :
 theorem successful_sync_recovers (storage : MemoryBytes) :
     crashBytes (syncBytes storage true) = storage.data := by rfl
 
+/-- PublicationState retains the observable writer and storage state during checkpoint publication.
+Checkpoint contents are handled by buildCheckpoint/readCheckpoint; this view tracks their durable slots. -/
+structure PublicationState where
+  bytes : MemoryBytes
+  floor : Nat
+  markerGeneration : Nat
+  checkpointGenerations : List Nat
+  generation : Nat
+  sequence : Nat
+  offset : Nat
+  records : List Record
+  state : State
+  poisoned : Bool
+  deriving Repr, Inhabited
+
+/-- PublicationResult includes storage effects even when publication returns an error. -/
+structure PublicationResult where
+  ok : Bool
+  result : PublicationState
+  deriving Repr, Inhabited
+
+/-- publishCheckpoint mirrors the ordered effects after candidate and marker construction.
+Fault codes name injected API outcomes: 1/10 candidate before/after write; 2/3 marker
+before/after write; 4/5 floor before/after write; 6/7 retired read/mismatch; 8/11
+truncate before/after change; 9 failed Sync. Other codes complete successfully.
+The candidate generation and compact content must first pass the preparation contract. -/
+def publishCheckpoint (before : PublicationState) (generation : Nat) (fault : Int) : PublicationResult := Id.run do
+  let mut result := before
+  if fault == 1 then return ⟨false, result⟩
+  result := {result with checkpointGenerations :=
+    (generation :: result.checkpointGenerations.filter (· != generation)).mergeSort (· ≤ ·)}
+  if fault == 10 then return ⟨false, result⟩
+  result := {result with poisoned := true}
+  if fault == 2 then return ⟨false, result⟩
+  result := {result with markerGeneration := generation}
+  if fault == 3 || fault == 4 then return ⟨false, result⟩
+  if generation == 0 then return ⟨false, result⟩
+  result := {result with floor := max result.floor generation}
+  if fault == 5 || fault == 6 || fault == 7 || fault == 8 then return ⟨false, result⟩
+  result := {result with bytes := {result.bytes with data := []}}
+  if fault == 11 then return ⟨false, result⟩
+  if fault == 9 then
+    result := {result with bytes := syncBytes result.bytes false}
+    return ⟨false, result⟩
+  result := {result with bytes := syncBytes result.bytes true, offset := 0, generation := generation, records := [], poisoned := false}
+  return ⟨true, result⟩
+
+/-- Publication, successful or interrupted, never lowers the durable generation floor. -/
+theorem publication_floor_monotone (before : PublicationState) (generation : Nat) (fault : Int) :
+    before.floor ≤ (publishCheckpoint before generation fault).result.floor := by
+  unfold publishCheckpoint
+  simp only [Id.run, pure]
+  repeat' first | split | (simp_all <;> omega)
+
+/-- Every error once marker publication begins fences the old writer. -/
+theorem publication_failure_fenced (before : PublicationState) (generation : Nat) (fault : Int)
+    (candidate : fault ≠ 1 ∧ fault ≠ 10)
+    (failed : (publishCheckpoint before generation fault).ok = false) :
+    (publishCheckpoint before generation fault).result.poisoned = true := by
+  unfold publishCheckpoint at *
+  simp only [Id.run, pure] at *
+  repeat' first | split at * | simp_all
+
+/-- Complete publication commits the replacement before retiring the old bytes. -/
+theorem publication_success (before : PublicationState) (generation : Nat) (fault : Int)
+    (h : (publishCheckpoint before generation fault).ok = true) :
+    (publishCheckpoint before generation fault).result.markerGeneration = generation ∧
+    (publishCheckpoint before generation fault).result.floor = max before.floor generation ∧
+    (publishCheckpoint before generation fault).result.bytes.durable = [] ∧
+    (publishCheckpoint before generation fault).result.generation = generation ∧
+    (publishCheckpoint before generation fault).result.offset = 0 ∧
+    (publishCheckpoint before generation fault).result.poisoned = false := by
+  unfold publishCheckpoint at *
+  simp only [Id.run, pure] at *
+  repeat' first | split at * | simp_all [syncBytes]
+
+/-- Every outcome after a successful candidate write retains its generation slot. -/
+theorem publication_candidate_retained (before : PublicationState) (generation : Nat) (fault : Int)
+    (written : fault ≠ 1) :
+    generation ∈ (publishCheckpoint before generation fault).result.checkpointGenerations := by
+  unfold publishCheckpoint
+  simp only [Id.run, pure]
+  repeat' first | split | simp_all [List.mem_mergeSort]
+
+/-- A checkpoint never changes the live reducer result or the next writer-owned sequence. -/
+theorem publication_preserves_state (before : PublicationState) (generation : Nat) (fault : Int) :
+    (publishCheckpoint before generation fault).result.state = before.state ∧
+    (publishCheckpoint before generation fault).result.sequence = before.sequence := by
+  unfold publishCheckpoint
+  simp only [Id.run, pure]
+  repeat' first | split | simp_all
+
 end Spacewave.SObject.Journal

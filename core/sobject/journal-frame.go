@@ -1399,6 +1399,10 @@ func (j *journal) checkpoint() error {
 	if err != nil {
 		return err
 	}
+
+	// Marker publication can become visible even when its final sync fails.
+	// Fence appends until publication completes or recovery reopens the writer.
+	j.writer.poisoned = ErrJournalWriterPoisoned
 	if err := store.WriteJournalGeneration(markerData); err != nil {
 		return errors.Wrap(ErrJournalCheckpointCorrupt, err.Error())
 	}
@@ -1424,6 +1428,7 @@ func (j *journal) checkpoint() error {
 	j.writer.offset = 0
 	j.writer.generation = generation
 	j.writer.records = nil
+	j.writer.poisoned = nil
 	return nil
 }
 

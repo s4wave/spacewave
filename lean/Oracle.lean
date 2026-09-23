@@ -39,6 +39,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `journalCheckpoint`: `identity`, `generation`, `nextSequence`, `state`.
 - `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
+- `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
 - `scanJournalFrames`: `initial`, primitive `frames`; result `{"ok", "scan"}`.
 - `journalGenerationWindow`: `floor`, `generation`; result `{"ok", "floor"}`.
 - `journalMemoryBytes`: storage, offset, written bytes and sync outcome; result `{"ok", "storage"}`.
@@ -91,10 +92,15 @@ deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Ver
 deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement, Journal.Projection
 deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.CompactCheckpoint
 deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.ScanResult, Journal.MemoryBytes
+deriving instance ToJson, FromJson for Journal.PublicationState, Journal.PublicationResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "publishJournalCheckpoint" =>
+    let result := Journal.publishCheckpoint (← req.getObjValAs? Journal.PublicationState "before")
+      (← req.getObjValAs? Nat "generation") (← req.getObjValAs? Int "fault")
+    return json% {ok: $(result.ok), publication: $(result.result)}
   | "scanJournalFrames" =>
     let result := Journal.scanFrames (← req.getObjValAs? Nat "initial")
       (← req.getObjValAs? (List Journal.FrameObservation) "frames")

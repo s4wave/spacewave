@@ -4,6 +4,8 @@ import (
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 // TestJournalResendCheckpointEquivalence preserves the exact reducer snapshot across compaction.
@@ -96,5 +98,42 @@ func TestJournalFinalGenerationRecovers(t *testing.T) {
 	floor, err := storage.(journalGenerationFloorStore).JournalGenerationFloor()
 	if err != nil || floor != math.MaxUint64 {
 		t.Fatalf("final generation floor changed: floor=%d err=%v", floor, err)
+	}
+}
+
+// TestJournalPublicationFailureFencesWriter prevents acknowledged appends to a retired segment.
+func TestJournalPublicationFailureFencesWriter(t *testing.T) {
+	scope := testScope("publication-failure")
+	crypto := testJournalCrypto(t, scope)
+	pipeline := testPipeline(t, crypto)
+	storage := pipeline.journal.writer.storage.(*memoryJournalStorage)
+	version := JournalVersion(1, 1, 1, testDigest("config"))
+	firstKey := testMutationKey(scope, "peer", "first")
+	if err := pipeline.appendRecord(testIntent(t, crypto, firstKey, testLineage(firstKey, nil), version, 1, "first")); err != nil {
+		t.Fatal(err)
+	}
+	before := pipeline.Snapshot()
+	storage.setGenerationFloorFailure(errors.New("injected floor publication failure"))
+	if err := pipeline.journal.checkpoint(); err == nil {
+		t.Fatal("failed generation floor update was accepted")
+	}
+	storage.setGenerationFloorFailure(nil)
+
+	// A failed publication must force recovery before another append is acknowledged.
+	secondKey := testMutationKey(scope, "peer", "second")
+	second := testIntent(t, crypto, secondKey, testLineage(secondKey, nil), version, 2, "second")
+	appendErr := pipeline.appendRecord(second)
+	reopened, err := OpenJournalPipelineWithCrypto(storage, crypto, testReceiptVerifier(), testLookupVerifier())
+	if appendErr == nil {
+		t.Fatalf("failed publication acknowledged another append; recovery error: %v", err)
+	}
+	if !errors.Is(appendErr, ErrJournalWriterPoisoned) {
+		t.Fatalf("incomplete publication append error: %v", appendErr)
+	}
+	if err != nil || !reflect.DeepEqual(before, reopened.Snapshot()) {
+		t.Fatalf("publication failure lost acknowledged prefix: %v", err)
+	}
+	if err := reopened.appendRecord(second); err != nil {
+		t.Fatalf("recovered publication did not resume appends: %v", err)
 	}
 }
