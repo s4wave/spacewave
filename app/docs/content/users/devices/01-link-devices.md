@@ -2,69 +2,81 @@
 title: Link Devices
 section: devices
 order: 1
-summary: Connect another browser or desktop app to the same account and Spaces.
+summary: Connect another browser or the desktop app to the same account and Spaces.
 ---
 
-Pairing signs another browser or desktop app in to an existing account. Each
-client gets its own Session, which you can remove later. Both clients confirm
-matching emoji before account access changes.
+Linking a device signs another browser or desktop app in to an account you
+already have. Afterwards both see the same Spaces, the containers that hold your
+work. Each linked client gets its own session, which is that client's sign-in
+to the account. You can remove a session later.
+
+Before any access changes, both clients show a row of emoji. You confirm that
+the emoji match.
 
 ## Link with a code
 
-1. Open the account you want to share and choose **Link My Device** from setup
-   or settings.
+1. On the client that has the account, choose **Link My Device** from setup or
+   settings.
 2. Choose **Generate code for another device**.
-3. Open Spacewave in another browser or the desktop app. From Home, choose
-   **Link My Device** and enter the 8-character code. You can also follow the
-   pairing link.
+3. Open Spacewave in the other browser or in the desktop app. From Home, choose
+   **Link My Device** and enter the 8-character code. You can also open the
+   pairing link instead.
 4. Compare the emoji on both clients and confirm that they match.
 
-If the emoji differ, reject the connection and start again. A code expires
-and can be replaced from the client that generated it.
+If the emoji differ, reject the connection and start again. Codes expire. The
+client that made the code can make a new one.
 
-## When both clients already use accounts
+## When both clients already have accounts
 
-Entering a code from within an account offers four outcomes: sign in to either
-account on the other client, or merge into either account. Both clients show
-which accounts and machines are involved before confirmation.
+If the client entering the code already has an account, you can choose one of
+four outcomes:
 
-Signing in keeps the two accounts separate. Merging moves the source account's
-Spaces and Sessions into the selected destination. The destination keeps its
-account identity, settings, and local or cloud storage provider. Existing Space
-IDs and external sharing permissions remain intact.
+- sign in to the first account on the second client;
+- sign in to the second account on the first client;
+- merge the first account into the second;
+- merge the second account into the first.
 
-A permission or Session-capacity problem blocks the merge and identifies what
-needs attention. Source data remains available for recovery and retry. Other
-Sessions follow the account's verified transition when they reconnect. Reconnect
-Sessions from an earlier local merge before moving that destination account
-again.
+Both clients show which accounts and machines are involved before you confirm.
 
-## Link with direct signaling
+Signing in keeps the two accounts separate. Merging moves the Spaces and
+sessions of one account into the other. The account you merge into keeps its
+identity, settings, and storage, whether local or Cloud. Space IDs and sharing
+with other people stay the same.
 
-Choose **Show QR code** on the first client. On the other client, scan the code
-or open its pairing link, then send its answer back to the first client. Compare
-and confirm the emoji on both clients.
+A permission problem, or an account that has no room for more sessions, stops
+the merge. Spacewave tells you what needs attention. The data of the account
+being merged stays available, so you can fix the problem and try again. Other
+sessions of the account pick up the change when they reconnect. After a merge
+between local accounts, reconnect those sessions before you merge the
+destination account again.
 
-Direct signaling is available for local and cloud accounts. It establishes the
-peer connection directly; cloud accounts still contact their provider to
-authorize the new Session.
+## Link with a QR code
+
+1. On the first client, choose **Show QR code**.
+2. On the other client, scan the code or open its pairing link.
+3. Send the other client's answer back to the first client.
+4. Compare and confirm the emoji on both clients.
+
+This method connects the two clients directly. It works for local and Cloud
+accounts. A Cloud account still contacts Spacewave Cloud to approve the new
+session.
 
 ## After connecting
 
-**Account connected** means the new Session has durable account access. For a
-local account, Spacewave copies each Space's files in the background. Keep a
-client with the data online until copying completes. Copy status reports
-progress and any interruption, and resumes when the source is reachable again.
-After the copy completes, the receiving client can read that data independently.
+**Account connected** means the new session can use the account. For a local
+account, Spacewave then copies each Space's files to the new client in the
+background. Keep a client that has the data online until copying finishes. The
+copy status shows progress and any interruption. Copying resumes when the
+source is reachable again. After the copy finishes, the new client can read
+that data on its own.
 
-Changes and new Spaces continue to synchronize through the account. Removing a
-Session stops its future access and synchronization; it does not erase data
-that client already retained.
+From then on, changes and new Spaces sync through the account. Removing a
+session stops its future access and syncing. It does not erase data that the
+client already has.
 
-You can pair two browsers without installing anything. The desktop download
-page offers the published macOS, Windows, and Linux builds with platform-specific
-instructions.
+You can link two browsers without installing anything. The desktop download
+page has builds for macOS, Windows, and Linux, with instructions for each.
 
-Account pairing is separate from adding a managed Device to a Space. Use the
-managed Device flow when you want to connect a machine or agent for Spacewave to
-operate.
+Linking a device to your account is different from adding a managed device to a
+Space. A managed device is a machine or agent that Spacewave operates for you.
+Use the **Add Device** flow in a Space for that.

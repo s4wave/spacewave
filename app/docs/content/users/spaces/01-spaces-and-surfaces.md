@@ -2,41 +2,42 @@
 title: Spaces and What They Hold
 section: spaces
 order: 1
-summary: Learn what a Space holds, how items open, and how to arrange them.
+summary: Learn what a Space holds, how its items open, and how to arrange them.
 ---
 
-A Space is a container for your work. Everything you make in Spacewave lives
-inside one, and a Space is the unit that gets synced, shared, and backed up. You
-can have as many as you like, and most people end up with one per project.
+A Space is a container for your work. Everything you make in Spacewave lives in
+a Space. A whole Space is what gets synced, shared, and backed up. You can have
+as many Spaces as you like; many people keep one per project.
 
 ## What a Space holds
 
 A Space holds items. A Drive is an item, and so is a canvas, a chat channel, a
-Git repository, or a notebook. Each item opens in the view built for it: files
-open in the file browser, a canvas opens in the canvas editor, and so on.
+Git repository, or a notebook. Each item opens in a view made for it. Files open
+in the file browser, and a canvas opens in the canvas editor.
 
-Occasionally you will open something Spacewave has no view for. It will say so
-and offer you a raw look at the underlying data. Nothing is lost when this
-happens; it means the part of the app that handles that kind of item is not
-installed.
+Sometimes you open an item that has no view in your copy of Spacewave. Spacewave
+says so and offers a raw view of the stored data instead. Nothing is lost. It
+means the add-on that shows that kind of item is not installed.
 
-## Opening a Space
+## Add to a Space
 
-Choosing a Space opens whichever item it is set to show first. A Quickstart sets
-this for you, so a Drive Space opens straight into the file browser. You can
-change it later in the Space's settings.
+Open the command palette with Cmd+K or Ctrl+K and use the create command, or
+use the add button in the Space. Both list everything you can add. Some items
+appear right away. Others open a short setup flow first and join the Space when
+you finish it.
 
-## Arranging your work
+## Open a Space
 
-Spacewave opens things in tabs. Drag a tab to the edge of the window to split
-the view and see two items side by side.
+When you open a Space, it shows the item it is set to show first. A Quickstart
+sets this for you, so a Space made with **Create a Drive** opens in the file
+browser. You can change the first item in the Space's settings.
 
-A split you make this way lasts as long as the window. When you want an
-arrangement that stays with the Space, so anyone who opens it sees the same
-panes on any device, save it as a layout in the Space instead.
+## Arrange your work
 
-## Adding to a Space
+Spacewave opens items in tabs. Drag a tab to the edge of the window to split the
+view and see two items side by side. A split made this way lasts only as long as
+the window.
 
-Use the create command from the command palette, or the add button in the Space,
-to see everything you can add. Some items appear right away. Others open a short
-setup flow first and land in the Space once you finish it.
+To keep an arrangement with the Space, add an **Object Layout** item. It
+arranges the Space's items in a grid, and everyone who opens it sees the same
+arrangement on any device.

@@ -2,40 +2,44 @@
 title: Backup and Recovery
 section: storage
 order: 2
-summary: Four separate recovery paths, and which one applies to what went wrong.
+summary: Four separate ways to recover, and which one fits what went wrong.
 ---
 
-There is no single restore button. Recovery in Spacewave is four separate
-mechanisms, and knowing which one applies is most of the work.
+Spacewave has no single restore button. It has four separate ways to recover,
+and each one fixes a different problem. Most of the work is picking the right
+one.
 
-## Backup keys
+## Backup keys: get back into an account
 
-Both a Cloud account and an account kept on this machine can write out a backup
-key, a `.pem` file. Keep it somewhere other than the device it came from.
+Both Spacewave Cloud accounts and accounts kept on one machine can save a
+backup key, a `.pem` file. Store it somewhere other than the device that made
+it.
 
-It gets you back in: signing in on a new device, adding another way to sign in,
-resetting a forgotten PIN. It does not contain your Spaces, so it cannot restore
-them.
+A backup key gets you back in. With it you can sign in on a new device, add
+another way to sign in, or reset a forgotten PIN. It does not contain your
+Spaces, the containers that hold your work, so it cannot restore them.
 
-## Locks
+## Locks: reset a forgotten PIN
 
 An account either unlocks as soon as you open the app, or asks for a PIN first.
-Lose the PIN and the reset asks for your account password or your backup key
-instead.
+If you forget the PIN, the reset asks for your account password or your backup
+key instead. An account with neither cannot reset its PIN.
 
-## Cloud account recovery
+## Cloud account recovery: reset a password
 
-If you have a verified email address on a Cloud account, you can have a recovery
-link sent to it, confirm it, and set a new password. This gets you back into the
-account. It does nothing for data sitting in a browser on a machine you no
+If a Cloud account has a verified email address, you can have a recovery link
+sent to it, confirm it, and set a new password. This gets you back into the
+account. It does nothing for data stored in a browser on a machine you no
 longer have.
 
-## Moving data
+## Transfers: move data between places
 
-The way to move Spaces between two places is a transfer. It lists what is on the
-source, lets you choose what to move, runs, and can be resumed if it stops
-partway.
+A transfer moves Spaces from one place to another, such as from this device to
+Cloud. It lists what is on the source and lets you choose what to move. If it
+stops partway, it resumes where it stopped.
 
-So: on a disk, the directory is what you back up. On Cloud, Cloud is doing the
-backing up. A backup key is neither, and a transfer is how data crosses between
-them.
+## Which one to use
+
+For data in a state directory on disk, back up the directory. For data in
+Cloud, Cloud backs it up for you. A backup key is neither of these. A transfer
+is how data moves between them.

@@ -2,50 +2,56 @@
 title: Start Here
 section: start
 order: 1
-summary: Open Spacewave, decide whether to sign in, and make something real.
+summary: Choose where your work is kept, make your first Space, and find your way around.
 ---
 
-Spacewave opens to a start screen with a handful of Quickstarts. Pick one and
-you will have a working Space in a few seconds, with something in it worth
-opening.
+Spacewave is an app for files, notes, drawings, code, and other work that you
+keep in Spaces. A Space is a container for one project. It holds the things you
+make and is what you sync and share. You can use Spacewave in a browser, in the
+desktop app, or from a terminal.
 
-## Sign in, or don't
+This page covers the first choices you make. The next page walks you through
+creating your first Space.
 
-Choose **Sign in or create account** to get a Spacewave Cloud account, which
-gives you sync, backup, and access from your other devices.
+## Choose where your work is kept
 
-Choose **Continue without account** to work on this device only. This is the
-fastest way to try Spacewave and it works offline, with one thing to keep in
-mind: your browser can clear its own storage when the disk gets full, and it
-will take your work with it. Fine for trying things out, and worth moving to
-Cloud or the desktop app before you keep anything important there.
+The start screen offers two ways in.
 
-If you already have Spacewave data on this machine, the desktop app can open it
-directly.
+**Sign in or create account** uses Spacewave Cloud. Cloud is Spacewave's hosted
+service. It keeps an encrypted copy of your Spaces, syncs them between your
+devices, and lets you share them.
+
+**Continue without account** keeps your work on this device only. It needs no
+sign-up and works offline, so it is the quickest way to try Spacewave. In a
+browser, your work lives in the browser's own storage. The browser may clear
+that storage when the disk runs low, and it does not ask first. Before you keep
+anything important there, move it to Cloud or use the desktop app.
+
+The desktop app keeps your Spaces in a folder on your disk. It can also open a
+Spacewave folder you already have. [Accounts and
+Storage](/docs/users/accounts/accounts-and-storage) compares the three options.
 
 ## Make something
 
-**Create a Drive** is the shortest path to something real. You get a Space with
-file storage, a `getting-started.md` to open, and the file browser.
+The start screen lists Quickstarts. A Quickstart creates a new Space and adds a
+first item to it, so you have something to open right away.
 
-**Create a Canvas** gives you a visual workspace. **Create/clone a Git
-Repository** walks you through setting up a repository. **Create an Empty
-Space** gives you the container and lets you fill it yourself.
-
-More Quickstarts, such as notebooks, chat, and virtual machines, appear as those
-features become available in your copy of Spacewave.
+**Create a Drive** is the shortest path. It gives you a Space with file storage
+and a `getting-started.md` file to open. [Create Your First
+Space](/docs/users/start/create-your-first-space) lists the other Quickstarts.
 
 ## Find anything
 
-Press Cmd/Ctrl+K, or click the Spacewave logo, to open the command palette. Type
-what you want to do. What you see there depends on where you are and which Space
-is open.
+Press Cmd+K on a Mac or Ctrl+K elsewhere, or click the Spacewave logo, to open
+the command palette. Type what you want to do. The commands it offers depend on
+the page you are on and the Space you have open.
 
-## Verify your data persisted
+## Before you rely on it
 
-Once your first Space opens, add a file or a folder, then reload the page. Still
-there? Everything is set up correctly.
+Once you have work you could not recreate, take two steps:
 
-Before you put work in Spacewave that you could not recreate, download a backup
-key or move to Cloud. Both take a minute and are much easier to do now than to
-wish you had done later.
+- Download a backup key. It gets you back into your account if you lose your
+  password or device. See [Backup and Lock
+  Setup](/docs/users/accounts/backup-and-lock-setup).
+- Keep your Spaces somewhere safer than a browser: in Spacewave Cloud or in the
+  desktop app.

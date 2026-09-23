@@ -3,7 +3,8 @@
 Spacewave provides typed live collections backed by durable storage. An
 application declares a schema of collections and mutations. Clients hold one
 WebSocket connection and read full snapshots that update live. A Node server
-owns storage, authentication, and per-operation authorization.
+stores the data, authenticates each connection, and checks access on every
+operation.
 
 Package entries:
 
@@ -53,8 +54,9 @@ client types use `Output<V>`.
 
 ## Shared application definitions
 
-`defineApp(schema, handlers)` packages a schema and its named mutations without
-opening storage. Its `schema` and `mutations` can be passed to `createServer`:
+`defineApp(schema, handlers)` bundles a schema with the code for its named
+mutations. It does not open storage, so the same definition can serve a Node
+server and a Space plugin. Spread it into `createServer`:
 
 ```ts
 import { defineApp } from 'spacewave'
@@ -78,31 +80,24 @@ const server = await createServer({
 })
 ```
 
-`instance` in the server configuration selects a dataset within the World and
-defaults to `schema.id`. Collection records and accepted-request receipts are
-isolated by application instance and authorized scope.
+The optional `instance` setting in the server configuration picks a dataset
+within the World. It defaults to `schema.id`. Each app instance and authorized
+scope has its own collection records and its own record of accepted requests.
 
-The Space plugin SDK uses this same declaration through `definePlugin` and
-`attachApp`. An attachment implements `AppSource`: read-only collections,
-named mutations, and function queries. Mutations execute in the World writer
-supplied by the host. They must be deterministic and use only their supplied
-transaction and input, awaiting every collection operation before returning.
-The first plugin release runs trusted application code;
-transaction/data limits and cooperative cancellation do not provide a sandbox.
+The Space plugin SDK reads the same definition through `definePlugin` and
+`attachApp`. An attachment implements `AppSource`, which offers read-only
+collections, named mutations, and function queries. Mutations run inside the
+World transaction that the host provides. A mutation must be deterministic: it
+may use only its input and that transaction, and it must await every
+collection call before it returns.
+
+Plugin code is trusted. Transaction and data limits and cooperative
+cancellation bound its work, but they are not a sandbox.
 
 ### Function queries in a Space or Node host
 
-`defineQuery(schema, { name, input, evaluate })` declares a pure query over an
-`AppSource`. The runtime traces record lookups, missing records, scanned
-prefixes, and fields used by the function. Each result comes from one immutable
-World snapshot. Comparing immutable KV roots skips unchanged subtrees before
-checking whether changed records affect the query.
-
-On a Node host, `server.as(principal)` implements the same `AppSource` contract.
-Call its `watch` method with a query definition, or pass it to the common hooks.
-Queries recheck collection permissions on delivery. Closing the final iterator
-releases its source; closing the server cancels every active source. A scoped
-access object starts no query work until its iterator is consumed.
+A function query is a JavaScript function that reads collections and returns a
+value. Declare one with `defineQuery(schema, { name, input, evaluate })`:
 
 ```ts
 import { defineQuery } from 'spacewave'
@@ -121,20 +116,37 @@ for await (const snapshot of attachment.watch(incomplete, null, signal)) {
 }
 ```
 
-Await every read before returning. Query functions must not mutate their inputs
-or records, perform external effects, or depend on clocks or randomness.
-Returning a whole record watches the whole returned value. Equivalent queries
-share one producer within an authorized attachment and release it when their
-last subscriber closes. Missing old roots cause a full reevaluation.
+While the function runs, the runtime records what it read: the records it
+looked up, the records it found missing, the prefixes it scanned, and the
+fields it used. Each result comes from one World snapshot. When the World
+changes, the runtime compares storage roots to skip unchanged data, then checks
+whether any changed record affects what the query read. Only then does it run
+the query again. If the old roots are no longer available, it runs the query
+again in full.
+
+A query function must await every read before it returns. It must not change
+its input or the records it reads, cause outside effects, or depend on the
+clock or random numbers. A query that returns a whole record depends on every
+field of that record.
+
+Identical queries on the same authorized attachment share one evaluation. It
+stops when the last subscriber closes.
+
+On a Node host, `server.as(principal)` implements the same `AppSource`. Call its
+`watch` method with a query definition, or pass it to the React hooks below.
+Each delivery checks collection permissions again. The scoped object starts no
+query work until you read from its iterator. Closing the last iterator releases
+the source, and closing the server stops every active source.
 
 `spacewave/react` exports `useAppQuery(source, query, args)` and
-`useAppMutation(source, name)`. Queries expose pending/current/error state.
-Mutations expose idle/pending/accepted/error state, `submit(input)`, and
-`retry()`; retries preserve the original input and request ID. Keep personal
+`useAppMutation(source, name)`. A query reports pending, current, or error. A
+mutation reports idle, pending, accepted, or error, and provides
+`submit(input)` and `retry()`. `retry()` resends the original input with the
+original request ID, so the server applies it at most once. Keep personal
 selection and unsaved drafts in component state.
 
-The WebSocket `Database` below retains its collection-prefix subscription API;
-it does not transport JavaScript query functions.
+The WebSocket `Database` client below subscribes to collection prefixes. It
+does not run function queries.
 
 ## Client
 
@@ -149,8 +161,8 @@ const db = await connect({
 ```
 
 `connect(options)` returns `Promise<Database<S>>`. It resolves after
-authentication, the wire and schema version check, and root admission. On
-failure it closes the connection and throws `SyncError`.
+authentication, the wire and schema version check, and the server's acceptance
+of the connection. On failure it closes the connection and throws `SyncError`.
 
 `ConnectOptions<S>`:
 
@@ -172,8 +184,8 @@ failure it closes the connection and throws `SyncError`.
 | `close()` | Idempotent. Also available through `await using` (`AsyncDisposable`). |
 
 `ConnectionState` is `{ status: 'ready' | 'reconnecting' | 'closed', error? }`.
-A new client is `reconnecting` until admission completes, and `closed` after
-`close()`.
+A new client is `reconnecting` until the server accepts the connection, and
+`closed` after `close()`.
 
 One collection exposes:
 
@@ -208,7 +220,7 @@ array of `{ key, value }` entries:
 Each state carries the full snapshot of every record matching the prefix,
 ordered by key. There are no per-row deltas and no per-row filters. The client
 reconnects on its own: a lost connection publishes `stale` and the stream
-resumes with `current` once the server admits the client again. An
+resumes with `current` once the server accepts the connection again. An
 unrecoverable failure publishes `error` and ends the stream.
 
 ```ts
@@ -282,7 +294,7 @@ at compile time. The schema argument carries no runtime state.
 
 | Binding | Contract |
 | --- | --- |
-| `SyncProvider({ db, children })` | Supplies an already-connected `Database<S>`. It never opens, retries, or closes the db; the application owns that lifetime. |
+| `SyncProvider({ db, children })` | Supplies an already-connected `Database<S>`. It never opens, retries, or closes the db; the application does that. |
 | `useDatabase()` | Returns the typed `Database<S>`. Throws when no provider is above in the tree. |
 | `useCollection(name, query?)` | Returns `SubscriptionState<Output>` for the collection. |
 
@@ -341,7 +353,7 @@ const server = await createServer({
 
 `createServer(options)` returns `Promise<SyncServer<S, P>>`. It opens the
 dataset, checks the stored application ID and version, runs any migration, and
-only then returns a server that can admit callers. Failures throw `SyncError`.
+only then returns a server that can accept callers. Failures throw `SyncError`.
 
 `ServerOptions<S, P>`:
 
@@ -353,7 +365,7 @@ only then returns a server that can admit callers. Failures throw `SyncError`.
 | `authorize(access)` | Returns `boolean \| Promise<boolean>`. Called for every operation and again for every watch delivery. |
 | `mutations` | One handler per declared mutation. |
 | `limits?` | `maxRecords` (default 10000), `maxSnapshotBytes` (default 8 MiB), `maxRecordBytes` (default 256 KiB). Exceeding a bound fails that query or write with `QUERY_LIMIT`. |
-| `migration?` | Runs before any caller is admitted when the stored schema version differs. |
+| `migration?` | Runs before the server accepts any caller when the stored schema version differs. |
 
 Storage uses built-in SQLite in a dedicated worker. A directory permits one open server writer at a time.
 
@@ -391,8 +403,8 @@ migration: {
 
 `Migration<S>` is `{ from, run(context) }`. `run` receives `scopes()` listing
 the stored scopes, `scope(name)` returning a transaction for that scope, and
-`signal`. The migration runs inside one maintenance transaction before any
-caller is admitted. If the stored version differs and no matching migration is
+`signal`. The migration runs inside one maintenance transaction before the
+server accepts any caller. If the stored version differs and no matching migration is
 supplied, or the dataset belongs to a different application ID, `createServer`
 fails with `SCHEMA_MISMATCH`.
 
@@ -401,8 +413,8 @@ fails with `SCHEMA_MISMATCH`.
 | Member | Contract |
 | --- | --- |
 | `listen(options?)` | Opens its own HTTP server. `ListenerOptions` adds `port?` (default 8787) and `host?` (default 127.0.0.1). Returns `Listener` with a `ws://` `url` and `close()`. |
-| `attach(http, options?)` | Handles the upgrade event of a supplied HTTP server. Other routes and upgrade paths stay yours. Returns `Attachment` with `close()`. |
-| `as(principal)` | `DatabaseAccess<S> & AppSource<S>` for direct server-side reads, named mutations, and function queries as that principal. Every operation still passes `authorize`. |
+| `attach(http, options?)` | Handles the upgrade event of a supplied HTTP server. Your server keeps handling other routes and upgrade paths. Returns `Attachment` with `close()`. |
+| `as(principal)` | `DatabaseAccess<S> & AppSource<S>` for server-side reads, named mutations, and function queries as that principal. Every operation still passes `authorize`. |
 | `admin(scope)` | Privileged access as subject `admin`, with only the base principal fields. Handlers that require application-specific principal fields should use `as(principal)`. Collection authorization is bypassed; validation still applies. |
 | `close()` | Closes every attachment the server created, then the application, then storage the server opened. Idempotent. Also available through `await using`. |
 
@@ -434,7 +446,7 @@ http.listen(3000)
 
 Queries return complete, ordered snapshots of a collection or prefix. Defaults bound a query to 10,000 records and 8 MiB of encoded keys and values, and a record to 256 KiB. Exceeding a bound produces `QUERY_LIMIT`. These are safety bounds, not throughput guarantees.
 
-A qualification workload on Node 24.21.0 and macOS arm64 used 1,000 numeric records, three subscribers, and ten writes. Identical queries shared one producer.
+A qualification workload on Node 24.21.0 and macOS arm64 used 1,000 numeric records, three subscribers, and ten writes. Identical queries shared one evaluation.
 
 | Measurement | Observed sample |
 | --- | --- |
@@ -444,6 +456,6 @@ A qualification workload on Node 24.21.0 and macOS arm64 used 1,000 numeric reco
 | RSS when ready / after the workload | 336 MB / 1.10 GB |
 | Encoded snapshot | 28.9 KB |
 
-This collection-prefix subscription workload scans its collection after a changed revision. Function queries additionally compare immutable roots and inspected fields before deciding to evaluate again. RSS includes the compiled runtime and is not a retained-heap measurement. These observations describe one workload; measure representative scan and delivery time, memory, and storage growth before raising limits. Acceptance receipts and World history accumulate for the dataset lifetime.
+In this workload, each changed revision makes a collection-prefix subscription scan its whole collection. A function query first compares storage roots and the fields it read, and runs again only when they changed. RSS includes the compiled runtime and is not a retained-heap measurement. These observations describe one workload; measure representative scan and delivery time, memory, and storage growth before raising limits. Acceptance receipts and World history accumulate for the dataset lifetime.
 
 A qualified release artifact's `qualification.json` records its own sample, source revision, package sizes, and checksum. See the [README](README.md) for supported runtimes and current release scope.

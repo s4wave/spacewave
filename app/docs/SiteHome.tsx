@@ -38,7 +38,7 @@ const siteHomePaths: Record<
       summary: 'Find out what actually holds each Space, and back that up.',
     },
     {
-      title: 'Upgrades and daemons',
+      title: 'Run the background service',
       url: '/docs/self-hosters/operations/upgrades-and-daemons',
       summary:
         'Run the service, point it at a directory, hand it over cleanly.',
@@ -48,19 +48,17 @@ const siteHomePaths: Record<
     {
       title: 'Developer start here',
       url: '/docs/developers/start/developer-start-here',
-      summary:
-        'Start from Space, ObjectType, viewer, wizard, and plugin owners.',
+      summary: 'Pick a path: a live app, a plugin, or a change to Spacewave.',
+    },
+    {
+      title: 'Build a live application',
+      url: '/docs/developers/sync/build-a-live-application',
+      summary: 'Share a typed schema and subscribe to live data from React.',
     },
     {
       title: 'Build a plugin',
       url: '/docs/developers/plugins/build-a-plugin',
-      summary: 'Own the ObjectType, viewer, manifest, and registration path.',
-    },
-    {
-      title: 'CLI reference',
-      url: '/docs/developers/cli/cli-reference',
-      summary:
-        'Use the current command tree and connection rules while building.',
+      summary: 'Add an ObjectType and viewer that run inside a Space.',
     },
   ],
 }

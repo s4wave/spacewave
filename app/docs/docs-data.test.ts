@@ -39,7 +39,8 @@ describe('docs data', () => {
         '/docs/self-hosters/start/choose-how-to-run-spacewave',
         '/docs/developers/start/developer-start-here',
         '/docs/developers/cli/cli-reference',
-        '/docs/developers/platform/space-native-docs-boundaries',
+        '/docs/developers/sync/build-a-live-application',
+        '/docs/developers/contributing/public-docs-and-markdown',
       ]),
     )
 
@@ -88,5 +89,23 @@ describe('docs data', () => {
     expect(
       getLegacyDocRedirect('/docs/developers/cli/installation-and-commands'),
     ).toBe('/docs/developers/cli/cli-reference')
+  })
+
+  it('redirects moved docs pages to pages in the current corpus', () => {
+    const urls = new Set(loadDocs().map((doc) => doc.url))
+    const moved = [
+      '/docs/users/devices/move-to-cloud',
+      '/docs/self-hosters/ownership/teams-and-space-ownership',
+      '/docs/developers/start/sync-library',
+      '/docs/developers/objects/quickstarts-and-app-surfaces',
+      '/docs/developers/platform/prerender-and-public-docs',
+      '/docs/developers/platform/space-native-docs-boundaries',
+    ]
+
+    for (const url of moved) {
+      const target = getLegacyDocRedirect(url)
+      expect(urls.has(url)).toBe(false)
+      expect(target && urls.has(target)).toBe(true)
+    }
   })
 })

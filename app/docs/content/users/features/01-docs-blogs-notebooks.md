@@ -5,35 +5,35 @@ order: 1
 summary: Write inside a Space with a Notebook, a Documentation set, or a Blog.
 ---
 
-Spacewave has three ways to write things down inside a Space. They are the same
-underneath, and they differ in how the finished thing is laid out and read.
+You can write inside a Space, which is a container for one project in
+Spacewave. There are three kinds of writing item. They store your writing the
+same way and differ in how it is laid out for readers.
 
-- A **Notebook** is for notes: pages you keep for yourself, in whatever order
-  suits you.
-- **Documentation** is for a set of pages meant to be read in order, with a
-  table of contents down the side.
-- A **Blog** is for dated posts, newest first.
+- A **Notebook** holds notes you keep for yourself, organized with folders and
+  tags.
+- **Documentation** is a set of pages meant to be read in order, with a table
+  of contents at the side.
+- A **Blog** holds dated posts, newest first.
 
-All three keep their content as files in the Space, so they move with the Space,
-sync with it, and are shared with whoever the Space is shared with. Each
-Quickstart writes a starter page so you have something to open and edit right
-away.
+All three keep your writing as markdown files in the Space. The files sync with
+the Space and are shared with everyone who can open it. Each Quickstart writes
+a starter page, so you have something to open and edit right away.
 
-## Which one
+## Which one to use
 
-Pick by how the reader will arrive. Someone browsing your own thinking wants a
-Notebook. Someone learning how something works wants Documentation. Someone
-following along over time wants a Blog. You can have all three in one Space.
+Choose by how people will read it. Use a Notebook for your own notes.
+Use Documentation to explain how something works. Use a Blog for updates that
+people follow over time. One Space can hold all three.
 
-## Still settling
+## Still experimental
 
-These three are newer than the rest of Spacewave, and a copy of Spacewave
-without them will show a plain file view instead of the editor. If a Quickstart
-for one of them is missing or greyed out, that feature is not available here
-yet.
+The Notebook, Documentation, and Blog Quickstarts are experimental, so your
+copy of Spacewave may not show them. These items are provided by an add-on. A
+copy of Spacewave without that add-on shows a plain file view instead of the
+editor.
 
 ## Not the same as this website
 
 The pages you are reading now, and the posts on the Spacewave blog, are part of
-the Spacewave website. They are not stored in a Space and are not yours to edit.
-Anything you write goes in a Space.
+the Spacewave website. They are not stored in a Space, and you cannot edit
+them. Anything you write goes in one of your Spaces.
