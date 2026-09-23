@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/world/testbed"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_local "github.com/s4wave/spacewave/sdk/provider/local"
+	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -115,6 +116,23 @@ func TestNestedAppRuntime(t *testing.T) {
 	}
 	left, leftRoot, leftHTTP := mount()
 	_, rightRoot, rightHTTP := mount()
+
+	// Plugins register with the host root; nested apps serve the same entries.
+	if _, err := s4wave_quickstart_registry.NewSRPCQuickstartRegistryResourceServiceClient(outer.SRPCClient()).RegisterQuickstart(ctx,
+		&s4wave_quickstart_registry.RegisterQuickstartRequest{Registration: &s4wave_quickstart_registry.QuickstartRegistration{
+			QuickstartId: "notebook", PluginId: "spacewave-notes", Name: "Notebook", Description: "Notes", Category: "notes",
+		}}); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := s4wave_quickstart_registry.NewSRPCQuickstartRegistryResourceServiceClient(leftRoot.SRPCClient()).ListQuickstarts(ctx,
+		&s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if regs := listed.GetRegistrations(); len(regs) != 1 || regs[0].GetQuickstartId() != "notebook" {
+		t.Fatalf("nested Quickstarts = %v, want the host registration", regs)
+	}
+
 	create(left, leftRoot)
 	assertSessions(leftRoot, 1)
 	assertSessions(rightRoot, 0)

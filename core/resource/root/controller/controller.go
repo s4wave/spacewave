@@ -14,25 +14,16 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
-	resource_configtype_registry "github.com/s4wave/spacewave/core/resource/configtype/registry"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
-	resource_quickstart_registry "github.com/s4wave/spacewave/core/resource/quickstart/registry"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
-	resource_viewer_registry "github.com/s4wave/spacewave/core/resource/viewer/registry"
 	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
-	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
-	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
-	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
-	s4wave_viewer_registry "github.com/s4wave/spacewave/sdk/viewer/registry"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
-	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
-	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 )
 
 // ControllerID is the controller id.
@@ -59,18 +50,13 @@ type Controller struct {
 	httpPathPrefix string
 	// apps owns shared runtime attachments for explicitly supplied Storage.
 	apps *keyed.KeyedRefCount[resource_root.AppStorage, *promise.Promise[*appRuntime]]
-	// viewerRegistry is the viewer registry resource
-	viewerRegistry *resource_viewer_registry.ViewerRegistryResource
-	// objectTypeRegistry is the ObjectType registry resource
-	objectTypeRegistry *resource_objecttype_registry.ObjectTypeRegistryResource
-	// worldOpRegistry is the WorldOp registry resource
-	worldOpRegistry *resource_worldop_registry.WorldOpRegistryResource
-	// configTypeRegistry is the ConfigType registry resource
-	configTypeRegistry *resource_configtype_registry.ConfigTypeRegistryResource
-	// quickstartRegistry is the Quickstart registry resource
-	quickstartRegistry *resource_quickstart_registry.QuickstartRegistryResource
-	// objectWizardRegistry is the ObjectWizard registry resource
-	objectWizardRegistry *s4wave_wizard.WizardRegistryResource
+	// parent is the root of the installation hosting this nested app, if any.
+	parent *Controller
+	// hostPluginID is the plugin serving this installation, set before apps
+	// start in Execute.
+	hostPluginID string
+	// registries are the plugin capability registries, shared with parent.
+	registries *registries
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
 
@@ -92,6 +78,15 @@ func WithYieldBroker(broker *yield_policy.Broker) Option {
 // WithListenerStatusBroker injects the shared listener status broker.
 func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
 	return func(c *Controller) { c.listenerStatus = broker }
+}
+
+// withParent nests the controller in parent's installation: it serves the
+// parent's plugin registries and Spaces load plugins through the parent host.
+func withParent(parent *Controller) Option {
+	return func(c *Controller) {
+		c.parent = parent
+		c.registries = parent.registries
+	}
 }
 
 // NewFactory constructs the component factory.
@@ -141,39 +136,11 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 				return nil, err
 			}
 
-			// create and register the viewer registry on the root resource mux
-			c.viewerRegistry = resource_viewer_registry.NewViewerRegistryResource()
-			if err := s4wave_viewer_registry.SRPCRegisterViewerRegistryResourceService(c.rootResourceMux, c.viewerRegistry); err != nil {
-				return nil, err
+			// serve the plugin capability registries
+			if c.registries == nil {
+				c.registries = newRegistries(base.GetLogger(), b)
 			}
-
-			// create and register the ObjectType registry on the root resource mux
-			c.objectTypeRegistry = resource_objecttype_registry.NewObjectTypeRegistryResource()
-			if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeRegistryResourceService(c.rootResourceMux, c.objectTypeRegistry); err != nil {
-				return nil, err
-			}
-
-			// create and register the WorldOp registry on the root resource mux
-			c.worldOpRegistry = resource_worldop_registry.NewWorldOpRegistryResource()
-			if err := s4wave_worldop_registry.SRPCRegisterWorldOpRegistryResourceService(c.rootResourceMux, c.worldOpRegistry); err != nil {
-				return nil, err
-			}
-
-			// create and register the ConfigType registry on the root resource mux
-			c.configTypeRegistry = resource_configtype_registry.NewConfigTypeRegistryResource()
-			if err := s4wave_configtype_registry.SRPCRegisterConfigTypeRegistryResourceService(c.rootResourceMux, c.configTypeRegistry); err != nil {
-				return nil, err
-			}
-
-			// create and register the Quickstart registry on the root resource mux
-			c.quickstartRegistry = resource_quickstart_registry.NewQuickstartRegistryResource(base.GetLogger(), b)
-			if err := s4wave_quickstart_registry.SRPCRegisterQuickstartRegistryResourceService(c.rootResourceMux, c.quickstartRegistry); err != nil {
-				return nil, err
-			}
-
-			// create and register the ObjectWizard registry on the root resource mux
-			c.objectWizardRegistry = s4wave_wizard.NewWizardRegistryResource()
-			if err := s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(c.rootResourceMux, c.objectWizardRegistry); err != nil {
+			if err := c.registries.register(c.rootResourceMux); err != nil {
 				return nil, err
 			}
 
@@ -196,13 +163,16 @@ func (c *Controller) SetWebListenerKeepaliveFunc(fn resource_root.WebListenerKee
 
 // Execute registers child controllers for the root resource lifecycle.
 func (c *Controller) Execute(ctx context.Context) error {
+	if c.parent != nil {
+		c.hostPluginID = c.parent.hostPluginID
+	} else if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
+		c.hostPluginID = info.GetPluginMeta().GetPluginId()
+	}
+	c.rootResource.SetHostPluginID(c.hostPluginID)
 	c.apps.SetContext(ctx, true)
 	defer c.apps.ClearContext()
 	b := c.GetBus()
 	le := c.GetLogger()
-	if info := bldr_plugin.GetPluginContextInfo(ctx); info != nil {
-		c.rootResource.SetHostPluginID(info.GetPluginMeta().GetPluginId())
-	}
 	var releases []func()
 	releaseAll := func() {
 		for _, v := range slices.Backward(releases) {
@@ -218,7 +188,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	releases = append(releases, objectTypeRel)
 
-	bridgeCtrl := resource_objecttype_registry.NewBridgeController(le, b, c.objectTypeRegistry)
+	bridgeCtrl := resource_objecttype_registry.NewBridgeController(le, b, c.registries.objectType)
 	bridgeRel, err := b.AddController(ctx, bridgeCtrl, nil)
 	if err != nil {
 		releaseAll()
@@ -226,7 +196,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	releases = append(releases, bridgeRel)
 
-	worldOpBridgeCtrl := resource_worldop_registry.NewWorldOpRegistryBridgeController(le, b, c.worldOpRegistry)
+	worldOpBridgeCtrl := resource_worldop_registry.NewWorldOpRegistryBridgeController(le, b, c.registries.worldOp)
 	worldOpBridgeRel, err := b.AddController(ctx, worldOpBridgeCtrl, nil)
 	if err != nil {
 		releaseAll()
