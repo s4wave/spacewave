@@ -162,7 +162,6 @@ func NewWebRTC(
 	}
 
 	// Configure QUIC for WebRTC data channels.
-	quicOpts.DisableDatagrams = true
 	quicOpts.DisableKeepAlive = false
 	quicOpts.DisablePathMtuDiscovery = true
 

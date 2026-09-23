@@ -7,4 +7,7 @@ package transport.controller;
 message StreamEstablish {
   // ProtocolID is the protocol identifier string for the stream.
   string protocol_id = 1;
+  // Unreliable marks a stream opened with OpenOpts.Unreliable. The stream
+  // carries the establishment and becomes the message stream's control.
+  bool unreliable = 2;
 }

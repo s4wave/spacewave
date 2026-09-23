@@ -23,6 +23,13 @@ export interface StreamEstablish {
    * @generated from field: string protocol_id = 1;
    */
   protocolId?: string
+  /**
+   * Unreliable marks a stream opened with OpenOpts.Unreliable. The stream
+   * carries the establishment and becomes the message stream's control.
+   *
+   * @generated from field: bool unreliable = 2;
+   */
+  unreliable?: boolean
 }
 
 export const StreamEstablish: MessageType<StreamEstablish> =
@@ -30,6 +37,7 @@ export const StreamEstablish: MessageType<StreamEstablish> =
     typeName: 'transport.controller.StreamEstablish',
     fields: [
       { no: 1, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'unreliable', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

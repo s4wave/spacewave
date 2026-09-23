@@ -46,6 +46,13 @@ type Link struct {
 	closed func()
 	// closedOnce guards closed
 	closedOnce sync.Once
+
+	// messagesMtx guards messages.
+	messagesMtx sync.Mutex
+	// messages holds the open message streams by datagram prefix.
+	messages map[string]*messageStream
+	// receiveOnce starts the datagram receiver with the first message stream.
+	receiveOnce sync.Once
 }
 
 // NewLink builds a new link.
@@ -93,6 +100,7 @@ func NewLink(
 		localPeerID:         localPeerID,
 		transportUUID:       localTransportUUID,
 		remoteTransportUUID: remoteTransportUUID,
+		messages:            make(map[string]*messageStream),
 	}, nil
 }
 
@@ -142,12 +150,26 @@ func (l *Link) RemoteAddr() net.Addr {
 	return l.addr
 }
 
-// OpenStream opens a stream on the link, with the given parameters.
+// OpenStream opens a stream on the link, with the given parameters. An
+// unreliable stream is a MessageStream whose control is the opened stream.
 func (l *Link) OpenStream(opts stream.OpenOpts) (stream.Stream, error) {
 	// OpenStream returns an error if we hit the stream limit.
 	// it is better to return an error and backoff / know something is wrong,
 	// than wait forever (potentially) while we are at the cap.
-	return l.sess.OpenStream()
+	qstream, err := l.sess.OpenStream()
+	if err != nil {
+		return nil, err
+	}
+	if !opts.Unreliable {
+		return qstream, nil
+	}
+	msgs, err := l.newMessageStream(qstream)
+	if err != nil {
+		qstream.CancelRead(0)
+		_ = qstream.Close()
+		return nil, err
+	}
+	return msgs, nil
 }
 
 // AcceptStream accepts a stream from the link.
@@ -193,4 +215,4 @@ func (l *Link) Close() error {
 }
 
 // _ is a type assertion
-var _ link.Link = (*Link)(nil)
+var _ link.MessageLink = (*Link)(nil)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
@@ -66,6 +67,7 @@ func (l *mountedLink) OpenMountedStream(
 ) (link.MountedStream, error) {
 	// Build the establishment header for the requested protocol.
 	estMsg := NewStreamEstablish(protocolID)
+	estMsg.Unreliable = opts.Unreliable
 
 	// Open the underlying stream on the link.
 	strm, err := l.link.OpenStream(opts)
@@ -73,17 +75,26 @@ func (l *mountedLink) OpenMountedStream(
 		return nil, err
 	}
 
+	// A message stream negotiates on its reliable control stream.
+	est := strm
+	if msgs, ok := strm.(stream.MessageStream); ok {
+		est = msgs.Control()
+	} else if opts.Unreliable {
+		_ = strm.Close()
+		return nil, errors.New("link does not support unreliable streams")
+	}
+
 	// Bound header negotiation by a write deadline.
-	_ = strm.SetWriteDeadline(time.Now().Add(streamEstablishTimeout))
+	_ = est.SetWriteDeadline(time.Now().Add(streamEstablishTimeout))
 
 	// Write the establishment header and close failed streams.
-	if _, err := writeStreamEstablishHeader(strm, estMsg); err != nil {
+	if _, err := writeStreamEstablishHeader(est, estMsg); err != nil {
 		_ = strm.Close()
 		return nil, err
 	}
 
 	// Clear the negotiation deadline after the header is sent.
-	_ = strm.SetDeadline(time.Time{})
+	_ = est.SetDeadline(time.Time{})
 
 	// Log the mounted stream when verbose transport logging is enabled.
 	if l.c.verbose {

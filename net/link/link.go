@@ -30,3 +30,14 @@ type Link interface {
 	// Close may be called many times.
 	Close() error
 }
+
+// MessageLink is a Link that carries unreliable streams: OpenStream with
+// OpenOpts.Unreliable returns a stream.MessageStream.
+type MessageLink interface {
+	Link
+
+	// AcceptMessageStream binds the message plane of an accepted stream whose
+	// opener set OpenOpts.Unreliable. control is the accepted stream, after
+	// the stream's establishment was read from it.
+	AcceptMessageStream(control stream.Stream) (stream.MessageStream, error)
+}

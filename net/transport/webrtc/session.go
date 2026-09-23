@@ -199,7 +199,6 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	if linkOpts == nil {
 		linkOpts = &transport_quic.Opts{}
 	}
-	linkOpts.DisableDatagrams = true
 
 	// Keep QUIC keepalive enabled for WebRTC links. The link rides a datachannel
 	// and can sit idle (a quiet resource stream, a lull between bursts) longer

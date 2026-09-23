@@ -320,6 +320,23 @@ func (c *Controller) HandleIncomingStream(
 		return
 	}
 
+	// An unreliable stream continues as a message stream on this control.
+	if streamEst.GetUnreliable() {
+		msgLink, ok := lnk.(link.MessageLink)
+		if !ok {
+			c.le.WithField("protocol-id", pid).Warn("link does not support unreliable streams")
+			strm.Close()
+			return
+		}
+		msgs, err := msgLink.AcceptMessageStream(strm)
+		if err != nil {
+			c.le.WithError(err).WithField("protocol-id", pid).Warn("unable to accept unreliable stream")
+			strm.Close()
+			return
+		}
+		strm, strmOpts.Unreliable = msgs, true
+	}
+
 	var mlnk link.MountedLink = newMountedLink(c, c.tpt, lnk)
 	var mstrm link.MountedStream = newMountedStream(strm, strmOpts, pid, mlnk)
 
