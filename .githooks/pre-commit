@@ -1,38 +1,66 @@
 #!/bin/sh
 set -e
 
-# The full-tree format check below costs tens of seconds, so run it only when
-# it can fail. It fails exactly when formatting would change a tracked file
-# that differs between the index and the worktree; the later git add steps
-# would fold such worktree edits into the commit. Restrict the candidate set
-# to the files bun run format rewrites: the oxfmt targets listed by
-# format_files plus Go sources anywhere outside vendor/. Deleted files are
-# never candidates because no formatter input remains. Git emits NUL-delimited
-# names; the line filters preserve spaces and quotes, and argv conversion is
-# NUL-delimited again. Newlines in filenames remain unsupported.
-dirty_format_files=$(git diff --name-only -z --diff-filter=d | tr '\0' '\n' | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json|.*\.go)$' | grep -vE '^vendor/' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
-if [ -n "$dirty_format_files" ]; then
-	format_before=$(mktemp)
-	format_after=$(mktemp)
-	trap 'rm -f "$format_before" "$format_after"' EXIT HUP INT TERM
-	git diff --binary --no-ext-diff >"$format_before"
-	bun run format
-	git diff --binary --no-ext-diff >"$format_after"
-	if ! cmp -s "$format_before" "$format_after"; then
-		printf '%s\n' 'bun run format changed the working tree; review and stage those changes, then retry the commit.' >&2
-		exit 1
-	fi
-fi
-
 files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
 	exit 0
 fi
 
+# Format and restage only files whose worktree matches the index. Restaging a
+# partially staged file would fold its unstaged edits into the commit, so
+# compare its staged blob with the formatter output instead and refuse the
+# commit when they differ.
+unstaged_list=$(mktemp)
+staged_blob=$(mktemp)
+formatted_blob=$(mktemp)
+trap 'rm -f "$unstaged_list" "$staged_blob" "$formatted_blob"' EXIT HUP INT TERM
+git diff --name-only -z | tr '\0' '\n' >"$unstaged_list"
+
+# whole_files prints the listed files that have no unstaged edits.
+whole_files() {
+	printf "%s\n" "$1" | grep -Fxv -f "$unstaged_list" || true
+}
+
+# check_partial_files fails the commit when the staged blob of a listed file
+# with unstaged edits differs from the output of the formatter command "$2",
+# which reads the blob on stdin and receives the path as its last argument.
+check_partial_files() {
+	unformatted=
+	while IFS= read -r f; do
+		[ -n "$f" ] || continue
+		git show ":$f" >"$staged_blob"
+		$2 "$f" <"$staged_blob" >"$formatted_blob"
+		if ! cmp -s "$staged_blob" "$formatted_blob"; then
+			unformatted="$unformatted$f
+"
+		fi
+	done <<PARTIAL_FILES
+$(printf "%s\n" "$1" | grep -Fx -f "$unstaged_list" || true)
+PARTIAL_FILES
+	if [ -n "$unformatted" ]; then
+		printf 'staged content needs formatting; format and restage these partially staged files:\n%s' "$unformatted" >&2
+		exit 1
+	fi
+}
+
+# oxfmt_stdin formats stdin as the file named by $1.
+oxfmt_stdin() {
+	node_modules/.bin/oxfmt --stdin-filepath="$1"
+}
+
+# gofmt_stdin formats Go source from stdin.
+gofmt_stdin() {
+	gofmt
+}
+
 format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
 if [ -n "$format_files" ]; then
-	printf "%s\n" "$format_files" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxfmt
-	printf "%s\n" "$format_files" | tr '\n' '\0' | xargs -0 git add
+	format_whole=$(whole_files "$format_files")
+	if [ -n "$format_whole" ]; then
+		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxfmt
+		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 git add
+	fi
+	check_partial_files "$format_files" oxfmt_stdin
 fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
@@ -42,8 +70,12 @@ fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)
 if [ -n "$go_files" ]; then
-	printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 gofmt -w
-	printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 git add
+	go_whole=$(whole_files "$go_files")
+	if [ -n "$go_whole" ]; then
+		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 gofmt -w
+		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 git add
+	fi
+	check_partial_files "$go_files" gofmt_stdin
 
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
 
