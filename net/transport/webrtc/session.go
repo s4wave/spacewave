@@ -504,15 +504,21 @@ func (s *session) createDataChannel(
 	negotiated := true
 	protocol := dataChannelID
 
-	ordered := false // Allow unordered data since Quic can handle it.
+	// The channel carries QUIC packets, which QUIC orders and retransmits
+	// itself, so the channel neither orders nor retransmits them. A reliable
+	// channel would hold every later packet behind an SCTP retransmission
+	// after a loss, stalling even the unreliable streams for a round trip.
+	ordered := false
+	var maxRetransmits uint16
 	var channelID uint16 = 1
 	return createDataChannel(dataChannelID, &webrtc.DataChannelInit{
 		// We use the same channel label on both sides and set Negotiated: true.
 		// This avoids sending redundant info via the OnDataChannel callback.
-		Negotiated: &negotiated,
-		Protocol:   &protocol,
-		ID:         &channelID,
-		Ordered:    &ordered,
+		Negotiated:     &negotiated,
+		Protocol:       &protocol,
+		ID:             &channelID,
+		Ordered:        &ordered,
+		MaxRetransmits: &maxRetransmits,
 	})
 }
 
