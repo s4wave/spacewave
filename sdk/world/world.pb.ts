@@ -467,6 +467,52 @@ export const AccessWorldStateRequest: MessageType<AccessWorldStateRequest> =
   })
 
 /**
+ * OpenNestedWorldRequest selects a typed outer object whose root is a NestedWorld block.
+ *
+ * @generated from message s4wave.world.OpenNestedWorldRequest
+ */
+export interface OpenNestedWorldRequest {
+  /**
+   * ObjectKey identifies the enclosing object in this World state.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+}
+
+export const OpenNestedWorldRequest: MessageType<OpenNestedWorldRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.OpenNestedWorldRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * OpenNestedWorldResponse grants a read-only World state at the published snapshot.
+ *
+ * @generated from message s4wave.world.OpenNestedWorldResponse
+ */
+export interface OpenNestedWorldResponse {
+  /**
+   * ResourceId identifies the retained nested World state resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const OpenNestedWorldResponse: MessageType<OpenNestedWorldResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.OpenNestedWorldResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccessWorldStateResponse is the response type for AccessWorldState.
  *
  * @generated from message s4wave.world.AccessWorldStateResponse

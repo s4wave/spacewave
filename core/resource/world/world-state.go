@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/quad"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -26,6 +27,8 @@ type WorldStateResource struct {
 	mux      srpc.Invoker
 	ws       world.WorldState
 	lookupOp world.LookupOp
+	// storage accesses the outer World or Engine to open nested World snapshots.
+	storage world.WorldStorage
 
 	sessionPeerID      peer.ID
 	sessionPeerIDBound bool
@@ -65,7 +68,11 @@ func newWorldStateResource(
 	engine world.Engine,
 	opts ...WorldStateResourceOption,
 ) *WorldStateResource {
-	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp}
+	storage := world.WorldStorage(ws)
+	if engine != nil {
+		storage = engine
+	}
+	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp, storage: storage}
 	applyWorldStateResourceOptions(wsResource, opts...)
 	register := []func(srpc.Mux) error{
 		func(mux srpc.Mux) error {
@@ -176,6 +183,52 @@ func (r *WorldStateResource) AccessWorldState(ctx context.Context, req *s4wave_w
 	}
 
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
+}
+
+// OpenNestedWorld opens a typed object's immutable nested World snapshot.
+// The returned resource owns its snapshot pin independently of the outer state.
+func (r *WorldStateResource) OpenNestedWorld(ctx context.Context, req *s4wave_world.OpenNestedWorldRequest) (*s4wave_world.OpenNestedWorldResponse, error) {
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	key := req.GetObjectKey()
+	if key == "" {
+		return nil, world.ErrEmptyObjectKey
+	}
+	typeID, err := world_types.GetObjectType(ctx, r.ws, key)
+	if err != nil {
+		return nil, err
+	}
+	if typeID == "" {
+		return nil, errors.Errorf("object %s is not typed", key)
+	}
+	outer, err := world.LookupObjectBody[*world_block.NestedWorld](ctx, r.ws, key, world_block.NewNestedWorldBlock)
+	if err != nil {
+		return nil, err
+	}
+	if outer.GetWorldRef().GetRootRef() == nil {
+		return nil, errors.Errorf("object %s has no nested World root", key)
+	}
+
+	var nested *world_block.WorldState
+	err = r.storage.AccessWorldState(ctx, outer.GetWorldRef(), func(cursor *bucket_lookup.Cursor) error {
+		var buildErr error
+		nested, buildErr = world_block.BuildWorldStateFromCursor(ctx, r.le, false, cursor, r.storage, r.lookupOp, false)
+		return buildErr
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resource := NewWorldStateResource(r.le, r.b, nested, r.lookupOp)
+	id, err := resourceCtx.AddResource(resource.GetMux(), nested.Discard)
+	if err != nil {
+		nested.Discard()
+		return nil, err
+	}
+	return &s4wave_world.OpenNestedWorldResponse{ResourceId: id}, nil
 }
 
 // CreateObject creates an object with a key and initial root ref.

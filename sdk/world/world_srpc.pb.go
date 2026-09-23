@@ -454,6 +454,8 @@ type SRPCWorldStateResourceServiceClient interface {
 	BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// OpenNestedWorld opens the immutable nested World published by an outer object.
+	OpenNestedWorld(ctx context.Context, in *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
 
 	CreateObject(ctx context.Context, in *CreateObjectRequest) (*CreateObjectResponse, error)
 
@@ -556,6 +558,15 @@ func (c *srpcWorldStateResourceServiceClient) BuildStorageCursor(ctx context.Con
 func (c *srpcWorldStateResourceServiceClient) AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error) {
 	out := new(AccessWorldStateResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "AccessWorldState", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWorldStateResourceServiceClient) OpenNestedWorld(ctx context.Context, in *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error) {
+	out := new(OpenNestedWorldResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "OpenNestedWorld", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -727,6 +738,8 @@ type SRPCWorldStateResourceServiceServer interface {
 	BuildStorageCursor(context.Context, *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// OpenNestedWorld opens the immutable nested World published by an outer object.
+	OpenNestedWorld(context.Context, *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
 
 	CreateObject(context.Context, *CreateObjectRequest) (*CreateObjectResponse, error)
 
@@ -795,6 +808,7 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"WaitSeqno",
 		"BuildStorageCursor",
 		"AccessWorldState",
+		"OpenNestedWorld",
 		"CreateObject",
 		"GetObject",
 		"IterateObjects",
@@ -836,6 +850,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildStorageCursor(d.impl, strm)
 	case "AccessWorldState":
 		return true, d.InvokeMethod_AccessWorldState(d.impl, strm)
+	case "OpenNestedWorld":
+		return true, d.InvokeMethod_OpenNestedWorld(d.impl, strm)
 	case "CreateObject":
 		return true, d.InvokeMethod_CreateObject(d.impl, strm)
 	case "GetObject":
@@ -941,6 +957,18 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_AccessWorldState(impl S
 		return err
 	}
 	out, err := impl.AccessWorldState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_OpenNestedWorld(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(OpenNestedWorldRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.OpenNestedWorld(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1196,6 +1224,14 @@ type SRPCWorldStateResourceService_AccessWorldStateStream interface {
 }
 
 type srpcWorldStateResourceService_AccessWorldStateStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_OpenNestedWorldStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_OpenNestedWorldStream struct {
 	srpc.Stream
 }
 

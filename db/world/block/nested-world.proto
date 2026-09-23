@@ -1,0 +1,15 @@
+syntax = "proto3";
+package world.block;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+
+// NestedWorld holds an immutable World snapshot beneath a typed World object.
+// Replacing the enclosing object's root publishes a new snapshot atomically.
+message NestedWorld {
+  // WorldRef is a local edge to the nested World root in the enclosing World bucket.
+  // Its transform settings remain attached to the reference.
+  .bucket.ObjectRef world_ref = 1;
+
+  // PayloadRef is an optional local edge to an opaque app-owned block.
+  .bucket.ObjectRef payload_ref = 2;
+}

@@ -99,6 +99,22 @@ func (ws *SDKWorldState) AccessWorldState(ctx context.Context, ref *bucket.Objec
 	return s4wave_bucket_lookup.AccessCursor(ctx, ws.client, resp.GetResourceId(), cb)
 }
 
+// OpenNestedWorld opens a typed outer object's immutable sub-World.
+// Release the returned state independently of this World state.
+func (ws *SDKWorldState) OpenNestedWorld(ctx context.Context, key string) (*SDKWorldState, error) {
+	resp, err := ws.service.OpenNestedWorld(ctx, &s4wave_world.OpenNestedWorldRequest{ObjectKey: key})
+	if err != nil {
+		return nil, err
+	}
+	ref := ws.client.CreateResourceReference(resp.GetResourceId())
+	nested, err := NewSDKWorldState(ws.client, ref, true)
+	if err != nil {
+		ref.Release()
+		return nil, err
+	}
+	return nested, nil
+}
+
 // CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {

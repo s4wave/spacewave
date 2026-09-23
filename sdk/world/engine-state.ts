@@ -102,6 +102,16 @@ export class EngineWorldState implements IWorldState {
     return this.engine.accessWorldState(ref, abortSignal)
   }
 
+  /** openNestedWorld opens a retained read-only sub-World from a typed outer object. */
+  public async openNestedWorld(
+    objectKey: string,
+    abortSignal?: AbortSignal,
+  ): Promise<IWorldState & Disposable> {
+    return this.performOp(false, abortSignal, (tx) =>
+      tx.openNestedWorld(objectKey, abortSignal),
+    )
+  }
+
   // applyWorldOp applies a batch operation at the world level
   public async applyWorldOp(
     opTypeId: string,

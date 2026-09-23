@@ -13,12 +13,130 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 	"github.com/sirupsen/logrus"
 )
+
+// TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline proves that
+// retiring an immutable nested snapshot releases its server resource without
+// retiring the enclosing transaction or the connection.
+func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing.T) {
+	ctx := t.Context()
+	tb := world_testbed.MustDefault(t, ctx)
+	defer tb.Release()
+
+	client, server, cleanup := setupCountingResourceClient(ctx, t, tb)
+	defer cleanup()
+	root := client.AccessRootResource()
+	defer root.Release()
+	rpc, err := root.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := s4wave_testbed.NewSRPCTestbedResourceServiceClient(rpc).CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := client.CreateResourceReference(created.GetResourceId())
+	engine, err := s4wave_world.NewEngine(client, ref)
+	if err != nil {
+		ref.Release()
+		t.Fatal(err)
+	}
+	defer engine.Release()
+	storageRef := client.CreateResourceReference(created.GetResourceId())
+	storage, err := sdk_world_engine.NewSDKEngine(client, storageRef)
+	if err != nil {
+		storageRef.Release()
+		t.Fatal(err)
+	}
+	defer storage.Release()
+
+	// Publish a typed outer object whose root points at an immutable snapshot.
+	snapshot, err := world_block.BuildSnapshot(ctx, tb.Logger, storage, func(ctx context.Context, state *world_block.WorldState) error {
+		_, _, err := world.AccessWorldObject(ctx, state, "inner", true, func(cursor *block.Cursor) error {
+			cursor.SetBlock(block_mock.NewExample("nested content"), true)
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const outerKey = "example/nested"
+	err = world.ExecTransaction(ctx, storage, true, func(ctx context.Context, state world.WorldState) error {
+		_, _, err := world.AccessWorldObject(ctx, state, outerKey, true, func(cursor *block.Cursor) error {
+			nested, err := world_block.NewNestedWorld(tb.EngineBucketID, snapshot, nil)
+			if err != nil {
+				return err
+			}
+			cursor.SetBlock(nested, true)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		return world_types.SetObjectType(ctx, state, outerKey, "example/custom")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	outer, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer outer.Release()
+	baseline := server.CountTrackedResources()
+
+	for i := range 10 {
+		nested, err := outer.OpenNestedWorld(ctx, outerKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := server.CountTrackedResources(); got != baseline+1 {
+			nested.Release()
+			t.Fatalf("iteration %d: open count = %d, want %d", i, got, baseline+1)
+		}
+		obj, found, err := nested.GetObject(ctx, "inner")
+		if err != nil || !found {
+			world.ReleaseObjectState(obj)
+			nested.Release()
+			t.Fatalf("iteration %d: nested lookup: found %v, error %v", i, found, err)
+		}
+		var body *block_mock.Example
+		_, _, err = world.AccessObjectState(ctx, obj, false, func(cursor *block.Cursor) error {
+			var decodeErr error
+			body, decodeErr = block.UnmarshalBlock[*block_mock.Example](ctx, cursor, block_mock.NewExampleBlock)
+			return decodeErr
+		})
+		world.ReleaseObjectState(obj)
+		nested.Release()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if body.GetMsg() != "nested content" {
+			t.Fatalf("iteration %d: nested result = %q", i, body.GetMsg())
+		}
+		waitForTrackedResourceCount(t, server, baseline)
+
+		// The enclosing transaction remains usable after its child is released.
+		obj, found, err = outer.GetObject(ctx, outerKey)
+		world.ReleaseObjectState(obj)
+		if err != nil || !found {
+			t.Fatalf("iteration %d: outer lookup: found %v, error %v", i, found, err)
+		}
+		waitForTrackedResourceCount(t, server, baseline)
+	}
+}
 
 // TestRemoteGetObjectReleaseReturnsServerCountToBaseline proves the real
 // ResourceClient/ResourceServer value-only lookup seam left by the World

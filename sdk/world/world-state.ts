@@ -77,6 +77,12 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<BucketLookupCursor>
 
+  /** openNestedWorld opens a typed outer object as a read-only sub-World. Dispose of the returned owned state independently. */
+  openNestedWorld(
+    objectKey: string,
+    abortSignal?: AbortSignal,
+  ): Promise<IWorldState & Disposable>
+
   // CreateObject creates a object with a key and initial root ref
   // Returns ErrObjectExists if the object already exists
   // Appends a OBJECT_SET change to the changelog
@@ -278,6 +284,22 @@ export class WorldStateResource extends Resource implements IWorldState {
     return this.resourceRef.createResource(
       response.resourceId ?? 0,
       BucketLookupCursor,
+    )
+  }
+
+  /** openNestedWorld opens a typed object's immutable sub-World. Release it independently. */
+  public async openNestedWorld(
+    objectKey: string,
+    abortSignal?: AbortSignal,
+  ): Promise<WorldStateResource> {
+    const response = await this.service.OpenNestedWorld(
+      { objectKey },
+      abortSignal,
+    )
+    return this.resourceRef.createResource(
+      response.resourceId ?? 0,
+      WorldStateResource,
+      { readOnly: true },
     )
   }
 
