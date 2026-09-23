@@ -14,8 +14,8 @@ import (
 )
 
 // RotateTransformKey generates a new transform key and creates grants for the
-// given participants. Returns the new transform config, the grants, and the new
-// epoch number. The caller (an OWNER) provides their private key for signing
+// given participants. Returns the new transform config, grants, and key epoch.
+// The caller (an OWNER) provides their private key for signing
 // grants and the list of remaining participants (after revocation).
 func RotateTransformKey(
 	privKey crypto.PrivKey,
@@ -24,6 +24,11 @@ func RotateTransformKey(
 	currentEpoch uint64,
 	currentSeqno uint64,
 ) (*block_transform.Config, []*SOGrant, *SOKeyEpoch, error) {
+	// An epoch or root range must never wrap into an earlier generation.
+	if currentEpoch == ^uint64(0) || currentSeqno == ^uint64(0) {
+		return nil, nil, nil, errors.New("key epoch or root sequence exhausted")
+	}
+
 	// Generate a new random key for the default block transform.
 	encKey := make([]byte, 32)
 	if _, err := rand.Read(encKey); err != nil {
@@ -78,16 +83,24 @@ func RotateTransformKey(
 }
 
 // FindCoveringEpoch finds the key epoch that covers the given seqno.
-// Returns nil if no epoch covers the seqno.
+// Returns nil if no epoch or more than one entry covers the seqno.
+// Absent entries do not cover any sequence.
 func FindCoveringEpoch(epochs []*SOKeyEpoch, seqno uint64) *SOKeyEpoch {
+	var covering *SOKeyEpoch
 	for _, ep := range epochs {
+		if ep == nil {
+			continue
+		}
 		start := ep.GetSeqnoStart()
 		end := ep.GetSeqnoEnd()
 		if seqno >= start && (end == 0 || seqno <= end) {
-			return ep
+			if covering != nil {
+				return nil
+			}
+			covering = ep
 		}
 	}
-	return nil
+	return covering
 }
 
 // CurrentEpochNumber returns the highest epoch number from the list, or 0 if empty.

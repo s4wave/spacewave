@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Spacewave.SObject.Host
+import Spacewave.SObject.KeyRotation
 
 /-!
 # Conformance oracle
@@ -25,6 +26,10 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `rotateTransformKey`: `participants`, `epoch`, `seqno`, `key`, `cryptoOK`;
+  result `{"ok", "rotation"}`.
+- `findCoveringEpoch`: `epochs`, `seqno`; result `{"ok", "epoch"}`.
+- `currentEpochNumber`: `epochs`; result `{"ok", "epoch"}`.
 
 Host operations return `{"ok", "outcome"}`. Outcome contains visible `state`,
 `revoked`, and `wrote`, including unchanged state on rejection.
@@ -38,10 +43,23 @@ open Lean Spacewave.SObject
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
 deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root, State
 deriving instance ToJson, FromJson for HostResult
+deriving instance ToJson, FromJson for RotationPeer, KeyGrant, KeyEpoch, Rotation
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "rotateTransformKey" =>
+    let result := rotateTransformKey (← req.getObjValAs? (List RotationPeer) "participants")
+      (← req.getObjValAs? Nat "epoch") (← req.getObjValAs? Nat "seqno")
+      (← req.getObjValAs? String "key") (← req.getObjValAs? Bool "cryptoOK")
+    return json% {ok: $(result.isSome), rotation: $result}
+  | "findCoveringEpoch" =>
+    let result := findCoveringEpoch (← req.getObjValAs? (List (Option KeyEpoch)) "epochs")
+      (← req.getObjValAs? Nat "seqno")
+    return json% {ok: $(result.isSome), epoch: $result}
+  | "currentEpochNumber" =>
+    let result := currentEpochNumber (← req.getObjValAs? (List (Option KeyEpoch)) "epochs")
+    return json% {ok: true, epoch: $result}
   | "importPeerSnapshot" =>
     let previous ← req.getObjValAs? State "previous"
     let result := importPeerSnapshot previous (← req.getObjValAs? State "candidate")
