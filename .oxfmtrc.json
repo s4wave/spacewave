@@ -6,5 +6,12 @@
   "tabWidth": 2,
   "printWidth": 80,
   "sortPackageJson": false,
-  "ignorePatterns": [".bldr", "app/prerender/dist", ".#*", ".*.swp", ".vs"]
+  "ignorePatterns": [
+    ".bldr",
+    "app/prerender/dist",
+    ".#*",
+    ".*.swp",
+    ".vs",
+    "lean/lake-manifest.json"
+  ]
 }

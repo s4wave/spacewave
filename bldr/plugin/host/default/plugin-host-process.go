@@ -64,11 +64,13 @@ func StartPluginHost(
 		return nil, nil, err
 	}
 
-	return &PluginHostController{
+	ctrl = &PluginHostController{
 		ProcessHost: processPluginHostCtrl,
 		QuickjsHost: quickjsHostCtrl,
-	}, func() {
+	}
+	rel = func() {
 		quickjsHostRef.Release()
 		processPluginHostRef.Release()
-	}, nil
+	}
+	return ctrl, rel, nil
 }
