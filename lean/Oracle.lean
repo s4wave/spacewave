@@ -6,7 +6,7 @@ import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
 import Spacewave.SObject.Recovery
-import Spacewave.SObject.JournalFrame
+import Spacewave.SObject.JournalPipeline
 
 /-!
 # Conformance oracle
@@ -40,6 +40,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
+- `appendJournalWriter`: writer, record, authentication primitives and injected effects.
+- `authenticateJournalRecord`: prepared record and primitive decoded authentication results.
 - `journalPayloadCodec`: raw `bytes`; result `{"ok", "codec"}`.
 - `scanJournalFrames`: `initial`, primitive `frames`; result `{"ok", "scan"}`.
 - `journalGenerationWindow`: `floor`, `generation`; result `{"ok", "floor"}`.
@@ -95,9 +97,23 @@ deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.
 deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.ScanResult, Journal.MemoryBytes
 deriving instance ToJson, FromJson for Journal.PublicationState, Journal.PublicationResult
 
+deriving instance ToJson, FromJson for Journal.FrameEncoding, Journal.WriterState, Journal.AppendEffects
+deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentContent, Journal.Authentication
+
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "authenticateJournalRecord" =>
+    let record ← req.getObjValAs? Journal.Record "record"
+    let auth ← req.getObjValAs? Journal.Authentication "auth"
+    return json% {ok: $(Journal.authenticateRecord record auth)}
+  | "appendJournalWriter" =>
+    let before ← req.getObjValAs? Journal.WriterState "before"
+    let record ← req.getObjValAs? (Option Journal.Record) "record"
+    let auth ← req.getObjValAs? Journal.Authentication "auth"
+    let effects ← req.getObjValAs? Journal.AppendEffects "effects"
+    let result := Journal.appendWriter before record (fun value => Journal.authenticateRecord value auth) effects
+    return json% {ok: $(result.ok), writer: $(result.result)}
   | "journalPayloadCodec" =>
     let bytes ← req.getObjValAs? (List Nat) "bytes"
     let encoded := Journal.escapePayload bytes

@@ -3,8 +3,8 @@ import Spacewave.SObject.JournalReducer
 /-!
 # Journal frame storage and checkpoint representation
 
-Mirrors checkpoint hydration, frame scanning, generation windows and memory
-storage in `core/sobject/journal-frame.go`. Serialized protobuf identities,
+Mirrors checkpoint hydration, frame scanning, durable append, generation windows
+and memory storage in `core/sobject/journal-frame.go`. Serialized protobuf identities,
 CRC computation, encryption and hashes are primitive boundaries. Frame
 observations carry exact raw byte slices and independently computed CRCs;
 parsing, canonical frame-version-2 escaping, bounds, sequence and record admission
@@ -515,6 +515,221 @@ theorem failed_sync_preserves_durable (storage : MemoryBytes) :
 /-- Successful Sync makes the exact visible bytes recoverable. -/
 theorem successful_sync_recovers (storage : MemoryBytes) :
     crashBytes (syncBytes storage true) = storage.data := by rfl
+
+/-- prepareRecord assigns only the writer-owned sequence and current format. -/
+def prepareRecord (sequence : Nat) (record : Option Record) : Option Record := do
+  let record ← record
+  if record.sequence != 0 && record.sequence != sequence then none
+  else some {record with format := 1, sequence := sequence}
+
+/-- FrameEncoding contains protobuf and checksum primitive results for the prepared record. -/
+structure FrameEncoding where
+  payload : Option (List Nat)
+  headerCRC : Nat
+  frameCRC : Nat
+  deriving Repr, Inhabited
+
+/-- encodeFrame constructs the complete frame, including the canonical escaped payload. -/
+def encodeFrame (record : Record) (encoding : FrameEncoding) : Option (List Nat) := do
+  let raw ← encoding.payload
+  if !(1 ≤ record.kind && record.kind ≤ 11) || raw.length > 4194304 then none
+  else
+    let payload := escapePayload raw
+    let header := [83, 87, 74, 49] ++ beBytes 2 2 ++ beBytes 2 record.kind.toNat ++
+      beBytes 8 record.sequence ++ beBytes 4 payload.length ++
+      beBytes 4 encoding.headerCRC ++ beBytes 4 encoding.frameCRC
+    some (header ++ payload ++ [69, 78, 68, 33] ++ beBytes 4 payload.length)
+
+/-- WriterState is the state protected by journalWriter.mu during Append. -/
+structure WriterState where
+  bytes : MemoryBytes
+  sequence : Nat
+  offset : Nat
+  records : List Record
+  state : State
+  poisoned : Bool
+  pending : Bool
+  deriving Repr, Inhabited
+
+/-- AppendEffects supplies concrete WriteAt and Sync outcomes for the existing memory storage. -/
+structure AppendEffects where
+  encoding : FrameEncoding
+  writeFail : Bool
+  writeLimit : Int
+  syncOK : Bool
+  deriving Repr, Inhabited
+
+/-- AppendResult retains storage side effects when no acknowledgement is returned. -/
+structure AppendResult where
+  ok : Bool
+  result : WriterState
+  deriving Repr, Inhabited
+
+/-- persistRecord writes, syncs, then exposes the already validated reducer transition.
+The writer lock keeps validation and Apply on the same reducer state. -/
+def persistRecord (before : WriterState) (record : Record) (frame : List Nat)
+    (state : State) (effects : AppendEffects) : AppendResult :=
+  let written := memoryWrite before.bytes before.offset frame effects.writeFail effects.writeLimit
+  if effects.writeFail then ⟨false, {before with bytes := written, poisoned := true}⟩
+  else
+    let synced := syncBytes written effects.syncOK
+    if !effects.syncOK then ⟨false, {before with bytes := synced, poisoned := true}⟩
+    else ⟨true, {before with
+      bytes := synced
+      state := state
+      offset := before.offset + frame.length
+      sequence := (before.sequence + 1) % seqnoLimit
+      records := before.records ++ [record]}⟩
+
+/-- appendWriter mirrors Append's preparation, staged authentication, validation and ordered effects.
+Authentication is the journal-pipeline dependency; encoding supplies only serialization/CRC primitives. -/
+def appendWriter (before : WriterState) (record : Option Record)
+    (authenticate : Record → Bool) (effects : AppendEffects) : AppendResult :=
+  if before.poisoned || before.pending then ⟨false, before⟩
+  else match prepareRecord before.sequence record with
+  | none => ⟨false, before⟩
+  | some record =>
+    if !validRecord (some record) || ((record.kind == 1 || record.kind == 2) && !authenticate record) then
+      ⟨false, before⟩
+    else match encodeFrame record effects.encoding with
+    | none => ⟨false, before⟩
+    | some frame =>
+      match applyRecord before.state (some record) with
+      | none => ⟨false, before⟩
+      | some state => persistRecord before record frame state effects
+
+/-- Every acknowledgement follows a complete write and a successful Sync. -/
+theorem persist_acknowledged {before : WriterState} {record : Record} {frame : List Nat}
+    {state : State} {effects : AppendEffects}
+    (h : (persistRecord before record frame state effects).ok = true) :
+    effects.writeFail = false ∧ effects.syncOK = true ∧
+    (persistRecord before record frame state effects).result.bytes.durable =
+      (writeBytes before.bytes before.offset frame).data ∧
+    (persistRecord before record frame state effects).result.state = state ∧
+    (persistRecord before record frame state effects).result.sequence = (before.sequence + 1) % seqnoLimit ∧
+    (persistRecord before record frame state effects).result.records = before.records ++ [record] := by
+  unfold persistRecord at *
+  cases write : effects.writeFail <;> cases sync : effects.syncOK <;> simp_all [memoryWrite, syncBytes]
+
+/-- A failed write or Sync cannot discard an earlier synced byte. -/
+theorem persist_failed {before : WriterState} {record : Record} {frame : List Nat}
+    {state : State} {effects : AppendEffects}
+    (h : (persistRecord before record frame state effects).ok = false) :
+    (persistRecord before record frame state effects).result.bytes.durable = before.bytes.durable ∧
+    (persistRecord before record frame state effects).result.poisoned = true ∧
+    (persistRecord before record frame state effects).result.state = before.state := by
+  unfold persistRecord at *
+  cases write : effects.writeFail <;> cases sync : effects.syncOK <;> simp_all [memoryWrite_preserves_durable, syncBytes]
+
+/-- Appending at the exact durable end preserves the entire acknowledged prefix. -/
+theorem persist_extends_prefix {before : WriterState} {record : Record} {frame : List Nat}
+    {state : State} {effects : AppendEffects}
+    (synced : before.bytes.data = before.bytes.durable) (endOffset : before.offset = before.bytes.data.length)
+    (h : (persistRecord before record frame state effects).ok = true) :
+    (persistRecord before record frame state effects).result.bytes.durable = before.bytes.durable ++ frame := by
+  rw [(persist_acknowledged h).2.2.1]
+  simp [writeBytes, endOffset, synced]
+
+/-- Successful Append exposes the exact prepared record, reducer transition and synced frame. -/
+theorem append_acknowledged {before : WriterState} {record : Option Record}
+    {authenticate : Record → Bool} {effects : AppendEffects}
+    (h : (appendWriter before record authenticate effects).ok = true) :
+    ∃ prepared frame state,
+      prepareRecord before.sequence record = some prepared ∧
+      validRecord (some prepared) = true ∧
+      ((prepared.kind = 1 ∨ prepared.kind = 2) → authenticate prepared = true) ∧
+      encodeFrame prepared effects.encoding = some frame ∧
+      applyRecord before.state (some prepared) = some state ∧
+      appendWriter before record authenticate effects = persistRecord before prepared frame state effects ∧
+      (persistRecord before prepared frame state effects).ok = true := by
+  unfold appendWriter at h
+  split at h
+  · contradiction
+  · rename_i unfenced
+    split at h
+    · contradiction
+    · rename_i prepared preparation
+      split at h
+      · contradiction
+      · rename_i admitted
+        split at h
+        · contradiction
+        · rename_i frame encoded
+          split at h
+          · contradiction
+          · rename_i state applied
+            have valid : validRecord (some prepared) = true := by
+              simp_all
+            have authenticated : (prepared.kind = 1 ∨ prepared.kind = 2) → authenticate prepared = true := by
+              simp_all
+            exact ⟨prepared, frame, state, preparation, valid, authenticated, encoded, applied,
+              by simp [appendWriter, unfenced, preparation, admitted, encoded, applied], h⟩
+
+/-- An acknowledged append both extends durable bytes and records the validated reducer result. -/
+theorem append_extends_prefix {before : WriterState} {record : Option Record}
+    {authenticate : Record → Bool} {effects : AppendEffects}
+    (synced : before.bytes.data = before.bytes.durable) (endOffset : before.offset = before.bytes.data.length)
+    (h : (appendWriter before record authenticate effects).ok = true) :
+    ∃ prepared frame state,
+      prepareRecord before.sequence record = some prepared ∧
+      encodeFrame prepared effects.encoding = some frame ∧
+      applyRecord before.state (some prepared) = some state ∧
+      effects.writeFail = false ∧ effects.syncOK = true ∧
+      (appendWriter before record authenticate effects).result.bytes.durable = before.bytes.durable ++ frame ∧
+      (appendWriter before record authenticate effects).result.state = state ∧
+      (appendWriter before record authenticate effects).result.records = before.records ++ [prepared] := by
+  obtain ⟨prepared, frame, state, preparation, _, _, encoded, applied, result, ack⟩ := append_acknowledged h
+  obtain ⟨written, sync, _, reduced, _, records⟩ := persist_acknowledged ack
+  refine ⟨prepared, frame, state, preparation, encoded, applied, written, sync, ?_⟩
+  rw [result]
+  exact ⟨persist_extends_prefix synced endOffset ack, reduced, records⟩
+
+/-- Preparation cannot borrow another sequence, including at the uint64 boundary. -/
+theorem prepared_sequence {sequence : Nat} {record : Option Record} {prepared : Record}
+    (h : prepareRecord sequence record = some prepared) : prepared.sequence = sequence := by
+  cases record <;> simp only [prepareRecord, Option.bind_eq_bind, Option.bind_none, Option.bind_some] at h
+  · contradiction
+  · split at h
+    · contradiction
+    · cases h
+      rfl
+
+/-- An acknowledged append agrees with replay from the retained checkpoint and prior records. -/
+theorem append_replay {before : WriterState} {record : Option Record}
+    {authenticate : Record → Bool} {effects : AppendEffects} {base : State} {initial : Nat}
+    (replayed : replayFrom base initial (before.records.map some) = some before.state)
+    (sequence : before.sequence = advanceSequence initial before.records.length)
+    (h : (appendWriter before record authenticate effects).ok = true) :
+    replayFrom base initial ((appendWriter before record authenticate effects).result.records.map some) =
+      some (appendWriter before record authenticate effects).result.state := by
+  obtain ⟨prepared, frame, state, preparation, _, _, _, applied, result, ack⟩ := append_acknowledged h
+  obtain ⟨_, _, _, reduced, _, records⟩ := persist_acknowledged ack
+  rw [result, records, reduced, List.map_append, replayFrom_append, replayed]
+  simp [replayFrom, prepared_sequence preparation, sequence, applied]
+
+/-- Rejection at any Append stage preserves the complete previously synced journal. -/
+theorem append_failure_preserves_durable (before : WriterState) (record : Option Record)
+    (authenticate : Record → Bool) (effects : AppendEffects)
+    (h : (appendWriter before record authenticate effects).ok = false) :
+    (appendWriter before record authenticate effects).result.bytes.durable = before.bytes.durable := by
+  unfold appendWriter at *
+  repeat' first | split at * | simp_all | exact (persist_failed h).1
+
+/-- A fenced or unactivated writer cannot change storage or acknowledge another append. -/
+theorem append_fenced (before : WriterState) (record : Option Record)
+    (authenticate : Record → Bool) (effects : AppendEffects)
+    (h : before.poisoned = true ∨ before.pending = true) :
+    appendWriter before record authenticate effects = ⟨false, before⟩ := by
+  rcases h with h | h <;> simp [appendWriter, h]
+
+/-- Exhaustion remains terminal: no sequence-zero record can reach storage. -/
+theorem append_exhausted (before : WriterState) (record : Option Record)
+    (authenticate : Record → Bool) (effects : AppendEffects) (h : before.sequence = 0) :
+    appendWriter before record authenticate effects = ⟨false, before⟩ := by
+  cases record with
+  | none => simp [appendWriter, prepareRecord]
+  | some record =>
+    by_cases zero : record.sequence = 0 <;> simp [appendWriter, prepareRecord, h, zero, validRecord]
 
 /-- PublicationState retains the observable writer and storage state during checkpoint publication.
 Checkpoint contents are handled by buildCheckpoint/readCheckpoint; this view tracks their durable slots. -/

@@ -13,5 +13,6 @@ import Spacewave.SObject.Recovery
 import Spacewave.SObject.JournalKey
 import Spacewave.SObject.JournalReducer
 import Spacewave.SObject.JournalFrame
+import Spacewave.SObject.JournalPipeline
 
 #assert_standard_axioms
