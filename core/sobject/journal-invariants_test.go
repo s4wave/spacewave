@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"encoding/binary"
 	"math"
 	"reflect"
 	"testing"
@@ -135,5 +136,74 @@ func TestJournalPublicationFailureFencesWriter(t *testing.T) {
 	}
 	if err := reopened.appendRecord(second); err != nil {
 		t.Fatalf("recovered publication did not resume appends: %v", err)
+	}
+}
+
+// TestJournalTornPayloadTrailerRecovers preserves acknowledged records when payload bytes resemble a trailer.
+func TestJournalTornPayloadTrailerRecovers(t *testing.T) {
+	scope := testScope("torn-payload-trailer")
+	crypto := testJournalCrypto(t, scope)
+	pipeline := testPipeline(t, crypto)
+	storage := pipeline.journal.writer.storage.(*memoryJournalStorage)
+	version := JournalVersion(1, 1, 1, testDigest("config"))
+	first := testMutationKey(scope, "peer", "first")
+	if err := pipeline.appendRecord(testIntent(t, crypto, first, testLineage(first, nil), version, 1, "first")); err != nil {
+		t.Fatal(err)
+	}
+	acknowledged := pipeline.Snapshot()
+	second := testMutationKey(scope, "peer", "second")
+	record := testIntent(t, crypto, second, testLineage(second, nil), version, 2, "second")
+	cut := addJournalPayloadTrailer(t, record)
+	storage.setWriteFailure(cut, errors.New("injected torn payload"))
+	if err := pipeline.appendRecord(record); err == nil {
+		t.Fatal("torn append was acknowledged")
+	}
+	storage.setWriteFailure(0, nil)
+	recovered, err := OpenJournalPipelineWithCrypto(storage, crypto, testReceiptVerifier(), testLookupVerifier())
+	if err != nil {
+		t.Fatalf("payload trailer prevented acknowledged-prefix recovery: %v", err)
+	}
+	if !reflect.DeepEqual(acknowledged, recovered.Snapshot()) {
+		t.Fatal("torn payload changed acknowledged prefix")
+	}
+	if err := recovered.appendRecord(record); err != nil {
+		t.Fatalf("complete record containing trailer bytes did not append: %v", err)
+	}
+}
+
+// addJournalPayloadTrailer retains a valid unknown protobuf field with trailer-like payload bytes.
+// It returns the partial frame length ending immediately after those bytes.
+func addJournalPayloadTrailer(t *testing.T, record *SOJournalRecord) int {
+	t.Helper()
+	payload := mustMarshalVT(t, record)
+	unknown := make([]byte, 16)
+	copy(unknown, journalTrailerMagic[:])
+	binary.BigEndian.PutUint32(unknown[4:8], uint32(len(payload)+3))
+	encoded := append(append(payload, 0xc2, 0x3e, byte(len(unknown))), unknown...)
+	if err := record.UnmarshalVT(encoded); err != nil {
+		t.Fatal(err)
+	}
+	return journalHeaderSize + len(escapeJournalPayload(encoded[:len(payload)+3+8]))
+}
+
+// TestJournalEscapedPayloadBounds preserves the full raw payload limit after worst-case escaping.
+func TestJournalEscapedPayloadBounds(t *testing.T) {
+	payload := make([]byte, journalMaxPayload)
+	frame, err := marshalJournalFrame(SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_INTENT, 1, payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(frame) != journalHeaderSize+journalMaxFramePayload+journalTrailerSize {
+		t.Fatalf("worst-case frame length = %d", len(frame))
+	}
+	decoded, err := unescapeJournalPayload(frame[journalHeaderSize : len(frame)-journalTrailerSize])
+	if err != nil || len(decoded) != journalMaxPayload {
+		t.Fatalf("maximum raw payload did not roundtrip: %v", err)
+	}
+	if _, err := marshalJournalFrame(SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_INTENT, 1, append(payload, 0)); err == nil {
+		t.Fatal("oversized raw payload was accepted")
+	}
+	if _, err := unescapeJournalPayload(append(frame[journalHeaderSize:len(frame)-journalTrailerSize], 1)); err == nil {
+		t.Fatal("oversized decoded payload was accepted")
 	}
 }

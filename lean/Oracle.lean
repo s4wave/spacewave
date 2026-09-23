@@ -40,6 +40,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
+- `journalPayloadCodec`: raw `bytes`; result `{"ok", "codec"}`.
 - `scanJournalFrames`: `initial`, primitive `frames`; result `{"ok", "scan"}`.
 - `journalGenerationWindow`: `floor`, `generation`; result `{"ok", "floor"}`.
 - `journalMemoryBytes`: storage, offset, written bytes and sync outcome; result `{"ok", "storage"}`.
@@ -97,6 +98,12 @@ deriving instance ToJson, FromJson for Journal.PublicationState, Journal.Publica
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "journalPayloadCodec" =>
+    let bytes ← req.getObjValAs? (List Nat) "bytes"
+    let encoded := Journal.escapePayload bytes
+    let decoded := (Journal.unescapePayload bytes).filter (fun value => value.length ≤ 4194304)
+    let value := json% {encoded: $encoded, decoded: $decoded}
+    return json% {ok: $(decoded.isSome), codec: $value}
   | "publishJournalCheckpoint" =>
     let result := Journal.publishCheckpoint (← req.getObjValAs? Journal.PublicationState "before")
       (← req.getObjValAs? Nat "generation") (← req.getObjValAs? Int "fault")

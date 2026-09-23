@@ -74,13 +74,13 @@ func runLeanJournalStorageScenario(t *testing.T, seed uint64) []leanCase {
 		corrupt := append([]byte(nil), data...)
 		switch variant {
 		case 0:
-			binary.BigEndian.PutUint16(corrupt[4:6], 2)
+			binary.BigEndian.PutUint16(corrupt[4:6], 1)
 		case 1:
 			binary.BigEndian.PutUint16(corrupt[6:8], 0)
 		case 2:
 			binary.BigEndian.PutUint16(corrupt[6:8], 12)
 		case 3:
-			binary.BigEndian.PutUint32(corrupt[16:20], journalMaxPayload+1)
+			binary.BigEndian.PutUint32(corrupt[16:20], journalMaxFramePayload+1)
 		case 4:
 			binary.BigEndian.PutUint32(corrupt[16:20], math.MaxUint32)
 		case 5:
@@ -93,6 +93,17 @@ func runLeanJournalStorageScenario(t *testing.T, seed uint64) []leanCase {
 		binary.BigEndian.PutUint32(corrupt[20:24], crc32.Checksum(corrupt[:20], crc32.MakeTable(crc32.Castagnoli)))
 		cases = append(cases, leanJournalScanCase(t, corrupt, 1, name+" header "+strconv.Itoa(variant)))
 	}
+	// A valid unknown field can contain the marker in plaintext, including at a torn-write boundary.
+	trailerKey := testMutationKey(scope, "peer", "trailer")
+	trailerRecord := testIntent(t, crypto, trailerKey, testLineage(trailerKey, nil), version, 3, "trailer")
+	cut := addJournalPayloadTrailer(t, trailerRecord)
+	trailerFrame, err := marshalJournalFrame(trailerRecord.Kind, 3, mustMarshalVT(t, trailerRecord))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases = append(cases, leanJournalScanCase(t, append(append([]byte(nil), data...), trailerFrame[:cut]...), 1, name+" payload trailer cut"))
+	cases = append(cases, leanJournalScanCase(t, append(append([]byte(nil), data...), trailerFrame...), 1, name+" payload trailer complete"))
+	cases = append(cases, leanJournalPayloadCases(t, seed)...)
 	cases = append(cases, leanJournalMemoryCases(t, data, seed)...)
 	cases = append(cases, leanJournalGenerationCases(t, crypto, seed)...)
 	return cases
@@ -132,7 +143,7 @@ func projectLeanJournalFrames(t *testing.T, data []byte) []any {
 		observation := map[string]any{
 			"header": leanJournalBytes(header), "remaining": uint64(len(data)),
 			"headerCRC": crc32.Checksum(header[:min(len(header), 20)], table),
-			"frameCRC":  uint32(0), "trailer": []any{}, "record": nil, "readOK": true,
+			"frameCRC":  uint32(0), "trailer": []any{}, "payload": []any{}, "record": nil, "readOK": true,
 		}
 		frames = append(frames, observation)
 		if len(header) < journalHeaderSize {
@@ -151,9 +162,10 @@ func projectLeanJournalFrames(t *testing.T, data []byte) []any {
 		_, _ = crc.Write(header[:24])
 		_, _ = crc.Write(payload)
 		observation["frameCRC"] = crc.Sum32()
+		observation["payload"] = leanJournalBytes(payload)
 		observation["trailer"] = leanJournalBytes(data[end : end+journalTrailerSize])
 		record := &SOJournalRecord{}
-		if record.UnmarshalVT(payload) == nil {
+		if record.UnmarshalVT(projectLeanJournalPlaintext(payload)) == nil {
 			observation["record"] = projectLeanJournalRecord(t, record)
 		}
 		data = data[end+journalTrailerSize:]
@@ -238,6 +250,56 @@ func leanJournalGenerationCases(t *testing.T, crypto *JournalCrypto, seed uint64
 			name := "journalGenerationWindow seed " + strconv.FormatUint(seed, 10) + " floor " + strconv.FormatUint(floor, 10) + " generation " + strconv.FormatUint(generation, 10)
 			cases = append(cases, leanCase{name: name, request: marshalLeanJournal(t, request), ok: err == nil, field: "floor", value: marshalLeanJournal(t, storage.generationFloor)})
 		}
+	}
+	return cases
+}
+
+// projectLeanJournalPlaintext reconstructs protobuf input independently of the production decoder.
+// The model receives all encoded bytes and checks canonical escapes itself.
+func projectLeanJournalPlaintext(encoded []byte) []byte {
+	var plaintext []byte
+	for len(encoded) != 0 {
+		switch encoded[0] {
+		case 0:
+			if len(encoded) < 2 {
+				return nil
+			}
+			switch encoded[1] {
+			case 0:
+				plaintext = append(plaintext, 0)
+			case 1:
+				plaintext = append(plaintext, 'E')
+			default:
+				return nil
+			}
+			encoded = encoded[2:]
+		case 'E':
+			return nil
+		default:
+			plaintext = append(plaintext, encoded[0])
+			encoded = encoded[1:]
+		}
+	}
+	return plaintext
+}
+
+// leanJournalPayloadCases exercises every byte and escape code without relying on record admission.
+func leanJournalPayloadCases(t *testing.T, seed uint64) []leanCase {
+	t.Helper()
+	inputs := [][]byte{nil, {0}, {0, 0}, {0, 1}, {0, 0, 1}, []byte("END!")}
+	for value := range 256 {
+		inputs = append(inputs, []byte{byte(value)}, []byte{0, byte(value)}, []byte{byte(seed), byte(value), 0, 1})
+	}
+	var cases []leanCase
+	for index, input := range inputs {
+		decoded, err := unescapeJournalPayload(input)
+		var decodedValue any
+		if err == nil {
+			decodedValue = leanJournalBytes(decoded)
+		}
+		request := map[string]any{"op": "journalPayloadCodec", "bytes": leanJournalBytes(input)}
+		result := map[string]any{"encoded": leanJournalBytes(escapeJournalPayload(input)), "decoded": decodedValue}
+		cases = append(cases, leanCase{name: "journalPayloadCodec seed " + strconv.FormatUint(seed, 10) + " case " + strconv.Itoa(index), request: marshalLeanJournal(t, request), ok: err == nil, field: "codec", value: marshalLeanJournal(t, result)})
 	}
 	return cases
 }

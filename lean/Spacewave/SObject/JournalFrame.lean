@@ -7,7 +7,8 @@ Mirrors checkpoint hydration, frame scanning, generation windows and memory
 storage in `core/sobject/journal-frame.go`. Serialized protobuf identities,
 CRC computation, encryption and hashes are primitive boundaries. Frame
 observations carry exact raw byte slices and independently computed CRCs;
-parsing, bounds, sequence and record admission remain model decisions.
+parsing, canonical frame-version-2 escaping, bounds, sequence and record admission
+remain model decisions. Encoded payloads exclude the trailer marker byte.
 Compact snapshots omit redundant lookup history; hydration reconstructs it.
 The failed-Sync rollback is the existing memory storage contract. Filesystem
 durability requires the corresponding successful-sync assumption.
@@ -249,6 +250,84 @@ def readBE (bytes : List Nat) : Nat := bytes.foldl (fun value byte => value * 25
 def beBytes (width value : Nat) : List Nat :=
   (List.range width).map (fun index => value / 256^(width - 1 - index) % 256)
 
+/-- escapePayload removes zero/marker ambiguity while preserving every protobuf byte. -/
+def escapePayload : List Nat → List Nat
+  | [] => []
+  | byte :: bytes =>
+    if byte == 0 then 0 :: 0 :: escapePayload bytes
+    else if byte == 69 then 0 :: 1 :: escapePayload bytes
+    else byte :: escapePayload bytes
+
+/-- unescapePayload decodes only canonical frame-version-2 payloads. -/
+def unescapePayload : List Nat → Option (List Nat)
+  | [] => some []
+  | byte :: bytes =>
+    if byte == 69 then none
+    else if byte == 0 then
+      match bytes with
+      | [] => none
+      | escaped :: rest =>
+        if escaped == 0 then (unescapePayload rest).map (0 :: ·)
+        else if escaped == 1 then (unescapePayload rest).map (69 :: ·)
+        else none
+    else (unescapePayload bytes).map (byte :: ·)
+
+/-- Encoding and decoding preserve every input byte, including all opaque protobuf content. -/
+theorem payload_roundtrip (bytes : List Nat) : unescapePayload (escapePayload bytes) = some bytes := by
+  induction bytes with
+  | nil => rfl
+  | cons byte bytes ih =>
+    by_cases zero : byte = 0
+    · simp [escapePayload, unescapePayload, zero, ih]
+    · by_cases marker : byte = 69
+      · simp [escapePayload, unescapePayload, marker, ih]
+      · simp only [escapePayload, beq_iff_eq, zero, marker, ↓reduceIte]
+        unfold unescapePayload
+        simp_all
+
+/-- No encoded payload byte can begin a committed frame trailer. -/
+theorem payload_excludes_marker (bytes : List Nat) : 69 ∉ escapePayload bytes := by
+  induction bytes with
+  | nil => simp [escapePayload]
+  | cons byte bytes ih =>
+    by_cases zero : byte = 0
+    · simp [escapePayload, zero, ih]
+    · by_cases marker : byte = 69
+      · simp [escapePayload, marker, ih]
+      · simp [escapePayload, zero, marker, ih, Ne.symm marker]
+
+/-- Encoded size is bounded by twice the raw payload size. -/
+theorem payload_size_bound (bytes : List Nat) : (escapePayload bytes).length ≤ 2 * bytes.length := by
+  induction bytes with
+  | nil => simp [escapePayload]
+  | cons byte bytes ih =>
+    simp only [escapePayload]
+    split
+    · simp_all <;> omega
+    · split <;> simp_all <;> omega
+
+/-- A trailer-shaped subsequence cannot occur anywhere inside a correctly encoded payload. -/
+theorem payload_has_no_internal_trailer (bytes before after : List Nat) :
+    escapePayload bytes ≠ before ++ [69, 78, 68, 33] ++ after := by
+  intro h
+  have absent := payload_excludes_marker bytes
+  rw [h] at absent
+  simp at absent
+
+/-- A torn payload, even with a partial real trailer, cannot mimic an earlier committed trailer. -/
+theorem torn_payload_no_false_trailer (bytes trailerPart : List Nat) (cut : Nat)
+    (short : trailerPart.length < 8)
+    (enough : 8 ≤ ((escapePayload bytes).take cut).length + trailerPart.length) :
+    ((((escapePayload bytes).take cut ++ trailerPart).drop
+      (((escapePayload bytes).take cut ++ trailerPart).length - 8)).head?) ≠ some 69 := by
+  intro h
+  have index : ((escapePayload bytes).take cut ++ trailerPart).length - 8 <
+      ((escapePayload bytes).take cut).length := by
+    simp only [List.length_append]
+    omega
+  rw [List.head?_drop, List.getElem?_append_left index] at h
+  exact payload_excludes_marker bytes (List.mem_of_mem_take (List.mem_of_getElem? h))
+
 /-- FrameObservation supplies raw bytes and independently computed CRC primitives. -/
 structure FrameObservation where
   header : List Nat
@@ -256,6 +335,7 @@ structure FrameObservation where
   headerCRC : Nat
   frameCRC : Nat
   trailer : List Nat
+  payload : List Nat
   record : Option Record
   readOK : Bool := true
   deriving Repr, Inhabited
@@ -269,21 +349,21 @@ def validHeaderPrefix (header : List Nat) (expected crc : Nat) : Bool :=
   !header.isEmpty && header.length < 28 &&
   header.take 4 == [83, 87, 74, 49].take header.length &&
   (header.length < 5 || header[4]! == 0) &&
-  (header.length < 6 || headerField header 4 2 == 1) &&
+  (header.length < 6 || headerField header 4 2 == 2) &&
   (header.length < 7 || header[6]! == 0) &&
   (header.length < 8 || (1 ≤ headerField header 6 2 && headerField header 6 2 ≤ 11)) &&
   (expected == 0 || (header.drop 8).take 8 == (beBytes 8 expected).take (header.length - 8)) &&
   (header.length < 17 ||
-    readBE ((header.drop 16).take 4 ++ List.replicate (4 - min (header.length - 16) 4) 0) ≤ 4194304) &&
+    readBE ((header.drop 16).take 4 ++ List.replicate (4 - min (header.length - 16) 4) 0) ≤ 8388608) &&
   (header.length < 21 || (header.drop 20).take 4 == (beBytes 4 crc).take (header.length - 20))
 
 /-- parseHeader preserves the order and bounds of the complete Go header parser. -/
 def parseHeader (frame : FrameObservation) : Option (Int × Nat × Nat) :=
   let kind := headerField frame.header 6 2
   let length := headerField frame.header 16 4
-  if frame.header.take 4 != [83, 87, 74, 49] || headerField frame.header 4 2 != 1 ||
+  if frame.header.take 4 != [83, 87, 74, 49] || headerField frame.header 4 2 != 2 ||
       !(1 ≤ kind && kind ≤ 11) || headerField frame.header 20 4 != frame.headerCRC ||
-      length > 4194304 then none
+      length > 8388608 then none
   else some (Int.ofNat kind, headerField frame.header 8 8, length)
 
 /-- scanFrame distinguishes a valid record, a truncatable torn tail and corruption.
@@ -304,6 +384,10 @@ def scanFrame (initial expected : Nat) (first : Bool) (frame : FrameObservation)
     else return none
   if frame.trailer.take 4 != [69, 78, 68, 33] || headerField frame.trailer 4 4 != length ||
       headerField frame.header 24 4 != frame.frameCRC then throw 1
+  let decoded ← match unescapePayload frame.payload with
+    | none => .error 1
+    | some value => .ok value
+  if decoded.length > 4194304 then throw 1
   let record ← match frame.record with
     | none => .error 1
     | some value => .ok value

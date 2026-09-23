@@ -18,12 +18,13 @@ import (
 )
 
 const (
-	// JournalFormatVersion is the durable journal payload and framing version.
-	JournalFormatVersion uint32 = 1
-	journalFrameVersion         = uint16(1)
-	journalHeaderSize           = 28
-	journalTrailerSize          = 8
-	journalMaxPayload           = 4 << 20
+	// JournalFormatVersion is the durable journal payload and sidecar metadata version.
+	JournalFormatVersion   uint32 = 1
+	journalFrameVersion           = uint16(2)
+	journalHeaderSize             = 28
+	journalTrailerSize            = 8
+	journalMaxPayload             = 4 << 20
+	journalMaxFramePayload        = 2 * journalMaxPayload
 )
 
 var (
@@ -1458,22 +1459,65 @@ func (r *journalReaderAt) Read(data []byte) (int, error) {
 	return n, err
 }
 
+// escapeJournalPayload excludes the trailer's leading byte from every encoded payload.
+// Frame version 2 escapes zero as 00 00 and 'E' as 00 01.
+func escapeJournalPayload(payload []byte) []byte {
+	encoded := make([]byte, 0, len(payload))
+	for _, value := range payload {
+		switch value {
+		case 0:
+			encoded = append(encoded, 0, 0)
+		case 'E':
+			encoded = append(encoded, 0, 1)
+		default:
+			encoded = append(encoded, value)
+		}
+	}
+	return encoded
+}
+
+// unescapeJournalPayload rejects noncanonical escapes and preserves the plaintext size bound.
+func unescapeJournalPayload(payload []byte) ([]byte, error) {
+	decoded := make([]byte, 0, len(payload))
+	for index := 0; index < len(payload); index++ {
+		value := payload[index]
+		switch value {
+		case 'E':
+			return nil, errors.Wrap(ErrJournalCorrupt, "unescaped journal payload marker")
+		case 0:
+			index++
+			if index == len(payload) || payload[index] > 1 {
+				return nil, errors.Wrap(ErrJournalCorrupt, "invalid journal payload escape")
+			}
+			if payload[index] == 1 {
+				value = 'E'
+			}
+		}
+		decoded = append(decoded, value)
+	}
+	if len(decoded) > journalMaxPayload {
+		return nil, errors.Wrap(ErrJournalCorrupt, "decoded journal payload exceeds bound")
+	}
+	return decoded, nil
+}
+
 func marshalJournalFrame(kind SOJournalRecordKind, sequence uint64, payload []byte) ([]byte, error) {
 	if !validJournalRecordKind(kind) || len(payload) > journalMaxPayload {
 		return nil, errors.Wrap(ErrJournalCorrupt, "invalid journal frame bounds")
 	}
+	payload = escapeJournalPayload(payload)
 	frame := make([]byte, journalHeaderSize+len(payload)+journalTrailerSize)
 	copy(frame[:4], journalMagic[:])
 	binary.BigEndian.PutUint16(frame[4:6], journalFrameVersion)
 	binary.BigEndian.PutUint16(frame[6:8], uint16(kind)) //nolint:gosec // validJournalRecordKind restricts kind to the uint16 frame field.
 	binary.BigEndian.PutUint64(frame[8:16], sequence)
-	binary.BigEndian.PutUint32(frame[16:20], uint32(len(payload))) //nolint:gosec // journalMaxPayload bounds payload below uint32 max.
+	binary.BigEndian.PutUint32(frame[16:20], uint32(len(payload))) //nolint:gosec // journalMaxFramePayload bounds the escaped payload below uint32 max.
 	headerCRC := crc32.Checksum(frame[:20], crc32.MakeTable(crc32.Castagnoli))
 	binary.BigEndian.PutUint32(frame[20:24], headerCRC)
 	copy(frame[journalHeaderSize:], payload)
 	trailerOffset := journalHeaderSize + len(payload)
 	copy(frame[trailerOffset:trailerOffset+4], journalTrailerMagic[:])
-	binary.BigEndian.PutUint32(frame[trailerOffset+4:], uint32(len(payload))) //nolint:gosec // journalMaxPayload bounds payload below uint32 max.
+	binary.BigEndian.PutUint32(frame[trailerOffset+4:], uint32(len(payload))) //nolint:gosec // journalMaxFramePayload bounds the escaped payload below uint32 max.
 	frameCRC := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	_, _ = frameCRC.Write(frame[:24])
 	_, _ = frameCRC.Write(payload)
@@ -1543,6 +1587,10 @@ func scanJournalFrom(storage JournalStorage, initialSequence uint64) ([]*SOJourn
 		if err := verifyJournalCRC(header, payload); err != nil {
 			return nil, 0, err
 		}
+		payload, err = unescapeJournalPayload(payload)
+		if err != nil {
+			return nil, 0, err
+		}
 		record := new(SOJournalRecord)
 		if err := record.UnmarshalVT(payload); err != nil {
 			return nil, 0, errors.Wrap(ErrJournalCorrupt, "decode journal payload")
@@ -1575,7 +1623,7 @@ func parseJournalHeader(header []byte) (SOJournalRecordKind, uint64, uint32, err
 	if crc32.Checksum(header[:20], crc32.MakeTable(crc32.Castagnoli)) != binary.BigEndian.Uint32(header[20:24]) {
 		return 0, 0, 0, errors.Wrap(ErrJournalCorrupt, "journal frame header checksum mismatch")
 	}
-	if payloadLength > journalMaxPayload {
+	if payloadLength > journalMaxFramePayload {
 		return 0, 0, 0, errors.Wrap(ErrJournalCorrupt, "journal frame exceeds bounded payload")
 	}
 	return kind, binary.BigEndian.Uint64(header[8:16]), payloadLength, nil
@@ -1636,11 +1684,11 @@ func validJournalHeaderPrefixForSequence(header []byte, expectedSequence uint64)
 		for index := observed; index < 4; index++ {
 			minimum <<= 8
 		}
-		if minimum > journalMaxPayload {
+		if minimum > journalMaxFramePayload {
 			return false
 		}
 	}
-	if len(header) >= 20 && binary.BigEndian.Uint32(header[16:20]) > journalMaxPayload {
+	if len(header) >= 20 && binary.BigEndian.Uint32(header[16:20]) > journalMaxFramePayload {
 		return false
 	}
 	if len(header) >= 21 {
