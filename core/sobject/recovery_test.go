@@ -7,24 +7,38 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 )
 
+// fakeSharedObjectRecoveryProvider exposes each independent provider outcome.
 type fakeSharedObjectRecoveryProvider struct {
-	entityID string
-	env      *SOEntityRecoveryEnvelope
-	dec      SharedObjectRecoveryDecoder
+	entityID   string
+	entityErr  error
+	envErr     error
+	decoderErr error
+	env        *SOEntityRecoveryEnvelope
+	dec        SharedObjectRecoveryDecoder
 }
 
 func (p *fakeSharedObjectRecoveryProvider) GetSelfEntityID(ctx context.Context) (string, error) {
-	return p.entityID, ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	return p.entityID, p.entityErr
 }
 
 func (p *fakeSharedObjectRecoveryProvider) ReadSharedObjectRecoveryEnvelope(ctx context.Context, ref *SharedObjectRef) (*SOEntityRecoveryEnvelope, error) {
-	return p.env, ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return p.env, p.envErr
 }
 
 func (p *fakeSharedObjectRecoveryProvider) GetSharedObjectRecoveryDecoder(ctx context.Context) (SharedObjectRecoveryDecoder, error) {
-	return p.dec, ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return p.dec, p.decoderErr
 }
 
+// fakeSharedObjectRecoveryDecoder returns a supplied material or decoding failure.
 type fakeSharedObjectRecoveryDecoder struct {
 	material *SOEntityRecoveryMaterial
 	err      error
@@ -37,20 +51,23 @@ func (d *fakeSharedObjectRecoveryDecoder) DecryptSharedObjectRecoveryEnvelope(ct
 	return d.material, d.err
 }
 
+// fakeProviderAccount supplies the recovery feature without other provider capabilities.
 type fakeProviderAccount struct {
+	featureErr   error
 	recoveryProv SharedObjectRecoveryProvider
 }
 
 func (a *fakeProviderAccount) GetProviderAccountFeature(ctx context.Context, feature provider.ProviderFeature) (provider.ProviderAccountFeature, error) {
 	if feature == provider.ProviderFeature_ProviderFeature_SHARED_OBJECT_RECOVERY {
-		return a.recoveryProv, nil
+		return a.recoveryProv, a.featureErr
 	}
 	return nil, provider.ErrUnimplementedProviderFeature
 }
 
+// TestResolveSharedObjectRecoveryMaterial resolves the matching entity material.
 func TestResolveSharedObjectRecoveryMaterial(t *testing.T) {
 	// Build a provider-backed recovery fixture.
-	ctx := context.Background()
+	ctx := t.Context()
 	entityID := "entity-1"
 	expected := &SOEntityRecoveryMaterial{
 		EntityId: entityID,

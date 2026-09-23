@@ -9,5 +9,6 @@ import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
+import Spacewave.SObject.Recovery
 
 #assert_standard_axioms

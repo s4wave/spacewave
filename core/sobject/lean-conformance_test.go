@@ -494,7 +494,7 @@ func (s *configChainScenario) entryJSON(entry *SOConfigChange) *fastjson.Value {
 func projectLeanSignature(entry *SOConfigChange) (string, bool) {
 	sig := entry.GetSignature()
 	pub, err := sig.ParsePubKey()
-	if err != nil {
+	if err != nil || pub == nil {
 		return "", false
 	}
 	id, err := peer.IDFromPublicKey(pub)

@@ -5,6 +5,7 @@ import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
+import Spacewave.SObject.Recovery
 
 /-!
 # Conformance oracle
@@ -30,6 +31,13 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `buildRecoveryEnvelope`: envelope inputs and primitive `cryptoOK`/`encoded`.
+- `unlockRecovery`: `keys`, `envelope`, primitive `decoded`; result `{"ok", "material"}`.
+- `resolveRecovery`: provider outcomes, `entity`, `envelope`, `material`.
+- `buildSelfEnroll`: proposal inputs; result `{"ok", "entry"}`.
+- `enrollRecovery`: proposal inputs and current admission; result `{"ok", "config"}`.
+- `validateRecoveryGrant`: `grant`, `config`; result `{"ok"}`.
+- `buildSelfEnrollGrant`: grant inputs and primitive encrypted byte identities.
 - `buildLeave`: `request`, `signOK`; result `{"ok", "request"}`.
 - `verifyLeave`: `request`; result `{"ok", "peers"}`.
 - `leaveProofsRemainCurrent`: `peers`, `changes`; result `{"ok"}`.
@@ -66,9 +74,53 @@ deriving instance ToJson, FromJson for PlainRoot, ReencryptInput, Reencrypted
 
 deriving instance ToJson, FromJson for LeaveRequest, LeaveChange, LeaveAttempt, LeaveResult, LeaveTrace
 
+deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, RecoveryGrant
+
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "buildRecoveryEnvelope" =>
+    let result := buildRecoveryEnvelope (← req.getObjValAs? String "entity")
+      (← req.getObjValAs? Nat "epoch") (← req.getObjValAs? (Option Config) "config")
+      (← req.getObjValAs? (Option RecoveryMaterial) "material")
+      (← req.getObjValAs? (List String) "recipients") (← req.getObjValAs? Bool "cryptoOK")
+      (← req.getObjValAs? String "encoded")
+    return json% {ok: $(result.isSome), envelope: $result}
+  | "unlockRecovery" =>
+    let result := unlockRecovery (← req.getObjValAs? (List String) "keys")
+      (← req.getObjValAs? (Option RecoveryEnvelope) "envelope")
+      (← req.getObjValAs? (Option RecoveryMaterial) "decoded")
+    return json% {ok: $(result.isSome), material: $result}
+  | "resolveRecovery" =>
+    let result := resolveRecovery (← req.getObjValAs? Bool "featureOK")
+      (← req.getObjValAs? (Option String) "entity") (← req.getObjValAs? Bool "readOK")
+      (← req.getObjValAs? (Option RecoveryEnvelope) "envelope")
+      (← req.getObjValAs? Bool "decoderOK") (← req.getObjValAs? Bool "decodeOK")
+      (← req.getObjValAs? (Option RecoveryMaterial) "material")
+    return json% {ok: $(result.isSome), material: $result}
+  | "buildSelfEnroll" =>
+    let result := buildSelfEnroll (← req.getObjValAs? (Option Config) "current")
+      (← req.getObjValAs? (Option Sig) "sig") (← req.getObjValAs? String "peer")
+      (← req.getObjValAs? String "entity") (← req.getObjValAs? Int "role")
+      (← req.getObjValAs? String "hash") (← req.getObjValAs? Bool "signOK")
+    return json% {ok: $(result.isSome), entry: $result}
+  | "enrollRecovery" =>
+    let result := enrollRecovery (← req.getObjValAs? Config "current")
+      (← req.getObjValAs? Sig "sig") (← req.getObjValAs? String "peer")
+      (← req.getObjValAs? String "entity") (← req.getObjValAs? Int "role")
+      (← req.getObjValAs? String "hash") (← req.getObjValAs? Bool "signOK")
+    return json% {ok: $(result.isSome), config: $result}
+  | "validateRecoveryGrant" =>
+    let grant ← req.getObjValAs? Grant "grant"
+    let config ← req.getObjValAs? Config "config"
+    return json% {ok: $(grant.valid config.participants)}
+  | "buildSelfEnrollGrant" =>
+    let result := buildSelfEnrollGrant (← req.getObjValAs? String "signer")
+      (← req.getObjValAs? String "peer") (← req.getObjValAs? String "object")
+      (← req.getObjValAs? (Option RecoveryMaterial) "material")
+      (← req.getObjValAs? Bool "publicKey") (← req.getObjValAs? Bool "cryptoOK")
+      (← req.getObjValAs? String "encoded") (← req.getObjValAs? String "inner")
+    return json% {ok: $(result.isSome), grant: $result}
   | "buildLeave" =>
     let result := buildLeave (← req.getObjValAs? LeaveRequest "request")
       (← req.getObjValAs? Bool "signOK")

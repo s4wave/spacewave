@@ -251,6 +251,9 @@ func verifyConfigChangeSignature(entry *SOConfigChange, cfg *SharedObjectConfig)
 	if err != nil {
 		return errors.Wrap(err, "parse signature public key")
 	}
+	if sigPubKey == nil {
+		return peer.ErrEmptyPeerID
+	}
 
 	sigPeerID, err := peer.IDFromPublicKey(sigPubKey)
 	if err != nil {
