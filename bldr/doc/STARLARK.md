@@ -70,7 +70,7 @@ manifest("my-plugin",
 |---|---|---|
 | `id` | string | Manifest identifier (positional or kwarg, required) |
 | `builder` | string | Builder ID (required) |
-| `rev` | int | Builder cache buster revision (default 0). Maps to `ControllerConfig.Rev`, not `ManifestConfig.Rev`. Bump to force rebuild. |
+| `rev` | int | Builder and minimum manifest revision (default 0). Maps to both `ControllerConfig.Rev` and `ManifestConfig.Rev`: bump to force a rebuild and to keep a fresh build World above published revisions. |
 | `config` | dict | Builder-specific configuration (use typed constructors below) |
 | `description` | string | Optional description |
 
