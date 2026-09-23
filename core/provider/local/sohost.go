@@ -20,29 +20,27 @@ import (
 
 // LocalSOHost is the implementation of the local shared object host logic.
 type LocalSOHost struct {
-	// le is the logger
+	// le is the logger.
 	le *logrus.Entry
-	// privKey is the local private key
+	// privKey is the local private key.
 	privKey crypto.PrivKey
-	// peerID is the local peer id
+	// peerID is the local peer ID.
 	peerID peer.ID
-	// pubKey is the local public key
+	// pubKey is the local public key.
 	pubKey []byte
 	// objStore is the object store for local state.
 	objStore object.ObjectStore
-	// sharedObjectID is the ID of the shared object
+	// sharedObjectID is the ID of the shared object.
 	sharedObjectID string
-	// sfs is the step factory set for transforms
+	// sfs is the step factory set for transforms.
 	sfs *block_transform.StepFactorySet
 	// queueOpCh is a channel to queue an operation to Execute.
-	// once the value is received from the chan the result promise will be resolved.
+	// Execute closes the transaction's done channel after persisting its result.
 	queueOpCh chan *queueOpTxn
-
-	// below fields are managed by Execute.
 
 	// soHost contains the stored SOState.
 	soHost *sobject.SOHost
-	// stateSnapCtr contains the current state snapshot
+	// stateSnapCtr contains the body snapshot published by Execute.
 	stateSnapCtr *ccontainer.CContainer[sobject.SharedObjectStateSnapshot]
 	// publishedConfigCtr acknowledges the configuration represented by stateSnapCtr.
 	publishedConfigCtr *ccontainer.CContainer[*sobject.SharedObjectConfig]
@@ -50,12 +48,11 @@ type LocalSOHost struct {
 
 // queueOpTxn contains the txn to queue an operation.
 type queueOpTxn struct {
-	// op is the operation to queue
+	// op is the operation to queue.
 	op *sobject.QueuedSOOperation
-	// done is closed when the txn is processed
+	// done is closed when the transaction is processed.
 	done chan struct{}
-	// err contains the result
-	// do not read until done is closed
+	// err contains the result and must not be read until done is closed.
 	err error
 }
 
@@ -68,16 +65,17 @@ func NewLocalSOHost(
 	sharedObjectID string,
 	sfs *block_transform.StepFactorySet,
 ) (*LocalSOHost, error) {
+	// Derive the participant identity used for signatures and operation matching.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
-
 	pubKey, err := crypto.MarshalPublicKey(privKey.GetPublic())
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the operation channel and publication containers for Execute.
 	return &LocalSOHost{
 		le:                 le,
 		privKey:            privKey,
@@ -101,7 +99,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Get the state container
+	// Retain the accepted host-state watch for the execution lifetime.
 	stateCtr, relStateCtr, err := l.soHost.GetSOStateCtr(ctx, nil)
 	if err != nil {
 		return err
@@ -111,14 +109,17 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 	// Push the latest state into a channel.
 	stateCh := make(chan *sobject.SOState, 1)
 	go func() {
+		// Coalesce host updates while retaining the newest accepted state.
 		var sstate *sobject.SOState
 		var err error
 		for {
+			// End forwarding when the host watch's context is canceled.
 			sstate, err = stateCtr.WaitValueChange(ctx, sstate, nil)
 			if err != nil {
-				// err is only returned here if ctx is canceled.
 				return
 			}
+
+			// Replace the queued snapshot before handing it to Execute.
 			select {
 			case <-stateCh:
 			default:
@@ -127,7 +128,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		}
 	}()
 
-	// Wait for initial state.
+	// Publish immutable body and configuration snapshots from accepted host state.
 	var soState *sobject.SOState
 	var snap sobject.SharedObjectStateSnapshot
 	updateSnapshot := func() {
@@ -143,7 +144,9 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		l.publishedConfigCtr.SetValue(soState.GetConfig().CloneVT())
 	}
 
+	// Persist operation outcomes only after their accepted snapshot is readable.
 	processUpdatedSoState := func(updatedSoState *sobject.SOState) error {
+		// Advance the snapshot before publishing operation completion.
 		prevSoState := soState
 		soState = updatedSoState
 		updateSnapshot()
@@ -156,12 +159,16 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// Process rejections
+		// Persist this participant's rejections before clearing them on the host.
 		for _, peerRejections := range updatedSoState.GetOpRejections() {
+			// Ignore results addressed to other participants.
 			if peerRejections.GetPeerId() != l.peerID.String() {
 				continue
 			}
+
+			// Decode each rejection under the validator's signing identity.
 			for _, rejection := range peerRejections.GetRejections() {
+				// Decode the signed rejection envelope.
 				rejInner := &sobject.SOOperationRejectionInner{}
 				if err := rejInner.UnmarshalVT(rejection.GetInner()); err != nil {
 					l.le.WithError(err).Warn("failed to unmarshal rejection inner")
@@ -175,7 +182,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 					return err
 				}
 
-				// Write the rejection to local state
+				// Preserve the rejection in local storage for WaitOperation.
 				if err := l.writeLocalOpResult(ctx, &LocalSOOperationResult{
 					LocalId:   rejInner.GetLocalId(),
 					RootSeqno: updatedSoState.GetRoot().GetInnerSeqno(),
@@ -193,7 +200,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 					return err
 				}
 
-				// Clear the rejection
+				// Clear the host rejection after its local record is durable.
 				clearOp, err := sobject.BuildSOClearOperationResult(
 					l.sharedObjectID,
 					l.privKey,
@@ -212,6 +219,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		return nil
 	}
 
+	// Publish initial host state before accepting local operations.
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -219,19 +227,17 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		updateSnapshot()
 	}
 
-	// Wait for something to happen:
-	// - SOState is updated: update the localState
-	// - We want to queue an op: queueOpCh => update localState => next loop transmit to remote SOHost.
+	// Serialize local queue writes with publication of accepted host updates.
 	initial := true
 	for {
+		// Drain the initial durable queue before waiting for new work.
 		var queueOp *queueOpTxn
-
 		if !initial {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
 			case queueOp = <-l.queueOpCh:
-				// Add operation to local state
+				// Persist the operation before acknowledging its local queue entry.
 				localState.OpQueue = append(localState.OpQueue, queueOp.op)
 				err := l.writeLocalState(ctx, localState)
 				queueOp.err = err
@@ -239,6 +245,8 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 					close(queueOp.done)
 					return err
 				}
+
+				// Make the durable queue entry visible before releasing its caller.
 				updateSnapshot()
 				close(queueOp.done)
 			case updatedSoState := <-stateCh:
@@ -249,16 +257,16 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		}
 		initial = false
 
-		// Process any queued local operations that need to be transmitted
-		// The SOState will change after the first executeQueueOp, so just process one at a time here.
+		// Transmit one queued operation per host update so its snapshot stays current.
 		if len(localState.OpQueue) != 0 {
+			// Resolve the transform from the snapshot that owns the queued operation.
 			writeOp := localState.OpQueue[0]
-
 			xfrm, err := snap.GetTransformer(ctx)
 			if err != nil {
 				return err
 			}
 
+			// Transmit one operation before consuming its resulting host update.
 			if err := l.executeQueueOp(ctx, xfrm, writeOp); err != nil {
 				if ctx.Err() != nil {
 					return context.Canceled
@@ -267,7 +275,7 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 				continue
 			}
 
-			// Remove the operation from the local queue
+			// Remove the transmitted operation from the durable local queue.
 			localState.OpQueue[0] = nil
 			localState.OpQueue = localState.OpQueue[1:]
 			if err := l.writeLocalState(ctx, localState); err != nil {
@@ -294,13 +302,12 @@ func (l *LocalSOHost) executeQueueOp(
 	xfrm *block_transform.Transformer,
 	writeOp *sobject.QueuedSOOperation,
 ) error {
-	// Make sure we don't already have a result.
+	// Preserve any outcome recovered from an earlier transmission attempt.
 	existingResult, err := l.readLocalOpResult(ctx, writeOp.GetLocalId())
 	if err != nil {
 		return err
 	}
 	if existingResult != nil {
-		// already processed, no-op
 		return nil
 	}
 
@@ -321,11 +328,12 @@ func (l *LocalSOHost) executeQueueOp(
 		)
 	})
 	if qerr != nil {
-		// ignore the error if ctx was canceled
+		// Leave canceled transmissions in the durable queue for the next execution.
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
-		// otherwise mark the op as rejected.
+
+		// Persist a terminal queue rejection so WaitOperation can report it.
 		werr := l.writeLocalOpResult(context.Background(), &LocalSOOperationResult{
 			LocalId: writeOp.GetLocalId(),
 			Result: &sobject.SOOperationResult{
@@ -350,16 +358,22 @@ func (l *LocalSOHost) executeQueueOp(
 
 // waitPublishedConfig waits until body readers can observe target or a verified descendant.
 func (l *LocalSOHost) waitPublishedConfig(ctx context.Context, target *sobject.SharedObjectConfig) error {
+	// Require a target and the publication container that acknowledges it.
 	if target == nil || l.publishedConfigCtr == nil {
 		return errors.New("published SharedObject configuration is unavailable")
 	}
+
+	// Accept the target configuration or a descendant with verified history.
 	_, err := l.publishedConfigCtr.WaitValueWithValidator(ctx, func(current *sobject.SharedObjectConfig) (bool, error) {
+		// Keep waiting until the published configuration reaches the target.
 		if current == nil || current.GetConfigChainSeqno() < target.GetConfigChainSeqno() {
 			return false, nil
 		}
 		if current.EqualVT(target) {
 			return true, nil
 		}
+
+		// Verify a newer configuration descends from the requested target.
 		changes, err := l.soHost.ReadConfigHistory(ctx, target.GetConfigChainHash(), current.GetConfigChainHash())
 		if err != nil {
 			return false, err
@@ -381,12 +395,13 @@ func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func
 // Returns after the operation is applied to the local queue.
 // Returns the local op id.
 func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, error) {
+	// Trace one local enqueue through its persistence acknowledgement.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/queue-operation")
 	defer task.End()
 
+	// Identify the durable operation and its completion channel.
 	id := sobject.NewSOOperationLocalID()
 	done := make(chan struct{})
-
 	txn := &queueOpTxn{
 		op: &sobject.QueuedSOOperation{
 			LocalId: id,
@@ -395,6 +410,7 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 		done: done,
 	}
 
+	// Hand the operation to Execute unless the caller cancels first.
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/local-so/queue-operation/enqueue")
 		select {
@@ -406,7 +422,7 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 		task.End()
 	}
 
-	// wait for processing
+	// Once accepted by Execute, report its definitive persistence result.
 	{
 		_, task := trace.NewTask(ctx, "alpha/local-so/queue-operation/wait")
 		<-txn.done
@@ -418,17 +434,21 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 	return id, nil
 }
 
+// writeAcceptedLocalOpResults records operations removed by an accepted host update.
 func (l *LocalSOHost) writeAcceptedLocalOpResults(
 	ctx context.Context,
 	prevState *sobject.SOState,
 	updatedState *sobject.SOState,
 ) error {
+	// Initial state has no earlier operation queue to reconcile.
 	if prevState == nil || updatedState == nil {
 		return nil
 	}
 
+	// Index local operations that remain pending in the accepted state.
 	pendingLocalIDs := make(map[string]struct{})
 	for _, op := range updatedState.GetOps() {
+		// Decode only operations signed by the local participant.
 		inner, ok, err := l.localOperationInner(op)
 		if err != nil {
 			return err
@@ -438,11 +458,15 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 		}
 	}
 
+	// Index local rejections so queue removal cannot become a false success.
 	rejectedLocalIDs := make(map[string]struct{})
 	for _, peerRejections := range updatedState.GetOpRejections() {
+		// Restrict the rejection set to this participant.
 		if peerRejections.GetPeerId() != l.peerID.String() {
 			continue
 		}
+
+		// Decode the rejected operation identifiers from their signed envelopes.
 		for _, rejection := range peerRejections.GetRejections() {
 			rejInner := &sobject.SOOperationRejectionInner{}
 			if err := rejInner.UnmarshalVT(rejection.GetInner()); err != nil {
@@ -454,7 +478,9 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 		}
 	}
 
+	// Persist success for local operations that left the queue without rejection.
 	for _, op := range prevState.GetOps() {
+		// Select completed local operations with a caller-visible identifier.
 		inner, ok, err := l.localOperationInner(op)
 		if err != nil {
 			return err
@@ -473,6 +499,7 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 			continue
 		}
 
+		// Preserve an outcome already recorded by an earlier execution.
 		existingResult, err := l.readLocalOpResult(ctx, localID)
 		if err != nil {
 			return err
@@ -481,6 +508,7 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 			continue
 		}
 
+		// Record the root sequence whose publication completed this operation.
 		if err := l.writeLocalOpResult(ctx, &LocalSOOperationResult{
 			LocalId:   localID,
 			RootSeqno: updatedState.GetRoot().GetInnerSeqno(),
@@ -498,12 +526,16 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 	return nil
 }
 
+// localOperationInner decodes an operation signed by the local participant.
 func (l *LocalSOHost) localOperationInner(
 	op *sobject.SOOperation,
 ) (*sobject.SOOperationInner, bool, error) {
+	// Reject absent operations and signatures from other participants.
 	if op == nil || !bytes.Equal(op.GetSignature().GetPubKey(), l.pubKey) {
 		return nil, false, nil
 	}
+
+	// Decode the matching operation's signed envelope.
 	inner, err := op.UnmarshalInner()
 	if err != nil {
 		return nil, false, err
@@ -512,20 +544,26 @@ func (l *LocalSOHost) localOperationInner(
 }
 
 // WaitOperation waits for the operation to be confirmed or rejected by the provider.
-// Returns the current state nonce (greater than or equal to the nonce when the op was applied).
+// Success waits until body readers can observe at least the accepted root nonce.
+// Returns the nonce of that published snapshot.
 // After ClearOperation has been called, this will return success even for failed ops!
 // If the operation was rejected, returns 0, true, error.
 // Any other error returns 0, false, error.
 func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
+	// Recover a persisted outcome and fence successful results against body readers.
 	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
 		if err == nil && resolved && !rejected && l.soHost.CanWatchSOState() {
 			seqno, err = l.waitForRootSeqno(ctx, seqno)
 		}
 		return seqno, rejected, err
 	}
+
+	// Keep locally queued operations pending until transmission to the host.
 	if err := l.waitForLocalOperationTransmission(ctx, localID); err != nil {
 		return 0, false, err
 	}
+
+	// Transmission may persist a rejection or discover an existing acceptance.
 	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
 		if err == nil && resolved && !rejected && l.soHost.CanWatchSOState() {
 			seqno, err = l.waitForRootSeqno(ctx, seqno)
@@ -533,17 +571,19 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 		return seqno, rejected, err
 	}
 
+	// Retain host state while resolving acceptance or rejection of the operation.
 	ctx, ctxCancel := context.WithCancel(ctx)
 	defer ctxCancel()
-
 	soStateCtr, relSoStateCtr, err := l.soHost.GetSOStateCtr(ctx, ctxCancel)
 	if err != nil {
 		return 0, false, err
 	}
 	defer relSoStateCtr()
 
+	// Follow host transitions until this operation leaves its queue.
 	var current *sobject.SOState
 	for {
+		// Read each host snapshot once, retaining the wait across unchanged state.
 		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
 			return 0, false, err
@@ -553,18 +593,18 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 		// Look for the operation ID in our queue.
 		var queuedOp *sobject.SOOperation
 		for _, op := range current.GetOps() {
-			// Not our operation.
+			// Ignore operations signed by other participants.
 			if !bytes.Equal(op.GetSignature().GetPubKey(), l.pubKey) {
 				continue
 			}
 
-			// Unmarshal inner.
+			// Decode the participant's signed operation envelope.
 			opInner, err := op.UnmarshalInner()
 			if err != nil {
 				return 0, false, err
 			}
 
-			// Check if match
+			// Retain the matching operation while it remains pending.
 			opInnerLocalID := opInner.GetLocalId()
 			if opInnerLocalID == localID {
 				queuedOp = op
@@ -587,14 +627,20 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 
 		// Check if there is a rejection.
 		for _, peerRejections := range current.GetOpRejections() {
+			// Ignore rejection records for other participants.
 			if peerRejections.GetPeerId() != l.peerID.String() {
 				continue
 			}
+
+			// Find the rejection corresponding to this caller's operation.
 			for _, rejection := range peerRejections.GetRejections() {
+				// Decode the rejection's operation identity.
 				rejInner := &sobject.SOOperationRejectionInner{}
 				if err := rejInner.UnmarshalVT(rejection.GetInner()); err != nil {
 					return 0, false, err
 				}
+
+				// Report the matching rejection using its stored error details.
 				if rejInner.GetLocalId() == localID {
 					errorDetails, err := rejInner.DecodeErrorDetails(l.privKey, l.soHost.GetSharedObjectID(), l.peerID)
 					if err != nil {
@@ -608,36 +654,25 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 			}
 		}
 
-		// Operation is not in the queue and not rejected, so it must have been applied.
-		// Get the state snapshot
-		snap := sobject.NewSOStateParticipantHandle(
-			l.le,
-			l.sfs,
-			l.sharedObjectID,
-			current,
-			l.privKey,
-			l.peerID,
-		)
-
-		// Use snapshot to decode root inner
-		rootInner, err := snap.GetRootInner(ctx)
-		if err != nil {
-			return 0, false, err
-		}
-		if rootInner == nil {
-			return 0, false, errors.New("root inner state is nil")
-		}
-		return rootInner.GetSeqno(), false, nil
+		// Acceptance must reach the snapshot used by GetSharedObjectState before
+		// the caller can treat the operation as complete.
+		seqno, err := l.waitForRootSeqno(ctx, current.GetRoot().GetInnerSeqno())
+		return seqno, false, err
 	}
 }
 
+// waitForLocalOperationTransmission waits until the durable local queue no longer
+// contains the operation. Hosts without local snapshots only resolve stored results.
 func (l *LocalSOHost) waitForLocalOperationTransmission(ctx context.Context, localID string) error {
+	// A result-only host has no local transmission loop to await.
 	if l.stateSnapCtr == nil {
 		return nil
 	}
 
+	// Follow published queue snapshots until Execute removes the operation.
 	var current sobject.SharedObjectStateSnapshot
 	for {
+		// Read each newly published queue state once.
 		next, err := l.stateSnapCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
 			return err
@@ -655,36 +690,28 @@ func (l *LocalSOHost) waitForLocalOperationTransmission(ctx context.Context, loc
 	}
 }
 
+// waitForRootSeqno waits for the accepted root to reach the published body
+// snapshot. The host watch may advance before Execute publishes that snapshot.
 func (l *LocalSOHost) waitForRootSeqno(ctx context.Context, minSeqno uint64) (uint64, error) {
-	ctx, ctxCancel := context.WithCancel(ctx)
-	defer ctxCancel()
-
-	soStateCtr, relSoStateCtr, err := l.soHost.GetSOStateCtr(ctx, ctxCancel)
-	if err != nil {
-		return 0, err
-	}
-	defer relSoStateCtr()
-
-	var current *sobject.SOState
+	// Use the same container as body readers and retain its cancellation behavior.
+	var current sobject.SharedObjectStateSnapshot
 	for {
-		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
+		// Wait for a published snapshot at or beyond the accepted root.
+		next, err := l.stateSnapCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
 			return 0, err
 		}
 		current = next
-		if current.GetRoot().GetInnerSeqno() < minSeqno {
+		root, err := current.GetRootState(ctx)
+		if err != nil {
+			return 0, err
+		}
+		if root.GetInnerSeqno() < minSeqno {
 			continue
 		}
 
-		snap := sobject.NewSOStateParticipantHandle(
-			l.le,
-			l.sfs,
-			l.sharedObjectID,
-			current,
-			l.privKey,
-			l.peerID,
-		)
-		rootInner, err := snap.GetRootInner(ctx)
+		// Decode through the published snapshot so success also establishes readability.
+		rootInner, err := current.GetRootInner(ctx)
 		if err != nil {
 			return 0, err
 		}
@@ -695,10 +722,12 @@ func (l *LocalSOHost) waitForRootSeqno(ctx context.Context, minSeqno uint64) (ui
 	}
 }
 
+// localOpResultOutcome resolves a persisted acceptance or rejection when available.
 func (l *LocalSOHost) localOpResultOutcome(
 	ctx context.Context,
 	localID string,
 ) (uint64, bool, error, bool) {
+	// Read the durable result for this caller's operation identifier.
 	localOpResult, err := l.readLocalOpResult(ctx, localID)
 	if err != nil {
 		return 0, false, err, true
@@ -707,6 +736,7 @@ func (l *LocalSOHost) localOpResultOutcome(
 		return 0, false, nil, false
 	}
 
+	// Preserve the rejection's error details for the caller.
 	if errorDetails := localOpResult.GetResult().GetErrorDetails(); errorDetails != nil {
 		errorMsg := errorDetails.GetErrorMsg()
 		if errorMsg != "" {
@@ -715,6 +745,7 @@ func (l *LocalSOHost) localOpResultOutcome(
 		return 0, true, sobject.ErrRejectedOp, true
 	}
 
+	// Legacy success records without a root sequence require host reconciliation.
 	if seqno := localOpResult.GetRootSeqno(); seqno != 0 {
 		return seqno, false, nil, true
 	}
@@ -723,6 +754,7 @@ func (l *LocalSOHost) localOpResultOutcome(
 
 // readLocalState reads the local state from the object store.
 func (l *LocalSOHost) readLocalState(ctx context.Context) (*LocalSOState, error) {
+	// Read the local queue from one object-store snapshot.
 	localStateKey := SobjectObjectStoreLocalStateKey(l.soHost.GetSharedObjectID())
 	var lstate *LocalSOState
 	err := kvtx.RunTransaction(ctx, false,
@@ -730,10 +762,13 @@ func (l *LocalSOHost) readLocalState(ctx context.Context) (*LocalSOState, error)
 			return l.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Load the encoded queue, allowing a new SharedObject to start empty.
 			localStateData, found, err := tx.Get(ctx, localStateKey)
 			if err != nil {
 				return err
 			}
+
+			// Decode the queue independently of the transaction's buffers.
 			next := &LocalSOState{}
 			if found {
 				if err := next.UnmarshalVT(localStateData); err != nil {
@@ -749,9 +784,11 @@ func (l *LocalSOHost) readLocalState(ctx context.Context) (*LocalSOState, error)
 
 // writeLocalState writes the local state to the object store.
 func (l *LocalSOHost) writeLocalState(ctx context.Context, next *LocalSOState) error {
+	// Trace persistence of one immutable local queue value.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state")
 	defer task.End()
 
+	// Encode once so a transaction retry writes the identical queue.
 	localStateKey := SobjectObjectStoreLocalStateKey(l.soHost.GetSharedObjectID())
 	data, err := next.MarshalVT()
 	if err != nil {
@@ -759,6 +796,7 @@ func (l *LocalSOHost) writeLocalState(ctx context.Context, next *LocalSOState) e
 	}
 	defer scrub.Scrub(data)
 
+	// Write the prepared queue through the object store's transaction boundary.
 	return kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/new-transaction")
@@ -777,6 +815,7 @@ func (l *LocalSOHost) writeLocalState(ctx context.Context, next *LocalSOState) e
 
 // readLocalOpResult reads the operation result from the object store.
 func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (*LocalSOOperationResult, error) {
+	// Read the result stored under the caller's local operation identifier.
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), localOpID)
 	var opResult *LocalSOOperationResult
 	err := kvtx.RunTransaction(ctx, false,
@@ -784,6 +823,7 @@ func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (
 			return l.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// An absent record leaves acceptance unresolved.
 			opResultData, found, err := tx.Get(ctx, opResultKey)
 			if err != nil {
 				return err
@@ -792,6 +832,8 @@ func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (
 				opResult = nil
 				return nil
 			}
+
+			// Decode the record and enforce its operation-key identity.
 			next := &LocalSOOperationResult{}
 			if err := next.UnmarshalVT(opResultData); err != nil {
 				return err
@@ -808,6 +850,7 @@ func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (
 
 // writeLocalOpResult writes the operation result to the object store.
 func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
+	// Encode one result for identical writes across transaction retries.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/write-local-op-result")
 	defer task.End()
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), result.GetLocalId())
@@ -817,6 +860,7 @@ func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOpe
 	}
 	defer scrub.Scrub(data)
 
+	// Persist the acceptance or rejection atomically in the local object store.
 	return kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return l.objStore.NewTransaction(ctx, true)
@@ -840,10 +884,12 @@ func (l *LocalSOHost) clearLocalOpResult(ctx context.Context, localID string) er
 	)
 }
 
+// decodeLocalRejectionError decrypts rejection details using the validator signer.
 func (l *LocalSOHost) decodeLocalRejectionError(
 	rejection *sobject.SOOperationRejection,
 	inner *sobject.SOOperationRejectionInner,
 ) (*sobject.SOOperationRejectionErrorDetails, error) {
+	// Derive the validator identity from the rejection's signature.
 	validatorPublicKey, err := rejection.GetSignature().ParsePubKey()
 	if err != nil {
 		return nil, err
@@ -852,5 +898,7 @@ func (l *LocalSOHost) decodeLocalRejectionError(
 	if err != nil {
 		return nil, err
 	}
+
+	// Decrypt the rejection for this SharedObject and validator identity.
 	return inner.DecodeErrorDetails(l.privKey, l.sharedObjectID, validatorPeerID)
 }

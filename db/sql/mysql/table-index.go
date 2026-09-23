@@ -281,6 +281,11 @@ func (idx *tableIndex) CanSupportOrderBy(expr sql.Expression) bool {
 	return false
 }
 
+// CoversColumns reports false because this index reads the underlying table.
+func (idx *tableIndex) CoversColumns([]string) bool {
+	return false
+}
+
 func (idx *tableIndex) PrefixLengths() []uint16 {
 	out := make([]uint16, len(idx.columns))
 	for i, col := range idx.columns {

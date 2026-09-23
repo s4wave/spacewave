@@ -2,6 +2,8 @@ package repofs
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -40,9 +42,12 @@ type Engine struct {
 
 // NewEngine constructs a repo filesystem engine.
 func NewEngine(ctx context.Context, ws world.WorldState, obj world.ObjectState) *Engine {
+	// Keep the watcher within the engine's explicit Close lifecycle.
 	watchCtx, cancel := context.WithCancel(ctx)
 	watchRoutine := routine.NewRoutineContainer()
 	watchRoutine.SetContext(watchCtx, false)
+
+	// Transactions and callbacks share this object state.
 	return &Engine{
 		ctx:          watchCtx,
 		ws:           ws,
@@ -54,11 +59,13 @@ func NewEngine(ctx context.Context, ws world.WorldState, obj world.ObjectState) 
 
 // NewTransaction opens a repo transaction.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (hydra_git.Tx, error) {
+	// Resolve the current repository snapshot.
 	objRef, _, err := e.obj.GetRootRef(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get root ref")
 	}
 
+	// Retain the storage cursors until the transaction is discarded.
 	rootCursor, err := e.ws.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "build storage cursor")
@@ -69,6 +76,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (hydra_git.Tx, 
 		return nil, errors.Wrap(err, "follow ref")
 	}
 
+	// Expose a writable transaction only when requested.
 	var btx *block.Transaction
 	var bcs *block.Cursor
 	if write {
@@ -78,6 +86,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (hydra_git.Tx, 
 		_, bcs = locCursor.BuildTransaction(nil)
 	}
 
+	// Validate the repository before exposing its Git store.
 	repob, err := git_block.UnmarshalRepo(ctx, bcs)
 	if err != nil {
 		locCursor.Release()
@@ -90,6 +99,7 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (hydra_git.Tx, 
 		return nil, errors.Wrap(err, "validate repo")
 	}
 
+	// Transfer both cursors to the successfully opened transaction.
 	store, err := git_block.NewStore(ctx, btx, bcs, &memory.IndexStorage{}, nil)
 	if err != nil {
 		locCursor.Release()
@@ -112,14 +122,16 @@ func (e *Engine) Close() {
 }
 
 // AddDotGitChangeCb registers a repo-level change callback.
+// Callbacks run in registration order, invalidating parents before descendants.
 func (e *Engine) AddDotGitChangeCb(cb func()) func() {
+	// A nil callback needs no watcher registration.
 	if cb == nil {
 		return func() {}
 	}
 
+	// Retain the callback and detect the first active subscriber.
 	id := e.nextChange.Add(1)
 	var startWatch bool
-
 	e.mtx.Lock()
 	if e.changeCbs == nil {
 		e.changeCbs = make(map[uint64]func())
@@ -130,6 +142,7 @@ func (e *Engine) AddDotGitChangeCb(cb func()) func() {
 	}
 	e.mtx.Unlock()
 
+	// The first subscriber starts revision tracking for this engine.
 	if startWatch {
 		_, rev, err := e.obj.GetRootRef(e.ctx)
 		if err != nil {
@@ -143,6 +156,7 @@ func (e *Engine) AddDotGitChangeCb(cb func()) func() {
 		e.watchRoutine.SetRoutine(e.watchChanges)
 	}
 
+	// The final unsubscribe stops revision tracking.
 	return func() {
 		var stopWatch bool
 		e.mtx.Lock()
@@ -157,9 +171,12 @@ func (e *Engine) AddDotGitChangeCb(cb func()) func() {
 	}
 }
 
+// watchChanges invalidates repository cursors when the object revision advances.
 func (e *Engine) watchChanges(ctx context.Context) error {
+	// Wait from the subscriber baseline without polling the object state.
 	rev := e.watchRev.Load()
 	for {
+		// A failed watch invalidates its snapshots unless Close canceled it.
 		nextRev, err := e.obj.WaitRev(ctx, rev+1, false)
 		if err != nil {
 			if ctx.Err() == nil {
@@ -167,37 +184,49 @@ func (e *Engine) watchChanges(ctx context.Context) error {
 			}
 			return nil
 		}
+
+		// Publish invalidation before waiting for a later revision.
 		rev = nextRev
 		e.callChangeCbs()
 	}
 }
 
+// callChangeCbs invalidates older cursors before notifying newer descendants.
 func (e *Engine) callChangeCbs() {
+	// Snapshot callbacks in registration order; map order can notify a child
+	// while its cached parent still exposes the previous repository snapshot.
 	e.mtx.Lock()
 	cbs := make([]func(), 0, len(e.changeCbs))
-	for _, cb := range e.changeCbs {
-		cbs = append(cbs, cb)
+	for _, id := range slices.Sorted(maps.Keys(e.changeCbs)) {
+		cbs = append(cbs, e.changeCbs[id])
 	}
 	e.mtx.Unlock()
 
+	// Callbacks may unsubscribe or release the engine, so run outside the lock.
 	for _, cb := range cbs {
 		cb()
 	}
 }
 
-var _ hydra_git.Engine = (*Engine)(nil)
-
+// projectionTx publishes a Git store root through its world object.
 type projectionTx struct {
+	// Store implements the Git storage operations.
 	*git_block.Store
 
-	obj        world.ObjectState
+	// obj receives the committed repository root.
+	obj world.ObjectState
+	// rootCursor retains the storage root for the transaction lifetime.
 	rootCursor *bucket_lookup.Cursor
-	locCursor  *bucket_lookup.Cursor
+	// locCursor retains the repository location for the transaction lifetime.
+	locCursor *bucket_lookup.Cursor
 
+	// once releases the store and its cursors on the first Discard call.
 	once sync.Once
 }
 
+// Commit writes the store before publishing its new object root.
 func (t *projectionTx) Commit(ctx context.Context) error {
+	// Finalize Git storage before making its root visible to readers.
 	if err := t.Store.Commit(); err != nil {
 		return err
 	}
@@ -205,18 +234,26 @@ func (t *projectionTx) Commit(ctx context.Context) error {
 		return nil
 	}
 
+	// Publishing the object root wakes repository revision subscribers.
 	nextRef := t.locCursor.GetRef()
 	nextRef.RootRef = t.Store.GetRef().Clone()
 	_, err := t.obj.SetRootRef(ctx, nextRef)
 	return err
 }
 
+// Discard releases the store and both cursors exactly once.
 func (t *projectionTx) Discard() {
 	t.once.Do(func() {
+		// Store.Close only releases cached packs and cancels its context.
+		// It always returns nil.
 		_ = t.Close()
 		t.locCursor.Release()
 		t.rootCursor.Release()
 	})
 }
 
-var _ hydra_git.Tx = (*projectionTx)(nil)
+// _ is a type assertion
+var (
+	_ hydra_git.Engine = (*Engine)(nil)
+	_ hydra_git.Tx     = (*projectionTx)(nil)
+)
