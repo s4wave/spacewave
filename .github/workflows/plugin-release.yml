@@ -266,7 +266,9 @@ jobs:
             if file "${path}" | grep -q "Mach-O"; then
               codesign --verify --strict "${path}"
             fi
-          done < <(find .bldr/build/desktop/darwin -type f)
+          done < <(find .bldr/build/desktop/darwin/*/*/dist -type f)
+          find .bldr/build/desktop/darwin/*/*/dist -type d -name '*.app' -prune \
+            -exec codesign --verify --deep --strict {} +
 
       - name: Upload plugin world state
         uses: actions/upload-artifact@v7
@@ -435,6 +437,12 @@ jobs:
           Remove-Item -Path (Join-Path $root ".store") -Recurse -Force
           Remove-Item -Path (Join-Path $root "sign.exe") -Force -ErrorAction Ignore
 
+      - name: Check Windows renderer and dependency cache
+        shell: pwsh
+        run: |
+          go test -timeout=2m ./bldr/util/npm ./bldr/web/entrypoint/electron/bundle -run 'TestEnsureBunAddIsolatesDownloads|TestBuildRendererBundleUsesSelfContainedDistEntrypoint'
+          if ($LASTEXITCODE -ne 0) { throw "Windows renderer checks failed: $LASTEXITCODE" }
+
       - name: Build signed Windows native plugin manifests
         shell: pwsh
         env:
@@ -447,7 +455,7 @@ jobs:
       - name: Verify Windows signatures
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path .bldr/build/desktop/windows -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
+          $files = Get-ChildItem -Path .bldr/build/desktop/windows/*/*/dist -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
           foreach ($file in $files) {
             $sig = Get-AuthenticodeSignature -FilePath $file.FullName
             if ($sig.Status -ne "Valid") {

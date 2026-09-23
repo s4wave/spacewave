@@ -22,7 +22,7 @@ import (
 
 // ElectronDefine returns the define mapping for Electron.
 //
-// devMode enables devMode mode.
+// devMode enables renderer debugging features.
 func ElectronDefine(devMode bool) map[string]string {
 	return map[string]string{
 		"BLDR_IS_ELECTRON": "true",
@@ -31,8 +31,10 @@ func ElectronDefine(devMode bool) map[string]string {
 }
 
 const (
+	// electronStableBootEntrypointPath is the stable module loaded by index.html.
 	electronStableBootEntrypointPath = "./boot.mjs"
-	electronRendererEntrypointPath   = "entrypoint/entrypoint.mjs"
+	// electronRendererEntrypointPath is the renderer URL in the boot manifest.
+	electronRendererEntrypointPath = "entrypoint/entrypoint.mjs"
 )
 
 // BuildPreloadBundle builds the Electron preload through the direct owner.
@@ -91,8 +93,9 @@ func BuildMainBundle(
 
 // BuildRendererBundle builds the web renderer bundle files.
 //
-// runtimeSwPath is the path to the service worker js for the entrypoint to load.
-// runtimeShwPath is the path to the service worker js for the entrypoint to load.
+// runtimeJsPath is the runtime module loaded by the renderer.
+// runtimeSwPath is the service worker module loaded by the renderer.
+// runtimeShwPath is the shared worker module loaded by the renderer.
 // webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
 func BuildRendererBundle(
 	ctx context.Context,
@@ -107,6 +110,7 @@ func BuildRendererBundle(
 	minify,
 	devMode bool,
 ) error {
+	// Bind renderer imports to the runtime and optional application startup.
 	le.Debug("generating Electron renderer bundle")
 	defines := ElectronDefine(devMode)
 	if runtimeJsPath != "" {
@@ -121,6 +125,8 @@ func BuildRendererBundle(
 	if webStartupSrcPath != "" {
 		defines["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPath)
 	}
+
+	// Compile into the renderer directory with Electron supplied by its host.
 	result, err := entrypoint_browser_bundle.BuildRenderer(
 		ctx,
 		le,
@@ -139,12 +145,15 @@ func BuildRendererBundle(
 	if err != nil {
 		return err
 	}
-	if result.JSPath != electronRendererEntrypointPath {
+
+	// The compiler returns a host filesystem path; the boot manifest uses a URL.
+	if result.JSPath != filepath.FromSlash(electronRendererEntrypointPath) {
 		return errors.Errorf("Electron renderer output is %q", result.JSPath)
 	}
 	return nil
 }
 
+// BuildElectronRendererIndex connects the renderer import map to stable boot.
 func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.ImportMap) error {
 	return entrypoint_browser_bundle.BuildRendererIndex(
 		buildDir,
@@ -153,10 +162,14 @@ func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.
 	)
 }
 
+// WriteElectronStableBootFiles publishes the renderer and worker boot metadata.
 func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerFilename string) error {
+	// Install the stable loader before describing its renderer payload.
 	if err := entrypoint_browser_bundle.WriteStableBootAsset(buildDir); err != nil {
 		return err
 	}
+
+	// Record the final renderer size for startup progress and asset validation.
 	entrypointInfo, err := os.Stat(filepath.Join(buildDir, electronRendererEntrypointPath))
 	if err != nil {
 		return errors.Wrap(err, "stat electron entrypoint bundle")
@@ -180,8 +193,8 @@ func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerF
 // startupFilename is the path to the react component to load on startup (can be empty).
 // minify enables JavaScript minification.
 // devMode enables devMode extensions in Electron
-// entrypointHash, if set, uses /entrypoint/{entrypointHash}/pkgs/...
 func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
+	// Prepare the output and shared JavaScript dependencies.
 	err := os.MkdirAll(buildDir, 0o755)
 	if err != nil {
 		return err
@@ -190,7 +203,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	// service worker
+	// Build the service worker used by renderer requests.
 	swFilename, err := entrypoint_browser_bundle.BuildServiceWorkerBundle(
 		ctx, le, stateDir, bldrDistRoot, buildDir, minify, !minify, devMode,
 	)
@@ -198,7 +211,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	// shared worker
+	// Build the shared worker used by renderer communication.
 	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(
 		ctx, le, stateDir, bldrDistRoot, buildDir, minify, !minify, devMode,
 	)
@@ -206,6 +219,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
+	// Compile the preload and main process scripts for the Electron host.
 	if err := buildElectronScript(
 		ctx, le, stateDir, bldrDistRoot, buildDir,
 		"preload", "web/electron/main/preload.ts", "preload.mjs", "cjs",
@@ -221,14 +235,13 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	// web pkgs
-	// use platform for linux -> node.js (react and react-dom don't care.)
+	// Select a native web-package target; these JavaScript packages are portable.
 	bldrNativePlatform, err := bldr_platform.ParseNativePlatform("desktop/linux/amd64")
 	if err != nil {
 		return err
 	}
 
-	// build to the entrypoint dir
+	// Share browser package URLs to retain module identity across imports.
 	entrypointDir := filepath.Join(buildDir, "entrypoint")
 	webPkgImportMap, err := entrypoint_browser_bundle.BuildWebPkgsBundle(
 		ctx,
@@ -248,7 +261,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
-	// the renderer is at /entrypoint/pkgs/@aptre/bldr/
+	// Resolve runtime imports from /entrypoint/pkgs/@aptre/bldr/.
 	runtimePathPrefix := "../../../../"
 	runtimeSwPath := runtimePathPrefix + swFilename
 	runtimeShwPath := runtimePathPrefix + shwFilename
@@ -258,7 +271,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		webStartupSrcPath = runtimePathPrefix + startupFilename
 	}
 
-	// renderer bundle
+	// Compile the renderer against its emitted worker and package paths.
 	if err := BuildRendererBundle(
 		ctx,
 		le,
@@ -275,6 +288,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		return err
 	}
 
+	// Publish the stable boot metadata after all renderer assets exist.
 	if err := WriteElectronStableBootFiles(buildDir, swFilename, shwFilename); err != nil {
 		return err
 	}
@@ -312,12 +326,12 @@ func BuildAsar(ctx context.Context, le *logrus.Entry, stateDir, buildDir, outPat
 // then fails downstream branding / packaging steps that expect target-arch
 // layout.
 func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir string, plat bldr_platform.Platform, buildDir, destDir string, npmPkg string) error {
-	// use the latest version if not defined
+	// Use the default release when the build does not select an Electron version.
 	if npmPkg == "" {
 		npmPkg = "electron@latest"
 	}
 
-	// trim the version from the name
+	// Resolve the package directory independently of its version selector.
 	npmPkgName := npmPkg
 	npmPkgVerIdx := strings.LastIndex(npmPkgName, "@")
 	if npmPkgVerIdx > 0 {
@@ -341,7 +355,7 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 		}
 	}
 
-	// install electron (cached: skips if package string + env unchanged)
+	// Reuse the target install when its package and download environment match.
 	npmDir := filepath.Join(buildDir, "dl-electron")
 	le.
 		WithField("npm-pkg", npmPkg).
@@ -351,13 +365,15 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 		return err
 	}
 
-	// copy the redistributable out of node_modules
+	// Install the redistributable when dependency lifecycle scripts skipped it.
 	nodeModulesPath := filepath.Join(npmDir, "node_modules")
 	electronDistPath := filepath.Join(nodeModulesPath, npmPkgName, "dist")
 	if _, err := os.Stat(electronDistPath); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrap(err, "stat electron dist")
 		}
+
+		// Prefer the current installer binary and support its older script layout.
 		cmdPath := filepath.Join(nodeModulesPath, ".bin", "install-electron")
 		if runtime.GOOS == "windows" {
 			cmdPath += ".cmd"
@@ -376,12 +392,16 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 			}
 			cmd = exec.NewCmd(ctx, "node", installPath)
 		}
+
+		// Run the selected installer with the same target architecture overrides.
 		cmd.Dir = npmDir
 		cmd.Env = append(cmd.Env, extraEnv...)
 		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 			return errors.Wrap(err, "install electron binary")
 		}
 	}
+
+	// Copy only runtime files into the plugin distribution.
 	if err := fsutil.CopyRecursive(destDir, electronDistPath, nil); err != nil {
 		return err
 	}
@@ -394,10 +414,13 @@ func DownloadElectronRedist(ctx context.Context, le *logrus.Entry, stateDir stri
 //
 // Returns just "electron" if not known.
 func GetElectronBinName(plat bldr_platform.Platform) string {
+	// Use the generic name when no native platform layout is available.
 	np, ok := plat.(*bldr_platform.NativePlatform)
 	if !ok {
 		return "electron"
 	}
+
+	// Match the executable location in each platform's redistributable.
 	switch np.GetGOOS() {
 	case "windows":
 		return "electron.exe"
