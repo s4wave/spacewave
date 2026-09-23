@@ -28,6 +28,7 @@ import (
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
+	"github.com/sirupsen/logrus"
 )
 
 // serveSocketPath selects the exact listener requested by the command and
@@ -145,8 +146,11 @@ func runServeCommand(
 	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
+	// Native core runs on the CLI bus; Dist core runs in the spacewave-core
+	// plugin process.
+	nativeCore := cliBus.GetPluginHostObjectKey() == ""
 	var invoker srpc.Invoker
-	if cliBus.GetPluginHostObjectKey() == "" {
+	if nativeCore {
 		var invokerRef directive.Reference
 		invoker, invokerRef, err = lookupLocalResourceInvoker(serveCtx, cliBus.GetBus())
 		if err != nil {
@@ -166,7 +170,7 @@ func runServeCommand(
 		invoker = newDaemonResourceInvoker(cliBus.GetBus())
 	}
 	var releasePluginHost func()
-	if cliBus.GetPluginHostObjectKey() == "" {
+	if nativeCore {
 		pluginRoot := filepath.Join(resolved, "plugin")
 		pluginStateRoot := filepath.Join(pluginRoot, "state")
 		pluginDistRoot := filepath.Join(pluginRoot, "dist")
@@ -213,20 +217,13 @@ func runServeCommand(
 	})
 	defer idleTracker.close()
 
-	rootCtrl, _, rootCtrlRef, err := loader.WaitExecControllerRunningTyped[*resource_root_controller.Controller](
-		serveCtx,
-		cliBus.GetBus(),
-		resolver.NewLoadControllerWithConfig(&resource_root_controller.Config{}),
-		nil,
-	)
-	if err != nil {
-		return errors.Wrap(err, "wait for root resource controller")
+	if nativeCore {
+		releaseRootCtrl, err := holdWebListenerKeepalive(serveCtx, cliBus.GetBus(), le, idleTracker)
+		if err != nil {
+			return err
+		}
+		defer releaseRootCtrl()
 	}
-	defer rootCtrlRef.Release()
-	rootCtrl.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
-		le.WithField("listener", listenerID).Debug("web listener holding daemon lifetime")
-		return idleTracker.serviceAttached()
-	})
 
 	mux := srpc.NewMux(invoker)
 	shutdownCh := make(chan struct{})
@@ -251,6 +248,34 @@ func runServeCommand(
 		return err
 	}
 	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
+}
+
+// holdWebListenerKeepalive waits for the native root resource controller and
+// lets its web listeners hold the daemon idle tracker. The returned release
+// drops the controller reference.
+//
+// Only native core runs the root resource controller on the CLI bus. The Dist
+// CLI bus has no factory for it, so waiting there would block forever.
+func holdWebListenerKeepalive(
+	ctx context.Context,
+	b bus.Bus,
+	le *logrus.Entry,
+	idleTracker *daemonIdleTracker,
+) (func(), error) {
+	rootCtrl, _, rootCtrlRef, err := loader.WaitExecControllerRunningTyped[*resource_root_controller.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(&resource_root_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "wait for root resource controller")
+	}
+	rootCtrl.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+		le.WithField("listener", listenerID).Debug("web listener holding daemon lifetime")
+		return idleTracker.serviceAttached()
+	})
+	return rootCtrlRef.Release, nil
 }
 
 // lookupLocalResourceInvoker waits for the Resource service already registered
