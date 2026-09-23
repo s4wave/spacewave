@@ -70,6 +70,10 @@ type BuildManifest struct {
 
 const stableBootFilename = "boot.mjs"
 
+// rendererBootPath is the origin-absolute boot script path in the renderer
+// index, so pathname routes such as /landing/drive load the same script.
+const rendererBootPath = "/" + stableBootFilename
+
 // WriteBuildManifest writes a manifest.json to the given directory.
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 	// The entrypoint tree owns the runtime, split modules, web packages, and
@@ -1051,7 +1055,7 @@ func BuildRendererBundle(
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
-	if err := BuildRendererIndex(buildDir, "./"+stableBootFilename, webPkgImportMap); err != nil {
+	if err := BuildRendererIndex(buildDir, rendererBootPath, webPkgImportMap); err != nil {
 		return nil, err
 	}
 	spec, err := browserRendererSpec(

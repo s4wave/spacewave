@@ -651,7 +651,7 @@ func buildRendererCached(
 	browserIceServersEndpoint string,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
-	indexHTML, err := renderIndexHTML("./"+stableBootFilename, webPkgImportMap)
+	indexHTML, err := renderIndexHTML(rendererBootPath, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
