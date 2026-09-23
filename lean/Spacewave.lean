@@ -7,5 +7,6 @@ import Spacewave.SObject.Host
 import Spacewave.SObject.KeyRotation
 import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant
+import Spacewave.SObject.Reencrypt
 
 #assert_standard_axioms
