@@ -406,11 +406,13 @@ func startDedicatedWorkerPluginAssetFetch(
 		const url = Array.isArray(arg) ? arg[0] : arg
 		globalThis.__dedicatedHostFailoverPluginFetch = fetch(url, { cache: 'no-store' })
 			.then(async (resp) => {
+				// Keep a failure's classified error intact; a module body is only sampled.
+				const body = await resp.text()
 				return {
 					url,
 					ok: resp.ok,
 					status: resp.status,
-					body: (await resp.text()).slice(0, 120),
+					body: resp.ok ? body.slice(0, 120) : body.slice(0, 2000),
 				}
 			})
 			.catch((err) => {

@@ -575,6 +575,38 @@ describe('WebRuntimeClient', () => {
     reconnect.port2.close()
   })
 
+  it('fails established streams when the runtime behind the route is lost', async () => {
+    const { port1, port2 } = new MessageChannel()
+    const openClientCh = vi.fn().mockResolvedValue(port1)
+    const client = new WebRuntimeClient(
+      'runtime',
+      'client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      openClientCh,
+      null,
+      null,
+    )
+
+    await connectClient(client, port2)
+    const streamAbort = vi.fn()
+    const activeStreams = Reflect.get(client, 'activeStreams') as Set<{
+      abort(error: Error): void
+    }>
+    activeStreams.add({ abort: streamAbort })
+
+    await client.rerouteChannel({ reconnect: false, runtimeLost: true })
+
+    expect(streamAbort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('closed: runtime-disconnected'),
+      }),
+    )
+    expect(openClientCh).toHaveBeenCalledTimes(1)
+
+    client.close()
+    port2.close()
+  })
+
   it('can drop a stale runtime channel without racing host election', async () => {
     const { port1, port2 } = new MessageChannel()
     const handleDisconnected = vi.fn().mockResolvedValue(undefined)

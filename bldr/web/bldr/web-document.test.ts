@@ -92,7 +92,10 @@ type TestWebDocument = {
   webRuntimeClient: {
     openStream: () => Promise<unknown>
     waitConn?: () => Promise<unknown>
-    rerouteChannel?: (opts?: { reconnect?: boolean }) => Promise<void>
+    rerouteChannel?: (opts?: {
+      reconnect?: boolean
+      runtimeLost?: boolean
+    }) => Promise<void>
   }
   sharedWorkerPath: string
   opfsWorkerPath: string
@@ -1290,7 +1293,10 @@ describe('WebDocument plugin generation state', () => {
 
     expect(doc.runtimeConnected).toBe(false)
     expect(doc.resumeReady).toBe(false)
-    expect(rerouteChannel).toHaveBeenCalledWith({ reconnect: false })
+    expect(rerouteChannel).toHaveBeenCalledWith({
+      reconnect: false,
+      runtimeLost: true,
+    })
   })
 
   it('ignores host loss from an obsolete DedicatedWorker route', () => {

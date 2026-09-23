@@ -1010,6 +1010,10 @@ export class WebDocumentTracker {
       )
     }
 
+    // An elected DedicatedWorker host runs the runtime itself. Its streams
+    // cannot complete after it closes, while a relay to a SharedWorker runtime
+    // leaves transferred stream ports connected.
+    const rerouteOpts = { runtimeLost: !!lostHostGeneration }
     if (!remainingWebDocumentIds.length) {
       this.lastWebDocumentId = undefined
       this.lastWebDocumentIdx = 0
@@ -1030,12 +1034,14 @@ export class WebDocumentTracker {
         if (terminal) {
           this.close()
         } else {
-          this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
-            console.error(
-              `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
-              err,
-            )
-          })
+          this.webRuntimeClient
+            .rerouteChannel(rerouteOpts)
+            .catch((err: unknown) => {
+              console.error(
+                `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
+                err,
+              )
+            })
         }
       }
     } else if (wasActiveRuntimeDocument) {
@@ -1046,12 +1052,14 @@ export class WebDocumentTracker {
       // plugin-asset fetch the surviving documents relay, failing their
       // navigation. This honors the tracker contract: retry when the owning
       // WebDocument lifecycle closes a stale route.
-      this.webRuntimeClient.rerouteChannel().catch((err: unknown) => {
-        console.error(
-          `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
-          err,
-        )
-      })
+      this.webRuntimeClient
+        .rerouteChannel(rerouteOpts)
+        .catch((err: unknown) => {
+          console.error(
+            `WebDocumentTracker: ${this.clientUuid}: error rerouting runtime client:`,
+            err,
+          )
+        })
     }
 
     if (!remainingWebDocumentIds.length && this.onAllWebDocumentsClosed) {
