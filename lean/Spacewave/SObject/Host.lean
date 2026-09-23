@@ -136,7 +136,7 @@ def hostUpdateRootState (previous : State) (root : Root) (enforce : String)
     publishHost next false writeOK
 
 /-- Queue reconstruction cannot edit authority or local invitation capabilities. -/
-def State.hostFrame (s : State) : Config × Root × List String :=
+def State.hostFrame (s : State) : Config × Root × List Invite :=
   (s.config, s.root, s.invites)
 
 /-- sameCheckpoint compares consensus content, independently of historical signature bytes. -/

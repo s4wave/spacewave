@@ -66,6 +66,7 @@ func BuildTargetedAccountSOInviteMessage(
 	)
 }
 
+// buildSOInviteMessage binds a fresh token to the invite metadata and owner's signature.
 func buildSOInviteMessage(
 	sharedObjectID string,
 	ownerPrivKey crypto.PrivKey,
@@ -187,6 +188,7 @@ func (s *SOHost) CreateTargetedAccountSOInviteOp(
 // CreateInvite creates a new invite on the shared object via a signed config
 // chain entry. The invite is appended to SOState.invites. The config itself
 // does not change; the chain entry records the authorized operation.
+// Invite identity is checked against the checkpoint held under the provider lock.
 func (s *SOHost) CreateInvite(
 	ctx context.Context,
 	signerPrivKey crypto.PrivKey,
@@ -201,17 +203,13 @@ func (s *SOHost) CreateInvite(
 	if len(invite.GetTokenHash()) == 0 {
 		return errors.New("token_hash is required")
 	}
+	if invite.GetMaxUses() != 0 && invite.GetUses() > invite.GetMaxUses() {
+		return errors.New("invite uses exceeds max uses")
+	}
 
 	currentState, err := s.GetHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get current state")
-	}
-
-	// Check for duplicate invite_id.
-	for _, existing := range currentState.GetInvites() {
-		if existing.GetInviteId() == invite.GetInviteId() {
-			return errors.New("invite_id already exists")
-		}
 	}
 
 	currentCfg := currentState.GetConfig()
@@ -221,6 +219,9 @@ func (s *SOHost) CreateInvite(
 	}
 
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
+		if FindInvite(state, invite.GetInviteId()) != nil {
+			return errors.New("invite_id already exists")
+		}
 		state.Invites = append(state.Invites, invite.CloneVT())
 		return nil
 	})
@@ -242,21 +243,6 @@ func (s *SOHost) RevokeInvite(
 		return errors.Wrap(err, "get current state")
 	}
 
-	// Verify the invite exists and is not already revoked.
-	found := false
-	for _, inv := range currentState.GetInvites() {
-		if inv.GetInviteId() == inviteID {
-			if inv.GetRevoked() {
-				return errors.New("invite is already revoked")
-			}
-			found = true
-			break
-		}
-	}
-	if !found {
-		return errors.New("invite not found")
-	}
-
 	currentCfg := currentState.GetConfig()
 	entry, err := BuildSOConfigChange(currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE, signerPrivKey, nil)
 	if err != nil {
@@ -264,19 +250,22 @@ func (s *SOHost) RevokeInvite(
 	}
 
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
-		for _, inv := range state.GetInvites() {
-			if inv.GetInviteId() == inviteID {
-				inv.Revoked = true
-				return nil
-			}
+		inv := FindInvite(state, inviteID)
+		if inv == nil {
+			return errors.New("invite not found in state")
 		}
-		return errors.New("invite not found in state")
+		if inv.GetRevoked() {
+			return errors.New("invite is already revoked")
+		}
+		inv.Revoked = true
+		return nil
 	})
 }
 
 // IncrementInviteUses increments the uses counter on an invite via a signed
 // config chain entry. Returns an error if the invite is invalid, revoked,
 // expired, or has reached max_uses.
+// Usability is checked under the provider lock before incrementing the counter.
 func (s *SOHost) IncrementInviteUses(
 	ctx context.Context,
 	signerPrivKey crypto.PrivKey,
@@ -291,21 +280,6 @@ func (s *SOHost) IncrementInviteUses(
 		return errors.Wrap(err, "get current state")
 	}
 
-	// Validate the invite.
-	var target *SOInvite
-	for _, inv := range currentState.GetInvites() {
-		if inv.GetInviteId() == inviteID {
-			target = inv
-			break
-		}
-	}
-	if target == nil {
-		return errors.New("invite not found")
-	}
-	if err := ValidateInviteUsable(target); err != nil {
-		return err
-	}
-
 	currentCfg := currentState.GetConfig()
 	entry, err := BuildSOConfigChange(currentCfg, currentCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES, signerPrivKey, nil)
 	if err != nil {
@@ -313,13 +287,15 @@ func (s *SOHost) IncrementInviteUses(
 	}
 
 	return s.ApplyConfigChange(ctx, entry, func(state *SOState) error {
-		for _, inv := range state.GetInvites() {
-			if inv.GetInviteId() == inviteID {
-				inv.Uses++
-				return nil
-			}
+		inv := FindInvite(state, inviteID)
+		if inv == nil {
+			return errors.New("invite not found in state")
 		}
-		return errors.New("invite not found in state")
+		if err := ValidateInviteUsable(inv); err != nil {
+			return err
+		}
+		inv.Uses++
+		return nil
 	})
 }
 

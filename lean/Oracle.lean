@@ -1,6 +1,7 @@
 import Lean.Data.Json
 import Spacewave.SObject.Host
 import Spacewave.SObject.KeyRotation
+import Spacewave.SObject.Invite
 
 /-!
 # Conformance oracle
@@ -26,6 +27,10 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `mutateInvite`: `previous`, `snapshot`, `kind`, `invite`, `id`, `expired`,
+  `sig`, `hash`, `buildOK`, `lockOK`, `writeOK`; host outcome.
+- `validateInviteUsable`: `invite`, `expired`; result `{"ok"}`.
+- `findInvite`: `invites`, `id`; result `{"ok", "invite"}`.
 - `rotateTransformKey`: `participants`, `epoch`, `seqno`, `key`, `cryptoOK`;
   result `{"ok", "rotation"}`.
 - `findCoveringEpoch`: `epochs`, `seqno`; result `{"ok", "epoch"}`.
@@ -41,13 +46,30 @@ model structures and the projection in `core/sobject/lean-conformance_test.go`.
 open Lean Spacewave.SObject
 
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
-deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root, State
+deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root
+deriving instance ToJson, FromJson for Invite, State
 deriving instance ToJson, FromJson for HostResult
 deriving instance ToJson, FromJson for RotationPeer, KeyGrant, KeyEpoch, Rotation
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "validateInviteUsable" =>
+    return json% {ok: $(validateInviteUsable (← req.getObjValAs? Invite "invite")
+      (← req.getObjValAs? Bool "expired"))}
+  | "findInvite" =>
+    let result := findInvite (← req.getObjValAs? (List Invite) "invites")
+      (← req.getObjValAs? String "id")
+    return json% {ok: $(result.isSome), invite: $result}
+  | "mutateInvite" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := mutateInvite previous (← req.getObjValAs? Config "snapshot")
+      (← req.getObjValAs? Int "kind") (← req.getObjValAs? Invite "invite")
+      (← req.getObjValAs? String "id") (← req.getObjValAs? Bool "expired")
+      (← req.getObjValAs? Sig "sig") (← req.getObjValAs? String "hash")
+      (← req.getObjValAs? Bool "buildOK") (← req.getObjValAs? Bool "lockOK")
+      (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
   | "rotateTransformKey" =>
     let result := rotateTransformKey (← req.getObjValAs? (List RotationPeer) "participants")
       (← req.getObjValAs? Nat "epoch") (← req.getObjValAs? Nat "seqno")

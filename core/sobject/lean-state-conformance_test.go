@@ -515,11 +515,7 @@ func projectLeanState(t *testing.T, a *fastjson.Arena, state *SOState) *fastjson
 	}
 	invites := a.NewArray()
 	for i, invite := range state.GetInvites() {
-		data := "nil"
-		if invite != nil {
-			data = hex.EncodeToString(mustMarshalVT(t, invite))
-		}
-		invites.SetArrayItem(i, a.NewString(data))
+		invites.SetArrayItem(i, projectLeanInvite(t, a, invite))
 	}
 	groups := a.NewArray()
 	for i, group := range state.GetOpRejections() {
@@ -537,6 +533,26 @@ func projectLeanState(t *testing.T, a *fastjson.Arena, state *SOState) *fastjson
 	v.Set("ops", projectLeanOperations(t, a, state.GetOps()))
 	v.Set("queued", projectLeanNonces(a, state.GetQueuedAccountNonces()))
 	v.Set("rejections", groups)
+	return v
+}
+
+// projectLeanInvite retains immutable bytes separately from the fields updated by invite.go.
+func projectLeanInvite(t *testing.T, a *fastjson.Arena, invite *SOInvite) *fastjson.Value {
+	t.Helper()
+	data := "nil"
+	if invite != nil {
+		immutable := invite.CloneVT()
+		immutable.Uses = 0
+		immutable.Revoked = false
+		data = hex.EncodeToString(mustMarshalVT(t, immutable))
+	}
+	v := a.NewObject()
+	v.Set("data", a.NewString(data))
+	v.Set("id", a.NewString(invite.GetInviteId()))
+	v.Set("tokenHash", a.NewString(hex.EncodeToString(invite.GetTokenHash())))
+	v.Set("maxUses", a.NewNumberString(strconv.FormatUint(uint64(invite.GetMaxUses()), 10)))
+	v.Set("uses", a.NewNumberString(strconv.FormatUint(uint64(invite.GetUses()), 10)))
+	v.Set("revoked", leanBool(a, invite.GetRevoked()))
 	return v
 }
 

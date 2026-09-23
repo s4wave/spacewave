@@ -26,12 +26,22 @@ structure Root where
   sigs : List Sig
   deriving DecidableEq, Repr
 
+/-- Invite retains mutable invitation state and the opaque immutable metadata. -/
+structure Invite where
+  data : String
+  id : String
+  tokenHash : String
+  maxUses : Nat
+  uses : Nat
+  revoked : Bool
+  deriving DecidableEq, Repr
+
 /-- State contains the fields state.go reads or changes. -/
 structure State where
   config : Config
   root : Root
   grants : List Grant
-  invites : List String
+  invites : List Invite
   ops : List Operation
   queued : List AccountNonce
   rejections : List Rejections
