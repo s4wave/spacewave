@@ -58,6 +58,9 @@ func (r *SOLeaveRequest) Verify() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		if key == nil {
+			return nil, peer.ErrEmptyPeerID
+		}
 		id, err := peer.IDFromPublicKey(key)
 		if err != nil {
 			return nil, err

@@ -4,6 +4,7 @@ import Spacewave.SObject.KeyRotation
 import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
+import Spacewave.SObject.Leave
 
 /-!
 # Conformance oracle
@@ -29,6 +30,11 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `buildLeave`: `request`, `signOK`; result `{"ok", "request"}`.
+- `verifyLeave`: `request`; result `{"ok", "peers"}`.
+- `leaveProofsRemainCurrent`: `peers`, `changes`; result `{"ok"}`.
+- `completedLeave`: `requestHash`, `changes`; result `{"ok", "changes"}`.
+- `leaveTrace`: `request`, `hostId`, `requestHash`, `attempts`; result `{"ok", "leave"}`.
 - `reencryptState`: `input`; result `{"ok", "reencrypted"}`.
 - `removeParticipants`: `previous`, `snapshot`, `targets`, `sig`, `hash`, `crypto`,
   `watchOK`, `buildOK`, `lockOK`, `writeOK`; result `{"ok", "removal"}`.
@@ -58,9 +64,30 @@ deriving instance ToJson, FromJson for RewrapInput, RemovalCrypto, RemovalResult
 deriving instance ToJson, FromJson for RotationPeer, KeyGrant, KeyEpoch, Rotation
 deriving instance ToJson, FromJson for PlainRoot, ReencryptInput, Reencrypted
 
+deriving instance ToJson, FromJson for LeaveRequest, LeaveChange, LeaveAttempt, LeaveResult, LeaveTrace
+
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "buildLeave" =>
+    let result := buildLeave (← req.getObjValAs? LeaveRequest "request")
+      (← req.getObjValAs? Bool "signOK")
+    return json% {ok: $(result.isSome), request: $result}
+  | "verifyLeave" =>
+    let result := verifyLeave (← req.getObjValAs? LeaveRequest "request")
+    return json% {ok: $(result.isSome), peers: $result}
+  | "leaveProofsRemainCurrent" =>
+    return json% {ok: $(leaveProofsRemainCurrent (← req.getObjValAs? (List String) "peers")
+      (← req.getObjValAs? (List LeaveChange) "changes"))}
+  | "completedLeave" =>
+    let result := completedLeave (← req.getObjValAs? String "requestHash")
+      (← req.getObjValAs? (List LeaveChange) "changes")
+    return json% {ok: $(result.isSome), changes: $result}
+  | "leaveTrace" =>
+    let result := leaveTrace (← req.getObjValAs? LeaveRequest "request")
+      (← req.getObjValAs? String "hostId") (← req.getObjValAs? String "requestHash")
+      (← req.getObjValAs? (List LeaveAttempt) "attempts")
+    return json% {ok: $(!result.pending && result.result.isSome), leave: $result}
   | "reencryptState" =>
     let result := reencryptState (← req.getObjValAs? ReencryptInput "input")
     return json% {ok: $(result.isSome), reencrypted: $result}
