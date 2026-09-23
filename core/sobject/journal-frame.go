@@ -462,7 +462,7 @@ type memoryJournalStorage struct {
 	truncateErr            error
 }
 
-// NewMemoryJournalStorage constructs an empty in-memory journal.
+// newMemoryJournalStorage constructs an empty in-memory journal.
 func newMemoryJournalStorage() *memoryJournalStorage {
 	return &memoryJournalStorage{identity: journalDefaultIdentity(), generations: make(map[uint64][]byte)}
 }
@@ -636,7 +636,7 @@ func (s *memoryJournalStorage) bytes() []byte {
 	return slices.Clone(s.data)
 }
 
-// SetWriteFailure makes future writes fail, optionally after a partial prefix.
+// setWriteFailure makes future writes fail, optionally after a partial prefix.
 func (s *memoryJournalStorage) setWriteFailure(limit int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -644,7 +644,7 @@ func (s *memoryJournalStorage) setWriteFailure(limit int, err error) {
 	s.writeErr = err
 }
 
-// SetSyncFailure makes future syncs fail.
+// setSyncFailure makes future syncs fail.
 func (s *memoryJournalStorage) setSyncFailure(err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1012,7 +1012,7 @@ func openJournalWriter(storage JournalStorage, cryptos ...*JournalCrypto) (*jour
 		if marker.Generation < floor {
 			return nil, nil, errors.Wrap(ErrJournalCheckpointCorrupt, "journal generation marker rolled back")
 		}
-		if marker.Generation > floor+1 {
+		if marker.Generation > floor && marker.Generation-floor > 1 {
 			return nil, nil, errors.Wrap(ErrJournalCheckpointCorrupt, "journal generation marker skips publication floor")
 		}
 		if crypto == nil {
@@ -1356,7 +1356,7 @@ func (j *journal) checkpoint() error {
 		if marker.Generation < floor {
 			return errors.Wrap(ErrJournalCheckpointCorrupt, "journal generation marker rolled back")
 		}
-		if marker.Generation > floor+1 {
+		if marker.Generation > floor && marker.Generation-floor > 1 {
 			return errors.Wrap(ErrJournalCheckpointCorrupt, "journal generation marker skips publication floor")
 		}
 		if marker.Generation > activeGeneration {

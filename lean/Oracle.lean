@@ -39,6 +39,9 @@ per line. A request names a model function in `op` and carries its inputs:
 - `journalCheckpoint`: `identity`, `generation`, `nextSequence`, `state`.
 - `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
+- `scanJournalFrames`: `initial`, primitive `frames`; result `{"ok", "scan"}`.
+- `journalGenerationWindow`: `floor`, `generation`; result `{"ok", "floor"}`.
+- `journalMemoryBytes`: storage, offset, written bytes and sync outcome; result `{"ok", "storage"}`.
 - `buildRecoveryEnvelope`: envelope inputs and primitive `cryptoOK`/`encoded`.
 - `unlockRecovery`: `keys`, `envelope`, primitive `decoded`; result `{"ok", "material"}`.
 - `resolveRecovery`: provider outcomes, `entity`, `envelope`, `material`.
@@ -87,10 +90,38 @@ deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, Recov
 deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Version, Journal.Payload
 deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement, Journal.Projection
 deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.CompactCheckpoint
+deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.ScanResult, Journal.MemoryBytes
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "scanJournalFrames" =>
+    let result := Journal.scanFrames (← req.getObjValAs? Nat "initial")
+      (← req.getObjValAs? (List Journal.FrameObservation) "frames")
+    match result with
+    | .ok scan =>
+      let value := json% {code: 0, records: $(scan.records), offset: $(scan.offset)}
+      return json% {ok: true, scan: $value}
+    | .error code =>
+      let value := json% {code: $code, records: [], offset: 0}
+      return json% {ok: false, scan: $value}
+  | "journalGenerationWindow" =>
+    let floor ← req.getObjValAs? Nat "floor"
+    let generation ← req.getObjValAs? Nat "generation"
+    let ok := Journal.generationWindow floor generation
+    let result := if ok then Journal.advanceFloor floor generation else some floor
+    return json% {ok: $ok, floor: $result}
+  | "journalMemoryBytes" =>
+    let storage ← req.getObjValAs? Journal.MemoryBytes "storage"
+    let offset ← req.getObjValAs? Nat "offset"
+    let bytes ← req.getObjValAs? (List Nat) "bytes"
+    let fail ← req.getObjValAs? Bool "writeFail"
+    let limit ← req.getObjValAs? Int "writeLimit"
+    let written := Journal.memoryWrite storage offset bytes fail limit
+    let sync ← req.getObjValAs? Bool "sync"
+    let success ← req.getObjValAs? Bool "success"
+    let result := if sync then Journal.syncBytes written success else written
+    return json% {ok: true, storage: $result}
   | "validateJournalRecord" =>
     let result := Journal.validRecord (← req.getObjValAs? (Option Journal.Record) "record")
     return json% {ok: $result}
