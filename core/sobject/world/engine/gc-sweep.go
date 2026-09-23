@@ -158,6 +158,10 @@ func (c *Controller) canQueueGCSweepTx(ctx context.Context, so sobject.SharedObj
 
 // queueGCSweepTx constructs a GC_SWEEP transaction and queues it through
 // SOWorldOp.ApplyTxOp. Returns whether a sweep was actually queued.
+//
+// The sweep advances the SharedObject root like a foreground write, so it
+// holds writeMtx from queueing until the validator decides. Otherwise a write
+// transaction open across the sweep would commit against a stale base.
 func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject) (bool, error) {
 	canQueue, err := c.canQueueGCSweepTx(ctx, so)
 	if err != nil {
@@ -166,6 +170,12 @@ func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject
 	if !canQueue {
 		return false, nil
 	}
+
+	unlockWriteMtx, err := c.writeMtx.Lock(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer unlockWriteMtx()
 
 	tx, err := world_block_tx.NewMaintenanceTxGCSweep()
 	if err != nil {
