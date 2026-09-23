@@ -1,0 +1,48 @@
+name: staging-schedule
+
+# Builds staging producers for new master revisions on weekday mornings. The
+# spacewave-release staging-release workflow publishes each finished pair.
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: staging-schedule
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: github.repository == 's4wave/spacewave'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dispatch staging producers
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          produced=$(gh run list --workflow entrypoint-release.yml --branch master \
+            --event workflow_dispatch --commit "${GITHUB_SHA}" --json databaseId --jq length)
+          if [[ "${produced}" != 0 ]]; then
+            echo "master ${GITHUB_SHA} already has a staging entrypoint run"
+            exit 0
+          fi
+          version="$(cat core/appversion/version.txt)-staging"
+          gh workflow run entrypoint-release.yml --ref master \
+            -f environment=staging \
+            -f version="${version}" \
+            -f rev="$(date -u +%Y%m%d%H%M%S)" \
+            -f sign_artifacts=false
+          gh workflow run plugin-release.yml --ref master \
+            -f environment=staging \
+            -f selection=everything
+          echo "dispatched staging ${version} producers for ${GITHUB_SHA}"

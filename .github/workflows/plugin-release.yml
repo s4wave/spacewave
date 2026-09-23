@@ -1,4 +1,5 @@
 name: plugin-release
+run-name: plugin-release ${{ inputs.environment }} ${{ inputs.selection || 'everything' }}
 
 on:
   workflow_dispatch:
