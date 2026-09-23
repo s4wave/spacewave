@@ -239,10 +239,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 
 	// Construct the block store handle and controller.
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return err
-	}
+	decodedBlocks := block.NewDecodedBlockCache()
 	defer decodedBlocks.Close()
 	localBucket := bucketHandle.GetBucket()
 	bucketID := BlockStoreBucketID(

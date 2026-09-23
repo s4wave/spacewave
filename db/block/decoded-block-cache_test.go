@@ -5,205 +5,149 @@ import (
 	"testing"
 )
 
-func TestDecodedBlockCacheRejectedStorePrunesRefIndex(t *testing.T) {
-	ctx := context.Background()
-	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DecodedBlockCacheOptions{
-		MaxCost: 1,
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer decodedBlocks.Close()
-
-	blk := decodedBlockCacheIndexTestBlock{data: []byte("entry larger than the cache budget")}
-	data, err := blk.MarshalBlock()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ref, err := BuildBlockRef(data, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	refKey, ok := decodedBlockCacheRefKey(ref)
-	if !ok {
-		t.Fatal("decoded block cache ref key was empty")
-	}
-
-	key := decodedBlockCacheKey{
-		ref:       refKey,
-		blockType: "db/block.decodedBlockCacheIndexTestBlock",
-		transform: DecodedBlockCacheNoTransformKey,
-		trust:     decodedBlockCacheTrustKey,
-	}
-	if err := decodedBlocks.Store(ctx, nil, decodedBlocks.storeToken(refKey), key, ref, &blk, data); err != nil {
-		t.Fatal(err.Error())
-	}
-	decodedBlocks.Wait()
-
-	decodedBlocks.mtx.Lock()
-	refEntries := len(decodedBlocks.byRef)
-	hashEntries := len(decodedBlocks.byHash)
-	decodedBlocks.mtx.Unlock()
-	if refEntries != 0 || hashEntries != 0 {
-		t.Fatalf("rejected cache entry left index refs: byRef=%d byHash=%d", refEntries, hashEntries)
-	}
-}
-
 func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	ctx := context.Background()
-	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer decodedBlocks.Close()
+	decodedBlocks := newTestDecodedBlockCache(t)
+	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "removed before admission")
 
-	blk := decodedBlockCacheIndexTestBlock{data: []byte("removed before admission")}
-	data, err := blk.MarshalBlock()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ref, err := BuildBlockRef(data, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	refKey, ok := decodedBlockCacheRefKey(ref)
-	if !ok {
-		t.Fatal("decoded block cache ref key was empty")
-	}
-	key := decodedBlockCacheKey{
-		ref:       refKey,
-		blockType: "db/block.decodedBlockCacheIndexTestBlock",
-		transform: DecodedBlockCacheNoTransformKey,
-		trust:     decodedBlockCacheTrustKey,
-	}
-	token := decodedBlocks.storeToken(refKey)
+	token := decodedBlocks.storeToken(key.ref)
 	decodedBlocks.InvalidateRef(ctx, ref)
-
-	if err := decodedBlocks.Store(ctx, nil, token, key, ref, &blk, data); err != nil {
+	if err := decodedBlocks.Store(ctx, nil, token, key, ref, blk, data); err != nil {
 		t.Fatal(err.Error())
 	}
 	decodedBlocks.Wait()
+
 	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
 		t.Fatalf("invalidated store token lookup ok=%v err=%v, want miss", ok, err)
 	}
 }
 
-func TestDecodedBlockCacheOldCallbackDoesNotPruneNewIndexEntry(t *testing.T) {
+func TestDecodedBlockCacheInvalidationMakesEntriesStale(t *testing.T) {
+	ctx := context.Background()
+	decodedBlocks := newTestDecodedBlockCache(t)
+	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "cached entry")
+
+	storeDecodedBlockCacheTestEntry(t, decodedBlocks, ref, key, blk, data)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || !ok {
+		t.Fatalf("stored lookup ok=%v err=%v, want hit", ok, err)
+	}
+	decodedBlocks.InvalidateRef(ctx, ref)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+		t.Fatalf("lookup after InvalidateRef ok=%v err=%v, want miss", ok, err)
+	}
+
+	storeDecodedBlockCacheTestEntry(t, decodedBlocks, ref, key, blk, data)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || !ok {
+		t.Fatalf("restored lookup ok=%v err=%v, want hit", ok, err)
+	}
+	decodedBlocks.InvalidateAll(ctx)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+		t.Fatalf("lookup after InvalidateAll ok=%v err=%v, want miss", ok, err)
+	}
+}
+
+func TestDecodedBlockCacheScopesShareBudgetNotEntries(t *testing.T) {
+	ctx := context.Background()
+	first, second := NewDecodedBlockCache(), NewDecodedBlockCache()
+	defer first.Close()
+	defer second.Close()
+	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "scoped entry")
+
+	storeDecodedBlockCacheTestEntry(t, first, ref, key, blk, data)
+	if _, ok, err := first.Lookup(ctx, nil, key); err != nil || !ok {
+		t.Fatalf("owning scope lookup ok=%v err=%v, want hit", ok, err)
+	}
+	if _, ok, err := second.Lookup(ctx, nil, key); err != nil || ok {
+		t.Fatalf("other scope lookup ok=%v err=%v, want miss", ok, err)
+	}
+	if first.pool != second.pool {
+		t.Fatal("NewDecodedBlockCache scopes use different pools")
+	}
+
+	first.Close()
+	if _, ok, err := first.Lookup(ctx, nil, key); err != nil || ok {
+		t.Fatalf("closed scope lookup ok=%v err=%v, want miss", ok, err)
+	}
+	if second.pool.cache == nil {
+		t.Fatal("closing a scope closed the shared pool")
+	}
+}
+
+// newTestDecodedBlockCache constructs a cache with a private default pool.
+func newTestDecodedBlockCache(t *testing.T) *DecodedBlockCache {
+	t.Helper()
 	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer decodedBlocks.Close()
-
-	refKey := "ref-a"
-	key := decodedBlockCacheKey{
-		ref:       refKey,
-		blockType: "db/block.decodedBlockCacheIndexTestBlock",
-		transform: DecodedBlockCacheNoTransformKey,
-		trust:     decodedBlockCacheTrustKey,
-	}.String()
-	h := decodedBlockCacheHashFor(key)
-
-	decodedBlocks.mtx.Lock()
-	oldGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
-	decodedBlocks.mtx.Unlock()
-	decodedBlocks.takeRefKeys(refKey)
-
-	decodedBlocks.mtx.Lock()
-	newGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
-	decodedBlocks.removeRefKeyHashGenerationLocked(h, oldGeneration)
-	_, stillTracked := decodedBlocks.byRef[refKey][key]
-	decodedBlocks.removeRefKeyHashGenerationLocked(h, newGeneration)
-	_, removed := decodedBlocks.byRef[refKey]
-	decodedBlocks.mtx.Unlock()
-
-	if !stillTracked {
-		t.Fatal("old async callback pruned newer decoded-cache index entry")
-	}
-	if removed {
-		t.Fatal("current async callback did not prune decoded-cache index entry")
-	}
+	t.Cleanup(decodedBlocks.Close)
+	return decodedBlocks
 }
 
-func TestDecodedBlockCacheRejectedDuplicateKeepsResidentIndexEntry(t *testing.T) {
-	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+// newDecodedBlockCacheTestEntry builds a block holding contents with its ref
+// and cache key.
+func newDecodedBlockCacheTestEntry(
+	t *testing.T,
+	contents string,
+) (*BlockRef, decodedBlockCacheKey, *decodedBlockCacheTestBlock, []byte) {
+	t.Helper()
+	blk := &decodedBlockCacheTestBlock{data: []byte(contents)}
+	data, err := blk.MarshalBlock()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer decodedBlocks.Close()
-
-	refKey := "ref-a"
-	key := decodedBlockCacheKey{
-		ref:       refKey,
-		blockType: "db/block.decodedBlockCacheIndexTestBlock",
-		transform: DecodedBlockCacheNoTransformKey,
-		trust:     decodedBlockCacheTrustKey,
-	}.String()
-	h := decodedBlockCacheHashFor(key)
-
-	decodedBlocks.mtx.Lock()
-	residentGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
-	rejectedGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
-	decodedBlocks.removeRefKeyHashGenerationLocked(h, rejectedGeneration)
-	_, stillTracked := decodedBlocks.byRef[refKey][key]
-	decodedBlocks.removeRefKeyHashGenerationLocked(h, residentGeneration)
-	_, removed := decodedBlocks.byRef[refKey]
-	decodedBlocks.mtx.Unlock()
-
-	if !stillTracked {
-		t.Fatal("rejected duplicate admission pruned resident decoded-cache index entry")
-	}
-	if removed {
-		t.Fatal("resident generation did not prune decoded-cache index entry")
-	}
-}
-
-func TestDecodedBlockCacheUpdateCompactsOldGeneration(t *testing.T) {
-	decodedBlocks, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
+	ref, err := BuildBlockRef(data, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer decodedBlocks.Close()
-
-	refKey := "ref-a"
+	refKey, ok := decodedBlockCacheRefKey(ref)
+	if !ok {
+		t.Fatal("decoded block cache ref key was empty")
+	}
 	key := decodedBlockCacheKey{
 		ref:       refKey,
-		blockType: "db/block.decodedBlockCacheIndexTestBlock",
+		blockType: "db/block.decodedBlockCacheTestBlock",
 		transform: DecodedBlockCacheNoTransformKey,
 		trust:     decodedBlockCacheTrustKey,
-	}.String()
-	h := decodedBlockCacheHashFor(key)
-
-	decodedBlocks.mtx.Lock()
-	_ = decodedBlocks.recordRefKeyLocked(refKey, key)
-	currentGeneration := decodedBlocks.recordRefKeyLocked(refKey, key)
-	decodedBlocks.compactRefKeyGenerationsLocked(h, refKey, key, currentGeneration)
-	remainingGenerations := len(decodedBlocks.byHash[h])
-	decodedBlocks.removeRefKeyHashGenerationLocked(h, currentGeneration)
-	_, removed := decodedBlocks.byRef[refKey]
-	decodedBlocks.mtx.Unlock()
-
-	if remainingGenerations != 1 {
-		t.Fatalf("remaining generations = %d, want 1", remainingGenerations)
 	}
-	if removed {
-		t.Fatal("current generation did not prune decoded-cache index entry")
-	}
+	return ref, key, blk, data
 }
 
-type decodedBlockCacheIndexTestBlock struct {
+// storeDecodedBlockCacheTestEntry stores blk with a current token and waits
+// for the pool to admit it.
+func storeDecodedBlockCacheTestEntry(
+	t *testing.T,
+	decodedBlocks *DecodedBlockCache,
+	ref *BlockRef,
+	key decodedBlockCacheKey,
+	blk *decodedBlockCacheTestBlock,
+	data []byte,
+) {
+	t.Helper()
+	token := decodedBlocks.storeToken(key.ref)
+	if err := decodedBlocks.Store(context.Background(), nil, token, key, ref, blk, data); err != nil {
+		t.Fatal(err.Error())
+	}
+	decodedBlocks.Wait()
+}
+
+type decodedBlockCacheTestBlock struct {
 	data []byte
 }
 
-func (b *decodedBlockCacheIndexTestBlock) MarshalBlock() ([]byte, error) {
+func (b *decodedBlockCacheTestBlock) MarshalBlock() ([]byte, error) {
 	return append([]byte(nil), b.data...), nil
 }
 
-func (b *decodedBlockCacheIndexTestBlock) UnmarshalBlock(data []byte) error {
+func (b *decodedBlockCacheTestBlock) UnmarshalBlock(data []byte) error {
 	b.data = append(b.data[:0], data...)
 	return nil
 }
 
-func (b *decodedBlockCacheIndexTestBlock) SizeVT() int {
+func (b *decodedBlockCacheTestBlock) CloneBlock() (Block, error) {
+	return &decodedBlockCacheTestBlock{data: append([]byte(nil), b.data...)}, nil
+}
+
+func (b *decodedBlockCacheTestBlock) SizeVT() int {
 	return len(b.data)
 }

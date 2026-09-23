@@ -1,13 +1,16 @@
 package block
 
 const (
-	// DefaultDecodedBlockCacheMaxCost is the default decoded-object cache budget.
-	DefaultDecodedBlockCacheMaxCost     int64 = 1_000_000_000
-	defaultDecodedBlockCacheCounters    int64 = 100_000
+	// DefaultDecodedBlockCacheMaxCost is the default decoded-object cache
+	// budget. The process-wide pool uses it for every block store together.
+	DefaultDecodedBlockCacheMaxCost int64 = 256 << 20
+	// defaultDecodedBlockCacheCounters sizes admission counters at about ten
+	// per entry for small IAVL nodes near 1 KiB.
+	defaultDecodedBlockCacheCounters    int64 = 1 << 22
 	defaultDecodedBlockCacheBufferItems int64 = 64
 )
 
-// DecodedBlockCacheOptions configures a DecodedBlockCache.
+// DecodedBlockCacheOptions configures a decoded-block cache pool.
 type DecodedBlockCacheOptions struct {
 	// MaxCost is the Ristretto cache budget.
 	MaxCost int64
@@ -28,6 +31,7 @@ func DefaultDecodedBlockCacheOptions() DecodedBlockCacheOptions {
 	}
 }
 
+// normalize fills zero fields with the defaults.
 func (o DecodedBlockCacheOptions) normalize() DecodedBlockCacheOptions {
 	if o.MaxCost == 0 {
 		o.MaxCost = DefaultDecodedBlockCacheMaxCost

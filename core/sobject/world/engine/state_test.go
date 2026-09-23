@@ -202,9 +202,6 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 		t.Fatal(err.Error())
 	}
 	defer first.Release()
-	if first.decodedBlocks != decodedBlocks || first.ownDecodedBlocks {
-		t.Fatal("first world engine did not borrow the block-store decoded cache")
-	}
 	decodedBlocks.Wait()
 
 	secondCtx, secondCounter := block.WithReadCounter(ctx)
@@ -213,9 +210,6 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 		t.Fatal(err.Error())
 	}
 	defer second.Release()
-	if second.decodedBlocks != decodedBlocks || second.ownDecodedBlocks {
-		t.Fatal("second world engine did not borrow the block-store decoded cache")
-	}
 
 	firstSnapshot := firstCounter.Snapshot()
 	if firstSnapshot.BlockReadCount != 1 ||

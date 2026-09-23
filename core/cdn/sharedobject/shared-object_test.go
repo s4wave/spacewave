@@ -249,8 +249,9 @@ func TestWorldEngineMissingPublishedHeadReturnsSharedObjectLoadingHealth(t *test
 	}
 }
 
-// TestWorldEnginesBorrowBlockStoreDecodedCache shares decoded blocks without transferring cache ownership.
-func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
+// TestWorldEngineFollowsRefsThroughCdnBucket resolves authoring bucket refs
+// through the CDN Space bucket.
+func TestWorldEngineFollowsRefsThroughCdnBucket(t *testing.T) {
 	ctx := context.Background()
 	head := &bucket.ObjectRef{}
 	innerState := &sobject_world_engine.InnerState{HeadRef: head}
@@ -264,10 +265,6 @@ func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	so := newTestSharedObject(t, &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1})
-	wantCache := so.bs.GetDecodedBlockCache()
-	if wantCache == nil {
-		t.Fatal("expected block store decoded cache")
-	}
 
 	le := logrus.NewEntry(logrus.New())
 	first, err := NewWorldEngine(ctx, le, nil, so)
@@ -284,22 +281,6 @@ func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
 		t.Fatalf("followed bucket = %q, want %q", got, testSpaceID)
 	}
 	followed.Release()
-	second, err := NewWorldEngine(ctx, le, nil, so)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(second.Release)
-
-	if first.decodedBlocks != wantCache || second.decodedBlocks != wantCache {
-		t.Fatal("world engines did not borrow the block-store decoded cache")
-	}
-	if first.ownDecodedBlocks || second.ownDecodedBlocks {
-		t.Fatal("world engines should not own fallback caches when block store has an owner cache")
-	}
-	first.Release()
-	if so.bs.GetDecodedBlockCache() != wantCache {
-		t.Fatal("releasing a borrowing world engine closed the block-store decoded cache")
-	}
 }
 
 // TestPackedPointerRejectsUndecodableRoot rejects corrupt metadata once packs are published.

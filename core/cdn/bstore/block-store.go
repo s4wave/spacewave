@@ -97,10 +97,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	pfs := packfile_store.NewPackfileStore(opener, cache)
 
 	// Allocate the decoded-block cache.
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return nil, err
-	}
+	decodedBlocks := block.NewDecodedBlockCache()
 
 	// Assemble the CDN block store.
 	return &CdnBlockStore{
