@@ -248,8 +248,33 @@ jobs:
           bun run test:js:db
           bun run lint:js:db
 
-  python-resource:
-    name: Python Resource
+  lean:
+    name: Lean
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Lean
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh |
+            sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Check proofs and conformance
+        run: bun run test:lean
+
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
