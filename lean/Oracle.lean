@@ -41,6 +41,9 @@ per line. A request names a model function in `op` and carries its inputs:
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
 - `readJournalMarker`: decoded marker fields and primitive checksum.
+- `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
+- `observeJournalFrame`: raw bytes, decoded record and primitive checksums.
+- `encodeJournalFrame`: record and primitive encoding/checksum results.
 - `activateJournalWriter`: captured writer and current storage observations.
 - `finishJournalPipeline`: retained authority inputs followed by pending activation.
 - `appendJournalWriter`: writer, record, authentication primitives and injected effects.
@@ -104,10 +107,27 @@ deriving instance ToJson, FromJson for Journal.GenerationMarker, Journal.MarkerO
 deriving instance ToJson, FromJson for Journal.FrameEncoding, Journal.WriterState, Journal.AppendEffects
 deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentContent, Journal.Authentication
 deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.ActivationResult, Journal.AuthenticationEntry
+deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "openJournalWriter" =>
+    let input ← req.getObjValAs? Journal.OpenInput "input"
+    let entries ← req.getObjValAs? (List Journal.AuthenticationEntry) "auth"
+    let auth := Journal.findAuthentication entries
+    let result := Journal.openWriter input (fun record => Journal.authenticateRecord record (auth record))
+      (fun state => Journal.authenticateSnapshots input.crypto input.identity (state.map some) auth)
+    return json% {ok: $(result.writer.isSome), opened: $result}
+  | "observeJournalFrame" =>
+    let result := Journal.observeFrameBytes (← req.getObjValAs? (List Nat) "bytes")
+      (← req.getObjValAs? (Option Journal.Record) "record") (← req.getObjValAs? Nat "headerCRC")
+      (← req.getObjValAs? Nat "frameCRC")
+    return json% {ok: true, frame: $result}
+  | "encodeJournalFrame" =>
+    let result := Journal.encodeFrame (← req.getObjValAs? Journal.Record "record")
+      (← req.getObjValAs? Journal.FrameEncoding "encoding")
+    return json% {ok: $(result.isSome), bytes: $result}
   | "finishJournalPipeline" =>
     let before ← req.getObjValAs? Journal.WriterState "before"
     let input ← req.getObjValAs? Journal.ActivationInput "input"

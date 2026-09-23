@@ -275,8 +275,14 @@ func leanJournalPipelineActivationCases(t *testing.T, seed uint64) []leanCase {
 // projectLeanPipelineAuthentication supplies primitive outputs for each exact retained-stage input.
 func projectLeanPipelineAuthentication(t *testing.T, writer *journalWriter, crypto *JournalCrypto) []any {
 	t.Helper()
-	records := append([]*SOJournalRecord(nil), writer.records...)
-	for _, attempt := range writer.reducer.Snapshot() {
+	return projectLeanRetainedAuthentication(t, writer.records, writer.reducer.Snapshot(), crypto, writer.identity)
+}
+
+// projectLeanRetainedAuthentication projects primitive outputs for decoded records and retained stages.
+func projectLeanRetainedAuthentication(t *testing.T, source []*SOJournalRecord, attempts []*JournalAttemptSnapshot, crypto *JournalCrypto, identity []byte) []any {
+	t.Helper()
+	records := append([]*SOJournalRecord(nil), source...)
+	for _, attempt := range attempts {
 		records = append(records, &SOJournalRecord{
 			Kind: SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_INTENT, Sequence: attempt.IntentSequence,
 			Key: attempt.Key, Lineage: attempt.Lineage, Version: attempt.Version, Intent: attempt.Intent,
@@ -290,7 +296,7 @@ func projectLeanPipelineAuthentication(t *testing.T, writer *journalWriter, cryp
 	}
 	result := make([]any, len(records))
 	for index, record := range records {
-		result[index] = map[string]any{"record": projectLeanJournalRecord(t, record), "auth": projectLeanJournalAuthentication(t, record, crypto, writer.identity)}
+		result[index] = map[string]any{"record": projectLeanJournalRecord(t, record), "auth": projectLeanJournalAuthentication(t, record, crypto, identity)}
 	}
 	return result
 }
@@ -340,11 +346,7 @@ func repairLeanJournalMarkerCRC(data []byte) {
 func projectLeanJournalMarkerObservation(data []byte) any {
 	padded := make([]byte, journalGenerationMarkerSize)
 	copy(padded, data)
-	marker := journalGenerationMarker{
-		Identity: padded[8:40], Generation: binary.BigEndian.Uint64(padded[40:48]),
-		NextSequence: binary.BigEndian.Uint64(padded[48:56]), SnapshotLength: binary.BigEndian.Uint32(padded[56:60]),
-		SnapshotDigest: padded[60:92], RetiredLength: binary.BigEndian.Uint64(padded[92:100]), RetiredDigest: padded[100:132],
-	}
+	marker := decodeLeanJournalMarker(data)
 	return map[string]any{
 		"size": uint64(len(data)), "magic": hex.EncodeToString(padded[:4]), "format": binary.BigEndian.Uint32(padded[4:8]),
 		"crc": binary.BigEndian.Uint32(padded[140:144]), "computedCRC": crc32.Checksum(padded[:140], crc32.MakeTable(crc32.Castagnoli)),
@@ -358,5 +360,16 @@ func projectLeanJournalMarker(marker journalGenerationMarker) any {
 		"identity": hex.EncodeToString(marker.Identity), "generation": marker.Generation, "nextSequence": marker.NextSequence,
 		"snapshotLength": marker.SnapshotLength, "snapshotDigest": hex.EncodeToString(marker.SnapshotDigest),
 		"retiredLength": marker.RetiredLength, "retiredDigest": hex.EncodeToString(marker.RetiredDigest),
+	}
+}
+
+// decodeLeanJournalMarker decodes fixed-width fields without checking marker admission.
+func decodeLeanJournalMarker(data []byte) journalGenerationMarker {
+	padded := make([]byte, journalGenerationMarkerSize)
+	copy(padded, data)
+	return journalGenerationMarker{
+		Identity: padded[8:40], Generation: binary.BigEndian.Uint64(padded[40:48]),
+		NextSequence: binary.BigEndian.Uint64(padded[48:56]), SnapshotLength: binary.BigEndian.Uint32(padded[56:60]),
+		SnapshotDigest: padded[60:92], RetiredLength: binary.BigEndian.Uint64(padded[92:100]), RetiredDigest: padded[100:132],
 	}
 }

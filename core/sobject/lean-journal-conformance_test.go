@@ -532,18 +532,23 @@ func projectLeanJournalCheckpoint(t *testing.T, data []byte) any {
 	}
 	attempts := make([]any, len(checkpoint.GetAttempts()))
 	for i, attempt := range checkpoint.GetAttempts() {
-		snapshot := &JournalAttemptSnapshot{
-			Key: attempt.GetKey(), Lineage: attempt.GetLineage(), Version: attempt.GetVersion(),
-			State: attempt.GetState(), Readiness: attempt.GetReadiness(),
-			IntentSequence: attempt.GetIntentSequence(), EnvelopeSequence: attempt.GetEnvelopeSequence(),
-			Intent: attempt.GetIntent(), Envelope: attempt.GetEnvelope(), EnvelopeDigest: attempt.GetEnvelopeDigest(),
-			Receipt: attempt.GetReceipt(), Acknowledgement: attempt.GetAcknowledgement(), Projection: attempt.GetProjection(), Lookup: attempt.GetLookup(),
-			SendAttempted: attempt.GetSendAttempted(), ResendAuthorized: attempt.GetResendAuthorized(),
-			LineageRecoveryBlocked: attempt.GetLineageRecoveryBlocked(), CheckpointEligible: attempt.GetCheckpointEligible(),
-		}
+		snapshot := decodeLeanCheckpointAttempt(attempt)
 		attempts[i] = projectLeanJournalAttempt(t, snapshot)
 	}
 	return map[string]any{"identity": hex.EncodeToString(checkpoint.GetJournalIdentity()), "generation": checkpoint.GetGeneration(), "nextSequence": checkpoint.GetNextSequence(), "attempts": attempts}
+}
+
+// decodeLeanCheckpointAttempt preserves raw protobuf fields without checkpoint admission.
+func decodeLeanCheckpointAttempt(attempt *SOJournalCheckpointAttempt) *JournalAttemptSnapshot {
+	return &JournalAttemptSnapshot{
+		Key: attempt.GetKey(), Lineage: attempt.GetLineage(), Version: attempt.GetVersion(),
+		State: attempt.GetState(), Readiness: attempt.GetReadiness(),
+		IntentSequence: attempt.GetIntentSequence(), EnvelopeSequence: attempt.GetEnvelopeSequence(),
+		Intent: attempt.GetIntent(), Envelope: attempt.GetEnvelope(), EnvelopeDigest: attempt.GetEnvelopeDigest(),
+		Receipt: attempt.GetReceipt(), Acknowledgement: attempt.GetAcknowledgement(), Projection: attempt.GetProjection(), Lookup: attempt.GetLookup(),
+		SendAttempted: attempt.GetSendAttempted(), ResendAuthorized: attempt.GetResendAuthorized(),
+		LineageRecoveryBlocked: attempt.GetLineageRecoveryBlocked(), CheckpointEligible: attempt.GetCheckpointEligible(),
+	}
 }
 
 // leanJournalSuffixCases compacts and reopens real Go journals at every record boundary.
