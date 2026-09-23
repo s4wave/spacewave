@@ -2,6 +2,7 @@ import Lean.Data.Json
 import Spacewave.SObject.Host
 import Spacewave.SObject.KeyRotation
 import Spacewave.SObject.Invite
+import Spacewave.SObject.RemoveParticipant
 
 /-!
 # Conformance oracle
@@ -27,6 +28,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `removeParticipants`: `previous`, `snapshot`, `targets`, `sig`, `hash`, `crypto`,
+  `watchOK`, `buildOK`, `lockOK`, `writeOK`; result `{"ok", "removal"}`.
 - `mutateInvite`: `previous`, `snapshot`, `kind`, `invite`, `id`, `expired`,
   `sig`, `hash`, `buildOK`, `lockOK`, `writeOK`; host outcome.
 - `validateInviteUsable`: `invite`, `expired`; result `{"ok"}`.
@@ -49,11 +52,22 @@ deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
 deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root
 deriving instance ToJson, FromJson for Invite, State
 deriving instance ToJson, FromJson for HostResult
+deriving instance ToJson, FromJson for RewrapInput, RemovalCrypto, RemovalResult
 deriving instance ToJson, FromJson for RotationPeer, KeyGrant, KeyEpoch, Rotation
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "removeParticipants" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := removeParticipants previous (← req.getObjValAs? (Option Config) "snapshot")
+      (← req.getObjValAs? (List String) "targets") (← req.getObjValAs? Sig "sig")
+      (← req.getObjValAs? String "hash") (← req.getObjValAs? RemovalCrypto "crypto")
+      (← req.getObjValAs? Bool "watchOK") (← req.getObjValAs? Bool "buildOK")
+      (← req.getObjValAs? Bool "lockOK") (← req.getObjValAs? Bool "writeOK")
+    let outcome := visibleHost previous (result.map (·.outcome))
+    return json% {ok: $(result.isSome), removal: {removed: $((result.map (·.removed)).getD []),
+      outcome: $outcome}}
   | "validateInviteUsable" =>
     return json% {ok: $(validateInviteUsable (← req.getObjValAs? Invite "invite")
       (← req.getObjValAs? Bool "expired"))}

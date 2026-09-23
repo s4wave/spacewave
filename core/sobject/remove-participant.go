@@ -70,6 +70,9 @@ func RemoveSOParticipants(
 			if err != nil {
 				return false, err
 			}
+			if pub == nil {
+				return false, peer.ErrEmptyPeerID
+			}
 			id, err := peer.IDFromPublicKey(pub)
 			if err != nil {
 				return false, err
