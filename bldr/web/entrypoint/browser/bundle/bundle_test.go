@@ -271,6 +271,52 @@ func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {
 	}
 }
 
+// TestWriteBuildManifestGenerationTracksContent covers a release that changes
+// only the embedded assets: the service worker filename stays the same, so the
+// generation must come from content or clients keep the old release cached.
+func TestWriteBuildManifestGenerationTracksContent(t *testing.T) {
+	dir := t.TempDir()
+	entryDir := filepath.Join(dir, "entrypoint", "abc123")
+	if err := os.MkdirAll(entryDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	manifest := &BuildManifest{
+		Entrypoint:    "entrypoint/abc123/entrypoint.mjs",
+		ServiceWorker: "sw-deadbeef.mjs",
+		SharedWorker:  "shw-beadfeed.mjs",
+	}
+	generation := func(kvfile string) string {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(entryDir, "assets.kvfile"), []byte(kvfile), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := WriteBuildManifest(dir, manifest); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(filepath.Join(dir, "browser-release.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var p fastjson.Parser
+		v, err := p.ParseBytes(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(v.GetStringBytes("generationId"))
+	}
+
+	first := generation("old plugin")
+	if first == "" || first == manifest.ServiceWorker {
+		t.Fatalf("expected a content generation, got %q", first)
+	}
+	if again := generation("old plugin"); again != first {
+		t.Fatalf("expected a stable generation, got %q then %q", first, again)
+	}
+	if changed := generation("new plugin"); changed == first {
+		t.Fatalf("expected a new generation after the kvfile changed, got %q", changed)
+	}
+}
+
 func TestWriteBuildManifestOmitsOptionalWasm(t *testing.T) {
 	dir := t.TempDir()
 	manifest := &BuildManifest{

@@ -4,9 +4,14 @@ package entrypoint_browser_bundle
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -119,10 +124,15 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 }
 
 func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
+	generationID, err := browserReleaseGenerationID(dir, manifest)
+	if err != nil {
+		return err
+	}
+
 	var a fastjson.Arena
 	obj := a.NewObject()
 	obj.Set("schemaVersion", a.NewNumberInt(1))
-	obj.Set("generationId", a.NewString(manifest.ServiceWorker))
+	obj.Set("generationId", a.NewString(generationID))
 	if manifest.AutoStart {
 		obj.Set("autoStart", a.NewTrue())
 	}
@@ -164,6 +174,54 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "browser-release.json"), data, 0o644)
+}
+
+// browserReleaseGenerationID hashes the path and content of every file the
+// service worker caches for the release, plus the prerendered index. The
+// service worker keys its release cache by this ID, so any content change must
+// produce a new ID. Paths served outside dir, such as a dev frontend, are
+// hashed by path alone.
+func browserReleaseGenerationID(dir string, manifest *BuildManifest) (string, error) {
+	paths := []string{
+		manifest.Entrypoint,
+		manifest.ServiceWorker,
+		manifest.SharedWorker,
+		manifest.OpfsWorker,
+		manifest.Wasm,
+		"index.html",
+	}
+	paths = append(paths, manifest.CSS...)
+	paths = append(paths, manifest.RequiredStaticAssets...)
+	if bundle := manifest.DefaultManifestBundle; bundle != nil {
+		paths = append(paths, bundle.Metadata, bundle.Pack)
+	}
+	for i, path := range paths {
+		paths[i] = strings.TrimPrefix(path, "/")
+	}
+	slices.Sort(paths)
+	paths = slices.Compact(paths)
+
+	h := sha256.New()
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		_ = binary.Write(h, binary.BigEndian, uint64(len(path)))
+		_, _ = h.Write([]byte(path))
+		f, err := os.Open(filepath.Join(dir, filepath.FromSlash(path)))
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return "", errors.Wrap(err, "hash browser release asset")
+		}
+		_, err = io.Copy(h, f)
+		_ = f.Close()
+		if err != nil {
+			return "", errors.Wrapf(err, "hash browser release asset %q", path)
+		}
+	}
+	return hex.EncodeToString(h.Sum(nil))[:16], nil
 }
 
 // WriteStableBootAsset writes the stable browser boot asset at the build root.
