@@ -5,17 +5,14 @@ go 1.27.0
 tool github.com/s4wave/goscript/cmd/goscript
 
 replace (
-	// aperture: use compatibility forks
-	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65
 	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20260923001918-fabba1bbc502 // main
 	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260922205806-ef08161157dc // main
-
-	// aperture: use ext-engines forks
-	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8 // aperture-7
+	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260923023540-d81cc881a7b1
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d // aperture
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260923001122-d5001e2c51c2
+	github.com/pion/ice/v4 => github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260923005200-d591ff5895c0
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260922235615-c5c6104de130
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.10.2-0.20260922042813-73f013325281 // master
 )
@@ -51,8 +48,8 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.0
-	github.com/dolthub/vitess v0.0.0-20260617012411-2f308f6cdc23
+	github.com/dolthub/go-mysql-server v0.20.1-0.20260922172329-448c3605ab44
+	github.com/dolthub/vitess v0.0.0-20260916192104-15c5c4158b37
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
@@ -81,7 +78,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.62.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.3.2-0.20260923005712-3fb03cb05b86
+	github.com/s4wave/goscript v0.3.2-0.20260923022940-e828cd8a3890
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
@@ -122,7 +119,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
-	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
+	github.com/dolthub/jsonpath v0.0.2-0.20260807003725-336cd89c1c76 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -184,5 +181,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
-
-replace github.com/pion/ice/v4 => github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260922235502-c6786d0587c6
