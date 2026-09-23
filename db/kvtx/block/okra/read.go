@@ -59,11 +59,17 @@ func (t *Tx) findEntry(ctx context.Context, key []byte) (*Page, *block.Cursor, i
 	return page, pageCursor, idx, nil
 }
 
+// batchLookup is one key requested by GetBatch.
 type batchLookup struct {
-	key   []byte
+	// key is the requested key.
+	key []byte
+	// index is the position of key in the caller's request.
 	index int
 }
 
+// findEntriesBatch resolves lookups below page into values and found, indexed
+// by each lookup's request position. Child pages load in key order, so a batch
+// reads the same blocks in the same order every time.
 func (t *Tx) findEntriesBatch(
 	ctx context.Context,
 	page *Page,
@@ -92,7 +98,7 @@ func (t *Tx) findEntriesBatch(
 		return nil
 	}
 
-	groups := make(map[int][]batchLookup)
+	groups := make([][]batchLookup, len(page.GetEntries()))
 	for _, lookup := range lookups {
 		idx := page.searchEntry(lookup.key)
 		if idx >= 0 {
@@ -100,6 +106,9 @@ func (t *Tx) findEntriesBatch(
 		}
 	}
 	for idx, group := range groups {
+		if len(group) == 0 {
+			continue
+		}
 		childCursor := page.FollowChild(pageCursor, idx)
 		childPage, err := loadPage(ctx, childCursor)
 		if err != nil {
