@@ -46,10 +46,6 @@ func StartEngineWithConfig(
 type blkEngine struct {
 	// bengine serves the World rooted at cursor.
 	bengine *world_block.Engine
-	// decodedBlocks shares decoded blocks across replay engines.
-	decodedBlocks *block.DecodedBlockCache
-	// ownDecodedBlocks requires Release to close a privately allocated cache.
-	ownDecodedBlocks bool
 	// lookupOp resolves operations supported by this World.
 	lookupOp world.LookupOp
 }
@@ -57,9 +53,6 @@ type blkEngine struct {
 // Release releases the engine resources.
 func (w *blkEngine) Release() {
 	_ = w.bengine.Close()
-	if w.ownDecodedBlocks {
-		w.decodedBlocks.Close()
-	}
 }
 
 // buildBlkEngine builds a world state with engine from a head ref.
@@ -112,21 +105,9 @@ func buildBlockEngine(
 
 	blockStore := so.GetBlockStore()
 	decodedBlocks := blockStore.GetDecodedBlockCache()
-	ownDecodedBlocks := false
 	if decodedBlocks == nil {
-		var err error
-		decodedBlocks, err = block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-		if err != nil {
-			return nil, err
-		}
-		ownDecodedBlocks = true
+		decodedBlocks = block.NewDecodedBlockCache()
 	}
-	closeDecodedBlocks := ownDecodedBlocks
-	defer func() {
-		if closeDecodedBlocks {
-			decodedBlocks.Close()
-		}
-	}()
 
 	// the bucket ID is equivalent to the block store id
 	bucketID := blockStore.GetID()
@@ -177,12 +158,9 @@ func buildBlockEngine(
 		}
 	}
 
-	closeDecodedBlocks = false
 	return &blkEngine{
-		bengine:          bengine,
-		decodedBlocks:    decodedBlocks,
-		ownDecodedBlocks: ownDecodedBlocks,
-		lookupOp:         lookupWorldOp,
+		bengine:  bengine,
+		lookupOp: lookupWorldOp,
 	}, nil
 }
 

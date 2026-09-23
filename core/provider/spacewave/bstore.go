@@ -306,10 +306,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	idxCache := manifest.NewIndexCache(objStore)
 
 	// Build the block store handle.
-	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		return errors.Wrap(err, "building decoded block cache")
-	}
+	decodedBlocks := block.NewDecodedBlockCache()
 	defer decodedBlocks.Close()
 
 	// Build lower store (read-only, packfile-backed).

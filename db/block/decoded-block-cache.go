@@ -2,12 +2,13 @@ package block
 
 import (
 	"context"
+	"hash/maphash"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dgraph-io/ristretto/v2"
-	ristrettoz "github.com/dgraph-io/ristretto/v2/z"
 	"github.com/pkg/errors"
 )
 
@@ -31,21 +32,76 @@ type decodedBlockCacheSizer interface {
 	SizeVT() int
 }
 
+// decodedBlockCacheEntryOverheadCost charges Ristretto's per-entry map and
+// admission bookkeeping.
 const decodedBlockCacheEntryOverheadCost int64 = 256
 
-// DecodedBlockCache owns shared decoded block reuse.
-type DecodedBlockCache struct {
-	cache *ristretto.Cache[string, decodedBlockCacheEntry]
-	opts  DecodedBlockCacheOptions
+// decodedBlockCacheStripes is the number of ref invalidation epochs per
+// scope. InvalidateRef advances the stripe its ref hashes to, so other refs in
+// that stripe miss once; the fixed array bounds invalidation state.
+const decodedBlockCacheStripes = 4096
 
-	mtx   sync.Mutex
-	byRef map[string]map[string]struct{}
-	// byHash lets async Ristretto callbacks prune byRef; rejected or evicted
-	// entries must not leave old refs pinned in the invalidation index.
-	byHash     map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey
-	refEpoch   map[string]uint64
-	clearEpoch uint64
-	generation uint64
+// decodedBlockCacheStripeSeed hashes refs to invalidation stripes.
+var decodedBlockCacheStripeSeed = maphash.MakeSeed()
+
+// decodedBlockPool is a Ristretto cache and cost budget shared by scopes.
+type decodedBlockPool struct {
+	// cache holds decoded entries; nil when caching is disabled.
+	cache *ristretto.Cache[string, decodedBlockCacheEntry]
+	// maxCost is the configured budget.
+	maxCost int64
+	// nextScope allocates scope key prefixes.
+	nextScope atomic.Uint64
+}
+
+// sharedDecodedBlockPool is the process-wide pool behind NewDecodedBlockCache.
+// It lives for the process, so one budget bounds every block store.
+var sharedDecodedBlockPool = sync.OnceValue(func() *decodedBlockPool {
+	pool, err := newDecodedBlockPool(DefaultDecodedBlockCacheOptions())
+	if err != nil {
+		panic(err)
+	}
+	return pool
+})
+
+// newDecodedBlockPool constructs a pool with opts.
+func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, error) {
+	opts = opts.normalize()
+	pool := &decodedBlockPool{maxCost: opts.MaxCost}
+	if opts.Disabled {
+		return pool, nil
+	}
+	cache, err := ristretto.NewCache(&ristretto.Config[string, decodedBlockCacheEntry]{
+		NumCounters: opts.NumCounters,
+		MaxCost:     opts.MaxCost,
+		BufferItems: opts.BufferItems,
+		Metrics:     true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	pool.cache = cache
+	return pool, nil
+}
+
+// DecodedBlockCache is one owner's scope in a decoded-block pool. Keys carry
+// the scope prefix, so owners never see each other's blocks. Each entry
+// records the invalidation epochs current when it was stored; Lookup treats an
+// entry with an outdated epoch as a miss, and stale entries age out of the
+// pool through Ristretto.
+type DecodedBlockCache struct {
+	// pool holds the entries and budget.
+	pool *decodedBlockPool
+	// ownsPool is set when Close must close pool.
+	ownsPool bool
+	// scope prefixes every key of this owner.
+	scope string
+	// closed disables lookups and stores after Close.
+	closed atomic.Bool
+	// clearEpoch advances on InvalidateAll and Close.
+	clearEpoch atomic.Uint64
+	// refEpochs advance on InvalidateRef, one per stripe.
+	refEpochs [decodedBlockCacheStripes]atomic.Uint64
 }
 
 type decodedBlockCacheKey struct {
@@ -55,74 +111,49 @@ type decodedBlockCacheKey struct {
 	trust     string
 }
 
-type decodedBlockCacheHash struct {
-	key      uint64
-	conflict uint64
-}
-
-type decodedBlockCacheTrackedKey struct {
-	ref        string
-	key        string
-	generation uint64
+// decodedBlockCacheEpochs identifies the invalidation state an entry was
+// stored under.
+type decodedBlockCacheEpochs struct {
+	ref   uint64
+	clear uint64
 }
 
 type decodedBlockCacheEntry struct {
-	block      Block
-	generation uint64
+	block  Block
+	epochs decodedBlockCacheEpochs
 }
 
+// decodedBlockCacheStoreToken captures the epochs at the start of a read so a
+// store after an intervening invalidation is skipped.
 type decodedBlockCacheStoreToken struct {
-	cache      *DecodedBlockCache
-	ref        string
-	refEpoch   uint64
-	clearEpoch uint64
-	ok         bool
+	cache  *DecodedBlockCache
+	epochs decodedBlockCacheEpochs
+	ok     bool
 }
 
-// NewDecodedBlockCache constructs a decoded-block cache with default options.
+// NewDecodedBlockCache constructs a scope in the process-wide pool.
 func NewDecodedBlockCache() *DecodedBlockCache {
-	cache, err := NewDecodedBlockCacheWithOptions(DefaultDecodedBlockCacheOptions())
-	if err != nil {
-		panic(err)
-	}
-	return cache
+	return newDecodedBlockCacheScope(sharedDecodedBlockPool(), false)
 }
 
-// NewDecodedBlockCacheWithOptions constructs a decoded-block cache with opts.
+// NewDecodedBlockCacheWithOptions constructs a scope in a private pool with
+// opts. Close releases the pool.
 func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
-	opts = opts.normalize()
-	cache := &DecodedBlockCache{
-		opts:     opts,
-		byRef:    make(map[string]map[string]struct{}),
-		byHash:   make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey),
-		refEpoch: make(map[string]uint64),
-	}
-	if opts.Disabled {
-		return cache, nil
-	}
-	db, err := ristretto.NewCache(&ristretto.Config[string, decodedBlockCacheEntry]{
-		NumCounters: opts.NumCounters,
-		MaxCost:     opts.MaxCost,
-		BufferItems: opts.BufferItems,
-		Metrics:     true,
-		OnEvict: func(item *ristretto.Item[decodedBlockCacheEntry]) {
-			cache.removeRefKeyHashGeneration(
-				decodedBlockCacheHash{key: item.Key, conflict: item.Conflict},
-				item.Value.generation,
-			)
-		},
-		OnReject: func(item *ristretto.Item[decodedBlockCacheEntry]) {
-			cache.removeRefKeyHashGeneration(
-				decodedBlockCacheHash{key: item.Key, conflict: item.Conflict},
-				item.Value.generation,
-			)
-		},
-	})
+	pool, err := newDecodedBlockPool(opts)
 	if err != nil {
 		return nil, err
 	}
-	cache.cache = db
-	return cache, nil
+	return newDecodedBlockCacheScope(pool, true), nil
+}
+
+// newDecodedBlockCacheScope allocates a scope in pool.
+func newDecodedBlockCacheScope(pool *decodedBlockPool, ownsPool bool) *DecodedBlockCache {
+	id := pool.nextScope.Add(1)
+	return &DecodedBlockCache{
+		pool:     pool,
+		ownsPool: ownsPool,
+		scope:    strconv.FormatUint(id, 36) + "/",
+	}
 }
 
 // WithDecodedBlockCache attaches a decoded-block cache to ctx.
@@ -136,53 +167,46 @@ func WithDecodedBlockCache(ctx context.Context, cache *DecodedBlockCache) contex
 	return context.WithValue(ctx, decodedBlockCacheContextKey{}, cache)
 }
 
-// MaxCost returns the configured decoded-cache budget.
+// MaxCost returns the pool's decoded-cache budget.
 func (c *DecodedBlockCache) MaxCost() int64 {
 	if c == nil {
 		return 0
 	}
-	if c.cache != nil {
-		return c.cache.MaxCost()
-	}
-	return c.opts.MaxCost
+	return c.pool.maxCost
 }
 
-// Wait blocks until buffered cache writes have reached Ristretto.
+// Wait blocks until buffered pool writes have reached Ristretto.
 func (c *DecodedBlockCache) Wait() {
-	if c == nil || c.cache == nil {
+	if c == nil || c.pool.cache == nil {
 		return
 	}
-	c.cache.Wait()
+	c.pool.cache.Wait()
 }
 
-// Close releases the cache goroutine.
+// Close ends the scope. Its entries in a shared pool become stale and age out.
 func (c *DecodedBlockCache) Close() {
-	if c == nil {
+	if c == nil || c.closed.Swap(true) {
 		return
 	}
-	c.mtx.Lock()
-	c.byRef = nil
-	c.byHash = nil
-	c.refEpoch = nil
-	c.mtx.Unlock()
-	if c.cache == nil {
-		return
+	c.clearEpoch.Add(1)
+	if c.ownsPool && c.pool.cache != nil {
+		c.pool.cache.Close()
 	}
-	c.cache.Close()
 }
 
-// Snapshot returns shared decoded-cache metrics.
+// Snapshot returns the pool's decoded-cache metrics. A scope in the shared
+// pool reports the metrics of every scope.
 func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 	if c == nil {
 		return DecodedBlockCacheSnapshot{}
 	}
 	snapshot := DecodedBlockCacheSnapshot{MaxCost: c.MaxCost()}
-	if c.cache == nil {
+	if c.pool.cache == nil {
 		return snapshot
 	}
-	snapshot.RemainingCost = c.cache.RemainingCost()
+	snapshot.RemainingCost = c.pool.cache.RemainingCost()
 	snapshot.RetainedCost = snapshot.MaxCost - snapshot.RemainingCost
-	metrics := c.cache.Metrics
+	metrics := c.pool.cache.Metrics
 	if metrics == nil {
 		return snapshot
 	}
@@ -200,41 +224,26 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 // hit or miss. The returned block is a clone safe for the caller to keep.
 func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFrontCache, key decodedBlockCacheKey) (Block, bool, error) {
 	if cached := front.lookup(key); cached != nil {
-		cloned, ok, err := cloneDecodedBlock(cached)
-		if err != nil {
-			return nil, false, err
-		}
-		if !ok {
-			RecordDecodedBlockUncloneable(ctx)
-			return nil, false, nil
-		}
-		RecordDecodedBlockCacheHit(ctx, true)
-		return cloned, true, nil
+		return cloneDecodedBlockHit(ctx, cached)
 	}
-	if c == nil || c.cache == nil {
+	if !c.enabled() {
 		if front != nil {
 			recordDecodedBlockCacheMiss(ctx)
 		}
 		return nil, false, nil
 	}
-	cacheKey := key.String()
-	cached, ok := c.cache.Get(cacheKey)
+	cacheKey := c.cacheKey(key)
+	cached, ok := c.pool.cache.Get(cacheKey)
+	if ok && cached.epochs != c.epochs(key.ref) {
+		c.pool.cache.Del(cacheKey)
+		ok = false
+	}
 	if !ok {
 		recordDecodedBlockCacheMiss(ctx)
 		return nil, false, nil
 	}
-	c.compactRefKeyGenerations(key.ref, cacheKey, cached.generation)
 	front.store(key, cached.block)
-	cloned, cloneOK, err := cloneDecodedBlock(cached.block)
-	if err != nil {
-		return nil, false, err
-	}
-	if !cloneOK {
-		RecordDecodedBlockUncloneable(ctx)
-		return nil, false, nil
-	}
-	RecordDecodedBlockCacheHit(ctx, true)
-	return cloned, true, nil
+	return cloneDecodedBlockHit(ctx, cached.block)
 }
 
 // Store caches the decoded block under the key when the store token is
@@ -267,51 +276,37 @@ func (c *DecodedBlockCache) Store(
 		RecordDecodedBlockUncloneable(ctx)
 		return nil
 	}
-	if c != nil && !c.storeTokenCurrent(token) {
-		return nil
+	var epochs decodedBlockCacheEpochs
+	if c != nil {
+		epochs = c.epochs(key.ref)
+		if token.ok && (token.cache != c || token.epochs != epochs) {
+			return nil
+		}
 	}
 	front.store(key, cloned)
-	if c == nil || c.cache == nil {
+	if !c.enabled() {
 		return nil
 	}
-	cost, ok := decodedBlockCacheCost(blk, data)
+	cacheKey := c.cacheKey(key)
+	cost, ok := decodedBlockCacheCost(cacheKey, blk, data)
 	if !ok {
 		RecordDecodedBlockUncacheable(ctx)
 		return nil
 	}
-	cacheKey := key.String()
-	_, replacing := c.cache.Get(cacheKey)
-	// Ristretto can reject asynchronously, so record before Set and let reject
-	// callbacks remove entries that never become durable cache contents.
-	c.mtx.Lock()
-	if !c.storeTokenCurrentLocked(token) {
-		c.mtx.Unlock()
-		front.invalidateRef(key.ref)
-		return nil
-	}
-	generation := c.recordRefKeyLocked(key.ref, cacheKey)
-	accepted := c.cache.Set(cacheKey, decodedBlockCacheEntry{
-		block:      cloned,
-		generation: generation,
+	// An invalidation after the epoch read leaves this entry stale, and
+	// Lookup then treats it as a miss.
+	accepted := c.pool.cache.Set(cacheKey, decodedBlockCacheEntry{
+		block:  cloned,
+		epochs: epochs,
 	}, cost)
-	if !accepted {
-		c.removeRefKeyHashGenerationLocked(decodedBlockCacheHashFor(cacheKey), generation)
-	}
-	if accepted && replacing {
-		// Ristretto updates replace the stored value immediately without an old
-		// entry eviction callback. Keep the side index on the resident generation.
-		c.compactRefKeyGenerationsLocked(decodedBlockCacheHashFor(cacheKey), key.ref, cacheKey, generation)
-	}
-	c.mtx.Unlock()
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
 		recordDecodedBlockCacheRejected(ctx)
-		return nil
 	}
 	return nil
 }
 
-// InvalidateRef removes decoded cache entries for ref.
+// InvalidateRef makes cached entries for ref stale.
 func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 	refKey, ok := decodedBlockCacheRefKey(ref)
 	if !ok {
@@ -321,215 +316,62 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 	if c == nil {
 		return
 	}
-	keys := c.takeRefKeys(refKey)
-	if c.cache == nil {
-		return
-	}
-	for key := range keys {
-		c.cache.Del(key)
-	}
+	c.refEpochs[decodedBlockCacheStripe(refKey)].Add(1)
 }
 
-// InvalidateAll removes every decoded cache entry owned by c.
+// InvalidateAll makes every cached entry of this scope stale.
 func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
 	decodedBlockFrontCacheFromContext(ctx).clear()
 	if c == nil {
 		return
 	}
-	keys := c.takeAllKeys()
-	if c.cache == nil {
-		return
-	}
-	for key := range keys {
-		c.cache.Del(key)
+	c.clearEpoch.Add(1)
+}
+
+// enabled reports whether the scope can read and write its pool.
+func (c *DecodedBlockCache) enabled() bool {
+	return c != nil && c.pool.cache != nil && !c.closed.Load()
+}
+
+// epochs returns the current invalidation epochs for refKey.
+func (c *DecodedBlockCache) epochs(refKey string) decodedBlockCacheEpochs {
+	return decodedBlockCacheEpochs{
+		ref:   c.refEpochs[decodedBlockCacheStripe(refKey)].Load(),
+		clear: c.clearEpoch.Load(),
 	}
 }
 
+// cacheKey returns the pool key for key in this scope.
+func (c *DecodedBlockCache) cacheKey(key decodedBlockCacheKey) string {
+	return c.scope + key.String()
+}
+
+// storeToken captures the current epochs for refKey.
 func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToken {
 	if c == nil || refKey == "" {
 		return decodedBlockCacheStoreToken{}
 	}
-	c.mtx.Lock()
-	if c.refEpoch == nil {
-		c.refEpoch = make(map[string]uint64)
-	}
-	token := decodedBlockCacheStoreToken{
-		cache:      c,
-		ref:        refKey,
-		refEpoch:   c.refEpoch[refKey],
-		clearEpoch: c.clearEpoch,
-		ok:         true,
-	}
-	c.mtx.Unlock()
-	return token
+	return decodedBlockCacheStoreToken{cache: c, epochs: c.epochs(refKey), ok: true}
 }
 
-func (c *DecodedBlockCache) storeTokenCurrent(token decodedBlockCacheStoreToken) bool {
-	c.mtx.Lock()
-	ok := c.storeTokenCurrentLocked(token)
-	c.mtx.Unlock()
-	return ok
+// decodedBlockCacheStripe returns the invalidation stripe for refKey.
+func decodedBlockCacheStripe(refKey string) uint64 {
+	return maphash.String(decodedBlockCacheStripeSeed, refKey) % decodedBlockCacheStripes
 }
 
-// storeTokenCurrentLocked returns true if the token still matches the
-// current cache epochs. Caller must hold mtx.
-func (c *DecodedBlockCache) storeTokenCurrentLocked(token decodedBlockCacheStoreToken) bool {
-	if !token.ok {
-		return true
+// cloneDecodedBlockHit clones a cached block for the caller and records the
+// hit, or reports a miss when the block cannot be cloned.
+func cloneDecodedBlockHit(ctx context.Context, cached Block) (Block, bool, error) {
+	cloned, ok, err := cloneDecodedBlock(cached)
+	if err != nil {
+		return nil, false, err
 	}
-	if token.cache != c {
-		return false
-	}
-	return c.clearEpoch == token.clearEpoch && c.refEpoch[token.ref] == token.refEpoch
-}
-
-// recordRefKeyLocked tracks the key under its ref and returns the new
-// generation for the ref. Caller must hold mtx.
-func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) uint64 {
-	if c == nil || refKey == "" || key == "" {
-		return 0
-	}
-	if c.byRef == nil {
-		c.byRef = make(map[string]map[string]struct{})
-	}
-	if c.byHash == nil {
-		c.byHash = make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey)
-	}
-	keys := c.byRef[refKey]
-	if keys == nil {
-		keys = make(map[string]struct{})
-		c.byRef[refKey] = keys
-	}
-	keys[key] = struct{}{}
-	h := decodedBlockCacheHashFor(key)
-	c.generation++
-	generations := c.byHash[h]
-	if generations == nil {
-		generations = make(map[uint64]decodedBlockCacheTrackedKey)
-		c.byHash[h] = generations
-	}
-	generations[c.generation] = decodedBlockCacheTrackedKey{
-		ref:        refKey,
-		key:        key,
-		generation: c.generation,
-	}
-	return c.generation
-}
-
-func (c *DecodedBlockCache) removeRefKeyHashGeneration(h decodedBlockCacheHash, generation uint64) {
-	if c == nil {
-		return
-	}
-	c.mtx.Lock()
-	c.removeRefKeyHashGenerationLocked(h, generation)
-	c.mtx.Unlock()
-}
-
-func (c *DecodedBlockCache) removeRefKeyHashGenerationLocked(h decodedBlockCacheHash, generation uint64) {
-	generations := c.byHash[h]
-	tracked, ok := generations[generation]
 	if !ok {
-		return
+		RecordDecodedBlockUncloneable(ctx)
+		return nil, false, nil
 	}
-	delete(generations, generation)
-	if len(generations) == 0 {
-		delete(c.byHash, h)
-	}
-	// Ristretto can reject a duplicate admission while an older generation for
-	// the same decoded key still owns the invalidation index. Only remove byRef
-	// after the last tracked generation for this ref/key has left Ristretto.
-	if c.hasRefKeyGenerationLocked(h, tracked.ref, tracked.key) {
-		return
-	}
-	keys := c.byRef[tracked.ref]
-	delete(keys, tracked.key)
-	if len(keys) == 0 {
-		delete(c.byRef, tracked.ref)
-	}
-}
-
-func (c *DecodedBlockCache) compactRefKeyGenerations(ref, key string, generation uint64) {
-	if c == nil {
-		return
-	}
-	c.mtx.Lock()
-	c.compactRefKeyGenerationsLocked(decodedBlockCacheHashFor(key), ref, key, generation)
-	c.mtx.Unlock()
-}
-
-func (c *DecodedBlockCache) compactRefKeyGenerationsLocked(
-	h decodedBlockCacheHash,
-	ref string,
-	key string,
-	generation uint64,
-) {
-	for gen, tracked := range c.byHash[h] {
-		if gen == generation || tracked.ref != ref || tracked.key != key {
-			continue
-		}
-		delete(c.byHash[h], gen)
-	}
-	if len(c.byHash[h]) == 0 {
-		delete(c.byHash, h)
-	}
-}
-
-func (c *DecodedBlockCache) hasRefKeyGenerationLocked(h decodedBlockCacheHash, ref, key string) bool {
-	for _, tracked := range c.byHash[h] {
-		if tracked.ref == ref && tracked.key == key {
-			return true
-		}
-	}
-	return false
-}
-
-// takeRefKeys removes and returns every key belonging to the ref,
-// invalidating that ref's generation.
-func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
-	if c == nil {
-		return nil
-	}
-	c.mtx.Lock()
-	if c.refEpoch == nil {
-		c.refEpoch = make(map[string]uint64)
-	}
-	c.refEpoch[refKey]++
-	keys := c.byRef[refKey]
-	delete(c.byRef, refKey)
-	for key := range keys {
-		delete(c.byHash, decodedBlockCacheHashFor(key))
-	}
-	c.mtx.Unlock()
-	return keys
-}
-
-// takeAllKeys removes and returns every cached key.
-func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
-	if c == nil {
-		return nil
-	}
-	c.mtx.Lock()
-	c.clearEpoch++
-	keys := make(map[string]struct{})
-	for refKey, refKeys := range c.byRef {
-		if c.refEpoch == nil {
-			c.refEpoch = make(map[string]uint64)
-		}
-		c.refEpoch[refKey]++
-		for key := range refKeys {
-			keys[key] = struct{}{}
-		}
-	}
-	c.byRef = make(map[string]map[string]struct{})
-	c.byHash = make(map[decodedBlockCacheHash]map[uint64]decodedBlockCacheTrackedKey)
-	c.mtx.Unlock()
-	return keys
-}
-
-// decodedBlockCacheHashFor computes the ristretto hash pair for a key.
-func decodedBlockCacheHashFor(key string) decodedBlockCacheHash {
-	keyHash, conflictHash := ristrettoz.KeyToHash[string](key)
-	return decodedBlockCacheHash{key: keyHash, conflict: conflictHash}
+	RecordDecodedBlockCacheHit(ctx, true)
+	return cloned, true, nil
 }
 
 // decodedBlockCacheRefKey marshals the ref into its cache key prefix.
@@ -590,9 +432,10 @@ func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCa
 	return op.decodedBlocks
 }
 
-// decodedBlockCacheCost computes the raw plus decoded cost of a cached
-// entry, or false when either size is unknown.
-func decodedBlockCacheCost(blk Block, data []byte) (int64, bool) {
+// decodedBlockCacheCost computes the cost of a cached entry: its pool key, the
+// raw and decoded sizes, and a fixed charge for Ristretto's bookkeeping. It
+// returns false when either block size is unknown.
+func decodedBlockCacheCost(cacheKey string, blk Block, data []byte) (int64, bool) {
 	rawCost := int64(len(data))
 	if rawCost <= 0 {
 		return 0, false
@@ -611,7 +454,7 @@ func decodedBlockCacheCost(blk Block, data []byte) (int64, bool) {
 	if decodedCost <= 0 {
 		return 0, false
 	}
-	return rawCost + decodedCost + decodedBlockCacheEntryOverheadCost, true
+	return int64(len(cacheKey)) + rawCost + decodedCost + decodedBlockCacheEntryOverheadCost, true
 }
 
 // decodedBlockCacheKeyFor builds the cache key for a block, or false
