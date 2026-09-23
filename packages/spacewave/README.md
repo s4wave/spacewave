@@ -187,7 +187,7 @@ export function App() {
 }
 ```
 
-`useCollection` cleans up with the component. `useDatabase` gives components the same typed database for writes. The application owns and closes the connection. See the [React task board](examples/task-board/react.tsx) for forms, connection feedback, and write recovery.
+`useCollection` cleans up with the component. `useDatabase` gives components the same typed database for writes. Your application opens and closes the connection. See the [React task board](examples/task-board/react.tsx) for forms, connection feedback, and write recovery.
 
 ### Retry without repeating a change
 
@@ -213,7 +213,7 @@ An accepted duplicate returns the original result, including after a server rest
 
 Adding live data often means writing the same contract in several places: database models, API handlers, client types, subscription messages, and UI state. Every new feature has to keep those pieces in agreement.
 
-Spacewave gives that work a shared starting point. Define collections and mutations once with [Standard Schema](https://standardschema.dev/) validators, such as Zod. The server validates writes, TypeScript infers the client API, and subscriptions deliver accepted state to each view. Your application chooses its authentication provider, access policy, and interface.
+With Spacewave, you write that contract once. Define collections and mutations once with [Standard Schema](https://standardschema.dev/) validators, such as Zod. The server validates writes, TypeScript infers the client API, and subscriptions deliver accepted state to each view. Your application chooses its authentication provider, access policy, and interface.
 
 ## Architecture
 
@@ -224,9 +224,9 @@ flowchart LR
     Server <-->|Transactions| Storage[SQLite-backed World]
 ```
 
-The Node server authenticates connections, selects each caller's scope, and checks collection permissions on operations and subscription deliveries. Accepted writes commit to a Spacewave World, the engine's durable dataset stored in SQLite. Each dataset directory permits one server writer.
+The Node server authenticates connections, selects each caller's scope, and checks collection permissions on operations and subscription deliveries. Accepted writes commit to a Spacewave World, the engine's durable dataset stored in SQLite. Only one server at a time can write to a dataset directory.
 
-Clients receive whole-collection or prefix snapshots with `loading`, `current`, `stale`, or `error` status. Reconnection refreshes subscriptions; durable write receipts support recovery when acceptance is uncertain.
+Clients receive whole-collection or prefix snapshots with `loading`, `current`, `stale`, or `error` status. Reconnecting refreshes each subscription. The server keeps a receipt for every accepted write, so a client that is unsure whether a write went through can retry it safely.
 
 The npm package includes its compiled engine, which runs in a dedicated Node worker. Installing it requires no Go toolchain or lifecycle scripts. See the [API reference](API.md) for the storage, access, and connection contracts.
 

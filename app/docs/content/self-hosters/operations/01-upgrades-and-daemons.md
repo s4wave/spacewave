@@ -1,60 +1,84 @@
 ---
-title: Upgrades and Daemons
+title: Run the Background Service
 section: operations
 order: 1
-summary: Run the background service, point it at the right directory, and hand it over cleanly.
+summary: Run the background service, choose its directory, control when it stops, and replace it with a new copy.
 ---
 
-The `spacewave` command and the desktop app meet at one Unix socket,
-`spacewave.sock`, which sits inside whichever state directory is in use. Almost
-everything on this page follows from that.
+The background service, also called the daemon, is the Spacewave process that
+holds your data and serves the `spacewave` commands and the desktop app. This
+page shows how to start it, point it at the right directory, stop it, and
+replace a running copy, for example after you install a new version.
 
-## Choosing the directory
+The commands and the desktop app reach the service through one Unix socket,
+`spacewave.sock`. The socket sits inside the state directory in use. The state
+directory is where Spacewave keeps its data.
 
-Pass `--state-path`, or set the state-path environment variable, when you want a
-specific directory. Commands find the socket inside it, and start the service if
-none is running.
+## Choose the directory
 
-Pass `--socket-path`, or set `SPACEWAVE_SOCKET_PATH`, when you want to reach one
-exact socket you already know about. That form connects to what is there and
-starts nothing.
+Pass `--state-path`, or set `SPACEWAVE_STATE_PATH`, to use a specific state
+directory. Commands then look for the socket inside it and start the service if
+none is running. [Storage Modes](/docs/self-hosters/storage/storage-modes)
+lists every way the directory is chosen.
 
-A socket left behind by a service that is gone gets cleaned up before a new one
-starts, so a crashed process does not block the next run.
+Pass `--socket-path`, or set `SPACEWAVE_SOCKET_PATH`, to reach one exact socket.
+In this form the command connects to what is there and never starts a service.
 
-## Running it
+If a service crashed and left its socket behind, the next start removes the
+stale socket. A crash does not block the next run.
+
+## Start the service
 
 ```sh
 spacewave serve
-spacewave serve --takeover
+```
+
+`serve` creates the state directory if needed and binds the socket with
+restricted permissions. It removes the socket when it exits.
+
+Only one service can write to a state directory at a time. If another process
+holds the directory, `serve` fails with an error that names it.
+
+## Control when it stops
+
+The service stops on its own when nothing is using it. The idle timer starts
+when the last command, app, or other client disconnects. A web address kept
+open with `spacewave web --background` counts as a user, so the service stays
+up while one is open.
+
+```sh
+spacewave serve --idle-timeout 5m
+spacewave serve --idle-timeout 0
+```
+
+The default is 30 seconds. You can also set `SPACEWAVE_DAEMON_IDLE_TIMEOUT`. A
+value of `0` turns off idle shutdown, so the service runs until you stop it.
+
+```sh
 spacewave stop
 ```
 
-`serve` creates the directory if it needs to, binds the socket with the right
-permissions, brings up plugins and device support, and removes the socket when
-it exits.
+`stop` asks the running service to shut down. If no service is running, it
+says so.
 
-`--takeover` asks whatever currently owns the socket to step aside first. Use it
-when you know something else is running and you want this process to win.
+## Replace a running service
 
-`stop` asks the running service to shut down, and does nothing quietly if there
-is none.
+```sh
+spacewave serve --takeover
+```
 
-## When the desktop app is also running
+`--takeover` asks whatever is using the socket to shut down, then starts this
+copy in its place. Use it when a service is already running and you want this
+one to replace it, for example a newly installed version.
 
-If a command asks to take over while the desktop app owns the socket, the app
-shows a prompt and hands control across. While a handover is in progress the
-app's own local actions are unavailable, and its banner is how you take control
-back.
+If the desktop app is using the socket, it shows a prompt and asks you to
+approve the handover. If you deny it, `serve --takeover` fails and asks you to
+quit the desktop app or approve the prompt. While another process has control,
+the app's own local actions are unavailable. Use the app's banner to take
+control back.
 
 ## Browser access
 
-```sh
-spacewave web
-spacewave web list
-spacewave web stop <listener-id>
-```
-
-`spacewave web` opens a local address for reaching this machine's Spacewave from
-a browser. Add `--background` and it stays with the service after the command
-returns, where `list` and `stop` can manage it.
+`spacewave web` serves this machine's Spacewave at a local address for a
+browser. See [Networking and Browser
+Access](/docs/self-hosters/operations/networking-and-web-listeners).

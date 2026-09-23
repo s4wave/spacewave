@@ -15,7 +15,7 @@ export const siteDefs: DocSite[] = [
     id: 'users',
     label: 'Users',
     description:
-      'Start a Space, move files into it, keep your account safe, and work from a terminal when you want to.',
+      'Start a Space, share it, move files into it, keep your account safe, and work from a terminal when you want to.',
     order: 1,
   },
   {
@@ -29,7 +29,7 @@ export const siteDefs: DocSite[] = [
     id: 'developers',
     label: 'Developers',
     description:
-      'Build ObjectTypes, plugins, Quickstarts, SDK resources, and public surfaces on top of Spaces.',
+      'Build live apps with the sync library, write plugins that run in a Space, and contribute to Spacewave itself.',
     order: 3,
   },
 ]
@@ -41,17 +41,17 @@ export type SectionDef = Omit<DocSection, 'pages'>
 export const sectionDefs: SectionDef[] = [
   // Users
   { id: 'start', label: 'Start', site: 'users', order: 1 },
-  { id: 'files', label: 'Files and Drive', site: 'users', order: 2 },
-  { id: 'spaces', label: 'Spaces', site: 'users', order: 3 },
+  { id: 'spaces', label: 'Spaces and Sharing', site: 'users', order: 2 },
+  { id: 'files', label: 'Files and Drive', site: 'users', order: 3 },
+  { id: 'features', label: 'More in a Space', site: 'users', order: 4 },
   {
     id: 'accounts',
     label: 'Accounts and Storage',
     site: 'users',
-    order: 4,
+    order: 5,
   },
-  { id: 'devices', label: 'Devices', site: 'users', order: 5 },
-  { id: 'cli', label: 'Command Line', site: 'users', order: 6 },
-  { id: 'features', label: 'More Features', site: 'users', order: 7 },
+  { id: 'devices', label: 'Devices', site: 'users', order: 6 },
+  { id: 'cli', label: 'Command Line', site: 'users', order: 7 },
 
   // Self-hosters
   { id: 'start', label: 'Start', site: 'self-hosters', order: 1 },
@@ -62,15 +62,20 @@ export const sectionDefs: SectionDef[] = [
     order: 2,
   },
   { id: 'operations', label: 'Operations', site: 'self-hosters', order: 3 },
-  { id: 'ownership', label: 'Ownership', site: 'self-hosters', order: 4 },
 
   // Developers
   { id: 'start', label: 'Start', site: 'developers', order: 1 },
-  { id: 'plugins', label: 'Plugins', site: 'developers', order: 2 },
-  { id: 'objects', label: 'Objects', site: 'developers', order: 3 },
-  { id: 'sdk', label: 'SDK and RPC', site: 'developers', order: 4 },
-  { id: 'cli', label: 'CLI Reference', site: 'developers', order: 5 },
-  { id: 'platform', label: 'Platform', site: 'developers', order: 6 },
+  { id: 'sync', label: 'Sync Library', site: 'developers', order: 2 },
+  { id: 'plugins', label: 'Plugins', site: 'developers', order: 3 },
+  { id: 'objects', label: 'Objects', site: 'developers', order: 4 },
+  { id: 'sdk', label: 'SDK and RPC', site: 'developers', order: 5 },
+  { id: 'cli', label: 'CLI Reference', site: 'developers', order: 6 },
+  {
+    id: 'contributing',
+    label: 'Contributing',
+    site: 'developers',
+    order: 7,
+  },
 ]
 
 // getSectionKey is the stable identity for a section inside an audience site.

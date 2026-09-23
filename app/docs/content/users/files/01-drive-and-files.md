@@ -5,44 +5,45 @@ order: 1
 summary: Store files and folders in a Space and work with them in the browser.
 ---
 
-Drive is where your files live. It works the way a file browser should: folders,
-uploads, drag and drop, rename, move, delete, download.
+A Drive is file storage inside a Space, which is a container for one project in
+Spacewave. You can upload, organize, preview, and download files in a Drive,
+the same way you would in any file browser.
 
 ## Start with Drive
 
-The Drive Quickstart creates a Space with file storage in it, writes a
-`getting-started.md` for you, and opens the file browser with a short guide at
-the top. The guide disappears once you start using the Drive, and you can
+The **Create a Drive** Quickstart creates a Space with a Drive in it. It writes
+a `getting-started.md` file and opens the file browser with a short guide at
+the top. The guide goes away once you start using the Drive, and you can
 dismiss it at any time.
 
 ## What you can do
 
-From the toolbar or by right-clicking:
+Use the toolbar, or right-click a file or folder, to:
 
-- upload files and folders, with the picker or by dragging them in;
+- upload files and folders with the file picker or by dragging them in;
 - create folders and files;
-- open folders and any file Spacewave can preview;
-- rename, with the menu or F2;
-- delete, with a confirmation;
-- move things with the move dialog or by dragging them into a folder;
-- download a file, a whole folder as a zip, or whatever you have selected.
+- open folders and preview files that Spacewave can display;
+- rename items from the menu or with F2;
+- delete items after a confirmation;
+- move items with the move dialog or by dragging them onto a folder;
+- download a file, a whole folder as a zip, or your current selection.
 
-## Everything stays in sync
+## Changes show up everywhere
 
-Folder listings update themselves. Change something from another tab, from
-another device, or from the command line, and the folder you are looking at
-follows along without a reload.
+Folder listings update on their own. If you change a file from another tab,
+another device, or the command line, the folder you are viewing shows the
+change without a reload.
 
 ## From the command line
 
-The `spacewave fs` commands work on the same files. See
-[Command Line Basics](/docs/users/cli/command-line-basics) for the commands and
-how paths work there.
+The `spacewave fs` commands work on the same files. See [Command Line
+Basics](/docs/users/cli/command-line-basics) for the commands and how paths
+work.
 
-## Worth knowing
+## Good to know
 
-Previews of very large text files are cut short.
+Spacewave shows only the first part of a very large text file, and that preview
+is read-only.
 
-Files kept only in your browser belong to the browser, which can clear them when
-it runs low on space. For anything you need to keep, use Spacewave Cloud or the
-desktop app.
+Files kept only in a browser can be cleared by the browser when it runs low on
+space. For files you need to keep, use Spacewave Cloud or the desktop app.

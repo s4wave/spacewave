@@ -2,35 +2,37 @@
 title: Resource SDK and Watch RPCs
 section: sdk
 order: 1
-summary: Use Resource SDK handles, cleanup, and watch RPCs for mutable runtime state.
+summary: Hold server objects through Resource SDK handles, release them on time, and follow changing state with watch RPCs.
 ---
 
-The Resource SDK is the handle-based RPC layer used by Spacewave app code. A
-server returns resource IDs. The TypeScript client wraps those IDs in resource
-references and typed resource classes.
+The Resource SDK is how Spacewave app code talks to the Spacewave backend. The
+server hands out resource IDs, one for each object the client holds, such as a
+Space or a file. The TypeScript client wraps each ID in a typed class with
+methods for that object. Use it whenever app code reads or changes backend
+state, and release each handle when you are done with it.
 
-## Wire model
+## How it works on the wire
 
-`ResourceService` exposes:
+`ResourceService` has three calls:
 
-- `ResourceClient` to create a generation and carry ordered `Adopt` and
-  `Release` controls;
-- `ResourceRpc` to route RPC streams to resource handles; and
-- `ResourceAttach` to attach client-owned resources to server calls.
+- `ResourceClient` opens a session with the server, called a generation, and
+  carries the `Adopt` and `Release` messages in order.
+- `ResourceRpc` routes RPC streams to a resource.
+- `ResourceAttach` passes resources the client created to server calls.
 
-The first local reference sends `Adopt`. The final reference sends `Release` on
-the same `ResourceClient` stream. A returned child remains pending under the
-resource that created it until adoption. Releasing a parent recursively releases
-its pending descendants. Ending the stream releases every resource in that
-generation.
+The first local reference to a resource sends `Adopt`. The last reference sends
+`Release` on the same `ResourceClient` stream. A child resource the server
+returns stays pending under its parent until the client adopts it. Releasing a
+parent also releases its pending children. Closing the stream releases every
+resource in that generation.
 
 ## TypeScript resources
 
-Typed SDK classes extend `Resource`. They construct service clients from
-`resourceRef.client`, expose typed methods, and release their ref through
-`release()` or `[Symbol.dispose]`.
+Typed SDK classes extend `Resource`. Each one builds its service clients from
+`resourceRef.client` and exposes typed methods. Release it with `release()` or
+`[Symbol.dispose]`.
 
-Use `using` or hook cleanup for every resource you create:
+Declare each resource you create with `using`, or clean it up in a hook:
 
 ```ts
 using root = new Root(rootRef)
@@ -39,23 +41,23 @@ using child = root.getResourceRef().createResource(id, SomeHandle)
 
 ## React hooks
 
-Use `useResource` when a component needs a resource handle or one-shot async
-load. Register disposable handles with the `cleanup` callback passed into the
-factory.
+Use `useResource` when a component needs a resource handle or a one-time async
+load. Register handles that need releasing with the `cleanup` callback passed
+to the factory.
 
-Use `useStreamingResource` for watch RPCs. It subscribes to an `AsyncIterable`,
-updates value on each yield, and aborts the previous stream when the parent or
-dependencies change.
+Use `useStreamingResource` for watch RPCs. It subscribes to an `AsyncIterable`
+and updates its value on each result. When the parent or the dependencies
+change, it stops the previous stream.
 
-Use root-resource hooks that track `connectionGeneration` so reconnects drop and
-recreate stale resource trees.
+Use the root-resource hooks that track `connectionGeneration`. After a
+reconnect, they drop the old resources and create new ones.
 
 ## When to watch
 
-Use a watch RPC for mutable state that can change from another tab, CLI command,
-daemon process, or plugin. Current examples include Canvas state, Chat messages,
-Git worktree status, billing state, UnixFS directory entries, and session sync
-status.
+Use a watch RPC for state that can change from another tab, a CLI command, the
+background service, or a plugin. Current examples include Canvas state, Chat
+messages, Git worktree status, billing state, UnixFS directory entries, and
+session sync status.
 
-Use unary `Get*` calls for one-shot reads or immutable data. Always pass the
-`AbortSignal` you receive from the hook or caller.
+Use a unary `Get*` call for a one-time read or for data that never changes.
+Always pass on the `AbortSignal` you receive from the hook or the caller.

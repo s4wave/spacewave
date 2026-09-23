@@ -2,42 +2,66 @@
 title: Developer Start Here
 section: start
 order: 1
-summary: Start from Spaces, ObjectTypes, viewers, Quickstarts, plugins, and resource handles.
+summary: Pick your path: a live app with the sync library, a plugin that runs in a Space, or a change to Spacewave itself.
 ---
 
-Spacewave development starts with the runtime object model. A Space is a
-SharedObject whose body is a Hydra World. The World contains typed objects. Each
-typed object needs an ObjectType owner, a resource contract, and one or more
-viewers or commands.
+There are three ways to build with Spacewave. Pick the one that matches what
+you are making.
 
-## Build in the owning layer
+- **A live TypeScript application.** The `spacewave` npm package gives your own
+  Node server and browser clients typed collections that update live. You do
+  not need the Spacewave app. Start with [Build a Live
+  Application](/docs/developers/sync/build-a-live-application).
+- **A plugin that runs inside a Space.** A Space is a user's container for one
+  project, and a plugin adds new kinds of items to it. Start with [Build a
+  Plugin](/docs/developers/plugins/build-a-plugin).
+- **A change to Spacewave itself.** Read the model below, then the pages under
+  Objects, SDK and RPC, and Contributing.
 
-- Use the SDK and core packages for protocol, storage, and resource semantics.
-- Use app packages for product viewers, routes, Quickstarts, and command
-  registration.
-- Use plugin packages when a feature should load through a Manifest and register
-  object types, viewers, Quickstarts, or resources dynamically.
+## The model
 
-Do not put durable state rules in a route or a viewer if a resource, ObjectType,
-or Space operation owns them.
+A Space is a shared object: state that Spacewave syncs between devices and
+people.
+The body of a Space is a World, a Hydra database of typed objects. Hydra is
+Spacewave's storage layer. Each object in a World has a key and a type. An
+ObjectType is the registered code that turns an object key into a typed RPC
+interface for one kind of object. A viewer is the UI component that displays it. A Quickstart
+creates a new Space with starter content.
 
-## The normal path
+Every typed object needs an ObjectType, a resource that exposes its reads,
+writes, and watch streams, and at least one viewer or command.
 
-1. Define or reuse the ObjectType and world operation that creates the object.
-2. Expose a typed resource handle for reads, writes, and watch streams.
-3. Register an ObjectViewer for the object type.
-4. Add an ObjectWizard when users should create the object from a Space.
-5. Add a Quickstart only when the object is useful as a first-run Space.
-6. Add plugin Manifest wiring when the feature should load dynamically.
+## Put code in the right layer
 
-## React data flow
+- The SDK and core packages hold protocol, storage, and resource behavior.
+- The app packages hold product viewers, routes, Quickstarts, and commands.
+- Plugin packages hold features that load from a manifest, the versioned
+  package a plugin ships as. They register ObjectTypes, viewers, Quickstarts,
+  or resources while they run.
 
-Use the Resource SDK hooks for server state. `useResource` owns handle lifetimes.
-`useStreamingResource` owns watch RPCs. Raw `useEffect` plus `useState` should
-not own async data loading for resource state.
+Keep rules about stored data in a resource, an ObjectType, or a Space operation,
+not in a route or a viewer.
 
-## CLI and verification
+## Add a new kind of object
 
-Use `bun run build:cli` to build the native CLI into `bin/spacewave`. Use
-`bun run cli:local -- <command>` to run the local CLI against `./.spacewave`.
-For docs or viewer work, run focused tests before broad checks.
+1. Define or reuse the ObjectType and the World operation that creates the
+   object.
+2. Expose a typed resource for reads, writes, and watch streams.
+3. Register a viewer for the ObjectType.
+4. Add a wizard if users should create the object from inside a Space.
+5. Add a Quickstart only if the object is useful as the first thing in a new
+   Space.
+6. Package it as a plugin if it should load on demand.
+
+## Load data in React
+
+Use the Resource SDK hooks for server state. `useResource` manages the lifetime
+of a resource handle. `useStreamingResource` follows a watch RPC. Do not load
+resource state with a raw `useEffect` and `useState`. See [Resource SDK and
+Watch RPCs](/docs/developers/sdk/resource-sdk-and-watch-rpcs).
+
+## Build and run the CLI
+
+`bun run build:cli` builds the native CLI into `bin/spacewave`.
+`bun run cli:local -- <command>` runs it against a state directory at
+`./.spacewave`. For docs or viewer work, run focused tests before broad checks.
