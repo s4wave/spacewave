@@ -21,6 +21,7 @@ const installHashFile = ".bldr-install-hash"
 // creating the target's parent directory first. The unlock error joins any
 // error returned by fn.
 func withInstallLock(ctx context.Context, targetDir string, fn func() error) (retErr error) {
+	// Lock beside the target so rebuilding its contents cannot replace the lock.
 	if err := os.MkdirAll(filepath.Dir(targetDir), 0o755); err != nil {
 		return err
 	}
@@ -31,6 +32,8 @@ func withInstallLock(ctx context.Context, targetDir string, fn func() error) (re
 	defer func() {
 		retErr = errors.Join(retErr, installLock.Unlock())
 	}()
+
+	// Retain exclusive access through the complete install and hash write.
 	return fn()
 }
 
@@ -42,6 +45,7 @@ func withInstallLock(ctx context.Context, targetDir string, fn func() error) (re
 // share one node_modules. It returns the install root actually used. When
 // the shared cache root is unavailable, it falls back to fallbackDir.
 func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackageJson, fallbackDir string) (string, error) {
+	// Read the dependency inputs before selecting their content-addressed cache.
 	data, err := os.ReadFile(srcPackageJson)
 	if err != nil {
 		return "", err
@@ -70,6 +74,7 @@ const sharedInstallCacheEnv = "BLDR_SHARED_INSTALL_CACHE"
 // It reports false when the shared cache root cannot be created, and the
 // caller should install into its own state directory instead.
 func sharedInstallDir(hash string) (string, bool) {
+	// Resolve the configured shared root or the host's application cache.
 	root := os.Getenv(sharedInstallCacheEnv)
 	if root == "" {
 		userCacheDir, err := os.UserCacheDir()
@@ -78,6 +83,9 @@ func sharedInstallDir(hash string) (string, bool) {
 		}
 		root = filepath.Join(userCacheDir, "bldr", "web-pkgs")
 	}
+
+	// Allow callers to fall back when the shared root cannot be created.
+	// #nosec G703 -- root is an operator-selected dependency cache directory.
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return "", false
 	}
@@ -131,6 +139,7 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 // readSiblingBunLock reads the bun.lock file beside srcPackageJson. It
 // reports found=false when the sibling lockfile does not exist.
 func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
+	// Read the lockfile beside the manifest, preserving absence as an option.
 	lockPath := filepath.Join(filepath.Dir(srcPackageJson), "bun.lock")
 	data, err := os.ReadFile(lockPath)
 	if err == nil {
@@ -145,9 +154,12 @@ func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
 // bunInstallHash returns the install hash for a package manifest and its
 // optional bun.lock contents. The hash changes when either file changes.
 func bunInstallHash(packageJSON, bunLock []byte) string {
+	// Preserve the package-only key when there is no lockfile.
 	if bunLock == nil {
 		return sha256Hex(packageJSON)
 	}
+
+	// Delimit both inputs so distinct manifest and lockfile pairs stay distinct.
 	data := make([]byte, 0, len(packageJSON)+len(bunLock)+len("\x00bun.lock\x00"))
 	data = append(data, packageJSON...)
 	data = append(data, "\x00bun.lock\x00"...)
@@ -164,6 +176,7 @@ func bunInstallHash(packageJSON, bunLock []byte) string {
 // electron's @electron/get) download artifacts for a non-host target
 // instead of the host platform. The env is folded into the install cache
 // hash so switching targets between runs triggers a fresh install.
+// The package download cache is local to targetDir and shares its install lock.
 func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pkg string, extraEnv ...string) error {
 	// Hash the package string and extra environment so a change to either
 	// triggers a fresh install.
@@ -185,7 +198,8 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 			return err
 		}
 
-		// Run the install, forwarding any extra environment overrides.
+		// Keep downloads under the same target lock as node_modules. Concurrent
+		// target installs can race while Bun populates its global cache on Windows.
 		cmd, err := BunAdd(ctx, le, stateDir, "--cwd", targetDir, pkg)
 		if err != nil {
 			return err
@@ -193,6 +207,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 		if len(extraEnv) > 0 {
 			cmd.Env = append(cmd.Env, extraEnv...)
 		}
+		cmd.Env = append(cmd.Env, "BUN_INSTALL_CACHE_DIR="+filepath.Join(targetDir, ".bun-cache"))
 		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
 			return err
 		}
@@ -204,6 +219,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 
 // installCurrent returns true if targetDir has a matching install hash and node_modules exists.
 func installCurrent(targetDir, hash string) bool {
+	// Require both a successful install marker and its materialized packages.
 	existing, err := os.ReadFile(filepath.Join(targetDir, installHashFile))
 	if err != nil {
 		return false
@@ -223,6 +239,7 @@ func writeInstallHash(targetDir, hash string) error {
 
 // sha256Hex returns the hex-encoded SHA-256 of data.
 func sha256Hex(data []byte) string {
+	// Encode the complete digest for a stable filesystem cache key.
 	h := sha256.Sum256(data)
 	return hex.EncodeToString(h[:])
 }
