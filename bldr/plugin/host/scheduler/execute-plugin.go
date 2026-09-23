@@ -171,9 +171,6 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
 		defer t.assetsAccess.SetBlocked()
 		manifestRoot := pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString()
-		if !t.physical {
-			t.emitPluginManifestRoot(manifestRoot)
-		}
 
 		// Current executions also publish immutable files. A viewer or module URL
 		// must never silently resolve to a later revision with the same plugin ID.
@@ -196,6 +193,12 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 				}
 				defer release()
 			}
+		}
+
+		// Announce the root only once its files are served. The browser retries
+		// fetches lost with a runtime after the next runtime announces the root.
+		if !t.physical {
+			t.emitPluginManifestRoot(manifestRoot)
 		}
 
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(

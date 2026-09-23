@@ -141,8 +141,13 @@ export type HandleDurableMutationFn = () => void
 export type WaitForStreamOpenGateFn =
   () => Promise<RuntimeClientStreamOpenGateResult | void>
 
+// RerouteChannelOptions controls how a stale relay path is replaced.
 export interface RerouteChannelOptions {
+  // reconnect opens the next route immediately instead of on the next stream.
   reconnect?: boolean
+  // runtimeLost fails established streams because the runtime behind the
+  // route exited. A closed MessagePort peer never signals its streams.
+  runtimeLost?: boolean
 }
 
 class RuntimeClientPacketStream implements PacketStream {
@@ -323,12 +328,21 @@ export class WebRuntimeClient {
   // rerouteChannel drops the stale relay path after its relaying WebDocument
   // closed. Unlike close(), it does not tell the runtime the client is going
   // away: the logical client stays alive on the runtime. Stream opens that are
-  // waiting on the stale generation retry on the next route, and established
-  // streams keep their transferred ports unless the browser closes them.
+  // waiting on the stale generation retry on the next route. Established
+  // streams keep their transferred ports unless the runtime itself was lost.
   public async rerouteChannel(opts: RerouteChannelOptions = {}): Promise<void> {
     const reconnectingClientChannel = this.reconnectingClientChannel
     this.reconnectingClientChannel = undefined
     reconnectingClientChannel?.catch(() => {})
+    if (opts.runtimeLost) {
+      this.closeRuntimeStreams(
+        new RuntimeClientClosedError(
+          'runtime-disconnected',
+          this.clientId,
+          this.generation.id,
+        ),
+      )
+    }
     markStartupBoundary('runtime.client-channel-reroute-start', {
       source: 'browser',
       runtimeId: this.webRuntimeId,

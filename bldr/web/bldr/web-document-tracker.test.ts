@@ -438,6 +438,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     expect(closeRuntime).not.toHaveBeenCalled()
     expect(rerouteRuntime).toHaveBeenCalledTimes(1)
+    expect(rerouteRuntime).toHaveBeenCalledWith({ runtimeLost: false })
     expect(Reflect.get(tracker, 'activeRuntimeWebDocumentId')).toBeUndefined()
     expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
       'document-1',
@@ -448,6 +449,30 @@ describe('WebDocumentTracker resume-ready gate', () => {
     tracker.close()
     firstPort.close()
     secondPort.close()
+  })
+
+  it('fails established runtime streams when the elected DedicatedWorker host closes', async () => {
+    const tracker = buildTracker()
+    const rerouteRuntime = vi
+      .spyOn(tracker.webRuntimeClient, 'rerouteChannel')
+      .mockResolvedValue(undefined)
+    const hostPort = attachWebDocument(tracker, 'host-document')
+    const attachedPort = attachWebDocument(tracker, 'attached-document')
+
+    Reflect.set(tracker, 'activeRuntimeWebDocumentId', 'host-document')
+    Reflect.set(tracker, 'activeRuntimeHostGeneration', 'generation-1')
+
+    hostPort.postMessage({
+      from: 'host-document',
+      close: true,
+    })
+    await vi.waitFor(() => {
+      expect(rerouteRuntime).toHaveBeenCalledWith({ runtimeLost: true })
+    })
+
+    tracker.close()
+    hostPort.close()
+    attachedPort.close()
   })
 
   it('reroutes instead of closing the shared runtime client when the last active WebDocument closes', async () => {

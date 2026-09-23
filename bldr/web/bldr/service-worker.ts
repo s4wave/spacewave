@@ -205,6 +205,7 @@ export function resetServiceWorkerTestState(): void {
   activePluginRoots.clear()
   desiredPluginRoots.clear()
   pluginRootUpdates.clear()
+  pluginRootAnnouncementSeqs.clear()
 }
 
 let browserReleaseSyncInFlight: Promise<void> | null = null
@@ -213,6 +214,11 @@ let firstWebDocumentMessageMarked = false
 const activePluginRoots = new Map<string, string>()
 const desiredPluginRoots = new Map<string, string>()
 const pluginRootUpdates = new Map<string, Promise<void>>()
+// pluginRootAnnouncementSeqs counts root announcements per plugin. A runtime
+// announces a root only once it serves the root's files, so a successor
+// runtime is ready for a plugin after its next announcement.
+const pluginRootAnnouncementSeqs = new Map<string, number>()
+let pluginRootAnnounced = newPluginRootAnnouncedSignal()
 
 interface CacheWriteContext {
   cacheName: string
@@ -824,9 +830,9 @@ interface StaticPluginAsset {
   generationId?: string
 }
 
-async function resolveStaticPluginAsset(
-  source: BrowserFetchSource,
-): Promise<StaticPluginAsset | null> {
+// staticPluginAssetPluginId returns the plugin serving a static plugin asset
+// path, or null for other paths.
+function staticPluginAssetPluginId(source: BrowserFetchSource): string | null {
   let prefix: string
   if (source.path.startsWith(pluginDistPathPrefix)) {
     prefix = pluginDistPathPrefix
@@ -840,7 +846,16 @@ async function resolveStaticPluginAsset(
   if (slash <= 0) {
     return null
   }
-  const pluginId = pathAfterPrefix.slice(0, slash)
+  return pathAfterPrefix.slice(0, slash)
+}
+
+async function resolveStaticPluginAsset(
+  source: BrowserFetchSource,
+): Promise<StaticPluginAsset | null> {
+  const pluginId = staticPluginAssetPluginId(source)
+  if (!pluginId) {
+    return null
+  }
   // Only the currently active announced root may be served or cached. A root
   // that is not yet active waits for its activation update; it never falls
   // back to persisted roots, and old roots never satisfy new requests.
@@ -966,6 +981,53 @@ async function revalidateStaticPluginAsset(
   } finally {
     trackedFetch.release()
   }
+}
+
+function newPluginRootAnnouncedSignal(): {
+  promise: Promise<void>
+  resolve: () => void
+} {
+  let resolve!: () => void
+  const promise = new Promise<void>((r) => {
+    resolve = r
+  })
+  return { promise, resolve }
+}
+
+// announcePluginManifestRoot records a root announcement and wakes waiters.
+function announcePluginManifestRoot(pluginId: string): void {
+  pluginRootAnnouncementSeqs.set(
+    pluginId,
+    (pluginRootAnnouncementSeqs.get(pluginId) ?? 0) + 1,
+  )
+  const announced = pluginRootAnnounced
+  pluginRootAnnounced = newPluginRootAnnouncedSignal()
+  announced.resolve()
+}
+
+// waitForPluginRootAnnouncement waits until the plugin's root is announced
+// after the announcement numbered afterSeq. Returns false on timeout.
+async function waitForPluginRootAnnouncement(
+  pluginId: string,
+  afterSeq: number,
+  timeoutMs: number,
+): Promise<boolean> {
+  const deadlineMs = Date.now() + timeoutMs
+  while ((pluginRootAnnouncementSeqs.get(pluginId) ?? 0) <= afterSeq) {
+    const remainingMs = deadlineMs - Date.now()
+    if (remainingMs <= 0) {
+      return false
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined
+    await Promise.race([
+      pluginRootAnnounced.promise,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, remainingMs)
+      }),
+    ])
+    clearTimeout(timer)
+  }
+  return true
 }
 
 // activatePluginManifestRoot activates an announced root when it is still the
@@ -1214,6 +1276,7 @@ export function handleServiceWorkerMessage(
   const pluginManifestRoot = readPluginManifestRootMessage(ev.data)
   if (pluginManifestRoot) {
     const { pluginId, rootHash } = pluginManifestRoot
+    announcePluginManifestRoot(pluginId)
     desiredPluginRoots.set(pluginId, rootHash)
     if (activePluginRoots.get(pluginId) !== rootHash) {
       activePluginRoots.delete(pluginId)
@@ -1487,6 +1550,13 @@ function isStreamOpenTimeoutFailure(message: string): boolean {
   )
 }
 
+// isRuntimeLostFailure matches streams failed because the runtime behind the
+// relay exited, such as a closed DedicatedWorker host. The next route reaches
+// a live runtime, so the request can be retried.
+function isRuntimeLostFailure(message: string): boolean {
+  return message.includes('closed: runtime-disconnected')
+}
+
 function isGenerationClosedFailure(message: string): boolean {
   return (
     message.includes('generation closed') ||
@@ -1565,7 +1635,8 @@ function classifyBrowserRuntimeFetchErrorCode(
   }
   if (
     isResumeUnavailableFailure(lowerMessage) ||
-    isStreamOpenTimeoutFailure(lowerMessage)
+    isStreamOpenTimeoutFailure(lowerMessage) ||
+    isRuntimeLostFailure(lowerMessage)
   ) {
     return 'runtime-unavailable'
   }
@@ -1864,6 +1935,7 @@ export async function swFetch(
   const staticPluginAssetSource =
     source.path.startsWith(pluginDistPathPrefix) ||
     source.path.startsWith(pluginAssetsPathPrefix)
+  const staticPluginId = staticPluginAssetPluginId(source)
   let staticPluginAsset = await resolveStaticPluginAsset(source)
   if (staticPluginAsset) {
     const cached = await matchStaticPluginAsset(staticPluginAsset, request)
@@ -1893,11 +1965,29 @@ export async function swFetch(
     Date.now() +
     2 * browserRuntimeFetchHeaderTimeoutMs +
     browserRuntimeFetchRelayWaitMs
+  // A lost runtime's successor serves a plugin's files only after it
+  // announces the plugin root. Retrying sooner reaches an unregistered fs.
+  const waitForSuccessorRuntime = async (announcementSeq: number) => {
+    if (!staticPluginId) {
+      return
+    }
+    await waitForPluginRootAnnouncement(
+      staticPluginId,
+      announcementSeq,
+      Math.min(
+        browserRuntimeFetchHeaderTimeoutMs,
+        headerTimeoutDeadlineMs - Date.now(),
+      ),
+    )
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     const headerTimeoutMs = Math.min(
       browserRuntimeFetchHeaderTimeoutMs,
       Math.max(0, headerTimeoutDeadlineMs - Date.now()),
     )
+    const announcementSeq = staticPluginId
+      ? (pluginRootAnnouncementSeqs.get(staticPluginId) ?? 0)
+      : 0
     if (headerTimeoutMs <= 0) {
       return buildBrowserRuntimeFetchErrorResponse(
         classifyBrowserRuntimeFetchError(source, {
@@ -1959,13 +2049,18 @@ export async function swFetch(
             return cached
           }
         }
-        if (
-          attempt === 0 &&
-          (await webDocumentTracker.waitForRuntimeClientReady(
-            browserRuntimeFetchRelayWaitMs,
-          ))
-        ) {
-          continue
+        if (attempt === 0) {
+          const message = castToError(err, '').message.toLowerCase()
+          if (isRuntimeLostFailure(message)) {
+            await waitForSuccessorRuntime(announcementSeq)
+          }
+          if (
+            await webDocumentTracker.waitForRuntimeClientReady(
+              browserRuntimeFetchRelayWaitMs,
+            )
+          ) {
+            continue
+          }
         }
       }
       throw err
@@ -2018,22 +2113,54 @@ export async function swFetch(
       !request.signal.aborted &&
       !trackedFetch.abortController.signal.aborted
     ) {
+      const message = await readRuntimeFetchFailureMessage(response)
       await response.body?.cancel()
+      if (isRuntimeLostFailure(message.toLowerCase())) {
+        await waitForSuccessorRuntime(announcementSeq)
+      }
       continue
     }
 
     if (staticPluginAssetSource) {
       if (response.ok) {
-        if (staticPluginAsset) {
-          ev.waitUntil(
-            cacheStaticPluginAsset(
-              staticPluginAsset,
-              request,
-              response.clone(),
-            ),
-          )
+        if (!staticPluginAsset) {
+          return response
         }
-        return response
+        // Read the pinned asset fully before responding. A runtime lost
+        // mid-body retries through the next route instead of handing the
+        // module loader a truncated script it would cache as failed.
+        let body: ArrayBuffer
+        try {
+          body = await response.arrayBuffer()
+        } catch (err) {
+          const cached = await matchStaticPluginAsset(
+            staticPluginAsset,
+            request,
+          )
+          if (cached) {
+            return cached
+          }
+          if (attempt === 0 && !request.signal.aborted) {
+            await waitForSuccessorRuntime(announcementSeq)
+            if (
+              await webDocumentTracker.waitForRuntimeClientReady(
+                browserRuntimeFetchRelayWaitMs,
+              )
+            ) {
+              continue
+            }
+          }
+          throw err
+        }
+        const buffered = new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        })
+        ev.waitUntil(
+          cacheStaticPluginAsset(staticPluginAsset, request, buffered.clone()),
+        )
+        return buffered
       }
       if (staticPluginAsset) {
         const cached = await matchStaticPluginAsset(staticPluginAsset, request)

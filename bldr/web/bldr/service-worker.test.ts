@@ -19,7 +19,10 @@ import {
   swFetch,
   swActivate,
 } from './service-worker.js'
-import type { OpenWebRuntimePortResult } from './web-document-tracker.js'
+import {
+  type OpenWebRuntimePortResult,
+  WebDocumentTracker,
+} from './web-document-tracker.js'
 
 vi.mock('../fetch/fetch.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../fetch/fetch.js')>()
@@ -1010,6 +1013,37 @@ describe('service worker fetch release cache routing', () => {
     },
   )
 
+  it('retries a plugin fetch lost with its runtime once the successor announces the root', async () => {
+    vi.mocked(proxyFetch).mockReset()
+    const body = 'export const child = "fresh"\n'
+    vi.mocked(proxyFetch)
+      .mockResolvedValueOnce(
+        new Response(
+          'WebRuntimeClient: client-a: runtime client generation 2 closed: runtime-disconnected',
+          { status: 500 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(body, { status: 200 }))
+
+    const pending = swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/child.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+    await vi.waitFor(() => expect(proxyFetch).toHaveBeenCalledOnce())
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(proxyFetch).toHaveBeenCalledOnce()
+
+    await announcePluginRoot('spacewave-app', '2abc')
+    const response = await pending
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe(body)
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
+  })
+
   it('returns 503 after retrying a persistent runtime-unavailable timeout', async () => {
     // mockReset clears queued mockResolvedValueOnce entries that a previous
     // failing case left unconsumed; clearAllMocks does not reset queues.
@@ -1566,6 +1600,44 @@ describe('service worker fetch release cache routing', () => {
     await Promise.all(fetchEvent.waitUntilPromises)
   })
 
+  it('retries a pinned plugin asset whose body failed mid-stream', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    const release = buildRelease('gen-a')
+    const path = '/b/pd/spacewave-app/backend.mjs'
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: release,
+    })
+    await announcePluginRoot('spacewave-app', '2abc')
+    const waitReady = vi
+      .spyOn(WebDocumentTracker.prototype, 'waitForRuntimeClientReady')
+      .mockResolvedValue(true)
+    const brokenBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('export const partial'))
+        controller.error(new Error('runtime-disconnected'))
+      },
+    })
+    vi.mocked(proxyFetch)
+      .mockResolvedValueOnce(new Response(brokenBody, { status: 200 }))
+      .mockResolvedValueOnce(new Response('complete app', { status: 200 }))
+
+    const fetchEvent = buildClientFetchEvent(path, 'client-a')
+    const pending = swFetch(fetchEvent.ev)
+    await vi.waitFor(() => expect(proxyFetch).toHaveBeenCalledOnce())
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(proxyFetch).toHaveBeenCalledOnce()
+
+    await announcePluginRoot('spacewave-app', '2abc')
+    const response = await pending
+
+    expect(await response.text()).toBe('complete app')
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
+    expect(waitReady).toHaveBeenCalledOnce()
+    await Promise.all(fetchEvent.waitUntilPromises)
+    waitReady.mockRestore()
+  })
+
   it('repairs a stable-name asset after one same-generation stale response', async () => {
     const caches = globalThis.caches as unknown as FakeCacheStorage
     const release = buildRelease('gen-a')
@@ -1725,9 +1797,11 @@ describe('service worker fetch release cache routing', () => {
       }),
     )
 
-    const response = await swFetch(buildClientFetchEvent(path, 'client-a').ev)
+    const fetchB = buildClientFetchEvent(path, 'client-a')
+    const response = await swFetch(fetchB.ev)
     expect(response.status).toBe(200)
     expect(await response.text()).toBe(bodyB)
+    await Promise.all(fetchB.waitUntilPromises)
 
     // The stale root-A entry stays in place but can never satisfy requests.
     const generationCache = await caches.open('bldr-generation-gen-a')

@@ -16,8 +16,8 @@ func (t *pluginInstance) emitManifestCopyStartupMark(
 	return true
 }
 
-// emitPluginManifestRoot emits the browser startup mark carrying the
-// plugin's manifest root hash.
+// emitPluginManifestRoot announces to the browser that this runtime serves
+// the plugin's files at the manifest root.
 func (t *pluginInstance) emitPluginManifestRoot(rootHash string) {
 	emitPluginManifestRootToBrowser(t.pluginID, rootHash)
 }

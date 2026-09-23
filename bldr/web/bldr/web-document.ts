@@ -1247,7 +1247,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           this.clearResumeReadyState('dedicated-host-promoted')
           if ('rerouteChannel' in this.webRuntimeClient) {
             void this.webRuntimeClient
-              .rerouteChannel({ reconnect: false })
+              .rerouteChannel({ reconnect: false, runtimeLost: true })
               .then(() => {
                 this.startWebRuntimeConnection()
               })
@@ -2059,7 +2059,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.clearResumeReadyState('dedicated-runtime-host-lost')
     if ('rerouteChannel' in this.webRuntimeClient) {
       void this.webRuntimeClient
-        .rerouteChannel({ reconnect: false })
+        .rerouteChannel({ reconnect: false, runtimeLost: true })
         .catch((err: unknown) => {
           console.warn(
             'WebDocument: failed to reroute DedicatedWorker host',
