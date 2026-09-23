@@ -6,6 +6,7 @@ import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
 import Spacewave.SObject.Recovery
+import Spacewave.SObject.JournalFrame
 
 /-!
 # Conformance oracle
@@ -31,6 +32,13 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `validateJournalRecord`: `record`; result `{"ok"}`.
+- `applyJournal`: `state`, `record`; result `{"ok", "state"}`.
+- `replayJournalFrom`: restored `state`, `sequence`, suffix `records`.
+- `replayJournal`: `records`; result `{"ok", "state"}`.
+- `journalCheckpoint`: `identity`, `generation`, `nextSequence`, `state`.
+- `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
+- `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
 - `buildRecoveryEnvelope`: envelope inputs and primitive `cryptoOK`/`encoded`.
 - `unlockRecovery`: `keys`, `envelope`, primitive `decoded`; result `{"ok", "material"}`.
 - `resolveRecovery`: provider outcomes, `entity`, `envelope`, `material`.
@@ -76,9 +84,45 @@ deriving instance ToJson, FromJson for LeaveRequest, LeaveChange, LeaveAttempt, 
 
 deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, RecoveryGrant
 
+deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Version, Journal.Payload
+deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement, Journal.Projection
+deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.CompactCheckpoint
+
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "validateJournalRecord" =>
+    let result := Journal.validRecord (← req.getObjValAs? (Option Journal.Record) "record")
+    return json% {ok: $result}
+  | "applyJournal" =>
+    let result := Journal.applyRecord (← req.getObjValAs? Journal.State "state")
+      (← req.getObjValAs? (Option Journal.Record) "record")
+    return json% {ok: $(result.isSome), state: $result}
+  | "replayJournalFrom" =>
+    let result := Journal.replayFrom (← req.getObjValAs? Journal.State "state")
+      (← req.getObjValAs? Nat "sequence") (← req.getObjValAs? (List (Option Journal.Record)) "records")
+    return json% {ok: $(result.isSome), state: $result}
+  | "replayJournal" =>
+    let result := Journal.reduceJournal (← req.getObjValAs? (List (Option Journal.Record)) "records")
+    return json% {ok: $(result.isSome), state: $result}
+  | "journalCheckpoint" =>
+    let identity ← req.getObjValAs? String "identity"
+    let generation ← req.getObjValAs? Nat "generation"
+    let nextSequence ← req.getObjValAs? Nat "nextSequence"
+    let result := (Journal.buildCheckpoint identity generation nextSequence
+      (← req.getObjValAs? (Option Journal.State) "state")).bind
+      (fun checkpoint => Journal.readCheckpoint checkpoint identity generation nextSequence)
+    return json% {ok: $(result.isSome), state: $result}
+  | "readJournalCheckpoint" =>
+    let checkpoint ← req.getObjValAs? (Option Journal.CompactCheckpoint) "checkpoint"
+    let identity ← req.getObjValAs? String "identity"
+    let generation ← req.getObjValAs? Nat "generation"
+    let nextSequence ← req.getObjValAs? Nat "nextSequence"
+    let result := checkpoint.bind (fun value => Journal.readCheckpoint value identity generation nextSequence)
+    return json% {ok: $(result.isSome), state: $result}
+  | "validateJournalCheckpoint" =>
+    let result := Journal.validCheckpointAttempt (← req.getObjValAs? Journal.Attempt "attempt")
+    return json% {ok: $result}
   | "buildRecoveryEnvelope" =>
     let result := buildRecoveryEnvelope (← req.getObjValAs? String "entity")
       (← req.getObjValAs? Nat "epoch") (← req.getObjValAs? (Option Config) "config")

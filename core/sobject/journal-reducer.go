@@ -139,7 +139,7 @@ func (r *JournalReducer) validate(record *SOJournalRecord) error {
 	return r.apply(record, false)
 }
 
-// Apply applies one journal transition and rejects every illegal transition.
+// apply validates one transition and publishes it only when commit is true.
 func (r *JournalReducer) apply(record *SOJournalRecord, commit bool) error {
 	if err := validateJournalRecord(record); err != nil {
 		return err
@@ -201,6 +201,7 @@ func (r *JournalReducer) apply(record *SOJournalRecord, commit bool) error {
 		}
 		if attempt.ResendAuthorized {
 			attempt.Lookup = nil
+			attempt.LookupHistory = nil
 		}
 		attempt.SendAttempted = true
 		attempt.ResendAuthorized = false

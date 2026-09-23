@@ -10,5 +10,8 @@ import Spacewave.SObject.RemoveParticipant
 import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
 import Spacewave.SObject.Recovery
+import Spacewave.SObject.JournalKey
+import Spacewave.SObject.JournalReducer
+import Spacewave.SObject.JournalFrame
 
 #assert_standard_axioms
