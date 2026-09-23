@@ -1,18 +1,19 @@
-//go:build tinygo && (scheduler.tasks || scheduler.asyncify)
+//go:build tinygo && !scheduler.none
 
 package store
 
-// defaultVerifyConcurrency returns 1 under TinyGo with a cooperative
-// scheduler. Callers that branch on the value still get a sane default
-// without pulling in runtime.GOMAXPROCS, which the TinyGo wasm runtimes do
-// not implement meaningfully.
+// defaultVerifyConcurrency returns 1 under TinyGo with any goroutine
+// scheduler, and during package analysis that sets no scheduler tag. Callers
+// that branch on the value still get a sane default without pulling in
+// runtime.GOMAXPROCS, which the TinyGo wasm runtimes do not implement
+// meaningfully.
 func defaultVerifyConcurrency() int {
 	return 1
 }
 
 // goroutineVerifyExecutor runs each enqueued job on a fresh goroutine.
 //
-// TinyGo cooperative schedulers can run verification in background tasks.
+// TinyGo goroutine schedulers can run verification in background tasks.
 // PackReader prepares jobs under its broadcast lock and enqueues them only
 // after releasing that lock, so this executor matches the production queue
 // shape without relying on recursive lock avoidance.
