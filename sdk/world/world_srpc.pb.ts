@@ -72,6 +72,8 @@ import {
   NextGraphPathQueryResponse,
   NextRequest,
   NextResponse,
+  OpenNestedWorldRequest,
+  OpenNestedWorldResponse,
   QueryGraphPathRequest,
   QueryGraphPathResponse,
   RenameObjectRequest,
@@ -586,6 +588,17 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * OpenNestedWorld opens the immutable nested World published by an outer object.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
+     */
+    OpenNestedWorld: {
+      name: 'OpenNestedWorld',
+      I: OpenNestedWorldRequest,
+      O: OpenNestedWorldResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
      */
     CreateObject: {
@@ -791,6 +804,16 @@ export interface WorldStateResourceService {
   ): Promise<AccessWorldStateResponse>
 
   /**
+   * OpenNestedWorld opens the immutable nested World published by an outer object.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
+   */
+  OpenNestedWorld(
+    request: OpenNestedWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenNestedWorldResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
    */
   CreateObject(
@@ -986,6 +1009,17 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<AccessWorldStateResponse>
 
   /**
+   * OpenNestedWorld opens the immutable nested World published by an outer object.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
+   */
+  OpenNestedWorld(
+    request: OpenNestedWorldRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenNestedWorldResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
    */
   CreateObject(
@@ -1154,6 +1188,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.WaitSeqno = this.WaitSeqno.bind(this)
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
     this.AccessWorldState = this.AccessWorldState.bind(this)
+    this.OpenNestedWorld = this.OpenNestedWorld.bind(this)
     this.CreateObject = this.CreateObject.bind(this)
     this.GetObject = this.GetObject.bind(this)
     this.IterateObjects = this.IterateObjects.bind(this)
@@ -1272,6 +1307,25 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return AccessWorldStateResponse.fromBinary(result)
+  }
+
+  /**
+   * OpenNestedWorld opens the immutable nested World published by an outer object.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenNestedWorld
+   */
+  async OpenNestedWorld(
+    request: OpenNestedWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenNestedWorldResponse> {
+    const requestMsg = OpenNestedWorldRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.OpenNestedWorld.name,
+      OpenNestedWorldRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return OpenNestedWorldResponse.fromBinary(result)
   }
 
   /**

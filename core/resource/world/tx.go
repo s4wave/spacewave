@@ -39,6 +39,9 @@ func NewTxResource(
 	opts ...WorldStateResourceOption,
 ) *TxResource {
 	wsResource := NewWorldStateResource(le, b, tx, lookupOp, opts...)
+	if engine != nil {
+		wsResource.storage = engine
+	}
 	mux := wsResource.mux.(srpc.Mux)
 	txResource := &TxResource{
 		WorldStateResource: wsResource,

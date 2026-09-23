@@ -110,6 +110,18 @@ message AccessWorldStateRequest {
   .bucket.ObjectRef ref = 1;
 }
 
+// OpenNestedWorldRequest selects a typed outer object whose root is a NestedWorld block.
+message OpenNestedWorldRequest {
+  // ObjectKey identifies the enclosing object in this World state.
+  string object_key = 1;
+}
+
+// OpenNestedWorldResponse grants a read-only World state at the published snapshot.
+message OpenNestedWorldResponse {
+  // ResourceId identifies the retained nested World state resource.
+  uint32 resource_id = 1;
+}
+
 // AccessWorldStateResponse is the response type for AccessWorldState.
 message AccessWorldStateResponse {
   // ResourceId is the ID of the bucket cursor resource for accessing world state.
@@ -128,6 +140,9 @@ service WorldStateResourceService {
   rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
 
   rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+
+  // OpenNestedWorld opens the immutable nested World published by an outer object.
+  rpc OpenNestedWorld(OpenNestedWorldRequest) returns (OpenNestedWorldResponse);
 
   rpc CreateObject(CreateObjectRequest) returns (CreateObjectResponse);
 

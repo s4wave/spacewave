@@ -102,6 +102,22 @@ func (ws *WorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRe
 	return resp.ResourceId, nil
 }
 
+// OpenNestedWorld opens an immutable sub-World published by a typed outer object.
+// Release the returned state independently of this World state.
+func (ws *WorldState) OpenNestedWorld(ctx context.Context, key string) (*WorldState, error) {
+	resp, err := ws.service.OpenNestedWorld(ctx, &OpenNestedWorldRequest{ObjectKey: key})
+	if err != nil {
+		return nil, err
+	}
+	ref := ws.client.CreateResourceReference(resp.GetResourceId())
+	nested, err := NewWorldState(ws.client, ref, true)
+	if err != nil {
+		ref.Release()
+		return nil, err
+	}
+	return nested, nil
+}
+
 // CreateObject creates a new object in the world with the specified key and initial data.
 // Returns ErrObjectExists if the object already exists.
 // Appends a OBJECT_SET change to the changelog.
