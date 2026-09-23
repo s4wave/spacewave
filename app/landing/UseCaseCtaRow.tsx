@@ -27,6 +27,7 @@ export function UseCaseCtaLink({
   return (
     <a
       href={href}
+      data-landing-primary-cta={variant === 'primary' || undefined}
       className={cn(
         'flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
         variant === 'primary'

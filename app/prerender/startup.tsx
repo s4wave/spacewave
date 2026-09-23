@@ -5,24 +5,15 @@ import { WebView } from '@aptre/bldr-react'
 import { hasInteracted } from '@s4wave/web/state/interaction.js'
 import { isPathnameAppRoute } from '@s4wave/web/router/app-path.js'
 import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
-import { RouterProvider, type To } from '@s4wave/web/router/router.js'
+import { RouterProvider } from '@s4wave/web/router/router.js'
 import { AppLoadingScreen } from '@s4wave/app/loading/AppLoadingScreen.js'
 import { PrerenderedApp } from './PrerenderedApp.js'
 import { StaticProvider } from './StaticContext.js'
+import { navigateFromStaticStartup } from './static-navigate.js'
 import { getStaticPageComponent } from './static-pages.js'
 
-function handleStaticStartupNavigate(to: To) {
-  const path = to.path
-  if (!path) return
-
-  if (isStaticRoute(path)) {
-    window.location.href = path
-    return
-  }
-
-  window.location.hash = path
-}
-
+// shouldShowStartupLoading reports whether startup shows the loading screen
+// instead of prerendered page content.
 export function shouldShowStartupLoading(
   pathname: string,
   hash: string,
@@ -57,7 +48,7 @@ export default function Startup() {
         return (
           <RouterProvider
             path={window.location.pathname}
-            onNavigate={handleStaticStartupNavigate}
+            onNavigate={navigateFromStaticStartup}
           >
             <StaticProvider>
               <StaticStartupPage PageComponent={PageComponent} />

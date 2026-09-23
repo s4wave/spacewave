@@ -19,14 +19,13 @@ import {
   normalizeUnixFSLookupPath,
 } from '@s4wave/sdk/unixfs/path.js'
 import { UNIXFS_OBJECT_KEY } from '@s4wave/core/space/world/ops/init-unixfs.js'
+import { DRIVE_STARTER_GUIDE_NAME } from '@s4wave/app/quickstart/drive-starter-guide.js'
 
 import { useIntroWizardPresentation } from '../wizard/intro-context.js'
 import {
   UnixFSBrowser,
   type UnixFSBrowserDirectoryHeaderProps,
 } from './UnixFSBrowser.js'
-
-const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
 
 // DriveViewer owns Drive-specific first-run guidance while delegating all file
 // operations to the generic UnixFS browser.

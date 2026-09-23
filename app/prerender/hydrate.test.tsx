@@ -30,6 +30,11 @@ vi.mock('./static-pages.js', () => ({
         return null
       }
     }
+    if (pathname === '/landing/drive') {
+      return function LandingDrive() {
+        return null
+      }
+    }
     return null
   },
 }))
@@ -106,6 +111,7 @@ describe('hydrate root hash boot', () => {
     )
   })
 
+  // The first import pays the cold transform of the landing import graph.
   it('boots a root hash link after the prerendered landing has loaded', async () => {
     const ready = createReady()
     globalThis.__swReady = ready.promise
@@ -130,6 +136,22 @@ describe('hydrate root hash boot', () => {
     await Promise.resolve()
 
     expect(boot).toHaveBeenCalledWith('#/login')
+  }, 30000)
+
+  it('boots a hash link followed on a hydrated use-case page', async () => {
+    window.history.replaceState({}, '', '/landing/drive')
+    document.body.innerHTML =
+      '<div id="bldr-root" data-prerendered="true"></div>'
+    const boot = vi.fn()
+    globalThis.__swBoot = boot
+
+    await import('./hydrate.js')
+    expect(mockHydrateRoot).toHaveBeenCalledTimes(1)
+
+    window.location.hash = '/quickstart/drive'
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+
+    expect(boot).toHaveBeenCalledWith('#/quickstart/drive')
   }, 15000)
 
   it('auto-boots a prerendered quickstart page without hydrating the transient loading DOM', async () => {

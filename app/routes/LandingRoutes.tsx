@@ -33,17 +33,32 @@ export const LandingRoutes = (
     <Route path="/landing/drive">
       <LandingDrive />
     </Route>
+    <Route path="/landing/drive/live">
+      <LandingDrive live />
+    </Route>
     <Route path="/landing/chat">
       <LandingChat />
+    </Route>
+    <Route path="/landing/chat/live">
+      <LandingChat live />
     </Route>
     <Route path="/landing/devices">
       <LandingDevices />
     </Route>
+    <Route path="/landing/devices/live">
+      <LandingDevices live />
+    </Route>
     <Route path="/landing/plugins">
       <LandingPlugins />
     </Route>
+    <Route path="/landing/plugins/live">
+      <LandingPlugins live />
+    </Route>
     <Route path="/landing/notes">
       <LandingNotes />
+    </Route>
+    <Route path="/landing/notes/live">
+      <LandingNotes live />
     </Route>
     <Route path="/landing/cli">
       <LandingCli />

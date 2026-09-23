@@ -1,162 +1,122 @@
-import {
-  LuCheck,
-  LuCode,
-  LuCpu,
-  LuGlobe,
-  LuMonitor,
-  LuRocket,
-  LuTerminal,
-} from 'react-icons/lu'
+import { LuDownload, LuLayoutGrid, LuTerminal } from 'react-icons/lu'
+
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
-import { LegalPageLayout } from './LegalPageLayout.js'
-import { UseCaseCallout } from './UseCaseCallout.js'
-import { UseCaseCtaLink, UseCaseCtaRow } from './UseCaseCtaRow.js'
-import {
-  UseCaseFeatureGrid,
-  type UseCaseFeature,
-} from './UseCaseFeatureGrid.js'
-import { UseCaseSection } from './UseCaseSection.js'
+import { cn } from '@s4wave/web/style/utils.js'
+
+import { UseCasePage } from './use-case/UseCasePage.js'
 
 export const metadata = {
-  title: 'Spacewave CLI - Your swarm from the command line.',
+  title: 'Spacewave CLI - Your Spaces from the terminal.',
   description:
-    'Full feature parity with the GUI. Scriptable, pipe-friendly output, headless server support, and a WASM build for the browser.',
+    'The spacewave command runs the full Spacewave runtime in your terminal. Create Spaces, write files and link devices from a shell or script.',
   canonicalPath: '/landing/cli',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-const FEATURES: UseCaseFeature[] = [
+// CliStep is one group of commands in the CLI walkthrough.
+interface CliStep {
+  title: string
+  lines: string[]
+}
+
+// CLI_STEPS walks from a new account to files, devices and the web app, using
+// only commands the spacewave binary provides.
+const CLI_STEPS: CliStep[] = [
   {
-    icon: LuTerminal,
-    title: 'Full feature parity',
-    description:
-      'Everything you can do in the GUI, you can do from the terminal. Create Spaces, manage devices, sync files, send messages.',
+    title: 'Start a local account',
+    lines: [
+      '# Create an offline account on this machine',
+      'spacewave login local',
+      '# Or add this machine to an existing account',
+      'spacewave login pair',
+    ],
   },
   {
-    icon: LuCode,
-    title: 'Scriptable',
-    description:
-      'Automate your workflow with shell scripts. The CLI is designed for composition with other Unix tools.',
+    title: 'Work with files',
+    lines: [
+      'spacewave space create "My Space"',
+      'spacewave space object create --type fs files',
+      'echo hello | spacewave fs write files/-/greeting.txt',
+      'spacewave fs cat files/-/greeting.txt',
+    ],
   },
   {
-    icon: LuMonitor,
-    title: 'Pipe-friendly output',
-    description:
-      'JSON and plain text output modes. Pipe CLI results into jq, grep, awk, or any tool in your chain.',
+    title: 'Link a computer',
+    lines: [
+      '# On the new computer: print a setup ticket',
+      'spacewave device setup',
+      '# On a linked computer: approve it',
+      'spacewave device approve <ticket>',
+    ],
   },
   {
-    icon: LuCpu,
-    title: 'Headless servers',
-    description:
-      'Run Spacewave on servers without a display. The CLI is the primary interface for headless deployments and background daemons.',
-  },
-  {
-    icon: LuGlobe,
-    title: 'WASM build for browser',
-    description:
-      'The same CLI binary compiles to WebAssembly. Run Spacewave commands directly in the browser terminal.',
-  },
-  {
-    icon: LuRocket,
-    title: 'Cross-platform',
-    description:
-      'Native binaries for Linux, macOS, Windows, and ARM. Single static binary, no dependencies, no installation steps.',
+    title: 'Open the app',
+    lines: ['# Serve the Spacewave web app on localhost', 'spacewave web'],
   },
 ]
 
-const TERMINAL_LINES = [
-  { prompt: true, text: 'spacewave space create "my-project"' },
-  { prompt: false, text: 'Space created: my-project (local)' },
-  { prompt: false, text: '' },
-  { prompt: true, text: 'spacewave device link --qr' },
-  { prompt: false, text: 'Scan QR code on your phone to join the swarm:' },
-  { prompt: false, text: '[QR code displayed]' },
-  { prompt: false, text: '' },
-  { prompt: true, text: 'spacewave drive sync ./docs' },
-  { prompt: false, text: 'Syncing 142 files to "my-project/docs"...' },
-  { prompt: false, text: '142/142 files synced (3.2 MB)' },
-  { prompt: false, text: '' },
-  { prompt: true, text: 'spacewave device list --json | jq ".[].name"' },
-  { prompt: false, text: '"laptop"' },
-  { prompt: false, text: '"phone"' },
-  { prompt: false, text: '"pi-server"' },
-]
-
-// LandingCli renders the CLI use-case landing page.
+// LandingCli renders the CLI use-case page: a walkthrough of real commands.
 export function LandingCli() {
   const landingHref = useStaticHref('/landing')
-  const downloadCliHref = useStaticHref('/download/cli')
+  const downloadHref = useStaticHref('/download/cli')
 
   return (
-    <LegalPageLayout
+    <UseCasePage
       icon={<LuTerminal className="size-8" />}
-      title="Your swarm from the command line."
-      subtitle="A terminal-first interface for your entire Spacewave system. Scriptable, composable, and built for automation."
+      title="Your Spaces from the terminal."
+      subtitle="The spacewave command runs the same runtime as the app. It starts its daemon on first use, so every command works from a shell, a script or a headless server."
+      points={[
+        {
+          title: 'One binary',
+          body: 'The CLI is a single spacewave binary for Linux, macOS and Windows. It needs no browser and no other services.',
+        },
+        {
+          title: 'Same Spaces as the app',
+          body: 'A Space created in the terminal is the same Space the app opens, and files written with fs write show up there.',
+        },
+        {
+          title: 'Built for scripts',
+          body: 'Commands read stdin and write stdout, and status commands accept --output json for other tools to parse.',
+        },
+      ]}
+      keepTitle="Install the CLI"
+      keepBody="Download the spacewave binary for your platform, put it on your PATH and run spacewave status to confirm it works."
+      primary={{
+        href: downloadHref,
+        label: 'Download the CLI',
+        icon: LuDownload,
+      }}
+      secondary={{
+        href: landingHref,
+        label: 'See all features',
+        icon: LuLayoutGrid,
+      }}
     >
-      <UseCaseSection>
-        <UseCaseFeatureGrid features={FEATURES} />
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <UseCaseCallout title="One binary, every platform">
-          <p>
-            The Spacewave CLI is a single static binary. Download it, run it. No
-            package managers, no runtime dependencies, no setup wizards.
-          </p>
-          <p>
-            The same Go codebase compiles to native binaries for all major
-            platforms and to WebAssembly for the browser. Your scripts work
-            everywhere your code does.
-          </p>
-        </UseCaseCallout>
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <div className="border-foreground/10 bg-background/60 overflow-hidden rounded-lg border backdrop-blur-sm">
-          <div className="border-foreground/8 flex items-center gap-2 border-b px-4 py-2.5">
-            <div className="bg-destructive/60 size-3 rounded-full" />
-            <div className="bg-warning/60 size-3 rounded-full" />
-            <div className="bg-success/60 size-3 rounded-full" />
-            <span className="text-foreground-alt ml-2 font-mono text-xs">
-              spacewave
-            </span>
-          </div>
-          <div className="p-4 font-mono text-sm leading-relaxed">
-            {TERMINAL_LINES.map((line) => (
-              <div
-                key={`${line.prompt ? 'prompt' : 'line'}:${line.text}`}
-                className="whitespace-pre"
-              >
-                {line.text === '' ? (
-                  '\u00A0'
-                ) : line.prompt ? (
-                  <>
-                    <span className="text-brand">$</span>{' '}
-                    <span className="text-foreground">{line.text}</span>
-                  </>
-                ) : (
-                  <span className="text-foreground-alt">{line.text}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <UseCaseCtaRow>
-          <UseCaseCtaLink
-            href={downloadCliHref}
-            icon={LuRocket}
-            variant="primary"
+      <section className="relative z-10 mx-auto grid w-full max-w-6xl gap-4 px-4 @lg:grid-cols-2 @lg:px-8">
+        {CLI_STEPS.map((step) => (
+          <div
+            key={step.title}
+            className="border-foreground/10 bg-background flex flex-col overflow-hidden rounded-xl border"
           >
-            Download the CLI
-          </UseCaseCtaLink>
-          <UseCaseCtaLink href={landingHref} icon={LuCheck}>
-            See all features
-          </UseCaseCtaLink>
-        </UseCaseCtaRow>
-      </UseCaseSection>
-    </LegalPageLayout>
+            <h2 className="border-foreground/10 text-foreground border-b px-4 py-2.5 text-sm font-semibold">
+              {step.title}
+            </h2>
+            <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed">
+              {step.lines.map((line) => (
+                <div
+                  key={line}
+                  className={cn(
+                    'text-foreground',
+                    line.startsWith('#') && 'text-foreground-alt',
+                  )}
+                >
+                  {line}
+                </div>
+              ))}
+            </pre>
+          </div>
+        ))}
+      </section>
+    </UseCasePage>
   )
 }

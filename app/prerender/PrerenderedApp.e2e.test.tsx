@@ -66,7 +66,7 @@ describe('PrerenderedApp E2E', () => {
       .poll(
         () => {
           const el = page
-            .getByPlaceholder(/where would you like to start/i)
+            .getByText('Where would you like to start?', { exact: true })
             .element()
           return el
         },

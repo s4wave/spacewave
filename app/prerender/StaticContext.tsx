@@ -23,3 +23,11 @@ export function useStaticHref(path: string): string {
   const sessionIndex = useSessionIndex()
   return isStatic ? path : `#${sessionPagePath(path, sessionIndex)}`
 }
+
+// useAppHref returns a hash path that opens path in the running app. From a
+// static page, following it boots the app at that path.
+export function useAppHref(path: string): string {
+  const isStatic = use(StaticContext)
+  const sessionIndex = useSessionIndex()
+  return `#${isStatic ? path : sessionPagePath(path, sessionIndex)}`
+}
