@@ -219,6 +219,12 @@ func (s *SharedObject) ProcessOperations(ctx context.Context, watch bool, cb sob
 			rejectedOps,
 			acceptedOps,
 		); err != nil {
+			// Another validator may accept a root while this batch replays.
+			// Re-read that accepted state without restarting the World owner.
+			if errors.Is(err, sobject.ErrInvalidSeqno) &&
+				stateCtr.GetValue().GetRoot().GetInnerSeqno() != current.GetRoot().GetInnerSeqno() {
+				continue
+			}
 			return err
 		}
 		if !watch {
