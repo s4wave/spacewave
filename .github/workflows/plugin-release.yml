@@ -45,6 +45,7 @@ jobs:
       include_macos: ${{ steps.vars.outputs.include_macos }}
       include_windows: ${{ steps.vars.outputs.include_windows }}
       include_linux: ${{ steps.vars.outputs.include_linux }}
+      sign_artifacts: ${{ steps.vars.outputs.sign_artifacts }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -69,9 +70,11 @@ jobs:
           if [[ "${requested_environment}" == "production" ]]; then
             environment_name="plugin-production"
             expected_ref="refs/heads/release"
+            sign_artifacts=true
           else
             environment_name="plugin-staging"
             expected_ref="refs/heads/master"
+            sign_artifacts=false
           fi
           if [[ "${GITHUB_REF}" != "${expected_ref}" ]]; then
             echo "plugin-release ${requested_environment} must run from ${expected_ref}, got ${GITHUB_REF}" >&2
@@ -84,6 +87,7 @@ jobs:
           echo "include_macos=${include_macos}" >> "${GITHUB_OUTPUT}"
           echo "include_windows=${include_windows}" >> "${GITHUB_OUTPUT}"
           echo "include_linux=${include_linux}" >> "${GITHUB_OUTPUT}"
+          echo "sign_artifacts=${sign_artifacts}" >> "${GITHUB_OUTPUT}"
 
   browser:
     needs: prep
@@ -225,6 +229,7 @@ jobs:
           go mod vendor
 
       - name: Import macOS signing certificate
+        if: needs.prep.outputs.sign_artifacts == 'true'
         shell: bash
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
@@ -248,10 +253,12 @@ jobs:
           security default-keychain -d user -s "${KEYCHAIN_PATH}"
           rm -f "${CERT_PATH}"
 
-      - name: Build signed macOS native plugin manifests
+      # Staging bundles are ad-hoc signed for developer machines, which still
+      # satisfies the launcher's strict recursive signature check.
+      - name: Build macOS native plugin manifests
         shell: bash
         env:
-          BLDR_MACOS_SIGN_IDENTITY: ${{ vars.BLDR_MACOS_SIGN_IDENTITY }}
+          BLDR_MACOS_SIGN_IDENTITY: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_MACOS_SIGN_IDENTITY || '-' }}
           BLDR_MACOS_SIGN_ENTITLEMENTS: ${{ vars.BLDR_MACOS_SIGN_ENTITLEMENTS }}
           BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
         run: |
@@ -332,6 +339,7 @@ jobs:
           go mod vendor
 
       - name: Login to Azure with OIDC
+        if: needs.prep.outputs.sign_artifacts == 'true'
         uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -341,12 +349,14 @@ jobs:
       # Exchange the short-lived GitHub assertion before compilation; signing uses
       # the cached Azure resource token after the assertion has expired.
       - name: Cache Azure code-signing access token
+        if: needs.prep.outputs.sign_artifacts == 'true'
         shell: pwsh
         run: |
           az account get-access-token --resource https://codesigning.azure.net --output none
           if ($LASTEXITCODE -ne 0) { throw "Failed to acquire the code-signing access token" }
 
       - name: Resolve TrustedSigning module path
+        if: needs.prep.outputs.sign_artifacts == 'true'
         id: trusted_signing_paths
         shell: pwsh
         run: |
@@ -354,6 +364,7 @@ jobs:
           "psmodulepath=$defaultPath" >> $env:GITHUB_OUTPUT
 
       - name: Cache TrustedSigning PowerShell module
+        if: needs.prep.outputs.sign_artifacts == 'true'
         id: cache_trusted_signing
         uses: actions/cache@v6
         with:
@@ -361,7 +372,7 @@ jobs:
           key: TrustedSigning-0.5.8
 
       - name: Install TrustedSigning PowerShell module
-        if: steps.cache_trusted_signing.outputs.cache-hit != 'true'
+        if: needs.prep.outputs.sign_artifacts == 'true' && steps.cache_trusted_signing.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           Install-Module -Name TrustedSigning -RequiredVersion 0.5.8 -Force -Repository PSGallery
@@ -372,6 +383,7 @@ jobs:
       # module's Test-Path checks short-circuit and intermittent install
       # failures surface in dedicated steps.
       - name: Cache Microsoft.Windows.SDK.BuildTools nuget
+        if: needs.prep.outputs.sign_artifacts == 'true'
         id: cache_buildtools
         uses: actions/cache@v6
         with:
@@ -379,6 +391,7 @@ jobs:
           key: Microsoft.Windows.SDK.BuildTools-10.0.26100.4188
 
       - name: Cache Microsoft.Trusted.Signing.Client nuget
+        if: needs.prep.outputs.sign_artifacts == 'true'
         id: cache_tsclient
         uses: actions/cache@v6
         with:
@@ -386,6 +399,7 @@ jobs:
           key: Microsoft.Trusted.Signing.Client-1.0.95
 
       - name: Cache sign dotnet tool
+        if: needs.prep.outputs.sign_artifacts == 'true'
         id: cache_signcli
         uses: actions/cache@v6
         with:
@@ -393,7 +407,7 @@ jobs:
           key: SignCli-0.9.1-beta.24469.1
 
       - name: Install Microsoft.Windows.SDK.BuildTools nuget
-        if: steps.cache_buildtools.outputs.cache-hit != 'true'
+        if: needs.prep.outputs.sign_artifacts == 'true' && steps.cache_buildtools.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "Microsoft.Windows.SDK.BuildTools"
@@ -406,7 +420,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install Microsoft.Trusted.Signing.Client nuget
-        if: steps.cache_tsclient.outputs.cache-hit != 'true'
+        if: needs.prep.outputs.sign_artifacts == 'true' && steps.cache_tsclient.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "Microsoft.Trusted.Signing.Client"
@@ -419,7 +433,7 @@ jobs:
           Install-Package -Name $name -RequiredVersion $version -Source "https://www.nuget.org/api/v2/" -Destination $root -Force | Out-Null
 
       - name: Install sign dotnet tool
-        if: steps.cache_signcli.outputs.cache-hit != 'true'
+        if: needs.prep.outputs.sign_artifacts == 'true' && steps.cache_signcli.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $name = "sign"
@@ -443,16 +457,19 @@ jobs:
           go test -timeout=2m ./bldr/util/npm ./bldr/web/entrypoint/electron/bundle -run 'TestEnsureBunAddIsolatesDownloads|TestBuildRendererBundleUsesSelfContainedDistEntrypoint'
           if ($LASTEXITCODE -ne 0) { throw "Windows renderer checks failed: $LASTEXITCODE" }
 
-      - name: Build signed Windows native plugin manifests
+      # Staging leaves Windows binaries unsigned: its developer machines
+      # bypass SmartScreen, and the signer is a no-op without a profile.
+      - name: Build Windows native plugin manifests
         shell: pwsh
         env:
-          BLDR_WINDOWS_SIGN_PROFILE: ${{ vars.BLDR_WINDOWS_SIGN_PROFILE }}
-          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ vars.BLDR_WINDOWS_SIGN_ACCOUNT }}
-          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ vars.BLDR_WINDOWS_SIGN_ENDPOINT }}
+          BLDR_WINDOWS_SIGN_PROFILE: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_WINDOWS_SIGN_PROFILE || '' }}
+          BLDR_WINDOWS_SIGN_ACCOUNT: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_WINDOWS_SIGN_ACCOUNT || '' }}
+          BLDR_WINDOWS_SIGN_ENDPOINT: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_WINDOWS_SIGN_ENDPOINT || '' }}
         run: |
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-windows-arm64,plugin-release-desktop-windows-amd64
 
       - name: Verify Windows signatures
+        if: needs.prep.outputs.sign_artifacts == 'true'
         shell: pwsh
         run: |
           $files = Get-ChildItem -Path .bldr/build/desktop/windows/*/*/dist -Recurse -File | Where-Object { $_.Extension -eq ".exe" }
