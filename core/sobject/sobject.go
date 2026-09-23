@@ -147,18 +147,24 @@ func NewLocalStateStoreRefcount(
 }
 
 // Validate checks bootstrap structure or a retained configuration, including a terminal empty audience.
+// A nonempty configuration must keep an OWNER so later changes remain authorizable.
 func (c *SharedObjectConfig) Validate() error {
 	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
-	if len(c.GetParticipants()) == 0 && len(c.GetConfigChainHash()) != 32 {
-		return ErrEmptyParticipants
+	participants := c.GetParticipants()
+	if len(participants) == 0 {
+		if len(c.GetConfigChainHash()) != 32 {
+			return ErrEmptyParticipants
+		}
+		return nil
 	}
-	if len(c.GetParticipants()) > MaxParticipants {
+	if len(participants) > MaxParticipants {
 		return ErrMaxCountExceeded
 	}
 
 	// Each remaining peer has one unambiguous role in this configuration.
-	seenPeerIDs := make(map[string]struct{})
-	for i, participant := range c.GetParticipants() {
+	seenPeerIDs := make(map[string]struct{}, len(participants))
+	var hasOwner bool
+	for i, participant := range participants {
 		if err := participant.Validate(); err != nil {
 			return errors.Wrapf(err, "participants[%d]", i)
 		}
@@ -167,8 +173,13 @@ func (c *SharedObjectConfig) Validate() error {
 			return errors.Errorf("participants[%d]: duplicate peer id: %v", i, ppID)
 		}
 		seenPeerIDs[ppID] = struct{}{}
+		hasOwner = hasOwner || IsOwner(participant.GetRole())
 	}
 
+	// Remaining participants need an owner to authorize any later change.
+	if !hasOwner {
+		return ErrNoOwner
+	}
 	return nil
 }
 

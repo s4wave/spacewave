@@ -544,6 +544,8 @@ func TestVerifyChangeLogSeqnoUsesSnapshotCounter(t *testing.T) {
 	}
 }
 
+// buildTestSharedObjectConfig builds a single-validator configuration whose
+// validator is also the required OWNER.
 func buildTestSharedObjectConfig(
 	validator peer.Peer,
 	writer1 peer.Peer,
@@ -554,7 +556,7 @@ func buildTestSharedObjectConfig(
 		Participants: []*sobject.SOParticipantConfig{
 			{
 				PeerId: validator.GetPeerID().String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_VALIDATOR,
+				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
 			},
 			{
 				PeerId: writer1.GetPeerID().String(),

@@ -25,6 +25,9 @@ var (
 	// ErrEmptyParticipants is returned if no participants are specified in the SharedObjectConfig.
 	ErrEmptyParticipants = errors.New("empty shared object participants list")
 
+	// ErrNoOwner is returned if a nonempty SharedObjectConfig has no OWNER.
+	ErrNoOwner = errors.New("shared object participants have no owner")
+
 	// ErrEmptyBodyType is returned if the sobject body type was empty.
 	ErrEmptyBodyType = errors.New("empty shared object body type")
 
