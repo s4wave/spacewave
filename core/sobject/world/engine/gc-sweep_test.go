@@ -81,6 +81,36 @@ func TestQueueGCSweepTxRolePromotion(t *testing.T) {
 	}
 }
 
+// TestQueueGCSweepTxWaitsForWriteTransaction verifies that a sweep cannot
+// advance the SharedObject root while a write transaction holds its base.
+func TestQueueGCSweepTxWaitsForWriteTransaction(t *testing.T) {
+	c := &Controller{
+		le:   logrus.NewEntry(logrus.New()),
+		conf: &Config{},
+	}
+	so := &testGCSweepSharedObject{
+		snapshot: &testGCSweepSnapshot{
+			role: sobject.SOParticipantRole_SOParticipantRole_OWNER,
+		},
+	}
+
+	// Hold the write lock as an open write transaction does.
+	unlockWriteMtx, err := c.writeMtx.Lock(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlockWriteMtx()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := c.queueGCSweepTx(ctx, so); !errors.Is(err, context.Canceled) {
+		t.Fatalf("sweep during write transaction: got %v, want context.Canceled", err)
+	}
+	if len(so.queueOps) != 0 {
+		t.Fatal("sweep queued while a write transaction held its base")
+	}
+}
+
 // TestExecuteGCSweepMaintenanceWaitsForRoleChanges verifies that the
 // maintenance routine no longer exits immediately when the peer starts
 // unauthorized.
