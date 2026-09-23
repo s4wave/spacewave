@@ -339,47 +339,6 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 	}
 }
 
-func TestWebListenerRegistryAcquiresKeepalive(t *testing.T) {
-	var held int
-	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
-	reg.setKeepalive(func(listenerID string) func() {
-		if listenerID == "" {
-			t.Fatal("listener id should be set before keepalive")
-		}
-		held++
-		return func() {
-			held--
-		}
-	})
-	defer reg.setKeepalive(nil)
-	listener, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reused {
-		t.Fatal("first listener should not be reused")
-	}
-	if held != 1 {
-		t.Fatalf("held keepalives = %d, want 1", held)
-	}
-
-	reusedListener, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reused || reusedListener != listener {
-		t.Fatal("second port-0 listener should reuse existing listener")
-	}
-	if held != 1 {
-		t.Fatalf("reused listener keepalives = %d, want 1", held)
-	}
-
-	listener.Close()
-	if held != 0 {
-		t.Fatalf("held keepalives after close = %d, want 0", held)
-	}
-}
-
 func TestAccessWebListenerBackgroundResponseIncludesLifecycleData(t *testing.T) {
 	server := NewCoreRootServer(logrus.NewEntry(logrus.New()), nil)
 	defer server.Close()

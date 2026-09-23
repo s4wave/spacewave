@@ -67,12 +67,7 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	})
 	defer idleTracker.close()
 
-	rootServer.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
-		if listenerID == "" {
-			t.Fatal("listener id should be set before keepalive")
-		}
-		return idleTracker.serviceAttached()
-	})
+	startWebListenerKeepalive(ctx, le, resourceMux, idleTracker)
 
 	daemonMux := srpc.NewMux(resourceMux)
 	server := srpc.NewServer(daemonMux)
@@ -101,6 +96,8 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Wait for the keepalive to hold the listener before the client leaves.
+	waitIdleTrackerActive(t, ctx, idleTracker, 2)
 	client.close()
 
 	select {
@@ -131,6 +128,25 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	case <-idleCh:
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("expected daemon idle after background listener close")
+	}
+}
+
+// waitIdleTrackerActive waits until the tracker counts want active holds.
+func waitIdleTrackerActive(t *testing.T, ctx context.Context, tracker *daemonIdleTracker, want int) {
+	t.Helper()
+
+	for {
+		tracker.mu.Lock()
+		active := tracker.active
+		tracker.mu.Unlock()
+		if active == want {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("idle tracker active = %d, want %d", active, want)
+		case <-time.After(5 * time.Millisecond):
+		}
 	}
 }
 
@@ -377,10 +393,6 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 
 	idleTracker := newDaemonIdleTracker(time.Minute, func() {})
 	t.Cleanup(idleTracker.close)
-
-	rootServer.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
-		return idleTracker.serviceAttached()
-	})
 
 	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
 	if err != nil {

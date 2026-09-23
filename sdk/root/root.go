@@ -147,9 +147,14 @@ func (r *Root) AccessWebListener(
 	})
 }
 
+// WatchWebListeners streams the daemon-owned localhost web listeners.
+func (r *Root) WatchWebListeners(ctx context.Context) (SRPCRootResourceService_WatchWebListenersClient, error) {
+	return r.service.WatchWebListeners(ctx, &WatchWebListenersRequest{})
+}
+
 // ListWebListeners lists daemon-owned localhost web listeners.
 func (r *Root) ListWebListeners(ctx context.Context) ([]*WebListenerInfo, error) {
-	strm, err := r.service.WatchWebListeners(ctx, &WatchWebListenersRequest{})
+	strm, err := r.WatchWebListeners(ctx)
 	if err != nil {
 		return nil, err
 	}

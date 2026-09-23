@@ -155,12 +155,6 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 	)
 }
 
-// SetWebListenerKeepaliveFunc installs the daemon-lifetime hook on the root
-// resource server. The daemon composition root calls this before serving.
-func (c *Controller) SetWebListenerKeepaliveFunc(fn resource_root.WebListenerKeepaliveFunc) {
-	c.rootResource.SetWebListenerKeepaliveFunc(fn)
-}
-
 // Execute registers child controllers for the root resource lifecycle.
 func (c *Controller) Execute(ctx context.Context) error {
 	if c.parent != nil {
