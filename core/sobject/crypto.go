@@ -17,8 +17,10 @@ import (
 )
 
 const (
+	// soAuthoritativeRootDigestDomain separates authoritative root hashes.
 	soAuthoritativeRootDigestDomain = "spacewave/sharedobject/authoritative-root/v1"
-	soValidatorSetDigestDomain      = "spacewave/sharedobject/validator-set/v1"
+	// soValidatorSetDigestDomain separates canonical validator set hashes.
+	soValidatorSetDigestDomain = "spacewave/sharedobject/validator-set/v1"
 )
 
 // DigestSOOperationEnvelope hashes the exact serialized signed SOOperation envelope.
@@ -171,8 +173,8 @@ func BuildSOOperationSignatureContext(sharedObjectID string, peerID string, nonc
 	return b.String()
 }
 
-// hashNonce uses the contents of the string builder as a crypto context.
-// hashes the nonce and appends it to sb.
+// hashNonce derives a nonce token using sb's contents as its crypto context and
+// appends the token to sb.
 func hashNonce(sb *strings.Builder, nonce uint64) {
 	opNonceBytes := binary.LittleEndian.AppendUint64(nil, nonce)
 	key := make([]byte, 32)
@@ -229,7 +231,7 @@ func BuildSOGrantSignatureContext(sharedObjectID string, signerPeerID, recipient
 	return b.String()
 }
 
-// BuildSOGrantEncContext builds the context string for a encrypt inner on a SOGrant.
+// BuildSOGrantEncContext builds the context for encrypting a SOGrant's inner data.
 func BuildSOGrantEncContext(sharedObjectID string, fromPeerID string, recipientPeerID string) string {
 	var b strings.Builder
 	b.WriteString(baseCryptoContext)
@@ -262,7 +264,7 @@ func (r *SORoot) ValidateSignatures(sharedObjectID string, participants []*SOPar
 		return 0, ErrEmptyInnerData
 	}
 
-	// Validate account nonces are sorted
+	// Canonical nonce order is part of the signed root preimage.
 	if !slices.IsSortedFunc(r.GetAccountNonces(), func(a, b *SOAccountNonce) int {
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	}) {
@@ -275,7 +277,7 @@ func (r *SORoot) ValidateSignatures(sharedObjectID string, participants []*SOPar
 	}
 	defer scrub.Scrub(signData)
 
-	// Track seen validator peer IDs to detect duplicates
+	// Each validator contributes at most one signature to consensus.
 	seenValidators := make(map[string]struct{})
 
 	for i, sig := range r.GetValidatorSignatures() {
@@ -292,7 +294,6 @@ func (r *SORoot) ValidateSignatures(sharedObjectID string, participants []*SOPar
 			return 0, errors.Wrapf(err, "validator_signatures[%d]", i)
 		}
 
-		// Check for duplicate validator signatures
 		peerIDStr := peerID.String()
 		if _, ok := seenValidators[peerIDStr]; ok {
 			return 0, errors.Errorf("validator_signatures[%d]: duplicate validator signature for peer %s", i, peerIDStr)
@@ -340,14 +341,14 @@ func CheckConsensusAcceptance(mode SOConsensusMode, validSigs int) error {
 // EncryptSOGrant encrypts the inner data of a SOGrant.
 // The privKey is also used to sign the inner data.
 func EncryptSOGrant(privKey crypto.PrivKey, toPubKey crypto.PubKey, sharedObjectID string, nextInner *SOGrantInner) (*SOGrant, error) {
-	// signer peer id
+	// Bind the grant to its signer and recipient.
 	signerPeerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 	signerPeerIDStr := signerPeerID.String()
 
-	// validate
+	// Serialize a valid grant before encrypting its inner data.
 	if err := nextInner.Validate(); err != nil {
 		return nil, err
 	}
@@ -358,11 +359,9 @@ func EncryptSOGrant(privKey crypto.PrivKey, toPubKey crypto.PubKey, sharedObject
 	}
 	defer scrub.Scrub(nextInnerData)
 	if len(nextInnerData) == 0 {
-		// enforce not zero (although validate also checks this)
 		return nil, ErrEmptyInnerData
 	}
 
-	// to peer id
 	toPeerID, err := peer.IDFromPublicKey(toPubKey)
 	if err != nil {
 		return nil, err
@@ -432,7 +431,7 @@ func (g *SOGrant) DecryptInnerData(privKey crypto.PrivKey, sharedObjectID string
 	return innerDataObj, nil
 }
 
-// ValidateSignature validates the signature on a SOOperation.
+// ValidateSignature binds a SOOperation to its signing writer and object.
 func (op *SOOperation) ValidateSignature(sharedObjectID string, participants []*SOParticipantConfig) error {
 	if len(op.GetInner()) == 0 {
 		return ErrEmptyInnerData
@@ -465,10 +464,13 @@ func (op *SOOperation) ValidateSignature(sharedObjectID string, participants []*
 		return ErrNotParticipant
 	}
 
-	// Unmarshal the inner data to get the nonce
+	// Bind the operation's nonce and local-ID namespace to its signing peer.
 	inner := &SOOperationInner{}
 	if err := inner.UnmarshalVT(op.GetInner()); err != nil {
 		return errors.Wrap(err, "failed to unmarshal inner data")
+	}
+	if inner.GetPeerId() != peerIDStr {
+		return errors.New("signer peer ID does not match inner peer ID")
 	}
 
 	encContext := BuildSOOperationSignatureContext(sharedObjectID, peerIDStr, inner.GetNonce(), inner.GetLocalId())
@@ -566,7 +568,7 @@ func (r *SOOperationRejection) ValidateSignature(sharedObjectID string, particip
 		return nil, ErrEmptyValidatorSignatures
 	}
 
-	// Parse the inner data
+	// Parse and validate the signed rejection before verifying its context.
 	inner := &SOOperationRejectionInner{}
 	if err := inner.UnmarshalVT(r.GetInner()); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal inner data")

@@ -70,6 +70,8 @@ func (s *SOState) Validate(sharedObjectID string) error {
 
 	// Pending operations are signed and strictly increase in nonce per peer.
 	seenOpNonces := make(map[string]uint64)
+	queuedLocalIDs := make(map[string]map[string]struct{})
+	queuedNonces := make(map[string]map[uint64]struct{})
 	for i, op := range s.GetOps() {
 		if err := op.Validate(); err != nil {
 			return errors.Wrapf(err, "ops[%d]", i)
@@ -89,6 +91,15 @@ func (s *SOState) Validate(sharedObjectID string) error {
 			return errors.Errorf("ops[%d]: duplicate or out-of-order nonce for peer %s", i, peerID)
 		}
 		seenOpNonces[peerID] = nonce
+		if queuedLocalIDs[peerID] == nil {
+			queuedLocalIDs[peerID] = make(map[string]struct{})
+			queuedNonces[peerID] = make(map[uint64]struct{})
+		}
+		if _, ok := queuedLocalIDs[peerID][inner.GetLocalId()]; ok {
+			return errors.Errorf("ops[%d]: duplicate local id for peer %s", i, peerID)
+		}
+		queuedLocalIDs[peerID][inner.GetLocalId()] = struct{}{}
+		queuedNonces[peerID][nonce] = struct{}{}
 	}
 
 	// Queued nonces hold one entry per peer, sorted by peer ID.
@@ -144,6 +155,12 @@ func (s *SOState) Validate(sharedObjectID string) error {
 				return errors.Errorf("op_rejections[%d].rejections[%d]: duplicate local id %s", i, j, inner.GetLocalId())
 			}
 			seenLocalIDs[inner.GetLocalId()] = struct{}{}
+			if _, ok := queuedLocalIDs[peerID][inner.GetLocalId()]; ok {
+				return errors.Errorf("op_rejections[%d].rejections[%d]: local id is still queued", i, j)
+			}
+			if _, ok := queuedNonces[peerID][inner.GetOpNonce()]; ok {
+				return errors.Errorf("op_rejections[%d].rejections[%d]: nonce is still queued", i, j)
+			}
 		}
 	}
 
@@ -197,6 +214,12 @@ func (s *SOState) UpdateRootState(
 		return strings.Compare(a.GetPeerId(), b.GetPeerId())
 	})
 
+	// Preserve consumed nonces even when an explicitly accepted batch is ahead
+	// of the root's account nonce projection.
+	for _, inner := range innerAcceptedOps {
+		s.updateQueuedAccountNonce(inner.GetPeerId(), inner.GetNonce())
+	}
+
 	// Advance the root and drop pending state it resolves.
 	s.Root = nextRootState.CloneVT()
 	s.Ops = FilterResolvedOperations(
@@ -227,6 +250,19 @@ func (s *SOState) validateNextRootState(
 	if err := nextRootState.Validate(); err != nil {
 		return err
 	}
+
+	// A later root cannot forget operations already committed by an earlier one.
+	nextNonces := make(map[string]uint64, len(nextRootState.GetAccountNonces()))
+	for _, nonce := range nextRootState.GetAccountNonces() {
+		nextNonces[nonce.GetPeerId()] = nonce.GetNonce()
+	}
+	for _, nonce := range s.GetRoot().GetAccountNonces() {
+		if nextNonces[nonce.GetPeerId()] < nonce.GetNonce() {
+			return errors.Wrap(ErrInvalidNonce, "root account nonce rollback")
+		}
+	}
+
+	// The held configuration authorizes every signature on the next root.
 	validSigs, err := nextRootState.ValidateSignatures(
 		sharedObjectID,
 		s.GetConfig().GetParticipants(),
@@ -339,8 +375,15 @@ func (s *SOState) GetOperationStatus(peerID, localID string) (*SOOperation, *SOO
 }
 
 // GetNextAccountNonce advances past every queued, committed, or rejected write.
+// Zero means the uint64 nonce space is exhausted; QueueOperation rejects it.
 func (s *SOState) GetNextAccountNonce(peerID string) uint64 {
 	var current uint64
+	for _, op := range s.GetOps() {
+		inner, err := op.UnmarshalInner()
+		if err == nil && inner.GetPeerId() == peerID {
+			current = max(current, inner.GetNonce())
+		}
+	}
 	for _, nonce := range s.GetQueuedAccountNonces() {
 		if nonce.GetPeerId() == peerID {
 			current = max(current, nonce.GetNonce())
@@ -509,6 +552,9 @@ func (s *SOState) ClearOperationResult(sharedObjectID string, clearOp *SOClearOp
 			if rejInner.GetLocalId() != inner.GetLocalId() {
 				continue
 			}
+
+			// Keep the consumed nonce after its visible rejection is cleared.
+			s.updateQueuedAccountNonce(signerPeerIDStr, rejInner.GetOpNonce())
 			peerRejections.Rejections = slices.Delete(peerRejections.Rejections, j, j+1)
 			if len(peerRejections.GetRejections()) == 0 {
 				s.OpRejections = slices.Delete(s.OpRejections, i, i+1)

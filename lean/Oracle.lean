@@ -1,5 +1,5 @@
 import Lean.Data.Json
-import Spacewave.SObject.ConfigChain
+import Spacewave.SObject.State
 
 /-!
 # Conformance oracle
@@ -10,6 +10,14 @@ per line. A request names a model function in `op` and carries its inputs:
 - `verifyChange`: `current`, `entry`; result `{"ok", "config"}`.
 - `verifySuffix`: `current`, `candidate`, `entries`; result `{"ok"}`.
 - `verifyChain`: `entries`; result `{"ok"}`.
+- `validateState`: `state`; result `{"ok"}`.
+- `validateNextRootState`: `state`, `root`, `enforce`; result `{"ok"}`.
+- `getNextAccountNonce`: `state`, `peer`; result `{"ok", "nonce"}`.
+- `queueOperation`: `state`, `operation`; result `{"ok", "state"}`.
+- `updateRootState`: `state`, `root`, `enforce`, `rejected`, `accepted`;
+  result `{"ok", "state"}`.
+- `clearOperationResult`: `state`, `peer`, `localId`, `format`, `sig`;
+  result `{"ok", "state"}`.
 
 A request the oracle cannot parse yields `{"error"}`. Field names match the
 model structures and the projection in `core/sobject/lean-conformance_test.go`.
@@ -18,6 +26,7 @@ model structures and the projection in `core/sobject/lean-conformance_test.go`.
 open Lean Spacewave.SObject
 
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
+deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Root, State
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
@@ -33,6 +42,31 @@ def respond (req : Json) : Except String Json := do
   | "verifyChain" =>
     let ok := (verifyChain (← req.getObjValAs? (List Entry) "entries")).isSome
     return json% {ok: $ok}
+  | "validateState" =>
+    return json% {ok: $((← req.getObjValAs? State "state").validate)}
+  | "validateNextRootState" =>
+    let ok := validateNextRootState (← req.getObjValAs? State "state")
+      (← req.getObjValAs? Root "root") (← req.getObjValAs? String "enforce")
+    return json% {ok: $ok}
+  | "getNextAccountNonce" =>
+    let nonce := getNextAccountNonce (← req.getObjValAs? State "state")
+      (← req.getObjValAs? String "peer")
+    return json% {ok: true, nonce: $nonce}
+  | "queueOperation" =>
+    let result := queueOperation (← req.getObjValAs? State "state")
+      (← req.getObjValAs? Operation "operation")
+    return json% {ok: $(result.isSome), state: $result}
+  | "updateRootState" =>
+    let result := updateRootState (← req.getObjValAs? State "state")
+      (← req.getObjValAs? Root "root") (← req.getObjValAs? String "enforce")
+      (← req.getObjValAs? (List Operation) "rejected")
+      (← req.getObjValAs? (List Operation) "accepted")
+    return json% {ok: $(result.isSome), state: $result}
+  | "clearOperationResult" =>
+    let result := clearOperationResult (← req.getObjValAs? State "state")
+      (← req.getObjValAs? String "peer") (← req.getObjValAs? String "localId")
+      (← req.getObjValAs? Bool "format") (← req.getObjValAs? Sig "sig")
+    return json% {ok: $(result.isSome), state: $result}
   | op => throw s!"unknown op {op}"
 
 /-- serve answers requests until standard input closes. -/

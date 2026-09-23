@@ -67,6 +67,10 @@ type leanCase struct {
 	ok bool
 	// config is Go's resulting configuration for verifyChange, when accepted.
 	config *leanConfig
+	// field names an additional result field to compare as abstract JSON.
+	field string
+	// value is the projected Go result for field.
+	value []byte
 }
 
 // checkLeanCases runs every case through one oracle process and compares its
@@ -80,7 +84,7 @@ func checkLeanCases(t *testing.T, oracle string, cases []leanCase) {
 		input.Write(c.request)
 		input.WriteByte('\n')
 	}
-	cmd := exec.Command(oracle)
+	cmd := exec.CommandContext(t.Context(), oracle)
 	cmd.Stdin = &input
 	out, err := cmd.Output()
 	if err != nil {
@@ -108,6 +112,16 @@ func checkLeanCases(t *testing.T, oracle string, cases []leanCase) {
 		if ok := v.GetBool("ok"); ok != c.ok {
 			t.Fatalf("%s: go ok=%v lean ok=%v\nrequest: %s", c.name, c.ok, ok, c.request)
 		}
+		if c.field != "" {
+			var expectedParser fastjson.Parser
+			expected, err := expectedParser.ParseBytes(c.value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !equalLeanJSON(v.Get(c.field), expected) {
+				t.Fatalf("%s: %s differs\ngo: %s\nlean: %s\nrequest: %s", c.name, c.field, c.value, v.Get(c.field), c.request)
+			}
+		}
 		if c.config == nil {
 			continue
 		}
@@ -121,11 +135,17 @@ func checkLeanCases(t *testing.T, oracle string, cases []leanCase) {
 // configChainScenario walks one random configuration chain with real keys,
 // recording each decision Go makes as a leanCase.
 type configChainScenario struct {
-	t     *testing.T
-	rng   *rand.Rand
-	ids   []string
+	// t reports generation failures.
+	t *testing.T
+	// rng selects repeatable changes from the scenario seed.
+	rng *rand.Rand
+	// ids names each generated signer.
+	ids []string
+	// privs contains the matching signing keys.
 	privs []crypto.PrivKey
+	// arena owns projected JSON until the scenario finishes.
 	arena fastjson.Arena
+	// cases records Go's decisions for the oracle.
 	cases []leanCase
 }
 
@@ -297,9 +317,10 @@ func (s *configChainScenario) change(cur *SharedObjectConfig) *SOConfigChange {
 
 	// Build the proposed configuration for the change type.
 	next := cur.CloneVT()
-	if enroll && s.rng.IntN(4) != 0 {
+	switch {
+	case enroll && s.rng.IntN(4) != 0:
 		s.enroll(next, signer)
-	} else {
+	default:
 		s.mutate(next)
 	}
 
@@ -494,17 +515,24 @@ func projectLeanSignature(entry *SOConfigChange) (string, bool) {
 
 // leanParticipant mirrors the Lean Participant structure.
 type leanParticipant struct {
-	peer   string
-	role   int32
+	// peer is the participant's serialized peer ID.
+	peer string
+	// role preserves the protobuf enum code, including unknown values.
+	role int32
+	// entity is the owning entity's ID.
 	entity string
 }
 
 // leanConfig mirrors the Lean Config structure.
 type leanConfig struct {
+	// participants preserves participant order and duplicates.
 	participants []leanParticipant
-	mode         int32
-	hash         string
-	seqno        uint64
+	// mode preserves the consensus enum code.
+	mode int32
+	// hash is the hexadecimal configuration chain head hash.
+	hash string
+	// seqno is the chain head's uint64 sequence number.
+	seqno uint64
 }
 
 // projectLeanConfig projects a Go configuration. A peer ID that does not parse
