@@ -467,7 +467,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 			&bucket.ObjectRef{BucketId: "manifest-bucket"},
 			inputManifest,
 		)
-		if err := enrichBuilderResultForStartupReuse(builderConfig, controllerConfig, builderResult); err != nil {
+		if _, err := enrichBuilderResultForStartupReuse(builderConfig, controllerConfig, builderResult, time.Now()); err != nil {
 			t.Fatal(err)
 		}
 		return builderResult.GetInputManifest()
@@ -524,7 +524,7 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 		SourcePath:   tmpDir,
 	}
 
-	if err := enrichBuilderResultForStartupReuse(builderConfig, &configset_proto.ControllerConfig{}, builderResult); err != nil {
+	if _, err := enrichBuilderResultForStartupReuse(builderConfig, &configset_proto.ControllerConfig{}, builderResult, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -554,6 +554,40 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	}
 	if !foundCacheFormat {
 		t.Fatal("expected startup cache format marker input")
+	}
+}
+
+// TestEnrichBuilderResultRejectsInputChangedDuringBuild covers a source edit
+// that lands while the compiler runs: the captured hash matches the new
+// content, but the output was built from the old content.
+func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
+	tmpDir := t.TempDir()
+	buildStart := time.Now()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
+	builderResult := bldr_manifest_builder.NewBuilderResult(
+		bldr_manifest.NewManifest(meta, "dist/demo"),
+		&bucket.ObjectRef{BucketId: "manifest-bucket"},
+		bldr_manifest_builder.NewInputManifest([]string{"main.go"}, nil),
+	)
+	builderConfig := &bldr_manifest_builder.BuilderConfig{
+		ManifestMeta: meta,
+		SourcePath:   tmpDir,
+	}
+	controllerConfig := &configset_proto.ControllerConfig{}
+
+	changedInput, err := enrichBuilderResultForStartupReuse(builderConfig, controllerConfig, builderResult, buildStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changedInput != "main.go" {
+		t.Fatalf("expected main.go reported as changed, got %q", changedInput)
+	}
+	if err := validateStartupInputs(controllerConfig, nil, builderResult.GetInputManifest()); err == nil {
+		t.Fatal("expected next startup to reject the result")
 	}
 }
 
@@ -1151,13 +1185,14 @@ func buildStartupBuilderResult(
 		&bucket.ObjectRef{BucketId: "startup-bucket"},
 		bldr_manifest_builder.NewInputManifest([]string{"main.go"}, nil),
 	)
-	if err := enrichBuilderResultForStartupReuse(
+	if _, err := enrichBuilderResultForStartupReuse(
 		&bldr_manifest_builder.BuilderConfig{
 			ManifestMeta: meta,
 			SourcePath:   sourcePath,
 		},
 		controllerConfig,
 		builderResult,
+		time.Now(),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -1205,7 +1240,7 @@ func buildStoredStartupBuilderResult(
 		manifestRef.GetManifestRef(),
 		bldr_manifest_builder.NewInputManifest([]string{"main.go"}, nil),
 	)
-	if err := enrichBuilderResultForStartupReuse(
+	if _, err := enrichBuilderResultForStartupReuse(
 		&bldr_manifest_builder.BuilderConfig{
 			ManifestMeta: meta,
 			SourcePath:   sourcePath,
@@ -1213,6 +1248,7 @@ func buildStoredStartupBuilderResult(
 		},
 		controllerConfig,
 		builderResult,
+		time.Now(),
 	); err != nil {
 		t.Fatal(err)
 	}

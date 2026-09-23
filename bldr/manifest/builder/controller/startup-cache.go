@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
@@ -287,29 +288,40 @@ func (c *Controller) validateStartupManifestDeps(
 }
 
 // enrichBuilderResultForStartupReuse adds generic startup validation inputs.
+//
+// Identities are captured after the build, so an input modified at or after
+// buildStart may hold content the build never read. In that case the result
+// gets no startup inputs, validation misses on the next startup, and the path
+// of the changed input is returned.
 func enrichBuilderResultForStartupReuse(
 	builderConfig *bldr_manifest_builder.BuilderConfig,
 	controllerConfig *configset_proto.ControllerConfig,
 	builderResult *bldr_manifest_builder.BuilderResult,
-) error {
+	buildStart time.Time,
+) (string, error) {
 	// Builders without input provenance cannot contribute startup cache metadata.
 	if builderResult == nil {
-		return nil
+		return "", nil
 	}
 	inputManifest := builderResult.GetInputManifest()
 	if inputManifest == nil {
-		return nil
+		return "", nil
 	}
 
-	// Capture source identities and output policy alongside compiler inputs.
+	// Capture source identities and refuse reuse when one changed mid-build.
 	if err := captureFileIdentities(builderConfig.GetSourcePath(), inputManifest); err != nil {
-		return err
+		return "", err
+	}
+	for _, inputFile := range inputManifest.GetFiles() {
+		if inputFile.GetIdentity().GetModTimeUnixNano() >= buildStart.UnixNano() {
+			return inputFile.GetPath(), nil
+		}
 	}
 
 	// Bind startup reuse to the effective controller configuration and format.
 	controllerConfigDigest, err := marshalStartupConfigDigest(controllerConfig, builderConfig.GetBuildPolicy())
 	if err != nil {
-		return err
+		return "", err
 	}
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
@@ -317,7 +329,7 @@ func enrichBuilderResultForStartupReuse(
 	inputManifest.AddStartupInput(newStartupCacheFormatInput())
 	inputManifest.SortStartupInputs()
 	inputManifest.SortFiles()
-	return nil
+	return "", nil
 }
 
 // addSubManifestResultForStartupReuse merges a validated sub-manifest

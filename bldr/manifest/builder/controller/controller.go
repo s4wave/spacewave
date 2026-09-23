@@ -235,6 +235,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		var result *bldr_manifest_builder.BuilderResult
 		var err error
 		cacheHit := false
+		var buildStart time.Time
 		var buildManifestDeps []*bldr_manifest_builder.InputManifest_ManifestDep
 		var buildManifestDepRefs map[string]*bucket.ObjectRef
 
@@ -306,6 +307,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 
 			// Call the builder controller BuildManifest function.
+			buildStart = time.Now()
 			result, err = builderCtrl.BuildManifest(attempt.ctx, args, builderHost)
 			pluginBuildPermit.Release()
 			if ctx.Err() != nil {
@@ -354,7 +356,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 		if err == nil && !cacheHit {
-			err = enrichBuilderResultForStartupReuse(builderConfig, c.c.GetControllerConfig(), result)
+			var changedInput string
+			changedInput, err = enrichBuilderResultForStartupReuse(
+				builderConfig,
+				c.c.GetControllerConfig(),
+				result,
+				buildStart,
+			)
+			if changedInput != "" {
+				le.WithField("input", changedInput).
+					Warn("input changed during build, next startup will rebuild")
+			}
 		}
 
 		// Set the result promise
