@@ -8,7 +8,7 @@ replace (
 	// aperture: use compatibility forks
 	// https://github.com/dgraph-io/badger/pull/2048
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65
-	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20260705010846-938e2bd5962c // main
+	github.com/dgraph-io/badger/v4 => github.com/aperturerobotics/badger-go/v4 v4.0.0-20260923001918-fabba1bbc502 // main
 	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260922205806-ef08161157dc // main
 
 	// aperture: use ext-engines forks
@@ -49,7 +49,7 @@ require (
 	github.com/aperturerobotics/util v1.34.10-0.20260908052533-9b98f88c3976 // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
-	github.com/dgraph-io/badger/v4 v4.9.6
+	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced
 	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/dolthub/go-mysql-server v0.20.0
 	github.com/dolthub/vitess v0.0.0-20260617012411-2f308f6cdc23
@@ -124,8 +124,9 @@ require (
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
 	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
-	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -166,8 +167,9 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zeebo/assert v1.3.0 // indirect
-	go.opencensus.io v0.24.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.41.0 // indirect
+	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/net v0.59.0 // indirect
