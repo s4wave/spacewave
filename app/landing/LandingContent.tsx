@@ -67,7 +67,7 @@ function Section({
         'relative w-full px-4 py-20 @lg:px-8 @2xl:px-12',
         reveal &&
           cn(
-            'transition-all duration-700',
+            'transition duration-700',
             isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
           ),
         className,
@@ -124,7 +124,7 @@ function CtaButton({
     <button
       onClick={onClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5',
+        'flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5',
         variant === 'primary'
           ? 'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
@@ -244,7 +244,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
       role="button"
       tabIndex={0}
       className={cn(
-        'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition-all',
+        'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition',
         isOpen
           ? 'border-foreground/12 bg-background-card/60'
           : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
@@ -265,7 +265,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
         </h3>
         <div
           className={cn(
-            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition-all',
+            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md transition',
             isOpen
               ? 'bg-brand/12 text-brand rotate-45'
               : 'bg-foreground/6 text-foreground-alt group-hover:bg-brand/8 group-hover:text-brand',
@@ -907,8 +907,8 @@ function HowItWorksSection() {
       <SectionTitle>All your devices. One system.</SectionTitle>
       <SectionSubtitle>
         Spacewave turns your devices into an encrypted network. Every device
-        runs a full workspace - apps, files, data - syncing directly with the
-        others.
+        runs a full workspace with its apps, files and data, and syncs directly
+        with the others.
       </SectionSubtitle>
 
       <div className="grid gap-8 @lg:grid-cols-2">
@@ -966,46 +966,46 @@ const CASE_HIGHLIGHTS = [
   'Files & data',
   'Devices & servers',
   'Apps & tools',
-  'Knowledge & planning',
+  'Notes & knowledge',
   'Social & messaging',
   'CLI & automation',
 ]
 
 const USE_CASES = [
   {
-    title: 'Share and collaborate',
+    title: 'Own your files',
     description:
-      'Files, databases, and code \u2014 synced across your whole team in real time. Conflicts resolve on their own.',
+      'A private Drive in your browser that syncs to every device you link, with encrypted cloud backup only if you want it.',
     href: '/landing/drive',
   },
   {
-    title: 'Control from anywhere',
+    title: 'Reach your computers',
     description:
-      'Reach any device in your swarm from anywhere. Terminal, desktop, or custom interface. It just works.',
+      'Link machines with the CLI or add SSH hosts, then open a terminal from one Computers dashboard.',
     href: '/landing/devices',
   },
   {
     title: 'Build anything',
     description:
-      'Create tools and apps with the full-stack SDK. Ship them instantly to every device in your swarm.',
+      'Plugins in Go or TypeScript add new kinds of objects, like a SQL Database, and run on your own devices.',
     href: '/landing/plugins',
   },
   {
     title: 'Think clearly',
     description:
-      'Notes, tasks, and plans on your devices. Structured for how you think. Synced across everything.',
+      'A Markdown notebook that lives on your devices, works offline, and syncs when they reconnect.',
     href: '/landing/notes',
   },
   {
     title: 'Talk privately',
     description:
-      'Encrypted messaging for your people. Friends, family, or team. A space that belongs to you.',
+      'Encrypted channels in a Space you own. The history stays on your devices and those of the people you invite.',
     href: '/landing/chat',
   },
   {
     title: 'Command your stack',
     description:
-      'Terminal-first tools for everything. Script it, automate it, pipe it. Full control from the command line.',
+      'One spacewave binary for Spaces, files and devices. Script it from a shell or run it on a headless server.',
     href: '/landing/cli',
   },
 ]
@@ -1033,7 +1033,7 @@ function UseCaseCard({
       ref={ref}
       href={resolvedHref}
       className={cn(
-        'feature-reveal-delay border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition-all duration-500',
+        'feature-reveal-delay border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition duration-500',
         visible
           ? 'translate-y-0 opacity-100 hover:-translate-y-1'
           : 'translate-y-8 opacity-0',
@@ -1112,7 +1112,7 @@ function ArchitectureStackDiagram() {
             <div
               key={layer.name}
               className={cn(
-                'landing-stack-delay transition-all duration-500',
+                'landing-stack-delay transition duration-500',
                 visible
                   ? 'translate-x-0 opacity-100'
                   : '-translate-x-4 opacity-0',
@@ -1142,7 +1142,7 @@ function ArchitectureStackDiagram() {
                     </div>
                     <div
                       className={cn(
-                        'landing-stack-delay border-brand/15 text-brand/60 flex items-center gap-1 rounded-full border px-2 py-0.5 micro-fine font-medium transition-all duration-500',
+                        'landing-stack-delay border-brand/15 text-brand/60 flex items-center gap-1 rounded-full border px-2 py-0.5 micro-fine font-medium transition duration-500',
                         visible ? 'opacity-100' : 'opacity-0',
                       )}
                       style={{
@@ -1180,7 +1180,7 @@ function ArchitectureStackDiagram() {
 
       <div
         className={cn(
-          'landing-cta-delay mt-3 flex items-center justify-end gap-1.5 transition-all duration-500',
+          'landing-cta-delay mt-3 flex items-center justify-end gap-1.5 transition duration-500',
           visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
         )}
         style={{ '--landing-cta-delay': '600ms' }}
@@ -1199,7 +1199,7 @@ function ArchitectureStackDiagram() {
 const DEV_CARDS = [
   {
     title: 'Full-stack, one API',
-    body: 'Databases, networking, files, and UI \u2014 one SDK covers everything you need. Write in Go or TypeScript.',
+    body: 'Databases, networking, files and UI share one SDK. Write in Go or TypeScript.',
   },
   {
     title: 'Deploy everywhere',

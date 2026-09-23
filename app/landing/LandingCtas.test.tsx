@@ -4,8 +4,8 @@ import { renderToString } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { StaticProvider } from '@s4wave/app/prerender/StaticContext.js'
-import { getQuickstartOption } from '@s4wave/app/quickstart/options.js'
 import { RouterProvider } from '@s4wave/web/router/router.js'
+
 import { LandingChat } from './LandingChat.js'
 import { LandingCli } from './LandingCli.js'
 import { LandingDevices } from './LandingDevices.js'
@@ -30,10 +30,44 @@ function renderStaticWithRouter(node: ReactNode) {
 }
 
 interface LandingCase {
-  renderPage: () => void
+  page: ReactNode
   label: string
   href: string
 }
+
+// LANDING_CASES pairs each use-case page with its primary action.
+const LANDING_CASES: LandingCase[] = [
+  {
+    page: <LandingDrive />,
+    label: 'Create a Drive',
+    href: '#/quickstart/drive',
+  },
+  {
+    page: <LandingNotes />,
+    label: 'Create a notebook',
+    href: '#/quickstart/notebook',
+  },
+  {
+    page: <LandingChat />,
+    label: 'Start a chat',
+    href: '#/quickstart/chat',
+  },
+  {
+    page: <LandingDevices />,
+    label: 'Add a device',
+    href: '#/quickstart/device',
+  },
+  {
+    page: <LandingPlugins />,
+    label: 'Create a SQL Database',
+    href: '#/quickstart/sql',
+  },
+  {
+    page: <LandingCli />,
+    label: 'Download the CLI',
+    href: '#/download/cli',
+  },
+]
 
 describe('use-case landing CTAs', () => {
   afterEach(() => {
@@ -41,41 +75,8 @@ describe('use-case landing CTAs', () => {
   })
 
   it('wires the primary action for each use-case page to a real app entry point', () => {
-    const cases: LandingCase[] = [
-      {
-        renderPage: () => renderWithRouter(<LandingDrive />),
-        label: 'Create a Drive',
-        href: '#/quickstart/drive',
-      },
-      {
-        renderPage: () => renderWithRouter(<LandingDevices />),
-        label: 'Link a device',
-        href: '#/pair',
-      },
-      {
-        renderPage: () => renderWithRouter(<LandingPlugins />),
-        label: 'Read the SDK docs',
-        href: '#/docs',
-      },
-      {
-        renderPage: () => renderWithRouter(<LandingNotes />),
-        label: 'Start writing',
-        href: '#/quickstart/notebook',
-      },
-      {
-        renderPage: () => renderWithRouter(<LandingChat />),
-        label: 'Start a conversation',
-        href: '#/quickstart/chat',
-      },
-      {
-        renderPage: () => renderWithRouter(<LandingCli />),
-        label: 'Download the CLI',
-        href: '#/download/cli',
-      },
-    ]
-
-    for (const testCase of cases) {
-      testCase.renderPage()
+    for (const testCase of LANDING_CASES) {
+      renderWithRouter(testCase.page)
       expect(
         screen.getByRole('link', { name: testCase.label }).getAttribute('href'),
       ).toBe(testCase.href)
@@ -96,42 +97,15 @@ describe('use-case landing CTAs', () => {
     ).toBe('/landing')
   })
 
-  it('states the drive content contract before stack proof', () => {
-    const html = renderToString(
-      <RouterProvider path="/landing/drive" onNavigate={() => {}}>
-        <StaticProvider>
-          <LandingDrive />
-        </StaticProvider>
-      </RouterProvider>,
-    )
-    const quickstart = getQuickstartOption('drive')
-
-    expect(html).toContain('Private files in your browser.')
-    expect(html).toContain('works offline')
-    expect(html).toContain('syncs through your devices')
-    expect(html).toContain('optional backup path')
-    expect(html).toContain('Create a Drive')
-    expect(quickstart.description).toContain('offline work')
-    expect(quickstart.description).toContain('device sync')
-
-    expect(
-      html.indexOf('The Drive Quickstart creates a real workspace'),
-    ).toBeLessThan(html.indexOf('content-addressed block DAG'))
-    expect(html).toContain('Hydra')
-    expect(html).toContain('Bifrost')
-    expect(html).not.toContain('SpaceSettings')
-    expect(html).not.toContain('release-WASM')
-  })
-
-  it('server-renders the drive landing page without falling back to client-only state', () => {
-    const tree = (
-      <RouterProvider path="/landing/drive" onNavigate={() => {}}>
-        <StaticProvider>
-          <LandingDrive />
-        </StaticProvider>
-      </RouterProvider>
-    )
-
-    expect(() => renderToString(tree)).not.toThrow()
+  it('server-renders every use-case page without client-only state', () => {
+    for (const testCase of LANDING_CASES) {
+      const html = renderToString(
+        <RouterProvider path="/landing" onNavigate={() => {}}>
+          <StaticProvider>{testCase.page}</StaticProvider>
+        </RouterProvider>,
+      )
+      expect(html).toContain(testCase.label)
+      expect(html).not.toContain('data-spacewave-app')
+    }
   })
 })

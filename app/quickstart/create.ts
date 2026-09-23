@@ -80,6 +80,7 @@ import {
 
 import { type QuickstartSpaceCreateId } from './options.js'
 import { markQuickstartStartupBoundary } from './startup-boundary.js'
+import { DRIVE_STARTER_GUIDE_NAME } from './drive-starter-guide.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const V86_PLUGIN_ID = 'spacewave-v86'
@@ -100,7 +101,6 @@ const QUICKSTART_RECOVER_LOCAL_SESSION_TIMEOUT_MS = import.meta.env?.DEV
   : 15000
 const KV_QUICKSTART_STORE_KEY = 'kv/store'
 const SQL_QUICKSTART_DB_KEY = 'sql/db'
-const DRIVE_STARTER_GUIDE_NAME = 'getting-started.md'
 const DEVICE_QUICKSTART_DASHBOARD_KEY = 'computers'
 const DRIVE_STARTER_GUIDE_CONTENT = `# Getting Started
 

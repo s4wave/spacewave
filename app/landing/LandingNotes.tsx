@@ -1,112 +1,103 @@
 import {
   LuBookOpen,
-  LuCheck,
-  LuCloudOff,
+  LuFileText,
   LuFolder,
-  LuRocket,
-  LuSearch,
-  LuWifiOff,
+  LuLayoutGrid,
+  LuNotebookPen,
 } from 'react-icons/lu'
+
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
-import { NotesLandingDemo } from './LandingDemos.js'
-import { LegalPageLayout } from './LegalPageLayout.js'
-import { UseCaseCallout } from './UseCaseCallout.js'
-import { UseCaseCtaLink, UseCaseCtaRow } from './UseCaseCtaRow.js'
-import {
-  UseCaseFeatureGrid,
-  type UseCaseFeature,
-} from './UseCaseFeatureGrid.js'
-import { UseCaseSection } from './UseCaseSection.js'
+
+import { UseCaseDemo } from './use-case/UseCaseDemo.js'
+import { UseCasePage } from './use-case/UseCasePage.js'
 
 export const metadata = {
-  title: 'Spacewave Notes - Think clearly. On your terms.',
+  title: 'Spacewave Notes - Write it down. Keep it yours.',
   description:
-    'Markdown-native notes with offline-first sync, folder organization, and full-text search. No cloud dependency. Your thoughts stay on your devices.',
+    'Try a real Spacewave notebook in your browser. Notes are Markdown files in a private Space that syncs to the devices you link.',
   canonicalPath: '/landing/notes',
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-const FEATURES: UseCaseFeature[] = [
-  {
-    icon: LuBookOpen,
-    title: 'Markdown native',
-    description:
-      'Write in plain Markdown. No proprietary format, no lock-in. Your notes are portable text files you can open anywhere.',
-  },
-  {
-    icon: LuCloudOff,
-    title: 'Offline-first',
-    description:
-      'Every note lives on your device. Write on a plane, in a cafe, or in the middle of nowhere. Sync happens when you reconnect.',
-  },
-  {
-    icon: LuFolder,
-    title: 'Folder organization',
-    description:
-      'Organize notes into folders and sub-folders. Simple hierarchy that matches how you think. No forced tagging systems.',
-  },
-  {
-    icon: LuSearch,
-    title: 'Full-text search',
-    description:
-      'Find anything across all your notes instantly. Search is local and fast because your data is on your device.',
-  },
-  {
-    icon: LuWifiOff,
-    title: 'No cloud dependency',
-    description:
-      'Spacewave Notes works without any server. Add cloud sync later if you want, but it is never required.',
-  },
-  {
-    icon: LuRocket,
-    title: 'Multi-device sync',
-    description:
-      'Start a note on your laptop, continue on your phone. Changes sync across your swarm in real time via encrypted P2P.',
-  },
-]
-
-// LandingNotes renders the Knowledge & Planning use-case landing page.
-export function LandingNotes() {
+// LandingNotes renders the Notes use-case page. live mounts the demo notebook.
+export function LandingNotes({ live = false }: { live?: boolean }) {
   const landingHref = useStaticHref('/landing')
-  const notebookHref = '#/quickstart/notebook'
 
   return (
-    <LegalPageLayout
+    <UseCasePage
       icon={<LuBookOpen className="size-8" />}
-      title="Think clearly. On your terms."
-      subtitle="A place for your thoughts that respects your privacy. Markdown notes that sync across your devices without touching a server."
+      title="Write it down. Keep it yours."
+      subtitle="Spacewave Notes keeps a Markdown notebook in a private Space on your own devices. It works offline and syncs when your devices meet."
+      points={[
+        {
+          title: 'Notes are files',
+          body: "Each note is a Markdown or Org file in the Space's file system. Drive shows the same files, so nothing is locked in a format.",
+        },
+        {
+          title: 'Offline by default',
+          body: 'The notebook lives in local storage on each linked device. Write without a connection and the others catch up when they reconnect.',
+        },
+        {
+          title: 'Encrypted end to end',
+          body: 'Notes are encrypted on your devices. Spacewave Cloud backup is optional and only stores data encrypted before upload.',
+        },
+      ]}
+      keepTitle="Keep your notebook"
+      keepBody="The demo lives in memory and is gone when you leave. The Notebook Quickstart creates the same Space in your browser's storage, where it stays until you delete it."
+      primary={{
+        href: '#/quickstart/notebook',
+        label: 'Create a notebook',
+        icon: LuNotebookPen,
+      }}
+      secondary={{
+        href: landingHref,
+        label: 'See all features',
+        icon: LuLayoutGrid,
+      }}
     >
-      <UseCaseSection>
-        <UseCaseFeatureGrid features={FEATURES} />
-      </UseCaseSection>
+      <UseCaseDemo
+        demo="notes"
+        live={live}
+        label="Notes"
+        poster={<NotesPoster />}
+        suggestions={[
+          'Open welcome in My Notes to read it.',
+          'Press New note, give it a name, and write a few lines of Markdown.',
+          'Search notes to filter the list, then press Reset to start over.',
+        ]}
+      />
+    </UseCasePage>
+  )
+}
 
-      <UseCaseSection>
-        <UseCaseCallout title="Notes, built into your Space">
-          <p>
-            Spacewave Notes stores notebooks in Hydra's content-addressed block
-            store, syncs over Bifrost, and renders in the browser via WASM.
-          </p>
-          <p>
-            Your notes are encrypted at rest and in transit. They belong to your
-            Space and follow the same backup and sync rules as everything else.
-          </p>
-        </UseCaseCallout>
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <NotesLandingDemo />
-      </UseCaseSection>
-
-      <UseCaseSection>
-        <UseCaseCtaRow>
-          <UseCaseCtaLink href={notebookHref} icon={LuRocket} variant="primary">
-            Start writing
-          </UseCaseCtaLink>
-          <UseCaseCtaLink href={landingHref} icon={LuCheck}>
-            See all features
-          </UseCaseCtaLink>
-        </UseCaseCtaRow>
-      </UseCaseSection>
-    </LegalPageLayout>
+// NotesPoster previews the Notebook Quickstart: its note list and the welcome
+// note.
+function NotesPoster() {
+  return (
+    <div className="flex h-full text-sm">
+      <div className="border-foreground/10 flex w-48 shrink-0 flex-col gap-1 border-r p-3">
+        <span className="text-foreground-alt text-metadata px-2 pb-1 font-semibold tracking-wide uppercase">
+          My Notes
+        </span>
+        <span className="text-foreground flex items-center gap-2 px-2 py-1">
+          <LuFolder className="text-brand size-4" />
+          Org
+        </span>
+        <span className="text-foreground flex items-center gap-2 px-2 py-1 pl-8">
+          <LuFileText className="text-foreground-alt size-4" />
+          getting-started
+        </span>
+        <span className="bg-foreground/5 text-foreground flex items-center gap-2 rounded px-2 py-1">
+          <LuFileText className="text-foreground-alt size-4" />
+          welcome
+        </span>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-3 p-6">
+        <h3 className="text-foreground text-xl font-semibold">Welcome</h3>
+        <p className="text-foreground-alt">
+          Start capturing notes in this Spacewave notebook.
+        </p>
+      </div>
+    </div>
   )
 }

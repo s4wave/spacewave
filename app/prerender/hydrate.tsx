@@ -76,11 +76,30 @@ function handleNavigate(to: To) {
   }
 }
 
-function handleRootHashChange() {
+// handleStaticHashChange boots the app when a plain hash link such as
+// #/quickstart/drive is followed on a hydrated static page.
+function handleStaticHashChange() {
   const hash = window.location.hash
   if (hash.length <= 1) return
-  window.removeEventListener('hashchange', handleRootHashChange)
+  window.removeEventListener('hashchange', handleStaticHashChange)
   handleNavigate({ path: hash })
+}
+
+// hydrateStaticPage hydrates a prerendered static page in place and hands
+// hash navigation to the app.
+function hydrateStaticPage(
+  container: HTMLElement,
+  path: string,
+  page: React.ReactElement,
+) {
+  window.addEventListener('hashchange', handleStaticHashChange)
+  globalThis.__swPrerenderContainer = container
+  globalThis.__swPrerenderRoot = hydrateRoot(
+    container,
+    <RouterProvider path={path} onNavigate={handleNavigate}>
+      <StaticProvider>{page}</StaticProvider>
+    </RouterProvider>,
+  )
 }
 
 function readBlogData(): Record<string, unknown> | null {
@@ -101,18 +120,7 @@ if (pathname === '/' && window.location.hash.length > 1) {
 } else if (pathname === '/') {
   // New visitor on root: hydrate the landing page inside sw-landing.
   const container = document.getElementById('sw-landing')
-  if (container) {
-    window.addEventListener('hashchange', handleRootHashChange)
-    globalThis.__swPrerenderContainer = container
-    globalThis.__swPrerenderRoot = hydrateRoot(
-      container,
-      <RouterProvider path="/" onNavigate={handleNavigate}>
-        <StaticProvider>
-          <Landing />
-        </StaticProvider>
-      </RouterProvider>,
-    )
-  }
+  if (container) hydrateStaticPage(container, '/', <Landing />)
 } else if (pathname.startsWith('/blog')) {
   // Blog pages: read serialized data from blog-data script tag.
   const container = document.getElementById('bldr-root')
@@ -152,15 +160,7 @@ if (pathname === '/' && window.location.hash.length > 1) {
         )
       }
 
-      if (element) {
-        globalThis.__swPrerenderContainer = container
-        globalThis.__swPrerenderRoot = hydrateRoot(
-          container,
-          <RouterProvider path={pathname} onNavigate={handleNavigate}>
-            <StaticProvider>{element}</StaticProvider>
-          </RouterProvider>,
-        )
-      }
+      if (element) hydrateStaticPage(container, pathname, element)
     }
   }
 } else if (pathname.startsWith('/quickstart/')) {
@@ -188,16 +188,6 @@ if (pathname === '/' && window.location.hash.length > 1) {
   const container = document.getElementById('bldr-root')
   if (container?.hasAttribute('data-prerendered')) {
     const Component = getStaticPageComponent(pathname)
-    if (Component) {
-      globalThis.__swPrerenderContainer = container
-      globalThis.__swPrerenderRoot = hydrateRoot(
-        container,
-        <RouterProvider path={pathname} onNavigate={handleNavigate}>
-          <StaticProvider>
-            <Component />
-          </StaticProvider>
-        </RouterProvider>,
-      )
-    }
+    if (Component) hydrateStaticPage(container, pathname, <Component />)
   }
 }
