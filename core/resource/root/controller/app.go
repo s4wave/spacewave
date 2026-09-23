@@ -139,7 +139,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 	}
 	db_core.AddFactories(child, factories)
 	for _, factory := range []controller.Factory{
-		NewFactory(child),
+		NewFactory(child, withParent(c)),
 		provider_local.NewFactory(child),
 		space_http_download.NewFactory(child),
 		space_http_export.NewFactory(child),
@@ -176,11 +176,13 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 		return nil, err
 	}
 
-	// Inherit read-only manifest lookup and host execution capabilities. Mutable
-	// storage, Sessions, and resource services resolve exclusively on the child.
+	// Inherit read-only manifest lookup and host execution capabilities. Space
+	// plugins load on the parent's plugin host and register with the parent's
+	// shared registries. Mutable storage, Sessions, and resource services
+	// resolve exclusively on the child.
 	bridge := bus_bridge.NewBusBridge(c.GetBus(), func(di directive.Instance) (bool, error) {
 		switch di.GetDirective().(type) {
-		case bldr_manifest.FetchManifest, plugin_host.LookupPluginHost, plugin_host_root.LookupRoot:
+		case bldr_manifest.FetchManifest, bldr_plugin.LoadPlugin, plugin_host.LookupPluginHost, plugin_host_root.LookupRoot:
 			return true, nil
 		default:
 			return false, nil
