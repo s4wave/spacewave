@@ -617,6 +617,25 @@ theorem observe_complete_frame (record : Record) (encoding : FrameEncoding) (raw
     List.take_of_length_le (by simp)
   simp [observeFrameBytes, List.drop_append, hlen, length, dropEnd, sum, takeBE]
 
+/-- Bytes after a complete frame do not change any of its observed fields except remaining length. -/
+theorem observe_complete_frame_suffix (header payload trailer suffix : List Nat)
+    (headerLength : header.length = 28) (trailerLength : trailer.length = 8)
+    (lengthField : headerField header 16 4 = payload.length)
+    (decoded : Option Record) (headerCRC frameCRC : Nat) :
+    observeFrameBytes (header ++ payload ++ trailer ++ suffix) decoded headerCRC frameCRC =
+      {header := header
+       remaining := 28 + payload.length + 8 + suffix.length
+       headerCRC := headerCRC
+       frameCRC := frameCRC
+       payload := payload
+       trailer := trailer
+       record := decoded
+       readOK := true} := by
+  have headerDrop : header.drop (28 + payload.length) = [] := List.drop_eq_nil_of_le (by omega)
+  have enough : ¬ 28 + (payload.length + (8 + suffix.length)) < payload.length + 36 := by omega
+  simp only [observeFrameBytes, List.length_append, headerLength, trailerLength]
+  simp [lengthField, List.drop_append, headerLength, trailerLength, headerDrop, enough, Nat.add_assoc]
+
 /-- An emitted frame scans back to its record under explicit protobuf/checksum primitive contracts. -/
 theorem encoded_frame_scans {record : Record} {encoding : FrameEncoding} {bytes : List Nat}
     {decoded : Option Record} {computedHeaderCRC computedFrameCRC : Nat}
@@ -805,6 +824,170 @@ theorem accepted_frame_remaining {frame : FrameObservation} {initial expected le
   cases parsed : parseHeader frame <;> simp only [parsed] at *
   all_goals repeat' first | (split at accepted <;> try simp_all) | (split <;> try simp_all) | omega
 
+/-- A complete emitted frame is accepted even when later frames or a torn tail follow it. -/
+theorem encoded_frame_scans_suffix {record : Record} {encoding : FrameEncoding} {bytes : List Nat}
+    (encoded : encodeFrame record encoding = some bytes) (valid : validRecord (some record) = true)
+    (sequence : record.sequence < 2^64) (headerCRC : encoding.headerCRC < 2^32)
+    (frameCRC : encoding.frameCRC < 2^32) (suffix : List Nat) (initial : Nat) (first : Bool) :
+    scanFrame initial record.sequence first
+      (observeFrameBytes (bytes ++ suffix) (some record) encoding.headerCRC encoding.frameCRC) =
+      .ok (some (record, bytes.length)) := by
+  have accepted := encoded_frame_scans encoded valid sequence headerCRC frameCRC rfl rfl rfl initial first
+  have extended := accepted_frame_remaining accepted
+    (remaining := bytes.length + suffix.length) (by simp [observeFrameBytes])
+  unfold encodeFrame at encoded
+  cases payload : encoding.payload with
+  | none => simp [payload] at encoded
+  | some raw =>
+    simp only [payload, Option.bind_eq_bind, Option.bind_some] at encoded
+    split at encoded
+    · contradiction
+    · rename_i admitted
+      have kind : 0 ≤ record.kind ∧ record.kind < 65536 := by simp_all; omega
+      have rawBound : raw.length ≤ 4194304 := by simp_all
+      have size : (escapePayload raw).length < 2^32 := by
+        have := payload_size_bound raw
+        omega
+      cases encoded
+      obtain ⟨hlen, _, _, _, _, lengthField, _, _⟩ :=
+        frameHeader_fields record encoding (escapePayload raw).length kind sequence size headerCRC frameCRC
+      have trailerLength : ([69, 78, 68, 33] ++ beBytes 4 (escapePayload raw).length).length = 8 := by simp
+      have observed := observe_complete_frame_suffix
+        (frameHeader record encoding (escapePayload raw).length) (escapePayload raw)
+        ([69, 78, 68, 33] ++ beBytes 4 (escapePayload raw).length) suffix hlen trailerLength lengthField
+        (some record) encoding.headerCRC encoding.frameCRC
+      rw [observe_complete_frame record encoding raw kind sequence size headerCRC frameCRC] at extended
+      simp only [List.append_assoc] at observed ⊢
+      rw [observed]
+      simpa [hlen, Nat.add_assoc] using extended
+
+/-- FramePrimitives contains only external decoding, checksum and read outcomes for one raw frame. -/
+structure FramePrimitives where
+  record : Option Record
+  headerCRC : Nat
+  frameCRC : Nat
+  readOK : Bool := true
+  deriving Repr, Inhabited
+
+/-- scanBytesFrom performs the actual byte-offset loop; primitive outcomes never supply frame boundaries. -/
+def scanBytesFrom (initial expected : Nat) (first : Bool) (bytes : List Nat) :
+    List FramePrimitives → Except Int ScanResult
+  | [] => if bytes.isEmpty then .ok ⟨[], 0⟩ else .error 1
+  | input :: inputs =>
+    if bytes.isEmpty then .ok ⟨[], 0⟩
+    else
+      let frame := {observeFrameBytes bytes input.record input.headerCRC input.frameCRC with readOK := input.readOK}
+      match scanFrame initial expected first frame with
+      | .error code => .error code
+      | .ok none => .ok ⟨[], 0⟩
+      | .ok (some (record, length)) =>
+        (scanBytesFrom initial ((expected + 1) % seqnoLimit) false (bytes.drop length) inputs).map
+          (fun tail => ⟨record :: tail.records, length + tail.offset⟩)
+
+/-- scanBytes starts raw recovery at its selected generation sequence. -/
+def scanBytes (initial : Nat) (bytes : List Nat) (inputs : List FramePrimitives) : Except Int ScanResult :=
+  scanBytesFrom initial initial true bytes inputs
+
+/-- An emitted frame always contains its fixed header and trailer. -/
+theorem encoded_nonempty {record : Record} {encoding : FrameEncoding} {bytes : List Nat}
+    (encoded : encodeFrame record encoding = some bytes) : bytes.isEmpty = false := by
+  unfold encodeFrame at encoded
+  cases payload : encoding.payload <;> simp only [payload, Option.bind_eq_bind, Option.bind_none, Option.bind_some] at encoded
+  · contradiction
+  · split at encoded
+    · contradiction
+    · cases encoded
+      simp [frameHeader]
+
+/-- EmittedPrefix records encoder and primitive roundtrip contracts for a contiguous sequence.
+Its constructors contain no scanner admission assumptions. -/
+inductive EmittedPrefix : Nat → List Nat → List FramePrimitives → List Record → Nat → Prop
+  | nil (expected) : EmittedPrefix expected [] [] [] expected
+  | cons {record encoding bytes rest inputs records next}
+      (encoded : encodeFrame record encoding = some bytes)
+      (valid : validRecord (some record) = true)
+      (sequence : record.sequence < 2^64)
+      (headerCRC : encoding.headerCRC < 2^32)
+      (frameCRC : encoding.frameCRC < 2^32)
+      (tail : EmittedPrefix ((record.sequence + 1) % seqnoLimit) rest inputs records next) :
+      EmittedPrefix record.sequence (bytes ++ rest)
+        (⟨some record, encoding.headerCRC, encoding.frameCRC, true⟩ :: inputs) (record :: records) next
+
+/-- Scanning arbitrary emitted prefixes composes with the actual remaining byte buffer. -/
+theorem emitted_prefix_scan {expected next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix expected bytes inputs records next)
+    (suffix : List Nat) (tailInputs : List FramePrimitives) (initial : Nat) (first : Bool) :
+    scanBytesFrom initial expected first (bytes ++ suffix) (inputs ++ tailInputs) =
+      (scanBytesFrom initial next (if records.isEmpty then first else false) suffix tailInputs).map
+        (fun tail => ⟨records ++ tail.records, bytes.length + tail.offset⟩) := by
+  induction emitted generalizing first with
+  | nil expected =>
+    simp only [List.nil_append, List.isEmpty_nil, ↓reduceIte, List.length_nil, Nat.zero_add]
+    cases scanBytesFrom initial expected first suffix tailInputs <;> rfl
+  | @cons record encoding bytes rest inputs records next encoded valid sequence headerCRC frameCRC tail ih =>
+    have nonempty := encoded_nonempty encoded
+    have bufferNonempty : (bytes ++ (rest ++ suffix)).isEmpty = false := by
+      cases bytes <;> simp_all
+    have scanned := encoded_frame_scans_suffix encoded valid sequence headerCRC frameCRC (rest ++ suffix) initial first
+    simp only [List.append_assoc, List.cons_append, scanBytesFrom, bufferNonempty, Bool.false_eq_true, ↓reduceIte]
+    dsimp only [observeFrameBytes] at scanned ⊢
+    rw [scanned]
+    simp only [List.drop_append, List.drop_length, Nat.sub_self, Nat.zero_sub, List.drop_zero, List.nil_append]
+    rw [ih false]
+    simp only [List.isEmpty_cons, Bool.false_eq_true, ↓reduceIte, ite_self, List.length_append]
+    cases scanBytesFrom initial next false suffix tailInputs <;> simp [Except.map, Nat.add_assoc]
+
+/-- Encoder sequence continuity establishes the historical next sequence without a scanner hypothesis. -/
+theorem emittedPrefix_sequence {expected next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix expected bytes inputs records next) :
+    next = advanceSequence expected records.length := by
+  induction emitted with
+  | nil => rfl
+  | cons encoded valid sequence headerCRC frameCRC tail ih => simpa [advanceSequence] using ih
+
+/-- Adjacent encoder witnesses compose at their shared writer-owned sequence. -/
+theorem emittedPrefix_append {initial middle next : Nat} {left right : List Nat}
+    {leftInputs rightInputs : List FramePrimitives} {leftRecords rightRecords : List Record}
+    (head : EmittedPrefix initial left leftInputs leftRecords middle)
+    (tail : EmittedPrefix middle right rightInputs rightRecords next) :
+    EmittedPrefix initial (left ++ right) (leftInputs ++ rightInputs) (leftRecords ++ rightRecords) next := by
+  induction head with
+  | nil => exact tail
+  | cons encoded valid sequence headerCRC frameCRC _ ih =>
+    simpa only [List.append_assoc, List.cons_append] using
+      EmittedPrefix.cons encoded valid sequence headerCRC frameCRC (ih tail)
+
+/-- Every complete emitted byte sequence scans to exactly its records and full byte length. -/
+theorem emitted_prefix_complete {expected next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix expected bytes inputs records next) :
+    scanBytes expected bytes inputs = .ok ⟨records, bytes.length⟩ := by
+  have scanned := emitted_prefix_scan emitted [] [] expected true
+  simpa [scanBytes, scanBytesFrom, Except.map] using scanned
+
+/-- An arbitrary complete emitted prefix survives every strict positive byte cut of its next frame. -/
+theorem emitted_prefix_torn {expected next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix expected bytes inputs records next)
+    {record : Record} {encoding : FrameEncoding} {lastBytes : List Nat} {cut : Nat}
+    (encoded : encodeFrame record encoding = some lastBytes) (valid : validRecord (some record) = true)
+    (sequence : record.sequence = next) (bounded : record.sequence < 2^64)
+    (headerCRC : encoding.headerCRC < 2^32) (frameCRC : encoding.frameCRC < 2^32)
+    (cutBounds : 0 < cut ∧ cut < lastBytes.length) :
+    scanBytes expected (bytes ++ lastBytes.take cut)
+      (inputs ++ [⟨none, encoding.headerCRC, encoding.frameCRC, true⟩]) = .ok ⟨records, bytes.length⟩ := by
+  have nonempty : (lastBytes.take cut).isEmpty = false := by
+    simp only [List.isEmpty_eq_false_iff, List.ne_nil_iff_length_pos, List.length_take]
+    omega
+  rw [scanBytes, emitted_prefix_scan emitted]
+  have recognized := encoded_torn_scans encoded valid bounded headerCRC frameCRC cut cutBounds
+    expected (if records.isEmpty then true else false)
+  rw [sequence] at recognized
+  have tail : scanBytesFrom expected next (if records.isEmpty then true else false) (lastBytes.take cut)
+      [⟨none, encoding.headerCRC, encoding.frameCRC, true⟩] = .ok ⟨[], 0⟩ := by
+    simp only [scanBytesFrom, nonempty, Bool.false_eq_true, ↓reduceIte]
+    dsimp only [observeFrameBytes] at recognized ⊢
+    rw [recognized]
+  rw [tail]
+  simp [Except.map]
 
 /-- GenerationMarker is the complete retained segment/checkpoint binding. -/
 structure GenerationMarker where
@@ -923,6 +1106,27 @@ theorem persist_failed {before : WriterState} {record : Record} {frame : List Na
   unfold persistRecord at *
   cases write : effects.writeFail <;> cases sync : effects.syncOK <;> simp_all [memoryWrite_preserves_durable, syncBytes]
 
+/-- A failed append leaves only a strict frame prefix after the previously synced bytes. -/
+theorem persist_failed_tail {before : WriterState} {record : Record} {frame : List Nat}
+    {state : State} {effects : AppendEffects}
+    (synced : before.bytes.data = before.bytes.durable) (endOffset : before.offset = before.bytes.data.length)
+    (nonempty : 0 < frame.length) (failed : (persistRecord before record frame state effects).ok = false) :
+    ∃ cut, cut < frame.length ∧
+      (persistRecord before record frame state effects).result.bytes.data = before.bytes.durable ++ frame.take cut := by
+  cases write : effects.writeFail with
+  | false =>
+    have sync : effects.syncOK = false := by
+      cases value : effects.syncOK <;> simp_all [persistRecord]
+    refine ⟨0, nonempty, ?_⟩
+    simp [persistRecord, write, sync, syncBytes, memoryWrite, writeBytes]
+  | true =>
+    by_cases withinFrame : 0 ≤ effects.writeLimit ∧ effects.writeLimit < (frame.length : Int)
+    · refine ⟨effects.writeLimit.toNat, by omega, ?_⟩
+      simp [persistRecord, write, memoryWrite, withinFrame.1, withinFrame.2, writeBytes, endOffset, synced]
+    · refine ⟨0, nonempty, ?_⟩
+      have rejected : ¬ (0 ≤ effects.writeLimit ∧ effects.writeLimit < (frame.length : Int)) := withinFrame
+      simpa [persistRecord, write, memoryWrite, rejected] using synced
+
 /-- Appending at the exact durable end preserves the entire acknowledged prefix. -/
 theorem persist_extends_prefix {before : WriterState} {record : Record} {frame : List Nat}
     {state : State} {effects : AppendEffects}
@@ -995,6 +1199,31 @@ theorem prepared_sequence {sequence : Nat} {record : Option Record} {prepared : 
     · contradiction
     · cases h
       rfl
+
+/-- Every acknowledged append extends the durable encoder witness needed for raw-byte recovery. -/
+theorem append_emitted_prefix {before : WriterState} {record : Option Record}
+    {authenticate : Record → Bool} {effects : AppendEffects} {initial : Nat} {inputs : List FramePrimitives}
+    (emitted : EmittedPrefix initial before.bytes.durable inputs before.records before.sequence)
+    (synced : before.bytes.data = before.bytes.durable) (endOffset : before.offset = before.bytes.data.length)
+    (bounded : before.sequence < 2^64) (headerCRC : effects.encoding.headerCRC < 2^32)
+    (frameCRC : effects.encoding.frameCRC < 2^32)
+    (acknowledged : (appendWriter before record authenticate effects).ok = true) :
+    ∃ primitives, EmittedPrefix initial (appendWriter before record authenticate effects).result.bytes.durable
+      primitives (appendWriter before record authenticate effects).result.records
+      (appendWriter before record authenticate effects).result.sequence := by
+  obtain ⟨prepared, frame, state, preparation, valid, _, encoded, _, result, ack⟩ := append_acknowledged acknowledged
+  have sequence := prepared_sequence preparation
+  have one : EmittedPrefix before.sequence frame
+      [⟨some prepared, effects.encoding.headerCRC, effects.encoding.frameCRC, true⟩] [prepared]
+      ((before.sequence + 1) % seqnoLimit) := by
+    rw [← sequence]
+    simpa only [List.append_nil] using
+      EmittedPrefix.cons encoded valid (by omega) headerCRC frameCRC (EmittedPrefix.nil _)
+  have complete := emittedPrefix_append emitted one
+  obtain ⟨_, _, _, _, next, records⟩ := persist_acknowledged ack
+  refine ⟨inputs ++ [⟨some prepared, effects.encoding.headerCRC, effects.encoding.frameCRC, true⟩], ?_⟩
+  rw [result, persist_extends_prefix synced endOffset ack, next, records]
+  exact complete
 
 /-- An acknowledged append agrees with replay from the retained checkpoint and prior records. -/
 theorem append_replay {before : WriterState} {record : Option Record}
@@ -1149,7 +1378,7 @@ structure OpenInput where
   floor : Nat
   checkpoint : Option CompactCheckpoint
   scanSizeOK : Bool
-  frames : List FrameObservation
+  frames : List FramePrimitives
   retiredReadOK : Bool
   retiredDigest : String
   tailSizeOK : Bool
@@ -1170,7 +1399,7 @@ def prepareOpen (input : OpenInput) (authenticate : Record → Bool) (authentica
     | none =>
       if input.floor != 0 || !input.scanSizeOK then none
       else
-        let scanned ← (scanFrames 1 input.frames).toOption
+        let scanned ← (scanBytes 1 input.bytes.data input.frames).toOption
         if !scanned.records.all authenticate then none
         else
           let state ← reduceJournal (scanned.records.map some)
@@ -1184,7 +1413,7 @@ def prepareOpen (input : OpenInput) (authenticate : Record → Bool) (authentica
         let state ← readCheckpoint checkpoint input.identity marker.generation marker.nextSequence
         if !authenticateState state || !input.scanSizeOK then none
         else
-          let scan := scanFrames marker.nextSequence input.frames
+          let scan := scanBytes marker.nextSequence input.bytes.data input.frames
           let pending := marker.generation == (input.floor + 1) % seqnoLimit ||
             (match scan with | .error code => code == 2 | .ok _ => false)
           let scanned ← checkpointScan scan
@@ -1274,7 +1503,7 @@ def OpenReadable (input : OpenInput) : Prop :=
 theorem prepareOpen_plain {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
     {records : List Record} {offset : Nat} {state : State}
     (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
-    (scanned : scanFrames 1 input.frames = .ok ⟨records, offset⟩)
+    (scanned : scanBytes 1 input.bytes.data input.frames = .ok ⟨records, offset⟩)
     (authenticated : records.all authenticate = true)
     (replayed : reduceJournal (records.map some) = some state) :
     prepareOpen input authenticate authenticateState =
@@ -1294,7 +1523,7 @@ theorem finishOpen_success (writer : WriterState) :
 theorem open_plain_replay {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
     {records : List Record} {offset : Nat} {state : State}
     (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
-    (scanned : scanFrames 1 input.frames = .ok ⟨records, offset⟩)
+    (scanned : scanBytes 1 input.bytes.data input.frames = .ok ⟨records, offset⟩)
     (authenticated : records.all authenticate = true)
     (replayed : reduceJournal (records.map some) = some state)
     (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
@@ -1303,38 +1532,57 @@ theorem open_plain_replay {input : OpenInput} {authenticate : Record → Bool} {
   rw [tailSize, fault]
   exact finishOpen_success _
 
-/-- The complete-frame prefix theorem feeds plain recovery without assuming its scanner result. -/
-theorem open_plain_torn_prefix {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
-    {frames : List FrameObservation} {records : List Record} {offset next : Nat} {torn : FrameObservation} {state : State}
+/-- Plain recovery derives its scanner result from the actual emitted byte sequence. -/
+theorem open_plain_emitted_prefix {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {bytes : List Nat} {primitives : List FramePrimitives} {records : List Record} {next : Nat} {state : State}
     (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
-    (bytes : input.frames = frames ++ [torn])
-    (complete : CompletePrefix 1 1 true frames records offset next)
-    (tail : scanFrame 1 next (if frames.isEmpty then true else false) torn = .ok none)
-    (authenticated : records.all authenticate = true)
-    (replayed : reduceJournal (records.map some) = some state)
-    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
-    (openWriter input authenticate authenticateState).writer.map (·.state) = some state := by
-  apply open_plain_replay (records := records) (offset := offset) readable marker floor _ authenticated replayed tailSize fault
-  rw [bytes]
-  exact complete_prefix_torn_tail complete tail
-
-/-- Plain recovery survives every positive torn-write cut of the next valid emitted frame. -/
-theorem open_plain_encoded_torn {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
-    {frames : List FrameObservation} {records : List Record} {offset next : Nat} {state : State}
-    {record : Record} {encoding : FrameEncoding} {bytes : List Nat} {cut : Nat}
-    (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
-    (observed : input.frames = frames ++ [observeFrameBytes (bytes.take cut) none encoding.headerCRC encoding.frameCRC])
-    (complete : CompletePrefix 1 1 true frames records offset next)
-    (encoded : encodeFrame record encoding = some bytes) (valid : validRecord (some record) = true)
-    (sequence : record.sequence = next) (bounded : record.sequence < 2^64)
-    (headerCRC : encoding.headerCRC < 2^32) (frameCRC : encoding.frameCRC < 2^32)
-    (cutBounds : 0 < cut ∧ cut < bytes.length)
+    (observed : input.bytes.data = bytes) (decoded : input.frames = primitives)
+    (emitted : EmittedPrefix 1 bytes primitives records next)
     (authenticated : records.all authenticate = true) (replayed : reduceJournal (records.map some) = some state)
     (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
     (openWriter input authenticate authenticateState).writer.map (·.state) = some state := by
-  apply open_plain_torn_prefix readable marker floor observed complete _ authenticated replayed tailSize fault
-  rw [← sequence]
-  exact encoded_torn_scans encoded valid bounded headerCRC frameCRC cut cutBounds 1 _
+  apply open_plain_replay (records := records) (offset := bytes.length) readable marker floor _ authenticated replayed tailSize fault
+  rw [observed, decoded]
+  exact emitted_prefix_complete emitted
+
+/-- Plain recovery survives every positive torn-write cut after an arbitrary emitted prefix. -/
+theorem open_plain_encoded_torn {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {bytes : List Nat} {primitives : List FramePrimitives} {records : List Record} {next : Nat} {state : State}
+    {record : Record} {encoding : FrameEncoding} {lastBytes : List Nat} {cut : Nat}
+    (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
+    (observed : input.bytes.data = bytes ++ lastBytes.take cut)
+    (decoded : input.frames = primitives ++ [⟨none, encoding.headerCRC, encoding.frameCRC, true⟩])
+    (emitted : EmittedPrefix 1 bytes primitives records next)
+    (encoded : encodeFrame record encoding = some lastBytes) (valid : validRecord (some record) = true)
+    (sequence : record.sequence = next) (bounded : record.sequence < 2^64)
+    (headerCRC : encoding.headerCRC < 2^32) (frameCRC : encoding.frameCRC < 2^32)
+    (cutBounds : 0 < cut ∧ cut < lastBytes.length)
+    (authenticated : records.all authenticate = true) (replayed : reduceJournal (records.map some) = some state)
+    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    (openWriter input authenticate authenticateState).writer.map (·.state) = some state := by
+  apply open_plain_replay (records := records) (offset := bytes.length) readable marker floor _ authenticated replayed tailSize fault
+  rw [observed, decoded]
+  exact emitted_prefix_torn emitted encoded valid sequence bounded headerCRC frameCRC cutBounds
+
+/-- Acknowledged plain-journal state survives reopening its durable bytes under the primitive read contracts. -/
+theorem acknowledged_plain_recovery {before : WriterState} {record : Option Record}
+    {authenticate : Record → Bool} {authenticateState : State → Bool} {effects : AppendEffects}
+    {inputs : List FramePrimitives} {input : OpenInput}
+    (emitted : EmittedPrefix 1 before.bytes.durable inputs before.records before.sequence)
+    (synced : before.bytes.data = before.bytes.durable) (endOffset : before.offset = before.bytes.data.length)
+    (bounded : before.sequence < 2^64) (headerCRC : effects.encoding.headerCRC < 2^32)
+    (frameCRC : effects.encoding.frameCRC < 2^32)
+    (replayed : reduceJournal (before.records.map some) = some before.state)
+    (acknowledged : (appendWriter before record authenticate effects).ok = true)
+    (readable : OpenReadable input) (marker : input.marker = none) (floor : input.floor = 0)
+    (observed : input.bytes.data = (appendWriter before record authenticate effects).result.bytes.durable)
+    (authenticated : (appendWriter before record authenticate effects).result.records.all authenticate = true)
+    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    ∃ primitives, (openWriter {input with frames := primitives} authenticate authenticateState).writer.map (·.state) =
+      some (appendWriter before record authenticate effects).result.state := by
+  obtain ⟨primitives, complete⟩ := append_emitted_prefix emitted synced endOffset bounded headerCRC frameCRC acknowledged
+  have replay := append_replay replayed (emittedPrefix_sequence emitted) acknowledged
+  exact ⟨primitives, open_plain_emitted_prefix readable marker floor observed rfl complete authenticated replay tailSize fault⟩
 
 /-- An accepted checkpoint recovery returns exactly its hydrated state followed by the admitted suffix. -/
 theorem prepareOpen_checkpoint_state {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
@@ -1343,7 +1591,7 @@ theorem prepareOpen_checkpoint_state {input : OpenInput} {authenticate : Record 
     (present : input.marker = some observation) (parsed : readMarker input.identity observation = some marker)
     (candidate : input.checkpoint = some checkpoint)
     (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some base)
-    (scan : checkpointScan (scanFrames marker.nextSequence input.frames) = some scanned)
+    (scan : checkpointScan (scanBytes marker.nextSequence input.bytes.data input.frames) = some scanned)
     (applied : applyRecords base scanned.records = some expected)
     (opened : prepareOpen input authenticate authenticateState = some writer) : writer.state = expected := by
   unfold prepareOpen at opened
@@ -1361,7 +1609,7 @@ theorem checkpoint_open_replay {input : OpenInput} {authenticate : Record → Bo
     (built : buildCheckpoint input.identity marker.generation marker.nextSequence (some base) = some checkpoint)
     (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some restored)
     (sequence : marker.nextSequence = advanceSequence 1 history.length)
-    (scan : checkpointScan (scanFrames marker.nextSequence input.frames) = some scanned)
+    (scan : checkpointScan (scanBytes marker.nextSequence input.bytes.data input.frames) = some scanned)
     (fullReplay : reduceJournal (history ++ scanned.records.map some) = some expected)
     (opened : prepareOpen input authenticate authenticateState = some writer) : writer.state = expected := by
   have replayed : replayFrom restored marker.nextSequence (scanned.records.map some) = some expected := by

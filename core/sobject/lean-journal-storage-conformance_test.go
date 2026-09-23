@@ -51,22 +51,22 @@ func runLeanJournalStorageScenario(t *testing.T, seed uint64) []leanCase {
 	var cases []leanCase
 	name := " seed " + strconv.FormatUint(seed, 10)
 	for cut := 0; cut <= len(data); cut++ {
-		cases = append(cases, leanJournalScanCase(t, data[:cut], 1, name+" cut "+strconv.Itoa(cut)))
+		cases = append(cases, leanJournalScanCases(t, data[:cut], 1, name+" cut "+strconv.Itoa(cut))...)
 	}
 	for index := range len(data) {
 		corrupt := append([]byte(nil), data...)
 		corrupt[index] ^= byte(seed%255 + 1)
-		cases = append(cases, leanJournalScanCase(t, corrupt, 1, name+" corrupt "+strconv.Itoa(index)))
+		cases = append(cases, leanJournalScanCases(t, corrupt, 1, name+" corrupt "+strconv.Itoa(index))...)
 	}
 	for cut := 1; cut < journalHeaderSize; cut++ {
 		for index := range cut {
 			corrupt := append([]byte(nil), data[:cut]...)
 			corrupt[index] ^= byte(seed%255 + 1)
-			cases = append(cases, leanJournalScanCase(t, corrupt, 1, name+" partial "+strconv.Itoa(cut)+" byte "+strconv.Itoa(index)))
+			cases = append(cases, leanJournalScanCases(t, corrupt, 1, name+" partial "+strconv.Itoa(cut)+" byte "+strconv.Itoa(index))...)
 		}
 	}
 	for _, initial := range []uint64{0, 2, 3, math.MaxUint64} {
-		cases = append(cases, leanJournalScanCase(t, data, initial, name+" initial "+strconv.FormatUint(initial, 10)))
+		cases = append(cases, leanJournalScanCases(t, data, initial, name+" initial "+strconv.FormatUint(initial, 10))...)
 	}
 
 	// Repair header checksums after changing independent framing fields.
@@ -91,7 +91,7 @@ func runLeanJournalStorageScenario(t *testing.T, seed uint64) []leanCase {
 			binary.BigEndian.PutUint64(corrupt[8:16], 2)
 		}
 		binary.BigEndian.PutUint32(corrupt[20:24], crc32.Checksum(corrupt[:20], crc32.MakeTable(crc32.Castagnoli)))
-		cases = append(cases, leanJournalScanCase(t, corrupt, 1, name+" header "+strconv.Itoa(variant)))
+		cases = append(cases, leanJournalScanCases(t, corrupt, 1, name+" header "+strconv.Itoa(variant))...)
 	}
 	// A valid unknown field can contain the marker in plaintext, including at a torn-write boundary.
 	trailerKey := testMutationKey(scope, "peer", "trailer")
@@ -101,16 +101,16 @@ func runLeanJournalStorageScenario(t *testing.T, seed uint64) []leanCase {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cases = append(cases, leanJournalScanCase(t, append(append([]byte(nil), data...), trailerFrame[:cut]...), 1, name+" payload trailer cut"))
-	cases = append(cases, leanJournalScanCase(t, append(append([]byte(nil), data...), trailerFrame...), 1, name+" payload trailer complete"))
+	cases = append(cases, leanJournalScanCases(t, append(append([]byte(nil), data...), trailerFrame[:cut]...), 1, name+" payload trailer cut")...)
+	cases = append(cases, leanJournalScanCases(t, append(append([]byte(nil), data...), trailerFrame...), 1, name+" payload trailer complete")...)
 	cases = append(cases, leanJournalPayloadCases(t, seed)...)
 	cases = append(cases, leanJournalMemoryCases(t, data, seed)...)
 	cases = append(cases, leanJournalGenerationCases(t, crypto, seed)...)
 	return cases
 }
 
-// leanJournalScanCase compares scanner errors, accepted records and exact truncation offset.
-func leanJournalScanCase(t *testing.T, data []byte, initial uint64, name string) leanCase {
+// leanJournalScanCases compares observed-frame and raw-byte scanners with the same Go result.
+func leanJournalScanCases(t *testing.T, data []byte, initial uint64, name string) []leanCase {
 	t.Helper()
 	storage := newMemoryJournalStorage()
 	if _, err := storage.WriteAt(data, 0); err != nil {
@@ -130,7 +130,24 @@ func leanJournalScanCase(t *testing.T, data []byte, initial uint64, name string)
 	}
 	request := map[string]any{"op": "scanJournalFrames", "initial": initial, "frames": projectLeanJournalFrames(t, data)}
 	result := map[string]any{"code": code, "records": projected, "offset": uint64(offset)}
-	return leanCase{name: "scanJournalFrames" + name, request: marshalLeanJournal(t, request), ok: err == nil, field: "scan", value: marshalLeanJournal(t, result)}
+	cases := []leanCase{{name: "scanJournalFrames" + name, request: marshalLeanJournal(t, request), ok: err == nil, field: "scan", value: marshalLeanJournal(t, result)}}
+	request["op"], request["bytes"] = "scanJournalBytes", leanJournalBytes(data)
+	request["frames"] = projectLeanJournalFramePrimitives(request["frames"].([]any))
+	cases = append(cases, leanCase{name: "scanJournalBytes" + name, request: marshalLeanJournal(t, request), ok: err == nil, field: "scan", value: marshalLeanJournal(t, result)})
+	return cases
+}
+
+// projectLeanJournalFramePrimitives excludes every byte boundary and admission decision.
+func projectLeanJournalFramePrimitives(frames []any) []any {
+	inputs := make([]any, len(frames))
+	for index, value := range frames {
+		frame := value.(map[string]any)
+		inputs[index] = map[string]any{
+			"record": frame["record"], "headerCRC": frame["headerCRC"],
+			"frameCRC": frame["frameCRC"], "readOK": frame["readOK"],
+		}
+	}
+	return inputs
 }
 
 // projectLeanJournalFrames decodes byte boundaries and protobuf only, without calling Go admission.

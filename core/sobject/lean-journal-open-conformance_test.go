@@ -212,7 +212,7 @@ func runLeanJournalOpenScenario(t *testing.T, seed uint64) []leanCase {
 				"storageAvailable": storageAvailable, "generationSupported": generationSupported, "floorSupported": floorSupported,
 				"identity": hex.EncodeToString(storage.identity), "crypto": activeCrypto != nil,
 				"markerReadOK": !storage.markerReadErr, "marker": marker, "floorReadOK": floorReadOK, "floor": storage.generationFloor,
-				"checkpoint": checkpoint, "scanSizeOK": scanSizeOK, "frames": frames, "retiredReadOK": retiredReadOK,
+				"checkpoint": checkpoint, "scanSizeOK": scanSizeOK, "frames": projectLeanJournalFramePrimitives(frames), "retiredReadOK": retiredReadOK,
 				"retiredDigest": hex.EncodeToString(retiredDigest[:]), "tailSizeOK": tailSizeOK, "fault": int32(fault),
 			}
 			auth := projectLeanRetainedAuthentication(t, decodeLeanJournalRecords(data), attempts, activeCrypto, storage.identity)

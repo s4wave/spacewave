@@ -49,6 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `appendJournalWriter`: writer, record, authentication primitives and injected effects.
 - `authenticateJournalRecord`: prepared record and primitive decoded authentication results.
 - `journalPayloadCodec`: raw `bytes`; result `{"ok", "codec"}`.
+- `scanJournalBytes`: raw `bytes`, `initial`, primitive decoding/checksum/read outcomes.
 - `scanJournalFrames`: `initial`, primitive `frames`; result `{"ok", "scan"}`.
 - `journalGenerationWindow`: `floor`, `generation`; result `{"ok", "floor"}`.
 - `journalMemoryBytes`: storage, offset, written bytes and sync outcome; result `{"ok", "storage"}`.
@@ -100,7 +101,7 @@ deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, Recov
 deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Version, Journal.Payload
 deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement, Journal.Projection
 deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.CompactCheckpoint
-deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.ScanResult, Journal.MemoryBytes
+deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.FramePrimitives, Journal.ScanResult, Journal.MemoryBytes
 deriving instance ToJson, FromJson for Journal.PublicationState, Journal.PublicationResult
 
 deriving instance ToJson, FromJson for Journal.GenerationMarker, Journal.MarkerObservation, Journal.PendingActivation
@@ -170,6 +171,16 @@ def respond (req : Json) : Except String Json := do
   | "scanJournalFrames" =>
     let result := Journal.scanFrames (← req.getObjValAs? Nat "initial")
       (← req.getObjValAs? (List Journal.FrameObservation) "frames")
+    match result with
+    | .ok scan =>
+      let value := json% {code: 0, records: $(scan.records), offset: $(scan.offset)}
+      return json% {ok: true, scan: $value}
+    | .error code =>
+      let value := json% {code: $code, records: [], offset: 0}
+      return json% {ok: false, scan: $value}
+  | "scanJournalBytes" =>
+    let result := Journal.scanBytes (← req.getObjValAs? Nat "initial") (← req.getObjValAs? (List Nat) "bytes")
+      (← req.getObjValAs? (List Journal.FramePrimitives) "frames")
     match result with
     | .ok scan =>
       let value := json% {code: 0, records: $(scan.records), offset: $(scan.offset)}
