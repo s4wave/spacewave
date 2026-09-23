@@ -1,0 +1,13 @@
+name = "spacewave"
+version = "0.1.0"
+defaultTargets = ["Spacewave", "oracle"]
+
+[leanOptions]
+warningAsError = true
+
+[[lean_lib]]
+name = "Spacewave"
+
+[[lean_exe]]
+name = "oracle"
+root = "Oracle"
