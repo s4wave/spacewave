@@ -80,13 +80,8 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	}
 	tx.Discard()
 
-	readTx, err := engine.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("NewTransaction(read) failed: %v", err)
-	}
-	defer readTx.Release()
-
-	srpcClient, err := readTx.GetResourceRef().GetClient()
+	// Device watches and capability admission use the live Engine resource.
+	srpcClient, err := engine.GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatalf("GetClient failed: %v", err)
 	}
@@ -365,13 +360,8 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 	}
 	tx.Discard()
 
-	readTx, err := engine.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("NewTransaction(read) failed: %v", err)
-	}
-	defer readTx.Release()
-
-	srpcClient, err := readTx.GetResourceRef().GetClient()
+	// Device watches and capability admission use the live Engine resource.
+	srpcClient, err := engine.GetResourceRef().GetClient()
 	if err != nil {
 		t.Fatalf("GetClient(readTx) failed: %v", err)
 	}

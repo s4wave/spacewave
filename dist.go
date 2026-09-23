@@ -41,7 +41,7 @@ import "embed"
 //go:embed sdk/debugdb/benchmark.ts sdk/debugdb/debugdb.pb.ts sdk/debugdb/debugdb.ts
 //go:embed sdk/debugdb/debugdb_srpc.pb.ts sdk/deploy/deploy.pb.ts
 //go:embed sdk/device/computers/create-computers-dashboard.ts sdk/device/device.pb.ts sdk/device/device.ts
-//go:embed sdk/device/device_srpc.pb.ts sdk/forge/dashboard/create-forge-dashboard.ts
+//go:embed sdk/device/device_srpc.pb.ts sdk/forge/dashboard/create-forge-dashboard.ts sdk/forge/execution.ts
 //go:embed sdk/forge/dashboard/init-forge-quickstart.ts sdk/kv/index.ts sdk/kv/kv.ts sdk/layout/layout-host.ts
 //go:embed sdk/layout/layout.pb.ts sdk/layout/layout.ts sdk/layout/layout_srpc.pb.ts
 //go:embed sdk/layout/world/object-layout.ts sdk/layout/world/world.pb.ts
@@ -60,7 +60,7 @@ import "embed"
 //go:embed sdk/session/shared-object-self-enrollment_srpc.pb.ts sdk/session/spacewave-session.pb.ts
 //go:embed sdk/session/spacewave-session.ts sdk/session/spacewave-session_srpc.pb.ts sdk/sobject/sobject.pb.ts
 //go:embed sdk/sobject/sobject.ts sdk/sobject/sobject_srpc.pb.ts sdk/space/contents.ts sdk/space/object-uri.ts
-//go:embed sdk/space/space.pb.ts sdk/space/space.ts sdk/space/space_srpc.pb.ts sdk/status/status.pb.ts
+//go:embed sdk/space/space.pb.ts sdk/space/space.ts sdk/space/space_srpc.pb.ts sdk/space/plugin-frontend.ts sdk/status/status.pb.ts
 //go:embed sdk/status/status.ts sdk/status/status_srpc.pb.ts sdk/unixfs/file-kind.ts sdk/unixfs/fs-cursor.ts
 //go:embed sdk/unixfs/handle.pb.ts sdk/unixfs/handle.ts sdk/unixfs/handle_srpc.pb.ts sdk/unixfs/index.ts
 //go:embed sdk/unixfs/path.ts sdk/unixfs/type.ts sdk/viewer/registry/registry.pb.ts
@@ -70,4 +70,30 @@ import "embed"
 //go:embed sdk/world/types/types.ts sdk/world/utils.ts sdk/world/wizard/create-wizard.ts
 //go:embed sdk/world/wizard/wizard.pb.ts sdk/world/wizard/wizard_srpc.pb.ts sdk/world/world-state.ts
 //go:embed sdk/world/world.pb.ts sdk/world/world_srpc.pb.ts
+//go:embed sdk/sync/index.ts net/peer/base58.ts
+//go:embed sdk/sync/query.ts sdk/sync/live-query.ts sdk/sync/attachment.ts sdk/sync/instance.ts sdk/sync/plugin.ts
+//go:embed sdk/sync/upgrade.ts sdk/sync/plugin-operations.ts sdk/sync/object-query.ts
+//go:embed sdk/plugin/registration/*.ts
+//go:embed sdk/sync/app.ts sdk/sync/schema.ts sdk/sync/transaction.ts sdk/sync/keys.ts
+//go:embed sdk/sync/errors.ts sdk/sync/json.ts sdk/sync/operation.ts sdk/kv/world/store.ts
+//go:embed sdk/sync/client.ts sdk/sync/access.ts sdk/sync/wire.ts sdk/sync/sync.pb.ts sdk/sync/sync_srpc.pb.ts
+//go:embed db/block/file/file.pb.ts
+//go:embed db/unixfs/block/fstree.pb.ts
+//go:embed db/unixfs/errors/errors.pb.ts
+//go:embed db/unixfs/errors/errors.ts
+//go:embed db/unixfs/fs-cursor.ts
+//go:embed db/unixfs/fs-handle.ts
+//go:embed db/unixfs/fs-inode.ts
+//go:embed db/unixfs/fs-node-type.ts
+//go:embed db/unixfs/path.ts
+//go:embed db/unixfs/rpc/client/fs-cursor-client.ts
+//go:embed db/unixfs/rpc/client/fs-cursor-ops-remote.ts
+//go:embed db/unixfs/rpc/client/fs-cursor-remote.ts
+//go:embed db/unixfs/rpc/client/fs-cursor.ts
+//go:embed db/unixfs/rpc/client/fs-handle.ts
+//go:embed db/unixfs/rpc/rpc.pb.ts
+//go:embed db/unixfs/rpc/rpc_srpc.pb.ts
+//go:embed db/volume/volume.pb.ts
+//go:embed sdk/worldop/registry/registry.pb.ts
+//go:embed sdk/worldop/registry/registry_srpc.pb.ts
 var DistSources embed.FS

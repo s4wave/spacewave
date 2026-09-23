@@ -624,38 +624,50 @@ export function useWatchStateRpc<T, R = unknown>(
   retryOpts?: RetryOpts,
   deps?: DependencyList,
 ): T | null {
-  const [currValue, setCurrValue] = useState<T | null>(null)
-  const handleValue = useCallback(
-    (nextValue: T) =>
-      setCurrValue(setIfChanged<T | null>(nextValue, checkRespEqual)),
-    [checkRespEqual],
-  )
+  // A snapshot belongs to the exact stream and request that produced it.
   const memoizedReq = useMemoEqual(req, checkReqEqual)
+  const generation = useMemo(
+    () => ({}),
+    [watchStateRpc, memoizedReq, ...(deps ?? [])], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const [snapshot, setSnapshot] = useState<{
+    generation: object
+    value: T | null
+  } | null>(null)
 
+  // Replacement cancels the old producer; a late emission cannot publish state.
   useRetryWithAbort(
     async (signal) => {
-      if (watchStateRpc == null || memoizedReq == null || signal.aborted) {
-        setCurrValue(null)
-        return
-      }
-
-      const stream = watchStateRpc(memoizedReq, signal)
+      if (signal.aborted) return
+      const stream =
+        watchStateRpc != null && memoizedReq != null
+          ? watchStateRpc(memoizedReq, signal)
+          : null
       if (!stream) {
-        setCurrValue(null)
+        setSnapshot({ generation, value: null })
         return
       }
-
-      for await (const resp of stream) {
-        handleValue(resp)
+      for await (const value of stream) {
+        if (signal.aborted) return
+        setSnapshot((previous) => {
+          if (
+            previous?.generation === generation &&
+            previous.value != null &&
+            (value === previous.value ||
+              checkRespEqual?.(value, previous.value))
+          ) {
+            return previous
+          }
+          return { generation, value }
+        })
       }
     },
     retryOpts,
-    [watchStateRpc, memoizedReq, ...(deps ?? [])],
+    [generation],
   )
 
-  return currValue == null || watchStateRpc == null || memoizedReq == null
-    ? null
-    : currValue
+  // Hide the previous owner's value immediately, before effect cleanup runs.
+  return snapshot?.generation === generation ? snapshot.value : null
 }
 
 /**

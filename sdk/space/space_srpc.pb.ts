@@ -9,10 +9,13 @@ import {
   AddSpacePluginResponse,
   BindAttachedRpcServiceRequest,
   BindAttachedRpcServiceResponse,
+  BuildSpacePluginRequest,
+  BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
+  OpenPluginFrontendResponse,
   ReadSecretPayloadRequest,
   ReadSecretPayloadResponse,
   RemoveSpacePluginRequest,
@@ -136,6 +139,30 @@ export const SpaceResourceServiceDefinition = {
       O: RemoveSpacePluginResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * BuildSpacePlugin pins the source and queues a native build on a registered
+     * device. Progress and outputs use the existing Forge Execution resource.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
+     */
+    BuildSpacePlugin: {
+      name: 'BuildSpacePlugin',
+      I: BuildSpacePluginRequest,
+      O: BuildSpacePluginResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * OpenPluginFrontend retains a source-backed compiler on the selected device.
+     * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
+     */
+    OpenPluginFrontend: {
+      name: 'OpenPluginFrontend',
+      I: BuildSpacePluginRequest,
+      O: OpenPluginFrontendResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -224,6 +251,28 @@ export interface SpaceResourceService {
     request: RemoveSpacePluginRequest,
     abortSignal?: AbortSignal,
   ): Promise<RemoveSpacePluginResponse>
+
+  /**
+   * BuildSpacePlugin pins the source and queues a native build on a registered
+   * device. Progress and outputs use the existing Forge Execution resource.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
+   */
+  BuildSpacePlugin(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildSpacePluginResponse>
+
+  /**
+   * OpenPluginFrontend retains a source-backed compiler on the selected device.
+   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
+   */
+  OpenPluginFrontend(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenPluginFrontendResponse>
 }
 
 /**
@@ -321,6 +370,30 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<RemoveSpacePluginResponse>
+
+  /**
+   * BuildSpacePlugin pins the source and queues a native build on a registered
+   * device. Progress and outputs use the existing Forge Execution resource.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
+   */
+  BuildSpacePlugin(
+    request: BuildSpacePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildSpacePluginResponse>
+
+  /**
+   * OpenPluginFrontend retains a source-backed compiler on the selected device.
+   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
+   */
+  OpenPluginFrontend(
+    request: BuildSpacePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenPluginFrontendResponse>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -342,6 +415,8 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.DeployManifests = this.DeployManifests.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
+    this.BuildSpacePlugin = this.BuildSpacePlugin.bind(this)
+    this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -512,6 +587,46 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return RemoveSpacePluginResponse.fromBinary(result)
+  }
+
+  /**
+   * BuildSpacePlugin pins the source and queues a native build on a registered
+   * device. Progress and outputs use the existing Forge Execution resource.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
+   */
+  async BuildSpacePlugin(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildSpacePluginResponse> {
+    const requestMsg = BuildSpacePluginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.BuildSpacePlugin.name,
+      BuildSpacePluginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return BuildSpacePluginResponse.fromBinary(result)
+  }
+
+  /**
+   * OpenPluginFrontend retains a source-backed compiler on the selected device.
+   * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
+   */
+  async OpenPluginFrontend(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenPluginFrontendResponse> {
+    const requestMsg = BuildSpacePluginRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.OpenPluginFrontend.name,
+      BuildSpacePluginRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return OpenPluginFrontendResponse.fromBinary(result)
   }
 }
 /**

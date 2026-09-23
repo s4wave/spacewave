@@ -429,6 +429,9 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	}
 
 	req := client.requests[0]
+	if !slices.Contains(req.GetExternalPkgs(), "@aptre/protobuf-es-lite") {
+		t.Fatal("request did not preserve the browser runtime import map")
+	}
 	if len(req.GetImports()) != 1 {
 		t.Fatalf("unexpected imports: %v", req.GetImports())
 	}

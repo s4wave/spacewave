@@ -8,6 +8,7 @@ import {
 import { Engine } from '../world/engine.js'
 import { EngineWorldState } from '../world/engine-state.js'
 import { SpaceContents } from './contents.js'
+import { PluginFrontend } from './plugin-frontend.js'
 import {
   ObjectWizardRegistryResourceService,
   ObjectWizardRegistryResourceServiceClient,
@@ -18,6 +19,8 @@ import type {
   WatchWizardsResponse,
 } from '../world/wizard/wizard.pb.js'
 import {
+  BuildSpacePluginRequest,
+  BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
   SpaceSharingState,
@@ -81,9 +84,10 @@ export class Space extends Resource {
   // The Space contents state re-projects to reflect the new plugin lifecycle.
   public async addSpacePlugin(
     pluginId: string,
+    manifestKey?: string,
     abortSignal?: AbortSignal,
   ): Promise<void> {
-    await this.service.AddSpacePlugin({ pluginId }, abortSignal)
+    await this.service.AddSpacePlugin({ pluginId, manifestKey }, abortSignal)
   }
 
   // removeSpacePlugin removes a plugin manifest ID from the Space settings
@@ -93,6 +97,27 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<void> {
     await this.service.RemoveSpacePlugin({ pluginId }, abortSignal)
+  }
+
+  // buildSpacePlugin queues an immutable source snapshot on a registered device.
+  // The returned Forge execution owns progress, cancellation, logs, and outputs.
+  public async buildSpacePlugin(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<BuildSpacePluginResponse> {
+    return this.service.BuildSpacePlugin(request, abortSignal)
+  }
+
+  /** openPluginFrontend retains live source on the selected native device. */
+  public async openPluginFrontend(
+    request: BuildSpacePluginRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PluginFrontend> {
+    const response = await this.service.OpenPluginFrontend(request, abortSignal)
+    return new PluginFrontend(
+      this.resourceRef.createRef(response.resourceId ?? 0),
+      response.executionKey ?? '',
+    )
   }
 
   // createSecret creates a redacted Secret world object plus its nested

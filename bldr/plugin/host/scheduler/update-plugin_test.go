@@ -36,7 +36,7 @@ func TestGuardedPluginReplacement(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 			c := &Controller{conf: &Config{UpdateGuardPluginIds: []string{"core"}}, le: logrus.NewEntry(logrus.New())}
-			_, instance := c.newPluginInstance("core")
+			_, instance := c.newPluginInstance(pluginReference{pluginID: "core"})
 			old := &executePluginArgs{pluginHost: &testPluginHost{id: "old"}}
 			next := &executePluginArgs{pluginHost: &testPluginHost{id: "new"}}
 			instance.setExecutePluginState(old)
@@ -79,7 +79,7 @@ func TestGuardedPluginReplacement(t *testing.T) {
 // replacing a newer embedded generation while the remote copy is pending.
 func TestPluginCopyGapKeepsNewerGeneration(t *testing.T) {
 	c := &Controller{conf: &Config{}, le: logrus.NewEntry(logrus.New())}
-	_, instance := c.newPluginInstance("app")
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "app"})
 	current := &executePluginArgs{manifestSnapshot: &manifest.ManifestSnapshot{
 		ManifestRef: newTestManifestRef("app", "desktop/linux/amd64", 12, "embedded").GetManifestRef(),
 		Manifest:    &manifest.Manifest{Meta: manifest.NewManifestMeta("app", manifest.BuildType_RELEASE, "desktop/linux/amd64", 12)},

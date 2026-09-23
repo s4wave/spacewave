@@ -19,8 +19,6 @@ message BuilderConfig {
 
   // EngineId is the world engine to store the manifest.
   string engine_id = 5;
-  // ObjectKey is the key to store the manifest.
-  string object_key = 6;
   // LinkObjectKeys is the list of object keys to link to the manifest.
   // NOTE: also used to search for other manifests in the dist compiler.
   repeated string link_object_keys = 7;
@@ -44,20 +42,23 @@ message BuilderConfig {
 
 // BuilderResult is the result of a builder run.
 message BuilderResult {
-	// Manifest is the manifest object.
+  // Manifest is the manifest object.
   //
   // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
-	.bldr.manifest.Manifest manifest = 1;
-	// ManifestRef is the manifest object ref.
+  .bldr.manifest.Manifest manifest = 1;
+  // ManifestRef is the manifest object ref.
   //
   // If this is empty, it is assumed the compiler cannot produce a manifest for this platform.
-	.bldr.manifest.ManifestRef manifest_ref = 2;
+  .bldr.manifest.ManifestRef manifest_ref = 2;
   // InputManifest details which files were used to produce Manifest.
   // Used for change detection.
   InputManifest input_manifest = 3;
   // SubManifestResults contains child builder results keyed by sub-manifest ID.
   // Persisting child provenance lets startup validation reuse nested builders.
   map<string, BuilderResult> sub_manifest_results = 4;
+  // SourceRef retains the exact Space source filesystem in this result's bucket.
+  // Native checkout builds omit it; Space builds store a local DAG reference.
+  .bucket.ObjectRef source_ref = 5;
 }
 
 // InputManifest is an object describing the consumed source files.
@@ -139,17 +140,17 @@ message InputManifest {
 
 // BuildManifestArgs are arguments passed to the BuildManifest function.
 message BuildManifestArgs {
-	// BuilderConfig is the builder configuration.
-	// Must be set.
-	BuilderConfig builder_config = 1;
+  // BuilderConfig is the builder configuration.
+  // Must be set.
+  BuilderConfig builder_config = 1;
 
-	// PrevBuilderResult is the previous builder result, if applicable.
-	// Set only if we are re-building the manifest after a file changed.
-	// May be nil.
-	BuilderResult prev_builder_result = 2;
-	// ChangedFiles is the list of files from PrevBuilderResult InputManifest
-	// filtered to contain only files that changed since the previous build. //
-	// Set only if PrevBuilderResult is set.
-	// May be nil.
-	repeated InputManifest.File changed_files = 3;
+  // PrevBuilderResult is the previous builder result, if applicable.
+  // Set only if we are re-building the manifest after a file changed.
+  // May be nil.
+  BuilderResult prev_builder_result = 2;
+  // ChangedFiles is the list of files from PrevBuilderResult InputManifest
+  // filtered to contain only files that changed since the previous build. //
+  // Set only if PrevBuilderResult is set.
+  // May be nil.
+  repeated InputManifest.File changed_files = 3;
 }

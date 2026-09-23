@@ -140,6 +140,7 @@ func WithStartupRetry() SessionTransportOption {
 //
 // The child bus is created in Execute. The sessionKey is the session's
 // Ed25519 private key used as the transport peer identity.
+// A nil parentBus runs independently without parent routing or discovery.
 //
 // signalingURL is the cloud API base URL for the SignalingDO endpoint.
 // If empty, WebRTC and signaling controllers are not started.
@@ -607,6 +608,12 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 			broadcast()
 		})
 	}
+
+	releaseLookup, err := t.publishSessionBus(b)
+	if err != nil {
+		return err
+	}
+	defer releaseLookup()
 
 	t.setStartupStage("ready")
 	t.publishStartupReady()

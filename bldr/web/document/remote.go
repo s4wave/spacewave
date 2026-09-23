@@ -53,6 +53,8 @@ type Remote struct {
 	closed bool
 	// hidden indicates the remote document is hidden.
 	hidden bool
+	// pluginWorkersBlocked indicates this document is waiting for worker ownership.
+	pluginWorkersBlocked bool
 	// remoteWebViews is the current snapshot of web views.
 	// sorted by ID
 	// do not retain this slice without holding mtx
@@ -273,9 +275,9 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 
 	var out web_worker.WebWorker
 	_, err := r.cstate.Apply(ctx, func(ctx context.Context, v *cstate.CStateWriter[*Remote]) (dirty bool, err error) {
-		// Return immediately if document is hidden
-		if r.hidden {
-			r.le.Debug("CreateWebWorker: document is hidden, returning nil")
+		// Plugin workers belong to the runtime and may start in a background owner.
+		// Ordinary document workers still follow the document's visibility.
+		if len(req.GetInitData()) != 0 && r.pluginWorkersBlocked || len(req.GetInitData()) == 0 && r.hidden {
 			return false, nil
 		}
 
@@ -470,6 +472,10 @@ func (r *Remote) handleWebStatus(ctx context.Context, ws *WebDocumentStatus) (bo
 	}
 
 	var dirty bool
+	if blocked := ws.GetPluginWorkersBlocked(); blocked != r.pluginWorkersBlocked {
+		r.pluginWorkersBlocked = blocked
+		dirty = true
+	}
 	if hidden := ws.GetHidden(); hidden != r.hidden {
 		if hidden {
 			r.le.Debug("document is hidden")
@@ -506,9 +512,10 @@ func (r *Remote) updateStatusSnapshot() {
 		return
 	}
 	status := &WebDocumentStatus{
-		Snapshot: true,
-		Hidden:   r.hidden,
-		Closed:   r.closed,
+		Snapshot:             true,
+		Hidden:               r.hidden,
+		Closed:               r.closed,
+		PluginWorkersBlocked: r.pluginWorkersBlocked,
 	}
 	if r.ready && !r.closed {
 		for _, remoteWebView := range r.remoteWebViews {

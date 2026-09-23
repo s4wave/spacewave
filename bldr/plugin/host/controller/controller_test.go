@@ -33,6 +33,7 @@ func (h *testPluginHost) ExecutePlugin(
 	ctx context.Context,
 	pluginID string,
 	instanceKey string,
+	manifestRoot string,
 	entrypoint string,
 	pluginDist *unixfs.FSHandle,
 	pluginAssets *unixfs.FSHandle,

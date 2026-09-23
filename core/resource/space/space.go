@@ -135,7 +135,7 @@ func (r *SpaceResource) WatchSpaceState(
 			}
 
 			// Start a ready SpaceState response.
-			state = &s4wave_space.SpaceState{Ready: true}
+			state = &s4wave_space.SpaceState{Ready: true, EngineId: r.space.GetWorldEngineID()}
 
 			// Build the world object list.
 			state.WorldContents, err = space_world.BuildWorldContents(ctx, wtx)
@@ -289,8 +289,24 @@ func (r *SpaceResource) AccessWorld(
 	if err != nil {
 		return nil, err
 	}
+	worldResource, err := r.NewWorldEngineResource()
+	if err != nil {
+		return nil, err
+	}
+	id, err := resourceCtx.AddResourceValue(worldResource.GetMux(), worldResource, func() {})
+	if err != nil {
+		return nil, err
+	}
+
+	return &s4wave_space.AccessWorldResponse{ResourceId: id}, nil
+}
+
+// NewWorldEngineResource carries this mounted Space's session authority into an
+// Engine capability. The receiving Resource connection owns the capability.
+func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource, error) {
 	sessionPeerID := peer.ID("")
 	if r.sessionPeerID != "" {
+		var err error
 		sessionPeerID, err = peer.IDB58Decode(r.sessionPeerID)
 		if err != nil {
 			return nil, err
@@ -302,20 +318,14 @@ func (r *SpaceResource) AccessWorld(
 		EngineId: r.space.GetWorldEngineID(),
 		BucketId: r.space.GetWorldEngineBucketID(),
 	}
-	worldResource := resource_world.NewEngineResource(
+	return resource_world.NewEngineResource(
 		r.le,
 		r.b,
 		r.space.GetWorldEngine(),
 		lookupOp,
 		engineInfo,
 		resource_world.WithSessionPeerID(sessionPeerID),
-	)
-	id, err := resourceCtx.AddResourceValue(worldResource.GetMux(), worldResource, func() {})
-	if err != nil {
-		return nil, err
-	}
-
-	return &s4wave_space.AccessWorldResponse{ResourceId: id}, nil
+	), nil
 }
 
 // MountSpaceContents activates plugins for the space and returns a sub-resource

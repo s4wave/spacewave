@@ -116,7 +116,7 @@ func (h *WebHost) ListPlugins(ctx context.Context) ([]string, error) {
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *WebHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, instanceKey, entrypoint string,
+	pluginID, instanceKey, manifestRoot, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
@@ -182,7 +182,7 @@ func (h *WebHost) ExecutePlugin(
 
 	// create unique plugin instance id
 	pluginInstanceID := randstring.RandomIdentifier(4)
-	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey)
+	pluginStartInfo := plugin.NewPluginStartInfo(pluginInstanceID, pluginID, instanceKey, manifestRoot)
 	pluginStartInfoJsonB64, err := pluginStartInfo.MarshalJsonBase64()
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func (h *WebHost) ExecutePlugin(
 	if instanceKey != "" {
 		pluginWebWorkerID += "/" + instanceKey
 	}
-	pluginWebWorkerPath := plugin.PluginDistHTTPPath(pluginID, entrypoint)
+	pluginWebWorkerPath := plugin.PluginDistHTTPPath(plugin.PluginArtifactID(pluginID, manifestRoot), entrypoint)
 
 	le.
 		WithField("web-runtime", h.webRuntimeID).
@@ -311,10 +311,9 @@ func (h *WebHost) ExecutePlugin(
 			le.WithError(err).Warn("unable to create web worker")
 			return err
 		}
-		// nil, nil means document is hidden - return nil to wait for visibility change
+		// A document without worker ownership waits for its next readiness update.
 		if createdWorker == nil {
-			workerOwner.observeCreateSkipped(webDocumentID, true)
-			le.Debug("document is hidden, waiting for visibility")
+			workerOwner.observeCreateSkipped(webDocumentID, doc.GetWebDocumentStatusCtr().GetValue().GetHidden())
 			return nil
 		}
 
@@ -420,9 +419,9 @@ func (h *WebHost) ExecutePlugin(
 		var docStatus *web_document.WebDocumentStatus
 		var workerInstance *web_document.WebWorkerStatus
 		for {
-			// Wait for the document to become visible before creating the worker.
-			// CreateWebWorker returns nil, nil when the document is hidden.
-			if workerInstance == nil && (docStatus == nil || !docStatus.GetHidden()) {
+			// Only the document holding worker ownership can satisfy this request.
+			// Its background visibility does not suspend the shared runtime.
+			if workerInstance == nil && docStatus != nil && !docStatus.GetPluginWorkersBlocked() {
 				if err := createWorkerWithDoc(ctx, doc); err != nil {
 					return err
 				}
@@ -452,17 +451,15 @@ func (h *WebHost) ExecutePlugin(
 			}
 			unlock()
 
-			// Find our worker instance in the status, or nil if not found or hidden.
+			// Find our worker instance, including workers in background documents.
 			workerInstance = nil
-			if !docStatus.GetHidden() {
-				for _, worker := range docStatus.GetWebWorkers() {
-					if worker.GetDeleted() {
-						continue
-					}
-					if worker.GetId() == pluginWebWorkerID && worker.GetGeneration() == pluginInstanceID {
-						workerInstance = worker
-						break
-					}
+			for _, worker := range docStatus.GetWebWorkers() {
+				if worker.GetDeleted() {
+					continue
+				}
+				if worker.GetId() == pluginWebWorkerID && worker.GetGeneration() == pluginInstanceID {
+					workerInstance = worker
+					break
 				}
 			}
 			if workerInstance != nil && workerInstance.GetFailed() {

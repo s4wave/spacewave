@@ -95,7 +95,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 func (c *Controller) BuildRemotePluginClient(pluginID, instanceKey string, waitAck bool) srpc.Client {
 	return rpcstream.NewRpcStreamClient(
 		c.srv.PluginRpc,
-		bldr_plugin.BuildPluginRpcComponentID(pluginID, instanceKey),
+		bldr_plugin.BuildPluginRpcComponentID(pluginID, instanceKey, ""),
 		waitAck,
 	)
 }

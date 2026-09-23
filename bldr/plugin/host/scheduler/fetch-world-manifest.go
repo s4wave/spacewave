@@ -181,7 +181,7 @@ func (t *fetchManifestValueStorer) execFetchManifestValueStorerCore(ctx context.
 		return err
 	}
 
-	manifestKey := bldr_manifest.NewManifestKey(t.pi.c.objKey, meta)
+	manifestKey := bldr_manifest.NewManifestArtifactKey(manifestRef.GetManifestRef())
 	// Registration updates the host only when its manifest reference changes.
 	le.
 		WithFields(logrus.Fields{

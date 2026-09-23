@@ -34,6 +34,12 @@ type SRPCSpaceResourceServiceClient interface {
 	AddSpacePlugin(ctx context.Context, in *AddSpacePluginRequest) (*AddSpacePluginResponse, error)
 
 	RemoveSpacePlugin(ctx context.Context, in *RemoveSpacePluginRequest) (*RemoveSpacePluginResponse, error)
+	// BuildSpacePlugin pins the source and queues a native build on a registered
+	// device. Progress and outputs use the existing Forge Execution resource.
+	BuildSpacePlugin(ctx context.Context, in *BuildSpacePluginRequest) (*BuildSpacePluginResponse, error)
+	// OpenPluginFrontend retains a source-backed compiler on the selected device.
+	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+	OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
 }
 
 type srpcSpaceResourceServiceClient struct {
@@ -224,6 +230,24 @@ func (c *srpcSpaceResourceServiceClient) RemoveSpacePlugin(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) BuildSpacePlugin(ctx context.Context, in *BuildSpacePluginRequest) (*BuildSpacePluginResponse, error) {
+	out := new(BuildSpacePluginResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "BuildSpacePlugin", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSpaceResourceServiceClient) OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error) {
+	out := new(OpenPluginFrontendResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "OpenPluginFrontend", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSpaceResourceServiceServer interface {
 	WatchSpaceState(*WatchSpaceStateRequest, SRPCSpaceResourceService_WatchSpaceStateStream) error
 
@@ -244,6 +268,12 @@ type SRPCSpaceResourceServiceServer interface {
 	AddSpacePlugin(context.Context, *AddSpacePluginRequest) (*AddSpacePluginResponse, error)
 
 	RemoveSpacePlugin(context.Context, *RemoveSpacePluginRequest) (*RemoveSpacePluginResponse, error)
+	// BuildSpacePlugin pins the source and queues a native build on a registered
+	// device. Progress and outputs use the existing Forge Execution resource.
+	BuildSpacePlugin(context.Context, *BuildSpacePluginRequest) (*BuildSpacePluginResponse, error)
+	// OpenPluginFrontend retains a source-backed compiler on the selected device.
+	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+	OpenPluginFrontend(context.Context, *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
 }
 
 const SRPCSpaceResourceServiceServiceID = "s4wave.space.SpaceResourceService"
@@ -282,6 +312,8 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"DeployManifests",
 		"AddSpacePlugin",
 		"RemoveSpacePlugin",
+		"BuildSpacePlugin",
+		"OpenPluginFrontend",
 	}
 }
 
@@ -314,6 +346,10 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AddSpacePlugin(d.impl, strm)
 	case "RemoveSpacePlugin":
 		return true, d.InvokeMethod_RemoveSpacePlugin(d.impl, strm)
+	case "BuildSpacePlugin":
+		return true, d.InvokeMethod_BuildSpacePlugin(d.impl, strm)
+	case "OpenPluginFrontend":
+		return true, d.InvokeMethod_OpenPluginFrontend(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -420,6 +456,30 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_RemoveSpacePlugin(impl SRPCS
 		return err
 	}
 	out, err := impl.RemoveSpacePlugin(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_BuildSpacePlugin(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(BuildSpacePluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.BuildSpacePlugin(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_OpenPluginFrontend(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(BuildSpacePluginRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.OpenPluginFrontend(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -562,6 +622,22 @@ type SRPCSpaceResourceService_RemoveSpacePluginStream interface {
 }
 
 type srpcSpaceResourceService_RemoveSpacePluginStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_BuildSpacePluginStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_BuildSpacePluginStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_OpenPluginFrontendStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_OpenPluginFrontendStream struct {
 	srpc.Stream
 }
 

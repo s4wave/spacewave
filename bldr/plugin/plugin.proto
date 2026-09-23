@@ -75,6 +75,31 @@ service UpdateGuard {
   rpc Prepare(PrepareUpdateRequest) returns (PrepareUpdateResponse) {}
 }
 
+// Activation is implemented by plugins that stage their complete registration
+// set before the scheduler replaces an already running generation.
+service Activation {
+  // Check confirms support for private startup and atomic registration admission.
+  rpc Check(CheckActivationRequest) returns (CheckActivationResponse);
+  // Activate admits this worker's prepared registrations after startup succeeds.
+  rpc Activate(ActivatePluginRequest) returns (ActivatePluginResponse);
+}
+
+// CheckActivationRequest queries the running generation's replacement contract.
+message CheckActivationRequest {
+}
+
+// CheckActivationResponse confirms support for staged replacement.
+message CheckActivationResponse {
+}
+
+// ActivatePluginRequest asks a ready candidate to become the current generation.
+message ActivatePluginRequest {
+}
+
+// ActivatePluginResponse confirms admission of the complete registration set.
+message ActivatePluginResponse {
+}
+
 // PrepareUpdateRequest asks the current generation to relinquish its work.
 message PrepareUpdateRequest {
 }
@@ -101,6 +126,14 @@ message GetPluginInfoResponse {
   // instance allocates named volumes through. Empty selects the host default
   // storage.
   string host_storage_id = 5;
+  // Historical reports an immutable execution used for accepted-operation replay.
+  // The plugin serves handlers without publishing current UI or type registrations.
+  bool historical = 6;
+  // Prepared requires private registrations until Activation.Activate is called.
+  bool prepared = 7;
+  // InstanceKey is the logical installation binding, or empty for shared plugins.
+  // A Space uses its World engine ID. Physical worker generations do not change it.
+  string instance_key = 8;
 }
 
 
@@ -114,6 +147,10 @@ message LoadPluginRequest {
   // same plugin to run concurrently in separate workers.
   // When empty, behavior is unchanged: a single shared instance per plugin_id.
   string instance_key = 2;
+  // Manifests selects the installation and its recovery artifacts, newest first.
+  repeated .bldr.manifest.ManifestRef manifests = 3;
+  // ManifestRoot loads an exact historical executable without current registrations.
+  string manifest_root = 4;
 }
 
 // LoadPluginResponse is a status response to a LoadPlugin request.
@@ -146,6 +183,9 @@ message PluginStartInfo {
   // InstanceKey is the instance key from the LoadPlugin request.
   // Empty for non-instanced (shared) plugins.
   string instance_key = 3;
+  // ManifestRoot identifies the exact executable whose assets this worker imports.
+  // It is the base58-encoded manifest block hash, independent of the current revision.
+  string manifest_root = 4;
 }
 
 // PluginContextInfo contains information about the running plugin attached to

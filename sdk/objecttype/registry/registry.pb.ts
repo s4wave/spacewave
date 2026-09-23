@@ -4,10 +4,7 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import {
-  createEmptyMessageType,
-  createMessageType,
-} from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
@@ -225,13 +222,23 @@ export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse>
  *
  * @generated from message s4wave.objecttype.registry.WatchObjectTypesRequest
  */
-export interface WatchObjectTypesRequest {}
+export interface WatchObjectTypesRequest {
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const WatchObjectTypesRequest: MessageType<WatchObjectTypesRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchObjectTypesRequest>(
-    's4wave.objecttype.registry.WatchObjectTypesRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.objecttype.registry.WatchObjectTypesRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchObjectTypesResponse is the response for WatchObjectTypes.

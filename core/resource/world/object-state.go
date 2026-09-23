@@ -10,25 +10,29 @@ import (
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
 
 // ObjectStateResource wraps an ObjectState for resource access.
 type ObjectStateResource struct {
-	le       *logrus.Entry
-	b        bus.Bus
-	mux      srpc.Invoker
-	obj      world.ObjectState
-	lookupOp world.LookupOp
+	le                 *logrus.Entry
+	b                  bus.Bus
+	mux                srpc.Invoker
+	obj                world.ObjectState
+	lookupOp           world.LookupOp
+	sessionPeerID      peer.ID
+	sessionPeerIDBound bool
 }
 
 // NewObjectStateResource creates a new ObjectStateResource.
 //
 // It borrows obj for the resource lifetime. The caller must release obj after
 // retiring the resource. lookupOp may be nil.
-func NewObjectStateResource(le *logrus.Entry, b bus.Bus, obj world.ObjectState, lookupOp world.LookupOp) *ObjectStateResource {
+func NewObjectStateResource(le *logrus.Entry, b bus.Bus, obj world.ObjectState, lookupOp world.LookupOp, opts ...WorldStateResourceOption) *ObjectStateResource {
 	objResource := &ObjectStateResource{le: le, b: b, obj: obj, lookupOp: lookupOp}
+	objResource.sessionPeerID, objResource.sessionPeerIDBound = worldStateResourceSessionPeerID(opts...)
 	mux := srpc.NewMux()
 	_ = s4wave_world.SRPCRegisterObjectStateResourceService(mux, objResource)
 	objResource.mux = mux
@@ -113,13 +117,23 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 		return nil, err
 	}
 
-	opSender, err := req.ParsePeerID()
-	if err != nil {
-		return nil, err
+	opSender := r.sessionPeerID
+	if !r.sessionPeerIDBound {
+		opSender, err = req.ParsePeerID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rev, sysErr, err := r.obj.ApplyObjectOp(ctx, op, opSender)
 	if err != nil {
+		var rejection *world.OperationRejection
+		if errors.As(err, &rejection) {
+			return &s4wave_world.ApplyObjectOpResponse{
+				RejectionCode: rejection.Code, RejectionMessage: rejection.Message,
+			}, nil
+		}
+
 		if errors.Is(err, world.ErrUnhandledOp) {
 			return &s4wave_world.ApplyObjectOpResponse{
 				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,

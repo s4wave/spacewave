@@ -441,7 +441,10 @@ function useSpaceContainerController() {
     }
     return spaceState
   }, [canRenderBody, objectKey, spaceState])
-  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
+  const objectTypeMetadataById = useObjectTypeMetadata(
+    rootResource,
+    spaceState?.engineId,
+  )
   const spaceObjectTargets = useMemo(
     () =>
       buildSpaceObjectActionTargets(

@@ -73,10 +73,8 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		return err
 	}
 
-	manifestKey := bldr_manifest.NewSubManifestKey(parentBuilderConfig.GetObjectKey(), subManifestID)
 	manifestBuilderConf := parentBuilderConfig.CloneVT()
 	manifestBuilderConf.ManifestMeta = meta
-	manifestBuilderConf.ObjectKey = manifestKey
 	manifestBuilderConf.LinkObjectKeys = nil // TODO should we link this?
 	manifestBuilderConf.WorkingPath = workingPath
 

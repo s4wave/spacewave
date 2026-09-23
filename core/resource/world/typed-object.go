@@ -151,11 +151,8 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return r.accessPluginUnixFS(ctx, resourceCtx, objectKey)
 	}
 
-	// Select the world state used for this access.
+	// Preserve the supplied state's snapshot and write authority.
 	ws := r.ws
-	if r.engine != nil && r.ws.GetReadOnly() {
-		ws = world.NewEngineWorldState(r.engine, true)
-	}
 
 	// Verify that the object exists.
 	objectState, found, err := ws.GetObject(ctx, objectKey)
@@ -262,10 +259,8 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 		ctx = objecttype.WithEngineID(ctx, key.engineID)
 	}
 
+	// A typed factory receives the same state that resolved its object and type.
 	ws := r.ws
-	if r.engine != nil && !key.readOnly && r.ws.GetReadOnly() {
-		ws = world.NewEngineWorldState(r.engine, true)
-	}
 
 	objType, ref, err := objecttype.ExLookupObjectType(ctx, r.b, key.typeID)
 	if err != nil {

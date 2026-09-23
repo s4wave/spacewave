@@ -80,6 +80,19 @@ func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string
 //
 // Discards the transaction if nothing done.
 func CreateManifestStoreInEngine(ctx context.Context, eng world.Engine, objKey string) (created bool, err error) {
+	// Loading a retained plugin can happen inside a World writer. Existing stores
+	// need only a read snapshot, so initialization must not wait for that writer.
+	reader, err := eng.NewTransaction(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	exists, err := reader.HasObject(ctx, objKey)
+	reader.Discard()
+	if err != nil || exists {
+		return false, err
+	}
+
+	// Recheck under the writer when this is the first store creation.
 	tx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return false, err

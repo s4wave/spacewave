@@ -5,7 +5,6 @@ package bldr_project_controller
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -32,6 +31,10 @@ import (
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
+
+// refreshExports is the upstream React plugin's module boundary. Every compiler
+// borrows the document's bootstrap runtime so renderer and family state agree.
+const refreshExports = "register, injectIntoGlobalHook, createSignatureFunctionForTransform, registerExportsForReactRefresh, validateRefreshBoundaryAndEnqueueUpdate, __hmr_import"
 
 // FrontendService owns the project's current development environment.
 // The project serializes configuration and shutdown; RPC methods run concurrently.
@@ -75,6 +78,7 @@ func (f *FrontendService) configure(cc *Config) error {
 		DistDir:      filepath.Join(cc.GetWorkingPath(), "src"),
 		CacheDir:     filepath.Join(cc.GetWorkingPath(), "frontend", "vite-cache"),
 		ExternalPkgs: slices.Clone(web_pkg_external.BldrExternal),
+		RoutePrefix:  cc.GetFrontendRoutePrefix(),
 	}
 	configured := false
 	for id, manifest := range cc.GetProjectConfig().GetManifests() {
@@ -88,6 +92,11 @@ func (f *FrontendService) configure(cc *Config) error {
 		}
 		js.FlattenBuildTypes(bldr_manifest.BuildType_DEV)
 		js.FlattenPlatformTypes(bldr_platform.NewJsPlatform())
+		for _, pkg := range js.GetWebPkgs() {
+			if pkg.GetExclude() {
+				conf.WebPkgIds = append(conf.WebPkgIds, pkg.GetId())
+			}
+		}
 		for _, module := range js.GetModules() {
 			if module.GetKind() != js_compiler.JsModuleKind_JS_MODULE_KIND_FRONTEND {
 				continue
@@ -108,6 +117,8 @@ func (f *FrontendService) configure(cc *Config) error {
 	}
 	slices.Sort(conf.Entrypoints)
 	conf.Entrypoints = slices.Compact(conf.Entrypoints)
+	slices.Sort(conf.WebPkgIds)
+	conf.WebPkgIds = slices.Compact(conf.WebPkgIds)
 	if len(conf.Entrypoints) == 0 {
 		conf = nil
 	}
@@ -141,7 +152,11 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 			f.ready.SetResult(nil, errors.New("frontend compiler returned an invalid private address"))
 			return
 		}
-		env := &frontendEnvironment{ctx: ctx, client: client, result: result, proxy: httputil.NewSingleHostReverseProxy(target)}
+		// The authenticated Bldr route targets Vite's private listener. Its Host
+		// must name that listener, independently of the browser's public origin.
+		env := &frontendEnvironment{ctx: ctx, client: client, result: result, proxy: &httputil.ReverseProxy{
+			Rewrite: func(request *httputil.ProxyRequest) { request.SetURL(target) },
+		}}
 		env.proxy.FlushInterval = -1
 		f.active.Store(env)
 		f.ready.SetResult(env, nil)
@@ -225,6 +240,13 @@ func (f *FrontendService) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	rw.Header().Set("Cache-Control", "no-store")
+	if req.URL.Path == env.result.GetSession().GetRoutePrefix()+"@react-refresh" {
+		rw.Header().Set("Content-Type", "text/javascript")
+		_, _ = io.WriteString(rw, "const runtime = globalThis.__bldrReactRefresh;\n"+
+			"if (!runtime) throw new Error('Live React editing requires a Bldr development client');\n"+
+			"export const {"+refreshExports+"} = runtime; export default runtime;\n")
+		return
+	}
 	env.proxy.ServeHTTP(rw, req)
 }
 
@@ -235,7 +257,7 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 		rw.Header().Set("Content-Type", "text/javascript")
 		rw.Header().Set("Cache-Control", "no-store")
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))
-		_, _ = fmt.Fprintf(rw, "await import(%s);\n", entry)
+		_, _ = io.WriteString(rw, "await import("+entry+");\n")
 		return
 	}
 	env, err := f.ready.Await(req.Context())
@@ -250,13 +272,15 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 	case "/bldr-dev/frontend-boot.mjs":
 		refresh := strconv.Quote(refreshPath)
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))
-		_, _ = fmt.Fprintf(rw, "import %s; window.__bldrFrontendEnabled = true; await import(%s);\n", refresh, entry)
+		_, _ = io.WriteString(rw, "import "+refresh+"; window.__bldrFrontendEnabled = true; await import("+entry+");\n")
 	case refreshPath:
 		_, _ = io.WriteString(rw, env.result.GetRefreshRuntime())
 		if env.result.GetRefreshRuntime() == "" {
 			return
 		}
-		_, _ = io.WriteString(rw, "\ninjectIntoGlobalHook(window); window.$RefreshReg$ = () => {}; window.$RefreshSig$ = () => type => type; window.__vite_plugin_react_preamble_installed__ = true;\n")
+		_, _ = io.WriteString(rw, "\nif (!globalThis.__bldrReactRefresh) {\n"+
+			"globalThis.__bldrReactRefresh = {"+refreshExports+"};\n"+
+			"injectIntoGlobalHook(window); window.$RefreshReg$ = () => {}; window.$RefreshSig$ = () => type => type; window.__vite_plugin_react_preamble_installed__ = true;\n}\n")
 	default:
 		http.Error(rw, "frontend session expired", http.StatusGone)
 	}

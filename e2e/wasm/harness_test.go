@@ -49,6 +49,18 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
+	// Optional prebuilding keeps cold compiler startup outside the test timer.
+	// The default remains lazy so unit-only selections do not build the app.
+	if E2EWasmEnabled() && os.Getenv("E2E_WASM_PREBUILD") == "true" {
+		harnessOnce.Do(func() {
+			sharedHarness, harnessBootErr = bootSharedHarness()
+		})
+		if harnessBootErr != nil {
+			logrus.WithError(harnessBootErr).Error("prebuild wasm harness")
+			os.Exit(1)
+		}
+	}
+
 	code := m.Run()
 	if sharedHarness != nil {
 		sharedHarness.Release()

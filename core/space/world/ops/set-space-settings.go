@@ -210,10 +210,13 @@ func (o *SetSpaceSettingsOp) UnmarshalBlock(data []byte) error {
 	return o.UnmarshalVT(data)
 }
 
-// LookupSetSpaceSettingsOp looks up a SetSpaceSettingsOp operation type.
+// LookupSetSpaceSettingsOp looks up Space settings operations.
 func LookupSetSpaceSettingsOp(ctx context.Context, operationTypeID string) (world.Operation, error) {
-	if operationTypeID == SetSpaceSettingsOpId {
+	switch operationTypeID {
+	case SetSpaceSettingsOpId:
 		return &SetSpaceSettingsOp{}, nil
+	case SetSpaceIndexPathOpID:
+		return &SetSpaceIndexPathOp{}, nil
 	}
 	return nil, nil
 }

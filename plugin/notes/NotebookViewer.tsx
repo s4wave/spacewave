@@ -14,6 +14,7 @@ import NotebookSidebar from './NotebookSidebar.js'
 import NoteList from './NoteList.js'
 import NoteContentView from './NoteContentView.js'
 import { useNotebookViewerState } from './useNotebookViewerState.js'
+import NotebookSavedViews from './NotebookSavedViews.js'
 
 // NotebookViewer is the three-panel viewer for Notes Notebook objects.
 function NotebookViewer({
@@ -44,6 +45,9 @@ function NotebookViewer({
     editing,
     filterTag,
     filterStatus,
+    sort,
+    setSort,
+    handleLoadView,
     sidebarOpen,
     addSourceOpen,
     removeSourceIndex,
@@ -94,13 +98,26 @@ function NotebookViewer({
         {/* Sidebar - responsive: hidden on mobile unless toggled */}
         <div
           className={cn(
-            'border-border w-50 min-w-50 border-r',
+            'border-border w-50 min-w-50 overflow-y-auto border-r',
             'md:relative md:block',
             sidebarOpen
               ? 'bg-background-primary absolute inset-y-0 left-0 z-20 block'
               : 'hidden',
           )}
         >
+          <NotebookSavedViews
+            world={worldState}
+            notebook={objectKey}
+            handle={notebookHandle}
+            draft={{
+              sourceRef: currentSource?.ref ?? '',
+              path: currentPath,
+              filterTag: filterTag ?? null,
+              filterStatus: filterStatus ?? null,
+              sort,
+            }}
+            onLoad={handleLoadView}
+          />
           <NotebookSidebar
             sources={sources}
             selectedSource={selectedSource}
@@ -115,24 +132,39 @@ function NotebookViewer({
         {/* Note list - responsive: hidden on mobile when note is selected */}
         <div
           className={cn(
-            'border-border w-62.5 min-w-62.5 border-r',
-            selectedNote ? 'hidden md:block' : 'block',
+            'border-border flex w-62.5 min-w-62.5 flex-col border-r',
+            selectedNote ? 'hidden md:flex' : 'flex',
           )}
         >
-          <NoteList
-            source={currentSource}
-            worldState={worldState}
-            selectedNote={selectedNote}
-            currentPath={currentPath}
-            onSelectNote={handleSelectNote}
-            onChangePath={handleChangePath}
-            onNoteRenamed={handleNoteRenamed}
-            onNoteDeleted={handleNoteDeleted}
-            filterTag={filterTag}
-            filterStatus={filterStatus}
-            onFilterTagChange={setFilterTag}
-            onFilterStatusChange={setFilterStatus}
-          />
+          <label className="border-border flex items-center justify-between gap-2 border-b px-2 py-1 text-xs">
+            Sort notes
+            <select
+              aria-label="Sort notes"
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+              className="bg-background-primary rounded p-1"
+            >
+              <option value="name">File name</option>
+              <option value="title">Title</option>
+            </select>
+          </label>
+          <div className="min-h-0 flex-1">
+            <NoteList
+              source={currentSource}
+              worldState={worldState}
+              selectedNote={selectedNote}
+              currentPath={currentPath}
+              onSelectNote={handleSelectNote}
+              onChangePath={handleChangePath}
+              onNoteRenamed={handleNoteRenamed}
+              onNoteDeleted={handleNoteDeleted}
+              filterTag={filterTag}
+              filterStatus={filterStatus}
+              sort={sort}
+              onFilterTagChange={setFilterTag}
+              onFilterStatusChange={setFilterStatus}
+            />
+          </div>
         </div>
 
         {/* Content area */}

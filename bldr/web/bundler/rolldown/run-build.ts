@@ -298,11 +298,11 @@ export async function runBuild(
     }
   }
   const existingSourcePath = (filePath: string): string | null => {
-    if (existingFile(filePath)) return filePath
+    if (existingFile(filePath)) return canonicalPath(filePath)
     if (filePath.endsWith('.js')) {
       for (const extension of ['.ts', '.tsx']) {
         const candidate = filePath.slice(0, -3) + extension
-        if (existingFile(candidate)) return candidate
+        if (existingFile(candidate)) return canonicalPath(candidate)
       }
     }
     return null
@@ -332,6 +332,7 @@ export async function runBuild(
 
   const resolveBldrSourcePath = (sourceRel: string): string | null => {
     return (
+      existingSourcePath(join(sourceRoot, 'bldr', sourceRel)) ??
       existingSourcePath(join(bldrDistRoot, 'bldr', sourceRel)) ??
       existingSourcePath(join(bldrDistRoot, sourceRel))
     )
@@ -683,7 +684,12 @@ export async function runBuild(
     resolve: {
       alias: { ...(request.aliases ?? {}) },
       extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
-      modules: [join(dependencyRoot, 'node_modules')],
+      // Project dependencies belong to the supplied source tree. The compiler's
+      // locked packages supply SDK dependencies when the project has none.
+      modules: [
+        join(sourceRoot, 'node_modules'),
+        join(dependencyRoot, 'node_modules'),
+      ],
     },
     transform: {
       target: request.target || undefined,

@@ -30,7 +30,7 @@ export function QuickstartOptionsProvider({
   rootResource,
   children,
 }: QuickstartOptionsProviderProps) {
-  const quickstartOptions = useMergedQuickstartOptions(rootResource)
+  const quickstartOptions = useQuickstartOptions(rootResource)
   return React.createElement(
     QuickstartOptionsContext.Provider,
     { value: quickstartOptions },
@@ -45,11 +45,11 @@ export function useVisibleQuickstartOptions(): QuickstartOption[] {
 
 const quickstartCreateStream = (
   root: Root,
-  _req: WatchQuickstartsRequest,
+  req: WatchQuickstartsRequest,
   signal: AbortSignal,
 ) =>
   new QuickstartRegistryResourceServiceClient(root.client).WatchQuickstarts(
-    {},
+    req,
     signal,
   )
 
@@ -58,14 +58,16 @@ const quickstartGetRegs = (resp: WatchQuickstartsResponse | null) =>
 
 const passRegistration = <T>(reg: T): T => reg
 
-function useMergedQuickstartOptions(
+// useQuickstartOptions discovers creation actions for one installation scope.
+export function useQuickstartOptions(
   rootResource: Resource<Root>,
+  instanceKey = '',
 ): QuickstartOption[] {
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
   const dynamicRegistrations = useDynamicRegistrations(
     rootResource.value,
     quickstartCreateStream,
-    {},
+    { instanceKey },
     WatchQuickstartsRequest.equals,
     WatchQuickstartsResponse.equals,
     quickstartGetRegs,

@@ -4,6 +4,7 @@ import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 import { getObjectType } from '@s4wave/sdk/world/types/types.js'
 import { formatObjectRef } from '@s4wave/sdk/world/object-ref.js'
@@ -36,7 +37,8 @@ export function useObjectViewerSetup(
   options: UseObjectViewerSetupOptions = {},
 ): ObjectViewerSetup {
   const rootResource = RootContext.useContext()
-  const allViewers = useAllViewers(rootResource)
+  const space = SpaceContainerContext.useContextSafe()
+  const allViewers = useAllViewers(rootResource, space?.spaceState.engineId)
   const loadObjectState = options.loadObjectState ?? true
 
   const rawObjectState = useResource(

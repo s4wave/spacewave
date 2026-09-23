@@ -3,6 +3,7 @@
 package objecttypes
 
 import (
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -29,7 +30,9 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
+// commonObjectTypes exposes built-in types in native and GoScript Spaces.
 var commonObjectTypes = map[string]objecttype.ObjectType{
+	bldr_manifest_world.ManifestTypeID:     objecttype.NewObjectType(bldr_manifest_world.ManifestTypeID, s4wave_forge_world.ForgeReadOnlyFactory),
 	volume_world.ObjectTypeID:              s4wave_volume_world.VolumeType,
 	s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 	s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,

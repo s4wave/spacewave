@@ -51,6 +51,8 @@ message RegisterViewerResponse {
 message ListViewersRequest {
   // Surface selects the host surface to list.
   ViewerSurface surface = 1;
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 2;
 }
 
 // ListViewersResponse is the response type for ListViewers.
@@ -63,6 +65,8 @@ message ListViewersResponse {
 message WatchViewersRequest {
   // Surface selects the host surface to watch.
   ViewerSurface surface = 1;
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 2;
 }
 
 // WatchViewersResponse is the response type for WatchViewers.

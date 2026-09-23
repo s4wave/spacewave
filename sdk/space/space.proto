@@ -30,6 +30,40 @@ service SpaceResourceService {
   rpc AddSpacePlugin(AddSpacePluginRequest) returns (AddSpacePluginResponse) {}
 
   rpc RemoveSpacePlugin(RemoveSpacePluginRequest) returns (RemoveSpacePluginResponse) {}
+
+  // BuildSpacePlugin pins the source and queues a native build on a registered
+  // device. Progress and outputs use the existing Forge Execution resource.
+  rpc BuildSpacePlugin(BuildSpacePluginRequest) returns (BuildSpacePluginResponse) {}
+
+  // OpenPluginFrontend retains a source-backed compiler on the selected device.
+  // The returned Resource serves bldr.frontend.Frontend; release cancels the job.
+  rpc OpenPluginFrontend(BuildSpacePluginRequest) returns (OpenPluginFrontendResponse) {}
+}
+
+// BuildSpacePluginRequest selects a Space source tree and authorized build device.
+message BuildSpacePluginRequest {
+  // SourceKey is a UnixFS directory containing a TypeScript Bldr project.
+  string source_key = 1;
+  // DeviceKey identifies a Device with a selectable Forge worker capability.
+  string device_key = 2;
+  // ManifestId selects the JavaScript plugin manifest in the project.
+  string manifest_id = 3;
+  // ConfigPath is relative to the source directory; empty selects bldr.yaml.
+  string config_path = 4;
+}
+
+// BuildSpacePluginResponse identifies the durable queued build.
+message BuildSpacePluginResponse {
+  // ExecutionKey identifies the Forge Execution with logs and build results.
+  string execution_key = 1;
+}
+
+// OpenPluginFrontendResponse identifies the authoring attachment and its logs.
+message OpenPluginFrontendResponse {
+  // ResourceId owns the compiler connection and its Forge execution.
+  uint32 resource_id = 1;
+  // ExecutionKey identifies the Forge Execution with startup and failure logs.
+  string execution_key = 2;
 }
 
 service SpaceContentsResourceService {
@@ -56,6 +90,9 @@ message SpaceState {
   .space.world.SpaceSettings settings = 3;
   // TransformInfo contains the space's encryption and compression config.
   TransformInfo transform_info = 4;
+  // EngineId is the host World binding used for Space-local plugin discovery.
+  // It is an address, not an authority grant.
+  string engine_id = 5;
 }
 
 // WatchSpaceSharingStateRequest is the request to watch sharing state.
@@ -267,6 +304,9 @@ message SpacePluginStatus {
 message AddSpacePluginRequest {
   // PluginId is the manifest ID of the plugin to add.
   string plugin_id = 1;
+  // ManifestKey selects an immutable manifest artifact in this Space.
+  // Empty preserves an existing pin or follows the configured catalog for a new plugin.
+  string manifest_key = 2;
 }
 
 // AddSpacePluginResponse is the response for AddSpacePlugin.

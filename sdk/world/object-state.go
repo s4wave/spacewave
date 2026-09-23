@@ -114,7 +114,7 @@ func (os *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, se
 	if err != nil {
 		return 0, false, err
 	}
-	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
+	if err := resp.GetError(); err != nil {
 		return 0, false, err
 	}
 

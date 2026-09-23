@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -569,11 +570,7 @@ func (c *Controller) storeManifestBuildResult(
 	result *bldr_manifest_builder.BuilderResult,
 ) error {
 	builderConfig := c.c.GetBuilderConfig()
-	if result.GetManifest().GetMeta().GetRev() != builderConfig.GetManifestMeta().GetRev() {
-		le.WithField("manifest-rev", result.GetManifest().GetMeta().GetRev()).
-			Debug("skipping world-backed manifest build result for reused manifest")
-		return nil
-	}
+	objectKey := bldr_manifest.NewManifestArtifactKey(result.GetManifestRef().GetManifestRef())
 	busEngine := world.NewBusEngine(ctx, c.bus, builderConfig.GetEngineId())
 	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
@@ -581,14 +578,14 @@ func (c *Controller) storeManifestBuildResult(
 	}
 	defer tx.Discard()
 
-	ref, err := resultworld.SetManifestBuildResult(ctx, tx, builderConfig.GetObjectKey(), result)
+	ref, err := resultworld.SetManifestBuildResult(ctx, tx, objectKey, result)
 	if err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
-	le.WithField("object-key", resultworld.ManifestBuildResultKey(builderConfig.GetObjectKey())).
+	le.WithField("object-key", resultworld.ManifestBuildResultKey(objectKey)).
 		WithField("ref", ref).
 		Debug("stored manifest build result in world")
 	return nil

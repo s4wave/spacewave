@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 
 const mockRootResource = vi.hoisted(() => ({ value: null }))
 
@@ -95,9 +95,10 @@ describe('SpaceIndex', () => {
 
     const opData = applyWorldOp.mock.calls[0]?.[1] as Uint8Array | undefined
     expect(opData).toBeDefined()
-    const op = SetSpaceSettingsOp.fromBinary(opData)
-    expect(op.settings?.indexPath).toBe('files-1')
-    expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
+    const op = SetSpaceIndexPathOp.fromBinary(opData)
+    expect(op.indexPath).toBe('files-1')
+    expect(op.expectedIndexPath).toBe('files')
+
     expect(mockToastSuccess).toHaveBeenCalledWith(
       'Default object updated to files-1',
     )

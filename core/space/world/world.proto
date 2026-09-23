@@ -38,4 +38,14 @@ message SpaceSettings {
   repeated string plugin_ids = 2;
   // KeybindingOverrides stores Space-scope keybinding overrides.
   .s4wave.command.KeybindingOverrideSet keybinding_overrides = 3;
+  // PluginInstallations pins plugins to immutable World artifacts.
+  // Plugins without an installation follow their configured application catalog.
+  map<string, SpacePluginInstallation> plugin_installations = 4;
+}
+
+// SpacePluginInstallation retains explicit installation choices across reopen.
+message SpacePluginInstallation {
+  // ManifestKeys lists immutable artifacts, newest installation first.
+  // Earlier choices recover a working plugin when the requested version fails.
+  repeated string manifest_keys = 1;
 }

@@ -13,7 +13,9 @@ import {
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
+import type { Engine } from './engine.js'
 import type {
+  ObjectRecordBase,
   GraphEdgeBucketDirection,
   ListGraphEdgeBucketsResponse,
   LookupGraphQuadsResponse,
@@ -44,6 +46,9 @@ export interface ListGraphEdgeBucketsOptions {
 // IWorldState contains the world state interface.
 // Represents the full state read/write operations interface to the world.
 export interface IWorldState {
+  /** getEngine borrows the live owner when available; immutable snapshots have no Engine. */
+  getEngine?(): Engine
+
   // getResourceRef returns the resource ref for creating child resources.
   // This is used to create typed object resources from accessTypedObject results.
   getResourceRef(): ClientResourceRef
@@ -256,6 +261,26 @@ export class WorldStateResource extends Resource implements IWorldState {
   ): Promise<{ seqno: bigint }> {
     const response = await this.service.WaitSeqno({ seqno }, abortSignal)
     return { seqno: response.seqno ?? 0n }
+  }
+
+  /** getObjectRootRefs returns existence, revision, and root from this snapshot. */
+  /** compareObjectRecords compares previous immutable roots with this snapshot. */
+  public async compareObjectRecords(
+    bases: ObjectRecordBase[],
+    signal?: AbortSignal,
+  ) {
+    return this.service.CompareObjectRecords({ bases }, signal)
+  }
+
+  public async getObjectRootRefs(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ) {
+    const response = await this.service.GetObjectRootRefsBatch(
+      { objectKeys },
+      abortSignal,
+    )
+    return response.rootRefs ?? []
   }
 
   // WorldStorage implementation

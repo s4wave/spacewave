@@ -114,13 +114,19 @@ func SyncToBillyFSFile(
 		outBuffer = outBuffer[:len(inBuffer)]
 	}
 
-	// ensure destination file is the correct size
+	// Resize only when needed; truncating unchanged content emits file watches.
 	srcSize, err := srcHandle.GetSize(ctx)
 	if err != nil {
 		return err
 	}
-	if err := destFile.Truncate(int64(srcSize)); err != nil { //nolint:gosec
+	destSize, err := destFile.Seek(0, io.SeekEnd)
+	if err != nil {
 		return err
+	}
+	if destSize != int64(srcSize) { //nolint:gosec
+		if err := destFile.Truncate(int64(srcSize)); err != nil { //nolint:gosec
+			return err
+		}
 	}
 
 	// read & compare in chunks

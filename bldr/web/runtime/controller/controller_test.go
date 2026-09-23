@@ -21,8 +21,67 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
+
+// TestImmutablePluginFilesHTTP keeps old modules and relative chunks independent
+// of the current plugin, and never falls back when the exact binding is absent.
+func TestImmutablePluginFilesHTTP(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	oldRoot, err := hash.Sum(hash.RecommendedHashType, []byte("old"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	missingRoot, err := hash.Sum(hash.RecommendedHashType, []byte("missing"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldID := bldr_plugin.PluginArtifactID("colors", oldRoot.MarshalString())
+	for binding, contents := range map[string]string{"colors": "new", oldID: "old"} {
+		root, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
+			"/entry.mjs": []byte(contents), "/chunks/shared.mjs": []byte(contents + " chunk"),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer root.Release()
+		ctrl := unixfs_access.NewController(le, tb.Bus,
+			controller.NewInfo("immutable-files/"+binding, controller.MustParseVersion("0.0.1"), "test plugin files"),
+			[]string{bldr_plugin.PluginDistFsId(binding), bldr_plugin.PluginAssetsFsId(binding)},
+			unixfs_access.NewAccessUnixFSFunc(root))
+		defer ctrl.Close()
+		release, err := tb.Bus.AddController(ctx, ctrl, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+	}
+	runtime := &Controller{le: le, bus: tb.Bus}
+	for _, prefix := range []string{bldr_plugin.PluginDistHttpPrefix, bldr_plugin.PluginAssetsHttpPrefix} {
+		for path, want := range map[string]string{
+			"colors/entry.mjs": "new", oldID + "/entry.mjs": "old", oldID + "/chunks/shared.mjs": "old chunk",
+		} {
+			rw := httptest.NewRecorder()
+			runtime.ServeServiceWorkerHTTP(rw, httptest.NewRequest(http.MethodGet, prefix+path, nil).WithContext(ctx))
+			if rw.Code != http.StatusOK || rw.Body.String() != want {
+				t.Fatalf("%s: status=%d body=%q, want %q", path, rw.Code, rw.Body.String(), want)
+			}
+		}
+		rw := httptest.NewRecorder()
+		path := prefix + bldr_plugin.PluginArtifactID("colors", missingRoot.MarshalString()) + "/entry.mjs"
+		runtime.ServeServiceWorkerHTTP(rw, httptest.NewRequest(http.MethodGet, path, nil).WithContext(ctx))
+		if rw.Code == http.StatusOK {
+			t.Fatal("missing immutable files fell back to current plugin")
+		}
+	}
+}
 
 func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 	rtCtrl := &Controller{

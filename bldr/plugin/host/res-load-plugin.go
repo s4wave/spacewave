@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/pkg/errors"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
@@ -15,16 +17,28 @@ type LoadPluginResolver struct {
 	pluginID string
 	// instanceKey is the instance key for instanced plugins.
 	instanceKey string
+	// manifestRoot selects immutable execution when nonempty.
+	manifestRoot string
+	// manifests contains the caller's installation and recovery artifacts.
+	manifests []*manifest.ManifestRef
 }
 
 // NewLoadPluginResolver constructs a new LoadPluginResolver.
-func NewLoadPluginResolver(c PluginHostScheduler, pluginID, instanceKey string) *LoadPluginResolver {
-	return &LoadPluginResolver{c: c, pluginID: pluginID, instanceKey: instanceKey}
+func NewLoadPluginResolver(c PluginHostScheduler, pluginID, instanceKey, manifestRoot string, selected []*manifest.ManifestRef) *LoadPluginResolver {
+	return &LoadPluginResolver{c: c, pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot, manifests: selected}
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	ref, relRef := r.c.AddPluginReference(r.pluginID, r.instanceKey)
+	var ref bldr_plugin.RunningPluginRef
+	var relRef func()
+	if len(r.manifests) != 0 {
+		ref, relRef = r.c.AddSelectedPluginReference(r.pluginID, r.instanceKey, r.manifests...)
+	} else if r.manifestRoot == "" {
+		ref, relRef = r.c.AddPluginReference(r.pluginID, r.instanceKey)
+	} else {
+		ref, relRef = r.c.AddPinnedPluginReference(r.pluginID, r.instanceKey, r.manifestRoot)
+	}
 	defer relRef()
 
 	stateCtr := ref.GetPluginLoadStateCtr()
@@ -43,6 +57,9 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			continue
 		}
 		if next.GetInitialCapabilityRegistrationState() == bldr_plugin.InitialCapabilityRegistrationFailed {
+			if r.manifestRoot != "" {
+				return errors.Errorf("plugin %s: exact manifest %s is unavailable", r.pluginID, r.manifestRoot)
+			}
 			handler.MarkIdle(true)
 			continue
 		}

@@ -43,7 +43,7 @@ func startResourceService() {
 		return
 	}
 
-	viewerRegistry := resource_viewer_registry.NewViewerRegistryResource()
+	viewerRegistry := resource_viewer_registry.NewViewerRegistryResource(nil)
 	rootMux := srpc.NewMux(viewerRegistry.GetMux())
 	resourceServer := resource_server.NewResourceServer(rootMux)
 	mux := srpc.NewMux()

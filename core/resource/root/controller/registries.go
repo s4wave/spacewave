@@ -6,6 +6,7 @@ import (
 	resource_configtype_registry "github.com/s4wave/spacewave/core/resource/configtype/registry"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	resource_quickstart_registry "github.com/s4wave/spacewave/core/resource/quickstart/registry"
+	"github.com/s4wave/spacewave/core/resource/registration"
 	resource_viewer_registry "github.com/s4wave/spacewave/core/resource/viewer/registry"
 	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
@@ -21,6 +22,8 @@ import (
 // resource. Plugins register with the root of their host installation, so a
 // nested app serves its parent's registries to reach the same plugins.
 type registries struct {
+	// generations admits plugin generations across every registry.
+	generations *registration.Registry
 	// viewer holds object viewers.
 	viewer *resource_viewer_registry.ViewerRegistryResource
 	// objectType holds World ObjectTypes.
@@ -39,18 +42,23 @@ type registries struct {
 // newRegistries constructs empty registries. b is where Quickstart seed
 // handlers load their plugins.
 func newRegistries(le *logrus.Entry, b bus.Bus) *registries {
+	generations := registration.NewRegistry()
 	return &registries{
-		viewer:       resource_viewer_registry.NewViewerRegistryResource(),
-		objectType:   resource_objecttype_registry.NewObjectTypeRegistryResource(),
-		worldOp:      resource_worldop_registry.NewWorldOpRegistryResource(),
+		generations:  generations,
+		viewer:       resource_viewer_registry.NewViewerRegistryResource(generations),
+		objectType:   resource_objecttype_registry.NewObjectTypeRegistryResource(generations),
+		worldOp:      resource_worldop_registry.NewWorldOpRegistryResource(generations),
 		configType:   resource_configtype_registry.NewConfigTypeRegistryResource(),
-		quickstart:   resource_quickstart_registry.NewQuickstartRegistryResource(le, b),
+		quickstart:   resource_quickstart_registry.NewQuickstartRegistryResource(le, b, generations),
 		objectWizard: s4wave_wizard.NewWizardRegistryResource(),
 	}
 }
 
 // register serves every registry on the root resource mux.
 func (r *registries) register(mux srpc.Mux) error {
+	if err := r.generations.Register(mux); err != nil {
+		return err
+	}
 	if err := s4wave_viewer_registry.SRPCRegisterViewerRegistryResourceService(mux, r.viewer); err != nil {
 		return err
 	}

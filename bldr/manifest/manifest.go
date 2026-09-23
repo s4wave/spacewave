@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-billy/v6"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/net/util/labels"
 )
@@ -72,6 +73,12 @@ func NewManifestBlock() block.Block {
 	return &Manifest{}
 }
 
+// NewManifestArtifactKey identifies immutable content within a World. Bucket
+// location is excluded so materializing the same DAG preserves its object key.
+func NewManifestArtifactKey(ref *bucket.ObjectRef) string {
+	return "bldr/manifest/" + ref.GetRootRef().GetHash().MarshalString()
+}
+
 // NewManifestKey builds a key for a manifest associated with another object.
 func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 	buildType := manifestMeta.GetBuildType()
@@ -89,13 +96,6 @@ func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
 		manifestKeyPts = append(manifestKeyPts, platformID)
 	}
 	return strings.Join(manifestKeyPts, "/")
-}
-
-// NewSubManifestKey builds a key for a manifest built as a sub-manifest of a manifest.
-//
-// It is assumed that the sub-manifest has the same platform as the parent manifest.
-func NewSubManifestKey(parentObjKey string, subManifestID string) string {
-	return strings.Join([]string{parentObjKey, "sub", subManifestID}, "/")
 }
 
 // UnmarshalManifest unmarshals a Manifest block from the cursor.

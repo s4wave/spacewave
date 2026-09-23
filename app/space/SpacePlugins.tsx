@@ -19,6 +19,8 @@ import {
   WatchSpaceContentsStateRequest,
 } from '@s4wave/sdk/space/space.pb.js'
 
+import { SpacePluginBuild } from './SpacePluginBuild.js'
+
 import { KNOWN_SPACE_PLUGINS, knownSpacePlugin } from './known-plugins.js'
 
 // CatalogEntry is one browsable plugin row merging the backend catalog with
@@ -408,6 +410,8 @@ export function SpacePlugins() {
           onAdd={(pluginId) => void handleAdd(pluginId)}
         />
       )}
+
+      <SpacePluginBuild space={space} />
 
       <InstalledPluginList
         plugins={plugins}

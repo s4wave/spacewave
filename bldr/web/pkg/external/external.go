@@ -3,6 +3,7 @@ package web_pkg_external
 import (
 	"path/filepath"
 
+	"github.com/s4wave/spacewave/bldr"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 )
 
@@ -68,11 +69,11 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 		Imports:    BldrDistWebPkgImports["react-dom"],
 	}, {
 		WebPkgId:   "@aptre/bldr",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr"),
+		WebPkgRoot: bldr.ResolveDistSourcePath(bldrDistRoot, "web", "bldr"),
 		Imports:    BldrDistWebPkgImports["@aptre/bldr"],
 	}, {
 		WebPkgId:   "@aptre/bldr-react",
-		WebPkgRoot: filepath.Join(bldrDistRoot, "web", "bldr-react"),
+		WebPkgRoot: bldr.ResolveDistSourcePath(bldrDistRoot, "web", "bldr-react"),
 		Imports:    BldrDistWebPkgImports["@aptre/bldr-react"],
 	}, {
 		WebPkgId:   "@aptre/protobuf-es-lite",

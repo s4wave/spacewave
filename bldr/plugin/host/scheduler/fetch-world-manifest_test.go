@@ -364,7 +364,7 @@ func TestFetchManifestValueStorerRepairsMissingManifestLink(t *testing.T) {
 	}
 
 	ref := newTestStoredManifestRef(t, ctx, tb, "spacewave-core", "desktop/darwin/arm64", 1)
-	manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+	manifestKey := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
 	if _, _, err := bldr_manifest_world.SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1766,7 +1766,7 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 		t.Fatal("test manifest must start in a non-local bucket")
 	}
 
-	manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+	manifestKey := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
 	if err := bldr_manifest_world.ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{objKey}, ref); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1896,7 +1896,7 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 		2,
 	)
 	for _, ref := range []*bldr_manifest.ManifestRef{suppressedRef, dynamicRef} {
-		manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+		manifestKey := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
 		if err := bldr_manifest_world.ExStoreManifestOp(
 			ctx,
 			ws,
@@ -2122,7 +2122,7 @@ func TestCollectStartupManifestEligibilityDemandsExternalRefAndUsesWriteback(t *
 		false,
 	)
 
-	manifestKey := bldr_manifest.NewManifestKey(objKey, remote.ref.GetMeta())
+	manifestKey := bldr_manifest.NewManifestArtifactKey(remote.ref.GetManifestRef())
 	if err := bldr_manifest_world.ExStoreManifestOp(
 		ctx,
 		ws,
@@ -2496,7 +2496,7 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		t.Fatal("test manifest must start in a non-local bucket")
 	}
 
-	manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+	manifestKey := bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef())
 	if err := bldr_manifest_world.ExStoreManifestOp(ctx, ws, peer.ID("test"), manifestKey, []string{objKey}, ref); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3196,7 +3196,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 		"desktop/darwin/arm64",
 		1,
 	)
-	coreKey := bldr_manifest.NewManifestKey(objKey, coreRef.GetMeta())
+	coreKey := bldr_manifest.NewManifestArtifactKey(coreRef.GetManifestRef())
 	if err := bldr_manifest_world.ExStoreManifestOp(ctx, baseWS, peer.ID("test"), coreKey, []string{objKey}, coreRef); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3238,7 +3238,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 		"desktop/darwin/arm64",
 		1,
 	)
-	webKey := bldr_manifest.NewManifestKey(objKey, webRef.GetMeta())
+	webKey := bldr_manifest.NewManifestArtifactKey(webRef.GetManifestRef())
 	if err := bldr_manifest_world.ExStoreManifestOp(ctx, baseWS, peer.ID("test"), webKey, []string{objKey}, webRef); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -4446,6 +4446,7 @@ func (h *testPluginHost) ExecutePlugin(
 	ctx context.Context,
 	pluginID,
 	instanceKey,
+	manifestRoot,
 	entrypoint string,
 	pluginDist *unixfs.FSHandle,
 	pluginAssets *unixfs.FSHandle,
@@ -4474,6 +4475,7 @@ func (h *releaseCDNRuntimePluginHost) ExecutePlugin(
 	ctx context.Context,
 	pluginID,
 	instanceKey,
+	manifestRoot,
 	entrypoint string,
 	pluginDist *unixfs.FSHandle,
 	pluginAssets *unixfs.FSHandle,

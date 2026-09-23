@@ -1,0 +1,40 @@
+syntax = "proto3";
+package s4wave.plugin.registration;
+
+// RegistrationService prepares a plugin's Resource-owned registrations.
+service RegistrationService {
+  // Prepare returns a private registration scope for one executable generation.
+  rpc Prepare(PrepareRequest) returns (PrepareResponse);
+}
+
+// GenerationService admits a fully prepared group of registrations.
+service GenerationService {
+  // Activate atomically replaces the current group for this plugin family.
+  rpc Activate(ActivateRequest) returns (ActivateResponse);
+}
+
+// PrepareRequest identifies the immutable implementation being registered.
+message PrepareRequest {
+  // PluginId names the plugin family whose registrations are replaced together.
+  string plugin_id = 1;
+  // ManifestRoot identifies the exact executable behind this generation.
+  string manifest_root = 2;
+  // InstanceKey scopes admission to the host's logical installation binding.
+  // Empty registers globally; a Space supplies its World engine ID.
+  string instance_key = 3;
+}
+
+// PrepareResponse retains the private registration scope.
+message PrepareResponse {
+  // ResourceId serves the existing registries and GenerationService. Releasing
+  // it hides its registrations, including an activated generation.
+  uint32 resource_id = 1;
+}
+
+// ActivateRequest admits the registrations owned by the addressed scope.
+message ActivateRequest {
+}
+
+// ActivateResponse confirms that the complete generation is visible.
+message ActivateResponse {
+}

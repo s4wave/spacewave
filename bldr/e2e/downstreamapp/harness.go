@@ -232,6 +232,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,
+			nil,
 		)
 		close(h.done)
 	}()
@@ -323,8 +324,13 @@ func (h *Harness) enableBrowserReleaseAutoStart() error {
 }
 
 func enableBrowserReleaseAutoStart(entryDir string) error {
-	descriptorPath := filepath.Join(entryDir, "browser-release.json")
-	data, err := os.ReadFile(descriptorPath)
+	root, err := os.OpenRoot(entryDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	const descriptorPath = "browser-release.json"
+	data, err := root.ReadFile(descriptorPath)
 	if err != nil {
 		return err
 	}
@@ -336,7 +342,7 @@ func enableBrowserReleaseAutoStart(entryDir string) error {
 	descriptor.GetObject().Set("autoStart", fastjson.MustParse("true"))
 	data = descriptor.MarshalTo(nil)
 	data = append(data, '\n')
-	return os.WriteFile(descriptorPath, data, 0o644)
+	return root.WriteFile(descriptorPath, data, 0o644)
 }
 
 type blockingManifestPreflight struct {

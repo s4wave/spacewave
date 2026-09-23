@@ -15,6 +15,12 @@ const bldrDistRoot =
   process.env['BLDR_DIST_ROOT'] || resolve(bldrSourceRoot, '.bldr/src')
 
 function resolveBldrDistPath(...segments: string[]) {
+  // Local SDK imports and public aliases must share module identity. Packaged
+  // sources supply the SDK only when the project does not contain Bldr itself.
+  const projectRoot = resolve(bldrProjectRoot, 'bldr')
+  if (existsSync(resolve(projectRoot, 'sdk/plugin.ts'))) {
+    return resolve(projectRoot, ...segments)
+  }
   const monorepoRoot = resolve(bldrDistRoot, 'bldr')
   if (existsSync(monorepoRoot)) {
     const monorepoPath = resolve(monorepoRoot, ...segments)

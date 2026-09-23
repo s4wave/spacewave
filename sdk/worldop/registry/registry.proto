@@ -1,18 +1,25 @@
 syntax = "proto3";
 package s4wave.worldop.registry;
 
+// WorldOpRegistryResourceService retains operation registrations for their Resource lifetime.
 service WorldOpRegistryResourceService {
+  // RegisterWorldOp installs a handler until its registration Resource is released.
   rpc RegisterWorldOp(RegisterWorldOpRequest)
     returns (RegisterWorldOpResponse);
+  // WatchWorldOps publishes the current operation registrations.
   rpc WatchWorldOps(WatchWorldOpsRequest)
     returns (stream WatchWorldOpsResponse);
 }
 
+// WorldOpHandlerService executes plugin operations in state supplied by World.
 service WorldOpHandlerService {
+  // ApplyWorldOp mutates the supplied World state under its authenticated sender.
   rpc ApplyWorldOp(ApplyWorldOpRequest)
     returns (ApplyWorldOpResponse);
+  // ApplyWorldObjectOp mutates one supplied object under its authenticated sender.
   rpc ApplyWorldObjectOp(ApplyWorldObjectOpRequest)
     returns (ApplyWorldObjectOpResponse);
+  // ValidateOp checks operation bytes before the host supplies mutable state.
   rpc ValidateOp(ValidateOpRequest)
     returns (ValidateOpResponse);
 }
@@ -42,7 +49,10 @@ message RegisterWorldOpResponse {
 }
 
 // WatchWorldOpsRequest is the request for WatchWorldOps.
-message WatchWorldOpsRequest {}
+message WatchWorldOpsRequest {
+  // InstanceKey selects a logical installation; empty lists global registrations.
+  string instance_key = 1;
+}
 
 // WatchWorldOpsResponse is the response for WatchWorldOps.
 message WatchWorldOpsResponse {
@@ -58,12 +68,19 @@ message ApplyWorldOpRequest {
   bytes op_data = 2;
   // AttachedWorldStateResourceId gives WorldState access to the handler.
   uint32 attached_world_state_resource_id = 3;
+  // Sender is the authenticated peer identity supplied by World execution, in base58.
+  // It is separate from OpData and cannot be chosen by the operation payload.
+  string sender = 4;
 }
 
 // ApplyWorldOpResponse is the response for ApplyWorldOp.
 message ApplyWorldOpResponse {
   // SystemError indicates a system error (vs user error).
   bool system_error = 1;
+  // RejectionCode is a stable application-defined rejection code.
+  string rejection_code = 2;
+  // RejectionMessage is the safe explanation of a rejected operation.
+  string rejection_message = 3;
 }
 
 // ApplyWorldObjectOpRequest is the request for ApplyWorldObjectOp.
@@ -76,12 +93,19 @@ message ApplyWorldObjectOpRequest {
   string object_key = 3;
   // AttachedObjectStateResourceId gives ObjectState access to the handler.
   uint32 attached_object_state_resource_id = 4;
+  // Sender is the authenticated peer identity supplied by World execution, in base58.
+  // Historical replay uses the accepted sender recorded with the operation.
+  string sender = 5;
 }
 
 // ApplyWorldObjectOpResponse is the response for ApplyWorldObjectOp.
 message ApplyWorldObjectOpResponse {
   // SystemError indicates a system error (vs user error).
   bool system_error = 1;
+  // RejectionCode is a stable application-defined rejection code.
+  string rejection_code = 2;
+  // RejectionMessage is the safe explanation of a rejected operation.
+  string rejection_message = 3;
 }
 
 // ValidateOpRequest is the request for ValidateOp.

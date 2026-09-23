@@ -1,4 +1,5 @@
 export { formatBytes } from './format.js'
+export { FrontendResource } from './frontend.js'
 export { compareUint8Arrays } from './binary.js'
 export { Retry, retryWithAbort, constantBackoff } from './retry.js'
 export type { RetryWithAbortOpts, RetryOpts, BackoffFn } from './retry.js'

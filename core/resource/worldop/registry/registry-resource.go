@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 )
 
@@ -15,14 +16,22 @@ import (
 type WorldOpRegistryResource struct {
 	mux srpc.Invoker
 
-	bcast         broadcast.Broadcast
+	// generations owns visibility of prepared plugin registrations.
+	generations   *registration.Registry
+	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_worldop_registry.WorldOpRegistration
 }
 
 // NewWorldOpRegistryResource creates a new WorldOpRegistryResource.
-func NewWorldOpRegistryResource() *WorldOpRegistryResource {
+func NewWorldOpRegistryResource(generations *registration.Registry) *WorldOpRegistryResource {
+	// A standalone registry has its own admission boundary.
+	if generations == nil {
+		generations = registration.NewRegistry()
+	}
 	r := &WorldOpRegistryResource{
+		generations:   generations,
+		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_worldop_registry.WorldOpRegistration),
 	}
@@ -57,6 +66,11 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		return nil, ErrOpTypeIdMustHavePluginPrefix
 	}
 
+	generation, err := registration.FromContext(ctx, pluginID)
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -66,7 +80,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	duplicate := false
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for _, v := range r.registrations {
-			if v.GetOperationTypeId() == opTypeID {
+			if v.GetOperationTypeId() == opTypeID && !r.generations.CanShareNameLocked(v, generation) {
 				duplicate = true
 				return
 			}
@@ -78,8 +92,17 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 			RegistrationId:  regID,
 			PluginId:        pluginID,
 		}
+		err = r.generations.BindLocked(r.registrations[regID], generation)
+		if err != nil {
+			r.generations.ForgetLocked(r.registrations[regID])
+			delete(r.registrations, regID)
+			return
+		}
 		broadcast()
 	})
+	if err != nil {
+		return nil, err
+	}
 	if duplicate {
 		return nil, ErrOperationTypeAlreadyRegistered
 	}
@@ -88,6 +111,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
+				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
 				broadcast()
 			}
@@ -95,6 +119,7 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	})
 	if err != nil {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
 		})
@@ -116,7 +141,7 @@ func (r *WorldOpRegistryResource) WatchWorldOps(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			regs = r.getRegistrationsLocked()
+			regs = r.getRegistrationsLocked(req.GetInstanceKey())
 			waitCh = getWaitCh()
 		})
 
@@ -136,11 +161,11 @@ func (r *WorldOpRegistryResource) WatchWorldOps(
 
 // LookupRegistrationByOpType finds a registration by operation type ID.
 func (r *WorldOpRegistryResource) LookupRegistrationByOpType(
-	opTypeID string,
+	opTypeID, instanceKey string,
 ) *s4wave_worldop_registry.WorldOpRegistration {
 	var reg *s4wave_worldop_registry.WorldOpRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
+		for _, v := range r.getRegistrationsLocked(instanceKey) {
 			if v.GetOperationTypeId() == opTypeID {
 				reg = v.CloneVT()
 				break
@@ -152,10 +177,11 @@ func (r *WorldOpRegistryResource) LookupRegistrationByOpType(
 
 // getRegistrationsLocked returns a snapshot of all registrations.
 // Must be called with bcast lock held.
-func (r *WorldOpRegistryResource) getRegistrationsLocked() []*s4wave_worldop_registry.WorldOpRegistration {
-	regs := make([]*s4wave_worldop_registry.WorldOpRegistration, 0, len(r.registrations))
-	for _, reg := range r.registrations {
-		regs = append(regs, reg)
+func (r *WorldOpRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_worldop_registry.WorldOpRegistration {
+	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*s4wave_worldop_registry.WorldOpRegistration).GetOperationTypeId)
+	regs := make([]*s4wave_worldop_registry.WorldOpRegistration, 0, len(selected))
+	for _, reg := range selected {
+		regs = append(regs, reg.CloneVT())
 	}
 	return regs
 }

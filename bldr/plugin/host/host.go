@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/unixfs"
 )
@@ -39,10 +40,12 @@ type PluginHost interface {
 	// pluginDist contains the plugin distribution files (binaries and assets).
 	// rpcInit is called when the RPC client is ready, should return a mux for the server.
 	// instanceKey is the instance key for instanced plugins (empty for shared).
+	// manifestRoot identifies the exact files used by this execution.
 	ExecutePlugin(
 		ctx context.Context,
 		pluginID,
 		instanceKey,
+		manifestRoot,
 		entrypoint string,
 		pluginDist *unixfs.FSHandle,
 		pluginAssets *unixfs.FSHandle,
@@ -60,4 +63,10 @@ type PluginHostScheduler interface {
 	// handle and a release function.
 	// instanceKey may be empty for shared (non-instanced) plugins.
 	AddPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func())
+
+	// AddPinnedPluginReference retains an exact executable without following replacement.
+	AddPinnedPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func())
+
+	// AddSelectedPluginReference selects an installed artifact for a logical binding.
+	AddSelectedPluginReference(pluginID, instanceKey string, refs ...*manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func())
 }

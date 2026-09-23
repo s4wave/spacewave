@@ -371,13 +371,13 @@ func BuildViteBundle(
 	// Store vite cache in cache dir
 	cacheDir := filepath.Join(workingPath, "cache")
 
-	// Only packages this plugin can serve should be externalized/remapped during
-	// the Vite build. Excluded refs are owned by another provider, so remapping
-	// them would make this bundle race that provider's /b/pkg registration.
-	extWebPkgs := slices.DeleteFunc(slices.Clone(webPkgs), func(ref *bldr_web_bundler.WebPkgRefConfig) bool {
-		return ref.GetExclude()
-	})
-	extWebPkgs = bldr_web_bundler.CompactWebPkgRefConfigs(extWebPkgs)
+	// All shared imports keep the provider's module identity, including excluded
+	// packages. The compiler filters excluded refs before building or registering
+	// packages; omitting them here instead bundles a second copy of their state.
+	extWebPkgs := bldr_web_bundler.CompactWebPkgRefConfigs(slices.Clone(webPkgs))
+	if viteBundleMeta.GetBundleWebPkgs() {
+		extWebPkgs = nil
+	}
 
 	// Run the build rpc
 	buildResp, err := viteBundler.Build(ctx, &bldr_vite.BuildRequest{

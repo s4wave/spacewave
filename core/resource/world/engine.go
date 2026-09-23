@@ -87,7 +87,16 @@ func (r *EngineResource) Close() {
 
 // GetEngineInfo returns information about the world engine.
 func (r *EngineResource) GetEngineInfo(ctx context.Context, req *s4wave_world.GetEngineInfoRequest) (*s4wave_world.GetEngineInfoResponse, error) {
-	return &s4wave_world.GetEngineInfoResponse{EngineInfo: r.engineInfo}, nil
+	sessionPeerID, _ := worldStateResourceSessionPeerID(r.worldStateOptions...)
+	return &s4wave_world.GetEngineInfoResponse{
+		EngineInfo: r.engineInfo, SessionPeerId: sessionPeerID.String(),
+	}, nil
+}
+
+// ExecuteWorldOp delegates transaction acceptance and stale-base retry to World.
+func (r *EngineResource) ExecuteWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
+	state := NewWorldStateResource(r.le, r.b, world.NewEngineWorldState(r.engine, true), r.lookupOp, r.worldStateOptions...)
+	return state.ApplyWorldOp(ctx, req)
 }
 
 // GetWorldRootSnapshot returns the current committed World root.

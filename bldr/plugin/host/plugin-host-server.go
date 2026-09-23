@@ -28,6 +28,12 @@ type PluginHostServer struct {
 	instanceKey string
 	// manifestSnapshot is the plugin manifestSnapshot snapshot
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
+	// historical suppresses current-generation registration in an immutable replay worker.
+	historical bool
+	// prepared delays publication until the scheduler admits this candidate.
+	prepared bool
+	// registrationInstanceKey identifies the logical installation, independent of RPC routing.
+	registrationInstanceKey string
 	// hostVolumeInfo is the host volume information
 	hostVolumeInfo *volume.VolumeInfo
 	// hostStorageID is the Storage ID on the host bus that this plugin
@@ -50,15 +56,18 @@ func NewPluginHostServer(
 	manifest *bldr_manifest.ManifestSnapshot,
 	hostVolumeInfo *volume.VolumeInfo,
 	hostStorageID string,
+	historical bool,
 ) *PluginHostServer {
 	s := &PluginHostServer{
-		b:                b,
-		le:               le,
-		pluginID:         pluginID,
-		instanceKey:      instanceKey,
-		manifestSnapshot: manifest,
-		hostVolumeInfo:   hostVolumeInfo,
-		hostStorageID:    hostStorageID,
+		b:                       b,
+		le:                      le,
+		pluginID:                pluginID,
+		instanceKey:             instanceKey,
+		registrationInstanceKey: instanceKey,
+		manifestSnapshot:        manifest,
+		hostVolumeInfo:          hostVolumeInfo,
+		hostStorageID:           hostStorageID,
+		historical:              historical,
 	}
 	s.pluginFsTracker = keyed.NewKeyedRefCountWithLogger(
 		s.newPluginHostServerFsTracker,
@@ -67,6 +76,17 @@ func NewPluginHostServer(
 	)
 	s.pluginFsTracker.SetContext(ctx, true)
 	return s
+}
+
+// SetPrepared requests private registration until explicit candidate admission.
+func (s *PluginHostServer) SetPrepared(prepared bool) {
+	s.prepared = prepared
+}
+
+// SetRegistrationInstanceKey binds registrations to the logical installation.
+// Set it before exposing this server to its plugin.
+func (s *PluginHostServer) SetRegistrationInstanceKey(instanceKey string) {
+	s.registrationInstanceKey = instanceKey
 }
 
 // GetPluginInfo returns information about the currently running plugin.
@@ -82,6 +102,9 @@ func (s *PluginHostServer) GetPluginInfo(
 		),
 		HostVolumeInfo: s.hostVolumeInfo,
 		HostStorageId:  s.hostStorageID,
+		Historical:     s.historical,
+		Prepared:       s.prepared,
+		InstanceKey:    s.registrationInstanceKey,
 	}, nil
 }
 
@@ -127,22 +150,34 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 	return rpcstream.HandleProxyRpcStream(
 		strm,
 		func(ctx context.Context, componentID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
-			pluginID, instanceKey := bldr_plugin.ParsePluginRpcComponentID(componentID)
+			pluginID, instanceKey, manifestRoot, err := bldr_plugin.ParsePluginRpcComponentID(componentID)
+			if err != nil {
+				return nil, "", nil, err
+			}
 			if pluginID == "" {
 				return nil, "", nil, bldr_plugin.ErrEmptyPluginID
 			}
 			if pluginID == s.pluginID && instanceKey == "" {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
 			}
-			instanceKey, err := s.resolveInstanceKey(instanceKey)
+			instanceKey, err = s.resolveInstanceKey(instanceKey)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			client, clientRef, err := bldr_plugin.ExPluginLoadInstancedWaitClient(ctx, s.b, pluginID, instanceKey, nil)
+			dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
+			if manifestRoot != "" {
+				dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)
+			}
+			running, _, clientRef, err := bus.ExecWaitValue[bldr_plugin.RunningPlugin](
+				ctx, s.b, dir, bus.ReturnIfIdle(manifestRoot != ""), nil, nil,
+			)
 			if err != nil {
 				return nil, "", nil, err
 			}
-			srv := bldr_plugin.NewSRPCPluginClient(client)
+			if running == nil {
+				return nil, "", nil, errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
+			}
+			srv := bldr_plugin.NewSRPCPluginClient(running.GetRpcClient())
 			return srv.PluginRpc, s.pluginID, clientRef.Release, nil
 		},
 	)
@@ -168,17 +203,14 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 				return nil, nil, err
 			}
 
-			// if id is empty set to ours
-			if pluginID == "" {
-				pluginID = s.pluginID
+			// Self-access retains this execution's files after a newer revision loads.
+			if pluginID == "" || pluginID == s.pluginID {
+				pluginID = bldr_plugin.PluginArtifactID(s.pluginID, s.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString())
 			}
 
 			// wait for reference to be ready
 			pluginRef, data, _ := s.pluginFsTracker.AddKeyRef(pluginID)
 
-			// TODO: if ExecLoadPlugin returns an error, this might never cancel
-			// TODO: if the plugin is unloaded, we need to call released(), but do we do that here?
-			// luckily we don't expect that to happen
 			res, err := data.resultPromiseCtr.Await(ctx)
 			if err != nil {
 				pluginRef.Release()
@@ -192,10 +224,9 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			case bldr_plugin.PluginAssetsFsIdPrefix:
 				mux = res.assetsMux
 			default:
+				pluginRef.Release()
 				return nil, nil, errors.Errorf("unexpected unixfs id prefix: %v", matchedPrefix)
 			}
-
-			// wrap with verbose
 
 			// return release func
 			return mux, pluginRef.Release, nil

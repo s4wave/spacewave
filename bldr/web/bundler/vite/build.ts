@@ -69,12 +69,15 @@ async function loadOptionalConfig(
     return null
   }
 
+  // Resolve configuration imports at their source, without temporary modules in
+  // the shared dependency install. The runner retains imported-file tracking.
   const loadedConfig = await loadConfigFromFile(
     configEnv,
     configPath,
     undefined,
     'silent',
     createSilentViteLogger(),
+    'runner',
   )
   if (!loadedConfig) {
     return null

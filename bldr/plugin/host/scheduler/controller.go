@@ -3,6 +3,7 @@ package plugin_host_scheduler
 import (
 	"context"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -12,6 +13,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
+	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -85,7 +87,7 @@ type Controller struct {
 
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
-	pluginInstances *keyed.KeyedRefCount[string, *pluginInstance]
+	pluginInstances *keyed.KeyedRefCount[pluginReference, *pluginInstance]
 	// pluginStatusCtr publishes live plugin instance states.
 	pluginStatusCtr *ccontainer.CContainer[*PluginStatusSnapshot]
 	// pluginStatusMtx guards pluginStatus.
@@ -363,7 +365,7 @@ func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Re
 	if instanceKey == "" {
 		instanceKey = configuredInstanceKey
 	}
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), instanceKey), nil
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), instanceKey, dir.LoadPluginManifestRoot(), dir.LoadPluginManifests()), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -400,8 +402,30 @@ func pluginInstanceKey(pluginID, instanceKey string) string {
 // handle and a release function.
 // instanceKey may be empty for shared (non-instanced) plugins.
 func (c *Controller) AddPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func()) {
-	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginInstanceKey(pluginID, instanceKey))
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+	plg.start.SetValue(true)
 	return plg, ref.Release
+}
+
+// AddPinnedPluginReference retains an exact manifest in a separate host worker.
+func (c *Controller) AddPinnedPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func()) {
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{
+		pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot,
+	})
+	plg.start.SetValue(true)
+	return plg, ref.Release
+}
+
+// AddSelectedPluginReference retains a desired artifact without replacing the binding.
+// The newest retained selection wins; removing it restores the preceding demand.
+func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey string, selected ...*bldr_manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func()) {
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+	releaseSelection := plg.addManifestSelection(selected...)
+	plg.start.SetValue(true)
+	return plg, sync.OnceFunc(func() {
+		releaseSelection()
+		ref.Release()
+	})
 }
 
 // WaitPluginHostClient waits for an RPC client for the plugin host.
@@ -460,9 +484,16 @@ func (c *Controller) buildPluginMux(
 	assetsFS *unixfs.FSHandle,
 	hostRoot *plugin_host_root.Root,
 	registrationDone plugin_host_resource.InitialCapabilityRegistrationDoneFunc,
+	historical, prepared bool,
+	bindingKey string,
 ) (srpc.Mux, func()) {
-	// fallback to a LookupRpcService on the bus
-	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
+	// Ordinary services can wait for startup. Retained frontend grants already
+	// exist before their URLs are published, and must fail after release.
+	mux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+		wait := !strings.HasPrefix(serviceID, frontend.AttachedServicePrefix)
+		return bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), wait).
+			InvokeMethod(serviceID, methodID, stream)
+	}))
 
 	// register access host volume via rpc service
 	_ = volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyHostVol, bldr_plugin.HostVolumeServiceIDPrefix)
@@ -471,7 +502,7 @@ func (c *Controller) buildPluginMux(
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	// register plugin host service
-	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(
+	hostServer := bldr_plugin_host.NewPluginHostServer(
 		ctx,
 		c.bus,
 		c.le,
@@ -480,7 +511,11 @@ func (c *Controller) buildPluginMux(
 		manifest,
 		proxyHostVolInfo,
 		c.conf.GetHostStorageId(),
-	))
+		historical,
+	)
+	hostServer.SetPrepared(prepared)
+	hostServer.SetRegistrationInstanceKey(bindingKey)
+	_ = bldr_plugin.SRPCRegisterPluginHost(mux, hostServer)
 
 	// register plugin dist fs service
 	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(

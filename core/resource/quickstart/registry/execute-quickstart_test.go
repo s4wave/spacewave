@@ -52,7 +52,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	}
 	defer rel()
 
-	registry := NewQuickstartRegistryResource(le, tb.Bus)
+	registry := NewQuickstartRegistryResource(le, tb.Bus, nil)
 	registry.registrations[1] = &s4wave_quickstart_registry.QuickstartRegistration{
 		QuickstartId:      "notes-blog",
 		RegistrationId:    1,
@@ -64,11 +64,11 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	}
 
 	const spaceResourceID uint32 = 7
-	spaceResource := resource_space.NewSpaceResource(le, tb.Bus, &testQuickstartSpaceBody{
+	spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(le, tb.Bus, &testQuickstartSpaceBody{
 		engine:   tb.Engine,
 		engineID: tb.EngineID,
 		bucketID: tb.EngineBucketID,
-	})
+	}, tb.Volume.GetPeerID().String())
 	resourceCtx := &testQuickstartResourceClientContext{
 		ctx:    ctx,
 		values: map[uint32]any{spaceResourceID: spaceResource},
@@ -153,6 +153,9 @@ func (h *testQuickstartHandler) SeedQuickstart(
 		return nil, resource.ErrInvalidResourceID
 	}
 	if info.GetEngineInfo().GetBucketId() != h.bucketID {
+		return nil, resource.ErrInvalidResourceID
+	}
+	if info.GetSessionPeerId() != h.sender {
 		return nil, resource.ErrInvalidResourceID
 	}
 	txResp, err := engine.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})

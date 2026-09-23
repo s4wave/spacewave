@@ -21,6 +21,8 @@ import {
   CommitMutationsResponse,
   CommitRequest,
   CommitResponse,
+  CompareObjectRecordsRequest,
+  CompareObjectRecordsResponse,
   CreateObjectRequest,
   CreateObjectResponse,
   DeleteGraphObjectRequest,
@@ -148,6 +150,18 @@ export const EngineResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+     * The authenticated Resource sender overrides the payload sender.
+     *
+     * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldOp
+     */
+    ExecuteWorldOp: {
+      name: 'ExecuteWorldOp',
+      I: ApplyWorldOpRequest,
+      O: ApplyWorldOpResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.EngineResourceService.Sync
      */
     Sync: {
@@ -232,6 +246,17 @@ export interface EngineResourceService {
   ): Promise<NewTransactionResponse>
 
   /**
+   * ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+   * The authenticated Resource sender overrides the payload sender.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldOp
+   */
+  ExecuteWorldOp(
+    request: ApplyWorldOpRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApplyWorldOpResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.Sync
    */
   Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
@@ -310,6 +335,18 @@ export interface EngineResourceServiceHandler {
   ): Promise<NewTransactionResponse>
 
   /**
+   * ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+   * The authenticated Resource sender overrides the payload sender.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldOp
+   */
+  ExecuteWorldOp(
+    request: ApplyWorldOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldOpResponse>
+
+  /**
    * @generated from rpc s4wave.world.EngineResourceService.Sync
    */
   Sync(
@@ -368,6 +405,7 @@ export class EngineResourceServiceClient implements EngineResourceService {
     this.GetWorldRootSnapshot = this.GetWorldRootSnapshot.bind(this)
     this.WatchWorldRootSnapshots = this.WatchWorldRootSnapshots.bind(this)
     this.NewTransaction = this.NewTransaction.bind(this)
+    this.ExecuteWorldOp = this.ExecuteWorldOp.bind(this)
     this.Sync = this.Sync.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
     this.WaitSeqno = this.WaitSeqno.bind(this)
@@ -440,6 +478,26 @@ export class EngineResourceServiceClient implements EngineResourceService {
       abortSignal || undefined,
     )
     return NewTransactionResponse.fromBinary(result)
+  }
+
+  /**
+   * ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+   * The authenticated Resource sender overrides the payload sender.
+   *
+   * @generated from rpc s4wave.world.EngineResourceService.ExecuteWorldOp
+   */
+  async ExecuteWorldOp(
+    request: ApplyWorldOpRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApplyWorldOpResponse> {
+    const requestMsg = ApplyWorldOpRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      EngineResourceServiceDefinition.methods.ExecuteWorldOp.name,
+      ApplyWorldOpRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ApplyWorldOpResponse.fromBinary(result)
   }
 
   /**
@@ -533,6 +591,17 @@ export class EngineResourceServiceClient implements EngineResourceService {
 export const WorldStateResourceServiceDefinition = {
   typeName: 's4wave.world.WorldStateResourceService',
   methods: {
+    /**
+     * CompareObjectRecords compares immutable record roots within this snapshot.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.CompareObjectRecords
+     */
+    CompareObjectRecords: {
+      name: 'CompareObjectRecords',
+      I: CompareObjectRecordsRequest,
+      O: CompareObjectRecordsResponse,
+      kind: MethodKind.Unary,
+    },
     /**
      * @generated from rpc s4wave.world.WorldStateResourceService.GetReadOnly
      */
@@ -759,6 +828,16 @@ export const WorldStateResourceServiceDefinition = {
  */
 export interface WorldStateResourceService {
   /**
+   * CompareObjectRecords compares immutable record roots within this snapshot.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.CompareObjectRecords
+   */
+  CompareObjectRecords(
+    request: CompareObjectRecordsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareObjectRecordsResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetReadOnly
    */
   GetReadOnly(
@@ -954,6 +1033,17 @@ export interface WorldStateResourceService {
  * @generated from service s4wave.world.WorldStateResourceService
  */
 export interface WorldStateResourceServiceHandler {
+  /**
+   * CompareObjectRecords compares immutable record roots within this snapshot.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.CompareObjectRecords
+   */
+  CompareObjectRecords(
+    request: CompareObjectRecordsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CompareObjectRecordsResponse>
+
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetReadOnly
    */
@@ -1182,6 +1272,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || WorldStateResourceServiceServiceName
     this.rpc = rpc
+    this.CompareObjectRecords = this.CompareObjectRecords.bind(this)
     this.GetReadOnly = this.GetReadOnly.bind(this)
     this.Sync = this.Sync.bind(this)
     this.GetSeqno = this.GetSeqno.bind(this)
@@ -1207,6 +1298,25 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.DeleteGraphObject = this.DeleteGraphObject.bind(this)
     this.ApplyWorldOp = this.ApplyWorldOp.bind(this)
   }
+  /**
+   * CompareObjectRecords compares immutable record roots within this snapshot.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.CompareObjectRecords
+   */
+  async CompareObjectRecords(
+    request: CompareObjectRecordsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareObjectRecordsResponse> {
+    const requestMsg = CompareObjectRecordsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.CompareObjectRecords.name,
+      CompareObjectRecordsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CompareObjectRecordsResponse.fromBinary(result)
+  }
+
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetReadOnly
    */

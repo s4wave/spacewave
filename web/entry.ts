@@ -48,6 +48,11 @@ import '@s4wave/web/frame/bottom-bar-root.js'
 import '@s4wave/web/frame/bottom-icon-props.js'
 import '@s4wave/web/frame/ViewerFrame.js'
 
+// sync/
+import '@s4wave/web/sync/index.js'
+import '@s4wave/web/sync/app-hooks.js'
+import '@s4wave/web/sync/useAppAttachment.js'
+
 // hooks/
 import '@s4wave/web/hooks/useAccessTypedHandle.js'
 import '@s4wave/web/hooks/usePromise.js'

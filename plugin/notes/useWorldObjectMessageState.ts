@@ -1,14 +1,12 @@
 import { useMemo } from 'react'
 
-import {
-  useResource,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { accessObjectRootWorldState } from '@s4wave/sdk/world/utils.js'
+import { useObjectQuery } from '@s4wave/web/sync/useObjectQuery.js'
+import type { ObjectQuery } from '@s4wave/sdk/sync/object-query.js'
 
-// useWorldObjectMessageState reads a typed notes object block directly from the
-// world and exposes the parsed message plus its sources.
+/** useWorldObjectMessageState watches the canonical typed block without copying its storage. */
 export function useWorldObjectMessageState<
   TState extends { sources?: { ref?: string }[] },
 >(
@@ -16,21 +14,18 @@ export function useWorldObjectMessageState<
   objectKey: string,
   parse: (data: Uint8Array) => TState,
 ) {
-  const state = useResource(
-    worldState,
-    async (world, signal) => {
-      if (!world || !objectKey) return null
-      const objectState = await world.getObject(objectKey, signal)
-      if (!objectState) return null
-      using _ = objectState
-      using cursor = await accessObjectRootWorldState(objectState, signal)
-      const blockResp = await cursor.getBlock({}, signal)
-      if (!blockResp.found || !blockResp.data) return null
-      return parse(blockResp.data)
+  // A stable decoder runs only when this object's immutable root changes.
+  const query = useMemo<ObjectQuery<TState | null>>(
+    () => async (object, signal) => {
+      using cursor = await accessObjectRootWorldState(object, signal)
+      const block = await cursor.getBlock({}, signal)
+      return block.found && block.data ? parse(block.data) : null
     },
-    [objectKey, parse],
+    [parse],
   )
+  const state = useObjectQuery(worldState, objectKey, query)
 
+  // The source list is a projection of the current Notebook, Docs, or Blog block.
   const sources = useMemo(
     () => state.value?.sources ?? [],
     [state.value?.sources],

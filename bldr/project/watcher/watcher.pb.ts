@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import { Config as Config$1 } from '../controller/config.pb.js'
+import { RemoteConfig } from '../project.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -36,6 +37,13 @@ export interface Config {
    * @generated from field: bool disable_watch = 3;
    */
   disableWatch?: boolean
+  /**
+   * BoundRemotes are caller-supplied World capabilities. These bindings take
+   * precedence over source configuration, including watched configuration edits.
+   *
+   * @generated from field: map<string, bldr.project.RemoteConfig> bound_remotes = 4;
+   */
+  boundRemotes?: { [key: string]: RemoteConfig }
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -49,6 +57,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => Config$1,
     },
     { no: 3, name: 'disable_watch', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 4,
+      name: 'bound_remotes',
+      kind: 'map',
+      K: ScalarType.STRING,
+      V: { kind: 'message', T: () => RemoteConfig },
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

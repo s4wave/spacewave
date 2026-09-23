@@ -11,6 +11,7 @@ import { applyPolyfills } from './quickjs/polyfill.js'
 import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
 import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { startWorkerPluginEntrypoint } from '../../../web/bldr/plugin-entrypoint.js'
 
 // Utility function to properly log errors
 function logError(message: string, err: unknown): void {
@@ -151,7 +152,16 @@ async function startPlugin() {
   retainRuntimeRoot({ script, backendAPI, abortController, pluginLifetime })
 
   // Call the imported module's main function, passing the API implementation.
-  await script.default(backendAPI, abortSignal)
+  await startWorkerPluginEntrypoint(
+    script.default,
+    backendAPI,
+    abortSignal,
+    undefined,
+    (error) => {
+      logError('plugin failed after startup', error)
+      quickjsGlobalThis.std.exit(1)
+    },
+  )
   {
     using pluginHostRoot = new PluginHostRoot(
       await backendAPI.resourceClient.accessRootResource(),

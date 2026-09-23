@@ -210,12 +210,10 @@ async function replaceSpaceIndexIfWizardIsCurrent(
   ) {
     return
   }
-  await applySpaceIndexPath(
-    ws.spaceWorld,
-    ws.spaceSettings,
-    objectKey,
-    ws.sessionPeerId,
-  )
+  await applySpaceIndexPath(ws.spaceWorld, objectKey, {
+    sender: ws.sessionPeerId,
+    expectedIndexPath: ws.spaceSettings?.indexPath ?? '',
+  })
 }
 
 function GitCloneProgressStep({

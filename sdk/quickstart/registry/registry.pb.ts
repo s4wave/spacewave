@@ -3,10 +3,7 @@
 /* eslint-disable */
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import {
-  createEmptyMessageType,
-  createMessageType,
-} from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
@@ -84,6 +81,13 @@ export interface QuickstartRegistration {
    * @generated from field: repeated string required_plugin_ids = 11;
    */
   requiredPluginIds?: string[]
+  /**
+   * ManifestRoot pins a prepared plugin generation's seed implementation.
+   * The registry sets it from the registration scope, never from the caller.
+   *
+   * @generated from field: string manifest_root = 12;
+   */
+  manifestRoot?: string
 }
 
 export const QuickstartRegistration: MessageType<QuickstartRegistration> =
@@ -107,6 +111,7 @@ export const QuickstartRegistration: MessageType<QuickstartRegistration> =
         T: ScalarType.STRING,
         repeated: true,
       },
+      { no: 12, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -167,13 +172,23 @@ export const RegisterQuickstartResponse: MessageType<RegisterQuickstartResponse>
  *
  * @generated from message s4wave.quickstart.registry.ListQuickstartsRequest
  */
-export interface ListQuickstartsRequest {}
+export interface ListQuickstartsRequest {
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const ListQuickstartsRequest: MessageType<ListQuickstartsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ListQuickstartsRequest>(
-    's4wave.quickstart.registry.ListQuickstartsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.quickstart.registry.ListQuickstartsRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListQuickstartsResponse is the response for ListQuickstarts.
@@ -209,13 +224,23 @@ export const ListQuickstartsResponse: MessageType<ListQuickstartsResponse> =
  *
  * @generated from message s4wave.quickstart.registry.WatchQuickstartsRequest
  */
-export interface WatchQuickstartsRequest {}
+export interface WatchQuickstartsRequest {
+  /**
+   * InstanceKey selects a logical installation; empty lists global registrations.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const WatchQuickstartsRequest: MessageType<WatchQuickstartsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchQuickstartsRequest>(
-    's4wave.quickstart.registry.WatchQuickstartsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.quickstart.registry.WatchQuickstartsRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchQuickstartsResponse is the response for WatchQuickstarts.

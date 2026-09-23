@@ -595,7 +595,7 @@ func startSpaceRuntime(
 		return nil, err
 	}
 
-	schedulerConfig := plugin_host_default.NewNativeDesktopSchedulerConfig(
+	schedulerConfig := plugin_host_default.NewSchedulerConfig(
 		conf.GetSpaceId(),
 		conf.GetEngineId(),
 		bldr_plugin.PluginVolumeID,
@@ -604,7 +604,6 @@ func startSpaceRuntime(
 		true,
 		true,
 		true,
-		[]string{},
 	)
 	schedulerConfig.HostStorageId = conf.GetHostStorageId()
 	scheduler, schedulerRelease, err := plugin_host_default.StartPluginSchedulerWithConfig(childCtx, child, schedulerConfig)

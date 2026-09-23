@@ -129,6 +129,7 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 			ViteConfigPaths:      []string{"vite.compiler.config.ts"},
 			ExternalPkgs:         []string{"react", "@aptre/bldr"},
 			DisableProjectConfig: true,
+			BundleWebPkgs:        true,
 		},
 	})
 	if err != nil {
@@ -161,9 +162,12 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 	if !bundle.GetDisableProjectConfig() {
 		t.Fatal("merged bundle did not preserve DisableProjectConfig")
 	}
+	if !bundle.GetBundleWebPkgs() {
+		t.Fatal("merged bundle did not preserve worker dependency bundling")
+	}
 }
 
-func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
+func TestBuildViteBundlePreservesWorkerPolicy(t *testing.T) {
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
 	outAssets := t.TempDir()
@@ -183,9 +187,13 @@ func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 				InputPath: "src/main.ts",
 			}},
 			DisableProjectConfig: true,
+			BundleWebPkgs:        true,
 		},
 		client,
-		nil,
+		[]*bldr_web_bundler.WebPkgRefConfig{
+			{Id: "@aptre/protobuf-es-lite", Imports: []string{"message.js"}},
+			{Id: "@spacewave/shared", Exclude: true},
+		},
 		outAssets,
 		"plugin-id",
 		true,
@@ -207,9 +215,12 @@ func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 	if !client.buildRequest.GetJsSourcemaps() {
 		t.Fatal("request did not enable JavaScript sourcemaps")
 	}
+	if len(client.buildRequest.GetWebPkgs()) != 0 {
+		t.Fatal("worker bundle imported browser-owned packages")
+	}
 }
 
-func TestBuildViteBundleOmitsExcludedWebPackagesFromBuildRequest(t *testing.T) {
+func TestBuildViteBundlePreservesExcludedWebPackageImports(t *testing.T) {
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
 	outAssets := t.TempDir()
@@ -250,18 +261,15 @@ func TestBuildViteBundleOmitsExcludedWebPackagesFromBuildRequest(t *testing.T) {
 	}
 
 	got := client.buildRequest.GetWebPkgs()
-	if len(got) != 2 {
-		t.Fatalf("request web package count=%d want 2: %v", len(got), got)
+	if len(got) != 3 {
+		t.Fatalf("request web package count=%d want 3: %v", len(got), got)
 	}
 	gotImportsByID := make(map[string][]string, len(got))
 	for _, ref := range got {
-		if ref.GetExclude() {
-			t.Fatalf("request included excluded web package ref: %s", ref.GetId())
-		}
 		gotImportsByID[ref.GetId()] = ref.GetImports()
 	}
-	if _, ok := gotImportsByID["sonner"]; ok {
-		t.Fatal("request included excluded web package sonner")
+	if imports := gotImportsByID["sonner"]; len(imports) != 1 || imports[0] != "toast" {
+		t.Fatal("excluded package lost its shared import mapping")
 	}
 	if gotImports := gotImportsByID["@spacewave/ui"]; len(gotImports) != 1 || gotImports[0] != "Button" {
 		t.Fatalf("request imports for @spacewave/ui=%v want [Button]", gotImports)

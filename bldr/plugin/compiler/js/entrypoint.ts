@@ -22,7 +22,7 @@ import { WebViewHandlerConfig } from '../../../web/view/handler/handler.pb.js'
 import {
   HandleWebPkgsViaPluginAssetsRequest,
   HandleWebViewViaHandlersRequest,
-} from 'web/plugin/plugin.pb.js'
+} from '../../../web/plugin/plugin.pb.js'
 
 // Defines the list of backend entrypoints to load.
 declare const __BLDR_BACKEND_ENTRYPOINTS__: BackendEntrypoint[] | undefined
@@ -95,8 +95,11 @@ function resolveBackendEntrypointImportPath(
     return importPath
   }
 
+  // Backend assets must follow the worker's immutable executable, including replay.
+  const root = backendAPI.startInfo.manifestRoot
+  if (!root) throw new Error('Backend worker has no immutable manifest binding')
   return backendAPI.utils.pluginAssetHttpPath(
-    pluginId,
+    `${pluginId}/manifest/${root}`,
     importPath.slice('/assets/'.length),
   )
 }

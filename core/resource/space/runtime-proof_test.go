@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
@@ -265,6 +266,29 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 	watchCancel()
 	if err := <-watchErr; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchState: %v", err)
+	}
+
+	// A Space-stored installation crosses the parent RPC with its exact artifact,
+	// even when that artifact is absent from the parent's application catalog.
+	selected := createSpacePluginManifest(t, ctx, tb, spaceRuntimeManifestID, "js", 7)
+	key := bldr_manifest.NewManifestArtifactKey(selected.GetManifestRef())
+	if _, _, err := manifest_world.SetManifest(ctx, tb.WorldState, "", key, selected.GetManifestRef()); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := space_world_ops.SetSpaceSettings(ctx, tb.WorldState, "", "", &space_world.SpaceSettings{
+		PluginIds:           []string{spaceRuntimeManifestID},
+		PluginInstallations: map[string]*space_world.SpacePluginInstallation{spaceRuntimeManifestID: {ManifestKeys: []string{key}}},
+	}, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case req := <-host.requests:
+		if req.GetPluginId() != spaceRuntimeManifestID || req.GetInstanceKey() != "space-test" ||
+			!req.GetManifests()[0].GetManifestRef().GetRootRef().EqualVT(selected.GetManifestRef().GetRootRef()) {
+			t.Fatalf("selected LoadPlugin request lost installation identity: %#v", req)
+		}
+	case <-ctx.Done():
+		t.Fatal("selected artifact did not reach the parent plugin host")
 	}
 
 	resource.Release()
@@ -912,7 +936,7 @@ type spaceRuntimePluginHost struct{ platformID string }
 func (h *spaceRuntimePluginHost) GetPlatformId() string                         { return h.platformID }
 func (h *spaceRuntimePluginHost) Execute(context.Context) error                 { return nil }
 func (h *spaceRuntimePluginHost) ListPlugins(context.Context) ([]string, error) { return nil, nil }
-func (h *spaceRuntimePluginHost) ExecutePlugin(context.Context, string, string, string, *unixfs.FSHandle, *unixfs.FSHandle, srpc.Mux, plugin_host.PluginRpcInitCb) error {
+func (h *spaceRuntimePluginHost) ExecutePlugin(context.Context, string, string, string, string, *unixfs.FSHandle, *unixfs.FSHandle, srpc.Mux, plugin_host.PluginRpcInitCb) error {
 	return nil
 }
 func (h *spaceRuntimePluginHost) DeletePlugin(context.Context, string) error { return nil }

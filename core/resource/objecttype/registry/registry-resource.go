@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 )
 
@@ -15,7 +16,9 @@ import (
 type ObjectTypeRegistryResource struct {
 	mux srpc.Invoker
 
-	bcast         broadcast.Broadcast
+	// generations owns visibility of prepared plugin registrations.
+	generations   *registration.Registry
+	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*objectTypeRegistration
 }
@@ -34,8 +37,14 @@ type attachedObjectTypeHandler struct {
 }
 
 // NewObjectTypeRegistryResource creates a new ObjectTypeRegistryResource.
-func NewObjectTypeRegistryResource() *ObjectTypeRegistryResource {
+func NewObjectTypeRegistryResource(generations *registration.Registry) *ObjectTypeRegistryResource {
+	// A standalone registry has its own admission boundary.
+	if generations == nil {
+		generations = registration.NewRegistry()
+	}
 	r := &ObjectTypeRegistryResource{
+		generations:   generations,
+		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*objectTypeRegistration),
 	}
@@ -70,6 +79,11 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		return nil, ErrTypeIdMustHavePluginPrefix
 	}
 
+	generation, err := registration.FromContext(ctx, pluginID)
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -88,7 +102,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	var duplicate bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for _, registration := range r.registrations {
-			if registration.registration.GetTypeId() == typeID {
+			if registration.registration.GetTypeId() == typeID && !r.generations.CanShareNameLocked(registration, generation) {
 				duplicate = true
 				return
 			}
@@ -105,8 +119,17 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 			PluginId:       pluginID,
 			Metadata:       metadata,
 		}, attached: attached}
+		err = r.generations.BindLocked(r.registrations[regID], generation)
+		if err != nil {
+			r.generations.ForgetLocked(r.registrations[regID])
+			delete(r.registrations, regID)
+			return
+		}
 		broadcast()
 	})
+	if err != nil {
+		return nil, err
+	}
 	if duplicate {
 		return nil, ErrTypeIdAlreadyRegistered
 	}
@@ -115,6 +138,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
+				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
 				broadcast()
 			}
@@ -122,6 +146,7 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	})
 	if err != nil {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
 		})
@@ -143,7 +168,7 @@ func (r *ObjectTypeRegistryResource) WatchObjectTypes(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			regs = r.getRegistrationsLocked()
+			regs = r.getRegistrationsLocked(req.GetInstanceKey())
 			waitCh = getWaitCh()
 		})
 
@@ -163,42 +188,44 @@ func (r *ObjectTypeRegistryResource) WatchObjectTypes(
 
 // LookupRegistration finds a registration by typeID.
 func (r *ObjectTypeRegistryResource) LookupRegistration(
-	typeID string,
+	typeID, instanceKey string,
 ) *s4wave_objecttype_registry.ObjectTypeRegistration {
 	var reg *s4wave_objecttype_registry.ObjectTypeRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
-			if v.registration.GetTypeId() == typeID {
-				reg = v.registration.CloneVT()
-				break
-			}
+		if selected := r.lookupRegistrationLocked(typeID, instanceKey); selected != nil {
+			reg = selected.registration.CloneVT()
 		}
 	})
 	return reg
 }
 
-// lookupRegistration finds the complete private registration record.
-func (r *ObjectTypeRegistryResource) lookupRegistration(typeID string) *objectTypeRegistration {
-	var found *objectTypeRegistration
-	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, registration := range r.registrations {
-			if registration.registration.GetTypeId() == typeID {
-				found = registration
-				return
-			}
+// lookupRegistrationLocked finds the visible private handler capability.
+// The caller holds bcast.
+func (r *ObjectTypeRegistryResource) lookupRegistrationLocked(typeID, instanceKey string) *objectTypeRegistration {
+	for _, registration := range r.selectedLocked(instanceKey) {
+		if registration.registration.GetTypeId() == typeID {
+			return registration
 		}
-	})
-	return found
+	}
+	return nil
 }
 
 // getRegistrationsLocked returns a snapshot of all registrations.
 // Must be called with bcast lock held.
-func (r *ObjectTypeRegistryResource) getRegistrationsLocked() []*s4wave_objecttype_registry.ObjectTypeRegistration {
-	regs := make([]*s4wave_objecttype_registry.ObjectTypeRegistration, 0, len(r.registrations))
-	for _, reg := range r.registrations {
+func (r *ObjectTypeRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_objecttype_registry.ObjectTypeRegistration {
+	selected := r.selectedLocked(instanceKey)
+	regs := make([]*s4wave_objecttype_registry.ObjectTypeRegistration, 0, len(selected))
+	for _, reg := range selected {
 		regs = append(regs, reg.registration.CloneVT())
 	}
 	return regs
+}
+
+// selectedLocked selects handlers for the consuming World. The caller holds bcast.
+func (r *ObjectTypeRegistryResource) selectedLocked(instanceKey string) []*objectTypeRegistration {
+	return registration.SelectLocked(r.generations, r.registrations, instanceKey, func(reg *objectTypeRegistration) string {
+		return reg.registration.GetTypeId()
+	})
 }
 
 // _ is a type assertion

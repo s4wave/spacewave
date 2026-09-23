@@ -71,7 +71,7 @@ func TestSelectedHostStorage(t *testing.T) {
 		}
 		t.Cleanup(release)
 		mux := srpc.NewMux(bifrost_rpc.NewInvoker(hostBus, "", true))
-		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, "test-plugin", storageID, nil, nil, storageID)
+		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, "test-plugin", storageID, nil, nil, storageID, false)
 		if err := bldr_plugin.SRPCRegisterPluginHost(mux, server); err != nil {
 			return nil, err
 		}

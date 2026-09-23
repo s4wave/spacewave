@@ -39,6 +39,11 @@ message DevelopmentConfig {
   string session_id = 7;
   // DisableProjectConfig disables automatic root Vite config discovery.
   bool disable_project_config = 8;
+  // RoutePrefix is the same-origin namespace before the compiler SessionId.
+  // Empty uses /b/fe/; attached compilers use a routed frontend service prefix.
+  string route_prefix = 9;
+  // WebPkgIds are packages supplied by another plugin at the shared /b/pkg route.
+  repeated string web_pkg_ids = 10;
 }
 
 // DevelopmentResult publishes readiness of the internal middleware adapter.

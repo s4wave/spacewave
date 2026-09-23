@@ -129,6 +129,40 @@ describe('vite-base.config bldr-sdk aliases in an isolated harness', () => {
     },
   )
 
+  it('shares Resource context identity between SDK aliases and local imports', async () => {
+    const harness = await startIsolatedHarness('flat')
+    baseDirs.push(harness.baseDir)
+    const sdkRoot = join(harness.appRoot, 'bldr', 'sdk')
+    await mkdir(sdkRoot, { recursive: true })
+    await writeFile(join(sdkRoot, 'plugin.ts'), 'export const context = {}\n')
+    const appEntry = join(harness.appRoot, 'index.ts')
+    await writeFile(
+      appEntry,
+      [
+        "import { context as publicContext } from '@aptre/bldr-sdk'",
+        "import { context as localContext } from './bldr/sdk/plugin.js'",
+        'export const same = publicContext === localContext',
+      ].join('\n'),
+    )
+    const outDir = join(harness.appRoot, 'vite-dist')
+    const built = await build({
+      ...(await loadBaseConfig(harness.appRoot)),
+      build: {
+        outDir,
+        write: false,
+        minify: false,
+        lib: { entry: appEntry, formats: ['cjs'] },
+      },
+    })
+    const output = Array.isArray(built) ? built[0] : built
+    if (!('output' in output)) throw new Error('Expected a completed bundle')
+    const chunk = output.output.find((entry) => entry.type === 'chunk')
+    if (!chunk) throw new Error('Expected an executable chunk')
+    const result = { exports: {} as { same: boolean } }
+    new Function('module', 'exports', chunk.code)(result, result.exports)
+    expect(result.exports.same).toBe(true)
+  })
+
   it('fails the bundle when a .js hook import has no packaged target', async () => {
     const harness = await startIsolatedHarness('flat')
     baseDirs.push(harness.baseDir)

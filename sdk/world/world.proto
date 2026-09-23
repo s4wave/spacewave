@@ -13,6 +13,10 @@ service EngineResourceService {
 
   rpc NewTransaction(NewTransactionRequest) returns (NewTransactionResponse);
 
+  // ExecuteWorldOp accepts a complete operation, retrying stale bases through World.
+  // The authenticated Resource sender overrides the payload sender.
+  rpc ExecuteWorldOp(ApplyWorldOpRequest) returns (ApplyWorldOpResponse);
+
   rpc Sync(SyncRequest) returns (SyncResponse);
 
   rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
@@ -48,6 +52,8 @@ message GetEngineInfoRequest {}
 message GetEngineInfoResponse {
   // EngineInfo is the engine information.
   EngineInfo engine_info = 1;
+  // SessionPeerId is the authenticated sender bound to this Resource, when present.
+  string session_peer_id = 2;
 }
 
 // WorldRootSnapshot identifies one committed Engine root.
@@ -129,6 +135,9 @@ message AccessWorldStateResponse {
 }
 
 service WorldStateResourceService {
+  // CompareObjectRecords compares immutable record roots within this snapshot.
+  rpc CompareObjectRecords(CompareObjectRecordsRequest) returns (CompareObjectRecordsResponse);
+
   rpc GetReadOnly(GetReadOnlyRequest) returns (GetReadOnlyResponse);
 
   rpc Sync(SyncRequest) returns (SyncResponse);
@@ -637,6 +646,10 @@ message ApplyWorldOpResponse {
   bool sys_err = 2;
   // ErrorCode identifies a typed operation error when the RPC succeeds.
   WorldErrorCode error_code = 3;
+  // RejectionCode is a stable application-defined rejection code.
+  string rejection_code = 4;
+  // RejectionMessage is the safe explanation of a rejected operation.
+  string rejection_message = 5;
 }
 
 // WatchWorldStateRequest is the request type for WatchWorldState.
@@ -826,6 +839,10 @@ message ApplyObjectOpResponse {
   bool sys_err = 2;
   // ErrorCode identifies a typed operation error when the RPC succeeds.
   WorldErrorCode error_code = 3;
+  // RejectionCode is a stable application-defined rejection code.
+  string rejection_code = 4;
+  // RejectionMessage is the safe explanation of a rejected operation.
+  string rejection_message = 5;
 }
 
 // IncrementRevRequest is the request type for IncrementRev.
@@ -868,4 +885,34 @@ message AccessTypedObjectResponse {
   uint32 resource_id = 1;
   // TypeId is the type identifier of the object.
   string type_id = 2;
+}
+
+// ObjectRecordBase identifies a previous immutable root for one watched collection.
+message ObjectRecordBase {
+  // ObjectKey identifies the collection object in this World.
+  string object_key = 1;
+  // RootRef is the immutable root from the previous query snapshot.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// CompareObjectRecordsRequest selects previous roots to compare with this snapshot.
+message CompareObjectRecordsRequest {
+  // Bases contains at most 256 watched collection roots.
+  repeated ObjectRecordBase bases = 1;
+}
+
+// ObjectRecordChanges lists changed keys without materializing unchanged records.
+message ObjectRecordChanges {
+  // ObjectKey identifies the requested collection.
+  string object_key = 1;
+  // Keys contains inserted, deleted, and changed record keys.
+  repeated bytes keys = 2;
+  // Unknown requires full reevaluation when a root is unavailable or the comparison exceeds its bounds.
+  bool unknown = 3;
+}
+
+// CompareObjectRecordsResponse contains one result per requested base, in request order.
+message CompareObjectRecordsResponse {
+  // Changes corresponds to Bases in request order.
+  repeated ObjectRecordChanges changes = 1;
 }

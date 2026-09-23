@@ -2,6 +2,7 @@ syntax = "proto3";
 package bldr.project.watcher;
 
 import "github.com/s4wave/spacewave/bldr/project/controller/config.proto";
+import "github.com/s4wave/spacewave/bldr/project/project.proto";
 
 // Config configures the project file watcher.
 message Config {
@@ -13,4 +14,7 @@ message Config {
   .bldr.project.controller.Config project_controller_config = 2;
   // DisableWatch disables watching the file (loads once only).
   bool disable_watch = 3;
+  // BoundRemotes are caller-supplied World capabilities. These bindings take
+  // precedence over source configuration, including watched configuration edits.
+  map<string, .bldr.project.RemoteConfig> bound_remotes = 4;
 }

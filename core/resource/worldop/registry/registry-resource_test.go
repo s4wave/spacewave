@@ -12,7 +12,7 @@ import (
 
 // TestNewWorldOpRegistryResource tests basic construction.
 func TestNewWorldOpRegistryResource(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 	if r == nil {
 		t.Fatal("expected non-nil resource")
 	}
@@ -29,8 +29,8 @@ func TestNewWorldOpRegistryResource(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeEmpty tests that LookupRegistrationByOpType returns nil for unknown ops.
 func TestLookupRegistrationByOpTypeEmpty(t *testing.T) {
-	r := NewWorldOpRegistryResource()
-	reg := r.LookupRegistrationByOpType("unknown/op")
+	r := NewWorldOpRegistryResource(nil)
+	reg := r.LookupRegistrationByOpType("unknown/op", "")
 	if reg != nil {
 		t.Fatal("expected nil for unknown operation type")
 	}
@@ -38,7 +38,7 @@ func TestLookupRegistrationByOpTypeEmpty(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeFound tests that LookupRegistrationByOpType finds a manually added registration.
 func TestLookupRegistrationByOpTypeFound(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -49,7 +49,7 @@ func TestLookupRegistrationByOpTypeFound(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistrationByOpType("test-plugin/test-op")
+	reg := r.LookupRegistrationByOpType("test-plugin/test-op", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
 	}
@@ -66,7 +66,7 @@ func TestLookupRegistrationByOpTypeFound(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeReturnsClone tests that the returned registration is a clone.
 func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	orig := &s4wave_worldop_registry.WorldOpRegistration{
 		OperationTypeId: "test-plugin/cloned",
@@ -78,14 +78,14 @@ func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistrationByOpType("test-plugin/cloned")
+	reg := r.LookupRegistrationByOpType("test-plugin/cloned", "")
 	if reg == nil {
 		t.Fatal("expected non-nil registration")
 	}
 
 	// Mutating the returned value should not affect the stored one.
 	reg.OperationTypeId = "mutated"
-	reg2 := r.LookupRegistrationByOpType("test-plugin/cloned")
+	reg2 := r.LookupRegistrationByOpType("test-plugin/cloned", "")
 	if reg2 == nil {
 		t.Fatal("expected registration to still exist after mutating clone")
 	}
@@ -96,7 +96,7 @@ func TestLookupRegistrationByOpTypeReturnsClone(t *testing.T) {
 
 // TestLookupRegistrationByOpTypeMultiple tests lookup with multiple registrations.
 func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -117,7 +117,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistrationByOpType("plugin-b/op-two")
+	reg := r.LookupRegistrationByOpType("plugin-b/op-two", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-b/op-two")
 	}
@@ -125,7 +125,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 2, got %d", reg.GetRegistrationId())
 	}
 
-	reg = r.LookupRegistrationByOpType("plugin-a/op-three")
+	reg = r.LookupRegistrationByOpType("plugin-a/op-three", "")
 	if reg == nil {
 		t.Fatal("expected to find plugin-a/op-three")
 	}
@@ -133,7 +133,7 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 		t.Fatalf("expected registration_id 3, got %d", reg.GetRegistrationId())
 	}
 
-	reg = r.LookupRegistrationByOpType("nonexistent/op")
+	reg = r.LookupRegistrationByOpType("nonexistent/op", "")
 	if reg != nil {
 		t.Fatal("expected nil for nonexistent operation type")
 	}
@@ -141,12 +141,12 @@ func TestLookupRegistrationByOpTypeMultiple(t *testing.T) {
 
 // TestGetRegistrationsLocked tests the snapshot helper.
 func TestGetRegistrationsLocked(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	// Empty registry should return empty slice.
 	var regs []*s4wave_worldop_registry.WorldOpRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 0 {
 		t.Fatalf("expected 0 registrations, got %d", len(regs))
@@ -168,7 +168,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 	})
 
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked("")
 	})
 	if len(regs) != 2 {
 		t.Fatalf("expected 2 registrations, got %d", len(regs))
@@ -177,7 +177,7 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 // TestRegistrationRemoval tests that deleting a registration makes it unfindable.
 func TestRegistrationRemoval(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -188,7 +188,7 @@ func TestRegistrationRemoval(t *testing.T) {
 		broadcast()
 	})
 
-	reg := r.LookupRegistrationByOpType("test-plugin/removable")
+	reg := r.LookupRegistrationByOpType("test-plugin/removable", "")
 	if reg == nil {
 		t.Fatal("expected registration before removal")
 	}
@@ -198,7 +198,7 @@ func TestRegistrationRemoval(t *testing.T) {
 		broadcast()
 	})
 
-	reg = r.LookupRegistrationByOpType("test-plugin/removable")
+	reg = r.LookupRegistrationByOpType("test-plugin/removable", "")
 	if reg != nil {
 		t.Fatal("expected nil after removal")
 	}
@@ -206,7 +206,7 @@ func TestRegistrationRemoval(t *testing.T) {
 
 // TestBroadcastOnChange tests that the broadcast channel fires when registrations change.
 func TestBroadcastOnChange(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 
 	var waitCh <-chan struct{}
 	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -266,7 +266,7 @@ func (f *fakeResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 // registration of one operation type ID fails instead of making dispatch
 // nondeterministic between plugins.
 func TestRegisterWorldOpRejectsDuplicateOperationType(t *testing.T) {
-	r := NewWorldOpRegistryResource()
+	r := NewWorldOpRegistryResource(nil)
 	ctx := resource_server.WithResourceClientContext(
 		context.Background(),
 		&fakeResourceClientContext{},
@@ -281,7 +281,7 @@ func TestRegisterWorldOpRejectsDuplicateOperationType(t *testing.T) {
 	if _, err := r.RegisterWorldOp(ctx, req); !errors.Is(err, ErrOperationTypeAlreadyRegistered) {
 		t.Fatalf("duplicate registration error = %v, want ErrOperationTypeAlreadyRegistered", err)
 	}
-	reg := r.LookupRegistrationByOpType("test-plugin/duplicate")
+	reg := r.LookupRegistrationByOpType("test-plugin/duplicate", "")
 	if reg == nil || reg.GetRegistrationId() != 1 {
 		t.Fatalf("original registration changed after duplicate attempt: %+v", reg)
 	}

@@ -3,12 +3,14 @@ import '@s4wave/web/test/happy-dom.js'
 import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { CommandFocusContext, CommandSurface } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandFocusContext,
+  CommandSurface,
+} from '@s4wave/sdk/command/command.pb.js'
 import type { Command, CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import { KeyDispatcher } from '../../../web/command/KeyDispatcher.js'
 import { FocusContextProvider } from '../../../web/command/FocusContext.js'
-
 
 interface CapturedCommandOptions {
   commandId: string
@@ -99,7 +101,6 @@ function commandFromCaptured(opts: CapturedCommandOptions): Command {
   return {
     commandId: opts.commandId,
     label: opts.label,
-    keybinding: opts.keybinding,
     menuPath: opts.menuPath,
     defaultBindings: opts.defaultBindings ?? [],
   }

@@ -1,14 +1,15 @@
-import { createContext, use, useMemo } from 'react'
+import React, { createContext, use, useMemo } from 'react'
+
 import type { Root } from '@s4wave/sdk/root'
-import { RootContext } from '../contexts/contexts.js'
-import React from 'react'
 
 import { ConfigTypeRegistryResourceServiceClient } from '@s4wave/sdk/configtype/registry/registry_srpc.pb.js'
 import {
   WatchConfigTypesRequest,
   WatchConfigTypesResponse,
-  type ConfigTypeRegistration,
+  ConfigTypeRegistration,
 } from '@s4wave/sdk/configtype/registry/registry.pb.js'
+
+import { RootContext } from '../contexts/contexts.js'
 import type { StaticConfigTypeRegistration } from './configtype.js'
 import { useDynamicRegistrations } from '../hooks/useDynamicRegistrations.js'
 
@@ -52,6 +53,7 @@ export function useAllConfigTypes(): StaticConfigTypeRegistration[] {
     WatchConfigTypesResponse.equals,
     configTypeGetRegs,
     registrationToConfigType,
+    ConfigTypeRegistration.equals,
   )
   return useMemo(
     () => [...staticTypes, ...dynamicTypes],

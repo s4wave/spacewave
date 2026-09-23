@@ -319,6 +319,9 @@ func (c *Controller) BuildManifest(
 	frontendEntrypoints := slices.Clone(buildCtrlConf.GetFrontendEntrypoints())
 	hasFrontendEntrypoints := len(frontendEntrypoints) != 0
 	liveFrontend := buildType.IsDev() && builderConf.GetBuildPolicy().GetFrontendDevelopment()
+	providesWebPkgs := slices.ContainsFunc(webPkgs, func(pkg *bldr_web_bundler.WebPkgRefConfig) bool {
+		return !pkg.GetExclude()
+	})
 	var snapshotModules []*JsModule
 	frontendBindings := make(map[string]*frontend.Binding)
 
@@ -362,9 +365,14 @@ func (c *Controller) BuildManifest(
 					WebViewParentId: mod.GetWebViewParentId(),
 				})
 			}
-			continue
+			// Shared packages still need their immutable provider assets. This
+			// bundle discovers their subpaths without loading a snapshot view.
+			if !providesWebPkgs {
+				continue
+			}
+		} else {
+			snapshotModules = append(snapshotModules, mod)
 		}
-		snapshotModules = append(snapshotModules, mod)
 
 		// add a bundle for this module
 		inputPath := path.Clean(mod.GetPath())
@@ -380,7 +388,8 @@ func (c *Controller) BuildManifest(
 			// TODO: if the plugin ID changes this URL will change.
 			PublicPath: bldr_plugin.PluginAssetHTTPPath(pluginID, path.Join("v", "b", bundleID)),
 
-			ExternalPkgs: externalPkgs,
+			ExternalPkgs:  externalPkgs,
+			BundleWebPkgs: modKind == JsModuleKind_JS_MODULE_KIND_BACKEND,
 		})
 	}
 	if hasFrontendEntrypoints {

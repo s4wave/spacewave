@@ -33,6 +33,8 @@ message Config {
   // FrontendDevelopment attaches watched web development builds to the active
   // project frontend service. Explicit build commands leave this disabled.
   bool frontend_development = 8;
+  // FrontendRoutePrefix overrides the browser namespace for an attached compiler.
+  string frontend_route_prefix = 9;
 }
 
 // ManifestBuilderConfig is a configuration for a ManifestBuilder.

@@ -162,3 +162,54 @@ export const ReorderSourcesResponse: MessageType<ReorderSourcesResponse> =
     'notes.ReorderSourcesResponse',
     true,
   )
+
+/**
+ * GetSavedViewsAppRequest requests the additive saved-view application binding.
+ *
+ * @generated from message notes.GetSavedViewsAppRequest
+ */
+export interface GetSavedViewsAppRequest {}
+
+export const GetSavedViewsAppRequest: MessageType<GetSavedViewsAppRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetSavedViewsAppRequest>(
+    'notes.GetSavedViewsAppRequest',
+    true,
+  )
+
+/**
+ * GetSavedViewsAppResponse identifies the dataset and this plugin's immutable executable.
+ * Reading this metadata creates no data and shares no personal preferences.
+ *
+ * @generated from message notes.GetSavedViewsAppResponse
+ */
+export interface GetSavedViewsAppResponse {
+  /**
+   * ObjectKey is the saved-view application object within the same World.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * PluginId is the plugin family that serves saved-view operations.
+   *
+   * @generated from field: string plugin_id = 2;
+   */
+  pluginId?: string
+  /**
+   * ManifestRoot identifies the exact executable used to create the dataset.
+   *
+   * @generated from field: string manifest_root = 3;
+   */
+  manifestRoot?: string
+}
+
+export const GetSavedViewsAppResponse: MessageType<GetSavedViewsAppResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'notes.GetSavedViewsAppResponse',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

@@ -1,6 +1,8 @@
 import {
   connect,
   defineSchema,
+  defineQuery,
+  type AppSource,
   type Database,
   type SubscriptionState,
 } from 'spacewave'
@@ -60,6 +62,26 @@ await server
   .as({ subject: 'a', scope: 'b', role: 'editor' })
   .collection('counts')
   .put('a', '2')
+const source: AppSource<typeof schema> = server.as({
+  subject: 'a',
+  scope: 'b',
+  role: 'editor',
+})
+const sum = defineQuery(schema, {
+  name: 'sum',
+  input: z.string(),
+  evaluate: async ({ collection }, prefix) =>
+    (await collection('counts').scan({ prefix })).reduce(
+      (total, row) => total + row.value,
+      0,
+    ),
+})
+for await (const snapshot of source.watch(sum, 'a')) {
+  if (snapshot.status === 'current') {
+    const total: number = snapshot.value
+    void total
+  }
+}
 const connected: Database<typeof schema> = await connect({
   url: 'ws://localhost/sync',
   schema,

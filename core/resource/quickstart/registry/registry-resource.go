@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/resource/registration"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	"github.com/sirupsen/logrus"
 )
@@ -20,7 +21,9 @@ type QuickstartRegistryResource struct {
 	b   bus.Bus
 	mux srpc.Invoker
 
-	bcast         broadcast.Broadcast
+	// generations owns visibility of prepared plugin registrations.
+	generations   *registration.Registry
+	bcast         *broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_quickstart_registry.QuickstartRegistration
 }
@@ -29,10 +32,17 @@ type QuickstartRegistryResource struct {
 func NewQuickstartRegistryResource(
 	le *logrus.Entry,
 	b bus.Bus,
+	generations *registration.Registry,
 ) *QuickstartRegistryResource {
+	// A standalone registry has its own admission boundary.
+	if generations == nil {
+		generations = registration.NewRegistry()
+	}
 	r := &QuickstartRegistryResource{
 		le:            le,
 		b:             b,
+		generations:   generations,
+		bcast:         generations.Broadcast(),
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_quickstart_registry.QuickstartRegistration),
 	}
@@ -72,6 +82,11 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 		return nil, ErrCategoryRequired
 	}
 
+	generation, err := registration.FromContext(ctx, reg.GetPluginId())
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -83,16 +98,31 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 			if v.GetQuickstartId() != reg.GetQuickstartId() {
 				continue
 			}
+			if r.generations.CanShareNameLocked(v, generation) {
+				continue
+			}
 			if v.GetPluginId() != reg.GetPluginId() {
 				err = ErrQuickstartIdAlreadyRegistered
 				return
 			}
+			if generation != nil || r.generations.GenerationLocked(v) != nil {
+				err = ErrQuickstartIdAlreadyRegistered
+				return
+			}
+			r.generations.ForgetLocked(v)
 			delete(r.registrations, id)
 		}
 		regID = r.nextID
 		r.nextID++
 		stored := reg.CloneVT()
 		stored.RegistrationId = regID
+		stored.ManifestRoot = ""
+		if generation != nil {
+			stored.ManifestRoot = generation.ManifestRoot()
+		}
+		if err = r.generations.BindLocked(stored, generation); err != nil {
+			return
+		}
 		r.registrations[regID] = stored
 		broadcast()
 	})
@@ -104,6 +134,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 	resourceID, err := client.AddResource(emptyMux, func() {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
+				r.generations.ForgetLocked(r.registrations[regID])
 				delete(r.registrations, regID)
 				broadcast()
 			}
@@ -111,6 +142,7 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 	})
 	if err != nil {
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			r.generations.ForgetLocked(r.registrations[regID])
 			delete(r.registrations, regID)
 			broadcast()
 		})
@@ -127,7 +159,7 @@ func (r *QuickstartRegistryResource) ListQuickstarts(
 ) (*s4wave_quickstart_registry.ListQuickstartsResponse, error) {
 	var regs []*s4wave_quickstart_registry.QuickstartRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked(req.GetInstanceKey())
 	})
 	return &s4wave_quickstart_registry.ListQuickstartsResponse{Registrations: regs}, nil
 }
@@ -144,7 +176,7 @@ func (r *QuickstartRegistryResource) WatchQuickstarts(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			regs = r.getRegistrationsLocked()
+			regs = r.getRegistrationsLocked(req.GetInstanceKey())
 			waitCh = getWaitCh()
 		})
 
@@ -164,11 +196,11 @@ func (r *QuickstartRegistryResource) WatchQuickstarts(
 
 // LookupRegistration finds a registration by quickstartID.
 func (r *QuickstartRegistryResource) LookupRegistration(
-	quickstartID string,
+	quickstartID, instanceKey string,
 ) *s4wave_quickstart_registry.QuickstartRegistration {
 	var reg *s4wave_quickstart_registry.QuickstartRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
+		for _, v := range r.getRegistrationsLocked(instanceKey) {
 			if v.GetQuickstartId() == quickstartID {
 				reg = v.CloneVT()
 				break
@@ -198,9 +230,10 @@ func mergePluginIDs(lists ...[]string) []string {
 
 // getRegistrationsLocked returns a snapshot of all registrations.
 // Must be called with bcast lock held.
-func (r *QuickstartRegistryResource) getRegistrationsLocked() []*s4wave_quickstart_registry.QuickstartRegistration {
-	regs := make([]*s4wave_quickstart_registry.QuickstartRegistration, 0, len(r.registrations))
-	for _, reg := range r.registrations {
+func (r *QuickstartRegistryResource) getRegistrationsLocked(instanceKey string) []*s4wave_quickstart_registry.QuickstartRegistration {
+	selected := registration.SelectLocked(r.generations, r.registrations, instanceKey, (*s4wave_quickstart_registry.QuickstartRegistration).GetQuickstartId)
+	regs := make([]*s4wave_quickstart_registry.QuickstartRegistration, 0, len(selected))
+	for _, reg := range selected {
 		regs = append(regs, reg.CloneVT())
 	}
 	slices.SortFunc(regs, func(a, b *s4wave_quickstart_registry.QuickstartRegistration) int {

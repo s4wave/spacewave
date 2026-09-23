@@ -298,7 +298,7 @@ func (c *Controller) BuildManifestBuilderConfigs(
 			return manifestRefs, manifestObjKeys, err
 		}
 
-		manifestObjKeys = append(manifestObjKeys, result.GetBuilderConfig().GetObjectKey())
+		manifestObjKeys = append(manifestObjKeys, bldr_manifest.NewManifestArtifactKey(result.GetBuilderResult().GetManifestRef().GetManifestRef()))
 		manifestRefs = append(manifestRefs, result.GetBuilderResult().GetManifestRef())
 	}
 

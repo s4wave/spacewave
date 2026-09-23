@@ -5,8 +5,8 @@ import userEvent from '@testing-library/user-event'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
-import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+import { SET_SPACE_INDEX_PATH_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
+import { SetSpaceIndexPathOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import {
   CommandFocusContext,
   CommandSurface,
@@ -193,28 +193,15 @@ describe('SpaceSettingsEditor', () => {
     const selector = screen.getByTestId('object-key-selector')
     await user.click(selector)
     expect(mockSpaceWorld.applyWorldOp).toHaveBeenCalledWith(
-      SET_SPACE_SETTINGS_OP_ID,
+      SET_SPACE_INDEX_PATH_OP_ID,
       expect.any(Uint8Array),
       '',
     )
     const opData = vi.mocked(mockSpaceWorld.applyWorldOp).mock.calls[0]?.[1]
-    const op = SetSpaceSettingsOp.fromBinary(opData)
-    expect(op.settings?.indexPath).toBe('new/path')
-    expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
-    expect(op.settings?.keybindingOverrides?.webOverrides).toEqual([
-      {
-        commandId: 'spacewave.palette',
-        clearedBindingIds: ['palette-default'],
-        bindings: [
-          {
-            id: 'palette-space',
-            binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
-            when: CommandFocusContext.GLOBAL,
-            surface: CommandSurface.WEB,
-          },
-        ],
-      },
-    ])
+    const op = SetSpaceIndexPathOp.fromBinary(opData)
+    expect(op.indexPath).toBe('new/path')
+
+    expect(op.expectedIndexPath).toBeUndefined()
   })
 
   it('does not call applyWorldOp when new path matches current indexPath', async () => {

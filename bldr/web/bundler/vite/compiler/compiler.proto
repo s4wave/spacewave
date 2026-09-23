@@ -100,6 +100,9 @@ message ViteBundleMeta {
   // ExternalPkgs is a list of imported node packages to treat as external.
   // These won't be bundled or included and are assumed to be available in the target environment.
   repeated string external_pkgs = 6;
+  // BundleWebPkgs includes shared web packages in the bundle instead of importing
+  // browser-owned modules. Workers have no document import map.
+  bool bundle_web_pkgs = 7;
 }
 
 

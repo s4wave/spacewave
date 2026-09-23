@@ -1,17 +1,18 @@
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 import { NotebookResourceServiceClient } from './notebook_srpc.pb.js'
-import type {
-  Notebook,
-  NotebookSource,
-} from '../proto/notebook.pb.js'
+import type { Notebook, NotebookSource } from '../proto/notebook.pb.js'
 import type { WatchNotebookResponse } from './notebook.pb.js'
+import type { GetSavedViewsAppResponse } from './notebook.pb.js'
 
 // NotebookTypeID is the type identifier for notebook objects.
 export const NotebookTypeID = 'notes/notebook'
 
 // INotebookHandle contains the NotebookHandle interface.
 export interface INotebookHandle {
+  /** getSavedViewsApp identifies the immutable module for an explicit first save. */
+  getSavedViewsApp(signal?: AbortSignal): Promise<GetSavedViewsAppResponse>
+
   // watchNotebook streams the current notebook state.
   watchNotebook(abortSignal?: AbortSignal): AsyncIterable<Notebook>
 
@@ -39,6 +40,13 @@ export class NotebookHandle extends Resource implements INotebookHandle {
   constructor(resourceRef: ClientResourceRef) {
     super(resourceRef)
     this.service = new NotebookResourceServiceClient(resourceRef.client)
+  }
+
+  /** getSavedViewsApp reads dataset metadata without creating shared state. */
+  public getSavedViewsApp(
+    signal?: AbortSignal,
+  ): Promise<GetSavedViewsAppResponse> {
+    return this.service.GetSavedViewsApp({}, signal)
   }
 
   // watchNotebook streams the current notebook state.

@@ -14,8 +14,9 @@ type SRPCWorldOpRegistryResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// RegisterWorldOp installs a handler until its registration Resource is released.
 	RegisterWorldOp(ctx context.Context, in *RegisterWorldOpRequest) (*RegisterWorldOpResponse, error)
-
+	// WatchWorldOps publishes the current operation registrations.
 	WatchWorldOps(ctx context.Context, in *WatchWorldOpsRequest) (SRPCWorldOpRegistryResourceService_WatchWorldOpsClient, error)
 }
 
@@ -81,8 +82,9 @@ func (x *srpcWorldOpRegistryResourceService_WatchWorldOpsClient) RecvTo(m *Watch
 }
 
 type SRPCWorldOpRegistryResourceServiceServer interface {
+	// RegisterWorldOp installs a handler until its registration Resource is released.
 	RegisterWorldOp(context.Context, *RegisterWorldOpRequest) (*RegisterWorldOpResponse, error)
-
+	// WatchWorldOps publishes the current operation registrations.
 	WatchWorldOps(*WatchWorldOpsRequest, SRPCWorldOpRegistryResourceService_WatchWorldOpsStream) error
 }
 
@@ -191,10 +193,11 @@ type SRPCWorldOpHandlerServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// ApplyWorldOp mutates the supplied World state under its authenticated sender.
 	ApplyWorldOp(ctx context.Context, in *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
-
+	// ApplyWorldObjectOp mutates one supplied object under its authenticated sender.
 	ApplyWorldObjectOp(ctx context.Context, in *ApplyWorldObjectOpRequest) (*ApplyWorldObjectOpResponse, error)
-
+	// ValidateOp checks operation bytes before the host supplies mutable state.
 	ValidateOp(ctx context.Context, in *ValidateOpRequest) (*ValidateOpResponse, error)
 }
 
@@ -244,10 +247,11 @@ func (c *srpcWorldOpHandlerServiceClient) ValidateOp(ctx context.Context, in *Va
 }
 
 type SRPCWorldOpHandlerServiceServer interface {
+	// ApplyWorldOp mutates the supplied World state under its authenticated sender.
 	ApplyWorldOp(context.Context, *ApplyWorldOpRequest) (*ApplyWorldOpResponse, error)
-
+	// ApplyWorldObjectOp mutates one supplied object under its authenticated sender.
 	ApplyWorldObjectOp(context.Context, *ApplyWorldObjectOpRequest) (*ApplyWorldObjectOpResponse, error)
-
+	// ValidateOp checks operation bytes before the host supplies mutable state.
 	ValidateOp(context.Context, *ValidateOpRequest) (*ValidateOpResponse, error)
 }
 

@@ -53,12 +53,29 @@ type StartupManifestCandidateEligibility struct {
 	ManifestRef *bucket.ObjectRef
 }
 
+// CollectStartupManifestEligibilityAtRoot reads only the requested executable.
+// Catalog references are filtered before opening artifact storage, so an offline
+// bucket belonging to another revision cannot block exact-version replay.
+// An empty root preserves normal catalog selection.
+func CollectStartupManifestEligibilityAtRoot(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID, manifestRoot string,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) ([]*StartupManifestCandidateEligibility, error) {
+	if manifestRoot == "" {
+		return CollectStartupManifestEligibilityForManifestID(ctx, ws, manifestID, filterPlatformIDs, objKeys...)
+	}
+	return collectStartupManifestEligibilityForManifestID(ctx, ws, manifestID, manifestRoot, filterPlatformIDs, objKeys...)
+}
+
 // collectStartupManifestEligibilityForManifestID classifies startup manifest
 // candidates without mutating the Manifest graph or candidate objects.
 func collectStartupManifestEligibilityForManifestID(
 	ctx context.Context,
 	ws world.WorldState,
-	manifestID string,
+	manifestID, manifestRoot string,
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*StartupManifestCandidateEligibility, error) {
@@ -69,6 +86,21 @@ func collectStartupManifestEligibilityForManifestID(
 	edgeLabels := startupManifestCandidateEdgeLabels(edges, manifestID)
 	out := make([]*StartupManifestCandidateEligibility, 0, len(candidates))
 	for _, objKey := range candidates {
+		if manifestRoot != "" {
+			// Stored executables are direct Manifest objects whose root is code identity.
+			object, err := world.MustGetObject(ctx, ws, objKey)
+			if err != nil {
+				return nil, err
+			}
+			ref, _, err := object.GetRootRef(ctx)
+			world.ReleaseObjectState(object)
+			if err != nil {
+				return nil, err
+			}
+			if ref.GetRootRef().GetHash().MarshalString() != manifestRoot {
+				continue
+			}
+		}
 		candidate, err := classifyStartupManifestCandidateEligibility(
 			ctx,
 			ws,

@@ -53,6 +53,9 @@ message WebDocumentStatus {
   repeated WebWorkerStatus web_workers = 4;
   // Closed indicates the web document is closed.
   bool closed = 5;
+  // PluginWorkersBlocked indicates another document owns plugin worker creation.
+  // Ownership changes wake the scheduler independently of document visibility.
+  bool plugin_workers_blocked = 6;
 }
 
 // WebViewStatus contains status for a web view.

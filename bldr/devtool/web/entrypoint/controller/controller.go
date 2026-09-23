@@ -50,18 +50,24 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller manages the devtool web entrypoint.
 type Controller struct {
+	// le records runtime startup and transport failures.
 	le *logrus.Entry
-	b  bus.Bus
+	// b owns the browser runtime's controllers and service routes.
+	b bus.Bus
 
+	// devtoolInfo identifies the retained native development server.
 	devtoolInfo *devtool_web.DevtoolInitBrowser
-	initm       *web_runtime.WebRuntimeHostInit
-	linkUrl     string
+	// initm identifies this browser runtime instance.
+	initm *web_runtime.WebRuntimeHostInit
+	// linkUrl is the native server's same-origin WebSocket endpoint.
+	linkUrl string
 
 	// browserRpcServer handles incoming SRPC streams on BrowserProtocolID.
 	// Initialized in the constructor so it is ready before Execute runs.
 	browserRpcServer *srpc.Server
 }
 
+// NewController prepares the runtime's browser RPC server before bus admission.
 func NewController(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -129,11 +135,13 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		return err
 	}
 
-	// connect to the devtool via. WebSocket so we can fetch manifests
+	// The open runtime owns reconnection, including a native server rebuild.
+	// Keep retrying until it closes; an individual RPC still has a dial timeout.
 	devtoolBackoff := &backoff.Backoff{
 		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 		Exponential: &backoff.Exponential{
-			MaxElapsedTime: 2400,
+			InitialInterval: 100,
+			MaxInterval:     2000,
 		},
 	}
 	_, _, wsRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&websocket.Config{

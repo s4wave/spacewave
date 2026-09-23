@@ -53,7 +53,8 @@ import "embed"
 //go:embed router/hash.tsx router/router.tsx router/static-routes.ts sdk/app/SpacewaveRuntimeProviders.tsx
 //go:embed sdk/app/base-viewers.ts sdk/app/index.ts sdk/app/lifecycle.tsx sdk/app/viewer-catalog.ts
 //go:embed sdk/app/environment.tsx
-//go:embed space/object-tree.tsx space/space-object-navigation-actions.ts state/StateAtomRegistry.tsx
+//go:embed space/index.ts space/usePluginFrontend.ts space/object-tree.tsx space/space-object-navigation-actions.ts
+//go:embed state/StateAtomRegistry.tsx
 //go:embed state/global.ts state/index.tsx state/interaction.ts state/persist.tsx state/useBackendStateAtom.tsx
 //go:embed state/useStateAtomResource.tsx style/app.css style/flexlayout/base.css
 //go:embed style/flexlayout/flexlayout.css style/shadcn.css style/utils.ts title/DocumentTitleContext.tsx
@@ -74,5 +75,6 @@ import "embed"
 //go:embed ui/range-slider.tsx ui/separator.tsx ui/sheet.tsx ui/shine-border.tsx ui/tabs.tsx ui/toaster.tsx
 //go:embed ui/tooltip.tsx ui/tree/Tree.tsx ui/tree/TreeNode.tsx ui/tree/TreeRow.tsx ui/tree/TreeState.tsx
 //go:embed ui/tree/index.ts ui/turnstile.tsx util/isEqual.ts
+//go:embed sync/index.ts sync/react.tsx sync/app-hooks.ts sync/useAppAttachment.ts sync/useObjectQuery.ts
 //go:embed react-css.d.ts
 var DistSources embed.FS

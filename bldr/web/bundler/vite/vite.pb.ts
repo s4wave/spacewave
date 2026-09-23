@@ -65,6 +65,19 @@ export interface DevelopmentConfig {
    * @generated from field: bool disable_project_config = 8;
    */
   disableProjectConfig?: boolean
+  /**
+   * RoutePrefix is the same-origin namespace before the compiler SessionId.
+   * Empty uses /b/fe/; attached compilers use a routed frontend service prefix.
+   *
+   * @generated from field: string route_prefix = 9;
+   */
+  routePrefix?: string
+  /**
+   * WebPkgIds are packages supplied by another plugin at the shared /b/pkg route.
+   *
+   * @generated from field: repeated string web_pkg_ids = 10;
+   */
+  webPkgIds?: string[]
 }
 
 export const DevelopmentConfig: MessageType<DevelopmentConfig> =
@@ -101,6 +114,14 @@ export const DevelopmentConfig: MessageType<DevelopmentConfig> =
         name: 'disable_project_config',
         kind: 'scalar',
         T: ScalarType.BOOL,
+      },
+      { no: 9, name: 'route_prefix', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 10,
+        name: 'web_pkg_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

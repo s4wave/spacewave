@@ -118,6 +118,13 @@ export interface ViteBundleMeta {
    * @generated from field: repeated string external_pkgs = 6;
    */
   externalPkgs?: string[]
+  /**
+   * BundleWebPkgs includes shared web packages in the bundle instead of importing
+   * browser-owned modules. Workers have no document import map.
+   *
+   * @generated from field: bool bundle_web_pkgs = 7;
+   */
+  bundleWebPkgs?: boolean
 }
 
 export const ViteBundleMeta: MessageType<ViteBundleMeta> =
@@ -153,6 +160,7 @@ export const ViteBundleMeta: MessageType<ViteBundleMeta> =
         T: ScalarType.STRING,
         repeated: true,
       },
+      { no: 7, name: 'bundle_web_pkgs', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

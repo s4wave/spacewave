@@ -10,13 +10,20 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
+	"github.com/s4wave/spacewave/db/block"
+	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_server "github.com/s4wave/spacewave/db/block/rpc/server"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
-	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,6 +43,8 @@ type CloudBlockStoreForwarder struct {
 	bucketID string
 	// pluginID is the host plugin id that receives the bucket config.
 	pluginID string
+	// access retains the mounted Space's authenticated read-through storage.
+	access world.AccessWorldStateFunc
 }
 
 // NewCloudBlockStoreForwarder constructs a cloud block store forwarding controller.
@@ -45,6 +54,7 @@ func NewCloudBlockStoreForwarder(
 	spaceID string,
 	bucketID string,
 	pluginID string,
+	access world.AccessWorldStateFunc,
 ) *CloudBlockStoreForwarder {
 	return &CloudBlockStoreForwarder{
 		le:       le,
@@ -52,6 +62,7 @@ func NewCloudBlockStoreForwarder(
 		spaceID:  spaceID,
 		bucketID: bucketID,
 		pluginID: pluginID,
+		access:   access,
 	}
 }
 
@@ -78,20 +89,29 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 		WithField("service-id", serviceID).
 		WithField("plugin-id", c.pluginID)
 
-	serverConf := &block_store_rpc_server.Config{
-		BlockStoreId: c.bucketID,
-		ServiceId:    serviceID,
-	}
-	_, _, serverRef, err := loader.WaitExecControllerRunning(
-		ctx,
-		c.b,
-		resolver.NewLoadControllerWithConfig(serverConf),
-		nil,
-	)
+	// Each call borrows the current mounted store. Looking up its local bucket
+	// would discard Session read-through and strand artifacts built on a peer.
+	invoker := srpc.InvokerFunc(func(requestService, method string, stream srpc.Stream) (bool, error) {
+		if requestService != serviceID {
+			return false, nil
+		}
+		var handled bool
+		err := c.access(stream.Context(), nil, func(cursor *bucket_lookup.Cursor) error {
+			readOnly := block_store.NewStoreReadThrough(func() block.StoreOps { return cursor.GetBlockStore() }, nil, false)
+			handler := block_rpc.NewSRPCBlockStoreHandler(block_rpc_server.NewBlockStore(readOnly), serviceID)
+			var err error
+			handled, err = handler.InvokeMethod(requestService, method, stream)
+			return err
+		})
+		return handled, err
+	})
+	server := bifrost_rpc.NewRpcServiceController(c.GetControllerInfo(),
+		bifrost_rpc.NewRpcServiceBuilder(invoker), nil, false, nil, []string{serviceID}, nil)
+	serverRelease, err := c.b.AddController(ctx, server, nil)
 	if err != nil {
 		return errors.Wrap(err, "start cloud block store rpc server")
 	}
-	defer serverRef.Release()
+	defer serverRelease()
 
 	bucketConf, err := bucket.NewConfig(c.bucketID, 1, nil)
 	if err != nil {

@@ -7,6 +7,24 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
+// GetError restores the typed rejection or sentinel from a World operation response.
+func (r *ApplyWorldOpResponse) GetError() error {
+	return operationError(r.GetErrorCode(), r.GetRejectionCode(), r.GetRejectionMessage())
+}
+
+// GetError restores the typed rejection or sentinel from an object operation response.
+func (r *ApplyObjectOpResponse) GetError() error {
+	return operationError(r.GetErrorCode(), r.GetRejectionCode(), r.GetRejectionMessage())
+}
+
+// operationError preserves application codes across the Resource RPC boundary.
+func operationError(code WorldErrorCode, rejectionCode, message string) error {
+	if rejectionCode != "" {
+		return &world.OperationRejection{Code: rejectionCode, Message: message}
+	}
+	return ErrorFromCode(code)
+}
+
 // ErrorFromCode restores the sentinel error represented by a World RPC code.
 func ErrorFromCode(code WorldErrorCode) error {
 	switch code {

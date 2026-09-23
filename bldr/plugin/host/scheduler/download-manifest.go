@@ -387,7 +387,7 @@ func (t *pluginInstance) execDownloadManifest(
 		storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
 		trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
 		trace.Log(storeCtx, "manifest-copy-phase", "local-ref-publication")
-		manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
+		manifestKey := bldr_manifest.NewManifestArtifactKey(localRef)
 		if err := bldr_manifest_world.ExStoreManifestOp(
 			storeCtx,
 			ws,

@@ -44,6 +44,7 @@ type TestWebDocument = {
   webWorkers: Record<string, Record<string, unknown> & { port: MessagePort }>
   pluginSingletonReady: Promise<void>
   pluginSingletonLockEnabled: boolean
+  pluginSingletonAcquired: boolean
   singletonAbort?: AbortController
   dedicatedRuntimeHost?: {
     role: string
@@ -129,6 +130,7 @@ function buildTestWebDocument(hidden = false): TestWebDocument {
     webWorkers: {},
     pluginSingletonReady: Promise.resolve(),
     pluginSingletonLockEnabled: false,
+    pluginSingletonAcquired: false,
     singletonAbort: undefined,
     sabPairBroker: new SabPairBroker(),
     webrtcBridgeEndpoints: new Map(),
@@ -1175,10 +1177,27 @@ describe('WebDocument plugin generation state', () => {
     const doc = buildTestWebDocument(true)
     doc.pluginSingletonLockEnabled = true
 
+    expect(
+      await WebDocument.prototype.buildWebDocumentStatusSnapshot.call(doc),
+    ).toMatchObject({
+      hidden: true,
+      pluginWorkersBlocked: true,
+    })
+
     doc.refreshPluginSingletonLock()
     expect(lockRequest).toHaveBeenCalledOnce()
     expect(lockRequest.mock.calls[0][0]).toBe('bldr-plugin-singleton-runtime-1')
     await expect(doc.pluginSingletonReady).resolves.toBeUndefined()
+    expect(doc.webStatusStream.pushChangeEvent).toHaveBeenCalledWith({
+      hidden: true,
+      pluginWorkersBlocked: false,
+    })
+    expect(
+      await WebDocument.prototype.buildWebDocumentStatusSnapshot.call(doc),
+    ).toMatchObject({
+      hidden: true,
+      pluginWorkersBlocked: false,
+    })
 
     const singletonAbort = doc.singletonAbort
     expect(singletonAbort).toBeDefined()

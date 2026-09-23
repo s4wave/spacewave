@@ -57,6 +57,7 @@ export class Engine extends Resource {
   // NewTransaction creates a new transaction against the world state.
   // Set write=true if the transaction will perform write operations.
   // Always call discard() when done with the transaction.
+  // Read transactions retain one revision; EngineWorldState supplies live reads.
   // Note: Engine might return a read-only transaction even if write=true.
   public async newTransaction(
     write: boolean,
@@ -66,6 +67,15 @@ export class Engine extends Resource {
     return this.resourceRef.createResource(response.resourceId ?? 0, Tx, {
       readOnly: response.readOnly,
     })
+  }
+
+  /** executeWorldOp accepts a complete operation through World's stale-base retry owner. */
+  public async executeWorldOp(
+    opTypeId: string,
+    opData: Uint8Array,
+    abortSignal?: AbortSignal,
+  ) {
+    return this.service.ExecuteWorldOp({ opTypeId, opData }, abortSignal)
   }
 
   // GetSeqno returns the current sequence number of the world state.

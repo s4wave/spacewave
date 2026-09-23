@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
 import type { Frontmatter } from './frontmatter.js'
+import type { SavedView } from './saved-views.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -49,6 +50,7 @@ interface NoteListEntry {
   title: string
   frontmatter: Frontmatter
   tags: string[]
+  status?: string
   format: NoteFileFormat
 }
 
@@ -63,6 +65,7 @@ interface NoteListProps {
   onNoteDeleted?: (path: string) => void
   filterTag?: string
   filterStatus?: string
+  sort?: SavedView['sort']
   onFilterTagChange?: (tag: string | undefined) => void
   onFilterStatusChange?: (status: string | undefined) => void
   onCreateNote?: () => void
@@ -82,6 +85,7 @@ function useNoteListController({
   onNoteDeleted,
   filterTag,
   filterStatus,
+  sort = 'name',
   onFilterTagChange,
   onFilterStatusChange,
   onCreateNote,
@@ -197,8 +201,13 @@ function useNoteListController({
       const normalized = normalizeFrontmatterStatus(filterStatus)
       entries = entries.filter((entry) => entry.status === normalized)
     }
-    return entries
-  }, [noteEntries.value, searchQuery, filterTag, filterStatus])
+    return entries.toSorted(
+      (a, b) =>
+        (sort === 'title'
+          ? a.title.localeCompare(b.title)
+          : a.name.localeCompare(b.name)) || a.name.localeCompare(b.name),
+    )
+  }, [noteEntries.value, searchQuery, filterTag, filterStatus, sort])
 
   const handleCreateNoteDefault = useCallback(
     async (format: NoteFileFormat = 'markdown') => {
@@ -302,6 +311,7 @@ function useNoteListController({
     fileEntries,
     filterStatus,
     filterTag,
+    sort,
     filteredDirEntries,
     filteredNoteEntries,
     folderDialogOpen,

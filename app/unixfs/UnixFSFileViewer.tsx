@@ -17,7 +17,6 @@ import {
   isAudioMimeType,
   isVideoMimeType,
   useUnixFSHandle,
-  useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
@@ -30,7 +29,7 @@ import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
 import { UnixFSVideoFileViewer } from './UnixFSVideoFileViewer.js'
-import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+import { UnixFSTextFileViewer } from './UnixFSTextFileViewer.js'
 
 // UnixFSFileViewerProps are the props passed to the UnixFSFileViewer component.
 export interface UnixFSFileViewerProps {
@@ -70,62 +69,6 @@ function FileIcon({
     return <LuVideo className={cls} />
   }
   return <LuFile className={cls} />
-}
-
-// TextFileViewer displays text file content.
-function TextFileViewer({
-  rootHandle,
-  path,
-}: {
-  rootHandle: Resource<FSHandle>
-  path: string
-}) {
-  // Get a handle for this specific file path
-  const fileHandle = useUnixFSHandle(rootHandle, path)
-  const contentResource = useUnixFSHandleTextContent(fileHandle)
-
-  if (contentResource.loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading file',
-              detail: 'Reading file content from UnixFS.',
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (contentResource.error) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'error',
-              title: 'Failed to load file',
-              error: contentResource.error.message,
-              onRetry: contentResource.retry,
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  if (contentResource.value === null) {
-    return null
-  }
-
-  return (
-    <pre className="text-foreground min-h-0 flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap">
-      {contentResource.value}
-    </pre>
-  )
 }
 
 // BinaryFileViewer displays a placeholder for binary files.
@@ -350,7 +293,11 @@ export function UnixFSFileViewer({
             inlineFileURL={inlineFileURL}
           />
         ) : isText ? (
-          <TextFileViewer rootHandle={rootHandle} path={path} />
+          <UnixFSTextFileViewer
+            key={`${rootHandle.value?.id}/${path}`}
+            rootHandle={rootHandle}
+            path={path}
+          />
         ) : (
           <BinaryFileViewer mimeType={stat.mimeType} />
         )}

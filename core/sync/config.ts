@@ -1,5 +1,6 @@
 import type { Server as HTTPServer } from 'node:http'
 import type { DatabaseAccess } from '../../sdk/sync/access.js'
+import type { AppSource } from '../../sdk/sync/app.js'
 import type {
   MutationHandlers,
   Principal,
@@ -16,6 +17,8 @@ export interface Access<P extends Principal> {
 
 export interface ApplicationConfig<S extends Schema, P extends Principal> {
   schema: S
+  /** instance selects one application dataset in the supplied World; defaults to schema.id. */
+  instance?: string
   authorize(access: Access<P>): boolean | Promise<boolean>
   mutations: MutationHandlers<S, P>
   limits?: {
@@ -72,7 +75,7 @@ export interface SyncServer<
   S extends Schema,
   P extends Principal,
 > extends AsyncDisposable {
-  as(principal: P): DatabaseAccess<S>
+  as(principal: P): DatabaseAccess<S> & AppSource<S>
   admin(scope: string): DatabaseAccess<S>
   attach(http: HTTPServer, options?: AttachmentOptions): Attachment
   listen(options?: ListenerOptions): Promise<Listener>

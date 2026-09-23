@@ -224,8 +224,8 @@ func (e *EngineTx) GarbageCollect(ctx context.Context) error {
 	})
 }
 
-// performOp retries discarded reads and invalidates coordinated writes whose
-// backing snapshot is stale.
+// performOp preserves the read revision across storage retries and invalidates
+// coordinated writes whose backing snapshot is stale.
 func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	if e.writeTx != nil {
 		err := cb(e.writeTx)
@@ -242,98 +242,57 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 		return err
 	}
 
-	// A caller-owned read snapshot refreshes from the durable head.
-	if e.readTx != nil {
-		var err error
-		for tries := 0; tries <= maxEngineTxTries; tries++ {
-			err = cb(e.readTx)
-			if !isCoordinatedWriteSnapshotError(err) || e.engine.writeCoordinator == nil {
-				return err
-			}
-			if refreshErr := e.refreshReadSnapshot(ctx); refreshErr != nil {
-				return refreshErr
-			}
-		}
-		return err
-	}
-
-	// Shared reads retry against the latest published head.
-	tries := 0
+	// Reopening storage preserves the reader's immutable World root. A concurrent
+	// refresh can retire the captured transaction, so retry against its replacement.
 	var err error
-	for {
+	for tries := 0; tries <= maxEngineTxTries; tries++ {
 		locked := e.engine.bcast.Lock()
-		var rtx *Tx
-		if e.engine.head != nil {
-			rtx = e.engine.head.readTx
-		}
+		reader := e.readTx
+		released := e.rel.Load()
 		locked.Unlock()
-		if rtx == nil {
-			return context.Canceled
+		if released || reader == nil {
+			return tx.ErrDiscarded
 		}
-		err = cb(rtx)
-		if err != tx.ErrDiscarded {
-			break
+		err = cb(reader)
+		if errors.Is(err, tx.ErrDiscarded) {
+			continue
 		}
-
-		tries++
-		if tries > maxEngineTxTries {
-			break
+		if !isCoordinatedWriteSnapshotError(err) {
+			return err
+		}
+		if refreshErr := e.refreshReadSnapshot(ctx, reader); refreshErr != nil {
+			return refreshErr
 		}
 	}
 	return err
 }
 
-func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
-	var headRef *bucket.ObjectRef
-	var err error
-
-	// Load the durable coordinator head before entering Engine publication.
-	if e.engine.writeHeadRefresh != nil {
-		headRef, err = e.engine.writeHeadRefresh(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Recheck the Engine closed flag and this transaction's release flag under
-	// the Engine lock.
+// refreshReadSnapshot reopens storage for the same revision after invalidation.
+func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error {
 	locked := e.engine.bcast.Lock()
-	if e.engine.closed {
-		locked.Unlock()
-		return ErrEngineClosed
-	}
-	if e.rel.Load() {
+	if e.engine.closed || e.rel.Load() {
 		locked.Unlock()
 		return tx.ErrDiscarded
 	}
-
-	// Adopt the durable head before rebuilding this transaction's snapshot.
-	var retirement engineRetirement
-	if e.engine.writeSession == nil && e.engine.writeTx == nil {
-		retirement, err = e.engine.applyDurableHeadLocked(ctx, headRef)
+	if e.readTx != previous {
+		locked.Unlock()
+		return nil
 	}
+	root, err := e.engine.baseRoot.FollowRef(ctx, e.readRoot)
 	if err != nil {
 		locked.Unlock()
-		e.engine.drainRetirement(ctx, retirement)
 		return err
 	}
-	world, err := e.engine.buildWorldState(ctx, true)
+	state, err := e.engine.buildWorldStateForRoot(ctx, true, root, nil)
+	root.Release()
 	if err != nil {
 		locked.Unlock()
-		e.engine.drainRetirement(ctx, retirement)
 		return err
 	}
 
-	// Swap the caller-held snapshot and register it for Engine.Close.
-	retirementRegistered := !retirement.empty()
-	retirement.readTx = e.readTx
-	e.readTx = NewTx(world)
-	e.engine.coordinatorTxs[e] = struct{}{}
-	if !retirementRegistered {
-		retirement = e.engine.beginRetirementLocked(retirement)
-	}
-
-	// Drain the replaced snapshot after unlocking the Engine.
+	// Retire the replaced reader outside the Engine lock.
+	retirement := e.engine.beginRetirementLocked(engineRetirement{readTx: previous})
+	e.readTx = NewTx(state)
 	locked.Unlock()
 	e.engine.drainRetirement(ctx, retirement)
 	return nil

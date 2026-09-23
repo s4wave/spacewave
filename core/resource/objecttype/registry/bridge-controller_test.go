@@ -45,7 +45,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		t.Fatalf("AddController: %v", err)
 	}
 	defer rel()
-	registry := NewObjectTypeRegistryResource()
+	registry := NewObjectTypeRegistryResource(nil)
 	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
 		RegistrationId: 1,
@@ -125,7 +125,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	defer rel()
 
-	registry := NewObjectTypeRegistryResource()
+	registry := NewObjectTypeRegistryResource(nil)
 	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
 		RegistrationId: 1,
@@ -266,7 +266,7 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("registration release did not reach registry")
 	}
-	if registry.LookupRegistration("test/type") != nil {
+	if registry.LookupRegistration("test/type", "") != nil {
 		t.Fatal("attached registration remained after release")
 	}
 }

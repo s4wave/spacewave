@@ -67,11 +67,41 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 	if typeID == "" {
 		return nil, nil
 	}
-	reg := c.registry.lookupRegistration(typeID)
-	if reg == nil {
-		return nil, nil
-	}
-	return directive.R(newBridgeResolver(c.le, c.b, reg), nil)
+	// Keep unresolved and already-resolved lookups attached to registry changes.
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		var current *objectTypeRegistration
+		var valueID uint32
+		for {
+			// Read visibility and the wakeup position under the same admission lock.
+			var next *objectTypeRegistration
+			var wait <-chan struct{}
+			c.registry.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
+				next = c.registry.lookupRegistrationLocked(typeID, dir.LookupObjectTypeEngineID())
+				wait = getWait()
+			})
+
+			// Replace only this resolver's value; existing Resources keep their own
+			// handler lifetime and new lookups receive the admitted generation.
+			if next != current {
+				if valueID != 0 {
+					handler.RemoveValue(valueID)
+					valueID = 0
+				}
+				current = next
+				if next != nil {
+					factory := &registrationFactory{le: c.le, b: c.b, reg: next}
+					valueID, _ = handler.AddValue(factory.objectType())
+				}
+			}
+			handler.MarkIdle(true)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-wait:
+			}
+			handler.MarkIdle(false)
+		}
+	}), nil)
 }
 
 // Close releases any resources held by the controller.
@@ -79,29 +109,15 @@ func (c *BridgeController) Close() error {
 	return nil
 }
 
-// bridgeResolver resolves a LookupObjectType directive by creating a proxy
-// ObjectType that connects to the TS plugin.
-type bridgeResolver struct {
+// registrationFactory binds ObjectType construction to one admitted capability.
+type registrationFactory struct {
 	le  *logrus.Entry
 	b   bus.Bus
 	reg *objectTypeRegistration
 }
 
-// newBridgeResolver creates a new bridgeResolver.
-func newBridgeResolver(
-	le *logrus.Entry,
-	b bus.Bus,
-	reg *objectTypeRegistration,
-) *bridgeResolver {
-	return &bridgeResolver{
-		le:  le,
-		b:   b,
-		reg: reg,
-	}
-}
-
-// Resolve resolves the values, emitting them to the handler.
-func (r *bridgeResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+// objectType binds factories to this exact registration capability.
+func (r *registrationFactory) objectType() objecttype.ObjectType {
 	factory := func(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -115,13 +131,11 @@ func (r *bridgeResolver) Resolve(ctx context.Context, handler directive.Resolver
 		}
 		return r.invokePlugin(ctx, objectKey, engine)
 	}
-	ot := objecttype.NewObjectType(r.reg.registration.GetTypeId(), factory)
-	handler.AddValue(ot)
-	return nil
+	return objecttype.NewObjectType(r.reg.registration.GetTypeId(), factory)
 }
 
 // invokeAttached creates an ObjectType proxy through a caller-attached handler.
-func (r *bridgeResolver) invokeAttached(
+func (r *registrationFactory) invokeAttached(
 	ctx context.Context,
 	objectKey string,
 	engine world.Engine,
@@ -136,7 +150,7 @@ func (r *bridgeResolver) invokeAttached(
 // invokePlugin connects to the source plugin and creates a proxy invoker.
 // If engine is non-nil, it is attached as a resource so the TS handler
 // can access the world via getAttachedRef(attachedEngineResourceId).
-func (r *bridgeResolver) invokePlugin(
+func (r *registrationFactory) invokePlugin(
 	ctx context.Context,
 	objectKey string,
 	engine world.Engine,
@@ -440,6 +454,3 @@ func shouldReconnectPluginInvoke(ctx context.Context, err error) bool {
 
 // _ is a type assertion
 var _ controller.Controller = (*BridgeController)(nil)
-
-// _ is a type assertion
-var _ directive.Resolver = (*bridgeResolver)(nil)

@@ -29,6 +29,17 @@ message SetSpaceSettingsOp {
   .s4wave.command.KeybindingOverrideSet expected_keybinding_overrides = 5;
 }
 
+// SetSpaceIndexPathOp changes the default object while preserving other settings.
+message SetSpaceIndexPathOp {
+  // IndexPath is the new default object path, or empty to clear it.
+  string index_path = 1;
+  // Timestamp is the modification time.
+  .google.protobuf.Timestamp timestamp = 2;
+  // ExpectedIndexPath makes automatic repair conditional on the current path.
+  // A different current path leaves the settings unchanged.
+  optional string expected_index_path = 3;
+}
+
 // InitUnixFSOp is an operation to initialize an empty UnixFS filesystem.
 message InitUnixFSOp {
   // ObjectKey is the object key for the UnixFS filesystem.

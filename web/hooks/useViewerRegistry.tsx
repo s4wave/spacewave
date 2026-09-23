@@ -1,4 +1,5 @@
-import { createContext, use, useMemo } from 'react'
+import React, { createContext, use, useMemo } from 'react'
+
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
@@ -7,9 +8,8 @@ import {
   ViewerSurface,
   WatchViewersRequest,
   WatchViewersResponse,
-  type ViewerRegistration,
+  ViewerRegistration,
 } from '@s4wave/sdk/viewer/registry/registry.pb.js'
-import React from 'react'
 
 import { useDynamicRegistrations } from './useDynamicRegistrations.js'
 
@@ -46,9 +46,10 @@ export function useStaticViewers(): ObjectViewerComponent[] {
 // useAllViewers returns all viewers: static from context + dynamic from RPC.
 export function useAllViewers(
   rootResource: Resource<Root>,
+  instanceKey = '',
 ): ObjectViewerComponent[] {
   const staticViewers = useStaticViewers()
-  const dynamicViewers = useDynamicViewers(rootResource)
+  const dynamicViewers = useDynamicViewers(rootResource, instanceKey)
   return useMemo(
     () => [...staticViewers, ...dynamicViewers],
     [staticViewers, dynamicViewers],
@@ -69,15 +70,17 @@ const viewerGetRegs = (resp: WatchViewersResponse | null) =>
 // dynamically registered ObjectViewerComponent entries.
 function useDynamicViewers(
   rootResource: Resource<Root>,
+  instanceKey = '',
 ): ObjectViewerComponent[] {
   return useDynamicRegistrations(
     rootResource.value,
     viewerCreateStream,
-    { surface: ViewerSurface.WEB },
+    { surface: ViewerSurface.WEB, instanceKey },
     WatchViewersRequest.equals,
     WatchViewersResponse.equals,
     viewerGetRegs,
     viewerRegistrationToComponent,
+    ViewerRegistration.equals,
   )
 }
 

@@ -76,10 +76,11 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
-	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityForManifestID(
+	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityAtRoot(
 		ctx,
 		ws,
 		t.pluginID,
+		t.manifestRoot,
 		platformIDs, // Collect for available platform ids
 		t.c.objKey,
 	)
@@ -125,12 +126,15 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
+		if t.manifestRoot != "" {
+			t.finishInitialCapabilityRegistration(false)
+		}
 		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
 		// Don't clear states that the fetch handler set.
-		if !t.c.conf.GetDisableStoreManifest() {
+		if t.manifestRoot != "" || !t.c.conf.GetDisableStoreManifest() {
 			_, changed1, _, _ := t.downloadManifestRoutine.SetState(nil)
 			changed2 := t.setExecutePluginState(nil)
 			if changed1 || changed2 || !t.loggedNotFound.Swap(true) {

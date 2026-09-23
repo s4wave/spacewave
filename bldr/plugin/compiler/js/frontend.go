@@ -47,5 +47,5 @@ func writeFrontendBindings(assetsDir string, bindings map[string]*frontend.Bindi
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(manifestPath, entries.MarshalTo(nil), 0o644)
+	return os.WriteFile(manifestPath, entries.MarshalTo(nil), 0o644) //nolint:gosec // Fixed path within the compiler-owned asset directory.
 }

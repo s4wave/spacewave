@@ -9,6 +9,8 @@ import (
 // Engine implements a transactional world state container.
 type Engine interface {
 	// NewTransaction returns a new transaction against the store.
+	// A read transaction retains one immutable revision until Discard. Use
+	// NewEngineWorldState for live reads and object revision watches.
 	// Indicate write if the transaction will not be read-only.
 	// Always call Discard() after you are done with the transaction.
 	// Check GetReadOnly, might not return a write tx if write=true.
