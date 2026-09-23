@@ -275,6 +275,8 @@ jobs:
       - name: Check proofs and conformance
         run: bun run test:lean
 
+  python-resource:
+    name: Python Resource
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
