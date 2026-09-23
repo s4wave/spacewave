@@ -1,10 +1,11 @@
 import Spacewave.SObject.ConfigChain
 
 /-!
-# Root signatures and consensus
+# Root signatures, grants and consensus
 
 Mirrors `SORoot.ValidateSignatures` and `CheckConsensusAcceptance` in
-`core/sobject/crypto.go`, checked against Spacewave `f98a55b07`.
+`core/sobject/crypto.go`, checked against Spacewave `f7e1a3a78`.
+`Grant.valid` mirrors grant signature authority; encrypted content stays opaque.
 Opaque peer IDs retain equality and ordering. `Sig.valid` is verification over
 the exact signed root bytes and context; signature unforgeability remains an
 explicit boundary assumption. An empty signer represents a failed key parse.
@@ -21,6 +22,7 @@ structure AccountNonce where
 
 /-- Operation retains decoded operation identity and its signature. -/
 structure Operation where
+  data : String
   peer : String
   localId : String
   nonce : Nat
@@ -35,6 +37,20 @@ structure Rejections where
   peer : String
   entries : List Operation
   deriving DecidableEq, Repr
+
+/-- Grant retains recipient, signature authority, and opaque encrypted content. -/
+structure Grant where
+  data : String
+  peer : String
+  format : Bool
+  sig : Sig
+  deriving DecidableEq, Repr
+
+/-- Grant.valid mirrors SOGrant.Validate and SOGrant.ValidateSignature. -/
+def Grant.valid (g : Grant) (ps : List Participant) : Bool :=
+  g.format && g.sig.valid && g.sig.signer != "" && ps.any (fun p =>
+    p.peer == g.sig.signer && (p.role == Role.validator || p.role == Role.owner ||
+      (g.sig.signer == g.peer && p.role ∈ [Role.reader, Role.writer, Role.validator, Role.owner])))
 
 /-- validateSignatures returns the count only when every root signature verifies. -/
 def validateSignatures (hasInner : Bool) (nonces : List AccountNonce)

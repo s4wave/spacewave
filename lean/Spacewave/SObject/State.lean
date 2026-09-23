@@ -3,12 +3,11 @@ import Spacewave.SObject.ResolvedOps
 /-!
 # SharedObject state
 
-Mirrors `core/sobject/state.go` at Spacewave `f98a55b07` plus nonce and operation
-identity corrections. Encodings, size limits, and signature structure are
+Mirrors `core/sobject/state.go` at Spacewave `f7e1a3a78`. Encodings, size limits, and signature structure are
 projected as `format`; cryptographic verification is `Sig.valid`. These boundary
 facts do not include authorization, nonce selection, ordering, or uniqueness.
-`grantsValid` is the unchanged grant-validation result under this configuration;
-membership transitions and the grant algorithm belong to the membership models.
+Grant authority is checked against the held configuration. Encrypted grant data,
+operation envelopes and invitation records retain opaque serialized identities.
 All counters retain Go's uint64 arithmetic, including zero on nonce exhaustion.
 Failure discards the working copy, as callers of SOState must do in Go.
 -/
@@ -17,6 +16,8 @@ namespace Spacewave.SObject
 
 /-- Root retains the authority and account nonce projection of a signed root. -/
 structure Root where
+  data : String
+  content : String
   seqno : Nat
   digest : String
   format : Bool
@@ -29,7 +30,8 @@ structure Root where
 structure State where
   config : Config
   root : Root
-  grantsValid : Bool
+  grants : List Grant
+  invites : List String
   ops : List Operation
   queued : List AccountNonce
   rejections : List Rejections
@@ -56,6 +58,14 @@ def Rejections.valid (g : Rejections) (c : Config) : Bool :=
   g.peer != "" && g.entries.all (fun r => r.format && r.innerValid && r.peer == g.peer &&
     r.signedBy c.participants [Role.validator, Role.owner]) &&
     decide (g.entries.map (·.nonce)).Nodup && decide (g.entries.map (·.localId)).Nodup
+
+/-- State.grantsValid checks unique signed grants for current readers. -/
+def State.grantsValid (s : State) : Bool :=
+  decide (s.grants.map (·.peer)).Nodup && s.grants.all (fun g =>
+    g.valid s.config.participants &&
+      match lookupPeer s.config.participants g.peer with
+      | none => false
+      | some p => p.role ∈ [Role.reader, Role.writer, Role.validator, Role.owner])
 
 /-- State.validate mirrors the state validator, including queue/result identity. -/
 def State.validate (s : State) : Bool :=

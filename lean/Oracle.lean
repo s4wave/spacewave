@@ -1,5 +1,5 @@
 import Lean.Data.Json
-import Spacewave.SObject.State
+import Spacewave.SObject.Host
 
 /-!
 # Conformance oracle
@@ -18,6 +18,16 @@ per line. A request names a model function in `op` and carries its inputs:
   result `{"ok", "state"}`.
 - `clearOperationResult`: `state`, `peer`, `localId`, `format`, `sig`;
   result `{"ok", "state"}`.
+- `importPeerSnapshot`: `previous`, `candidate`, `entries`, `localPeer`,
+  `candidateBytes`, `historyBytes`, `lockOK`, `accessOK`, `writeOK`.
+- `applyConfigChange`: `previous`, `entry`, `callbackOK`, `replacement`,
+  `lockOK`, `writeOK`.
+- `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
+- `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
+  `lockOK`, `writeOK`.
+
+Host operations return `{"ok", "outcome"}`. Outcome contains visible `state`,
+`revoked`, and `wrote`, including unchanged state on rejection.
 
 A request the oracle cannot parse yields `{"error"}`. Field names match the
 model structures and the projection in `core/sobject/lean-conformance_test.go`.
@@ -26,11 +36,41 @@ model structures and the projection in `core/sobject/lean-conformance_test.go`.
 open Lean Spacewave.SObject
 
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
-deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Root, State
+deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root, State
+deriving instance ToJson, FromJson for HostResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "importPeerSnapshot" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := importPeerSnapshot previous (← req.getObjValAs? State "candidate")
+      (← req.getObjValAs? (List Entry) "entries") (← req.getObjValAs? String "localPeer")
+      (← req.getObjValAs? Nat "candidateBytes") (← req.getObjValAs? Nat "historyBytes")
+      (← req.getObjValAs? Bool "lockOK") (← req.getObjValAs? Bool "accessOK")
+      (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
+  | "applyConfigChange" =>
+    let previous ← req.getObjValAs? State "previous"
+    let callbackOK ← req.getObjValAs? Bool "callbackOK"
+    let replacement ← req.getObjValAs? (Option State) "replacement"
+    let callback := fun s => if callbackOK then some (replacement.getD s) else none
+    let result := applyConfigChange previous (← req.getObjValAs? (Option Entry) "entry")
+      callback (← req.getObjValAs? Bool "lockOK") (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
+  | "installInviteSnapshot" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := installInviteSnapshot (← req.getObjValAs? State "candidate")
+      (← req.getObjValAs? Bool "checkpoint") (← req.getObjValAs? Bool "lockOK")
+      (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
+  | "hostUpdateRootState" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := hostUpdateRootState previous (← req.getObjValAs? Root "root")
+      (← req.getObjValAs? String "enforce") (← req.getObjValAs? (List Operation) "rejected")
+      (← req.getObjValAs? (List Operation) "accepted") (← req.getObjValAs? Bool "lockOK")
+      (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
   | "verifyChange" =>
     let result := verifyChange (← req.getObjValAs? Config "current")
       (← req.getObjValAs? Entry "entry")

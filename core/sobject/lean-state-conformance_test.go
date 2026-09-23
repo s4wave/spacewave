@@ -95,7 +95,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			if rng.IntN(10) == 0 {
 				operation.Signature.SigData[0] ^= 1
 			}
-			req.Set("operation", projectLeanOperation(&arena, operation))
+			req.Set("operation", projectLeanOperation(t, &arena, operation))
 			err = next.QueueOperation(mockSharedObjectID, operation)
 		case 3:
 			op = "updateRootState"
@@ -160,8 +160,8 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			}
 			req.Set("root", projectLeanRoot(t, &arena, root))
 			req.Set("enforce", arena.NewString(enforce))
-			req.Set("rejected", projectLeanRejections(&arena, rejected))
-			req.Set("accepted", projectLeanOperations(&arena, accepted))
+			req.Set("rejected", projectLeanRejections(t, &arena, rejected))
+			req.Set("accepted", projectLeanOperations(t, &arena, accepted))
 			req.Set("op", arena.NewString("validateNextRootState"))
 			cases = append(cases, leanCase{
 				name: "validateNextRootState", request: req.MarshalTo(nil),
@@ -288,7 +288,7 @@ func runLeanStateScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		req.Set("op", arena.NewString("queueOperation"))
 		for _, nonce := range []uint64{0, 1, ^uint64(0)} {
 			operation := signedLeanOperation(t, privs[0], peers[0].GetPeerID().String(), nonce, NewSOOperationLocalID())
-			req.Set("operation", projectLeanOperation(&arena, operation))
+			req.Set("operation", projectLeanOperation(t, &arena, operation))
 			cases = append(cases, leanCase{
 				name: "queueOperation exhausted", request: req.MarshalTo(nil),
 				ok: candidate.CloneVT().QueueOperation(mockSharedObjectID, operation) == nil,
@@ -397,9 +397,12 @@ func projectLeanRoot(t *testing.T, a *fastjson.Arena, root *SORoot) *fastjson.Va
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest, err := DigestSOAuthoritativeRoot(root)
-	if err != nil {
-		t.Fatal(err)
+	var digest []byte
+	if root != nil {
+		digest, err = DigestSOAuthoritativeRoot(root)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	format := len(root.GetInner()) <= MaxInnerDataSize
 	for _, nonce := range root.GetAccountNonces() {
@@ -416,6 +419,12 @@ func projectLeanRoot(t *testing.T, a *fastjson.Arena, root *SORoot) *fastjson.Va
 	}
 
 	v := a.NewObject()
+	encoded := "nil"
+	if root != nil {
+		encoded = hex.EncodeToString(mustMarshalVT(t, root))
+	}
+	v.Set("data", a.NewString(encoded))
+	v.Set("content", a.NewString(hex.EncodeToString(root.GetInner())))
 	v.Set("seqno", a.NewNumberString(strconv.FormatUint(root.GetInnerSeqno(), 10)))
 	v.Set("digest", a.NewString(hex.EncodeToString(digest)))
 	v.Set("format", leanBool(a, format))
@@ -426,10 +435,16 @@ func projectLeanRoot(t *testing.T, a *fastjson.Arena, root *SORoot) *fastjson.Va
 }
 
 // projectLeanOperation retains decoded identity and verifies the signed bytes.
-func projectLeanOperation(a *fastjson.Arena, operation *SOOperation) *fastjson.Value {
+func projectLeanOperation(t *testing.T, a *fastjson.Arena, operation *SOOperation) *fastjson.Value {
+	t.Helper()
 	inner := &SOOperationInner{}
 	parsed := inner.UnmarshalVT(operation.GetInner()) == nil
 	v := a.NewObject()
+	data := "nil"
+	if operation != nil {
+		data = hex.EncodeToString(mustMarshalVT(t, operation))
+	}
+	v.Set("data", a.NewString(data))
 	v.Set("peer", a.NewString(inner.GetPeerId()))
 	v.Set("localId", a.NewString(inner.GetLocalId()))
 	v.Set("nonce", a.NewNumberString(strconv.FormatUint(inner.GetNonce(), 10)))
@@ -443,21 +458,28 @@ func projectLeanOperation(a *fastjson.Arena, operation *SOOperation) *fastjson.V
 }
 
 // projectLeanOperations projects a pending or explicitly accepted batch.
-func projectLeanOperations(a *fastjson.Arena, operations []*SOOperation) *fastjson.Value {
+func projectLeanOperations(t *testing.T, a *fastjson.Arena, operations []*SOOperation) *fastjson.Value {
+	t.Helper()
 	v := a.NewArray()
 	for i, operation := range operations {
-		v.SetArrayItem(i, projectLeanOperation(a, operation))
+		v.SetArrayItem(i, projectLeanOperation(t, a, operation))
 	}
 	return v
 }
 
 // projectLeanRejections projects signed rejections without deciding their authority.
-func projectLeanRejections(a *fastjson.Arena, rejections []*SOOperationRejection) *fastjson.Value {
+func projectLeanRejections(t *testing.T, a *fastjson.Arena, rejections []*SOOperationRejection) *fastjson.Value {
+	t.Helper()
 	v := a.NewArray()
 	for i, rejection := range rejections {
 		inner := &SOOperationRejectionInner{}
 		parsed := inner.UnmarshalVT(rejection.GetInner()) == nil
 		r := a.NewObject()
+		data := "nil"
+		if rejection != nil {
+			data = hex.EncodeToString(mustMarshalVT(t, rejection))
+		}
+		r.Set("data", a.NewString(data))
 		r.Set("peer", a.NewString(inner.GetPeerId()))
 		r.Set("localId", a.NewString(inner.GetLocalId()))
 		r.Set("nonce", a.NewNumberString(strconv.FormatUint(inner.GetOpNonce(), 10)))
@@ -472,35 +494,47 @@ func projectLeanRejections(a *fastjson.Arena, rejections []*SOOperationRejection
 	return v
 }
 
-// projectLeanState projects the state fields consumed by state.go. Grants are
-// unchanged by these transitions and retain their validation under this config.
+// projectLeanState retains all state fields, including grant authority and the
+// opaque invitation records that host imports preserve locally.
 func projectLeanState(t *testing.T, a *fastjson.Arena, state *SOState) *fastjson.Value {
 	t.Helper()
-	grantsValid := true
-	seen := make(map[string]bool)
-	roles := make(map[string]SOParticipantRole)
-	for _, p := range state.GetConfig().GetParticipants() {
-		roles[p.GetPeerId()] = p.GetRole()
+	grants := a.NewArray()
+	for i, grant := range state.GetRootGrants() {
+		g := a.NewObject()
+		data := "nil"
+		if grant != nil {
+			data = hex.EncodeToString(mustMarshalVT(t, grant))
+		}
+		g.Set("data", a.NewString(data))
+		g.Set("peer", a.NewString(grant.GetPeerId()))
+		g.Set("format", leanBool(a, grant.Validate() == nil))
+		g.Set("sig", projectLeanSig(a, grant.GetSignature(), grant.GetInnerData(), func(signer string) string {
+			return BuildSOGrantSignatureContext(mockSharedObjectID, signer, grant.GetPeerId())
+		}))
+		grants.SetArrayItem(i, g)
 	}
-	for _, g := range state.GetRootGrants() {
-		id := g.GetPeerId()
-		grantsValid = grantsValid && !seen[id] && g.Validate() == nil &&
-			g.ValidateSignature(mockSharedObjectID, state.GetConfig().GetParticipants()) == nil && CanReadState(roles[id])
-		seen[id] = true
+	invites := a.NewArray()
+	for i, invite := range state.GetInvites() {
+		data := "nil"
+		if invite != nil {
+			data = hex.EncodeToString(mustMarshalVT(t, invite))
+		}
+		invites.SetArrayItem(i, a.NewString(data))
 	}
 	groups := a.NewArray()
 	for i, group := range state.GetOpRejections() {
 		g := a.NewObject()
 		g.Set("peer", a.NewString(group.GetPeerId()))
-		g.Set("entries", projectLeanRejections(a, group.GetRejections()))
+		g.Set("entries", projectLeanRejections(t, a, group.GetRejections()))
 		groups.SetArrayItem(i, g)
 	}
 
 	v := a.NewObject()
 	v.Set("config", projectLeanConfig(state.GetConfig()).json(a))
 	v.Set("root", projectLeanRoot(t, a, state.GetRoot()))
-	v.Set("grantsValid", leanBool(a, grantsValid))
-	v.Set("ops", projectLeanOperations(a, state.GetOps()))
+	v.Set("grants", grants)
+	v.Set("invites", invites)
+	v.Set("ops", projectLeanOperations(t, a, state.GetOps()))
 	v.Set("queued", projectLeanNonces(a, state.GetQueuedAccountNonces()))
 	v.Set("rejections", groups)
 	return v

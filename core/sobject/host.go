@@ -222,14 +222,20 @@ func (s *SOHost) ImportPeerSnapshot(
 			!slices.EqualFunc(candidateRoot.GetAccountNonces(), acceptedRoot.GetAccountNonces(), func(a, b *SOAccountNonce) bool { return a.EqualVT(b) }) {
 			return errors.New("peer snapshot conflicts with accepted root")
 		}
-		// Keep an equivalent held proof while its validators remain authorized.
-		// A configuration change may require the sender's replacement proof.
-		validSigs, err := acceptedRoot.ValidateSignatures(s.sharedObjectID, next.GetConfig().GetParticipants())
-		if err == nil && CheckConsensusAcceptance(next.GetConfig().GetConsensusMode(), validSigs) == nil {
-			next.Root = acceptedRoot.CloneVT()
+		// The held checkpoint already authenticated this exact content. Later
+		// membership changes do not revoke authority over historical roots.
+		next.Root = acceptedRoot.CloneVT()
+	} else if len(next.GetRoot().GetInner()) != 0 {
+		// Catch-up may skip roots, but cannot forget a committed account nonce.
+		nextNonces := make(map[string]uint64, len(next.GetRoot().GetAccountNonces()))
+		for _, nonce := range next.GetRoot().GetAccountNonces() {
+			nextNonces[nonce.GetPeerId()] = nonce.GetNonce()
 		}
-	}
-	if len(next.GetRoot().GetInner()) != 0 {
+		for _, nonce := range previous.GetRoot().GetAccountNonces() {
+			if nextNonces[nonce.GetPeerId()] < nonce.GetNonce() {
+				return errors.Wrap(ErrInvalidNonce, "peer snapshot root account nonce rollback")
+			}
+		}
 		validSigs, err := next.GetRoot().ValidateSignatures(s.sharedObjectID, next.GetConfig().GetParticipants())
 		if err != nil {
 			return errors.Wrap(err, "peer snapshot root authority")
@@ -314,7 +320,7 @@ func (s *SOHost) InstallInviteSnapshot(ctx context.Context, candidate *SOState) 
 
 // UpdateRootState locks the host state and applies the UpdateRootState operation.
 //
-// If an error is returned the SOState should be considered invalid.
+// Admission failures leave the held state unchanged; persistence is atomic at the provider boundary.
 // If enforceValidatorPeerID is non-empty, ensures the given validator is in the set of signatures.
 func (s *SOHost) UpdateRootState(
 	ctx context.Context,
