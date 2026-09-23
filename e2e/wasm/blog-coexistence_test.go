@@ -65,7 +65,7 @@ func waitForBlogReady(t testing.TB, page playwright.Page, title string) {
 		return
 	}
 	if err := page.Locator("text=" + title).First().WaitFor(wait); err != nil {
-		body, bodyErr := page.Locator("body").TextContent()
+		body, bodyErr := page.Locator("body").InnerText()
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
 		}

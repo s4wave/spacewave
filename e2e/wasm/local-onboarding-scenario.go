@@ -274,7 +274,7 @@ func WaitForSessionLockMode(
 func failWithPageBody(t testing.TB, page playwright.Page, label string, err error) {
 	t.Helper()
 
-	body, bodyErr := page.Locator("body").TextContent()
+	body, bodyErr := page.Locator("body").InnerText()
 	if bodyErr != nil {
 		body = "failed to read body text: " + bodyErr.Error()
 	}

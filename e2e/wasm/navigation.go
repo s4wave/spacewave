@@ -109,7 +109,7 @@ func WaitForAppReady(page playwright.Page) error {
 	}
 
 	// Include the current page state when the runtime never becomes available.
-	body, bodyErr := page.Locator("body").TextContent()
+	body, bodyErr := page.Locator("body").InnerText()
 	if bodyErr != nil {
 		body = "failed to read body text: " + bodyErr.Error()
 	}
@@ -221,7 +221,7 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	)
 	if err != nil {
-		body, bodyErr := page.Locator("body").TextContent()
+		body, bodyErr := page.Locator("body").InnerText()
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
 		}
@@ -323,7 +323,7 @@ func WaitForEmptySpaceReady(t testing.TB, page playwright.Page) {
 		if err := page.Locator(selector).First().WaitFor(
 			playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 		); err != nil {
-			body, bodyErr := page.Locator("body").TextContent()
+			body, bodyErr := page.Locator("body").InnerText()
 			if bodyErr != nil {
 				body = "failed to read body text: " + bodyErr.Error()
 			}
@@ -424,7 +424,7 @@ func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
 
 	_, err := page.Evaluate(completeDriveIntroWizardScript)
 	if err != nil {
-		body, bodyErr := page.Locator("body").TextContent()
+		body, bodyErr := page.Locator("body").InnerText()
 		if bodyErr != nil {
 			body = "failed to read body text: " + bodyErr.Error()
 		}
