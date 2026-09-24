@@ -1,6 +1,7 @@
 package web_pkg_external
 
 import (
+	"io/fs"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -56,6 +57,40 @@ func TestBldrDistWebPkgRefsIncludeProtobufEsLiteRuntimeExports(t *testing.T) {
 
 	if !slices.Contains(BldrExternal, "@aptre/protobuf-es-lite") {
 		t.Fatal("@aptre/protobuf-es-lite missing from BldrExternal")
+	}
+}
+
+// TestBldrSdkImportsCoverBrowserModules checks that every browser module of
+// the SDK is served, so no plugin import falls outside the import map.
+func TestBldrSdkImportsCoverBrowserModules(t *testing.T) {
+	const sdkRoot = "../../../sdk"
+	var modules []string
+	err := filepath.WalkDir(sdkRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		ext := filepath.Ext(path)
+		if ext != ".ts" && ext != ".tsx" || strings.HasSuffix(path, ".test.ts") {
+			return nil
+		}
+		rel, err := filepath.Rel(sdkRoot, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if rel != "resource/unix-client.ts" && !strings.HasPrefix(rel, "plugin/host/") {
+			modules = append(modules, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := slices.Sorted(slices.Values(BldrDistWebPkgImports["@aptre/bldr-sdk"]))
+	slices.Sort(modules)
+	if !slices.Equal(got, modules) {
+		t.Fatalf("@aptre/bldr-sdk imports=%v, want %v", got, modules)
 	}
 }
 

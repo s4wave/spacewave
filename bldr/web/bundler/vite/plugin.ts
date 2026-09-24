@@ -3,23 +3,11 @@ import fs from 'fs'
 import type { Rollup } from 'vite'
 import { Plugin } from 'vite'
 
+import { servedEntryName, specifierEntryNames } from './web-pkg-naming.js'
+
 // List of file extensions that should be remapped to .mjs
 const JS_EXTENSIONS = ['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx']
 const JS_EXTENSION_SET = new Set(JS_EXTENSIONS)
-
-// Extensions stripped when deriving a served web pkg entry name. Must match the
-// knownExts set in buildWebPkg (vite.ts), including ".pb" for proto modules, so
-// a consumer derives the same served "[name].mjs" the build emits.
-const KNOWN_EXTENSIONS = new Set([
-  '.js',
-  '.cjs',
-  '.mjs',
-  '.ts',
-  '.tsx',
-  '.jsx',
-  '.pb',
-  '.css',
-])
 
 /** isWebPkgModule keeps styles and assets in Vite's normal loading pipeline. */
 export function isWebPkgModule(source: string): boolean {
@@ -45,24 +33,6 @@ export interface WebPkgRemapPluginConfig {
   addWebPkgRoot?: (webPkgID: string, webPkgRoot: string) => void
   // Enable debug logging
   debug?: boolean
-}
-
-// stripKnownExts removes all trailing known extensions, mirroring buildWebPkg's
-// served-name derivation (e.g. "google/protobuf/timestamp.pb.js" -> "google/
-// protobuf/timestamp").
-function stripKnownExts(name: string): string {
-  while (true) {
-    const ext = path.extname(name)
-    if (!ext || !KNOWN_EXTENSIONS.has(ext)) break
-    name = name.substring(0, name.length - ext.length)
-  }
-  return name
-}
-
-function normalizePackageImportPath(importPath: string): string {
-  return stripKnownExts(
-    importPath.startsWith('./') ? importPath.substring(2) : importPath,
-  )
 }
 
 function normalizePackageRootExport(raw: unknown): string | null {
@@ -114,14 +84,14 @@ export function readPackageRootServedName(pkgRoot: string): string | null {
 
       const resolved = normalizePackageRootExport(rootExport)
       if (resolved) {
-        return normalizePackageImportPath(resolved)
+        return servedEntryName(resolved)
       }
     }
 
     for (const key of ['module', 'main']) {
       const resolved = pkgJSON[key]
       if (typeof resolved === 'string' && resolved) {
-        return normalizePackageImportPath(resolved)
+        return servedEntryName(resolved)
       }
     }
   } catch {
@@ -130,13 +100,13 @@ export function readPackageRootServedName(pkgRoot: string): string | null {
   return null
 }
 
-// buildServedNameMap maps an import subpath (relative to the package root, no
-// extension) to the served "[name].mjs" file for that entry. The empty key maps
-// the bare package specifier to its index entry when one is declared.
+// buildServedNameMap maps each declared entry's served name to its served
+// "[name].mjs" file. The empty key maps the bare package specifier to its index
+// entry when one is declared.
 function buildServedNameMap(imports: string[]): Map<string, string> {
   const map = new Map<string, string>()
   for (const imp of imports) {
-    const name = normalizePackageImportPath(imp)
+    const name = servedEntryName(imp)
     const served = name + '.mjs'
     map.set(name, served)
     if (name === 'index') {
@@ -171,10 +141,11 @@ function lookupDeclaredServedURL(
   } else {
     return null
   }
-  subPath = normalizePackageImportPath(subPath)
-  const served = servedMap.get(subPath)
-  if (!served) return null
-  return webPkgURL(basePath, pkg, served)
+  for (const name of subPath ? specifierEntryNames(subPath) : ['']) {
+    const served = servedMap.get(name)
+    if (served) return webPkgURL(basePath, pkg, served)
+  }
+  return null
 }
 
 // remapWebPkgSpecifier rewrites a web pkg import specifier to a served URL.

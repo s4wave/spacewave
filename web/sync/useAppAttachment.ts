@@ -1,4 +1,7 @@
-import { useResource, type Resource } from '../../bldr/sdk/hooks/useResource.js'
+import {
+  useResource,
+  type Resource,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { AppDefinition } from '../../sdk/sync/app.js'
 import { attachApp, type AppAttachment } from '../../sdk/sync/attachment.js'
 import { SyncError } from '../../sdk/sync/errors.js'

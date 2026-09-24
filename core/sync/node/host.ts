@@ -1,7 +1,7 @@
 import { MessageChannel, Worker } from 'node:worker_threads'
 import { Client as RpcClient, type PacketStream } from 'starpc'
 
-import { Client as ResourceClient } from '../../../bldr/sdk/resource/client.js'
+import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../bldr/resource/resource_srpc.pb.js'
 import { messagePortPacketStream } from '../../../bldr/web/entrypoint/browser/message-port-packet-stream.js'
 import { Engine } from '../../../sdk/world/engine.js'

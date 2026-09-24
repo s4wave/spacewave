@@ -2,8 +2,8 @@ import { Client as RpcClient, WebSocketConn } from 'starpc'
 import {
   Client as ResourceClient,
   type ClientResourceRef,
-} from '../../bldr/sdk/resource/client.js'
-import { ResourceServiceClient } from '../../bldr/sdk/resource/resource_srpc.pb.js'
+} from '@aptre/bldr-sdk/resource/client.js'
+import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
 import { ItState } from '../../bldr/web/bldr/it-state.js'
 import {
   createAccess,

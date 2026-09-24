@@ -1,7 +1,7 @@
 import { createContext, use, useMemo, type ReactNode } from 'react'
 
-import { useStreamingResource } from '../../bldr/sdk/hooks/useStreamingResource.js'
-import type { Resource } from '../../bldr/sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Database, SubscriptionState } from '../../sdk/sync/client.js'
 import { SyncError } from '../../sdk/sync/errors.js'
 import type { Output, Query, Schema } from '../../sdk/sync/schema.js'

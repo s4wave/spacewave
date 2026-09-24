@@ -7,6 +7,7 @@ import {
   createServer,
   DevEnvironment,
   version,
+  type Alias,
   type HotChannel,
   type HotPayload,
   type Plugin,
@@ -22,6 +23,35 @@ import {
 } from './development-client.js'
 import { goTsResolver } from './go-ts-resolver.js'
 import { isWebPkgModule } from './plugin.js'
+
+/**
+ * excludeExternalAliases keeps aliases from rewriting external packages or
+ * their subpaths. Vite applies aliases before any plugin, so an alias that
+ * matched an external import would bypass the import map. Each alias becomes a
+ * pattern guarded by a lookbehind that inspects the whole import; its match,
+ * capture groups, and replacement are unchanged. A string alias keeps its
+ * exact-or-subpath matching.
+ */
+export function excludeExternalAliases(
+  aliases: Alias[],
+  external: string[],
+): Alias[] {
+  if (external.length === 0) return aliases
+  const pkgs = external.map(escapeRegExp).join('|')
+  const guard = `(?<=^(?!(?:${pkgs})(?:/|$))[\\s\\S]*)`
+  return aliases.map((alias) => {
+    const pattern =
+      typeof alias.find === 'string'
+        ? `^${escapeRegExp(alias.find)}(?=/|$)`
+        : alias.find.source
+    const flags = typeof alias.find === 'string' ? '' : alias.find.flags
+    return { ...alias, find: new RegExp(`${guard}(?:${pattern})`, flags) }
+  })
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 /** DevelopmentEnvironment retains one Vite graph behind the compiler RPC. */
 export class DevelopmentEnvironment {
@@ -185,14 +215,7 @@ export class DevelopmentEnvironment {
       ],
       resolve: {
         ...config.resolve,
-        alias: aliases.filter(
-          ({ find }) =>
-            !external.some((pkg) =>
-              typeof find === 'string'
-                ? find === pkg
-                : find.test(pkg) || find.test(pkg + '/'),
-            ),
-        ),
+        alias: excludeExternalAliases(aliases, external),
       },
       optimizeDeps: {
         ...config.optimizeDeps,

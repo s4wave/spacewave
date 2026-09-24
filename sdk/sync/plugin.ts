@@ -5,18 +5,15 @@ import {
   handleRpcStream,
   Server,
 } from 'starpc'
-import type {
-  BackendAPI,
-  BackendEntrypointFunc,
-} from '../../bldr/sdk/plugin.js'
+import type { BackendAPI, BackendEntrypointFunc } from '@aptre/bldr-sdk'
 import {
   Client,
   type ClientResourceRef,
-} from '../../bldr/sdk/resource/client.js'
-import { ResourceServiceClient } from '../../bldr/sdk/resource/resource_srpc.pb.js'
-import { getResourceCall } from '../../bldr/sdk/resource/server/context.js'
-import { newResourceMux } from '../../bldr/sdk/resource/server/mux.js'
-import { ResourceServer } from '../../bldr/sdk/resource/server/server.js'
+} from '@aptre/bldr-sdk/resource/client.js'
+import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
+import { getResourceCall } from '@aptre/bldr-sdk/resource/server/context.js'
+import { newResourceMux } from '@aptre/bldr-sdk/resource/server/mux.js'
+import { ResourceServer } from '@aptre/bldr-sdk/resource/server/server.js'
 import {
   ActivationDefinition,
   PluginDefinition,

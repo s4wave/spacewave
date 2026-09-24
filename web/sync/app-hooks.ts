@@ -1,7 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
 
-import { useResource, type Resource } from '../../bldr/sdk/hooks/useResource.js'
-import { useStreamingResource } from '../../bldr/sdk/hooks/useStreamingResource.js'
+import {
+  useResource,
+  type Resource,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import type { AppSource } from '../../sdk/sync/app.js'
 import { SyncError, publicError } from '../../sdk/sync/errors.js'
 import { canonicalJSON, decodeJSON, encodeJSON } from '../../sdk/sync/json.js'

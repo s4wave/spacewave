@@ -1,6 +1,6 @@
-import type { BackendAPI } from '../../bldr/sdk/plugin.js'
-import type { ClientResourceRef } from '../../bldr/sdk/resource/client.js'
-import { getResourceCall } from '../../bldr/sdk/resource/server/context.js'
+import type { BackendAPI } from '@aptre/bldr-sdk'
+import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
+import { getResourceCall } from '@aptre/bldr-sdk/resource/server/context.js'
 import { Hash } from '../../net/hash/hash.pb.js'
 import { base58Encode } from '../../net/peer/base58.js'
 import {

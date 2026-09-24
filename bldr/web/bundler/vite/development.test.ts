@@ -14,7 +14,10 @@ import { dirname, join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
-import { DevelopmentEnvironment } from './development.js'
+import {
+  DevelopmentEnvironment,
+  excludeExternalAliases,
+} from './development.js'
 import {
   adaptDevelopmentClient,
   bindDevelopmentImports,
@@ -250,3 +253,30 @@ export default { server: { watch: { ignored: [] } }, plugins: [react(), { name: 
   }
   await expect(fetch(privateURL + '/b/fe/test/App.tsx')).rejects.toThrow()
 }, 30000)
+
+it('keeps aliases away from external packages and their subpaths', () => {
+  const aliases = excludeExternalAliases(
+    [
+      { find: /^@aptre\/bldr-sdk\/(.*)\.js$/, replacement: '/sdk/$1' },
+      { find: '@aptre/bldr', replacement: '/web/bldr/index.js' },
+      { find: /^@s4wave\/app\/(.*)$/, replacement: '/app/$1' },
+    ],
+    ['@aptre/bldr-sdk', 'react'],
+  )
+  const resolve = (source: string) => {
+    for (const { find, replacement } of aliases) {
+      if (typeof find !== 'string' && find.test(source)) {
+        return source.replace(find, replacement)
+      }
+    }
+    return source
+  }
+
+  expect(resolve('@aptre/bldr-sdk/hooks/useResourcesClient.js')).toBe(
+    '@aptre/bldr-sdk/hooks/useResourcesClient.js',
+  )
+  expect(resolve('@aptre/bldr')).toBe('/web/bldr/index.js')
+  expect(resolve('@aptre/bldr/extra')).toBe('/web/bldr/index.js/extra')
+  expect(resolve('@aptre/bldr-react')).toBe('@aptre/bldr-react')
+  expect(resolve('@s4wave/app/SpacewaveApp.js')).toBe('/app/SpacewaveApp.js')
+})

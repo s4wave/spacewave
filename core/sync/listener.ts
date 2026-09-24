@@ -20,7 +20,7 @@ import {
   GatewayDefinition,
   GatewayServiceName,
 } from '../../sdk/sync/sync_srpc.pb.js'
-import { ResourceServiceDefinition } from '../../bldr/sdk/resource/resource_srpc.pb.js'
+import { ResourceServiceDefinition } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
 import type { Application } from './application.js'
 import { applicationResources } from './rpc.js'
 import type {

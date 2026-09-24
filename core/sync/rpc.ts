@@ -1,8 +1,8 @@
 import { createHandler, createMux } from 'starpc'
 import type { Mux } from 'starpc'
 
-import { ResourceServer } from '../../bldr/sdk/resource/server/server.js'
-import { getResourceCall } from '../../bldr/sdk/resource/server/context.js'
+import { ResourceServer } from '@aptre/bldr-sdk/resource/server/server.js'
+import { getResourceCall } from '@aptre/bldr-sdk/resource/server/context.js'
 import { encodeJSON, type JsonValue } from '../../sdk/sync/json.js'
 import { toFailure, readInput } from '../../sdk/sync/wire.js'
 import type { Principal, RecordEntry, Schema } from '../../sdk/sync/schema.js'

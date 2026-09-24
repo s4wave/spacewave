@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
-import type { Resource } from '../../bldr/sdk/hooks/useResource.js'
-import { useStreamingResource } from '../../bldr/sdk/hooks/useStreamingResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   watchObjectQuery,
   type ObjectQuery,

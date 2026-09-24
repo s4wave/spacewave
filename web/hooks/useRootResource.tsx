@@ -5,7 +5,6 @@ import {
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useConnectionGeneration } from '@aptre/bldr-sdk/hooks/ResourcesContext.js'
-import { useResourcesClient } from '@aptre/bldr-sdk/hooks/useResourcesClient.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
 
 /**
@@ -70,12 +69,4 @@ export function useRootResourceWithClient(
  */
 export function useRootResource(): Resource<Root> {
   return RootContext.useContext()
-}
-
-// useRootResourceClient returns the ResourceClient that serves the Root
-// resource. Each plugin bundles its own Bldr SDK, whose React contexts the
-// runtime providers in this package never populate, so plugins read the client
-// here instead of from the SDK context.
-export function useRootResourceClient(): ResourceClient | null {
-  return useResourcesClient()
 }
