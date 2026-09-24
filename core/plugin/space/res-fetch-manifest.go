@@ -76,13 +76,16 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			continue
 		}
 
-		// Determine object keys to search for manifests.
+		// Search from the configured objects, or from every manifest store.
+		// Collection follows <manifest> edges out of these objects, and
+		// deploys link each Manifest from its store, so the stores are the
+		// roots.
 		objKeys := conf.GetObjectKeys()
 		if len(objKeys) == 0 {
 			var listErr error
-			objKeys, listErr = world_types.ListObjectsWithType(entryCtx, ws, bldr_manifest_world.ManifestTypeID)
+			objKeys, listErr = world_types.ListObjectsWithType(entryCtx, ws, bldr_manifest_world.ManifestStoreTypeID)
 			if listErr != nil {
-				warnOnErrorUnlessCanceled(entryCtx, le, listErr, "failed to list manifest objects")
+				warnOnErrorUnlessCanceled(entryCtx, le, listErr, "failed to list manifest stores")
 				trace.Log(entryCtx, "result", "list-objects-error")
 				entryTask.End()
 				continue

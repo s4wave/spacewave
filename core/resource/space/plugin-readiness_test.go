@@ -18,7 +18,6 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
@@ -77,35 +76,6 @@ func TestSpaceResourceWaitsForDesiredPluginTypeRegistration(t *testing.T) {
 		manifestRef,
 	); err != nil {
 		t.Fatal(err)
-	}
-	if err := tb.WorldState.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(
-		manifestKey,
-		manifestKey,
-		pluginReadinessPluginID,
-	)); err != nil {
-		t.Fatal(err)
-	}
-	manifestKeys, err := world_types.ListObjectsWithType(ctx, tb.WorldState, bldr_manifest_world.ManifestTypeID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
-		ctx,
-		tb.WorldState,
-		pluginReadinessPluginID,
-		[]string{pluginReadinessPlatformID},
-		manifestKeys...,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(manifestErrs) != 0 || len(manifests) != 1 {
-		t.Fatalf(
-			"valid imported Manifest resolved manifests=%d errors=%v keys=%v",
-			len(manifests),
-			manifestErrs,
-			manifestKeys,
-		)
 	}
 
 	loader := newPluginReadinessLoadController(tb.Bus)
