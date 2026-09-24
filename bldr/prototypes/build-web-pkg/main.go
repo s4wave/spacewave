@@ -63,6 +63,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 			rootDir,
 			workingDir,
 			refs,
+			nil,
 			outDir,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			false,
