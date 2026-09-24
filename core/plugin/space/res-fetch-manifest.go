@@ -123,11 +123,14 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			}
 		}
 
-		// Diff against previous value.
+		// Diff against previous value. An empty result adds no value, so it
+		// never masks manifests the parent source supplies.
 		next := &manifest.FetchManifestValue{ManifestRefs: refs}
 		if entry.emitted == nil || !next.EqualVT(entry.emitted) {
 			_ = entry.handler.ClearValues()
-			_, _ = entry.handler.AddValue(next)
+			if len(refs) != 0 {
+				_, _ = entry.handler.AddValue(next)
+			}
 			entry.emitted = next
 			le.WithField("manifest-id", mid).Debugf("resolved %d manifest(s)", len(manifests))
 		}
