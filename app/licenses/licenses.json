@@ -478,42 +478,35 @@
     },
     {
       "name": "@shikijs/core",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "@shikijs/engine-javascript",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "@shikijs/engine-oniguruma",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "@shikijs/langs",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "@shikijs/primitive",
-      "version": "4.4.2",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/themes",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -527,14 +520,14 @@
     },
     {
       "name": "@shikijs/transformers",
-      "version": "3.23.0",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
     },
     {
       "name": "@shikijs/types",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
@@ -2055,7 +2048,7 @@
     },
     {
       "name": "shiki",
-      "version": "4.4.2",
+      "version": "4.4.3",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
