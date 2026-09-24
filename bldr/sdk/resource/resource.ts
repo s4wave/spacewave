@@ -1,7 +1,6 @@
 import '../dispose-symbol.js'
 
-import { ItState } from '@aptre/bldr'
-
+import { ItState } from '../../web/bldr/it-state.js'
 import type { ClientResourceRef } from './client.js'
 
 // ResourceDebugInfo contains debug information for a resource.
