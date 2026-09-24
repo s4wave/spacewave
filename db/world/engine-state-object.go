@@ -3,6 +3,7 @@ package world
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/peer"
@@ -78,6 +79,57 @@ func (e *engineWorldStateObject) SetRootRef(ctx context.Context, nref *bucket.Ob
 		return berr
 	})
 	return outRev, err
+}
+
+// errRootRefChanged reports that another writer changed the object between
+// the read and the publication of an accessObjectState attempt.
+var errRootRefChanged = errors.New("object root changed during access")
+
+// accessObjectState applies cb to the object root and publishes the result
+// only when the object still has the revision cb read. Reading and publishing
+// are separate transactions so cb never runs under the engine write lock; a
+// concurrent change replays cb against the new root instead of overwriting it.
+func (e *engineWorldStateObject) accessObjectState(
+	ctx context.Context,
+	updateWorld bool,
+	cb AccessObjectCb,
+) (*bucket.ObjectRef, bool, error) {
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, false, err
+		}
+
+		// Apply the callback against the current root and revision.
+		initRef, initRev, err := e.GetRootRef(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+		outRef, dirty, err := accessObjectRoot(ctx, e, initRef, cb)
+		if err != nil || !updateWorld || !dirty {
+			return outRef, dirty, err
+		}
+
+		// Publish only onto the revision the callback read.
+		err = e.e.performOp(ctx, true, func(tx Tx) error {
+			obj, berr := MustGetObject(ctx, tx, e.key)
+			defer ReleaseObjectState(obj)
+			if berr != nil {
+				return berr
+			}
+			_, rev, berr := obj.GetRootRef(ctx)
+			if berr != nil {
+				return berr
+			}
+			if rev != initRev {
+				return errRootRefChanged
+			}
+			_, berr = obj.SetRootRef(ctx, outRef)
+			return berr
+		})
+		if !errors.Is(err, errRootRefChanged) {
+			return outRef, dirty, err
+		}
+	}
 }
 
 // ApplyObjectOp applies a batch operation at the object level.

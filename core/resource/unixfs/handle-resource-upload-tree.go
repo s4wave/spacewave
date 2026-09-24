@@ -76,10 +76,11 @@ func (r *FSHandleResource) UploadTree(
 	}
 	// Blob ingestion can overlap, but the commit, handle reload, and change
 	// broadcast run under writeMtx so this root republication serializes against
-	// every other writer for this world object. The handle barrier additionally
+	// every other writer on this resource tree. The handle barrier additionally
 	// keeps reads on the prior generation from overlapping publication. Commit
-	// re-reads the current root under the locks and merges onto it, so a concurrent
-	// Remove or Rename that committed first is preserved instead of lost.
+	// re-reads the current root and merges onto it, and publishes only onto the
+	// revision it read, so a change committed first through this or another
+	// resource is preserved instead of lost.
 	r.writeMtx.Lock()
 	defer r.writeMtx.Unlock()
 	r.handleMtx.Lock()

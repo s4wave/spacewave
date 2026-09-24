@@ -719,3 +719,68 @@ func (obj *staleRetryObject) IncrementRev(ctx context.Context) (uint64, error) {
 func (obj *staleRetryObject) WaitRev(ctx context.Context, rev uint64, ignoreNotFound bool) (uint64, error) {
 	panic("unexpected WaitRev call")
 }
+
+// TestAccessObjectStateKeepsConcurrentUpdate publishes an engine object update
+// that another writer changed mid-access onto that writer's root instead of
+// overwriting it.
+func TestAccessObjectStateKeepsConcurrentUpdate(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	const key = "example/concurrent-update"
+	created, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample(""), true)
+		return nil
+	})
+	world.ReleaseObjectState(created)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// appendMsg returns a callback that appends suffix to the example message.
+	appendMsg := func(suffix string) world.AccessObjectCb {
+		return func(bcs *block.Cursor) error {
+			ex, err := block_mock.UnmarshalExample(ctx, bcs)
+			if err != nil {
+				return err
+			}
+			bcs.SetBlock(block_mock.NewExample(ex.GetMsg()+suffix), true)
+			return nil
+		}
+	}
+
+	// Writer b commits while writer a's first attempt is still running.
+	var attempts int
+	appendA := appendMsg("a")
+	if _, _, err := world.AccessWorldObject(ctx, ws, key, true, func(bcs *block.Cursor) error {
+		attempts++
+		if attempts == 1 {
+			if _, _, err := world.AccessWorldObject(ctx, ws, key, true, appendMsg("b")); err != nil {
+				return err
+			}
+		}
+		return appendA(bcs)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 2 {
+		t.Fatalf("callback ran %d times, want 2", attempts)
+	}
+
+	var got string
+	if _, _, err := world.AccessWorldObject(ctx, ws, key, false, func(bcs *block.Cursor) error {
+		ex, err := block_mock.UnmarshalExample(ctx, bcs)
+		got = ex.GetMsg()
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got != "ba" {
+		t.Fatalf("object message = %q, want %q", got, "ba")
+	}
+}
