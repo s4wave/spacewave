@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { useResourcesContext } from '@aptre/bldr-sdk/hooks/ResourcesContext.js'
 import { Root } from '@s4wave/sdk/root'
 import type { AppRuntime, AppStorage } from '@s4wave/sdk/root/app.js'
 import {
   clearDebugContext,
   setDebugContext,
 } from '@s4wave/sdk/debug/context.js'
-import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
+import {
+  useRootResource,
+  useRootResourceClient,
+} from '@s4wave/web/hooks/useRootResource.js'
 import {
   AppEnvironmentContext,
   bindRootEnvironment,
@@ -61,7 +63,7 @@ export function SpacewaveApp({
   setup,
 }: SpacewaveAppProps) {
   const parentRoot = useRootResource().value
-  const parentClient = useResourcesContext()?.client
+  const parentClient = useRootResourceClient()
   const [generation, setGeneration] = useState(0)
   const [running, setRunning] = useState<RunningApp | null>(null)
   const [error, setError] = useState<Error | null>(null)
