@@ -55,6 +55,11 @@ import type {
 } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
 import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
+import {
+  activateRegistrations,
+  createActivationHandler,
+  prepareRegistrations,
+} from '@s4wave/sdk/plugin/registration/generation.js'
 import { createAppPluginOperations } from '@s4wave/sdk/sync/plugin-operations.js'
 import type { AppRevision } from '@s4wave/sdk/sync/instance.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
@@ -69,6 +74,7 @@ import { InitUnixFSOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
+  ActivationDefinition,
   PluginDefinition,
   type PluginHandler,
 } from '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js'
@@ -613,6 +619,16 @@ export function startNotesBackend(
   const pluginMux = createMux()
   resourceServer.register(pluginMux)
   pluginMux.register(createHandler(PluginDefinition, plugin))
+  // Only a completely registered candidate may publish its generation.
+  pluginMux.register(
+    createHandler(
+      ActivationDefinition,
+      createActivationHandler(async () => {
+        await startup
+        return scope
+      }, signal),
+    ),
+  )
   const pluginServer = new Server(pluginMux.lookupMethod)
   api.handleStreamCtr.set((channel) => {
     pluginServer.handlePacketStream(channel)
@@ -631,351 +647,343 @@ export function startNotesBackend(
     pluginMux,
     pluginServer,
   ]
-  // Startup only needs the RPC handler registered. Root-resource publication can
-  // wait on host resources, so it stays on the long-lived backend lifecycle.
-  const done = (async () => {
-    const refs: ClientResourceRef[] = []
-    const releaseRetained = retainUntilAbort(signal, refs, retained)
-    try {
-      // Historical workers replay their exact operations without current registrations.
-      if ((await savedViews.info).historical) {
-        await waitForAbort(signal)
-        return
+  const refs: ClientResourceRef[] = []
+  const releaseRetained = retainUntilAbort(signal, refs, retained)
+  let scope: ClientResourceRef | undefined
+
+  // Startup is the registration pass: the host reports the worker running only
+  // after every capability is registered.
+  const startup = (async () => {
+    // Historical workers replay their exact operations without current registrations.
+    const host = await savedViews.info
+    if (host.historical) return
+    const coreClient = new SRPCClient(
+      api.buildPluginOpenStream('spacewave-core'),
+    )
+    const resourcesClient = new ResourcesClient(
+      new ResourceServiceClient(coreClient),
+      signal,
+    )
+    retained.push(coreClient, resourcesClient)
+    const rootRef = await resourcesClient.accessRootResource()
+    refs.push(rootRef)
+
+    // Register into this worker's private generation so instances and
+    // replacements of the plugin never collide on capability names.
+    const { manifestRoot } = await savedViews.revision
+    scope = await prepareRegistrations(
+      rootRef,
+      { pluginId, manifestRoot, instanceKey: host.instanceKey },
+      signal,
+    )
+    refs.push(scope)
+    const root = scope
+    const retainRegistration = (
+      resourceId: number | undefined,
+      label: string,
+    ) => {
+      if (!resourceId) {
+        throw new Error(label + ' registration did not return a resource id')
       }
-      const coreClient = new SRPCClient(
-        api.buildPluginOpenStream('spacewave-core'),
-      )
-      const resourcesClient = new ResourcesClient(
-        new ResourceServiceClient(coreClient),
-        signal,
-      )
-      retained.push(coreClient, resourcesClient)
-      const rootRef = await resourcesClient.accessRootResource()
-      refs.push(rootRef)
-      const retainRegistration = (
-        resourceId: number | undefined,
-        label: string,
-      ) => {
-        if (!resourceId) {
-          throw new Error(label + ' registration did not return a resource id')
-        }
-        return rootRef.createRef(resourceId)
-      }
-
-      // Register ObjectTypes.
-      const otSvc = new ObjectTypeRegistryResourceServiceClient(rootRef.client)
-      const notebookType = await otSvc.RegisterObjectType(
-        { typeId: 'notes/notebook', pluginId },
-        signal,
-      )
-      refs.push(
-        retainRegistration(notebookType.resourceId, 'notebook object type'),
-      )
-      const blogType = await otSvc.RegisterObjectType(
-        { typeId: 'notes/blog', pluginId },
-        signal,
-      )
-      refs.push(retainRegistration(blogType.resourceId, 'blog object type'))
-      const docsType = await otSvc.RegisterObjectType(
-        { typeId: 'notes/docs', pluginId },
-        signal,
-      )
-      refs.push(retainRegistration(docsType.resourceId, 'docs object type'))
-
-      // Register typed saved-view operations alongside the existing Notes operations.
-      await savedViews.register(rootRef, (ref) => refs.push(ref))
-
-      // Register WorldOps.
-      const woSvc = new WorldOpRegistryResourceServiceClient(rootRef.client)
-      const initNotebookOp = await woSvc.RegisterWorldOp(
-        { operationTypeId: INIT_NOTEBOOK_OP_ID, pluginId },
-        signal,
-      )
-      refs.push(
-        retainRegistration(initNotebookOp.resourceId, 'init notebook world op'),
-      )
-      const createBlogOp = await woSvc.RegisterWorldOp(
-        { operationTypeId: CREATE_BLOG_OP_ID, pluginId },
-        signal,
-      )
-      refs.push(
-        retainRegistration(createBlogOp.resourceId, 'create blog world op'),
-      )
-      const createDocsOp = await woSvc.RegisterWorldOp(
-        { operationTypeId: CREATE_DOCS_OP_ID, pluginId },
-        signal,
-      )
-      refs.push(
-        retainRegistration(createDocsOp.resourceId, 'create docs world op'),
-      )
-
-      // Register persistent ObjectWizards for in-space Notes creation.
-      const wizardSvc = new ObjectWizardRegistryResourceServiceClient(
-        rootRef.client,
-      )
-      const notebookWizard = await wizardSvc.RegisterWizard(
-        {
-          wizard: {
-            typeId: 'notes/notebook',
-            pluginId,
-            displayName: 'Notebook',
-            description: 'Notebook of markdown pages and notes',
-            category: 'Content',
-            iconName: 'LuNotebookPen',
-            createOpId: INIT_NOTEBOOK_OP_ID,
-            defaultNamePattern: 'Notebook',
-            keyPrefix: 'notebook/',
-            persistent: true,
-            wizardTypeId: 'wizard/notes/notebook',
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(notebookWizard.resourceId, 'notebook wizard'),
-      )
-      const docsWizard = await wizardSvc.RegisterWizard(
-        {
-          wizard: {
-            typeId: 'notes/docs',
-            pluginId,
-            displayName: 'Documentation',
-            description: 'Structured documentation site with sections',
-            category: 'Content',
-            iconName: 'LuBookOpen',
-            createOpId: CREATE_DOCS_OP_ID,
-            defaultNamePattern: 'Documentation',
-            keyPrefix: 'docs/',
-            persistent: true,
-            wizardTypeId: 'wizard/notes/docs',
-          },
-        },
-        signal,
-      )
-      refs.push(retainRegistration(docsWizard.resourceId, 'docs wizard'))
-      const blogWizard = await wizardSvc.RegisterWizard(
-        {
-          wizard: {
-            typeId: 'notes/blog',
-            pluginId,
-            displayName: 'Blog',
-            description: 'Blog of dated posts with an index page',
-            category: 'Content',
-            iconName: 'LuPenLine',
-            createOpId: CREATE_BLOG_OP_ID,
-            defaultNamePattern: 'Blog',
-            keyPrefix: 'blog/',
-            persistent: true,
-            wizardTypeId: 'wizard/notes/blog',
-          },
-        },
-        signal,
-      )
-      refs.push(retainRegistration(blogWizard.resourceId, 'blog wizard'))
-
-      // Pin viewer assets to the same executable as the registered operations.
-      const { manifestRoot } = await savedViews.revision
-      const [
-        notebookViewerScript,
-        blogViewerScript,
-        docsViewerScript,
-        notesWizardViewerScript,
-      ] = await Promise.all([
-        resolveAssetPath(
-          api,
-          signal,
-          './plugin/notes/NotebookViewer.tsx',
-          manifestRoot,
-        ),
-        resolveAssetPath(
-          api,
-          signal,
-          './plugin/notes/BlogViewer.tsx',
-          manifestRoot,
-        ),
-        resolveAssetPath(
-          api,
-          signal,
-          './plugin/notes/DocsViewer.tsx',
-          manifestRoot,
-        ),
-        resolveAssetPath(
-          api,
-          signal,
-          './plugin/notes/NotesWizardViewer.tsx',
-          manifestRoot,
-        ),
-      ])
-
-      // Register Viewers.
-      const vrSvc = new ViewerRegistryResourceServiceClient(rootRef.client)
-      const notebookViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'notes/notebook',
-            viewerName: 'Notebook',
-            componentId: 'notes.notebook.viewer',
-            scriptPath: notebookViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(notebookViewer.resourceId, 'notebook viewer'),
-      )
-      const blogViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'notes/blog',
-            viewerName: 'Blog',
-            componentId: 'notes.blog.viewer',
-            scriptPath: blogViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(retainRegistration(blogViewer.resourceId, 'blog viewer'))
-      const docsViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'notes/docs',
-            viewerName: 'Documentation',
-            componentId: 'notes.docs.viewer',
-            scriptPath: docsViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(retainRegistration(docsViewer.resourceId, 'docs viewer'))
-      const notebookWizardViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'wizard/notes/notebook',
-            viewerName: 'Notebook Wizard',
-            componentId: 'notes.notebook-wizard.viewer',
-            scriptPath: notesWizardViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(
-          notebookWizardViewer.resourceId,
-          'notebook wizard viewer',
-        ),
-      )
-      const docsWizardViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'wizard/notes/docs',
-            viewerName: 'Documentation Wizard',
-            componentId: 'notes.docs-wizard.viewer',
-            scriptPath: notesWizardViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(docsWizardViewer.resourceId, 'docs wizard viewer'),
-      )
-      const blogWizardViewer = await vrSvc.RegisterViewer(
-        {
-          registration: {
-            typeId: 'wizard/notes/blog',
-            viewerName: 'Blog Wizard',
-            componentId: 'notes.blog-wizard.viewer',
-            scriptPath: notesWizardViewerScript,
-            surface: ViewerSurface.WEB,
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(blogWizardViewer.resourceId, 'blog wizard viewer'),
-      )
-
-      // Register hidden Quickstarts last so app launchers only observe them once
-      // the notes backend generation has completed startup registration.
-      const qsSvc = new QuickstartRegistryResourceServiceClient(rootRef.client)
-      const notebookQuickstart = await qsSvc.RegisterQuickstart(
-        {
-          registration: {
-            quickstartId: 'notebook',
-            pluginId,
-            name: 'Create a Notebook',
-            description: 'Markdown notes with folders, tags, and sync',
-            category: 'storage',
-            iconName: 'notebook',
-            hidden: true,
-            experimental: true,
-            spaceName: 'My Notebook',
-            requiredPluginIds: [pluginId],
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(
-          notebookQuickstart.resourceId,
-          'notebook quickstart',
-        ),
-      )
-      const docsQuickstart = await qsSvc.RegisterQuickstart(
-        {
-          registration: {
-            quickstartId: 'docs',
-            pluginId,
-            name: 'Create Documentation',
-            description: 'Markdown documentation site',
-            category: 'content',
-            iconName: 'notebook',
-            hidden: true,
-            experimental: true,
-            spaceName: 'My Docs',
-            requiredPluginIds: [pluginId],
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(docsQuickstart.resourceId, 'docs quickstart'),
-      )
-      const blogQuickstart = await qsSvc.RegisterQuickstart(
-        {
-          registration: {
-            quickstartId: 'blog',
-            pluginId,
-            name: 'Create a Blog',
-            description: 'Date-based markdown blog',
-            category: 'content',
-            iconName: 'pen',
-            hidden: true,
-            experimental: true,
-            spaceName: 'My Blog',
-            requiredPluginIds: [pluginId],
-          },
-        },
-        signal,
-      )
-      refs.push(
-        retainRegistration(blogQuickstart.resourceId, 'blog quickstart'),
-      )
-
-      await waitForAbort(signal)
-    } finally {
-      releaseRetained()
+      return root.createRef(resourceId)
     }
-  })()
 
-  return {
-    startup: savedViews.revision.then(() => {}),
-    done,
-  }
+    // Register ObjectTypes.
+    const otSvc = new ObjectTypeRegistryResourceServiceClient(root.client)
+    const notebookType = await otSvc.RegisterObjectType(
+      { typeId: 'notes/notebook', pluginId },
+      signal,
+    )
+    refs.push(
+      retainRegistration(notebookType.resourceId, 'notebook object type'),
+    )
+    const blogType = await otSvc.RegisterObjectType(
+      { typeId: 'notes/blog', pluginId },
+      signal,
+    )
+    refs.push(retainRegistration(blogType.resourceId, 'blog object type'))
+    const docsType = await otSvc.RegisterObjectType(
+      { typeId: 'notes/docs', pluginId },
+      signal,
+    )
+    refs.push(retainRegistration(docsType.resourceId, 'docs object type'))
+
+    // Register typed saved-view operations alongside the existing Notes operations.
+    await savedViews.register(root, (ref) => refs.push(ref))
+
+    // Register WorldOps.
+    const woSvc = new WorldOpRegistryResourceServiceClient(root.client)
+    const initNotebookOp = await woSvc.RegisterWorldOp(
+      { operationTypeId: INIT_NOTEBOOK_OP_ID, pluginId },
+      signal,
+    )
+    refs.push(
+      retainRegistration(initNotebookOp.resourceId, 'init notebook world op'),
+    )
+    const createBlogOp = await woSvc.RegisterWorldOp(
+      { operationTypeId: CREATE_BLOG_OP_ID, pluginId },
+      signal,
+    )
+    refs.push(
+      retainRegistration(createBlogOp.resourceId, 'create blog world op'),
+    )
+    const createDocsOp = await woSvc.RegisterWorldOp(
+      { operationTypeId: CREATE_DOCS_OP_ID, pluginId },
+      signal,
+    )
+    refs.push(
+      retainRegistration(createDocsOp.resourceId, 'create docs world op'),
+    )
+
+    // Register persistent ObjectWizards for in-space Notes creation.
+    const wizardSvc = new ObjectWizardRegistryResourceServiceClient(root.client)
+    const notebookWizard = await wizardSvc.RegisterWizard(
+      {
+        wizard: {
+          typeId: 'notes/notebook',
+          pluginId,
+          displayName: 'Notebook',
+          description: 'Notebook of markdown pages and notes',
+          category: 'Content',
+          iconName: 'LuNotebookPen',
+          createOpId: INIT_NOTEBOOK_OP_ID,
+          defaultNamePattern: 'Notebook',
+          keyPrefix: 'notebook/',
+          persistent: true,
+          wizardTypeId: 'wizard/notes/notebook',
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(notebookWizard.resourceId, 'notebook wizard'))
+    const docsWizard = await wizardSvc.RegisterWizard(
+      {
+        wizard: {
+          typeId: 'notes/docs',
+          pluginId,
+          displayName: 'Documentation',
+          description: 'Structured documentation site with sections',
+          category: 'Content',
+          iconName: 'LuBookOpen',
+          createOpId: CREATE_DOCS_OP_ID,
+          defaultNamePattern: 'Documentation',
+          keyPrefix: 'docs/',
+          persistent: true,
+          wizardTypeId: 'wizard/notes/docs',
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(docsWizard.resourceId, 'docs wizard'))
+    const blogWizard = await wizardSvc.RegisterWizard(
+      {
+        wizard: {
+          typeId: 'notes/blog',
+          pluginId,
+          displayName: 'Blog',
+          description: 'Blog of dated posts with an index page',
+          category: 'Content',
+          iconName: 'LuPenLine',
+          createOpId: CREATE_BLOG_OP_ID,
+          defaultNamePattern: 'Blog',
+          keyPrefix: 'blog/',
+          persistent: true,
+          wizardTypeId: 'wizard/notes/blog',
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(blogWizard.resourceId, 'blog wizard'))
+
+    // Pin viewer assets to the same executable as the registered operations.
+    const [
+      notebookViewerScript,
+      blogViewerScript,
+      docsViewerScript,
+      notesWizardViewerScript,
+    ] = await Promise.all([
+      resolveAssetPath(
+        api,
+        signal,
+        './plugin/notes/NotebookViewer.tsx',
+        manifestRoot,
+      ),
+      resolveAssetPath(
+        api,
+        signal,
+        './plugin/notes/BlogViewer.tsx',
+        manifestRoot,
+      ),
+      resolveAssetPath(
+        api,
+        signal,
+        './plugin/notes/DocsViewer.tsx',
+        manifestRoot,
+      ),
+      resolveAssetPath(
+        api,
+        signal,
+        './plugin/notes/NotesWizardViewer.tsx',
+        manifestRoot,
+      ),
+    ])
+
+    // Register Viewers.
+    const vrSvc = new ViewerRegistryResourceServiceClient(root.client)
+    const notebookViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'notes/notebook',
+          viewerName: 'Notebook',
+          componentId: 'notes.notebook.viewer',
+          scriptPath: notebookViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(notebookViewer.resourceId, 'notebook viewer'))
+    const blogViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'notes/blog',
+          viewerName: 'Blog',
+          componentId: 'notes.blog.viewer',
+          scriptPath: blogViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(blogViewer.resourceId, 'blog viewer'))
+    const docsViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'notes/docs',
+          viewerName: 'Documentation',
+          componentId: 'notes.docs.viewer',
+          scriptPath: docsViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(docsViewer.resourceId, 'docs viewer'))
+    const notebookWizardViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'wizard/notes/notebook',
+          viewerName: 'Notebook Wizard',
+          componentId: 'notes.notebook-wizard.viewer',
+          scriptPath: notesWizardViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(
+      retainRegistration(
+        notebookWizardViewer.resourceId,
+        'notebook wizard viewer',
+      ),
+    )
+    const docsWizardViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'wizard/notes/docs',
+          viewerName: 'Documentation Wizard',
+          componentId: 'notes.docs-wizard.viewer',
+          scriptPath: notesWizardViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(
+      retainRegistration(docsWizardViewer.resourceId, 'docs wizard viewer'),
+    )
+    const blogWizardViewer = await vrSvc.RegisterViewer(
+      {
+        registration: {
+          typeId: 'wizard/notes/blog',
+          viewerName: 'Blog Wizard',
+          componentId: 'notes.blog-wizard.viewer',
+          scriptPath: notesWizardViewerScript,
+          surface: ViewerSurface.WEB,
+        },
+      },
+      signal,
+    )
+    refs.push(
+      retainRegistration(blogWizardViewer.resourceId, 'blog wizard viewer'),
+    )
+
+    // Register hidden Quickstarts. Launchers observe them only once the
+    // generation activates with every capability they depend on.
+    const qsSvc = new QuickstartRegistryResourceServiceClient(root.client)
+    const notebookQuickstart = await qsSvc.RegisterQuickstart(
+      {
+        registration: {
+          quickstartId: 'notebook',
+          pluginId,
+          name: 'Create a Notebook',
+          description: 'Markdown notes with folders, tags, and sync',
+          category: 'storage',
+          iconName: 'notebook',
+          hidden: true,
+          experimental: true,
+          spaceName: 'My Notebook',
+          requiredPluginIds: [pluginId],
+        },
+      },
+      signal,
+    )
+    refs.push(
+      retainRegistration(notebookQuickstart.resourceId, 'notebook quickstart'),
+    )
+    const docsQuickstart = await qsSvc.RegisterQuickstart(
+      {
+        registration: {
+          quickstartId: 'docs',
+          pluginId,
+          name: 'Create Documentation',
+          description: 'Markdown documentation site',
+          category: 'content',
+          iconName: 'notebook',
+          hidden: true,
+          experimental: true,
+          spaceName: 'My Docs',
+          requiredPluginIds: [pluginId],
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(docsQuickstart.resourceId, 'docs quickstart'))
+    const blogQuickstart = await qsSvc.RegisterQuickstart(
+      {
+        registration: {
+          quickstartId: 'blog',
+          pluginId,
+          name: 'Create a Blog',
+          description: 'Date-based markdown blog',
+          category: 'content',
+          iconName: 'pen',
+          hidden: true,
+          experimental: true,
+          spaceName: 'My Blog',
+          requiredPluginIds: [pluginId],
+        },
+      },
+      signal,
+    )
+    refs.push(retainRegistration(blogQuickstart.resourceId, 'blog quickstart'))
+
+    // Initial loads publish at once. Replacements wait for the scheduler, which
+    // still retains the previous worker until this generation activates.
+    if (!host.prepared) await activateRegistrations(root, signal)
+  })()
+  const done = startup.then(() => waitForAbort(signal)).finally(releaseRetained)
+  return { startup, done }
 }
 
 // main is the notes backend entry point.

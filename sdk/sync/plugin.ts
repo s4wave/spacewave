@@ -19,9 +19,10 @@ import {
   PluginDefinition,
 } from '../../bldr/plugin/plugin_srpc.pb.js'
 import {
-  GenerationServiceClient,
-  RegistrationServiceClient,
-} from '../plugin/registration/registration_srpc.pb.js'
+  activateRegistrations,
+  createActivationHandler,
+  prepareRegistrations,
+} from '../plugin/registration/generation.js'
 import { frontendBindingPath } from '../../bldr/frontend/binding.js'
 import type { Binding } from '../../bldr/frontend/frontend.pb.js'
 import { FSCursorServiceClient } from '../../db/unixfs/rpc/rpc_srpc.pb.js'
@@ -146,21 +147,15 @@ export function definePlugin<S extends Schema>(
           ),
       }),
     )
+    // Only a completely initialized candidate may publish its registrations.
     pluginMux.register(
-      createHandler(ActivationDefinition, {
-        Check: async () => ({}),
-        Activate: async (_request, abort) => {
-          // Only a completely initialized candidate may publish its registrations.
+      createHandler(
+        ActivationDefinition,
+        createActivationHandler(async () => {
           await startup
-          if (!generation)
-            throw new Error('Historical plugins cannot be activated')
-          await new GenerationServiceClient(generation.client).Activate(
-            {},
-            AbortSignal.any([lifetime, abort]),
-          )
-          return {}
-        },
-      }),
+          return generation
+        }, lifetime),
+      ),
     )
     const pluginServer = new Server(pluginMux.lookupMethod)
     api.handleStreamCtr.set(async (channel) => {
@@ -176,12 +171,11 @@ export function definePlugin<S extends Schema>(
         resources = new Client(new ResourceServiceClient(rpc), lifetime)
         const core = await resources.accessRootResource()
         refs.push(core)
-        const prepared = await new RegistrationServiceClient(
-          core.client,
-        ).Prepare({ ...executable, instanceKey: host.instanceKey }, lifetime)
-        if (!prepared.resourceId)
-          throw new Error('Plugin preparation returned no Resource')
-        generation = core.createRef(prepared.resourceId)
+        generation = await prepareRegistrations(
+          core,
+          { ...executable, instanceKey: host.instanceKey },
+          lifetime,
+        )
         const root = generation
 
         // Bind ObjectType handlers to this worker instead of resolving the family again.
@@ -264,9 +258,7 @@ export function definePlugin<S extends Schema>(
 
         // Initial loads publish only after every registration succeeds. Replacements
         // wait for the scheduler, which still retains the previous worker.
-        if (!host.prepared) {
-          await new GenerationServiceClient(root.client).Activate({}, lifetime)
-        }
+        if (!host.prepared) await activateRegistrations(root, lifetime)
       }
     })()
     const done = startup

@@ -26,15 +26,21 @@ const h = vi.hoisted(() => ({
     ref: { [Symbol.dispose](): void }
   }>,
   accessRootResource: undefined as undefined | (() => Promise<unknown>),
+  prepareRequests: [] as Array<Record<string, unknown>>,
+  activatedScopes: [] as unknown[],
+  activationReady: undefined as undefined | (() => Promise<unknown>),
   quickstartRegistrationFailureId: undefined as string | undefined,
   viewerRegistrationFailure: undefined as Error | undefined,
   nextResourceId: 1,
-  rootRef: undefined as unknown as {
-    client: Record<string, never>
-    createRef(resourceId: number): { [Symbol.dispose](): void }
-    [Symbol.dispose](): void
-  },
+  rootRef: undefined as unknown as TestRef,
+  scopeRef: undefined as unknown as TestRef,
 }))
+
+type TestRef = {
+  client: Record<string, never>
+  createRef(resourceId: number): { [Symbol.dispose](): void }
+  [Symbol.dispose](): void
+}
 
 vi.mock('starpc', async (importOriginal) => ({
   ...(await importOriginal<typeof import('starpc')>()),
@@ -70,8 +76,26 @@ vi.mock(
   '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js',
   () => ({
     PluginDefinition: h.pluginDefinition,
+    ActivationDefinition: { typeName: 'bldr.plugin.Activation' },
   }),
 )
+
+vi.mock('@s4wave/sdk/plugin/registration/generation.js', () => ({
+  prepareRegistrations: vi.fn(
+    (_core: unknown, request: Record<string, unknown>) => {
+      h.prepareRequests.push(request)
+      return Promise.resolve(h.scopeRef)
+    },
+  ),
+  activateRegistrations: vi.fn((scope: unknown) => {
+    h.activatedScopes.push(scope)
+    return Promise.resolve()
+  }),
+  createActivationHandler: vi.fn((ready: () => Promise<unknown>) => {
+    h.activationReady = ready
+    return {}
+  }),
+}))
 
 vi.mock('@aptre/bldr-sdk/resource/index.js', () => ({
   ResourceServiceClient: class {
@@ -214,7 +238,10 @@ import { pinnedOperationID } from '../../sdk/sync/instance.js'
 const manifestHash = { hash: new Uint8Array([1]) }
 const manifestRoot = base58Encode(Hash.toBinary(manifestHash))
 
-function buildApi(pluginId: string) {
+function buildApi(
+  pluginId: string,
+  host: { historical?: boolean; prepared?: boolean; instanceKey?: string } = {},
+) {
   return {
     startInfo: { pluginId },
     pluginHost: {
@@ -222,6 +249,7 @@ function buildApi(pluginId: string) {
         pluginId,
         manifestRef: { manifestRef: { rootRef: { hash: manifestHash } } },
         historical: false,
+        ...host,
       })),
     },
     client: {},
@@ -239,23 +267,19 @@ async function startMain(
 ): Promise<ReturnType<typeof main>> {
   const lifecycle = main(api, signal)
   await lifecycle.startup
-  await waitForPublicationComplete()
   return lifecycle
 }
 
-async function startMainReady(
-  api: Parameters<typeof main>[0],
-  signal: AbortSignal,
-): Promise<ReturnType<typeof main>> {
-  const lifecycle = main(api, signal)
-  await lifecycle.startup
-  return lifecycle
-}
-
-async function waitForPublicationComplete(): Promise<void> {
-  await vi.waitFor(() => {
-    expect(h.quickstartRegistrations).toHaveLength(3)
-  })
+function buildRef(): TestRef {
+  return {
+    client: {},
+    createRef: vi.fn((resourceId: number) => {
+      const ref = { [Symbol.dispose]: vi.fn() }
+      h.retainedRefs.push({ resourceId, ref })
+      return ref
+    }),
+    [Symbol.dispose]: vi.fn(),
+  }
 }
 
 describe('notes backend registration', () => {
@@ -271,21 +295,17 @@ describe('notes backend registration', () => {
     h.serverInstances.length = 0
     h.handleRpcStreamCalls.length = 0
     h.accessRootResource = undefined
+    h.prepareRequests.length = 0
+    h.activatedScopes.length = 0
+    h.activationReady = undefined
     h.quickstartRegistrationFailureId = undefined
     h.viewerRegistrationFailure = undefined
     h.nextResourceId = 1
     h.pluginAssetHttpPath.mockImplementation(
       (pluginId: string, path: string) => `/asset/${pluginId}/${path}`,
     )
-    h.rootRef = {
-      client: {},
-      createRef: vi.fn((resourceId: number) => {
-        const ref = { [Symbol.dispose]: vi.fn() }
-        h.retainedRefs.push({ resourceId, ref })
-        return ref
-      }),
-      [Symbol.dispose]: vi.fn(),
-    }
+    h.rootRef = buildRef()
+    h.scopeRef = buildRef()
   })
 
   it('registers notes interfaces with the startInfo plugin id and retained lifetimes', async () => {
@@ -433,13 +453,19 @@ describe('notes backend registration', () => {
         surface: ViewerSurface.WEB,
       },
     ])
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(21)
+    expect(h.prepareRequests).toEqual([
+      { pluginId: 'spacewave-notes', manifestRoot, instanceKey: undefined },
+    ])
+    expect(h.activatedScopes).toEqual([h.scopeRef])
+    expect(h.rootRef.createRef).not.toHaveBeenCalled()
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(21)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
     ])
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).not.toHaveBeenCalled()
     }
+    expect(h.scopeRef[Symbol.dispose]).not.toHaveBeenCalled()
     expect(h.rootRef[Symbol.dispose]).not.toHaveBeenCalled()
 
     abort.abort()
@@ -447,7 +473,48 @@ describe('notes backend registration', () => {
     for (const entry of h.retainedRefs) {
       expect(entry.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
     }
+    expect(h.scopeRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves a prepared generation to the scheduler Activation', async () => {
+    const abort = new AbortController()
+
+    await startMain(
+      buildApi('spacewave-notes', {
+        prepared: true,
+        instanceKey: 'space-engine',
+      }) as never,
+      abort.signal,
+    )
+
+    expect(h.prepareRequests).toEqual([
+      {
+        pluginId: 'spacewave-notes',
+        manifestRoot,
+        instanceKey: 'space-engine',
+      },
+    ])
+    expect(h.activatedScopes).toHaveLength(0)
+    await expect(h.activationReady?.()).resolves.toBe(h.scopeRef)
+
+    abort.abort()
+  })
+
+  it('registers nothing from a historical worker', async () => {
+    const abort = new AbortController()
+
+    await startMain(
+      buildApi('spacewave-notes', { historical: true }) as never,
+      abort.signal,
+    )
+
+    expect(h.prepareRequests).toHaveLength(0)
+    expect(h.objectTypeRegistrations).toHaveLength(0)
+    expect(h.quickstartRegistrations).toHaveLength(0)
+    await expect(h.activationReady?.()).resolves.toBeUndefined()
+
+    abort.abort()
   })
 
   it('routes incoming plugin RPC streams to the notes ResourceServer', async () => {
@@ -490,7 +557,7 @@ describe('notes backend registration', () => {
     abort.abort()
   })
 
-  it('keeps the backend lifecycle pending until abort after startup', async () => {
+  it('completes startup only after every registration', async () => {
     const abort = new AbortController()
     let resolveRoot!: () => void
     h.accessRootResource = () =>
@@ -498,50 +565,47 @@ describe('notes backend registration', () => {
         resolveRoot = () => resolve(h.rootRef)
       })
     const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
-
-    await lifecycle.startup
-
-    expect(h.handleStreamSet).toHaveBeenCalledTimes(1)
-    expect(h.quickstartRegistrations).toHaveLength(0)
-
-    expect(lifecycle.done).toBeDefined()
+    let started = false
+    const startup = lifecycle.startup.then(() => {
+      started = true
+    })
     let doneResolved = false
-    const done = Promise.resolve(lifecycle.done).then(() => {
+    const done = lifecycle.done.then(() => {
       doneResolved = true
     })
 
-    await Promise.resolve()
-
-    expect(doneResolved).toBe(false)
+    await vi.waitFor(() => expect(resolveRoot).toBeDefined())
+    expect(h.handleStreamSet).toHaveBeenCalledTimes(1)
+    expect(started).toBe(false)
 
     resolveRoot()
-    await waitForPublicationComplete()
-
-    await Promise.resolve()
+    await startup
+    expect(h.quickstartRegistrations).toHaveLength(3)
+    expect(h.activatedScopes).toEqual([h.scopeRef])
     expect(doneResolved).toBe(false)
 
     abort.abort()
     await done
-
     expect(doneResolved).toBe(true)
   })
 
-  it('does not publish quickstarts before viewer startup finishes', async () => {
+  it('fails startup and publishes nothing when a viewer fails to register', async () => {
     const abort = new AbortController()
     h.viewerRegistrationFailure = new Error('viewer registry unavailable')
 
-    const lifecycle = await startMainReady(
-      buildApi('spacewave-notes') as never,
-      abort.signal,
+    const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
+    await expect(lifecycle.startup).rejects.toThrow(
+      'viewer registry unavailable',
     )
     await expect(lifecycle.done).rejects.toThrow('viewer registry unavailable')
 
     expect(h.quickstartRegistrations).toHaveLength(0)
+    expect(h.activatedScopes).toHaveLength(0)
     expect(
       h.wizardRegistrations.map((registration) => registration.typeId),
     ).toEqual(['notes/notebook', 'notes/docs', 'notes/blog'])
     expect(h.viewerRegistrations).toHaveLength(1)
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(12)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(12)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     ])
@@ -558,13 +622,13 @@ describe('notes backend registration', () => {
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
   })
 
-  it('releases partial quickstart registrations when final startup publication fails', async () => {
+  it('releases partial registrations when a quickstart fails to register', async () => {
     const abort = new AbortController()
     h.quickstartRegistrationFailureId = 'blog'
 
-    const lifecycle = await startMainReady(
-      buildApi('spacewave-notes') as never,
-      abort.signal,
+    const lifecycle = main(buildApi('spacewave-notes') as never, abort.signal)
+    await expect(lifecycle.startup).rejects.toThrow(
+      'quickstart registry unavailable',
     )
     await expect(lifecycle.done).rejects.toThrow(
       'quickstart registry unavailable',
@@ -575,8 +639,9 @@ describe('notes backend registration', () => {
         (registration) => registration.quickstartId,
       ),
     ).toEqual(['notebook', 'docs', 'blog'])
+    expect(h.activatedScopes).toHaveLength(0)
     expect(h.viewerRegistrations).toHaveLength(6)
-    expect(h.rootRef.createRef).toHaveBeenCalledTimes(20)
+    expect(h.scopeRef.createRef).toHaveBeenCalledTimes(20)
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     ])
