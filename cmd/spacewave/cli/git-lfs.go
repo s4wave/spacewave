@@ -81,6 +81,10 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 	if findSubpathDelimiter(key) >= 0 {
 		return errors.New("object key cannot contain /-/")
 	}
+	tracked, err := countGitLfsFiles(ctx)
+	if err != nil {
+		return err
+	}
 	idx := uint32(1)
 	if sessIdx > 0 {
 		if idx, err = sessionIndexFromInt(sessIdx); err != nil {
@@ -91,6 +95,7 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 	if err != nil {
 		return errors.Wrap(err, "resolve executable")
 	}
+	exe = filepath.Clean(exe)
 	daemonFlags, err := gitLfsDaemonFlags(c, statePath)
 	if err != nil {
 		return err
@@ -160,11 +165,26 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 		w.WriteString("Created UnixFS object " + key + ".\n")
 	}
 	w.WriteString("Git LFS objects go to " + uri + ".\n\n")
-	w.WriteString("Next steps:\n")
-	w.WriteString("  git lfs track '*.png'\n")
-	w.WriteString("  git add .gitattributes && git commit -m 'chore: track assets with Git LFS'\n")
-	w.WriteString("  git push\n\n")
-	w.WriteString("In a fresh clone, run this command, then: git lfs pull\n")
+	switch {
+	case !created:
+		w.WriteString("Next step: git lfs pull\n")
+	case tracked != 0:
+		// The agent now serves every remote, so the fetch bypasses it to
+		// read every version from the old LFS server.
+		files := " LFS files"
+		if tracked == 1 {
+			files = " LFS file"
+		}
+		w.WriteString("This repository already tracks " + strconv.Itoa(tracked) + files + ". Copy every version into the Space:\n")
+		w.WriteString("  git -c lfs.standalonetransferagent= lfs fetch --all origin\n")
+		w.WriteString("  git lfs push --all origin\n")
+	default:
+		w.WriteString("Next steps:\n")
+		w.WriteString("  git lfs track '*.png'\n")
+		w.WriteString("  git add .gitattributes && git commit -m 'chore: track assets with Git LFS'\n")
+		w.WriteString("  git push\n\n")
+		w.WriteString("In a fresh clone, run this command, then: git lfs pull\n")
+	}
 	return nil
 }
 
@@ -302,6 +322,22 @@ func ensureGitLfsObject(ctx context.Context, engine *sdk_engine.SDKEngine, key s
 		return false, errors.Wrap(err, "commit transaction")
 	}
 	return true, nil
+}
+
+// countGitLfsFiles returns the number of LFS files in HEAD. A repository
+// without commits has none.
+func countGitLfsFiles(ctx context.Context) (int, error) {
+	if _, err := gitOutput(ctx, "rev-parse", "--verify", "--quiet", "HEAD"); err != nil {
+		return 0, nil
+	}
+	out, err := gitOutput(ctx, "lfs", "ls-files", "--name-only")
+	if err != nil {
+		return 0, errors.Wrap(err, "list LFS files")
+	}
+	if out == "" {
+		return 0, nil
+	}
+	return strings.Count(out, "\n") + 1, nil
 }
 
 // gitLfsDaemonFlags returns the daemon flags the agent and hook repeat so they

@@ -128,5 +128,10 @@
     "lang": "sh",
     "code": "GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/example/media.git\ncd media\nspacewave git lfs setup --space \"My Space\" git-lfs/media\ngit lfs pull",
     "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFF\">GIT_LFS_SKIP_SMUDGE</span><span style=\"color:#A0A0A0\">=</span><span style=\"color:#99FFE4\">1</span><span style=\"color:#FFC799\"> git</span><span style=\"color:#99FFE4\"> clone</span><span style=\"color:#99FFE4\"> https://github.com/example/media.git</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">cd</span><span style=\"color:#99FFE4\"> media</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> setup</span><span style=\"color:#99FFE4\"> --space</span><span style=\"color:#99FFE4\"> \"My Space\"</span><span style=\"color:#99FFE4\"> git-lfs/media</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> pull</span></span></code></pre>"
+  },
+  {
+    "lang": "sh",
+    "code": "git -c lfs.standalonetransferagent= lfs fetch --all origin\ngit lfs push --all origin",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> -c</span><span style=\"color:#99FFE4\"> lfs.standalonetransferagent=</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> fetch</span><span style=\"color:#99FFE4\"> --all</span><span style=\"color:#99FFE4\"> origin</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> push</span><span style=\"color:#99FFE4\"> --all</span><span style=\"color:#99FFE4\"> origin</span></span></code></pre>"
   }
 ]
