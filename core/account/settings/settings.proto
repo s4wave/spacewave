@@ -5,6 +5,7 @@ import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/provider/provider.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/sdk/command/command.proto";
+import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
 
 // AccountSettings is the root state data for account settings SharedObjects.
 // Stored as SORootInner.StateData.
@@ -29,6 +30,50 @@ message AccountSettings {
   .provider.AccountTransition transition = 8;
   // AcceptedMigrations authorizes returning source Session peers to bind their local storage.
   repeated .provider.AccountTransition accepted_migrations = 9;
+  // StorageBackends lists the account's bring-your-own block storage backends.
+  repeated StorageBackend storage_backends = 10;
+  // DefaultStorageBackendId names the backend that new Spaces use.
+  // Empty places new Spaces on the account's own storage.
+  string default_storage_backend_id = 11;
+  // BlockStorePlacements names the backend holding each placed block store.
+  // A block store without a placement is on the account's own storage.
+  repeated BlockStorePlacement block_store_placements = 12;
+}
+
+// StorageBackend is block storage the account's devices share.
+message StorageBackend {
+  // Id identifies the backend within the account and never changes.
+  string id = 1;
+  // DisplayName is the user-visible backend name, unique within the account.
+  string display_name = 2;
+  // S3 locates the S3-compatible bucket that holds the blocks.
+  S3Location s3 = 3;
+  // Credential is the redacted Secret whose payload holds the access keys.
+  // The payload value is a block_store_s3.Credentials message.
+  .s4wave.secret.Secret credential = 4;
+}
+
+// S3Location locates an S3-compatible bucket and the key space it uses.
+message S3Location {
+  // Endpoint is the host and optional port, without a scheme.
+  string endpoint = 1;
+  // Region is the signing region.
+  string region = 2;
+  // Bucket is the bucket name.
+  string bucket = 3;
+  // ObjectPrefix precedes every object key the account writes.
+  // Each block store writes under ObjectPrefix + block store id + "/".
+  string object_prefix = 4;
+  // DisableSsl connects with HTTP instead of HTTPS.
+  bool disable_ssl = 5;
+}
+
+// BlockStorePlacement places one block store on a storage backend.
+message BlockStorePlacement {
+  // BlockStoreId identifies the placed block store.
+  string block_store_id = 1;
+  // StorageBackendId identifies the StorageBackend that holds its blocks.
+  string storage_backend_id = 2;
 }
 
 // AccountSession is an approved account replica, distinct from a managed Device.
@@ -106,7 +151,29 @@ message AccountSettingsOp {
     .provider.AccountTransition accept_account_migration = 11;
     // CommitAccountTransition fixes the destination once resources and Sessions are durable.
     .provider.AccountTransition commit_account_transition = 12;
+    // UpsertStorageBackend adds a storage backend or replaces the one with its id.
+    StorageBackend upsert_storage_backend = 13;
+    // RemoveStorageBackend removes a storage backend that holds no block store.
+    RemoveStorageBackendOp remove_storage_backend = 14;
+    // SetDefaultStorageBackend selects the backend that new Spaces use.
+    SetDefaultStorageBackendOp set_default_storage_backend = 15;
+    // SetBlockStorePlacement places a block store, or returns it to the
+    // account's own storage when storage_backend_id is empty.
+    BlockStorePlacement set_block_store_placement = 16;
   }
+}
+
+// RemoveStorageBackendOp removes a storage backend by id.
+message RemoveStorageBackendOp {
+  // StorageBackendId identifies the backend to remove.
+  string storage_backend_id = 1;
+}
+
+// SetDefaultStorageBackendOp selects the default storage backend.
+message SetDefaultStorageBackendOp {
+  // StorageBackendId identifies the new default, or empty for the account's
+  // own storage.
+  string storage_backend_id = 1;
 }
 
 // ReplaceKeybindingOverrideSetOp applies a complete layer replacement with per-surface conflict detection.

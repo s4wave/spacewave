@@ -224,7 +224,7 @@ func newDeviceSetupCommand() *cli.Command {
 				Value:       deviceSetupDefaultTicketTTL,
 				Destination: &expiresIn,
 			},
-			deviceOutputFlag(),
+			outputFlag(),
 		),
 		Action: func(c *cli.Context) error {
 			return runDeviceSetup(c, deviceSetupArgs{
@@ -253,7 +253,7 @@ func newDeviceSetupDockerCommand() *cli.Command {
 				Required:    true,
 				Destination: &label,
 			},
-			deviceOutputFlag(),
+			outputFlag(),
 		),
 		Action: func(c *cli.Context) error {
 			report, err := buildDeviceDockerSetupReport(c, statePath, label)
@@ -278,7 +278,7 @@ func newDeviceCompleteCommand() *cli.Command {
 				Usage:       "base64 SpaceLink completion payload",
 				Destination: &completion,
 			},
-			deviceOutputFlag(),
+			outputFlag(),
 		),
 		Action: func(c *cli.Context) error {
 			completionValue := completion
@@ -299,18 +299,10 @@ func newDeviceStatusCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "status",
 		Usage: "show local Device setup status",
-		Flags: append(daemonClientFlags(&statePath), deviceOutputFlag()),
+		Flags: append(daemonClientFlags(&statePath), outputFlag()),
 		Action: func(c *cli.Context) error {
 			return runDeviceStatus(c, statePath, c.String("output"))
 		},
-	}
-}
-
-func deviceOutputFlag() cli.Flag {
-	return &cli.StringFlag{
-		Name:  "output",
-		Usage: "output format (text/json/yaml)",
-		Value: "text",
 	}
 }
 

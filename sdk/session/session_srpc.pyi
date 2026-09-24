@@ -226,6 +226,32 @@ class SessionResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    def watch_storage_backends(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse
+    ]: ...
+    async def check_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse
+    ): ...
+    async def add_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse
+    ): ...
+    async def remove_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse: ...
+    async def set_default_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
 
 class SessionResourceServiceServer(Protocol):
     async def get_session_info(
@@ -442,6 +468,32 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    def watch_storage_backends(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse
+    ]: ...
+    async def check_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse
+    ): ...
+    async def add_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse
+    ): ...
+    async def remove_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse: ...
+    async def set_default_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
 
 def register_session_resource_service(
     registry: ServiceRegistry,

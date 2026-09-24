@@ -97,6 +97,19 @@ type SRPCSessionResourceServiceClient interface {
 	AcceptLocalPairingOffer(ctx context.Context, in *AcceptLocalPairingOfferRequest) (*AcceptLocalPairingOfferResponse, error)
 
 	AcceptLocalPairingAnswer(ctx context.Context, in *AcceptLocalPairingAnswerRequest) (*AcceptLocalPairingAnswerResponse, error)
+	// WatchStorageBackends streams the account's storage backends and the
+	// Spaces placed on each.
+	WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error)
+	// CheckStorageBackend writes, reads, and deletes a probe object on a saved
+	// or unsaved backend.
+	CheckStorageBackend(ctx context.Context, in *CheckStorageBackendRequest) (*CheckStorageBackendResponse, error)
+	// AddStorageBackend checks a bucket and saves it as a storage backend when
+	// the check passes.
+	AddStorageBackend(ctx context.Context, in *AddStorageBackendRequest) (*AddStorageBackendResponse, error)
+	// RemoveStorageBackend removes a storage backend that holds no Space.
+	RemoveStorageBackend(ctx context.Context, in *RemoveStorageBackendRequest) (*RemoveStorageBackendResponse, error)
+	// SetDefaultStorageBackend selects the backend that new Spaces use.
+	SetDefaultStorageBackend(ctx context.Context, in *SetDefaultStorageBackendRequest) (*SetDefaultStorageBackendResponse, error)
 }
 
 type srpcSessionResourceServiceClient struct {
@@ -720,6 +733,76 @@ func (c *srpcSessionResourceServiceClient) AcceptLocalPairingAnswer(ctx context.
 	return out, nil
 }
 
+func (c *srpcSessionResourceServiceClient) WatchStorageBackends(ctx context.Context, in *WatchStorageBackendsRequest) (SRPCSessionResourceService_WatchStorageBackendsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchStorageBackends", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_WatchStorageBackendsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSessionResourceService_WatchStorageBackendsClient interface {
+	srpc.Stream
+	Recv() (*WatchStorageBackendsResponse, error)
+	RecvTo(*WatchStorageBackendsResponse) error
+}
+
+type srpcSessionResourceService_WatchStorageBackendsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchStorageBackendsClient) Recv() (*WatchStorageBackendsResponse, error) {
+	m := new(WatchStorageBackendsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_WatchStorageBackendsClient) RecvTo(m *WatchStorageBackendsResponse) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcSessionResourceServiceClient) CheckStorageBackend(ctx context.Context, in *CheckStorageBackendRequest) (*CheckStorageBackendResponse, error) {
+	out := new(CheckStorageBackendResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CheckStorageBackend", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) AddStorageBackend(ctx context.Context, in *AddStorageBackendRequest) (*AddStorageBackendResponse, error) {
+	out := new(AddStorageBackendResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AddStorageBackend", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) RemoveStorageBackend(ctx context.Context, in *RemoveStorageBackendRequest) (*RemoveStorageBackendResponse, error) {
+	out := new(RemoveStorageBackendResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveStorageBackend", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) SetDefaultStorageBackend(ctx context.Context, in *SetDefaultStorageBackendRequest) (*SetDefaultStorageBackendResponse, error) {
+	out := new(SetDefaultStorageBackendResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetDefaultStorageBackend", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSessionResourceServiceServer interface {
 	GetSessionInfo(context.Context, *GetSessionInfoRequest) (*GetSessionInfoResponse, error)
 
@@ -804,6 +887,19 @@ type SRPCSessionResourceServiceServer interface {
 	AcceptLocalPairingOffer(context.Context, *AcceptLocalPairingOfferRequest) (*AcceptLocalPairingOfferResponse, error)
 
 	AcceptLocalPairingAnswer(context.Context, *AcceptLocalPairingAnswerRequest) (*AcceptLocalPairingAnswerResponse, error)
+	// WatchStorageBackends streams the account's storage backends and the
+	// Spaces placed on each.
+	WatchStorageBackends(*WatchStorageBackendsRequest, SRPCSessionResourceService_WatchStorageBackendsStream) error
+	// CheckStorageBackend writes, reads, and deletes a probe object on a saved
+	// or unsaved backend.
+	CheckStorageBackend(context.Context, *CheckStorageBackendRequest) (*CheckStorageBackendResponse, error)
+	// AddStorageBackend checks a bucket and saves it as a storage backend when
+	// the check passes.
+	AddStorageBackend(context.Context, *AddStorageBackendRequest) (*AddStorageBackendResponse, error)
+	// RemoveStorageBackend removes a storage backend that holds no Space.
+	RemoveStorageBackend(context.Context, *RemoveStorageBackendRequest) (*RemoveStorageBackendResponse, error)
+	// SetDefaultStorageBackend selects the backend that new Spaces use.
+	SetDefaultStorageBackend(context.Context, *SetDefaultStorageBackendRequest) (*SetDefaultStorageBackendResponse, error)
 }
 
 const SRPCSessionResourceServiceServiceID = "s4wave.session.SessionResourceService"
@@ -874,6 +970,11 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"CreateLocalPairingOffer",
 		"AcceptLocalPairingOffer",
 		"AcceptLocalPairingAnswer",
+		"WatchStorageBackends",
+		"CheckStorageBackend",
+		"AddStorageBackend",
+		"RemoveStorageBackend",
+		"SetDefaultStorageBackend",
 	}
 }
 
@@ -970,6 +1071,16 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AcceptLocalPairingOffer(d.impl, strm)
 	case "AcceptLocalPairingAnswer":
 		return true, d.InvokeMethod_AcceptLocalPairingAnswer(d.impl, strm)
+	case "WatchStorageBackends":
+		return true, d.InvokeMethod_WatchStorageBackends(d.impl, strm)
+	case "CheckStorageBackend":
+		return true, d.InvokeMethod_CheckStorageBackend(d.impl, strm)
+	case "AddStorageBackend":
+		return true, d.InvokeMethod_AddStorageBackend(d.impl, strm)
+	case "RemoveStorageBackend":
+		return true, d.InvokeMethod_RemoveStorageBackend(d.impl, strm)
+	case "SetDefaultStorageBackend":
+		return true, d.InvokeMethod_SetDefaultStorageBackend(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -1452,6 +1563,63 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_AcceptLocalPairingAnswer(i
 	return strm.MsgSend(out)
 }
 
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchStorageBackends(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchStorageBackendsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_WatchStorageBackendsStream{strm}
+	return impl.WatchStorageBackends(req, serverStrm)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_CheckStorageBackend(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(CheckStorageBackendRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CheckStorageBackend(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_AddStorageBackend(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(AddStorageBackendRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AddStorageBackend(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_RemoveStorageBackend(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(RemoveStorageBackendRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RemoveStorageBackend(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_SetDefaultStorageBackend(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetDefaultStorageBackendRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetDefaultStorageBackend(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCSessionResourceService_GetSessionInfoStream interface {
 	srpc.Stream
 }
@@ -1920,5 +2088,60 @@ type SRPCSessionResourceService_AcceptLocalPairingAnswerStream interface {
 }
 
 type srpcSessionResourceService_AcceptLocalPairingAnswerStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_WatchStorageBackendsStream interface {
+	srpc.Stream
+	Send(*WatchStorageBackendsResponse) error
+	SendAndClose(*WatchStorageBackendsResponse) error
+}
+
+type srpcSessionResourceService_WatchStorageBackendsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchStorageBackendsStream) Send(m *WatchStorageBackendsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_WatchStorageBackendsStream) SendAndClose(m *WatchStorageBackendsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSessionResourceService_CheckStorageBackendStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_CheckStorageBackendStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_AddStorageBackendStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_AddStorageBackendStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_RemoveStorageBackendStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_RemoveStorageBackendStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_SetDefaultStorageBackendStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_SetDefaultStorageBackendStream struct {
 	srpc.Stream
 }

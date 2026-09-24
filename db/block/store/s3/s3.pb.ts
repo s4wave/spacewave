@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/db/block/store/s3/s3.proto (package block.store.s3, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -10,6 +11,87 @@ import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 
 export const protobufPackage = 'block.store.s3'
+
+/**
+ * CheckOutcome classifies a bucket connectivity check.
+ *
+ * @generated from enum block.store.s3.CheckOutcome
+ */
+export enum CheckOutcome {
+  /**
+   * CHECK_OUTCOME_UNKNOWN is the unset outcome.
+   *
+   * @generated from enum value: CHECK_OUTCOME_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * CHECK_OUTCOME_OK means a probe object was written, read back, and deleted.
+   *
+   * @generated from enum value: CHECK_OUTCOME_OK = 1;
+   */
+  OK = 1,
+
+  /**
+   * CHECK_OUTCOME_UNREACHABLE means no response arrived from the endpoint.
+   * In the browser this includes a bucket that does not allow the app's
+   * origin through CORS.
+   *
+   * @generated from enum value: CHECK_OUTCOME_UNREACHABLE = 2;
+   */
+  UNREACHABLE = 2,
+
+  /**
+   * CHECK_OUTCOME_CREDENTIALS_REJECTED means the endpoint rejected the access
+   * key or its signature.
+   *
+   * @generated from enum value: CHECK_OUTCOME_CREDENTIALS_REJECTED = 3;
+   */
+  CREDENTIALS_REJECTED = 3,
+
+  /**
+   * CHECK_OUTCOME_ACCESS_DENIED means the credentials are valid but lack
+   * permission to write, read, or delete objects in the bucket.
+   *
+   * @generated from enum value: CHECK_OUTCOME_ACCESS_DENIED = 4;
+   */
+  ACCESS_DENIED = 4,
+
+  /**
+   * CHECK_OUTCOME_BUCKET_NOT_FOUND means the bucket does not exist.
+   *
+   * @generated from enum value: CHECK_OUTCOME_BUCKET_NOT_FOUND = 5;
+   */
+  BUCKET_NOT_FOUND = 5,
+
+  /**
+   * CHECK_OUTCOME_WRONG_REGION means the bucket is in another region.
+   *
+   * @generated from enum value: CHECK_OUTCOME_WRONG_REGION = 6;
+   */
+  WRONG_REGION = 6,
+
+  /**
+   * CHECK_OUTCOME_FAILED means another error stopped the check.
+   *
+   * @generated from enum value: CHECK_OUTCOME_FAILED = 7;
+   */
+  FAILED = 7,
+}
+
+export const CheckOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'block.store.s3.CheckOutcome',
+  [
+    [0, 'CHECK_OUTCOME_UNKNOWN'],
+    [1, 'CHECK_OUTCOME_OK'],
+    [2, 'CHECK_OUTCOME_UNREACHABLE'],
+    [3, 'CHECK_OUTCOME_CREDENTIALS_REJECTED'],
+    [4, 'CHECK_OUTCOME_ACCESS_DENIED'],
+    [5, 'CHECK_OUTCOME_BUCKET_NOT_FOUND'],
+    [6, 'CHECK_OUTCOME_WRONG_REGION'],
+    [7, 'CHECK_OUTCOME_FAILED'],
+  ],
+)
 
 /**
  * Credentials are credentials for a s3-compatible api.
@@ -186,3 +268,34 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * CheckResult is the result of a bucket connectivity check.
+ *
+ * @generated from message block.store.s3.CheckResult
+ */
+export interface CheckResult {
+  /**
+   * Outcome classifies the result.
+   *
+   * @generated from field: block.store.s3.CheckOutcome outcome = 1;
+   */
+  outcome?: CheckOutcome
+  /**
+   * Detail is the failing step and the server's error message.
+   * Empty when Outcome is CHECK_OUTCOME_OK.
+   *
+   * @generated from field: string detail = 2;
+   */
+  detail?: string
+}
+
+export const CheckResult: MessageType<CheckResult> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.store.s3.CheckResult',
+    fields: [
+      { no: 1, name: 'outcome', kind: 'enum', T: CheckOutcome_Enum },
+      { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

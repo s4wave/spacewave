@@ -8,6 +8,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/aperturerobotics/cli"
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -133,4 +134,14 @@ func writeJSONStringFieldIf(ms *protojson.MarshalState, more *bool, name, value 
 		return
 	}
 	writeJSONStringField(ms, more, name, value)
+}
+
+// outputFlag builds a command-local output format flag.
+func outputFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:    "output",
+		Aliases: []string{"o"},
+		Usage:   "output format (text/json/yaml)",
+		Value:   "text",
+	}
 }

@@ -60,7 +60,7 @@ func newDevicePolicyForgeWorkerShowCommand() *cli.Command {
 	return &cli.Command{
 		Name:   "show",
 		Usage:  "show the declared Forge Worker and capacity",
-		Flags:  append([]cli.Flag{statePathFlag(&args.statePath)}, deviceOutputFlag()),
+		Flags:  append([]cli.Flag{statePathFlag(&args.statePath)}, outputFlag()),
 		Action: args.Run,
 	}
 }
