@@ -665,7 +665,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 			return nil, err
 		}
 		engTx := newEngineTx(e, nil)
-		engTx.readTx = NewTx(world)
+		engTx.readTx.Store(NewTx(world))
 		engTx.readRoot = e.head.root.GetRef().Clone()
 		e.snapshotTxs[engTx] = struct{}{}
 		locked.Unlock()

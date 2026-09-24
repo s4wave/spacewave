@@ -49,7 +49,7 @@ func TestReadTransactionKeepsRevision(t *testing.T) {
 			}
 
 			// Reopen backing storage while retaining the original immutable root.
-			if err := reader.refreshReadSnapshot(ctx, reader.readTx); err != nil {
+			if err := reader.refreshReadSnapshot(ctx, reader.readTx.Load()); err != nil {
 				t.Fatal(err)
 			}
 			object, found, err := reader.GetObject(ctx, "snapshot/later")
