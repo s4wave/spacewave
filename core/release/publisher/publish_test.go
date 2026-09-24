@@ -77,8 +77,7 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	const manifestKey = "test/releases"
 	meta := &bldr_manifest.ManifestMeta{ManifestId: "test-desktop", BuildType: "release", PlatformId: "desktop/windows/amd64", Rev: 1}
 	ref, err := world.AccessObject(ctx, tx.AccessWorldState, nil, func(cursor *block.Cursor) error {
-		_, err := bldr_manifest.CreateManifestWithIoFS(ctx, cursor, meta, "app.exe", fstest.MapFS{"app.exe": {Data: []byte("installed executable"), Mode: 0o755}}, nil, nil)
-		return err
+		return bldr_manifest.CreateManifestWithIoFS(ctx, cursor, bldr_manifest.NewManifest(meta, "app.exe"), fstest.MapFS{"app.exe": {Data: []byte("installed executable"), Mode: 0o755}}, nil, nil)
 	})
 	if err != nil {
 		t.Fatal(err)

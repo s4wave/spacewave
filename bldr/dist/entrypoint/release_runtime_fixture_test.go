@@ -280,7 +280,7 @@ func buildRemoteManifest(
 	}
 	defer cursor.Release()
 	tx, blocks := cursor.BuildTransaction(nil)
-	if _, err := bldr_manifest.CreateManifestWithBilly(ctx, blocks, meta, "core.js", distFS, nil, timestamppb.Now()); err != nil {
+	if err := bldr_manifest.CreateManifestWithBilly(ctx, blocks, bldr_manifest.NewManifest(meta, "core.js"), distFS, nil, timestamppb.Now()); err != nil {
 		t.Fatal(err)
 	}
 	root, _, err := tx.Write(ctx, true)

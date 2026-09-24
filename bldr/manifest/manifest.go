@@ -103,59 +103,39 @@ func UnmarshalManifest(ctx context.Context, bcs *block.Cursor) (*Manifest, error
 	return block.UnmarshalBlock[*Manifest](ctx, bcs, NewManifestBlock)
 }
 
-// CreateManifestWithBilly creates the manifest at the block cursor with billy filesystem instances.
+// CreateManifestWithBilly writes the manifest at the block cursor with billy
+// filesystem instances for its dist and assets trees.
 // Note: supports symlinks if the fs implements billy.Symlink.
 // Note: nil fs will leave that portion of the manifest empty.
 func CreateManifestWithBilly(
 	ctx context.Context,
 	bcs *block.Cursor,
-	meta *ManifestMeta,
-	entrypoint string,
+	manifest *Manifest,
 	distFs, assetsFs billy.Filesystem,
 	ts *timestamp.Timestamp,
-) (*Manifest, error) {
-	manifest := NewManifest(meta, entrypoint)
+) error {
 	bcs.SetBlock(manifest, true)
-
-	// setup the distribution filesystem.
 	if err := unixfs_block.CreateFromBillyFS(ctx, bcs.FollowRef(3, nil), distFs, ts); err != nil {
-		return nil, err
+		return err
 	}
-
-	// setup the assets filesystem.
-	if err := unixfs_block.CreateFromBillyFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
-		return nil, err
-	}
-
-	// done
-	return manifest, nil
+	return unixfs_block.CreateFromBillyFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts)
 }
 
-// CreateManifestWithIoFS creates the manifest at the block cursor with io/fs.FS instances.
+// CreateManifestWithIoFS writes the manifest at the block cursor with io/fs.FS
+// instances for its dist and assets trees.
 // Note: does not yet support symlinks: https://github.com/golang/go/issues/49580
 func CreateManifestWithIoFS(
 	ctx context.Context,
 	bcs *block.Cursor,
-	meta *ManifestMeta,
-	entrypoint string,
+	manifest *Manifest,
 	distFs, assetsFs fs.FS,
 	ts *timestamp.Timestamp,
-) (*Manifest, error) {
-	manifest := NewManifest(meta, entrypoint)
+) error {
 	bcs.SetBlock(manifest, true)
-
-	// setup the distribution filesystem.
 	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(3, nil), distFs, ts); err != nil {
-		return nil, err
+		return err
 	}
-
-	// setup the assets filesystem.
-	if err := unixfs_block.CreateFromFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts); err != nil {
-		return nil, err
-	}
-
-	// done
-	return manifest, nil
+	return unixfs_block.CreateFromFS(ctx, bcs.FollowRef(4, nil), assetsFs, ts)
 }
 
 // Validate validates the Manifest.
@@ -171,6 +151,11 @@ func (m *Manifest) Validate() error {
 	}
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
+	}
+	for i, dep := range m.GetDeps() {
+		if err := ValidateManifestID(dep, false); err != nil {
+			return errors.Wrapf(err, "deps[%d]", i)
+		}
 	}
 	return nil
 }

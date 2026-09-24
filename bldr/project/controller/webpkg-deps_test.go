@@ -143,3 +143,22 @@ func TestResolveWebPkgDepsMultipleProviders(t *testing.T) {
 		t.Fatalf("expected [provider-a, provider-b], got %v", consumerDeps)
 	}
 }
+
+func TestFindDepCycle(t *testing.T) {
+	deps := map[string][]string{
+		"app":   {"code", "web"},
+		"code":  {"web"},
+		"notes": {"code", "web"},
+	}
+	for _, id := range []string{"app", "code", "notes", "web"} {
+		if cycle := findDepCycle(deps, id); cycle != nil {
+			t.Fatalf("expected no cycle from %s, got %v", id, cycle)
+		}
+	}
+
+	deps["web"] = []string{"notes"}
+	cycle := findDepCycle(deps, "code")
+	if !slices.Equal(cycle, []string{"code", "web", "notes", "code"}) {
+		t.Fatalf("expected code -> web -> notes -> code, got %v", cycle)
+	}
+}

@@ -201,6 +201,17 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			t.emitPluginManifestRoot(manifestRoot)
 		}
 
+		// Hold each dependency while this plugin runs. Dependencies start
+		// alongside it: an import of a dependency's web package waits in
+		// LookupWebPkg until the provider forwards it.
+		for _, dep := range manifest.GetDeps() {
+			_, depRef, err := t.c.bus.AddDirective(bldr_plugin.NewLoadPlugin(dep), nil)
+			if err != nil {
+				return err
+			}
+			defer depRef.Release()
+		}
+
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
 			ctx,
 			t.c.bus,

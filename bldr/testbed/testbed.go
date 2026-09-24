@@ -386,7 +386,8 @@ func (d *Testbed) CreateManifestWithBilly(
 	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
 
-		manifest, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifestMeta, entrypoint, distFs, assetsFs, ts)
+		manifest = bldr_manifest.NewManifest(manifestMeta, entrypoint)
+		err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifest, distFs, assetsFs, ts)
 		if err != nil {
 			return err
 		}

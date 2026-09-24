@@ -3942,7 +3942,7 @@ func newTestStoredManifestRefWithDistInBucketAndTransform(
 	defer oc.Release()
 
 	btx, bcs := oc.BuildTransaction(nil)
-	if _, err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, nil, timestamppb.Now()); err != nil {
+	if err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, bldr_manifest.NewManifest(meta, entrypoint), distFS, nil, timestamppb.Now()); err != nil {
 		t.Fatal(err.Error())
 	}
 	rootRef, _, err := btx.Write(ctx, true)
@@ -4028,8 +4028,8 @@ func newTestExternalManifestRefWithDistAssets(
 	store := &countingBlockStore{store: ops, gets: &atomic.Uint32{}}
 	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
 	btx, bcs := block.NewTransaction(store, nil, nil, nil)
-	manifest, err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, assetsFS, timestamppb.Now())
-	if err != nil {
+	manifest := bldr_manifest.NewManifest(meta, entrypoint)
+	if err := bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifest, distFS, assetsFS, timestamppb.Now()); err != nil {
 		t.Fatal(err.Error())
 	}
 	rootRef, _, err := btx.Write(ctx, true)

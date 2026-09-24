@@ -119,11 +119,11 @@ func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEn
 	)
 	meta := bldr_manifest.NewManifestMeta("resolved-ref-test", bldr_manifest.BuildType_DEV, "test/platform", 1)
 	tx, bcs := bls.BuildTransaction(nil)
-	manifest, err := bldr_manifest.CreateManifestWithBilly(
+	manifest := bldr_manifest.NewManifest(meta, sharedPath)
+	err := bldr_manifest.CreateManifestWithBilly(
 		ctx,
 		bcs,
-		meta,
-		sharedPath,
+		manifest,
 		distBillyFS,
 		assetsBillyFS,
 		timestamppb.Now(),

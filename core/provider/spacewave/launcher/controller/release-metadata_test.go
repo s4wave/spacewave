@@ -969,8 +969,7 @@ func writeReleaseManifestTestBlockWithMeta(
 	}
 	objRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
-		_, err := bldr_manifest.CreateManifestWithIoFS(ctx, bcs, meta, "spacewave", os.DirFS(distDir), nil, nil)
-		return err
+		return bldr_manifest.CreateManifestWithIoFS(ctx, bcs, bldr_manifest.NewManifest(meta, "spacewave"), os.DirFS(distDir), nil, nil)
 	})
 	if err != nil {
 		t.Fatal(err.Error())

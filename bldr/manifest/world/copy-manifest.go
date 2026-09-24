@@ -69,8 +69,11 @@ func DeepCopyManifest(
 				le,
 				destWorldState,
 				destAccess,
-				manifestMeta,
-				manifest.GetEntrypoint(),
+				&bldr_manifest.Manifest{
+					Meta:       manifestMeta,
+					Entrypoint: manifest.GetEntrypoint(),
+					Deps:       manifest.GetDeps(),
+				},
 				distBfs,
 				assetsBfs,
 				destObjectKey,

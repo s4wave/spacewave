@@ -5,6 +5,7 @@ package bldr_manifest_builder
 import (
 	"context"
 	"path/filepath"
+	"slices"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/go-git/go-billy/v6"
@@ -52,6 +53,11 @@ func (c *BuilderConfig) Validate() error {
 	if !filepath.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
+	for i, dep := range c.GetDeps() {
+		if err := manifest.ValidateManifestID(dep, false); err != nil {
+			return errors.Wrapf(err, "deps[%d]", i)
+		}
+	}
 	return nil
 }
 
@@ -84,19 +90,10 @@ func (c *BuilderConfig) CommitManifest(
 	}
 	ts := ManifestCommitTimestamp(ctx)
 
-	var manifestValue *manifest.Manifest
+	manifestValue := manifest.NewManifest(meta, entrypointFilename)
+	manifestValue.Deps = slices.Clone(c.GetDeps())
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
-		var err error
-		manifestValue, err = manifest.CreateManifestWithBilly(
-			ctx,
-			bcs,
-			meta,
-			entrypointFilename,
-			distFs,
-			assetsFs,
-			ts,
-		)
-		return err
+		return manifest.CreateManifestWithBilly(ctx, bcs, manifestValue, distFs, assetsFs, ts)
 	})
 	if err != nil {
 		return nil, manifestRef, err

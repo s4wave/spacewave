@@ -100,7 +100,7 @@ func TestRunCloudBlockStoreForwardingExposesHostBucket(t *testing.T) {
 
 	manifestTx, manifestCursor := block.NewTransaction(store, nil, nil, nil)
 	manifestMeta := bldr_manifest.NewManifestMeta("glados-web", bldr_manifest.BuildType_DEV, "desktop/darwin/arm64", 1)
-	if _, err := bldr_manifest.CreateManifestWithBilly(ctx, manifestCursor, manifestMeta, entrypoint, distFS, nil, timestamp.Now()); err != nil {
+	if err := bldr_manifest.CreateManifestWithBilly(ctx, manifestCursor, bldr_manifest.NewManifest(manifestMeta, entrypoint), distFS, nil, timestamp.Now()); err != nil {
 		t.Fatal(err)
 	}
 	manifestRootRef, _, err := manifestTx.Write(ctx, true)

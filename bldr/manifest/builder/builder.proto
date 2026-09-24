@@ -38,6 +38,10 @@ message BuilderConfig {
 
   // BuildPolicy is the effective build-scoped policy for this Manifest build.
   .bldr.manifest.build.BuildPolicy build_policy = 11;
+
+  // Deps lists the plugin IDs the built plugin depends on, sorted.
+  // CommitManifest records them in the Manifest.
+  repeated string deps = 12;
 }
 
 // BuilderResult is the result of a builder run.

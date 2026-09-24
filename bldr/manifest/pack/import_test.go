@@ -401,7 +401,7 @@ func storeTestManifest(
 		if err := f.Close(); err != nil {
 			return err
 		}
-		_, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, meta, entrypoint, distFS, nil, timestamppb.Now())
+		err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, bldr_manifest.NewManifest(meta, entrypoint), distFS, nil, timestamppb.Now())
 		return err
 	})
 	if err != nil {

@@ -13,32 +13,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CommitManifest commits the manifest with output paths.
+// CommitManifest writes out with the dist and assets filesystems and stores it
+// in the World.
 func CommitManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
 	access world.AccessWorldStateFunc,
-	meta *manifest.ManifestMeta,
-	entrypointFilename string,
+	out *manifest.Manifest,
 	distFs, assetsFs billy.Filesystem,
 	manifestObjKey string,
 	linkObjKeys []string,
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
-	var out *manifest.Manifest
-	manifestRef, err := world.AccessObject(ctx, access, nil, func(bcs *block.Cursor) (err error) {
-		out, err = manifest.CreateManifestWithBilly(
-			ctx,
-			bcs,
-			meta,
-			entrypointFilename,
-			distFs,
-			assetsFs,
-			ts,
-		)
-		return err
+	manifestRef, err := world.AccessObject(ctx, access, nil, func(bcs *block.Cursor) error {
+		return manifest.CreateManifestWithBilly(ctx, bcs, out, distFs, assetsFs, ts)
 	})
 	if err != nil {
 		return nil, manifestRef, err

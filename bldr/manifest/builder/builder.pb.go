@@ -87,6 +87,9 @@ type BuilderConfig struct {
 	TargetPlatformIds []string `protobuf:"bytes,10,rep,name=target_platform_ids,json=targetPlatformIds,proto3" json:"targetPlatformIds,omitempty"`
 	// BuildPolicy is the effective build-scoped policy for this Manifest build.
 	BuildPolicy *build.BuildPolicy `protobuf:"bytes,11,opt,name=build_policy,json=buildPolicy,proto3" json:"buildPolicy,omitempty"`
+	// Deps lists the plugin IDs the built plugin depends on, sorted.
+	// CommitManifest records them in the Manifest.
+	Deps []string `protobuf:"bytes,12,rep,name=deps,proto3" json:"deps,omitempty"`
 }
 
 func (x *BuilderConfig) Reset() {
@@ -161,6 +164,13 @@ func (x *BuilderConfig) GetTargetPlatformIds() []string {
 func (x *BuilderConfig) GetBuildPolicy() *build.BuildPolicy {
 	if x != nil {
 		return x.BuildPolicy
+	}
+	return nil
+}
+
+func (x *BuilderConfig) GetDeps() []string {
+	if x != nil {
+		return x.Deps
 	}
 	return nil
 }
@@ -533,6 +543,7 @@ func (m *BuilderConfig) CloneVT() *BuilderConfig {
 	r.LinkObjectKeys = protobuf_go_lite.CloneSlice(m.LinkObjectKeys)
 	r.TargetPlatformIds = protobuf_go_lite.CloneSlice(m.TargetPlatformIds)
 	r.BuildPolicy = protobuf_go_lite.CloneVTValue(m.BuildPolicy)
+	r.Deps = protobuf_go_lite.CloneSlice(m.Deps)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -707,6 +718,9 @@ func (this *BuilderConfig) EqualVT(that *BuilderConfig) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.BuildPolicy, that.BuildPolicy) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Deps, that.Deps) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -972,6 +986,11 @@ func (x *BuilderConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("buildPolicy")
 		x.BuildPolicy.MarshalProtoJSON(s.WithField("buildPolicy"))
 	}
+	if len(x.Deps) > 0 || s.HasField("deps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deps")
+		s.WriteStringArray(x.Deps)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1035,6 +1054,13 @@ func (x *BuilderConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.BuildPolicy = &build.BuildPolicy{}
 			x.BuildPolicy.UnmarshalProtoJSON(s.WithField("build_policy", true))
+		case "deps":
+			s.AddField("deps")
+			if s.ReadNil() {
+				x.Deps = nil
+				return
+			}
+			x.Deps = s.ReadStringArray()
 		}
 	})
 }
@@ -1737,6 +1763,13 @@ func (m *BuilderConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Deps) > 0 {
+		for iNdEx := len(m.Deps) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Deps[iNdEx])
+			i--
+			dAtA[i] = 0x62
+		}
+	}
 	if m.BuildPolicy != nil {
 		size, err := m.BuildPolicy.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2258,6 +2291,7 @@ func (m *BuilderConfig) SizeVT() (n int) {
 		l = m.BuildPolicy.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringSlice(1, m.Deps)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2452,6 +2486,14 @@ func (x *BuilderConfig) MarshalProtoText() string {
 	if x.BuildPolicy != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "build_policy")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.BuildPolicy)
+	}
+	if len(x.Deps) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "deps")
+		for i, v := range x.Deps {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2825,6 +2867,16 @@ func (m *BuilderConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deps", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Deps = append(m.Deps, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

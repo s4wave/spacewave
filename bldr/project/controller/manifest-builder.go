@@ -341,6 +341,17 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		}
 	}
 
+	// A plugin depends on the providers of the web packages it excludes. The
+	// built manifest records them for the plugin host, and a provider rebuild
+	// rebuilds its consumers.
+	webPkgDeps := resolveWebPkgDeps(t.c.le, projectConfig.GetManifests())
+	if cycle := findDepCycle(webPkgDeps, manifestID); len(cycle) != 0 {
+		err := errors.Errorf("plugin dependency cycle: %s", strings.Join(cycle, " -> "))
+		t.setManifestBuilderStatus(ManifestBuilderStatusStateError, "resolve plugin dependencies", err)
+		return err
+	}
+	deps := webPkgDeps[manifestID]
+
 	// build plugin manifest metadata and builder config
 	meta.Rev = rev
 	manifestBuilderConf := &bldr_manifest_builder.BuilderConfig{
@@ -354,6 +365,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		SourcePath:        ctrlConf.GetSourcePath(),
 		TargetPlatformIds: t.conf.GetTargetPlatformIds(),
 		BuildPolicy:       t.conf.GetBuildPolicy().CloneVT(),
+		Deps:              deps,
 	}
 	builderConf := manifest_builder_controller.NewConfig(
 		manifestBuilderConf,
@@ -362,13 +374,7 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		ctrlConf.GetWatch(),
 		startupBuilderResult,
 	)
-
-	// Resolve webPkg dependencies: if this manifest excludes webPkgs
-	// that another manifest provides, watch the provider for rebuilds.
-	webPkgDeps := resolveWebPkgDeps(t.c.le, projectConfig.GetManifests())
-	if watchIDs := webPkgDeps[manifestID]; len(watchIDs) > 0 {
-		builderConf.WatchManifestIds = watchIDs
-	}
+	builderConf.WatchManifestIds = deps
 
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "starting builder controller", nil)
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](

@@ -76,7 +76,7 @@ func createTestManifestStore(t *testing.T) (
 	src := block_mock.NewMockStore(0)
 	tx, cursor := block.NewTransaction(src, nil, nil, nil)
 	meta := bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "web/js", 1)
-	if _, err := bldr_manifest.CreateManifestWithBilly(ctx, cursor, meta, entrypoint, distFS, nil, timestamppb.Now()); err != nil {
+	if err := bldr_manifest.CreateManifestWithBilly(ctx, cursor, bldr_manifest.NewManifest(meta, entrypoint), distFS, nil, timestamppb.Now()); err != nil {
 		t.Fatal(err)
 	}
 	rootRef, _, err := tx.Write(ctx, true)

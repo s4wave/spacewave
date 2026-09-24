@@ -3,6 +3,8 @@
 package bldr_project_controller
 
 import (
+	"slices"
+
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	go_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	js_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
@@ -13,7 +15,7 @@ import (
 
 // resolveWebPkgDeps computes the webPkg dependency graph from manifest configs.
 //
-// Returns a map of consumer manifest ID -> provider manifest IDs.
+// Returns a map of consumer manifest ID -> sorted provider manifest IDs.
 // A consumer is a manifest with excluded webPkgs. A provider is a
 // manifest that declares the same webPkg ID without exclude.
 func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.ManifestConfig) map[string][]string {
@@ -39,21 +41,43 @@ func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.Mani
 	// Resolve consumers to provider manifest IDs.
 	result := make(map[string][]string)
 	for consumerID, excludedPkgs := range consumers {
-		seen := make(map[string]struct{})
+		var deps []string
 		for _, pkgID := range excludedPkgs {
 			providerID, ok := providers[pkgID]
-			if !ok || providerID == consumerID {
-				continue
+			if ok && providerID != consumerID {
+				deps = append(deps, providerID)
 			}
-			if _, dup := seen[providerID]; dup {
-				continue
-			}
-			seen[providerID] = struct{}{}
-			result[consumerID] = append(result[consumerID], providerID)
+		}
+		if len(deps) != 0 {
+			slices.Sort(deps)
+			result[consumerID] = slices.Compact(deps)
 		}
 	}
 
 	return result
+}
+
+// findDepCycle returns a dependency path from id back to itself, or nil when
+// id reaches no cycle through deps.
+func findDepCycle(deps map[string][]string, id string) []string {
+	visited := make(map[string]bool)
+	var walk func(path []string) []string
+	walk = func(path []string) []string {
+		for _, dep := range deps[path[len(path)-1]] {
+			if dep == id {
+				return append(path, dep)
+			}
+			if visited[dep] {
+				continue
+			}
+			visited[dep] = true
+			if cycle := walk(append(path, dep)); cycle != nil {
+				return cycle
+			}
+		}
+		return nil
+	}
+	return walk([]string{id})
 }
 
 // readCompilerWebPkgs reads the web package refs declared by a compiler

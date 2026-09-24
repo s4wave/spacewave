@@ -35,6 +35,10 @@ message Manifest {
   // AssetsFsRef references a UnixFS FS_NODE containing assets.
   // Asset files are accessible by the plugin at runtime in-memory.
   .block.BlockRef assets_fs_ref = 4;
+  // Deps lists the plugin IDs this plugin depends on, sorted.
+  // The plugin host loads each one alongside this plugin and holds it while
+  // this plugin runs.
+  repeated string deps = 5;
 }
 
 // ManifestRef is a reference to a Manifest with some hints.

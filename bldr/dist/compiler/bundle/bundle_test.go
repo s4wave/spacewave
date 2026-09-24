@@ -79,7 +79,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		t.Fatal(err)
 	}
 	btx, bcs := ocs.BuildTransactionAtRef(nil, nil)
-	_, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, bldr_manifest.NewManifestMeta("fixture", bldr_manifest.BuildType_DEV, "js", 1), "", nil, osfs.New(assetDir), timestamp.New(time.Unix(1700000000, 0)))
+	err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, bldr_manifest.NewManifest(bldr_manifest.NewManifestMeta("fixture", bldr_manifest.BuildType_DEV, "js", 1), ""), nil, osfs.New(assetDir), timestamp.New(time.Unix(1700000000, 0)))
 	if err != nil {
 		t.Fatal(err)
 	}

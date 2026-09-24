@@ -99,6 +99,14 @@ export interface Manifest {
    * @generated from field: block.BlockRef assets_fs_ref = 4;
    */
   assetsFsRef?: BlockRef
+  /**
+   * Deps lists the plugin IDs this plugin depends on, sorted.
+   * The plugin host loads each one alongside this plugin and holds it while
+   * this plugin runs.
+   *
+   * @generated from field: repeated string deps = 5;
+   */
+  deps?: string[]
 }
 
 export const Manifest: MessageType<Manifest> =
@@ -109,6 +117,13 @@ export const Manifest: MessageType<Manifest> =
       { no: 2, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'dist_fs_ref', kind: 'message', T: () => BlockRef },
       { no: 4, name: 'assets_fs_ref', kind: 'message', T: () => BlockRef },
+      {
+        no: 5,
+        name: 'deps',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

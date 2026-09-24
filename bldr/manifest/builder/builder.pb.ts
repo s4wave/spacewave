@@ -124,6 +124,13 @@ export interface BuilderConfig {
    * @generated from field: bldr.manifest.build.BuildPolicy build_policy = 11;
    */
   buildPolicy?: BuildPolicy
+  /**
+   * Deps lists the plugin IDs the built plugin depends on, sorted.
+   * CommitManifest records them in the Manifest.
+   *
+   * @generated from field: repeated string deps = 12;
+   */
+  deps?: string[]
 }
 
 export const BuilderConfig: MessageType<BuilderConfig> =
@@ -152,6 +159,13 @@ export const BuilderConfig: MessageType<BuilderConfig> =
         repeated: true,
       },
       { no: 11, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
+      {
+        no: 12,
+        name: 'deps',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
