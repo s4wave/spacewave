@@ -94,6 +94,10 @@ export default defineConfig({
         replacement: resolve(__dirname, './app'),
       },
       {
+        find: /^@s4wave\/code\/(.*)$/,
+        replacement: resolve(__dirname, './plugin/code/$1'),
+      },
+      {
         find: /^@s4wave\/web\/(.*)$/,
         replacement: resolve(__dirname, './web/$1'),
       },

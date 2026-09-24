@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BlogReadingView } from './BlogReadingView.js'
 import type { BlogPostData } from './types.js'
 
-vi.mock('../CodeBlock.js', () => ({
-  useMarkdownCodeOverrides: () => ({}),
+vi.mock('@s4wave/code/markdown.js', () => ({
+  markdownCodeOptions: {},
 }))
 
 const published: BlogPostData = {

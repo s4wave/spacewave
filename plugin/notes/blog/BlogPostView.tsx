@@ -3,7 +3,8 @@ import { useCallback, useMemo } from 'react'
 import Markdown from 'markdown-to-jsx'
 import { LuArrowLeft, LuArrowRight } from 'react-icons/lu'
 
-import { useMarkdownCodeOverrides } from '../CodeBlock.js'
+import { markdownCodeOptions } from '@s4wave/code/markdown.js'
+
 import { TagChip } from './TagChip.js'
 import type { BlogPostData } from './types.js'
 import { resolveAuthor, type AuthorRegistry } from './authors.js'
@@ -38,12 +39,11 @@ export function BlogPostView({
     if (nextPost) onSelectPost(nextPost)
   }, [onSelectPost, nextPost])
 
-  const markdownOptions = useMarkdownCodeOverrides()
-
   return (
     <article className="mx-auto w-full max-w-3xl px-4 pt-6 pb-20 @lg:px-8 @lg:pt-10">
       {/* Back button */}
       <button
+        type="button"
         onClick={onBack}
         className="text-foreground-alt/60 hover:text-foreground mb-6 flex items-center gap-1.5 text-xs transition-colors"
       >
@@ -68,23 +68,21 @@ export function BlogPostView({
         </h1>
 
         {post.author && (
-          <AuthorDisplay
-            slug={post.author}
-            registry={authorRegistry ?? {}}
-          />
+          <AuthorDisplay slug={post.author} registry={authorRegistry ?? {}} />
         )}
       </header>
 
       {/* Post body */}
       <div className="blog-prose">
-        <Markdown options={markdownOptions}>{post.body}</Markdown>
+        <Markdown options={markdownCodeOptions}>{post.body}</Markdown>
       </div>
 
       {/* Post navigation */}
       {(prevPost || nextPost) && (
         <nav className="mt-12 grid grid-cols-2 gap-4">
-          {prevPost ?
+          {prevPost ? (
             <button
+              type="button"
               onClick={navigatePrev}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition duration-200"
             >
@@ -96,10 +94,13 @@ export function BlogPostView({
                 {prevPost.title}
               </span>
             </button>
-          : <div />}
+          ) : (
+            <div />
+          )}
 
-          {nextPost ?
+          {nextPost ? (
             <button
+              type="button"
               onClick={navigateNext}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-5 text-right transition duration-200"
             >
@@ -111,7 +112,9 @@ export function BlogPostView({
                 {nextPost.title}
               </span>
             </button>
-          : <div />}
+          ) : (
+            <div />
+          )}
         </nav>
       )}
     </article>
@@ -143,9 +146,7 @@ function AuthorDisplay({ slug, registry }: AuthorDisplayProps) {
           {author.name}
         </span>
         {author.bio && (
-          <span className="text-foreground-alt/50 text-xs">
-            {author.bio}
-          </span>
+          <span className="text-foreground-alt/50 text-xs">{author.bio}</span>
         )}
       </div>
     </div>
@@ -157,7 +158,7 @@ function AuthorDisplay({ slug, registry }: AuthorDisplayProps) {
         href={author.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="hover:opacity-80 transition-opacity"
+        className="transition-opacity hover:opacity-80"
       >
         {inner}
       </a>

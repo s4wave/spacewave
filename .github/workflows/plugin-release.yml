@@ -150,6 +150,12 @@ jobs:
           set -euo pipefail
           scripts/release/build-browser-plugin.sh spacewave-web
 
+      - name: Build browser plugin channel manifest (spacewave-code)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-code
+
       - name: Build browser plugin channel manifest (spacewave-app)
         shell: bash
         run: |

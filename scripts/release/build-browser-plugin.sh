@@ -3,7 +3,7 @@ set -euo pipefail
 
 plugin="${1:-}"
 case "${plugin}" in
-  spacewave-core|spacewave-web|spacewave-app|spacewave-notes|spacewave-v86|spacewave-sql|spacewave-cli-plugin|web)
+  spacewave-core|spacewave-web|spacewave-code|spacewave-app|spacewave-notes|spacewave-v86|spacewave-sql|spacewave-cli-plugin|web)
     ;;
   "")
     echo "usage: $0 <browser-plugin-id>" >&2

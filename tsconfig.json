@@ -21,6 +21,7 @@
       "@aptre/bldr-sdk/*": ["./bldr/sdk/*"],
       "@s4wave/app/*": ["./app/*"],
       "@s4wave/app": ["./app"],
+      "@s4wave/code/*": ["./plugin/code/*"],
       "@s4wave/web/*": ["./web/*"],
       "@s4wave/web": ["./web"],
       "@s4wave/sdk/*": ["./sdk/*"],

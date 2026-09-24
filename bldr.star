@@ -503,6 +503,36 @@ manifest("spacewave-web",
     },
 )
 
+# spacewave-code provides syntax highlighting: Shiki with its grammars and
+# themes, the @pierre/diffs diff view, and the @s4wave/code components. A
+# plugin that excludes these packages depends on spacewave-code.
+manifest("spacewave-code",
+    builder="bldr/plugin/compiler/js",
+    rev=1,
+    config={
+        "webPluginId": "web",
+        "modules": [
+            js_module("JS_MODULE_KIND_FRONTEND", "./plugin/code/entry.ts"),
+        ],
+        "webPkgs": EXCLUDED_WEB_PKGS + [
+            web_pkg("@s4wave/code", entrypoints=["./CodeBlock", "./markdown"]),
+            web_pkg("@pierre/diffs"),
+            web_pkg("@shikijs/core"),
+            web_pkg("@shikijs/engine-javascript"),
+            web_pkg("shiki"),
+        ],
+    },
+)
+
+# Web packages excluded by JS plugins that highlight code.
+CODE_WEB_PKGS = [
+    web_pkg("@s4wave/code", exclude=True),
+    web_pkg("@pierre/diffs", exclude=True),
+    web_pkg("@shikijs/core", exclude=True),
+    web_pkg("@shikijs/engine-javascript", exclude=True),
+    web_pkg("shiki", exclude=True),
+]
+
 # JS plugins sharing the same exclusion pattern.
 def js_plugin(name, rev, modules, extra_web_pkgs=None):
     manifest(name,
@@ -515,20 +545,20 @@ def js_plugin(name, rev, modules, extra_web_pkgs=None):
         },
     )
 
-js_plugin("spacewave-app", rev=224, modules=[
+js_plugin("spacewave-app", rev=225, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./app/App.tsx",
               entrypoint=True,
               webViewParentId={"empty": True}),
-])
+], extra_web_pkgs=CODE_WEB_PKGS)
 
-js_plugin("spacewave-notes", rev=1, modules=[
+js_plugin("spacewave-notes", rev=2, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/notes/backend.ts",
               entrypoint=True),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotebookViewer.tsx"),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/BlogViewer.tsx"),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/DocsViewer.tsx"),
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotesWizardViewer.tsx"),
-])
+], extra_web_pkgs=CODE_WEB_PKGS)
 
 js_plugin("spacewave-colors", rev=1, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/colors/backend.ts",
@@ -613,7 +643,7 @@ manifest("spacewave-cli",
 # -- Build targets --
 
 DEV_MANIFESTS = [
-    "web", "spacewave-core", "spacewave-web",
+    "web", "spacewave-core", "spacewave-web", "spacewave-code",
     "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "spacewave-debug",
     "bldr-materializer",
 ]
@@ -623,7 +653,7 @@ BROWSER_RELEASE_MANIFESTS = [
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-launcher", "bldr-materializer",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
+    "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
@@ -639,11 +669,11 @@ CLI_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
-    "spacewave-loader", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
+    "spacewave-loader", "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
 ]
 PLUGIN_RELEASE_BROWSER_MANIFESTS = [
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
+    "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
 ]
 
@@ -666,12 +696,15 @@ BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS = BROWSER_RELEASE_LOAD_PLUGINS 
 ]
 
 # Browser e2e embeds the startup closure, every Notes platform the browser can
-# select, and the spacewave-sql fixture without a populated Release World.
+# select, the spacewave-code plugin they depend on, and the spacewave-sql
+# fixture without a populated Release World.
 def browser_e2e_embed_manifests(go_platform_id):
     return browser_release_embed_manifests(go_platform_id) + [
         {"manifestId": "spacewave-core",
          "platformId": go_platform_id},
         {"manifestId": "spacewave-web",
+         "platformId": "js"},
+        {"manifestId": "spacewave-code",
          "platformId": "js"},
         {"manifestId": "spacewave-app",
          "platformId": "js"},
@@ -739,7 +772,7 @@ build("release-web-e2e",
 build("release-web-e2e-assets",
     manifests=[
         "spacewave-launcher", "bldr-materializer",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
+        "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
@@ -768,7 +801,7 @@ build("release-web-e2e-tinygo-core",
 build("release-web-e2e-tinygo-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
+        "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
