@@ -36,6 +36,7 @@ func Main(
 
 	var dtBus *CliBusImpl
 	var statePath string
+	var statePathSet bool
 	var socketPath string
 	var startSocketPath string
 	var logLevel string
@@ -53,7 +54,7 @@ func Main(
 
 	ensureBus := func() error {
 		busInitOnce.Do(func() {
-			root, err := storagepath.ResolveStatePath(projectID, statePath, socketPath)
+			root, err := storagepath.ResolveStatePath(projectID, statePath, socketPath, statePathSet)
 			if err != nil {
 				busInitErr = err
 				return
@@ -185,7 +186,8 @@ func Main(
 		le = logrus.NewEntry(log)
 
 		// Publish the state path first so the log directory follows it.
-		if _, err := storagepath.ResolveStatePath(projectID, statePath, socketPath); err != nil {
+		statePathSet = c.IsSet("state-path")
+		if _, err := storagepath.ResolveStatePath(projectID, statePath, socketPath, statePathSet); err != nil {
 			return err
 		}
 
