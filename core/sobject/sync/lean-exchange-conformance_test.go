@@ -51,15 +51,19 @@ func leanSyncExchangeFrame(t *testing.T, a *fastjson.Arena, message *SOSyncMessa
 	}
 	v.Set("revision", a.NewNumberString(strconv.FormatUint(revision, 10)))
 	v.Set("accepted", leanSyncBool(a, message.GetAuthorization().GetAccepted()))
+	v.Set("recoveryPresent", leanSyncBool(a, message.GetRecoveryRequired() != nil))
 	return v
 }
 
-// leanSyncTime distinguishes Go's zero time from a real nanosecond timestamp.
+// leanSyncClockOrigin preserves monotonic comparisons for process-local sync deadlines.
+var leanSyncClockOrigin = time.Now()
+
+// leanSyncTime distinguishes zero time from an offset on the process's monotonic clock.
 func leanSyncTime(a *fastjson.Arena, value time.Time) *fastjson.Value {
 	if value.IsZero() {
 		return a.NewNull()
 	}
-	return a.NewNumberString(strconv.FormatInt(value.UnixNano(), 10))
+	return a.NewNumberString(strconv.FormatInt(value.Sub(leanSyncClockOrigin).Nanoseconds(), 10))
 }
 
 // leanSyncExchange projects the state held exclusively by the production loop.
@@ -98,7 +102,7 @@ func leanSyncExchange(t *testing.T, a *fastjson.Arena, x *syncExchange) *fastjso
 
 // leanSyncExchangeCheck compares one real owner operation and its observable host effects.
 func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOState,
-	message *SOSyncMessage, pump bool, writes *int, name string,
+	message *SOSyncMessage, pump bool, writes *int, name string, loop *leanSyncLoopRun,
 ) leanSyncCase {
 	t.Helper()
 	var a fastjson.Arena
@@ -189,7 +193,9 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	var logs bytes.Buffer
 	logger.Logger.SetOutput(&logs)
 	start := time.Now()
-	if pump {
+	if loop != nil {
+		err = loop.run(t, x, logger)
+	} else if pump {
 		err = x.prepareSend(current)
 	} else {
 		err = x.receive(t.Context(), logger, current, message)
@@ -197,19 +203,24 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	finish := time.Now()
 
 	// Validate clock observations independently before using the returned timestamp in the oracle.
-	observeClock := func(deadline, old time.Time) {
+	observeClock := func(deadline, old time.Time) *fastjson.Value {
 		if deadline.IsZero() || deadline.Equal(old) {
-			return
+			return a.NewNumberInt(0)
 		}
 		now := deadline.Add(-catchupTimeout)
 		if now.Before(start) || now.After(finish) {
 			t.Fatal("new pinned deadline is not one catch-up budget after the clock observation")
 		}
-		input.Set("now", a.NewNumberString(strconv.FormatInt(now.UnixNano(), 10)))
+		return a.NewNumberString(strconv.FormatInt(now.Sub(leanSyncClockOrigin).Nanoseconds(), 10))
 	}
-	observeClock(x.advertisementDeadline, oldAdvertisement)
+	preparationNow := observeClock(x.advertisementDeadline, oldAdvertisement)
+	receptionNow := a.NewNumberInt(0)
 	if x.receiving != nil {
-		observeClock(x.receiving.deadline, oldReceive)
+		receptionNow = observeClock(x.receiving.deadline, oldReceive)
+	}
+	input.Set("now", receptionNow)
+	if pump {
+		input.Set("now", preparationNow)
 	}
 	after, readErr := x.sync.soHost.GetHostState(t.Context())
 	if readErr != nil {
@@ -234,6 +245,37 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	request.Set("frame", frame)
 	request.Set("input", input)
+	if loop != nil {
+		request.Set("op", a.NewString("advanceSyncExchange"))
+		observation := a.NewObject()
+		observation.Set("current", projectedCurrent)
+		fresh := a.NewNull()
+		if loop.next != nil {
+			fresh = leanSyncState(t, &a, x.sync.soID, loop.next)
+		}
+		observation.Set("incomingCurrent", fresh)
+		observation.Set("event", a.NewNumberInt(loop.event))
+		observation.Set("eventOK", leanSyncBool(&a, loop.eventOK))
+		drain := a.NewNull()
+		if loop.drain != nil {
+			drain = leanSyncBool(&a, *loop.drain)
+		}
+		observation.Set("drainAuthorization", drain)
+		preparation, reception := a.NewObject(), a.NewObject()
+		input.GetObject().Visit(func(key []byte, value *fastjson.Value) {
+			preparation.Set(string(key), value)
+			reception.Set(string(key), value)
+		})
+		preparation.Set("now", preparationNow)
+		reception.Set("now", receptionNow)
+		observation.Set("preparation", preparation)
+		observation.Set("reception", reception)
+		request.Set("loop", observation)
+		request.Set("local", a.NewString(x.sync.localObjectPeerID.String()))
+		request.Set("remote", a.NewString(x.remoteID.String()))
+		expected.Set("denial", leanSyncBool(&a, loop.denial))
+		expected.Set("handed", leanSyncExchangeFrame(t, &a, loop.handed))
+	}
 	result.Set("ok", leanSyncBool(&a, err == nil))
 	result.Set("state", leanSyncExchange(t, &a, x))
 	dispatched := strings.Contains(logs.String(), "failed to unmarshal remote op")
@@ -247,7 +289,7 @@ func leanSyncExchangeCheck(t *testing.T, x *syncExchange, current *sobject.SOSta
 	}
 	expected.Set("ok", leanSyncBool(&a, err == nil))
 	expected.Set("exchange", result)
-	if !pump {
+	if !pump || loop != nil {
 		host := a.NewNull()
 		if !dispatched {
 			host = a.NewObject()
@@ -265,7 +307,7 @@ func TestLeanSyncExchangeConformance(t *testing.T) {
 	oracle := leanSyncOracle(t)
 	var cases []leanSyncCase
 	for seed := range uint64(4) {
-		cases = append(cases, leanSyncExchangeCases(t, seed)...)
+		cases = append(cases, leanSyncExchangeCases(t, seed, false)...)
 	}
 	checkLeanSync(t, oracle, cases)
 }
@@ -275,12 +317,12 @@ func FuzzLeanSyncExchange(f *testing.F) {
 	f.Add(uint64(0))
 	f.Add(uint64(19))
 	f.Fuzz(func(t *testing.T, seed uint64) {
-		checkLeanSync(t, leanSyncOracle(t), leanSyncExchangeCases(t, seed))
+		checkLeanSync(t, leanSyncOracle(t), leanSyncExchangeCases(t, seed, false))
 	})
 }
 
 // leanSyncExchangeCases exercises both directions using real signed retained history.
-func leanSyncExchangeCases(t *testing.T, seed uint64) []leanSyncCase {
+func leanSyncExchangeCases(t *testing.T, seed uint64, withLoop bool) []leanSyncCase {
 	t.Helper()
 	const soID = "lean-sync-exchange"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
@@ -317,7 +359,11 @@ func leanSyncExchangeCases(t *testing.T, seed uint64) []leanSyncCase {
 	head := &SOSyncHead{Revision: revision, ConfigHash: target.Config.ConfigChainHash,
 		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest}
 	var cases []leanSyncCase
-	for variant := range 55 {
+	variants := 55
+	if withLoop {
+		variants = 69
+	}
+	for variant := range variants {
 		writes := 0
 		host, ctr := newMemHost(soID, initial.CloneVT(), func() { writes++ })
 		t.Cleanup(host.ClearContext)
@@ -483,7 +529,56 @@ func leanSyncExchangeCases(t *testing.T, seed uint64) []leanSyncCase {
 			message = &SOSyncMessage{Body: &SOSyncMessage_HistoryPage{}}
 		}
 		name := "sync exchange seed " + strconv.FormatUint(seed, 10) + " variant " + strconv.Itoa(variant)
-		cases = append(cases, leanSyncExchangeCheck(t, x, current, message, pump, &writes, name))
+		var loop *leanSyncLoopRun
+		if withLoop {
+			loop = &leanSyncLoopRun{current: current, next: current, message: message, event: 5, eventOK: true}
+			if pump {
+				loop.event = 2
+			}
+			switch variant {
+			case 55:
+				loop.event = 0
+			case 56, 57, 58:
+				loop.event = 1
+				x.advertised = current.CloneVT()
+				x.advertisementDeadline = time.Now().Add(-time.Second)
+				if variant != 56 {
+					x.receiving = receiving
+					if variant == 57 {
+						x.advertisementDeadline = time.Now().Add(time.Minute)
+						receiving.deadline = time.Now().Add(-time.Second)
+					}
+				}
+			case 59:
+				loop.event = 3
+			case 60, 61, 62, 63, 64:
+				loop.event = 4
+				x.inFlight = syncAcknowledgment(9)
+				if variant == 61 {
+					x.inFlight = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: revision}}}
+				}
+				if variant >= 62 {
+					loop.eventOK = false
+				}
+				if variant == 63 || variant == 64 {
+					positive := variant == 64
+					loop.drain = &positive
+				}
+			case 65:
+				loop.eventOK = false
+				x.terminal = sobject.ErrConfigHistoryUnavailable
+			case 66:
+				loop.next = current.CloneVT()
+				loop.next.Config.Participants[0].Role = sobject.SOParticipantRole_SOParticipantRole_UNKNOWN
+			case 67:
+				current.Config.Participants[1].Role = sobject.SOParticipantRole_SOParticipantRole_UNKNOWN
+			case 68:
+				loop.event = 4
+				x.inFlight = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{}}
+			}
+			name = "loop " + name
+		}
+		cases = append(cases, leanSyncExchangeCheck(t, x, current, message, pump, &writes, name, loop))
 	}
 	return cases
 }

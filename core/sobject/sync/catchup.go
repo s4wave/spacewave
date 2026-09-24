@@ -162,11 +162,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 	defer func() {
 		cancel()
 		sess.Close()
-		for _, worker := range workers {
-			if exited, _ := worker.SetRoutine(nil); exited != nil {
-				<-exited
-			}
-		}
+		joinSyncWorkers(workers...)
 	}()
 
 	// Keep at most one advertisement, response, incoming suffix and control frame.
@@ -175,65 +171,8 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 	timer.Stop()
 	defer timer.Stop()
 	for {
-		// Controls precede response pages; a new head waits for the previous acknowledgment.
-		current := states.GetValue()
-		if err := s.authorizeParticipants(current, remoteID); err != nil {
-			_ = sendAccessDenied(sess)
+		if err := x.advance(ctx, le, sess, states, incoming, outbound, sent, changed, timer); err != nil {
 			return err
-		}
-		if err := x.prepareSend(current); err != nil {
-			return err
-		}
-
-		// One timer covers both directions without extending the budget on each page.
-		deadline := x.advertisementDeadline
-		if x.receiving != nil && (deadline.IsZero() || x.receiving.deadline.Before(deadline)) {
-			deadline = x.receiving.deadline
-		}
-		var expired <-chan time.Time
-		if !deadline.IsZero() {
-			timer.Reset(time.Until(deadline))
-			expired = timer.C
-		} else {
-			timer.Stop()
-		}
-		var send chan *SOSyncMessage
-		if x.outgoing != nil && x.inFlight == nil {
-			send = outbound
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-expired:
-			return context.DeadlineExceeded
-		case <-changed:
-			// The next iteration reads the latest authoritative state.
-		case send <- x.outgoing:
-			x.inFlight, x.outgoing = x.outgoing, nil
-		case err := <-sent:
-			if err != nil {
-				return s.drainDenial(ctx, incoming, remoteID, err)
-			}
-			if x.inFlight.GetRecoveryRequired() != nil {
-				return sobject.ErrConfigHistoryUnavailable
-			}
-			x.inFlight = nil
-		case received := <-incoming:
-			if received.err != nil {
-				if x.terminal != nil {
-					return x.terminal
-				}
-				return received.err
-			}
-			current = states.GetValue()
-			if err := s.authorizeParticipants(current, remoteID); err != nil {
-				_ = sendAccessDenied(sess)
-				return err
-			}
-			if err := x.receive(ctx, le, current, received.message); err != nil {
-				return err
-			}
 		}
 	}
 }
@@ -269,6 +208,76 @@ type syncExchange struct {
 	inFlight *SOSyncMessage
 	// terminal prevents further data admission while recovery notification drains.
 	terminal error
+}
+
+// advance reads current authority, prepares output and handles one selected channel event.
+// Only synchronize calls it in production; its worker channels retain the existing ownership.
+func (x *syncExchange) advance(
+	ctx context.Context, le *logrus.Entry, sess *stream_packet.Session,
+	states ccontainer.Watchable[*sobject.SOState], incoming <-chan syncIncoming,
+	outbound chan<- *SOSyncMessage, sent <-chan error, changed <-chan struct{}, timer *time.Timer,
+) error {
+	// Controls precede response pages; a new head waits for the previous acknowledgment.
+	current := states.GetValue()
+	if err := x.sync.authorizeParticipants(current, x.remoteID); err != nil {
+		_ = sendAccessDenied(sess)
+		return err
+	}
+	if err := x.prepareSend(current); err != nil {
+		return err
+	}
+
+	// One timer covers both directions without extending the budget on each page.
+	deadline := x.advertisementDeadline
+	if x.receiving != nil && (deadline.IsZero() || x.receiving.deadline.Before(deadline)) {
+		deadline = x.receiving.deadline
+	}
+	var expired <-chan time.Time
+	if !deadline.IsZero() {
+		timer.Reset(time.Until(deadline))
+		expired = timer.C
+	} else {
+		timer.Stop()
+	}
+	var send chan<- *SOSyncMessage
+	if x.outgoing != nil && x.inFlight == nil {
+		send = outbound
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-expired:
+		return context.DeadlineExceeded
+	case <-changed:
+		// The next iteration reads the latest authoritative state.
+	case send <- x.outgoing:
+		x.inFlight, x.outgoing = x.outgoing, nil
+	case err := <-sent:
+		if err != nil {
+			return x.sync.drainDenial(ctx, incoming, x.remoteID, err)
+		}
+		if x.inFlight.GetRecoveryRequired() != nil {
+			return sobject.ErrConfigHistoryUnavailable
+		}
+		x.inFlight = nil
+	case received := <-incoming:
+		if received.err != nil {
+			if x.terminal != nil {
+				return x.terminal
+			}
+			return received.err
+		}
+		current = states.GetValue()
+		if err := x.sync.authorizeParticipants(current, x.remoteID); err != nil {
+			_ = sendAccessDenied(sess)
+			return err
+		}
+		if err := x.receive(ctx, le, current, received.message); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // prepareSend fills the next writer slot without replacing a queued or in-flight frame.

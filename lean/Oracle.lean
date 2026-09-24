@@ -49,6 +49,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `advanceSyncExchange`: held-state reads and one selected production loop event.
+- `joinSyncWorkers`: optional routine exit channels and observed body acknowledgments.
 - `watchSyncAuthority`: host retention, current state reads and transport deadline observations.
 - `prepareSyncOutgoing`, `receiveSyncExchange`: sole-owner protocol state and primitive observations.
 - `writeSyncFrames`: endpoint identities and current-authority/transport trace; result `{"ok", "writer"}`.
@@ -135,11 +137,13 @@ deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.Prepared
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
 deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult, Sync.StreamStart
 deriving instance ToJson, FromJson for Sync.AuthorityRead, Sync.AuthorityWatch
+deriving instance ToJson, FromJson for Sync.WorkerJoin, Sync.JoinResult, Sync.StreamFinish
 deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
 deriving instance ToJson, FromJson for Sync.WriterAttempt, Sync.WriterResult
 deriving instance ToJson, FromJson for Sync.ExchangeFrame, Sync.Exchange, Sync.ExchangePrimitives, Sync.ExchangeResult
+deriving instance ToJson, FromJson for Sync.LoopInput, Sync.LoopResult, Sync.LoopObservation
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
@@ -189,6 +193,17 @@ def respond (req : Json) : Except String Json := do
     let host := if result.operation then none else
       some ((result.imported.map (·.host)).getD (visibleHost input.acceptance.previous none))
     return json% {ok: $(result.ok), exchange: $result, host: $host}
+  | "joinSyncWorkers" =>
+    return json% {joining: $(Sync.joinWorkers (← req.getObjValAs? (List Sync.WorkerJoin) "workers"))}
+  | "advanceSyncExchange" =>
+    let input ← req.getObjValAs? Sync.LoopInput "loop"
+    let some result := Sync.advanceExchange (← req.getObjValAs? Sync.Exchange "before")
+      (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote") input
+      (← req.getObjValAs? Sync.ExchangeFrame "frame") | throw "impossible selected event"
+    let host := if result.exchange.operation then none else
+      some ((result.exchange.imported.map (·.host)).getD (visibleHost input.reception.acceptance.previous none))
+    return json% {ok: $(result.exchange.ok), exchange: $(result.exchange), host: $host,
+      denial: $(result.denial), handed: $(result.handed)}
   | "watchSyncAuthority" =>
     let watcher := Sync.watchStreamAuthority (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
       (← req.getObjValAs? Int "retainError") (← req.getObjValAs? Bool "deadlineOK")

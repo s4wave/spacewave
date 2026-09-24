@@ -370,15 +370,23 @@ func (s *SOSync) runStream(
 	watcher.SetContext(ctx, false)
 	defer func() {
 		strm.Close()
-		if exited, _ := watcher.SetRoutine(nil); exited != nil {
-			<-exited
-		}
+		joinSyncWorkers(watcher)
 		if cause := context.Cause(ctx); errors.Is(cause, ErrAccessDenied) {
 			rerr = cause
 		}
 	}()
 
 	return s.synchronize(ctx, le, sess, remoteID)
+}
+
+// joinSyncWorkers removes each routine and waits for its body to return.
+// The caller cancels and closes transport first to release blocked worker I/O.
+func joinSyncWorkers(workers ...*routine.RoutineContainer) {
+	for _, worker := range workers {
+		if exited, _ := worker.SetRoutine(nil); exited != nil {
+			<-exited
+		}
+	}
 }
 
 // watchAuthority retains current authority until revocation, provider failure or cancellation.

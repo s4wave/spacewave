@@ -1102,6 +1102,7 @@ structure ExchangeFrame where
   snapshot : Option Snapshot := none
   revision : Nat := 0
   accepted : Bool := false
+  recoveryPresent : Bool := false
   deriving DecidableEq, Repr
 
 /-- Exchange retains the sole owner's pinned state and writer slots.
@@ -1225,7 +1226,7 @@ def receiveExchange (before : Exchange) (current : State) (frame : ExchangeFrame
         (fun _ => input.snapshotBytes)
       let state := {before with requested := true, response := response}
       if response.isNone then
-        return ⟨true, {state with terminal := true, control := some {kind := 10, revision := before.revision}}, none, false, none, none⟩
+        return ⟨true, {state with terminal := true, control := some {kind := 10, revision := before.revision, recoveryPresent := true}}, none, false, none, none⟩
       return ⟨true, state, none, false, none, none⟩
     | 9 => Id.run do
       let some receiving := before.receiving | return ⟨false, before, none, false, none, none⟩
@@ -1235,7 +1236,7 @@ def receiveExchange (before : Exchange) (current : State) (frame : ExchangeFrame
         return ⟨true, state, none, false, none, none⟩
       if !page.recovery then
         return ⟨false, state, none, false, none, none⟩
-      return ⟨true, {state with terminal := true, control := some {kind := 10, revision := receiving.head.revision}}, none, false, none, none⟩
+      return ⟨true, {state with terminal := true, control := some {kind := 10, revision := receiving.head.revision, recoveryPresent := true}}, none, false, none, none⟩
     | 1 => Id.run do
       let some receiving := before.receiving | return ⟨false, before, none, false, none, none⟩
       if before.control.isSome then
@@ -1370,5 +1371,167 @@ theorem receiveExchange_complete (before : Exchange) (current : State) (frame : 
   have sameInput : {input.acceptance with receiving := input.acceptance.receiving, snapshot := frame.snapshot} = input.acceptance := by
     simp [frameSnapshot]
   simp [receiveExchange, kind, live, control, receiving, sameInput, accepted, revision]
+
+/-- LoopInput records the two actual held-state reads and one selected event.
+    Event codes are oracle tags: 0 cancellation, 1 expiry, 2 state change, 3 handoff,
+    4 writer result and 5 reader result. Event readiness is a primitive scheduler contract.
+    drainAuthorization is a nonnil authorization encountered by drainDenial before it stops. -/
+structure LoopInput where
+  current : Option State
+  incomingCurrent : Option State
+  event : Int
+  eventOK : Bool
+  drainAuthorization : Option Bool
+  preparation : ExchangePrimitives
+  reception : ExchangePrimitives
+  deriving Repr
+
+/-- LoopResult retains exact synchronous effects, attempted local denial and writer handoff. -/
+structure LoopResult where
+  exchange : ExchangeResult
+  denial : Bool := false
+  handed : Option ExchangeFrame := none
+  deriving DecidableEq, Repr
+
+/-- authorizedState applies the existing role and history gate, including a nil held state. -/
+def authorizedState (current : Option State) (localID remote : String) : Bool :=
+  match current with
+  | none => false
+  | some state => authorizeParticipants state.config.participants state.config.hash localID remote
+
+/-- exchangeDeadline mirrors zero-time handling and the earliest pinned timer.
+    A retained receiver whose Go deadline is zero disables the timer even with a live advertisement. -/
+def exchangeDeadline (before : Exchange) : Option Int :=
+  if before.receiving.isNone then before.advertisementDeadline
+  else match before.advertisementDeadline, before.receiveDeadline with
+    | none, receive => receive
+    | some _, none => none
+    | some advertisement, some receive => some (min advertisement receive)
+
+/-- advanceExchange mirrors one production iteration; none denotes an impossible selected event.
+    A writer failure drains only explicit authorization and cannot dispatch any drained data. -/
+def advanceExchange (before : Exchange) (localID remote : String) (input : LoopInput)
+    (frame : ExchangeFrame) : Option LoopResult := do
+  if !authorizedState input.current localID remote then
+    return {exchange := {ok := false, state := before}, denial := true}
+  let prepared := prepareOutgoing before input.current input.preparation
+  if !prepared.ok then
+    return {exchange := prepared}
+  let state := prepared.state
+  match input.event with
+  | 0 => return {exchange := {ok := false, state := state}}
+  | 1 =>
+    if (exchangeDeadline state).isNone then none
+    else return {exchange := {ok := false, state := state}}
+  | 2 => return {exchange := {ok := true, state := state}}
+  | 3 =>
+    let some outgoing := state.outgoing | none
+    if state.inFlight.isSome then none
+    else return {exchange := {ok := true, state := {state with outgoing := none, inFlight := some outgoing}}, handed := some outgoing}
+  | 4 =>
+    if !input.eventOK then
+      return {exchange := {ok := false, state := state, admission :=
+        if input.drainAuthorization == some false && input.reception.admissionObserver then some false else none}}
+    if state.inFlight.any (fun message => message.kind == 10 && message.recoveryPresent) then
+      return {exchange := {ok := false, state := state}}
+    return {exchange := {ok := true, state := {state with inFlight := none}}}
+  | 5 =>
+    if !input.eventOK then
+      return {exchange := {ok := false, state := state}}
+    if !authorizedState input.incomingCurrent localID remote then
+      return {exchange := {ok := false, state := state}, denial := true}
+    let some current := input.incomingCurrent | none
+    return {exchange := receiveExchange state current frame input.reception}
+  | _ => none
+
+/-- Preparing output never calls host acceptance. -/
+theorem prepareOutgoing_no_import (before : Exchange) (current : Option State) (input : ExchangePrimitives) :
+    (prepareOutgoing before current input).imported = none := by
+  unfold prepareOutgoing
+  simp only [Id.run, pure]
+  repeat' first | split | rfl
+
+/-- Only a selected successful reader result under both fresh authority checks can invoke acceptance. -/
+theorem advanceExchange_import {before : Exchange} {localID remote : String} {input : LoopInput}
+    {frame : ExchangeFrame} {result : LoopResult} {accepted : AcceptanceResult}
+    (advanced : advanceExchange before localID remote input frame = some result)
+    (imported : result.exchange.imported = some accepted) :
+    authorizedState input.current localID remote = true ∧
+    authorizedState input.incomingCurrent localID remote = true ∧
+    input.event = 5 ∧ input.eventOK = true ∧
+    ∃ current, input.incomingCurrent = some current ∧
+      result.exchange = receiveExchange (prepareOutgoing before input.current input.preparation).state current frame input.reception := by
+  have prepared := prepareOutgoing_no_import before input.current input.preparation
+  unfold advanceExchange at advanced
+  simp only [pure] at advanced
+  repeat' first | split at advanced | subst result | simp_all
+
+/-- A rejected initial authority check has no preparation, import, operation or handoff effects. -/
+theorem advanceExchange_rejected {before : Exchange} {localID remote : String} {input : LoopInput}
+    {frame : ExchangeFrame} (rejected : authorizedState input.current localID remote = false) :
+    advanceExchange before localID remote input frame =
+      some {exchange := {ok := false, state := before}, denial := true} := by
+  simp [advanceExchange, rejected]
+
+/-- The actual loop dispatch preserves the complete atomic host-publication contract. -/
+theorem advanceExchange_publication {before : Exchange} {localID remote : String} {input : LoopInput}
+    {frame : ExchangeFrame} {result : LoopResult} {accepted : AcceptanceResult}
+    (advanced : advanceExchange before localID remote input frame = some result)
+    (imported : result.exchange.imported = some accepted) (wrote : accepted.host.wrote = true) :
+    ∃ receiving candidate, (prepareOutgoing before input.current input.preparation).state.receiving = some receiving ∧
+      input.reception.acceptance.decoded = some candidate ∧
+      importPeerSnapshot input.reception.acceptance.previous candidate (receiving.changes.map (·.entry))
+        input.reception.acceptance.localPeer input.reception.acceptance.candidateBytes (historyBytes receiving.changes)
+        input.reception.acceptance.lockOK input.reception.acceptance.accessOK input.reception.acceptance.writeOK = some accepted.host := by
+  obtain ⟨_, _, _, _, current, _, same⟩ := advanceExchange_import advanced imported
+  rw [same] at imported
+  exact receiveExchange_publication imported wrote
+
+/-- A valid selected read reaches exactly the existing complete-response dispatch. -/
+theorem advanceExchange_receive (before : Exchange) (localID remote : String) (input : LoopInput)
+    (frame : ExchangeFrame) (current : State)
+    (initial : authorizedState input.current localID remote = true)
+    (fresh : authorizedState input.incomingCurrent localID remote = true)
+    (read : input.incomingCurrent = some current)
+    (prepared : (prepareOutgoing before input.current input.preparation).ok = true)
+    (event : input.event = 5) (available : input.eventOK = true) :
+    advanceExchange before localID remote input frame =
+      some {exchange := receiveExchange (prepareOutgoing before input.current input.preparation).state current frame input.reception} := by
+  rw [read] at fresh
+  simp [advanceExchange, initial, prepared, event, available, read, fresh]
+
+/-- LoopObservation contains the selected frame alongside its primitive observations. -/
+structure LoopObservation where
+  input : LoopInput
+  frame : ExchangeFrame
+  deriving Repr
+
+/-- runExchangeTrace stops permanently at the first failed iteration.
+    A finite healthy prefix has not returned from the production loop. -/
+def runExchangeTrace (before : Exchange) (localID remote : String) : List LoopObservation → Option LoopResult
+  | [] => some {exchange := {ok := true, state := before}}
+  | observation :: rest => do
+    let next ← advanceExchange before localID remote observation.input observation.frame
+    if next.exchange.ok then runExchangeTrace next.exchange.state localID remote rest else some next
+
+/-- A stopped owner cannot be revived by later channel events or a regrant. -/
+theorem runExchangeTrace_terminal (before : Exchange) (localID remote : String)
+    (consumed suffix : List LoopObservation) (result : LoopResult)
+    (ran : runExchangeTrace before localID remote consumed = some result) (stopped : result.exchange.ok = false) :
+    runExchangeTrace before localID remote (consumed ++ suffix) = some result := by
+  induction consumed generalizing before with
+  | nil =>
+    simp only [runExchangeTrace, Option.some.injEq] at ran
+    subst result
+    contradiction
+  | cons observation rest ih =>
+    simp only [List.cons_append, runExchangeTrace] at ran ⊢
+    cases advanced : advanceExchange before localID remote observation.input observation.frame with
+    | none => simp [advanced] at ran
+    | some next =>
+      cases healthy : next.exchange.ok
+      · simpa [advanced, healthy] using ran
+      · simp [advanced, healthy] at ran ⊢
+        exact ih next.exchange.state ran
 
 end Spacewave.SObject.Sync
