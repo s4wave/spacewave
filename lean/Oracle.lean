@@ -51,6 +51,10 @@ per line. A request names a model function in `op` and carries its inputs:
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
 - `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
+- `acceptSyncResponse`: complete pinned response, decoded bytes and host observations; result `{"ok", "accepted"}`.
+- `prepareSyncResponse`: pinned state, history read and encoding observations; result `{"ok", "response"}`.
+- `syncStateHash`: stripped-state encoding and digest observations; result `{"ok", "digest"}`.
+- `syncResponseObsolete`: observed state and pinned head; result `{"ok"}`.
 - `appendSyncPage`: receive buffer and raw page projection; result `{"ok", "received"}`.
 - `nextSyncMessage`: response buffer and measured page-prefix sizes; result `{"ok", "message"}`.
 - `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
@@ -126,10 +130,33 @@ deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
 deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult
 deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
+deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "acceptSyncResponse" =>
+    let result := Sync.acceptResponse (← req.getObjValAs? Sync.AcceptanceInput "input")
+    return json% {ok: $(result.ok), accepted: $result}
+  | "prepareSyncResponse" =>
+    let state ← req.getObjValAs? State "state"
+    let request ← req.getObjValAs? Sync.Request "request"
+    let history ← req.getObjValAs? (Option (List Sync.HistoryChange)) "history"
+    let encoded ← req.getObjValAs? (Option String) "encoded"
+    let bytes ← req.getObjValAs? Nat "bytes"
+    let result := Sync.prepareResponse state request history (fun _ => encoded) (fun _ => bytes)
+    return json% {ok: $(result.isSome), response: $result}
+  | "syncStateHash" =>
+    let state ← req.getObjValAs? State "state"
+    let bytes ← req.getObjValAs? Nat "bytes"
+    let encoded ← req.getObjValAs? (Option String) "encoded"
+    let digest ← req.getObjValAs? String "digest"
+    let result := Sync.syncStateHash state (fun _ => bytes) (fun _ => encoded) (fun _ => digest)
+    return json% {ok: $(result.isSome), digest: $result}
+  | "syncResponseObsolete" =>
+    let result := Sync.responseObsolete (← req.getObjValAs? (Option State) "current")
+      (← req.getObjValAs? Sync.Head "head")
+    return json% {ok: $result}
   | "appendSyncPage" =>
     let result := Sync.appendPage (← req.getObjValAs? Sync.Receive "before")
       (← req.getObjValAs? (Option Sync.HistoryPage) "page")
