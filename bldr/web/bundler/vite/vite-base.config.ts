@@ -44,6 +44,13 @@ export default defineConfig({
     cssCodeSplit: true, // set to true by Go as well.
     manifest: true, // set to true by Go as well.
   },
+  // Lower syntax to Vite's baseline-widely-available build target in every
+  // mode. The dev server otherwise serves newer syntax such as using
+  // declarations as written, which WebKit cannot parse. Rolldown supplies
+  // the helpers that lowered modules import.
+  oxc: {
+    target: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'],
+  },
   define: {
     'process.env.NODE_ENV': JSON.stringify(
       process.env.NODE_ENV || 'development',
