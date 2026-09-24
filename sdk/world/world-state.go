@@ -118,6 +118,22 @@ func (ws *WorldState) OpenNestedWorld(ctx context.Context, key string) (*WorldSt
 	return nested, nil
 }
 
+// OpenOuterWorld opens the enclosing Space World under the same authority.
+// Release the returned read-only state independently of the nested state.
+func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*WorldState, error) {
+	resp, err := ws.service.OpenOuterWorld(ctx, &OpenOuterWorldRequest{})
+	if err != nil {
+		return nil, err
+	}
+	ref := ws.client.CreateResourceReference(resp.GetResourceId())
+	outer, err := NewWorldState(ws.client, ref, true)
+	if err != nil {
+		ref.Release()
+		return nil, err
+	}
+	return outer, nil
+}
+
 // CreateObject creates a new object in the world with the specified key and initial data.
 // Returns ErrObjectExists if the object already exists.
 // Appends a OBJECT_SET change to the changelog.

@@ -114,6 +114,15 @@ export class EngineWorldState implements IWorldState {
     )
   }
 
+  /** openOuterWorld rejects a top-level state through its short-lived transaction. */
+  public async openOuterWorld(
+    abortSignal?: AbortSignal,
+  ): Promise<IWorldState & Disposable> {
+    return this.performOp(false, abortSignal, (tx) =>
+      tx.openOuterWorld(abortSignal),
+    )
+  }
+
   // applyWorldOp applies a batch operation at the world level
   public async applyWorldOp(
     opTypeId: string,

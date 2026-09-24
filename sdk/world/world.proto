@@ -128,6 +128,16 @@ message OpenNestedWorldResponse {
   uint32 resource_id = 1;
 }
 
+// OpenOuterWorldRequest opens the enclosing Space World from a nested World resource.
+message OpenOuterWorldRequest {
+}
+
+// OpenOuterWorldResponse grants an independently retained read-only outer World state.
+message OpenOuterWorldResponse {
+  // ResourceId identifies the outer World state resource.
+  uint32 resource_id = 1;
+}
+
 // AccessWorldStateResponse is the response type for AccessWorldState.
 message AccessWorldStateResponse {
   // ResourceId is the ID of the bucket cursor resource for accessing world state.
@@ -152,6 +162,9 @@ service WorldStateResourceService {
 
   // OpenNestedWorld opens the immutable nested World published by an outer object.
   rpc OpenNestedWorld(OpenNestedWorldRequest) returns (OpenNestedWorldResponse);
+
+  // OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+  rpc OpenOuterWorld(OpenOuterWorldRequest) returns (OpenOuterWorldResponse);
 
   rpc CreateObject(CreateObjectRequest) returns (CreateObjectResponse);
 

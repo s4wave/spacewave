@@ -29,6 +29,8 @@ type WorldStateResource struct {
 	lookupOp world.LookupOp
 	// storage accesses the outer World or Engine to open nested World snapshots.
 	storage world.WorldStorage
+	// outerEngine is the authorizing engine retained only by nested World resources.
+	outerEngine world.Engine
 
 	sessionPeerID      peer.ID
 	sessionPeerIDBound bool
@@ -222,13 +224,53 @@ func (r *WorldStateResource) OpenNestedWorld(ctx context.Context, req *s4wave_wo
 		return nil, err
 	}
 
-	resource := NewWorldStateResource(r.le, r.b, nested, r.lookupOp)
+	opts := []WorldStateResourceOption{}
+	if r.sessionPeerIDBound {
+		opts = append(opts, WithSessionPeerID(r.sessionPeerID))
+	}
+	resource := NewWorldStateResource(r.le, r.b, nested, r.lookupOp, opts...)
+	// The storage is the granting Space engine for engine-backed resources;
+	// keep it across further nesting rather than deriving authority from a block.
+	resource.storage = r.storage
+	if engine, ok := r.storage.(world.Engine); ok {
+		resource.outerEngine = engine
+	}
 	id, err := resourceCtx.AddResource(resource.GetMux(), nested.Discard)
 	if err != nil {
 		nested.Discard()
 		return nil, err
 	}
 	return &s4wave_world.OpenNestedWorldResponse{ResourceId: id}, nil
+}
+
+// OpenOuterWorld opens a read-only state in the Space that granted this nested World.
+// Its transaction pins the current outer root until the returned resource is released.
+func (r *WorldStateResource) OpenOuterWorld(ctx context.Context, _ *s4wave_world.OpenOuterWorldRequest) (*s4wave_world.OpenOuterWorldResponse, error) {
+	if r.outerEngine == nil {
+		return nil, errors.New("outer World is unavailable on this resource")
+	}
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.outerEngine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	opts := []WorldStateResourceOption{}
+	if r.sessionPeerIDBound {
+		opts = append(opts, WithSessionPeerID(r.sessionPeerID))
+	}
+	resource := NewWorldStateResource(r.le, r.b, tx, r.lookupOp, opts...)
+	// Nested openings from this read-only state retain the original Space authority.
+	resource.storage = r.outerEngine
+	id, err := resourceCtx.AddResource(resource.GetMux(), tx.Discard)
+	if err != nil {
+		tx.Discard()
+		return nil, err
+	}
+	return &s4wave_world.OpenOuterWorldResponse{ResourceId: id}, nil
 }
 
 // CreateObject creates an object with a key and initial root ref.

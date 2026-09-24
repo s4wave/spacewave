@@ -119,12 +119,41 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 			return decodeErr
 		})
 		world.ReleaseObjectState(obj)
-		nested.Release()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if body.GetMsg() != "nested content" {
 			t.Fatalf("iteration %d: nested result = %q", i, body.GetMsg())
+		}
+
+		enclosing, err := nested.OpenOuterWorld(ctx)
+		if err != nil {
+			nested.Release()
+			t.Fatal(err)
+		}
+		if got := server.CountTrackedResources(); got != baseline+2 {
+			nested.Release()
+			enclosing.Release()
+			t.Fatalf("iteration %d: outer open count = %d, want %d", i, got, baseline+2)
+		}
+		if i%2 == 0 {
+			nested.Release()
+			waitForTrackedResourceCount(t, server, baseline+1)
+			obj, found, err = enclosing.GetObject(ctx, outerKey)
+			world.ReleaseObjectState(obj)
+			if err != nil || !found {
+				t.Fatalf("iteration %d: enclosing after nested release: found %v, err %v", i, found, err)
+			}
+			enclosing.Release()
+		} else {
+			enclosing.Release()
+			waitForTrackedResourceCount(t, server, baseline+1)
+			obj, found, err = nested.GetObject(ctx, "inner")
+			world.ReleaseObjectState(obj)
+			if err != nil || !found {
+				t.Fatalf("iteration %d: nested after enclosing release: found %v, err %v", i, found, err)
+			}
+			nested.Release()
 		}
 		waitForTrackedResourceCount(t, server, baseline)
 
