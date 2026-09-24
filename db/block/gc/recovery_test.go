@@ -200,8 +200,8 @@ func TestCollectorRetriesFailedCleanup(t *testing.T) {
 
 type rejectingSweepStore struct{ block.StoreOps }
 
-func (rejectingSweepStore) SweepUnreferenced(context.Context, RefGraphOps, string) (bool, error) {
-	return false, ErrAtomicSweepUnsupported
+func (rejectingSweepStore) SweepUnreferenced(context.Context, RefGraphOps, []string) ([]string, error) {
+	return nil, ErrAtomicSweepUnsupported
 }
 
 func TestCollectorDoesNotBypassAtomicScopeRejection(t *testing.T) {

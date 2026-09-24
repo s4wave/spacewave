@@ -39,8 +39,8 @@ func TestPublicationSweepRechecksRescuedCandidate(t *testing.T) {
 	if err := v.PublishAtomic(t.Context(), p); err != nil {
 		t.Fatal(err)
 	}
-	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), node)
-	if err != nil || removed {
+	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), []string{node})
+	if err != nil || len(removed) != 0 {
 		t.Fatalf("rescued candidate: removed=%v err=%v", removed, err)
 	}
 	assertPublishedBlock(t, v, p, true)
@@ -52,15 +52,15 @@ type rescueSweepStore struct {
 	rescue func() error
 }
 
-func (v *rescueSweepStore) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, node string) (bool, error) {
+func (v *rescueSweepStore) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, nodes []string) ([]string, error) {
 	if v.rescue != nil {
 		rescue := v.rescue
 		v.rescue = nil
 		if err := rescue(); err != nil {
-			return false, err
+			return nil, err
 		}
 	}
-	return v.Volume.SweepUnreferenced(ctx, graph, node)
+	return v.Volume.SweepUnreferenced(ctx, graph, nodes)
 }
 
 func TestPublicationCollectorUsesAtomicSweep(t *testing.T) {
@@ -85,9 +85,38 @@ func TestPublicationCollectorUsesAtomicSweep(t *testing.T) {
 	}
 	assertPublishedBlock(t, v, p, false)
 	// Sweep is idempotent after the marker and block have gone.
-	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), block_gc.BlockIRI(p.Entries[0].Ref))
-	if removed || err != nil {
+	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), []string{block_gc.BlockIRI(p.Entries[0].Ref)})
+	if len(removed) != 0 || err != nil {
 		t.Fatalf("repeat sweep: %v %v", removed, err)
+	}
+}
+
+func TestPublicationCollectorSweepsCandidatesInOneCommit(t *testing.T) {
+	v, raw := newPublicationTestVolume(t)
+	var published []*block.AtomicPublication
+	for i := range 5 {
+		p := publicationFor(t, fmt.Sprintf("batch-%d", i), "", "one")
+		if err := v.PublishAtomic(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+		orphanPublication(t, v, p)
+		published = append(published, p)
+	}
+	raw.mu.Lock()
+	before := raw.commits
+	raw.mu.Unlock()
+	stats, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(t.Context())
+	if err != nil || stats.NodesSwept != len(published) || stats.RemoveBlockCount != len(published) {
+		t.Fatalf("collector stats=%+v err=%v", stats, err)
+	}
+	raw.mu.Lock()
+	count := raw.commits - before
+	raw.mu.Unlock()
+	if count != 1 {
+		t.Fatalf("sweep used %d physical commits for %d candidates", count, len(published))
+	}
+	for _, p := range published {
+		assertPublishedBlock(t, v, p, false)
 	}
 }
 
@@ -102,8 +131,8 @@ func TestPublicationSweepFailureRollsBackGraphAndBlock(t *testing.T) {
 	raw.mu.Lock()
 	raw.errorCommit = failure
 	raw.mu.Unlock()
-	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), node)
-	if removed || !errors.Is(err, failure) {
+	removed, err := v.SweepUnreferenced(t.Context(), v.GetRefGraph(), []string{node})
+	if len(removed) != 0 || !errors.Is(err, failure) {
 		t.Fatalf("failed sweep: %v %v", removed, err)
 	}
 	raw.mu.Lock()
@@ -117,8 +146,8 @@ func TestPublicationSweepFailureRollsBackGraphAndBlock(t *testing.T) {
 	if err != nil || !slices.Contains(incoming, block_gc.NodeUnreferenced) {
 		t.Fatal("failed sweep deleted marker", incoming, err)
 	}
-	removed, err = v.SweepUnreferenced(t.Context(), v.GetRefGraph(), node)
-	if !removed || err != nil {
+	removed, err = v.SweepUnreferenced(t.Context(), v.GetRefGraph(), []string{node})
+	if len(removed) != 1 || err != nil {
 		t.Fatalf("retry sweep: %v %v", removed, err)
 	}
 }
@@ -169,8 +198,8 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 func TestPublicationDirectCloseAndGraphScope(t *testing.T) {
 	v, _ := newPublicationTestVolume(t)
 	other, _ := newPublicationTestVolume(t)
-	removed, err := v.SweepUnreferenced(t.Context(), other.GetRefGraph(), "object:wrong-scope")
-	if removed || !errors.Is(err, block_gc.ErrAtomicSweepUnsupported) {
+	removed, err := v.SweepUnreferenced(t.Context(), other.GetRefGraph(), []string{"object:wrong-scope"})
+	if len(removed) != 0 || !errors.Is(err, block_gc.ErrAtomicSweepUnsupported) {
 		t.Fatalf("wrong scope: %v %v", removed, err)
 	}
 	if err := v.Close(); err != nil {
