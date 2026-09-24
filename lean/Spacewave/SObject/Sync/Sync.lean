@@ -14,8 +14,12 @@ challenge, signature, authority and explicit peer acknowledgment inputs.
 `startStream` stops at entry to data synchronization. It does not assert that
 synchronization succeeds, that authority remains unchanged, or that a later
 transport write completes. `authenticatedFrames` composes that entry with the
-serialized writer's current-authority checks. Watcher and shutdown traces remain
-separate lifetime obligations.
+serialized writer's current-authority checks. `watchStreamAuthority` mirrors the
+separate authority watch, including the ignored denial-write result, retained
+state release and unconditional owner cancellation and transport closure.
+Transport close and successful deadlines must interrupt blocked I/O; state waits
+must obey cancellation. Joining worker bodies before stream return remains a
+separate lifetime obligation.
 -/
 
 namespace Spacewave.SObject.Sync
@@ -111,5 +115,140 @@ theorem authenticatedFrames_authorized {input : AuthenticationInput} {deadlineOK
     simp only [started] at sent
     obtain ⟨proof, held, ack⟩ := startStream_authenticated started
     exact ⟨remote, proof, ack, held, writeFrames_authorized sent dataFrame⟩
+
+/-- AuthorityRead is one primitive WaitValueChange result. Error codes are projections:
+    zero is success, one cancellation, two access denial, three missing history and four other failure. -/
+structure AuthorityRead where
+  participants : List Participant
+  hash : String
+  error : Int
+  deriving DecidableEq, Repr
+
+/-- AuthorityWatch retains the observed prefix and the actual deferred cleanup calls.
+    A finite healthy prefix is still running; only a terminal observation runs cleanup. -/
+structure AuthorityWatch where
+  reads : Nat
+  stopped : Bool
+  cause : Int
+  deadline : Bool
+  denial : Bool
+  retained : Bool
+  released : Bool
+  canceled : Bool
+  closed : Bool
+  deriving DecidableEq, Repr
+
+/-- watchAuthorityReads follows the state-change loop and bounded denial attempt.
+    A successful deadline supplies the transport contract that even a blocked send terminates.
+    Send failure is ignored by Go, so its result cannot change authority or cleanup. -/
+def watchAuthorityReads (localID remote : String) (deadlineOK : Bool) : List AuthorityRead → AuthorityWatch
+  | [] => ⟨0, false, 0, false, false, true, false, false, false⟩
+  | read :: rest =>
+    if read.error != 0 then
+      ⟨1, true, read.error, false, false, true, true, true, true⟩
+    else if !authorizeParticipants read.participants read.hash localID remote then
+      let cause := if readableParticipant read.participants localID && readableParticipant read.participants remote then 3 else 2
+      ⟨1, true, cause, true, deadlineOK, true, true, true, true⟩
+    else
+      let next := watchAuthorityReads localID remote deadlineOK rest
+      {next with reads := next.reads + 1}
+
+/-- watchStreamAuthority includes failed watch retention and the unconditional cancel/close defer. -/
+def watchStreamAuthority (localID remote : String) (retainError : Int) (deadlineOK : Bool)
+    (reads : List AuthorityRead) : AuthorityWatch :=
+  if retainError != 0 then
+    ⟨0, true, retainError, false, false, false, false, true, true⟩
+  else watchAuthorityReads localID remote deadlineOK reads
+
+/-- Every terminal watcher path cancels and closes, after releasing any successful retention. -/
+theorem watchAuthorityReads_cleanup (localID remote : String) (deadlineOK : Bool) (reads : List AuthorityRead)
+    (stopped : (watchAuthorityReads localID remote deadlineOK reads).stopped = true) :
+    (watchAuthorityReads localID remote deadlineOK reads).released = true ∧
+    (watchAuthorityReads localID remote deadlineOK reads).canceled = true ∧
+    (watchAuthorityReads localID remote deadlineOK reads).closed = true := by
+  induction reads with
+  | nil => simp [watchAuthorityReads] at stopped
+  | cons read rest ih =>
+    unfold watchAuthorityReads at stopped ⊢
+    split <;> simp_all
+    split <;> simp_all
+
+/-- No retention failure bypasses the owner's cancel and transport close. -/
+theorem watchStreamAuthority_cleanup (localID remote : String) (retainError : Int) (deadlineOK : Bool)
+    (reads : List AuthorityRead)
+    (stopped : (watchStreamAuthority localID remote retainError deadlineOK reads).stopped = true) :
+    (watchStreamAuthority localID remote retainError deadlineOK reads).canceled = true ∧
+    (watchStreamAuthority localID remote retainError deadlineOK reads).closed = true ∧
+    ((watchStreamAuthority localID remote retainError deadlineOK reads).retained = true →
+      (watchStreamAuthority localID remote retainError deadlineOK reads).released = true) := by
+  by_cases retained : retainError = 0
+  · have terminal : (watchAuthorityReads localID remote deadlineOK reads).stopped = true := by
+      simpa [watchStreamAuthority, retained] using stopped
+    obtain ⟨released, canceled, closed⟩ := watchAuthorityReads_cleanup localID remote deadlineOK reads terminal
+    simp [watchStreamAuthority, retained, released, canceled, closed]
+  · simp [watchStreamAuthority, retained]
+
+/-- A stopped watcher ignores every later observation, including a readable regrant. -/
+theorem watchAuthorityReads_terminal (localID remote : String) (deadlineOK : Bool)
+    (consumed suffix : List AuthorityRead)
+    (stopped : (watchAuthorityReads localID remote deadlineOK consumed).stopped = true) :
+    watchAuthorityReads localID remote deadlineOK (consumed ++ suffix) =
+      watchAuthorityReads localID remote deadlineOK consumed := by
+  induction consumed with
+  | nil => simp [watchAuthorityReads] at stopped
+  | cons read rest ih =>
+    simp only [List.cons_append, watchAuthorityReads] at stopped ⊢
+    split <;> simp_all
+    split <;> simp_all
+
+/-- A healthy state read with either participant excluded ends the watcher with access denial. -/
+theorem watchAuthorityReads_revoked (localID remote : String) (deadlineOK : Bool)
+    (read : AuthorityRead) (rest : List AuthorityRead) (available : read.error = 0)
+    (revoked : readableParticipant read.participants localID = false ∨
+      readableParticipant read.participants remote = false) :
+    watchAuthorityReads localID remote deadlineOK (read :: rest) =
+      ⟨1, true, 2, true, deadlineOK, true, true, true, true⟩ := by
+  rcases revoked with localRevoked | remoteRevoked <;>
+    simp [watchAuthorityReads, authorizeParticipants, *]
+
+/-- Healthy observations remain live and never attempt denial or cleanup. -/
+theorem watchAuthorityReads_healthy (localID remote : String) (deadlineOK : Bool) (reads : List AuthorityRead)
+    (healthy : ∀ read ∈ reads, read.error = 0 ∧ authorizeParticipants read.participants read.hash localID remote = true) :
+    watchAuthorityReads localID remote deadlineOK reads =
+      ⟨reads.length, false, 0, false, false, true, false, false, false⟩ := by
+  induction reads with
+  | nil => rfl
+  | cons read rest ih =>
+    obtain ⟨available, admitted⟩ := healthy read (by simp)
+    have tail := ih (fun item member => healthy item (by simp [member]))
+    simp [watchAuthorityReads, available, admitted, tail]
+
+/-- A denial attempt requires both a successful transport deadline and an actually rejected held state. -/
+theorem watchAuthorityReads_denial (localID remote : String) (deadlineOK : Bool) (reads : List AuthorityRead)
+    (denial : (watchAuthorityReads localID remote deadlineOK reads).denial = true) :
+    deadlineOK = true ∧ ∃ read ∈ reads, read.error = 0 ∧
+      authorizeParticipants read.participants read.hash localID remote = false := by
+  induction reads with
+  | nil => simp [watchAuthorityReads] at denial
+  | cons read rest ih =>
+    unfold watchAuthorityReads at denial
+    split at denial
+    · simp at denial
+    · split at denial
+      · simp_all
+      · obtain ⟨deadline, item, member, available, rejected⟩ := ih denial
+        exact ⟨deadline, item, by simp [member], available, rejected⟩
+
+/-- Terminal prefix stability includes failed retention, which consumes no state observations. -/
+theorem watchStreamAuthority_terminal (localID remote : String) (retainError : Int) (deadlineOK : Bool)
+    (consumed suffix : List AuthorityRead)
+    (stopped : (watchStreamAuthority localID remote retainError deadlineOK consumed).stopped = true) :
+    watchStreamAuthority localID remote retainError deadlineOK (consumed ++ suffix) =
+      watchStreamAuthority localID remote retainError deadlineOK consumed := by
+  by_cases retained : retainError = 0
+  · have terminal : (watchAuthorityReads localID remote deadlineOK consumed).stopped = true := by
+      simpa [watchStreamAuthority, retained] using stopped
+    simpa [watchStreamAuthority, retained] using watchAuthorityReads_terminal localID remote deadlineOK consumed suffix terminal
+  · simp [watchStreamAuthority, retained]
 
 end Spacewave.SObject.Sync

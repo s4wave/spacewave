@@ -364,31 +364,8 @@ func (s *SOSync) runStream(
 	// A separate watch bounds revocation even while another sender is blocked.
 	sess := stream_packet.NewSession(strm, maxMessageSize)
 	watcher := routine.NewRoutineContainer()
-	watcher.SetRoutine(func(ctx context.Context) (rerr error) {
-		defer func() {
-			cancel(rerr)
-			strm.Close()
-		}()
-		states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer release()
-		var previous *sobject.SOState
-		for {
-			current, err := states.WaitValueChange(ctx, previous, nil)
-			if err != nil {
-				return err
-			}
-			if err := s.authorizeParticipants(current, remoteID); err != nil {
-				// A control frame exposes no state; a stalled transport still closes promptly.
-				if strm.SetWriteDeadline(time.Now().Add(250*time.Millisecond)) == nil {
-					_ = sendAccessDenied(sess)
-				}
-				return err
-			}
-			previous = current
-		}
+	watcher.SetRoutine(func(ctx context.Context) error {
+		return s.watchAuthority(ctx, strm, sess, remoteID, cancel)
 	})
 	watcher.SetContext(ctx, false)
 	defer func() {
@@ -402,6 +379,35 @@ func (s *SOSync) runStream(
 	}()
 
 	return s.synchronize(ctx, le, sess, remoteID)
+}
+
+// watchAuthority retains current authority until revocation, provider failure or cancellation.
+// Every exit releases the watch before canceling the owner and closing blocked transport.
+func (s *SOSync) watchAuthority(ctx context.Context, strm stream.Stream, sess *stream_packet.Session, remoteID peer.ID, cancel context.CancelCauseFunc) (rerr error) {
+	defer func() {
+		cancel(rerr)
+		strm.Close()
+	}()
+	states, release, err := s.soHost.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	var previous *sobject.SOState
+	for {
+		current, err := states.WaitValueChange(ctx, previous, nil)
+		if err != nil {
+			return err
+		}
+		if err := s.authorizeParticipants(current, remoteID); err != nil {
+			// A control frame exposes no state; a stalled transport still closes promptly.
+			if strm.SetWriteDeadline(time.Now().Add(250*time.Millisecond)) == nil {
+				_ = sendAccessDenied(sess)
+			}
+			return err
+		}
+		previous = current
+	}
 }
 
 // sendAccessDenied reports revocation without sending object state or history.

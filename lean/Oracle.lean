@@ -49,6 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `watchSyncAuthority`: host retention, current state reads and transport deadline observations.
 - `prepareSyncOutgoing`, `receiveSyncExchange`: sole-owner protocol state and primitive observations.
 - `writeSyncFrames`: endpoint identities and current-authority/transport trace; result `{"ok", "writer"}`.
 - `startSyncStream`: authentication inputs and deadline observations; result `{"ok", "started"}`.
@@ -133,6 +134,7 @@ deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Jo
 deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
 deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult, Sync.StreamStart
+deriving instance ToJson, FromJson for Sync.AuthorityRead, Sync.AuthorityWatch
 deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
@@ -187,6 +189,11 @@ def respond (req : Json) : Except String Json := do
     let host := if result.operation then none else
       some ((result.imported.map (·.host)).getD (visibleHost input.acceptance.previous none))
     return json% {ok: $(result.ok), exchange: $result, host: $host}
+  | "watchSyncAuthority" =>
+    let watcher := Sync.watchStreamAuthority (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+      (← req.getObjValAs? Int "retainError") (← req.getObjValAs? Bool "deadlineOK")
+      (← req.getObjValAs? (List Sync.AuthorityRead) "reads")
+    return json% {watcher: $watcher}
   | "writeSyncFrames" =>
     let writer := Sync.writeFrames (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
       (← req.getObjValAs? (List Sync.WriterAttempt) "attempts")
