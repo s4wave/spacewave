@@ -46,6 +46,8 @@ github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260923001122-d5001e2c51
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260923001122-d5001e2c51c2/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 h1:PBlBYtFJHqbsRalTvDbiM9Dgk4PfHwzEbd00h51aIs4=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
+github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 h1:X7jF/waiUPTRjUZkzRInP03rFAXbmEtPSgPzDNuwXcg=
+github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe h1:WrZSu4hkdfPGqao8LBY5bsRxDjlNPVe+02o0hxVGQmc=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe/go.mod h1:HjPtCVPOo4OREpb5vic13KLufoyirtuV7cTzU+Rnv+s=
 github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5 h1:EXuhOPf4RVJirySH0z8j2NfI2YwLHD6tBRj+NGgE+Vs=
