@@ -122,7 +122,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 	}
 	rootRefStr := rootRef.MarshalString()
 
-	// Keep direct backing-store access for the history and missing-block checks.
+	// Keep direct backing-store access for the history and missing-root checks.
 	kvtxVol, ok := tb.Volume.(volume_kvtx.KvtxVolume)
 	if !ok {
 		t.Fatalf("testbed volume type %T does not expose a kvtx store", tb.Volume)
@@ -213,15 +213,25 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 	})
 
 	t.Run("missing world root", func(t *testing.T) {
-		// Removing the durable root must fail packing instead of emitting an archive.
-		if err := ocs.GetBucket().RmBlock(ctx, rootRef); err != nil {
+		// Losing the durable root must fail packing instead of emitting an archive.
+		// Bucket RmBlock only releases ownership, so delete the stored bytes.
+		tx, err := kvtxVol.GetKvtxStore().NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Discard()
+		rootKey := append(bytes.Clone(kvtxVol.GetKvKey().GetBlockFullPrefix()), []byte(rootRefStr)...)
+		if err := tx.Delete(ctx, rootKey); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
 		var buf bytes.Buffer
 		kvfileWriter := kvfile.NewWriter(&buf)
 		t.Cleanup(func() { _ = kvfileWriter.Close() })
 
-		err := dist_compiler_bundle.BundleManifestsKvfile(
+		err = dist_compiler_bundle.BundleManifestsKvfile(
 			ctx,
 			le,
 			kvfileWriter,
