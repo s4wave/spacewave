@@ -55,9 +55,9 @@ vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   }),
 }))
 
-vi.mock('@s4wave/web/hooks/usePromise.js', () => ({
-  usePromise: () => ({
-    data: currentWizards,
+vi.mock('../space/useObjectWizards.js', () => ({
+  useObjectWizards: () => ({
+    value: { wizards: currentWizards },
   }),
 }))
 
@@ -85,9 +85,7 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 import { WizardViewer } from './WizardViewer.js'
 
 describe('WizardViewer', () => {
-  const mockSpace = {
-    listWizards: vi.fn(),
-  }
+  const mockSpace = {}
 
   const mockSpaceWorld = {
     applyWorldOp: mocks.applyWorldOp,

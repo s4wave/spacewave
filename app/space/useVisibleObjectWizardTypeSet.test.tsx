@@ -1,8 +1,6 @@
-import React from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
   setExperimentalCreatorsEnabled,
@@ -27,29 +25,14 @@ const h = vi.hoisted(() => ({
   ],
 }))
 
-vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
-  useStreamingResource: () => ({
+vi.mock('./useObjectWizards.js', () => ({
+  useObjectWizards: () => ({
     value: { wizards: h.wizards },
     loading: false,
     error: null,
     retry: vi.fn(),
   }),
 }))
-
-function wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <SpaceContext.Provider
-      resource={{
-        value: {} as never,
-        loading: false,
-        error: null,
-        retry: vi.fn(),
-      }}
-    >
-      {children}
-    </SpaceContext.Provider>
-  )
-}
 
 afterEach(() => {
   cleanup()
@@ -60,9 +43,7 @@ afterEach(() => {
 describe('useVisibleObjectWizardTypeSet', () => {
   it('reacts to the runtime experimental creator preference', () => {
     vi.stubEnv('DEV', false)
-    const { result } = renderHook(() => useVisibleObjectWizardTypeSet(), {
-      wrapper,
-    })
+    const { result } = renderHook(() => useVisibleObjectWizardTypeSet())
 
     expect(result.current.has('git/repo')).toBe(true)
     expect(result.current.has('forge/task')).toBe(false)

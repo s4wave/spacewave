@@ -8,10 +8,7 @@ import { InitObjectLayoutOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { INIT_OBJECT_LAYOUT_OP_ID } from '@s4wave/core/space/world/ops/init-object-layout.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
-import {
-  SharedObjectContext,
-  SpaceContext,
-} from '@s4wave/web/contexts/contexts.js'
+import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
   EXPERIMENTAL_CREATORS_STORAGE_KEY,
@@ -73,13 +70,14 @@ vi.mock('@s4wave/web/command/CommandContext.js', () => ({
   useOpenCommand: () => h.openCommand,
 }))
 
-vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
-  useStreamingResource: () => ({
+vi.mock('./useObjectWizards.js', () => ({
+  useObjectWizards: () => ({
     value: { wizards: h.wizards },
     loading: false,
     error: null,
     retry: vi.fn(),
   }),
+  useListObjectWizards: () => h.listWizards,
 }))
 
 vi.mock('@s4wave/web/contexts/TabActiveContext.js', () => ({
@@ -101,8 +99,6 @@ vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => {
 })
 
 describe('SpaceCommands', () => {
-  const mockSpace = { listWizards: h.listWizards }
-
   beforeEach(() => {
     h.wizards = [
       {
@@ -195,37 +191,28 @@ describe('SpaceCommands', () => {
           retry: vi.fn(),
         }}
       >
-        <SpaceContext.Provider
-          resource={{
-            value: mockSpace as never,
+        <SpaceContainerContext.Provider
+          spaceId="space-1"
+          spaceState={{ ready: true }}
+          spaceWorldResource={{
+            value: { applyWorldOp: h.applyWorldOp } as never,
             loading: false,
             error: null,
             retry: vi.fn(),
           }}
+          spaceWorld={{ applyWorldOp: h.applyWorldOp } as never}
+          navigateToRoot={vi.fn()}
+          navigateToObjects={h.navigateToObjects}
+          buildObjectUrls={vi.fn()}
+          navigateToSubPath={vi.fn()}
         >
-          <SpaceContainerContext.Provider
-            spaceId="space-1"
-            spaceState={{ ready: true }}
-            spaceWorldResource={{
-              value: { applyWorldOp: h.applyWorldOp } as never,
-              loading: false,
-              error: null,
-              retry: vi.fn(),
-            }}
-            spaceWorld={{ applyWorldOp: h.applyWorldOp } as never}
-            navigateToRoot={vi.fn()}
-            navigateToObjects={h.navigateToObjects}
-            buildObjectUrls={vi.fn()}
-            navigateToSubPath={vi.fn()}
-          >
-            <SpaceCommands
-              canRename={true}
-              canShare={canShare}
-              onRenameSpace={vi.fn()}
-              onShareSpace={onShareSpace}
-            />
-          </SpaceContainerContext.Provider>
-        </SpaceContext.Provider>
+          <SpaceCommands
+            canRename={true}
+            canShare={canShare}
+            onRenameSpace={vi.fn()}
+            onShareSpace={onShareSpace}
+          />
+        </SpaceContainerContext.Provider>
       </SharedObjectContext.Provider>,
     )
   }

@@ -18,11 +18,12 @@ import (
 	plugin_registration "github.com/s4wave/spacewave/sdk/plugin/registration"
 	quickstart "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	viewer "github.com/s4wave/spacewave/sdk/viewer/registry"
+	wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 	worldop "github.com/s4wave/spacewave/sdk/worldop/registry"
 )
 
 // TestPreparedRegistrationReplacement drives the real Resource protocol across
-// all four registries, including incomplete candidates and retired Resources.
+// every plugin registry, including incomplete candidates and retired Resources.
 func TestPreparedRegistrationReplacement(t *testing.T) {
 	// Compose the same shared admission boundary as the core Resource root.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -32,7 +33,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	ops := worldops.NewWorldOpRegistryResource(groups)
 	uis := viewers.NewViewerRegistryResource(groups)
 	seeds := quickstarts.NewQuickstartRegistryResource(nil, nil, groups)
-	root := srpc.NewMux(types.GetMux(), ops.GetMux(), uis.GetMux(), seeds.GetMux())
+	wizards := wizard.NewWizardRegistryResource(groups)
+	root := srpc.NewMux(types.GetMux(), ops.GetMux(), uis.GetMux(), seeds.GetMux(), wizards.GetMux())
 	if err := groups.Register(root); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +55,8 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 	}
 	prepare := plugin_registration.NewSRPCRegistrationServiceClient(rootClient)
 
-	// Every generation registers the same type, operation, viewer, and Quickstart.
+	// Every generation registers the same type, operation, viewer, Quickstart,
+	// and object wizard.
 	open := func(pluginID, manifest, instanceKey string) (resource_client.ResourceRef, srpc.Client) {
 		t.Helper()
 		response, err := prepare.Prepare(ctx, &plugin_registration.PrepareRequest{PluginId: pluginID, ManifestRoot: manifest, InstanceKey: instanceKey})
@@ -90,6 +93,11 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		}}); err != nil {
 			t.Fatal(err)
 		}
+		if _, err := wizard.NewSRPCObjectWizardRegistryResourceServiceClient(rpc).RegisterWizard(ctx, &wizard.RegisterWizardRequest{Wizard: &wizard.ObjectWizard{
+			TypeId: "colors/app", PluginId: "colors", DisplayName: label,
+		}}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	activate := func(rpc srpc.Client) {
 		t.Helper()
@@ -104,6 +112,19 @@ func TestPreparedRegistrationReplacement(t *testing.T) {
 		}
 		if got := seeds.LookupRegistration("colors/app", instanceKey); got.GetName() != label || got.GetManifestRoot() != label {
 			t.Fatalf("Quickstart = %v, want generation %q", got, label)
+		}
+		wizardList, err := wizards.ListWizards(ctx, &wizard.ListWizardsRequest{InstanceKey: instanceKey})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var wizardLabel string
+		for _, w := range wizardList.GetWizards() {
+			if w.GetTypeId() == "colors/app" {
+				wizardLabel = w.GetDisplayName()
+			}
+		}
+		if wizardLabel != label {
+			t.Fatalf("wizard = %q, want %q", wizardLabel, label)
 		}
 		list, err := uis.ListViewers(ctx, &viewer.ListViewersRequest{Surface: viewer.ViewerSurface_VIEWER_SURFACE_WEB, InstanceKey: instanceKey})
 		if err != nil {

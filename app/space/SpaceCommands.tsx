@@ -2,7 +2,6 @@ import { useCallback, useMemo } from 'react'
 
 import {
   SharedObjectContext,
-  SpaceContext,
   useSessionIndex,
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
@@ -11,7 +10,6 @@ import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { downloadURL } from '@s4wave/web/download.js'
@@ -21,6 +19,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from './object-wizards.js'
+import { useListObjectWizards, useObjectWizards } from './useObjectWizards.js'
 import {
   lookupCreateOpBuilder,
   buildObjectKey,
@@ -50,13 +49,9 @@ export function SpaceCommands({
   const openCommand = useOpenCommand()
   const { spaceState, spaceWorld, navigateToObjects } =
     SpaceContainerContext.useContext()
-  const spaceResource = SpaceContext.useContext()
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
-  const wizardState = useStreamingResource(
-    spaceResource,
-    useCallback((space, signal) => space.watchWizards(signal), []),
-    [],
-  )
+  const wizardState = useObjectWizards()
+  const listWizards = useListObjectWizards()
   const wizards = useMemo(
     () =>
       normalizeObjectWizards(
@@ -65,16 +60,14 @@ export function SpaceCommands({
       ),
     [experimentalCreatorsEnabled, wizardState.value?.wizards],
   )
+  // The watch may lag a route transition, so the palette reads a fresh list.
   const loadWizards = useCallback(
-    async (signal?: AbortSignal) => {
-      const space = spaceResource.value
-      if (!space) return wizards
-      return normalizeObjectWizards(
-        await space.listWizards(signal),
+    async (signal?: AbortSignal) =>
+      normalizeObjectWizards(
+        await listWizards(signal),
         experimentalCreatorsEnabled,
-      )
-    },
-    [experimentalCreatorsEnabled, spaceResource.value, wizards],
+      ),
+    [experimentalCreatorsEnabled, listWizards],
   )
   const existingObjectKeys = useMemo(
     () =>

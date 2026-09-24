@@ -42,7 +42,7 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 	t.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r := s4wave_wizard.NewWizardRegistryResource()
+	r := s4wave_wizard.NewWizardRegistryResource(nil)
 	clientPipe, serverPipe := net.Pipe()
 
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
@@ -552,22 +552,6 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 		t.Fatal("expected assigned registration id")
 	}
 
-	spaceRegistry := s4wave_wizard.NewWizardRegistryResource()
-	spaceList, err := spaceRegistry.ListWizards(ctx, &s4wave_wizard.ListWizardsRequest{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	var foundInSpaceRegistry bool
-	for _, wizard := range spaceList.GetWizards() {
-		if wizard.GetTypeId() == "example/project-board" {
-			foundInSpaceRegistry = true
-			break
-		}
-	}
-	if !foundInSpaceRegistry {
-		t.Fatal("expected root registration to appear in space wizard registry")
-	}
-
 	second, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -589,7 +573,7 @@ func TestWizardRegistryRegisterListWatchAndRelease(t *testing.T) {
 }
 
 func TestWizardRegistryValidationAndDedupe(t *testing.T) {
-	r := s4wave_wizard.NewWizardRegistryResource()
+	r := s4wave_wizard.NewWizardRegistryResource(nil)
 
 	_, err := r.RegisterWizard(context.Background(), &s4wave_wizard.RegisterWizardRequest{})
 	if err != s4wave_wizard.ErrWizardRequired {
@@ -747,7 +731,10 @@ func TestWizardRegistryStaticAppWizardVisibility(t *testing.T) {
 	}
 }
 
-func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
+// TestWizardRegistryWatchHidesShadowedWizard checks that a plugin wizard
+// shadowed by a built-in type id changes no snapshot, and that the watch
+// delivers the next visible change.
+func TestWizardRegistryWatchHidesShadowedWizard(t *testing.T) {
 	ctx, client := setupWizardRegistryClient(t)
 	watchCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -792,14 +779,27 @@ func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	t.Cleanup(ref.Release)
 
-	duplicate, err := watch.Recv()
+	visibleResp, err := svc.RegisterWizard(ctx, &s4wave_wizard.RegisterWizardRequest{
+		Wizard: &s4wave_wizard.ObjectWizard{
+			TypeId:      "example/visible",
+			PluginId:    "duplicate-plugin",
+			DisplayName: "Visible",
+		},
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if len(duplicate.GetWizards()) != initialCount {
-		t.Fatalf("expected duplicate visible snapshot, got %d before and %d after", initialCount, len(duplicate.GetWizards()))
+	visibleRef := client.CreateResourceReference(visibleResp.GetResourceId())
+	t.Cleanup(visibleRef.Release)
+
+	next, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
 	}
-	for _, wizard := range duplicate.GetWizards() {
+	if len(next.GetWizards()) != initialCount+1 {
+		t.Fatalf("expected only the visible wizard to be added, got %d before and %d after", initialCount, len(next.GetWizards()))
+	}
+	for _, wizard := range next.GetWizards() {
 		if wizard.GetTypeId() == "canvas" && wizard.GetDisplayName() != "Canvas" {
 			t.Fatalf("expected static canvas wizard to remain visible, got %s", wizard.GetDisplayName())
 		}
@@ -808,7 +808,7 @@ func TestWizardRegistryWatchPreservesDuplicateSnapshotBroadcast(t *testing.T) {
 
 func TestWizardRegistryWatchCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
-	r := s4wave_wizard.NewWizardRegistryResource()
+	r := s4wave_wizard.NewWizardRegistryResource(nil)
 	strm := newWizardRegistryStream(ctx)
 	done := make(chan error, 1)
 	go func() {

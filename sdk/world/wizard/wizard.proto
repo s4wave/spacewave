@@ -97,7 +97,11 @@ enum GitCloneProgressState {
 }
 
 // ListWizardsRequest is the request for ListWizards.
-message ListWizardsRequest {}
+message ListWizardsRequest {
+  // InstanceKey selects the wizards visible to one plugin installation, such
+  // as a Space world engine id. Empty selects only global wizards.
+  string instance_key = 1;
+}
 
 // RegisterWizardRequest is the request for RegisterWizard.
 message RegisterWizardRequest {
@@ -118,7 +122,11 @@ message ListWizardsResponse {
 }
 
 // WatchWizardsRequest is the request for WatchWizards.
-message WatchWizardsRequest {}
+message WatchWizardsRequest {
+  // InstanceKey selects the wizards visible to one plugin installation, such
+  // as a Space world engine id. Empty selects only global wizards.
+  string instance_key = 1;
+}
 
 // WatchWizardsResponse contains the current registered object wizards.
 message WatchWizardsResponse {

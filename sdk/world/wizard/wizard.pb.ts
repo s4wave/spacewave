@@ -425,13 +425,24 @@ export const WatchGitCloneProgressResponse: MessageType<WatchGitCloneProgressRes
  *
  * @generated from message s4wave.wizard.ListWizardsRequest
  */
-export interface ListWizardsRequest {}
+export interface ListWizardsRequest {
+  /**
+   * InstanceKey selects the wizards visible to one plugin installation, such
+   * as a Space world engine id. Empty selects only global wizards.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const ListWizardsRequest: MessageType<ListWizardsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ListWizardsRequest>(
-    's4wave.wizard.ListWizardsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.ListWizardsRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ObjectWizard defines a creatable object type for the creation drawer.
@@ -626,13 +637,24 @@ export const ListWizardsResponse: MessageType<ListWizardsResponse> =
  *
  * @generated from message s4wave.wizard.WatchWizardsRequest
  */
-export interface WatchWizardsRequest {}
+export interface WatchWizardsRequest {
+  /**
+   * InstanceKey selects the wizards visible to one plugin installation, such
+   * as a Space world engine id. Empty selects only global wizards.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+}
 
 export const WatchWizardsRequest: MessageType<WatchWizardsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchWizardsRequest>(
-    's4wave.wizard.WatchWizardsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.WatchWizardsRequest',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchWizardsResponse contains the current registered object wizards.

@@ -24,7 +24,6 @@ import (
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
-	s4wave_wizard "github.com/s4wave/spacewave/sdk/world/wizard"
 	"github.com/sirupsen/logrus"
 )
 
@@ -74,10 +73,6 @@ func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 	spaceResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error {
 			return s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource)
-		},
-		func(mux srpc.Mux) error {
-			wizardResource := s4wave_wizard.NewWizardRegistryResource()
-			return s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(mux, wizardResource)
 		},
 	)
 	return spaceResource

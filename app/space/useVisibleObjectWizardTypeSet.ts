@@ -1,21 +1,14 @@
-import { useCallback, useMemo } from 'react'
-
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
+import { useMemo } from 'react'
 
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from './object-wizards.js'
+import { useObjectWizards } from './useObjectWizards.js'
 
 // useVisibleObjectWizardTypeSet returns the set of creatable object type IDs
 // visible for the current browser.
 export function useVisibleObjectWizardTypeSet(): Set<string> {
-  const spaceResource = SpaceContext.useContext()
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
-  const wizardState = useStreamingResource(
-    spaceResource,
-    useCallback((space, signal) => space.watchWizards(signal), []),
-    [],
-  )
+  const wizardState = useObjectWizards()
 
   return useMemo(
     () =>

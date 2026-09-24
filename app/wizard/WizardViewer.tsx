@@ -1,9 +1,6 @@
 import { useCallback, useMemo } from 'react'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -14,6 +11,7 @@ import {
 } from '../space/create-op-builders.js'
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from '../space/object-wizards.js'
+import { useObjectWizards } from '../space/useObjectWizards.js'
 
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
@@ -30,12 +28,8 @@ function validateTargetName(targetTypeId: string | undefined, name: string) {
 }
 
 export function WizardViewer(props: ObjectViewerComponentProps) {
-  const spaceResource = SpaceContext.useContext()
-  const space = useResourceValue(spaceResource)
   const experimentalCreatorsEnabled = useExperimentalCreatorsEnabled()
-  const { data: wizards } = usePromise(
-    useCallback((signal) => space?.listWizards(signal), [space]),
-  )
+  const wizards = useObjectWizards().value?.wizards
 
   // Pass undefined configTypeId: the generic viewer resolves it dynamically.
   const ws = useWizardState(props, undefined)

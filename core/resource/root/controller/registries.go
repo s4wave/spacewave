@@ -50,7 +50,7 @@ func newRegistries(le *logrus.Entry, b bus.Bus) *registries {
 		worldOp:      resource_worldop_registry.NewWorldOpRegistryResource(generations),
 		configType:   resource_configtype_registry.NewConfigTypeRegistryResource(),
 		quickstart:   resource_quickstart_registry.NewQuickstartRegistryResource(le, b, generations),
-		objectWizard: s4wave_wizard.NewWizardRegistryResource(),
+		objectWizard: s4wave_wizard.NewWizardRegistryResource(generations),
 	}
 }
 

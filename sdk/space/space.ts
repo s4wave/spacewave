@@ -10,15 +10,6 @@ import { EngineWorldState } from '../world/engine-state.js'
 import { SpaceContents } from './contents.js'
 import { PluginFrontend } from './plugin-frontend.js'
 import {
-  ObjectWizardRegistryResourceService,
-  ObjectWizardRegistryResourceServiceClient,
-} from '../world/wizard/wizard_srpc.pb.js'
-import type {
-  ObjectWizard,
-  RegisterWizardResponse,
-  WatchWizardsResponse,
-} from '../world/wizard/wizard.pb.js'
-import {
   BuildSpacePluginRequest,
   BuildSpacePluginResponse,
   CreateSecretRequest,
@@ -34,14 +25,10 @@ import {
 // The objects are rendered by type-specific frontend components.
 export class Space extends Resource {
   private service: SpaceResourceService
-  private wizardService: ObjectWizardRegistryResourceService
 
   constructor(resourceRef: ClientResourceRef) {
     super(resourceRef)
     this.service = new SpaceResourceServiceClient(resourceRef.client)
-    this.wizardService = new ObjectWizardRegistryResourceServiceClient(
-      resourceRef.client,
-    )
   }
 
   // watchSpaceState watches the SpaceState for the component.
@@ -138,26 +125,5 @@ export class Space extends Resource {
   ): Promise<EngineWorldState> {
     const engine = await this.accessWorld(abortSignal)
     return new EngineWorldState(engine, write, true)
-  }
-
-  // listWizards returns all registered object creation wizards.
-  public async listWizards(abortSignal?: AbortSignal): Promise<ObjectWizard[]> {
-    const response = await this.wizardService.ListWizards({}, abortSignal)
-    return response.wizards ?? []
-  }
-
-  // watchWizards streams registered object creation wizards.
-  public watchWizards(
-    abortSignal?: AbortSignal,
-  ): AsyncIterable<WatchWizardsResponse> {
-    return this.wizardService.WatchWizards({}, abortSignal)
-  }
-
-  // registerWizard registers a plugin-provided object creation wizard.
-  public async registerWizard(
-    wizard: ObjectWizard,
-    abortSignal?: AbortSignal,
-  ): Promise<RegisterWizardResponse> {
-    return await this.wizardService.RegisterWizard({ wizard }, abortSignal)
   }
 }
