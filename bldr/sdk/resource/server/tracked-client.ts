@@ -303,7 +303,7 @@ class RemoteResourceClient {
       if (resourceID === undefined) break
       this.releaseResourceTree(resourceID)
     }
-    for (const resourceID of [...this.attachedResources.keys()]) {
+    for (const resourceID of Array.from(this.attachedResources.keys())) {
       this.releaseResource(resourceID, false)
     }
     this.released = true

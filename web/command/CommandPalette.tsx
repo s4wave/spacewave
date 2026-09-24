@@ -681,14 +681,11 @@ function useCommandPaletteController() {
   )
 
   const stepChordBack = useCallback(() => {
-    setChordPath((current) => {
-      if (current.length <= 1) return current
-      const nextPath = current.slice(0, -1)
-      const nextNode = nodeForPath(rootChordNode, nextPath.slice(1))
-      setChordNode(nextNode)
-      return nextPath
-    })
-  }, [rootChordNode])
+    if (chordPath.length <= 1) return
+    const nextPath = chordPath.slice(0, -1)
+    setChordPath(nextPath)
+    setChordNode(nodeForPath(rootChordNode, nextPath.slice(1)))
+  }, [chordPath, rootChordNode])
 
   const handlePaletteKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {

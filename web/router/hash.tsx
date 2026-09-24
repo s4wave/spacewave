@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 import { resolvePath, To } from './router.js'
 import { isPathnameAppRoute, normalizeAppPath } from './app-path.js'
 import { isStaticRoute } from './static-routes.js'
@@ -40,9 +41,7 @@ export const useNavigateHandler = (
   currentPath: string,
   setPath: (path: string) => void,
 ): ((to: To) => void) => {
-  const currentPathRef = useRef(currentPath)
-  // eslint-disable-next-line react-hooks/refs
-  currentPathRef.current = currentPath
+  const currentPathRef = useLatestRef(currentPath)
 
   return useCallback(
     (to: To) => {

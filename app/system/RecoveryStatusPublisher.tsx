@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 
 import { readBrowserBootRecoveryStatus } from '@s4wave/app/prerender/boot-status.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -6,7 +6,7 @@ import type {
   BrowserBootRecoveryStatus,
   RuntimeAssetRecoveryStatus,
 } from '@s4wave/sdk/status/status.pb.js'
-import { webViewRootAssetStatusEvent } from '@aptre/bldr-react'
+import { useLatestRef, webViewRootAssetStatusEvent } from '@aptre/bldr-react'
 
 declare global {
   var __bldrWebViewRootAssetStatus:
@@ -35,8 +35,7 @@ export function RecoveryStatusPublisher(props: { session: Session }) {
         console.error('failed to publish runtime recovery status', err)
       })
   }, [props.session])
-  const publishRef = useRef(publish)
-  publishRef.current = publish
+  const publishRef = useLatestRef(publish)
 
   useEffect(() => {
     publish()

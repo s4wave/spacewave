@@ -709,7 +709,7 @@ function trackTinyGoOPFSRuntimeTask(
 async function awaitTinyGoOPFSRuntimeTasks(go: TinyGoRuntime): Promise<void> {
   const tasks = tinyGoOPFSRuntimeTasks.get(go)
   while (tasks && tasks.size !== 0) {
-    await Promise.all([...tasks])
+    await Promise.all(tasks)
   }
 }
 

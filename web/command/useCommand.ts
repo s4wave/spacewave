@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
 import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
@@ -57,11 +58,9 @@ interface UseCommandOpts {
 export function useCommand(opts: UseCommandOpts): void {
   const { service, adoptResource, attachResource } = useCommandContext()
   const registrationResourceIdRef = useRef(0)
-  const defaultBindingsRef = useRef(opts.defaultBindings)
-  defaultBindingsRef.current = opts.defaultBindings
+  const defaultBindingsRef = useLatestRef(opts.defaultBindings)
   const defaultBindingsSignature = JSON.stringify(opts.defaultBindings ?? null)
-  const searchAliasesRef = useRef(opts.searchAliases)
-  searchAliasesRef.current = opts.searchAliases
+  const searchAliasesRef = useLatestRef(opts.searchAliases)
   const searchAliasesSignature = JSON.stringify(opts.searchAliases ?? null)
   const handleCommand = useEffectEvent((args: Record<string, string>) => {
     opts.handler(args)

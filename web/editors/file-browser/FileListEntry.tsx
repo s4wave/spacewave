@@ -3,7 +3,6 @@ import {
   useCallback,
   use,
   useEffect,
-  useMemo,
   useRef,
   type DragEvent,
   type KeyboardEvent,
@@ -167,30 +166,22 @@ export function FileListEntry({
   )
 
   const { data: entryDetails } = usePromise(fetchDetails)
-  const dragEnvelope = useMemo(
-    () =>
-      entry
-        ? (getDragEnvelope?.(entry, {
-            selectedIds: context?.selectedIds ?? [],
-          }) ?? null)
-        : null,
-    [context?.selectedIds, entry, getDragEnvelope],
-  )
-  const downloadDragTarget = useMemo(
-    () =>
-      entry
-        ? (getDownloadDragTarget?.(entry, {
-            selectedIds: context?.selectedIds ?? [],
-          }) ?? null)
-        : null,
-    [context?.selectedIds, entry, getDownloadDragTarget],
-  )
-
   const isDropTargetActive = entry?.id === dropTargetEntryId
 
+  // handleDragStart builds the drag payloads for the current selection and
+  // cancels the drag when the entry offers none.
   const handleDragStart = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (!dragEnvelope && !downloadDragTarget) return
+      if (!entry) return
+      const selection = { selectedIds: context?.selectedIds ?? [] }
+      const dragEnvelope = getDragEnvelope?.(entry, selection) ?? null
+      const downloadDragTarget =
+        getDownloadDragTarget?.(entry, selection) ?? null
+      if (!dragEnvelope && !downloadDragTarget) {
+        e.preventDefault()
+        return
+      }
+
       if (dragEnvelope) {
         writeAppDragEnvelope(e.dataTransfer, dragEnvelope)
       }
@@ -203,7 +194,7 @@ export function FileListEntry({
       }
       e.dataTransfer.effectAllowed = 'copyMove'
     },
-    [downloadDragTarget, dragEnvelope],
+    [context?.selectedIds, entry, getDownloadDragTarget, getDragEnvelope],
   )
 
   const handleDragEnd = useCallback(() => {
@@ -322,7 +313,7 @@ export function FileListEntry({
         isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
         style['--list-row-height'] !== undefined && 'list-row-height',
       )}
-      draggable={dragEnvelope !== null || downloadDragTarget !== null}
+      draggable={!!entry && (!!getDragEnvelope || !!getDownloadDragTarget)}
       onClick={handleEntrySelect}
       onKeyDown={handleEntryKeyDown}
       onDoubleClick={handleDoubleClick}

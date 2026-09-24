@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
@@ -42,6 +42,21 @@ export async function loadForgeClusterOptions(
   )
 }
 
+let nextTaskKey = 0
+
+// newTaskKey returns a row key no other task row has used.
+function newTaskKey(): string {
+  return `task-${++nextTaskKey}`
+}
+
+// fitTaskKeys returns keys trimmed or extended to one per displayed task.
+function fitTaskKeys(keys: string[], count: number): string[] {
+  if (keys.length >= count) {
+    return keys.slice(0, count)
+  }
+  return [...keys, ...Array.from({ length: count - keys.length }, newTaskKey)]
+}
+
 // ForgeJobConfigEditor edits the config-specific fields of a ForgeJobCreateOp.
 // Renders a cluster picker and task definitions list.
 export function ForgeJobConfigEditor({
@@ -66,12 +81,16 @@ export function ForgeJobConfigEditor({
     () => (taskDefs.length > 0 ? taskDefs : [{ name: '' }]),
     [taskDefs],
   )
-  const nextTaskKeyRef = useRef(1)
-  const taskKeysRef = useRef<string[]>([])
-  while (taskKeysRef.current.length < displayedTaskDefs.length) {
-    taskKeysRef.current.push(`task-${nextTaskKeyRef.current++}`)
+
+  // Row keys follow their tasks across additions and removals. A task list
+  // replaced by the parent resizes the keys during render.
+  const [taskKeys, setTaskKeys] = useState(() =>
+    fitTaskKeys([], displayedTaskDefs.length),
+  )
+  if (taskKeys.length !== displayedTaskDefs.length) {
+    setTaskKeys(fitTaskKeys(taskKeys, displayedTaskDefs.length))
   }
-  taskKeysRef.current.length = displayedTaskDefs.length
+
   const handleSelectCluster = useCallback(
     (clusterKey: string) => {
       onValueChange({ ...value, clusterKey })
@@ -89,14 +108,14 @@ export function ForgeJobConfigEditor({
   )
 
   const handleAddTask = useCallback(() => {
-    taskKeysRef.current.push(`task-${nextTaskKeyRef.current++}`)
+    setTaskKeys((keys) => [...keys, newTaskKey()])
     onValueChange({ ...value, taskDefs: [...taskDefs, { name: '' }] })
   }, [taskDefs, value, onValueChange])
 
   const handleRemoveTask = useCallback(
     (index: number) => {
       if (taskDefs.length <= 1) return
-      taskKeysRef.current.splice(index, 1)
+      setTaskKeys((keys) => keys.filter((_, i) => i !== index))
       onValueChange({
         ...value,
         taskDefs: taskDefs.filter((_, i) => i !== index),
@@ -193,10 +212,7 @@ export function ForgeJobConfigEditor({
         </p>
         <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
           {displayedTaskDefs.map((task, i) => (
-            <div
-              key={taskKeysRef.current[i]}
-              className="flex items-center gap-2"
-            >
+            <div key={taskKeys[i]} className="flex items-center gap-2">
               <Input
                 value={task.name ?? ''}
                 onChange={(e) => handleUpdateTaskDef(i, e.target.value)}

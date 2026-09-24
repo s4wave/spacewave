@@ -107,8 +107,8 @@ function writeArray(
   seen: unknown[],
 ): string {
   const len = value.length
-  const parts: string[] = new Array(len)
-  const present: boolean[] = new Array(len).fill(false)
+  const parts = Array.from<string>({ length: len })
+  const present = Array.from({ length: len }, () => false)
   for (const key of Reflect.ownKeys(value)) {
     const desc = Object.getOwnPropertyDescriptor(value, key)!
     if (desc.get !== undefined || desc.set !== undefined) {

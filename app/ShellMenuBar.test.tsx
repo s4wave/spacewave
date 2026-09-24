@@ -213,8 +213,8 @@ describe('ShellMenuBar', () => {
     expect(view.queryByText(/Leader/)).toBeNull()
   })
   it('keeps File and Go menus grouped by command subject', () => {
-    mockUseCommands.mockReturnValue([
-      ...[
+    mockUseCommands.mockReturnValue(
+      [
         [
           'spacewave.create-object',
           'Create Object',
@@ -272,7 +272,7 @@ describe('ShellMenuBar', () => {
         active: true,
         enabled: true,
       })),
-    ])
+    )
 
     const view = render(<ShellMenuBar />)
     const getMenuContent = (name: string) => {

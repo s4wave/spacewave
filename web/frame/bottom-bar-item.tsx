@@ -63,7 +63,7 @@ export function BottomBarItem({
   } | null>(null)
   const suppressNextClickRef = useRef(false)
 
-  const cancelLongPress = useCallback(() => {
+  const cancelLongPress = useCallback(function cancelLongPress() {
     const pending = longPressRef.current
     if (!pending) return
     clearTimeout(pending.timer)

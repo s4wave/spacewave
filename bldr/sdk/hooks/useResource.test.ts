@@ -356,13 +356,14 @@ describe('useResource', () => {
 
     await act(async () => {
       root?.render(
-        React.createElement(ResourcesProvider, {
-          client: client as never,
-          children: React.createElement(TestChildResource, {
+        React.createElement(
+          ResourcesProvider,
+          { client: client as never },
+          React.createElement(TestChildResource, {
             parent,
             factory: childFactory,
           }),
-        }),
+        ),
       )
       await flush()
     })

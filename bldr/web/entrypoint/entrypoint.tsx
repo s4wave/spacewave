@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from 'react'
+import React, { Suspense } from 'react'
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import {
   BldrRoot,
@@ -183,28 +183,16 @@ function InitialLoadingFrame() {
 // module specifier, so it is not known at author time.
 declare const BLDR_STARTUP_JS: string | undefined
 if (typeof BLDR_STARTUP_JS === 'string') {
-  const importStartupModule = async (): Promise<StartupModule> =>
-    (await import(BLDR_STARTUP_JS)) as StartupModule
-  const BldrWebStartupContainer: React.FC = () => {
-    const LoadedComponent = useMemo(
-      () =>
-        React.lazy(async (): Promise<StartupModule> => importStartupModule()),
-      [],
-    )
-
-    const loadedComponent = useMemo(
-      () => <LoadedComponent />,
-      [LoadedComponent],
-    )
-
-    return (
-      <WebViewErrorBoundary>
-        <Suspense fallback={<InitialLoadingFrame />}>
-          {loadedComponent}
-        </Suspense>
-      </WebViewErrorBoundary>
-    )
-  }
+  const StartupComponent = React.lazy(
+    async () => (await import(BLDR_STARTUP_JS)) as StartupModule,
+  )
+  const BldrWebStartupContainer: React.FC = () => (
+    <WebViewErrorBoundary>
+      <Suspense fallback={<InitialLoadingFrame />}>
+        <StartupComponent />
+      </Suspense>
+    </WebViewErrorBoundary>
+  )
 
   bldrRootProps.disableRootWebView = true
   bldrRootProps.children = <BldrWebStartupContainer />

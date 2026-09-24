@@ -2301,7 +2301,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         workerId: workerID,
         shared: worker.isShared,
         plugin: worker.plugin,
-        ...(data.startupMark.detail ?? {}),
+        ...data.startupMark.detail,
         workerStartTimeMs: data.startupMark.startTimeMs ?? null,
       })
     }

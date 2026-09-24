@@ -93,8 +93,9 @@ function ExplicitSpacewaveRuntime({
       staticViewers={staticViewers}
       staticConfigTypes={staticConfigTypes}
       rootAtom={scopedRootAtom}
-      children={children}
-    />
+    >
+      {children}
+    </RuntimeProviderTree>
   )
 }
 
@@ -116,8 +117,9 @@ function BldrSpacewaveRuntime({
       staticViewers={staticViewers}
       staticConfigTypes={staticConfigTypes}
       rootAtom={rootAtom}
-      children={children}
-    />
+    >
+      {children}
+    </RuntimeProviderTree>
   )
 }
 
@@ -148,8 +150,9 @@ function RuntimeProviderTree({
                 <SpacewaveRuntimeRoot
                   resourceClient={resourceClient}
                   rootAtom={rootAtom}
-                  children={children}
-                />
+                >
+                  {children}
+                </SpacewaveRuntimeRoot>
               </ResourcesProvider>
             </ResourceDevToolsProvider>
           </StateDevToolsProvider>

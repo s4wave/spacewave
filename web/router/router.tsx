@@ -4,7 +4,6 @@ import React, {
   use,
   useCallback,
   useMemo,
-  useRef,
   Fragment,
   isValidElement,
   ReactNode,
@@ -12,6 +11,7 @@ import React, {
   ReactElement,
   Children,
 } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 
 /**
  * Type definition for the Router context.
@@ -140,9 +140,7 @@ export const RouterProvider: FC<{
   path: string
   onNavigate: (to: To) => void
 }> = ({ children, path, onNavigate }) => {
-  const onNavigateRef = useRef(onNavigate)
-  // eslint-disable-next-line react-hooks/refs
-  onNavigateRef.current = onNavigate
+  const onNavigateRef = useLatestRef(onNavigate)
 
   const navigate = useCallback((to: To) => {
     onNavigateRef.current(to)

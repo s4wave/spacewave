@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 import {
   OptimizedLayout,
   Actions,
@@ -306,10 +307,7 @@ function ShellTabStripInner({
   }, [setHasEngaged])
 
   // Ref to access latest tabs without causing re-renders.
-  // Assigned directly (not in useEffect) to avoid one-frame stale reads.
-  const tabsRef = useRef(tabs)
-  // eslint-disable-next-line react-hooks/refs
-  tabsRef.current = tabs
+  const tabsRef = useLatestRef(tabs)
 
   // Check if we're currently in grid mode (URL starts with /g/)
   const isGridMode = useCallback(() => {
@@ -476,41 +474,7 @@ function ShellTabStripInner({
     model.doAction(Actions.updateModelAttributes({ tabEnableDrag: canDrag }))
   }, [model, canDrag])
 
-  // Apply the provider's committed active record to the FlexLayout model.
-  useEffect(() => {
-    if (didSyncEntryRef.current || isGridMode() || tabs.length === 0) return
-    didSyncEntryRef.current = true
-    if (activeTabId) {
-      model.doAction(Actions.selectTab(activeTabId))
-    }
-    initializedRef.current = true
-    markShellEngaged()
-    handleHashChange()
-  }, [activeTabId, isGridMode, markShellEngaged, model, tabs])
-
-  // Sync URL hash when active tab selection changes (after initialization).
-  // Tab path changes are owned by the route/hash listeners and should not
-  // drive the URL back to a stale tab snapshot during navigation.
-  useEffect(() => {
-    if (!initializedRef.current) return
-    const pendingLocalPath = pendingLocalHashIntentRef.current
-    if (pendingLocalPath?.tabId !== activeTabId) {
-      pendingLocalHashIntentRef.current = null
-    } else if (pendingLocalPath.path === getAppPath()) {
-      return
-    }
-    // Don't sync URL in grid mode
-    if (isGridMode()) return
-    if (lastSyncedActiveTabIdRef.current === activeTabId) return
-    lastSyncedActiveTabIdRef.current = activeTabId
-
-    const activeTab = findShellTab(tabsRef.current, activeTabId)
-    if (activeTab && activeTab.path !== getAppPath()) {
-      setAppPath(activeTab.path)
-    }
-  }, [activeTabId, isGridMode, setAppPath, getAppPath])
-
-  // Listen for hash changes (back/forward navigation)
+  // handleHashChange adopts back and forward navigation into the active tab.
   const handleHashChange = useEffectEvent(() => {
     if (!initializedRef.current) return
     // Don't handle hash changes in grid mode
@@ -566,6 +530,41 @@ function ShellTabStripInner({
     markShellEngaged()
   })
 
+  // Apply the provider's committed active record to the FlexLayout model.
+  useEffect(() => {
+    if (didSyncEntryRef.current || isGridMode() || tabs.length === 0) return
+    didSyncEntryRef.current = true
+    if (activeTabId) {
+      model.doAction(Actions.selectTab(activeTabId))
+    }
+    initializedRef.current = true
+    markShellEngaged()
+    handleHashChange()
+  }, [activeTabId, isGridMode, markShellEngaged, model, tabs])
+
+  // Sync URL hash when active tab selection changes (after initialization).
+  // Tab path changes are owned by the route/hash listeners and should not
+  // drive the URL back to a stale tab snapshot during navigation.
+  useEffect(() => {
+    if (!initializedRef.current) return
+    const pendingLocalPath = pendingLocalHashIntentRef.current
+    if (pendingLocalPath?.tabId !== activeTabId) {
+      pendingLocalHashIntentRef.current = null
+    } else if (pendingLocalPath.path === getAppPath()) {
+      return
+    }
+    // Don't sync URL in grid mode
+    if (isGridMode()) return
+    if (lastSyncedActiveTabIdRef.current === activeTabId) return
+    lastSyncedActiveTabIdRef.current = activeTabId
+
+    const activeTab = findShellTab(tabsRef.current, activeTabId)
+    if (activeTab && activeTab.path !== getAppPath()) {
+      setAppPath(activeTab.path)
+    }
+  }, [activeTabId, isGridMode, setAppPath, getAppPath])
+
+  // Listen for hash changes (back/forward navigation).
   useEffect(() => {
     const onHashChange = () => {
       handleHashChange()

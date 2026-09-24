@@ -474,9 +474,9 @@ ${original}`;
     external: [...request.external ?? []],
     treeshake: request.treeShaking ?? true,
     checks: { importIsUndefined: true },
-    moduleTypes: { ...request.loaders ?? {} },
+    moduleTypes: { ...request.loaders },
     resolve: {
-      alias: { ...request.aliases ?? {} },
+      alias: { ...request.aliases },
       extensionAlias: { ".js": [".ts", ".tsx", ".js"] },
       modules: [
         join(sourceRoot, "node_modules"),
@@ -485,7 +485,7 @@ ${original}`;
     },
     transform: {
       target: request.target || undefined,
-      define: { ...request.defines ?? {} }
+      define: { ...request.defines }
     },
     plugins,
     onLog(level, log, _defaultHandler) {
@@ -494,7 +494,7 @@ ${original}`;
       if (unresolved || isUndefinedImport(log)) {
         const error = new Error(`${unresolved ? "unresolved import" : "undefined GoScript import"}${log.id ? ` in ${log.id}` : ""}: ${log.message || log.code || "missing export"}`);
         error.diagnostic = {
-          ...diagnostics[diagnostics.length - 1] ?? {},
+          ...diagnostics[diagnostics.length - 1],
           severity: "error",
           message: error.message
         };

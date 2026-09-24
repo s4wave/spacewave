@@ -680,9 +680,9 @@ export async function runBuild(
     external: [...(request.external ?? [])],
     treeshake: request.treeShaking ?? true,
     checks: { importIsUndefined: true },
-    moduleTypes: { ...(request.loaders ?? {}) },
+    moduleTypes: { ...request.loaders },
     resolve: {
-      alias: { ...(request.aliases ?? {}) },
+      alias: { ...request.aliases },
       extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
       // Project dependencies belong to the supplied source tree. The compiler's
       // locked packages supply SDK dependencies when the project has none.
@@ -693,7 +693,7 @@ export async function runBuild(
     },
     transform: {
       target: request.target || undefined,
-      define: { ...(request.defines ?? {}) },
+      define: { ...request.defines },
     },
     plugins,
     onLog(level, log, _defaultHandler) {
@@ -704,7 +704,7 @@ export async function runBuild(
           `${unresolved ? 'unresolved import' : 'undefined GoScript import'}${log.id ? ` in ${log.id}` : ''}: ${log.message || log.code || 'missing export'}`,
         ) as RunnerError
         error.diagnostic = {
-          ...(diagnostics[diagnostics.length - 1] ?? {}),
+          ...diagnostics[diagnostics.length - 1],
           severity: 'error',
           message: error.message,
         }

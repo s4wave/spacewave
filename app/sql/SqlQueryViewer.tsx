@@ -297,10 +297,8 @@ function SqlQueryEditor({
   }, [savedDialect, savedParameters, savedSql, savedTargetDb])
 
   const addParam = useCallback(() => {
-    setParams((rows) => [
-      ...rows,
-      { id: nextParamId++, kind: 'text', text: '' },
-    ])
+    const id = nextParamId++
+    setParams((rows) => [...rows, { id, kind: 'text', text: '' }])
   }, [])
 
   const updateParam = useCallback((id: number, patch: Partial<ParamRow>) => {

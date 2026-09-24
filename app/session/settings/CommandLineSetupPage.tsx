@@ -160,9 +160,9 @@ function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
         </div>
         <Button
           type="button"
-          variant="outline"
+          variant="brandOutline"
           onClick={onOpen}
-          className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand shrink-0 shadow-none"
+          className="shrink-0"
         >
           <LuTerminal aria-hidden="true" />
           Open terminal

@@ -3,6 +3,7 @@ import {
   RefObject,
   useCallback,
   useEffect,
+  useInsertionEffect,
   useMemo,
   useRef,
   useState,
@@ -197,7 +198,11 @@ export function useRetryWithAbort(
 }
 
 /**
- * Returns a ref that contains the latest version of the value.
+ * useLatestRef returns a ref holding the most recently rendered value.
+ *
+ * The ref updates before layout effects run, so effects and event handlers
+ * always read the value from the latest commit. changed runs in a passive
+ * effect after value differs from the value last reported.
  *
  * @param value - The value to track
  * @param changed - Optional callback called when the value changes from initial value
@@ -209,17 +214,23 @@ export function useLatestRef<T>(
 ): RefObject<T> {
   const ref = useRef(value)
   const changedRef = useRef(changed)
-  useEffect(() => {
+  const reportedRef = useRef(value)
+
+  // Publish the committed value and callback before any effect reads them.
+  useInsertionEffect(() => {
+    ref.current = value
     changedRef.current = changed
-  }, [changed])
+  })
+
+  // Report each distinct committed value once.
   useEffect(() => {
-    if (ref.current !== value) {
-      ref.current = value
-      if (changedRef.current) {
-        changedRef.current(value)
-      }
+    if (reportedRef.current === value) {
+      return
     }
+    reportedRef.current = value
+    changedRef.current?.(value)
   }, [value])
+
   return ref
 }
 
@@ -626,9 +637,11 @@ export function useWatchStateRpc<T, R = unknown>(
 ): T | null {
   // A snapshot belongs to the exact stream and request that produced it.
   const memoizedReq = useMemoEqual(req, checkReqEqual)
+  // Caller deps extend the stream identity, so the list cannot be a literal.
   const generation = useMemo(
     () => ({}),
-    [watchStateRpc, memoizedReq, ...(deps ?? [])], // eslint-disable-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/use-memo, react/exhaustive-deps
+    [watchStateRpc, memoizedReq, ...(deps ?? [])],
   )
   const [snapshot, setSnapshot] = useState<{
     generation: object

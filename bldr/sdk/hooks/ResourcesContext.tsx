@@ -41,7 +41,7 @@ export function useConnectionGeneration(client: ResourceClient | null): number {
 }
 
 interface ResourcesProviderProps {
-  children: ReactNode
+  children?: ReactNode
   client: ResourceClient | null
 }
 

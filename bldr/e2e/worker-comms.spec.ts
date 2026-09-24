@@ -93,9 +93,10 @@ function expectStartupMarksInOrder(
     const index = marks.findIndex(
       (mark, markIndex) => markIndex >= searchFrom && mark.label === label,
     )
-    expect(index, `missing startup mark in order: ${label}`).toBeGreaterThanOrEqual(
-      searchFrom,
-    )
+    expect(
+      index,
+      `missing startup mark in order: ${label}`,
+    ).toBeGreaterThanOrEqual(searchFrom)
     searchFrom = index + 1
   }
 }
@@ -115,7 +116,7 @@ async function createStartupMarkCollector(
   }
   const recordMark = (mark: StartupMark) => {
     marks.push(mark)
-    for (const waiter of [...waiters]) {
+    for (const waiter of waiters.slice()) {
       if (waiter.label === mark.label) {
         waiter.resolve(mark)
       }
@@ -325,10 +326,9 @@ async function newDedicatedRuntimeContext(browser: Browser) {
 async function waitForBldrRootRender(page: Page) {
   const root = page.locator('#bldr-root')
   await expect(root).toBeVisible()
-  await expect(page.locator('#bldr-root #bldr-initial-loading-shell')).toHaveCount(
-    0,
-    { timeout: 120_000 },
-  )
+  await expect(
+    page.locator('#bldr-root #bldr-initial-loading-shell'),
+  ).toHaveCount(0, { timeout: 120_000 })
   await expect(async () => {
     const text = await root.evaluate((el) => el.textContent ?? '')
     expect(text).not.toContain('Downloading the app bundle')

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
@@ -36,8 +37,7 @@ export function useNoteWrite({
   >('idle')
   const [writeError, setWriteError] = useState<Error | null>(null)
   const failedWrite = useRef<{ filePath: string; content: string } | null>(null)
-  const currentFilePath = useRef(filePath)
-  currentFilePath.current = filePath
+  const currentFilePath = useLatestRef(filePath)
   const saveRevision = useRef(0)
   const saveTargetPath = useRef(filePath)
   const writeTails = useRef(new Map<string, Promise<void>>())
@@ -51,8 +51,7 @@ export function useNoteWrite({
     savedContent?.filePath === filePath ? savedContent.content : loadedContent
   // Full note text of the last completed write or initial load. Editor
   // updates that re-export this text are not edits.
-  const lastSettledContent = useRef('')
-  lastSettledContent.current = content
+  const lastSettledContent = useLatestRef(content)
   const parsedNote = useMemo(() => {
     if (!content || noteFormat !== 'markdown') return null
     return parseNote(content)

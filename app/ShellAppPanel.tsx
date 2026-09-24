@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { useAppNavigation } from '@s4wave/web/sdk/app/environment.js'
@@ -67,10 +68,8 @@ function ShellAppPanelInner({
   // commit time, not at initiation: a panel that lost active status, a
   // navigation a later one superseded, and a document the user moved
   // elsewhere in the meantime each forfeit the hash.
-  const activeTabIdRef = useRef(activeTabId)
-  activeTabIdRef.current = activeTabId
-  const syncAppPathRef = useRef(syncAppPath)
-  syncAppPathRef.current = syncAppPath
+  const activeTabIdRef = useLatestRef(activeTabId)
+  const syncAppPathRef = useLatestRef(syncAppPath)
   const navGenerationRef = useRef(0)
   const beginAppPathCommit = useCallback(
     (path: string) => {

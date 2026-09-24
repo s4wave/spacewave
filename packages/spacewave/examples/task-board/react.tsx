@@ -43,34 +43,34 @@ function TaskBoard() {
   const [writeError, setWriteError] = useState<string | null>(null)
 
   /** runWrite exposes an uncertain write's original operation for a later retry. */
-  const runWrite = useCallback(
-    async (run: () => Promise<unknown>, requestId: string): Promise<void> => {
-      // Suspend new edits and clear the previous write's feedback.
-      setPending(true)
-      setUncertain(null)
-      setWriteError(null)
+  const runWrite = useCallback(async function runWrite(
+    run: () => Promise<unknown>,
+    requestId: string,
+  ): Promise<void> {
+    // Suspend new edits and clear the previous write's feedback.
+    setPending(true)
+    setUncertain(null)
+    setWriteError(null)
 
-      // Keep failed writes recoverable without inserting unaccepted task rows.
-      try {
-        await run()
-      } catch (error) {
-        if (error instanceof SyncError && error.code === 'UNCERTAIN') {
-          setUncertain({
-            requestId,
-            message: error.message,
-            retry: () => {
-              void runWrite(run, requestId)
-            },
-          })
-        } else {
-          setWriteError(error instanceof Error ? error.message : String(error))
-        }
-      } finally {
-        setPending(false)
+    // Keep failed writes recoverable without inserting unaccepted task rows.
+    try {
+      await run()
+    } catch (error) {
+      if (error instanceof SyncError && error.code === 'UNCERTAIN') {
+        setUncertain({
+          requestId,
+          message: error.message,
+          retry: () => {
+            void runWrite(run, requestId)
+          },
+        })
+      } else {
+        setWriteError(error instanceof Error ? error.message : String(error))
       }
-    },
-    [],
-  )
+    } finally {
+      setPending(false)
+    }
+  }, [])
 
   /** addTask preserves the title and generated IDs until the write is accepted. */
   const addTask = (event: FormEvent<HTMLFormElement>) => {

@@ -124,7 +124,7 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
         }
         // Dispatch a stable snapshot while honoring removals made by an
         // earlier listener before a later listener's turn.
-        for (const listener of [...this._listeners]) {
+        for (const listener of this._listeners.slice()) {
           if (this._listeners.includes(listener)) listener(event)
         }
       }

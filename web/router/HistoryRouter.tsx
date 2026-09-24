@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 import { RouterProvider, type To } from './router.js'
 
 // Maximum number of history entries to keep
@@ -79,9 +80,7 @@ export function HistoryRouter({
   const lastPathRef = useRef(path)
   // Flag to skip pushing when doing history navigation
   const isHistoryNavRef = useRef(false)
-  const onNavigateRef = useRef(onNavigate)
-  // eslint-disable-next-line react-hooks/refs
-  onNavigateRef.current = onNavigate
+  const onNavigateRef = useLatestRef(onNavigate)
 
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)

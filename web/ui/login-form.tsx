@@ -323,15 +323,16 @@ export function LoginForm({
     setError(null)
     wasRateLimitedRef.current = true
     pendingRetryRef.current = true
+    let remaining = seconds
     const tick = () => {
-      setRateLimitCountdown((prev) => {
-        if (prev <= 1) {
-          retryTimerRef.current = null
-          return 0
-        }
-        retryTimerRef.current = setTimeout(tick, 1000)
-        return prev - 1
-      })
+      remaining -= 1
+      if (remaining <= 0) {
+        retryTimerRef.current = null
+        setRateLimitCountdown(0)
+        return
+      }
+      retryTimerRef.current = setTimeout(tick, 1000)
+      setRateLimitCountdown(remaining)
     }
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
     retryTimerRef.current = setTimeout(tick, 1000)

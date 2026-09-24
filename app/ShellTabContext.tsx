@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
   useRef,
 } from 'react'
+import { useLatestRef } from '@aptre/bldr-react'
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 import { TabActiveProvider } from '@s4wave/web/contexts/TabActiveContext.js'
 import {
@@ -303,15 +304,13 @@ function useShellTabsContextValue(
   const [activeTabsetPathOpener, setActiveTabsetPathOpener] =
     useState<ActiveTabsetPathOpener | null>(null)
   const initializedRef = useRef(false)
-  const activeTabIdRef = useRef(activeTabId)
-  activeTabIdRef.current = activeTabId
+  const activeTabIdRef = useLatestRef(activeTabId)
   const pendingCreatedTabIdRef = useRef<string | null>(
     persistedDocumentState?.incarnation === entry.incarnation
       ? (persistedDocumentState.pendingCreatedTabId ?? null)
       : null,
   )
-  const localOrderRef = useRef(localOrder)
-  localOrderRef.current = localOrder
+  const localOrderRef = useLatestRef(localOrder)
   const previousRecordIdsRef = useRef(
     new Set(snapshot.records.map((record) => record.id)),
   )

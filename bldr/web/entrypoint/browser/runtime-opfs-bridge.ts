@@ -90,7 +90,7 @@ export class RuntimeOpfsBridge {
       return
     }
     this.closed = true
-    for (const webDocumentId of [...this.webDocuments.keys()]) {
+    for (const webDocumentId of Array.from(this.webDocuments.keys())) {
       this.removeWebDocument(webDocumentId)
     }
     this.resolvePending(null)

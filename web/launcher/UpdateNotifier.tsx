@@ -1,5 +1,4 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import { isDesktop } from '@aptre/bldr'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -35,7 +34,6 @@ function UpdateNotifierInner({
   rootResource: Resource<Root>
 }) {
   const root = rootResource.value
-  const prevPhaseRef = useRef<UpdatePhase | undefined>(undefined)
   const [watchDisabled, setWatchDisabled] = useState(false)
 
   const handleWatchError = useCallback(() => {
@@ -62,8 +60,8 @@ function UpdateNotifierInner({
 
   const phase = info?.updateState?.phase
 
-  // show toast when phase transitions to STAGED
-  if (phase !== prevPhaseRef.current) {
+  // announcePhase shows the toast for an update phase the launcher entered.
+  const announcePhase = useEffectEvent((phase: UpdatePhase | undefined) => {
     if (phase === UpdatePhase.UpdatePhase_STAGED) {
       const version = info?.updateState?.version || 'new version'
       toast('Update ready', {
@@ -86,8 +84,12 @@ function UpdateNotifierInner({
       const msg = info?.updateState?.errorMessage || 'Unknown error'
       toast.error('Update error', { description: msg })
     }
-    prevPhaseRef.current = phase
-  }
+  })
+
+  // Announce each phase transition once.
+  useEffect(() => {
+    announcePhase(phase)
+  }, [phase])
 
   return null
 }

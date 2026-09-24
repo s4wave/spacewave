@@ -54,7 +54,7 @@ export async function applySpaceKeybindingOverrides(
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const settings: SpaceSettings = {
-    ...(currentSettings ?? {}),
+    ...currentSettings,
     indexPath: currentSettings?.indexPath ?? '',
     pluginIds: [...(currentSettings?.pluginIds ?? [])],
     keybindingOverrides: overrideSet,

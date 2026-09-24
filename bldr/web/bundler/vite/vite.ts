@@ -233,8 +233,8 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
               ? 'inline'
               : false
     mergedConfig.define = {
-      ...(mergedConfig.define ?? {}),
-      ...(request.defines ?? {}),
+      ...mergedConfig.define,
+      ...request.defines,
     }
 
     // Set the root dir
@@ -331,7 +331,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       mergedConfig.build.emptyOutDir = false
       mergedConfig.plugins.push(goTsResolver(projectRoot, distDir))
       mergedConfig.resolve = {
-        ...(mergedConfig.resolve ?? {}),
+        ...mergedConfig.resolve,
         alias: buildGoAliases(projectRoot, distDir),
       }
     }
@@ -380,7 +380,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         input,
         preserveEntrySignatures: 'strict',
         output: {
-          ...(mergedConfig.build.rolldownOptions.output ?? {}),
+          ...mergedConfig.build.rolldownOptions.output,
           format: 'es',
           comments: false,
           entryFileNames: (chunkInfo) =>

@@ -127,7 +127,8 @@ describe('TerminalPane design-system visuals', () => {
         '.xterm-scrollable-element',
       )
       const bg = el ? getComputedStyle(el).backgroundColor : ''
-      if (!el || !/^rgb/.test(bg)) throw new Error('xterm surface not painted')
+      if (!el || !bg.startsWith('rgb'))
+        throw new Error('xterm surface not painted')
       return el
     })
 
