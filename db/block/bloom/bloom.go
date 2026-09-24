@@ -132,11 +132,33 @@ func (f *Filter) Words() []uint64 {
 	return f.words
 }
 
+// Key is a hashed key. Hash a key once to test it against many filters.
+type Key struct {
+	h1, h2 uint64
+}
+
+// NewKey hashes a key for Filter.AddKey and Filter.TestKey.
+func NewKey(key []byte) Key {
+	h := fnv.New128a()
+	_, _ = h.Write(key)
+	sum := h.Sum(nil)
+	h1 := uint64(sum[0])<<56 | uint64(sum[1])<<48 | uint64(sum[2])<<40 | uint64(sum[3])<<32 | uint64(sum[4])<<24 | uint64(sum[5])<<16 | uint64(sum[6])<<8 | uint64(sum[7])
+	h2 := uint64(sum[8])<<56 | uint64(sum[9])<<48 | uint64(sum[10])<<40 | uint64(sum[11])<<32 | uint64(sum[12])<<24 | uint64(sum[13])<<16 | uint64(sum[14])<<8 | uint64(sum[15])
+	if h2 == 0 {
+		h2 = 1
+	}
+	return Key{h1: h1, h2: h2}
+}
+
 // Add inserts a key.
 func (f *Filter) Add(key []byte) {
-	h1, h2 := bloomHash(key)
+	f.AddKey(NewKey(key))
+}
+
+// AddKey inserts a hashed key.
+func (f *Filter) AddKey(key Key) {
 	for i := uint(0); i < f.k; i++ {
-		f.setBit((h1 + uint64(i)*h2) % uint64(f.m))
+		f.setBit((key.h1 + uint64(i)*key.h2) % uint64(f.m))
 	}
 }
 
@@ -147,9 +169,13 @@ func (f *Filter) AddString(key string) {
 
 // Test checks if a key may be present.
 func (f *Filter) Test(key []byte) bool {
-	h1, h2 := bloomHash(key)
+	return f.TestKey(NewKey(key))
+}
+
+// TestKey checks if a hashed key may be present.
+func (f *Filter) TestKey(key Key) bool {
 	for i := uint(0); i < f.k; i++ {
-		if !f.hasBit((h1 + uint64(i)*h2) % uint64(f.m)) {
+		if !f.hasBit((key.h1 + uint64(i)*key.h2) % uint64(f.m)) {
 			return false
 		}
 	}
@@ -191,16 +217,4 @@ func (f *Filter) setBit(idx uint64) {
 
 func (f *Filter) hasBit(idx uint64) bool {
 	return f.words[idx/64]&(uint64(1)<<(idx%64)) != 0
-}
-
-func bloomHash(key []byte) (uint64, uint64) {
-	h := fnv.New128a()
-	_, _ = h.Write(key)
-	sum := h.Sum(nil)
-	h1 := uint64(sum[0])<<56 | uint64(sum[1])<<48 | uint64(sum[2])<<40 | uint64(sum[3])<<32 | uint64(sum[4])<<24 | uint64(sum[5])<<16 | uint64(sum[6])<<8 | uint64(sum[7])
-	h2 := uint64(sum[8])<<56 | uint64(sum[9])<<48 | uint64(sum[10])<<40 | uint64(sum[11])<<32 | uint64(sum[12])<<24 | uint64(sum[13])<<16 | uint64(sum[14])<<8 | uint64(sum[15])
-	if h2 == 0 {
-		h2 = 1
-	}
-	return h1, h2
 }

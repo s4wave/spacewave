@@ -312,7 +312,7 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		return nil, false, nil
 	}
 
-	candidates := s.findCandidates(key, entries, tree)
+	candidates := findCandidates(key, tree)
 	trace.Logf(ctx, "candidate-packs", "%d", len(candidates))
 	opened := 0
 	negative := 0
@@ -323,13 +323,6 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 
 	for _, idx := range candidates {
 		entry := entries[idx]
-		// Bloom filter prune (per-pack fallback when tree not available).
-		if tree == nil {
-			bf := s.getOrDeserializeBloom(entry)
-			if bf != nil && !bf.Test(key) {
-				continue
-			}
-		}
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			trace.Log(ctx, "result", "invalid-pack-size")
@@ -401,7 +394,7 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 		return false, nil
 	}
 
-	candidates := s.findCandidates(key, entries, tree)
+	candidates := findCandidates(key, tree)
 	opened := 0
 	negative := 0
 	hit := false
@@ -411,12 +404,6 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 
 	for _, idx := range candidates {
 		entry := entries[idx]
-		if tree == nil {
-			bf := s.getOrDeserializeBloom(entry)
-			if bf != nil && !bf.Test(key) {
-				continue
-			}
-		}
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			return false, err
@@ -489,7 +476,7 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	candidateSets := make([][]int, len(pending))
 	candidateTotal := 0
 	for i, item := range pending {
-		candidates := s.findCandidates(item.key, entries, tree)
+		candidates := findCandidates(item.key, tree)
 		candidateSets[i] = candidates
 		candidateTotal += len(candidates)
 	}
@@ -504,12 +491,6 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	for pi, item := range pending {
 		for _, idx := range candidateSets[pi] {
 			entry := entries[idx]
-			if tree == nil {
-				bf := s.getOrDeserializeBloom(entry)
-				if bf != nil && !bf.Test(item.key) {
-					continue
-				}
-			}
 			size, err := manifestPackSize(entry)
 			if err != nil {
 				return nil, err
@@ -558,7 +539,7 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 		return nil, nil
 	}
 
-	candidates := s.findCandidates(key, entries, tree)
+	candidates := findCandidates(key, tree)
 	opened := 0
 	negative := 0
 	hit := false
@@ -568,12 +549,6 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 
 	for _, idx := range candidates {
 		entry := entries[idx]
-		if tree == nil {
-			bf := s.getOrDeserializeBloom(entry)
-			if bf != nil && !bf.Test(key) {
-				continue
-			}
-		}
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			return nil, err
@@ -766,26 +741,20 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	return eng, nil
 }
 
-// findCandidates returns manifest indices that might contain the key.
-func (s *PackfileStore) findCandidates(key []byte, entries []*packfile.PackfileEntry, tree *bloomNode) []int {
-	if tree == nil {
-		result := make([]int, len(entries))
-		for i := range entries {
-			result[i] = i
-		}
-		return result
-	}
+// findCandidates returns the indices of the manifest entries whose bloom
+// filters may contain the key. The key is hashed once for the whole tree.
+func findCandidates(key []byte, tree *bloomNode) []int {
 	var result []int
-	collectCandidates(tree, key, &result)
+	collectCandidates(tree, bloom.NewKey(key), &result)
 	return result
 }
 
 // collectCandidates traverses the bloom tree, pruning subtrees.
-func collectCandidates(node *bloomNode, key []byte, result *[]int) {
+func collectCandidates(node *bloomNode, key bloom.Key, result *[]int) {
 	if node == nil {
 		return
 	}
-	if node.merged != nil && !node.merged.Test(key) {
+	if node.merged != nil && !node.merged.TestKey(key) {
 		return
 	}
 	if node.entryIdx >= 0 {
@@ -794,32 +763,6 @@ func collectCandidates(node *bloomNode, key []byte, result *[]int) {
 	}
 	collectCandidates(node.left, key, result)
 	collectCandidates(node.right, key, result)
-}
-
-// getOrDeserializeBloom returns the bloom filter for an entry, using the
-// store's weak pointer cache so filters share memory across calls while
-// remaining eligible for GC when no caller retains them.
-func (s *PackfileStore) getOrDeserializeBloom(entry *packfile.PackfileEntry) *bloom.Filter {
-	id := entry.GetId()
-	bloomData := entry.GetBloomFilter()
-	if len(bloomData) == 0 {
-		return nil
-	}
-	if wp, ok := s.blooms[id]; ok {
-		if bf := wp.Value(); bf != nil {
-			return bf
-		}
-	}
-	var pbf bloom.BloomFilter
-	if err := pbf.UnmarshalBlock(bloomData); err != nil {
-		return nil
-	}
-	bf := pbf.ToBloomFilter()
-	if bf == nil {
-		return nil
-	}
-	s.blooms[id] = makeBloomRef(bf)
-	return bf
 }
 
 // buildBloomTree builds a binary bloom tree from manifest entries.
