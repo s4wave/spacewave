@@ -8,6 +8,7 @@ import {
   AcceptLocalPairingAnswerResponse,
   AcceptLocalPairingOfferResponse,
   AccessSessionStateAtomRequest,
+  CompletePairingRequest,
   CreateLocalPairingOfferResponse,
   CreateSpaceInviteResponse,
   CreateSpaceRequest,
@@ -195,16 +196,14 @@ export class Session extends Resource {
     return resp.code ?? ''
   }
 
-  // completePairing resolves a pairing code to link a remote session.
+  // completePairing links this session to the peer that registered a pairing
+  // code and returns that peer ID. Set remotePeerId when the page already
+  // resolved the code, since the relay resolves each code only once.
   public async completePairing(
-    code: string,
-    offerCurrentAccount = false,
+    request: CompletePairingRequest,
     abortSignal?: AbortSignal,
   ): Promise<string> {
-    const resp = await this.service.CompletePairing(
-      { code, offerCurrentAccount },
-      abortSignal,
-    )
+    const resp = await this.service.CompletePairing(request, abortSignal)
     return resp.remotePeerId ?? ''
   }
 

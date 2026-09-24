@@ -67,6 +67,32 @@ describe('PairCodePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/7' })
   })
 
+  it('hands the peer resolved before boot to the session', async () => {
+    mockUseParams.mockReturnValue({ code: 'AAAAAAAA' })
+    mockUseResourceValue.mockReturnValue({} as never)
+    sessionStorage.setItem('spacewave-pairing-peer:AAAAAAAA', 'source-peer')
+    const session = {
+      completePairing: vi.fn(() => new Promise<string>(() => {})),
+      [Symbol.dispose]: vi.fn(),
+    }
+    mockPreparePairingSession.mockResolvedValue(session)
+
+    render(<PairCodePage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    await vi.waitFor(() =>
+      expect(session.completePairing).toHaveBeenCalledWith(
+        {
+          code: 'AAAAAAAA',
+          offerCurrentAccount: false,
+          remotePeerId: 'source-peer',
+        },
+        expect.any(AbortSignal),
+      ),
+    )
+    sessionStorage.clear()
+  })
+
   it('shows the missing or expired message for a rejected pairing code', async () => {
     mockUseParams.mockReturnValue({ code: '' })
     const session = {

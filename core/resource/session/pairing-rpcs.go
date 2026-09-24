@@ -71,28 +71,38 @@ func (r *SessionResource) GeneratePairingCode(ctx context.Context, _ *s4wave_ses
 	return &s4wave_session.GeneratePairingCodeResponse{Code: code}, nil
 }
 
-// CompletePairing resolves a pairing code to link a remote session.
+// CompletePairing links a remote session to the peer that registered a
+// pairing code, using the peer ID the page already resolved when present.
 func (r *SessionResource) CompletePairing(ctx context.Context, req *s4wave_session.CompletePairingRequest) (*s4wave_session.CompletePairingResponse, error) {
+	// Require an unlocked Session to sign the exchange.
 	privKey := r.session.GetPrivKey()
 	if privKey == nil {
 		return nil, errors.New("session is locked")
 	}
 
+	// Resolve the pairing engine and relay for the mounted Session.
 	engine, err := r.getPairingEngine()
 	if err != nil {
 		return nil, err
 	}
-
 	relay, err := r.getPairingRelay(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	remotePeerID, err := engine.CompleteCode(ctx, relay, req.GetCode(), req.GetOfferCurrentAccount())
+	// Use the peer the page resolved before boot, or resolve the code now.
+	remotePeerID, _, err := peer.ParsePeerIDWithPubKey(req.GetRemotePeerId())
+	if req.GetRemotePeerId() == "" {
+		remotePeerID, err = pairing.ResolveCode(ctx, relay, req.GetCode())
+	}
 	if err != nil {
 		return nil, err
 	}
 
+	// Link to the peer and hold the link through enrollment.
+	if err := engine.CompletePeer(ctx, relay, remotePeerID, req.GetOfferCurrentAccount()); err != nil {
+		return nil, err
+	}
 	return &s4wave_session.CompletePairingResponse{RemotePeerId: remotePeerID.String()}, nil
 }
 

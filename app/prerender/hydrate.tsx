@@ -25,6 +25,10 @@ import { markInteracted } from '@s4wave/web/state/interaction.js'
 import { RouterProvider, type To } from '@s4wave/web/router/router.js'
 import { markBrowserStartupBoundary } from '@s4wave/app/prerender/boot-status.js'
 import { Landing } from '@s4wave/app/landing/Landing.js'
+import {
+  pairingRouteCode,
+  resolvePairingPeer,
+} from '@s4wave/app/pair/pairing-peer.js'
 import { BlogPostPage } from '@s4wave/app/blog/BlogPost.js'
 import { BlogIndex } from '@s4wave/app/blog/BlogIndex.js'
 import { BlogTagPage } from '@s4wave/app/blog/BlogTagPage.js'
@@ -32,6 +36,13 @@ import type { BlogPost } from '@s4wave/app/blog/types.js'
 
 // awaitBoot waits for __swReady then calls __swBoot with the given path.
 function awaitBoot(path: string) {
+  // Resolve a pairing deep link's code while the app loads, before it expires.
+  const pairingCode = pairingRouteCode(path)
+  if (pairingCode) {
+    void resolvePairingPeer(pairingCode)
+  }
+
+  // Boot the app once the runtime is ready.
   const ready = globalThis.__swReady
   if (ready) {
     void ready.then(() => globalThis.__swBoot?.(path))

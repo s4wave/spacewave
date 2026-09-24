@@ -513,12 +513,14 @@ class GeneratePairingCodeResponse(_message.Message):
     def __init__(self, code: _Optional[str] = ...) -> None: ...
 
 class CompletePairingRequest(_message.Message):
-    __slots__ = ("code", "offer_current_account")
+    __slots__ = ("code", "offer_current_account", "remote_peer_id")
     CODE_FIELD_NUMBER: _ClassVar[int]
     OFFER_CURRENT_ACCOUNT_FIELD_NUMBER: _ClassVar[int]
+    REMOTE_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     code: str
     offer_current_account: bool
-    def __init__(self, code: _Optional[str] = ..., offer_current_account: _Optional[bool] = ...) -> None: ...
+    remote_peer_id: str
+    def __init__(self, code: _Optional[str] = ..., offer_current_account: _Optional[bool] = ..., remote_peer_id: _Optional[str] = ...) -> None: ...
 
 class SelectPairingAccountRequest(_message.Message):
     __slots__ = ("outcome",)

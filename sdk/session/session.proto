@@ -503,6 +503,10 @@ message CompletePairingRequest {
   // OfferCurrentAccount includes this selected Session's account in the choice.
   // Home leaves this false so its temporary transport account is not offered.
   bool offer_current_account = 2;
+  // RemotePeerId is the base58 peer ID the page already resolved from Code.
+  // When set, CompletePairing links to that peer without resolving Code again,
+  // because the relay consumes a code on its first resolution.
+  string remote_peer_id = 3;
 }
 
 // SelectPairingAccountRequest selects the proposed relationship between the accounts.
