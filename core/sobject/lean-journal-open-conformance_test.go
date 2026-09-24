@@ -51,7 +51,7 @@ func runLeanJournalOpenScenario(t *testing.T, seed uint64) []leanCase {
 	crypto := testJournalCrypto(t, scope)
 	version := JournalVersion(seed%17+1, seed%13+1, 1, testDigest("config"))
 	var cases []leanCase
-	for mode := range 6 {
+	for mode := range 7 {
 		for variant := range 24 {
 			storage := &openFaultStorage{activationFaultStorage: &activationFaultStorage{
 				publicationFaultStorage: &publicationFaultStorage{memoryJournalStorage: newMemoryJournalStorage()},
@@ -67,11 +67,14 @@ func runLeanJournalOpenScenario(t *testing.T, seed uint64) []leanCase {
 				}
 			}
 			if mode >= 2 {
-				if mode == 3 {
+				if mode == 3 || mode == 6 {
 					storage.fault, storage.armed = 4, true
+					if mode == 6 {
+						storage.fault = 11
+					}
 				}
 				err := pipeline.journal.checkpoint()
-				if (err != nil) != (mode == 3) {
+				if (err != nil) != (mode == 3 || mode == 6) {
 					t.Fatalf("prepare mode %d: %v", mode, err)
 				}
 				storage.armed = false

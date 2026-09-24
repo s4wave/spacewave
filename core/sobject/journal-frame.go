@@ -1069,15 +1069,8 @@ func openJournalWriter(storage JournalStorage, cryptos ...*JournalCrypto) (*jour
 			}
 		}
 		if !pending {
-			if size, sizeErr := storage.Size(); sizeErr != nil {
-				return nil, nil, errors.Wrap(sizeErr, "size shared object journal")
-			} else if size != offset {
-				if err := storage.Truncate(offset); err != nil {
-					return nil, nil, errors.Wrap(err, "truncate shared object journal tail")
-				}
-				if err := storage.Sync(); err != nil {
-					return nil, nil, errors.Wrap(err, "sync shared object journal tail")
-				}
+			if err := syncRecoveredJournal(storage, offset); err != nil {
+				return nil, nil, err
 			}
 		}
 		writer := &journalWriter{
@@ -1105,21 +1098,33 @@ func openJournalWriter(storage JournalStorage, cryptos ...*JournalCrypto) (*jour
 	if err != nil {
 		return nil, nil, errors.Wrap(ErrJournalCorrupt, err.Error())
 	}
-	if size, sizeErr := storage.Size(); sizeErr != nil {
-		return nil, nil, errors.Wrap(sizeErr, "size shared object journal")
-	} else if size != offset {
-		if err := storage.Truncate(offset); err != nil {
-			return nil, nil, errors.Wrap(err, "truncate shared object journal tail")
-		}
-		if err := storage.Sync(); err != nil {
-			return nil, nil, errors.Wrap(err, "sync shared object journal tail")
-		}
+	if err := syncRecoveredJournal(storage, offset); err != nil {
+		return nil, nil, err
 	}
 	return &journalWriter{
 		storage: storage, crypto: crypto, offset: offset,
 		sequence: uint64(len(records)) + 1, records: records,
 		reducer: reducer, identity: slices.Clone(identity),
 	}, slices.Clone(records), nil
+}
+
+// syncRecoveredJournal makes the validated prefix durable before another writer
+// can publish a checkpoint. A matching size can reflect an unsynced truncation
+// from an earlier failed retirement, so it still requires Sync.
+func syncRecoveredJournal(storage JournalStorage, offset int64) error {
+	size, err := storage.Size()
+	if err != nil {
+		return errors.Wrap(err, "size shared object journal")
+	}
+	if size != offset {
+		if err := storage.Truncate(offset); err != nil {
+			return errors.Wrap(err, "truncate shared object journal tail")
+		}
+	}
+	if err := storage.Sync(); err != nil {
+		return errors.Wrap(err, "sync shared object journal tail")
+	}
+	return nil
 }
 
 // activatePending publishes a validated generation and retires its exact

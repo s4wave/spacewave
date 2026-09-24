@@ -167,8 +167,10 @@ func runLeanJournalWriterScenario(t *testing.T, seed uint64) []leanCase {
 			request := map[string]any{"op": "appendJournalWriter", "before": before, "record": projectLeanJournalRecord(t, record), "auth": auth, "effects": effects}
 			cases = append(cases, leanCase{name: "appendJournalWriter" + name, request: marshalLeanJournal(t, request), ok: err == nil, field: "writer", value: marshalLeanJournal(t, projectLeanJournalWriter(t, writer, storage))})
 
-			// The acknowledged prefix survives rejection, torn writes and failed Sync.
+			// Once storage recovers, the acknowledged prefix survives every append failure.
 			// Variant 15 deliberately assigns an unreachable sequence to test exhaustion.
+			storage.setWriteFailure(0, nil)
+			storage.setSyncFailure(nil)
 			if variant != 15 {
 				recovered, _, openErr := openJournalWriter(storage, crypto)
 				if openErr != nil || !reflect.DeepEqual(writer.reducer.Snapshot(), recovered.reducer.Snapshot()) {
@@ -178,8 +180,6 @@ func runLeanJournalWriterScenario(t *testing.T, seed uint64) []leanCase {
 
 			// Even after clearing the injected fault, a poisoned writer must reject retry.
 			if writer.poisoned != nil {
-				storage.setWriteFailure(0, nil)
-				storage.setSyncFailure(nil)
 				beforeRetry := projectLeanJournalWriter(t, writer, storage)
 				retryErr := writer.Append(record)
 				request["before"] = beforeRetry

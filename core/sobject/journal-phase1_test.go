@@ -495,6 +495,10 @@ func TestPhase1TransactionalAppendFailures(t *testing.T) {
 	if err := syncWriter.Append(second); !errors.Is(err, ErrJournalWriterPoisoned) {
 		t.Fatalf("sync-poisoned writer accepted append: %v", err)
 	}
+	if writer, _, err := openJournalWriter(syncStorage, crypto); err == nil || writer != nil {
+		t.Fatalf("persistent sync failure reopened a writable journal: %v", err)
+	}
+	syncStorage.setSyncFailure(nil)
 	if _, records, err := openJournalWriter(syncStorage, crypto); err != nil || len(records) != 1 {
 		t.Fatalf("sync failure reopen records=%d err=%v", len(records), err)
 	}

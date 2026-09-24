@@ -1447,6 +1447,14 @@ theorem activation_success {before : WriterState} {input : ActivationInput} {pen
   rw [waiting] at *
   repeat' first | split at * | simp_all [syncBytes]
 
+/-- Activation syncs pending retirement and preserves the durable-prefix guarantee of an already ready writer. -/
+theorem activation_synced {before : WriterState} {input : ActivationInput}
+    (ready : before.pending = none → before.bytes.data = before.bytes.durable)
+    (accepted : (activateWriter before input).ok = true) :
+    (activateWriter before input).result.bytes.data = (activateWriter before input).result.bytes.durable := by
+  unfold activateWriter at *
+  repeat' first | split at * | simp_all [syncBytes]
+
 /-- applyRecords mirrors the checkpoint-tail loop over the already framed records. -/
 def applyRecords (state : State) : List Record → Option State
   | [] => some state
@@ -1526,11 +1534,15 @@ structure OpenResult where
 def truncateBytes (storage : MemoryBytes) (size : Nat) : MemoryBytes :=
   {storage with data := storage.data.take size ++ List.replicate (size - storage.data.length) 0}
 
-/-- finishOpen trims only a validated nonpending tail, preserving effects when Sync fails. -/
+/-- finishOpen trims and syncs a validated nonpending tail, including an already matching visible prefix. -/
 def finishOpen (writer : WriterState) (sizeOK : Bool) (fault : Int) : OpenResult :=
   if writer.pending.isSome then ⟨some writer, writer.bytes⟩
   else if !sizeOK then ⟨none, writer.bytes⟩
-  else if writer.bytes.data.length == writer.offset then ⟨some writer, writer.bytes⟩
+  else if writer.bytes.data.length == writer.offset then
+    if fault == 3 then ⟨none, syncBytes writer.bytes false⟩
+    else
+      let synced := syncBytes writer.bytes true
+      ⟨some {writer with bytes := synced}, synced⟩
   else if fault == 1 then ⟨none, writer.bytes⟩
   else
     let truncated := truncateBytes writer.bytes writer.offset
@@ -1583,6 +1595,23 @@ theorem finishOpen_preserves_replay {before after : WriterState} {sizeOK : Bool}
   unfold finishOpen at h
   repeat' first | split at h | simp_all
   all_goals cases h <;> simp
+
+/-- Every nonpending recovered writer has made its visible bytes durable, even without truncation. -/
+theorem finishOpen_synced {before after : WriterState} {sizeOK : Bool} {fault : Int}
+    (accepted : (finishOpen before sizeOK fault).writer = some after)
+    (ready : after.pending = none) : after.bytes.data = after.bytes.durable := by
+  unfold finishOpen at accepted
+  repeat' first | split at accepted | simp_all [syncBytes]
+  all_goals cases accepted <;> simp_all
+
+/-- A returned nonpending writer has a durable prefix before any subsequent checkpoint publication. -/
+theorem openWriter_synced {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {writer : WriterState} (accepted : (openWriter input authenticate authenticateState).writer = some writer)
+    (ready : writer.pending = none) : writer.bytes.data = writer.bytes.durable := by
+  unfold openWriter at accepted
+  split at accepted
+  · contradiction
+  · exact finishOpen_synced accepted ready
 
 /-- OpenReadable names successful capability and read checks common to both recovery paths. -/
 def OpenReadable (input : OpenInput) : Prop :=
@@ -2118,9 +2147,10 @@ theorem open_checkpoint_empty {input : OpenInput} {authenticate : Record → Boo
     (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
     (candidate : input.checkpoint = some checkpoint)
     (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some state)
-    (authenticated : authenticateState state = true) (empty : input.bytes.data = []) (tailSize : input.tailSizeOK = true) :
+    (authenticated : authenticateState state = true) (empty : input.bytes.data = []) (tailSize : input.tailSizeOK = true)
+    (sync : input.fault ≠ 3) :
     (openWriter input authenticate authenticateState).writer =
-      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false, none, input.identity, marker.generation⟩ := by
+      some ⟨syncBytes input.bytes true, marker.nextSequence % seqnoLimit, 0, [], state, false, none, input.identity, marker.generation⟩ := by
   have valid := encoded_marker_valid encoded
   simp only [validOutgoingMarker, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, and_assoc] at valid
   have generationNe := valid.2.1
@@ -2139,7 +2169,7 @@ theorem open_checkpoint_empty {input : OpenInput} {authenticate : Record → Boo
       present, parsed, floor, crypto, generationWindow, generationNe, candidate, hydrated, authenticated,
       scanned, notNext, checkpointScan, applyRecords]
   rw [openWriter, prepared]
-  simp [finishOpen, tailSize, empty]
+  simp [finishOpen, tailSize, empty, sync]
 
 /-- Every successful publication of a replay snapshot has an emitted marker that reopens its exact state. -/
 theorem checkpoint_success_reopens {before : PublicationState} {preparation : CheckpointInput}
@@ -2149,6 +2179,7 @@ theorem checkpoint_success_reopens {before : PublicationState} {preparation : Ch
     (markerBounded : ∀ observation ∈ preparation.marker, observation.marker.generation < seqnoLimit)
     (accepted : (checkpointWriter before preparation).ok = true)
     (readable : OpenReadable input) (crypto : input.crypto = true) (tailSize : input.tailSizeOK = true)
+    (sync : input.fault ≠ 3)
     (identity : input.identity = preparation.identity)
     (bytes : input.bytes.data = (checkpointWriter before preparation).result.bytes.durable)
     (floor : input.floor = (checkpointWriter before preparation).result.floor)
@@ -2172,7 +2203,7 @@ theorem checkpoint_success_reopens {before : PublicationState} {preparation : Ch
   have opened := open_checkpoint_empty (input := {input with marker := some observation, checkpoint := some candidate.checkpoint})
     (authenticate := authenticate)
     readable crypto actualIdentity rfl encoded actualFloor rfl
-    (by simpa only [actualIdentity] using hydrated) authenticated (bytes.trans durable) tailSize
+    (by simpa only [actualIdentity] using hydrated) authenticated (bytes.trans durable) tailSize sync
   simp only [opened, Option.map_some]
 
 /-- A published checkpoint recognizes and captures its exact retired segment before activation. -/

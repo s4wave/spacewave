@@ -248,6 +248,27 @@ theorem public_pipeline_authorized {input : OpenInput} {activation : ActivationI
         exact ⟨recovered, present, authority.1, authority.2⟩
       · contradiction
 
+/-- Every public writable pipeline has synced its accepted prefix before another checkpoint can publish. -/
+theorem public_pipeline_synced {input : OpenInput} {activation : ActivationInput}
+    {receiptAvailable lookupAvailable : Bool} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool} {writer : WriterState}
+    (accepted : (openPipeline input activation receiptAvailable lookupAvailable auth receipt lookup).writer = some writer) :
+    writer.bytes.data = writer.bytes.durable := by
+  unfold openPipeline at accepted
+  split at accepted
+  · contradiction
+  · dsimp only at accepted
+    split at accepted
+    · contradiction
+    · rename_i opened recovered present
+      split at accepted
+      · rename_i finished
+        cases accepted
+        have authority := (pipeline_open_authorized finished).1
+        simp only [finishPipelineOpen, authority, ↓reduceIte] at finished ⊢
+        exact activation_synced (fun ready => openWriter_synced present ready) finished
+      · contradiction
+
 /-- A recovered writer with no pending retirement becomes usable after successful retained authority checks. -/
 theorem public_pipeline_ready {input : OpenInput} {activation : ActivationInput}
     {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
