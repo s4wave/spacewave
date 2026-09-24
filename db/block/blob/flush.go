@@ -9,8 +9,9 @@ import (
 
 // appendChunkData records a chunk and stores its data with bounded heap use.
 // When the chunk index is attached to a transaction with a backing store, the
-// data block is written directly and only its DataRef is retained in the
-// in-memory ChunkIndex. Ephemeral cursors fall back to the cursor graph path.
+// data block is staged on the transaction and only its DataRef is retained in
+// the in-memory ChunkIndex. Ephemeral cursors fall back to the cursor graph
+// path.
 func appendChunkData(
 	ctx context.Context,
 	ci *ChunkIndex,
@@ -47,6 +48,9 @@ func appendChunkData(
 	return flushChunkData(ctx, chkSet, idx)
 }
 
+// putChunkDataDirect stages one encoded chunk on the transaction staging
+// store. The store drains in bounded batches, one durable commit each, and
+// the transaction write drains the rest before the root that references them.
 func putChunkDataDirect(
 	ctx context.Context,
 	chkSet *sbset.SubBlockSet,
@@ -71,7 +75,8 @@ func putChunkDataDirect(
 	opts := tx.GetPutOpts().CloneVT()
 	opts.ForceBlockRef = nil
 	opts.Refs = nil
-	ref, _, err := tx.GetStoreOps().PutBlock(ctx, writeData, opts)
+	staged := tx.StageWrites(ctx, tx.GetStoreOps())
+	ref, _, err := staged.PutBlock(ctx, writeData, opts)
 	return ref, true, err
 }
 
