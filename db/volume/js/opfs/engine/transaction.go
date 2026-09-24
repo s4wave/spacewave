@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
 // transaction buffers bounded mutations against one protected committed snapshot.
@@ -13,6 +14,8 @@ import (
 type transaction struct {
 	// engine owns durable data and publication.
 	engine *Engine
+	// id identifies the transaction in workload records.
+	id uint64
 	// write permits pending mutations.
 	write bool
 	// metadata confines conflict validation to the public metadata namespace.
@@ -66,6 +69,20 @@ func (t *transaction) check(ctx context.Context) error {
 
 // Get returns a copied committed value or the transaction's pending value.
 func (t *transaction) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	value, found, err := t.get(ctx, key)
+	workload.Record{Op: workload.OpGet, ID: t.id, Size: foundSize(found, len(value)), Key: key}.Log(ctx)
+	return value, found, err
+}
+
+// Exists checks the same generation-consistent record view as Get.
+func (t *transaction) Exists(ctx context.Context, key []byte) (bool, error) {
+	_, found, err := t.get(ctx, key)
+	workload.Record{Op: workload.OpExists, ID: t.id, Size: presence(found), Key: key}.Log(ctx)
+	return found, err
+}
+
+// get reads the pending value or the protected committed snapshot.
+func (t *transaction) get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if err := t.check(ctx); err != nil {
 		return nil, false, err
 	}
@@ -80,19 +97,15 @@ func (t *transaction) Get(ctx context.Context, key []byte) ([]byte, bool, error)
 	return bytes.Clone(value), found, err
 }
 
-// Exists checks the same generation-consistent record view as Get.
-func (t *transaction) Exists(ctx context.Context, key []byte) (bool, error) {
-	_, found, err := t.Get(ctx, key)
-	return found, err
-}
-
 // Set records a bounded caller-owned mutation for commit.
 func (t *transaction) Set(ctx context.Context, key, value []byte) error {
+	workload.Record{Op: workload.OpSet, ID: t.id, Size: int64(len(value)), Key: key}.Log(ctx)
 	return t.mutate(ctx, key, value, false)
 }
 
 // Delete hides a key and remains a no-op when that key is absent.
 func (t *transaction) Delete(ctx context.Context, key []byte) error {
+	workload.Record{Op: workload.OpDelete, ID: t.id, Key: key}.Log(ctx)
 	return t.mutate(ctx, key, nil, true)
 }
 
@@ -164,16 +177,23 @@ func (t *transaction) Iterate(ctx context.Context, prefix []byte, _ bool, revers
 		}
 	}
 	slices.SortFunc(pending, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
-	return &iterator{ctx: ctx, tx: t, prefix: bytes.Clone(prefix), reverse: reverse, pending: pending}
+	it := &iterator{ctx: ctx, tx: t, id: t.engine.workloadIDs.Add(1), prefix: bytes.Clone(prefix), reverse: reverse, pending: pending}
+	var order int64
+	if reverse {
+		order = 1
+	}
+	workload.Record{Op: workload.OpIterate, ID: it.id, Parent: t.id, Size: order, Key: prefix}.Log(ctx)
+	return it
 }
 
 // Commit validates the complete observed generation and durably publishes writes.
 func (t *transaction) Commit(ctx context.Context) error {
+	workload.Record{Op: workload.OpCommit, ID: t.id, Size: int64(len(t.pending))}.Log(ctx)
 	if err := t.check(ctx); err != nil {
 		return err
 	}
 	if !t.write || len(t.pending) == 0 {
-		t.Discard()
+		t.release()
 		return nil
 	}
 	records := make([]*Record, 0, len(t.pending))
@@ -188,12 +208,18 @@ func (t *transaction) Commit(ctx context.Context) error {
 		base = &revision
 	}
 	err := t.engine.apply(ctx, base, records, t.metadata)
-	t.Discard()
+	t.release()
 	return err
 }
 
 // Discard releases the snapshot and mutations and invalidates derived iterators.
 func (t *transaction) Discard() {
+	workload.Record{Op: workload.OpDiscard, ID: t.id}.Log(context.Background())
+	t.release()
+}
+
+// release ends the transaction, dropping its snapshot and mutations.
+func (t *transaction) release() {
 	if t.snapshot != nil {
 		t.snapshot.release()
 		t.snapshot = nil

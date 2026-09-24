@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume/workload"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -135,7 +136,7 @@ func (s *BlockStore) run() {
 				return
 			case <-timer.C:
 			}
-			_, err := s.Sync(s.ctx)
+			_, err := s.sync(s.ctx)
 			cleaned, reclaimed := false, false
 			if err == nil {
 				cleaned, err = s.raw.engine.CleanPack(s.ctx)
@@ -198,6 +199,7 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	}
 
 	// Report pending duplicates; publication resolves durable duplicates.
+	logBlock(ctx, workload.OpPut, 0, ref, int64(len(data)))
 	existed, err := s.admit(ctx, &block.PutBatchEntry{Ref: ref, Data: data})
 	if err == nil && opts.GetSync() {
 		_, err = s.Sync(ctx)
@@ -246,7 +248,7 @@ func (s *BlockStore) admit(ctx context.Context, entry *block.PutBatchEntry) (boo
 		s.mtx.Unlock()
 
 		// Free bounded capacity through the existing durability fence.
-		if _, err := s.Sync(ctx); err != nil {
+		if _, err := s.sync(ctx); err != nil {
 			return false, err
 		}
 	}
@@ -283,8 +285,21 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		}
 	}
 
-	// Queue the verified entries without per-entry reads or publication waits.
+	// Record the batch and its entries in order.
 	trace.Logf(ctx, "hydra/opfs-engine/block-store/put-block-batch/shape", "entries=%d bytes=%d tombstones=%d", len(entries), payloadBytes, tombstones)
+	if trace.IsEnabled() {
+		batch := s.raw.engine.workloadIDs.Add(1)
+		workload.Record{Op: workload.OpPutBatch, ID: batch, Size: int64(len(entries))}.Log(ctx)
+		for _, entry := range entries {
+			op := workload.OpPut
+			if entry.Tombstone {
+				op = workload.OpTombstone
+			}
+			logBlock(ctx, op, batch, entry.Ref, int64(len(entry.Data)))
+		}
+	}
+
+	// Queue the verified entries without per-entry reads or publication waits.
 	for _, entry := range entries {
 		if _, err := s.admit(ctx, entry); err != nil {
 			return err
@@ -295,6 +310,12 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 
 // Sync publishes every write admitted before the captured sequence fence.
 func (s *BlockStore) Sync(ctx context.Context) (bool, error) {
+	workload.Record{Op: workload.OpSync}.Log(ctx)
+	return s.sync(ctx)
+}
+
+// sync publishes the admitted prefix for callers, writeback, and backpressure.
+func (s *BlockStore) sync(ctx context.Context) (bool, error) {
 	// Reject closed stores and bind the fence to volume shutdown.
 	if err := s.check(ctx); err != nil {
 		return false, err
@@ -377,7 +398,9 @@ func (s *BlockStore) pendingEntry(ctx context.Context, ref *block.BlockRef) (*bl
 
 // GetBlock reads admitted content before consulting durable immutable packs.
 func (s *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	return s.getBlock(ctx, ref, s.raw)
+	data, found, err := s.getBlock(ctx, ref, s.raw)
+	logBlock(ctx, workload.OpGetBlock, 0, ref, foundSize(found, len(data)))
+	return data, found, err
 }
 
 // getBlock preserves local visibility when a caller supplies a protected scope.
@@ -394,18 +417,20 @@ func (s *BlockStore) getBlock(ctx context.Context, ref *block.BlockRef, raw *pac
 
 // GetBlockExists answers from pending state or the small location index.
 func (s *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	stat, err := s.StatBlock(ctx, ref)
+	stat, err := s.statBlock(ctx, ref, s.raw)
+	logBlock(ctx, workload.OpBlockExists, 0, ref, presence(stat != nil))
 	return stat != nil, err
 }
 
 // GetBlockExistsBatch shares one immutable generation for uncached references.
 func (s *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Keep one durable snapshot and pending overlay for the complete lookup.
-	read, release, err := s.BeginReadOperation(ctx)
+	read, release, err := s.beginRead(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
+	workload.Record{Op: workload.OpExistsBatch, ID: read.id, Size: int64(len(refs))}.Log(ctx)
 
 	// Preserve input positions while skipping empty references.
 	out := make([]bool, len(refs))
@@ -423,7 +448,9 @@ func (s *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // StatBlock returns pending or indexed payload length without reading payloads.
 func (s *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	return s.statBlock(ctx, ref, s.raw)
+	stat, err := s.statBlock(ctx, ref, s.raw)
+	logBlock(ctx, workload.OpStatBlock, 0, ref, statSize(stat))
+	return stat, err
 }
 
 // statBlock overlays admitted writes on the chosen protected durable scope.
@@ -443,15 +470,29 @@ func (s *BlockStore) statBlock(ctx context.Context, ref *block.BlockRef, raw *pa
 
 // RmBlock orders deletion after prior local writes and durably records its extent.
 func (s *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	logBlock(ctx, workload.OpRm, 0, ref, 0)
 	if _, err := s.admit(ctx, &block.PutBatchEntry{Ref: ref, Tombstone: true}); err != nil {
 		return err
 	}
-	_, err := s.Sync(ctx)
+	_, err := s.sync(ctx)
 	return err
 }
 
 // BeginReadOperation pins durable files and retains local pending read-through.
 func (s *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	read, release, err := s.beginRead(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	workload.Record{Op: workload.OpReadBegin, ID: read.id}.Log(ctx)
+	return read, func() {
+		workload.Record{Op: workload.OpReadEnd, ID: read.id}.Log(ctx)
+		release()
+	}, nil
+}
+
+// beginRead opens a numbered read scope without recording its lifetime.
+func (s *BlockStore) beginRead(ctx context.Context) (*scopedStore, func(), error) {
 	if err := s.check(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -463,7 +504,8 @@ func (s *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if err != nil {
 		return nil, nil, err
 	}
-	return &scopedStore{owner: s, raw: read.(*packStore), pending: pending}, release, nil
+	scope := &scopedStore{owner: s, id: s.raw.engine.workloadIDs.Add(1), raw: read.(*packStore), pending: pending}
+	return scope, release, nil
 }
 
 // _ verifies the public block storage contract.

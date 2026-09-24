@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/volume/workload"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -12,6 +13,8 @@ import (
 type scopedStore struct {
 	// owner supplies bounded pending read-through state and lifetime checks.
 	owner *BlockStore
+	// id identifies the read scope in workload records.
+	id uint64
 	// raw retains the immutable root's reclamation protection.
 	raw *packStore
 	// pending preserves values admitted before this operation acquired its root.
@@ -20,6 +23,13 @@ type scopedStore struct {
 
 // GetBlock reads pending content or the protected immutable generation.
 func (s *scopedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	data, found, err := s.getBlock(ctx, ref)
+	logBlock(ctx, workload.OpGetBlock, s.id, ref, foundSize(found, len(data)))
+	return data, found, err
+}
+
+// getBlock overlays pending content on the protected immutable generation.
+func (s *scopedStore) getBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	entry, err := s.pendingEntry(ctx, ref)
 	if err != nil {
 		return nil, false, err
@@ -32,6 +42,13 @@ func (s *scopedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 
 // StatBlock resolves indexed length within the protected operation.
 func (s *scopedStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	stat, err := s.statBlock(ctx, ref)
+	logBlock(ctx, workload.OpStatBlock, s.id, ref, statSize(stat))
+	return stat, err
+}
+
+// statBlock overlays pending length on the protected immutable index.
+func (s *scopedStore) statBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	entry, err := s.pendingEntry(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -47,12 +64,14 @@ func (s *scopedStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 
 // GetBlockExists answers without reading payload bytes.
 func (s *scopedStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	stat, err := s.StatBlock(ctx, ref)
+	stat, err := s.statBlock(ctx, ref)
+	logBlock(ctx, workload.OpBlockExists, s.id, ref, presence(stat != nil))
 	return stat != nil, err
 }
 
 // GetBlockExistsBatch reuses this operation's protected root for every lookup.
 func (s *scopedStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	workload.Record{Op: workload.OpExistsBatch, ID: s.id, Size: int64(len(refs))}.Log(ctx)
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
 		if ref.GetEmpty() {
