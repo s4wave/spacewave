@@ -27,9 +27,11 @@ type scriptState struct {
 	bin      string
 	repoRoot string
 	work     string
-	env      []string
-	stdout   string
-	stderr   string
+	// dir is the working directory of commands, set by cd.
+	dir    string
+	env    []string
+	stdout string
+	stderr string
 }
 
 // TIER: pr
@@ -72,6 +74,7 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 				bin:      bin,
 				repoRoot: repoRoot,
 				work:     work,
+				dir:      work,
 				env:      os.Environ(),
 			})
 		})
@@ -98,11 +101,23 @@ func runScript(t *testing.T, path string, st scriptState) {
 		switch fields[0] {
 		case "bun-help":
 			st = runBunHelp(t, path, idx+1, fields, st)
+		case "cd":
+			if len(fields) != 2 {
+				t.Fatalf("%s:%d: usage: cd DIR", path, idx+1)
+			}
+			st.dir = expand(fields[1], st)
+		case "cmp":
+			if len(fields) != 3 {
+				t.Fatalf("%s:%d: usage: cmp FILE1 FILE2", path, idx+1)
+			}
+			compareFiles(t, path, idx+1, expand(fields[1], st), expand(fields[2], st))
 		case "env":
 			if len(fields) != 2 || !strings.Contains(fields[1], "=") {
 				t.Fatalf("%s:%d: usage: env KEY=VALUE", path, idx+1)
 			}
 			st.env = append(st.env, expand(fields[1], st))
+		case "git":
+			st = runGit(t, path, idx+1, fields[1:], st)
 		case "git-fixture":
 			if len(fields) != 2 {
 				t.Fatalf("%s:%d: usage: git-fixture PATH", path, idx+1)
@@ -122,6 +137,11 @@ func runScript(t *testing.T, path string, st scriptState) {
 			assertOutputContains(t, path, idx+1, "stderr", st.stderr, line)
 		case "stdout-snapshot":
 			assertOutputSnapshot(t, path, idx+1, "stdout", st.stdout, line, st)
+		case "write-file":
+			if len(fields) != 3 {
+				t.Fatalf("%s:%d: usage: write-file PATH SIZE", path, idx+1)
+			}
+			writePatternFile(t, path, idx+1, expand(fields[1], st), fields[2])
 		default:
 			t.Fatalf("%s:%d: unknown directive %q", path, idx+1, fields[0])
 		}
@@ -149,7 +169,7 @@ func runCommandLine(t *testing.T, path string, lineNo int, line string, st scrip
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, st.bin, args[1:]...)
-	cmd.Dir = st.work
+	cmd.Dir = st.dir
 	cmd.Env = st.env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -170,6 +190,72 @@ func runCommandLine(t *testing.T, path string, lineNo int, line string, st scrip
 		t.Fatalf("%s:%d: command failed: %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, line, err, st.stdout, st.stderr)
 	}
 	return st
+}
+
+// runGit runs git with args in the script's working directory.
+func runGit(t *testing.T, path string, lineNo int, args []string, st scriptState) scriptState {
+	t.Helper()
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Fatalf("%s:%d: git executable not found: %v", path, lineNo, err)
+	}
+	for i := range args {
+		args[i] = expand(args[i], st)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = st.dir
+	cmd.Env = st.env
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	st.stdout = stdout.String()
+	st.stderr = stderr.String()
+	if ctx.Err() != nil {
+		t.Fatalf("%s:%d: git %s timed out\nstderr:\n%s", path, lineNo, strings.Join(args, " "), st.stderr)
+	}
+	if err != nil {
+		t.Fatalf("%s:%d: git %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, strings.Join(args, " "), err, st.stdout, st.stderr)
+	}
+	return st
+}
+
+// writePatternFile writes size deterministic bytes to filePath.
+func writePatternFile(t *testing.T, path string, lineNo int, filePath, size string) {
+	t.Helper()
+
+	n, err := strconv.Atoi(size)
+	if err != nil {
+		t.Fatalf("%s:%d: parse size: %v", path, lineNo, err)
+	}
+	data := make([]byte, n)
+	for i := range data {
+		data[i] = byte(i * 7 % 251)
+	}
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+		t.Fatalf("%s:%d: write %s: %v", path, lineNo, filePath, err)
+	}
+}
+
+// compareFiles fails unless the two files have identical contents.
+func compareFiles(t *testing.T, path string, lineNo int, a, b string) {
+	t.Helper()
+
+	dataA, err := os.ReadFile(a)
+	if err != nil {
+		t.Fatalf("%s:%d: %v", path, lineNo, err)
+	}
+	dataB, err := os.ReadFile(b)
+	if err != nil {
+		t.Fatalf("%s:%d: %v", path, lineNo, err)
+	}
+	if !bytes.Equal(dataA, dataB) {
+		t.Fatalf("%s:%d: %s (%d bytes) differs from %s (%d bytes)", path, lineNo, a, len(dataA), b, len(dataB))
+	}
 }
 
 func runBunHelp(t *testing.T, path string, lineNo int, fields []string, st scriptState) scriptState {

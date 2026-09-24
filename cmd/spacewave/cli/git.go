@@ -55,7 +55,6 @@ func parseGitURI(arg, spaceFlag string, sessFlag int) (fsURI, error) {
 }
 
 // mountGitContext connects to the daemon and mounts the full chain to get
-// mountGitContext connects to the daemon and mounts the full chain to get
 // a GitRepoResourceService client for the given URI.
 func mountGitContext(c *cli.Context, statePath string, uri fsURI) (*gitContext, func(), error) {
 	mount, _, err := mountObjectChain(c, statePath, uri, nil)
@@ -247,6 +246,7 @@ func newGitCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			buildGitCloneCommand(),
 			buildGitFetchCommand(),
 			buildGitWorktreeCommand(),
+			buildGitLfsCommand(),
 		},
 	}
 }

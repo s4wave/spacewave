@@ -1,0 +1,38 @@
+# Git LFS objects pushed through the Spacewave transfer agent restore in a
+# second clone.
+env SPACEWAVE_CLI_AUTOSTART=true
+env GIT_CONFIG_GLOBAL=$WORK/gitconfig
+env GIT_CONFIG_NOSYSTEM=1
+env GIT_AUTHOR_NAME=Spacewave
+env GIT_AUTHOR_EMAIL=cli-fixture@example.test
+env GIT_COMMITTER_NAME=Spacewave
+env GIT_COMMITTER_EMAIL=cli-fixture@example.test
+
+spacewave --state-path $WORK/state login local
+spacewave --state-path $WORK/state space create CLI
+git init --bare -b main remote.git
+git init -b main assets
+
+cd $WORK/assets
+spacewave git lfs setup --state-path $WORK/state --space CLI
+stdout "Created UnixFS object git-lfs/assets."
+spacewave git lfs setup --state-path $WORK/state --space CLI
+stdout "Git LFS objects go to /u/1/so/"
+git lfs track *.bin
+write-file $WORK/assets/asset.bin 3000000
+git add .gitattributes asset.bin
+git commit -m assets
+git remote add origin $WORK/remote.git
+git push origin main
+spacewave --state-path $WORK/state fs ls git-lfs/assets
+stdout "objects"
+
+cd $WORK
+git clone remote.git copy
+cd $WORK/copy
+spacewave git lfs setup --state-path $WORK/state --space CLI git-lfs/assets
+git lfs pull
+cmp $WORK/assets/asset.bin $WORK/copy/asset.bin
+
+spacewave --state-path $WORK/state stop
+stdout "Stopped Spacewave daemon."
