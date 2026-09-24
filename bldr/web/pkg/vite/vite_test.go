@@ -72,6 +72,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 			WebPkgId:   "@aptre/it-ws",
 			WebPkgRoot: pkgRoot,
 		}},
+		nil,
 		outDir,
 		"/b/pkg/",
 		false,
@@ -126,6 +127,7 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 	_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "stable-cjs", WebPkgRoot: pkgRoot, Imports: []string{"index.cjs"}}},
+		nil,
 		outputPath, "/b/pkg/", true, false, true, client, filepath.Join(t.TempDir(), "cache"),
 	)
 	if err != nil {
@@ -227,6 +229,7 @@ func TestBuildWebPkgsViteIgnoresGeneratedOutputSources(t *testing.T) {
 				WebPkgRoot: pkgRoot,
 				Imports:    []string{"index.cjs"},
 			}},
+			nil,
 			relativeOutput,
 			"/b/pkg/",
 			false,
@@ -291,6 +294,7 @@ func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
 		_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 			context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, managedRootPath,
 			[]*web_pkg.WebPkgRef{{WebPkgId: "stable-pkg", WebPkgRoot: pkgRoot}},
+			nil,
 			filepath.Join(t.TempDir(), "assets"),
 			"/b/pkg/", true, false, true, client, filepath.Join(t.TempDir(), "cache"),
 		)
@@ -367,6 +371,7 @@ if (process.env.NODE_ENV === "production") {
 	_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "conditional-pkg", WebPkgRoot: pkgRoot, Imports: []string{"index.js"}}},
+		nil,
 		filepath.Join(codeRootPath, ".bldr", "output"), "/b/pkg/", true, false, true,
 		client, filepath.Join(t.TempDir(), "cache"),
 	)
@@ -413,6 +418,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 			WebPkgRoot: pkgRoot,
 			Imports:    []string{"index.cjs"},
 		}},
+		nil,
 		outDir,
 		"/b/pkg/",
 		false,
@@ -477,6 +483,7 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 			WebPkgRoot: pkgRoot,
 			Imports:    []string{"index.js"},
 		}},
+		nil,
 		filepath.Join(t.TempDir(), "out"),
 		"/b/pkg/",
 		true,
@@ -500,5 +507,45 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 	}
 	if !req.GetJsSourcemaps() {
 		t.Fatal("request did not enable JavaScript sourcemaps")
+	}
+}
+
+// TestBuildWebPkgsViteKeepsProvidedPkgsExternal proves a web package importing
+// a package another plugin provides resolves it through /b/pkg/ like a sibling.
+func TestBuildWebPkgsViteKeepsProvidedPkgsExternal(t *testing.T) {
+	codeRootPath := t.TempDir()
+	client := &fakeViteBundlerClient{
+		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
+	}
+
+	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		codeRootPath,
+		filepath.Join(codeRootPath, ".state"),
+		[]*web_pkg.WebPkgRef{
+			{WebPkgId: "@s4wave/code", WebPkgRoot: codeRootPath},
+			{WebPkgId: "shiki", WebPkgRoot: codeRootPath},
+		},
+		[]string{"@s4wave/web"},
+		filepath.Join(t.TempDir(), "out"),
+		"/b/pkg/",
+		false,
+		false,
+		true,
+		client,
+		filepath.Join(t.TempDir(), "cache"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(client.requests) != 2 {
+		t.Fatalf("unexpected request count: got %d want 2", len(client.requests))
+	}
+
+	req := client.requests[0]
+	want := []string{"shiki", "@s4wave/web"}
+	if req.GetPkgId() != "@s4wave/code" || !slices.Equal(req.GetSiblingPkgIds(), want) {
+		t.Fatalf("siblings of %s: got %v want %v", req.GetPkgId(), req.GetSiblingPkgIds(), want)
 	}
 }

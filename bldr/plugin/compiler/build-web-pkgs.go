@@ -80,6 +80,7 @@ func BuildDirectWebPkgs(
 			sourcePath,
 			workingPath,
 			refs,
+			nil,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,

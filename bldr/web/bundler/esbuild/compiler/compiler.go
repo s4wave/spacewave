@@ -4,6 +4,7 @@ package bldr_web_bundler_esbuild_compiler
 
 import (
 	"context"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -331,6 +332,7 @@ func (c *Controller) BuildManifest(
 					sourcePath,
 					workingPath,
 					buildableWebPkgRefs,
+					slices.Sorted(maps.Keys(excludedIDs)),
 					outWebPkgsPath,
 					bldr_plugin.PluginWebPkgHttpPrefix,
 					isRelease,

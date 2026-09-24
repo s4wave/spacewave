@@ -44,19 +44,23 @@ func BuildWebPkgsVite(
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
 	return BuildWebPkgsViteWithManagedRoot(
-		ctx, le, codeRootPath, "", webPkgsRefs, outputPath, webPkgBasePath,
+		ctx, le, codeRootPath, "", webPkgsRefs, nil, outputPath, webPkgBasePath,
 		isRelease, jsMinification, jsSourcemaps, viteBundler, cacheDir,
 	)
 }
 
 // BuildWebPkgsViteWithManagedRoot builds web packages without retaining
 // compiler-managed files as durable source provenance.
+//
+// providedWebPkgIDs lists web packages other plugins provide. Imports of them
+// stay external and resolve to their /b/pkg/ URLs, like sibling packages.
 func BuildWebPkgsViteWithManagedRoot(
 	ctx context.Context,
 	le *logrus.Entry,
 	codeRootPath string,
 	managedRootPath string,
 	webPkgsRefs []*web_pkg.WebPkgRef,
+	providedWebPkgIDs []string,
 	outputPath string,
 	webPkgBasePath string,
 	isRelease bool,
@@ -92,10 +96,12 @@ func BuildWebPkgsViteWithManagedRoot(
 		webPkgID := webPkgRef.GetWebPkgId()
 		pkgOutputPath := filepath.Join(outputPath, webPkgID)
 
-		// Build the sibling list: all web pkg IDs except the current one.
+		// Build the sibling list: all web pkg IDs except the current one, plus
+		// the packages other plugins provide.
 		siblingIDs := slices.DeleteFunc(slices.Clone(webPkgIDs), func(id string) bool {
 			return id == webPkgID
 		})
+		siblingIDs = append(siblingIDs, providedWebPkgIDs...)
 		externalIDs := slices.DeleteFunc(slices.Clone(web_pkg_external.BldrExternal), func(id string) bool {
 			return id == webPkgID
 		})

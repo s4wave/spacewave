@@ -4,6 +4,7 @@ package bldr_web_bundler_vite_compiler
 
 import (
 	"context"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -880,6 +881,7 @@ func (c *Controller) performFullRebuild(
 			sourcePath,
 			workingPath,
 			buildableWebPkgRefs,
+			slices.Sorted(maps.Keys(excludedIDs)),
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
 			isRelease,
