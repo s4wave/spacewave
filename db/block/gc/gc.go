@@ -34,9 +34,10 @@ type AtomicSweepStore interface {
 }
 
 // atomicSweepBatchSize bounds the candidates rechecked in one atomic sweep
-// transaction. Each commit rewrites the store's freelist, so one transaction
-// per node made sweep cost scale with free space instead of with work.
-const atomicSweepBatchSize = 256
+// transaction. The transaction holds the store's single writer lock, so every
+// foreground write waits for the whole batch. Batching amortizes the per-commit
+// cost; a small batch keeps that wait short on a busy volume.
+const atomicSweepBatchSize = 16
 
 // Stats holds GC cycle statistics.
 type Stats struct {
