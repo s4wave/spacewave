@@ -8,6 +8,7 @@ import Spacewave.SObject.Leave
 import Spacewave.SObject.Recovery
 import Spacewave.SObject.JournalPipeline
 import Spacewave.SObject.Sync.Auth
+import Spacewave.SObject.Sync.Catchup
 
 /-!
 # Conformance oracle
@@ -50,6 +51,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
 - `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
+- `appendSyncPage`: receive buffer and raw page projection; result `{"ok", "received"}`.
+- `nextSyncMessage`: response buffer and measured page-prefix sizes; result `{"ok", "message"}`.
 - `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
 - `observeJournalFrame`: raw bytes, decoded record and primitive checksums.
 - `encodeJournalFrame`: record and primitive encoding/checksum results.
@@ -121,10 +124,20 @@ deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Jo
 deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
 deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult
+deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
+deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "appendSyncPage" =>
+    let result := Sync.appendPage (← req.getObjValAs? Sync.Receive "before")
+      (← req.getObjValAs? (Option Sync.HistoryPage) "page")
+    return json% {ok: $(result.ok), received: $result}
+  | "nextSyncMessage" =>
+    let result := Sync.nextMessage (← req.getObjValAs? Sync.Response "before")
+      (← req.getObjValAs? (List Nat) "sizes")
+    return json% {ok: $(result.ok), message: $result}
   | "authenticateSync" =>
     let result := Sync.authenticate (← req.getObjValAs? Sync.AuthenticationInput "input")
     return json% {ok: $(result.ok), authentication: $result}

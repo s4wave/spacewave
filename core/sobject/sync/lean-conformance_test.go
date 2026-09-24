@@ -69,28 +69,46 @@ func checkLeanSync(t *testing.T, oracle string, cases []leanSyncCase) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if actual.Get("error") != nil || !leanSyncFieldsEqual(actual, expected) {
-			t.Fatalf("%s differs: Go %s, Lean %s", test.name, test.expected, lines[index])
+		if actual.Get("error") != nil {
+			t.Fatalf("%s oracle error: %.512s", test.name, lines[index])
+		}
+		if difference := leanSyncDifference(actual, expected, "$"); difference != "" {
+			t.Fatalf("%s differs at %s", test.name, difference)
 		}
 	}
 	t.Logf("%d sync cases agree", len(cases))
 }
 
-// leanSyncFieldsEqual compares the named result fields without relying on object key order.
-func leanSyncFieldsEqual(actual, expected *fastjson.Value) bool {
+// leanSyncDifference locates the first mismatched field without dumping a large history buffer.
+func leanSyncDifference(actual, expected *fastjson.Value, path string) string {
 	if actual == nil || actual.Type() != expected.Type() {
-		return false
+		return path
 	}
-	if expected.Type() != fastjson.TypeObject {
-		return bytes.Equal(actual.MarshalTo(nil), expected.MarshalTo(nil))
-	}
-	equal := true
-	expected.GetObject().Visit(func(key []byte, value *fastjson.Value) {
-		if !leanSyncFieldsEqual(actual.Get(string(key)), value) {
-			equal = false
+	switch expected.Type() {
+	case fastjson.TypeArray:
+		left, right := actual.GetArray(), expected.GetArray()
+		if len(left) != len(right) {
+			return path + ".length"
 		}
-	})
-	return equal
+		for index, value := range right {
+			if difference := leanSyncDifference(left[index], value, path+"["+strconv.Itoa(index)+"]"); difference != "" {
+				return difference
+			}
+		}
+	case fastjson.TypeObject:
+		var difference string
+		expected.GetObject().Visit(func(key []byte, value *fastjson.Value) {
+			if difference == "" {
+				difference = leanSyncDifference(actual.Get(string(key)), value, path+"."+string(key))
+			}
+		})
+		return difference
+	default:
+		if !bytes.Equal(actual.MarshalTo(nil), expected.MarshalTo(nil)) {
+			return path
+		}
+	}
+	return ""
 }
 
 // TestLeanSyncAuthenticationConformance checks real participant roles and stream handshakes.
