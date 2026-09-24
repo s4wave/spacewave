@@ -40,8 +40,8 @@ github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 h1:PEE
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O2eZNtS1Cy4p8nn8k0+U=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260923001122-d5001e2c51c2 h1:KpLqf876eaXRPMq0M3RAyIUkoflxaCpDX1nX2wPA+Vc=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260923001122-d5001e2c51c2/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260924094834-67576591e16a h1:PNWokQPkWZUK9zK4/icNYgH57k3j+QxrBm3ZlgIGKp0=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260924094834-67576591e16a/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 h1:X7jF/waiUPTRjUZkzRInP03rFAXbmEtPSgPzDNuwXcg=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe h1:WrZSu4hkdfPGqao8LBY5bsRxDjlNPVe+02o0hxVGQmc=
