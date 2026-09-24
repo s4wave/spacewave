@@ -67,7 +67,10 @@ func TestSpacewaveCLITrajectoryScripts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// Stop any daemon the script started, including one left by a
+			// script that failed or never ran stop, before deleting its state.
 			t.Cleanup(func() {
+				stopDaemon(t, bin, filepath.Join(work, "state"))
 				_ = os.RemoveAll(work)
 			})
 			runScript(t, script, scriptState{
@@ -190,6 +193,19 @@ func runCommandLine(t *testing.T, path string, lineNo int, line string, st scrip
 		t.Fatalf("%s:%d: command failed: %s: %v\nstdout:\n%s\nstderr:\n%s", path, lineNo, line, err, st.stdout, st.stderr)
 	}
 	return st
+}
+
+// stopDaemon stops the daemon serving statePath, if one is running.
+func stopDaemon(t *testing.T, bin, statePath string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, bin, "stop", "--state-path", statePath).CombinedOutput()
+	if err != nil {
+		t.Errorf("stop daemon at %s: %v\n%s", statePath, err, out)
+	}
 }
 
 // runGit runs git with args in the script's working directory.
