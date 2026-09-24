@@ -62,7 +62,7 @@ func (e *Engine) publishHeadWatchError(err error) {
 	if !e.closed {
 		e.headWatchErr = err
 		if err != nil {
-			locked.Broadcast()
+			e.signalHeadLocked()
 		}
 	}
 	locked.Unlock()
