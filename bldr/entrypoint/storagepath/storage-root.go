@@ -30,13 +30,16 @@ func SocketPathEnvVar(projectID string) string {
 	return projectIDPrefix(projectID) + "_SOCKET_PATH"
 }
 
-// ResolveStatePath makes statePath absolute, creates it, and publishes it
-// with the optional explicit socket path to the project's environment
-// variables. Logs, bus-hosted components, and child processes then scope
-// their default paths to the invocation's state root instead of the shared
-// process default. socketPath may be empty when no explicit socket path was
-// requested. Returns the absolute state root.
-func ResolveStatePath(projectID, statePath, socketPath string) (string, error) {
+// ResolveStatePath makes statePath absolute and creates it. When explicit is
+// set, it publishes the root with the optional explicit socket path to the
+// project's environment variables. Logs, bus-hosted components, and child
+// processes then scope their default paths to the chosen state root instead
+// of the shared process default. A default state path is not published, so
+// the environment still tells subcommands whether the user chose one; the
+// unpublished default is the root DetermineStorageRoot resolves anyway.
+// socketPath may be empty when no explicit socket path was requested.
+// Returns the absolute state root.
+func ResolveStatePath(projectID, statePath, socketPath string, explicit bool) (string, error) {
 	root, err := filepath.Abs(statePath)
 	if err != nil {
 		return "", err
@@ -44,8 +47,10 @@ func ResolveStatePath(projectID, statePath, socketPath string) (string, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return "", err
 	}
-	if err := os.Setenv(StatePathEnvVar(projectID), root); err != nil {
-		return "", err
+	if explicit {
+		if err := os.Setenv(StatePathEnvVar(projectID), root); err != nil {
+			return "", err
+		}
 	}
 	if socketPath != "" {
 		if err := os.Setenv(SocketPathEnvVar(projectID), socketPath); err != nil {
