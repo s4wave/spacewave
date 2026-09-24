@@ -2,6 +2,7 @@ package resource_objecttype_registry
 
 import (
 	"context"
+	"io"
 	"strings"
 	"sync"
 
@@ -444,6 +445,9 @@ func shouldReconnectPluginInvoke(ctx context.Context, err error) bool {
 	if strings.Contains(msg, "resource not found") ||
 		strings.Contains(msg, "invalid resource id") ||
 		strings.Contains(msg, "resource or client was released") {
+		return true
+	}
+	if errors.Is(err, io.ErrClosedPipe) {
 		return true
 	}
 	if !errors.Is(err, context.Canceled) {
