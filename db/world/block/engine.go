@@ -70,6 +70,10 @@ type Engine struct {
 	baseRoot *bucket_lookup.Cursor
 	// head pairs the root cursor with its shared read transaction.
 	head *engineHead
+	// headChanged closes when the published head root changes, head observation
+	// fails, or the Engine closes. Revision waiters wait on it instead of bcast,
+	// which also wakes on every transaction retirement. Guarded by bcast.
+	headChanged chan struct{}
 	// writeTx is the current write transaction, canceled if its head changes.
 	writeTx *EngineTx
 	// writeTxRel releases wmtx after the detached write transaction drains.
@@ -197,6 +201,7 @@ func NewEngine(
 		baseRoot:       root,
 		lookupOp:       lookupOp,
 		head:           &engineHead{root: root.Clone()},
+		headChanged:    make(chan struct{}),
 		commitFn:       commitFn,
 		durableHeadRef: root.GetRef().Clone(),
 		verbose:        verbose,
@@ -478,7 +483,14 @@ func (e *Engine) installRootRefLocked(ctx context.Context, ref *bucket.ObjectRef
 		root:   nextRoot,
 		readTx: NewTx(nextWorld),
 	}
+	e.signalHeadLocked()
 	return e.beginRetirementLocked(retirement), nil
+}
+
+// signalHeadLocked wakes revision waiters. The caller must hold bcast.
+func (e *Engine) signalHeadLocked() {
+	close(e.headChanged)
+	e.headChanged = make(chan struct{})
 }
 
 // beginRetirementLocked registers detached resources that Close must join.
@@ -1036,7 +1048,7 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 		}
 		readTx := e.head.readTx
 		watchErr := e.headWatchErr
-		wait := locked.WaitCh()
+		wait := e.headChanged
 		locked.Unlock()
 
 		// Read the captured head without holding publication authority.
@@ -1088,6 +1100,7 @@ func (e *Engine) Close() error {
 		return nil
 	}
 	e.closed = true
+	e.signalHeadLocked()
 
 	// Detach every Engine-owned resource while publication is closed.
 	retirements := make([]engineRetirement, 0, len(e.snapshotTxs)+1)
