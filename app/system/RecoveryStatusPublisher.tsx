@@ -49,7 +49,7 @@ export function RecoveryStatusPublisher(props: { session: Session }) {
       window.removeEventListener('spacewave:boot-status', publishLatest)
       window.removeEventListener(webViewRootAssetStatusEvent, publishLatest)
     }
-  }, [])
+  }, [publishRef])
 
   return null
 }

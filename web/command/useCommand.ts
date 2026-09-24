@@ -196,6 +196,8 @@ export function useCommand(opts: UseCommandOpts): void {
     opts.icon,
     opts.description,
     opts.hasSubItems,
+    searchAliasesRef,
+    defaultBindingsRef,
   ])
 
   useEffect(() => {

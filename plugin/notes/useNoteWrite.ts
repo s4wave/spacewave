@@ -155,7 +155,13 @@ export function useNoteWrite({
         .catch(() => {})
       return operation
     },
-    [fileHandle.value, filePath, onContentSaved],
+    [
+      fileHandle.value,
+      filePath,
+      onContentSaved,
+      currentFilePath,
+      lastSettledContent,
+    ],
   )
 
   const handleWysiwygDraftChange = useCallback(
@@ -172,7 +178,7 @@ export function useNoteWrite({
       if (failedWrite.current?.filePath !== filePath) return
       failedWrite.current = { filePath, content: full }
     },
-    [filePath, noteFormat, rawMetadata],
+    [filePath, noteFormat, rawMetadata, lastSettledContent],
   )
 
   // WYSIWYG save: re-assemble format metadata + exported body, then write.
@@ -215,7 +221,7 @@ export function useNoteWrite({
         // writeFile keeps the failed draft and error available for another retry.
       }
     })()
-  }, [editing, filePath, writeFile])
+  }, [editing, filePath, writeFile, currentFilePath])
 
   const handleToggle = useCallback(() => {
     if (editing) {

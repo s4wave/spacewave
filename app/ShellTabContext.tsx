@@ -425,7 +425,7 @@ function useShellTabsContextValue(
         pendingCreatedTabId: tabId,
       })
     },
-    [entry.incarnation, writeShellDocumentState],
+    [entry.incarnation, writeShellDocumentState, activeTabIdRef],
   )
   const clearCreatedTabSelection = useCallback(
     (tabId: string) => {
@@ -436,7 +436,7 @@ function useShellTabsContextValue(
         activeTabId: activeTabIdRef.current,
       })
     },
-    [entry.incarnation, writeShellDocumentState],
+    [entry.incarnation, writeShellDocumentState, activeTabIdRef],
   )
 
   useEffect(() => {
@@ -657,6 +657,7 @@ function useShellTabsContextValue(
       store,
       environment.id,
       environment.documentStorage,
+      localOrderRef,
     ],
   )
 

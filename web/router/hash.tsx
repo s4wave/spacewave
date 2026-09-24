@@ -50,7 +50,7 @@ export const useNavigateHandler = (
         to.params ? formatHashNavigation({ path, params: to.params }) : path,
       )
     },
-    [setPath],
+    [setPath, currentPathRef],
   )
 }
 

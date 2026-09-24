@@ -142,9 +142,12 @@ export const RouterProvider: FC<{
 }> = ({ children, path, onNavigate }) => {
   const onNavigateRef = useLatestRef(onNavigate)
 
-  const navigate = useCallback((to: To) => {
-    onNavigateRef.current(to)
-  }, [])
+  const navigate = useCallback(
+    (to: To) => {
+      onNavigateRef.current(to)
+    },
+    [onNavigateRef],
+  )
 
   const value = useMemo<RouterContextType>(
     () => ({

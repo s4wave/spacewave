@@ -398,7 +398,7 @@ function ShellTabStripInner({
     gridPathRef.current = path
     gridStructureRef.current = encodeGridLayoutStructure(next)
     setModel(next)
-  }, [activeTabId, routePath, tabs, setAppPath, getAppPath])
+  }, [activeTabId, routePath, tabs, setAppPath, getAppPath, tabsRef])
   const didSyncEntryRef = useRef(false)
   const lastSyncedActiveTabIdRef = useRef(activeTabId)
   const suppressedHashPathRef = useRef<string | null>(null)
@@ -448,7 +448,7 @@ function ShellTabStripInner({
       })
       return newTab.id
     },
-    [addShellTab, isGridMode, model, selectShellTab],
+    [addShellTab, isGridMode, model, selectShellTab, tabsRef],
   )
 
   useEffect(
@@ -562,7 +562,7 @@ function ShellTabStripInner({
     if (activeTab && activeTab.path !== getAppPath()) {
       setAppPath(activeTab.path)
     }
-  }, [activeTabId, isGridMode, setAppPath, getAppPath])
+  }, [activeTabId, isGridMode, setAppPath, getAppPath, tabsRef])
 
   // Listen for hash changes (back/forward navigation).
   useEffect(() => {
@@ -582,7 +582,7 @@ function ShellTabStripInner({
         renderValues.content = <ShellTabLabel tab={tab} />
       }
     },
-    [],
+    [tabsRef],
   )
 
   // renderTab function - renders content for each tab
@@ -590,12 +590,15 @@ function ShellTabStripInner({
   // Using ref ensures stable callback identity to prevent FlexLayout re-renders
   // Grid mode is not passed down: the content survives the mode transition, so
   // it reads the live mode from the shell context itself.
-  const renderTab = useCallback((node: TabNode) => {
-    const tabId = node.getId()
-    const tab = findShellTab(tabsRef.current, tabId)
-    const path = tab?.path ?? '/'
-    return <ShellTabContent tabId={tabId} path={path} />
-  }, [])
+  const renderTab = useCallback(
+    (node: TabNode) => {
+      const tabId = node.getId()
+      const tab = findShellTab(tabsRef.current, tabId)
+      const path = tab?.path ?? '/'
+      return <ShellTabContent tabId={tabId} path={path} />
+    },
+    [tabsRef],
+  )
 
   // Handle model changes - sync tabs state, check for grid mode transition
   const handleModelChange = useCallback(
@@ -719,6 +722,7 @@ function ShellTabStripInner({
       setAppPath,
       getAppPath,
       environment.documentStorage,
+      tabsRef,
     ],
   )
 

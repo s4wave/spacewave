@@ -82,7 +82,13 @@ function ShellAppPanelInner({
         setAppPath(path)
       }
     },
-    [tabId, getAppNavigationGeneration, setAppPath],
+    [
+      tabId,
+      getAppNavigationGeneration,
+      setAppPath,
+      activeTabIdRef,
+      syncAppPathRef,
+    ],
   )
 
   const addTab = useCallback(
