@@ -9,6 +9,7 @@ import Spacewave.SObject.Recovery
 import Spacewave.SObject.JournalPipeline
 import Spacewave.SObject.Sync.Auth
 import Spacewave.SObject.Sync.Catchup
+import Spacewave.SObject.Sync.Sync
 
 /-!
 # Conformance oracle
@@ -48,6 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `startSyncStream`: authentication inputs and deadline observations; result `{"ok", "started"}`.
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
 - `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
@@ -128,7 +130,7 @@ deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.Activati
 deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Journal.PipelineOpenResult
 deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
-deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult
+deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult, Sync.StreamStart
 deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
@@ -170,6 +172,10 @@ def respond (req : Json) : Except String Json := do
     let result := Sync.nextMessage (← req.getObjValAs? Sync.Response "before")
       (← req.getObjValAs? (List Nat) "sizes")
     return json% {ok: $(result.ok), message: $result}
+  | "startSyncStream" =>
+    let started := Sync.startStream (← req.getObjValAs? Sync.AuthenticationInput "input")
+      (← req.getObjValAs? Bool "deadlineOK") (← req.getObjValAs? Bool "resetOK")
+    return Json.mkObj [("ok", toJson started.remote.isSome), ("started", toJson started)]
   | "authenticateSync" =>
     let result := Sync.authenticate (← req.getObjValAs? Sync.AuthenticationInput "input")
     return json% {ok: $(result.ok), authentication: $result}

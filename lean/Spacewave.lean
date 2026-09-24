@@ -16,5 +16,6 @@ import Spacewave.SObject.JournalFrame
 import Spacewave.SObject.JournalPipeline
 import Spacewave.SObject.Sync.Auth
 import Spacewave.SObject.Sync.Catchup
+import Spacewave.SObject.Sync.Sync
 
 #assert_standard_axioms

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"math/rand/v2"
 	"net"
 	"os"
@@ -208,13 +209,74 @@ func leanSyncAuthenticationCases(t *testing.T, seed uint64) []leanSyncCase {
 		})
 	}
 	for variant := range 23 {
-		cases = append(cases, leanSyncHandshake(t, seed, variant, keys)...)
+		cases = append(cases, leanSyncHandshake(t, seed, variant, keys, leanSyncHandshakeRun{})...)
 	}
 	return cases
 }
 
-// leanSyncHandshake runs authenticate against a real challenged peer over an unbuffered transport.
-func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.PrivKey) []leanSyncCase {
+// leanSyncHandshakeRun chooses the public stream owner or its authentication component.
+type leanSyncHandshakeRun struct {
+	// stream enters the full owner, which closes and joins data workers before returning.
+	stream bool
+	// deadlineFailure injects failure at the first or second SetDeadline call; zero permits both.
+	deadlineFailure int
+}
+
+// leanSyncDeadlineStream observes the real deadline operations without altering packet behavior.
+type leanSyncDeadlineStream struct {
+	// authenticationStream observes packets over the real unbuffered transport.
+	*authenticationStream
+	// calls counts deadline operations before stream return.
+	calls int
+	// failAt identifies the injected primitive failure, or zero for healthy operations.
+	failAt int
+}
+
+// SetDeadline injects a transport failure at the selected real startup boundary.
+func (s *leanSyncDeadlineStream) SetDeadline(deadline time.Time) error {
+	s.calls++
+	if s.calls == s.failAt {
+		return errors.New("injected stream deadline failure")
+	}
+	return s.authenticationStream.SetDeadline(deadline)
+}
+
+// TestLeanSyncStreamStartConformance compares full stream startup with the authentication composition.
+func TestLeanSyncStreamStartConformance(t *testing.T) {
+	oracle := leanSyncOracle(t)
+	var cases []leanSyncCase
+	for seed := range uint64(4) {
+		cases = append(cases, leanSyncStreamStartCases(t, seed)...)
+	}
+	checkLeanSync(t, oracle, cases)
+}
+
+// FuzzLeanSyncStreamStart varies real signatures, transport directions and startup failures.
+func FuzzLeanSyncStreamStart(f *testing.F) {
+	f.Add(uint64(0))
+	f.Add(uint64(17))
+	f.Fuzz(func(t *testing.T, seed uint64) {
+		oracle := leanSyncOracle(t)
+		checkLeanSync(t, oracle, leanSyncStreamStartCases(t, seed))
+	})
+}
+
+// leanSyncStreamStartCases reuses the adversarial handshake corpus at the full stream boundary.
+func leanSyncStreamStartCases(t *testing.T, seed uint64) []leanSyncCase {
+	t.Helper()
+	keys := []crypto.PrivKey{mustKeyPair(t), mustKeyPair(t), mustKeyPair(t)}
+	var cases []leanSyncCase
+	for variant := range 23 {
+		cases = append(cases, leanSyncHandshake(t, seed, variant, keys, leanSyncHandshakeRun{stream: true})...)
+	}
+	for failure := 1; failure <= 2; failure++ {
+		cases = append(cases, leanSyncHandshake(t, seed, 0, keys, leanSyncHandshakeRun{stream: true, deadlineFailure: failure})...)
+	}
+	return cases
+}
+
+// leanSyncHandshake runs the selected owner against a challenged peer over an unbuffered transport.
+func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.PrivKey, run leanSyncHandshakeRun) []leanSyncCase {
 	t.Helper()
 	const objectID = "lean-sync-authentication"
 	state := authenticationState(t, objectID, keys[0], keys[1])
@@ -337,16 +399,31 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 				authorization = &SOSyncMessage{}
 			}
 			_, err = exchangeMessage(session, remoteTransport < localTransport, authorization)
+			if err != nil || !run.stream {
+				return err
+			}
+
+			// A successful owner emits its initial head; any rejected startup closes instead.
+			message := &SOSyncMessage{}
+			err = session.RecvMsg(message)
+			right.Close()
 			return err
 		}()
 	}()
-	remote, authErr := sync.authenticate(ctx, stream_packet.NewSession(observed, 64*1024), localTransport, remoteTransport)
+	var remote peer.ID
+	var authErr error
+	deadlines := &leanSyncDeadlineStream{authenticationStream: observed, failAt: run.deadlineFailure}
+	if run.stream {
+		_ = sync.runStream(ctx, gateLogger(), deadlines, localTransport, remoteTransport)
+	} else {
+		remote, authErr = sync.authenticate(ctx, stream_packet.NewSession(observed, 64*1024), localTransport, remoteTransport)
+	}
 	left.Close()
 	<-remoteDone
 	if ctx.Err() != nil {
 		t.Fatal("authentication scenario exceeded its deadline")
 	}
-	if variant == 0 && authErr != nil {
+	if !run.stream && variant == 0 && authErr != nil {
 		t.Fatalf("valid authentication failed: %v", authErr)
 	}
 
@@ -391,13 +468,44 @@ func leanSyncHandshake(t *testing.T, seed uint64, variant int, keys []crypto.Pri
 	result.Set("admission", admission)
 	expected.Set("ok", leanSyncBool(&arena, authErr == nil))
 	expected.Set("authentication", result)
+	var dataSeen, authorizationSeen bool
 	for len(observed.messages) != 0 {
 		message := <-observed.messages
+		if authorization := message.GetAuthorization(); authorization != nil {
+			authorizationSeen = authorization.GetAccepted()
+		}
 		if message.GetChallenge() == nil && message.GetProof() == nil && message.GetAuthorization() == nil {
-			t.Fatal("authentication emitted a data frame")
+			if !run.stream {
+				t.Fatal("authentication emitted a data frame")
+			}
+			if message.GetHead() == nil {
+				t.Fatal("first stream data was not the pinned head")
+			}
+			if !authorizationSeen {
+				t.Fatal("stream data preceded local admission")
+			}
+			dataSeen = true
 		}
 	}
 	name := "authenticateSync seed " + strconv.FormatUint(seed, 10) + " variant " + strconv.Itoa(variant)
+	if run.stream {
+		request.Set("op", arena.NewString("startSyncStream"))
+		request.Set("deadlineOK", leanSyncBool(&arena, run.deadlineFailure != 1))
+		request.Set("resetOK", leanSyncBool(&arena, run.deadlineFailure != 2))
+		started := arena.NewObject()
+		identity := arena.NewNull()
+		if dataSeen {
+			identity = arena.NewString(mustPeerIDStr(t, keys[1]))
+		}
+		started.Set("remote", identity)
+		started.Set("admission", admission)
+		started.Set("authAttempted", leanSyncBool(&arena, deadlines.calls > 0 && run.deadlineFailure != 1))
+		started.Set("resetAttempted", leanSyncBool(&arena, deadlines.calls == 2))
+		expected = arena.NewObject()
+		expected.Set("ok", leanSyncBool(&arena, dataSeen))
+		expected.Set("started", started)
+		name = "startSyncStream " + name + " deadline failure " + strconv.Itoa(run.deadlineFailure)
+	}
 	cases := []leanSyncCase{{name: name, request: request.MarshalTo(nil), expected: expected.MarshalTo(nil)}}
 	if transcript != nil {
 		verifiedPeer, err := verifyParticipantProof(transcript, proof)
