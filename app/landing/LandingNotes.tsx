@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import {
   LuBookOpen,
   LuFileText,
@@ -8,6 +9,7 @@ import {
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
+import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
@@ -19,8 +21,12 @@ export const metadata = {
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-// LandingNotes renders the Notes use-case page. live mounts the demo notebook.
-export function LandingNotes({ live = false }: { live?: boolean }) {
+// LandingNotes renders the Notes use-case page. liveApp mounts the demo notebook.
+export function LandingNotes({
+  liveApp,
+}: {
+  liveApp?: ComponentType<LiveDemoAppProps>
+}) {
   const landingHref = useStaticHref('/landing')
 
   return (
@@ -57,7 +63,7 @@ export function LandingNotes({ live = false }: { live?: boolean }) {
     >
       <UseCaseDemo
         demo="notes"
-        live={live}
+        liveApp={liveApp}
         label="Notes"
         poster={<NotesPoster />}
         suggestions={[

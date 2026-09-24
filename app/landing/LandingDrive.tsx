@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import { LuFileText, LuFolder, LuHardDrive, LuLayoutGrid } from 'react-icons/lu'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
@@ -7,6 +8,7 @@ import {
   DRIVE_DEMO_FILES,
   DRIVE_DEMO_FOLDERS,
 } from './use-case/seeds/drive-content.js'
+import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
@@ -18,8 +20,12 @@ export const metadata = {
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-// LandingDrive renders the Drive use-case page. live mounts the demo Drive.
-export function LandingDrive({ live = false }: { live?: boolean }) {
+// LandingDrive renders the Drive use-case page. liveApp mounts the demo Drive.
+export function LandingDrive({
+  liveApp,
+}: {
+  liveApp?: ComponentType<LiveDemoAppProps>
+}) {
   const landingHref = useStaticHref('/landing')
 
   return (
@@ -56,7 +62,7 @@ export function LandingDrive({ live = false }: { live?: boolean }) {
     >
       <UseCaseDemo
         demo="drive"
-        live={live}
+        liveApp={liveApp}
         label="Drive"
         poster={<DrivePoster />}
         suggestions={[

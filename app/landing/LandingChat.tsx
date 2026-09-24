@@ -1,7 +1,9 @@
+import type { ComponentType } from 'react'
 import { LuHash, LuLayoutGrid, LuMessageSquare } from 'react-icons/lu'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
+import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
@@ -13,8 +15,12 @@ export const metadata = {
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-// LandingChat renders the Chat use-case page. live mounts the demo channel.
-export function LandingChat({ live = false }: { live?: boolean }) {
+// LandingChat renders the Chat use-case page. liveApp mounts the demo channel.
+export function LandingChat({
+  liveApp,
+}: {
+  liveApp?: ComponentType<LiveDemoAppProps>
+}) {
   const landingHref = useStaticHref('/landing')
 
   return (
@@ -51,7 +57,7 @@ export function LandingChat({ live = false }: { live?: boolean }) {
     >
       <UseCaseDemo
         demo="chat"
-        live={live}
+        liveApp={liveApp}
         label="Chat"
         poster={<ChatPoster />}
         suggestions={[

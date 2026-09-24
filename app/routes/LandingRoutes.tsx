@@ -1,3 +1,5 @@
+import { lazy } from 'react'
+
 import { Route } from '@s4wave/web/router/router.js'
 
 import { Landing } from '@s4wave/app/landing/Landing.js'
@@ -21,6 +23,14 @@ import { Changelog } from '@s4wave/app/landing/Changelog.js'
 import { ChangelogReleaseRoute } from '@s4wave/app/landing/ChangelogReleaseRoute.js'
 import { DownloadPage } from '@s4wave/app/download/DownloadPage.js'
 
+// LiveDemoApp runs the whole app, so only the live routes load it. The static
+// landing pages never import it.
+const LiveDemoApp = lazy(async () => {
+  const { LiveDemoApp } =
+    await import('@s4wave/app/landing/use-case/LiveDemoApp.js')
+  return { default: LiveDemoApp }
+})
+
 // LandingRoutes contains routes for landing pages and static informational pages.
 export const LandingRoutes = (
   <>
@@ -34,31 +44,31 @@ export const LandingRoutes = (
       <LandingDrive />
     </Route>
     <Route path="/landing/drive/live">
-      <LandingDrive live />
+      <LandingDrive liveApp={LiveDemoApp} />
     </Route>
     <Route path="/landing/chat">
       <LandingChat />
     </Route>
     <Route path="/landing/chat/live">
-      <LandingChat live />
+      <LandingChat liveApp={LiveDemoApp} />
     </Route>
     <Route path="/landing/devices">
       <LandingDevices />
     </Route>
     <Route path="/landing/devices/live">
-      <LandingDevices live />
+      <LandingDevices liveApp={LiveDemoApp} />
     </Route>
     <Route path="/landing/plugins">
       <LandingPlugins />
     </Route>
     <Route path="/landing/plugins/live">
-      <LandingPlugins live />
+      <LandingPlugins liveApp={LiveDemoApp} />
     </Route>
     <Route path="/landing/notes">
       <LandingNotes />
     </Route>
     <Route path="/landing/notes/live">
-      <LandingNotes live />
+      <LandingNotes liveApp={LiveDemoApp} />
     </Route>
     <Route path="/landing/cli">
       <LandingCli />

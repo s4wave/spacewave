@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import {
   LuHardDrive,
   LuLayoutGrid,
@@ -8,6 +9,7 @@ import {
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
+import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
@@ -19,9 +21,13 @@ export const metadata = {
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-// LandingDevices renders the Devices use-case page. live mounts the demo
+// LandingDevices renders the Devices use-case page. liveApp mounts the demo
 // Computers dashboard.
-export function LandingDevices({ live = false }: { live?: boolean }) {
+export function LandingDevices({
+  liveApp,
+}: {
+  liveApp?: ComponentType<LiveDemoAppProps>
+}) {
   const landingHref = useStaticHref('/landing')
 
   return (
@@ -58,7 +64,7 @@ export function LandingDevices({ live = false }: { live?: boolean }) {
     >
       <UseCaseDemo
         demo="devices"
-        live={live}
+        liveApp={liveApp}
         label="Devices"
         poster={<DevicesPoster />}
         suggestions={[

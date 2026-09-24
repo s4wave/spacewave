@@ -1,10 +1,10 @@
 import {
-  lazy,
   Suspense,
   useEffect,
   useId,
   useRef,
   useState,
+  type ComponentType,
   type ReactNode,
 } from 'react'
 import { LuPlay, LuRotateCcw, LuX } from 'react-icons/lu'
@@ -14,16 +14,14 @@ import { LoadingScreen } from '@s4wave/web/ui/loading/LoadingScreen.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import type { DemoId } from './demos.js'
-
-const LiveDemoApp = lazy(async () => {
-  const { LiveDemoApp } = await import('./LiveDemoApp.js')
-  return { default: LiveDemoApp }
-})
+import type { LiveDemoAppProps } from './LiveDemoApp.js'
 
 // UseCaseDemoProps configures a use-case demo frame.
 export interface UseCaseDemoProps {
   demo: DemoId
-  live: boolean
+  // liveApp runs the demo. Only the app routes supply it, so static pages
+  // never bundle the app.
+  liveApp?: ComponentType<LiveDemoAppProps>
   label: string
   poster: ReactNode
   suggestions: string[]
@@ -34,11 +32,12 @@ export interface UseCaseDemoProps {
 // app on an in-memory World in the same frame.
 export function UseCaseDemo({
   demo,
-  live,
+  liveApp: LiveApp,
   label,
   poster,
   suggestions,
 }: UseCaseDemoProps) {
+  const live = LiveApp !== undefined
   const startHref = useAppHref(`/landing/${demo}/live`)
   const stopHref = useAppHref(`/landing/${demo}`)
   const instanceId = useId()
@@ -91,7 +90,7 @@ export function UseCaseDemo({
           )}
         </div>
 
-        {live ? (
+        {LiveApp ? (
           <Suspense
             fallback={
               <LoadingScreen
@@ -99,7 +98,7 @@ export function UseCaseDemo({
               />
             }
           >
-            <LiveDemoApp
+            <LiveApp
               key={run}
               demo={demo}
               appId={`landing:${demo}:${instanceId}:${run}`}

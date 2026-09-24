@@ -1,7 +1,9 @@
+import type { ComponentType } from 'react'
 import { LuDatabase, LuLayoutGrid, LuPuzzle, LuTable } from 'react-icons/lu'
 
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 
+import type { LiveDemoAppProps } from './use-case/LiveDemoApp.js'
 import { UseCaseDemo } from './use-case/UseCaseDemo.js'
 import { UseCasePage } from './use-case/UseCasePage.js'
 
@@ -16,9 +18,13 @@ export const metadata = {
   ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
-// LandingPlugins renders the Plugins use-case page. live mounts the demo SQL
+// LandingPlugins renders the Plugins use-case page. liveApp mounts the demo SQL
 // Database, which a plugin provides.
-export function LandingPlugins({ live = false }: { live?: boolean }) {
+export function LandingPlugins({
+  liveApp,
+}: {
+  liveApp?: ComponentType<LiveDemoAppProps>
+}) {
   const landingHref = useStaticHref('/landing')
 
   return (
@@ -55,7 +61,7 @@ export function LandingPlugins({ live = false }: { live?: boolean }) {
     >
       <UseCaseDemo
         demo="plugins"
-        live={live}
+        liveApp={liveApp}
         label="SQL Database"
         poster={<PluginsPoster />}
         suggestions={[
