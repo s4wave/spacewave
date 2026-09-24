@@ -303,47 +303,6 @@ describe('direct Rolldown/Oxc owner', () => {
     )
   })
 
-  it('resolves generated imports that escape the flattened Bldr source root', async () => {
-    const project = await makeProject()
-    await fs.writeFile(
-      join(project.root, 'go.mod'),
-      'module github.com/example/app\n',
-    )
-    const bldrDistRoot = join(project.root, 'bldr-dist')
-    const hostRoot = join(bldrDistRoot, 'sdk', 'plugin', 'host')
-    const registryRoot = join(
-      bldrDistRoot,
-      'vendor',
-      'github.com',
-      's4wave',
-      'spacewave',
-      'sdk',
-      'objecttype',
-      'registry',
-    )
-    await fs.mkdir(hostRoot, { recursive: true })
-    await fs.mkdir(registryRoot, { recursive: true })
-    await fs.writeFile(
-      join(hostRoot, 'host.pb.ts'),
-      `import { registry } from '../../../../sdk/objecttype/registry/registry.pb.js'\nexport { registry }\n`,
-    )
-    await fs.writeFile(
-      join(registryRoot, 'registry.pb.ts'),
-      `export const registry = 'escaped-relative-vendor'\n`,
-    )
-    await fs.writeFile(
-      join(project.root, 'main.ts'),
-      `import { registry } from 'sdk/plugin/host/host.pb.js'\nconsole.log(registry)\n`,
-    )
-    const result = await runBuild(
-      project.request({ bldrDistRoot }),
-      dependencyRoot,
-    )
-    expect(result.diagnostics ?? []).toEqual([])
-    const output = await fs.readFile(join(project.output, 'main.js'), 'utf8')
-    expect(output).toContain('escaped-relative-vendor')
-  })
-
   it('reports CSS-bearing graphs for Vite routing without emitting output', async () => {
     const project = await makeProject()
     await fs.writeFile(join(project.root, 'style.css'), `body { color: red }\n`)

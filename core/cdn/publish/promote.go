@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // Promote copies missing packs from the source Space to the destination Space

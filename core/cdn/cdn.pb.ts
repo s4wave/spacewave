@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { SORoot } from '../sobject/sobject.pb.js'
-import { PackfileEntry } from '../provider/spacewave/packfile/packfile.pb.js'
+import { PackfileEntry } from '../../db/packfile/packfile.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -53,7 +53,7 @@ export interface CdnRootPointer {
    * cdn.spacewave.app/{spaceId}/packs/{shard}/{id}.kvf. Bloom filters are
    * included so clients can skip packs that don't contain blocks they need.
    *
-   * @generated from field: repeated provider.spacewave.packfile.PackfileEntry packs = 5;
+   * @generated from field: repeated packfile.PackfileEntry packs = 5;
    */
   packs?: PackfileEntry[]
   /**

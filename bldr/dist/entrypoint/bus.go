@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -90,6 +91,7 @@ func BuildDistBus(
 	webRuntimeID string,
 	configSetProto *configset_proto.ConfigSet,
 	staticBlockStoreReaderBuilder refcount.RefCountResolver[*kvfile.Reader],
+	composition *compose.Composition,
 	preBuildHooks []DistBusHook,
 ) (*DistBus, error) {
 	projectID := distMeta.GetProjectId()
@@ -113,11 +115,13 @@ func BuildDistBus(
 		}
 	}
 
+	// The composition's factories must resolve the startup config set.
 	b, sr, err := NewCoreBus(ctx, le)
 	if err != nil {
 		rel()
 		return nil, err
 	}
+	composition.AddFactories(b, sr)
 
 	storageID := default_storage.StorageID
 	distBus := &DistBus{
@@ -232,7 +236,7 @@ func BuildDistBus(
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(newDistStorageVolumeConfig(storageID, projectID)),
+		resolver.NewLoadControllerWithConfig(NewDistStorageVolumeConfig(storageID, projectID)),
 		ctxCancel,
 	)
 	if err != nil {
@@ -483,7 +487,9 @@ func newReleaseSchedulerConfig(
 	return pluginSchedConf
 }
 
-func newDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Config {
+// NewDistStorageVolumeConfig builds the storage volume config of the
+// distribution state volume "dist/<projectID>", aliased "dist".
+func NewDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Config {
 	return &storage_volume.Config{
 		StorageId:       storageID,
 		StorageVolumeId: "dist/" + projectID,

@@ -16,10 +16,10 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

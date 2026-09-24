@@ -1,6 +1,6 @@
 package repair
 
-import packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+import packfile "github.com/s4wave/spacewave/db/packfile"
 
 // ApplyUpdates returns entries with repaired metadata merged by pack id.
 func ApplyUpdates(

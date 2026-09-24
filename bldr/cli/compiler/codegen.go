@@ -8,7 +8,6 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"go/types"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,58 +26,21 @@ type FactoryImport struct {
 	PassBus bool
 }
 
-// brokerConsumerFactories maps factory import paths whose controller
-// consumes the shared listener brokers to the options the generated
-// factory wrapper passes.
-var brokerConsumerFactories = map[string][]brokerFactoryOption{
-	"github.com/s4wave/spacewave/core/resource/listener": {
-		{selector: "WithYieldBroker", brokerField: "yield"},
-		{selector: "WithStatusBroker", brokerField: "status"},
-	},
-	"github.com/s4wave/spacewave/core/resource/root/controller": {
-		{selector: "WithYieldBroker", brokerField: "yield"},
-		{selector: "WithListenerStatusBroker", brokerField: "status"},
-	},
-}
-
-// brokerFactoryOption is one broker option passed to a consumer factory.
-type brokerFactoryOption struct {
-	// selector is the option constructor in the factory package.
-	selector string
-	// brokerField is the listenerBrokers field passed to it.
-	brokerField string
-}
+// composeAlias is the import alias of the project compose package.
+const composeAlias = "project_compose"
 
 // FormatCliEntrypoint formats the generated CLI entrypoint code.
 //
-// When any discovered factory consumes the shared listener brokers or any
-// CLI command builder declares a yield broker parameter, the generated
-// composition root constructs one listenerBrokers pair and wires it into
-// the broker-consuming factories and the CLI command builders. Otherwise
-// the generated entrypoint stays free of broker plumbing.
+// When composePackage is set, the generated main calls its Compose function
+// once and appends the returned factories and commands to the discovered ones.
 func FormatCliEntrypoint(
 	appName string,
 	projectID string,
 	factoryImports map[string]FactoryImport,
 	cliImports map[string]CliImport,
+	composePackage string,
 ) ([]byte, error) {
 	var allDecls []gast.Decl
-
-	anyCliBroker := false
-	for _, ci := range cliImports {
-		if ci.TakesYieldBroker {
-			anyCliBroker = true
-			break
-		}
-	}
-	anyBrokerFactory := false
-	for pkgPath := range factoryImports {
-		if _, ok := brokerConsumerFactories[pkgPath]; ok {
-			anyBrokerFactory = true
-			break
-		}
-	}
-	brokersNeeded := anyCliBroker || anyBrokerFactory
 
 	// merge and sort all dynamic imports
 	allImports := make(map[string]string)
@@ -94,16 +56,8 @@ func FormatCliEntrypoint(
 		{"", "github.com/aperturerobotics/controllerbus/bus"},
 		{"", "github.com/aperturerobotics/controllerbus/controller"},
 	}
-	if brokersNeeded {
-		fixedImports = append(fixedImports,
-			struct{ alias, path string }{"resource_listener", "github.com/s4wave/spacewave/core/resource/listener"},
-			struct{ alias, path string }{"yield_policy", "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"},
-		)
-		if anyCliBroker {
-			fixedImports = append(fixedImports,
-				struct{ alias, path string }{"aperture_cli", "github.com/aperturerobotics/cli"},
-			)
-		}
+	if composePackage != "" {
+		fixedImports = append(fixedImports, struct{ alias, path string }{composeAlias, composePackage})
 	}
 	for _, imp := range fixedImports {
 		if existing, ok := allImports[imp.path]; ok && existing != imp.alias {
@@ -161,10 +115,6 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	if brokersNeeded {
-		allDecls = append(allDecls, listenerBrokersDecls()...)
-	}
-
 	// build factory func lit elements
 	factories := make([]FactoryImport, 0, len(factoryImports))
 	for _, fi := range factoryImports {
@@ -184,18 +134,6 @@ func FormatCliEntrypoint(
 		}
 		if fi.PassBus {
 			call.Args = append(call.Args, gast.NewIdent("b"))
-		}
-		for _, opt := range brokerConsumerFactories[fi.Path] {
-			call.Args = append(call.Args, &gast.CallExpr{
-				Fun: &gast.SelectorExpr{
-					X:   gast.NewIdent(fi.Alias),
-					Sel: gast.NewIdent(opt.selector),
-				},
-				Args: []gast.Expr{&gast.SelectorExpr{
-					X:   gast.NewIdent("brokers"),
-					Sel: gast.NewIdent(opt.brokerField),
-				}},
-			})
 		}
 		factoryElts = append(factoryElts, &gast.FuncLit{
 			Type: &gast.FuncType{
@@ -231,31 +169,27 @@ func FormatCliEntrypoint(
 		})
 	}
 
-	if brokersNeeded {
-		allDecls = append(allDecls, buildFactoriesDecl(factoryElts))
-	} else {
-		// factories var
-		allDecls = append(allDecls, &gast.GenDecl{
-			Doc: commentGroup("// factories are the factories included in the binary.\n"),
-			Tok: token.VAR,
-			Specs: []gast.Spec{
-				&gast.ValueSpec{
-					Names: []*gast.Ident{gast.NewIdent("factories")},
-					Values: []gast.Expr{
-						&gast.CompositeLit{
-							Type: &gast.ArrayType{
-								Elt: &gast.SelectorExpr{
-									X:   gast.NewIdent("cli_entrypoint"),
-									Sel: gast.NewIdent("AddFactoryFunc"),
-								},
+	// factories var
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: commentGroup("// factories are the factories included in the binary.\n"),
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("factories")},
+				Values: []gast.Expr{
+					&gast.CompositeLit{
+						Type: &gast.ArrayType{
+							Elt: &gast.SelectorExpr{
+								X:   gast.NewIdent("cli_entrypoint"),
+								Sel: gast.NewIdent("AddFactoryFunc"),
 							},
-							Elts: factoryElts,
 						},
+						Elts: factoryElts,
 					},
 				},
 			},
-		})
-	}
+		},
+	})
 
 	// configSets var
 	allDecls = append(allDecls, &gast.GenDecl{
@@ -293,238 +227,29 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	var cliCommandsExpr gast.Expr
-	if anyCliBroker {
-		cliCommandsDecl, err := buildCliCommandsDecl(appName, cliImports)
-		if err != nil {
-			return nil, err
-		}
-		allDecls = append(allDecls, cliCommandsDecl)
-		cliCommandsExpr = &gast.CallExpr{
-			Fun:  gast.NewIdent("buildCliCommands"),
-			Args: []gast.Expr{gast.NewIdent("brokers")},
-		}
-	} else {
-		// build cli command elements
-		cliAliases := make([]string, 0, len(cliImports))
-		for _, ci := range cliImports {
-			cliAliases = append(cliAliases, ci.Alias)
-		}
-		slices.Sort(cliAliases)
-
-		var cliElts []gast.Expr
-		for _, alias := range cliAliases {
-			cliElts = append(cliElts, &gast.SelectorExpr{
-				X:   gast.NewIdent(alias),
-				Sel: gast.NewIdent("NewCliCommands"),
-			})
-		}
-
-		// cliCommands var
-		allDecls = append(allDecls, &gast.GenDecl{
-			Doc: commentGroup("// cliCommands are the CLI command builders.\n"),
-			Tok: token.VAR,
-			Specs: []gast.Spec{
-				&gast.ValueSpec{
-					Names: []*gast.Ident{gast.NewIdent("cliCommands")},
-					Values: []gast.Expr{
-						&gast.CompositeLit{
-							Type: &gast.ArrayType{
-								Elt: &gast.SelectorExpr{
-									X:   gast.NewIdent("cli_entrypoint"),
-									Sel: gast.NewIdent("BuildCommandsFunc"),
-								},
-							},
-							Elts: cliElts,
-						},
-					},
-				},
-			},
-		})
-		cliCommandsExpr = gast.NewIdent("cliCommands")
-	}
-
-	// main function
-	allDecls = append(allDecls, mainDecl(appName, projectID, brokersNeeded, cliCommandsExpr))
-
-	return formatFileWithSpacing(allDecls)
-}
-
-// cliCommandsNeedsYieldBroker reports whether a NewCliCommands signature
-// takes the shared yield broker as a second parameter.
-func cliCommandsNeedsYieldBroker(pkgPath string, sig *types.Signature) (bool, error) {
-	switch sig.Params().Len() {
-	case 1:
-		return false, nil
-	case 2:
-		return true, nil
-	default:
-		return false, errors.Errorf("package %s NewCliCommands has unsupported arity %d", pkgPath, sig.Params().Len())
-	}
-}
-
-// commentGroup builds a doc comment group from comment lines.
-func commentGroup(lines ...string) *gast.CommentGroup {
-	list := make([]*gast.Comment, 0, len(lines))
-	for _, line := range lines {
-		list = append(list, &gast.Comment{Text: line})
-	}
-	return &gast.CommentGroup{List: list}
-}
-
-// listenerBrokersDecls builds the shared broker pair type and constructor.
-func listenerBrokersDecls() []gast.Decl {
-	return []gast.Decl{
-		&gast.GenDecl{
-			Doc: commentGroup(
-				"// listenerBrokers are the shared yield and listener-status brokers wired at\n",
-				"// this composition root into the resource listener controller, the root\n",
-				"// resource controller, and the CLI commands.\n",
-			),
-			Tok: token.TYPE,
-			Specs: []gast.Spec{
-				&gast.TypeSpec{
-					Name: gast.NewIdent("listenerBrokers"),
-					Type: &gast.StructType{
-						Fields: &gast.FieldList{List: []*gast.Field{
-							{
-								Names: []*gast.Ident{gast.NewIdent("yield")},
-								Type: &gast.StarExpr{X: &gast.SelectorExpr{
-									X:   gast.NewIdent("yield_policy"),
-									Sel: gast.NewIdent("Broker"),
-								}},
-							},
-							{
-								Names: []*gast.Ident{gast.NewIdent("status")},
-								Type: &gast.StarExpr{X: &gast.SelectorExpr{
-									X:   gast.NewIdent("resource_listener"),
-									Sel: gast.NewIdent("StatusBroker"),
-								}},
-							},
-						}},
-					},
-				},
-			},
-		},
-		&gast.FuncDecl{
-			Doc:  commentGroup("// newListenerBrokers constructs the process-shared broker pair.\n"),
-			Name: gast.NewIdent("newListenerBrokers"),
-			Type: &gast.FuncType{
-				Params: &gast.FieldList{},
-				Results: &gast.FieldList{List: []*gast.Field{
-					{Type: &gast.StarExpr{X: gast.NewIdent("listenerBrokers")}},
-				}},
-			},
-			Body: &gast.BlockStmt{List: []gast.Stmt{
-				&gast.ReturnStmt{
-					Results: []gast.Expr{
-						&gast.UnaryExpr{
-							Op: token.AND,
-							X: &gast.CompositeLit{
-								Type: gast.NewIdent("listenerBrokers"),
-								Elts: []gast.Expr{
-									&gast.KeyValueExpr{
-										Key:   gast.NewIdent("yield"),
-										Value: &gast.CallExpr{Fun: &gast.SelectorExpr{X: gast.NewIdent("yield_policy"), Sel: gast.NewIdent("NewBroker")}},
-									},
-									&gast.KeyValueExpr{
-										Key:   gast.NewIdent("status"),
-										Value: &gast.CallExpr{Fun: &gast.SelectorExpr{X: gast.NewIdent("resource_listener"), Sel: gast.NewIdent("NewStatusBroker")}},
-									},
-								},
-							},
-						},
-					},
-				},
-			}},
-		},
-	}
-}
-
-// buildFactoriesDecl builds the factory wiring function. Broker-consuming
-// factories receive the shared listener brokers through their options.
-func buildFactoriesDecl(factoryElts []gast.Expr) gast.Decl {
-	return &gast.FuncDecl{
-		Doc:  commentGroup("// buildFactories wires the shared listener brokers into every consumer.\n"),
-		Name: gast.NewIdent("buildFactories"),
-		Type: &gast.FuncType{
-			Params: &gast.FieldList{List: []*gast.Field{
-				{
-					Names: []*gast.Ident{gast.NewIdent("brokers")},
-					Type:  &gast.StarExpr{X: gast.NewIdent("listenerBrokers")},
-				},
-			}},
-			Results: &gast.FieldList{List: []*gast.Field{
-				{Type: &gast.ArrayType{Elt: &gast.SelectorExpr{
-					X:   gast.NewIdent("cli_entrypoint"),
-					Sel: gast.NewIdent("AddFactoryFunc"),
-				}}},
-			}},
-		},
-		Body: &gast.BlockStmt{List: []gast.Stmt{
-			&gast.ReturnStmt{
-				Results: []gast.Expr{
-					&gast.CompositeLit{
-						Type: &gast.ArrayType{
-							Elt: &gast.SelectorExpr{
-								X:   gast.NewIdent("cli_entrypoint"),
-								Sel: gast.NewIdent("AddFactoryFunc"),
-							},
-						},
-						Elts: factoryElts,
-					},
-				},
-			},
-		}},
-	}
-}
-
-// buildCliCommandsDecl builds the CLI command wiring function. Each command
-// builder receives the shared yield broker and guards the first bus access
-// with a handoff so a command process never displaces the foreground serve
-// process on the listener socket.
-func buildCliCommandsDecl(appName string, cliImports map[string]CliImport) (gast.Decl, error) {
-	imports := make([]CliImport, 0, len(cliImports))
+	// build cli command elements
+	cliAliases := make([]string, 0, len(cliImports))
 	for _, ci := range cliImports {
-		imports = append(imports, ci)
+		cliAliases = append(cliAliases, ci.Alias)
 	}
-	slices.SortFunc(imports, func(a, b CliImport) int { return strings.Compare(a.Alias, b.Alias) })
+	slices.Sort(cliAliases)
 
 	var cliElts []gast.Expr
-	for _, ci := range imports {
-		wrapperExpr, err := parser.ParseExpr(ci.CommandBuilder(appName, "brokers.yield"))
-		if err != nil {
-			return nil, errors.Wrapf(err, "parse generated cli command wrapper for %s", ci.Alias)
-		}
-		cliElts = append(cliElts, wrapperExpr)
+	for _, alias := range cliAliases {
+		cliElts = append(cliElts, &gast.SelectorExpr{
+			X:   gast.NewIdent(alias),
+			Sel: gast.NewIdent("NewCliCommands"),
+		})
 	}
 
-	return &gast.FuncDecl{
-		Doc: commentGroup(
-			"// buildCliCommands builds the CLI command builders. Each command process\n",
-			"// owns a private broker pair: it never shares listener state with the\n",
-			"// daemon, and its bus's configured resource listener must not displace the\n",
-			"// foreground serve process; serve binds the socket explicitly after\n",
-			"// installing its own handoff guard.\n",
-		),
-		Name: gast.NewIdent("buildCliCommands"),
-		Type: &gast.FuncType{
-			Params: &gast.FieldList{List: []*gast.Field{
-				{
-					Names: []*gast.Ident{gast.NewIdent("brokers")},
-					Type:  &gast.StarExpr{X: gast.NewIdent("listenerBrokers")},
-				},
-			}},
-			Results: &gast.FieldList{List: []*gast.Field{
-				{Type: &gast.ArrayType{Elt: &gast.SelectorExpr{
-					X:   gast.NewIdent("cli_entrypoint"),
-					Sel: gast.NewIdent("BuildCommandsFunc"),
-				}}},
-			}},
-		},
-		Body: &gast.BlockStmt{List: []gast.Stmt{
-			&gast.ReturnStmt{
-				Results: []gast.Expr{
+	// cliCommands var
+	allDecls = append(allDecls, &gast.GenDecl{
+		Doc: commentGroup("// cliCommands are the CLI command builders.\n"),
+		Tok: token.VAR,
+		Specs: []gast.Spec{
+			&gast.ValueSpec{
+				Names: []*gast.Ident{gast.NewIdent("cliCommands")},
+				Values: []gast.Expr{
 					&gast.CompositeLit{
 						Type: &gast.ArrayType{
 							Elt: &gast.SelectorExpr{
@@ -536,45 +261,61 @@ func buildCliCommandsDecl(appName string, cliImports map[string]CliImport) (gast
 					},
 				},
 			},
-		}},
-	}, nil
+		},
+	})
+
+	// main function
+	mainFn, err := mainDecl(appName, projectID, composePackage != "")
+	if err != nil {
+		return nil, err
+	}
+	allDecls = append(allDecls, mainFn)
+
+	return formatFileWithSpacing(allDecls)
 }
 
-// mainDecl builds the main entrypoint. When brokers are needed it constructs
-// the shared pair first and passes the wiring functions through.
-func mainDecl(appName, projectID string, brokersNeeded bool, cliCommandsExpr gast.Expr) gast.Decl {
-	var factoriesExpr gast.Expr = gast.NewIdent("factories")
-	var stmts []gast.Stmt
-	if brokersNeeded {
-		stmts = append(stmts, &gast.AssignStmt{
-			Lhs: []gast.Expr{gast.NewIdent("brokers")},
-			Tok: token.DEFINE,
-			Rhs: []gast.Expr{&gast.CallExpr{Fun: gast.NewIdent("newListenerBrokers")}},
-		})
-		factoriesExpr = &gast.CallExpr{
-			Fun:  gast.NewIdent("buildFactories"),
-			Args: []gast.Expr{gast.NewIdent("brokers")},
-		}
+// commentGroup builds a doc comment group from comment lines.
+func commentGroup(lines ...string) *gast.CommentGroup {
+	list := make([]*gast.Comment, 0, len(lines))
+	for _, line := range lines {
+		list = append(list, &gast.Comment{Text: line})
 	}
-	stmts = append(stmts, &gast.ExprStmt{X: &gast.CallExpr{
-		Fun: &gast.SelectorExpr{
-			X:   gast.NewIdent("cli_entrypoint"),
-			Sel: gast.NewIdent("Main"),
-		},
-		Args: []gast.Expr{
-			&gast.BasicLit{Kind: token.STRING, Value: strconv.Quote(appName)},
-			&gast.BasicLit{Kind: token.STRING, Value: strconv.Quote(projectID)},
-			factoriesExpr,
-			gast.NewIdent("configSets"),
-			cliCommandsExpr,
-		},
-	}})
+	return &gast.CommentGroup{List: list}
+}
+
+// mainDecl builds the main entrypoint. With a compose package it calls
+// Compose once and appends its factories and commands.
+func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
+	factoriesSrc, commandsSrc := "factories", "cliCommands"
+	var stmts []gast.Stmt
+	if composed {
+		stmts = append(stmts, &gast.AssignStmt{
+			Lhs: []gast.Expr{gast.NewIdent("composition")},
+			Tok: token.DEFINE,
+			Rhs: []gast.Expr{&gast.CallExpr{Fun: &gast.SelectorExpr{
+				X:   gast.NewIdent(composeAlias),
+				Sel: gast.NewIdent("Compose"),
+			}}},
+		})
+		factoriesSrc = "append(factories, composition.Factories...)"
+		commandsSrc = "append(cliCommands, composition.Commands...)"
+	}
+
+	mainCall, err := parser.ParseExpr("cli_entrypoint.Main(" +
+		strconv.Quote(appName) + ", " +
+		strconv.Quote(projectID) + ", " +
+		factoriesSrc + ", configSets, " +
+		commandsSrc + ")")
+	if err != nil {
+		return nil, errors.Wrap(err, "parse generated main call")
+	}
+	stmts = append(stmts, &gast.ExprStmt{X: mainCall})
 	return &gast.FuncDecl{
 		Doc:  commentGroup("// main is the main entrypoint.\n"),
 		Name: gast.NewIdent("main"),
 		Type: &gast.FuncType{Params: &gast.FieldList{}},
 		Body: &gast.BlockStmt{List: stmts},
-	}
+	}, nil
 }
 
 // formatFileWithSpacing formats an AST file with blank lines between top-level declarations.

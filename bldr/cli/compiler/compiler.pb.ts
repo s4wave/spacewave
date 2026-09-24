@@ -46,6 +46,14 @@ export interface Config {
    * @generated from field: string project_id = 4;
    */
   projectId?: string
+  /**
+   * ComposePackage is a Go package exporting Compose() *compose.Composition
+   * from bldr/entrypoint/compose. The CLI calls it once at startup and adds the
+   * returned factories and commands. May be relative to the project module.
+   *
+   * @generated from field: string compose_package = 5;
+   */
+  composePackage?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -73,6 +81,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
     { no: 4, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'compose_package', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

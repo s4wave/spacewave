@@ -5,9 +5,9 @@ package provider_spacewave
 import (
 	"net/http"
 
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
+	"github.com/s4wave/spacewave/net/httpclient"
 )
 
 func newProviderHTTPTransport(buf *CacheSeedBuffer) http.RoundTripper {
-	return NewCacheSeedRecordingTransport(alpha_nethttp.NewFetchTransport(nil), buf)
+	return NewCacheSeedRecordingTransport(httpclient.NewFetchTransport(nil), buf)
 }

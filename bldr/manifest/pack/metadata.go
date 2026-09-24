@@ -3,10 +3,10 @@ package bldr_manifest_pack
 import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
 )
 
 const (

@@ -8,7 +8,6 @@ import {
   isAbsolute,
   join,
   normalize,
-  posix,
   relative,
   resolve,
   sep,
@@ -378,41 +377,6 @@ export async function runBuild(
     }
     return existingSourcePath(join(bldrDistRoot, source))
   }
-  const resolveEscapedRelativeImport = (
-    source: string,
-    importer: string | undefined,
-  ): string | null => {
-    if (
-      !importer ||
-      importer.startsWith('\0') ||
-      !source.endsWith('.js') ||
-      (!source.startsWith('./') && !source.startsWith('../'))
-    ) {
-      return null
-    }
-    const relativeImporter = relative(bldrDistRoot, importer)
-    if (
-      relativeImporter === '..' ||
-      relativeImporter.startsWith(`..${sep}`) ||
-      isAbsolute(relativeImporter)
-    ) {
-      return null
-    }
-    const target = normalize(join(dirname(importer), source))
-    const relativeTarget = relative(bldrDistRoot, target)
-    if (relativeTarget !== '..' && !relativeTarget.startsWith(`..${sep}`)) {
-      return null
-    }
-    const moduleImporter = posix.join(
-      LOCAL_MODULE_PREFIX,
-      'bldr',
-      relativeImporter.split(sep).join('/'),
-    )
-    const modulePath = posix.normalize(
-      posix.join(posix.dirname(moduleImporter), source),
-    )
-    return resolveGoImport(`@go/${modulePath}`)
-  }
   const isConfiguredExternal = (source: string): boolean =>
     (request.external ?? []).some(
       (specifier) => source === specifier || source.startsWith(`${specifier}/`),
@@ -519,14 +483,6 @@ export async function runBuild(
       if (distSourceImport) {
         trackInput(distSourceImport)
         return distSourceImport
-      }
-      const escapedRelativeImport = resolveEscapedRelativeImport(
-        source,
-        importer,
-      )
-      if (escapedRelativeImport) {
-        trackInput(escapedRelativeImport)
-        return escapedRelativeImport
       }
       if (request.externalPackages && isBarePackageImport(source)) {
         return { id: source, external: true }

@@ -12,10 +12,10 @@ import (
 
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/routine"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
+	"github.com/s4wave/spacewave/db/packfile"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/sirupsen/logrus"
 )
 

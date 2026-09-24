@@ -6,9 +6,9 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

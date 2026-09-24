@@ -10,8 +10,8 @@ import (
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/net/hash"
 
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 )
 
 // newTestStore creates an in-memory kvtx.Store for testing.

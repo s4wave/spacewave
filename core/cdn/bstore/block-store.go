@@ -8,9 +8,9 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/cdn"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

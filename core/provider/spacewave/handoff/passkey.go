@@ -10,8 +10,8 @@ import (
 
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/net/httpclient"
 )
 
 // StartPasskeyHandoff initiates desktop passkey by opening the system browser
@@ -155,7 +155,7 @@ func startDesktopPasskey(
 	if err != nil {
 		return nil, errors.Wrap(err, "start desktop passkey")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
+	defer httpclient.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "read desktop passkey start response")

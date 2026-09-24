@@ -3,9 +3,9 @@ package bldr_manifest_pack
 import (
 	"context"
 
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // NewPackfileStore builds a verified block store for a manifest-pack artifact.

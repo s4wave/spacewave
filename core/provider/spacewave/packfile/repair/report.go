@@ -1,6 +1,6 @@
 package repair
 
-import packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+import packfile "github.com/s4wave/spacewave/db/packfile"
 
 // Report summarizes a pack metadata audit or repair run.
 type Report struct {

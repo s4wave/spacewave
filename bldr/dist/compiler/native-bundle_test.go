@@ -62,7 +62,7 @@ func TestNativeBundleResources(t *testing.T) {
 	var previous []byte
 	for _, option := range []enabled.Enabled{enabled.Enabled_DEFAULT, enabled.Enabled_ENABLE, enabled.Enabled_DISABLE} {
 		meta := bldr_dist.NewDistMeta("resource-fixture", platformID, nil, nil, "dist")
-		err := BuildDistBundle(t.Context(), logrus.NewEntry(logrus.New()), root, root, "", work, out, "app", meta, bldr_manifest.BuildType_DEV, nil, platform, nil, initWorld, nil, 0, 0, 0, option, nil, "", nil, "")
+		err := BuildDistBundle(t.Context(), logrus.NewEntry(logrus.New()), root, root, "", work, out, "app", meta, bldr_manifest.BuildType_DEV, nil, platform, nil, initWorld, nil, 0, 0, 0, option, nil, "", nil, "", "")
 		if err != nil {
 			t.Fatal(err)
 		}

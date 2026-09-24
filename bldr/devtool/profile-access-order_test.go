@@ -11,10 +11,10 @@ import (
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
-	packfile_order "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
+	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 )

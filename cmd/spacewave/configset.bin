@@ -8,9 +8,9 @@
 
 export
 space/http/export
-N
-provider-local<
-provider/local({"signalingUrl":"https://spacewave.app"}
+o
+provider-local]
+provider/localI{"signalingUrl":"https://spacewave.app","signalingEnvPrefix":"spacewave"}
 ¤
 provider-spacewave
 provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}

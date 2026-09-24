@@ -119,6 +119,12 @@ message Config {
   // signature. It owns a native event loop around the existing distribution
   // lifetime. Empty uses the default runner; browser builds ignore this field.
   string native_runner_package = 17;
+
+  // ComposePackage is a Go package exporting Compose() *compose.Composition
+  // from bldr/entrypoint/compose. The dist host calls it once at startup and
+  // adds the returned factories to its bus and, on native builds, the returned
+  // commands to its CLI. May be relative to the project module.
+  string compose_package = 18;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

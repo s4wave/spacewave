@@ -21,27 +21,26 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 		meta,
 		[]string{"assets.kvfile", "config-set.bin"},
 		map[string]bldr_cli_compiler.CliImport{
-			"github.com/s4wave/spacewave/cmd/spacewave/cli": {Alias: "spacewave_cli", TakesYieldBroker: true},
+			"example.com/app/cli": {Alias: "app_cli"},
 		},
 		bldr_manifest.BuildType_DEV,
 		true,
 		"",
+		"example.com/app/compose",
 	)
 
-	if !strings.Contains(src, `cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"`) {
-		t.Fatalf("expected native CLI import, got:\n%s", src)
-	}
-	if !strings.Contains(src, `spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"`) {
-		t.Fatalf("expected CLI package import, got:\n%s", src)
-	}
-	if !strings.Contains(src, `spacewave_cli.NewCliCommands(protectedGetBus, yieldBroker)`) {
-		t.Fatalf("expected cliCommands declaration, got:\n%s", src)
-	}
-	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)`) {
-		t.Fatalf("expected native main call to pass cliCommands, got:\n%s", src)
-	}
-	if !strings.Contains(src, `var LogLevel = logrus.DebugLevel`) {
-		t.Fatalf("expected development entrypoint to retain debug logging, got:\n%s", src)
+	for _, want := range []string{
+		`project_compose "example.com/app/compose"`,
+		`app_cli "example.com/app/cli"`,
+		"var cliCommands = []cli_entrypoint.BuildCommandsFunc{app_cli.NewCliCommands}",
+		"composition := project_compose.Compose()",
+		"composition.Commands = append(composition.Commands, cliCommands...)",
+		"dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)",
+		"var LogLevel = logrus.DebugLevel",
+	} {
+		if !strings.Contains(src, want) {
+			t.Fatalf("native entrypoint omits %s:\n%s", want, src)
+		}
 	}
 }
 
@@ -54,22 +53,22 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 		bldr_manifest.BuildType_RELEASE,
 		false,
 		"example.com/native",
+		"example.com/app/compose",
 	)
 
-	if strings.Contains(src, "cli_entrypoint") {
-		t.Fatalf("did not expect CLI imports in web entrypoint, got:\n%s", src)
+	for _, leak := range []string{"cli_entrypoint", "cliCommands", "native_runner"} {
+		if strings.Contains(src, leak) {
+			t.Fatalf("native %s leaked into browser entrypoint:\n%s", leak, src)
+		}
 	}
-	if strings.Contains(src, "cliCommands") {
-		t.Fatalf("did not expect CLI declarations in web entrypoint, got:\n%s", src)
-	}
-	if strings.Contains(src, "native_runner") {
-		t.Fatalf("native runner leaked into browser entrypoint:\n%s", src)
-	}
-	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)`) {
-		t.Fatalf("expected web main call without cliCommands, got:\n%s", src)
-	}
-	if !strings.Contains(src, `var LogLevel = logrus.WarnLevel`) {
-		t.Fatalf("expected release web entrypoint to suppress routine logs, got:\n%s", src)
+	for _, want := range []string{
+		"composition := project_compose.Compose()",
+		"dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)",
+		"var LogLevel = logrus.WarnLevel",
+	} {
+		if !strings.Contains(src, want) {
+			t.Fatalf("web entrypoint omits %s:\n%s", want, src)
+		}
 	}
 }
 
@@ -82,10 +81,16 @@ func TestFormatDistEntrypointNativeRunner(t *testing.T) {
 		bldr_manifest.BuildType_DEV,
 		true,
 		"example.com/app/tray",
+		"",
 	)
-	if !strings.Contains(src, `native_runner "example.com/app/tray"`) ||
-		!strings.Contains(src, "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, cliCommands, native_runner.Run)") {
-		t.Fatalf("native runner must retain distribution setup and assets:\n%s", src)
+	for _, want := range []string{
+		`native_runner "example.com/app/tray"`,
+		"composition := &compose.Composition{}",
+		"dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, composition, native_runner.Run)",
+	} {
+		if !strings.Contains(src, want) {
+			t.Fatalf("native runner entrypoint omits %s:\n%s", want, src)
+		}
 	}
 }
 

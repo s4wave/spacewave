@@ -15,10 +15,10 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	cdn_publish "github.com/s4wave/spacewave/core/cdn/publish"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )

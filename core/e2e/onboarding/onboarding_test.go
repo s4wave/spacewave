@@ -37,13 +37,13 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	provider_spacewave_packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	packfile_writer "github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	provider_transfer "github.com/s4wave/spacewave/core/provider/transfer"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/space"
+	"github.com/s4wave/spacewave/db/packfile"
+	packfile_writer "github.com/s4wave/spacewave/db/packfile/writer"
 	bifcrypto "github.com/s4wave/spacewave/net/crypto"
 	bifhash "github.com/s4wave/spacewave/net/hash"
 	bifpeer "github.com/s4wave/spacewave/net/peer"
@@ -1360,7 +1360,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 
 	// Push packfile to cloud.
 	packID := ulid.NewULID()
-	if err := cli.SyncPush(ctx, bstoreID, packID, int(result.BlockCount), tmpPath, bodyHash, result.BloomFilter, provider_spacewave_packfile.BloomFormatVersionV1); err != nil {
+	if err := cli.SyncPush(ctx, bstoreID, packID, int(result.BlockCount), tmpPath, bodyHash, result.BloomFilter, packfile.BloomFormatVersionV1); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("pushed pack %s", packID)
@@ -1372,7 +1372,7 @@ func TestBlockStoreSyncPushPull(t *testing.T) {
 	}
 
 	// Decode the manifest and locate the uploaded pack.
-	pullResp := &provider_spacewave_packfile.PullResponse{}
+	pullResp := &packfile.PullResponse{}
 	if err := pullResp.UnmarshalJSON(pullData); err != nil {
 		t.Fatalf("unmarshal pull response: %v", err)
 	}

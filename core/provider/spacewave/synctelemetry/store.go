@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // UploadPhase describes upload-side Spacewave sync activity.

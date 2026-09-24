@@ -17,10 +17,10 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	packfile_order "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )

@@ -34,7 +34,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/cli/compiler": {
-      "hash": "164ae3e5a40130d19a143c2a2d40aa13ff23b52a6d56a35c0e4c74d56a1e2688",
+      "hash": "7c089725b38ae11926e10ac50e18812e777545db99453ccd287460693b8af671",
       "generatedFiles": [
         "bldr/cli/compiler/compiler.pb.go",
         "bldr/cli/compiler/compiler.pb.ts"
@@ -88,7 +88,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/dist/compiler": {
-      "hash": "59b60c3ef4ee50325c09e813d263bf0b8da8e2006ed5d991ae6aba7d96cd6d2b",
+      "hash": "9d59028f20ea8a4e72be8661571f1b44c262a375dbc571ec9646d47818962cc0",
       "generatedFiles": [
         "bldr/dist/compiler/config.pb.go",
         "bldr/dist/compiler/config.pb.ts"
@@ -207,7 +207,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/pack": {
-      "hash": "fcb522142c11ec696baca5d8aedcba93eab742bc3bfb9889b58e75651a5d0c4c",
+      "hash": "c97845dec34384825ae202e230a625cd0dbb9648ef0946d4a22521d5090281ad",
       "generatedFiles": [
         "bldr/manifest/pack/metadata.pb.go",
         "bldr/manifest/pack/metadata.pb.ts"
@@ -964,7 +964,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/cdn": {
-      "hash": "1676801b8370249512ea0af55c9e85e7cd87f756ac2f1e8782fffb231a420ffc",
+      "hash": "815d2d4518d328ce6d969358b48de804e3f07f260a8db1f9acf73395b97de275",
       "generatedFiles": [
         "core/cdn/cdn.pb.go",
         "core/cdn/cdn.pb.ts"
@@ -1248,26 +1248,6 @@
       ],
       "protoFiles": [
         "core/provider/spacewave/loader/controller/config.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/core/provider/spacewave/packfile": {
-      "hash": "d5f9becfbbf6e772836ade8174846d76fa108d8df1eb51862c2029028f423720",
-      "generatedFiles": [
-        "core/provider/spacewave/packfile/packfile.pb.go",
-        "core/provider/spacewave/packfile/packfile.pb.ts"
-      ],
-      "protoFiles": [
-        "core/provider/spacewave/packfile/packfile.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order": {
-      "hash": "b21b2db0d44fb1d3b358da72e041052e5bdb5ad8471e56dc0950cc9d4a8bc713",
-      "generatedFiles": [
-        "core/provider/spacewave/packfile/order/order.pb.go",
-        "core/provider/spacewave/packfile/order/order.pb.ts"
-      ],
-      "protoFiles": [
-        "core/provider/spacewave/packfile/order/order.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/provider/transfer": {
@@ -2091,6 +2071,26 @@
       ],
       "protoFiles": [
         "db/object/rpc/object.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/db/packfile": {
+      "hash": "6024fb576e953fbf37a840206ed742acd87efffa7288a1c1a8facc2bf65ac88b",
+      "generatedFiles": [
+        "db/packfile/packfile.pb.go",
+        "db/packfile/packfile.pb.ts"
+      ],
+      "protoFiles": [
+        "db/packfile/packfile.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/db/packfile/order": {
+      "hash": "cfd6797448db34b165c75cfcaa954c28ebfd26f0a45e3d71c87c8facdd655cfa",
+      "generatedFiles": [
+        "db/packfile/order/order.pb.go",
+        "db/packfile/order/order.pb.ts"
+      ],
+      "protoFiles": [
+        "db/packfile/order/order.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/sql": {

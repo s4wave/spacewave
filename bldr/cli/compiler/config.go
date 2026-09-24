@@ -55,6 +55,11 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "cli_pkgs[%d]: invalid import path", i)
 		}
 	}
+	if pkg := c.GetComposePackage(); pkg != "" {
+		if err := module.CheckImportPath(strings.TrimPrefix(pkg, "./")); err != nil {
+			return errors.Wrap(err, "compose_package")
+		}
+	}
 	return nil
 }
 

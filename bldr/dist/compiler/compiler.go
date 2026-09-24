@@ -305,6 +305,7 @@ func (c *Controller) BuildManifest(
 			return nil, err
 		}
 	}
+	composePackage := bldr_cli_compiler.ResolveComposePackage(conf.GetComposePackage(), rootModule)
 
 	// Compile the host and copy the resolved plugin DAGs into its embedded volume.
 	err = BuildDistBundle(
@@ -331,6 +332,7 @@ func (c *Controller) BuildManifest(
 		conf.GetBrowserIceServersEndpoint(),
 		conf.GetGoscriptDeferredFunctions(),
 		conf.GetNativeRunnerPackage(),
+		composePackage,
 	)
 	if err != nil {
 		return nil, err

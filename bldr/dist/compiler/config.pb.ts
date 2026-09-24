@@ -240,6 +240,15 @@ export interface Config {
    * @generated from field: string native_runner_package = 17;
    */
   nativeRunnerPackage?: string
+  /**
+   * ComposePackage is a Go package exporting Compose() *compose.Composition
+   * from bldr/entrypoint/compose. The dist host calls it once at startup and
+   * adds the returned factories to its bus and, on native builds, the returned
+   * commands to its CLI. May be relative to the project module.
+   *
+   * @generated from field: string compose_package = 18;
+   */
+  composePackage?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -314,6 +323,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
+    { no: 18, name: 'compose_package', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -94,6 +94,7 @@ func BuildDistBundle(
 	browserIceServersEndpoint string,
 	goScriptDeferredFunctions []string,
 	nativeRunnerPackage string,
+	composePackage string,
 ) error {
 	// Resolve target-specific compilation and packaging policy.
 	isRelease := buildType.IsRelease()
@@ -362,7 +363,7 @@ func BuildDistBundle(
 	// Generate the entrypoint after its embedded file set is final.
 	writeDistEntrypoint := func(embedAssets bool) error {
 		le.Debug("writing dist entrypoint")
-		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, buildType, embedAssets, nativeRunnerPackage)
+		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, buildType, embedAssets, nativeRunnerPackage, composePackage)
 		entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
 		return os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644)
 	}

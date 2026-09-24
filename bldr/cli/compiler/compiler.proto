@@ -22,4 +22,9 @@ message Config {
 
   // ProjectId overrides the project id set in the project config.
   string project_id = 4;
+
+  // ComposePackage is a Go package exporting Compose() *compose.Composition
+  // from bldr/entrypoint/compose. The CLI calls it once at startup and adds the
+  // returned factories and commands. May be relative to the project module.
+  string compose_package = 5;
 }

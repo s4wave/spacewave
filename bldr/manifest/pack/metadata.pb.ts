@@ -7,7 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
-import { PackfileEntry } from '../../../core/provider/spacewave/packfile/packfile.pb.js'
+import { PackfileEntry } from '@go/github.com/s4wave/spacewave/db/packfile/packfile.pb.js'
 
 export const protobufPackage = 'bldr.manifest.pack'
 
@@ -113,7 +113,7 @@ export interface ManifestPackMetadata {
   /**
    * Pack is the packfile manifest entry for the kvfile pack.
    *
-   * @generated from field: provider.spacewave.packfile.PackfileEntry pack = 7;
+   * @generated from field: packfile.PackfileEntry pack = 7;
    */
   pack?: PackfileEntry
   /**

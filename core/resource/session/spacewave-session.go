@@ -12,7 +12,6 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -25,6 +24,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
@@ -2376,7 +2376,7 @@ func (r *SpacewaveSessionResource) EnrollForHandoff(
 	if err != nil {
 		return nil, errors.Wrap(err, "relay handoff completion")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
+	defer httpclient.DrainAndCloseResponseBody(httpResp)
 	if httpResp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("handoff completion relay failed: %d", httpResp.StatusCode)
 	}

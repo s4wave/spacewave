@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	plugin_entrypoint "github.com/s4wave/spacewave/bldr/plugin/entrypoint"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
@@ -35,8 +36,8 @@ type CliBus interface {
 	Release()
 }
 
-// AddFactoryFunc is a callback to add a factory.
-type AddFactoryFunc = plugin_entrypoint.AddFactoryFunc
+// AddFactoryFunc constructs controller factories bound to a host bus.
+type AddFactoryFunc = func(b bus.Bus) []controller.Factory
 
 // BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
 type BuildConfigSetFunc = plugin_entrypoint.BuildConfigSetFunc

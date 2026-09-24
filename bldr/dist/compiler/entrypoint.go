@@ -34,13 +34,16 @@ var LogLevel = logrus.__LOG_LEVEL__
 //__EMBED__
 var AssetsFS embed.FS
 
-__COMMANDS__
+__COMMANDS__// main is the main entrypoint.
 func main() {
 	__MAIN__
 }
 `
 
 // FormatDistEntrypoint formats the embedded dist entrypoint code.
+//
+// When composePackage is set, main composes the host process from its Compose
+// function; native builds add the cliImports command builders to it.
 func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
 	embedAssetsFS []string,
@@ -48,6 +51,7 @@ func FormatDistEntrypoint(
 	buildType bldr_manifest.BuildType,
 	nativeBuild bool,
 	nativeRunnerPackage string,
+	composePackage string,
 ) string {
 	logLevel := "DebugLevel"
 	if buildType.IsRelease() {
@@ -61,58 +65,44 @@ func FormatDistEntrypoint(
 		goEmbedLine = " [empty]"
 	}
 
+	// Compose the host process from the project, or start from nothing.
 	var importLines strings.Builder
-	var cliCommandsDecl string
-	if nativeBuild {
-		importLines.WriteString("\tcli_entrypoint \"github.com/s4wave/spacewave/bldr/cli/entrypoint\"\n")
+	var mainLines []string
+	if composePackage != "" {
+		importLines.WriteString("\tproject_compose " + strconv.Quote(composePackage) + "\n")
+		mainLines = append(mainLines, "composition := project_compose.Compose()")
+	} else {
+		importLines.WriteString("\tcompose \"github.com/s4wave/spacewave/bldr/entrypoint/compose\"\n")
+		mainLines = append(mainLines, "composition := &compose.Composition{}")
 	}
-	if len(cliImports) != 0 {
+
+	// Native builds add the command builders of each CLI package.
+	var cliCommandsDecl string
+	if nativeBuild && len(cliImports) != 0 {
+		importLines.WriteString("\tcli_entrypoint \"github.com/s4wave/spacewave/bldr/cli/entrypoint\"\n")
 		importPkgs := make([]string, 0, len(cliImports))
 		for pkg := range cliImports {
 			importPkgs = append(importPkgs, pkg)
 		}
 		slices.Sort(importPkgs)
+		builders := make([]string, 0, len(importPkgs))
 		for _, pkg := range importPkgs {
-			importLines.WriteString("\t")
-			importLines.WriteString(cliImports[pkg].Alias)
-			importLines.WriteString(" ")
-			importLines.WriteString(strconv.Quote(pkg))
-			importLines.WriteString("\n")
+			alias := cliImports[pkg].Alias
+			importLines.WriteString("\t" + alias + " " + strconv.Quote(pkg) + "\n")
+			builders = append(builders, alias+".NewCliCommands")
 		}
-
-		imports := make([]bldr_cli_compiler.CliImport, 0, len(cliImports))
-		var needsBroker bool
-		for _, ci := range cliImports {
-			imports = append(imports, ci)
-			needsBroker = needsBroker || ci.TakesYieldBroker
-		}
-		slices.SortFunc(imports, func(a, b bldr_cli_compiler.CliImport) int { return strings.Compare(a.Alias, b.Alias) })
-		builders := make([]string, 0, len(imports))
-		for _, ci := range imports {
-			builders = append(builders, ci.CommandBuilder(meta.GetProjectId(), "yieldBroker"))
-		}
-		if needsBroker {
-			importLines.WriteString("\taperture_cli \"github.com/aperturerobotics/cli\"\n")
-			importLines.WriteString("\tyield_policy \"github.com/s4wave/spacewave/core/resource/listener/yieldpolicy\"\n")
-			cliCommandsDecl = "var yieldBroker = yield_policy.NewBroker()\n\n"
-		}
-		cliCommandsDecl += "// cliCommands are the native CLI command builders.\n" +
+		cliCommandsDecl = "// cliCommands are the native CLI command builders.\n" +
 			"var cliCommands = []cli_entrypoint.BuildCommandsFunc{" +
-			strings.Join(builders, ", ") + "}\n"
-	}
-	if nativeBuild && len(cliImports) == 0 {
-		cliCommandsDecl += "// cliCommands are the native CLI command builders.\n" +
-			"var cliCommands []cli_entrypoint.BuildCommandsFunc\n"
+			strings.Join(builders, ", ") + "}\n\n"
+		mainLines = append(mainLines, "composition.Commands = append(composition.Commands, cliCommands...)")
 	}
 
-	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)"
-	if nativeBuild {
-		mainCall = "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)"
-		if nativeRunnerPackage != "" {
-			importLines.WriteString("\tnative_runner " + strconv.Quote(nativeRunnerPackage) + "\n")
-			mainCall = "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, cliCommands, native_runner.Run)"
-		}
+	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)"
+	if nativeBuild && nativeRunnerPackage != "" {
+		importLines.WriteString("\tnative_runner " + strconv.Quote(nativeRunnerPackage) + "\n")
+		mainCall = "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, composition, native_runner.Run)"
 	}
+	mainLines = append(mainLines, mainCall)
 
 	return strings.NewReplacer(
 		"__IMPORTS__", importLines.String(),
@@ -120,6 +110,6 @@ func FormatDistEntrypoint(
 		"__LOG_LEVEL__", logLevel,
 		"__EMBED__", goEmbedLine,
 		"__COMMANDS__", cliCommandsDecl,
-		"__MAIN__", mainCall,
+		"__MAIN__", strings.Join(mainLines, "\n\t"),
 	).Replace(distEntrypointTemplate)
 }

@@ -1,8 +1,8 @@
 package publish
 
 import (
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // PublishPlan describes the pack and root delta between a source and destination Space.

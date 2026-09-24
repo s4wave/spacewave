@@ -1,7 +1,7 @@
 syntax = "proto3";
 package bldr.manifest.pack;
 
-import "github.com/s4wave/spacewave/core/provider/spacewave/packfile/packfile.proto";
+import "github.com/s4wave/spacewave/db/packfile/packfile.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
 // ManifestPackMetadata describes a CI manifest-pack handoff artifact.
@@ -19,7 +19,7 @@ message ManifestPackMetadata {
   // ManifestBundleRef is the object ref for the ManifestBundle root.
   .bucket.ObjectRef manifest_bundle_ref = 6;
   // Pack is the packfile manifest entry for the kvfile pack.
-  .provider.spacewave.packfile.PackfileEntry pack = 7;
+  .packfile.PackfileEntry pack = 7;
   // PackSha256 is the sha256 digest of the kvfile pack bytes.
   bytes pack_sha256 = 8;
   // ReactDev indicates the browser entrypoint was built in react_dev mode.

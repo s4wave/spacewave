@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

@@ -21,6 +21,13 @@ CORE_GO_PKGS = [
     "github.com/s4wave/spacewave/db/object/peer",
 ]
 
+# COMPOSED_GO_PKGS are host controllers that ./cmd/spacewave/compose constructs
+# with the process-shared listener brokers.
+COMPOSED_GO_PKGS = [
+    "./core/resource/root/controller",
+    "./core/resource/listener",
+]
+
 def core_go_pkgs(include_export=True):
     pkgs = []
     for pkg in CORE_GO_PKGS:
@@ -467,8 +474,8 @@ manifest("bldr-materializer",
 manifest("spacewave",
     builder="bldr/cli/compiler",
     config={
-        "goPkgs": CORE_GO_PKGS,
-        "cliPkgs": ["./cmd/spacewave/cli"],
+        "goPkgs": [pkg for pkg in CORE_GO_PKGS if pkg not in COMPOSED_GO_PKGS],
+        "composePackage": "./cmd/spacewave/compose",
         "configSet": core_config_set(),
         "projectId": "spacewave",
     },
@@ -560,7 +567,7 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
 
 def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None):
     conf = dist_compiler_config(
-        cliPkgs=["./cmd/spacewave/cli"],
+        composePackage="./cmd/spacewave/compose",
         embedManifests=embed_manifests,
         entrypointRole=entrypoint_role,
         channelKey="stable",

@@ -86,14 +86,16 @@ func jsPluginConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args s
 
 // validCliCompilerFields are the valid field names for cli_compiler_config().
 var validCliCompilerFields = map[string]bool{
-	"goPkgs":     true,
-	"go_pkgs":    true,
-	"cliPkgs":    true,
-	"cli_pkgs":   true,
-	"configSet":  true,
-	"config_set": true,
-	"projectId":  true,
-	"project_id": true,
+	"goPkgs":          true,
+	"go_pkgs":         true,
+	"cliPkgs":         true,
+	"cli_pkgs":        true,
+	"configSet":       true,
+	"config_set":      true,
+	"projectId":       true,
+	"project_id":      true,
+	"composePackage":  true,
+	"compose_package": true,
 }
 
 // cliCompilerConfigBuiltin implements cli_compiler_config(**kwargs).
@@ -109,6 +111,8 @@ var validDistCompilerFields = map[string]bool{
 	"embed_native_volume":          true,
 	"nativeRunnerPackage":          true,
 	"native_runner_package":        true,
+	"composePackage":               true,
+	"compose_package":              true,
 	"cliPkgs":                      true,
 	"cli_pkgs":                     true,
 	"updateGuardPluginIds":         true,

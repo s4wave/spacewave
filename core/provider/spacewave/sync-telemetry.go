@@ -2,8 +2,8 @@ package provider_spacewave
 
 import (
 	"github.com/aperturerobotics/util/broadcast"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // SyncTelemetryUploadPhase describes upload-side Spacewave sync activity.

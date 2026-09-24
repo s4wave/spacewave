@@ -470,8 +470,8 @@ func TestGoScriptPluginRuntime(t *testing.T) {
 
 // TestGoScriptResourceService verifies that a GoScript-generated browser
 // worker can serve native ResourceService code without project-local gs
-// overrides, and that releasing a registry-backed resource reaches the Go
-// server release callback.
+// overrides, and that releasing a client reference to a child resource reaches
+// the Go server release callback.
 func TestGoScriptResourceService(t *testing.T) {
 	browsers := []string{"chromium", "firefox"}
 	for _, browser := range browsers {
@@ -487,8 +487,8 @@ func TestGoScriptResourceService(t *testing.T) {
 			assertBoolResult(t, results, "workerReady", true)
 			assertBoolResult(t, results, "startInfo", true)
 			assertBoolResult(t, results, "rootResource", true)
-			assertBoolResult(t, results, "registeredViewer", true)
-			assertBoolResult(t, results, "releaseRemovedViewer", true)
+			assertBoolResult(t, results, "registered", true)
+			assertBoolResult(t, results, "releaseRemoved", true)
 
 			if failureReason, _ := results["failureReason"].(string); failureReason != "" {
 				t.Fatalf("unexpected runtime failure: %s", failureReason)

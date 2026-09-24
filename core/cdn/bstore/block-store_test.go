@@ -22,9 +22,9 @@ import (
 
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/db/packfile"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 )
 
 const testSpaceID = "01kpftest0000000000000000"

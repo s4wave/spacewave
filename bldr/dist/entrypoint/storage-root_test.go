@@ -3,7 +3,7 @@ package dist_entrypoint
 import "testing"
 
 func TestDistStorageVolumeConfigDisablesGC(t *testing.T) {
-	conf := newDistStorageVolumeConfig("storage", "spacewave")
+	conf := NewDistStorageVolumeConfig("storage", "spacewave")
 	if conf.GetStorageId() != "storage" {
 		t.Fatalf("storage id = %q, want storage", conf.GetStorageId())
 	}

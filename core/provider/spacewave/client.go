@@ -19,16 +19,16 @@ import (
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
 	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
@@ -846,7 +846,7 @@ func (c *EntityClient) doMultiSig(
 	if err != nil {
 		return nil, errors.Wrap(err, "multi-sig request")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer httpclient.DrainAndCloseResponseBody(resp)
 	respBody, readErr := readResponseBody(resp)
 	if resp.StatusCode != http.StatusOK {
 		if readErr != nil {
@@ -1186,7 +1186,7 @@ func (c *SessionClient) DoMultiSig(ctx context.Context, method string, reqPath s
 	if err != nil {
 		return nil, errors.Wrap(err, "multi-sig request")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer httpclient.DrainAndCloseResponseBody(resp)
 	respBody, readErr := readResponseBody(resp)
 	if resp.StatusCode != http.StatusOK {
 		if readErr != nil {

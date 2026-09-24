@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// AnalyzeCliImports discovers command builder signatures for a target platform.
+// AnalyzeCliImports validates the command builders of cliPkgs for a target platform.
 func AnalyzeCliImports(ctx context.Context, le *logrus.Entry, sourcePath string, cliPkgs []string, goos, goarch string) (map[string]CliImport, error) {
 	cliImports := make(map[string]CliImport)
 	if len(cliPkgs) != 0 {
@@ -40,11 +40,10 @@ func AnalyzeCliImports(ctx context.Context, le *logrus.Entry, sourcePath string,
 			if !ok {
 				return nil, errors.Errorf("cli package %s NewCliCommands is not a function", pkgPath)
 			}
-			takesBroker, err := cliCommandsNeedsYieldBroker(pkgPath, sig)
-			if err != nil {
-				return nil, err
+			if sig.Params().Len() != 1 {
+				return nil, errors.Errorf("cli package %s NewCliCommands must take only getBus", pkgPath)
 			}
-			cliImports[cliPkg] = CliImport{Alias: path.Base(cliPkg), TakesYieldBroker: takesBroker}
+			cliImports[cliPkg] = CliImport{Alias: path.Base(cliPkg)}
 		}
 	}
 

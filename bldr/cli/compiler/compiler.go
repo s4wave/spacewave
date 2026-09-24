@@ -188,6 +188,7 @@ func (c *Controller) BuildManifest(
 	if err != nil {
 		return nil, err
 	}
+	composePackage := ResolveComposePackage(conf.GetComposePackage(), rootModule)
 
 	// serialize config set
 	configSetPath := filepath.Join(entrypointBuildDir, "configset.bin")
@@ -212,7 +213,7 @@ func (c *Controller) BuildManifest(
 	projectID := conf.GetProjectId()
 
 	// generate entrypoint main.go
-	entrypointSrc, err := FormatCliEntrypoint(appName, projectID, factoryImports, cliImports)
+	entrypointSrc, err := FormatCliEntrypoint(appName, projectID, factoryImports, cliImports, composePackage)
 	if err != nil {
 		return nil, err
 	}

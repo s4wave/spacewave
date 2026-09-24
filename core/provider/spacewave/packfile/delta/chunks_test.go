@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/go-kvfile"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // TestEmitDeltaChunksEncodedLimit exercises index-heavy packs at the complete

@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
+	"github.com/s4wave/spacewave/net/httpclient"
 )
 
 type nativeRootPointerResponse struct {
@@ -36,5 +36,5 @@ func (r nativeRootPointerResponse) Body() io.Reader {
 }
 
 func (r nativeRootPointerResponse) Close() {
-	alpha_nethttp.DrainAndCloseResponseBody(r.resp)
+	httpclient.DrainAndCloseResponseBody(r.resp)
 }

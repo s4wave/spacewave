@@ -14,10 +14,10 @@ import (
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	session_handoff "github.com/s4wave/spacewave/core/session/handoff"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -82,7 +82,7 @@ func StartHandoff(
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "create auth session")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
+	defer httpclient.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "read create auth session response")

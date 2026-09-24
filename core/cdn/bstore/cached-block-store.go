@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/volume"
 )
 

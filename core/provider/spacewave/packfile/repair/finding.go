@@ -3,7 +3,7 @@ package repair
 import (
 	"slices"
 
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // Reason identifies why a packfile entry needs metadata repair.

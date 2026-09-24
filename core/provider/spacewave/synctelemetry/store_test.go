@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 type testFetchStats struct {

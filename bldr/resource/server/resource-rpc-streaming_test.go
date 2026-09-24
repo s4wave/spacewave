@@ -3,23 +3,23 @@ package resource_server_test
 import (
 	"errors"
 	"io"
+	"strconv"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 func TestResourceRPCStreamingMethodPreservesLegacyResourceLifetime(t *testing.T) {
 	released := make(chan struct{}, 1)
 	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != s4wave_world.SRPCWatchWorldStateResourceServiceServiceID ||
-			methodID != "WatchWorldState" {
+		if serviceID != echo.SRPCEchoerServiceID || methodID != "EchoServerStream" {
 			return false, nil
 		}
-		if err := strm.MsgRecv(&s4wave_world.WatchWorldStateRequest{}); err != nil {
+		if err := strm.MsgRecv(&echo.EchoMsg{}); err != nil {
 			return true, err
 		}
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
@@ -32,8 +32,8 @@ func TestResourceRPCStreamingMethodPreservesLegacyResourceLifetime(t *testing.T)
 		if err != nil {
 			return true, err
 		}
-		return true, strm.MsgSend(&s4wave_world.WatchWorldStateResponse{
-			ResourceId: resourceID,
+		return true, strm.MsgSend(&echo.EchoMsg{
+			Body: strconv.FormatUint(uint64(resourceID), 10),
 		})
 	}))
 	server := resource_server.NewResourceServer(rootMux)
@@ -56,10 +56,10 @@ func TestResourceRPCStreamingMethodPreservesLegacyResourceLifetime(t *testing.T)
 	if err != nil {
 		t.Fatalf("root client: %v", err)
 	}
-	stream, err := s4wave_world.NewSRPCWatchWorldStateResourceServiceClient(rootClient).
-		WatchWorldState(t.Context(), &s4wave_world.WatchWorldStateRequest{})
+	stream, err := echo.NewSRPCEchoerClient(rootClient).
+		EchoServerStream(t.Context(), &echo.EchoMsg{})
 	if err != nil {
-		t.Fatalf("WatchWorldState: %v", err)
+		t.Fatalf("EchoServerStream: %v", err)
 	}
 	resp, err := stream.Recv()
 	if err != nil {
@@ -74,7 +74,11 @@ func TestResourceRPCStreamingMethodPreservesLegacyResourceLifetime(t *testing.T)
 	default:
 	}
 
-	ref := client.CreateResourceReference(resp.GetResourceId())
+	resourceID, err := strconv.ParseUint(resp.GetBody(), 10, 32)
+	if err != nil {
+		t.Fatalf("parse streamed resource id: %v", err)
+	}
+	ref := client.CreateResourceReference(uint32(resourceID))
 	ref.Release()
 	<-released
 }

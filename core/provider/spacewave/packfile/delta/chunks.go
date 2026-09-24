@@ -9,9 +9,9 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/identity"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/identity"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
 )
 

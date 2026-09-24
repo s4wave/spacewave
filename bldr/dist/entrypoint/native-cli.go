@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,7 @@ func runCliMain(
 	distMeta *bldr_dist.DistMeta,
 	logLevel logrus.Level,
 	assetsFS fs.FS,
-	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+	composition *compose.Composition,
 ) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -77,6 +78,7 @@ func runCliMain(
 				"",
 				configSetProto,
 				newStaticBlockStoreReaderBuilder(le, assetsFS, false, distMeta.GetDistWorldRef().GetRootRef()),
+				composition,
 				nil,
 			)
 			if err != nil {
@@ -208,7 +210,7 @@ func runCliMain(
 		return nil
 	}
 
-	for _, builder := range commandBuilders {
+	for _, builder := range composition.Commands {
 		if builder == nil {
 			continue
 		}

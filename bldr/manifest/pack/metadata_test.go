@@ -6,12 +6,12 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 )
 

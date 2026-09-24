@@ -14,8 +14,6 @@ import (
 	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
 	storage_default "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	cdn_bstore_controller "github.com/s4wave/spacewave/core/cdn/bstore/controller"
-	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
@@ -49,7 +47,7 @@ func NewCoreBus(
 
 // AddFactories adds factories to an existing static resolver.
 // NOTE: Only add a factory here if it is absolutely needed by the entrypoint.
-// NOTE: this list will differ depending on the platform.
+// The project composition adds its own factories; see BuildDistBus.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// Resolve plugin loading, service forwarding, and backing nodes.
 	sr.AddFactory(bldr_plugin_load.NewFactory(b))
@@ -62,13 +60,10 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	for _, factory := range plugin_host_default.PluginHostControllerFactories {
 		sr.AddFactory(factory(b))
 	}
-	addDesktopFactories(b, sr)
 
 	// Read executable manifests and assets through their world engines.
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
-	sr.AddFactory(cdn_world_controller.NewFactory(b))
-	sr.AddFactory(cdn_bstore_controller.NewFactory(b))
 
 	// Share volumes across host and plugin boundaries.
 	sr.AddFactory(volume_rpc_client.NewFactory(b))

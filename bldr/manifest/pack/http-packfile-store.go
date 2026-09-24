@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // NewHTTPPackfileStore builds a verified manifest-pack store over an HTTP range endpoint.

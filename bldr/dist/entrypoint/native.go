@@ -15,8 +15,8 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	fcolor "github.com/fatih/color"
 	"github.com/s4wave/spacewave/bldr/banner"
-	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/s4wave/spacewave/db/block"
@@ -31,9 +31,9 @@ func Main(
 	distMetaB58 string,
 	logLevel logrus.Level,
 	assetsFS fs.FS,
-	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+	composition *compose.Composition,
 ) {
-	MainWithRunner(distMetaB58, logLevel, assetsFS, commandBuilders, nil)
+	MainWithRunner(distMetaB58, logLevel, assetsFS, composition, nil)
 }
 
 // MainWithRunner retains native assets, logging, CLI dispatch and signals while
@@ -42,18 +42,18 @@ func MainWithRunner(
 	distMetaB58 string,
 	logLevel logrus.Level,
 	assetsFS fs.FS,
-	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+	composition *compose.Composition,
 	runner NativeRunner,
 ) {
 	assetsFS = nativeAssetsFS{FS: assetsFS, executable: os.Executable}
 
-	if len(commandBuilders) != 0 && len(os.Args) > 1 {
+	if len(composition.Commands) != 0 && len(os.Args) > 1 {
 		if err := func() error {
 			distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
 			if err != nil {
 				return err
 			}
-			return runCliMain(distMeta, logLevel, assetsFS, commandBuilders)
+			return runCliMain(distMeta, logLevel, assetsFS, composition)
 		}(); err != nil {
 			os.Stderr.WriteString(err.Error() + "\n")
 			os.Exit(1)
@@ -128,7 +128,7 @@ func MainWithRunner(
 	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
 	run := func(ctx context.Context, preBuildHooks, postStartHooks []DistBusHook) error {
-		return Run(ctx, le, distMeta, assetsFS, "", preBuildHooks, postStartHooks)
+		return Run(ctx, le, distMeta, assetsFS, "", composition, preBuildHooks, postStartHooks)
 	}
 	if runner == nil {
 		runner = func(ctx context.Context, _ *logrus.Entry, run NativeRun) error {

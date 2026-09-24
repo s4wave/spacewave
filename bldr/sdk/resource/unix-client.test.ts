@@ -12,54 +12,37 @@ import {
   createHandler,
   createMux,
 } from 'starpc'
+import { EchoerClient, EchoerDefinition } from 'starpc/echo'
 
-import {
-  RootResourceServiceDefinition,
-  type RootResourceServiceHandler,
-} from '../../../sdk/root/root_srpc.pb.js'
-import { Root } from '../../../sdk/root/root.js'
-import {
-  SessionResourceServiceDefinition,
-  type SessionResourceServiceHandler,
-} from '../../../sdk/session/session_srpc.pb.js'
 import { ResourceServer } from './server/server.js'
 import { getResourceCall } from './server/context.js'
 import { connectUnixResourceClient } from './unix-client.js'
 
 describe('connectUnixResourceClient', () => {
-  it('mounts a Session and streams its Space list over a Unix socket', async () => {
+  it('mounts a child resource and streams from it over a Unix socket', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'resource-unix-test-'))
     const socketPath = join(dir, 'resource.sock')
-    const sessionMux = createMux()
-    sessionMux.register(
-      createHandler(SessionResourceServiceDefinition, {
-        async *WatchResourcesList() {
-          yield {
-            spacesList: [{ spaceMeta: { name: 'Terminal' } }],
-          }
+    const childMux = createMux()
+    childMux.register(
+      createHandler(EchoerDefinition, {
+        async *EchoServerStream(request) {
+          yield { body: `child ${request.body}` }
         },
-      } satisfies Partial<SessionResourceServiceHandler>),
+      }),
     )
     const rootMux = createMux()
     rootMux.register(
-      createHandler(RootResourceServiceDefinition, {
-        MountSessionByIdx(
-          _request,
-          _abortSignal: AbortSignal,
-          context: ServerContext,
-        ) {
-          if (_request.sessionIdx !== 4) {
-            throw new Error(`unexpected Session index ${_request.sessionIdx}`)
-          }
+      createHandler(EchoerDefinition, {
+        Echo(_request, _abortSignal: AbortSignal, context: ServerContext) {
           const { resourceId } = getResourceCall(
             context,
           ).constructChildResource(() => ({
-            mux: sessionMux,
+            mux: childMux,
             result: undefined,
           }))
-          return Promise.resolve({ resourceId })
+          return Promise.resolve({ body: String(resourceId) })
         },
-      } satisfies Partial<RootResourceServiceHandler>),
+      }),
     )
     const resources = new ResourceServer(rootMux)
     const rpcMux = createMux()
@@ -89,17 +72,21 @@ describe('connectUnixResourceClient', () => {
         `unix://${socketPath}`,
         controller.signal,
       )
-      using root = new Root(await connection.client.accessRootResource())
-      using session = (await root.mountSessionByIdx(
-        { sessionIdx: 4 },
+      using root = await connection.client.accessRootResource()
+      const mounted = await new EchoerClient(root.client).Echo(
+        {},
         controller.signal,
-      ))!.session
+      )
+      using child = root.createRef(Number(mounted.body))
 
-      const stream = session.watchResourcesList({}, controller.signal)
+      const stream = new EchoerClient(child.client).EchoServerStream(
+        { body: 'Terminal' },
+        controller.signal,
+      )
       const snapshot = await stream[Symbol.asyncIterator]().next()
 
       expect(snapshot.done).toBe(false)
-      expect(snapshot.value?.spacesList?.[0]?.spaceMeta?.name).toBe('Terminal')
+      expect(snapshot.value?.body).toBe('child Terminal')
       expect(sockets.size).toBe(1)
 
       connection.close()

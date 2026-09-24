@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // metaLastPullSequenceKey is the kvtx key holding the last-seen monotonic

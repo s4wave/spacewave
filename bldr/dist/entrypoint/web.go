@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/banner"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	web_entrypoint_browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
 	web_runtime_bootstrap "github.com/s4wave/spacewave/bldr/web/runtime/bootstrap"
 	"github.com/s4wave/spacewave/db/block"
@@ -30,7 +31,12 @@ import (
 const httpRangeMinSize = 4 * 1024 * 1024
 
 // Main runs the default main entrypoint for the web.
-func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
+func Main(
+	distMetaB58 string,
+	logLevel logrus.Level,
+	assetsFS fs.FS,
+	composition *compose.Composition,
+) {
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    false,
@@ -91,6 +97,7 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 			distMeta,
 			assetsFS,
 			initm.GetWebRuntimeId(),
+			composition,
 			[]DistBusHook{
 				startBrowserRuntimeStack,
 			},

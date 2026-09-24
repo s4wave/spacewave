@@ -73,6 +73,11 @@ func (c *Config) Validate() error {
 			return errors.Wrap(err, "native_runner_package")
 		}
 	}
+	if pkg := c.GetComposePackage(); pkg != "" {
+		if err := module.CheckImportPath(strings.TrimPrefix(pkg, "./")); err != nil {
+			return errors.Wrap(err, "compose_package")
+		}
+	}
 	return nil
 }
 
@@ -162,6 +167,9 @@ func (c *Config) Merge(o *Config) {
 	c.EmbedNativeVolume = c.EmbedNativeVolume.Merge(o.GetEmbedNativeVolume())
 	if pkg := o.GetNativeRunnerPackage(); pkg != "" {
 		c.NativeRunnerPackage = pkg
+	}
+	if pkg := o.GetComposePackage(); pkg != "" {
+		c.ComposePackage = pkg
 	}
 }
 

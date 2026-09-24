@@ -19,8 +19,8 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/db/packfile"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 )
 
 // blockSpec describes a block that will be packed into a test kvfile.

@@ -1,12 +1,11 @@
 import { ChannelStream, Client as SRPCClient, type PacketStream } from 'starpc'
+import { EchoerClient } from 'starpc/echo'
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { channelPacketStream } from '../../../web/bldr/channel-packet-stream.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../resource/resource_srpc.pb.js'
-import { ViewerRegistryResourceServiceClient } from '../../../../sdk/viewer/registry/registry_srpc.pb.js'
-import { ViewerSurface } from '../../../../sdk/viewer/registry/registry.pb.js'
 
 declare global {
   interface Window {
@@ -16,8 +15,8 @@ declare global {
       workerReady: boolean
       startInfo: boolean
       rootResource: boolean
-      registeredViewer: boolean
-      releaseRemovedViewer: boolean
+      registered: boolean
+      releaseRemoved: boolean
       failureReason?: string
     }
   }
@@ -156,8 +155,8 @@ async function proveResourceService(
   mark: (step: string) => void,
 ): Promise<{
   rootResource: boolean
-  registeredViewer: boolean
-  releaseRemovedViewer: boolean
+  registered: boolean
+  releaseRemoved: boolean
 }> {
   const abort = new AbortController()
   const srpc = new SRPCClient(openStream)
@@ -172,55 +171,28 @@ async function proveResourceService(
   try {
     mark('resource-access-root')
     rootRef = await resourceClient.accessRootResource()
-    const registry = new ViewerRegistryResourceServiceClient(rootRef.client)
-    mark('resource-register-viewer')
-    const response = await registry.RegisterViewer(
-      {
-        registration: {
-          typeId: 'spacewave/test',
-          viewerName: 'Test Viewer',
-          scriptPath: '/viewer.js',
-          componentId: 'spacewave.test.viewer',
-          surface: ViewerSurface.WEB,
-        },
-      },
-      abort.signal,
-    )
-    mark('resource-list-viewers')
-    const registered = await registry.ListViewers(
-      { surface: ViewerSurface.WEB },
-      abort.signal,
-    )
-    const registeredRegistrations = registered.registrations ?? []
-    const registeredViewer =
-      Boolean(response.resourceId) &&
-      registeredRegistrations.length === 1 &&
-      registeredRegistrations[0]?.componentId === 'spacewave.test.viewer'
+    const root = new EchoerClient(rootRef.client)
+    mark('resource-register')
+    const response = await root.Echo({}, abort.signal)
+    const resourceId = Number(response.body)
 
-    mark('resource-watch-viewers')
-    const watch = registry.WatchViewers(
-      { surface: ViewerSurface.WEB },
-      abort.signal,
-    )
+    mark('resource-watch')
+    const watch = root.EchoServerStream({}, abort.signal)
     const watchIterator = watch[Symbol.asyncIterator]()
     const initial = await watchIterator.next()
+    const registered = resourceId > 0 && initial.value?.body === '1'
+
     mark('resource-release-registration')
-    registrationRef = resourceClient.createResourceReference(
-      response.resourceId ?? 0,
-    )
+    registrationRef = resourceClient.createResourceReference(resourceId)
     registrationRef.release()
     const released = await watchIterator.next()
     await watchIterator.return?.()
-
-    const initialRegistrations = initial.value?.registrations ?? []
-    const releasedRegistrations = released.value?.registrations ?? []
-    const releaseRemovedViewer =
-      initialRegistrations.length === 1 && releasedRegistrations.length === 0
+    const releaseRemoved = registered && released.value?.body === '0'
 
     return {
       rootResource: rootRef.resourceId > 0,
-      registeredViewer,
-      releaseRemovedViewer,
+      registered,
+      releaseRemoved,
     }
   } finally {
     registrationRef?.release()
@@ -315,8 +287,8 @@ async function run() {
       workerReady &&
       startInfoOk &&
       resource.rootResource &&
-      resource.registeredViewer &&
-      resource.releaseRemovedViewer &&
+      resource.registered &&
+      resource.releaseRemoved &&
       !failureReason &&
       errors.length === 0
     window.__results = {
@@ -328,15 +300,15 @@ async function run() {
             `workerReady=${workerReady}`,
             `startInfo=${startInfoOk}`,
             `rootResource=${resource.rootResource}`,
-            `registeredViewer=${resource.registeredViewer}`,
-            `releaseRemovedViewer=${resource.releaseRemovedViewer}`,
+            `registered=${resource.registered}`,
+            `releaseRemoved=${resource.releaseRemoved}`,
             `failureReason=${failureReason ?? ''}`,
           ].join('; '),
       workerReady,
       startInfo: startInfoOk,
       rootResource: resource.rootResource,
-      registeredViewer: resource.registeredViewer,
-      releaseRemovedViewer: resource.releaseRemovedViewer,
+      registered: resource.registered,
+      releaseRemoved: resource.releaseRemoved,
       failureReason,
     }
   } catch (err) {
@@ -346,8 +318,8 @@ async function run() {
       workerReady: false,
       startInfo: false,
       rootResource: false,
-      registeredViewer: false,
-      releaseRemovedViewer: false,
+      registered: false,
+      releaseRemoved: false,
       failureReason: undefined,
     }
   } finally {

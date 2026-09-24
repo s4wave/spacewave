@@ -8,7 +8,7 @@ import (
 
 	"github.com/aperturerobotics/util/http"
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +40,7 @@ func FetchDistConfig(
 	if err != nil {
 		return nil, "", "", err
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer httpclient.DrainAndCloseResponseBody(resp)
 
 	if resp.StatusCode != 200 {
 		return nil, "", "", errors.Errorf("unsuccessful status code: %v: %s", resp.StatusCode, resp.Status)

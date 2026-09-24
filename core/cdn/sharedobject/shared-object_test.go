@@ -10,10 +10,10 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/sirupsen/logrus"
 )
 

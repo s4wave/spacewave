@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/db/block"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -24,6 +25,7 @@ func Run(
 	distMeta *bldr_dist.DistMeta,
 	assetsFS fs.FS,
 	webRuntimeID string,
+	composition *compose.Composition,
 	preBuildHooks []DistBusHook,
 	postStartHooks []DistBusHook,
 ) error {
@@ -70,6 +72,7 @@ func Run(
 		webRuntimeID,
 		configSetProto,
 		staticBlockStoreReaderBuilder,
+		composition,
 		preBuildHooks,
 	)
 	if err != nil {

@@ -10,9 +10,9 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -77,7 +77,7 @@ func (e *Engine) GenerateCode(ctx context.Context, relay Relay) (string, error) 
 	if err != nil {
 		return "", errors.Wrap(err, "register pairing code")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer httpclient.DrainAndCloseResponseBody(resp)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return "", errors.Errorf("pairing code registration failed: HTTP %d", resp.StatusCode)
 	}
@@ -130,7 +130,7 @@ func ResolveCode(ctx context.Context, relay Relay, code string) (peer.ID, error)
 	if err != nil {
 		return "", errors.Wrap(err, "resolve pairing code")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(resp)
+	defer httpclient.DrainAndCloseResponseBody(resp)
 	if resp.StatusCode != http.StatusOK {
 		return "", errors.Errorf("pairing code lookup failed: HTTP %d", resp.StatusCode)
 	}

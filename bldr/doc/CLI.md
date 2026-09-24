@@ -18,6 +18,7 @@ bldr.yaml manifest
 cli/compiler (BuildManifest)
     |-- AnalyzePackages(go_pkgs) -> discover NewFactory() functions
     |-- Resolve cli_pkgs -> discover NewCliCommands() functions
+    |-- Resolve compose_package -> call its Compose() in main
     |-- Serialize config_set -> configset.bin
     |-- FormatCliEntrypoint() -> generate main.go
     |-- go build -> standalone binary
@@ -33,6 +34,9 @@ The generated `main.go` calls `cli_entrypoint.Main()` which:
 4. Applies the embedded ConfigSet
 5. Adds the built-in `start` command (blocks until interrupted)
 6. Adds all custom CLI commands from `cli_pkgs`
+
+With `composePackage`, `main` first calls the package's `Compose()` and adds its
+factories and commands to the discovered ones.
 
 ## Configuration
 
@@ -57,12 +61,13 @@ manifests:
 
 ### Config Fields
 
-| Field       | Description                                                                                                                                                     |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `goPkgs`    | Go packages to scan for `NewFactory(b bus.Bus) controller.Factory` functions. Relative paths (starting with `./`) are resolved against the project's Go module. |
-| `cliPkgs`   | Go packages providing CLI commands. Each must export `NewCliCommands(getBus func() CliBus) []*cli.Command`.                                                     |
-| `configSet` | A ConfigSet to embed in the binary and apply on startup.                                                                                                        |
-| `projectId` | Override the project ID used for CLI state-root defaults and environment variables. Empty keeps the generic `.bldr` defaults.                                  |
+| Field            | Description                                                                                                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `goPkgs`         | Go packages to scan for `NewFactory(b bus.Bus) controller.Factory` functions. Relative paths (starting with `./`) are resolved against the project's Go module.                                                                          |
+| `cliPkgs`        | Go packages providing CLI commands. Each must export `NewCliCommands(getBus func() CliBus) []*cli.Command`.                                                                                                                              |
+| `composePackage` | Go package exporting `Compose() *compose.Composition` (`bldr/entrypoint/compose`). Use it for factories and commands that share process state, such as a broker passed to several controllers. The dist compiler accepts the same field. |
+| `configSet`      | A ConfigSet to embed in the binary and apply on startup.                                                                                                                                                                                 |
+| `projectId`      | Override the project ID used for CLI state-root defaults and environment variables. Empty keeps the generic `.bldr` defaults.                                                                                                            |
 
 ## Writing CLI Commands
 

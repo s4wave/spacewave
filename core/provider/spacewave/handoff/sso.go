@@ -17,8 +17,8 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/pkg/errors"
-	alpha_nethttp "github.com/s4wave/spacewave/core/nethttp"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/net/httpclient"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -98,7 +98,7 @@ func StartSSOHandoff(
 	if err != nil {
 		return nil, nil, "", errors.Wrap(err, "start desktop sso")
 	}
-	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
+	defer httpclient.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return nil, nil, "", errors.Wrap(err, "read desktop sso start response")
