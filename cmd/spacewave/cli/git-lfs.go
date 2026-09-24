@@ -134,7 +134,9 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 	// Install the filters and point git-lfs at the agent. The URI pins the
 	// session, Space and object so a later default cannot redirect pushes.
 	// Transfers run in one agent: every upload commits to the same object,
-	// so concurrent agents only replay each other's commits.
+	// so concurrent agents only replay each other's commits. The agent
+	// serves every remote, so git-lfs skips probing an SSH remote for its
+	// own LFS transfer protocol.
 	uri := "/u/" + strconv.FormatUint(uint64(idx), 10) + "/so/" + sid + "/-/" + key
 	if _, err := gitOutput(ctx, "lfs", "install", "--local", "--skip-repo"); err != nil {
 		return errors.Wrap(err, "install git-lfs filters")
@@ -146,6 +148,7 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 		{prefix + "path", exe},
 		{prefix + "args", shellJoin(agentArgs)},
 		{prefix + "concurrent", "false"},
+		{"lfs.sshtransfer", "never"},
 	} {
 		if _, err := gitOutput(ctx, "config", "--local", kv[0], kv[1]); err != nil {
 			return errors.Wrap(err, "set "+kv[0])
