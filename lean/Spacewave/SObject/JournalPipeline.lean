@@ -3,7 +3,7 @@ import Spacewave.SObject.JournalFrame
 /-!
 # Mutation journal pipeline authentication
 
-Mirrors retained record authentication in `core/sobject/journal-pipeline.go`.
+Mirrors public opening and retained record authentication in `core/sobject/journal-pipeline.go`.
 Authenticated decryption, protobuf decoding and SHA-256 are primitive boundaries.
 The projection supplies their outputs for the prepared writer-owned sequence;
 key, lineage, version and envelope bindings remain model decisions.
@@ -173,5 +173,93 @@ structure AuthenticationEntry where
 /-- findAuthentication resolves projected primitive inputs without performing Go admission. -/
 def findAuthentication (entries : List AuthenticationEntry) (record : Record) : Authentication :=
   ((entries.find? (fun entry => entry.record == record)).map (·.auth)).getD default
+
+/-- PipelineOpenResult retains storage effects even when the public constructor returns no pipeline. -/
+structure PipelineOpenResult where
+  writer : Option WriterState
+  bytes : MemoryBytes
+  floor : Nat
+  deriving Repr, Inhabited
+
+/-- openPipeline mirrors public prerequisites, recovery, retained authority and pending activation.
+Authentication primitives are stable for each exact retained-stage input during this call. -/
+def openPipeline (input : OpenInput) (activation : ActivationInput) (receiptAvailable lookupAvailable : Bool)
+    (auth : Record → Authentication) (receipt : Receipt → Option Version → Bool)
+    (lookup : Option Lookup → Option Version → Bool) : PipelineOpenResult :=
+  if !input.storageAvailable || !input.crypto || !receiptAvailable || !lookupAvailable then
+    ⟨none, input.bytes, input.floor⟩
+  else
+    let opened := openWriter input (fun r => authenticateRecord r (auth r))
+      (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)
+    match opened.writer with
+    | none => ⟨none, opened.bytes, input.floor⟩
+    | some writer =>
+      let finished := finishPipelineOpen writer activation input.crypto receiptAvailable lookupAvailable auth receipt lookup
+      ⟨if finished.ok then some finished.result else none, finished.result.bytes, finished.floor⟩
+
+/-- Missing public capabilities reject before recovery can truncate or sync the byte stream. -/
+theorem public_pipeline_prerequisites {input : OpenInput} {activation : ActivationInput}
+    {receiptAvailable lookupAvailable : Bool} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool}
+    (missing : input.storageAvailable = false ∨ input.crypto = false ∨
+      receiptAvailable = false ∨ lookupAvailable = false) :
+    openPipeline input activation receiptAvailable lookupAvailable auth receipt lookup = ⟨none, input.bytes, input.floor⟩ := by
+  rcases missing with missing | missing | missing | missing <;> simp [openPipeline, missing]
+
+/-- The public constructor cannot lower the floor supplied by monotone storage reads. -/
+theorem public_pipeline_floor (input : OpenInput) (activation : ActivationInput)
+    (receiptAvailable lookupAvailable : Bool) (auth : Record → Authentication)
+    (receipt : Receipt → Option Version → Bool) (lookup : Option Lookup → Option Version → Bool)
+    (monotoneRead : input.floor ≤ activation.floor) :
+    input.floor ≤ (openPipeline input activation receiptAvailable lookupAvailable auth receipt lookup).floor := by
+  unfold openPipeline
+  split
+  · exact Nat.le_refl _
+  · dsimp only
+    split
+    · exact Nat.le_refl _
+    · rename_i opened writer recovered
+      unfold finishPipelineOpen
+      split
+      · exact Nat.le_trans monotoneRead (activation_floor_monotone writer activation)
+      · exact monotoneRead
+
+/-- Every returned public pipeline preserves the recovered state and passes retained authority. -/
+theorem public_pipeline_authorized {input : OpenInput} {activation : ActivationInput}
+    {receiptAvailable lookupAvailable : Bool} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool} {writer : WriterState}
+    (accepted : (openPipeline input activation receiptAvailable lookupAvailable auth receipt lookup).writer = some writer) :
+    ∃ recovered,
+      (openWriter input (fun r => authenticateRecord r (auth r))
+        (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer = some recovered ∧
+      pipelineAuthority recovered input.crypto receiptAvailable lookupAvailable auth receipt lookup = true ∧
+      writer.state = recovered.state := by
+  unfold openPipeline at accepted
+  split at accepted
+  · contradiction
+  · dsimp only at accepted
+    split at accepted
+    · contradiction
+    · rename_i opened recovered present
+      split at accepted
+      · rename_i finished
+        cases accepted
+        have authority := pipeline_open_authorized finished
+        exact ⟨recovered, present, authority.1, authority.2⟩
+      · contradiction
+
+/-- A recovered writer with no pending retirement becomes usable after successful retained authority checks. -/
+theorem public_pipeline_ready {input : OpenInput} {activation : ActivationInput}
+    {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
+    {lookup : Option Lookup → Option Version → Bool} {writer : WriterState}
+    (storage : input.storageAvailable = true) (crypto : input.crypto = true)
+    (recovered : (openWriter input (fun r => authenticateRecord r (auth r))
+      (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer = some writer)
+    (ready : writer.pending = none)
+    (authorized : pipelineAuthority writer input.crypto true true auth receipt lookup = true) :
+    openPipeline input activation true true auth receipt lookup = ⟨some writer, writer.bytes, activation.floor⟩ := by
+  simp only [openPipeline, storage, crypto, Bool.not_true, Bool.false_or, Bool.false_eq_true, ↓reduceIte]
+  rw [crypto] at recovered authorized
+  simp only [recovered, finishPipelineOpen, authorized, ↓reduceIte, activateWriter, ready]
 
 end Spacewave.SObject.Journal
