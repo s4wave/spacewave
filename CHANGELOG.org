@@ -1,5 +1,27 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.8
+<2026-09-24 Thu>
+
+Spacewave 0.57.8 fixes signing in with the desktop and command-line apps, and
+makes the browser app start faster.
+
+** Fixes
+- The desktop and command-line apps accept connections again, so signing in no
+  longer hangs after installation.
+- Background web listeners keep the desktop daemon running.
+- Logs and helper processes stay inside the configured state directory.
+- Space plugins and their manifests load reliably in nested Spaces.
+- Pairing links open the pairing flow before the app finishes starting.
+- Synchronization handles interrupted journals, recovery and denied writes
+  more safely.
+
+** Improvements
+- The browser app downloads far fewer files at startup. Code highlighting loads
+  from a shared plugin only when a code view needs it.
+- Garbage collection sweeps in batches, reducing CPU and disk writes.
+- Blocks share one decoded cache, reducing memory use.
+
 * v0.57.7
 <2026-09-22 Tue>
 

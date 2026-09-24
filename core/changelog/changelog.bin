@@ -1,4 +1,16 @@
 
+·
+0.57.8
+2026-09-24qSpacewave 0.57.8 fixes signing in with the desktop and command-line apps, and makes the browser app start faster."qSpacewave 0.57.8 fixes signing in with the desktop and command-line apps, and makes the browser app start faster.2Þ
+mThe desktop and command-line apps accept connections again, so signing in no longer hangs after installation.mThe desktop and command-line apps accept connections again, so signing in no longer hangs after installation.2v
+9Background web listeners keep the desktop daemon running.9Background web listeners keep the desktop daemon running.2Ž
+ELogs and helper processes stay inside the configured state directory.ELogs and helper processes stay inside the configured state directory.2†
+ASpace plugins and their manifests load reliably in nested Spaces.ASpace plugins and their manifests load reliably in nested Spaces.2Ž
+EPairing links open the pairing flow before the app finishes starting.EPairing links open the pairing flow before the app finishes starting.2®
+USynchronization handles interrupted journals, recovery and denied writes more safely.USynchronization handles interrupted journals, recovery and denied writes more safely.:Š
+‚The browser app downloads far fewer files at startup. Code highlighting loads from a shared plugin only when a code view needs it.‚The browser app downloads far fewer files at startup. Code highlighting loads from a shared plugin only when a code view needs it.:Š
+CGarbage collection sweeps in batches, reducing CPU and disk writes.CGarbage collection sweeps in batches, reducing CPU and disk writes.:l
+4Blocks share one decoded cache, reducing memory use.4Blocks share one decoded cache, reducing memory use.
 ¢
 0.57.7
 2026-09-22LSpacewave 0.57.7 fixes startup in desktop and command-line release packages."LSpacewave 0.57.7 fixes startup in desktop and command-line release packages.2ò
