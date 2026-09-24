@@ -51,6 +51,22 @@ spacewave git lfs setup --space "My Space" git-lfs/media
 git lfs pull
 ```
 
+## Move a repository that already uses Git LFS
+
+When the repository already keeps large files on another Git LFS server, such
+as GitHub, setup lists how many and prints the two commands that move them.
+Download every version from the old server, bypassing the Space, then upload
+them all to the Space:
+
+```sh
+git -c lfs.standalonetransferagent= lfs fetch --all origin
+git lfs push --all origin
+```
+
+After the move, new large files go only to the Space. Anyone who fetches the
+files without running setup still reads the old server, which stops receiving
+them.
+
 ## Share with collaborators
 
 The large files are only as available as the Space. A collaborator needs access

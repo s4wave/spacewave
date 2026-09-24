@@ -31,6 +31,7 @@ cd $WORK
 git clone remote.git copy
 cd $WORK/copy
 spacewave git lfs setup --state-path $WORK/state --space CLI git-lfs/assets
+stdout "Next step: git lfs pull"
 git lfs pull
 cmp $WORK/assets/asset.bin $WORK/copy/asset.bin
 
