@@ -58,15 +58,26 @@ func (c *Controller) resolveSourceFetchManifest(
 			cancel()
 			return err
 		}
-		select {
-		case <-ctx.Done():
-			cancel()
-			release()
-			return ctx.Err()
-		case <-waitCh:
-			cancel()
-			release()
+
+		// Keep the parent demand until the source or the approval changes.
+		// The broadcast also fires for unrelated state such as resolver
+		// registration, which must not restart the parent fetch.
+		for {
+			select {
+			case <-ctx.Done():
+				cancel()
+				release()
+				return ctx.Err()
+			case <-waitCh:
+			}
+			var next bus.Bus
+			next, approved, waitCh = c.getManifestSourceApproval(dir.GetManifestId())
+			if next != source || !approved {
+				break
+			}
 		}
+		cancel()
+		release()
 	}
 }
 
