@@ -770,4 +770,219 @@ theorem drainPages_available (fuel : Nat) (before : Response) (sizes : Response 
           (fun response suffix nonempty => fits response (responseSuffix_trans suffix (nextMessage_suffix emitted)) nonempty)
         exact ⟨page :: pages, snapshot, by simp [drainPages, empty, emitted, tail]⟩
 
+/-- pageSequence records the exact binding, bounds and suffix partition of consecutive pages. -/
+def pageSequence (revision : Nat) (cursor : String) (changes : List HistoryChange) : List HistoryPage → Prop
+  | [] => changes = []
+  | page :: pages =>
+    page.revision = revision ∧ page.cursor = cursor ∧ page.changes ≠ [] ∧
+    page.bytes ≤ maxHistoryPageBytes ∧ page.changes.length ≤ maxHistoryPageEntries ∧
+    ∃ remaining, page.changes ++ remaining = changes ∧
+      pageSequence revision (historyCursor cursor page.changes) remaining pages
+
+/-- History byte totals compose across the exact prefix emitted by a page. -/
+theorem historyBytes_append (left right : List HistoryChange) :
+    historyBytes (left ++ right) = historyBytes left + historyBytes right := by
+  simp [historyBytes]
+
+/-- Causal history splits at any prefix without changing the suffix's starting digest. -/
+theorem follows_append (cursor : String) (left right : List HistoryChange) :
+    follows cursor (left ++ right) =
+      (follows cursor left && follows (historyCursor cursor left) right) := by
+  induction left generalizing cursor with
+  | nil => simp [follows, historyCursor]
+  | cons change rest ih => simp [follows, historyCursor, ih, Bool.and_assoc]
+
+/-- A causal suffix contains only successful primitive hash observations. -/
+theorem follows_hashes {cursor : String} {changes : List HistoryChange}
+    (linked : follows cursor changes = true) : changes.all (·.hashOK) = true := by
+  induction changes generalizing cursor with
+  | nil => rfl
+  | cons change rest ih =>
+    simp only [follows, Bool.and_eq_true] at linked
+    simp only [List.all_cons, linked.1.2, Bool.true_and]
+    exact ih linked.2
+
+/-- Every successful page has exact retained-byte accounting. -/
+theorem appendPage_bytes {before : Receive} {page : HistoryPage}
+    (accepted : (appendPage before (some page)).ok = true) :
+    (appendPage before (some page)).state.bytes = before.bytes + historyBytes page.changes := by
+  unfold appendPage at accepted ⊢
+  dsimp only at accepted ⊢
+  split at accepted
+  · contradiction
+  · rename_i binding
+    simp only [binding]
+    split at accepted
+    · contradiction
+    · rename_i bounded
+      simp only [bounded]
+      exact (appendChanges_exact accepted).2.1
+
+/-- A complete sender trace provides a bounded and consistently bound receiver schedule. -/
+theorem drainPages_schedule {fuel : Nat} {before : Response} {sizes : Response → List Nat}
+    {pages : List HistoryPage} {snapshot : Option Snapshot}
+    (drained : drainPages fuel before sizes = some (pages, snapshot)) :
+    pageSequence before.revision before.cursor before.changes pages := by
+  induction fuel generalizing before pages snapshot with
+  | zero =>
+    simp only [drainPages] at drained
+    split at drained
+    · cases drained
+      simpa [pageSequence] using ‹before.changes.isEmpty = true›
+    · contradiction
+  | succ fuel ih =>
+    simp only [drainPages] at drained
+    split at drained
+    · cases drained
+      simpa [pageSequence] using ‹before.changes.isEmpty = true›
+    · cases emitted : (nextMessage before (sizes before)).page with
+      | none => simp [emitted] at drained
+      | some page =>
+        simp only [emitted, Option.bind_eq_bind, Option.bind_some] at drained
+        cases rest : drainPages fuel (nextMessage before (sizes before)).state sizes with
+        | none => simp [rest] at drained
+        | some pair =>
+          rcases pair with ⟨tail, final⟩
+          simp only [rest, Option.bind_some] at drained
+          rcases drained with ⟨rfl, rfl⟩
+          have schedule := ih rest
+          obtain ⟨revision, cursor, nonempty, count, bytes, partition⟩ := nextMessage_page emitted
+          refine ⟨revision, cursor, nonempty, bytes, count, _, partition, ?_⟩
+          simpa only [(nextMessage_binding before (sizes before)).1, nextMessage_cursor emitted] using schedule
+
+/-- receivePages composes successful appendPage calls; rejection never yields a complete receiver. -/
+def receivePages (before : Receive) : List HistoryPage → Option Receive
+  | [] => some before
+  | page :: pages =>
+    let received := appendPage before (some page)
+    if received.ok then receivePages received.state pages else none
+
+/-- Successful page reception retains its pinned target and accumulates precisely the sent entries. -/
+theorem receivePages_exact {before after : Receive} {pages : List HistoryPage}
+    (received : receivePages before pages = some after) :
+    after.head = before.head ∧ after.base = before.base ∧
+    after.changes = before.changes ++ pages.flatMap (·.changes) ∧
+    after.bytes = before.bytes + historyBytes (pages.flatMap (·.changes)) ∧
+    after.cursor = historyCursor before.cursor (pages.flatMap (·.changes)) := by
+  induction pages generalizing before with
+  | nil =>
+    cases received
+    simp [historyBytes, historyCursor]
+  | cons page pages ih =>
+    simp only [receivePages] at received
+    split at received
+    · rename_i accepted
+      obtain ⟨head, base, entries, bytes, cursor⟩ := ih received
+      have binding := appendPage_binding before (some page)
+      obtain ⟨_, _, _, _, _, firstEntries, firstCursor, _⟩ := appendPage_exact accepted
+      refine ⟨head.trans binding.1, base.trans binding.2, ?_, ?_, ?_⟩
+      · simpa [firstEntries, List.append_assoc] using entries
+      · simpa [appendPage_bytes accepted, historyBytes_append, Nat.add_assoc] using bytes
+      · simpa [firstCursor, historyCursor, List.foldl_append] using cursor
+    · contradiction
+
+/-- A bounded causal sender schedule is completely received without assuming any page admission. -/
+theorem receivePages_complete (before : Receive) (changes : List HistoryChange) (pages : List HistoryPage)
+    (schedule : pageSequence before.head.revision before.cursor changes pages)
+    (linked : follows before.cursor changes = true)
+    (sized : before.bytes + historyBytes changes ≤ maxSuffixBytes)
+    (counted : before.changes.length + changes.length ≤ maxSuffixEntries) :
+    ∃ after, receivePages before pages = some after := by
+  induction pages generalizing before changes with
+  | nil => exact ⟨before, rfl⟩
+  | cons page pages ih =>
+    obtain ⟨revision, cursor, nonempty, pageBytes, pageCount, remaining, partition, tail⟩ := schedule
+    rw [← partition, follows_append] at linked
+    simp only [Bool.and_eq_true] at linked
+    rw [← partition, historyBytes_append] at sized
+    have length := congrArg List.length partition
+    simp only [List.length_append] at length
+    have admitted := appendPage_complete before page revision cursor nonempty pageBytes pageCount linked.1
+      (by omega) (by omega)
+    have binding := appendPage_binding before (some page)
+    obtain ⟨_, _, _, _, _, entries, finish, _⟩ := appendPage_exact admitted
+    have bytes := appendPage_bytes admitted
+    obtain ⟨after, received⟩ := ih (appendPage before (some page)).state remaining
+      (by simpa only [binding.1, finish] using tail)
+      (by simpa only [finish] using linked.2)
+      (by rw [bytes]; omega)
+      (by rw [entries, List.length_append]; omega)
+    exact ⟨after, by simp only [receivePages, admitted, ↓reduceIte]; exact received⟩
+
+/-- A healthy complete response drains and reconstructs the same suffix with its original snapshot. -/
+theorem pagesExchange_complete (sender : Response) (receiver : Receive) (sizes : Response → List Nat)
+    (revision : sender.revision = receiver.head.revision) (cursor : sender.cursor = receiver.cursor)
+    (linked : follows sender.cursor sender.changes = true)
+    (sized : receiver.bytes + historyBytes sender.changes ≤ maxSuffixBytes)
+    (counted : receiver.changes.length + sender.changes.length ≤ maxSuffixEntries)
+    (fits : ∀ response, responseSuffix response sender → response.changes ≠ [] →
+      prefixBytes (sizes response) 1 ≤ maxHistoryPageBytes) :
+    ∃ pages snapshot after, drainPages sender.changes.length sender sizes = some (pages, snapshot) ∧
+      receivePages receiver pages = some after ∧ after.head = receiver.head ∧ after.base = receiver.base ∧
+      after.changes = receiver.changes ++ sender.changes ∧
+      after.cursor = historyCursor sender.cursor sender.changes ∧ snapshot = sender.snapshot := by
+  obtain ⟨pages, snapshot, sent⟩ := drainPages_available sender.changes.length sender sizes
+    (Nat.le_refl _) (follows_hashes linked) fits
+  have schedule := drainPages_schedule sent
+  obtain ⟨after, received⟩ := receivePages_complete receiver sender.changes pages
+    (by simpa only [revision, cursor] using schedule) (by simpa only [cursor] using linked) sized counted
+  obtain ⟨head, base, entries, _, finish⟩ := receivePages_exact received
+  obtain ⟨complete, pinned⟩ := drainPages_exact sent
+  exact ⟨pages, snapshot, after, sent, received, head, base,
+    by simpa only [complete] using entries, by simpa only [complete, cursor] using finish, pinned⟩
+
+/-- Complete bounded page delivery reaches host publication without an assumed page or import result. -/
+theorem pagesExchange_imports (sender : Response) (input : AcceptanceInput) (sizes : Response → List Nat)
+    (candidate : State) (snapshot : Snapshot)
+    (revision : sender.revision = input.receiving.head.revision) (cursor : sender.cursor = input.receiving.cursor)
+    (linked : follows sender.cursor sender.changes = true)
+    (sized : input.receiving.bytes + historyBytes sender.changes ≤ maxSuffixBytes)
+    (counted : input.receiving.changes.length + sender.changes.length ≤ maxSuffixEntries)
+    (fits : ∀ response, responseSuffix response sender → response.changes ≠ [] →
+      prefixBytes (sizes response) 1 ≤ maxHistoryPageBytes)
+    (empty : input.receiving.changes = []) (pinned : sender.snapshot = input.snapshot)
+    (present : input.snapshot = some snapshot) (decoded : input.decoded = some candidate)
+    (snapshotRevision : snapshot.revision = input.receiving.head.revision)
+    (snapshotBase : snapshot.base = input.receiving.base)
+    (targetCursor : historyCursor sender.cursor sender.changes = input.receiving.head.configHash)
+    (digest : input.digest = input.receiving.head.stateHash)
+    (current : responseObsolete input.beforeRead input.receiving.head = false)
+    (snapshotRoot : snapshot.rootSeqno = input.receiving.head.rootSeqno)
+    (rootSeq : candidate.root.seqno = snapshot.rootSeqno)
+    (configSeq : candidate.config.seqno = input.receiving.head.configSeqno)
+    (configHash : candidate.config.hash = input.receiving.head.configHash)
+    (candidateBytes : input.candidateBytes ≤ 10 * 1024 * 1024)
+    (chain : verifySuffix input.previous.config candidate.config (sender.changes.map (·.entry)) = true)
+    (readable : readableBy candidate.config input.localPeer = true)
+    (root : importRoot input.previous.root candidate.root candidate.config = some candidate.root)
+    (progress : input.previous.root.seqno < candidate.root.seqno) (valid : candidate.validate = true)
+    (localEmpty : input.previous.ops = []) (remoteEmpty : candidate.ops = [])
+    (lock : input.lockOK = true) (access : input.accessOK = true) (write : input.writeOK = true) :
+    ∃ pages after, drainPages sender.changes.length sender sizes = some (pages, input.snapshot) ∧
+      receivePages input.receiving pages = some after ∧
+      (acceptResponse {input with receiving := after}).ok = true ∧
+      (acceptResponse {input with receiving := after}).host.wrote = true ∧
+      sameCheckpoint (acceptResponse {input with receiving := after}).host.state candidate = true := by
+  obtain ⟨pages, final, after, sent, received, head, base, entries, finish, snapshotEq⟩ :=
+    pagesExchange_complete sender input.receiving sizes revision cursor linked sized counted fits
+  have changes : after.changes = sender.changes := by simpa only [empty, List.nil_append] using entries
+  have bounded : input.candidateBytes ≤ 10 * 1024 * 1024 ∧ after.changes.length ≤ 4096 ∧
+      historyBytes after.changes ≤ 8 * 1024 * 1024 := by
+    refine ⟨candidateBytes, ?_, ?_⟩
+    · simpa only [changes, empty, List.length_nil, Nat.zero_add, maxSuffixEntries] using counted
+    · rw [changes]
+      dsimp [maxSuffixBytes] at sized
+      omega
+  have imported := acceptResponse_complete {input with receiving := after} candidate snapshot present decoded
+    (by simpa only [head] using snapshotRevision)
+    (by simpa only [base] using snapshotBase)
+    (by simpa only [head] using finish.trans targetCursor)
+    (by simpa only [head] using digest)
+    (by simpa only [head] using current)
+    (by simpa only [head] using snapshotRoot) rootSeq
+    (by simpa only [head] using configSeq)
+    (by simpa only [head] using configHash) bounded
+    (by simpa only [changes] using chain) readable root progress valid localEmpty remoteEmpty lock access write
+  exact ⟨pages, after, by simpa only [snapshotEq, pinned] using sent, received, imported⟩
+
 end Spacewave.SObject.Sync

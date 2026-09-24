@@ -292,6 +292,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		ConfigSeqno: target.Config.ConfigChainSeqno, RootSeqno: target.Root.InnerSeqno, StateHash: digest}
 	received := &syncReceive{head: head, base: request.BaseHash, cursor: request.BaseHash}
 	var cases []leanSyncCase
+	var pages []*SOSyncMessage
 	for len(response.changes) != 0 {
 		message, err := response.nextMessage()
 		if err != nil {
@@ -299,6 +300,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		}
 		var arena fastjson.Arena
 		input := arena.NewObject()
+		pages = append(pages, message)
 		input.Set("op", arena.NewString("appendSyncPage"))
 		input.Set("before", leanSyncReceive(t, &arena, received))
 		input.Set("page", leanSyncPage(t, &arena, message))
@@ -326,6 +328,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 	if len(decoded.Invites) != 0 || len(decoded.QueuedAccountNonces) != 0 {
 		t.Fatal("prepared snapshot disclosed local capabilities or reservations")
 	}
+	cases = append(cases, leanSyncReceptionCases(t, head, request.BaseHash, pages)...)
 	for variant := range 29 {
 		previous, candidate := initial.CloneVT(), decoded.CloneVT()
 		receiving := &syncReceive{head: head.CloneVT(), base: append([]byte(nil), received.base...),
@@ -690,6 +693,60 @@ func leanSyncObsoleteCases(t *testing.T, objectID string, state *sobject.SOState
 			cases = append(cases, leanSyncCase{name: "obsolete coordinates " + strconv.Itoa(configDelta) + "/" + strconv.Itoa(rootDelta),
 				request: input.MarshalTo(nil), expected: expected.MarshalTo(nil)})
 		}
+	}
+	return cases
+}
+
+// leanSyncReceptionCases compares complete and interrupted sequences of the actual received pages.
+func leanSyncReceptionCases(t *testing.T, head *SOSyncHead, base []byte, pages []*SOSyncMessage) []leanSyncCase {
+	t.Helper()
+	var cases []leanSyncCase
+	for variant := range 8 {
+		receiving := &syncReceive{head: head, base: base, cursor: base}
+		var messages []*SOSyncMessage
+		for _, page := range pages {
+			messages = append(messages, page.CloneVT())
+		}
+		switch variant {
+		case 1:
+			messages[0].GetHistoryPage().Revision ^= 1
+		case 2:
+			messages[1].GetHistoryPage().Cursor = []byte("wrong second cursor")
+		case 3:
+			messages[0], messages[1] = messages[1], messages[0]
+		case 4:
+			messages = messages[:len(messages)-1]
+		case 5:
+			messages = append(messages[:1], messages...)
+		case 6:
+			messages = append(messages, &SOSyncMessage{Body: &SOSyncMessage_HistoryPage{HistoryPage: &SOSyncHistoryPage{
+				Revision: head.Revision, Cursor: head.ConfigHash,
+			}}})
+		case 7:
+			receiving.size = sobject.MaxConfigSuffixBytes
+		}
+		var arena fastjson.Arena
+		input, projected := arena.NewObject(), arena.NewArray()
+		input.Set("op", arena.NewString("receiveSyncPages"))
+		input.Set("before", leanSyncReceive(t, &arena, receiving))
+		for index, message := range messages {
+			projected.SetArrayItem(index, leanSyncPage(t, &arena, message))
+		}
+		input.Set("pages", projected)
+		var err error
+		for _, message := range messages {
+			if err = receiving.appendPage(message); err != nil {
+				break
+			}
+		}
+		expected, result := arena.NewObject(), arena.NewNull()
+		if err == nil {
+			result = leanSyncReceive(t, &arena, receiving)
+		}
+		expected.Set("ok", leanSyncBool(&arena, err == nil))
+		expected.Set("received", result)
+		cases = append(cases, leanSyncCase{name: "receiveSyncPages variant " + strconv.Itoa(variant),
+			request: input.MarshalTo(nil), expected: expected.MarshalTo(nil)})
 	}
 	return cases
 }

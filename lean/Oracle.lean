@@ -51,6 +51,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
 - `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
+- `receiveSyncPages`: initial receive buffer and complete page sequence; result `{"ok", "received"}`.
 - `acceptSyncResponse`: complete pinned response, decoded bytes and host observations; result `{"ok", "accepted"}`.
 - `prepareSyncResponse`: pinned state, history read and encoding observations; result `{"ok", "response"}`.
 - `syncStateHash`: stripped-state encoding and digest observations; result `{"ok", "digest"}`.
@@ -135,6 +136,10 @@ deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "receiveSyncPages" =>
+    let result := Sync.receivePages (← req.getObjValAs? Sync.Receive "before")
+      (← req.getObjValAs? (List Sync.HistoryPage) "pages")
+    return json% {ok: $(result.isSome), received: $result}
   | "acceptSyncResponse" =>
     let result := Sync.acceptResponse (← req.getObjValAs? Sync.AcceptanceInput "input")
     return json% {ok: $(result.ok), accepted: $result}
