@@ -66,7 +66,8 @@ const h = vi.hoisted(() => ({
   spaceContainerProvider: vi.fn(),
 }))
 
-vi.mock('@aptre/bldr-react', () => ({
+vi.mock('@aptre/bldr-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@aptre/bldr-react')>()),
   useWatchStateRpc: () => {
     const response = h.watches.length
       ? (h.watches[h.watchCall % h.watches.length] ?? null)
