@@ -52,6 +52,7 @@ export interface Config {
   engineId?: string
   /**
    * ObjectKeys is the list of object keys to collect manifests from.
+   * If empty, manifests are collected from every manifest store.
    *
    * @generated from field: repeated string object_keys = 6;
    */

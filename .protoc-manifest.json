@@ -1128,7 +1128,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/plugin/space": {
-      "hash": "a22efa50934c8b8c311272bff367a635c5a96d6d35a2045117d8d011ac8f5537",
+      "hash": "ac6b561aeadd3934cdba211980961011e1df00efb17c4af867e3bedf534cb994",
       "generatedFiles": [
         "core/plugin/space/config.pb.go",
         "core/plugin/space/config.pb.ts"
