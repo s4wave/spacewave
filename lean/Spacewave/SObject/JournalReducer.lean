@@ -568,4 +568,48 @@ theorem reduceJournal_indexed {records : List (Option Record)} {out : State}
     (h : reduceJournal records = some out) : stateSorted out ∧ stateUnique out :=
   replayFrom_indexed (by simp [stateSorted]) (by intro a member; contradiction) h
 
+/-- stateDistinct prohibits duplicate digest entries, including identical attempts. -/
+def stateDistinct (state : State) : Prop :=
+  state.Pairwise (fun a b => attemptDigest a ≠ attemptDigest b)
+
+/-- Replacing a digest slot preserves one list entry per map key. -/
+theorem putAttempt_distinct {state : State} (distinct : stateDistinct state) (attempt : Attempt) :
+    stateDistinct (putAttempt state attempt) := by
+  unfold stateDistinct putAttempt
+  apply (List.mergeSort_perm _ _).symm.pairwise _ (fun h => Ne.symm h)
+  apply List.pairwise_cons.mpr
+  constructor
+  · intro a member
+    simp only [List.mem_filter, bne_iff_ne] at member
+    exact Ne.symm member.2
+  · exact distinct.filter _
+
+/-- Replay preserves the absence of duplicate digest entries. -/
+theorem replayFrom_distinct {records : List (Option Record)} {state out : State} {sequence : Nat}
+    (distinct : stateDistinct state) (h : replayFrom state sequence records = some out) : stateDistinct out := by
+  induction records generalizing state sequence with
+  | nil =>
+    simp only [replayFrom, Option.some.injEq] at h
+    cases h
+    exact distinct
+  | cons record records ih =>
+    cases record with
+    | none => simp [replayFrom] at h
+    | some record =>
+      simp only [replayFrom, Option.bind_eq_bind, Option.bind_some] at h
+      split at h
+      · contradiction
+      · cases applied : applyRecord state (some record) with
+        | none => simp [applied] at h
+        | some next =>
+          simp only [applied, Option.bind_some] at h
+          obtain ⟨a, shape⟩ := applyRecord_isPut applied
+          subst next
+          exact ih (putAttempt_distinct distinct a) h
+
+/-- A fresh reducer snapshot has exactly one entry for each retained digest. -/
+theorem reduceJournal_distinct {records : List (Option Record)} {out : State}
+    (h : reduceJournal records = some out) : stateDistinct out :=
+  replayFrom_distinct (by simp [stateDistinct]) h
+
 end Spacewave.SObject.Journal

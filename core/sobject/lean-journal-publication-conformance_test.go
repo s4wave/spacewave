@@ -191,10 +191,14 @@ func projectLeanJournalPublication(t *testing.T, writer *journalWriter, storage 
 	for index, record := range writer.records {
 		records[index] = projectLeanJournalRecord(t, record)
 	}
+	var state []*JournalAttemptSnapshot
+	if writer.reducer != nil {
+		state = writer.reducer.Snapshot()
+	}
 	return map[string]any{
 		"bytes": map[string]any{"data": leanJournalBytes(storage.bytes()), "durable": leanJournalBytes(storage.durable)},
 		"floor": storage.generationFloor, "markerGeneration": markerGeneration, "checkpointGenerations": projectedGenerations,
 		"generation": writer.generation, "sequence": writer.sequence, "offset": uint64(writer.offset),
-		"records": records, "state": projectLeanJournalState(t, writer.reducer.Snapshot()), "poisoned": writer.poisoned != nil,
+		"records": records, "state": projectLeanJournalState(t, state), "poisoned": writer.poisoned != nil,
 	}
 }

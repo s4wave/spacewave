@@ -197,6 +197,69 @@ theorem checkpoint_roundtrip {records : List (Option Record)} {state restored : 
       · exact sorted
       · exact perm
 
+/-- Restoring the omitted lookup history preserves compact-attempt validity. -/
+theorem restoreAttempt_valid {attempt : Attempt} (valid : validCheckpointAttempt attempt = true) :
+    validCheckpointAttempt (restoreAttempt attempt) = true := by
+  cases lookup : attempt.lookup <;>
+    simp_all [validCheckpointAttempt, restoreAttempt, Attempt.withLookup]
+  all_goals repeat' first | split at * | simp_all
+
+/-- Valid attempts with distinct digests can always be hydrated into disjoint held state. -/
+theorem hydrateAttempts_exists {attempts state : State}
+    (valid : ∀ a ∈ attempts, validCheckpointAttempt a = true)
+    (distinct : stateDistinct attempts)
+    (disjoint : ∀ a ∈ attempts, ∀ b ∈ state, attemptDigest a ≠ attemptDigest b) :
+    ∃ out, hydrateAttempts state attempts = some out := by
+  induction attempts generalizing state with
+  | nil => exact ⟨state, rfl⟩
+  | cons attempt attempts ih =>
+    have absent : findAttempt state (attemptDigest attempt) = none := by
+      apply List.find?_eq_none.mpr
+      intro b member
+      simpa only [beq_iff_eq] using Ne.symm (disjoint attempt (by simp) b member)
+    have pair := List.pairwise_cons.mp distinct
+    have restValid : ∀ a ∈ attempts, validCheckpointAttempt a = true :=
+      fun a member => valid a (by simp [member])
+    have restDisjoint : ∀ a ∈ attempts, ∀ b ∈ putAttempt state attempt, attemptDigest a ≠ attemptDigest b := by
+      intro a member b held
+      simp only [putAttempt, List.mem_mergeSort, List.mem_cons, List.mem_filter] at held
+      rcases held with rfl | ⟨held, _⟩
+      · exact Ne.symm (pair.1 a member)
+      · exact disjoint a (by simp [member]) b held
+    obtain ⟨out, restored⟩ := ih restValid pair.2 restDisjoint
+    exact ⟨out, by simp [hydrateAttempts, valid attempt (by simp), absent, restored]⟩
+
+/-- Every successfully built replay checkpoint reopens; hydration admission is derived. -/
+theorem checkpoint_read_exists {records : List (Option Record)} {state : State}
+    {identity : String} {generation nextSequence : Nat} {checkpoint : CompactCheckpoint}
+    (replayed : reduceJournal records = some state)
+    (built : buildCheckpoint identity generation nextSequence (some state) = some checkpoint) :
+    readCheckpoint checkpoint identity generation nextSequence = some state := by
+  have builtCopy := built
+  unfold buildCheckpoint at builtCopy
+  split at builtCopy
+  · contradiction
+  · simp only [Option.bind_eq_bind, Option.bind_some] at builtCopy
+    split at builtCopy
+    · contradiction
+    · rename_i admitted
+      have compactValid : ∀ a ∈ state.map compactAttempt, validCheckpointAttempt a = true := by
+        apply List.all_eq_true.mp
+        simpa using admitted
+      cases builtCopy
+      have valid : ∀ a ∈ (state.map compactAttempt).map restoreAttempt, validCheckpointAttempt a = true := by
+        intro a member
+        obtain ⟨original, originalMember, rfl⟩ := List.mem_map.mp member
+        exact restoreAttempt_valid (compactValid original originalMember)
+      rw [replay_checkpoint_fields replayed] at valid
+      obtain ⟨out, hydrated⟩ := hydrateAttempts_exists (state := []) valid (reduceJournal_distinct replayed)
+        (by intro a am b bm; contradiction)
+      have read : readCheckpoint ⟨identity, generation, nextSequence, state.map compactAttempt⟩
+          identity generation nextSequence = some out := by
+        simpa [readCheckpoint, replay_checkpoint_fields replayed] using hydrated
+      rw [checkpoint_roundtrip replayed built read] at read
+      exact read
+
 /-- Actual accepted checkpoint hydration followed by a suffix equals full record replay. -/
 theorem hydrated_checkpoint_suffix {records suffix : List (Option Record)} {state restored : State}
     {identity : String} {generation nextSequence : Nat} {checkpoint : CompactCheckpoint}
@@ -1602,17 +1665,17 @@ theorem prepareOpen_checkpoint_state {input : OpenInput} {authenticate : Record 
 /-- Opening an accepted compact checkpoint and suffix agrees with full historical replay. -/
 theorem checkpoint_open_replay {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
     {observation : MarkerObservation} {marker : GenerationMarker} {checkpoint : CompactCheckpoint}
-    {history : List (Option Record)} {scanned : ScanResult} {base restored expected : State} {writer : WriterState}
+    {history : List (Option Record)} {scanned : ScanResult} {base expected : State} {writer : WriterState}
     (present : input.marker = some observation) (parsed : readMarker input.identity observation = some marker)
     (candidate : input.checkpoint = some checkpoint)
     (historyReplay : reduceJournal history = some base)
     (built : buildCheckpoint input.identity marker.generation marker.nextSequence (some base) = some checkpoint)
-    (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some restored)
     (sequence : marker.nextSequence = advanceSequence 1 history.length)
     (scan : checkpointScan (scanBytes marker.nextSequence input.bytes.data input.frames) = some scanned)
     (fullReplay : reduceJournal (history ++ scanned.records.map some) = some expected)
     (opened : prepareOpen input authenticate authenticateState = some writer) : writer.state = expected := by
-  have replayed : replayFrom restored marker.nextSequence (scanned.records.map some) = some expected := by
+  have hydrated := checkpoint_read_exists historyReplay built
+  have replayed : replayFrom base marker.nextSequence (scanned.records.map some) = some expected := by
     rw [hydrated_checkpoint_suffix historyReplay built hydrated sequence, fullReplay]
   exact prepareOpen_checkpoint_state present parsed candidate hydrated scan (replay_agrees_applyRecords replayed) opened
 
@@ -1642,12 +1705,14 @@ Fault codes name injected API outcomes: 1/10 candidate before/after write; 2/3 m
 before/after write; 4/5 floor before/after write; 6/7 retired read/mismatch; 8/11
 truncate before/after change; 9 failed Sync. Other codes complete successfully.
 The candidate generation and compact content must first pass the preparation contract. -/
-def publishCheckpoint (before : PublicationState) (generation : Nat) (fault : Int) : PublicationResult := Id.run do
+def publishCheckpoint (before : PublicationState) (generation : Nat) (fault : Int)
+    (markerOK : Bool := true) : PublicationResult := Id.run do
   let mut result := before
   if fault == 1 then return ⟨false, result⟩
   result := {result with checkpointGenerations :=
     (generation :: result.checkpointGenerations.filter (· != generation)).mergeSort (· ≤ ·)}
   if fault == 10 then return ⟨false, result⟩
+  if !markerOK then return ⟨false, result⟩
   result := {result with poisoned := true}
   if fault == 2 then return ⟨false, result⟩
   result := {result with markerGeneration := generation}
@@ -1664,8 +1729,9 @@ def publishCheckpoint (before : PublicationState) (generation : Nat) (fault : In
   return ⟨true, result⟩
 
 /-- Publication, successful or interrupted, never lowers the durable generation floor. -/
-theorem publication_floor_monotone (before : PublicationState) (generation : Nat) (fault : Int) :
-    before.floor ≤ (publishCheckpoint before generation fault).result.floor := by
+theorem publication_floor_monotone (before : PublicationState) (generation : Nat) (fault : Int)
+    (markerOK : Bool := true) :
+    before.floor ≤ (publishCheckpoint before generation fault markerOK).result.floor := by
   unfold publishCheckpoint
   simp only [Id.run, pure]
   repeat' first | split | (simp_all <;> omega)
@@ -1681,31 +1747,210 @@ theorem publication_failure_fenced (before : PublicationState) (generation : Nat
 
 /-- Complete publication commits the replacement before retiring the old bytes. -/
 theorem publication_success (before : PublicationState) (generation : Nat) (fault : Int)
-    (h : (publishCheckpoint before generation fault).ok = true) :
-    (publishCheckpoint before generation fault).result.markerGeneration = generation ∧
-    (publishCheckpoint before generation fault).result.floor = max before.floor generation ∧
-    (publishCheckpoint before generation fault).result.bytes.durable = [] ∧
-    (publishCheckpoint before generation fault).result.generation = generation ∧
-    (publishCheckpoint before generation fault).result.offset = 0 ∧
-    (publishCheckpoint before generation fault).result.poisoned = false := by
+    (markerOK : Bool := true)
+    (h : (publishCheckpoint before generation fault markerOK).ok = true) :
+    (publishCheckpoint before generation fault markerOK).result.markerGeneration = generation ∧
+    (publishCheckpoint before generation fault markerOK).result.floor = max before.floor generation ∧
+    (publishCheckpoint before generation fault markerOK).result.bytes.durable = [] ∧
+    (publishCheckpoint before generation fault markerOK).result.generation = generation ∧
+    (publishCheckpoint before generation fault markerOK).result.offset = 0 ∧
+    (publishCheckpoint before generation fault markerOK).result.poisoned = false := by
   unfold publishCheckpoint at *
   simp only [Id.run, pure] at *
   repeat' first | split at * | simp_all [syncBytes]
 
 /-- Every outcome after a successful candidate write retains its generation slot. -/
 theorem publication_candidate_retained (before : PublicationState) (generation : Nat) (fault : Int)
+    (markerOK : Bool := true)
     (written : fault ≠ 1) :
-    generation ∈ (publishCheckpoint before generation fault).result.checkpointGenerations := by
+    generation ∈ (publishCheckpoint before generation fault markerOK).result.checkpointGenerations := by
   unfold publishCheckpoint
   simp only [Id.run, pure]
   repeat' first | split | simp_all [List.mem_mergeSort]
 
 /-- A checkpoint never changes the live reducer result or the next writer-owned sequence. -/
-theorem publication_preserves_state (before : PublicationState) (generation : Nat) (fault : Int) :
-    (publishCheckpoint before generation fault).result.state = before.state ∧
-    (publishCheckpoint before generation fault).result.sequence = before.sequence := by
+theorem publication_preserves_state (before : PublicationState) (generation : Nat) (fault : Int)
+    (markerOK : Bool := true) :
+    (publishCheckpoint before generation fault markerOK).result.state = before.state ∧
+    (publishCheckpoint before generation fault markerOK).result.sequence = before.sequence := by
   unfold publishCheckpoint
   simp only [Id.run, pure]
   repeat' first | split | simp_all
+
+/-- CheckpointInput contains capabilities, storage reads and primitive serialization/encryption outcomes. -/
+structure CheckpointInput where
+  journalAvailable : Bool
+  crypto : Bool
+  generationSupported : Bool
+  floorSupported : Bool
+  reducerAvailable : Bool
+  identity : String
+  floorReadOK : Bool
+  markerReadOK : Bool
+  marker : Option MarkerObservation
+  retiredReadOK : Bool
+  encodedLength : Option Nat
+  snapshotDigest : String
+  retiredDigest : String
+  sealOK : Bool
+  fault : Int
+  deriving Repr, Inhabited
+
+/-- checkpointGeneration selects the same writer/floor/marker high water mark as checkpoint. -/
+def checkpointGeneration (before : PublicationState) (input : CheckpointInput) : Option Nat := do
+  let active := max before.generation before.floor
+  match input.marker with
+  | none => if before.floor != 0 then none else some ((active + 1) % seqnoLimit)
+  | some observation =>
+    let marker ← readMarker input.identity observation
+    if !generationWindow before.floor marker.generation then none
+    else some ((max active marker.generation + 1) % seqnoLimit)
+
+/-- PreparedCheckpoint is the candidate content and complete binding assembled before publication. -/
+structure PreparedCheckpoint where
+  checkpoint : CompactCheckpoint
+  marker : GenerationMarker
+  deriving Repr, Inhabited
+
+/-- prepareCheckpoint mirrors every check before the candidate write. -/
+def prepareCheckpoint (before : PublicationState) (input : CheckpointInput) : Option PreparedCheckpoint := do
+  if !input.journalAvailable || !input.crypto || !input.generationSupported || before.poisoned ||
+      !input.floorSupported || !input.floorReadOK || !input.markerReadOK then none
+  else
+    let generation ← checkpointGeneration before input
+    if !input.retiredReadOK then none
+    else
+      let checkpoint ← buildCheckpoint input.identity generation before.sequence
+        (if input.reducerAvailable then some before.state else none)
+      let length ← input.encodedLength
+      if length > 4294967295 || !input.sealOK then none
+      else some ⟨checkpoint, ⟨input.identity, generation, before.sequence, length, input.snapshotDigest,
+        before.bytes.data.length, input.retiredDigest⟩⟩
+
+/-- validOutgoingMarker mirrors marshalJournalGenerationMarker after the candidate write. -/
+def validOutgoingMarker (marker : GenerationMarker) : Bool :=
+  marker.identity.length == digestLength && marker.generation != 0 && marker.nextSequence != 0 &&
+  marker.snapshotLength != 0 && marker.snapshotDigest.length == digestLength && marker.retiredDigest.length == digestLength
+
+/-- CheckpointResult exposes attempted candidate construction and all durable publication effects. -/
+structure CheckpointResult where
+  ok : Bool
+  result : PublicationState
+  prepared : Option PreparedCheckpoint
+  deriving Repr, Inhabited
+
+/-- checkpointWriter composes preparation, candidate persistence, marker validation and publication. -/
+def checkpointWriter (before : PublicationState) (input : CheckpointInput) : CheckpointResult :=
+  match prepareCheckpoint before input with
+  | none => ⟨false, before, none⟩
+  | some prepared =>
+    let published := publishCheckpoint before prepared.marker.generation input.fault (validOutgoingMarker prepared.marker)
+    ⟨published.ok, published.result, some prepared⟩
+
+/-- Rejected preparation cannot write a candidate, change the marker or poison the writer. -/
+theorem checkpoint_preparation_rejected {before : PublicationState} {input : CheckpointInput}
+    (rejected : prepareCheckpoint before input = none) :
+    checkpointWriter before input = ⟨false, before, none⟩ := by
+  simp [checkpointWriter, rejected]
+
+/-- Prepared candidates bind the exact held reducer and retired byte segment. -/
+theorem prepared_checkpoint_binding {before : PublicationState} {input : CheckpointInput} {prepared : PreparedCheckpoint}
+    (ready : prepareCheckpoint before input = some prepared) :
+    checkpointGeneration before input = some prepared.marker.generation ∧
+    buildCheckpoint input.identity prepared.marker.generation before.sequence
+      (if input.reducerAvailable then some before.state else none) = some prepared.checkpoint ∧
+    prepared.marker.identity = input.identity ∧ prepared.marker.nextSequence = before.sequence ∧
+    prepared.marker.retiredLength = before.bytes.data.length ∧ prepared.marker.retiredDigest = input.retiredDigest ∧
+    prepared.marker.snapshotDigest = input.snapshotDigest ∧ prepared.marker.snapshotLength ≤ 4294967295 := by
+  unfold prepareCheckpoint at ready
+  split at ready
+  · contradiction
+  · obtain ⟨generation, selected, ready⟩ := Option.bind_eq_some_iff.mp ready
+    split at ready
+    · contradiction
+    · obtain ⟨checkpoint, built, ready⟩ := Option.bind_eq_some_iff.mp ready
+      obtain ⟨length, encoded, ready⟩ := Option.bind_eq_some_iff.mp ready
+      split at ready
+      · contradiction
+      · cases ready
+        refine ⟨selected, built, rfl, rfl, rfl, rfl, rfl, ?_⟩
+        simp_all
+
+/-- Prepared candidate generation is the result of the actual selection policy. -/
+theorem prepared_checkpoint_generation {before : PublicationState} {input : CheckpointInput} {prepared : PreparedCheckpoint}
+    (ready : prepareCheckpoint before input = some prepared) :
+    checkpointGeneration before input = some prepared.marker.generation := by
+  exact (prepared_checkpoint_binding ready).1
+
+/-- Full checkpoint execution preserves held reducer state and its writer-owned next sequence. -/
+theorem checkpoint_preserves_state (before : PublicationState) (input : CheckpointInput) :
+    (checkpointWriter before input).result.state = before.state ∧
+    (checkpointWriter before input).result.sequence = before.sequence := by
+  cases prepared : prepareCheckpoint before input with
+  | none => simp [checkpointWriter, prepared]
+  | some candidate =>
+    simpa [checkpointWriter, prepared] using
+      publication_preserves_state before candidate.marker.generation input.fault (validOutgoingMarker candidate.marker)
+
+/-- Full checkpoint execution never lowers the retained generation floor. -/
+theorem checkpoint_floor_monotone (before : PublicationState) (input : CheckpointInput) :
+    before.floor ≤ (checkpointWriter before input).result.floor := by
+  cases prepared : prepareCheckpoint before input with
+  | none => simp [checkpointWriter, prepared]
+  | some candidate =>
+    simpa [checkpointWriter, prepared] using
+      publication_floor_monotone before candidate.marker.generation input.fault (validOutgoingMarker candidate.marker)
+
+/-- Successful publication has passed the outgoing marker guard after candidate persistence. -/
+theorem publication_marker_valid (before : PublicationState) (generation : Nat) (fault : Int) (markerOK : Bool)
+    (accepted : (publishCheckpoint before generation fault markerOK).ok = true) : markerOK = true := by
+  unfold publishCheckpoint at accepted
+  simp only [Id.run, pure] at accepted
+  repeat' first | split at accepted | simp_all
+
+/-- A successful full checkpoint retains its exact candidate and published generation binding. -/
+theorem checkpoint_success {before : PublicationState} {input : CheckpointInput}
+    (accepted : (checkpointWriter before input).ok = true) :
+    ∃ prepared, prepareCheckpoint before input = some prepared ∧
+      (checkpointWriter before input).prepared = some prepared ∧ validOutgoingMarker prepared.marker = true ∧
+      (checkpointWriter before input).result.markerGeneration = prepared.marker.generation ∧
+      (checkpointWriter before input).result.floor = max before.floor prepared.marker.generation ∧
+      (checkpointWriter before input).result.bytes.durable = [] ∧
+      (checkpointWriter before input).result.generation = prepared.marker.generation ∧
+      (checkpointWriter before input).result.offset = 0 ∧
+      (checkpointWriter before input).result.poisoned = false ∧
+      prepared.marker.generation ∈ (checkpointWriter before input).result.checkpointGenerations := by
+  cases ready : prepareCheckpoint before input with
+  | none => simp [checkpointWriter, ready] at accepted
+  | some prepared =>
+    have published : (publishCheckpoint before prepared.marker.generation input.fault
+        (validOutgoingMarker prepared.marker)).ok = true := by
+      simpa [checkpointWriter, ready] using accepted
+    have candidate : input.fault ≠ 1 := by
+      intro fault
+      simp [publishCheckpoint, fault] at published
+    refine ⟨prepared, rfl, ?_⟩
+    simp only [checkpointWriter, ready]
+    exact ⟨True.intro, publication_marker_valid _ _ _ _ published,
+      (publication_success _ _ _ _ published).1,
+      (publication_success _ _ _ _ published).2.1,
+      (publication_success _ _ _ _ published).2.2.1,
+      (publication_success _ _ _ _ published).2.2.2.1,
+      (publication_success _ _ _ _ published).2.2.2.2.1,
+      (publication_success _ _ _ _ published).2.2.2.2.2,
+      publication_candidate_retained _ _ _ _ candidate⟩
+
+/-- A prepared snapshot of historical replay can be hydrated without assuming Go admission. -/
+theorem prepared_checkpoint_reopens {before : PublicationState} {input : CheckpointInput}
+    {prepared : PreparedCheckpoint} {history : List (Option Record)}
+    (replayed : reduceJournal history = some before.state)
+    (available : input.reducerAvailable = true)
+    (ready : prepareCheckpoint before input = some prepared) :
+    readCheckpoint prepared.checkpoint prepared.marker.identity prepared.marker.generation
+      prepared.marker.nextSequence = some before.state := by
+  have binding := prepared_checkpoint_binding ready
+  rw [binding.2.2.1, binding.2.2.2.1]
+  apply checkpoint_read_exists replayed
+  simpa only [available, ↓reduceIte] using binding.2.1
 
 end Spacewave.SObject.Journal

@@ -39,6 +39,8 @@ per line. A request names a model function in `op` and carries its inputs:
 - `journalCheckpoint`: `identity`, `generation`, `nextSequence`, `state`.
 - `readJournalCheckpoint`: decoded `checkpoint` and expected head metadata.
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
+- `checkpointJournalWriter`: held writer/storage state and preparation/publication primitives.
+- `validateOutgoingJournalMarker`: marker metadata before serialization.
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
@@ -109,6 +111,7 @@ deriving instance ToJson, FromJson for Journal.FrameEncoding, Journal.WriterStat
 deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentContent, Journal.Authentication
 deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.ActivationResult, Journal.AuthenticationEntry
 deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult
+deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
@@ -164,6 +167,12 @@ def respond (req : Json) : Except String Json := do
     let decoded := (Journal.unescapePayload bytes).filter (fun value => value.length ≤ 4194304)
     let value := json% {encoded: $encoded, decoded: $decoded}
     return json% {ok: $(decoded.isSome), codec: $value}
+  | "checkpointJournalWriter" =>
+    let result := Journal.checkpointWriter (← req.getObjValAs? Journal.PublicationState "before")
+      (← req.getObjValAs? Journal.CheckpointInput "input")
+    return json% {ok: $(result.ok), checkpoint: $result}
+  | "validateOutgoingJournalMarker" =>
+    return json% {ok: $(Journal.validOutgoingMarker (← req.getObjValAs? Journal.GenerationMarker "marker"))}
   | "publishJournalCheckpoint" =>
     let result := Journal.publishCheckpoint (← req.getObjValAs? Journal.PublicationState "before")
       (← req.getObjValAs? Nat "generation") (← req.getObjValAs? Int "fault")
