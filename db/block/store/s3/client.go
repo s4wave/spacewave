@@ -14,9 +14,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrNotFound is returned when an object does not exist on the server.
-var ErrNotFound = errors.New("not found")
-
 // emptyPayloadHash is the hex sha256 of an empty body.
 const emptyPayloadHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
@@ -40,7 +37,7 @@ func BuildClient(conf *ClientConfig) (*Client, error) {
 	}
 	creds := conf.GetCredentials()
 	return &Client{
-		httpClient: http.DefaultClient,
+		httpClient: newHTTPClient(),
 		endpoint:   strings.TrimSuffix(conf.GetEndpoint(), "/"),
 		region:     region,
 		accessKey:  creds.GetAccessKeyId(),
@@ -138,14 +135,18 @@ func (c *Client) do(ctx context.Context, method, bucket, key string, data []byte
 	return c.httpClient.Do(req)
 }
 
-// checkStatus maps an S3 response status to ErrNotFound or a wrapped error.
+// checkStatus maps a missing bucket to ErrBucketNotFound, another 404 to
+// ErrNotFound, and any other non-success status to a StatusError.
 func checkStatus(resp *http.Response, bucket, key, method string) error {
-	if resp.StatusCode == http.StatusNotFound {
-		return ErrNotFound
-	}
 	if resp.StatusCode/100 == 2 {
 		return nil
 	}
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	return errors.Errorf("s3 %s %s/%s: status %d: %s", method, bucket, key, resp.StatusCode, string(body))
+	serr := newStatusError(resp, method, bucket, key)
+	if serr.Code == "NoSuchBucket" {
+		return errors.Wrap(ErrBucketNotFound, serr.Error())
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
+	return serr
 }

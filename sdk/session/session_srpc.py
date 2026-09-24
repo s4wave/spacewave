@@ -308,6 +308,41 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
             False,
         ),
+        MethodDescriptor(
+            "WatchStorageBackends",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse,
+            False,
+            True,
+        ),
+        MethodDescriptor(
+            "CheckStorageBackend",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
+            "AddStorageBackend",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
+            "RemoveStorageBackend",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
+            "SetDefaultStorageBackend",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse,
+            False,
+            False,
+        ),
     ),
 )
 
@@ -1200,6 +1235,114 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def watch_storage_backends(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse
+    ]:
+        call = await self._client.open_call(
+            self._service,
+            "WatchStorageBackends",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            while True:
+                data = await call.receive()
+                if data is None:
+                    return
+                response = _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse()
+                response.ParseFromString(data)
+                yield response
+        finally:
+            await call.aclose()
+
+    async def check_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse
+    ):
+        call = await self._client.open_call(
+            self._service,
+            "CheckStorageBackend",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def add_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse:
+        call = await self._client.open_call(
+            self._service,
+            "AddStorageBackend",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def remove_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse:
+        call = await self._client.open_call(
+            self._service,
+            "RemoveStorageBackend",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
+    async def set_default_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse:
+        call = await self._client.open_call(
+            self._service,
+            "SetDefaultStorageBackend",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
 
 class SessionResourceServiceServer(Protocol):
     async def get_session_info(
@@ -1416,6 +1559,32 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    def watch_storage_backends(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse
+    ]: ...
+    async def check_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendResponse
+    ): ...
+    async def add_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendResponse
+    ): ...
+    async def remove_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendResponse: ...
+    async def set_default_storage_backend(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
 
 
 def register_session_resource_service(
@@ -1923,4 +2092,61 @@ def register_session_resource_service(
 
     registry.register(
         service, "AcceptLocalPairingAnswer", accept_local_pairing_answer_handler
+    )
+
+    async def watch_storage_backends_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest()
+        request.ParseFromString(first)
+        async for response in implementation.watch_storage_backends(request):
+            await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "WatchStorageBackends", watch_storage_backends_handler)
+
+    async def check_storage_backend_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.CheckStorageBackendRequest()
+        request.ParseFromString(first)
+        response = await implementation.check_storage_backend(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "CheckStorageBackend", check_storage_backend_handler)
+
+    async def add_storage_backend_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.AddStorageBackendRequest()
+        request.ParseFromString(first)
+        response = await implementation.add_storage_backend(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "AddStorageBackend", add_storage_backend_handler)
+
+    async def remove_storage_backend_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.RemoveStorageBackendRequest()
+        request.ParseFromString(first)
+        response = await implementation.remove_storage_backend(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "RemoveStorageBackend", remove_storage_backend_handler)
+
+    async def set_default_storage_backend_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest()
+        request.ParseFromString(first)
+        response = await implementation.set_default_storage_backend(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(
+        service, "SetDefaultStorageBackend", set_default_storage_backend_handler
     )

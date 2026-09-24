@@ -44,6 +44,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newBillingCommand(getBus),
 		newSpaceCommand(getBus),
 		newDeviceCommand(getBus),
+		newStorageCommand(getBus),
 		newFsCommand(getBus),
 		newGitCommand(getBus),
 		newCanvasCommand(getBus),

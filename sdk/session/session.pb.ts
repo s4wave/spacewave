@@ -40,7 +40,12 @@ import {
   TransferMode_Enum,
   TransferState,
 } from '../../core/provider/transfer/transfer.pb.js'
-import { PairedDevice } from '../../core/account/settings/settings.pb.js'
+import {
+  PairedDevice,
+  S3Location,
+  StorageBackend,
+} from '../../core/account/settings/settings.pb.js'
+import { CheckResult, Credentials } from '../../db/block/store/s3/s3.pb.js'
 
 export const protobufPackage = 's4wave.session'
 
@@ -690,6 +695,20 @@ export interface CreateSpaceRequest {
    * @generated from field: string owner_id = 3;
    */
   ownerId?: string
+  /**
+   * StorageBackendId places the Space's blocks on a storage backend.
+   * Empty uses the account's default storage backend.
+   *
+   * @generated from field: string storage_backend_id = 4;
+   */
+  storageBackendId?: string
+  /**
+   * AccountStorage places the Space's blocks on the account's own storage,
+   * overriding the default storage backend.
+   *
+   * @generated from field: bool account_storage = 5;
+   */
+  accountStorage?: boolean
 }
 
 export const CreateSpaceRequest: MessageType<CreateSpaceRequest> =
@@ -699,6 +718,13 @@ export const CreateSpaceRequest: MessageType<CreateSpaceRequest> =
       { no: 1, name: 'space_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 5, name: 'account_storage', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -3658,3 +3684,352 @@ export const AcceptLocalPairingAnswerResponse: MessageType<AcceptLocalPairingAns
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * WatchStorageBackendsRequest is the request for WatchStorageBackends.
+ *
+ * @generated from message s4wave.session.WatchStorageBackendsRequest
+ */
+export interface WatchStorageBackendsRequest {}
+
+export const WatchStorageBackendsRequest: MessageType<WatchStorageBackendsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchStorageBackendsRequest>(
+    's4wave.session.WatchStorageBackendsRequest',
+    true,
+  )
+
+/**
+ * PlacedSpace names a Space placed on a storage backend.
+ *
+ * @generated from message s4wave.session.PlacedSpace
+ */
+export interface PlacedSpace {
+  /**
+   * SpaceId is the Space's SharedObject id.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+  /**
+   * Name is the Space's display name, empty when unknown.
+   *
+   * @generated from field: string name = 2;
+   */
+  name?: string
+}
+
+export const PlacedSpace: MessageType<PlacedSpace> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.PlacedSpace',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * StorageBackendInfo is a storage backend with the Spaces placed on it.
+ *
+ * @generated from message s4wave.session.StorageBackendInfo
+ */
+export interface StorageBackendInfo {
+  /**
+   * Backend is the backend record. Its credential is redacted Secret metadata.
+   *
+   * @generated from field: account.settings.StorageBackend backend = 1;
+   */
+  backend?: StorageBackend
+  /**
+   * PlacedSpaces lists the Spaces whose blocks the backend holds.
+   *
+   * @generated from field: repeated s4wave.session.PlacedSpace placed_spaces = 2;
+   */
+  placedSpaces?: PlacedSpace[]
+}
+
+export const StorageBackendInfo: MessageType<StorageBackendInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.StorageBackendInfo',
+    fields: [
+      { no: 1, name: 'backend', kind: 'message', T: () => StorageBackend },
+      {
+        no: 2,
+        name: 'placed_spaces',
+        kind: 'message',
+        T: () => PlacedSpace,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchStorageBackendsResponse is the current set of storage backends.
+ *
+ * @generated from message s4wave.session.WatchStorageBackendsResponse
+ */
+export interface WatchStorageBackendsResponse {
+  /**
+   * StorageBackends lists each backend with the Spaces placed on it.
+   *
+   * @generated from field: repeated s4wave.session.StorageBackendInfo storage_backends = 1;
+   */
+  storageBackends?: StorageBackendInfo[]
+  /**
+   * DefaultStorageBackendId identifies the backend new Spaces use.
+   * Empty means the account's own storage.
+   *
+   * @generated from field: string default_storage_backend_id = 2;
+   */
+  defaultStorageBackendId?: string
+}
+
+export const WatchStorageBackendsResponse: MessageType<WatchStorageBackendsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.WatchStorageBackendsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backends',
+        kind: 'message',
+        T: () => StorageBackendInfo,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'default_storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CheckStorageBackendRequest is the request for CheckStorageBackend.
+ *
+ * @generated from message s4wave.session.CheckStorageBackendRequest
+ */
+export interface CheckStorageBackendRequest {
+  /**
+   * StorageBackendId checks a saved backend with its stored credentials.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+  /**
+   * S3 is an unsaved bucket to check when StorageBackendId is empty.
+   *
+   * @generated from field: account.settings.S3Location s3 = 2;
+   */
+  s3?: S3Location
+  /**
+   * Credentials are the access keys for S3.
+   *
+   * @generated from field: block.store.s3.Credentials credentials = 3;
+   */
+  credentials?: Credentials
+}
+
+export const CheckStorageBackendRequest: MessageType<CheckStorageBackendRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.CheckStorageBackendRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 's3', kind: 'message', T: () => S3Location },
+      { no: 3, name: 'credentials', kind: 'message', T: () => Credentials },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CheckStorageBackendResponse is the response for CheckStorageBackend.
+ *
+ * @generated from message s4wave.session.CheckStorageBackendResponse
+ */
+export interface CheckStorageBackendResponse {
+  /**
+   * Result is the classified check result.
+   *
+   * @generated from field: block.store.s3.CheckResult result = 1;
+   */
+  result?: CheckResult
+}
+
+export const CheckStorageBackendResponse: MessageType<CheckStorageBackendResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.CheckStorageBackendResponse',
+    fields: [
+      { no: 1, name: 'result', kind: 'message', T: () => CheckResult },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AddStorageBackendRequest is the request for AddStorageBackend.
+ *
+ * @generated from message s4wave.session.AddStorageBackendRequest
+ */
+export interface AddStorageBackendRequest {
+  /**
+   * DisplayName is the backend name, unique within the account.
+   *
+   * @generated from field: string display_name = 1;
+   */
+  displayName?: string
+  /**
+   * S3 locates the bucket.
+   *
+   * @generated from field: account.settings.S3Location s3 = 2;
+   */
+  s3?: S3Location
+  /**
+   * Credentials are the access keys, stored in the backend's Secret.
+   *
+   * @generated from field: block.store.s3.Credentials credentials = 3;
+   */
+  credentials?: Credentials
+  /**
+   * SetDefault makes the new backend the default for new Spaces.
+   *
+   * @generated from field: bool set_default = 4;
+   */
+  setDefault?: boolean
+}
+
+export const AddStorageBackendRequest: MessageType<AddStorageBackendRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.AddStorageBackendRequest',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 's3', kind: 'message', T: () => S3Location },
+      { no: 3, name: 'credentials', kind: 'message', T: () => Credentials },
+      { no: 4, name: 'set_default', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AddStorageBackendResponse is the response for AddStorageBackend.
+ *
+ * @generated from message s4wave.session.AddStorageBackendResponse
+ */
+export interface AddStorageBackendResponse {
+  /**
+   * StorageBackendId identifies the saved backend.
+   * Empty when the check failed and nothing was saved.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+  /**
+   * Check is the connectivity check that ran before saving.
+   *
+   * @generated from field: block.store.s3.CheckResult check = 2;
+   */
+  check?: CheckResult
+}
+
+export const AddStorageBackendResponse: MessageType<AddStorageBackendResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.AddStorageBackendResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'check', kind: 'message', T: () => CheckResult },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RemoveStorageBackendRequest is the request for RemoveStorageBackend.
+ *
+ * @generated from message s4wave.session.RemoveStorageBackendRequest
+ */
+export interface RemoveStorageBackendRequest {
+  /**
+   * StorageBackendId identifies the backend to remove.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+}
+
+export const RemoveStorageBackendRequest: MessageType<RemoveStorageBackendRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.RemoveStorageBackendRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RemoveStorageBackendResponse is the response for RemoveStorageBackend.
+ *
+ * @generated from message s4wave.session.RemoveStorageBackendResponse
+ */
+export interface RemoveStorageBackendResponse {}
+
+export const RemoveStorageBackendResponse: MessageType<RemoveStorageBackendResponse> =
+  /* @__PURE__ */ createEmptyMessageType<RemoveStorageBackendResponse>(
+    's4wave.session.RemoveStorageBackendResponse',
+    true,
+  )
+
+/**
+ * SetDefaultStorageBackendRequest is the request for SetDefaultStorageBackend.
+ *
+ * @generated from message s4wave.session.SetDefaultStorageBackendRequest
+ */
+export interface SetDefaultStorageBackendRequest {
+  /**
+   * StorageBackendId identifies the new default.
+   * Empty returns new Spaces to the account's own storage.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+}
+
+export const SetDefaultStorageBackendRequest: MessageType<SetDefaultStorageBackendRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.SetDefaultStorageBackendRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetDefaultStorageBackendResponse is the response for SetDefaultStorageBackend.
+ *
+ * @generated from message s4wave.session.SetDefaultStorageBackendResponse
+ */
+export interface SetDefaultStorageBackendResponse {}
+
+export const SetDefaultStorageBackendResponse: MessageType<SetDefaultStorageBackendResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetDefaultStorageBackendResponse>(
+    's4wave.session.SetDefaultStorageBackendResponse',
+    true,
+  )

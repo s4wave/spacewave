@@ -7,6 +7,7 @@ import "github.com/s4wave/spacewave/core/provider/transfer/transfer.proto";
 import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/space.proto";
+import "github.com/s4wave/spacewave/db/block/store/s3/s3.proto";
 import "github.com/s4wave/spacewave/net/hash/hash.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -56,6 +57,19 @@ service SessionResourceService {
   rpc CreateLocalPairingOffer(CreateLocalPairingOfferRequest) returns (CreateLocalPairingOfferResponse);
   rpc AcceptLocalPairingOffer(AcceptLocalPairingOfferRequest) returns (AcceptLocalPairingOfferResponse);
   rpc AcceptLocalPairingAnswer(AcceptLocalPairingAnswerRequest) returns (AcceptLocalPairingAnswerResponse);
+  // WatchStorageBackends streams the account's storage backends and the
+  // Spaces placed on each.
+  rpc WatchStorageBackends(WatchStorageBackendsRequest) returns (stream WatchStorageBackendsResponse);
+  // CheckStorageBackend writes, reads, and deletes a probe object on a saved
+  // or unsaved backend.
+  rpc CheckStorageBackend(CheckStorageBackendRequest) returns (CheckStorageBackendResponse);
+  // AddStorageBackend checks a bucket and saves it as a storage backend when
+  // the check passes.
+  rpc AddStorageBackend(AddStorageBackendRequest) returns (AddStorageBackendResponse);
+  // RemoveStorageBackend removes a storage backend that holds no Space.
+  rpc RemoveStorageBackend(RemoveStorageBackendRequest) returns (RemoveStorageBackendResponse);
+  // SetDefaultStorageBackend selects the backend that new Spaces use.
+  rpc SetDefaultStorageBackend(SetDefaultStorageBackendRequest) returns (SetDefaultStorageBackendResponse);
 }
 
 // GetSessionInfoRequest is the request type for GetSessionInfo.
@@ -105,6 +119,12 @@ message CreateSpaceRequest {
   string owner_type = 2;
   // OwnerId is the owner principal id (account id or organization id).
   string owner_id = 3;
+  // StorageBackendId places the Space's blocks on a storage backend.
+  // Empty uses the account's default storage backend.
+  string storage_backend_id = 4;
+  // AccountStorage places the Space's blocks on the account's own storage,
+  // overriding the default storage backend.
+  bool account_storage = 5;
 }
 
 // CreateSpaceResponse is the response type for CreateSpace.
@@ -919,3 +939,87 @@ message AcceptLocalPairingAnswerResponse {
   // RemotePeerId is the base58 peer ID of the remote device.
   string remote_peer_id = 1;
 }
+
+// WatchStorageBackendsRequest is the request for WatchStorageBackends.
+message WatchStorageBackendsRequest {}
+
+// WatchStorageBackendsResponse is the current set of storage backends.
+message WatchStorageBackendsResponse {
+  // StorageBackends lists each backend with the Spaces placed on it.
+  repeated StorageBackendInfo storage_backends = 1;
+  // DefaultStorageBackendId identifies the backend new Spaces use.
+  // Empty means the account's own storage.
+  string default_storage_backend_id = 2;
+}
+
+// StorageBackendInfo is a storage backend with the Spaces placed on it.
+message StorageBackendInfo {
+  // Backend is the backend record. Its credential is redacted Secret metadata.
+  .account.settings.StorageBackend backend = 1;
+  // PlacedSpaces lists the Spaces whose blocks the backend holds.
+  repeated PlacedSpace placed_spaces = 2;
+}
+
+// PlacedSpace names a Space placed on a storage backend.
+message PlacedSpace {
+  // SpaceId is the Space's SharedObject id.
+  string space_id = 1;
+  // Name is the Space's display name, empty when unknown.
+  string name = 2;
+}
+
+// CheckStorageBackendRequest is the request for CheckStorageBackend.
+message CheckStorageBackendRequest {
+  // StorageBackendId checks a saved backend with its stored credentials.
+  string storage_backend_id = 1;
+  // S3 is an unsaved bucket to check when StorageBackendId is empty.
+  .account.settings.S3Location s3 = 2;
+  // Credentials are the access keys for S3.
+  .block.store.s3.Credentials credentials = 3;
+}
+
+// CheckStorageBackendResponse is the response for CheckStorageBackend.
+message CheckStorageBackendResponse {
+  // Result is the classified check result.
+  .block.store.s3.CheckResult result = 1;
+}
+
+// AddStorageBackendRequest is the request for AddStorageBackend.
+message AddStorageBackendRequest {
+  // DisplayName is the backend name, unique within the account.
+  string display_name = 1;
+  // S3 locates the bucket.
+  .account.settings.S3Location s3 = 2;
+  // Credentials are the access keys, stored in the backend's Secret.
+  .block.store.s3.Credentials credentials = 3;
+  // SetDefault makes the new backend the default for new Spaces.
+  bool set_default = 4;
+}
+
+// AddStorageBackendResponse is the response for AddStorageBackend.
+message AddStorageBackendResponse {
+  // StorageBackendId identifies the saved backend.
+  // Empty when the check failed and nothing was saved.
+  string storage_backend_id = 1;
+  // Check is the connectivity check that ran before saving.
+  .block.store.s3.CheckResult check = 2;
+}
+
+// RemoveStorageBackendRequest is the request for RemoveStorageBackend.
+message RemoveStorageBackendRequest {
+  // StorageBackendId identifies the backend to remove.
+  string storage_backend_id = 1;
+}
+
+// RemoveStorageBackendResponse is the response for RemoveStorageBackend.
+message RemoveStorageBackendResponse {}
+
+// SetDefaultStorageBackendRequest is the request for SetDefaultStorageBackend.
+message SetDefaultStorageBackendRequest {
+  // StorageBackendId identifies the new default.
+  // Empty returns new Spaces to the account's own storage.
+  string storage_backend_id = 1;
+}
+
+// SetDefaultStorageBackendResponse is the response for SetDefaultStorageBackend.
+message SetDefaultStorageBackendResponse {}

@@ -7,6 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectListEntry } from '../../sobject/sobject.pb.js'
+import { Secret } from '../../../sdk/secret/secret.pb.js'
 import { EntityKeypair } from '../../session/session.pb.js'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 import { AccountTransition } from '../../provider/provider.pb.js'
@@ -189,6 +190,138 @@ export const AccountCatalogEntry: MessageType<AccountCatalogEntry> =
   })
 
 /**
+ * S3Location locates an S3-compatible bucket and the key space it uses.
+ *
+ * @generated from message account.settings.S3Location
+ */
+export interface S3Location {
+  /**
+   * Endpoint is the host and optional port, without a scheme.
+   *
+   * @generated from field: string endpoint = 1;
+   */
+  endpoint?: string
+  /**
+   * Region is the signing region.
+   *
+   * @generated from field: string region = 2;
+   */
+  region?: string
+  /**
+   * Bucket is the bucket name.
+   *
+   * @generated from field: string bucket = 3;
+   */
+  bucket?: string
+  /**
+   * ObjectPrefix precedes every object key the account writes.
+   * Each block store writes under ObjectPrefix + block store id + "/".
+   *
+   * @generated from field: string object_prefix = 4;
+   */
+  objectPrefix?: string
+  /**
+   * DisableSsl connects with HTTP instead of HTTPS.
+   *
+   * @generated from field: bool disable_ssl = 5;
+   */
+  disableSsl?: boolean
+}
+
+export const S3Location: MessageType<S3Location> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.S3Location',
+    fields: [
+      { no: 1, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'region', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'bucket', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'disable_ssl', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * StorageBackend is block storage the account's devices share.
+ *
+ * @generated from message account.settings.StorageBackend
+ */
+export interface StorageBackend {
+  /**
+   * Id identifies the backend within the account and never changes.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * DisplayName is the user-visible backend name, unique within the account.
+   *
+   * @generated from field: string display_name = 2;
+   */
+  displayName?: string
+  /**
+   * S3 locates the S3-compatible bucket that holds the blocks.
+   *
+   * @generated from field: account.settings.S3Location s3 = 3;
+   */
+  s3?: S3Location
+  /**
+   * Credential is the redacted Secret whose payload holds the access keys.
+   * The payload value is a block_store_s3.Credentials message.
+   *
+   * @generated from field: s4wave.secret.Secret credential = 4;
+   */
+  credential?: Secret
+}
+
+export const StorageBackend: MessageType<StorageBackend> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.StorageBackend',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 's3', kind: 'message', T: () => S3Location },
+      { no: 4, name: 'credential', kind: 'message', T: () => Secret },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BlockStorePlacement places one block store on a storage backend.
+ *
+ * @generated from message account.settings.BlockStorePlacement
+ */
+export interface BlockStorePlacement {
+  /**
+   * BlockStoreId identifies the placed block store.
+   *
+   * @generated from field: string block_store_id = 1;
+   */
+  blockStoreId?: string
+  /**
+   * StorageBackendId identifies the StorageBackend that holds its blocks.
+   *
+   * @generated from field: string storage_backend_id = 2;
+   */
+  storageBackendId?: string
+}
+
+export const BlockStorePlacement: MessageType<BlockStorePlacement> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.BlockStorePlacement',
+    fields: [
+      { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccountSettings is the root state data for account settings SharedObjects.
  * Stored as SORootInner.StateData.
  *
@@ -251,6 +384,26 @@ export interface AccountSettings {
    * @generated from field: repeated provider.AccountTransition accepted_migrations = 9;
    */
   acceptedMigrations?: AccountTransition[]
+  /**
+   * StorageBackends lists the account's bring-your-own block storage backends.
+   *
+   * @generated from field: repeated account.settings.StorageBackend storage_backends = 10;
+   */
+  storageBackends?: StorageBackend[]
+  /**
+   * DefaultStorageBackendId names the backend that new Spaces use.
+   * Empty places new Spaces on the account's own storage.
+   *
+   * @generated from field: string default_storage_backend_id = 11;
+   */
+  defaultStorageBackendId?: string
+  /**
+   * BlockStorePlacements names the backend holding each placed block store.
+   * A block store without a placement is on the account's own storage.
+   *
+   * @generated from field: repeated account.settings.BlockStorePlacement block_store_placements = 12;
+   */
+  blockStorePlacements?: BlockStorePlacement[]
 }
 
 export const AccountSettings: MessageType<AccountSettings> =
@@ -310,6 +463,26 @@ export const AccountSettings: MessageType<AccountSettings> =
         name: 'accepted_migrations',
         kind: 'message',
         T: () => AccountTransition,
+        repeated: true,
+      },
+      {
+        no: 10,
+        name: 'storage_backends',
+        kind: 'message',
+        T: () => StorageBackend,
+        repeated: true,
+      },
+      {
+        no: 11,
+        name: 'default_storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 12,
+        name: 'block_store_placements',
+        kind: 'message',
+        T: () => BlockStorePlacement,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -449,6 +622,63 @@ export const ReplaceKeybindingOverrideSetOp: MessageType<ReplaceKeybindingOverri
   })
 
 /**
+ * RemoveStorageBackendOp removes a storage backend by id.
+ *
+ * @generated from message account.settings.RemoveStorageBackendOp
+ */
+export interface RemoveStorageBackendOp {
+  /**
+   * StorageBackendId identifies the backend to remove.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+}
+
+export const RemoveStorageBackendOp: MessageType<RemoveStorageBackendOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.RemoveStorageBackendOp',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetDefaultStorageBackendOp selects the default storage backend.
+ *
+ * @generated from message account.settings.SetDefaultStorageBackendOp
+ */
+export interface SetDefaultStorageBackendOp {
+  /**
+   * StorageBackendId identifies the new default, or empty for the account's
+   * own storage.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+}
+
+export const SetDefaultStorageBackendOp: MessageType<SetDefaultStorageBackendOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.SetDefaultStorageBackendOp',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccountSettingsOp is an operation on the account settings SharedObject.
  * Stored as SOOperationInner.OpData.
  *
@@ -571,6 +801,43 @@ export interface AccountSettingsOp {
         value: AccountTransition
         case: 'commitAccountTransition'
       }
+    | {
+        /**
+         * UpsertStorageBackend adds a storage backend or replaces the one with its id.
+         *
+         * @generated from field: account.settings.StorageBackend upsert_storage_backend = 13;
+         */
+        value: StorageBackend
+        case: 'upsertStorageBackend'
+      }
+    | {
+        /**
+         * RemoveStorageBackend removes a storage backend that holds no block store.
+         *
+         * @generated from field: account.settings.RemoveStorageBackendOp remove_storage_backend = 14;
+         */
+        value: RemoveStorageBackendOp
+        case: 'removeStorageBackend'
+      }
+    | {
+        /**
+         * SetDefaultStorageBackend selects the backend that new Spaces use.
+         *
+         * @generated from field: account.settings.SetDefaultStorageBackendOp set_default_storage_backend = 15;
+         */
+        value: SetDefaultStorageBackendOp
+        case: 'setDefaultStorageBackend'
+      }
+    | {
+        /**
+         * SetBlockStorePlacement places a block store, or returns it to the
+         * account's own storage when storage_backend_id is empty.
+         *
+         * @generated from field: account.settings.BlockStorePlacement set_block_store_placement = 16;
+         */
+        value: BlockStorePlacement
+        case: 'setBlockStorePlacement'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -659,6 +926,34 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         name: 'commit_account_transition',
         kind: 'message',
         T: () => AccountTransition,
+        oneof: 'op',
+      },
+      {
+        no: 13,
+        name: 'upsert_storage_backend',
+        kind: 'message',
+        T: () => StorageBackend,
+        oneof: 'op',
+      },
+      {
+        no: 14,
+        name: 'remove_storage_backend',
+        kind: 'message',
+        T: () => RemoveStorageBackendOp,
+        oneof: 'op',
+      },
+      {
+        no: 15,
+        name: 'set_default_storage_backend',
+        kind: 'message',
+        T: () => SetDefaultStorageBackendOp,
+        oneof: 'op',
+      },
+      {
+        no: 16,
+        name: 'set_block_store_placement',
+        kind: 'message',
+        T: () => BlockStorePlacement,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],

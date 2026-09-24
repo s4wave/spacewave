@@ -52,3 +52,36 @@ message Credentials {
   // Usually empty.
   string token = 3;
 }
+
+// CheckOutcome classifies a bucket connectivity check.
+enum CheckOutcome {
+  // CHECK_OUTCOME_UNKNOWN is the unset outcome.
+  CHECK_OUTCOME_UNKNOWN = 0;
+  // CHECK_OUTCOME_OK means a probe object was written, read back, and deleted.
+  CHECK_OUTCOME_OK = 1;
+  // CHECK_OUTCOME_UNREACHABLE means no response arrived from the endpoint.
+  // In the browser this includes a bucket that does not allow the app's
+  // origin through CORS.
+  CHECK_OUTCOME_UNREACHABLE = 2;
+  // CHECK_OUTCOME_CREDENTIALS_REJECTED means the endpoint rejected the access
+  // key or its signature.
+  CHECK_OUTCOME_CREDENTIALS_REJECTED = 3;
+  // CHECK_OUTCOME_ACCESS_DENIED means the credentials are valid but lack
+  // permission to write, read, or delete objects in the bucket.
+  CHECK_OUTCOME_ACCESS_DENIED = 4;
+  // CHECK_OUTCOME_BUCKET_NOT_FOUND means the bucket does not exist.
+  CHECK_OUTCOME_BUCKET_NOT_FOUND = 5;
+  // CHECK_OUTCOME_WRONG_REGION means the bucket is in another region.
+  CHECK_OUTCOME_WRONG_REGION = 6;
+  // CHECK_OUTCOME_FAILED means another error stopped the check.
+  CHECK_OUTCOME_FAILED = 7;
+}
+
+// CheckResult is the result of a bucket connectivity check.
+message CheckResult {
+  // Outcome classifies the result.
+  CheckOutcome outcome = 1;
+  // Detail is the failing step and the server's error message.
+  // Empty when Outcome is CHECK_OUTCOME_OK.
+  string detail = 2;
+}

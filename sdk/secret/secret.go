@@ -1,6 +1,7 @@
 package s4wave_secret
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -31,6 +32,11 @@ const (
 	SecretKindProviderCredential = "provider_credential" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// ProviderCredentialContentType is the content type for provider credential payloads.
 	ProviderCredentialContentType = "application/json"
+	// SecretKindStorageCredential is the kind for storage backend access keys.
+	// The payload is a block_store_s3.Credentials message.
+	SecretKindStorageCredential = "storage_credential" // #nosec G101 -- this identifies a secret kind, not a credential value.
+	// StorageCredentialContentType is the content type for storage credential payloads.
+	StorageCredentialContentType = "application/x-protobuf"
 	// SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
 	SecretKindSSHPrivateKey = "ssh_private_key" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassword is the kind for SSH password credentials.
@@ -191,9 +197,52 @@ func CreateSecret(
 	engine world.Engine,
 	opts CreateSecretOptions,
 ) (*Secret, error) {
+	// Require the parent World object key before creating the nested payload.
 	if opts.ObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "object_key")
 	}
+
+	// Create the nested SharedObject and its payload.
+	secret, err := CreateSecretObject(ctx, b, soProvider, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the redacted Secret metadata as the parent World object.
+	wtx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	createdObject, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(secret, true)
+		return nil
+	})
+	world.ReleaseObjectState(createdObject)
+	if err != nil {
+		wtx.Discard()
+		return nil, err
+	}
+	if err := world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID); err != nil {
+		wtx.Discard()
+		return nil, err
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
+
+// CreateSecretObject creates the nested SharedObject holding a Secret payload
+// and returns the redacted Secret metadata. It writes no World object, so the
+// caller records the metadata wherever the Secret is used. opts.ObjectKey is
+// ignored.
+func CreateSecretObject(
+	ctx context.Context,
+	b bus.Bus,
+	soProvider sobject.SharedObjectProvider,
+	opts CreateSecretOptions,
+) (*Secret, error) {
+	// Fill the defaults for the timestamp, content type, and nested id.
 	if opts.Timestamp.IsZero() {
 		opts.Timestamp = time.Now()
 	}
@@ -205,12 +254,13 @@ func CreateSecret(
 		nestedID = "secret-" + sobject.NewSOOperationLocalID()
 	}
 
+	// Create the nested SharedObject and store the first payload version.
 	nestedRef, err := soProvider.CreateSharedObject(ctx, nestedID, NewSharedObjectMeta(), "", "")
 	if err != nil {
 		return nil, errors.Wrap(err, "create nested shared object")
 	}
 	payload := &SecretPayload{
-		Value:       append([]byte(nil), opts.Value...),
+		Value:       bytes.Clone(opts.Value),
 		ContentType: opts.ContentType,
 		Version:     1,
 		UpdatedAt:   timestamppb.New(opts.Timestamp),
@@ -219,38 +269,14 @@ func CreateSecret(
 		return nil, errors.Wrap(err, "store secret payload")
 	}
 
-	secret := &Secret{
+	return &Secret{
 		DisplayName:          opts.DisplayName,
 		Kind:                 opts.Kind,
 		NestedSharedObjectId: nestedRef.GetProviderResourceRef().GetId(),
 		Ref:                  nestedRef.CloneVT(),
 		CreatedAt:            timestamppb.New(opts.Timestamp),
 		UpdatedAt:            timestamppb.New(opts.Timestamp),
-	}
-
-	wtx, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	{
-		createdObject, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
-			bcs.SetBlock(secret, true)
-			return nil
-		})
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			wtx.Discard()
-			return nil, err
-		}
-	}
-	if err := world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID); err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	if err := wtx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return secret, nil
+	}, nil
 }
 
 // StoreSecretPayload replaces the payload in the nested SharedObject.
@@ -327,7 +353,7 @@ func ReadProviderCredentialPayload(ctx context.Context, b bus.Bus, secret *Secre
 	if err != nil {
 		return nil, err
 	}
-	return append([]byte(nil), payload.GetValue()...), nil
+	return bytes.Clone(payload.GetValue()), nil
 }
 
 // ReadSSHCredentialPayload reads an SSH Secret payload after checking its kind.
@@ -339,7 +365,7 @@ func ReadSSHCredentialPayload(ctx context.Context, b bus.Bus, secret *Secret, ex
 	if err != nil {
 		return nil, err
 	}
-	return append([]byte(nil), payload.GetValue()...), nil
+	return bytes.Clone(payload.GetValue()), nil
 }
 
 // AddSecretParticipant grants nested SharedObject access to a peer.
@@ -490,7 +516,7 @@ func replaceSecretPayload(
 		if err := payload.UnmarshalVT(op.GetOpData()); err != nil {
 			return nil, nil, err
 		}
-		nextStateData = append([]byte(nil), op.GetOpData()...)
+		nextStateData = bytes.Clone(op.GetOpData())
 		opResults = append(opResults, sobject.BuildSOOperationResult(
 			op.GetPeerId(),
 			op.GetNonce(),
@@ -695,7 +721,7 @@ func newSecretPayload(value []byte, contentType string, ts time.Time) *SecretPay
 		ts = time.Now()
 	}
 	return &SecretPayload{
-		Value:       append([]byte(nil), value...),
+		Value:       bytes.Clone(value),
 		ContentType: contentType,
 		Version:     1,
 		UpdatedAt:   timestamppb.New(ts),

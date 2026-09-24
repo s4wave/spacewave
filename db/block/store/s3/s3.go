@@ -10,17 +10,25 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
+	"golang.org/x/sync/errgroup"
 )
 
-// S3Block is a block store on top of an S3 client and base URL prefix.
-// Supports any s3-compatible API.
-// Stores blocks at {objectPrefix}/{block ref}
+// batchConcurrency bounds the concurrent requests of one batch call.
+const batchConcurrency = 16
+
+// S3Block is a block store on top of an S3-compatible bucket. It stores each
+// block as the object {objectPrefix}{block ref}.
 type S3Block struct {
-	write        bool
-	client       *Client
-	bucketName   string
+	// write enables PutBlock, PutBlockBatch, and RmBlock.
+	write bool
+	// client sends the signed requests.
+	client *Client
+	// bucketName is the bucket holding the objects.
+	bucketName string
+	// objectPrefix precedes every object key.
 	objectPrefix string
-	hashType     hash.HashType
+	// hashType is the preferred hash type, or 0 for the default.
+	hashType hash.HashType
 }
 
 // NewS3Block builds a new block store on top of a HTTP service.
@@ -95,27 +103,26 @@ func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts
 	return ref, false, nil
 }
 
-// PutBlockBatch loops calling PutBlock or RmBlock per entry.
+// PutBlockBatch writes or removes each entry with bounded concurrency.
+//
+// Writes skip the existence probe PutBlock performs: batch writers drain sets
+// of blocks the bucket is not known to hold, so the probe would add a request
+// per block, and rewriting a content-addressed object stores identical bytes.
 func (b *S3Block) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, entry := range entries {
-		if entry.Tombstone {
-			if err := b.RmBlock(ctx, entry.Ref); err != nil {
-				return err
-			}
-			continue
-		}
-		var ref *block.BlockRef
-		if entry.Ref != nil {
-			ref = entry.Ref.Clone()
-		}
-		if _, _, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
-			ForceBlockRef: ref,
-			Refs:          block.CloneBlockRefs(entry.Refs),
-		}); err != nil {
-			return err
-		}
+	if !b.write {
+		return block_store.ErrReadOnly
 	}
-	return nil
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(batchConcurrency)
+	for _, entry := range entries {
+		eg.Go(func() error {
+			if entry.Tombstone {
+				return b.RmBlock(egCtx, entry.Ref)
+			}
+			return b.putBlockData(egCtx, entry)
+		})
+	}
+	return eg.Wait()
 }
 
 // GetBlock looks up a block in the store.
@@ -168,15 +175,20 @@ func (b *S3Block) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool
 	return b.getKeyExists(ctx, objectKey)
 }
 
-// GetBlockExistsBatch loops calling GetBlockExists per ref.
+// GetBlockExistsBatch checks each ref with bounded concurrency.
 func (b *S3Block) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(batchConcurrency)
 	for i, ref := range refs {
-		found, err := b.GetBlockExists(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = found
+		eg.Go(func() error {
+			found, err := b.GetBlockExists(egCtx, ref)
+			out[i] = found
+			return err
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -223,6 +235,18 @@ func (b *S3Block) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 // Sync reports always-durable: S3Block writes commit synchronously per object.
 func (b *S3Block) Sync(context.Context) (bool, error) {
 	return true, nil
+}
+
+// putBlockData writes one batch entry without an existence probe.
+func (b *S3Block) putBlockData(ctx context.Context, entry *block.PutBatchEntry) error {
+	if len(entry.Data) == 0 {
+		return block.ErrEmptyBlock
+	}
+	ref, err := block.BuildBlockRef(entry.Data, &block.PutOpts{ForceBlockRef: entry.Ref})
+	if err != nil {
+		return err
+	}
+	return b.client.PutObject(ctx, b.bucketName, b.objectPrefix+ref.MarshalString(), entry.Data, "application/octet-stream")
 }
 
 // getKeyExists checks if the given object key exists.

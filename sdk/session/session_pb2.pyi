@@ -6,6 +6,7 @@ from core.provider.transfer import transfer_pb2 as _transfer_pb2
 from core.session import session_pb2 as _session_pb2
 from core.sobject import sobject_pb2 as _sobject_pb2
 from core.space import space_pb2 as _space_pb2
+from db.block.store.s3 import s3_pb2 as _s3_pb2
 from net.hash import hash_pb2 as _hash_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
@@ -167,14 +168,18 @@ class WatchResourcesListResponse(_message.Message):
     def __init__(self, spaces_list: _Optional[_Iterable[_Union[_space_pb2.SpaceSoListEntry, _Mapping]]] = ...) -> None: ...
 
 class CreateSpaceRequest(_message.Message):
-    __slots__ = ("space_name", "owner_type", "owner_id")
+    __slots__ = ("space_name", "owner_type", "owner_id", "storage_backend_id", "account_storage")
     SPACE_NAME_FIELD_NUMBER: _ClassVar[int]
     OWNER_TYPE_FIELD_NUMBER: _ClassVar[int]
     OWNER_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_STORAGE_FIELD_NUMBER: _ClassVar[int]
     space_name: str
     owner_type: str
     owner_id: str
-    def __init__(self, space_name: _Optional[str] = ..., owner_type: _Optional[str] = ..., owner_id: _Optional[str] = ...) -> None: ...
+    storage_backend_id: str
+    account_storage: bool
+    def __init__(self, space_name: _Optional[str] = ..., owner_type: _Optional[str] = ..., owner_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., account_storage: _Optional[bool] = ...) -> None: ...
 
 class CreateSpaceResponse(_message.Message):
     __slots__ = ("shared_object_ref", "shared_object_meta", "mounted_shared_object", "shared_object_body_resource_id", "space_world_resource_id")
@@ -871,3 +876,87 @@ class AcceptLocalPairingAnswerResponse(_message.Message):
     REMOTE_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     remote_peer_id: str
     def __init__(self, remote_peer_id: _Optional[str] = ...) -> None: ...
+
+class WatchStorageBackendsRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class WatchStorageBackendsResponse(_message.Message):
+    __slots__ = ("storage_backends", "default_storage_backend_id")
+    STORAGE_BACKENDS_FIELD_NUMBER: _ClassVar[int]
+    DEFAULT_STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    storage_backends: _containers.RepeatedCompositeFieldContainer[StorageBackendInfo]
+    default_storage_backend_id: str
+    def __init__(self, storage_backends: _Optional[_Iterable[_Union[StorageBackendInfo, _Mapping]]] = ..., default_storage_backend_id: _Optional[str] = ...) -> None: ...
+
+class StorageBackendInfo(_message.Message):
+    __slots__ = ("backend", "placed_spaces")
+    BACKEND_FIELD_NUMBER: _ClassVar[int]
+    PLACED_SPACES_FIELD_NUMBER: _ClassVar[int]
+    backend: _settings_pb2.StorageBackend
+    placed_spaces: _containers.RepeatedCompositeFieldContainer[PlacedSpace]
+    def __init__(self, backend: _Optional[_Union[_settings_pb2.StorageBackend, _Mapping]] = ..., placed_spaces: _Optional[_Iterable[_Union[PlacedSpace, _Mapping]]] = ...) -> None: ...
+
+class PlacedSpace(_message.Message):
+    __slots__ = ("space_id", "name")
+    SPACE_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    space_id: str
+    name: str
+    def __init__(self, space_id: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
+
+class CheckStorageBackendRequest(_message.Message):
+    __slots__ = ("storage_backend_id", "s3", "credentials")
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    S3_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    s3: _settings_pb2.S3Location
+    credentials: _s3_pb2.Credentials
+    def __init__(self, storage_backend_id: _Optional[str] = ..., s3: _Optional[_Union[_settings_pb2.S3Location, _Mapping]] = ..., credentials: _Optional[_Union[_s3_pb2.Credentials, _Mapping]] = ...) -> None: ...
+
+class CheckStorageBackendResponse(_message.Message):
+    __slots__ = ("result",)
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    result: _s3_pb2.CheckResult
+    def __init__(self, result: _Optional[_Union[_s3_pb2.CheckResult, _Mapping]] = ...) -> None: ...
+
+class AddStorageBackendRequest(_message.Message):
+    __slots__ = ("display_name", "s3", "credentials", "set_default")
+    DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    S3_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
+    SET_DEFAULT_FIELD_NUMBER: _ClassVar[int]
+    display_name: str
+    s3: _settings_pb2.S3Location
+    credentials: _s3_pb2.Credentials
+    set_default: bool
+    def __init__(self, display_name: _Optional[str] = ..., s3: _Optional[_Union[_settings_pb2.S3Location, _Mapping]] = ..., credentials: _Optional[_Union[_s3_pb2.Credentials, _Mapping]] = ..., set_default: _Optional[bool] = ...) -> None: ...
+
+class AddStorageBackendResponse(_message.Message):
+    __slots__ = ("storage_backend_id", "check")
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    CHECK_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    check: _s3_pb2.CheckResult
+    def __init__(self, storage_backend_id: _Optional[str] = ..., check: _Optional[_Union[_s3_pb2.CheckResult, _Mapping]] = ...) -> None: ...
+
+class RemoveStorageBackendRequest(_message.Message):
+    __slots__ = ("storage_backend_id",)
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    def __init__(self, storage_backend_id: _Optional[str] = ...) -> None: ...
+
+class RemoveStorageBackendResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class SetDefaultStorageBackendRequest(_message.Message):
+    __slots__ = ("storage_backend_id",)
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    def __init__(self, storage_backend_id: _Optional[str] = ...) -> None: ...
+
+class SetDefaultStorageBackendResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

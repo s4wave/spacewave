@@ -11,8 +11,12 @@ import {
   AccessPeerTransportResponse,
   AccessSessionStateAtomRequest,
   AccessSessionStateAtomResponse,
+  AddStorageBackendRequest,
+  AddStorageBackendResponse,
   CancelTransferRequest,
   CancelTransferResponse,
+  CheckStorageBackendRequest,
+  CheckStorageBackendResponse,
   CompletePairingRequest,
   CompletePairingResponse,
   ConfirmPairingRequest,
@@ -53,12 +57,16 @@ import {
   MountSharedObjectResponse,
   RemoveSpaceParticipantsRequest,
   RemoveSpaceParticipantsResponse,
+  RemoveStorageBackendRequest,
+  RemoveStorageBackendResponse,
   RenameSpaceRequest,
   RenameSpaceResponse,
   RevokeSpaceInviteRequest,
   RevokeSpaceInviteResponse,
   SelectPairingAccountRequest,
   SelectPairingAccountResponse,
+  SetDefaultStorageBackendRequest,
+  SetDefaultStorageBackendResponse,
   SetDirectP2PEnabledRequest,
   SetDirectP2PEnabledResponse,
   SetLockModeRequest,
@@ -81,6 +89,8 @@ import {
   WatchSessionStateAtomsResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchStorageBackendsRequest,
+  WatchStorageBackendsResponse,
   WatchStorageStatsRequest,
   WatchStorageStatsResponse,
   WatchSyncStatusRequest,
@@ -486,6 +496,64 @@ export const SessionResourceServiceDefinition = {
       O: AcceptLocalPairingAnswerResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * WatchStorageBackends streams the account's storage backends and the
+     * Spaces placed on each.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.WatchStorageBackends
+     */
+    WatchStorageBackends: {
+      name: 'WatchStorageBackends',
+      I: WatchStorageBackendsRequest,
+      O: WatchStorageBackendsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * CheckStorageBackend writes, reads, and deletes a probe object on a saved
+     * or unsaved backend.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.CheckStorageBackend
+     */
+    CheckStorageBackend: {
+      name: 'CheckStorageBackend',
+      I: CheckStorageBackendRequest,
+      O: CheckStorageBackendResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * AddStorageBackend checks a bucket and saves it as a storage backend when
+     * the check passes.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.AddStorageBackend
+     */
+    AddStorageBackend: {
+      name: 'AddStorageBackend',
+      I: AddStorageBackendRequest,
+      O: AddStorageBackendResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RemoveStorageBackend removes a storage backend that holds no Space.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.RemoveStorageBackend
+     */
+    RemoveStorageBackend: {
+      name: 'RemoveStorageBackend',
+      I: RemoveStorageBackendRequest,
+      O: RemoveStorageBackendResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetDefaultStorageBackend selects the backend that new Spaces use.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.SetDefaultStorageBackend
+     */
+    SetDefaultStorageBackend: {
+      name: 'SetDefaultStorageBackend',
+      I: SetDefaultStorageBackendRequest,
+      O: SetDefaultStorageBackendResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -834,6 +902,59 @@ export interface SessionResourceService {
     request: AcceptLocalPairingAnswerRequest,
     abortSignal?: AbortSignal,
   ): Promise<AcceptLocalPairingAnswerResponse>
+
+  /**
+   * WatchStorageBackends streams the account's storage backends and the
+   * Spaces placed on each.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageBackends
+   */
+  WatchStorageBackends(
+    request: WatchStorageBackendsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchStorageBackendsResponse>
+
+  /**
+   * CheckStorageBackend writes, reads, and deletes a probe object on a saved
+   * or unsaved backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.CheckStorageBackend
+   */
+  CheckStorageBackend(
+    request: CheckStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CheckStorageBackendResponse>
+
+  /**
+   * AddStorageBackend checks a bucket and saves it as a storage backend when
+   * the check passes.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AddStorageBackend
+   */
+  AddStorageBackend(
+    request: AddStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AddStorageBackendResponse>
+
+  /**
+   * RemoveStorageBackend removes a storage backend that holds no Space.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RemoveStorageBackend
+   */
+  RemoveStorageBackend(
+    request: RemoveStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveStorageBackendResponse>
+
+  /**
+   * SetDefaultStorageBackend selects the backend that new Spaces use.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetDefaultStorageBackend
+   */
+  SetDefaultStorageBackend(
+    request: SetDefaultStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDefaultStorageBackendResponse>
 }
 
 /**
@@ -1223,6 +1344,64 @@ export interface SessionResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AcceptLocalPairingAnswerResponse>
+
+  /**
+   * WatchStorageBackends streams the account's storage backends and the
+   * Spaces placed on each.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageBackends
+   */
+  WatchStorageBackends(
+    request: WatchStorageBackendsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStorageBackendsResponse>
+
+  /**
+   * CheckStorageBackend writes, reads, and deletes a probe object on a saved
+   * or unsaved backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.CheckStorageBackend
+   */
+  CheckStorageBackend(
+    request: CheckStorageBackendRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CheckStorageBackendResponse>
+
+  /**
+   * AddStorageBackend checks a bucket and saves it as a storage backend when
+   * the check passes.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AddStorageBackend
+   */
+  AddStorageBackend(
+    request: AddStorageBackendRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddStorageBackendResponse>
+
+  /**
+   * RemoveStorageBackend removes a storage backend that holds no Space.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RemoveStorageBackend
+   */
+  RemoveStorageBackend(
+    request: RemoveStorageBackendRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveStorageBackendResponse>
+
+  /**
+   * SetDefaultStorageBackend selects the backend that new Spaces use.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetDefaultStorageBackend
+   */
+  SetDefaultStorageBackend(
+    request: SetDefaultStorageBackendRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDefaultStorageBackendResponse>
 }
 
 export const SessionResourceServiceServiceName =
@@ -1276,6 +1455,11 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.CreateLocalPairingOffer = this.CreateLocalPairingOffer.bind(this)
     this.AcceptLocalPairingOffer = this.AcceptLocalPairingOffer.bind(this)
     this.AcceptLocalPairingAnswer = this.AcceptLocalPairingAnswer.bind(this)
+    this.WatchStorageBackends = this.WatchStorageBackends.bind(this)
+    this.CheckStorageBackend = this.CheckStorageBackend.bind(this)
+    this.AddStorageBackend = this.AddStorageBackend.bind(this)
+    this.RemoveStorageBackend = this.RemoveStorageBackend.bind(this)
+    this.SetDefaultStorageBackend = this.SetDefaultStorageBackend.bind(this)
   }
   /**
    * @generated from rpc s4wave.session.SessionResourceService.GetSessionInfo
@@ -1995,5 +2179,103 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return AcceptLocalPairingAnswerResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchStorageBackends streams the account's storage backends and the
+   * Spaces placed on each.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageBackends
+   */
+  WatchStorageBackends(
+    request: WatchStorageBackendsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchStorageBackendsResponse> {
+    const requestMsg = WatchStorageBackendsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.WatchStorageBackends.name,
+      WatchStorageBackendsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchStorageBackendsResponse)(result)
+  }
+
+  /**
+   * CheckStorageBackend writes, reads, and deletes a probe object on a saved
+   * or unsaved backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.CheckStorageBackend
+   */
+  async CheckStorageBackend(
+    request: CheckStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CheckStorageBackendResponse> {
+    const requestMsg = CheckStorageBackendRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.CheckStorageBackend.name,
+      CheckStorageBackendRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CheckStorageBackendResponse.fromBinary(result)
+  }
+
+  /**
+   * AddStorageBackend checks a bucket and saves it as a storage backend when
+   * the check passes.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AddStorageBackend
+   */
+  async AddStorageBackend(
+    request: AddStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AddStorageBackendResponse> {
+    const requestMsg = AddStorageBackendRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.AddStorageBackend.name,
+      AddStorageBackendRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AddStorageBackendResponse.fromBinary(result)
+  }
+
+  /**
+   * RemoveStorageBackend removes a storage backend that holds no Space.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.RemoveStorageBackend
+   */
+  async RemoveStorageBackend(
+    request: RemoveStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RemoveStorageBackendResponse> {
+    const requestMsg = RemoveStorageBackendRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.RemoveStorageBackend.name,
+      RemoveStorageBackendRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RemoveStorageBackendResponse.fromBinary(result)
+  }
+
+  /**
+   * SetDefaultStorageBackend selects the backend that new Spaces use.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetDefaultStorageBackend
+   */
+  async SetDefaultStorageBackend(
+    request: SetDefaultStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDefaultStorageBackendResponse> {
+    const requestMsg = SetDefaultStorageBackendRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetDefaultStorageBackend.name,
+      SetDefaultStorageBackendRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetDefaultStorageBackendResponse.fromBinary(result)
   }
 }

@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.1,protobuf-es-lite=1.1.1,uv.lock=b79ba268c897b01ea3419b2627675f5f1cdd58e89702db7fae4e308c3ba57904",
   "packages": {
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "798e1b120b6d35a710e1f3c107f77cc1eb32e491234e846116a1b508447759a8",
+      "hash": "71b98497ff01c5630faaff7b8ab97dd6d78000eeb129b9bd4f738595056e8261",
       "generatedFiles": [
         "core/account/settings/settings_pb2.py",
         "core/account/settings/settings_pb2.pyi"
@@ -83,6 +83,16 @@
         "core/space/space.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/block/store/s3": {
+      "hash": "432fb51bed1e381cc14a2506026022ba3dc55b58f1175e3f46cf465fc72c43cc",
+      "generatedFiles": [
+        "db/block/store/s3/s3_pb2.py",
+        "db/block/store/s3/s3_pb2.pyi"
+      ],
+      "protoFiles": [
+        "db/block/store/s3/s3.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/block/transform": {
       "hash": "2ed62cdc77c7a9cc8f3667ba01115d10254e11fd64f4398d0ef9a2fa66eef84d",
       "generatedFiles": [
@@ -135,8 +145,20 @@
         "sdk/root/root.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/secret": {
+      "hash": "363ea6b55aafdd8c0f794fb482e485b1b52e981575a6dfa5e04c34769e79e80f",
+      "generatedFiles": [
+        "sdk/secret/secret_pb2.py",
+        "sdk/secret/secret_pb2.pyi",
+        "sdk/secret/secret_srpc.py",
+        "sdk/secret/secret_srpc.pyi"
+      ],
+      "protoFiles": [
+        "sdk/secret/secret.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "0bb1fac6c7ff9b3030f89060c7fe409e8cd2b77e008167103ea52dec2caf63ff",
+      "hash": "b8fee99ce80891437066bad44edc6e6601829d658c6705cbea6d25f489c2f806",
       "generatedFiles": [
         "sdk/session/session_pb2.py",
         "sdk/session/session_pb2.pyi",

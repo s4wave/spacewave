@@ -82,15 +82,9 @@ func (r *SessionResource) buildPairedDevicesResponse(
 	if snap == nil {
 		return nil, nil, nil
 	}
-	rootInner, err := snap.GetRootInner(ctx)
+	settings, err := decodeAccountSettings(ctx, snap)
 	if err != nil {
 		return nil, nil, err
-	}
-	settings := &account_settings.AccountSettings{}
-	if data := rootInner.GetStateData(); len(data) > 0 {
-		if err := settings.UnmarshalVT(data); err != nil {
-			return nil, nil, err
-		}
 	}
 	devices := slices.Clone(settings.GetPairedDevices())
 	for _, member := range settings.GetSessions() {

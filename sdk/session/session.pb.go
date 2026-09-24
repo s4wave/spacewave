@@ -20,6 +20,7 @@ import (
 	session "github.com/s4wave/spacewave/core/session"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	space "github.com/s4wave/spacewave/core/space"
+	s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
 
@@ -555,6 +556,12 @@ type CreateSpaceRequest struct {
 	OwnerType string `protobuf:"bytes,2,opt,name=owner_type,json=ownerType,proto3" json:"ownerType,omitempty"`
 	// OwnerId is the owner principal id (account id or organization id).
 	OwnerId string `protobuf:"bytes,3,opt,name=owner_id,json=ownerId,proto3" json:"ownerId,omitempty"`
+	// StorageBackendId places the Space's blocks on a storage backend.
+	// Empty uses the account's default storage backend.
+	StorageBackendId string `protobuf:"bytes,4,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// AccountStorage places the Space's blocks on the account's own storage,
+	// overriding the default storage backend.
+	AccountStorage bool `protobuf:"varint,5,opt,name=account_storage,json=accountStorage,proto3" json:"accountStorage,omitempty"`
 }
 
 func (x *CreateSpaceRequest) Reset() {
@@ -582,6 +589,20 @@ func (x *CreateSpaceRequest) GetOwnerId() string {
 		return x.OwnerId
 	}
 	return ""
+}
+
+func (x *CreateSpaceRequest) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *CreateSpaceRequest) GetAccountStorage() bool {
+	if x != nil {
+		return x.AccountStorage
+	}
+	return false
 }
 
 // CreateSpaceResponse is the response type for CreateSpace.
@@ -3143,6 +3164,303 @@ func (x *AcceptLocalPairingAnswerResponse) GetRemotePeerId() string {
 	return ""
 }
 
+// WatchStorageBackendsRequest is the request for WatchStorageBackends.
+type WatchStorageBackendsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchStorageBackendsRequest) Reset() {
+	*x = WatchStorageBackendsRequest{}
+}
+
+func (*WatchStorageBackendsRequest) ProtoMessage() {}
+
+// WatchStorageBackendsResponse is the current set of storage backends.
+type WatchStorageBackendsResponse struct {
+	unknownFields []byte
+	// StorageBackends lists each backend with the Spaces placed on it.
+	StorageBackends []*StorageBackendInfo `protobuf:"bytes,1,rep,name=storage_backends,json=storageBackends,proto3" json:"storageBackends,omitempty"`
+	// DefaultStorageBackendId identifies the backend new Spaces use.
+	// Empty means the account's own storage.
+	DefaultStorageBackendId string `protobuf:"bytes,2,opt,name=default_storage_backend_id,json=defaultStorageBackendId,proto3" json:"defaultStorageBackendId,omitempty"`
+}
+
+func (x *WatchStorageBackendsResponse) Reset() {
+	*x = WatchStorageBackendsResponse{}
+}
+
+func (*WatchStorageBackendsResponse) ProtoMessage() {}
+
+func (x *WatchStorageBackendsResponse) GetStorageBackends() []*StorageBackendInfo {
+	if x != nil {
+		return x.StorageBackends
+	}
+	return nil
+}
+
+func (x *WatchStorageBackendsResponse) GetDefaultStorageBackendId() string {
+	if x != nil {
+		return x.DefaultStorageBackendId
+	}
+	return ""
+}
+
+// StorageBackendInfo is a storage backend with the Spaces placed on it.
+type StorageBackendInfo struct {
+	unknownFields []byte
+	// Backend is the backend record. Its credential is redacted Secret metadata.
+	Backend *settings.StorageBackend `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
+	// PlacedSpaces lists the Spaces whose blocks the backend holds.
+	PlacedSpaces []*PlacedSpace `protobuf:"bytes,2,rep,name=placed_spaces,json=placedSpaces,proto3" json:"placedSpaces,omitempty"`
+}
+
+func (x *StorageBackendInfo) Reset() {
+	*x = StorageBackendInfo{}
+}
+
+func (*StorageBackendInfo) ProtoMessage() {}
+
+func (x *StorageBackendInfo) GetBackend() *settings.StorageBackend {
+	if x != nil {
+		return x.Backend
+	}
+	return nil
+}
+
+func (x *StorageBackendInfo) GetPlacedSpaces() []*PlacedSpace {
+	if x != nil {
+		return x.PlacedSpaces
+	}
+	return nil
+}
+
+// PlacedSpace names a Space placed on a storage backend.
+type PlacedSpace struct {
+	unknownFields []byte
+	// SpaceId is the Space's SharedObject id.
+	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// Name is the Space's display name, empty when unknown.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *PlacedSpace) Reset() {
+	*x = PlacedSpace{}
+}
+
+func (*PlacedSpace) ProtoMessage() {}
+
+func (x *PlacedSpace) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *PlacedSpace) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// CheckStorageBackendRequest is the request for CheckStorageBackend.
+type CheckStorageBackendRequest struct {
+	unknownFields []byte
+	// StorageBackendId checks a saved backend with its stored credentials.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// S3 is an unsaved bucket to check when StorageBackendId is empty.
+	S3 *settings.S3Location `protobuf:"bytes,2,opt,name=s3,proto3" json:"s3,omitempty"`
+	// Credentials are the access keys for S3.
+	Credentials *s3.Credentials `protobuf:"bytes,3,opt,name=credentials,proto3" json:"credentials,omitempty"`
+}
+
+func (x *CheckStorageBackendRequest) Reset() {
+	*x = CheckStorageBackendRequest{}
+}
+
+func (*CheckStorageBackendRequest) ProtoMessage() {}
+
+func (x *CheckStorageBackendRequest) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *CheckStorageBackendRequest) GetS3() *settings.S3Location {
+	if x != nil {
+		return x.S3
+	}
+	return nil
+}
+
+func (x *CheckStorageBackendRequest) GetCredentials() *s3.Credentials {
+	if x != nil {
+		return x.Credentials
+	}
+	return nil
+}
+
+// CheckStorageBackendResponse is the response for CheckStorageBackend.
+type CheckStorageBackendResponse struct {
+	unknownFields []byte
+	// Result is the classified check result.
+	Result *s3.CheckResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+}
+
+func (x *CheckStorageBackendResponse) Reset() {
+	*x = CheckStorageBackendResponse{}
+}
+
+func (*CheckStorageBackendResponse) ProtoMessage() {}
+
+func (x *CheckStorageBackendResponse) GetResult() *s3.CheckResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+// AddStorageBackendRequest is the request for AddStorageBackend.
+type AddStorageBackendRequest struct {
+	unknownFields []byte
+	// DisplayName is the backend name, unique within the account.
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
+	// S3 locates the bucket.
+	S3 *settings.S3Location `protobuf:"bytes,2,opt,name=s3,proto3" json:"s3,omitempty"`
+	// Credentials are the access keys, stored in the backend's Secret.
+	Credentials *s3.Credentials `protobuf:"bytes,3,opt,name=credentials,proto3" json:"credentials,omitempty"`
+	// SetDefault makes the new backend the default for new Spaces.
+	SetDefault bool `protobuf:"varint,4,opt,name=set_default,json=setDefault,proto3" json:"setDefault,omitempty"`
+}
+
+func (x *AddStorageBackendRequest) Reset() {
+	*x = AddStorageBackendRequest{}
+}
+
+func (*AddStorageBackendRequest) ProtoMessage() {}
+
+func (x *AddStorageBackendRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *AddStorageBackendRequest) GetS3() *settings.S3Location {
+	if x != nil {
+		return x.S3
+	}
+	return nil
+}
+
+func (x *AddStorageBackendRequest) GetCredentials() *s3.Credentials {
+	if x != nil {
+		return x.Credentials
+	}
+	return nil
+}
+
+func (x *AddStorageBackendRequest) GetSetDefault() bool {
+	if x != nil {
+		return x.SetDefault
+	}
+	return false
+}
+
+// AddStorageBackendResponse is the response for AddStorageBackend.
+type AddStorageBackendResponse struct {
+	unknownFields []byte
+	// StorageBackendId identifies the saved backend.
+	// Empty when the check failed and nothing was saved.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// Check is the connectivity check that ran before saving.
+	Check *s3.CheckResult `protobuf:"bytes,2,opt,name=check,proto3" json:"check,omitempty"`
+}
+
+func (x *AddStorageBackendResponse) Reset() {
+	*x = AddStorageBackendResponse{}
+}
+
+func (*AddStorageBackendResponse) ProtoMessage() {}
+
+func (x *AddStorageBackendResponse) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *AddStorageBackendResponse) GetCheck() *s3.CheckResult {
+	if x != nil {
+		return x.Check
+	}
+	return nil
+}
+
+// RemoveStorageBackendRequest is the request for RemoveStorageBackend.
+type RemoveStorageBackendRequest struct {
+	unknownFields []byte
+	// StorageBackendId identifies the backend to remove.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+}
+
+func (x *RemoveStorageBackendRequest) Reset() {
+	*x = RemoveStorageBackendRequest{}
+}
+
+func (*RemoveStorageBackendRequest) ProtoMessage() {}
+
+func (x *RemoveStorageBackendRequest) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+// RemoveStorageBackendResponse is the response for RemoveStorageBackend.
+type RemoveStorageBackendResponse struct {
+	unknownFields []byte
+}
+
+func (x *RemoveStorageBackendResponse) Reset() {
+	*x = RemoveStorageBackendResponse{}
+}
+
+func (*RemoveStorageBackendResponse) ProtoMessage() {}
+
+// SetDefaultStorageBackendRequest is the request for SetDefaultStorageBackend.
+type SetDefaultStorageBackendRequest struct {
+	unknownFields []byte
+	// StorageBackendId identifies the new default.
+	// Empty returns new Spaces to the account's own storage.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+}
+
+func (x *SetDefaultStorageBackendRequest) Reset() {
+	*x = SetDefaultStorageBackendRequest{}
+}
+
+func (*SetDefaultStorageBackendRequest) ProtoMessage() {}
+
+func (x *SetDefaultStorageBackendRequest) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+// SetDefaultStorageBackendResponse is the response for SetDefaultStorageBackend.
+type SetDefaultStorageBackendResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetDefaultStorageBackendResponse) Reset() {
+	*x = SetDefaultStorageBackendResponse{}
+}
+
+func (*SetDefaultStorageBackendResponse) ProtoMessage() {}
+
 func (m *GetSessionInfoRequest) CloneVT() *GetSessionInfoRequest {
 	if m == nil {
 		return (*GetSessionInfoRequest)(nil)
@@ -3236,6 +3554,8 @@ func (m *CreateSpaceRequest) CloneVT() *CreateSpaceRequest {
 	r.SpaceName = m.SpaceName
 	r.OwnerType = m.OwnerType
 	r.OwnerId = m.OwnerId
+	r.StorageBackendId = m.StorageBackendId
+	r.AccountStorage = m.AccountStorage
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4686,6 +5006,204 @@ func (m *AcceptLocalPairingAnswerResponse) CloneMessageVT() protobuf_go_lite.Clo
 	return m.CloneVT()
 }
 
+func (m *WatchStorageBackendsRequest) CloneVT() *WatchStorageBackendsRequest {
+	if m == nil {
+		return (*WatchStorageBackendsRequest)(nil)
+	}
+	r := new(WatchStorageBackendsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchStorageBackendsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchStorageBackendsResponse) CloneVT() *WatchStorageBackendsResponse {
+	if m == nil {
+		return (*WatchStorageBackendsResponse)(nil)
+	}
+	r := new(WatchStorageBackendsResponse)
+	r.DefaultStorageBackendId = m.DefaultStorageBackendId
+	r.StorageBackends = protobuf_go_lite.CloneVTSlice(m.StorageBackends)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchStorageBackendsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *StorageBackendInfo) CloneVT() *StorageBackendInfo {
+	if m == nil {
+		return (*StorageBackendInfo)(nil)
+	}
+	r := new(StorageBackendInfo)
+	r.Backend = protobuf_go_lite.CloneVTValue(m.Backend)
+	r.PlacedSpaces = protobuf_go_lite.CloneVTSlice(m.PlacedSpaces)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *StorageBackendInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PlacedSpace) CloneVT() *PlacedSpace {
+	if m == nil {
+		return (*PlacedSpace)(nil)
+	}
+	r := new(PlacedSpace)
+	r.SpaceId = m.SpaceId
+	r.Name = m.Name
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PlacedSpace) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CheckStorageBackendRequest) CloneVT() *CheckStorageBackendRequest {
+	if m == nil {
+		return (*CheckStorageBackendRequest)(nil)
+	}
+	r := new(CheckStorageBackendRequest)
+	r.StorageBackendId = m.StorageBackendId
+	r.S3 = protobuf_go_lite.CloneVTValue(m.S3)
+	r.Credentials = protobuf_go_lite.CloneVTValue(m.Credentials)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CheckStorageBackendRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CheckStorageBackendResponse) CloneVT() *CheckStorageBackendResponse {
+	if m == nil {
+		return (*CheckStorageBackendResponse)(nil)
+	}
+	r := new(CheckStorageBackendResponse)
+	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CheckStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AddStorageBackendRequest) CloneVT() *AddStorageBackendRequest {
+	if m == nil {
+		return (*AddStorageBackendRequest)(nil)
+	}
+	r := new(AddStorageBackendRequest)
+	r.DisplayName = m.DisplayName
+	r.SetDefault = m.SetDefault
+	r.S3 = protobuf_go_lite.CloneVTValue(m.S3)
+	r.Credentials = protobuf_go_lite.CloneVTValue(m.Credentials)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AddStorageBackendRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AddStorageBackendResponse) CloneVT() *AddStorageBackendResponse {
+	if m == nil {
+		return (*AddStorageBackendResponse)(nil)
+	}
+	r := new(AddStorageBackendResponse)
+	r.StorageBackendId = m.StorageBackendId
+	r.Check = protobuf_go_lite.CloneVTValue(m.Check)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AddStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RemoveStorageBackendRequest) CloneVT() *RemoveStorageBackendRequest {
+	if m == nil {
+		return (*RemoveStorageBackendRequest)(nil)
+	}
+	r := new(RemoveStorageBackendRequest)
+	r.StorageBackendId = m.StorageBackendId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RemoveStorageBackendRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RemoveStorageBackendResponse) CloneVT() *RemoveStorageBackendResponse {
+	if m == nil {
+		return (*RemoveStorageBackendResponse)(nil)
+	}
+	r := new(RemoveStorageBackendResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RemoveStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDefaultStorageBackendRequest) CloneVT() *SetDefaultStorageBackendRequest {
+	if m == nil {
+		return (*SetDefaultStorageBackendRequest)(nil)
+	}
+	r := new(SetDefaultStorageBackendRequest)
+	r.StorageBackendId = m.StorageBackendId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDefaultStorageBackendRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDefaultStorageBackendResponse) CloneVT() *SetDefaultStorageBackendResponse {
+	if m == nil {
+		return (*SetDefaultStorageBackendResponse)(nil)
+	}
+	r := new(SetDefaultStorageBackendResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDefaultStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *GetSessionInfoRequest) EqualVT(that *GetSessionInfoRequest) bool {
 	if this == that {
 		return true
@@ -4814,6 +5332,12 @@ func (this *CreateSpaceRequest) EqualVT(that *CreateSpaceRequest) bool {
 		return false
 	}
 	if this.OwnerId != that.OwnerId {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if this.AccountStorage != that.AccountStorage {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6795,6 +7319,264 @@ func (this *AcceptLocalPairingAnswerResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *WatchStorageBackendsRequest) EqualVT(that *WatchStorageBackendsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchStorageBackendsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchStorageBackendsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchStorageBackendsResponse) EqualVT(that *WatchStorageBackendsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.StorageBackends, that.StorageBackends, func() *StorageBackendInfo { return &StorageBackendInfo{} }) {
+		return false
+	}
+	if this.DefaultStorageBackendId != that.DefaultStorageBackendId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchStorageBackendsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchStorageBackendsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *StorageBackendInfo) EqualVT(that *StorageBackendInfo) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Backend, that.Backend) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.PlacedSpaces, that.PlacedSpaces, func() *PlacedSpace { return &PlacedSpace{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *StorageBackendInfo) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*StorageBackendInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PlacedSpace) EqualVT(that *PlacedSpace) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PlacedSpace) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PlacedSpace)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CheckStorageBackendRequest) EqualVT(that *CheckStorageBackendRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.S3, that.S3) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Credentials, that.Credentials) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CheckStorageBackendRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CheckStorageBackendRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CheckStorageBackendResponse) EqualVT(that *CheckStorageBackendResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Result, that.Result) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CheckStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CheckStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AddStorageBackendRequest) EqualVT(that *AddStorageBackendRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.S3, that.S3) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Credentials, that.Credentials) {
+		return false
+	}
+	if this.SetDefault != that.SetDefault {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AddStorageBackendRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AddStorageBackendRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AddStorageBackendResponse) EqualVT(that *AddStorageBackendResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Check, that.Check) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AddStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AddStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RemoveStorageBackendRequest) EqualVT(that *RemoveStorageBackendRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RemoveStorageBackendRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RemoveStorageBackendRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RemoveStorageBackendResponse) EqualVT(that *RemoveStorageBackendResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RemoveStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RemoveStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDefaultStorageBackendRequest) EqualVT(that *SetDefaultStorageBackendRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDefaultStorageBackendRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDefaultStorageBackendRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDefaultStorageBackendResponse) EqualVT(that *SetDefaultStorageBackendResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDefaultStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDefaultStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the SyncStatusState to JSON.
 func (x SyncStatusState) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), SyncStatusState_name)
@@ -7373,6 +8155,16 @@ func (x *CreateSpaceRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ownerId")
 		s.WriteString(x.OwnerId)
 	}
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.AccountStorage || s.HasField("accountStorage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountStorage")
+		s.WriteBool(x.AccountStorage)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7399,6 +8191,12 @@ func (x *CreateSpaceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "owner_id", "ownerId":
 			s.AddField("owner_id")
 			x.OwnerId = s.ReadString()
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "account_storage", "accountStorage":
+			s.AddField("account_storage")
+			x.AccountStorage = s.ReadBool()
 		}
 	})
 }
@@ -11823,6 +12621,616 @@ func (x *AcceptLocalPairingAnswerResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchStorageBackendsRequest message to JSON.
+func (x *WatchStorageBackendsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchStorageBackendsRequest to JSON.
+func (x *WatchStorageBackendsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchStorageBackendsRequest message from JSON.
+func (x *WatchStorageBackendsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchStorageBackendsRequest from JSON.
+func (x *WatchStorageBackendsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchStorageBackendsResponse message to JSON.
+func (x *WatchStorageBackendsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.StorageBackends) > 0 || s.HasField("storageBackends") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackends")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.StorageBackends {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("storageBackends"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.DefaultStorageBackendId != "" || s.HasField("defaultStorageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("defaultStorageBackendId")
+		s.WriteString(x.DefaultStorageBackendId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchStorageBackendsResponse to JSON.
+func (x *WatchStorageBackendsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchStorageBackendsResponse message from JSON.
+func (x *WatchStorageBackendsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backends", "storageBackends":
+			s.AddField("storage_backends")
+			if s.ReadNil() {
+				x.StorageBackends = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.StorageBackends = append(x.StorageBackends, nil)
+					return
+				}
+				v := &StorageBackendInfo{}
+				v.UnmarshalProtoJSON(s.WithField("storage_backends", false))
+				if s.Err() != nil {
+					return
+				}
+				x.StorageBackends = append(x.StorageBackends, v)
+			})
+		case "default_storage_backend_id", "defaultStorageBackendId":
+			s.AddField("default_storage_backend_id")
+			x.DefaultStorageBackendId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchStorageBackendsResponse from JSON.
+func (x *WatchStorageBackendsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the StorageBackendInfo message to JSON.
+func (x *StorageBackendInfo) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Backend != nil || s.HasField("backend") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backend")
+		x.Backend.MarshalProtoJSON(s.WithField("backend"))
+	}
+	if len(x.PlacedSpaces) > 0 || s.HasField("placedSpaces") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placedSpaces")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.PlacedSpaces {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("placedSpaces"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the StorageBackendInfo to JSON.
+func (x *StorageBackendInfo) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the StorageBackendInfo message from JSON.
+func (x *StorageBackendInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "backend":
+			if s.ReadNil() {
+				x.Backend = nil
+				return
+			}
+			x.Backend = &settings.StorageBackend{}
+			x.Backend.UnmarshalProtoJSON(s.WithField("backend", true))
+		case "placed_spaces", "placedSpaces":
+			s.AddField("placed_spaces")
+			if s.ReadNil() {
+				x.PlacedSpaces = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.PlacedSpaces = append(x.PlacedSpaces, nil)
+					return
+				}
+				v := &PlacedSpace{}
+				v.UnmarshalProtoJSON(s.WithField("placed_spaces", false))
+				if s.Err() != nil {
+					return
+				}
+				x.PlacedSpaces = append(x.PlacedSpaces, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the StorageBackendInfo from JSON.
+func (x *StorageBackendInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PlacedSpace message to JSON.
+func (x *PlacedSpace) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PlacedSpace to JSON.
+func (x *PlacedSpace) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PlacedSpace message from JSON.
+func (x *PlacedSpace) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PlacedSpace from JSON.
+func (x *PlacedSpace) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CheckStorageBackendRequest message to JSON.
+func (x *CheckStorageBackendRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.S3 != nil || s.HasField("s3") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("s3")
+		x.S3.MarshalProtoJSON(s.WithField("s3"))
+	}
+	if x.Credentials != nil || s.HasField("credentials") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("credentials")
+		x.Credentials.MarshalProtoJSON(s.WithField("credentials"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CheckStorageBackendRequest to JSON.
+func (x *CheckStorageBackendRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CheckStorageBackendRequest message from JSON.
+func (x *CheckStorageBackendRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "s3":
+			if s.ReadNil() {
+				x.S3 = nil
+				return
+			}
+			x.S3 = &settings.S3Location{}
+			x.S3.UnmarshalProtoJSON(s.WithField("s3", true))
+		case "credentials":
+			if s.ReadNil() {
+				x.Credentials = nil
+				return
+			}
+			x.Credentials = &s3.Credentials{}
+			x.Credentials.UnmarshalProtoJSON(s.WithField("credentials", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CheckStorageBackendRequest from JSON.
+func (x *CheckStorageBackendRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CheckStorageBackendResponse message to JSON.
+func (x *CheckStorageBackendResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Result != nil || s.HasField("result") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("result")
+		x.Result.MarshalProtoJSON(s.WithField("result"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CheckStorageBackendResponse to JSON.
+func (x *CheckStorageBackendResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CheckStorageBackendResponse message from JSON.
+func (x *CheckStorageBackendResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "result":
+			if s.ReadNil() {
+				x.Result = nil
+				return
+			}
+			x.Result = &s3.CheckResult{}
+			x.Result.UnmarshalProtoJSON(s.WithField("result", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CheckStorageBackendResponse from JSON.
+func (x *CheckStorageBackendResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AddStorageBackendRequest message to JSON.
+func (x *AddStorageBackendRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.DisplayName != "" || s.HasField("displayName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayName")
+		s.WriteString(x.DisplayName)
+	}
+	if x.S3 != nil || s.HasField("s3") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("s3")
+		x.S3.MarshalProtoJSON(s.WithField("s3"))
+	}
+	if x.Credentials != nil || s.HasField("credentials") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("credentials")
+		x.Credentials.MarshalProtoJSON(s.WithField("credentials"))
+	}
+	if x.SetDefault || s.HasField("setDefault") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("setDefault")
+		s.WriteBool(x.SetDefault)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AddStorageBackendRequest to JSON.
+func (x *AddStorageBackendRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AddStorageBackendRequest message from JSON.
+func (x *AddStorageBackendRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "display_name", "displayName":
+			s.AddField("display_name")
+			x.DisplayName = s.ReadString()
+		case "s3":
+			if s.ReadNil() {
+				x.S3 = nil
+				return
+			}
+			x.S3 = &settings.S3Location{}
+			x.S3.UnmarshalProtoJSON(s.WithField("s3", true))
+		case "credentials":
+			if s.ReadNil() {
+				x.Credentials = nil
+				return
+			}
+			x.Credentials = &s3.Credentials{}
+			x.Credentials.UnmarshalProtoJSON(s.WithField("credentials", true))
+		case "set_default", "setDefault":
+			s.AddField("set_default")
+			x.SetDefault = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AddStorageBackendRequest from JSON.
+func (x *AddStorageBackendRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AddStorageBackendResponse message to JSON.
+func (x *AddStorageBackendResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.Check != nil || s.HasField("check") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("check")
+		x.Check.MarshalProtoJSON(s.WithField("check"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AddStorageBackendResponse to JSON.
+func (x *AddStorageBackendResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AddStorageBackendResponse message from JSON.
+func (x *AddStorageBackendResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "check":
+			if s.ReadNil() {
+				x.Check = nil
+				return
+			}
+			x.Check = &s3.CheckResult{}
+			x.Check.UnmarshalProtoJSON(s.WithField("check", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AddStorageBackendResponse from JSON.
+func (x *AddStorageBackendResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RemoveStorageBackendRequest message to JSON.
+func (x *RemoveStorageBackendRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveStorageBackendRequest to JSON.
+func (x *RemoveStorageBackendRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveStorageBackendRequest message from JSON.
+func (x *RemoveStorageBackendRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveStorageBackendRequest from JSON.
+func (x *RemoveStorageBackendRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RemoveStorageBackendResponse message to JSON.
+func (x *RemoveStorageBackendResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RemoveStorageBackendResponse to JSON.
+func (x *RemoveStorageBackendResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RemoveStorageBackendResponse message from JSON.
+func (x *RemoveStorageBackendResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RemoveStorageBackendResponse from JSON.
+func (x *RemoveStorageBackendResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetDefaultStorageBackendRequest message to JSON.
+func (x *SetDefaultStorageBackendRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDefaultStorageBackendRequest to JSON.
+func (x *SetDefaultStorageBackendRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDefaultStorageBackendRequest message from JSON.
+func (x *SetDefaultStorageBackendRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDefaultStorageBackendRequest from JSON.
+func (x *SetDefaultStorageBackendRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetDefaultStorageBackendResponse message to JSON.
+func (x *SetDefaultStorageBackendResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDefaultStorageBackendResponse to JSON.
+func (x *SetDefaultStorageBackendResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDefaultStorageBackendResponse message from JSON.
+func (x *SetDefaultStorageBackendResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDefaultStorageBackendResponse from JSON.
+func (x *SetDefaultStorageBackendResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *GetSessionInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -12078,6 +13486,16 @@ func (m *CreateSpaceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AccountStorage {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AccountStorage)
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.OwnerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OwnerId)
@@ -15905,6 +17323,529 @@ func (m *AcceptLocalPairingAnswerResponse) MarshalToSizedBufferVT(dAtA []byte) (
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchStorageBackendsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchStorageBackendsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchStorageBackendsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchStorageBackendsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchStorageBackendsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchStorageBackendsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.DefaultStorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DefaultStorageBackendId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StorageBackends) > 0 {
+		for iNdEx := len(m.StorageBackends) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.StorageBackends[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *StorageBackendInfo) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StorageBackendInfo) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *StorageBackendInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PlacedSpaces) > 0 {
+		for iNdEx := len(m.PlacedSpaces) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.PlacedSpaces[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Backend != nil {
+		size, err := m.Backend.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PlacedSpace) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PlacedSpace) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PlacedSpace) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CheckStorageBackendRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CheckStorageBackendRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CheckStorageBackendRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Credentials != nil {
+		size, err := m.Credentials.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.S3 != nil {
+		size, err := m.S3.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CheckStorageBackendResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CheckStorageBackendResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CheckStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Result != nil {
+		size, err := m.Result.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AddStorageBackendRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AddStorageBackendRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AddStorageBackendRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SetDefault {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SetDefault)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Credentials != nil {
+		size, err := m.Credentials.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.S3 != nil {
+		size, err := m.S3.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DisplayName) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DisplayName)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AddStorageBackendResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AddStorageBackendResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AddStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Check != nil {
+		size, err := m.Check.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RemoveStorageBackendRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RemoveStorageBackendRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoveStorageBackendRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RemoveStorageBackendResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RemoveStorageBackendResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoveStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetDefaultStorageBackendRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDefaultStorageBackendRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDefaultStorageBackendRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetDefaultStorageBackendResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDefaultStorageBackendResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDefaultStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetSessionInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15983,6 +17924,8 @@ func (m *CreateSpaceRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceName)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OwnerType)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OwnerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AccountStorage)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17067,6 +19010,171 @@ func (m *AcceptLocalPairingAnswerResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *WatchStorageBackendsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchStorageBackendsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.StorageBackends {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DefaultStorageBackendId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *StorageBackendInfo) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Backend != nil {
+		l = m.Backend.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.PlacedSpaces {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PlacedSpace) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CheckStorageBackendRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	if m.S3 != nil {
+		l = m.S3.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Credentials != nil {
+		l = m.Credentials.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CheckStorageBackendResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Result != nil {
+		l = m.Result.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AddStorageBackendRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DisplayName)
+	if m.S3 != nil {
+		l = m.S3.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Credentials != nil {
+		l = m.Credentials.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.SetDefault)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AddStorageBackendResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	if m.Check != nil {
+		l = m.Check.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RemoveStorageBackendRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RemoveStorageBackendResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDefaultStorageBackendRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDefaultStorageBackendResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x SyncStatusState) MarshalProtoText() string {
 	return x.String()
 }
@@ -17207,6 +19315,14 @@ func (x *CreateSpaceRequest) MarshalProtoText() string {
 	if x.OwnerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "owner_id")
 		protobuf_go_lite.TextWriteString(&sb, x.OwnerId)
+	}
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.AccountStorage != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "account_storage")
+		protobuf_go_lite.TextWriteBool(&sb, x.AccountStorage)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -18859,6 +20975,214 @@ func (x *AcceptLocalPairingAnswerResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *WatchStorageBackendsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchStorageBackendsRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchStorageBackendsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchStorageBackendsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchStorageBackendsResponse")
+	if len(x.StorageBackends) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "storage_backends")
+		for i, v := range x.StorageBackends {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &StorageBackendInfo{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.DefaultStorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "default_storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.DefaultStorageBackendId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchStorageBackendsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *StorageBackendInfo) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "StorageBackendInfo")
+	if x.Backend != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "backend")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Backend)
+	}
+	if len(x.PlacedSpaces) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "placed_spaces")
+		for i, v := range x.PlacedSpaces {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PlacedSpace{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *StorageBackendInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PlacedSpace) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PlacedSpace")
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PlacedSpace) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CheckStorageBackendRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CheckStorageBackendRequest")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.S3 != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "s3")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.S3)
+	}
+	if x.Credentials != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "credentials")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Credentials)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CheckStorageBackendRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CheckStorageBackendResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CheckStorageBackendResponse")
+	if x.Result != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "result")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Result)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CheckStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AddStorageBackendRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AddStorageBackendRequest")
+	if x.DisplayName != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "display_name")
+		protobuf_go_lite.TextWriteString(&sb, x.DisplayName)
+	}
+	if x.S3 != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "s3")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.S3)
+	}
+	if x.Credentials != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "credentials")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Credentials)
+	}
+	if x.SetDefault != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_default")
+		protobuf_go_lite.TextWriteBool(&sb, x.SetDefault)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AddStorageBackendRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AddStorageBackendResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AddStorageBackendResponse")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.Check != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "check")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Check)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AddStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RemoveStorageBackendRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoveStorageBackendRequest")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RemoveStorageBackendRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RemoveStorageBackendResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "RemoveStorageBackendResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RemoveStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDefaultStorageBackendRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetDefaultStorageBackendRequest")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetDefaultStorageBackendRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDefaultStorageBackendResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetDefaultStorageBackendResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetDefaultStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *GetSessionInfoRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -19235,6 +21559,26 @@ func (m *CreateSpaceRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OwnerId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountStorage", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AccountStorage = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -24672,6 +27016,743 @@ func (m *AcceptLocalPairingAnswerResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RemotePeerId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchStorageBackendsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchStorageBackendsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchStorageBackendsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchStorageBackendsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchStorageBackendsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchStorageBackendsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackends", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackends = append(m.StorageBackends, &StorageBackendInfo{})
+			if err := m.StorageBackends[len(m.StorageBackends)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DefaultStorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DefaultStorageBackendId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *StorageBackendInfo) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StorageBackendInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StorageBackendInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backend", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Backend == nil {
+				m.Backend = &settings.StorageBackend{}
+			}
+			if err := m.Backend.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PlacedSpaces", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PlacedSpaces = append(m.PlacedSpaces, &PlacedSpace{})
+			if err := m.PlacedSpaces[len(m.PlacedSpaces)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PlacedSpace) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PlacedSpace: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PlacedSpace: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Name = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CheckStorageBackendRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CheckStorageBackendRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CheckStorageBackendRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field S3", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.S3 == nil {
+				m.S3 = &settings.S3Location{}
+			}
+			if err := m.S3.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Credentials", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Credentials == nil {
+				m.Credentials = &s3.Credentials{}
+			}
+			if err := m.Credentials.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CheckStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CheckStorageBackendResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CheckStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Result == nil {
+				m.Result = &s3.CheckResult{}
+			}
+			if err := m.Result.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AddStorageBackendRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AddStorageBackendRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AddStorageBackendRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DisplayName = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field S3", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.S3 == nil {
+				m.S3 = &settings.S3Location{}
+			}
+			if err := m.S3.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Credentials", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Credentials == nil {
+				m.Credentials = &s3.Credentials{}
+			}
+			if err := m.Credentials.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SetDefault", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SetDefault = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AddStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AddStorageBackendResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AddStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Check", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Check == nil {
+				m.Check = &s3.CheckResult{}
+			}
+			if err := m.Check.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RemoveStorageBackendRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RemoveStorageBackendRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RemoveStorageBackendRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RemoveStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RemoveStorageBackendResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RemoveStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDefaultStorageBackendRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDefaultStorageBackendRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDefaultStorageBackendRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDefaultStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDefaultStorageBackendResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDefaultStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
