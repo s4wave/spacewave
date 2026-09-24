@@ -112,6 +112,43 @@ describe('direct Rolldown/Oxc owner', () => {
     expect(result.inputs).not.toContain(join(distRoot, 'sdk', 'plugin.ts'))
   })
 
+  it('resolves cached source bindings from the working module vendor', async () => {
+    const project = await makeProject()
+    const cachedRoot = join(project.root, 'modcache', 'library')
+    const vendorBinding = join(
+      project.root,
+      'vendor',
+      'github.com',
+      'example',
+      'dep',
+      'dep.pb.ts',
+    )
+    await fs.mkdir(join(cachedRoot, 'api'), { recursive: true })
+    await fs.mkdir(join(vendorBinding, '..'), { recursive: true })
+    await fs.writeFile(join(project.root, 'go.mod'), 'module example.com/app\n')
+    await fs.writeFile(
+      join(cachedRoot, 'go.mod'),
+      'module github.com/example/library\n',
+    )
+    await fs.writeFile(
+      join(cachedRoot, 'api', 'api.pb.ts'),
+      "export { dep } from '@go/github.com/example/dep/dep.pb.js'\n",
+    )
+    await fs.writeFile(vendorBinding, "export const dep = 'vendored-binding'\n")
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      "import { dep } from '@go/github.com/example/library/api/api.pb.js'\nconsole.log(dep)\n",
+    )
+    const result = await runBuild(
+      project.request({ workingDir: project.output, sourceRoot: cachedRoot }),
+      dependencyRoot,
+    )
+    expect(result.diagnostics ?? []).toEqual([])
+    expect(
+      await fs.readFile(join(project.output, 'main.js'), 'utf8'),
+    ).toContain('vendored-binding')
+  })
+
   it('keeps the default export of an injected entry', async () => {
     const project = await makeProject()
     await fs.writeFile(

@@ -178,6 +178,7 @@ async function runBuild(request, dependencyRoot) {
     return existingFile(filePath) ? filePath : null;
   };
   const localModule = readLocalModule(sourceRoot);
+  const workingModule = readLocalModule(workingDir);
   const goscript = request.goscript;
   const goScriptOutputRoot = resolve(workingDir, goscript?.outputRoot || outputRoot);
   const bldrDistRoot = canonicalPath(request.bldrDistRoot || sourceRoot);
@@ -216,7 +217,7 @@ async function runBuild(request, dependencyRoot) {
     if (!localModule && importPath.startsWith(LOCAL_MODULE_PREFIX)) {
       return existingSourcePath(join(sourceRoot, importPath.slice(LOCAL_MODULE_PREFIX.length)));
     }
-    for (const root of [localModule?.root, bldrDistRoot]) {
+    for (const root of [localModule?.root, workingModule?.root, bldrDistRoot]) {
       if (!root)
         continue;
       const resolved = existingSourcePath(join(root, "vendor", importPath));

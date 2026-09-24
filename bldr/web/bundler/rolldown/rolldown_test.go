@@ -185,11 +185,18 @@ func TestEnsureDependencyRootRejectsStaleSourceRolldown(t *testing.T) {
 	root := t.TempDir()
 	depsRoot := filepath.Join(root, "bldr", "dist", "deps")
 	sourcePackage := []byte(`{"dependencies":{"rolldown":"1.2.3"}}`)
+
+	// The shared install cache holds a current install keyed by the manifest.
+	packageHash := fmt.Sprintf("%x", sha256.Sum256(sourcePackage))
+	cacheRoot := filepath.Join(root, "cache")
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", cacheRoot)
+	installRoot := filepath.Join(cacheRoot, packageHash)
 	for path, data := range map[string][]byte{
-		filepath.Join(depsRoot, "package.json"):                                                         sourcePackage,
-		filepath.Join(depsRoot, "node_modules", "rolldown", "package.json"):                             []byte(`{"version":"1.2.2"}`),
-		filepath.Join(depsRoot, "node_modules", "rolldown", "dist", "index.mjs"):                        []byte("stale"),
-		filepath.Join(root, "state", "build-web-pkgs", "node_modules", "rolldown", "dist", "index.mjs"): []byte("current"),
+		filepath.Join(depsRoot, "package.json"):                                     sourcePackage,
+		filepath.Join(depsRoot, "node_modules", "rolldown", "package.json"):         []byte(`{"version":"1.2.2"}`),
+		filepath.Join(depsRoot, "node_modules", "rolldown", "dist", "index.mjs"):    []byte("stale"),
+		filepath.Join(installRoot, "node_modules", "rolldown", "dist", "index.mjs"): []byte("current"),
+		filepath.Join(installRoot, ".bldr-install-hash"):                            []byte(packageHash),
 	} {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -197,11 +204,6 @@ func TestEnsureDependencyRootRejectsStaleSourceRolldown(t *testing.T) {
 		if err := os.WriteFile(path, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
-	}
-	packageHash := sha256.Sum256(sourcePackage)
-	installRoot := filepath.Join(root, "state", "build-web-pkgs")
-	if err := os.WriteFile(filepath.Join(installRoot, ".bldr-install-hash"), fmt.Appendf(nil, "%x", packageHash), 0o644); err != nil {
-		t.Fatal(err)
 	}
 
 	got, err := ensureDependencyRoot(

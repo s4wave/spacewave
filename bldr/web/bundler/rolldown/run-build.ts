@@ -314,6 +314,9 @@ export async function runBuild(
     return existingFile(filePath) ? filePath : null
   }
   const localModule = readLocalModule(sourceRoot)
+  // The module being built vendors the bindings of its whole import graph,
+  // including those of a Bldr source root read from the module cache.
+  const workingModule = readLocalModule(workingDir)
   const goscript = request.goscript
   const goScriptOutputRoot = resolve(
     workingDir,
@@ -363,7 +366,7 @@ export async function runBuild(
         join(sourceRoot, importPath.slice(LOCAL_MODULE_PREFIX.length)),
       )
     }
-    for (const root of [localModule?.root, bldrDistRoot]) {
+    for (const root of [localModule?.root, workingModule?.root, bldrDistRoot]) {
       if (!root) continue
       const resolved = existingSourcePath(join(root, 'vendor', importPath))
       if (resolved) return resolved
