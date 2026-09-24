@@ -239,10 +239,7 @@ export class SqliteBridgeServer implements SqliteBridge {
       yield { columnNames, row: [] }
 
       while (stmt.step()) {
-        const row = new Array<SqlValue>(colCount)
-        for (let i = 0; i < colCount; i++) {
-          row[i] = stmt.get(i)
-        }
+        const row = Array.from({ length: colCount }, (_, i) => stmt.get(i))
         yield { columnNames: [], row: row.map(sqlValueToProto) }
       }
     } finally {
