@@ -1,2841 +1,767 @@
-/* eslint-disable react-doctor/no-giant-component */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
+  useEffect,
+  useRef,
+  type ComponentProps,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
+import {
+  LuArrowDown,
   LuArrowLeft,
+  LuArrowRight,
+  LuArrowUp,
   LuBox,
-  LuChevronDown,
-  LuChevronRight,
+  LuCircleAlert,
   LuCpu,
   LuFolderOpen,
+  LuHardDrive,
   LuLayers,
-  LuLock,
-  LuLockOpen,
-  LuPuzzle,
   LuRadar,
-  LuTerminal,
-  LuUser,
+  LuRefreshCw,
+  LuRocket,
+  LuTriangleAlert,
   LuX,
 } from 'react-icons/lu'
 
-import { List as VirtualList, type RowComponentProps } from 'react-window'
-
-import { cn } from '@s4wave/web/style/utils.js'
-import { useAppBuildInfo, type AppBuildInfo } from '@s4wave/app/build-info.js'
-import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
+import { useTrackedResources } from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
-import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
-import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import {
-  useStateAtom,
-  useStateNamespace,
-  type StateNamespace,
-} from '@s4wave/web/state/index.js'
-import { ResourceTreeTab } from '@s4wave/web/devtools/ResourceTreeTab.js'
-import { ResourceDetailsPanel } from '@s4wave/web/devtools/ResourceDetailsPanel.js'
-import { StateDetailsPanel } from '@s4wave/web/devtools/StateDetailsPanel.js'
-import {
-  useSelectedResourceId,
-  useTrackedResources,
-} from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
-import { StateTreeTab } from '@s4wave/web/devtools/StateTreeTab.js'
-import { useSelectedStateAtomId } from '@s4wave/web/devtools/StateDevToolsContext.js'
+  useSessionIndex,
+  useSessionNavigate,
+} from '@s4wave/web/contexts/contexts.js'
 import { useStateInspectorEntryMap } from '@s4wave/web/devtools/useStateInspectorEntries.js'
-import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
+import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
+import { cn } from '@s4wave/web/style/utils.js'
+import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+
+import { NetworkInspector } from './NetworkInspector.js'
+import { ReleaseInspector } from './ReleaseInspector.js'
+import { RuntimeInspector, type RuntimeView } from './RuntimeInspector.js'
+import { SpacesInspector } from './SpacesInspector.js'
+import { StorageInspector } from './StorageInspector.js'
+import { StorageMeter } from './StorageMeter.js'
+import { SyncInspector } from './SyncInspector.js'
+import { SystemTile } from './SystemTile.js'
+import { UnderTheHoodInspector } from './UnderTheHoodInspector.js'
 import {
-  useWatchSpacesList,
-  useWatchControllers,
-  useWatchDirectives,
-  useWatchPlugins,
-  useWatchNetworkStats,
-} from './useSystemStatus.js'
-import { useIsMobile } from '@s4wave/web/hooks/useMobile.js'
+  formatBytes,
+  formatCount,
+  plural,
+  protectionLabel,
+  shortId,
+} from './format.js'
+import { toneDotClass, toneTextClass } from './tone.js'
+import {
+  updatePhaseLabel,
+  useSystemModel,
+  type AttentionItem,
+  type SubsystemId,
+  type SystemModel,
+  type SystemTone,
+} from './useSystemModel.js'
 
-function formatTimestamp(ms: number): string {
-  const d = new Date(ms)
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+// InspectorId names a full-size inspector: one per subsystem tile plus the
+// two devtools trees.
+type InspectorId = SubsystemId | 'resources' | 'atoms'
+
+// TileRef registers the control that opens an inspector, so focus can return
+// to it when the inspector closes.
+type TileRef = (id: InspectorId) => (node: HTMLButtonElement | null) => void
+
+// inspectorMeta titles and describes every inspector in navigation order.
+const inspectorMeta: Record<
+  InspectorId,
+  { title: string; icon: ReactNode; description: string }
+> = {
+  sync: {
+    title: 'Sync',
+    icon: <LuRefreshCw />,
+    description: 'How this session moves blocks to and from your other copies.',
+  },
+  storage: {
+    title: 'Storage',
+    icon: <LuHardDrive />,
+    description: 'Where your data lives on this device and how safe it is.',
+  },
+  network: {
+    title: 'Network',
+    icon: <LuRadar />,
+    description: 'The encrypted peer links this device holds right now.',
+  },
+  runtime: {
+    title: 'Runtime',
+    icon: <LuCpu />,
+    description:
+      'Plugins, controllers, and directives running on the session bus.',
+  },
+  release: {
+    title: 'Release',
+    icon: <LuRocket />,
+    description: 'This build, its updates, and how it booted.',
+  },
+  spaces: {
+    title: 'Spaces & Accounts',
+    icon: <LuFolderOpen />,
+    description: 'Every account on this device and the Spaces it holds.',
+  },
+  resources: {
+    title: 'Resources',
+    icon: <LuLayers />,
+    description: 'SDK resources this app holds open, as a live tree.',
+  },
+  atoms: {
+    title: 'State atoms',
+    icon: <LuBox />,
+    description: 'Persisted UI state, as a live tree.',
+  },
 }
 
-// Group flat directives by name for display.
-function groupDirectives(
-  directives: ReadonlyArray<{ name?: string; ident?: string }>,
-) {
-  const groups = new Map<string, string[]>()
-  for (const d of directives) {
-    const name = d.name || 'unknown'
-    const arr = groups.get(name)
-    if (arr) arr.push(d.ident || '')
-    else groups.set(name, [d.ident || ''])
-  }
-  return Array.from(groups.entries())
-    .map(([name, idents]) => ({ name, idents, count: idents.length }))
-    .sort((a, b) => b.count - a.count)
-}
+const inspectorOrder = Object.keys(inspectorMeta) as InspectorId[]
 
-function makeOccurrenceKey(id: string | undefined, index: number): string {
-  return `${id || 'unknown'}:${index}`
-}
-
-const TRANSIENT_FEEDBACK_MS = 1600
-const STATS_KEYS = ['acct', 'spc', 'plug', 'net', 'ctrl', 'dir'] as const
-// SHOW_LOG_PANEL keeps the placeholder logs drawer hidden until a real log
-// stream backs the designed tray.
-const SHOW_LOG_PANEL = false
-
-type StatsKey = (typeof STATS_KEYS)[number]
-type NetworkLinkView = {
-  localPeerId?: string
-  remotePeerId?: string
-  linkId?: bigint
-  transportId?: bigint
-  remoteTransportId?: bigint
-}
-
-type NetworkPeerView = {
-  peerId?: string
-  linkCount?: number
-  links?: ReadonlyArray<NetworkLinkView>
-}
-
-function useCountDeltas(
-  counts: Record<StatsKey, number>,
-): Partial<Record<StatsKey, number>> {
-  const prevRef = useRef<Record<StatsKey, number> | null>(null)
-  const timeoutRef = useRef<Partial<Record<StatsKey, number>>>({})
-  const [deltas, setDeltas] = useState<Partial<Record<StatsKey, number>>>({})
-
-  useEffect(() => {
-    const prev = prevRef.current
-    prevRef.current = counts
-    if (!prev) return
-
-    for (const key of STATS_KEYS) {
-      const delta = counts[key] - prev[key]
-      if (!delta) continue
-
-      setDeltas((state) => ({ ...state, [key]: delta }))
-
-      const timeoutId = timeoutRef.current[key]
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId)
-      }
-
-      timeoutRef.current[key] = window.setTimeout(() => {
-        setDeltas((state) => {
-          if (!(key in state)) return state
-          const next = { ...state }
-          delete next[key]
-          return next
-        })
-      }, TRANSIENT_FEEDBACK_MS)
-    }
-  }, [counts])
-
-  useEffect(() => {
-    const timeouts = timeoutRef.current
-    return () => {
-      for (const timeoutId of Object.values(timeouts)) {
-        if (timeoutId == null) continue
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [])
-
-  return deltas
-}
-
-function useFreshKeys(ids: ReadonlyArray<string>): Set<string> {
-  const snapshotKey = useMemo(() => ids.join('\u0000'), [ids])
-  const prevRef = useRef<Set<string> | null>(null)
-  const timeoutRef = useRef<Record<string, number>>({})
-  const [freshIds, setFreshIds] = useState<string[]>([])
-
-  useEffect(() => {
-    const nextIds = new Set(ids.filter(Boolean))
-    const prevIds = prevRef.current
-    prevRef.current = nextIds
-    if (!prevIds) return
-
-    const additions = Array.from(nextIds).filter((id) => !prevIds.has(id))
-    if (!additions.length) return
-
-    setFreshIds((state) => Array.from(new Set([...state, ...additions])))
-
-    for (const id of additions) {
-      const timeoutId = timeoutRef.current[id]
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId)
-      }
-      timeoutRef.current[id] = window.setTimeout(() => {
-        setFreshIds((state) => state.filter((entry) => entry !== id))
-      }, TRANSIENT_FEEDBACK_MS)
-    }
-  }, [ids, snapshotKey])
-
-  useEffect(() => {
-    const timeouts = timeoutRef.current
-    return () => {
-      for (const timeoutId of Object.values(timeouts)) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [])
-
-  return useMemo(() => new Set(freshIds), [freshIds])
-}
-
-function useSnapshotUpdatedAt(snapshotKey: string): string {
-  return snapshotKey
-}
-
-function buildSpacesSnapshotKey(
-  spaces: ReadonlyArray<{
-    entry?: {
-      ref?: { providerResourceRef?: { id?: string } }
-      source?: string
-    }
-    spaceMeta?: { name?: string }
-  }>,
-): string {
-  return spaces
-    .map((space) =>
-      [
-        space.entry?.ref?.providerResourceRef?.id ?? '',
-        space.spaceMeta?.name ?? '',
-        space.entry?.source ?? '',
-      ].join(':'),
-    )
-    .join('|')
-}
-
-function buildControllersSnapshotKey(
-  controllers: ReadonlyArray<{
-    id?: string
-    version?: string
-    description?: string
-  }>,
-): string {
-  return controllers
-    .map((controller) =>
-      [
-        controller.id ?? '',
-        controller.version ?? '',
-        controller.description ?? '',
-      ].join(':'),
-    )
-    .join('|')
-}
-
-function buildDirectivesSnapshotKey(
-  directives: ReadonlyArray<{ name?: string; ident?: string }>,
-): string {
-  return directives
-    .map((directive) => [directive.name ?? '', directive.ident ?? ''].join(':'))
-    .join('|')
-}
-
-function buildPluginsSnapshotKey(
-  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>,
-): string {
-  return plugins
-    .map((plugin) =>
-      [plugin.id ?? '', plugin.instanceKey ?? '', plugin.state ?? ''].join(':'),
-    )
-    .join('|')
-}
-
-function buildNetworkSnapshotKey(
-  peers: ReadonlyArray<NetworkPeerView>,
-  transportRunning: boolean,
-  localPeerId: string,
-): string {
-  return [
-    transportRunning ? 'running' : 'stopped',
-    localPeerId,
-    peers
-      .map((peer) =>
-        [
-          peer.peerId ?? '',
-          peer.linkCount ?? 0,
-          ...(peer.links ?? []).map((link) =>
-            [
-              link.linkId?.toString() ?? '',
-              link.transportId?.toString() ?? '',
-              link.remoteTransportId?.toString() ?? '',
-            ].join('/'),
-          ),
-        ].join(':'),
-      )
-      .join('|'),
-  ].join('|')
-}
-
-// Selection type for tree navigation.
-type Selection =
-  | { kind: 'session'; index: number }
-  | { kind: 'space'; id: string }
-  | { kind: 'controller'; id: string; index: number }
-  | { kind: 'plugin'; id: string; instanceKey: string }
-  | { kind: 'directive-group'; name: string }
-  | { kind: 'spaces' }
-  | { kind: 'plugins' }
-  | { kind: 'network' }
-  | { kind: 'controllers' }
-  | { kind: 'directives' }
-  | { kind: 'resources' }
-  | { kind: 'atoms' }
-
-type SidebarSectionKey =
-  | 'accounts'
-  | 'spaces'
-  | 'plugins'
-  | 'network'
-  | 'controllers'
-  | 'directives'
-  | 'resources'
-  | 'atoms'
-
-const DEFAULT_SELECTED: Selection = { kind: 'controllers' }
-
-const DEFAULT_OPEN_SECTIONS: Record<SidebarSectionKey, boolean> = {
-  accounts: true,
-  spaces: true,
-  plugins: true,
-  network: true,
-  controllers: true,
-  directives: true,
-  resources: false,
-  atoms: false,
-}
-
-function getSelectionLabel(
-  selected: Selection,
-  spaces: ReadonlyArray<{
-    entry?: { ref?: { providerResourceRef?: { id?: string } } }
-    spaceMeta?: { name?: string }
-  }>,
-  controllers: ReadonlyArray<{ id?: string }>,
-  plugins: ReadonlyArray<{ id?: string; instanceKey?: string }>,
-  directiveGroups: ReadonlyArray<{ name: string }>,
-): string {
-  if (selected.kind === 'session') {
-    return `/u/${selected.index}`
-  }
-  if (selected.kind === 'space') {
-    return (
-      spaces.find(
-        (space) => space.entry?.ref?.providerResourceRef?.id === selected.id,
-      )?.spaceMeta?.name ?? 'Space'
-    )
-  }
-  if (selected.kind === 'controller') {
-    return controllers[selected.index]?.id ?? 'Controller'
-  }
-  if (selected.kind === 'plugin') {
-    return (
-      plugins.find(
-        (plugin) =>
-          plugin.id === selected.id &&
-          (plugin.instanceKey ?? '') === selected.instanceKey,
-      )?.id ?? 'Plugin'
-    )
-  }
-  if (selected.kind === 'directive-group') {
-    return (
-      directiveGroups.find((group) => group.name === selected.name)?.name ??
-      'Directive'
-    )
-  }
-  if (selected.kind === 'spaces') {
-    return 'Spaces'
-  }
-  if (selected.kind === 'plugins') {
-    return 'Plugins'
-  }
-  if (selected.kind === 'network') {
-    return 'Network'
-  }
-  if (selected.kind === 'controllers') {
-    return 'Controllers'
-  }
-  if (selected.kind === 'directives') {
-    return 'Directives'
-  }
-  if (selected.kind === 'resources') {
-    return 'Resources'
-  }
-  return 'State Atoms'
-}
-
-export interface SystemStatusDashboardProps {
+interface SystemStatusDashboardProps {
   onClose?: () => void
 }
 
-// SystemStatusDashboard renders the system status overlay with sidebar
-// tree navigation and detail panels backed by live streaming data.
+// SystemStatusDashboard is the system mission control overlay. Every
+// subsystem shows as a live tile under a one-line verdict; a tile opens its
+// full inspector in place, and Escape returns to the tiles.
 export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   const ns = useStateNamespace(['system-status-dashboard'])
-  const buildInfo = useAppBuildInfo()
-  const sessionList = useSessionList()
-  const sessions = useMemo(
-    () => sessionList.value?.sessions ?? [],
-    [sessionList.value?.sessions],
+  const [inspector, setInspector] = useStateAtom<InspectorId | ''>(
+    ns,
+    'inspector',
+    '',
   )
-  const watchedSpaces = useWatchSpacesList()
-  const spaces = useMemo(() => watchedSpaces ?? [], [watchedSpaces])
+  const [runtimeView, setRuntimeView] = useStateAtom<RuntimeView>(
+    ns,
+    'runtime-view',
+    'plugins',
+  )
+  const model = useSystemModel()
+  const navigateSession = useSessionNavigate()
 
-  const controllersResp = useWatchControllers()
-  const controllerCount = controllersResp?.controllerCount ?? 0
-  const controllers = useMemo(
-    () => controllersResp?.controllers ?? [],
-    [controllersResp?.controllers],
-  )
+  const tileRefs = useRef<Partial<Record<InspectorId, HTMLButtonElement>>>({})
+  const inspectorRef = useRef<HTMLDivElement>(null)
+  const lastInspectorRef = useRef<InspectorId | ''>('')
 
-  const directivesResp = useWatchDirectives()
-  const directiveCount = directivesResp?.directiveCount ?? 0
-  const directives = useMemo(
-    () => directivesResp?.directives ?? [],
-    [directivesResp?.directives],
-  )
-  const pluginsResp = useWatchPlugins()
-  const pluginCount = pluginsResp?.pluginCount ?? 0
-  const plugins = useMemo(
-    () => pluginsResp?.plugins ?? [],
-    [pluginsResp?.plugins],
-  )
-  const networkResp = useWatchNetworkStats()
-  const networkPeerCount = networkResp?.peerCount ?? 0
-  const networkLinkCount = networkResp?.linkCount ?? 0
-  const networkPeers = useMemo(
-    () => networkResp?.peers ?? [],
-    [networkResp?.peers],
-  )
-  const directiveGroups = useMemo(
-    () => groupDirectives(directives),
-    [directives],
-  )
-  const statsCounts = useMemo(
-    () => ({
-      acct: sessions.length,
-      spc: spaces.length,
-      plug: pluginCount,
-      net: networkPeerCount,
-      ctrl: controllerCount,
-      dir: directiveCount,
-    }),
-    [
-      sessions.length,
-      spaces.length,
-      pluginCount,
-      networkPeerCount,
-      controllerCount,
-      directiveCount,
-    ],
-  )
-  const statsDeltas = useCountDeltas(statsCounts)
-  const statsUpdatedAt = useSnapshotUpdatedAt(
-    [
-      sessions.length,
-      spaces.length,
-      pluginCount,
-      networkPeerCount,
-      networkLinkCount,
-      controllerCount,
-      directiveCount,
-    ].join('|'),
-  )
-  const spacesUpdatedAt = useSnapshotUpdatedAt(buildSpacesSnapshotKey(spaces))
-  const controllersUpdatedAt = useSnapshotUpdatedAt(
-    buildControllersSnapshotKey(controllers),
-  )
-  const directivesUpdatedAt = useSnapshotUpdatedAt(
-    buildDirectivesSnapshotKey(directives),
-  )
-  const pluginsUpdatedAt = useSnapshotUpdatedAt(
-    buildPluginsSnapshotKey(plugins),
-  )
-  const networkUpdatedAt = useSnapshotUpdatedAt(
-    buildNetworkSnapshotKey(
-      networkPeers,
-      networkResp?.transportRunning ?? false,
-      networkResp?.localPeerId ?? '',
-    ),
-  )
-  const isMobile = useIsMobile()
-
-  const [selected, setSelected] = useStateAtom(ns, 'selected', DEFAULT_SELECTED)
-  const [mobilePickerOpen, setMobilePickerOpen] = useState(false)
-  const selectedLabel = getSelectionLabel(
-    selected,
-    spaces,
-    controllers,
-    plugins,
-    directiveGroups,
-  )
-  const mobilePickerVisible = isMobile && mobilePickerOpen
-
+  // Move focus into an opened inspector, and back to its tile on return.
   useEffect(() => {
-    if (selected.kind === 'session') {
-      const hasSession = sessions.some(
-        (session) => (session.sessionIndex ?? 0) === selected.index,
-      )
-      if (!hasSession) {
-        setSelected(DEFAULT_SELECTED)
-      }
+    if (inspector) {
+      lastInspectorRef.current = inspector
+      inspectorRef.current?.focus({ preventScroll: true })
       return
     }
-    if (selected.kind === 'space') {
-      const hasSpace = spaces.some(
-        (space) => space.entry?.ref?.providerResourceRef?.id === selected.id,
-      )
-      if (!hasSpace) {
-        setSelected({ kind: 'spaces' })
-      }
-      return
+    const last = lastInspectorRef.current
+    if (last) {
+      tileRefs.current[last]?.focus()
     }
-    if (selected.kind === 'plugin') {
-      const hasPlugin = plugins.some(
-        (plugin) =>
-          plugin.id === selected.id &&
-          (plugin.instanceKey ?? '') === selected.instanceKey,
-      )
-      if (!hasPlugin) {
-        setSelected({ kind: 'plugins' })
-      }
-      return
-    }
-    if (selected.kind === 'directive-group') {
-      const hasDirectiveGroup = directiveGroups.some(
-        (group) => group.name === selected.name,
-      )
-      if (!hasDirectiveGroup) {
-        setSelected({ kind: 'directives' })
-      }
-      return
-    }
-    if (selected.kind !== 'controller') return
-    const controller = controllers[selected.index]
-    if (controller?.id === selected.id) return
-    setSelected({ kind: 'controllers' })
-  }, [
-    controllers,
-    directiveGroups,
-    plugins,
-    selected,
-    sessions,
-    setSelected,
-    spaces,
-  ])
+  }, [inspector])
 
-  function handleSelect(next: Selection) {
-    setSelected(next)
-    if (!isMobile) return
-    setMobilePickerOpen(false)
+  const close = () => onClose?.()
+
+  // Escape leaves an open inspector before it reaches the overlay frame.
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape' || !inspector) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    setInspector('')
   }
 
-  return (
-    <div className="bg-background flex h-full w-full flex-col overflow-hidden">
-      {/* Header */}
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <span className="text-foreground text-sm font-semibold tracking-tight select-none">
-          System Status
-        </span>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-foreground-alt hover:text-foreground transition-colors"
-          >
-            <LuX className="size-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Stats ribbon */}
-      <StatsRibbon
-        sessionCount={sessions.length}
-        spaceCount={spaces.length}
-        pluginCount={pluginCount}
-        networkPeerCount={networkPeerCount}
-        controllerCount={controllerCount}
-        directiveCount={directiveCount}
-        deltas={statsDeltas}
-        updatedAt={statsUpdatedAt}
-      />
-
-      <div className={cn('flex min-h-0 flex-1', isMobile && 'flex-col')}>
-        {!isMobile && (
-          <SidebarTree
-            sessions={sessions}
-            spaces={spaces}
-            plugins={plugins}
-            controllers={controllers}
-            directiveGroups={directiveGroups}
-            controllerCount={controllerCount}
-            directiveCount={directiveCount}
-            pluginCount={pluginCount}
-            networkPeerCount={networkPeerCount}
-            selected={selected}
-            onSelect={handleSelect}
-          />
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          {isMobile && (
-            <div className="border-foreground/6 border-b px-4 py-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMobilePickerOpen(!mobilePickerVisible)}
-                  className="border-foreground/8 text-foreground hover:bg-foreground/[0.03] focus-visible:ring-brand/30 rounded-md border px-3 py-1.5 text-xs transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                >
-                  {mobilePickerVisible ? 'Hide Sections' : 'Sections'}
-                </button>
-                <span className="text-foreground-alt/45 micro-text truncate">
-                  {selectedLabel}
-                </span>
-              </div>
-              {mobilePickerVisible && (
-                <div className="border-foreground/6 bg-background-card/20 mt-3 max-h-72 overflow-auto rounded-md border">
-                  <SidebarTree
-                    sessions={sessions}
-                    spaces={spaces}
-                    plugins={plugins}
-                    controllers={controllers}
-                    directiveGroups={directiveGroups}
-                    controllerCount={controllerCount}
-                    directiveCount={directiveCount}
-                    pluginCount={pluginCount}
-                    selected={selected}
-                    onSelect={handleSelect}
-                    networkPeerCount={networkPeerCount}
-                    className="w-full border-r-0"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="min-h-0 flex-1 overflow-auto">
-            <DetailView
-              selected={selected}
-              spaces={spaces}
-              plugins={plugins}
-              controllers={controllers}
-              networkResp={networkResp}
-              networkPeers={networkPeers}
-              networkPeerCount={networkPeerCount}
-              networkLinkCount={networkLinkCount}
-              directiveGroups={directiveGroups}
-              controllerCount={controllerCount}
-              directives={directives}
-              directiveCount={directiveCount}
-              pluginCount={pluginCount}
-              onSelect={handleSelect}
-              onClose={onClose}
-              buildInfo={buildInfo}
-              spacesUpdatedAt={spacesUpdatedAt}
-              networkUpdatedAt={networkUpdatedAt}
-              pluginsUpdatedAt={pluginsUpdatedAt}
-              controllersUpdatedAt={controllersUpdatedAt}
-              directivesUpdatedAt={directivesUpdatedAt}
-            />
-          </div>
-
-          {SHOW_LOG_PANEL && <LogPanel namespace={ns} />}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Shared components
-// ---------------------------------------------------------------------------
-
-// Detail card with colored top accent border.
-function DetailCard({
-  title,
-  accent,
-  children,
-}: {
-  title: string
-  accent: string
-  children: ReactNode
-}) {
-  return (
-    <div className="border-foreground/6 bg-background-card/20 overflow-hidden rounded-md border">
-      <div className={cn('rounded-t-md border-t-2', accent)} />
-      <div className="flex items-center gap-2 px-3 py-1.5">
-        <span className="text-foreground text-xs font-medium">{title}</span>
-      </div>
-      <div className="border-foreground/6 border-t">{children}</div>
-    </div>
-  )
-}
-
-// Key-value row inside a detail card.
-function DetailRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
-  return (
-    <div className="flex items-baseline justify-between px-3 py-1">
-      <span className="text-foreground-alt/40 micro-fine tracking-wider uppercase">
-        {label}
-      </span>
-      <span
-        className={cn(
-          'text-foreground/70 micro-text',
-          mono !== false && 'font-mono',
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
-
-function LiveIndicator({
-  updatedAt,
-  label = 'Panel',
-}: {
-  updatedAt: string
-  label?: string
-}) {
-  return (
-    <span
-      aria-label={`${label} live`}
-      data-updated-at={updatedAt}
-      className="text-foreground-alt/35 inline-flex items-center gap-1 text-xs"
-    >
-      <span
-        key={updatedAt}
-        className="bg-success/80 size-1.5 animate-pulse rounded-full"
-      />
-      <span>Live</span>
-    </span>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Logs drawer
-// ---------------------------------------------------------------------------
-
-type LogLevel = 'error' | 'warn' | 'info' | 'debug'
-
-type LogEntry = {
-  ts: string
-  level: LogLevel
-  source: string
-  msg: string
-}
-
-// MOCK_LOGS is placeholder sample data until a log stream RPC lands.
-const MOCK_LOGS: ReadonlyArray<LogEntry> = [
-  {
-    ts: '14:23:01.123',
-    level: 'info',
-    source: 'bifrost/transport',
-    msg: 'peer connected: 12D3KooWQr...4mXn via websocket',
-  },
-  {
-    ts: '14:23:02.001',
-    level: 'info',
-    source: 'controllerbus',
-    msg: 'controller started: configset/controller v0.0.1',
-  },
-  {
-    ts: '14:23:02.234',
-    level: 'warn',
-    source: 'hydra/block-gc',
-    msg: 'gc cycle skipped: lock contention (12ms)',
-  },
-  {
-    ts: '14:23:04.890',
-    level: 'info',
-    source: 'bifrost/pubsub',
-    msg: 'topic subscription: /s4wave/sync/v1 (3 peers)',
-  },
-  {
-    ts: '14:23:06.345',
-    level: 'info',
-    source: 'session/mount',
-    msg: 'session 0 ready: 24 controllers, 3 volumes',
-  },
-  {
-    ts: '14:23:08.901',
-    level: 'error',
-    source: 'hydra/block-gc',
-    msg: 'failed to compact shard: OPFS lock timeout after 5s',
-  },
-  {
-    ts: '14:23:11.890',
-    level: 'info',
-    source: 'hydra/blockstore',
-    msg: 'sync complete: 47 blocks, 128KB transferred',
-  },
-  {
-    ts: '14:23:12.123',
-    level: 'warn',
-    source: 'bifrost/transport',
-    msg: 'high latency detected: 12D3KooWPk...8jLp (>100ms)',
-  },
-]
-
-const LOG_FILTERS: ReadonlyArray<LogLevel | null> = [
-  null,
-  'error',
-  'warn',
-  'info',
-]
-
-function logColor(level: LogLevel): string {
-  switch (level) {
-    case 'error':
-      return 'text-destructive'
-    case 'warn':
-      return 'text-warning'
-    case 'info':
-      return 'text-foreground/70'
-    case 'debug':
-      return 'text-foreground-alt/40'
+  const tileRef: TileRef = (id) => (node) => {
+    if (node) {
+      tileRefs.current[id] = node
+    } else {
+      delete tileRefs.current[id]
+    }
   }
-}
 
-const LOG_ROW_HEIGHT = 17.2
-const LOG_LIST_MIN_HEIGHT = 80
-const LOG_LIST_MAX_HEIGHT = 160
-
-type LogRowProps = { logs: ReadonlyArray<LogEntry> }
-
-function LogRow({ index, style, logs }: RowComponentProps<LogRowProps>) {
-  const log = logs[index]
   return (
     <div
-      style={style}
-      className={cn(
-        'hover:bg-foreground/[0.015] flex items-start gap-0 px-3',
-        log.level === 'error' && 'bg-destructive/[0.03]',
-      )}
+      role="region"
+      aria-label="System status"
+      className="bg-background @container flex h-full w-full flex-col"
+      onKeyDown={handleKeyDown}
     >
-      <span className="text-foreground-alt/20 micro-fine w-24 shrink-0">
-        {log.ts}
-      </span>
-      <span
-        className={cn(
-          'w-10 shrink-0 micro-fine font-medium',
-          logColor(log.level),
-        )}
-      >
-        {log.level}
-      </span>
-      <span className="text-brand/30 micro-fine w-32 shrink-0 truncate">
-        {log.source}
-      </span>
-      <span className="text-foreground/50 micro-fine min-w-0">{log.msg}</span>
-    </div>
-  )
-}
+      <VerdictBar model={model} onClose={close} />
 
-// LogPanel is a collapsible bottom drawer showing recent log entries.
-// Backed by sample data; swap MOCK_LOGS for a real stream when available.
-// Rows are virtualized via react-window at a fixed row height.
-function LogPanel({ namespace }: { namespace: StateNamespace }) {
-  const [collapsed, setCollapsed] = useStateAtom(
-    namespace,
-    'logs-collapsed',
-    true,
-  )
-  const [filter, setFilter] = useState<LogLevel | null>(null)
-  const filtered = useMemo(
-    () => (filter ? MOCK_LOGS.filter((l) => l.level === filter) : MOCK_LOGS),
-    [filter],
-  )
-  const listHeight = Math.max(
-    LOG_LIST_MIN_HEIGHT,
-    Math.min(filtered.length * LOG_ROW_HEIGHT, LOG_LIST_MAX_HEIGHT),
-  )
-
-  return (
-    <div className="border-foreground/6 flex flex-col border-t">
-      <div className="bg-background-deep/40 flex items-center gap-1.5 px-3 py-1">
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="hover:text-foreground-alt/80 flex flex-1 items-center gap-1.5 text-left"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand logs' : 'Collapse logs'}
-        >
-          <LuTerminal className="text-foreground-alt/30 size-3" />
-          <span className="text-foreground-alt/50 text-xs font-medium">
-            Logs
-          </span>
-          <span className="bg-foreground/5 text-foreground-alt/40 rounded px-1 py-0.5 font-mono text-xs tracking-wider uppercase">
-            sample
-          </span>
-          <LuChevronDown
-            className={cn(
-              'text-foreground-alt/20 size-3 transition-transform',
-              collapsed && '-rotate-90',
-            )}
+      {inspector ? (
+        <>
+          <InspectorNav
+            current={inspector}
+            tones={model.tones}
+            onSelect={setInspector}
+            onBack={() => setInspector('')}
           />
-        </button>
-        {!collapsed && (
-          <div className="flex gap-1">
-            {LOG_FILTERS.map((level) => (
-              <button
-                key={level ?? 'all'}
-                type="button"
-                onClick={() => setFilter(level)}
-                className={cn(
-                  'rounded px-1.5 py-0.5 font-mono micro-tiny transition-colors',
-                  filter === level
-                    ? 'bg-foreground/10 text-foreground'
-                    : 'text-foreground-alt/30 hover:text-foreground-alt/50',
-                )}
-              >
-                {level ?? 'all'}
-              </button>
-            ))}
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+            <div
+              key={inspector}
+              ref={inspectorRef}
+              tabIndex={-1}
+              aria-labelledby="system-inspector-title"
+              className="animate-in fade-in-0 zoom-in-95 flex min-h-0 flex-1 flex-col gap-4 p-4 duration-200 ease-out outline-none motion-reduce:animate-none"
+            >
+              <div>
+                <h2
+                  id="system-inspector-title"
+                  className="text-foreground flex items-center gap-2 text-lg font-semibold tracking-tight [&>svg]:size-4"
+                >
+                  {inspectorMeta[inspector].icon}
+                  {inspectorMeta[inspector].title}
+                </h2>
+                <p className="text-foreground-alt/60 mt-0.5 text-xs">
+                  {inspectorMeta[inspector].description}
+                </p>
+              </div>
+
+              {inspector === 'sync' && <SyncInspector sync={model.sync} />}
+              {inspector === 'storage' && (
+                <StorageInspector
+                  storage={model.storage}
+                  onOpenSettings={() => {
+                    navigateSession({ path: 'settings/storage' })
+                    close()
+                  }}
+                />
+              )}
+              {inspector === 'network' && (
+                <NetworkInspector network={model.network} />
+              )}
+              {inspector === 'runtime' && (
+                <RuntimeInspector
+                  plugins={model.plugins}
+                  controllers={model.controllers}
+                  directives={model.directives}
+                  directiveCount={model.directiveCount}
+                  view={runtimeView}
+                  onViewChange={setRuntimeView}
+                />
+              )}
+              {inspector === 'release' && (
+                <ReleaseInspector
+                  build={model.build}
+                  recovery={model.recovery}
+                />
+              )}
+              {inspector === 'spaces' && (
+                <SpacesInspector
+                  sessions={model.sessions}
+                  spaces={model.spaces}
+                  onClose={close}
+                />
+              )}
+              {(inspector === 'resources' || inspector === 'atoms') && (
+                <UnderTheHoodInspector kind={inspector} />
+              )}
+            </div>
           </div>
-        )}
-        <span className="text-foreground-alt/15 ml-2 font-mono text-xs">
-          {filtered.length} entries
-        </span>
-      </div>
-      {!collapsed && (
-        <div
-          className="system-status-list bg-background-deep/30 font-mono"
-          style={{ '--system-status-height': listHeight }}
-        >
-          {filtered.length > 0 && (
-            <VirtualList
-              rowHeight={LOG_ROW_HEIGHT}
-              rowCount={filtered.length}
-              rowComponent={LogRow}
-              rowProps={{ logs: filtered }}
-            />
-          )}
+        </>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <AttentionList items={model.verdict.items} onOpen={setInspector} />
+          <SystemGrid model={model} tileRef={tileRef} onOpen={setInspector} />
+          <UnderTheHood tileRef={tileRef} onOpen={setInspector} />
         </div>
       )}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Stats ribbon
-// ---------------------------------------------------------------------------
-
-function StatsRibbon({
-  sessionCount,
-  spaceCount,
-  pluginCount,
-  networkPeerCount,
-  controllerCount,
-  directiveCount,
-  deltas,
-  updatedAt,
+// VerdictBar is the one-line system verdict with the build identity.
+function VerdictBar({
+  model,
+  onClose,
 }: {
-  sessionCount: number
-  spaceCount: number
-  pluginCount: number
-  networkPeerCount: number
-  controllerCount: number
-  directiveCount: number
-  deltas: Partial<Record<StatsKey, number>>
-  updatedAt: string
+  model: SystemModel
+  onClose: () => void
 }) {
-  const stats: {
-    key: StatsKey
-    count: number
-    noun: string
-    icon: ReactNode
-  }[] = [
-    {
-      key: 'acct',
-      count: sessionCount,
-      noun: 'account',
-      icon: <span className="bg-success size-1.5 rounded-full" />,
-    },
-    {
-      key: 'spc',
-      count: spaceCount,
-      noun: 'space',
-      icon: <LuFolderOpen className="text-foreground-alt/30 size-2.5" />,
-    },
-    {
-      key: 'plug',
-      count: pluginCount,
-      noun: 'plugin',
-      icon: <LuPuzzle className="text-foreground-alt/30 size-2.5" />,
-    },
-    {
-      key: 'net',
-      count: networkPeerCount,
-      noun: 'peer',
-      icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
-    },
-    {
-      key: 'ctrl',
-      count: controllerCount,
-      noun: 'controller',
-      icon: <LuCpu className="text-foreground-alt/30 size-2.5" />,
-    },
-    {
-      key: 'dir',
-      count: directiveCount,
-      noun: 'directive',
-      icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
-    },
-  ]
+  const { build, verdict } = model
+  const platform =
+    build.goos && build.goarch ? `${build.goos}/${build.goarch}` : ''
+
   return (
-    <div className="border-foreground/6 bg-background-deep/30 flex shrink-0 items-center gap-3 border-b px-4 py-1">
-      {stats.map((stat) => (
-        <StatPill
-          key={stat.key}
-          label={`${stat.count} ${stat.noun}${stat.count === 1 ? '' : 's'}`}
-          delta={deltas[stat.key]}
-          icon={stat.icon}
-          muted={stat.count === 0}
-        />
+    <header className="border-foreground/8 flex h-12 shrink-0 items-center gap-3 border-b px-4">
+      <span
+        className={cn(
+          'size-2.5 shrink-0 rounded-full',
+          toneDotClass[verdict.tone],
+        )}
+        aria-hidden="true"
+      />
+      <h1
+        className="text-foreground min-w-0 truncate text-sm font-semibold tracking-tight"
+        role="status"
+      >
+        {verdict.headline}
+      </h1>
+      <p className="text-foreground-alt/50 hidden min-w-0 truncate text-xs @lg:block">
+        <span className="font-mono">{build.version || 'dev'}</span>
+        {build.runtimeLabel && <> · {build.runtimeLabel}</>}
+        {platform && (
+          <>
+            {' · '}
+            <span className="font-mono">{platform}</span>
+          </>
+        )}
+      </p>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close system status"
+        className="text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 ml-auto flex size-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      >
+        <LuX className="size-4" aria-hidden="true" />
+      </button>
+    </header>
+  )
+}
+
+// AttentionList lists every live fault or risk, each linked to the inspector
+// that explains it.
+function AttentionList({
+  items,
+  onOpen,
+}: {
+  items: AttentionItem[]
+  onOpen: (id: InspectorId) => void
+}) {
+  if (!items.length) {
+    return null
+  }
+
+  return (
+    <ul className="space-y-2 px-4 pt-4" aria-label="Needs attention">
+      {items.map((item) => (
+        <li key={item.key}>
+          <button
+            type="button"
+            onClick={() => onOpen(item.subsystem)}
+            className={cn(
+              'group focus-visible:ring-brand/50 flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none',
+              item.tone === 'error'
+                ? 'border-destructive/25 bg-destructive/5 hover:bg-destructive/10'
+                : 'border-warning/20 bg-warning/5 hover:bg-warning/10',
+            )}
+          >
+            {item.tone === 'error' ? (
+              <LuCircleAlert
+                className="text-destructive mt-0.5 size-4 shrink-0"
+                aria-hidden="true"
+              />
+            ) : (
+              <LuTriangleAlert
+                className="text-warning mt-0.5 size-4 shrink-0"
+                aria-hidden="true"
+              />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="text-foreground block text-xs font-medium">
+                {item.title}
+              </span>
+              <span className="text-foreground-alt/70 mt-0.5 block text-xs break-words">
+                {item.detail}
+              </span>
+            </span>
+            <span className="text-foreground-alt/60 group-hover:text-foreground flex shrink-0 items-center gap-1 text-xs transition-colors">
+              Inspect {inspectorMeta[item.subsystem].title}
+              <LuArrowRight className="size-3.5" aria-hidden="true" />
+            </span>
+          </button>
+        </li>
       ))}
-      <div className="ml-auto">
-        <LiveIndicator updatedAt={updatedAt} label="Ribbon" />
-      </div>
+    </ul>
+  )
+}
+
+// TileBase is the identity and open action every subsystem tile shares.
+type TileBase = Pick<
+  ComponentProps<typeof SystemTile>,
+  'title' | 'icon' | 'tone' | 'buttonRef' | 'onOpen'
+>
+
+// SystemGrid lays out the six live subsystem tiles.
+function SystemGrid({
+  model,
+  tileRef,
+  onOpen,
+}: {
+  model: SystemModel
+  tileRef: TileRef
+  onOpen: (id: InspectorId) => void
+}) {
+  const tile = (id: SubsystemId): TileBase => ({
+    title: inspectorMeta[id].title,
+    icon: inspectorMeta[id].icon,
+    tone: model.tones[id],
+    buttonRef: tileRef(id),
+    onOpen: () => onOpen(id),
+  })
+
+  return (
+    <div className="grid grid-cols-1 gap-3 p-4 @2xl:grid-cols-6">
+      <SyncTile base={tile('sync')} sync={model.sync} />
+      <StorageTile base={tile('storage')} storage={model.storage} />
+      <NetworkTile base={tile('network')} network={model.network} />
+      <RuntimeTile base={tile('runtime')} model={model} />
+      <ReleaseTile base={tile('release')} model={model} />
+      <SpacesTile
+        base={tile('spaces')}
+        sessions={model.sessions}
+        spaces={model.spaces}
+      />
     </div>
   )
 }
 
-function StatPill({
-  label,
-  icon,
-  delta,
-  muted,
+// SyncTile shows the sync summary, live transfer rates, and transport.
+function SyncTile({
+  base,
+  sync,
 }: {
-  label: string
-  icon: ReactNode
-  delta?: number
-  muted?: boolean
+  base: TileBase
+  sync: SystemModel['sync']
 }) {
   return (
-    <div className={cn('flex items-center gap-1.5', muted && 'opacity-40')}>
-      {icon}
-      <span className="text-foreground/60 micro-text">{label}</span>
-      {delta != null && (
-        <span
-          className={cn(
-            'rounded-full px-1 py-0.5 font-mono micro-tiny transition-opacity duration-300',
-            delta > 0
-              ? 'bg-success/10 text-success/80'
-              : 'bg-warning/10 text-warning/80',
-          )}
-        >
-          {delta > 0 ? `+${delta}` : String(delta)}
+    <SystemTile
+      {...base}
+      className="@2xl:col-span-2"
+      headline={sync.summaryLabel}
+    >
+      <div className="flex items-center gap-4 font-mono tabular-nums">
+        <span className="flex items-center gap-1">
+          <LuArrowUp className="size-3" aria-label="Upload" />
+          {sync.uploadRateLabel}
         </span>
-      )}
-    </div>
+        <span className="flex items-center gap-1">
+          <LuArrowDown className="size-3" aria-label="Download" />
+          {sync.downloadRateLabel}
+        </span>
+      </div>
+      <p className="mt-1 truncate">{sync.transportLabel}</p>
+    </SystemTile>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Sidebar tree
-// ---------------------------------------------------------------------------
+// StorageTile shows the local store size, browser quota, and protection.
+function StorageTile({
+  base,
+  storage,
+}: {
+  base: TileBase
+  storage: SystemModel['storage']
+}) {
+  let headline = 'No reading'
+  if (storage.providerLoading) {
+    headline = 'Reading…'
+  } else if (storage.providerSupported) {
+    headline = formatBytes(storage.providerBytes)
+  }
 
-type SidebarEntry =
-  | {
-      id: string
-      kind: 'section'
-      section: SidebarSectionKey
-      label: string
-      count?: number
-      expanded: boolean
-      level: number
-    }
-  | {
-      id: string
-      kind: 'session'
-      sessionIndex: number
-      level: number
-      parentSection: SidebarSectionKey
-    }
-  | {
-      id: string
-      kind: 'selection'
-      label: string
-      sublabel?: string
-      dot: string
-      level: number
-      parentSection: SidebarSectionKey
-      selection: Selection
-      selected: boolean
-    }
-  | {
-      id: string
-      kind: 'more'
-      section: 'spaces' | 'controllers' | 'directives'
-      label: string
-      expanded: boolean
-      level: number
-      parentSection: SidebarSectionKey
-    }
-
-function getSidebarSectionIcon(section: SidebarSectionKey): ReactNode {
-  if (section === 'accounts') {
-    return <LuUser className="size-3" />
-  }
-  if (section === 'spaces') {
-    return <LuFolderOpen className="size-3" />
-  }
-  if (section === 'plugins') {
-    return <LuPuzzle className="size-3" />
-  }
-  if (section === 'network') {
-    return <LuRadar className="size-3" />
-  }
-  if (section === 'controllers') {
-    return <LuCpu className="size-3" />
-  }
-  if (section === 'directives') {
-    return <LuRadar className="size-3" />
-  }
-  if (section === 'resources') {
-    return <LuLayers className="size-3" />
-  }
-  return <LuBox className="size-3" />
+  return (
+    <SystemTile {...base} className="@2xl:col-span-2" headline={headline}>
+      <p className="font-mono tabular-nums">
+        {formatCount(storage.blockCount)} block entries
+      </p>
+      <div className="my-2">
+        <StorageMeter
+          usage={storage.originUsageBytes}
+          quota={storage.originQuotaBytes}
+          compact
+        />
+      </div>
+      <p>Cleanup protection: {protectionLabel(storage.protectionState)}</p>
+    </SystemTile>
+  )
 }
 
-function SidebarTree({
+// NetworkTile shows peers, links, transport state, and this device's peer.
+function NetworkTile({
+  base,
+  network,
+}: {
+  base: TileBase
+  network: SystemModel['network']
+}) {
+  if (!network) {
+    return (
+      <SystemTile {...base} className="@2xl:col-span-2" headline="Reading…" />
+    )
+  }
+
+  return (
+    <SystemTile
+      {...base}
+      className="@2xl:col-span-2"
+      headline={plural(network.peerCount ?? 0, 'peer')}
+    >
+      <p>
+        {plural(network.linkCount ?? 0, 'link')} · Transport{' '}
+        <span className={cn(!network.transportRunning && 'text-warning')}>
+          {network.transportRunning ? 'running' : 'stopped'}
+        </span>
+      </p>
+      {network.localPeerId && (
+        <p className="mt-1 truncate">
+          This device{' '}
+          <span className="font-mono">{shortId(network.localPeerId)}</span>
+        </p>
+      )}
+    </SystemTile>
+  )
+}
+
+// RuntimeTile shows plugin health and the busiest directive types.
+function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
+  const plugins = model.plugins ?? []
+  const running = plugins.filter((plugin) => plugin.state === 'running').length
+  const busiest = (model.directives ?? []).slice(0, 3)
+
+  return (
+    <SystemTile
+      {...base}
+      className="@2xl:col-span-4"
+      headline={
+        model.plugins
+          ? `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
+          : 'Reading…'
+      }
+    >
+      <p className="font-mono tabular-nums">
+        {plural(model.controllers?.length ?? 0, 'controller')} ·{' '}
+        {plural(model.directiveCount, 'directive')}
+      </p>
+      {busiest.length > 0 && (
+        <ol className="mt-2 space-y-1" aria-label="Busiest directive types">
+          {busiest.map((group) => (
+            <li key={group.name} className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate font-mono">
+                {group.name}
+              </span>
+              <span
+                className="bg-foreground/8 h-1 w-20 shrink-0 overflow-hidden rounded-full"
+                aria-hidden="true"
+              >
+                <span
+                  className="bg-foreground-alt/50 progress-width block h-full rounded-full"
+                  style={{
+                    '--progress-width': `${(group.idents.length / busiest[0].idents.length) * 100}%`,
+                  }}
+                />
+              </span>
+              <span className="w-10 shrink-0 text-right font-mono tabular-nums">
+                {formatCount(group.idents.length)}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </SystemTile>
+  )
+}
+
+// ReleaseTile shows this version, the update phase, and the runtime load.
+function ReleaseTile({ base, model }: { base: TileBase; model: SystemModel }) {
+  const launcher = model.recovery?.launcher
+  const asset = model.recovery?.runtimeAsset
+  let update = 'No launcher in this runtime'
+  if (!model.recovery) {
+    update = 'Reading…'
+  } else if (launcher) {
+    update = updatePhaseLabel(launcher.updatePhase)
+  }
+
+  return (
+    <SystemTile
+      {...base}
+      className="@2xl:col-span-2"
+      headline={
+        <span className="font-mono">{model.build.version || 'dev'}</span>
+      }
+    >
+      <p
+        className={cn(launcher?.updatePhase === 'error' && 'text-destructive')}
+      >
+        {update}
+      </p>
+      {asset?.status === 'reported' && (
+        <p className={cn('mt-1', !asset.ok && 'text-destructive')}>
+          {asset.ok ? 'Runtime loaded cleanly' : 'Runtime loaded with errors'}
+        </p>
+      )}
+    </SystemTile>
+  )
+}
+
+// SpacesTile shows every account session and the first Spaces it holds.
+function SpacesTile({
+  base,
   sessions,
   spaces,
-  plugins,
-  controllers,
-  directiveGroups,
-  controllerCount,
-  pluginCount,
-  networkPeerCount,
-  directiveCount,
-  selected,
-  onSelect,
-  className,
 }: {
-  sessions: ReadonlyArray<{ sessionIndex?: number }>
-  spaces: ReadonlyArray<{
-    entry?: { ref?: { providerResourceRef?: { id?: string } } }
-    spaceMeta?: { name?: string }
-  }>
-  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
-  controllers: ReadonlyArray<{ id?: string }>
-  directiveGroups: ReadonlyArray<{ name: string; count: number }>
-  controllerCount: number
-  pluginCount: number
-  networkPeerCount: number
-  directiveCount: number
-  selected: Selection
-  onSelect: (sel: Selection) => void
-  className?: string
+  base: TileBase
+  sessions: SystemModel['sessions']
+  spaces: SystemModel['spaces']
 }) {
-  const ns = useStateNamespace(['system-status-dashboard'])
-  const [openSections, setOpenSections] = useStateAtom(
-    ns,
-    'open-sections',
-    DEFAULT_OPEN_SECTIONS,
-  )
-  const [showAllSpaces, setShowAllSpaces] = useStateAtom(
-    ns,
-    'show-all-spaces',
-    false,
-  )
-  const [showAllControllers, setShowAllControllers] = useStateAtom(
-    ns,
-    'show-all-controllers',
-    false,
-  )
-  const [showAllDirectives, setShowAllDirectives] = useStateAtom(
-    ns,
-    'show-all-directives',
-    false,
-  )
-  const [focusedId, setFocusedId] = useState('section:accounts')
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
-  const visibleSpaces = showAllSpaces ? spaces : spaces.slice(0, 5)
-  const visiblePlugins = plugins.slice(0, 5)
-  const visibleControllers = showAllControllers
-    ? controllers
-    : controllers.slice(0, 5)
-  const visibleDirectiveGroups = showAllDirectives
-    ? directiveGroups
-    : directiveGroups.slice(0, 5)
-  const entries = useMemo<SidebarEntry[]>(() => {
-    const nextEntries: SidebarEntry[] = [
-      {
-        id: 'section:accounts',
-        kind: 'section',
-        section: 'accounts',
-        label: 'Accounts',
-        count: sessions.length,
-        expanded: openSections.accounts,
-        level: 1,
-      },
-    ]
-
-    if (openSections.accounts) {
-      for (const session of sessions) {
-        nextEntries.push({
-          id: `session:${session.sessionIndex ?? 0}`,
-          kind: 'session',
-          sessionIndex: session.sessionIndex ?? 0,
-          level: 2,
-          parentSection: 'accounts',
-        })
-      }
-    }
-
-    nextEntries.push({
-      id: 'section:spaces',
-      kind: 'section',
-      section: 'spaces',
-      label: 'Spaces',
-      count: spaces.length,
-      expanded: openSections.spaces,
-      level: 1,
-    })
-
-    if (openSections.spaces) {
-      nextEntries.push({
-        id: 'selection:spaces',
-        kind: 'selection',
-        label: 'All spaces',
-        dot: 'bg-brand/40',
-        level: 2,
-        parentSection: 'spaces',
-        selection: { kind: 'spaces' },
-        selected: selected.kind === 'spaces',
-      })
-      for (const [index, space] of visibleSpaces.entries()) {
-        const id = space.entry?.ref?.providerResourceRef?.id ?? ''
-        const name = space.spaceMeta?.name ?? 'Untitled'
-        nextEntries.push({
-          id: `space:${makeOccurrenceKey(id || name, index)}`,
-          kind: 'selection',
-          label: name,
-          dot: 'bg-brand',
-          level: 2,
-          parentSection: 'spaces',
-          selection: { kind: 'space', id },
-          selected: selected.kind === 'space' && selected.id === id,
-        })
-      }
-      if (spaces.length > 5) {
-        nextEntries.push({
-          id: 'more:spaces',
-          kind: 'more',
-          section: 'spaces',
-          label: showAllSpaces ? 'Show fewer' : `+${spaces.length - 5} more`,
-          expanded: showAllSpaces,
-          level: 2,
-          parentSection: 'spaces',
-        })
-      }
-    }
-
-    nextEntries.push({
-      id: 'section:plugins',
-      kind: 'section',
-      section: 'plugins',
-      label: 'Plugins',
-      count: pluginCount,
-      expanded: openSections.plugins,
-      level: 1,
-    })
-
-    if (openSections.plugins) {
-      nextEntries.push({
-        id: 'selection:plugins',
-        kind: 'selection',
-        label: 'All plugins',
-        dot: 'bg-brand/40',
-        level: 2,
-        parentSection: 'plugins',
-        selection: { kind: 'plugins' },
-        selected: selected.kind === 'plugins',
-      })
-      for (const [index, plugin] of visiblePlugins.entries()) {
-        const id = plugin.id ?? ''
-        const instanceKey = plugin.instanceKey ?? ''
-        nextEntries.push({
-          id: `plugin:${makeOccurrenceKey(`${id}:${instanceKey}`, index)}`,
-          kind: 'selection',
-          label: id || 'unknown',
-          sublabel: plugin.state || 'unknown',
-          dot: plugin.state === 'requested' ? 'bg-success' : 'bg-warning/70',
-          level: 2,
-          parentSection: 'plugins',
-          selection: { kind: 'plugin', id, instanceKey },
-          selected:
-            selected.kind === 'plugin' &&
-            selected.id === id &&
-            selected.instanceKey === instanceKey,
-        })
-      }
-    }
-
-    nextEntries.push({
-      id: 'section:network',
-      kind: 'section',
-      section: 'network',
-      label: 'Network',
-      count: networkPeerCount,
-      expanded: openSections.network,
-      level: 1,
-    })
-
-    if (openSections.network) {
-      nextEntries.push({
-        id: 'selection:network',
-        kind: 'selection',
-        label: 'Network links',
-        dot: networkPeerCount > 0 ? 'bg-success' : 'bg-foreground-alt/20',
-        level: 2,
-        parentSection: 'network',
-        selection: { kind: 'network' },
-        selected: selected.kind === 'network',
-      })
-    }
-
-    nextEntries.push({
-      id: 'section:controllers',
-      kind: 'section',
-      section: 'controllers',
-      label: 'Controllers',
-      count: controllerCount,
-      expanded: openSections.controllers,
-      level: 1,
-    })
-
-    if (openSections.controllers) {
-      nextEntries.push({
-        id: 'selection:controllers',
-        kind: 'selection',
-        label: 'All controllers',
-        dot: 'bg-success/50',
-        level: 2,
-        parentSection: 'controllers',
-        selection: { kind: 'controllers' },
-        selected: selected.kind === 'controllers',
-      })
-      for (const [index, controller] of visibleControllers.entries()) {
-        nextEntries.push({
-          id: `controller:${makeOccurrenceKey(controller.id, index)}`,
-          kind: 'selection',
-          label: controller.id || 'unknown',
-          dot: 'bg-success',
-          level: 2,
-          parentSection: 'controllers',
-          selection: { kind: 'controller', id: controller.id || '', index },
-          selected:
-            selected.kind === 'controller' &&
-            selected.id === controller.id &&
-            selected.index === index,
-        })
-      }
-      if (controllers.length > 5) {
-        nextEntries.push({
-          id: 'more:controllers',
-          kind: 'more',
-          section: 'controllers',
-          label: showAllControllers
-            ? 'Show fewer'
-            : `+${controllers.length - 5} more`,
-          expanded: showAllControllers,
-          level: 2,
-          parentSection: 'controllers',
-        })
-      }
-    }
-
-    nextEntries.push({
-      id: 'section:directives',
-      kind: 'section',
-      section: 'directives',
-      label: 'Directives',
-      count: directiveCount,
-      expanded: openSections.directives,
-      level: 1,
-    })
-
-    if (openSections.directives) {
-      nextEntries.push({
-        id: 'selection:directives',
-        kind: 'selection',
-        label: 'All directives',
-        dot: 'bg-warning/50',
-        level: 2,
-        parentSection: 'directives',
-        selection: { kind: 'directives' },
-        selected: selected.kind === 'directives',
-      })
-      for (const [index, directiveGroup] of visibleDirectiveGroups.entries()) {
-        nextEntries.push({
-          id: `directive-group:${makeOccurrenceKey(directiveGroup.name, index)}`,
-          kind: 'selection',
-          label: directiveGroup.name,
-          sublabel: String(directiveGroup.count),
-          dot: 'bg-warning/70',
-          level: 2,
-          parentSection: 'directives',
-          selection: {
-            kind: 'directive-group',
-            name: directiveGroup.name,
-          },
-          selected:
-            selected.kind === 'directive-group' &&
-            selected.name === directiveGroup.name,
-        })
-      }
-      if (directiveGroups.length > 5) {
-        nextEntries.push({
-          id: 'more:directives',
-          kind: 'more',
-          section: 'directives',
-          label: showAllDirectives
-            ? 'Show fewer'
-            : `+${directiveGroups.length - 5} more`,
-          expanded: showAllDirectives,
-          level: 2,
-          parentSection: 'directives',
-        })
-      }
-    }
-
-    nextEntries.push({
-      id: 'section:resources',
-      kind: 'section',
-      section: 'resources',
-      label: 'Resources',
-      expanded: openSections.resources,
-      level: 1,
-    })
-
-    if (openSections.resources) {
-      nextEntries.push({
-        id: 'selection:resources',
-        kind: 'selection',
-        label: 'Resource tree',
-        dot: 'bg-brand/40',
-        level: 2,
-        parentSection: 'resources',
-        selection: { kind: 'resources' },
-        selected: selected.kind === 'resources',
-      })
-    }
-
-    nextEntries.push({
-      id: 'section:atoms',
-      kind: 'section',
-      section: 'atoms',
-      label: 'State Atoms',
-      expanded: openSections.atoms,
-      level: 1,
-    })
-
-    if (openSections.atoms) {
-      nextEntries.push({
-        id: 'selection:atoms',
-        kind: 'selection',
-        label: 'Atom tree',
-        dot: 'bg-brand/40',
-        level: 2,
-        parentSection: 'atoms',
-        selection: { kind: 'atoms' },
-        selected: selected.kind === 'atoms',
-      })
-    }
-
-    return nextEntries
-  }, [
-    controllerCount,
-    controllers,
-    directiveGroups,
-    directiveCount,
-    openSections,
-    pluginCount,
-    networkPeerCount,
-    selected,
-    sessions,
-    showAllControllers,
-    showAllDirectives,
-    showAllSpaces,
-    spaces,
-    visibleControllers,
-    visibleDirectiveGroups,
-    visiblePlugins,
-    visibleSpaces,
-  ])
-  const resolvedFocusedId = entries.some((entry) => entry.id === focusedId)
-    ? focusedId
-    : (entries[0]?.id ?? '')
-
-  function setSectionExpanded(section: SidebarSectionKey, expanded: boolean) {
-    setOpenSections((state) => ({ ...state, [section]: expanded }))
+  if (!sessions || !spaces) {
+    return (
+      <SystemTile {...base} className="@2xl:col-span-6" headline="Reading…" />
+    )
   }
 
-  function focusEntry(index: number) {
-    const entry = entries[index]
-    if (!entry) return
-    setFocusedId(entry.id)
-    itemRefs.current[entry.id]?.focus()
-  }
-
-  function activateEntry(entry: SidebarEntry) {
-    if (entry.kind === 'section') {
-      setSectionExpanded(entry.section, !entry.expanded)
-      return
-    }
-    if (entry.kind === 'session') {
-      onSelect({ kind: 'session', index: entry.sessionIndex })
-      return
-    }
-    if (entry.kind === 'selection') {
-      onSelect(entry.selection)
-      return
-    }
-    if (entry.section === 'spaces') {
-      setShowAllSpaces(!showAllSpaces)
-      return
-    }
-    if (entry.section === 'controllers') {
-      setShowAllControllers(!showAllControllers)
-      return
-    }
-    setShowAllDirectives(!showAllDirectives)
-  }
-
-  function handleEntryKeyDown(event: React.KeyboardEvent, entry: SidebarEntry) {
-    const index = entries.findIndex((candidate) => candidate.id === entry.id)
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      focusEntry(Math.min(entries.length - 1, index + 1))
-      return
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      focusEntry(Math.max(0, index - 1))
-      return
-    }
-    if (event.key === 'ArrowRight') {
-      event.preventDefault()
-      if (entry.kind === 'section') {
-        if (!entry.expanded) {
-          setSectionExpanded(entry.section, true)
-          return
-        }
-        focusEntry(index + 1)
-        return
-      }
-      if (entry.kind === 'more') {
-        activateEntry(entry)
-      }
-      return
-    }
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault()
-      if (entry.kind === 'section') {
-        if (!entry.expanded) return
-        setSectionExpanded(entry.section, false)
-        return
-      }
-      const parentIndex = entries.findIndex(
-        (candidate) =>
-          candidate.kind === 'section' &&
-          candidate.section === entry.parentSection,
-      )
-      focusEntry(parentIndex)
-      return
-    }
-    if (event.key !== 'Enter' && event.key !== ' ') return
-    event.preventDefault()
-    activateEntry(entry)
-  }
-
+  const shown = spaces.slice(0, 8)
   return (
-    <div
-      role="tree"
-      aria-label="System status navigation"
-      className={cn(
-        'border-foreground/6 w-48 shrink-0 overflow-auto border-r',
-        className,
-      )}
+    <SystemTile
+      {...base}
+      className="@2xl:col-span-6"
+      headline={`${plural(spaces.length, 'Space')} · ${plural(sessions.length, 'account')}`}
     >
-      {entries.map((entry) => {
-        if (entry.kind === 'section') {
-          return (
-            <button
-              key={entry.id}
-              ref={(node) => {
-                itemRefs.current[entry.id] = node
-              }}
-              type="button"
-              role="treeitem"
-              aria-level={entry.level}
-              aria-expanded={entry.expanded}
-              tabIndex={resolvedFocusedId === entry.id ? 0 : -1}
-              onFocus={() => setFocusedId(entry.id)}
-              onKeyDown={(event) => handleEntryKeyDown(event, entry)}
-              onClick={() => activateEntry(entry)}
-              className="hover:bg-foreground/[0.02] focus-visible:ring-brand/30 flex w-full items-center gap-1.5 px-3 py-1.5 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none"
-            >
-              <LuChevronRight
-                className={cn(
-                  'text-foreground-alt/25 size-3 transition-transform',
-                  entry.expanded && 'rotate-90',
-                )}
-              />
-              <span className="text-foreground-alt/40">
-                {getSidebarSectionIcon(entry.section)}
-              </span>
-              <span className="text-foreground-alt/60 micro-text font-medium tracking-wider uppercase">
-                {entry.label}
-              </span>
-              {entry.count != null && (
-                <span className="text-foreground-alt/25 micro-fine ml-auto font-mono">
-                  {entry.count}
-                </span>
-              )}
-            </button>
-          )
-        }
-
-        if (entry.kind === 'session') {
-          return (
-            <SessionSidebarItem
-              key={entry.id}
-              buttonRef={(node) => {
-                itemRefs.current[entry.id] = node
-              }}
-              sessionIndex={entry.sessionIndex}
-              selected={
-                selected.kind === 'session' &&
-                selected.index === entry.sessionIndex
-              }
-              focused={resolvedFocusedId === entry.id}
-              onFocus={() => setFocusedId(entry.id)}
-              onClick={() => activateEntry(entry)}
-              onKeyDown={(event) => handleEntryKeyDown(event, entry)}
-            />
-          )
-        }
-
-        if (entry.kind === 'more') {
-          return (
-            <button
-              key={entry.id}
-              ref={(node) => {
-                itemRefs.current[entry.id] = node
-              }}
-              type="button"
-              role="treeitem"
-              aria-level={entry.level}
-              tabIndex={resolvedFocusedId === entry.id ? 0 : -1}
-              onFocus={() => setFocusedId(entry.id)}
-              onKeyDown={(event) => handleEntryKeyDown(event, entry)}
-              onClick={() => activateEntry(entry)}
-              className="text-foreground-alt/20 hover:text-foreground-alt/40 focus-visible:ring-brand/30 micro-fine w-full py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none"
-            >
-              {entry.label}
-            </button>
-          )
-        }
-
-        return (
-          <button
-            key={entry.id}
-            ref={(node) => {
-              itemRefs.current[entry.id] = node
-            }}
-            type="button"
-            role="treeitem"
-            aria-level={entry.level}
-            aria-selected={entry.selected}
-            tabIndex={resolvedFocusedId === entry.id ? 0 : -1}
-            onFocus={() => setFocusedId(entry.id)}
-            onKeyDown={(event) => handleEntryKeyDown(event, entry)}
-            onClick={() => activateEntry(entry)}
-            className={cn(
-              'focus-visible:ring-brand/30 flex w-full items-center gap-1.5 py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none',
-              entry.selected
-                ? 'bg-brand/[0.08] text-foreground'
-                : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
-            )}
+      <ul className="flex flex-wrap gap-1.5">
+        {sessions.map((session) => (
+          <SessionChip
+            key={session.sessionIndex}
+            sessionIndex={session.sessionIndex ?? 0}
+          />
+        ))}
+        {shown.map((space, index) => (
+          <li
+            key={space.entry?.ref?.providerResourceRef?.id || index}
+            className="border-foreground/8 max-w-48 truncate rounded-md border px-2 py-1"
           >
-            <span className={cn('size-1.5 shrink-0 rounded-full', entry.dot)} />
-            <span className="micro-text min-w-0 truncate">{entry.label}</span>
-            {entry.sublabel && (
-              <span className="text-foreground-alt/25 micro-tiny ml-auto shrink-0 font-mono">
-                {entry.sublabel}
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
+            {space.spaceMeta?.name || 'Untitled Space'}
+          </li>
+        ))}
+        {spaces.length > shown.length && (
+          <li className="px-2 py-1">
+            +{formatCount(spaces.length - shown.length)} more
+          </li>
+        )}
+      </ul>
+    </SystemTile>
   )
 }
 
-function SessionSidebarItem({
-  sessionIndex,
-  selected,
-  focused,
-  onFocus,
-  onClick,
-  onKeyDown,
-  buttonRef,
-}: {
-  sessionIndex: number
-  selected: boolean
-  focused: boolean
-  onFocus: () => void
-  onClick: () => void
-  onKeyDown: (event: React.KeyboardEvent) => void
-  buttonRef: (node: HTMLButtonElement | null) => void
-}) {
+// SessionChip names one account session, marking the current one.
+function SessionChip({ sessionIndex }: { sessionIndex: number }) {
   const metadata = useSessionMetadata(sessionIndex)
-  const label = metadata?.displayName || `Session ${sessionIndex}`
+  const current = useSessionIndex() === sessionIndex
+
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      role="treeitem"
-      aria-level={2}
-      aria-selected={selected}
-      tabIndex={focused ? 0 : -1}
-      onFocus={onFocus}
-      onKeyDown={onKeyDown}
-      onClick={onClick}
+    <li
       className={cn(
-        'focus-visible:ring-brand/30 flex w-full items-center gap-1.5 py-0.5 pr-3 pl-7 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none',
-        selected
-          ? 'bg-brand/[0.08] text-foreground'
-          : 'text-foreground/60 hover:bg-foreground/[0.02] hover:text-foreground/80',
+        'flex max-w-56 items-center gap-1.5 rounded-md border px-2 py-1',
+        current
+          ? 'border-brand/30 bg-brand/10 text-foreground'
+          : 'border-foreground/8',
       )}
     >
-      <span className="bg-success size-1.5 shrink-0 rounded-full" />
-      <span className="micro-text min-w-0 truncate">{label}</span>
-      <span className="text-foreground-alt/25 micro-tiny ml-auto shrink-0 font-mono">
+      <span className="truncate">
+        {metadata?.displayName || `Session ${sessionIndex}`}
+      </span>
+      <span className="text-foreground-alt/50 font-mono">
         /u/{sessionIndex}
       </span>
-    </button>
+    </li>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Detail view
-// ---------------------------------------------------------------------------
+// UnderTheHood opens the devtools trees for SDK resources and state atoms.
+function UnderTheHood({
+  tileRef,
+  onOpen,
+}: {
+  tileRef: TileRef
+  onOpen: (id: InspectorId) => void
+}) {
+  const resourceCount = useTrackedResources().size
+  const atomCount = useStateInspectorEntryMap().size
 
-function DetailView({
-  selected,
-  spaces,
-  plugins,
-  controllers,
-  networkResp,
-  networkPeers,
-  networkPeerCount,
-  networkLinkCount,
-  directiveGroups,
-  buildInfo,
-  pluginCount,
-  controllerCount,
-  directives,
-  directiveCount,
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
+      <h2 className="text-foreground-alt/60 mr-1 text-xs">Under the hood</h2>
+      <DashboardButton
+        ref={tileRef('resources')}
+        icon={<LuLayers className="size-3.5" />}
+        onClick={() => onOpen('resources')}
+      >
+        Resources
+        <span className="text-foreground-alt/50 font-mono tabular-nums">
+          {formatCount(resourceCount)}
+        </span>
+      </DashboardButton>
+      <DashboardButton
+        ref={tileRef('atoms')}
+        icon={<LuBox className="size-3.5" />}
+        onClick={() => onOpen('atoms')}
+      >
+        State atoms
+        <span className="text-foreground-alt/50 font-mono tabular-nums">
+          {formatCount(atomCount)}
+        </span>
+      </DashboardButton>
+    </div>
+  )
+}
+
+// InspectorNav returns to the tiles or hops straight to another inspector.
+function InspectorNav({
+  current,
+  tones,
   onSelect,
-  onClose,
-  spacesUpdatedAt,
-  pluginsUpdatedAt,
-  networkUpdatedAt,
-  controllersUpdatedAt,
-  directivesUpdatedAt,
-}: {
-  selected: Selection
-  spaces: ReadonlyArray<{
-    entry?: {
-      ref?: {
-        providerResourceRef?: {
-          id?: string
-        }
-      }
-      source?: string
-    }
-    spaceMeta?: { name?: string }
-  }>
-  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
-  networkResp?: { transportRunning?: boolean; localPeerId?: string } | null
-  networkPeers: ReadonlyArray<NetworkPeerView>
-  networkPeerCount: number
-  networkLinkCount: number
-  controllers: ReadonlyArray<{
-    id?: string
-    version?: string
-    description?: string
-  }>
-  directiveGroups: ReadonlyArray<{
-    name: string
-    idents: string[]
-    count: number
-  }>
-  buildInfo: AppBuildInfo
-  pluginCount: number
-  controllerCount: number
-  directives: ReadonlyArray<{ name?: string; ident?: string }>
-  directiveCount: number
-  onSelect: (sel: Selection) => void
-  onClose?: () => void
-  spacesUpdatedAt: string
-  pluginsUpdatedAt: string
-  networkUpdatedAt: string
-  controllersUpdatedAt: string
-  directivesUpdatedAt: string
-}) {
-  if (selected.kind === 'session') {
-    return <SessionDetail sessionIndex={selected.index} onClose={onClose} />
-  }
-
-  if (selected.kind === 'spaces') {
-    return (
-      <SpacesDetail
-        spaces={spaces}
-        updatedAt={spacesUpdatedAt}
-        onSelectSpace={(id) => onSelect({ kind: 'space', id })}
-      />
-    )
-  }
-
-  if (selected.kind === 'space') {
-    return (
-      <SpaceDetail
-        space={spaces.find(
-          (space) => space.entry?.ref?.providerResourceRef?.id === selected.id,
-        )}
-        updatedAt={spacesUpdatedAt}
-        onClose={onClose}
-      />
-    )
-  }
-
-  if (selected.kind === 'plugins') {
-    return (
-      <PluginsDetail
-        buildInfo={buildInfo}
-        plugins={plugins}
-        pluginCount={pluginCount}
-        updatedAt={pluginsUpdatedAt}
-        onSelectPlugin={(id, instanceKey) =>
-          onSelect({ kind: 'plugin', id, instanceKey })
-        }
-      />
-    )
-  }
-
-  if (selected.kind === 'plugin') {
-    return (
-      <PluginDetail
-        plugin={plugins.find(
-          (plugin) =>
-            plugin.id === selected.id &&
-            (plugin.instanceKey ?? '') === selected.instanceKey,
-        )}
-        buildInfo={buildInfo}
-        updatedAt={pluginsUpdatedAt}
-        onBack={() => onSelect({ kind: 'plugins' })}
-      />
-    )
-  }
-
-  if (selected.kind === 'network') {
-    return (
-      <NetworkDetail
-        networkResp={networkResp}
-        peers={networkPeers}
-        peerCount={networkPeerCount}
-        linkCount={networkLinkCount}
-        updatedAt={networkUpdatedAt}
-      />
-    )
-  }
-
-  if (selected.kind === 'controllers') {
-    return (
-      <ControllersDetail
-        controllers={controllers}
-        controllerCount={controllerCount}
-        updatedAt={controllersUpdatedAt}
-        onSelectController={(id, index) =>
-          onSelect({ kind: 'controller', id, index })
-        }
-      />
-    )
-  }
-
-  if (selected.kind === 'controller') {
-    const c = controllers[selected.index]
-    if (!c) return null
-    return (
-      <ControllerDetail
-        controller={c}
-        index={selected.index}
-        updatedAt={controllersUpdatedAt}
-        onBack={() => onSelect({ kind: 'controllers' })}
-      />
-    )
-  }
-
-  if (selected.kind === 'directives') {
-    return (
-      <DirectivesDetail
-        directives={directives}
-        directiveCount={directiveCount}
-        updatedAt={directivesUpdatedAt}
-      />
-    )
-  }
-
-  if (selected.kind === 'directive-group') {
-    return (
-      <DirectiveGroupDetail
-        directiveGroup={directiveGroups.find(
-          (group) => group.name === selected.name,
-        )}
-        updatedAt={directivesUpdatedAt}
-      />
-    )
-  }
-
-  if (selected.kind === 'resources') {
-    return <ResourcesDetail />
-  }
-
-  // atoms
-  return <AtomsDetail />
-}
-
-// SessionDetail fetches metadata and renders session info.
-function SessionDetail({
-  sessionIndex,
-  onClose,
-}: {
-  sessionIndex: number
-  onClose?: () => void
-}) {
-  const metadata = useSessionMetadata(sessionIndex)
-  const currentSessionIndex = useSessionIndex()
-  const navigate = useNavigate()
-  const setOpenMenu = useBottomBarSetOpenMenu()
-  const name = metadata?.displayName || `Session ${sessionIndex}`
-  const initials = name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-
-  return (
-    <div className="space-y-2 p-4">
-      <div className="flex items-center gap-2">
-        <div className="bg-brand/10 flex size-6 items-center justify-center rounded-full">
-          <span className="text-brand text-xs font-bold">{initials}</span>
-        </div>
-        <div>
-          <span className="text-foreground text-sm font-medium">{name}</span>
-          <span className="text-foreground-alt/30 ml-2 font-mono text-xs">
-            /u/{sessionIndex}
-          </span>
-        </div>
-      </div>
-      <DetailCard title="Account" accent="border-success/40">
-        <div className="py-0.5">
-          <DetailRow label="Display Name" value={name} mono={false} />
-          <DetailRow label="Session Index" value={String(sessionIndex)} />
-          <DetailRow label="Session Path" value={`/u/${sessionIndex}`} />
-          {metadata?.providerDisplayName && (
-            <DetailRow
-              label="Provider"
-              value={metadata.providerDisplayName}
-              mono={false}
-            />
-          )}
-          {metadata?.cloudEntityId && (
-            <DetailRow label="Entity" value={metadata.cloudEntityId} />
-          )}
-          {metadata?.providerAccountId && (
-            <DetailRow label="Account ID" value={metadata.providerAccountId} />
-          )}
-          {metadata?.cloudAccountId && (
-            <DetailRow label="Cloud Account" value={metadata.cloudAccountId} />
-          )}
-          {metadata?.providerId && (
-            <DetailRow label="Provider ID" value={metadata.providerId} />
-          )}
-          {metadata?.createdAt != null && metadata.createdAt !== 0n && (
-            <DetailRow
-              label="Created"
-              value={formatTimestamp(Number(metadata.createdAt))}
-            />
-          )}
-        </div>
-      </DetailCard>
-      {metadata?.lockMode != null && (
-        <DetailCard title="Security" accent="border-warning/40">
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            {metadata.lockMode === SessionLockMode.AUTO_UNLOCK ? (
-              <LuLockOpen className="text-success/60 size-3" />
-            ) : (
-              <LuLock className="text-warning/60 size-3" />
-            )}
-            <span className="text-foreground/70 text-xs">
-              {metadata.lockMode === SessionLockMode.AUTO_UNLOCK
-                ? 'Auto-unlock (no PIN)'
-                : 'PIN encrypted'}
-            </span>
-          </div>
-        </DetailCard>
-      )}
-      <DetailCard title="Actions" accent="border-brand/40">
-        <div className="flex flex-col gap-2 p-3">
-          <button
-            type="button"
-            onClick={() => {
-              navigate({ path: `/u/${sessionIndex}` })
-              onClose?.()
-            }}
-            className="border-foreground/8 text-foreground hover:bg-foreground/[0.03] rounded-md border px-3 py-1.5 text-left text-xs transition-colors"
-          >
-            Open Session
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (currentSessionIndex !== sessionIndex) {
-                navigate({ path: `/u/${sessionIndex}` })
-              }
-              queueMicrotask(() => setOpenMenu?.('account'))
-            }}
-            className="border-foreground/8 text-foreground hover:bg-foreground/[0.03] rounded-md border px-3 py-1.5 text-left text-xs transition-colors"
-          >
-            Open Session Details
-          </button>
-        </div>
-      </DetailCard>
-    </div>
-  )
-}
-
-function SpacesDetail({
-  spaces,
-  updatedAt,
-  onSelectSpace,
-}: {
-  spaces: ReadonlyArray<{
-    entry?: {
-      ref?: {
-        providerResourceRef?: {
-          id?: string
-        }
-      }
-    }
-    spaceMeta?: { name?: string }
-  }>
-  updatedAt: string
-  onSelectSpace: (id: string) => void
-}) {
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuFolderOpen className="text-brand/50 size-4" />
-        <span className="text-foreground text-sm font-medium">Spaces</span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {spaces.length}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Spaces" />
-      </div>
-      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
-        {spaces.length === 0 && (
-          <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-xs">
-              No spaces mounted.
-            </span>
-          </div>
-        )}
-        {spaces.map((space, i) => {
-          const id = space.entry?.ref?.providerResourceRef?.id ?? ''
-          const name = space.spaceMeta?.name ?? 'Untitled'
-          return (
-            <button
-              type="button"
-              key={makeOccurrenceKey(id || name, i)}
-              onClick={() => {
-                if (!id) return
-                onSelectSpace(id)
-              }}
-              className="border-foreground/4 hover:bg-foreground/[0.02] flex w-full items-center gap-2 border-b px-3 py-1.5 text-left last:border-b-0"
-            >
-              <span className="bg-brand size-1.5 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1">
-                <span className="text-foreground/80 block truncate text-xs">
-                  {name}
-                </span>
-                <span className="text-foreground-alt/25 block truncate font-mono text-xs">
-                  {id || 'unknown'}
-                </span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function SpaceDetail({
-  space,
-  updatedAt,
-  onClose,
-}: {
-  space?:
-    | {
-        entry?: {
-          ref?: {
-            providerResourceRef?: {
-              id?: string
-            }
-          }
-          source?: string
-        }
-        spaceMeta?: { name?: string }
-      }
-    | undefined
-  updatedAt: string
-  onClose?: () => void
-}) {
-  const navigate = useNavigate()
-  const sessionIndex = useSessionIndex()
-
-  if (!space) {
-    return (
-      <div className="space-y-2 p-4">
-        <DetailCard title="Space" accent="border-brand/40">
-          <div className="py-0.5">
-            <DetailRow label="Status" value="Not found" mono={false} />
-          </div>
-        </DetailCard>
-      </div>
-    )
-  }
-
-  const id = space.entry?.ref?.providerResourceRef?.id ?? ''
-  const name = space.spaceMeta?.name ?? 'Untitled'
-  const source = space.entry?.source ?? 'unknown'
-
-  return (
-    <div className="space-y-2 p-4">
-      <div className="flex items-center gap-2">
-        <span className="bg-brand size-2 rounded-full" />
-        <span className="text-foreground text-sm font-medium">{name}</span>
-        <LiveIndicator updatedAt={updatedAt} label="Space" />
-      </div>
-      <DetailCard title="Space" accent="border-brand/40">
-        <div className="py-0.5">
-          <DetailRow label="Name" value={name} mono={false} />
-          <DetailRow label="Space ID" value={id || 'unknown'} />
-          <DetailRow label="Source" value={source} mono={false} />
-        </div>
-      </DetailCard>
-      <div>
-        <button
-          type="button"
-          onClick={() => {
-            if (!id || !sessionIndex) return
-            navigate({ path: `/u/${sessionIndex}/so/${id}` })
-            onClose?.()
-          }}
-          className="border-foreground/8 text-foreground hover:bg-foreground/[0.03] rounded-md border px-3 py-1.5 text-xs transition-colors"
-        >
-          Open Space
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function PluginsDetail({
-  buildInfo,
-  plugins,
-  pluginCount,
-  updatedAt,
-  onSelectPlugin,
-}: {
-  buildInfo: AppBuildInfo
-  plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
-  pluginCount: number
-  updatedAt: string
-  onSelectPlugin: (id: string, instanceKey: string) => void
-}) {
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuPuzzle className="text-brand/50 size-4" />
-        <span className="text-foreground text-sm font-medium">Plugins</span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {pluginCount}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Plugins" />
-      </div>
-      <div className="grid gap-2 pb-2 md:grid-cols-2">
-        <BuildInfoCard buildInfo={buildInfo} />
-        <DetailCard title="Runtime" accent="border-success/40">
-          <div className="py-0.5">
-            <DetailRow label="Plugins" value={String(pluginCount)} />
-            <DetailRow
-              label="State Source"
-              value="Plugin host scheduler"
-              mono={false}
-            />
-          </div>
-        </DetailCard>
-      </div>
-      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
-        {plugins.length === 0 && (
-          <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-xs">
-              No plugins active.
-            </span>
-          </div>
-        )}
-        {plugins.map((plugin, index) => {
-          const id = plugin.id ?? ''
-          const instanceKey = plugin.instanceKey ?? ''
-          const state = plugin.state || 'unknown'
-          return (
-            <button
-              type="button"
-              key={makeOccurrenceKey(`${id}:${instanceKey}`, index)}
-              onClick={() => onSelectPlugin(id, instanceKey)}
-              className="border-foreground/4 hover:bg-foreground/[0.02] flex w-full items-center gap-2 border-b px-3 py-1.5 text-left last:border-b-0"
-            >
-              <span
-                className={cn(
-                  'size-1.5 shrink-0 rounded-full',
-                  state === 'requested' ? 'bg-success' : 'bg-warning/70',
-                )}
-              />
-              <div className="min-w-0 flex-1">
-                <span className="text-foreground/80 block truncate text-xs">
-                  {id || 'unknown'}
-                </span>
-                <span className="text-foreground-alt/25 block truncate font-mono text-xs">
-                  {instanceKey || 'shared'}
-                </span>
-              </div>
-              <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-xs">
-                {state}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function formatNetworkId(id: bigint | number | undefined): string {
-  return id == null ? '0' : id.toString()
-}
-
-function NetworkDetail({
-  networkResp,
-  peers,
-  peerCount,
-  linkCount,
-  updatedAt,
-}: {
-  networkResp?: { transportRunning?: boolean; localPeerId?: string } | null
-  peers: ReadonlyArray<NetworkPeerView>
-  peerCount: number
-  linkCount: number
-  updatedAt: string
-}) {
-  const transportRunning = networkResp?.transportRunning ?? false
-  const localPeerId = networkResp?.localPeerId ?? ''
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuRadar className="text-success/60 size-4" />
-        <span className="text-foreground text-sm font-medium">Network</span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {peerCount} peers / {linkCount} links
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Network" />
-      </div>
-      <div className="grid gap-2 pb-2 md:grid-cols-2">
-        <DetailCard title="Transport" accent="border-success/40">
-          <div className="py-0.5">
-            <DetailRow
-              label="Status"
-              value={transportRunning ? 'running' : 'stopped'}
-              mono={false}
-            />
-            <DetailRow
-              label="Local Peer"
-              value={localPeerId || 'not available'}
-            />
-          </div>
-        </DetailCard>
-        <DetailCard title="Links" accent="border-brand/40">
-          <div className="py-0.5">
-            <DetailRow label="Peers" value={String(peerCount)} />
-            <DetailRow label="Links" value={String(linkCount)} />
-            <DetailRow
-              label="Source"
-              value="Bifrost link controller"
-              mono={false}
-            />
-          </div>
-        </DetailCard>
-      </div>
-      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
-        {peers.length === 0 && (
-          <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-xs">
-              No active network links.
-            </span>
-          </div>
-        )}
-        {peers.map((peer, peerIndex) => {
-          const peerId = peer.peerId || 'unknown'
-          const links = peer.links ?? []
-          return (
-            <div
-              key={makeOccurrenceKey(peerId, peerIndex)}
-              className="border-foreground/4 border-b px-3 py-2 last:border-b-0"
-            >
-              <div className="mb-1 flex items-center gap-2">
-                <span className="bg-success size-1.5 shrink-0 rounded-full" />
-                <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-xs">
-                  {peerId}
-                </span>
-                <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-xs">
-                  {peer.linkCount ?? links.length} link
-                  {(peer.linkCount ?? links.length) === 1 ? '' : 's'}
-                </span>
-              </div>
-              <div className="space-y-1 pl-3">
-                {links.map((link, linkIndex) => (
-                  <div
-                    key={makeOccurrenceKey(
-                      formatNetworkId(link.linkId),
-                      linkIndex,
-                    )}
-                    className="bg-foreground/[0.02] rounded px-2 py-1"
-                  >
-                    <div className="text-foreground-alt/40 mb-0.5 font-mono text-xs">
-                      link {formatNetworkId(link.linkId)}
-                    </div>
-                    <div className="grid gap-x-3 gap-y-0.5 md:grid-cols-2">
-                      <DetailRow
-                        label="Transport"
-                        value={formatNetworkId(link.transportId)}
-                      />
-                      <DetailRow
-                        label="Remote Transport"
-                        value={formatNetworkId(link.remoteTransportId)}
-                      />
-                      <DetailRow
-                        label="Local Peer"
-                        value={link.localPeerId || 'unknown'}
-                      />
-                      <DetailRow
-                        label="Remote Peer"
-                        value={link.remotePeerId || peerId}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function PluginDetail({
-  plugin,
-  buildInfo,
-  updatedAt,
   onBack,
 }: {
-  plugin?: { id?: string; instanceKey?: string; state?: string }
-  buildInfo: AppBuildInfo
-  updatedAt: string
+  current: InspectorId
+  tones: Record<SubsystemId, SystemTone>
+  onSelect: (id: InspectorId) => void
   onBack: () => void
 }) {
-  if (!plugin) {
-    return (
-      <div className="space-y-2 p-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
-        >
-          <LuArrowLeft className="size-3" />
-          Back to plugins
-        </button>
-        <DetailCard title="Plugin" accent="border-brand/40">
-          <div className="py-0.5">
-            <DetailRow label="Status" value="Not found" mono={false} />
-          </div>
-        </DetailCard>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-2 p-4">
+    <nav
+      aria-label="System inspectors"
+      className="border-foreground/8 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-2"
+    >
       <button
         type="button"
         onClick={onBack}
-        className="text-foreground-alt/50 hover:text-foreground-alt flex items-center gap-1 text-xs transition-colors"
+        className="text-foreground-alt/70 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
-        <LuArrowLeft className="size-3" />
-        Back to plugins
+        <LuArrowLeft className="size-3.5" aria-hidden="true" />
+        All systems
       </button>
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            'size-2 rounded-full',
-            plugin.state === 'requested' ? 'bg-success' : 'bg-warning/70',
-          )}
-        />
-        <span className="text-foreground text-sm font-medium">
-          {plugin.id || 'unknown'}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Plugin" />
-      </div>
-      <DetailCard title="Plugin" accent="border-brand/40">
-        <div className="py-0.5">
-          <DetailRow label="Plugin ID" value={plugin.id || 'unknown'} />
-          <DetailRow
-            label="Instance"
-            value={plugin.instanceKey || 'shared'}
-            mono={false}
-          />
-          <DetailRow
-            label="State"
-            value={plugin.state || 'unknown'}
-            mono={false}
-          />
-        </div>
-      </DetailCard>
-      <BuildInfoCard buildInfo={buildInfo} />
-    </div>
-  )
-}
-
-function BuildInfoCard({ buildInfo }: { buildInfo: AppBuildInfo }) {
-  return (
-    <DetailCard title="Build" accent="border-brand/40">
-      <div className="py-0.5">
-        <DetailRow label="Version" value={buildInfo.version || 'dev'} />
-        <DetailRow
-          label="Main Version"
-          value={buildInfo.mainVersion || 'n/a'}
-        />
-        <DetailRow
-          label="Runtime"
-          value={buildInfo.runtimeLabel || 'unknown'}
-          mono={false}
-        />
-        <DetailRow
-          label="Platform"
-          value={
-            buildInfo.goos && buildInfo.goarch
-              ? `${buildInfo.goos}/${buildInfo.goarch}`
-              : 'unknown'
-          }
-        />
-        <DetailRow
-          label="Browser Gen"
-          value={buildInfo.browserGenerationId || 'n/a'}
-        />
-      </div>
-    </DetailCard>
-  )
-}
-
-function ControllersDetail({
-  controllers,
-  controllerCount,
-  updatedAt,
-  onSelectController,
-}: {
-  controllers: ReadonlyArray<{
-    id?: string
-    version?: string
-    description?: string
-  }>
-  controllerCount: number
-  updatedAt: string
-  onSelectController: (id: string, index: number) => void
-}) {
-  const freshControllers = useFreshKeys(
-    useMemo(
-      () => controllers.map((controller) => controller.id || ''),
-      [controllers],
-    ),
-  )
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuCpu className="text-success/60 size-4" />
-        <span className="text-foreground text-sm font-medium">Controllers</span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {controllerCount}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Controllers" />
-      </div>
-      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
-        {controllers.map((controller, index) => (
+      <span
+        className="bg-foreground/10 mx-1 h-4 w-px shrink-0"
+        aria-hidden="true"
+      />
+      {inspectorOrder.map((id) => {
+        const tone = id in tones ? tones[id as SubsystemId] : null
+        return (
           <button
+            key={id}
             type="button"
-            key={makeOccurrenceKey(controller.id, index)}
-            onClick={() => onSelectController(controller.id || '', index)}
+            aria-current={id === current ? 'page' : undefined}
+            onClick={() => onSelect(id)}
             className={cn(
-              'border-foreground/4 hover:bg-foreground/[0.02] flex w-full items-center gap-2 border-b px-3 py-1.5 text-left transition-colors last:border-b-0',
-              freshControllers.has(controller.id || '') &&
-                'bg-success/5 ring-success/15 ring-1 ring-inset',
+              'focus-visible:ring-brand/50 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none',
+              id === current
+                ? 'bg-foreground/8 text-foreground'
+                : 'text-foreground-alt/60 hover:text-foreground',
             )}
           >
-            <span className="bg-success size-1.5 shrink-0 rounded-full" />
-            <div className="min-w-0 flex-1">
-              <span className="text-foreground/80 micro-label block truncate font-mono">
-                {controller.id || 'unknown'}
-              </span>
-              {controller.description && (
-                <span className="text-foreground-alt/30 micro-fine block truncate">
-                  {controller.description}
-                </span>
-              )}
-            </div>
-            {controller.version && (
-              <span className="text-foreground-alt/20 micro-fine shrink-0 font-mono">
-                v{controller.version}
-              </span>
+            {tone && (
+              <span
+                className={cn('size-1.5 rounded-full', toneDotClass[tone])}
+                aria-hidden="true"
+              />
             )}
-          </button>
-        ))}
-        {controllerCount > controllers.length && (
-          <div className="border-foreground/4 border-t px-3 py-1.5">
-            <span className="text-foreground-alt/20 text-xs">
-              {controllerCount - controllers.length} more not shown
+            <span className={cn(tone === 'error' && toneTextClass.error)}>
+              {inspectorMeta[id].title}
             </span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function ControllerDetail({
-  controller,
-  index,
-  updatedAt,
-  onBack,
-}: {
-  controller: {
-    id?: string
-    version?: string
-    description?: string
-  }
-  index: number
-  updatedAt: string
-  onBack: () => void
-}) {
-  return (
-    <div className="space-y-2 p-4">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to controllers"
-          className="text-foreground-alt/60 hover:text-foreground -ml-1 rounded p-1 transition-colors"
-        >
-          <LuArrowLeft className="size-3.5" />
-        </button>
-        <span className="bg-success size-2 rounded-full" />
-        <span className="text-foreground text-sm font-medium">
-          {controller.id}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Controller" />
-      </div>
-      <DetailCard title="Controller" accent="border-success/40">
-        <div className="py-0.5">
-          <DetailRow label="ID" value={controller.id || ''} />
-          <DetailRow label="List Index" value={String(index + 1)} />
-          <DetailRow label="Version" value={controller.version || ''} />
-          <DetailRow
-            label="Description"
-            value={controller.description || ''}
-            mono={false}
-          />
-        </div>
-      </DetailCard>
-    </div>
-  )
-}
-
-// DirectivesDetail groups and displays directives.
-function DirectivesDetail({
-  directives,
-  directiveCount,
-  updatedAt,
-}: {
-  directives: ReadonlyArray<{ name?: string; ident?: string }>
-  directiveCount: number
-  updatedAt: string
-}) {
-  const grouped = useMemo(() => groupDirectives(directives), [directives])
-  const maxDir = Math.max(...grouped.map((d) => d.count), 1)
-  const directivesNs = useStateNamespace([
-    'system-status-dashboard',
-    'directives',
-  ])
-  const [expandedGroups, setExpandedGroups] = useStateAtom<
-    Record<string, boolean>
-  >(directivesNs, 'expanded-groups', {})
-  const freshGroups = useFreshKeys(
-    useMemo(() => grouped.map((group) => group.name), [grouped]),
-  )
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuRadar className="text-warning/60 size-4" />
-        <span className="text-foreground text-sm font-medium">Directives</span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {directiveCount}
-        </span>
-        <span className="text-foreground-alt/20 text-xs">
-          {grouped.length} types
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Directives" />
-      </div>
-      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
-        {grouped.map((d, i) => (
-          <DirectiveRow
-            key={makeOccurrenceKey(d.name, i)}
-            directive={d}
-            expanded={!!expandedGroups[d.name]}
-            onToggle={() => {
-              setExpandedGroups((state) => {
-                if (!state[d.name]) {
-                  return { ...state, [d.name]: true }
-                }
-                const next = { ...state }
-                delete next[d.name]
-                return next
-              })
-            }}
-            fresh={freshGroups.has(d.name)}
-            maxCount={maxDir}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// Expandable directive row showing idents when expanded.
-function DirectiveRow({
-  directive,
-  expanded,
-  onToggle,
-  fresh,
-  maxCount,
-}: {
-  directive: { name: string; idents: string[]; count: number }
-  expanded: boolean
-  onToggle: () => void
-  fresh: boolean
-  maxCount: number
-}) {
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={onToggle}
-        className={cn(
-          'hover:bg-foreground/[0.02] flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left transition-colors',
-          fresh && 'bg-warning/6 ring-warning/20 ring-1 ring-inset',
-        )}
-      >
-        <LuChevronRight
-          className={cn(
-            'text-foreground-alt/20 size-2.5 transition-transform',
-            expanded && 'rotate-90',
-          )}
-        />
-        <span className="text-foreground/80 micro-label min-w-0 flex-1 truncate font-mono">
-          {directive.name}
-        </span>
-        <div className="bg-foreground/5 h-1.5 w-20 shrink-0 overflow-hidden rounded-full">
-          <div
-            className="progress-width bg-warning/30 h-full rounded-full"
-            style={{
-              '--progress-width': `${(directive.count / maxCount) * 100}%`,
-            }}
-          />
-        </div>
-        <span className="text-foreground-alt/40 micro-text w-8 shrink-0 text-right font-mono tabular-nums">
-          {directive.count}
-        </span>
-      </button>
-      {expanded && (
-        <div className="bg-foreground/[0.01] border-foreground/4 border-t">
-          {directive.idents.map((ident) => (
-            <div
-              key={ident}
-              className="flex items-center gap-1.5 py-0.5 pr-3 pl-9"
-            >
-              <span className="bg-warning/20 size-1 shrink-0 rounded-full" />
-              <span className="text-foreground-alt/50 truncate font-mono text-xs">
-                {ident}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function DirectiveGroupDetail({
-  directiveGroup,
-  updatedAt,
-}: {
-  directiveGroup?:
-    | {
-        name: string
-        idents: string[]
-        count: number
-      }
-    | undefined
-  updatedAt: string
-}) {
-  if (!directiveGroup) {
-    return (
-      <div className="space-y-2 p-4">
-        <DetailCard title="Directive" accent="border-warning/40">
-          <div className="py-0.5">
-            <DetailRow label="Status" value="Not found" mono={false} />
-          </div>
-        </DetailCard>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="bg-warning/70 size-2 rounded-full" />
-        <span className="text-foreground text-sm font-medium">
-          {directiveGroup.name}
-        </span>
-        <span className="text-foreground-alt/30 font-mono text-xs">
-          {directiveGroup.count}
-        </span>
-        <LiveIndicator updatedAt={updatedAt} label="Directive" />
-      </div>
-      <DetailCard title="Directive Type" accent="border-warning/40">
-        <div className="py-0.5">
-          <DetailRow label="Name" value={directiveGroup.name} />
-          <DetailRow
-            label="Active Count"
-            value={String(directiveGroup.count)}
-          />
-        </div>
-      </DetailCard>
-      <DetailCard title="Instances" accent="border-warning/40">
-        <div className="max-h-80 overflow-auto py-1">
-          {directiveGroup.idents.map((ident, index) => (
-            <div
-              key={makeOccurrenceKey(ident, index)}
-              className="border-foreground/4 flex items-center gap-2 border-b px-3 py-1 last:border-b-0"
-            >
-              <span className="bg-warning/20 size-1.5 shrink-0 rounded-full" />
-              <span className="text-foreground-alt/60 truncate font-mono text-xs">
-                {ident}
-              </span>
-            </div>
-          ))}
-        </div>
-      </DetailCard>
-    </div>
-  )
-}
-
-// ResourcesDetail shows the resource tree with a details side panel.
-function ResourcesDetail() {
-  const selectedId = useSelectedResourceId()
-  const resources = useTrackedResources()
-  const selectedResource = selectedId ? resources.get(selectedId) : undefined
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuLayers className="text-brand/40 size-4" />
-        <span className="text-foreground text-sm font-medium">Resources</span>
-      </div>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-w-0 flex-1 overflow-auto">
-          <ResourceTreeTab />
-        </div>
-        {selectedResource && (
-          <ResourceDetailsPanel resource={selectedResource} />
-        )}
-      </div>
-    </div>
-  )
-}
-
-// AtomsDetail shows the state atom tree.
-function AtomsDetail() {
-  const selectedAtomId = useSelectedStateAtomId()
-  const entryMap = useStateInspectorEntryMap()
-  const selectedEntry = selectedAtomId
-    ? entryMap.get(selectedAtomId)
-    : undefined
-
-  return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <LuBox className="text-brand/40 size-4" />
-        <span className="text-foreground text-sm font-medium">State Atoms</span>
-      </div>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-w-0 flex-1 overflow-auto">
-          <StateTreeTab />
-        </div>
-        {selectedEntry && <StateDetailsPanel entry={selectedEntry} />}
-      </div>
-    </div>
+          </button>
+        )
+      })}
+      <span className="text-foreground-alt/45 ml-auto hidden shrink-0 px-2 text-xs @xl:block">
+        <kbd className="font-sans">Esc</kbd> to go back
+      </span>
+    </nav>
   )
 }

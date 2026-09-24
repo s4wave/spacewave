@@ -23,7 +23,7 @@ const dashboardButtonVariants = cva(
 
 export interface DashboardButtonProps
   extends
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    React.ComponentPropsWithRef<'button'>,
     VariantProps<typeof dashboardButtonVariants> {
   icon: React.ReactNode
   children?: React.ReactNode

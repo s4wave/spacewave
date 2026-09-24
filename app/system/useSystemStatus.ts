@@ -12,6 +12,9 @@ import {
   WatchNetworkStatsResponse,
   WatchPluginsRequest,
   WatchPluginsResponse,
+  WatchRecoveryStatusRequest,
+  WatchRecoveryStatusResponse,
+  type RecoveryStatus,
 } from '@s4wave/sdk/status/status.pb.js'
 import type { SpaceSoListEntry } from '@s4wave/core/space/space.pb.js'
 import {
@@ -119,4 +122,27 @@ export function useWatchSpacesList(): ReadonlyArray<SpaceSoListEntry> | null {
   )
 
   return resp?.spacesList ?? null
+}
+
+// useWatchRecoveryStatus streams the composed runtime recovery status: launcher
+// release and update state, plugin manifest recovery, native packages, and the
+// boot and runtime asset reports. Returns null while loading.
+export function useWatchRecoveryStatus(): RecoveryStatus | null {
+  const session = SessionContext.useContext()
+  const sessionValue = useResourceValue(session)
+
+  const watchFn = useCallback(
+    (_: WatchRecoveryStatusRequest, signal: AbortSignal) =>
+      sessionValue?.systemStatus.watchRecoveryStatus(signal) ?? null,
+    [sessionValue],
+  )
+
+  const resp = useWatchStateRpc(
+    watchFn,
+    {},
+    WatchRecoveryStatusRequest.equals,
+    WatchRecoveryStatusResponse.equals,
+  )
+
+  return resp ? (resp.status ?? {}) : null
 }

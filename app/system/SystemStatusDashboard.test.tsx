@@ -1,521 +1,298 @@
-import React from 'react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+
+import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 
 import { SystemStatusDashboard } from './SystemStatusDashboard.js'
+import { buildSystemModel, type SystemModelInputs } from './useSystemModel.js'
 
-const mockNavigate = vi.fn()
-const mockSetOpenMenu = vi.hoisted(() => vi.fn())
-const mockMobileState = vi.hoisted(() => ({ value: false }))
-const mockStatus = vi.hoisted(() => ({
-  controllers: [
-    { id: 'controller/a', version: '1', description: 'Alpha' },
-    { id: 'controller/b', version: '1', description: 'Beta' },
-  ],
-  directives: [{ name: 'directive/a', ident: 'ident-a' }],
-  plugins: [{ id: 'spacewave-app', instanceKey: '', state: 'requested' }],
-  network: {
-    transportRunning: true,
-    localPeerId: 'local-peer-1',
-    peerCount: 1,
-    linkCount: 1,
-    peers: [
-      {
-        peerId: 'remote-peer-1',
-        linkCount: 1,
-        links: [
-          {
-            linkId: 4101,
-            transportId: 7001,
-            remoteTransportId: 7002,
-            localPeerId: 'local-peer-1',
-            remotePeerId: 'remote-peer-1',
-          },
-        ],
-      },
-    ],
-  },
-  spaces: [
-    {
-      entry: {
-        ref: {
-          providerResourceRef: {
-            id: 'space-1',
-          },
-        },
-        source: 'created',
-      },
-      spaceMeta: {
-        name: 'Primary Space',
-      },
-    },
-    {
-      entry: {
-        ref: {
-          providerResourceRef: {
-            id: 'space-2',
-          },
-        },
-        source: 'shared',
-      },
-      spaceMeta: {
-        name: 'Shared Space',
-      },
-    },
-  ],
+const mocks = vi.hoisted(() => ({
+  inputs: null as SystemModelInputs | null,
+  navigate: vi.fn(),
+  navigateSession: vi.fn(),
+  setOpenMenu: vi.fn(),
 }))
 
-vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
-  useSessionList: () => ({
-    value: {
-      sessions: [{ sessionIndex: 1 }],
-    },
-  }),
-}))
+vi.mock('./useSystemModel.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useSystemModel.js')>()
+  return {
+    ...actual,
+    useSystemModel: () => actual.buildSystemModel(mocks.inputs!),
+  }
+})
 
 vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
   useSessionMetadata: (sessionIndex: number) => ({
-    displayName:
-      sessionIndex === 1 ? 'Primary Session' : `Session ${sessionIndex}`,
+    displayName: `Account ${sessionIndex}`,
     providerDisplayName: 'Local',
-    providerId: 'local',
     providerAccountId: `acct-${sessionIndex}`,
-    createdAt: 1735776000000n,
-    lockMode: 0,
   }),
 }))
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   useSessionIndex: () => 1,
+  useSessionNavigate: () => mocks.navigateSession,
 }))
 
 vi.mock('@s4wave/web/frame/bottom-bar-context.js', () => ({
-  useBottomBarSetOpenMenu: () => mockSetOpenMenu,
-}))
-
-vi.mock('@s4wave/web/hooks/useMobile.js', () => ({
-  useIsMobile: () => mockMobileState.value,
+  useBottomBarSetOpenMenu: () => mocks.setOpenMenu,
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
-  useNavigate: () => mockNavigate,
+  useNavigate: () => mocks.navigate,
+}))
+
+vi.mock(
+  '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js')
+    >()),
+    useSelectedResourceId: () => null,
+    useTrackedResources: () => new Map([[1, {}]]),
+  }),
+)
+
+vi.mock('@s4wave/web/devtools/useStateInspectorEntries.js', () => ({
+  useStateInspectorEntryMap: () => new Map(),
+}))
+
+vi.mock('@s4wave/web/devtools/StateDevToolsContext.js', () => ({
+  useSelectedStateAtomId: () => null,
 }))
 
 vi.mock('@s4wave/web/devtools/ResourceTreeTab.js', () => ({
   ResourceTreeTab: () => <div>Resource Tree</div>,
 }))
 
-vi.mock('@s4wave/web/devtools/ResourceDetailsPanel.js', () => ({
-  ResourceDetailsPanel: () => <div>Resource Details</div>,
-}))
-
 vi.mock('@s4wave/web/devtools/StateTreeTab.js', () => ({
   StateTreeTab: () => <div>State Tree</div>,
 }))
 
-vi.mock('@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js', () => ({
-  useResourceDevToolsContext: () => null,
-  useSelectedResourceId: () => null,
-  useTrackedResources: () => new Map(),
-}))
-
-vi.mock('./useSystemStatus.js', () => ({
-  useWatchControllers: () => ({
-    controllerCount: mockStatus.controllers.length,
-    controllers: mockStatus.controllers,
-  }),
-  useWatchDirectives: () => ({
-    directiveCount: mockStatus.directives.length,
-    directives: mockStatus.directives,
-  }),
-  useWatchPlugins: () => ({
-    pluginCount: mockStatus.plugins.length,
-    plugins: mockStatus.plugins,
-  }),
-  useWatchNetworkStats: () => mockStatus.network,
-  useWatchSpacesList: () => mockStatus.spaces,
-}))
-
-function renderDashboard(
-  props: React.ComponentProps<typeof SystemStatusDashboard> = {},
-  rootAtom = atom({}),
-) {
-  return render(
-    <StateNamespaceProvider rootAtom={rootAtom}>
-      <SystemStatusDashboard {...props} />
-    </StateNamespaceProvider>,
-  )
+// syncView returns an idle sync view with every label filled.
+function syncView(
+  overrides: Partial<SessionSyncStatusView> = {},
+): SessionSyncStatusView {
+  return {
+    snapshot: null,
+    visualState: 'synced',
+    loading: false,
+    active: false,
+    error: false,
+    local: false,
+    summaryLabel: 'Synced',
+    detailLabel: 'Everything is up to date.',
+    ariaLabel: 'Synced',
+    transportLabel: 'Cloud relay',
+    p2pLabel: 'Off',
+    uploadRateLabel: '0 B/s',
+    downloadRateLabel: '0 B/s',
+    pendingUploadLabel: '0',
+    activeUploadLabel: '0',
+    pendingDownloadLabel: '0',
+    packRangeLabel: '',
+    packIndexTailLabel: '',
+    packLookupLabel: '',
+    packIndexCacheLabel: '',
+    lastActivityLabel: '',
+    lastError: '',
+    localCopies: [],
+    peerUploadLabel: '',
+    peerDownloadLabel: '',
+    peers: [],
+    ...overrides,
+  } as SessionSyncStatusView
 }
 
-describe('SystemStatusDashboard', () => {
-  beforeEach(() => {
-    cleanup()
-    vi.useRealTimers()
-    mockMobileState.value = false
-    mockNavigate.mockReset()
-    mockSetOpenMenu.mockReset()
-    mockStatus.controllers = [
-      { id: 'controller/a', version: '1', description: 'Alpha' },
-      { id: 'controller/b', version: '1', description: 'Beta' },
-    ]
-    mockStatus.directives = [{ name: 'directive/a', ident: 'ident-a' }]
-    mockStatus.plugins = [
-      { id: 'spacewave-app', instanceKey: '', state: 'requested' },
-    ]
-    mockStatus.network = {
+// healthyInputs returns a fully loaded system with nothing wrong.
+function healthyInputs(): SystemModelInputs {
+  const sync = syncView()
+  return {
+    build: {
+      mainVersion: '0.1.0',
+      version: '0.1.0',
+      goVersion: 'go1.26',
+      goos: 'js',
+      goarch: 'wasm',
+      runtimeLabel: 'Browser',
+      cornerLabel: '',
+      browserGenerationId: 'gen-1',
+    },
+    sync,
+    storage: {
+      providerLoading: false,
+      providerSupported: true,
+      providerBytes: 4096n,
+      blockCount: 12n,
+      browserReadFailed: false,
+      originUsageBytes: 100,
+      originQuotaBytes: 1000,
+      protectionState: 'protected',
+      sync,
+      safariCleanupRisk: false,
+      requestProtection: async () => {},
+    },
+    network: {
       transportRunning: true,
       localPeerId: 'local-peer-1',
       peerCount: 1,
       linkCount: 1,
-      peers: [
-        {
-          peerId: 'remote-peer-1',
-          linkCount: 1,
-          links: [
-            {
-              linkId: 4101,
-              transportId: 7001,
-              remoteTransportId: 7002,
-              localPeerId: 'local-peer-1',
-              remotePeerId: 'remote-peer-1',
-            },
-          ],
-        },
+      peers: [],
+    },
+    controllers: {
+      controllerCount: 1,
+      controllers: [{ id: 'controller/a', version: '1' }],
+    },
+    directives: {
+      directiveCount: 3,
+      directives: [
+        { name: 'LookupRpcService', ident: 'svc-a' },
+        { name: 'LookupRpcService', ident: 'svc-b' },
+        { name: 'EstablishLink', ident: 'peer-1' },
       ],
+    },
+    plugins: {
+      pluginCount: 1,
+      plugins: [{ id: 'spacewave-app', instanceKey: '', state: 'running' }],
+    },
+    recovery: { launcher: { updatePhase: 'idle' } },
+    sessions: [{ sessionIndex: 1 }],
+    spaces: [
+      {
+        entry: { ref: { providerResourceRef: { id: 'space-1' } } },
+        spaceMeta: { name: 'Primary Space' },
+      },
+    ],
+  }
+}
+
+function renderDashboard(onClose = vi.fn()) {
+  render(
+    <StateNamespaceProvider rootAtom={atom({})}>
+      <SystemStatusDashboard onClose={onClose} />
+    </StateNamespaceProvider>,
+  )
+  return onClose
+}
+
+describe('buildSystemModel', () => {
+  it('reports a healthy system as nominal', () => {
+    const model = buildSystemModel(healthyInputs())
+
+    expect(model.verdict).toEqual({
+      tone: 'nominal',
+      headline: 'All systems nominal',
+      items: [],
+    })
+    expect(model.directiveCount).toBe(3)
+    expect(model.directives?.[0]).toEqual({
+      name: 'LookupRpcService',
+      idents: ['svc-a', 'svc-b'],
+    })
+  })
+
+  it('waits for every watch before calling the system nominal', () => {
+    const model = buildSystemModel({ ...healthyInputs(), network: null })
+
+    expect(model.tones.network).toBe('pending')
+    expect(model.verdict.headline).toBe('Reading system state')
+  })
+
+  it('lists faults before warnings and marks their subsystems', () => {
+    const inputs = healthyInputs()
+    inputs.network = { ...inputs.network, transportRunning: false }
+    inputs.recovery = {
+      launcher: { updatePhase: 'error', updateError: 'signature mismatch' },
     }
-    mockStatus.spaces = [
-      {
-        entry: {
-          ref: {
-            providerResourceRef: {
-              id: 'space-1',
-            },
-          },
-          source: 'created',
-        },
-        spaceMeta: {
-          name: 'Primary Space',
-        },
-      },
-      {
-        entry: {
-          ref: {
-            providerResourceRef: {
-              id: 'space-2',
-            },
-          },
-          source: 'shared',
-        },
-        spaceMeta: {
-          name: 'Shared Space',
-        },
-      },
-    ]
+    const model = buildSystemModel(inputs)
+
+    expect(model.verdict.tone).toBe('error')
+    expect(model.verdict.headline).toBe('2 things need attention')
+    expect(model.verdict.items.map((item) => item.key)).toEqual([
+      'release-update',
+      'network-stopped',
+    ])
+    expect(model.tones.release).toBe('error')
+    expect(model.tones.network).toBe('warning')
+    expect(model.tones.sync).toBe('nominal')
+  })
+})
+
+describe('SystemStatusDashboard', () => {
+  beforeEach(() => {
+    cleanup()
+    mocks.inputs = healthyInputs()
+    mocks.navigate.mockReset()
+    mocks.navigateSession.mockReset()
+    mocks.setOpenMenu.mockReset()
   })
 
-  it('shows the spaces count in the stats ribbon', () => {
-    renderDashboard()
-    expect(screen.getByText('2 spaces')).toBeDefined()
-  })
-
-  it('opens the network link panel from live network stats', () => {
+  it('shows the verdict and a live tile for every subsystem', () => {
     renderDashboard()
 
-    expect(screen.getByText('1 peer')).toBeDefined()
-
-    fireEvent.click(screen.getByRole('treeitem', { name: /Network links/ }))
-
-    expect(screen.getAllByText('Network').length).toBeGreaterThan(0)
-    expect(screen.getByText('running')).toBeDefined()
-    expect(screen.getAllByText('local-peer-1').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('remote-peer-1').length).toBeGreaterThan(0)
-    expect(screen.getByText('link 4101')).toBeDefined()
-    expect(screen.getByText('7001')).toBeDefined()
-    expect(screen.getByText('7002')).toBeDefined()
+    expect(screen.getByRole('status').textContent).toBe('All systems nominal')
+    for (const title of [
+      'Sync',
+      'Storage',
+      'Network',
+      'Runtime',
+      'Release',
+      'Spaces & Accounts',
+    ]) {
+      expect(
+        screen.getByRole('button', {
+          name: new RegExp(`^${title}\\b.*Open inspector`),
+        }),
+      ).toBeTruthy()
+    }
+    expect(screen.getByText('1 of 1 plugin running')).toBeTruthy()
   })
 
-  it('keeps the placeholder logs drawer hidden until log streaming lands', () => {
-    renderDashboard()
-    expect(screen.queryByRole('button', { name: 'Expand logs' })).toBeNull()
-  })
-
-  it('renders the spaces detail list when selected', () => {
-    renderDashboard()
-    fireEvent.click(screen.getByText('All spaces'))
-    expect(screen.getAllByText('Spaces').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Primary Space').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Shared Space').length).toBeGreaterThan(0)
-    expect(screen.getByText('space-1')).toBeDefined()
-  })
-
-  it('renders plugin runtime state and build details when selected', () => {
-    renderDashboard()
-
-    fireEvent.click(screen.getByText('All plugins'))
-
-    expect(screen.getAllByText('Plugins').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('spacewave-app').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('requested').length).toBeGreaterThan(0)
-    expect(screen.getByText('Build')).toBeDefined()
-  })
-
-  it('selects a space detail from the all spaces list', () => {
-    renderDashboard()
-    fireEvent.click(screen.getByText('All spaces'))
-    fireEvent.click(screen.getByText('space-1').closest('button')!)
-
-    expect(screen.getByText('Open Space')).toBeDefined()
-    expect(screen.getByText('Source')).toBeDefined()
-  })
-
-  it('opens a selected space from the detail view and closes the overlay', () => {
-    const onClose = vi.fn()
-    renderDashboard({ onClose })
-    fireEvent.click(screen.getByText('Primary Space'))
-    expect(screen.getByText('Open Space')).toBeDefined()
-    fireEvent.click(screen.getByText('Open Space'))
-    expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/1/so/space-1' })
-    expect(onClose).toHaveBeenCalledTimes(1)
-  })
-
-  it('selects a controller detail from the controllers list', () => {
-    renderDashboard()
-
-    fireEvent.click(screen.getByText('Beta').closest('button')!)
-
-    expect(screen.getByText('Controller')).toBeDefined()
-    expect(screen.getByText('List Index')).toBeDefined()
-  })
-
-  it('lists directive groups in the sidebar and opens the selected group detail', () => {
-    renderDashboard()
-
-    expect(screen.getByText('directive/a')).toBeDefined()
-
-    fireEvent.click(screen.getByText('directive/a'))
-
-    expect(screen.getByText('Directive Type')).toBeDefined()
-    expect(screen.getByText('ident-a')).toBeDefined()
-  })
-
-  it('keeps expanded directive rows above the resources section header', () => {
-    renderDashboard()
-
-    const directiveRow = screen.getByText('directive/a').closest('button')
-    const resourcesSection = screen.getByRole('treeitem', { name: /Resources/ })
-
-    expect(directiveRow).toBeDefined()
-    expect(resourcesSection).toBeDefined()
-    expect(
-      directiveRow!.compareDocumentPosition(resourcesSection) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0)
-  })
-
-  it('expands the truncated sidebar lists', () => {
-    mockStatus.spaces = Array.from({ length: 7 }, (_, i) => ({
-      entry: {
-        ref: {
-          providerResourceRef: {
-            id: `space-${i + 1}`,
-          },
-        },
-        source: 'created',
-      },
-      spaceMeta: {
-        name: `Space ${i + 1}`,
-      },
-    }))
-    mockStatus.controllers = Array.from({ length: 7 }, (_, i) => ({
-      id: `controller/${i + 1}`,
-      version: '1',
-      description: `Controller ${i + 1}`,
-    }))
-
-    renderDashboard()
-
-    const moreButtons = screen.getAllByText('+2 more')
-    fireEvent.click(moreButtons[0])
-    fireEvent.click(moreButtons[1])
-
-    expect(screen.getByText('Space 7')).toBeDefined()
-    expect(screen.getAllByText('controller/7').length).toBeGreaterThan(0)
-  })
-
-  it('opens session details for the selected account', async () => {
-    renderDashboard()
-
-    fireEvent.click(screen.getByText('Primary Session'))
-    fireEvent.click(screen.getByText('Open Session Details'))
-    await Promise.resolve()
-
-    expect(mockSetOpenMenu).toHaveBeenCalledWith('account')
-  })
-
-  it('shows the mobile sections picker and preserves the current selection', () => {
-    const rootAtom = atom({})
-    const { rerender } = renderDashboard({}, rootAtom)
-
-    fireEvent.click(screen.getByText('Primary Space'))
-    expect(screen.getByText('Open Space')).toBeDefined()
-
-    mockMobileState.value = true
-    rerender(
-      <StateNamespaceProvider rootAtom={rootAtom}>
-        <SystemStatusDashboard />
-      </StateNamespaceProvider>,
-    )
-
-    expect(screen.getByText('Sections')).toBeDefined()
-    expect(screen.getByText('Open Space')).toBeDefined()
-
-    fireEvent.click(screen.getByText('Sections'))
-    expect(screen.getByRole('tree')).toBeDefined()
-  })
-
-  it('persists durable dashboard state across remounts', () => {
-    const rootAtom = atom({})
-    const { unmount } = renderDashboard({}, rootAtom)
-
-    fireEvent.click(screen.getByText('All spaces'))
-    fireEvent.click(screen.getByText('space-1').closest('button')!)
-
-    expect(screen.getByText('Open Space')).toBeDefined()
-
-    unmount()
-
-    renderDashboard({}, rootAtom)
-
-    expect(screen.getByText('Open Space')).toBeDefined()
-  })
-
-  it('supports keyboard tree navigation and section expansion', () => {
-    renderDashboard()
-
-    const accountsSection = screen.getByRole('treeitem', { name: /Accounts/ })
-    accountsSection.focus()
-    fireEvent.keyDown(accountsSection, { key: 'ArrowDown' })
-    expect(document.activeElement).toBe(
-      screen.getByRole('treeitem', { name: /Primary Session/ }),
-    )
-
-    const resourcesSection = screen.getByRole('treeitem', { name: /Resources/ })
-    resourcesSection.focus()
-    fireEvent.keyDown(resourcesSection, { key: 'ArrowRight' })
-    expect(
-      screen.getByRole('treeitem', { name: /Resource tree/ }),
-    ).toBeDefined()
-
-    fireEvent.keyDown(resourcesSection, { key: 'ArrowLeft' })
-    expect(screen.queryByRole('treeitem', { name: /Resource tree/ })).toBeNull()
-  })
-
-  it('does not warn when multiple controllers share the same id', () => {
-    mockStatus.controllers = [
-      { id: 'dup/controller', version: '1', description: 'Alpha' },
-      { id: 'dup/controller', version: '2', description: 'Beta' },
-      { id: 'dup/controller', version: '3', description: 'Gamma' },
-    ]
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    renderDashboard()
-
-    expect(
-      errorSpy.mock.calls.some((call) =>
-        call.some((arg) => typeof arg === 'string' && arg.includes('same key')),
-      ),
-    ).toBe(false)
-
-    errorSpy.mockRestore()
-  })
-
-  it('shows transient stat deltas and only advances live stamps on snapshot changes', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-04-13T13:05:00'))
-    const rootAtom = atom({})
-    const { rerender } = renderDashboard({}, rootAtom)
-    const ribbonLive = screen.getByLabelText('Ribbon live')
-    const initialStamp = ribbonLive.getAttribute('data-updated-at')
-
-    expect(initialStamp).toBeTruthy()
-
-    vi.setSystemTime(new Date('2026-04-13T13:05:10'))
-    rerender(
-      <StateNamespaceProvider rootAtom={rootAtom}>
-        <SystemStatusDashboard />
-      </StateNamespaceProvider>,
-    )
-
-    expect(screen.queryByText('+1')).toBeNull()
-    expect(
-      screen.getByLabelText('Ribbon live').getAttribute('data-updated-at'),
-    ).toBe(initialStamp)
-
-    mockStatus.controllers = [
-      ...mockStatus.controllers,
-      { id: 'controller/c', version: '1', description: 'Gamma' },
-    ]
-    rerender(
-      <StateNamespaceProvider rootAtom={rootAtom}>
-        <SystemStatusDashboard />
-      </StateNamespaceProvider>,
-    )
-
-    expect(screen.getByText('+1')).toBeDefined()
-    expect(
-      screen.getByLabelText('Ribbon live').getAttribute('data-updated-at'),
-    ).not.toBe(initialStamp)
-
-    act(() => {
-      vi.advanceTimersByTime(1600)
+  it('opens an inspector in place and returns to its tile on Escape', () => {
+    const onClose = renderDashboard()
+    const tile = screen.getByRole('button', {
+      name: /^Runtime\b.*Open inspector/,
     })
 
-    expect(screen.queryByText('+1')).toBeNull()
+    fireEvent.click(tile)
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Runtime' }),
+    ).toBeTruthy()
+    expect(screen.getByText('spacewave-app')).toBeTruthy()
+
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(screen.queryByRole('heading', { level: 2, name: 'Runtime' })).toBe(
+      null,
+    )
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /^Runtime\b.*Open inspector/ }),
+    )
+    expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('fresh-highlights newly appeared controllers and directive groups', () => {
-    const rootAtom = atom({})
-    const { rerender } = renderDashboard({}, rootAtom)
+  it('links each attention item to the inspector that explains it', () => {
+    mocks.inputs!.network = {
+      ...mocks.inputs!.network,
+      transportRunning: false,
+    }
+    renderDashboard()
 
-    mockStatus.controllers = [
-      ...mockStatus.controllers,
-      { id: 'controller/c', version: '1', description: 'Gamma' },
-    ]
-    rerender(
-      <StateNamespaceProvider rootAtom={rootAtom}>
-        <SystemStatusDashboard />
-      </StateNamespaceProvider>,
+    expect(screen.getByRole('status').textContent).toBe(
+      '1 thing needs attention',
     )
-
-    const controllerRows = screen
-      .getAllByText('controller/c')
-      .flatMap((node) => {
-        const button = node.closest('button')
-        return button instanceof HTMLButtonElement ? [button] : []
-      })
-    expect(
-      controllerRows.some((row) => row.className.includes('bg-success/5')),
-    ).toBe(true)
-
-    fireEvent.click(screen.getByText('All directives'))
-    mockStatus.directives = [
-      ...mockStatus.directives,
-      { name: 'directive/b', ident: 'ident-b' },
-    ]
-    rerender(
-      <StateNamespaceProvider rootAtom={rootAtom}>
-        <SystemStatusDashboard />
-      </StateNamespaceProvider>,
+    fireEvent.click(
+      screen.getByRole('button', { name: /Peer transport is not running/ }),
     )
-
-    const directiveRows = screen
-      .getAllByText('directive/b')
-      .flatMap((node) =>
-        node.parentElement instanceof HTMLElement ? [node.parentElement] : [],
-      )
     expect(
-      directiveRows.some((row) => row.className.includes('bg-warning/6')),
-    ).toBe(true)
+      screen.getByRole('heading', { level: 2, name: 'Network' }),
+    ).toBeTruthy()
+  })
+
+  it('opens the resource tree from under the hood', () => {
+    renderDashboard()
+
+    fireEvent.click(screen.getByRole('button', { name: /Resources/ }))
+    expect(screen.getByText('Resource Tree')).toBeTruthy()
   })
 })
