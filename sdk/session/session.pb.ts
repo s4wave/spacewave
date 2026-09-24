@@ -2230,6 +2230,14 @@ export interface CompletePairingRequest {
    * @generated from field: bool offer_current_account = 2;
    */
   offerCurrentAccount?: boolean
+  /**
+   * RemotePeerId is the base58 peer ID the page already resolved from Code.
+   * When set, CompletePairing links to that peer without resolving Code again,
+   * because the relay consumes a code on its first resolution.
+   *
+   * @generated from field: string remote_peer_id = 3;
+   */
+  remotePeerId?: string
 }
 
 export const CompletePairingRequest: MessageType<CompletePairingRequest> =
@@ -2243,6 +2251,7 @@ export const CompletePairingRequest: MessageType<CompletePairingRequest> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
+      { no: 3, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

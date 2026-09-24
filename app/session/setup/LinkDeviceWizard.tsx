@@ -884,10 +884,10 @@ function EnterCodeStep({
     setLoading(true)
     setError(null)
     try {
-      const remotePeerId = await session.completePairing(
-        code.replace(/\s/g, ''),
-        true,
-      )
+      const remotePeerId = await session.completePairing({
+        code: code.replace(/\s/g, ''),
+        offerCurrentAccount: true,
+      })
       if (remotePeerId) {
         onRemotePeerResolved(remotePeerId)
       }

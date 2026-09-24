@@ -16,6 +16,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { preparePairingSession } from './prepare-session.js'
+import { resolvedPairingPeer } from './pairing-peer.js'
 import { PairingVerificationStep } from '@s4wave/app/session/setup/PairingVerificationStep.js'
 import { LinkDeviceDoneStep } from '@s4wave/app/session/setup/LinkDeviceDoneStep.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
@@ -142,8 +143,11 @@ export function PairCodePage(props: PairCodePageProps) {
         setCurrentSession(session)
       }
       const peerId = await session.completePairing(
-        code,
-        providedSession != null,
+        {
+          code,
+          offerCurrentAccount: providedSession != null,
+          remotePeerId: resolvedPairingPeer(code),
+        },
         controller.signal,
       )
       if (peerId) {

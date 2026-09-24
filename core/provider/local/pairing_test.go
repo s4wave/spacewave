@@ -3,6 +3,7 @@
 package provider_local_test
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -323,7 +324,7 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := pairingEngineForTest(t, sess).CompleteCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
+	got, err := completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +399,7 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 		t.Fatalf("settle session transport startup: %v", err)
 	}
 
-	got, err := pairingEngineForTest(t, sess).CompleteCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: "spacewave-staging"}, "TESTCODE", false)
+	got, err := completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv.URL, SigningEnvPrefix: "spacewave-staging"}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +472,7 @@ func TestWatchPairingStatus(t *testing.T) {
 		}
 	}
 
-	_, err = pairingEngineForTest(t, sess).CompleteCode(ctx, pairing.Relay{URL: srv2.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
+	_, err = completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv2.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -504,6 +505,25 @@ func TestWatchPairingStatus(t *testing.T) {
 	acc.StopSessionTransport()
 }
 
+// completeCodeForTest resolves a code at the relay and links the Session's
+// pairing engine to the registering peer, as CompletePairing does.
+func completeCodeForTest(
+	ctx context.Context,
+	t *testing.T,
+	sess session.Session,
+	relay pairing.Relay,
+	code string,
+	offerCurrent bool,
+) (peer.ID, error) {
+	t.Helper()
+	remotePeer, err := pairing.ResolveCode(ctx, relay, code)
+	if err != nil {
+		return "", err
+	}
+	return remotePeer, pairingEngineForTest(t, sess).CompletePeer(ctx, relay, remotePeer, offerCurrent)
+}
+
+// pairingEngineForTest returns the pairing engine of a mounted Session.
 func pairingEngineForTest(t *testing.T, sess session.Session) *pairing.Engine {
 	t.Helper()
 	engine, err := sess.(pairing.Session).GetPairingEngine()
