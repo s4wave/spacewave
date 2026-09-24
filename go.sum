@@ -30,6 +30,8 @@ github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337 h1:e9kZ
 github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337/go.mod h1:Nl6r+XZVA/SX2FmhXYBU2Y8+hf3RZIJQh2ZnCBwNa24=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20260914072924-dabddff0abae h1:q/+aF/2kozksgOB5kr/wA2xWs2OxIPk0BuLB4b6KC5w=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20260914072924-dabddff0abae/go.mod h1:oMdVjwUwfKUo9XgnO7GbDk6cVMvrlnVaRDp/epb7ydU=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20260924000448-6d90c9b4e2fe h1:esmjA99T1ypN+XoN1If2dj4Dmvu54g6qZiyT9jJK4I4=
+github.com/aperturerobotics/controllerbus v0.53.6-0.20260924000448-6d90c9b4e2fe/go.mod h1:oMdVjwUwfKUo9XgnO7GbDk6cVMvrlnVaRDp/epb7ydU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
@@ -84,8 +86,12 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.52.1 h1:oz8EpHO3SIPLLL6lx6di2IBlQNyhsumcEB3rI/KJUKg=
 github.com/aperturerobotics/starpc v0.52.1/go.mod h1:04caiWwOtqsuwiIc5aLoNtp6ega99V7AhFinALdfFXc=
+github.com/aperturerobotics/starpc v0.52.2-0.20260924000451-ee3f270f2362 h1:gCtIM7rhhiBkgDwFZeKie9OHO5386XAmAMOhCIUY1EU=
+github.com/aperturerobotics/starpc v0.52.2-0.20260924000451-ee3f270f2362/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
 github.com/aperturerobotics/util v1.34.10-0.20260908052533-9b98f88c3976 h1:oqZexz7ocadkSwiYr0//PYzcoFxqagk5NyO8p5oJOzY=
 github.com/aperturerobotics/util v1.34.10-0.20260908052533-9b98f88c3976/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
+github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 h1:JEAoOhgohIkgxFMBqL9zxthEFf7OSJcShqhQKUUKTtk=
+github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d h1:9UIhsGTL9o/dBAi60BRp8mWOmG2RkX5ik08aZHDU3zQ=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d/go.mod h1:BA7YZUS4BoNY+k1nl7A3TLJkLY4KfW4I0c+DbXblfis=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=

@@ -27,7 +27,7 @@ require (
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337 // master
-	github.com/aperturerobotics/controllerbus v0.53.6-0.20260914072924-dabddff0abae // master
+	github.com/aperturerobotics/controllerbus v0.53.6-0.20260924000448-6d90c9b4e2fe // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
@@ -42,8 +42,8 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.0 // master
-	github.com/aperturerobotics/starpc v0.52.1
-	github.com/aperturerobotics/util v1.34.10-0.20260908052533-9b98f88c3976 // master
+	github.com/aperturerobotics/starpc v0.52.2-0.20260924000451-ee3f270f2362 // master
+	github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced

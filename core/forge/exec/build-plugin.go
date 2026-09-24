@@ -10,6 +10,13 @@ import (
 	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
+	"github.com/aperturerobotics/starpc/rpcstream"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/csync"
+	"github.com/aperturerobotics/util/filter"
 	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	spacewave "github.com/s4wave/spacewave"
@@ -134,17 +141,22 @@ func (h *buildPluginHandler) Execute(ctx context.Context) error {
 		return err
 	}
 	defer buildBus.Release()
-	vendor, err := fs.Sub(spacewave.SDKVendorSources, "vendor/github.com/aperturerobotics")
-	if err != nil {
-		return err
-	}
 	distRoot := filepath.Join(stateRoot, "src")
+	const vendorRoot = "vendor/github.com/aperturerobotics/"
 	if err := bldr.PrepareTypeScriptProject(ctx, h.le, sourceRoot, distRoot, map[string]fs.FS{
-		".":                                  spacewave.DistSources,
-		"bldr":                               bldr.DistSources,
-		"web":                                app_web.DistSources,
-		"vendor/github.com/aperturerobotics": vendor,
-		"vendor/github.com/aperturerobotics/util/pipesock": pipesock.DistSources,
+		".":    spacewave.DistSources,
+		"bldr": bldr.DistSources,
+		"web":  app_web.DistSources,
+
+		// The SDK imports these dependency sources by their vendored paths.
+		vendorRoot + "controllerbus/controller":                 controller.DistSources,
+		vendorRoot + "controllerbus/controller/configset/proto": configset_proto.DistSources,
+		vendorRoot + "controllerbus/controller/exec":            controller_exec.DistSources,
+		vendorRoot + "starpc/rpcstream":                         rpcstream.DistSources,
+		vendorRoot + "util/backoff":                             backoff.DistSources,
+		vendorRoot + "util/csync":                               csync.DistSources,
+		vendorRoot + "util/filter":                              filter.DistSources,
+		vendorRoot + "util/pipesock":                            pipesock.DistSources,
 	}); err != nil {
 		return err
 	}
