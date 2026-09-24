@@ -82,9 +82,33 @@ func runLeanJournalTraceScenario(t *testing.T, seed uint64) []leanCase {
 				}
 				for index := range 2 {
 					key := testMutationKey(scope, "peer", strconv.Itoa(index))
-					record := testIntent(t, crypto, key, testLineage(key, nil), version, uint64(index+1), "operation")
+					lineage := testLineage(key, nil)
+					sequence := pipeline.journal.writer.sequence
+					record := testIntent(t, crypto, key, lineage, version, sequence, "operation")
 					if err := pipeline.appendRecord(record); err != nil {
 						t.Fatal(err)
+					}
+					if index == 0 && seed%3 != 0 {
+						decoded := testDecodedIntent(t, crypto, record, key, lineage, version, sequence)
+						envelope, err := NewJournalEnvelopeRecord(crypto, pipeline.journal.writer.sequence, decoded, []byte("envelope"), storage.identity)
+						if err != nil {
+							t.Fatal(err)
+						}
+						for _, stage := range []*SOJournalRecord{envelope, newJournalSentRecord(key, lineage, version)} {
+							if err := pipeline.appendRecord(stage); err != nil {
+								t.Fatal(err)
+							}
+						}
+						if seed%3 == 2 {
+							lookup := &SOJournalLookup{
+								Key: key.CloneVT(), State: SOReceiptState_SO_RECEIPT_STATE_ACCEPTED,
+								Receipt:  testReceipt(key, envelope.EnvelopeDigest, []byte("terminal"), 1, testDigest("root")),
+								Response: []byte("lookup"), ResponseDigest: testDigest("lookup"), ConfigChainDigest: version.ConfigChainDigest,
+							}
+							if err := pipeline.appendRecord(NewJournalReceiptLookupRecord(key, lineage, version, lookup)); err != nil {
+								t.Fatal(err)
+							}
+						}
 					}
 					if (mode == 1 && index == 0) || (mode == 2 && index == 1) {
 						if err := pipeline.journal.checkpoint(); err != nil {

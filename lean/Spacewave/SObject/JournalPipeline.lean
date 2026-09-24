@@ -284,11 +284,161 @@ theorem public_pipeline_ready {input : OpenInput} {activation : ActivationInput}
   rw [crypto] at recovered authorized
   simp only [recovered, finishPipelineOpen, authorized, ↓reduceIte, activateWriter, ready]
 
+/-- With recovery, authority and activation established, the public constructor returns the activated writer. -/
+theorem public_pipeline_completes {input : OpenInput} {activation : ActivationInput} {writer : WriterState}
+    {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
+    {lookup : Option Lookup → Option Version → Bool}
+    (storage : input.storageAvailable = true) (crypto : input.crypto = true)
+    (recovered : (openWriter input (fun r => authenticateRecord r (auth r))
+      (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer = some writer)
+    (authority : pipelineAuthority writer input.crypto true true auth receipt lookup = true)
+    (active : (activateWriter writer activation).ok = true) :
+    (openPipeline input activation true true auth receipt lookup).writer = some (activateWriter writer activation).result := by
+  simp only [openPipeline, storage, crypto, Bool.not_true, Bool.false_or, Bool.false_eq_true, ↓reduceIte]
+  rw [crypto] at recovered authority
+  simp [recovered, finishPipelineOpen, authority, active]
+
+/-- Retained checkpoint authority follows from its primitive authentication and receipt/lookup results. -/
+theorem checkpoint_state_authority {writer : WriterState} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool}
+    (records : writer.records = [])
+    (authenticated : authenticateSnapshots true writer.identity (writer.state.map some) auth = true)
+    (verified : writer.state.all (fun a => a.receipt.all (fun value => receipt value a.version) &&
+      (a.lookup.isNone || lookup a.lookup a.version)) = true) :
+    pipelineAuthority writer true true true auth receipt lookup = true := by
+  simp only [pipelineAuthority, records, List.all_nil, Bool.true_and, Bool.and_true, Bool.and_eq_true]
+  exact ⟨authenticated, verified⟩
+
+/-- A completed checkpoint publicly reopens under healthy primitive reads and retained authority. -/
+theorem public_checkpoint_empty {input : OpenInput} {activation : ActivationInput}
+    {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
+    {lookup : Option Lookup → Option Version → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat}
+    {checkpoint : CompactCheckpoint} {state : State}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some state)
+    (authenticated : authenticateSnapshots true input.identity (state.map some) auth = true)
+    (verified : state.all (fun a => a.receipt.all (fun value => receipt value a.version) &&
+      (a.lookup.isNone || lookup a.lookup a.version)) = true)
+    (empty : input.bytes.data = []) (tailSize : input.tailSizeOK = true) (sync : input.fault ≠ 3) :
+    (openPipeline input activation true true auth receipt lookup).writer.map (·.state) = some state := by
+  have opened := open_checkpoint_empty (authenticate := fun r => authenticateRecord r (auth r))
+    (authenticateState := fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)
+    readable crypto identity present encoded floor candidate hydrated (by simpa [crypto] using authenticated) empty tailSize sync
+  have authority := checkpoint_state_authority
+    (writer := ⟨syncBytes input.bytes true, marker.nextSequence % seqnoLimit, 0, [], state, false, none, input.identity, marker.generation⟩)
+    rfl authenticated verified
+  have ready := public_pipeline_ready readable.1 crypto opened rfl
+    (by simpa only [crypto] using authority) (activation := activation)
+  simp only [ready, Option.map_some]
+
+/-- A recovered checkpoint awaiting retirement becomes public after its captured reads and retained authority succeed. -/
+theorem public_pending_checkpoint {input : OpenInput} {activation : ActivationInput}
+    {writer : WriterState} {pending : PendingActivation} {observation : MarkerObservation} {crc : Nat}
+    {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
+    {lookup : Option Lookup → Option Version → Bool}
+    (storage : input.storageAvailable = true) (crypto : input.crypto = true)
+    (recovered : (openWriter input (fun r => authenticateRecord r (auth r))
+      (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer = some writer)
+    (records : writer.records = []) (waiting : writer.pending = some pending) (usable : writer.poisoned = false)
+    (authenticated : authenticateSnapshots true writer.identity (writer.state.map some) auth = true)
+    (verified : writer.state.all (fun a => a.receipt.all (fun value => receipt value a.version) &&
+      (a.lookup.isNone || lookup a.lookup a.version)) = true)
+    (generationSupported : activation.generationSupported = true) (floorSupported : activation.floorSupported = true)
+    (floorRead : activation.floorReadOK = true) (floor : activation.floor = pending.floor)
+    (identity : writer.identity = pending.marker.identity) (present : activation.marker = some observation)
+    (encoded : encodeMarker pending.marker crc = some observation)
+    (window : activation.floor = pending.marker.generation ∨ activation.floor + 1 = pending.marker.generation)
+    (bounded : pending.marker.generation < seqnoLimit) (retiredRead : activation.retiredReadOK = true)
+    (retiredLength : writer.bytes.data.length = pending.marker.retiredLength)
+    (retiredDigest : activation.retiredDigest = pending.marker.retiredDigest) (fault : activation.fault = 0) :
+    (openPipeline input activation true true auth receipt lookup).writer.map (·.state) = some writer.state := by
+  have authority := checkpoint_state_authority records authenticated verified
+  have active := activation_completes waiting usable generationSupported floorSupported floorRead floor identity present
+    encoded window bounded retiredRead retiredLength retiredDigest fault
+  have opened := public_pipeline_completes storage crypto recovered (by simpa only [crypto] using authority) active
+  simp only [opened, Option.map_some, activation_preserves_state]
+
+/-- A retained replacement checkpoint publicly recovers after every permitted retired-segment observation. -/
+theorem prepared_checkpoint_public_recovery {before : PublicationState} {preparation : CheckpointInput}
+    {prepared : PreparedCheckpoint} {history : List (Option Record)} {initial : Nat}
+    {primitives : List FramePrimitives} {records : List Record} {input : OpenInput}
+    {observation : MarkerObservation} {crc : Nat} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool}
+    (historyReplay : reduceJournal history = some before.state) (available : preparation.reducerAvailable = true)
+    (ready : prepareCheckpoint before preparation = some prepared)
+    (emitted : EmittedPrefix initial before.bytes.data primitives records before.sequence)
+    (readable : OpenReadable input) (crypto : input.crypto = true) (identity : input.identity = preparation.identity)
+    (present : input.marker = some observation) (encoded : encodeMarker prepared.marker crc = some observation)
+    (candidate : input.checkpoint = some prepared.checkpoint)
+    (window : input.floor = prepared.marker.generation ∨ input.floor + 1 = prepared.marker.generation)
+    (bounded : prepared.marker.generation < seqnoLimit)
+    (bytes : input.bytes.data = before.bytes.data ∨ (input.bytes.data = [] ∧ input.floor = prepared.marker.generation))
+    (decoded : input.bytes.data = before.bytes.data → input.frames = primitives)
+    (digest : input.bytes.data = before.bytes.data → input.retiredDigest = preparation.retiredDigest)
+    (retiredRead : input.retiredReadOK = true) (tailSize : input.tailSizeOK = true) (fault : input.fault = 0)
+    (authenticated : authenticateSnapshots true input.identity (before.state.map some) auth = true)
+    (verified : before.state.all (fun a => a.receipt.all (fun value => receipt value a.version) &&
+      (a.lookup.isNone || lookup a.lookup a.version)) = true) :
+    (openPipeline input ⟨true, true, input.floor, true, some observation, true, input.retiredDigest, 0⟩
+      true true auth receipt lookup).writer.map (·.state) = some before.state := by
+  have binding := prepared_checkpoint_binding ready
+  have actualIdentity : input.identity = prepared.marker.identity := identity.trans binding.2.2.1.symm
+  have hydrated : readCheckpoint prepared.checkpoint input.identity prepared.marker.generation
+      prepared.marker.nextSequence = some before.state := by
+    simpa only [actualIdentity] using prepared_checkpoint_reopens historyReplay available ready
+  by_cases completed : input.bytes.data = [] ∧ input.floor = prepared.marker.generation
+  · exact public_checkpoint_empty readable crypto actualIdentity present encoded completed.2 candidate hydrated
+      authenticated verified completed.1 tailSize (by simp [fault])
+  · have observed : input.bytes.data = before.bytes.data := bytes.resolve_right completed
+    have length : input.bytes.data.length = prepared.marker.retiredLength := by
+      simp only [observed, binding.2.2.2.2.1]
+    have retiredDigest : input.retiredDigest = prepared.marker.retiredDigest :=
+      (digest observed).trans binding.2.2.2.2.2.1.symm
+    have completePending
+        (opened : (openWriter input (fun r => authenticateRecord r (auth r))
+          (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer =
+          some ⟨input.bytes, prepared.marker.nextSequence % seqnoLimit, 0, [], before.state, false,
+            some ⟨prepared.marker, input.floor⟩, input.identity, prepared.marker.generation⟩) :
+        (openPipeline input ⟨true, true, input.floor, true, some observation, true, input.retiredDigest, 0⟩
+          true true auth receipt lookup).writer.map (·.state) = some before.state := by
+      exact public_pending_checkpoint readable.1 crypto opened rfl rfl rfl authenticated verified
+        rfl rfl rfl rfl actualIdentity rfl encoded window bounded rfl length retiredDigest rfl
+    apply completePending
+    by_cases noRecords : records = []
+    · have emptyBefore : before.bytes.data = [] := emitted_prefix_empty (by simpa only [noRecords] using emitted)
+      have empty : input.bytes.data = [] := observed.trans emptyBefore
+      have forward : input.floor + 1 = prepared.marker.generation := by
+        rcases window with same | forward
+        · exact False.elim (completed ⟨empty, same⟩)
+        · exact forward
+      exact open_checkpoint_pending_empty readable crypto actualIdentity present encoded forward bounded candidate hydrated
+        (by simpa only [crypto] using authenticated) empty retiredRead (by simpa [empty] using length.symm) retiredDigest
+    · have usable := (built_checkpoint_metadata binding.2.1).2.2
+      have retired := emitted_prefix_retired_at_next emitted noRecords usable
+      exact open_checkpoint_retired readable crypto actualIdentity present encoded window candidate hydrated
+        (by simpa only [crypto] using authenticated)
+        (by simpa only [observed, decoded observed, binding.2.2.2.1] using retired) retiredRead length retiredDigest
+
 /-- CheckpointRecoveryResult preserves both the publication outcome and subsequent public recovery. -/
 structure CheckpointRecoveryResult where
   checkpoint : CheckpointResult
   pipeline : PipelineOpenResult
   deriving Repr, Inhabited
+
+/-- checkpointRecoveryInput derives the physical recovery observation from modeled publication and an optional crash. -/
+def checkpointRecoveryInput (checkpoint : CheckpointResult) (preparation : CheckpointInput)
+    (input : OpenInput) (crash : Bool) (markerCRC : Nat) : OpenInput :=
+  let bytes := if crash then syncBytes checkpoint.result.bytes false else checkpoint.result.bytes
+  let marker := match checkpoint.prepared with
+    | none => preparation.marker
+    | some prepared =>
+      if checkpoint.result.markerGeneration == prepared.marker.generation then encodeMarker prepared.marker markerCRC
+      else preparation.marker
+  {input with bytes := bytes, marker := marker, floor := checkpoint.result.floor}
 
 /-- checkpointAndOpen follows publication with an optional crash and public recovery.
 Bytes, marker selection and floor come from modeled publication; decoding, hashes,
@@ -298,15 +448,119 @@ def checkpointAndOpen (before : PublicationState) (preparation : CheckpointInput
     (receiptAvailable lookupAvailable : Bool) (auth : Record → Authentication)
     (receipt : Receipt → Option Version → Bool) (lookup : Option Lookup → Option Version → Bool) : CheckpointRecoveryResult :=
   let checkpoint := checkpointWriter before preparation
-  let bytes := if crash then syncBytes checkpoint.result.bytes false else checkpoint.result.bytes
-  let marker := match checkpoint.prepared with
-    | none => preparation.marker
-    | some prepared =>
-      if checkpoint.result.markerGeneration == prepared.marker.generation then encodeMarker prepared.marker markerCRC
-      else preparation.marker
-  let opened := {input with bytes := bytes, marker := marker, floor := checkpoint.result.floor}
-  let activate := {activation with marker := marker, floor := checkpoint.result.floor}
+  let opened := checkpointRecoveryInput checkpoint preparation input crash markerCRC
+  let activate := {activation with marker := opened.marker, floor := opened.floor}
   ⟨checkpoint, openPipeline opened activate receiptAvailable lookupAvailable auth receipt lookup⟩
+
+/-- healthyActivation supplies successful storage reads of the unchanged recovery observation. -/
+def healthyActivation (input : OpenInput) : ActivationInput :=
+  ⟨true, true, input.floor, true, input.marker, true, input.retiredDigest, 0⟩
+
+/-- The empty initialized journal establishes the public recoverability base case. -/
+theorem empty_journal_public_recovery {input : OpenInput} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool}
+    (readable : OpenReadable input) (crypto : input.crypto = true) (marker : input.marker = none) (floor : input.floor = 0)
+    (empty : input.bytes.data = []) (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    (openPipeline input (healthyActivation input) true true auth receipt lookup).writer.map (·.state) = some [] := by
+  let writer : WriterState := ⟨syncBytes input.bytes true, 1 % seqnoLimit, 0, [], [], false, none, input.identity, 0⟩
+  have scanned : scanBytes 1 input.bytes.data input.frames = .ok ⟨[], 0⟩ := by
+    cases input.frames <;> simp [scanBytes, scanBytesFrom, empty]
+  have prepared := prepareOpen_plain (records := []) (state := [])
+    (authenticate := fun r => authenticateRecord r (auth r))
+    (authenticateState := fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)
+    readable marker floor scanned rfl rfl
+  have opened : (openWriter input (fun r => authenticateRecord r (auth r))
+      (fun state => authenticateSnapshots input.crypto input.identity (state.map some) auth)).writer = some writer := by
+    simp [openWriter, prepared, finishOpen, empty, tailSize, fault, writer]
+  have authority := checkpoint_state_authority (writer := writer) (auth := auth) (receipt := receipt) (lookup := lookup)
+    rfl (by simp [writer, authenticateSnapshots, readable.2.2.2.1]) rfl
+  have ready := public_pipeline_ready readable.1 crypto opened rfl
+    (by simpa only [crypto] using authority) (activation := healthyActivation input)
+  simp only [ready, Option.map_some]
+  rfl
+
+/-- Every checkpoint publication cut publicly recovers the acknowledged state under stable primitive observations.
+Old storage uses its prior recoverability invariant; replacement storage derives admission
+from the built snapshot and emitted retired bytes. No replacement opener or activation result is assumed. -/
+theorem checkpoint_public_recovery {before : PublicationState} {preparation : CheckpointInput}
+    {input oldInput : OpenInput} {history : List (Option Record)} {initial : Nat}
+    {primitives : List FramePrimitives} {records : List Record} {crash : Bool} {markerCRC : Nat}
+    {auth : Record → Authentication} {receipt : Receipt → Option Version → Bool}
+    {lookup : Option Lookup → Option Version → Bool}
+    (synced : before.bytes.data = before.bytes.durable) (held : before.generation ≤ before.floor)
+    (markerHeld : before.markerGeneration ≤ before.floor) (bounded : before.floor < seqnoLimit)
+    (retained : ∀ observation ∈ preparation.marker, observation.marker.generation ≤ before.floor)
+    (historyReplay : reduceJournal history = some before.state) (available : preparation.reducerAvailable = true)
+    (emitted : EmittedPrefix initial before.bytes.data primitives records before.sequence)
+    (readable : OpenReadable input) (crypto : input.crypto = true) (identity : input.identity = preparation.identity)
+    (retiredRead : input.retiredReadOK = true) (tailSize : input.tailSizeOK = true) (fault : input.fault = 0)
+    (oldRecovery : (openPipeline oldInput (healthyActivation oldInput) true true auth receipt lookup).writer.map (·.state) = some before.state)
+    (oldReads : (checkpointWriter before preparation).result.markerGeneration = before.markerGeneration →
+      {input with bytes := before.bytes, marker := preparation.marker, floor := before.floor} = oldInput)
+    (newCheckpoint : ∀ prepared, prepareCheckpoint before preparation = some prepared →
+      (checkpointWriter before preparation).result.markerGeneration = prepared.marker.generation →
+      input.checkpoint = some prepared.checkpoint)
+    (decoded : (checkpointRecoveryInput (checkpointWriter before preparation) preparation input crash markerCRC).bytes.data =
+      before.bytes.data → input.frames = primitives)
+    (digest : (checkpointRecoveryInput (checkpointWriter before preparation) preparation input crash markerCRC).bytes.data =
+      before.bytes.data → input.retiredDigest = preparation.retiredDigest)
+    (authenticated : authenticateSnapshots true input.identity (before.state.map some) auth = true)
+    (verified : before.state.all (fun a => a.receipt.all (fun value => receipt value a.version) &&
+      (a.lookup.isNone || lookup a.lookup a.version)) = true) :
+    (checkpointAndOpen before preparation input (healthyActivation input) crash markerCRC
+      true true auth receipt lookup).pipeline.writer.map (·.state) = some before.state := by
+  let observed := checkpointRecoveryInput (checkpointWriter before preparation) preparation input crash markerCRC
+  change (openPipeline observed (healthyActivation observed) true true auth receipt lookup).writer.map (·.state) = some before.state
+  have oldReopens
+      (marker : (checkpointWriter before preparation).result.markerGeneration = before.markerGeneration)
+      (floor : (checkpointWriter before preparation).result.floor = before.floor)
+      (bytes : observed.bytes = before.bytes) (selected : observed.marker = preparation.marker) :
+      (openPipeline observed (healthyActivation observed) true true auth receipt lookup).writer.map (·.state) = some before.state := by
+    have agreement : observed = oldInput := by
+      rw [← oldReads marker]
+      change {input with bytes := observed.bytes, marker := observed.marker, floor := observed.floor} = _
+      rw [bytes, selected, show observed.floor = before.floor from floor]
+    rw [agreement]
+    exact oldRecovery
+  cases ready : prepareCheckpoint before preparation with
+  | none =>
+    have unchanged : checkpointWriter before preparation = ⟨false, before, none⟩ := by simp [checkpointWriter, ready]
+    have stable : syncBytes before.bytes false = before.bytes := by cases bytes : before.bytes <;> simp_all [syncBytes]
+    apply oldReopens (by simp [unchanged]) (by simp [unchanged])
+    · simp [observed, checkpointRecoveryInput, unchanged, stable]
+    · simp [observed, checkpointRecoveryInput, unchanged]
+  | some prepared =>
+    have next := prepared_checkpoint_successor held bounded retained ready
+    have advanced := prepared_checkpoint_advances (Nat.lt_of_le_of_lt held bounded) bounded
+      (fun observation member => Nat.lt_of_le_of_lt (retained observation member) bounded) ready
+    have publication : (checkpointWriter before preparation).result =
+        (publishCheckpoint before prepared.marker.generation preparation.fault (validOutgoingMarker prepared.marker)).result := by
+      simp [checkpointWriter, ready]
+    have candidate : (checkpointWriter before preparation).prepared = some prepared := by simp [checkpointWriter, ready]
+    have different : prepared.marker.generation ≠ before.markerGeneration := by omega
+    have shape := publication_crash_recovery_shape before prepared.marker.generation preparation.fault
+      (validOutgoingMarker prepared.marker) crash synced next
+    dsimp only at shape
+    rw [← publication] at shape
+    rcases shape with old | replacement
+    · apply oldReopens old.1 old.2.1 old.2.2
+      simp [observed, checkpointRecoveryInput, candidate, old.1, Ne.symm different]
+    · have published : (publishCheckpoint before prepared.marker.generation preparation.fault
+          (validOutgoingMarker prepared.marker)).result.markerGeneration = prepared.marker.generation := by
+        rw [← publication]
+        exact replacement.1
+      have valid := publication_new_marker_valid before prepared.marker.generation preparation.fault
+        (validOutgoingMarker prepared.marker) different published
+      obtain ⟨observation, encoded⟩ : ∃ observation, encodeMarker prepared.marker markerCRC = some observation := by
+        simp [encodeMarker, valid]
+      have present : observed.marker = some observation := by
+        simp [observed, checkpointRecoveryInput, candidate, replacement.1, encoded]
+      change (openPipeline observed ⟨true, true, observed.floor, true, observed.marker, true, observed.retiredDigest, 0⟩
+        true true auth receipt lookup).writer.map (·.state) = some before.state
+      rw [present]
+      exact prepared_checkpoint_public_recovery historyReplay available ready emitted readable crypto identity present encoded
+        (newCheckpoint prepared ready replacement.1) replacement.2.2.1 advanced.2.2 replacement.2.2.2
+        decoded digest retiredRead tailSize fault authenticated verified
 
 /-- A trace that returns a writable pipeline has reestablished durable bytes after every modeled publication cut. -/
 theorem checkpoint_recovery_synced {before : PublicationState} {preparation : CheckpointInput}
