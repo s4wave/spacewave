@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -160,4 +161,59 @@ func TestRootRetentionFollowsBucketDeletion(t *testing.T) {
 	if found, err := v.GetBlockExists(ctx, root); err != nil || found {
 		t.Fatalf("deleted bucket kept a named root: %v %v", found, err)
 	}
+}
+
+func TestRootRetentionConcurrentPins(t *testing.T) {
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	var roots []*block.BlockRef
+	for _, data := range []string{"first root", "second root"} {
+		root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		roots = append(roots, root)
+		if err := v.SetBucketRoot(ctx, "bucket", data, root); err != nil {
+			t.Fatal(err)
+		}
+		if err := v.SetBucketRoot(ctx, "bucket", data, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Churn pins so adds, removals, and waits on in-flight edge writes overlap.
+	var wg sync.WaitGroup
+	errs := make(chan error, 64)
+	for i := range 64 {
+		wg.Go(func() {
+			for range 8 {
+				release, err := v.PinBucketRoot(ctx, roots[i%len(roots)])
+				if err != nil {
+					errs <- err
+					return
+				}
+				release()
+			}
+		})
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatal(err)
+	}
+
+	// A held pin retains its root; the released root is collected.
+	release, err := v.PinBucketRoot(ctx, roots[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []bool{true, false} {
+		if found, err := v.GetBlockExists(ctx, roots[i]); err != nil || found != want {
+			t.Fatalf("root %d: want=%v found=%v err=%v", i, want, found, err)
+		}
+	}
+	release()
 }
