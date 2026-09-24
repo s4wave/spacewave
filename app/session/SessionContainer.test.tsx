@@ -115,9 +115,9 @@ vi.mock('@s4wave/web/state/index.js', () => ({
   useStateNamespace: () => ['session'],
 }))
 
-vi.mock('@aptre/bldr-react', () => ({
+vi.mock(import('@aptre/bldr-react'), async (importOriginal) => ({
+  ...(await importOriginal()),
   DebugInfo: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  webViewRootAssetStatusEvent: 'bldr:webview-root-asset-status',
 }))
 
 vi.mock('./SessionCommands.js', () => ({
