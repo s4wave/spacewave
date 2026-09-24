@@ -905,8 +905,19 @@ export async function ensureSpacePlugins(
   await createSpaceSettingsObject(spaceWorld, abortSignal, indexPath, pluginIds)
 }
 
+// getSpaceInstanceKey returns the Space world engine id, which is the instance
+// key that selects the registrations of plugins installed in that Space.
+async function getSpaceInstanceKey(
+  setup: QuickstartSetup,
+  abortSignal?: AbortSignal,
+): Promise<string> {
+  const info = await setup.spaceWorld.getEngine().getEngineInfo(abortSignal)
+  return info.engineInfo?.engineId ?? ''
+}
+
 async function waitForObjectTypesRegistered(
   root: Root,
+  instanceKey: string,
   typeIds: string[],
   abortSignal?: AbortSignal,
 ): Promise<void> {
@@ -917,7 +928,10 @@ async function waitForObjectTypesRegistered(
     ? AbortSignal.any([abortSignal, timeoutSignal])
     : timeoutSignal
   try {
-    for await (const state of registry.WatchObjectTypes({}, signal)) {
+    for await (const state of registry.WatchObjectTypes(
+      { instanceKey },
+      signal,
+    )) {
       for (const registration of state.registrations ?? []) {
         pending.delete(registration.typeId ?? '')
       }
@@ -978,12 +992,13 @@ function hasQuickstartRegistration(
 
 async function waitForQuickstartRegistration(
   root: Root,
+  instanceKey: string,
   quickstartId: string,
   pluginId: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
   const registry = new QuickstartRegistryResourceServiceClient(root.client)
-  const list = await registry.ListQuickstarts({}, abortSignal)
+  const list = await registry.ListQuickstarts({ instanceKey }, abortSignal)
   if (hasQuickstartRegistration(list, quickstartId, pluginId)) return
 
   const timeoutSignal = AbortSignal.timeout(QUICKSTART_REGISTRATION_TIMEOUT_MS)
@@ -991,7 +1006,7 @@ async function waitForQuickstartRegistration(
     ? AbortSignal.any([abortSignal, timeoutSignal])
     : timeoutSignal
   try {
-    const stream = registry.WatchQuickstarts({}, signal)
+    const stream = registry.WatchQuickstarts({ instanceKey }, signal)
     for await (const resp of stream) {
       if (hasQuickstartRegistration(resp, quickstartId, pluginId)) return
     }
@@ -1317,14 +1332,23 @@ async function prepareSqlQuickstart(
     undefined,
     abortSignal,
   )
+  const instanceKey = await getSpaceInstanceKey(setup, abortSignal)
+
   // Once the plugin is installed, its quickstart and object-type registrations
   // land independently, so wait for both concurrently. The type registrations
   // must be present before the quickstart opens because the initial object
   // navigation resolves the sql viewer by object type.
   await Promise.all([
-    waitForQuickstartRegistration(root, 'sql', SQL_PLUGIN_ID, abortSignal),
+    waitForQuickstartRegistration(
+      root,
+      instanceKey,
+      'sql',
+      SQL_PLUGIN_ID,
+      abortSignal,
+    ),
     waitForObjectTypesRegistered(
       root,
+      instanceKey,
       [
         SQL_DB_TYPE_ID,
         SQL_QUERY_TYPE_ID,
@@ -1352,6 +1376,7 @@ async function prepareNotesQuickstart(
   )
   await waitForQuickstartRegistration(
     root,
+    await getSpaceInstanceKey(setup, abortSignal),
     quickstartId,
     NOTES_PLUGIN_ID,
     abortSignal,

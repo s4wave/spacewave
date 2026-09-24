@@ -72,6 +72,11 @@ const objectTypeRegistryMocks = vi.hoisted(() => ({
   WatchObjectTypes: vi.fn(),
 }))
 
+// SPACE_INSTANCE_KEY is the world engine id that scopes Space plugin registrations.
+const SPACE_INSTANCE_KEY = 'space/local/test-account/test-space'
+const getEngineInfo = () =>
+  Promise.resolve({ engineInfo: { engineId: SPACE_INSTANCE_KEY } })
+
 const localProviderMocks = vi.hoisted(() => ({
   createAccount: vi.fn(),
 }))
@@ -207,7 +212,7 @@ function buildQuickstartWorld(
   })
   return {
     world: {
-      getEngine: vi.fn(() => ({ newTransaction })),
+      getEngine: vi.fn(() => ({ newTransaction, getEngineInfo })),
       applyWorldOp,
       getObject,
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
@@ -581,7 +586,7 @@ describe('quickstart create', () => {
     await populateSpace('notebook', notesQuickstartSetup(world, 55) as never)
 
     expect(quickstartRegistryMocks.WatchQuickstarts).toHaveBeenCalledWith(
-      {},
+      { instanceKey: SPACE_INSTANCE_KEY },
       expect.any(AbortSignal),
     )
     expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
@@ -1250,7 +1255,7 @@ to try first.
       sysErr: false,
     })
     const spaceWorld = {
-      getEngine: vi.fn(() => ({ newTransaction })),
+      getEngine: vi.fn(() => ({ newTransaction, getEngineInfo })),
       getObject: vi.fn(() => Promise.resolve(null)),
       lookupGraphQuads: vi.fn().mockResolvedValue({ quads: [] }),
       setGraphQuad: vi.fn().mockResolvedValue(undefined),
@@ -1418,7 +1423,7 @@ to try first.
         'spacewave-notes',
       ])
       expect(quickstartRegistryMocks.ListQuickstarts).toHaveBeenCalledWith(
-        {},
+        { instanceKey: SPACE_INSTANCE_KEY },
         undefined,
       )
       expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
