@@ -76,6 +76,8 @@ import {
   NextResponse,
   OpenNestedWorldRequest,
   OpenNestedWorldResponse,
+  OpenOuterWorldRequest,
+  OpenOuterWorldResponse,
   QueryGraphPathRequest,
   QueryGraphPathResponse,
   RenameObjectRequest,
@@ -668,6 +670,17 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
+     */
+    OpenOuterWorld: {
+      name: 'OpenOuterWorld',
+      I: OpenOuterWorldRequest,
+      O: OpenOuterWorldResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
      */
     CreateObject: {
@@ -893,6 +906,16 @@ export interface WorldStateResourceService {
   ): Promise<OpenNestedWorldResponse>
 
   /**
+   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
+   */
+  OpenOuterWorld(
+    request: OpenOuterWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenOuterWorldResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
    */
   CreateObject(
@@ -1110,6 +1133,17 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<OpenNestedWorldResponse>
 
   /**
+   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
+   */
+  OpenOuterWorld(
+    request: OpenOuterWorldRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenOuterWorldResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
    */
   CreateObject(
@@ -1280,6 +1314,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
     this.AccessWorldState = this.AccessWorldState.bind(this)
     this.OpenNestedWorld = this.OpenNestedWorld.bind(this)
+    this.OpenOuterWorld = this.OpenOuterWorld.bind(this)
     this.CreateObject = this.CreateObject.bind(this)
     this.GetObject = this.GetObject.bind(this)
     this.IterateObjects = this.IterateObjects.bind(this)
@@ -1436,6 +1471,25 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return OpenNestedWorldResponse.fromBinary(result)
+  }
+
+  /**
+   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
+   */
+  async OpenOuterWorld(
+    request: OpenOuterWorldRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenOuterWorldResponse> {
+    const requestMsg = OpenOuterWorldRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.OpenOuterWorld.name,
+      OpenOuterWorldRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return OpenOuterWorldResponse.fromBinary(result)
   }
 
   /**

@@ -88,6 +88,9 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<IWorldState & Disposable>
 
+  /** openOuterWorld opens an independently disposable read-only state in the enclosing Space. */
+  openOuterWorld(abortSignal?: AbortSignal): Promise<IWorldState & Disposable>
+
   // CreateObject creates a object with a key and initial root ref
   // Returns ErrObjectExists if the object already exists
   // Appends a OBJECT_SET change to the changelog
@@ -321,6 +324,18 @@ export class WorldStateResource extends Resource implements IWorldState {
       { objectKey },
       abortSignal,
     )
+    return this.resourceRef.createResource(
+      response.resourceId ?? 0,
+      WorldStateResource,
+      { readOnly: true },
+    )
+  }
+
+  /** openOuterWorld opens the enclosing Space World under the same authority. Dispose of its handle independently. */
+  public async openOuterWorld(
+    abortSignal?: AbortSignal,
+  ): Promise<WorldStateResource> {
+    const response = await this.service.OpenOuterWorld({}, abortSignal)
     return this.resourceRef.createResource(
       response.resourceId ?? 0,
       WorldStateResource,

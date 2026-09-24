@@ -520,6 +520,42 @@ export const OpenNestedWorldResponse: MessageType<OpenNestedWorldResponse> =
   })
 
 /**
+ * OpenOuterWorldRequest opens the enclosing Space World from a nested World resource.
+ *
+ * @generated from message s4wave.world.OpenOuterWorldRequest
+ */
+export interface OpenOuterWorldRequest {}
+
+export const OpenOuterWorldRequest: MessageType<OpenOuterWorldRequest> =
+  /* @__PURE__ */ createEmptyMessageType<OpenOuterWorldRequest>(
+    's4wave.world.OpenOuterWorldRequest',
+    true,
+  )
+
+/**
+ * OpenOuterWorldResponse grants an independently retained read-only outer World state.
+ *
+ * @generated from message s4wave.world.OpenOuterWorldResponse
+ */
+export interface OpenOuterWorldResponse {
+  /**
+   * ResourceId identifies the outer World state resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const OpenOuterWorldResponse: MessageType<OpenOuterWorldResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.OpenOuterWorldResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccessWorldStateResponse is the response type for AccessWorldState.
  *
  * @generated from message s4wave.world.AccessWorldStateResponse
