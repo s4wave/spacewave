@@ -33,7 +33,7 @@ require (
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
-	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 // master
+	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
@@ -48,7 +48,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.1-0.20260923230749-a570506aca40
+	github.com/dolthub/go-mysql-server v0.20.1-0.20260923235447-81c9cce95915
 	github.com/dolthub/vitess v0.0.0-20260916192104-15c5c4158b37
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
