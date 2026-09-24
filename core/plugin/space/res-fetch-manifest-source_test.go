@@ -77,11 +77,13 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
 	values := make(chan []*bldr_manifest.ManifestRef, 2)
+	// The Space World resolver never idles without a World engine, so watch
+	// values as they arrive.
 	_, release, err := bus.ExecCollectValuesWatch[*bldr_manifest.FetchManifestValue](
 		watchCtx,
 		child,
 		bldr_manifest.NewFetchManifest(sourceManifestID, nil, nil, 0),
-		true,
+		false,
 		func(_ []error, vals []*bldr_manifest.FetchManifestValue) error {
 			refs := make([]*bldr_manifest.ManifestRef, 0)
 			for _, val := range vals {

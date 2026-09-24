@@ -79,7 +79,8 @@ var processRetryBackoff = &backoff.Backoff{
 //
 // For FetchManifest: resolves FetchManifest directives for manifest IDs
 // matching the current SpaceSettings plugin_ids. Uses a shared world watch
-// loop with broadcast to handle resolver set changes.
+// loop with broadcast to handle resolver set changes. With a manifest source,
+// approved requests also resolve from the parent bus.
 //
 // Also reconciles process bindings: starts enabled persistent processes and
 // stops processes that are removed or disabled.
@@ -133,7 +134,8 @@ type factoryConfig struct {
 	loadTarget     bus.Bus
 }
 
-// WithManifestSource permits approved Space plugins to fetch manifests from source.
+// WithManifestSource permits approved Space plugins to fetch manifests from
+// source in addition to the Space World.
 func WithManifestSource(source bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.manifestSource = source }
 }
@@ -273,44 +275,58 @@ func (c *Controller) resolveLookupObjectType(
 	}), nil)
 }
 
-// resolveFetchManifest handles a FetchManifest directive.
-// Returns a resolver that persistently watches the plugin list.
-// processResolvers handles actual resolution from world state.
+// resolveFetchManifest handles a FetchManifest directive. The Space World
+// resolver always runs; processResolvers resolves it from World state. With a
+// manifest source, a second resolver relays approved requests to the parent
+// bus, so a manifest resolves whether it is stored in the Space World or
+// supplied by the parent.
 func (c *Controller) resolveFetchManifest(
 	_ context.Context,
 	_ directive.Instance,
 	dir manifest.FetchManifest,
 ) ([]directive.Resolver, error) {
-	mid := dir.GetManifestId()
-	if mid == "" {
+	if dir.GetManifestId() == "" {
 		return nil, nil
 	}
 
-	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
-		if source, _, _ := c.getManifestSourceApproval(mid); source != nil {
+	resolvers := []directive.Resolver{directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		return c.resolveWorldFetchManifest(ctx, handler, dir)
+	})}
+	if c.manifestSource != nil {
+		resolvers = append(resolvers, directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 			return c.resolveSourceFetchManifest(ctx, handler, dir)
-		}
-		entry := &resolverEntry{ctx: ctx, dir: dir, handler: handler}
+		}))
+	}
+	return resolvers, nil
+}
+
+// resolveWorldFetchManifest registers a resolver entry for processResolvers
+// until ctx ends.
+func (c *Controller) resolveWorldFetchManifest(
+	ctx context.Context,
+	handler directive.ResolverHandler,
+	dir manifest.FetchManifest,
+) error {
+	entry := &resolverEntry{ctx: ctx, dir: dir, handler: handler}
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.resolvers[entry] = struct{}{}
+		broadcast()
+	})
+	c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+	defer func() {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			c.resolvers[entry] = struct{}{}
+			delete(c.resolvers, entry)
 			broadcast()
 		})
 		c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			broadcast()
 		})
-		defer func() {
-			c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				delete(c.resolvers, entry)
-				broadcast()
-			})
-			c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				broadcast()
-			})
-		}()
+	}()
 
-		<-ctx.Done()
-		return ctx.Err()
-	}), nil)
+	<-ctx.Done()
+	return ctx.Err()
 }
 
 // runWorldWatchLoop runs the world watch loop that reconciles LoadPlugin

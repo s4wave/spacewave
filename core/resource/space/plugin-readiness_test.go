@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -40,7 +41,15 @@ func TestSpaceResourceWaitsForDesiredPluginTypeRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
-	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus))
+
+	// Mounted Space runtimes always relay approved manifest requests to their
+	// parent bus. The parent here serves no manifests, so the plugin must
+	// resolve from the Space World.
+	parent, _, err := controllerbus_core.NewCoreBus(ctx, tb.Logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus, plugin_space.WithManifestSource(parent)))
 
 	if _, _, err := space_world_ops.SetSpaceSettings(
 		ctx,

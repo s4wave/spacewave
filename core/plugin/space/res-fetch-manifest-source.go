@@ -10,7 +10,9 @@ import (
 )
 
 // resolveSourceFetchManifest relays an approved manifest request to the parent
-// bus. The parent directive exists only while the Space approval remains.
+// bus. The parent directive exists only while the Space approval remains. It
+// adds a value only when the parent supplies manifests, so an empty parent
+// never masks the Space World resolver.
 func (c *Controller) resolveSourceFetchManifest(
 	ctx context.Context,
 	handler directive.ResolverHandler,
@@ -44,7 +46,9 @@ func (c *Controller) resolveSourceFetchManifest(
 					refs = append(refs, val.GetManifestRefs()...)
 				}
 				_ = handler.ClearValues()
-				_, _ = handler.AddValue(&manifest.FetchManifestValue{ManifestRefs: refs})
+				if len(refs) != 0 {
+					_, _ = handler.AddValue(&manifest.FetchManifestValue{ManifestRefs: refs})
+				}
 				handler.MarkIdle(true)
 				return nil
 			},
