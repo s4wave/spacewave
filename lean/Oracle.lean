@@ -45,6 +45,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
+- `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
 - `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
 - `observeJournalFrame`: raw bytes, decoded record and primitive checksums.
 - `encodeJournalFrame`: record and primitive encoding/checksum results.
@@ -114,10 +115,22 @@ deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentConte
 deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.ActivationResult, Journal.AuthenticationEntry
 deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Journal.PipelineOpenResult
 deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
+deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "checkpointAndOpenJournal" =>
+    let entries ← req.getObjValAs? (List Journal.AuthenticationEntry) "auth"
+    let receiptOK ← req.getObjValAs? Bool "receiptOK"
+    let lookupOK ← req.getObjValAs? Bool "lookupOK"
+    let result := Journal.checkpointAndOpen (← req.getObjValAs? Journal.PublicationState "before")
+      (← req.getObjValAs? Journal.CheckpointInput "preparation") (← req.getObjValAs? Journal.OpenInput "input")
+      (← req.getObjValAs? Journal.ActivationInput "activation") (← req.getObjValAs? Bool "crash")
+      (← req.getObjValAs? Nat "markerCRC") (← req.getObjValAs? Bool "receiptAvailable")
+      (← req.getObjValAs? Bool "lookupAvailable") (Journal.findAuthentication entries)
+      (fun _ _ => receiptOK) (fun _ _ => lookupOK)
+    return json% {ok: $(result.pipeline.writer.isSome), trace: $result}
   | "openJournalPipeline" =>
     let input ← req.getObjValAs? Journal.OpenInput "input"
     let activation ← req.getObjValAs? Journal.ActivationInput "activation"

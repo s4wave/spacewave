@@ -12,6 +12,7 @@ remain model decisions. Encoded payloads exclude the trailer marker byte.
 Compact snapshots omit redundant lookup history; hydration reconstructs it.
 The failed-Sync rollback is the existing memory storage contract. Filesystem
 durability requires the corresponding successful-sync assumption.
+Go behavior checked at revision `cf8d8f69a`.
 -/
 
 namespace Spacewave.SObject.Journal
@@ -1833,6 +1834,26 @@ theorem publication_preserves_state (before : PublicationState) (generation : Na
   simp only [Id.run, pure]
   repeat' first | split | simp_all
 
+/-- Every publication cut preserves the old recovery input or retains the replacement and its exact retired bytes.
+The synced premise is established by public opening and successful appends. -/
+theorem publication_recovery_shape (before : PublicationState) (generation : Nat) (fault : Int)
+    (markerOK : Bool) (synced : before.bytes.data = before.bytes.durable)
+    (next : generation = before.floor + 1) :
+    let after := (publishCheckpoint before generation fault markerOK).result
+    (after.markerGeneration = before.markerGeneration ∧ after.floor = before.floor ∧ after.bytes = before.bytes) ∨
+    (after.markerGeneration = generation ∧ generation ∈ after.checkpointGenerations ∧
+      ((after.bytes = before.bytes ∧ (after.floor = before.floor ∨ after.floor = generation)) ∨
+        (after.bytes.data = [] ∧ after.floor = generation ∧
+          (after.bytes.durable = before.bytes.data ∨ after.bytes.durable = [])))) := by
+  dsimp only
+  unfold publishCheckpoint
+  simp only [Id.run, pure]
+  have advanced : max before.floor generation = generation := by omega
+  have nonzero : generation ≠ 0 := by omega
+  repeat' first | split | simp_all [syncBytes, List.mem_mergeSort]
+  left
+  cases observed : before.bytes <;> simp_all
+
 /-- CheckpointInput contains capabilities, storage reads and primitive serialization/encryption outcomes. -/
 structure CheckpointInput where
   journalAvailable : Bool
@@ -2138,6 +2159,98 @@ theorem encoded_marker_valid {marker : GenerationMarker} {crc : Nat} {observatio
   · assumption
   · contradiction
 
+/-- Healthy recovery derives checkpoint admission and reconstructs full replay from a scanned suffix. -/
+theorem open_checkpoint_scanned_suffix {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat} {checkpoint : CompactCheckpoint}
+    {history : List (Option Record)} {records : List Record} {base expected : State} {offset : Nat}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (historyReplay : reduceJournal history = some base)
+    (built : buildCheckpoint input.identity marker.generation marker.nextSequence (some base) = some checkpoint)
+    (sequence : marker.nextSequence = advanceSequence 1 history.length)
+    (scanned : scanBytes marker.nextSequence input.bytes.data input.frames = .ok ⟨records, offset⟩)
+    (baseAuthority : authenticateState base = true) (suffixAuthority : records.all authenticate = true)
+    (fullReplay : reduceJournal (history ++ records.map some) = some expected)
+    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    (openWriter input authenticate authenticateState).writer.map (·.state) = some expected := by
+  have hydrated := checkpoint_read_exists historyReplay built
+  have replayed : replayFrom base marker.nextSequence (records.map some) = some expected := by
+    rw [hydrated_checkpoint_suffix historyReplay built hydrated sequence, fullReplay]
+  have applied := replay_agrees_applyRecords replayed
+  have valid := encoded_marker_valid encoded
+  simp only [validOutgoingMarker, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, and_assoc] at valid
+  have generationNe := valid.2.1
+  have parsed : readMarker input.identity observation = some marker := by
+    rw [identity]
+    exact encoded_marker_reads encoded
+  have notNext : marker.generation ≠ (marker.generation + 1) % seqnoLimit := by
+    unfold seqnoLimit
+    omega
+  rcases readable with ⟨storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize⟩
+  have prepared : prepareOpen input authenticate authenticateState =
+      some ⟨input.bytes, (marker.nextSequence + records.length) % seqnoLimit, offset, records,
+        expected, false, none, input.identity, marker.generation⟩ := by
+    simp [prepareOpen, storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize,
+      present, parsed, floor, crypto, generationWindow, generationNe, candidate, hydrated, baseAuthority,
+      scanned, notNext, checkpointScan, applied]
+    exact List.all_eq_true.mp suffixAuthority
+  rw [openWriter, prepared, tailSize, fault]
+  exact finishOpen_success _
+
+/-- An emitted checkpoint suffix reopens to full historical replay without any recovery admission assumption. -/
+theorem open_checkpoint_emitted_suffix {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat} {checkpoint : CompactCheckpoint}
+    {history : List (Option Record)} {records : List Record} {base expected : State}
+    {bytes : List Nat} {primitives : List FramePrimitives} {next : Nat}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (historyReplay : reduceJournal history = some base)
+    (built : buildCheckpoint input.identity marker.generation marker.nextSequence (some base) = some checkpoint)
+    (sequence : marker.nextSequence = advanceSequence 1 history.length)
+    (observed : input.bytes.data = bytes) (decoded : input.frames = primitives)
+    (emitted : EmittedPrefix marker.nextSequence bytes primitives records next)
+    (baseAuthority : authenticateState base = true) (suffixAuthority : records.all authenticate = true)
+    (fullReplay : reduceJournal (history ++ records.map some) = some expected)
+    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    (openWriter input authenticate authenticateState).writer.map (·.state) = some expected := by
+  apply open_checkpoint_scanned_suffix readable crypto identity present encoded floor candidate historyReplay built sequence
+    (offset := bytes.length) _ baseAuthority suffixAuthority fullReplay tailSize fault
+  rw [observed, decoded]
+  exact emitted_prefix_complete emitted
+
+/-- Every strict torn next-frame cut after an emitted checkpoint suffix preserves its complete replay state. -/
+theorem open_checkpoint_torn_suffix {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat} {checkpoint : CompactCheckpoint}
+    {history : List (Option Record)} {records : List Record} {base expected : State}
+    {bytes : List Nat} {primitives : List FramePrimitives} {next : Nat}
+    {record : Record} {encoding : FrameEncoding} {lastBytes : List Nat} {cut : Nat}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (historyReplay : reduceJournal history = some base)
+    (built : buildCheckpoint input.identity marker.generation marker.nextSequence (some base) = some checkpoint)
+    (sequence : marker.nextSequence = advanceSequence 1 history.length)
+    (observed : input.bytes.data = bytes ++ lastBytes.take cut)
+    (decoded : input.frames = primitives ++ [⟨none, encoding.headerCRC, encoding.frameCRC, true⟩])
+    (emitted : EmittedPrefix marker.nextSequence bytes primitives records next)
+    (lastEncoded : encodeFrame record encoding = some lastBytes) (valid : validRecord (some record) = true)
+    (lastSequence : record.sequence = next) (bounded : record.sequence < 2^64)
+    (headerCRC : encoding.headerCRC < 2^32) (frameCRC : encoding.frameCRC < 2^32)
+    (cutBounds : 0 < cut ∧ cut < lastBytes.length)
+    (baseAuthority : authenticateState base = true) (suffixAuthority : records.all authenticate = true)
+    (fullReplay : reduceJournal (history ++ records.map some) = some expected)
+    (tailSize : input.tailSizeOK = true) (fault : input.fault = 0) :
+    (openWriter input authenticate authenticateState).writer.map (·.state) = some expected := by
+  apply open_checkpoint_scanned_suffix readable crypto identity present encoded floor candidate historyReplay built sequence
+    (offset := bytes.length) _ baseAuthority suffixAuthority fullReplay tailSize fault
+  rw [observed, decoded]
+  exact emitted_prefix_torn emitted lastEncoded valid lastSequence bounded headerCRC frameCRC cutBounds
+
 /-- A completed checkpoint with an empty suffix opens directly from its emitted marker and hydrated content. -/
 theorem open_checkpoint_empty {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
     {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat}
@@ -2244,6 +2357,41 @@ theorem open_checkpoint_retired {input : OpenInput} {authenticate : Record → B
   rw [openWriter, prepared]
   simp [finishOpen]
 
+/-- An empty retired segment also preserves a published checkpoint awaiting its floor update. -/
+theorem open_checkpoint_pending_empty {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat}
+    {checkpoint : CompactCheckpoint} {state : State}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor + 1 = marker.generation)
+    (bounded : marker.generation < seqnoLimit) (candidate : input.checkpoint = some checkpoint)
+    (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some state)
+    (authenticated : authenticateState state = true) (empty : input.bytes.data = [])
+    (retiredRead : input.retiredReadOK = true) (retiredLength : marker.retiredLength = 0)
+    (retiredDigest : input.retiredDigest = marker.retiredDigest) :
+    (openWriter input authenticate authenticateState).writer =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false,
+        some ⟨marker, input.floor⟩, input.identity, marker.generation⟩ := by
+  have parsed : readMarker input.identity observation = some marker := by
+    rw [identity]
+    exact encoded_marker_reads encoded
+  have windowOK : generationWindow input.floor marker.generation = true := by
+    rw [← floor]
+    simp [generationWindow]
+  have next : (input.floor + 1) % seqnoLimit = marker.generation := by
+    rw [floor, Nat.mod_eq_of_lt bounded]
+  have scanned : scanBytes marker.nextSequence [] input.frames = .ok ⟨[], 0⟩ := by
+    cases input.frames <;> simp [scanBytes, scanBytesFrom]
+  rcases readable with ⟨storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize⟩
+  have prepared : prepareOpen input authenticate authenticateState =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false,
+        some ⟨marker, input.floor⟩, input.identity, marker.generation⟩ := by
+    simp [prepareOpen, storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize,
+      present, parsed, windowOK, crypto, candidate, hydrated, authenticated, scanned, next, empty,
+      retiredRead, retiredLength, retiredDigest, checkpointScan, applyRecords]
+  rw [openWriter, prepared]
+  simp [finishOpen]
+
 /-- Old emitted bytes captured by a prepared checkpoint recover to that checkpoint's complete historical state. -/
 theorem prepared_checkpoint_retired_reopens {before : PublicationState} {preparation : CheckpointInput}
     {prepared : PreparedCheckpoint} {input : OpenInput} {history : List (Option Record)}
@@ -2272,5 +2420,30 @@ theorem prepared_checkpoint_retired_reopens {before : PublicationState} {prepara
     (by simp only [binding.2.2.2.2.1, observed])
     (retiredDigest.trans binding.2.2.2.2.2.1.symm)
   simp only [opened, Option.map_some]
+
+/-- Healthy activation completes retirement of the captured segment without an assumed activation result. -/
+theorem activation_completes {before : WriterState} {input : ActivationInput} {pending : PendingActivation}
+    {observation : MarkerObservation} {crc : Nat}
+    (waiting : before.pending = some pending) (usable : before.poisoned = false)
+    (generationSupported : input.generationSupported = true) (floorSupported : input.floorSupported = true)
+    (floorRead : input.floorReadOK = true) (floor : input.floor = pending.floor)
+    (identity : before.identity = pending.marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker pending.marker crc = some observation)
+    (window : input.floor = pending.marker.generation ∨ input.floor + 1 = pending.marker.generation)
+    (bounded : pending.marker.generation < seqnoLimit) (retiredRead : input.retiredReadOK = true)
+    (retiredLength : before.bytes.data.length = pending.marker.retiredLength)
+    (retiredDigest : input.retiredDigest = pending.marker.retiredDigest) (fault : input.fault = 0) :
+    (activateWriter before input).ok = true := by
+  have parsed : readMarker before.identity observation = some pending.marker := by
+    rw [identity]
+    exact encoded_marker_reads encoded
+  have admitted : (pending.marker.generation != input.floor &&
+      pending.marker.generation != (input.floor + 1) % seqnoLimit) = false := by
+    rcases window with equal | forward
+    · simp [equal]
+    · simp [forward, Nat.mod_eq_of_lt bounded]
+  rw [floor] at admitted
+  simp [activateWriter, waiting, usable, generationSupported, floorSupported, floorRead,
+    floor, present, parsed, retiredRead, retiredLength, retiredDigest, fault, admitted]
 
 end Spacewave.SObject.Journal

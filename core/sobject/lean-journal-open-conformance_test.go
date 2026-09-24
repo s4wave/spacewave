@@ -51,7 +51,7 @@ func runLeanJournalOpenScenario(t *testing.T, seed uint64) []leanCase {
 	crypto := testJournalCrypto(t, scope)
 	version := JournalVersion(seed%17+1, seed%13+1, 1, testDigest("config"))
 	var cases []leanCase
-	for mode := range 7 {
+	for mode := range 8 {
 		for variant := range 24 {
 			storage := &openFaultStorage{activationFaultStorage: &activationFaultStorage{
 				publicationFaultStorage: &publicationFaultStorage{memoryJournalStorage: newMemoryJournalStorage()},
@@ -79,15 +79,24 @@ func runLeanJournalOpenScenario(t *testing.T, seed uint64) []leanCase {
 				}
 				storage.armed = false
 			}
-			if mode == 1 || mode == 2 || mode == 5 {
+			if mode == 1 || mode == 2 || mode == 5 || mode == 7 {
+				sequence := uint64(3)
+				if mode == 7 {
+					key := testMutationKey(scope, "peer", "complete suffix")
+					record := testIntent(t, crypto, key, testLineage(key, nil), version, sequence, "complete suffix")
+					if err := pipeline.appendRecord(record); err != nil {
+						t.Fatal(err)
+					}
+					sequence++
+				}
 				key := testMutationKey(scope, "peer", "tail")
-				record := testIntent(t, crypto, key, testLineage(key, nil), version, 3, "tail")
+				record := testIntent(t, crypto, key, testLineage(key, nil), version, sequence, "tail")
 				if mode == 2 {
 					if err := pipeline.appendRecord(record); err != nil {
 						t.Fatal(err)
 					}
 				} else {
-					frame, err := marshalJournalFrame(record.Kind, 3, mustMarshalVT(t, record))
+					frame, err := marshalJournalFrame(record.Kind, sequence, mustMarshalVT(t, record))
 					if err != nil {
 						t.Fatal(err)
 					}

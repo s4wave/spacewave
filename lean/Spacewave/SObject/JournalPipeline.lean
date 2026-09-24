@@ -7,6 +7,7 @@ Mirrors public opening and retained record authentication in `core/sobject/journ
 Authenticated decryption, protobuf decoding and SHA-256 are primitive boundaries.
 The projection supplies their outputs for the prepared writer-owned sequence;
 key, lineage, version and envelope bindings remain model decisions.
+Go behavior checked at revision `cf8d8f69a`.
 -/
 
 namespace Spacewave.SObject.Journal
@@ -282,5 +283,59 @@ theorem public_pipeline_ready {input : OpenInput} {activation : ActivationInput}
   simp only [openPipeline, storage, crypto, Bool.not_true, Bool.false_or, Bool.false_eq_true, ↓reduceIte]
   rw [crypto] at recovered authorized
   simp only [recovered, finishPipelineOpen, authorized, ↓reduceIte, activateWriter, ready]
+
+/-- CheckpointRecoveryResult preserves both the publication outcome and subsequent public recovery. -/
+structure CheckpointRecoveryResult where
+  checkpoint : CheckpointResult
+  pipeline : PipelineOpenResult
+  deriving Repr, Inhabited
+
+/-- checkpointAndOpen follows publication with an optional crash and public recovery.
+Bytes, marker selection and floor come from modeled publication; decoding, hashes,
+CRC, authentication and read outcomes remain primitive observations. -/
+def checkpointAndOpen (before : PublicationState) (preparation : CheckpointInput)
+    (input : OpenInput) (activation : ActivationInput) (crash : Bool) (markerCRC : Nat)
+    (receiptAvailable lookupAvailable : Bool) (auth : Record → Authentication)
+    (receipt : Receipt → Option Version → Bool) (lookup : Option Lookup → Option Version → Bool) : CheckpointRecoveryResult :=
+  let checkpoint := checkpointWriter before preparation
+  let bytes := if crash then syncBytes checkpoint.result.bytes false else checkpoint.result.bytes
+  let marker := match checkpoint.prepared with
+    | none => preparation.marker
+    | some prepared =>
+      if checkpoint.result.markerGeneration == prepared.marker.generation then encodeMarker prepared.marker markerCRC
+      else preparation.marker
+  let opened := {input with bytes := bytes, marker := marker, floor := checkpoint.result.floor}
+  let activate := {activation with marker := marker, floor := checkpoint.result.floor}
+  ⟨checkpoint, openPipeline opened activate receiptAvailable lookupAvailable auth receipt lookup⟩
+
+/-- A trace that returns a writable pipeline has reestablished durable bytes after every modeled publication cut. -/
+theorem checkpoint_recovery_synced {before : PublicationState} {preparation : CheckpointInput}
+    {input : OpenInput} {activation : ActivationInput} {crash : Bool} {markerCRC : Nat}
+    {receiptAvailable lookupAvailable : Bool} {auth : Record → Authentication}
+    {receipt : Receipt → Option Version → Bool} {lookup : Option Lookup → Option Version → Bool} {writer : WriterState}
+    (accepted : (checkpointAndOpen before preparation input activation crash markerCRC
+      receiptAvailable lookupAvailable auth receipt lookup).pipeline.writer = some writer) :
+    writer.bytes.data = writer.bytes.durable := by
+  exact public_pipeline_synced accepted
+
+/-- Publication, an intervening crash and public recovery cannot lower the captured durable floor. -/
+theorem checkpoint_recovery_floor (before : PublicationState) (preparation : CheckpointInput)
+    (input : OpenInput) (activation : ActivationInput) (crash : Bool) (markerCRC : Nat)
+    (receiptAvailable lookupAvailable : Bool) (auth : Record → Authentication)
+    (receipt : Receipt → Option Version → Bool) (lookup : Option Lookup → Option Version → Bool) :
+    before.floor ≤ (checkpointAndOpen before preparation input activation crash markerCRC
+      receiptAvailable lookupAvailable auth receipt lookup).pipeline.floor := by
+  let checkpoint := checkpointWriter before preparation
+  let bytes := if crash then syncBytes checkpoint.result.bytes false else checkpoint.result.bytes
+  let marker := match checkpoint.prepared with
+    | none => preparation.marker
+    | some prepared =>
+      if checkpoint.result.markerGeneration == prepared.marker.generation then encodeMarker prepared.marker markerCRC
+      else preparation.marker
+  have recovery := public_pipeline_floor
+    {input with bytes := bytes, marker := marker, floor := checkpoint.result.floor}
+    {activation with marker := marker, floor := checkpoint.result.floor}
+    receiptAvailable lookupAvailable auth receipt lookup (Nat.le_refl _)
+  exact Nat.le_trans (checkpoint_floor_monotone before preparation) recovery
 
 end Spacewave.SObject.Journal
