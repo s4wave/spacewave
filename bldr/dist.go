@@ -17,7 +17,7 @@ import (
 // TODO: go.mod go.sum bun.lock tsconfig.json ?
 //
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
-//go:embed web/bldr/*.ts web/bldr/*.tsx
+//go:embed web/bldr/*.ts
 //go:embed web/boot/*.ts
 //go:embed web/devtool-status/*.tsx web/devtool-status/*.css
 //go:embed web/wasi-shim/*.ts
