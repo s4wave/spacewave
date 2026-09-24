@@ -86,6 +86,46 @@ describe('goTsResolver', () => {
     expect(result).toBe(join(tmpDir, localPbTsFile))
   })
 
+  it('resolves @go imports against the module containing the importer', async () => {
+    const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-dist-'))
+    const appRoot = await mkdtemp(join(tmpdir(), 'go-ts-app-'))
+    try {
+      await writeFile(
+        join(distRoot, 'go.mod'),
+        'module github.com/example/bldr-dist\n\ngo 1.26\n',
+      )
+      await writeFile(
+        join(appRoot, 'go.mod'),
+        'module github.com/example/app\n\ngo 1.26\n',
+      )
+      const identityDir = join(appRoot, 'identity')
+      const vendorDir = join(appRoot, 'vendor', 'github.com/example/dep')
+      await mkdir(identityDir, { recursive: true })
+      await mkdir(vendorDir, { recursive: true })
+      await writeFile(join(identityDir, 'identity.pb.ts'), 'export const i = 1')
+      await writeFile(join(vendorDir, 'dep.ts'), 'export const d = 1')
+
+      const plugin = goTsResolver(distRoot, distRoot)
+      const resolveId = plugin.resolveId as (
+        source: string,
+        importer?: string,
+      ) => Promise<string | null>
+      const importer = join(appRoot, 'forge', 'worker', 'worker.pb.ts')
+      expect(
+        await resolveId(
+          '@go/github.com/example/app/identity/identity.pb.js',
+          importer,
+        ),
+      ).toBe(join(identityDir, 'identity.pb.ts'))
+      expect(
+        await resolveId('@go/github.com/example/dep/dep.js', importer),
+      ).toBe(join(vendorDir, 'dep.ts'))
+    } finally {
+      await rm(distRoot, { recursive: true, force: true })
+      await rm(appRoot, { recursive: true, force: true })
+    }
+  })
+
   it('resolves aliased relative .js imports to sibling .ts files', async () => {
     const resolveId = createPlugin()
     const result = await resolveId(

@@ -18,19 +18,58 @@ function readLocalModuleSync(projectRoot: string): string | null {
   return match ? match[1] : null
 }
 
-function vendorRoots(projectRoot: string, distRoot: string): string[] {
-  const appVendorRoot = resolve(projectRoot, 'vendor')
-  const distVendorRoot = resolve(distRoot, 'vendor')
-  if (appVendorRoot === distVendorRoot) {
-    return [appVendorRoot]
-  }
-  return [appVendorRoot, distVendorRoot]
+// GoModule is a Go module root and its declared module path.
+interface GoModule {
+  root: string
+  path: string
 }
 
+// findGoModule returns the module containing dir by walking up to the nearest
+// go.mod, caching the answer for every directory visited.
+function findGoModule(
+  dir: string,
+  cache: Map<string, GoModule | null>,
+): GoModule | null {
+  const visited: string[] = []
+  let found: GoModule | null = null
+  for (let cur = dir; ; cur = dirname(cur)) {
+    const cached = cache.get(cur)
+    if (cached !== undefined) {
+      found = cached
+      break
+    }
+    visited.push(cur)
+    const path = readLocalModuleSync(cur)
+    if (path) {
+      found = { root: cur, path }
+      break
+    }
+    if (dirname(cur) === cur) break
+  }
+  for (const cur of visited) cache.set(cur, found)
+  return found
+}
+
+function vendorRoots(
+  projectRoot: string,
+  distRoot: string,
+  importerModule: GoModule | null,
+): string[] {
+  const roots = [projectRoot, distRoot]
+  if (importerModule) roots.push(importerModule.root)
+  return [...new Set(roots.map((root) => resolve(root, 'vendor')))]
+}
+
+// resolveGoImportPaths returns the candidate sources of an @go/ import. An
+// import of the project module or of the importer's own module resolves to
+// that module's sources; any other import resolves through the vendor trees.
+// The importer's module matters when the build root reaches source outside the
+// project, such as an app startup module bundled into the Bldr renderer.
 function resolveGoImportPaths(
   projectRoot: string,
   distRoot: string,
   localModule: string | null,
+  importerModule: GoModule | null,
   source: string,
 ): string[] | null {
   if (!source.startsWith('@go/')) {
@@ -41,8 +80,16 @@ function resolveGoImportPaths(
   if (localModule && importPath.startsWith(localModule + '/')) {
     return [resolve(projectRoot, importPath.slice(localModule.length + 1))]
   }
+  if (importerModule && importPath.startsWith(importerModule.path + '/')) {
+    return [
+      resolve(
+        importerModule.root,
+        importPath.slice(importerModule.path.length + 1),
+      ),
+    ]
+  }
 
-  return vendorRoots(projectRoot, distRoot).map((root) =>
+  return vendorRoots(projectRoot, distRoot, importerModule).map((root) =>
     resolve(root, importPath),
   )
 }
@@ -58,7 +105,7 @@ function resolveSourcePaths(
   }
   if (source.startsWith('vendor/')) {
     const importPath = source.slice('vendor/'.length)
-    return vendorRoots(projectRoot, distRoot).map((root) =>
+    return vendorRoots(projectRoot, distRoot, null).map((root) =>
       resolve(root, importPath),
     )
   }
@@ -105,14 +152,17 @@ export function goTsResolver(
 ): Plugin {
   const localModule = readLocalModuleSync(projectRoot)
   const tsPathCache = new Map<string, Promise<string | null>>()
+  const moduleCache = new Map<string, GoModule | null>()
   return {
     name: 'go-ts-resolver',
     enforce: 'pre',
     buildStart() {
       tsPathCache.clear()
+      moduleCache.clear()
     },
     watchChange() {
       tsPathCache.clear()
+      moduleCache.clear()
     },
     async resolveId(source, importer) {
       // Handle only .js imports that may map to source .ts files.
@@ -120,9 +170,18 @@ export function goTsResolver(
         return null
       }
 
+      const importerModule =
+        importer && isAbsolute(importer)
+          ? findGoModule(dirname(importer), moduleCache)
+          : null
       const sourcePaths =
-        resolveGoImportPaths(projectRoot, distRoot, localModule, source) ??
-        resolveSourcePaths(projectRoot, distRoot, source, importer)
+        resolveGoImportPaths(
+          projectRoot,
+          distRoot,
+          localModule,
+          importerModule,
+          source,
+        ) ?? resolveSourcePaths(projectRoot, distRoot, source, importer)
       if (!sourcePaths) {
         return null
       }
