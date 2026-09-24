@@ -82,8 +82,16 @@ the session as JSON lines.
 
 The command blocks until the person approves, so you must show the emoji while
 it runs. Run it in the background with its output in a file, for example
-`.tmp/spacewave-pair.log`, read the emoji from that file, tell the person, and
-then wait for the command to exit.
+`.tmp/spacewave-pair.log`, and wait for the emoji line, which appears within
+seconds:
+
+```sh
+until grep -q emoji .tmp/spacewave-pair.log; do sleep 1; done
+```
+
+Avoid `tail -f` piped into `grep`, which keeps waiting after the match. Tell
+the person the emoji right away, end your turn if you need their reply, and
+then wait for the command to exit. The person has ten minutes to approve.
 
 If the command reports that the code expired or pairing was rejected, ask the
 person for a new prompt from the Connect an agent button. Codes last ten

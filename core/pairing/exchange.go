@@ -20,7 +20,14 @@ import (
 // ProtocolID identifies account enrollment on an authenticated connection.
 const ProtocolID = protocol.ID("alpha/account-pairing/2")
 
-const confirmationTimeout = 120 * time.Second
+const (
+	// prepareTimeout bounds the account choice before the emoji appear.
+	prepareTimeout = 120 * time.Second
+	// approvalTimeout bounds the emoji comparison. It matches the pairing
+	// code lifetime because the person may see the emoji only after an agent
+	// relays them at the end of its turn.
+	approvalTimeout = 10 * time.Minute
+)
 
 func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *transport.SessionTransport) {
 	// The Session may stop its transport after code registration returns.
@@ -113,7 +120,7 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 	stopClose := context.AfterFunc(ctx, func() { _ = strm.Close() })
 	defer stopClose()
 	sess := stream_packet.NewSession(strm, 16<<20)
-	prepareCtx, cancelPrepare := context.WithTimeout(ctx, confirmationTimeout)
+	prepareCtx, cancelPrepare := context.WithTimeout(ctx, prepareTimeout)
 	stopPrepare := context.AfterFunc(prepareCtx, func() { _ = strm.Close() })
 	enrollment, err := e.prepare(prepareCtx, active, sess, remote)
 	stopPrepare()
@@ -162,7 +169,7 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		a.snapshot.Status = StatusVerifyingEmoji
 	})
 	setStatus := func(status Status) { e.update(active, func(a *attempt) { a.snapshot.Status = status }) }
-	approvalCtx, cancelApproval := context.WithTimeout(ctx, confirmationTimeout)
+	approvalCtx, cancelApproval := context.WithTimeout(ctx, approvalTimeout)
 	status, err := exchangeApproval(approvalCtx, sess, active.confirm, proof, setStatus)
 	cancelApproval()
 	if err != nil {
