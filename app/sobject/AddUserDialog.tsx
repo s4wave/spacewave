@@ -170,10 +170,10 @@ export function AddUserDialog({
     if (!session) return
     dispatch({ type: 'creating' })
     try {
-      const resp = await session.createSpaceInvite(
+      const resp = await session.createSpaceInvite({
         spaceId,
-        SOParticipantRole.SOParticipantRole_WRITER,
-      )
+        role: SOParticipantRole.SOParticipantRole_WRITER,
+      })
       dispatch({ type: 'created', resp })
     } catch (err) {
       dispatch({

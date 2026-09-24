@@ -10,6 +10,7 @@ import {
   AccessSessionStateAtomRequest,
   CompletePairingRequest,
   CreateLocalPairingOfferResponse,
+  CreateSpaceInviteRequest,
   CreateSpaceInviteResponse,
   CreateSpaceRequest,
   CreateSpaceResponse,
@@ -43,10 +44,7 @@ import {
 } from './session.pb.js'
 import { SessionLockMode, SessionRef } from '../../core/session/session.pb.js'
 import type { AccountOutcome } from '../../core/pairing/pairing.pb.js'
-import type {
-  SOInviteMessage,
-  SOParticipantRole,
-} from '../../core/sobject/sobject.pb.js'
+import type { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
 import { SharedObject } from '../sobject/sobject.js'
 import { SystemStatus } from '../status/status.js'
 import { LocalSession } from './local-session.js'
@@ -360,11 +358,10 @@ export class Session extends Resource {
   // createSpaceInvite creates an invite for a space shared object.
   // Returns the full response including the invite message and optional short code.
   public async createSpaceInvite(
-    spaceId: string,
-    role: SOParticipantRole,
+    request: CreateSpaceInviteRequest,
     abortSignal?: AbortSignal,
   ): Promise<CreateSpaceInviteResponse> {
-    return await this.service.CreateSpaceInvite({ spaceId, role }, abortSignal)
+    return await this.service.CreateSpaceInvite(request, abortSignal)
   }
 
   // listSpaceInvites lists invites on a space shared object.
