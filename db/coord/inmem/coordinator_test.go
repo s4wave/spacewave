@@ -74,6 +74,50 @@ func TestCoordinatorPublishesGenerationRootAndPrefixEvents(t *testing.T) {
 	}
 }
 
+// TestCoordinatorReplayCarriesMissedKeyPrefix verifies that a watcher attaching
+// after a publish receives the missed key prefix in its replayed event.
+func TestCoordinatorReplayCarriesMissedKeyPrefix(t *testing.T) {
+	ctx := context.Background()
+	c := NewCoordinator()
+	scope := coord.Scope{
+		VolumeID:      "volume-a",
+		ObjectStoreID: "objects",
+		ParticipantID: "process-a",
+	}
+
+	lease, ok, err := c.TryAcquireWriteLease(ctx, scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("lease unexpectedly busy")
+	}
+	root := &bucket.ObjectRef{BucketId: "bucket-a"}
+	if _, err := lease.Publish(ctx, coord.Event{
+		RootChanged:      root,
+		KeyPrefixChanged: []byte("world-head/"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	watch, err := c.Watch(ctx, scope, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer watch.Close()
+
+	event := <-watch.Events()
+	if event.Generation != 1 {
+		t.Fatalf("unexpected replay generation: %d", event.Generation)
+	}
+	if !event.RootChanged.EqualsRef(root) {
+		t.Fatalf("unexpected replay root: %#v", event.RootChanged)
+	}
+	if string(event.KeyPrefixChanged) != "world-head/" {
+		t.Fatalf("unexpected replay prefix: %q", event.KeyPrefixChanged)
+	}
+}
+
 func TestCoordinatorLeaseWaitsForRelease(t *testing.T) {
 	ctx := context.Background()
 	c := NewCoordinator()
