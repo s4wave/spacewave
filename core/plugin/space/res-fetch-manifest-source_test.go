@@ -15,9 +15,18 @@ import (
 
 const sourceManifestID = "cold-plugin"
 
+// sourceManifestController serves sourceManifestID and records each start and
+// release of the parent demand. The bus may run the resolver more than once.
 type sourceManifestController struct {
 	started  chan struct{}
 	released chan struct{}
+}
+
+func newSourceManifestController() *sourceManifestController {
+	return &sourceManifestController{
+		started:  make(chan struct{}, 8),
+		released: make(chan struct{}, 8),
+	}
 }
 
 func (c *sourceManifestController) GetControllerInfo() *controller.Info {
@@ -40,8 +49,8 @@ func (c *sourceManifestController) HandleDirective(
 		return nil, nil
 	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
-		close(c.started)
-		defer close(c.released)
+		c.started <- struct{}{}
+		defer func() { c.released <- struct{}{} }()
 		_, _ = handler.AddValue(&bldr_manifest.FetchManifestValue{ManifestRefs: []*bldr_manifest.ManifestRef{{}}})
 		handler.MarkIdle(true)
 		<-ctx.Done()
@@ -56,7 +65,7 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := &sourceManifestController{started: make(chan struct{}), released: make(chan struct{})}
+	source := newSourceManifestController()
 	parentRef, err := parent.AddController(ctx, source, nil)
 	if err != nil {
 		t.Fatal(err)
