@@ -99,48 +99,67 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 }
 
 // SweepUnreferenced treats candidate snapshots as hints, not deletion authority.
-// Current owners, outgoing edges, orphan markers, and physical deletion share
-// one raw transaction with the same serialization as grouped head publication.
-func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, node string) (swept bool, err error) {
+// Current owners, outgoing edges, orphan markers, and physical deletion for the
+// whole batch share one raw transaction with the same serialization as grouped
+// head publication.
+func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, nodes []string) ([]string, error) {
 	actual, ok := v.refGraph.(*transactionRefGraph)
 	given, sameType := graph.(*transactionRefGraph)
 	if !ok || !sameType || given != actual || !v.SupportsAtomicPublication() {
-		return false, block_gc.ErrAtomicSweepUnsupported
+		return nil, block_gc.ErrAtomicSweepUnsupported
 	}
+	var swept []string
+	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		for _, node := range nodes {
+			removed, err := sweepOrphan(ctx, blocks, rg, node)
+			if err != nil {
+				return false, err
+			}
+			if removed {
+				swept = append(swept, node)
+			}
+		}
+		return len(swept) != 0, nil
+	})
+	// A failed physical transaction must not report a successful sweep.
+	if err != nil {
+		return nil, err
+	}
+	return swept, nil
+}
+
+// sweepOrphan removes node inside the sweep transaction when its only current
+// owner is the unreferenced marker.
+func sweepOrphan(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, node string) (bool, error) {
 	if block_gc.IsPermanentRoot(node) {
 		return false, nil
 	}
-	err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		incoming, err := rg.GetIncomingRefs(ctx, node)
-		if err != nil {
+	incoming, err := rg.GetIncomingRefs(ctx, node)
+	if err != nil {
+		return false, err
+	}
+	marked := false
+	for _, owner := range incoming {
+		if owner != block_gc.NodeUnreferenced {
+			return false, nil // rescued after the collector took its snapshot
+		}
+		marked = true
+	}
+	if !marked {
+		return false, nil // already swept, or not an orphan candidate
+	}
+	if _, err := rg.RemoveNodeRefs(ctx, node, true); err != nil {
+		return false, err
+	}
+	if err := rg.RemoveRef(ctx, block_gc.NodeUnreferenced, node); err != nil {
+		return false, err
+	}
+	if ref, ok := block_gc.ParseBlockIRI(node); ok {
+		if err := blocks.RmBlock(ctx, ref); err != nil {
 			return false, err
 		}
-		marked := false
-		for _, owner := range incoming {
-			if owner != block_gc.NodeUnreferenced {
-				return false, nil // rescued after the collector took its snapshot
-			}
-			marked = true
-		}
-		if !marked {
-			return false, nil // already swept, or not an orphan candidate
-		}
-		if _, err := rg.RemoveNodeRefs(ctx, node, true); err != nil {
-			return false, err
-		}
-		if err := rg.RemoveRef(ctx, block_gc.NodeUnreferenced, node); err != nil {
-			return false, err
-		}
-		if ref, ok := block_gc.ParseBlockIRI(node); ok {
-			if err := blocks.RmBlock(ctx, ref); err != nil {
-				return false, err
-			}
-		}
-		swept = true
-		return true, nil
-	})
-	// A failed physical transaction must not report a successful sweep.
-	return swept && err == nil, err
+	}
+	return true, nil
 }
 
 var (

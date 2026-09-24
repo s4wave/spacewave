@@ -13,6 +13,7 @@ package block_gc
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,13 +24,19 @@ import (
 // ownership domain before graph or block mutation.
 var ErrAtomicSweepUnsupported = errors.New("atomic sweep unsupported")
 
-// AtomicSweepStore rechecks current ownership and removes a still-orphaned node
-// and its physical block in one transaction, serialized with publication. A
+// AtomicSweepStore rechecks current ownership and removes still-orphaned nodes
+// and their physical blocks in one transaction, serialized with publication. A
 // candidate snapshot alone never authorizes deletion. The graph argument binds
-// this operation to the collector's reachability scope.
+// this operation to the collector's reachability scope. It returns the nodes it
+// removed; a failed transaction removes none.
 type AtomicSweepStore interface {
-	SweepUnreferenced(ctx context.Context, graph RefGraphOps, node string) (bool, error)
+	SweepUnreferenced(ctx context.Context, graph RefGraphOps, nodes []string) ([]string, error)
 }
+
+// atomicSweepBatchSize bounds the candidates rechecked in one atomic sweep
+// transaction. Each commit rewrites the store's freelist, so one transaction
+// per node made sweep cost scale with free space instead of with work.
+const atomicSweepBatchSize = 256
 
 // Stats holds GC cycle statistics.
 type Stats struct {
@@ -131,6 +138,20 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 			break
 		}
 
+		// A stale snapshot must not delete a block rescued by an intervening
+		// publication. Use the store's physical atomic sweep where available.
+		// Graph-only and callback collectors keep their established contract.
+		if atomic, ok := c.store.(AtomicSweepStore); ok && removeBlocks && c.onSwept == nil {
+			swept, err := c.sweepAtomic(ctx, atomic, nodes, stats)
+			if err != nil {
+				return stats, err
+			}
+			if swept == 0 {
+				break
+			}
+			continue
+		}
+
 		// Remove each eligible node's graph edges, callback, and physical block.
 		var swept int
 		for _, node := range nodes {
@@ -139,29 +160,6 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 			}
 
 			if IsPermanentRoot(node) {
-				continue
-			}
-
-			// A stale snapshot must not delete a block rescued by an intervening
-			// publication. Use the store's physical atomic sweep where available.
-			// Graph-only and callback collectors keep their established contract.
-			if atomic, ok := c.store.(AtomicSweepStore); ok && removeBlocks && c.onSwept == nil {
-				phaseStart = time.Now()
-				removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, node)
-				stats.AtomicSweepDuration += time.Since(phaseStart)
-				stats.AtomicSweepCount++
-				if err != nil {
-					return stats, errors.Wrap(err, "atomic sweep")
-				}
-				if removed {
-					swept++
-					stats.NodesSwept++
-					stats.RemoveNodeRefsCount++
-					stats.RemoveUnreferencedEdgeCount++
-					if _, ok := ParseBlockIRI(node); ok {
-						stats.RemoveBlockCount++
-					}
-				}
 				continue
 			}
 
@@ -245,4 +243,35 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 	}
 
 	return stats, nil
+}
+
+// sweepAtomic sweeps one candidate snapshot through the store's atomic sweep in
+// bounded batches and returns the number of nodes removed.
+func (c *Collector) sweepAtomic(ctx context.Context, atomic AtomicSweepStore, nodes []string, stats *Stats) (int, error) {
+	candidates := slices.DeleteFunc(slices.Clone(nodes), IsPermanentRoot)
+	var swept int
+	for len(candidates) != 0 {
+		batch := candidates[:min(len(candidates), atomicSweepBatchSize)]
+		candidates = candidates[len(batch):]
+		start := time.Now()
+		removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, batch)
+		stats.AtomicSweepDuration += time.Since(start)
+		stats.AtomicSweepCount += len(batch)
+		if err != nil {
+			if ctx.Err() != nil {
+				return swept, ctx.Err()
+			}
+			return swept, errors.Wrap(err, "atomic sweep")
+		}
+		for _, node := range removed {
+			swept++
+			stats.NodesSwept++
+			stats.RemoveNodeRefsCount++
+			stats.RemoveUnreferencedEdgeCount++
+			if _, ok := ParseBlockIRI(node); ok {
+				stats.RemoveBlockCount++
+			}
+		}
+	}
+	return swept, nil
 }
