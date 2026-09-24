@@ -887,6 +887,17 @@ theorem accepted_frame_remaining {frame : FrameObservation} {initial expected le
   cases parsed : parseHeader frame <;> simp only [parsed] at *
   all_goals repeat' first | (split at accepted <;> try simp_all) | (split <;> try simp_all) | omega
 
+/-- A complete old-generation frame is classified as retired at a different noninitial sequence base. -/
+theorem accepted_frame_retired {frame : FrameObservation} {initial expected length fresh : Nat}
+    {first : Bool} {record : Record}
+    (accepted : scanFrame initial expected first frame = .ok (some (record, length)))
+    (different : expected ≠ fresh) (noninitial : fresh ≠ 1) :
+    scanFrame fresh fresh true frame = .error 2 := by
+  unfold scanFrame at *
+  simp only [bind, pure, throw, throwThe, MonadExceptOf.throw, Except.bind, Except.pure] at *
+  cases parsed : parseHeader frame <;> simp only [parsed] at *
+  all_goals repeat' first | (split at accepted <;> try simp_all) | (split <;> try simp_all) | omega
+
 /-- A complete emitted frame is accepted even when later frames or a torn tail follow it. -/
 theorem encoded_frame_scans_suffix {record : Record} {encoding : FrameEncoding} {bytes : List Nat}
     (encoded : encodeFrame record encoding = some bytes) (valid : validRecord (some record) = true)
@@ -999,6 +1010,22 @@ theorem emitted_prefix_scan {expected next : Nat} {bytes : List Nat} {inputs : L
     rw [ih false]
     simp only [List.isEmpty_cons, Bool.false_eq_true, ↓reduceIte, ite_self, List.length_append]
     cases scanBytesFrom initial next false suffix tailInputs <;> simp [Except.map, Nat.add_assoc]
+
+/-- Nonempty emitted bytes from an old sequence base are recognized as the checkpoint's retired segment. -/
+theorem emitted_prefix_retired {initial fresh next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix initial bytes inputs records next)
+    (nonempty : records ≠ []) (different : initial ≠ fresh) (noninitial : fresh ≠ 1) :
+    scanBytes fresh bytes inputs = .error 2 := by
+  cases emitted with
+  | nil => contradiction
+  | @cons record encoding bytes rest inputs records next encoded valid sequence headerCRC frameCRC tail =>
+    have head := encoded_frame_scans_suffix encoded valid sequence headerCRC frameCRC rest record.sequence true
+    have retired := accepted_frame_retired head different noninitial
+    have nonempty := encoded_nonempty encoded
+    have bufferNonempty : (bytes ++ rest).isEmpty = false := by cases bytes <;> simp_all
+    simp only [scanBytes, scanBytesFrom, bufferNonempty, Bool.false_eq_true, ↓reduceIte]
+    dsimp only [observeFrameBytes] at retired ⊢
+    rw [retired]
 
 /-- Encoder sequence continuity establishes the historical next sequence without a scanner hypothesis. -/
 theorem emittedPrefix_sequence {expected next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
@@ -1832,6 +1859,20 @@ def validOutgoingMarker (marker : GenerationMarker) : Bool :=
   marker.identity.length == digestLength && marker.generation != 0 && marker.nextSequence != 0 &&
   marker.snapshotLength != 0 && marker.snapshotDigest.length == digestLength && marker.retiredDigest.length == digestLength
 
+/-- encodeMarker models the fixed marker header and primitive CRC emitted by the serializer. -/
+def encodeMarker (marker : GenerationMarker) (crc : Nat) : Option MarkerObservation :=
+  if validOutgoingMarker marker then some ⟨144, "53574731", 1, crc, crc, marker⟩ else none
+
+/-- Every emitted marker is accepted with its original identity and exact metadata. -/
+theorem encoded_marker_reads {marker : GenerationMarker} {crc : Nat} {observation : MarkerObservation}
+    (encoded : encodeMarker marker crc = some observation) :
+    readMarker marker.identity observation = some marker := by
+  unfold encodeMarker at encoded
+  split at encoded
+  · cases encoded
+    simp_all [validOutgoingMarker, readMarker]
+  · contradiction
+
 /-- CheckpointResult exposes attempted candidate construction and all durable publication effects. -/
 structure CheckpointResult where
   ok : Bool
@@ -1952,5 +1993,253 @@ theorem prepared_checkpoint_reopens {before : PublicationState} {input : Checkpo
   rw [binding.2.2.1, binding.2.2.2.1]
   apply checkpoint_read_exists replayed
   simpa only [available, ↓reduceIte] using binding.2.1
+
+/-- Successful compact construction requires usable identity, generation and next sequence metadata. -/
+theorem built_checkpoint_metadata {identity : String} {generation sequence : Nat}
+    {state : Option State} {checkpoint : CompactCheckpoint}
+    (built : buildCheckpoint identity generation sequence state = some checkpoint) :
+    identity.length = digestLength ∧ generation ≠ 0 ∧ sequence ≠ 0 := by
+  unfold buildCheckpoint at built
+  split at built
+  · contradiction
+  · rename_i metadata
+    simpa [and_assoc] using metadata
+
+/-- A usable uint64 successor is strictly newer; wrapping to zero cannot be published. -/
+theorem bounded_successor_advances {value : Nat}
+    (bounded : value < seqnoLimit) (usable : (value + 1) % seqnoLimit ≠ 0) :
+    value < (value + 1) % seqnoLimit ∧ (value + 1) % seqnoLimit < seqnoLimit := by
+  have next : value + 1 < seqnoLimit := by
+    by_cases next : value + 1 < seqnoLimit
+    · exact next
+    · have edge : value + 1 = seqnoLimit := by omega
+      simp [edge] at usable
+  rw [Nat.mod_eq_of_lt next]
+  exact ⟨by omega, next⟩
+
+/-- A nonempty encoded journal cannot begin at the exhausted sequence sentinel. -/
+theorem emitted_prefix_start {initial next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix initial bytes inputs records next) :
+    records = [] ∨ initial ≠ 0 := by
+  cases emitted with
+  | nil => exact Or.inl rfl
+  | cons encoded valid sequence headerCRC frameCRC tail =>
+    right
+    simp only [validRecord, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, decide_eq_true_eq] at valid
+    exact valid.1.1.1.1.2
+
+/-- An emitted prefix with a usable next sequence also started before exhaustion. -/
+theorem emitted_prefix_start_nonzero {initial next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix initial bytes inputs records next) (usable : next ≠ 0) :
+    initial ≠ 0 := by
+  rcases emitted_prefix_start emitted with empty | nonzero
+  · have sequence := emittedPrefix_sequence emitted
+    simpa [empty, advanceSequence, sequence] using usable
+  · exact nonzero
+
+/-- A prefix ending before exhaustion advances numerically and cannot wrap through sequence zero. -/
+theorem emitted_prefix_forward {initial next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix initial bytes inputs records next) (usable : next ≠ 0) :
+    initial ≤ next ∧ (records ≠ [] → initial < next) := by
+  induction emitted with
+  | nil initial => exact ⟨Nat.le_refl _, by simp⟩
+  | @cons record encoding bytes rest inputs records next encoded valid sequence headerCRC frameCRC tail ih =>
+    have step := bounded_successor_advances sequence (emitted_prefix_start_nonzero tail usable)
+    have rest := ih usable
+    have advanced : record.sequence < next := Nat.lt_of_lt_of_le step.1 rest.1
+    exact ⟨Nat.le_of_lt advanced, fun _ => advanced⟩
+
+/-- The acknowledged next sequence identifies a nonempty emitted prefix as retired checkpoint bytes. -/
+theorem emitted_prefix_retired_at_next {initial next : Nat} {bytes : List Nat} {inputs : List FramePrimitives}
+    {records : List Record} (emitted : EmittedPrefix initial bytes inputs records next)
+    (nonempty : records ≠ []) (usable : next ≠ 0) : scanBytes next bytes inputs = .error 2 := by
+  have advanced := (emitted_prefix_forward emitted usable).2 nonempty
+  have initialUsable := emitted_prefix_start_nonzero emitted usable
+  exact emitted_prefix_retired emitted nonempty (Nat.ne_of_lt advanced) (by omega)
+
+/-- Selected nonzero generations advance every held uint64 high water mark. -/
+theorem checkpoint_generation_advances {before : PublicationState} {input : CheckpointInput} {generation : Nat}
+    (writerBounded : before.generation < seqnoLimit) (floorBounded : before.floor < seqnoLimit)
+    (markerBounded : ∀ observation ∈ input.marker, observation.marker.generation < seqnoLimit)
+    (selected : checkpointGeneration before input = some generation) (usable : generation ≠ 0) :
+    before.generation < generation ∧ before.floor < generation ∧ generation < seqnoLimit := by
+  unfold checkpointGeneration at selected
+  cases present : input.marker with
+  | none =>
+    simp only [present] at selected
+    split at selected
+    · contradiction
+    · cases selected
+      have bounded : max before.generation before.floor < seqnoLimit := by omega
+      have next := bounded_successor_advances bounded usable
+      exact ⟨by omega, by omega, next.2⟩
+  | some observation =>
+    simp only [present] at selected
+    obtain ⟨marker, parsed, selected⟩ := Option.bind_eq_some_iff.mp selected
+    have same : marker = observation.marker := by
+      unfold readMarker at parsed
+      split at parsed
+      · contradiction
+      · exact Option.some.inj parsed.symm
+    subst marker
+    split at selected
+    · contradiction
+    · cases selected
+      have markerLimit := markerBounded observation (by simp [present])
+      have bounded : max (max before.generation before.floor) observation.marker.generation < seqnoLimit := by omega
+      have next := bounded_successor_advances bounded usable
+      exact ⟨by omega, by omega, next.2⟩
+
+/-- A prepared checkpoint has a fresh, nonzero generation within the actual uint64 representation. -/
+theorem prepared_checkpoint_advances {before : PublicationState} {input : CheckpointInput} {prepared : PreparedCheckpoint}
+    (writerBounded : before.generation < seqnoLimit) (floorBounded : before.floor < seqnoLimit)
+    (markerBounded : ∀ observation ∈ input.marker, observation.marker.generation < seqnoLimit)
+    (ready : prepareCheckpoint before input = some prepared) :
+    before.generation < prepared.marker.generation ∧ before.floor < prepared.marker.generation ∧
+      prepared.marker.generation < seqnoLimit := by
+  have binding := prepared_checkpoint_binding ready
+  have metadata := built_checkpoint_metadata binding.2.1
+  exact checkpoint_generation_advances writerBounded floorBounded markerBounded binding.1 metadata.2.1
+
+/-- Emitted marker metadata satisfies every nonzero field needed by the recovery reader. -/
+theorem encoded_marker_valid {marker : GenerationMarker} {crc : Nat} {observation : MarkerObservation}
+    (encoded : encodeMarker marker crc = some observation) : validOutgoingMarker marker = true := by
+  unfold encodeMarker at encoded
+  split at encoded
+  · assumption
+  · contradiction
+
+/-- A completed checkpoint with an empty suffix opens directly from its emitted marker and hydrated content. -/
+theorem open_checkpoint_empty {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat}
+    {checkpoint : CompactCheckpoint} {state : State}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation) (floor : input.floor = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some state)
+    (authenticated : authenticateState state = true) (empty : input.bytes.data = []) (tailSize : input.tailSizeOK = true) :
+    (openWriter input authenticate authenticateState).writer =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false, none, input.identity, marker.generation⟩ := by
+  have valid := encoded_marker_valid encoded
+  simp only [validOutgoingMarker, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, and_assoc] at valid
+  have generationNe := valid.2.1
+  have parsed : readMarker input.identity observation = some marker := by
+    rw [identity]
+    exact encoded_marker_reads encoded
+  have notNext : marker.generation ≠ (marker.generation + 1) % seqnoLimit := by
+    unfold seqnoLimit
+    omega
+  have scanned : scanBytes marker.nextSequence input.bytes.data input.frames = .ok ⟨[], 0⟩ := by
+    cases input.frames <;> simp [scanBytes, scanBytesFrom, empty]
+  rcases readable with ⟨storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize⟩
+  have prepared : prepareOpen input authenticate authenticateState =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false, none, input.identity, marker.generation⟩ := by
+    simp [prepareOpen, storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize,
+      present, parsed, floor, crypto, generationWindow, generationNe, candidate, hydrated, authenticated,
+      scanned, notNext, checkpointScan, applyRecords]
+  rw [openWriter, prepared]
+  simp [finishOpen, tailSize, empty]
+
+/-- Every successful publication of a replay snapshot has an emitted marker that reopens its exact state. -/
+theorem checkpoint_success_reopens {before : PublicationState} {preparation : CheckpointInput}
+    {input : OpenInput} {history : List (Option Record)} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    (replayed : reduceJournal history = some before.state) (available : preparation.reducerAvailable = true)
+    (writerBounded : before.generation < seqnoLimit) (floorBounded : before.floor < seqnoLimit)
+    (markerBounded : ∀ observation ∈ preparation.marker, observation.marker.generation < seqnoLimit)
+    (accepted : (checkpointWriter before preparation).ok = true)
+    (readable : OpenReadable input) (crypto : input.crypto = true) (tailSize : input.tailSizeOK = true)
+    (identity : input.identity = preparation.identity)
+    (bytes : input.bytes.data = (checkpointWriter before preparation).result.bytes.durable)
+    (floor : input.floor = (checkpointWriter before preparation).result.floor)
+    (authenticated : authenticateState before.state = true) (crc : Nat) :
+    ∃ candidate observation,
+      (checkpointWriter before preparation).prepared = some candidate ∧
+      encodeMarker candidate.marker crc = some observation ∧
+      (openWriter {input with marker := some observation, checkpoint := some candidate.checkpoint}
+        authenticate authenticateState).writer.map (·.state) = some before.state := by
+  obtain ⟨candidate, ready, retained, valid, marker, publishedFloor, durable, generation, offset, poison, slot⟩ :=
+    checkpoint_success accepted
+  have advanced := prepared_checkpoint_advances writerBounded floorBounded markerBounded ready
+  have binding := prepared_checkpoint_binding ready
+  obtain ⟨observation, encoded⟩ : ∃ observation, encodeMarker candidate.marker crc = some observation := by
+    simp [encodeMarker, valid]
+  refine ⟨candidate, observation, retained, encoded, ?_⟩
+  have actualFloor : input.floor = candidate.marker.generation := by
+    rw [floor, publishedFloor, Nat.max_eq_right (Nat.le_of_lt advanced.2.1)]
+  have actualIdentity : input.identity = candidate.marker.identity := identity.trans binding.2.2.1.symm
+  have hydrated := prepared_checkpoint_reopens replayed available ready
+  have opened := open_checkpoint_empty (input := {input with marker := some observation, checkpoint := some candidate.checkpoint})
+    (authenticate := authenticate)
+    readable crypto actualIdentity rfl encoded actualFloor rfl
+    (by simpa only [actualIdentity] using hydrated) authenticated (bytes.trans durable) tailSize
+  simp only [opened, Option.map_some]
+
+/-- A published checkpoint recognizes and captures its exact retired segment before activation. -/
+theorem open_checkpoint_retired {input : OpenInput} {authenticate : Record → Bool} {authenticateState : State → Bool}
+    {marker : GenerationMarker} {observation : MarkerObservation} {crc : Nat}
+    {checkpoint : CompactCheckpoint} {state : State}
+    (readable : OpenReadable input) (crypto : input.crypto = true)
+    (identity : input.identity = marker.identity) (present : input.marker = some observation)
+    (encoded : encodeMarker marker crc = some observation)
+    (window : input.floor = marker.generation ∨ input.floor + 1 = marker.generation)
+    (candidate : input.checkpoint = some checkpoint)
+    (hydrated : readCheckpoint checkpoint input.identity marker.generation marker.nextSequence = some state)
+    (authenticated : authenticateState state = true)
+    (retired : scanBytes marker.nextSequence input.bytes.data input.frames = .error 2)
+    (retiredRead : input.retiredReadOK = true) (retiredLength : input.bytes.data.length = marker.retiredLength)
+    (retiredDigest : input.retiredDigest = marker.retiredDigest) :
+    (openWriter input authenticate authenticateState).writer =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false,
+        some ⟨marker, input.floor⟩, input.identity, marker.generation⟩ := by
+  have valid := encoded_marker_valid encoded
+  simp only [validOutgoingMarker, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, and_assoc] at valid
+  have generationNe := valid.2.1
+  have parsed : readMarker input.identity observation = some marker := by
+    rw [identity]
+    exact encoded_marker_reads encoded
+  have windowOK : generationWindow input.floor marker.generation = true := by
+    rcases window with equal | forward
+    · simp [generationWindow, equal, generationNe]
+    · rw [← forward]
+      simp [generationWindow]
+  rcases readable with ⟨storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize⟩
+  have prepared : prepareOpen input authenticate authenticateState =
+      some ⟨input.bytes, marker.nextSequence % seqnoLimit, 0, [], state, false,
+        some ⟨marker, input.floor⟩, input.identity, marker.generation⟩ := by
+    simp [prepareOpen, storage, generation, floorSupported, identityLength, markerRead, floorRead, scanSize,
+      present, parsed, windowOK, crypto, candidate, hydrated, authenticated, retired, retiredRead,
+      retiredLength, retiredDigest, checkpointScan, applyRecords]
+  rw [openWriter, prepared]
+  simp [finishOpen]
+
+/-- Old emitted bytes captured by a prepared checkpoint recover to that checkpoint's complete historical state. -/
+theorem prepared_checkpoint_retired_reopens {before : PublicationState} {preparation : CheckpointInput}
+    {prepared : PreparedCheckpoint} {input : OpenInput} {history : List (Option Record)}
+    {authenticate : Record → Bool} {authenticateState : State → Bool} {initial : Nat}
+    {primitives : List FramePrimitives} {records : List Record}
+    (replayed : reduceJournal history = some before.state) (available : preparation.reducerAvailable = true)
+    (ready : prepareCheckpoint before preparation = some prepared)
+    (emitted : EmittedPrefix initial before.bytes.data primitives records before.sequence) (nonempty : records ≠ [])
+    (readable : OpenReadable input) (crypto : input.crypto = true) (identity : input.identity = preparation.identity)
+    (observed : input.bytes.data = before.bytes.data) (decoded : input.frames = primitives)
+    (window : input.floor = prepared.marker.generation ∨ input.floor + 1 = prepared.marker.generation)
+    (retiredRead : input.retiredReadOK = true) (retiredDigest : input.retiredDigest = preparation.retiredDigest)
+    (authenticated : authenticateState before.state = true) {crc : Nat} {observation : MarkerObservation}
+    (encoded : encodeMarker prepared.marker crc = some observation) :
+    (openWriter {input with marker := some observation, checkpoint := some prepared.checkpoint}
+      authenticate authenticateState).writer.map (·.state) = some before.state := by
+  have binding := prepared_checkpoint_binding ready
+  have usable := (built_checkpoint_metadata binding.2.1).2.2
+  have retired := emitted_prefix_retired_at_next emitted nonempty usable
+  have actualIdentity : input.identity = prepared.marker.identity := identity.trans binding.2.2.1.symm
+  have hydrated := prepared_checkpoint_reopens replayed available ready
+  have opened := open_checkpoint_retired (input := {input with marker := some observation, checkpoint := some prepared.checkpoint})
+    (authenticate := authenticate) readable crypto actualIdentity rfl encoded window rfl
+    (by simpa only [actualIdentity] using hydrated) authenticated
+    (by simpa only [binding.2.2.2.1, observed, decoded] using retired) retiredRead
+    (by simp only [binding.2.2.2.2.1, observed])
+    (retiredDigest.trans binding.2.2.2.2.2.1.symm)
+  simp only [opened, Option.map_some]
 
 end Spacewave.SObject.Journal

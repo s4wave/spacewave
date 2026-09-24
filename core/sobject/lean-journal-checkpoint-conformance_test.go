@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"hash/crc32"
 	"math"
 	"reflect"
 	"slices"
@@ -267,9 +268,17 @@ func leanOutgoingMarkerCases(t *testing.T) []leanCase {
 		case 8:
 			marker.Identity = append(marker.Identity, 0)
 		}
-		_, err := marshalJournalGenerationMarker(marker)
+		data, err := marshalJournalGenerationMarker(marker)
 		request := map[string]any{"op": "validateOutgoingJournalMarker", "marker": projectLeanJournalMarker(marker)}
 		cases = append(cases, leanCase{name: "validateOutgoingJournalMarker " + strconv.Itoa(variant), request: marshalLeanJournal(t, request), ok: err == nil})
+		var observation any
+		var crc uint32
+		if err == nil {
+			observation = projectLeanJournalMarkerObservation(data)
+			crc = crc32.Checksum(data[:140], crc32.MakeTable(crc32.Castagnoli))
+		}
+		encoded := map[string]any{"op": "encodeJournalMarker", "marker": projectLeanJournalMarker(marker), "crc": crc}
+		cases = append(cases, leanCase{name: "encodeJournalMarker " + strconv.Itoa(variant), request: marshalLeanJournal(t, encoded), ok: err == nil, field: "marker", value: marshalLeanJournal(t, observation)})
 	}
 	return cases
 }

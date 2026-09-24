@@ -41,6 +41,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `validateJournalCheckpoint`: `attempt`; result `{"ok"}`.
 - `checkpointJournalWriter`: held writer/storage state and preparation/publication primitives.
 - `validateOutgoingJournalMarker`: marker metadata before serialization.
+- `encodeJournalMarker`: marker metadata and primitive CRC before decoding its fixed header.
 - `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
@@ -182,6 +183,10 @@ def respond (req : Json) : Except String Json := do
     let result := Journal.checkpointWriter (← req.getObjValAs? Journal.PublicationState "before")
       (← req.getObjValAs? Journal.CheckpointInput "input")
     return json% {ok: $(result.ok), checkpoint: $result}
+  | "encodeJournalMarker" =>
+    let result := Journal.encodeMarker (← req.getObjValAs? Journal.GenerationMarker "marker")
+      (← req.getObjValAs? Nat "crc")
+    return json% {ok: $(result.isSome), marker: $result}
   | "validateOutgoingJournalMarker" =>
     return json% {ok: $(Journal.validOutgoingMarker (← req.getObjValAs? Journal.GenerationMarker "marker"))}
   | "publishJournalCheckpoint" =>
