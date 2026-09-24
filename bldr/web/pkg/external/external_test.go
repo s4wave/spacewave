@@ -78,7 +78,7 @@ func TestBldrSdkImportsCoverBrowserModules(t *testing.T) {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		if rel != "resource/unix-client.ts" && !strings.HasPrefix(rel, "plugin/host/") {
+		if rel != "resource/unix-client.ts" {
 			modules = append(modules, rel)
 		}
 		return nil

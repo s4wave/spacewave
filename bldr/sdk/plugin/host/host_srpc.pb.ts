@@ -17,8 +17,6 @@ import {
   CompleteInitialCapabilityRegistrationResponse,
   GetPluginInfoRequest,
   GetPluginInfoResponse,
-  RegisterObjectTypeRequest,
-  RegisterObjectTypeResponse,
 } from './host.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc, ServerContext } from 'starpc'
@@ -95,17 +93,6 @@ export const PluginHostResourceServiceDefinition = {
       name: 'GetPluginInfo',
       I: GetPluginInfoRequest,
       O: GetPluginInfoResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * RegisterObjectType registers an ObjectType served by the running plugin.
-     *
-     * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
-     */
-    RegisterObjectType: {
-      name: 'RegisterObjectType',
-      I: RegisterObjectTypeRequest,
-      O: RegisterObjectTypeResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -187,16 +174,6 @@ export interface PluginHostResourceService {
     request: GetPluginInfoRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetPluginInfoResponse>
-
-  /**
-   * RegisterObjectType registers an ObjectType served by the running plugin.
-   *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
-   */
-  RegisterObjectType(
-    request: RegisterObjectTypeRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RegisterObjectTypeResponse>
 
   /**
    * CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
@@ -282,17 +259,6 @@ export interface PluginHostResourceServiceHandler {
   ): Promise<GetPluginInfoResponse>
 
   /**
-   * RegisterObjectType registers an ObjectType served by the running plugin.
-   *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
-   */
-  RegisterObjectType(
-    request: RegisterObjectTypeRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<RegisterObjectTypeResponse>
-
-  /**
    * CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
    *
    * @generated from rpc bldr.plugin.host.PluginHostResourceService.CompleteInitialCapabilityRegistration
@@ -319,7 +285,6 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
     this.AccessDesktopTray = this.AccessDesktopTray.bind(this)
     this.GetPluginInfo = this.GetPluginInfo.bind(this)
-    this.RegisterObjectType = this.RegisterObjectType.bind(this)
     this.CompleteInitialCapabilityRegistration =
       this.CompleteInitialCapabilityRegistration.bind(this)
   }
@@ -435,25 +400,6 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
       abortSignal || undefined,
     )
     return GetPluginInfoResponse.fromBinary(result)
-  }
-
-  /**
-   * RegisterObjectType registers an ObjectType served by the running plugin.
-   *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
-   */
-  async RegisterObjectType(
-    request: RegisterObjectTypeRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RegisterObjectTypeResponse> {
-    const requestMsg = RegisterObjectTypeRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      PluginHostResourceServiceDefinition.methods.RegisterObjectType.name,
-      RegisterObjectTypeRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return RegisterObjectTypeResponse.fromBinary(result)
   }
 
   /**

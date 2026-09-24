@@ -485,7 +485,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "d9b0c7555d2c74157360ccea6c6db5f15fa5992f339b458c2bab01154a794b51",
+      "hash": "1791b3f53e809a6355d7d71f27a7baf7cbfae32190f596ba03106b826ad8a9bf",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.go",
         "bldr/sdk/plugin/host/host.pb.ts",

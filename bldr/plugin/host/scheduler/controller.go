@@ -531,8 +531,7 @@ func (c *Controller) buildPluginMux(
 
 	// register resource server for plugin resource access
 	pluginHostRoot := plugin_host_resource.NewPluginHostRoot(
-		ctx,
-		c.le, c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
+		c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
 		distFS, assetsFS, proxyHostVol,
 		hostRoot,
 		"plugin-state-atoms",

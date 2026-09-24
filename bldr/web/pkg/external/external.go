@@ -22,7 +22,7 @@ var BldrExternal = []string{
 // bldrSdkImports are the browser modules of @aptre/bldr-sdk. Consumers import
 // any of them by subpath, and the runtime and every plugin must share one
 // instance of each so SDK React contexts reach plugin components. The Node-only
-// resource/unix-client.ts and the backend-only plugin/host are omitted.
+// resource/unix-client.ts is omitted.
 var bldrSdkImports = []string{
 	"index.ts",
 	"defer.ts",
@@ -38,6 +38,10 @@ var bldrSdkImports = []string{
 	"hooks/useResourcesClient.tsx",
 	"hooks/useStreamingResource.ts",
 	"impl/backend-api.ts",
+	"plugin/host/host.pb.ts",
+	"plugin/host/host_srpc.pb.ts",
+	"plugin/host/index.ts",
+	"plugin/host/plugin-host-root.ts",
 	"resource/client.ts",
 	"resource/index.ts",
 	"resource/resource.pb.ts",

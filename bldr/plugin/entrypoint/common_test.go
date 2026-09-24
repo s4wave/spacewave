@@ -131,15 +131,11 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 
 	handlerReady := make(chan func(), 1)
 	completeCalled := make(chan struct{}, 1)
-	released := make(chan struct{}, 1)
-	resultCh := make(chan struct {
-		release func()
-		err     error
-	}, 1)
+	resultCh := make(chan error, 1)
 	errCh := make(chan error, 1)
 
 	go func() {
-		release, err := startInitialCapabilityRegistration(
+		resultCh <- startInitialCapabilityRegistration(
 			ctx,
 			nil,
 			func(ctx context.Context, _ *srpc.Server, ready func()) error {
@@ -148,17 +144,11 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 				return ctx.Err()
 			},
 			errCh,
-			func(context.Context) (func(), error) {
+			func(context.Context) error {
 				completeCalled <- struct{}{}
-				return func() {
-					released <- struct{}{}
-				}, nil
+				return nil
 			},
 		)
-		resultCh <- struct {
-			release func()
-			err     error
-		}{release: release, err: err}
 	}()
 
 	ready := <-handlerReady
@@ -169,26 +159,13 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 	}
 
 	ready()
-	result := <-resultCh
-	if result.err != nil {
-		t.Fatal(result.err)
+	if err := <-resultCh; err != nil {
+		t.Fatal(err)
 	}
 	select {
 	case <-completeCalled:
 	default:
 		t.Fatal("initial capability registration did not complete after the stream handler was ready")
-	}
-	select {
-	case <-released:
-		t.Fatal("initial capability registrations were released before entrypoint shutdown")
-	default:
-	}
-
-	result.release()
-	select {
-	case <-released:
-	default:
-		t.Fatal("initial capability registrations were not released at entrypoint shutdown")
 	}
 }
 
@@ -196,16 +173,16 @@ func TestStartInitialCapabilityRegistrationHandlerFailure(t *testing.T) {
 	wantErr := errors.New("stream handler failed")
 	completeCalled := false
 
-	_, err := startInitialCapabilityRegistration(
+	err := startInitialCapabilityRegistration(
 		context.Background(),
 		nil,
 		func(context.Context, *srpc.Server, func()) error {
 			return wantErr
 		},
 		make(chan error, 1),
-		func(context.Context) (func(), error) {
+		func(context.Context) error {
 			completeCalled = true
-			return func() {}, nil
+			return nil
 		},
 	)
 	if !errors.Is(err, wantErr) {
@@ -223,7 +200,7 @@ func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
 	completeCalled := false
 
 	go func() {
-		_, err := startInitialCapabilityRegistration(
+		err := startInitialCapabilityRegistration(
 			ctx,
 			nil,
 			func(ctx context.Context, _ *srpc.Server, _ func()) error {
@@ -232,9 +209,9 @@ func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
 				return ctx.Err()
 			},
 			make(chan error, 1),
-			func(context.Context) (func(), error) {
+			func(context.Context) error {
 				completeCalled = true
-				return func() {}, nil
+				return nil
 			},
 		)
 		resultCh <- err

@@ -20,6 +20,9 @@ import (
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
 	plugin_host_storage_volume "github.com/s4wave/spacewave/bldr/plugin/host/storage/volume"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
+	resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
 	"github.com/s4wave/spacewave/bldr/storage"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	web_fetch_service "github.com/s4wave/spacewave/bldr/web/fetch/service"
@@ -31,7 +34,6 @@ import (
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
-	sdk_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -243,27 +245,22 @@ func ExecutePluginEntrypoint(
 
 	// Listen for incoming requests before publishing initial capabilities.
 	srv := srpc.NewServer(rpcMux)
-	initialRegistrationRel, err := startInitialCapabilityRegistration(
+	err = startInitialCapabilityRegistration(
 		ctx,
 		srv,
 		acceptPluginHostStreams,
 		errCh,
-		func(ctx context.Context) (func(), error) {
+		func(ctx context.Context) error {
 			if pluginInfo.GetStandalone() {
-				return func() {}, nil
+				return nil
 			}
-			registrations, err := sdk_plugin.RegisterObjectTypes(ctx, b)
-			if err != nil {
-				return nil, err
-			}
-			return registrations.Release, nil
+			return completeInitialCapabilityRegistration(ctx, b)
 		},
 	)
 	if err != nil {
 		rel()
 		return err
 	}
-	rels = append(rels, initialRegistrationRel)
 
 	// Start the plugin storage controller and use the default storage id.
 	// On js/wasm this resolves to direct OPFS access, and on native it
@@ -299,16 +296,16 @@ func ExecutePluginEntrypoint(
 
 // startInitialCapabilityRegistration serves incoming plugin host streams and
 // waits for the handler to become ready before completing initial capability
-// registration. It returns a release func for the registered capabilities.
+// registration.
 func startInitialCapabilityRegistration(
 	ctx context.Context,
 	srv *srpc.Server,
 	acceptPluginHostStreams AcceptPluginHostStreamsFunc,
 	errCh chan error,
-	complete func(context.Context) (func(), error),
-) (func(), error) {
+	complete func(context.Context) error,
+) error {
 	if acceptPluginHostStreams == nil {
-		return nil, errors.New("plugin host stream handler is not configured")
+		return errors.New("plugin host stream handler is not configured")
 	}
 
 	readyCh := make(chan struct{})
@@ -326,12 +323,43 @@ func startInitialCapabilityRegistration(
 	select {
 	case <-readyCh:
 	case err := <-errCh:
-		return nil, err
+		return err
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	}
 
 	return complete(ctx)
+}
+
+// completeInitialCapabilityRegistration tells the plugin host that the plugin
+// finished registering its initial capabilities and can serve requests.
+func completeInitialCapabilityRegistration(ctx context.Context, b bus.Bus) error {
+	// Reach the plugin host root resource through the host service prefix.
+	resourceService := resource.NewSRPCResourceServiceClientWithServiceID(
+		bifrost_rpc.NewBusClient(b),
+		bldr_plugin.HostServiceIDPrefix+resource.SRPCResourceServiceServiceID,
+	)
+	client, err := resource_client.NewClient(ctx, resourceService)
+	if err != nil {
+		return errors.Wrap(err, "connect to plugin host resource")
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		return errors.Wrap(err, "access plugin host root resource")
+	}
+
+	// The host root outlives this client, so the signal stays recorded
+	// after the client is released.
+	service := sdk_plugin_host.NewSRPCPluginHostResourceServiceClient(rootClient)
+	_, err = service.CompleteInitialCapabilityRegistration(
+		ctx,
+		&sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest{},
+	)
+	return errors.Wrap(err, "complete initial capability registration")
 }
 
 // handlePluginEntrypointError forwards an entrypoint error to errCh,

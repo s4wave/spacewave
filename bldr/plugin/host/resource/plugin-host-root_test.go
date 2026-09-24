@@ -2,26 +2,15 @@ package plugin_host_resource
 
 import (
 	"context"
-	"errors"
 	"io"
 	"testing"
-	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus/inmem"
-	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/directive"
-	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
-	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
-	"github.com/sirupsen/logrus"
 )
 
 type testResourceClientContext struct {
@@ -83,75 +72,6 @@ func (c *testResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 	return nil, resource.ErrResourceNotFound
 }
 
-var errUnexpectedCoreResourceServiceLookup = errors.New("unexpected core Resource service lookup")
-
-type coreResourceController struct {
-	mux                    srpc.Invoker
-	lookupServiceIDs       chan<- string
-	waitForQualifiedLookup bool
-	qualifiedLookupExited  chan<- error
-}
-
-func (c *coreResourceController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("test/core-resource", controller.MustParseVersion("0.0.1"), "test core resource")
-}
-
-func (c *coreResourceController) Execute(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-func (c *coreResourceController) HandleDirective(
-	ctx context.Context,
-	inst directive.Instance,
-) ([]directive.Resolver, error) {
-	dir, ok := inst.GetDirective().(bifrost_rpc.LookupRpcService)
-	if !ok {
-		return nil, nil
-	}
-	if c.lookupServiceIDs != nil {
-		select {
-		case c.lookupServiceIDs <- dir.LookupRpcServiceID():
-		default:
-		}
-	}
-	if dir.LookupRpcServiceID() != bldr_plugin.PluginServiceID(
-		"spacewave-core",
-		resource.SRPCResourceServiceServiceID,
-	) || dir.LookupRpcServerID() != "" {
-		return directive.R(coreResourceLookupErrorResolver{}, nil)
-	}
-	if c.waitForQualifiedLookup {
-		return directive.R(coreResourceLookupWaitResolver{exited: c.qualifiedLookupExited}, nil)
-	}
-	return directive.R(
-		bifrost_rpc.NewLookupRpcServiceResolver(srpc.InvokerFunc(c.mux.InvokeMethod)),
-		nil,
-	)
-}
-
-func (c *coreResourceController) Close() error {
-	return nil
-}
-
-type coreResourceLookupErrorResolver struct{}
-
-func (coreResourceLookupErrorResolver) Resolve(context.Context, directive.ResolverHandler) error {
-	return errUnexpectedCoreResourceServiceLookup
-}
-
-type coreResourceLookupWaitResolver struct {
-	exited chan<- error
-}
-
-func (r coreResourceLookupWaitResolver) Resolve(ctx context.Context, _ directive.ResolverHandler) error {
-	<-ctx.Done()
-	if r.exited != nil {
-		r.exited <- context.Canceled
-	}
-	return context.Canceled
-}
-
 type testWatchStream struct {
 	ctx    context.Context
 	cancel func()
@@ -193,181 +113,11 @@ func (s *testWatchStream) SendAndClose(resp *desktop_tray.WatchDesktopTrayRespon
 	return nil
 }
 
-func recvObjectTypeRegistrationCount(
-	t *testing.T,
-	strm s4wave_objecttype_registry.SRPCObjectTypeRegistryResourceService_WatchObjectTypesClient,
-	want int,
-) {
-	t.Helper()
-	resp, err := strm.Recv()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := len(resp.GetRegistrations()); got != want {
-		t.Fatalf("ObjectType registrations = %d, want %d", got, want)
-	}
-}
-
-func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-	le := logrus.NewEntry(logrus.New())
-	b := inmem.NewBus(directive_controller.NewController(ctx, le))
-
-	registry := resource_objecttype_registry.NewObjectTypeRegistryResource(nil)
-	coreMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(registry.GetMux()).Register(coreMux); err != nil {
-		t.Fatal(err)
-	}
-	lookupServiceIDs := make(chan string, 1)
-	coreController := &coreResourceController{
-		mux:              coreMux,
-		lookupServiceIDs: lookupServiceIDs,
-	}
-	releaseCoreController, err := b.AddController(ctx, coreController, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseCoreController)
-
-	// Native core is available while the plugin resolver waits for a core
-	// plugin generation that this host does not load.
-	pending := &coreResourceController{waitForQualifiedLookup: true}
-	releasePending, err := b.AddController(ctx, pending, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releasePending)
-
-	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
-	pluginClient := newTestResourceClientContext(ctx)
-	register := func() (*sdk_plugin_host.RegisterObjectTypeResponse, error) {
-		return pluginRoot.RegisterObjectType(
-			resource_server.WithResourceClientContext(ctx, pluginClient),
-			&sdk_plugin_host.RegisterObjectTypeRequest{
-				TypeId: "test/type",
-				Metadata: &s4wave_objecttype_registry.ObjectTypeMetadata{
-					DisplayName: "Test Type",
-				},
-			},
-		)
-	}
-
-	resp, err := register()
-	gotServiceID := <-lookupServiceIDs
-	wantServiceID := bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID)
-	if gotServiceID != wantServiceID {
-		if !errors.Is(err, errUnexpectedCoreResourceServiceLookup) {
-			t.Fatalf("bare core Resource lookup error = %v, want %v", err, errUnexpectedCoreResourceServiceLookup)
-		}
-		t.Fatalf("core Resource service lookup = %q, want %q", gotServiceID, wantServiceID)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	registration := registry.LookupRegistration("test/type", "")
-	if registration == nil {
-		t.Fatal("expected core ObjectType registration")
-	}
-	if registration.GetPluginId() != "test-plugin" {
-		t.Fatalf("plugin ID = %q, want test-plugin", registration.GetPluginId())
-	}
-	if registration.GetMetadata().GetDisplayName() != "Test Type" {
-		t.Fatalf("display name = %q, want Test Type", registration.GetMetadata().GetDisplayName())
-	}
-
-	watchCtx, watchCancel := context.WithCancel(ctx)
-	t.Cleanup(watchCancel)
-	registryService := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(registry.GetMux()))),
-	)
-	watch, err := registryService.WatchObjectTypes(
-		watchCtx,
-		&s4wave_objecttype_registry.WatchObjectTypesRequest{},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	recvObjectTypeRegistrationCount(t, watch, 1)
-
-	if _, err := register(); err == nil {
-		t.Fatal("expected duplicate ObjectType registration to fail")
-	}
-	if !pluginClient.ReleaseResource(resp.GetResourceId()) {
-		t.Fatal("expected registration resource release")
-	}
-	recvObjectTypeRegistrationCount(t, watch, 0)
-
-	if _, err := register(); err != nil {
-		t.Fatal(err)
-	}
-	recvObjectTypeRegistrationCount(t, watch, 1)
-	pluginRoot.Release()
-	recvObjectTypeRegistrationCount(t, watch, 0)
-}
-
-func TestPluginHostRootRegisterObjectTypeCancelsCoreLookup(t *testing.T) {
-	rootCtx, rootCancel := context.WithCancel(t.Context())
-	t.Cleanup(rootCancel)
-	le := logrus.NewEntry(logrus.New())
-	b := inmem.NewBus(directive_controller.NewController(rootCtx, le))
-
-	lookupServiceIDs := make(chan string, 1)
-	lookupExited := make(chan error, 1)
-	coreController := &coreResourceController{
-		lookupServiceIDs:       lookupServiceIDs,
-		waitForQualifiedLookup: true,
-		qualifiedLookupExited:  lookupExited,
-	}
-	releaseCoreController, err := b.AddController(rootCtx, coreController, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseCoreController)
-
-	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(rootCtx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
-	t.Cleanup(pluginRoot.Release)
-	pluginClient := newTestResourceClientContext(rootCtx)
-	callCtx, callCancel := context.WithCancel(resource_server.WithResourceClientContext(rootCtx, pluginClient))
-	t.Cleanup(callCancel)
-
-	errCh := make(chan error, 1)
-	go func() {
-		_, err := pluginRoot.RegisterObjectType(callCtx, &sdk_plugin_host.RegisterObjectTypeRequest{
-			TypeId: "test/type",
-		})
-		errCh <- err
-	}()
-
-	wantServiceID := bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID)
-	if gotServiceID := <-lookupServiceIDs; gotServiceID != wantServiceID {
-		t.Fatalf("core Resource service lookup = %q, want %q", gotServiceID, wantServiceID)
-	}
-	if err := rootCtx.Err(); err != nil {
-		t.Fatalf("root context ended before request cancellation: %v", err)
-	}
-	callCancel()
-
-	if err := <-errCh; !errors.Is(err, context.Canceled) {
-		t.Fatalf("RegisterObjectType error = %v, want context.Canceled", err)
-	}
-	if err := <-lookupExited; !errors.Is(err, context.Canceled) {
-		t.Fatalf("core Resource lookup exit = %v, want context.Canceled", err)
-	}
-	if err := rootCtx.Err(); err != nil {
-		t.Fatalf("root context ended after request cancellation: %v", err)
-	}
-}
-
 func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {
 	ctx := t.Context()
 	hostRoot := plugin_host_root.NewRoot()
 	var completed []bool
 	pluginRoot := NewPluginHostRoot(
-		ctx,
-		nil,
 		nil,
 		"test-plugin",
 		"main",
@@ -394,8 +144,6 @@ func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *test
 
 	completed = nil
 	pluginRoot = NewPluginHostRoot(
-		ctx,
-		nil,
 		nil,
 		"test-plugin",
 		"main",
@@ -418,7 +166,7 @@ func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *test
 func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 	ctx := context.Background()
 	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(ctx, nil, nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
+	pluginRoot := NewPluginHostRoot(nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
 	pluginClient := newTestResourceClientContext(ctx)
 
 	resp, err := pluginRoot.AccessDesktopTray(
