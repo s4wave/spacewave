@@ -49,6 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `writeSyncFrames`: endpoint identities and current-authority/transport trace; result `{"ok", "writer"}`.
 - `startSyncStream`: authentication inputs and deadline observations; result `{"ok", "started"}`.
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
@@ -134,6 +135,7 @@ deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.Authentica
 deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
+deriving instance ToJson, FromJson for Sync.WriterAttempt, Sync.WriterResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
@@ -172,6 +174,10 @@ def respond (req : Json) : Except String Json := do
     let result := Sync.nextMessage (← req.getObjValAs? Sync.Response "before")
       (← req.getObjValAs? (List Nat) "sizes")
     return json% {ok: $(result.ok), message: $result}
+  | "writeSyncFrames" =>
+    let writer := Sync.writeFrames (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+      (← req.getObjValAs? (List Sync.WriterAttempt) "attempts")
+    return json% {ok: $(writer.waiting), writer: $writer}
   | "startSyncStream" =>
     let started := Sync.startStream (← req.getObjValAs? Sync.AuthenticationInput "input")
       (← req.getObjValAs? Bool "deadlineOK") (← req.getObjValAs? Bool "resetOK")

@@ -1,4 +1,5 @@
 import Spacewave.SObject.Sync.Auth
+import Spacewave.SObject.Sync.Catchup
 
 /-!
 # SharedObject stream ownership
@@ -12,8 +13,9 @@ challenge, signature, authority and explicit peer acknowledgment inputs.
 
 `startStream` stops at entry to data synchronization. It does not assert that
 synchronization succeeds, that authority remains unchanged, or that a later
-transport write completes. Watcher, writer and shutdown traces are separate
-lifetime obligations.
+transport write completes. `authenticatedFrames` composes that entry with the
+serialized writer's current-authority checks. Watcher and shutdown traces remain
+separate lifetime obligations.
 -/
 
 namespace Spacewave.SObject.Sync
@@ -86,5 +88,28 @@ theorem startStream_complete {input : AuthenticationInput} {remote : String}
   have authenticated := authenticate_succeeds localTransport remoteTransport distinct key primitives nonceSize
     nonceDistinct proof held acknowledged
   simp [startStream, authenticated]
+
+/-- authenticatedFrames starts the writer only at the authenticated data-entry boundary. -/
+def authenticatedFrames (input : AuthenticationInput) (deadlineOK resetOK : Bool)
+    (attempts : List WriterAttempt) : WriterResult :=
+  match (startStream input deadlineOK resetOK).remote with
+  | none => ⟨[], [], false⟩
+  | some remote => writeFrames input.localPeer remote attempts
+
+/-- Every data admission combines the established handshake with the writer's latest authority check. -/
+theorem authenticatedFrames_authorized {input : AuthenticationInput} {deadlineOK resetOK : Bool}
+    {attempts : List WriterAttempt} {kind : Int}
+    (sent : kind ∈ (authenticatedFrames input deadlineOK resetOK attempts).frames) (dataFrame : kind ≠ 6) :
+    ∃ remote, verifyParticipantProof input.proof = some remote ∧ input.remoteAuthorization = some true ∧
+      authorizeParticipants input.participants input.hash input.localPeer remote = true ∧
+      ∃ attempt ∈ attempts, attempt.selected = true ∧ attempt.kind = kind ∧
+        authorizeParticipants attempt.participants attempt.hash input.localPeer remote = true := by
+  unfold authenticatedFrames at sent
+  cases started : (startStream input deadlineOK resetOK).remote with
+  | none => simp [started] at sent
+  | some remote =>
+    simp only [started] at sent
+    obtain ⟨proof, held, ack⟩ := startStream_authenticated started
+    exact ⟨remote, proof, ack, held, writeFrames_authorized sent dataFrame⟩
 
 end Spacewave.SObject.Sync

@@ -1,9 +1,11 @@
 import Spacewave.SObject.Host
+import Spacewave.SObject.Sync.Auth
 
 /-!
 # SharedObject paginated catch-up
 
-Mirrors paging, response preparation and acceptance in `core/sobject/sync/catchup.go` at `a7b6337d4`.
+Mirrors paging, response preparation, acceptance and the serialized writer in
+`core/sobject/sync/catchup.go`.
 `appendPage` preserves partial receive-buffer mutations on failure; `nextMessage`
 preserves the consumed response prefix even when hashing a later entry fails.
 Neither paging operation has access to held host state. `acceptResponse` alone
@@ -984,5 +986,106 @@ theorem pagesExchange_imports (sender : Response) (input : AcceptanceInput) (siz
     (by simpa only [head] using configHash) bounded
     (by simpa only [changes] using chain) readable root progress valid localEmpty remoteEmpty lock access write
   exact ⟨pages, after, by simpa only [snapshotEq, pinned] using sent, received, imported⟩
+
+/-- WriterAttempt records a channel selection, current authority and completed transport operation.
+    `selected = false` means cancellation won before handoff. `reported = false`
+    means cancellation won after the write. No later attempt is then reachable.
+    `writeOK` is the actual transport outcome, including a denial write's outcome. -/
+structure WriterAttempt where
+  selected : Bool
+  participants : List Participant
+  hash : String
+  kind : Int
+  writeOK : Bool
+  reported : Bool
+  deriving Repr
+
+/-- WriterResult records attempted wire body tags and delivered success results.
+    Frames are transport admissions, not a claim that their bytes were delivered.
+    `waiting` denotes a finite prefix paused before the next handoff. -/
+structure WriterResult where
+  frames : List Int
+  results : List Bool
+  waiting : Bool
+  deriving DecidableEq, Repr
+
+/-- writeFrames mirrors writeMessages, including ignored denial-write failures and both cancellation waits. -/
+def writeFrames (localID remote : String) : List WriterAttempt → WriterResult
+  | [] => ⟨[], [], true⟩
+  | attempt :: rest =>
+    if !attempt.selected then
+      ⟨[], [], false⟩
+    else
+      let admitted := authorizeParticipants attempt.participants attempt.hash localID remote
+      let frame := if admitted then attempt.kind else 6
+      if !attempt.reported then
+        ⟨[frame], [], false⟩
+      else if !(admitted && attempt.writeOK) then
+        ⟨[frame], [false], false⟩
+      else
+        let tail := writeFrames localID remote rest
+        ⟨frame :: tail.frames, true :: tail.results, tail.waiting⟩
+
+/-- A rejected current role/history observation emits only denial and never processes the suffix. -/
+theorem writeFrames_rejected {localID remote : String} {attempt : WriterAttempt} {rest : List WriterAttempt}
+    (selected : attempt.selected = true)
+    (denied : authorizeParticipants attempt.participants attempt.hash localID remote = false) :
+    writeFrames localID remote (attempt :: rest) =
+      ⟨[6], if attempt.reported then [false] else [], false⟩ := by
+  cases report : attempt.reported <;> simp [writeFrames, selected, denied, report]
+
+/-- After any terminal prefix, later grants, messages or scheduling choices cannot restart this writer. -/
+theorem writeFrames_stopped {localID remote : String} {before after : List WriterAttempt}
+    (stopped : (writeFrames localID remote before).waiting = false) :
+    writeFrames localID remote (before ++ after) = writeFrames localID remote before := by
+  induction before with
+  | nil => simp [writeFrames] at stopped
+  | cons attempt rest ih =>
+    simp only [List.cons_append, writeFrames] at *
+    split at * <;> simp_all
+    split at * <;> simp_all
+    split at * <;> simp_all
+
+/-- Every admitted data tag has a selected handoff with currently readable endpoints and held history. -/
+theorem writeFrames_authorized {localID remote : String} {attempts : List WriterAttempt} {kind : Int}
+    (sent : kind ∈ (writeFrames localID remote attempts).frames) (dataFrame : kind ≠ 6) :
+    ∃ attempt ∈ attempts, attempt.selected = true ∧ attempt.kind = kind ∧
+      authorizeParticipants attempt.participants attempt.hash localID remote = true := by
+  induction attempts with
+  | nil => simp [writeFrames] at sent
+  | cons attempt rest ih =>
+    simp only [writeFrames] at sent
+    split at sent
+    · simp at sent
+    · have selected : attempt.selected = true := by simpa using ‹¬(!attempt.selected) = true›
+      by_cases admitted : authorizeParticipants attempt.participants attempt.hash localID remote = true
+      · simp only [admitted, ite_true] at sent
+        split at sent
+        · simp only [List.mem_singleton] at sent
+          exact ⟨attempt, by simp, selected, sent.symm, admitted⟩
+        · split at sent
+          · simp only [List.mem_singleton] at sent
+            exact ⟨attempt, by simp, selected, sent.symm, admitted⟩
+          · simp only [List.mem_cons] at sent
+            rcases sent with same | tail
+            · exact ⟨attempt, by simp, selected, same.symm, admitted⟩
+            · obtain ⟨previous, member, proof⟩ := ih tail
+              exact ⟨previous, by simp [member], proof⟩
+      · have denied : authorizeParticipants attempt.participants attempt.hash localID remote = false := by
+          simpa using admitted
+        cases report : attempt.reported <;> simp [denied, report, dataFrame] at sent
+
+/-- A healthy sequence sends and reports every selected frame in order. -/
+theorem writeFrames_complete {localID remote : String} {attempts : List WriterAttempt}
+    (healthy : ∀ attempt ∈ attempts, attempt.selected = true ∧
+      authorizeParticipants attempt.participants attempt.hash localID remote = true ∧
+      attempt.writeOK = true ∧ attempt.reported = true) :
+    writeFrames localID remote attempts = ⟨attempts.map (·.kind), attempts.map (fun _ => true), true⟩ := by
+  induction attempts with
+  | nil => rfl
+  | cons attempt rest ih =>
+    obtain ⟨selected, admitted, written, reported⟩ := healthy attempt (by simp)
+    have tail := ih (fun item member => healthy item (by simp [member]))
+    simp [writeFrames, selected, admitted, written, reported, tail]
 
 end Spacewave.SObject.Sync

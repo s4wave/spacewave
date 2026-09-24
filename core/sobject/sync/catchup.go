@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -135,28 +136,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 	// A failed write leaves the session open so the loop can drain delivered frames.
 	writer := routine.NewRoutineContainer()
 	writer.SetRoutine(func(ctx context.Context) error {
-		for {
-			var message *SOSyncMessage
-			select {
-			case message = <-outbound:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-			err := s.authorizeParticipants(states.GetValue(), remoteID)
-			if err == nil {
-				err = sess.SendMsg(message)
-			} else {
-				_ = sendAccessDenied(sess)
-			}
-			select {
-			case sent <- err:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-			if err != nil {
-				return err
-			}
-		}
+		return s.writeMessages(ctx, sess, remoteID, states, outbound, sent)
 	})
 
 	// Coalesce state changes while a prior advertisement is pinned by its receiver.
@@ -379,6 +359,42 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			default:
 				return errors.New("unexpected authenticated sync message")
 			}
+		}
+	}
+}
+
+// writeMessages serializes frames under freshly observed participant authority.
+// The caller owns state retention, outbound/result channels and transport closure.
+// Cancellation interrupts channel waits; closing transport releases a blocked write.
+// Failures are reported once unless cancellation wins the result-channel wait.
+func (s *SOSync) writeMessages(
+	ctx context.Context,
+	sess *stream_packet.Session,
+	remoteID peer.ID,
+	states ccontainer.Watchable[*sobject.SOState],
+	outbound <-chan *SOSyncMessage,
+	sent chan<- error,
+) error {
+	for {
+		var message *SOSyncMessage
+		select {
+		case message = <-outbound:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		err := s.authorizeParticipants(states.GetValue(), remoteID)
+		if err == nil {
+			err = sess.SendMsg(message)
+		} else {
+			_ = sendAccessDenied(sess)
+		}
+		select {
+		case sent <- err:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		if err != nil {
+			return err
 		}
 	}
 }
