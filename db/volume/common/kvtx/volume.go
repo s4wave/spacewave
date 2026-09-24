@@ -69,11 +69,12 @@ type Volume struct {
 	directClosed bool
 	// closeErr stores the error from Close.
 	closeErr error
-	// rootPinMu serializes reader reference counts and their volume lease.
+	// rootPinMu guards reader pin counts and their volume lease. It is never
+	// held across a volume transaction.
 	rootPinMu      csync.Mutex
 	rootPinOwner   string
 	rootPinLease   coord.WriteLease
-	rootPins       map[string]int
+	rootPins       map[string]*rootPin
 	rootPinsClosed bool
 }
 

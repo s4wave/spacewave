@@ -124,34 +124,76 @@ func (v *Volume) PinBucketRoot(ctx context.Context, ref *block.BlockRef) (func()
 	return release, err
 }
 
+// rootPin counts the in-process readers of one root.
+type rootPin struct {
+	// count is the number of unreleased pins.
+	count int
+	// settled is non-nil while the node's durable edge is being written or
+	// removed, and closes when that write finishes.
+	settled chan struct{}
+}
+
 // pinRoot reserves an in-process reader count. Prepared roots get their
 // persistent edge from the publication transaction; ordinary readers write it
 // before returning. Both use the same crash-recoverable volume lease.
+//
+// rootPinMu guards only the counts. Edge writes run outside it, so pinning an
+// already retained root never waits for another root's volume transaction.
 func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool) (string, func(), error) {
-	unlock, err := v.rootPinMu.Lock(ctx)
-	if err != nil {
-		return "", nil, err
-	}
-	defer unlock()
-	if v.rootPinsClosed {
-		return "", nil, block.ErrPublicationClosed
-	}
-	if v.rootPinLease == nil {
-		owner := rootPinPrefix + ulid.NewULID()
-		lease, err := v.WaitAcquireWriteLease(ctx, v.rootPinScope(owner))
+	node := block_gc.BlockIRI(ref)
+	for {
+		unlock, err := v.rootPinMu.Lock(ctx)
 		if err != nil {
 			return "", nil, err
 		}
-		v.rootPinOwner, v.rootPinLease = owner, lease
-		v.rootPins = make(map[string]int)
-	}
-	owner := v.rootPinOwner
-	node := block_gc.BlockIRI(ref)
-	if v.rootPins[node] != 0 {
-		v.rootPins[node]++
-		return owner, sync.OnceFunc(func() { v.unpinRoot(node) }), nil
-	}
-	if !prepared {
+		if v.rootPinsClosed {
+			unlock()
+			return "", nil, block.ErrPublicationClosed
+		}
+		if v.rootPinLease == nil {
+			owner := rootPinPrefix + ulid.NewULID()
+			lease, err := v.WaitAcquireWriteLease(ctx, v.rootPinScope(owner))
+			if err != nil {
+				unlock()
+				return "", nil, err
+			}
+			v.rootPinOwner, v.rootPinLease = owner, lease
+			v.rootPins = make(map[string]*rootPin)
+		}
+		owner := v.rootPinOwner
+
+		// Wait out an edge write in flight, then observe its result.
+		pin := v.rootPins[node]
+		if pin != nil && pin.settled != nil {
+			settled := pin.settled
+			unlock()
+			select {
+			case <-ctx.Done():
+				return "", nil, context.Cause(ctx)
+			case <-settled:
+			}
+			continue
+		}
+		release := sync.OnceFunc(func() { v.unpinRoot(node) })
+
+		// A retained root only gains a reader.
+		if pin != nil {
+			pin.count++
+			unlock()
+			return owner, release, nil
+		}
+
+		// The publication transaction writes a prepared root's edge.
+		if prepared {
+			v.rootPins[node] = &rootPin{count: 1}
+			unlock()
+			return owner, release, nil
+		}
+
+		// Write the reader edge. Concurrent pins of this root wait for it.
+		pin = &rootPin{count: 1, settled: make(chan struct{})}
+		v.rootPins[node] = pin
+		unlock()
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
 			found, err := blocks.GetBlockExists(ctx, ref)
 			if err != nil {
@@ -163,31 +205,50 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 			err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{{Subject: block_gc.NodeGCRoot, Object: owner}, {Subject: owner, Object: node}}, nil)
 			return err == nil, err
 		})
+		v.settleRootPin(node, pin, err != nil)
+		if err != nil {
+			return "", nil, err
+		}
+		return owner, release, nil
 	}
-	if err != nil {
-		return "", nil, err
-	}
-	v.rootPins[node] = 1
-	return owner, sync.OnceFunc(func() { v.unpinRoot(node) }), nil
 }
 
+// unpinRoot releases one reader and removes the durable edge after the last.
 func (v *Volume) unpinRoot(node string) {
 	ctx := context.Background()
 	unlock, _ := v.rootPinMu.Lock(ctx)
-	defer unlock()
-	if v.rootPinsClosed || v.rootPins[node] == 0 {
+	pin := v.rootPins[node]
+	if v.rootPinsClosed || pin == nil || pin.count == 0 {
+		unlock()
 		return
 	}
-	v.rootPins[node]--
-	if v.rootPins[node] != 0 {
+	pin.count--
+	if pin.count != 0 {
+		unlock()
 		return
 	}
-	delete(v.rootPins, node)
+	pin.settled = make(chan struct{})
+	owner := v.rootPinOwner
+	unlock()
+
 	// Failed cleanup remains retained until this volume closes or its lease is reaped.
 	_ = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := rg.ApplyRefBatch(ctx, nil, []block_gc.RefEdge{{Subject: v.rootPinOwner, Object: node}})
+		err := rg.ApplyRefBatch(ctx, nil, []block_gc.RefEdge{{Subject: owner, Object: node}})
 		return err == nil, err
 	})
+	v.settleRootPin(node, pin, true)
+}
+
+// settleRootPin finishes pin's edge write and wakes pins waiting on it. A
+// failed add or a completed removal forgets the root.
+func (v *Volume) settleRootPin(node string, pin *rootPin, forget bool) {
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	if forget && v.rootPins[node] == pin {
+		delete(v.rootPins, node)
+	}
+	close(pin.settled)
+	pin.settled = nil
 }
 
 func (v *Volume) closeRootPins() error {
