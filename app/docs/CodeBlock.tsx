@@ -37,6 +37,7 @@ export function CodeBlock({ fence }: { fence: CodeFence }) {
   return (
     <div className="group/code relative">
       <button
+        type="button"
         onClick={handleCopy}
         className={cn(
           'absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-md transition-all',
