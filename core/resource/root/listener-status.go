@@ -1,24 +1,27 @@
 package resource_root
 
-import (
-	"github.com/pkg/errors"
-	s4wave_root "github.com/s4wave/spacewave/sdk/root"
-)
+import s4wave_root "github.com/s4wave/spacewave/sdk/root"
 
 // WatchListenerStatus streams the current desktop resource listener
 // status: effective socket path, whether the listener is currently
 // bound, and the count of connected resource clients. The UI uses
 // this to render a live status chip on the session-local command-line
-// setup page.
+// setup page and to choose the agent prompt. A runtime without a
+// resource listener, such as the browser, sends one empty status.
 func (s *CoreRootServer) WatchListenerStatus(
 	_ *s4wave_root.WatchListenerStatusRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerStatusStream,
 ) error {
+	ctx := strm.Context()
 	broker := s.getListenerStatusBroker()
 	if broker == nil {
-		return errors.New("listener status broker is not available")
+		if err := strm.Send(&s4wave_root.WatchListenerStatusResponse{}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return nil
 	}
-	ctx := strm.Context()
+
 	var prev s4wave_root.WatchListenerStatusResponse
 	first := true
 	for {

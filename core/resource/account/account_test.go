@@ -465,16 +465,38 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	queueAccountSettingsOp(ctx, t, so, remotePresData)
 
+	// Pairing enrolls an account member with a presentation and no paired device.
+	agent, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentPeerID := agent.GetPeerID().String()
+	for _, op := range []*account_settings.AccountSettingsOp{
+		{Op: &account_settings.AccountSettingsOp_UpsertAccountSession{
+			UpsertAccountSession: &account_settings.AccountSession{PeerId: agentPeerID, StoragePeerId: agentPeerID},
+		}},
+		{Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
+			UpsertSessionPresentation: &account_settings.SessionPresentation{PeerId: agentPeerID, Label: "Agent on build host"},
+		}},
+	} {
+		data, err := op.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		queueAccountSettingsOp(ctx, t, so, data)
+	}
+
 	var received *s4wave_account.WatchSessionsResponse
 	strm := &testWatchSessionsStream{
 		ctx: rpcCtx,
 		onSend: func(resp *s4wave_account.WatchSessionsResponse) error {
-			if len(resp.GetSessions()) >= 2 {
+			if len(resp.GetSessions()) >= 3 {
 				current := resp.GetSessions()[0]
 				remote := resp.GetSessions()[1]
 				if current.GetLabel() == "Workstation" &&
 					current.GetClientName() == "Alpha desktop" &&
-					remote.GetClientName() == "Linked device" {
+					remote.GetClientName() == "Linked device" &&
+					resp.GetSessions()[2].GetLabel() == "Agent on build host" {
 					received = resp
 					rpcCancel()
 				}
@@ -491,8 +513,8 @@ func TestWatchSessionsLocal(t *testing.T) {
 	if received == nil {
 		t.Fatal("expected local sessions snapshot")
 	}
-	if len(received.GetSessions()) != 2 {
-		t.Fatalf("expected 2 sessions, got %d", len(received.GetSessions()))
+	if len(received.GetSessions()) != 3 {
+		t.Fatalf("expected 3 sessions, got %d", len(received.GetSessions()))
 	}
 
 	current := received.GetSessions()[0]
@@ -530,6 +552,11 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	if remote.GetLocation() != "Home Office" {
 		t.Fatalf("expected remote location %q, got %q", "Home Office", remote.GetLocation())
+	}
+
+	member := received.GetSessions()[2]
+	if member.GetPeerId() != agentPeerID || member.GetCurrentSession() {
+		t.Fatalf("expected paired member row for %q, got %v", agentPeerID, member)
 	}
 }
 

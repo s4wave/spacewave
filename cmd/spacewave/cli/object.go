@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -18,8 +19,8 @@ import (
 )
 
 // newObjectCommand builds the object command group as a subcommand of space.
-// It inherits statePath, outputFormat, sessionIdx from the parent space command
-// and adds a --space-id flag for all object subcommands.
+// It inherits statePath and sessionIdx from the parent space command, reads
+// the root output flag, and adds a --space-id flag for all object subcommands.
 func newObjectCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	var spaceID string
 	return &cli.Command{
@@ -90,6 +91,7 @@ func buildObjectListCommand(statePath *string, sessionIdx *uint, spaceID *string
 			defer strm.Close()
 
 			w := os.Stdout
+			outputFormat := c.String("output")
 			for {
 				state, err := strm.Recv()
 				if err != nil {
@@ -97,6 +99,23 @@ func buildObjectListCommand(statePath *string, sessionIdx *uint, spaceID *string
 				}
 
 				wc := state.GetWorldContents()
+				if outputFormat == "json" || outputFormat == "yaml" {
+					// Each snapshot is one document: one JSON line when watching.
+					if wc == nil {
+						wc = &space_world.WorldContents{}
+					}
+					data, err := wc.MarshalJSON()
+					if err != nil {
+						return err
+					}
+					if err := formatOutput(data, outputFormat); err != nil {
+						return err
+					}
+					if !watch {
+						return nil
+					}
+					continue
+				}
 				if wc == nil {
 					w.WriteString("no objects\n")
 				} else {

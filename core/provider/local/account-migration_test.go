@@ -64,8 +64,8 @@ func TestAccountMergeReturningSession(t *testing.T) {
 		_ = left.Close()
 		_ = right.Close()
 	})
-	go engines[0].StartOnStream(ctx, left, bSession.GetPeerId(), true, true)
-	go engines[1].StartOnStream(ctx, right, aSession.GetPeerId(), false, true)
+	go engines[0].StartOnStream(ctx, left, bSession.GetPeerId(), true, true, "")
+	go engines[1].StartOnStream(ctx, right, aSession.GetPeerId(), false, true, "")
 	for _, engine := range engines {
 		waitForPairingStatus(ctx, t, engine, pairing.StatusSelectingAccount)
 	}

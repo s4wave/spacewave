@@ -1,0 +1,119 @@
+# Spacewave
+
+> Spacewave is a local-first app for Spaces: Drives, Git repositories, canvases
+> and other objects that sync between a person's devices. Agents use Spacewave
+> through the `spacewave` command-line interface (CLI). This file tells you how
+> to install the CLI, connect it to the person's account, and work in the Space
+> they are looking at.
+
+A person usually sends you here with a prompt copied from the Spacewave app.
+It carries either a pairing code or a desktop socket path, and the Space ID,
+object key and path they had open. Follow the steps in order. Ask the person
+only when a step below says to.
+
+## 1. Fit the project you are in
+
+Before you write anything, look at the working directory: its version control
+ignore rules, tool directories such as `.tmp/`, `bin/` or `.tools/`, and agent
+instruction files such as `AGENTS.md` or `CLAUDE.md`. Put files where this
+project already keeps downloaded tools, and follow its conventions for notes.
+
+## 2. Get the CLI
+
+If `spacewave` is on PATH, use it. Otherwise stage a copy in an ignored tool
+directory of this project, for example `.tmp/bin/spacewave`. Confirm the
+directory is ignored first (`git check-ignore -v .tmp/bin/spacewave`). Outside
+a Git repository, use `~/.local/bin`.
+
+Release assets live at
+`https://github.com/s4wave/spacewave/releases/latest/download/<asset>`:
+
+| System | Asset |
+|---|---|
+| macOS, Apple silicon | `spacewave-cli-macos-arm64.zip` |
+| macOS, Intel | `spacewave-cli-macos-amd64.zip` |
+| Linux, x86-64 | `spacewave-cli-linux-amd64.tar.gz` |
+| Linux, ARM64 | `spacewave-cli-linux-arm64.tar.gz` |
+| Windows, x86-64 | `spacewave-cli-windows-amd64.zip` |
+
+Download the asset and `checksums.txt` from the same URL, check the SHA-256 of
+the asset against its line in `checksums.txt`, and extract the `spacewave`
+binary (`spacewave.exe` on Windows) into the tool directory. Run
+`spacewave --help` to confirm it works.
+
+## 3. Connect to the account
+
+Leave the CLI's state in its default location. Every agent on this computer
+then shares one background service and one connected account, and later agents
+skip pairing.
+
+Flags belong to the command level that defines them, so set shared options
+through the environment instead. `SPACEWAVE_OUTPUT=json` makes every command
+print JSON; parse it instead of text.
+
+First check whether the account is already here:
+
+```sh
+export SPACEWAVE_OUTPUT=json
+spacewave session list
+```
+
+If a session already reaches the Space named in the prompt, use its index and
+go to step 4.
+
+### With a desktop socket path
+
+The Spacewave desktop app is running and already holds the account. Set
+`SPACEWAVE_SOCKET_PATH` to the path from the prompt for every command. No
+pairing or approval is needed.
+
+### With a pairing code
+
+```sh
+spacewave login p2p --code <CODE> --label "<your name> on <host name>"
+```
+
+Use a label the person will recognize, such as "Claude Code on build-box". The
+command connects to the person's Spacewave window, prints six emoji, and waits.
+Show the person the six emoji and ask them to check that the same six appear in
+Spacewave, then approve there. The command ends when they approve and prints
+the new session's index. With `SPACEWAVE_OUTPUT=json` it prints the emoji and
+the session as JSON lines.
+
+The command blocks until the person approves, so you must show the emoji while
+it runs. Run it in the background with its output in a file, for example
+`.tmp/spacewave-pair.log`, read the emoji from that file, tell the person, and
+then wait for the command to exit.
+
+If the command reports that the code expired or pairing was rejected, ask the
+person for a new prompt from the Connect an agent button. Codes last ten
+minutes and work once.
+
+The paired session has the same access as the person's account. The person can
+remove it at any time from Sessions in the app.
+
+## 4. Work in the Space
+
+Select the session and Space once through the environment:
+
+```sh
+export SPACEWAVE_SESSION_INDEX=<N> SPACEWAVE_SPACE=<space-id>
+spacewave space list
+spacewave space info <space-id>
+spacewave space object list
+spacewave fs ls <object-key>
+spacewave fs cat <object-key>/-/<path>
+spacewave fs write --from ./file <object-key>/-/<path>
+```
+
+Object paths put `/-/` between the object key and a path inside it. The
+command groups `git`, `canvas`, `vm` and others work on their object kinds; run
+`spacewave <group> --help` for their commands.
+
+A local-only account syncs from the person's other devices. If a read waits,
+the person's Spacewave window may be closed; ask them to open it.
+
+## 5. Leave a note for the next agent
+
+Record how you connected (the CLI location, the session index and the Space ID)
+where this project keeps agent notes, so the next agent reuses them.

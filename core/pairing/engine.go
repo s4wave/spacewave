@@ -39,16 +39,29 @@ const (
 
 // Snapshot describes one Session's current pairing operation.
 type Snapshot struct {
-	Status       Status
-	Code         string
+	// Status is the operation's current phase.
+	Status Status
+	// Code is the pairing code this client registered, when it created one.
+	Code string
+	// RemotePeerID is the other client's Session peer once it is known.
 	RemotePeerID peer.ID
-	Emoji        []string
-	ErrMsg       string
-	AccountID    string
-	AccountName  string
-	ProviderID   string
-	Receiving    bool
-	Choice       *AccountChoice
+	// Emoji is the SAS sequence both people compare before approving.
+	Emoji []string
+	// ErrMsg describes the failure when Status is a failure phase.
+	ErrMsg string
+	// AccountID is the account selected for enrollment.
+	AccountID string
+	// AccountName is the selected account's display name.
+	AccountName string
+	// ProviderID is the provider that holds the selected account.
+	ProviderID string
+	// RemoteLabel is the name the other client gave itself, shown on the
+	// approval screen and recorded for the Session it enrolls.
+	RemoteLabel string
+	// Receiving indicates this client is adding the selected account.
+	Receiving bool
+	// Choice is the proposed account relationship once both offers are known.
+	Choice *AccountChoice
 }
 
 // Engine owns approval and enrollment for one mounted Session. Account adapters
@@ -67,15 +80,27 @@ type Engine struct {
 	active    *attempt
 }
 
+// attempt is one pairing operation. The Engine's bcast guards snapshot,
+// result, and release; the other fields are fixed when the attempt begins.
 type attempt struct {
-	snapshot     Snapshot
-	offering     bool
+	// snapshot is the published state of the operation.
+	snapshot Snapshot
+	// offering indicates this client created the pairing code.
+	offering bool
+	// offerCurrent includes this Session's account in the exchange.
 	offerCurrent bool
-	choose       chan AccountOutcome
-	confirm      chan bool
-	cancel       context.CancelFunc
-	result       *session.SessionRef
-	release      func()
+	// label names this client to the other client; empty uses the machine name.
+	label string
+	// choose delivers the code-entering client's account outcome.
+	choose chan AccountOutcome
+	// confirm delivers the local approval decision.
+	confirm chan bool
+	// cancel stops the operation's goroutines.
+	cancel context.CancelFunc
+	// result is the durable receiving Session after enrollment.
+	result *session.SessionRef
+	// release drops resources retained through enrollment.
+	release func()
 }
 
 // NewEngine binds a Session's key, provider adapter, and transport owner.
@@ -97,9 +122,17 @@ func NewEngine(ctx context.Context, le *logrus.Entry, b bus.Bus, mounted session
 func (e *Engine) Context() context.Context { return e.ctx }
 
 // begin cancels the prior attempt before publishing another operation identity.
-func (e *Engine) begin(offering, offerCurrent bool, code string, remote peer.ID, status Status) (context.Context, *attempt) {
+func (e *Engine) begin(offering, offerCurrent bool, label, code string, remote peer.ID, status Status) (context.Context, *attempt) {
 	ctx, cancel := context.WithCancel(e.ctx)
-	active := &attempt{offering: offering, offerCurrent: offerCurrent, cancel: cancel, confirm: make(chan bool, 1), choose: make(chan AccountOutcome, 1), snapshot: Snapshot{Status: status, Code: code, RemotePeerID: remote, Receiving: !offering}}
+	active := &attempt{
+		offering:     offering,
+		offerCurrent: offerCurrent,
+		label:        label,
+		cancel:       cancel,
+		confirm:      make(chan bool, 1),
+		choose:       make(chan AccountOutcome, 1),
+		snapshot:     Snapshot{Status: status, Code: code, RemotePeerID: remote, Receiving: !offering},
+	}
 	var previous *attempt
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		previous, e.active = e.active, active
@@ -308,9 +341,10 @@ func (e *Engine) Result(remote peer.ID) (*session.SessionRef, error) {
 }
 
 // StartOnStream runs enrollment on an already authenticated duplex connection.
-// The caller retains the stream's transport through completion.
-func (e *Engine) StartOnStream(ctx context.Context, stream io.ReadWriteCloser, remote peer.ID, offering, offerCurrent bool) {
-	attemptCtx, active := e.begin(offering, offerCurrent, "", remote, StatusPeerConnected)
+// The caller retains the stream's transport through completion. Label names
+// this client to the other client; empty uses the machine name.
+func (e *Engine) StartOnStream(ctx context.Context, stream io.ReadWriteCloser, remote peer.ID, offering, offerCurrent bool, label string) {
+	attemptCtx, active := e.begin(offering, offerCurrent, label, "", remote, StatusPeerConnected)
 	stop := context.AfterFunc(ctx, active.cancel)
 	defer stop()
 	e.runStream(attemptCtx, active, stream, remote, nil)
@@ -318,6 +352,6 @@ func (e *Engine) StartOnStream(ctx context.Context, stream io.ReadWriteCloser, r
 
 // StartDirect uses the same approval and enrollment on a manually signaled link.
 func (e *Engine) StartDirect(lnk link.Link, offering, offerCurrent bool) {
-	ctx, active := e.begin(offering, offerCurrent, "", lnk.GetRemotePeer(), StatusPeerConnected)
+	ctx, active := e.begin(offering, offerCurrent, "", "", lnk.GetRemotePeer(), StatusPeerConnected)
 	go e.runDirect(ctx, active, lnk)
 }

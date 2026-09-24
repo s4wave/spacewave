@@ -103,6 +103,7 @@ export function PairingVerificationStep({
         <h2 className="text-foreground text-sm font-medium">Pairing failed</h2>
         <p className="text-destructive text-xs">{error}</p>
         <button
+          type="button"
           onClick={onAbort}
           className="border-foreground/20 text-foreground h-10 w-full rounded-md border text-sm"
         >
@@ -118,6 +119,7 @@ export function PairingVerificationStep({
     snapshot?.status === PairingStatus.PairingStatus_WAITING_FOR_REMOTE_CONFIRM
   const emoji = snapshot?.emoji ?? []
   const accountName = snapshot?.accountName || 'this account'
+  const remoteName = snapshot?.remoteLabel || 'the other device'
   const outcome = snapshot?.choice?.outcome
   const merging =
     outcome === AccountOutcome.AccountOutcome_MERGE_INTO_OFFERED ||
@@ -130,7 +132,7 @@ export function PairingVerificationStep({
     ? `Merge ${source?.displayName || 'the other account'} into ${accountName}. Move its Spaces and Sessions, keeping ${accountName}'s settings and storage provider.`
     : snapshot?.receiving
       ? `Add ${accountName} to this device. Other accounts stay separate.`
-      : `Allow the other device to access ${accountName}. Other accounts stay separate.`
+      : `Allow ${remoteName} to access ${accountName}. Other accounts stay separate.`
 
   return (
     <div className="space-y-4">
@@ -185,6 +187,7 @@ export function PairingVerificationStep({
       ) : (
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => void confirm(false)}
             className={cn(
               'border-destructive/30 hover:bg-destructive/10 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border',
@@ -194,6 +197,7 @@ export function PairingVerificationStep({
             <span className="text-destructive text-sm">No, abort</span>
           </button>
           <button
+            type="button"
             onClick={() => void confirm(true)}
             className={cn(
               'border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border',

@@ -100,7 +100,7 @@ func (r *SessionResource) CompletePairing(ctx context.Context, req *s4wave_sessi
 	}
 
 	// Link to the peer and hold the link through enrollment.
-	if err := engine.CompletePeer(ctx, relay, remotePeerID, req.GetOfferCurrentAccount()); err != nil {
+	if err := engine.CompletePeer(ctx, relay, remotePeerID, req.GetOfferCurrentAccount(), req.GetLabel()); err != nil {
 		return nil, err
 	}
 	return &s4wave_session.CompletePairingResponse{RemotePeerId: remotePeerID.String()}, nil

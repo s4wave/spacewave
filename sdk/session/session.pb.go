@@ -1894,6 +1894,9 @@ type CompletePairingRequest struct {
 	// When set, CompletePairing links to that peer without resolving Code again,
 	// because the relay consumes a code on its first resolution.
 	RemotePeerId string `protobuf:"bytes,3,opt,name=remote_peer_id,json=remotePeerId,proto3" json:"remotePeerId,omitempty"`
+	// Label names this client on the other device's approval screen and in its
+	// Session list. Empty uses the machine name.
+	Label string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
 }
 
 func (x *CompletePairingRequest) Reset() {
@@ -1919,6 +1922,13 @@ func (x *CompletePairingRequest) GetOfferCurrentAccount() bool {
 func (x *CompletePairingRequest) GetRemotePeerId() string {
 	if x != nil {
 		return x.RemotePeerId
+	}
+	return ""
+}
+
+func (x *CompletePairingRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
 	}
 	return ""
 }
@@ -2502,6 +2512,9 @@ type WatchPairingStatusResponse struct {
 	AccountName string `protobuf:"bytes,8,opt,name=account_name,json=accountName,proto3" json:"accountName,omitempty"`
 	// Choice identifies both selected accounts and the proposed outcome before approval.
 	Choice *pairing.AccountChoice `protobuf:"bytes,9,opt,name=choice,proto3" json:"choice,omitempty"`
+	// RemoteLabel is the name the other device gave itself (set during
+	// verification).
+	RemoteLabel string `protobuf:"bytes,10,opt,name=remote_label,json=remoteLabel,proto3" json:"remoteLabel,omitempty"`
 }
 
 func (x *WatchPairingStatusResponse) Reset() {
@@ -2571,6 +2584,13 @@ func (x *WatchPairingStatusResponse) GetChoice() *pairing.AccountChoice {
 		return x.Choice
 	}
 	return nil
+}
+
+func (x *WatchPairingStatusResponse) GetRemoteLabel() string {
+	if x != nil {
+		return x.RemoteLabel
+	}
+	return ""
 }
 
 // CreateSpaceInviteRequest is the request for CreateSpaceInvite.
@@ -3792,6 +3812,7 @@ func (m *CompletePairingRequest) CloneVT() *CompletePairingRequest {
 	r.Code = m.Code
 	r.OfferCurrentAccount = m.OfferCurrentAccount
 	r.RemotePeerId = m.RemotePeerId
+	r.Label = m.Label
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4289,6 +4310,7 @@ func (m *WatchPairingStatusResponse) CloneVT() *WatchPairingStatusResponse {
 	r.AccountId = m.AccountId
 	r.Receiving = m.Receiving
 	r.AccountName = m.AccountName
+	r.RemoteLabel = m.RemoteLabel
 	r.Emoji = protobuf_go_lite.CloneSlice(m.Emoji)
 	r.Choice = protobuf_go_lite.CloneVTValue(m.Choice)
 	if len(m.unknownFields) > 0 {
@@ -5654,6 +5676,9 @@ func (this *CompletePairingRequest) EqualVT(that *CompletePairingRequest) bool {
 	if this.RemotePeerId != that.RemotePeerId {
 		return false
 	}
+	if this.Label != that.Label {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6281,6 +6306,9 @@ func (this *WatchPairingStatusResponse) EqualVT(that *WatchPairingStatusResponse
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Choice, that.Choice) {
+		return false
+	}
+	if this.RemoteLabel != that.RemoteLabel {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9326,6 +9354,11 @@ func (x *CompletePairingRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("remotePeerId")
 		s.WriteString(x.RemotePeerId)
 	}
+	if x.Label != "" || s.HasField("label") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("label")
+		s.WriteString(x.Label)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9352,6 +9385,9 @@ func (x *CompletePairingRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "remote_peer_id", "remotePeerId":
 			s.AddField("remote_peer_id")
 			x.RemotePeerId = s.ReadString()
+		case "label":
+			s.AddField("label")
+			x.Label = s.ReadString()
 		}
 	})
 }
@@ -10652,6 +10688,11 @@ func (x *WatchPairingStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("choice")
 		x.Choice.MarshalProtoJSON(s.WithField("choice"))
 	}
+	if x.RemoteLabel != "" || s.HasField("remoteLabel") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("remoteLabel")
+		s.WriteString(x.RemoteLabel)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -10704,6 +10745,9 @@ func (x *WatchPairingStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 			}
 			x.Choice = &pairing.AccountChoice{}
 			x.Choice.UnmarshalProtoJSON(s.WithField("choice", true))
+		case "remote_label", "remoteLabel":
+			s.AddField("remote_label")
+			x.RemoteLabel = s.ReadString()
 		}
 	})
 }
@@ -13725,6 +13769,11 @@ func (m *CompletePairingRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Label) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Label)
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.RemotePeerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.RemotePeerId)
 		i--
@@ -14888,6 +14937,11 @@ func (m *WatchPairingStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RemoteLabel) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RemoteLabel)
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.Choice != nil {
 		size, err := m.Choice.MarshalToSizedBufferVT(dAtA[:i])
@@ -16377,6 +16431,7 @@ func (m *CompletePairingRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Code)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.OfferCurrentAccount)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RemotePeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Label)
 	n += len(m.unknownFields)
 	return n
 }
@@ -16736,6 +16791,7 @@ func (m *WatchPairingStatusResponse) SizeVT() (n int) {
 		l = m.Choice.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RemoteLabel)
 	n += len(m.unknownFields)
 	return n
 }
@@ -17930,6 +17986,10 @@ func (x *CompletePairingRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remote_peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.RemotePeerId)
 	}
+	if x.Label != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "label")
+		protobuf_go_lite.TextWriteString(&sb, x.Label)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -18411,6 +18471,10 @@ func (x *WatchPairingStatusResponse) MarshalProtoText() string {
 	if x.Choice != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "choice")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Choice)
+	}
+	if x.RemoteLabel != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remote_label")
+		protobuf_go_lite.TextWriteString(&sb, x.RemoteLabel)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -21597,6 +21661,16 @@ func (m *CompletePairingRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RemotePeerId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Label", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Label = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -23287,6 +23361,16 @@ func (m *WatchPairingStatusResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteLabel", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RemoteLabel = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

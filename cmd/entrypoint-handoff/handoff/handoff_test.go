@@ -218,30 +218,27 @@ func TestCollectCLIHandoffManifestRefsAcceptsReleaseBuildTypeAndRejectsDev(t *te
 	}
 }
 
-func TestStageStaticHTMLCopiesXML(t *testing.T) {
+func TestStageStaticHTMLCopiesSiteFiles(t *testing.T) {
 	prerenderDir := t.TempDir()
 	stagingDir := t.TempDir()
 
-	xmlPath := filepath.Join(prerenderDir, "sitemap.xml")
-	if err := os.WriteFile(xmlPath, []byte("<xml/>"), 0o644); err != nil {
-		t.Fatalf("write sitemap.xml: %v", err)
-	}
-	txtPath := filepath.Join(prerenderDir, "notes.txt")
-	if err := os.WriteFile(txtPath, []byte("ignored"), 0o644); err != nil {
-		t.Fatalf("write notes.txt: %v", err)
+	for _, name := range []string{"sitemap.xml", "llms.txt", "notes.md"} {
+		if err := os.WriteFile(filepath.Join(prerenderDir, name), []byte(name), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
 	}
 
 	if err := stageStaticHTML(prerenderDir, stagingDir); err != nil {
 		t.Fatalf("stage static HTML: %v", err)
 	}
 
-	stagedXML := filepath.Join(stagingDir, "static", "sitemap.xml")
-	if _, err := os.Stat(stagedXML); err != nil {
-		t.Fatalf("expected staged sitemap.xml: %v", err)
+	for _, name := range []string{"sitemap.xml", "llms.txt"} {
+		if _, err := os.Stat(filepath.Join(stagingDir, "static", name)); err != nil {
+			t.Fatalf("expected staged %s: %v", name, err)
+		}
 	}
-	stagedTXT := filepath.Join(stagingDir, "static", "notes.txt")
-	if _, err := os.Stat(stagedTXT); !os.IsNotExist(err) {
-		t.Fatalf("expected notes.txt to be skipped, got err=%v", err)
+	if _, err := os.Stat(filepath.Join(stagingDir, "static", "notes.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected notes.md to be skipped, got err=%v", err)
 	}
 }
 

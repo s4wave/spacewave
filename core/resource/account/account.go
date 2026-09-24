@@ -430,8 +430,8 @@ func (r *AccountResource) watchLocalSessions(
 }
 
 // buildLocalSessionsResponse renders one WatchSessions response from the
-// account settings snapshot: the mounted session plus one row per paired
-// device that is not the current peer.
+// account settings snapshot: the mounted session, then one row per paired
+// device and per approved account Session that is not the current peer.
 func (r *AccountResource) buildLocalSessionsResponse(
 	ctx context.Context,
 	settings *account_settings.AccountSettings,
@@ -471,6 +471,27 @@ func (r *AccountResource) buildLocalSessionsResponse(
 		}
 		if pairedAt := device.GetPairedAt(); pairedAt > 0 {
 			row.CreatedAt = timestamppb.New(time.Unix(pairedAt, 0))
+		}
+		applySessionPresentation(row, presentations[peerID])
+		sessions = append(sessions, row)
+	}
+
+	// Pairing enrolls Sessions as account members without a paired device row.
+	listed := make(map[string]bool, len(sessions))
+	for _, row := range sessions {
+		listed[row.GetPeerId()] = true
+	}
+	for _, member := range settings.GetSessions() {
+		peerID := member.GetPeerId()
+		if member.GetRevoked() || peerID == "" || listed[peerID] {
+			continue
+		}
+		listed[peerID] = true
+		row := &s4wave_account.AccountSession{
+			PeerId: peerID,
+			Kind: s4wave_account.
+				AccountSessionKind_AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
+			Label: "Linked session",
 		}
 		applySessionPresentation(row, presentations[peerID])
 		sessions = append(sessions, row)

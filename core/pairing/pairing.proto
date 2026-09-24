@@ -38,7 +38,8 @@ message AccountOffer {
   repeated string active_session_peer_ids = 9;
   // SelectionContext binds this enrollment to both accounts and the selected outcome.
   string selection_context = 10;
-  // MachineName identifies the client offering this account.
+  // MachineName names the client sending this offer. A client with no account
+  // sends an offer carrying only this field.
   string machine_name = 11;
   // SpaceCount and SessionCount describe the current migration preview.
   uint32 space_count = 12;

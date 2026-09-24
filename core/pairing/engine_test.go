@@ -52,7 +52,7 @@ func newEngineTestPeer(t *testing.T) peer.ID {
 // final migrated Session, including a late result from a replaced attempt.
 func TestRetainedPairingResources(t *testing.T) {
 	engine := &Engine{ctx: t.Context()}
-	_, active := engine.begin(true, true, "", "", StatusPeerConnected)
+	_, active := engine.begin(true, true, "", "", "", StatusPeerConnected)
 	var released int
 	for range 2 {
 		if !engine.retain(active, func() { released++ }) {

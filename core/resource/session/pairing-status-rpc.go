@@ -36,6 +36,7 @@ func pairingSnapshotToProto(snap pairing.Snapshot) *s4wave_session.WatchPairingS
 		AccountName:  snap.AccountName,
 		Choice:       snap.Choice.CloneVT(),
 		Receiving:    snap.Receiving,
+		RemoteLabel:  snap.RemoteLabel,
 	}
 	if len(snap.RemotePeerID) > 0 {
 		resp.RemotePeerId = snap.RemotePeerID.String()

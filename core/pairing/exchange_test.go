@@ -13,7 +13,7 @@ import (
 // TestPairingSolicitStoppedTransport reports teardown instead of dereferencing its cleared bus.
 func TestPairingSolicitStoppedTransport(t *testing.T) {
 	engine := &Engine{ctx: t.Context()}
-	ctx, active := engine.begin(true, true, "code", "", StatusCodeGenerated)
+	ctx, active := engine.begin(true, true, "", "code", "", StatusCodeGenerated)
 	defer engine.Clear()
 	engine.runSolicit(ctx, active, &transport.SessionTransport{})
 	snapshot, _ := engine.Snapshot()

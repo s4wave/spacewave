@@ -513,14 +513,16 @@ class GeneratePairingCodeResponse(_message.Message):
     def __init__(self, code: _Optional[str] = ...) -> None: ...
 
 class CompletePairingRequest(_message.Message):
-    __slots__ = ("code", "offer_current_account", "remote_peer_id")
+    __slots__ = ("code", "offer_current_account", "remote_peer_id", "label")
     CODE_FIELD_NUMBER: _ClassVar[int]
     OFFER_CURRENT_ACCOUNT_FIELD_NUMBER: _ClassVar[int]
     REMOTE_PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
     code: str
     offer_current_account: bool
     remote_peer_id: str
-    def __init__(self, code: _Optional[str] = ..., offer_current_account: _Optional[bool] = ..., remote_peer_id: _Optional[str] = ...) -> None: ...
+    label: str
+    def __init__(self, code: _Optional[str] = ..., offer_current_account: _Optional[bool] = ..., remote_peer_id: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
 
 class SelectPairingAccountRequest(_message.Message):
     __slots__ = ("outcome",)
@@ -693,7 +695,7 @@ class WatchPairingStatusRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class WatchPairingStatusResponse(_message.Message):
-    __slots__ = ("status", "remote_peer_id", "code", "emoji", "error_message", "account_id", "receiving", "account_name", "choice")
+    __slots__ = ("status", "remote_peer_id", "code", "emoji", "error_message", "account_id", "receiving", "account_name", "choice", "remote_label")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     REMOTE_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
@@ -703,6 +705,7 @@ class WatchPairingStatusResponse(_message.Message):
     RECEIVING_FIELD_NUMBER: _ClassVar[int]
     ACCOUNT_NAME_FIELD_NUMBER: _ClassVar[int]
     CHOICE_FIELD_NUMBER: _ClassVar[int]
+    REMOTE_LABEL_FIELD_NUMBER: _ClassVar[int]
     status: PairingStatus
     remote_peer_id: str
     code: str
@@ -712,7 +715,8 @@ class WatchPairingStatusResponse(_message.Message):
     receiving: bool
     account_name: str
     choice: _pairing_pb2.AccountChoice
-    def __init__(self, status: _Optional[_Union[PairingStatus, str]] = ..., remote_peer_id: _Optional[str] = ..., code: _Optional[str] = ..., emoji: _Optional[_Iterable[str]] = ..., error_message: _Optional[str] = ..., account_id: _Optional[str] = ..., receiving: _Optional[bool] = ..., account_name: _Optional[str] = ..., choice: _Optional[_Union[_pairing_pb2.AccountChoice, _Mapping]] = ...) -> None: ...
+    remote_label: str
+    def __init__(self, status: _Optional[_Union[PairingStatus, str]] = ..., remote_peer_id: _Optional[str] = ..., code: _Optional[str] = ..., emoji: _Optional[_Iterable[str]] = ..., error_message: _Optional[str] = ..., account_id: _Optional[str] = ..., receiving: _Optional[bool] = ..., account_name: _Optional[str] = ..., choice: _Optional[_Union[_pairing_pb2.AccountChoice, _Mapping]] = ..., remote_label: _Optional[str] = ...) -> None: ...
 
 class CreateSpaceInviteRequest(_message.Message):
     __slots__ = ("space_id", "role", "target_peer_id", "max_uses", "expires_at")

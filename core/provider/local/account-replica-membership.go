@@ -96,6 +96,21 @@ func (a *ProviderAccount) registerPairingReplicas(ctx context.Context, enrollmen
 		}
 	}
 
+	// Name the receiving Session with the label its client sent.
+	if label := enrollment.RemoteLabel; label != "" {
+		if err := commitAccountSettingsOp(ctx, so, &account_settings.AccountSettingsOp{
+			Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
+				UpsertSessionPresentation: &account_settings.SessionPresentation{
+					PeerId:     members[1].GetPeerId(),
+					Label:      label,
+					DeviceType: "linked",
+				},
+			},
+		}); err != nil {
+			return errors.Wrap(err, "name paired Session")
+		}
+	}
+
 	// Seed existing objects through the same catalog operation used by creation.
 	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 		if err := commitAccountSettingsOp(ctx, so, &account_settings.AccountSettingsOp{

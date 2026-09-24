@@ -507,6 +507,9 @@ message CompletePairingRequest {
   // When set, CompletePairing links to that peer without resolving Code again,
   // because the relay consumes a code on its first resolution.
   string remote_peer_id = 3;
+  // Label names this client on the other device's approval screen and in its
+  // Session list. Empty uses the machine name.
+  string label = 4;
 }
 
 // SelectPairingAccountRequest selects the proposed relationship between the accounts.
@@ -728,6 +731,9 @@ message WatchPairingStatusResponse {
   string account_name = 8;
   // Choice identifies both selected accounts and the proposed outcome before approval.
   .pairing.AccountChoice choice = 9;
+  // RemoteLabel is the name the other device gave itself (set during
+  // verification).
+  string remote_label = 10;
 }
 
 // -- Space Invites --

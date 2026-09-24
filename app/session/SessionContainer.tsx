@@ -64,6 +64,7 @@ import {
   type EntityCredential,
 } from '@s4wave/core/session/session.pb.js'
 import { SystemStatusButton } from '@s4wave/app/system/SystemStatusButton.js'
+import { AgentConnectButton } from './agent/AgentConnectButton.js'
 import { RecoveryStatusPublisher } from '@s4wave/app/system/RecoveryStatusPublisher.js'
 import {
   TargetedInvitePurpose,
@@ -458,6 +459,7 @@ export function SessionContainer(props: SessionContainerProps) {
                 <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
                   <SessionSelfEnrollmentStatusButton />
                   <SessionSyncStatusButton />
+                  <AgentConnectButton />
                   <SystemStatusButton />
                   <SessionUploadIndicator />
                   <SessionProviderContainer
