@@ -3,6 +3,7 @@ package sobject_sync
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"net"
@@ -124,5 +125,116 @@ func TestCatchupBudgetsRejectWithoutMutation(t *testing.T) {
 				t.Fatalf("budget failure changed held state: %v", err)
 			}
 		})
+	}
+}
+
+// TestCatchupRecoveryFencesTrailingSnapshot rejects further imports while its recovery response is blocked.
+func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	const soID = "catchup-terminal-snapshot"
+	owner, reader := mustKeyPair(t), mustKeyPair(t)
+	initial := authenticationState(t, soID, owner, reader)
+	local := newAuthenticationPeer(t, soID, owner, initial)
+	remote := newAuthenticationPeer(t, soID, reader, initial)
+	left, right := net.Pipe()
+	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 32)}
+	var streamErr error
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		streamErr = local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b")
+	}()
+	t.Cleanup(func() {
+		cancel()
+		left.Close()
+		right.Close()
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Error("catch-up workers survived cancellation")
+		}
+	})
+	if _, err := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a"); err != nil {
+		t.Fatal(err)
+	}
+	session := stream_packet.NewSession(right, maxMessageSize)
+	head := &SOSyncMessage{}
+	if err := session.RecvMsg(head); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.SendMsg(syncAcknowledgment(head.GetHead().GetRevision())); err != nil {
+		t.Fatal(err)
+	}
+
+	// The advertised newer root is admissible, so only the terminal stream decision can fence it.
+	candidate := initial.CloneVT()
+	candidate.Root.InnerSeqno++
+	signSnapshotRoot(t, soID, candidate, owner)
+	data, err := candidate.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(data)
+	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
+		Revision: 1, ConfigHash: candidate.Config.ConfigChainHash, ConfigSeqno: candidate.Config.ConfigChainSeqno,
+		RootSeqno: candidate.Root.InnerSeqno, StateHash: digest[:],
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+	request := &SOSyncMessage{}
+	if err := session.RecvMsg(request); err != nil || request.GetHistoryRequest() == nil {
+		t.Fatalf("newer root was not requested: %v", err)
+	}
+	changes := make([]*sobject.SOConfigChange, maxHistoryPageEntries+1)
+	for index := range changes {
+		changes[index] = &sobject.SOConfigChange{}
+	}
+	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_HistoryPage{HistoryPage: &SOSyncHistoryPage{
+		Revision: 1, Cursor: initial.Config.ConfigChainHash, Changes: changes,
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Observe the actual recovery write before admitting trailing input; the peer is not reading it yet.
+	for {
+		select {
+		case message := <-observed.messages:
+			if message.GetRecoveryRequired() == nil {
+				continue
+			}
+		case <-ctx.Done():
+			t.Fatal("budget error did not queue recovery")
+		}
+		break
+	}
+	if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{
+		SoState: data, RootSeqno: candidate.Root.InnerSeqno, Revision: 1, BaseHash: initial.Config.ConfigChainHash,
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Three empty operations exceed the reader's one queued and one in-progress frame.
+	// Completing these writes proves the owner handled the earlier snapshot before recovery can finish.
+	for range 3 {
+		if err := session.SendMsg(&SOSyncMessage{Body: &SOSyncMessage_Op{Op: &SOSyncOp{}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := local.soHost.GetHostState(ctx)
+	if err != nil || !got.EqualVT(initial) {
+		t.Fatalf("trailing snapshot changed state after budget rejection: %v", err)
+	}
+	recovery := &SOSyncMessage{}
+	if err := session.RecvMsg(recovery); err != nil || recovery.GetRecoveryRequired().GetRevision() != 1 {
+		t.Fatalf("terminal recovery response: %v", err)
+	}
+	select {
+	case <-done:
+		if !errors.Is(streamErr, sobject.ErrConfigHistoryUnavailable) {
+			t.Fatalf("terminal stream result: %v", streamErr)
+		}
+	case <-ctx.Done():
+		t.Fatal("recovery delivery did not finish the stream")
 	}
 }

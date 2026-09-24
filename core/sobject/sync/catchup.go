@@ -285,9 +285,16 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 				_ = sendAccessDenied(sess)
 				return err
 			}
+			if authorization, ok := received.message.GetBody().(*SOSyncMessage_Authorization); ok {
+				return s.handleDenial(remoteID, authorization.Authorization)
+			}
+
+			// Drain already-sent frames without admitting new data after recovery becomes terminal.
+			if terminal != nil {
+				continue
+			}
+
 			switch body := received.message.GetBody().(type) {
-			case *SOSyncMessage_Authorization:
-				return s.handleDenial(remoteID, body.Authorization)
 			case *SOSyncMessage_Head:
 				head := body.Head
 				if len(head.GetConfigHash()) == 0 {
