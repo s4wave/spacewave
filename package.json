@@ -251,7 +251,6 @@
     "@vitest/ui": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "cross-env": "^10.1.0",
-    "eslint-plugin-react-compiler": "19.1.0-rc.2",
     "happy-dom": "^20.11.1",
     "oxc-parser": "^0.151.0",
     "oxfmt": "0.70.0",
