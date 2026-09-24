@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
 // journalPrefix orders unreplayed ownership transitions by durable sequence.
@@ -41,6 +42,7 @@ func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) e
 	if len(data) > MaxValueBytes {
 		return ErrLimit
 	}
+	workload.Record{Op: workload.OpJournalAppend, Size: int64(len(data))}.Log(ctx)
 	release, err := e.backend.Lock(ctx, "gc-stw", false)
 	if err != nil {
 		return err
@@ -56,7 +58,8 @@ func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) e
 
 // ReplayWAL serializes ordered replay and removes each entry only after application.
 // Repeating an entry after interruption is safe because graph updates are idempotent.
-func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (int, error) {
+func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (count int, err error) {
+	defer func() { workload.Record{Op: workload.OpJournalReplay, Size: int64(count)}.Log(ctx) }()
 	release, err := e.backend.Lock(ctx, "gc-replay", true)
 	if err != nil {
 		return 0, err
@@ -69,7 +72,6 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 	}
 	fence := read.root.JournalSequence
 	read.release()
-	count := 0
 	for {
 		key, entry, err := e.nextJournalEntry(ctx)
 		if err != nil || entry == nil {

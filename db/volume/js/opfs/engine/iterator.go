@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
 // iterator merges one bounded committed partition with bounded pending changes.
@@ -15,6 +16,10 @@ type iterator struct {
 	ctx context.Context
 	// tx owns the pinned generation and lifetime.
 	tx *transaction
+	// id identifies the iterator in workload records.
+	id uint64
+	// visited counts positioned entries for the closing workload record.
+	visited int64
 	// prefix restricts returned full keys.
 	prefix []byte
 	// reverse selects descending key order.
@@ -88,13 +93,19 @@ func (i *iterator) ValueCopy(dst []byte) ([]byte, error) {
 // Next starts or advances the ordered merge.
 func (i *iterator) Next() bool {
 	if !i.started {
-		return i.Seek(nil) == nil && i.Valid()
+		return i.seek(nil) == nil && i.Valid()
 	}
 	return i.advance()
 }
 
 // Seek positions at the first matching key at or beyond the supplied boundary.
 func (i *iterator) Seek(key []byte) error {
+	workload.Record{Op: workload.OpSeek, ID: i.id, Parent: i.tx.id, Key: key}.Log(i.ctx)
+	return i.seek(key)
+}
+
+// seek positions the merge without recording a workload operation.
+func (i *iterator) seek(key []byte) error {
 	if i.closed {
 		return kvtx.ErrDiscarded
 	}
@@ -185,6 +196,7 @@ func (i *iterator) advance() bool {
 			i.current = committed
 		}
 		if !i.current.Deleted {
+			i.visited++
 			return true
 		}
 		i.current = nil
@@ -219,6 +231,9 @@ func (i *iterator) fill() error {
 
 // Close drops the copied partition and pending cursor state.
 func (i *iterator) Close() {
+	if !i.closed {
+		workload.Record{Op: workload.OpIterEnd, ID: i.id, Parent: i.tx.id, Size: i.visited}.Log(i.ctx)
+	}
 	i.closed = true
 	i.current, i.committed, i.pending = nil, nil, nil
 }

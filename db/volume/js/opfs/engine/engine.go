@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io/fs"
 	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/promise"
@@ -25,6 +26,9 @@ const (
 type Engine struct {
 	// backend owns storage and cross-runtime locks for this volume.
 	backend Backend
+	// workloadIDs numbers transactions, iterators, and block read scopes for
+	// workload records.
+	workloadIDs atomic.Uint64
 	// mtx protects the lifecycle, immutable cache, and pending root read.
 	mtx sync.Mutex
 	// rootRead shares only an in-flight descriptor read under shared root locks.
