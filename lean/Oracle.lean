@@ -7,6 +7,7 @@ import Spacewave.SObject.Reencrypt
 import Spacewave.SObject.Leave
 import Spacewave.SObject.Recovery
 import Spacewave.SObject.JournalPipeline
+import Spacewave.SObject.Sync.Auth
 
 /-!
 # Conformance oracle
@@ -46,6 +47,9 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
+- `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
+- `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
 - `openJournalWriter`: storage observations, decoded checkpoint and authentication primitives.
 - `observeJournalFrame`: raw bytes, decoded record and primitive checksums.
 - `encodeJournalFrame`: record and primitive encoding/checksum results.
@@ -116,10 +120,21 @@ deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.Activati
 deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Journal.PipelineOpenResult
 deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
+deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
   match ← req.getObjValAs? String "op" with
+  | "authenticateSync" =>
+    let result := Sync.authenticate (← req.getObjValAs? Sync.AuthenticationInput "input")
+    return json% {ok: $(result.ok), authentication: $result}
+  | "authorizeSync" =>
+    let result := Sync.authorizeParticipants (← req.getObjValAs? (List Participant) "participants")
+      (← req.getObjValAs? String "hash") (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+    return json% {ok: $result}
+  | "verifySyncProof" =>
+    let result := Sync.verifyParticipantProof (← req.getObjValAs? (Option Sig) "proof")
+    return json% {ok: $(result.isSome), remote: $result}
   | "checkpointAndOpenJournal" =>
     let entries ← req.getObjValAs? (List Journal.AuthenticationEntry) "auth"
     let receiptOK ← req.getObjValAs? Bool "receiptOK"

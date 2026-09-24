@@ -98,7 +98,7 @@
     "test:js:alpha": "bun scripts/test-js.js",
     "test:go": "go test -tags skip_e2e -timeout=30s -v ./...",
     "lean": "cd lean && lake build",
-    "test:lean": "bun run lean && cross-env SPACEWAVE_LEAN_ORACLE=../../lean/.lake/build/bin/oracle go test -count=1 -timeout=120s -run Lean ./core/sobject/",
+    "test:lean": "bun run lean && cross-env SPACEWAVE_LEAN_ORACLE=\"$PWD/lean/.lake/build/bin/oracle\" go test -count=1 -timeout=120s -run Lean ./core/sobject/ ./core/sobject/sync/",
     "test:go:e2e": "bun run test:go:e2e:cli && bun run test:go:e2e:wasm && bun run test:go:e2e:bldr-comms && bun run test:go:e2e:core && bun run test:go:e2e:browser && bun run test:go:e2e:trace",
     "test:go:e2e:cli": "cross-env SPACEWAVE_CLI_TESTSCRIPT=true go test -count=1 -timeout=10m -v ./cmd/spacewave/e2e",
     "test:go:e2e:wasm": "cross-env ENABLE_E2E_WASM=true go test -count=1 -timeout=30m -v ./e2e/wasm",
