@@ -12,6 +12,12 @@ const ChatChannelTypeID = "spacewave-chat/channel"
 // ChatMessageTypeID is the type identifier for chat message objects.
 const ChatMessageTypeID = "spacewave-chat/message"
 
+// ChatMessagePageTypeID is the type identifier for channel message pages.
+const ChatMessagePageTypeID = "spacewave-chat/message-page"
+
+// ChatThreadTypeID is the type identifier for thread summary objects.
+const ChatThreadTypeID = "spacewave-chat/thread"
+
 // PredChannelMessage is the graph predicate linking a channel to its messages.
 var PredChannelMessage = quad.IRI("spacewave-chat/channel-message")
 

@@ -82,6 +82,24 @@ func TestChatResourceListThreadsRetainsOrderCountsAndReplyParticipation(t *testi
 		updated.GetThreads()[0].GetReplyCount() != 2 || !updated.GetThreads()[0].GetCurrentUserParticipated() {
 		t.Fatalf("updated threads = %v", updated)
 	}
+
+	// Pages and thread summaries carry block types so World walks can decode them.
+	threadKey, err := alice.chatThreadKey(rootA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{
+		alice.messagePageKey(0): ChatMessagePageTypeID,
+		threadKey:               ChatThreadTypeID,
+	} {
+		typeID, err := world_types.GetObjectType(ctx, ws, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if typeID != want {
+			t.Fatalf("object %s type = %q, want %q", key, typeID, want)
+		}
+	}
 }
 
 // TestChatResourceListThreadsMigratesLegacyHistoryOnce proves compatibility without repeated scans.

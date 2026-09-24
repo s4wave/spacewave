@@ -666,6 +666,9 @@ func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldS
 		if err != nil {
 			return err
 		}
+		if err := world_types.SetObjectType(ctx, ws, pageKey, ChatMessagePageTypeID); err != nil {
+			return err
+		}
 	}
 
 	// Append within the fixed-size page selected by the channel position.
