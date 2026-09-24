@@ -417,10 +417,12 @@ func AccessWorldObject(
 	return AccessObjectState(ctx, obj, updateWorld, cb)
 }
 
-// AccessObjectState accesses and updates a world object handle if updateWorld is set.
-// If updateWorld=true, and the result is different, will SetRootRef with change.
-// Note: if updateWorld=true but ws is read-only, sets updateWorld=false.
-// Returns the modified object ref, if it was dirty, and any error.
+// AccessObjectState applies cb to the object's current root and, when
+// updateWorld is set and the root changed, publishes the result with
+// SetRootRef. An object from an engine WorldState publishes only onto the root
+// cb read: when another writer changed the object first, cb runs again against
+// the new root, so cb must derive every effect from the cursor it is given.
+// Returns the updated object ref, whether it changed, and any error.
 func AccessObjectState(
 	ctx context.Context,
 	obj ObjectState,
@@ -435,6 +437,12 @@ func AccessObjectState(
 		return nil, false, ErrObjectNotFound
 	}
 
+	// Engine objects read and publish in separate transactions, so they
+	// guard publication against concurrent writers themselves.
+	if engineObj, ok := obj.(*engineWorldStateObject); ok {
+		return engineObj.accessObjectState(ctx, updateWorld, cb)
+	}
+
 	// Read the current object root before applying the callback.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/get-root-ref")
 	initRef, _, err := obj.GetRootRef(taskCtx)
@@ -444,23 +452,10 @@ func AccessObjectState(
 	}
 
 	// Apply the callback against the current object root.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
-	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
-	subtask.End()
+	outRef, dirty, err := accessObjectRoot(ctx, obj, initRef, cb)
 	if err != nil {
 		return nil, false, err
 	}
-
-	// Compare the original and updated roots to detect a dirty object.
-	var dirty bool
-	_, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/compare-root-ref")
-	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
-		dirty = true
-	}
-	if !outRef.GetRootRef().EqualsRef(initRef.GetRootRef()) {
-		dirty = true
-	}
-	subtask.End()
 
 	// Publish a changed root when the caller requested world updates.
 	if updateWorld && dirty {
@@ -469,4 +464,26 @@ func AccessObjectState(
 		subtask.End()
 	}
 	return outRef, dirty, err
+}
+
+// accessObjectRoot applies cb to the object root initRef and reports whether
+// the resulting root differs from it.
+func accessObjectRoot(
+	ctx context.Context,
+	obj ObjectState,
+	initRef *bucket.ObjectRef,
+	cb AccessObjectCb,
+) (*bucket.ObjectRef, bool, error) {
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
+	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
+	subtask.End()
+	if err != nil {
+		return nil, false, err
+	}
+
+	dirty := !outRef.GetRootRef().EqualsRef(initRef.GetRootRef())
+	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
+		dirty = true
+	}
+	return outRef, dirty, nil
 }
