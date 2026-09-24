@@ -1,5 +1,10 @@
+import Markdown from 'markdown-to-jsx'
+import { createElement, type ReactNode } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { getHighlightedHtml } from './CodeBlock.js'
+import { readCodeFence } from './code-fence.js'
 import { getLegacyDocRedirect } from './legacy-doc-redirects.js'
 import { loadDocs } from './load-docs.js'
 import { getSectionLabel, getSections, siteDefs } from './sections.js'
@@ -107,5 +112,28 @@ describe('docs data', () => {
       expect(urls.has(url)).toBe(false)
       expect(target && urls.has(target)).toBe(true)
     }
+  })
+
+  it('prerenders highlighting for every docs code fence', () => {
+    const missing: string[] = []
+    for (const doc of loadDocs()) {
+      const check = ({ children }: { children?: ReactNode }) => {
+        const fence = readCodeFence(children)
+        if (fence && !getHighlightedHtml(fence)) {
+          missing.push(`${doc.url} (${fence.lang})`)
+        }
+        return null
+      }
+      renderToStaticMarkup(
+        createElement(
+          Markdown,
+          { options: { overrides: { pre: check } } },
+          doc.body,
+        ),
+      )
+    }
+
+    // Run `bun run gen:docs-code` after editing docs code fences.
+    expect(missing).toEqual([])
   })
 })
