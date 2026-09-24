@@ -113,5 +113,20 @@
     "lang": "sh",
     "code": "spacewave web --bg\nspacewave web list\nspacewave web stop <listener-id>",
     "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> web</span><span style=\"color:#99FFE4\"> --bg</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> web</span><span style=\"color:#99FFE4\"> list</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> web</span><span style=\"color:#99FFE4\"> stop</span><span style=\"color:#A0A0A0\"> &#x3C;</span><span style=\"color:#99FFE4\">listener-i</span><span style=\"color:#FFF\">d</span><span style=\"color:#A0A0A0\">></span></span></code></pre>"
+  },
+  {
+    "lang": "sh",
+    "code": "spacewave git lfs setup --space \"My Space\"",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> setup</span><span style=\"color:#99FFE4\"> --space</span><span style=\"color:#99FFE4\"> \"My Space\"</span></span></code></pre>"
+  },
+  {
+    "lang": "sh",
+    "code": "git lfs track '*.png' '*.mp4'\ngit add .gitattributes\ngit commit -m \"chore: track media with Git LFS\"\ngit push",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> track</span><span style=\"color:#99FFE4\"> '*.png'</span><span style=\"color:#99FFE4\"> '*.mp4'</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> add</span><span style=\"color:#99FFE4\"> .gitattributes</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> commit</span><span style=\"color:#99FFE4\"> -m</span><span style=\"color:#99FFE4\"> \"chore: track media with Git LFS\"</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> push</span></span></code></pre>"
+  },
+  {
+    "lang": "sh",
+    "code": "GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/example/media.git\ncd media\nspacewave git lfs setup --space \"My Space\" git-lfs/media\ngit lfs pull",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFF\">GIT_LFS_SKIP_SMUDGE</span><span style=\"color:#A0A0A0\">=</span><span style=\"color:#99FFE4\">1</span><span style=\"color:#FFC799\"> git</span><span style=\"color:#99FFE4\"> clone</span><span style=\"color:#99FFE4\"> https://github.com/example/media.git</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">cd</span><span style=\"color:#99FFE4\"> media</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> setup</span><span style=\"color:#99FFE4\"> --space</span><span style=\"color:#99FFE4\"> \"My Space\"</span><span style=\"color:#99FFE4\"> git-lfs/media</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">git</span><span style=\"color:#99FFE4\"> lfs</span><span style=\"color:#99FFE4\"> pull</span></span></code></pre>"
   }
 ]

@@ -82,7 +82,7 @@ UnixFS, Git, and Canvas, as well as other object types.
 
 - `plugin list|add|remove|import-manifest`
 - `device setup|setup docker|complete|status|approve|policy`
-- `git show|refs|log|diff|commit|tree|clone|fetch|worktree`
+- `git show|refs|log|diff|commit|tree|clone|fetch|worktree|lfs`
 - `canvas show|watch|apply|node|edge|export`
 - `apt import-deb`
 - `forge create-cluster|create-job|create-worker`
