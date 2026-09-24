@@ -95,8 +95,8 @@ func (s *CoreRootServer) SetListenerStatusBroker(broker *resource_listener.Statu
 	s.listenerStatus = broker
 }
 
-// getListenerStatusBroker returns the injected broker, or nil before
-// injection.
+// getListenerStatusBroker returns the injected broker, or nil when the
+// runtime has no resource listener.
 func (s *CoreRootServer) getListenerStatusBroker() *resource_listener.StatusBroker {
 	s.listenerStatusMtx.Lock()
 	defer s.listenerStatusMtx.Unlock()

@@ -19,9 +19,11 @@ import {
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
 import { buildBlog, collectBlogPaths } from '../blog/blog-build.js'
+import { loadDocs } from '../docs/load-docs.js'
 import { buildBrowserReleaseDescriptor } from './browser-release.js'
 import { buildBootstrapScript } from './bootstrap.js'
 import { buildPageHtml } from './html-template.js'
+import { buildLlmsFiles } from './llms.js'
 import {
   collectRequiredStaticAssetUrls,
   preparePrerenderStaticAssets,
@@ -363,6 +365,16 @@ async function main() {
   const sitemapPath = join(ctx.outputDir, 'sitemap.xml')
   writeFileSync(sitemapPath, sitemapXml)
   ctx.log(`Generated sitemap.xml (${Object.keys(manifestEntries).length} URLs)`)
+
+  // Generate the agent guide files from the llms.txt source and the docs.
+  const llmsGuide = readFileSync(
+    resolve(projectRoot, 'app/docs/content/llms.txt'),
+    'utf8',
+  )
+  const llmsFiles = buildLlmsFiles(llmsGuide, loadDocs(), ctx.siteOrigin)
+  writeFileSync(join(ctx.outputDir, 'llms.txt'), llmsFiles.llms)
+  writeFileSync(join(ctx.outputDir, 'llms-full.txt'), llmsFiles.full)
+  ctx.log('Generated llms.txt and llms-full.txt')
 
   console.log('[prerender] === Prerender Build Complete ===')
 }

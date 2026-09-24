@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
+	"strings"
+	"unicode"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
@@ -29,6 +31,9 @@ type Enrollment struct {
 	Account provider.ProviderAccount
 	// Offering indicates that this client authorizes the selected account.
 	Offering bool
+	// RemoteLabel is the name the other client gave itself. The authorizing
+	// client records it for the receiving Session.
+	RemoteLabel string
 	// Release drops preparation handles without undoing durable enrollment.
 	Release func()
 }
@@ -36,19 +41,14 @@ type Enrollment struct {
 // prepare exchanges account identities, fixes the selected outcome, and reserves
 // the receiving keys before either client can approve account access.
 func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_packet.Session, remote peer.ID) (*Enrollment, error) {
-	// Describe the selected local account; Home has only a temporary transport.
-	var local *AccountOffer
+	// Describe the selected local account; Home has only a temporary transport
+	// and offers only its name.
+	local := &AccountOffer{}
 	if active.offerCurrent {
 		var err error
 		local, err = e.adapter.OfferPairingAccount(ctx, e.key)
 		if err != nil {
 			return nil, err
-		}
-		if local.MachineName == "" {
-			local.MachineName, _ = os.Hostname()
-			if local.MachineName == "" || local.MachineName == "js" {
-				local.MachineName = "Browser"
-			}
 		}
 		if objects, ok := e.adapter.(sobject.SharedObjectProvider); ok {
 			list, release, err := objects.AccessSharedObjectList(ctx, nil)
@@ -66,6 +66,12 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 				}
 			}
 		}
+	}
+	if active.label != "" {
+		local.MachineName = active.label
+	}
+	if local.MachineName == "" {
+		local.MachineName = defaultMachineName()
 	}
 
 	// Order writes by connection role so an unbuffered duplex stream cannot deadlock.
@@ -90,13 +96,12 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 		}
 	}
 
-	// Both clients retain the same ordering of account identities in their choice.
-	choice := &AccountChoice{OfferedAccount: local, ReceivingAccount: remoteOffer}
+	// Both clients retain the same ordering of account identities in their
+	// choice. A name-only offer describes a client with no account.
+	remoteLabel := cleanLabel(remoteOffer.GetMachineName())
+	choice := &AccountChoice{OfferedAccount: accountOffer(local), ReceivingAccount: accountOffer(remoteOffer)}
 	if !active.offering {
-		choice.OfferedAccount, choice.ReceivingAccount = remoteOffer, local
-	}
-	if choice.GetReceivingAccount().GetAccountId() == "" {
-		choice.ReceivingAccount = nil
+		choice.OfferedAccount, choice.ReceivingAccount = choice.ReceivingAccount, choice.OfferedAccount
 	}
 	if err := choice.ValidateAccounts(); err != nil {
 		return nil, err
@@ -127,7 +132,7 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 		if err := ValidateIdentity(offer, identity, e.peerID, remote); err != nil {
 			return nil, err
 		}
-		return &Enrollment{Choice: choice, Offer: offer, Identity: identity, Offering: true, Release: func() {}}, nil
+		return &Enrollment{Choice: choice, Offer: offer, Identity: identity, Offering: true, RemoteLabel: remoteLabel, Release: func() {}}, nil
 	}
 
 	// The configured provider owns receiving keys, storage, and durable attachment.
@@ -164,7 +169,44 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 		releaseAll()
 		return nil, err
 	}
-	return &Enrollment{Choice: choice, Offer: offer, Identity: receiver.Identity, Receiver: receiver, Account: account, Release: releaseAll}, nil
+	return &Enrollment{Choice: choice, Offer: offer, Identity: receiver.Identity, Receiver: receiver, Account: account, RemoteLabel: remoteLabel, Release: releaseAll}, nil
+}
+
+// accountOffer returns offer when it describes an account, or nil for a
+// name-only offer.
+func accountOffer(offer *AccountOffer) *AccountOffer {
+	if offer.GetAccountId() == "" {
+		return nil
+	}
+	return offer
+}
+
+// maxLabelRunes bounds the label another client sends. The label is shown on
+// the approval screen and stored for the Session it enrolls.
+const maxLabelRunes = 64
+
+// cleanLabel reduces a label from another client to printable text of at most
+// maxLabelRunes runes.
+func cleanLabel(label string) string {
+	label = strings.TrimSpace(strings.Map(func(r rune) rune {
+		if !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, label))
+	if runes := []rune(label); len(runes) > maxLabelRunes {
+		label = strings.TrimSpace(string(runes[:maxLabelRunes]))
+	}
+	return label
+}
+
+// defaultMachineName names this client when the caller gave no label.
+func defaultMachineName() string {
+	name, _ := os.Hostname()
+	if name == "" || name == "js" {
+		return "Browser"
+	}
+	return name
 }
 
 // chooseAccount lets the code-entering client propose one outcome. The other

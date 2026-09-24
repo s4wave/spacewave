@@ -2238,6 +2238,13 @@ export interface CompletePairingRequest {
    * @generated from field: string remote_peer_id = 3;
    */
   remotePeerId?: string
+  /**
+   * Label names this client on the other device's approval screen and in its
+   * Session list. Empty uses the machine name.
+   *
+   * @generated from field: string label = 4;
+   */
+  label?: string
 }
 
 export const CompletePairingRequest: MessageType<CompletePairingRequest> =
@@ -2252,6 +2259,7 @@ export const CompletePairingRequest: MessageType<CompletePairingRequest> =
         T: ScalarType.BOOL,
       },
       { no: 3, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2989,6 +2997,13 @@ export interface WatchPairingStatusResponse {
    * @generated from field: pairing.AccountChoice choice = 9;
    */
   choice?: AccountChoice
+  /**
+   * RemoteLabel is the name the other device gave itself (set during
+   * verification).
+   *
+   * @generated from field: string remote_label = 10;
+   */
+  remoteLabel?: string
 }
 
 export const WatchPairingStatusResponse: MessageType<WatchPairingStatusResponse> =
@@ -3010,6 +3025,7 @@ export const WatchPairingStatusResponse: MessageType<WatchPairingStatusResponse>
       { no: 7, name: 'receiving', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'account_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'choice', kind: 'message', T: () => AccountChoice },
+      { no: 10, name: 'remote_label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

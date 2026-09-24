@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/cli"
@@ -16,31 +17,53 @@ import (
 )
 
 func newLoginPairCommand() *cli.Command {
-	var statePath string
+	var statePath, code, label string
 	return &cli.Command{
 		Name:    "p2p",
 		Aliases: []string{"pair"},
 		Usage:   "add an account using a code from another device",
-		Flags:   []cli.Flag{statePathFlag(&statePath)},
+		Flags: []cli.Flag{
+			statePathFlag(&statePath),
+			&cli.StringFlag{
+				Name:        "code",
+				Usage:       "pairing code from the other device; skips the interactive prompts",
+				EnvVars:     []string{"SPACEWAVE_PAIRING_CODE"},
+				Destination: &code,
+			},
+			&cli.StringFlag{
+				Name:        "label",
+				Usage:       "name shown on the other device's approval screen and Session list",
+				Destination: &label,
+			},
+		},
 		Action: func(c *cli.Context) error {
-			return runLoginPair(c, statePath, c.String("output"))
+			return runLoginPair(c, statePath, code, label, c.String("output"))
 		},
 	}
 }
 
-func runLoginPair(c *cli.Context, statePath, outputFormat string) error {
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return errors.New("device-code pairing needs an interactive terminal")
-	}
-	code, err := (&promptui.Prompt{Label: "Code from your other device"}).Run()
-	if err != nil {
-		return errors.Wrap(err, "read pairing code")
+// runLoginPair adds the account offered by another device. Without --code it
+// prompts for the code and the emoji comparison; with --code the person on the
+// other device compares the emoji and approves there.
+func runLoginPair(c *cli.Context, statePath, code, label, outputFormat string) error {
+	// Read the code from the flag or an interactive prompt.
+	interactive := code == ""
+	if interactive {
+		if !term.IsTerminal(int(os.Stdin.Fd())) {
+			return errors.New("pass --code, or run in an interactive terminal")
+		}
+		var err error
+		code, err = (&promptui.Prompt{Label: "Code from your other device"}).Run()
+		if err != nil {
+			return errors.Wrap(err, "read pairing code")
+		}
 	}
 	code = strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(code), " ", ""))
 	if len(code) != 8 {
 		return errors.New("pairing code must have 8 characters")
 	}
 
+	// Mount a temporary pairing Session on the local provider.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
@@ -69,7 +92,8 @@ func runLoginPair(c *cli.Context, statePath, outputFormat string) error {
 	}
 	defer sess.Release()
 
-	connected, err := sess.CompletePairing(ctx, code, false)
+	// Connect, verify, and wait for both devices to approve.
+	connected, err := sess.CompletePairing(ctx, code, false, strings.TrimSpace(label))
 	if err != nil {
 		return errors.Wrap(err, "connect to other device")
 	}
@@ -77,7 +101,7 @@ func runLoginPair(c *cli.Context, statePath, outputFormat string) error {
 	if remotePeerID == "" {
 		return errors.New("pairing did not connect to the other device")
 	}
-	if err := verifyLoginPairing(ctx, sess, remotePeerID); err != nil {
+	if err := verifyLoginPairing(ctx, sess, remotePeerID, interactive, outputFormat); err != nil {
 		return err
 	}
 	result, err := sess.ConfirmPairingWithResult(ctx, remotePeerID, "")
@@ -88,6 +112,8 @@ func runLoginPair(c *cli.Context, statePath, outputFormat string) error {
 	if entry == nil {
 		return errors.New("pairing finished without a registered session")
 	}
+
+	// Report the new Session.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return printSessionListEntry(entry, outputFormat)
 	}
@@ -97,11 +123,15 @@ func runLoginPair(c *cli.Context, statePath, outputFormat string) error {
 		{"Provider", ref.GetProviderId()},
 		{"Account", ref.GetProviderAccountId()},
 		{"Session", ref.GetId()},
+		{"Session index", strconv.FormatUint(uint64(entry.GetSessionIndex()), 10)},
 	})
 	return nil
 }
 
-func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remotePeerID string) error {
+// verifyLoginPairing drives the pairing status until both devices confirm.
+// Interactive use compares the emoji here; otherwise this side confirms and
+// prints the emoji for the person approving on the other device.
+func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remotePeerID string, interactive bool, outputFormat string) error {
 	watch, err := sess.WatchPairingStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch pairing")
@@ -126,35 +156,71 @@ func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remot
 			if err != nil {
 				return errors.Wrap(err, "read pairing emoji")
 			}
-			if len(sas.GetEmoji()) != 6 {
+			emoji := sas.GetEmoji()
+			if len(emoji) != 6 {
 				return errors.New("pairing did not provide six verification emoji")
 			}
-			os.Stdout.WriteString("Confirm these emoji match on both devices:\n")
-			for _, emoji := range sas.GetEmoji() {
-				os.Stdout.WriteString(emoji + " ")
-			}
-			os.Stdout.WriteString("\n")
-			_, err = (&promptui.Prompt{Label: "Do they match", IsConfirm: true}).Run()
-			if err != nil {
-				_ = sess.ConfirmSASMatch(ctx, false)
-				return errors.New("pairing cancelled")
+			if interactive {
+				os.Stdout.WriteString("Confirm these emoji match on both devices:\n" + strings.Join(emoji, " ") + "\n")
+				if _, err := (&promptui.Prompt{Label: "Do they match", IsConfirm: true}).Run(); err != nil {
+					_ = sess.ConfirmSASMatch(ctx, false)
+					return errors.New("pairing cancelled")
+				}
+			} else if err := printPairingEmoji(emoji, outputFormat); err != nil {
+				return err
 			}
 			if err := sess.ConfirmSASMatch(ctx, true); err != nil {
 				return errors.Wrap(err, "confirm emoji")
 			}
 			confirmed = true
-			os.Stdout.WriteString("Waiting for the other device to confirm...\n")
+			if outputFormat != "json" && outputFormat != "yaml" {
+				os.Stdout.WriteString("Waiting for approval on the other device...\n")
+			}
 		case s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED:
 			if !confirmed {
 				return errors.New("other device confirmed before local verification")
 			}
 			return nil
+		case s4wave_session.PairingStatus_PairingStatus_PAIRING_REJECTED:
+			return errors.New("pairing rejected on the other device")
+		case s4wave_session.PairingStatus_PairingStatus_CONFIRMATION_TIMEOUT:
+			return errors.New("pairing was not approved in time; request a new code")
 		case s4wave_session.PairingStatus_PairingStatus_FAILED,
 			s4wave_session.PairingStatus_PairingStatus_SIGNALING_FAILED,
-			s4wave_session.PairingStatus_PairingStatus_CONNECTION_TIMEOUT,
-			s4wave_session.PairingStatus_PairingStatus_PAIRING_REJECTED,
-			s4wave_session.PairingStatus_PairingStatus_CONFIRMATION_TIMEOUT:
+			s4wave_session.PairingStatus_PairingStatus_CONNECTION_TIMEOUT:
 			return errors.Errorf("pairing failed: %s", state.GetErrorMessage())
 		}
 	}
+}
+
+// printPairingEmoji writes the emoji the person approving on the other device
+// compares. Structured output emits one record before the final Session record.
+func printPairingEmoji(emoji []string, outputFormat string) error {
+	if outputFormat != "json" && outputFormat != "yaml" {
+		os.Stdout.WriteString("Ask the person approving in Spacewave to check these emoji match:\n" + strings.Join(emoji, " ") + "\n")
+		return nil
+	}
+	buf, ms := newMarshalBuf()
+	ms.WriteObjectStart()
+	var f bool
+	ms.WriteMoreIf(&f)
+	ms.WriteObjectField("status")
+	ms.WriteString("verify")
+	ms.WriteMoreIf(&f)
+	ms.WriteObjectField("emoji")
+	ms.WriteArrayStart()
+	var g bool
+	for _, e := range emoji {
+		ms.WriteMoreIf(&g)
+		ms.WriteString(e)
+	}
+	ms.WriteArrayEnd()
+	ms.WriteObjectEnd()
+	if err := formatOutput(buf.Bytes(), outputFormat); err != nil {
+		return err
+	}
+	if outputFormat == "yaml" {
+		os.Stdout.WriteString("---\n")
+	}
+	return nil
 }

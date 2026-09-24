@@ -83,15 +83,16 @@ func (e *Engine) GenerateCode(ctx context.Context, relay Relay) (string, error) 
 	}
 
 	// Wait for the peer that resolves the code.
-	parentCtx, active := e.begin(true, true, string(code), "", StatusCodeGenerated)
+	parentCtx, active := e.begin(true, true, "", string(code), "", StatusCodeGenerated)
 	go e.runSolicit(parentCtx, active, st)
 	return string(code), nil
 }
 
 // CompletePeer links to the peer that registered a code and retains the link
 // through enrollment. The caller resolved the code, so the relay is used only
-// for signaling.
-func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.ID, offerCurrent bool) error {
+// for signaling. Label names this client on the other client's approval screen
+// and in its Session list; empty uses the machine name.
+func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.ID, offerCurrent bool, label string) error {
 	// Replace any active attempt and ready the Session transport.
 	e.Clear()
 	st, err := e.transport(ctx, relay)
@@ -100,7 +101,7 @@ func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.
 	}
 
 	// Hold the link in the background until the exchange ends.
-	parentCtx, active := e.begin(false, offerCurrent, "", remotePeer, StatusWaitingForPeer)
+	parentCtx, active := e.begin(false, offerCurrent, label, "", remotePeer, StatusWaitingForPeer)
 	go func() {
 		_, release, err := link.EstablishLinkWithPeerEx(parentCtx, st.GetChildBus(), e.peerID, remotePeer, false)
 		if err != nil {

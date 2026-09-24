@@ -159,7 +159,7 @@ func runLoginChooser(c *cli.Context, statePath, outputFormat string) error {
 	case 1:
 		return runAccountCreateLocal(c, statePath, outputFormat)
 	case 2:
-		return runLoginPair(c, statePath, outputFormat)
+		return runLoginPair(c, statePath, "", "", outputFormat)
 	default:
 		return runLoginFile(c, statePath, outputFormat, "")
 	}

@@ -203,8 +203,8 @@ func (s *Session) GeneratePairingCode(ctx context.Context) (*GeneratePairingCode
 }
 
 // CompletePairing resolves a pairing code from the other device to link.
-func (s *Session) CompletePairing(ctx context.Context, code string, offerCurrentAccount bool) (*CompletePairingResponse, error) {
-	return s.service.CompletePairing(ctx, &CompletePairingRequest{Code: code, OfferCurrentAccount: offerCurrentAccount})
+func (s *Session) CompletePairing(ctx context.Context, code string, offerCurrentAccount bool, label string) (*CompletePairingResponse, error) {
+	return s.service.CompletePairing(ctx, &CompletePairingRequest{Code: code, OfferCurrentAccount: offerCurrentAccount, Label: label})
 }
 
 // SelectPairingAccount fixes the proposed account relationship before approval.

@@ -94,11 +94,11 @@ func TestPairingAccountChoice(t *testing.T) {
 			t.Cleanup(func() { _ = left.Close(); _ = right.Close() })
 			finished := make(chan struct{}, 2)
 			go func() {
-				engines[0].StartOnStream(ctx, left, sessions[1].GetPeerId(), true, true)
+				engines[0].StartOnStream(ctx, left, sessions[1].GetPeerId(), true, true, "")
 				finished <- struct{}{}
 			}()
 			go func() {
-				engines[1].StartOnStream(ctx, right, sessions[0].GetPeerId(), false, true)
+				engines[1].StartOnStream(ctx, right, sessions[0].GetPeerId(), false, true, "")
 				finished <- struct{}{}
 			}()
 			for _, engine := range engines {

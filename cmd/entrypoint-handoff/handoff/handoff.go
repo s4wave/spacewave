@@ -1498,7 +1498,7 @@ func stageStaticHTML(prerenderDir, stagingDir string) error {
 		}
 
 		switch filepath.Ext(d.Name()) {
-		case ".html", ".css", ".js", ".woff2", ".png", ".svg", ".ico", ".xml":
+		case ".html", ".css", ".js", ".woff2", ".png", ".svg", ".ico", ".xml", ".txt":
 		default:
 			return nil
 		}

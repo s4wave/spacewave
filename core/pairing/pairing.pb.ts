@@ -182,7 +182,8 @@ export interface AccountOffer {
    */
   selectionContext?: string
   /**
-   * MachineName identifies the client offering this account.
+   * MachineName names the client sending this offer. A client with no account
+   * sends an offer carrying only this field.
    *
    * @generated from field: string machine_name = 11;
    */

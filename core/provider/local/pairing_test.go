@@ -520,7 +520,7 @@ func completeCodeForTest(
 	if err != nil {
 		return "", err
 	}
-	return remotePeer, pairingEngineForTest(t, sess).CompletePeer(ctx, relay, remotePeer, offerCurrent)
+	return remotePeer, pairingEngineForTest(t, sess).CompletePeer(ctx, relay, remotePeer, offerCurrent, "")
 }
 
 // pairingEngineForTest returns the pairing engine of a mounted Session.

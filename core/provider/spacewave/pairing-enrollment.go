@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/pairing"
 	"github.com/s4wave/spacewave/core/provider"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/transport"
@@ -136,8 +137,21 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 	if err != nil {
 		return err
 	}
-	if _, err := a.LinkSession(ctx, sourceKey, remotePeer, "Paired Session"); err != nil {
+	label := enrollment.RemoteLabel
+	if label == "" {
+		label = "Paired Session"
+	}
+	if _, err := a.LinkSession(ctx, sourceKey, remotePeer, label); err != nil {
 		return err
+	}
+
+	// The cloud observes this client's request, so name the linked Session
+	// from its own label. The Session list falls back to its peer ID.
+	if enrollment.RemoteLabel != "" {
+		observed := &api.ObservedSessionMetadata{Label: label, DeviceType: "linked"}
+		if err := a.UpsertSessionPresentation(ctx, remotePeer.String(), observed); err != nil {
+			a.le.WithError(err).Warn("failed to name paired Session")
+		}
 	}
 	return stream.SendMsg(&pairing.Frame{Body: &pairing.Frame_Complete{Complete: true}})
 }

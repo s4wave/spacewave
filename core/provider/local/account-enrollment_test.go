@@ -204,6 +204,7 @@ func TestAccountPairingExchange(t *testing.T) {
 				}
 			}
 
+			const agentLabel = "Test agent on build host"
 			sourceEngine := pairingEngineForTest(t, sourceSession)
 			receivingEngine := pairingEngineForTest(t, receivingSession)
 			left, right := net.Pipe()
@@ -212,18 +213,22 @@ func TestAccountPairingExchange(t *testing.T) {
 			finished := make(chan struct{}, 2)
 			go func() {
 				defer left.Close()
-				sourceEngine.StartOnStream(ctx, left, receivingSession.GetPeerId(), true, true)
+				sourceEngine.StartOnStream(ctx, left, receivingSession.GetPeerId(), true, true, "")
 				finished <- struct{}{}
 			}()
 			go func() {
 				defer right.Close()
-				receivingEngine.StartOnStream(ctx, right, sourceSession.GetPeerId(), false, false)
+				receivingEngine.StartOnStream(ctx, right, sourceSession.GetPeerId(), false, false, agentLabel)
 				finished <- struct{}{}
 			}()
 
-			// Matching emoji alone must neither register a Session nor import Spaces.
-			waitForPairingStatus(ctx, t, sourceEngine, pairing.StatusVerifyingEmoji)
+			// Matching emoji alone must neither register a Session nor import
+			// Spaces. The approving client sees the receiver's label.
+			verifying := waitForPairingStatus(ctx, t, sourceEngine, pairing.StatusVerifyingEmoji)
 			waitForPairingStatus(ctx, t, receivingEngine, pairing.StatusVerifyingEmoji)
+			if verifying.RemoteLabel != agentLabel {
+				t.Fatalf("approval screen label = %q, want %q", verifying.RemoteLabel, agentLabel)
+			}
 			entries, err := controller.ListSessions(ctx)
 			if err != nil || len(entries) != 1 {
 				t.Fatalf("unapproved pairing changed the Session list: %v, %v", entries, err)
@@ -266,6 +271,22 @@ func TestAccountPairingExchange(t *testing.T) {
 			repeated, err := receivingEngine.Result(sourceSession.GetPeerId())
 			if err != nil || !repeated.EqualVT(ref) {
 				t.Fatal("completion retry did not return the same Session")
+			}
+
+			// The source account names the new Session with the receiver's label.
+			settings, err := source.readAccountSettings(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			named := false
+			for _, presentation := range settings.GetSessionPresentations() {
+				if presentation.GetLabel() == agentLabel {
+					member := settings.FindAccountSession(presentation.GetPeerId())
+					named = member != nil && !member.GetRevoked() && presentation.GetPeerId() != sourceSession.GetPeerId().String()
+				}
+			}
+			if !named {
+				t.Fatal("paired Session was not named with the receiver's label")
 			}
 			account, releaseAccount, err := receiver.t.p.AccessProviderAccount(ctx, source.GetAccountID(), nil)
 			if err != nil {

@@ -157,6 +157,7 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		a.snapshot.AccountName = offer.GetDisplayName()
 		a.snapshot.ProviderID = SessionProviderID(offer)
 		a.snapshot.Receiving = !enrollment.Offering
+		a.snapshot.RemoteLabel = enrollment.RemoteLabel
 		a.snapshot.Emoji = emoji
 		a.snapshot.Status = StatusVerifyingEmoji
 	})
