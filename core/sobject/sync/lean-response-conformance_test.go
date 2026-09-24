@@ -311,6 +311,7 @@ func leanSyncResponseCases(t *testing.T, seed uint64) []leanSyncCase {
 		expected.Set("ok", arena.NewTrue())
 		result.Set("ok", arena.NewTrue())
 		result.Set("state", leanSyncReceive(t, &arena, received))
+		result.Set("recovery", arena.NewFalse())
 		expected.Set("received", result)
 		cases = append(cases, leanSyncCase{name: "complete response page " + strconv.Itoa(len(cases)),
 			request: input.MarshalTo(nil), expected: expected.MarshalTo(nil)})

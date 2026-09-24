@@ -30,8 +30,8 @@ func gateLogger() *logrus.Entry {
 	return logrus.NewEntry(log)
 }
 
-// newMemHost builds an SOHost backed by an in-memory state container.
-func newMemHost(soID string, initial *sobject.SOState) (*sobject.SOHost, *ccontainer.CContainer[*sobject.SOState]) {
+// newMemHost builds an SOHost backed by a state container and an optional successful-write observer.
+func newMemHost(soID string, initial *sobject.SOState, onWrite ...func()) (*sobject.SOHost, *ccontainer.CContainer[*sobject.SOState]) {
 	if initial == nil {
 		initial = &sobject.SOState{}
 	}
@@ -55,6 +55,9 @@ func newMemHost(soID string, initial *sobject.SOState) (*sobject.SOHost, *cconta
 				history[string(hash)] = change.CloneVT()
 			}
 			ctr.SetValue(state)
+			if len(onWrite) != 0 {
+				onWrite[0]()
+			}
 			return nil
 		}, release), nil
 	}

@@ -74,25 +74,26 @@ structure HistoryPage where
 structure ReceiveResult where
   ok : Bool
   state : Receive
+  recovery : Bool
   deriving DecidableEq, Repr
 
 /-- appendChanges follows continuity, size increment, budget, hash and append order. -/
 def appendChanges (before : Receive) (changes : List HistoryChange) : ReceiveResult :=
   match changes with
-  | [] => ⟨true, before⟩
+  | [] => ⟨true, before, false⟩
   | change :: rest =>
-    if change.entry.prev != before.cursor then ⟨false, before⟩
+    if change.entry.prev != before.cursor then ⟨false, before, false⟩
     else
       let sized := {before with bytes := before.bytes + change.bytes}
-      if sized.bytes > maxSuffixBytes || before.changes.length == maxSuffixEntries then ⟨false, sized⟩
-      else if !change.hashOK then ⟨false, sized⟩
+      if sized.bytes > maxSuffixBytes || before.changes.length == maxSuffixEntries then ⟨false, sized, true⟩
+      else if !change.hashOK then ⟨false, sized, false⟩
       else appendChanges {sized with cursor := change.entry.hash, changes := before.changes ++ [change]} rest
 
 /-- appendPage checks its pinned revision, current cursor and per-page budget first. -/
 def appendPage (before : Receive) (page : Option HistoryPage) : ReceiveResult :=
   let page := page.getD ⟨0, "", [], 0⟩
-  if page.revision != before.head.revision || page.cursor != before.cursor || page.changes.isEmpty then ⟨false, before⟩
-  else if page.bytes > maxHistoryPageBytes || page.changes.length > maxHistoryPageEntries then ⟨false, before⟩
+  if page.revision != before.head.revision || page.cursor != before.cursor || page.changes.isEmpty then ⟨false, before, false⟩
+  else if page.bytes > maxHistoryPageBytes || page.changes.length > maxHistoryPageEntries then ⟨false, before, true⟩
   else appendChanges before page.changes
 
 /-- historyBytes counts the serialized retained entries without their page envelope. -/
@@ -1087,5 +1088,287 @@ theorem writeFrames_complete {localID remote : String} {attempts : List WriterAt
     obtain ⟨selected, admitted, written, reported⟩ := healthy attempt (by simp)
     have tail := ih (fun item member => healthy item (by simp [member]))
     simp [writeFrames, selected, admitted, written, reported, tail]
+
+/-- ExchangeFrame projects actual protobuf body tags and the fields each branch reads.
+    Nil nested messages use protobuf getter defaults; page/snapshot presence is retained. -/
+structure ExchangeFrame where
+  kind : Int := 0
+  head : Head := ⟨0, "", 0, 0, ""⟩
+  hashBytes : Nat := 0
+  stateHashBytes : Nat := 0
+  request : Request := ⟨0, ""⟩
+  baseBytes : Nat := 0
+  page : Option HistoryPage := none
+  snapshot : Option Snapshot := none
+  revision : Nat := 0
+  accepted : Bool := false
+  deriving DecidableEq, Repr
+
+/-- Exchange retains the sole owner's pinned state and writer slots.
+    Optional nanosecond timestamps distinguish Go's zero time from a real deadline. -/
+structure Exchange where
+  advertised : Option State
+  lastAdvertised : Option State
+  revision : Nat
+  remoteRevision : Nat
+  advertisementDeadline : Option Int
+  requested : Bool
+  receiving : Option Receive
+  receiveDeadline : Option Int
+  response : Option Response
+  control : Option ExchangeFrame
+  outgoing : Option ExchangeFrame
+  inFlight : Option ExchangeFrame
+  terminal : Bool
+  deriving DecidableEq, Repr
+
+/-- ExchangePrimitives records reads, encodings, hashing, time and observer availability.
+    sameCurrent is Go's complete EqualVT observation, including unprojected protobuf fields.
+    Acceptance's receiver and snapshot are overwritten by the actual owner/frame binding. -/
+structure ExchangePrimitives where
+  now : Int
+  sameCurrent : Bool
+  currentHashBytes : Nat
+  stateBytes : Nat
+  encoded : Option String
+  digest : String
+  history : Option (List HistoryChange)
+  advertisedEncoded : Option String
+  snapshotBytes : Nat
+  sizes : List Nat
+  acceptance : AcceptanceInput
+  healthRead : Option State
+  admissionObserver : Bool
+  recoveryObserver : Bool
+  deriving Repr
+
+/-- ExchangeResult records protocol state and calls into the existing host/operation owners.
+    operation means dispatch to handleRemoteOp, whose own validation remains required. -/
+structure ExchangeResult where
+  ok : Bool
+  state : Exchange
+  imported : Option AcceptanceResult := none
+  operation : Bool := false
+  admission : Option Bool := none
+  recovery : Option Bool := none
+  deriving DecidableEq, Repr
+
+/-- exchangeDigest uses the actual stripped current-state serialization primitives. -/
+def exchangeDigest (current : State) (input : ExchangePrimitives) : Option String :=
+  syncStateHash current (fun _ => input.stateBytes) (fun _ => input.encoded) (fun _ => input.digest)
+
+/-- prepareOutgoing mirrors the priority pump and exact partial mutations on failure. -/
+def prepareOutgoing (before : Exchange) (current : Option State) (input : ExchangePrimitives) : ExchangeResult := Id.run do
+  if before.outgoing.isSome || before.inFlight.isSome then
+    return ⟨true, before, none, false, none, none⟩
+  if let some control := before.control then
+    return ⟨true, {before with outgoing := some control, control := none}, none, false, none, none⟩
+  if let some response := before.response then
+    let next := nextMessage response input.sizes
+    let state := {before with
+      response := some next.state
+      outgoing := if next.ok then some {kind := next.kind, page := next.page, snapshot := next.snapshot} else none}
+    if !next.ok then
+      return ⟨false, state, none, false, none, none⟩
+    return ⟨true, if next.snapshot.isSome then {state with response := none} else state, none, false, none, none⟩
+  let some current := current | return ⟨true, before, none, false, none, none⟩
+  if before.advertised.isSome || input.sameCurrent then
+    return ⟨true, before, none, false, none, none⟩
+  let revision := (before.revision + 1) % (2 ^ 64)
+  let state := {before with revision := revision}
+  if revision == 0 then
+    return ⟨false, state, none, false, none, none⟩
+  let some digest := exchangeDigest current input | return ⟨false, state, none, false, none, none⟩
+  let head : Head := ⟨revision, current.config.hash, current.config.seqno, current.root.seqno, digest⟩
+  return ⟨true, {state with
+    advertised := some current
+    lastAdvertised := some current
+    advertisementDeadline := some (input.now + 60000000000)
+    requested := false
+    outgoing := some {kind := 7, head := head, hashBytes := input.currentHashBytes, stateHashBytes := 32}}, none, false, none, none⟩
+
+/-- receiveExchange mirrors the authorized owner's dispatch, retaining primitive failure ordering. -/
+def receiveExchange (before : Exchange) (current : State) (frame : ExchangeFrame)
+    (input : ExchangePrimitives) : ExchangeResult :=
+  if frame.kind == 6 then
+    {ok := false, state := before, admission := if !frame.accepted && input.admissionObserver then some false else none}
+  else if before.terminal then
+    ⟨true, before, none, false, none, none⟩
+  else
+    match frame.kind with
+    | 7 => Id.run do
+      let head := frame.head
+      if head.configHash == "" then
+        return ⟨false, before, none, false, none, none⟩
+      if head.revision ≤ before.remoteRevision || frame.hashBytes > 128 || frame.stateHashBytes != 32 ||
+          before.receiving.isSome || before.control.isSome then
+        return ⟨false, before, none, false, none, none⟩
+      let state := {before with remoteRevision := head.revision}
+      let some digest := exchangeDigest current input | return ⟨false, state, none, false, none, none⟩
+      let recovery := if head.stateHash == digest && input.recoveryObserver then some false else none
+      if head.stateHash == digest || head.configSeqno < current.config.seqno ||
+          (head.configHash == current.config.hash && head.rootSeqno < current.root.seqno) then
+        return {ok := true, state := {state with control := some {kind := 3, revision := head.revision}}, recovery := recovery}
+      let base := current.config.hash
+      let receiving : Receive := ⟨head, base, base, [], 0⟩
+      let control : ExchangeFrame := {kind := 8, request := ⟨head.revision, base⟩, baseBytes := input.currentHashBytes}
+      let state := {state with
+        receiving := some receiving
+        receiveDeadline := some (input.now + 60000000000)
+        control := some control}
+      return {ok := true, state := state, recovery := recovery}
+    | 8 => Id.run do
+      let some advertised := before.advertised | return ⟨false, before, none, false, none, none⟩
+      if frame.request.revision != before.revision || before.requested || frame.request.base == "" || frame.baseBytes > 128 then
+        return ⟨false, before, none, false, none, none⟩
+      let response := prepareResponse advertised frame.request input.history (fun _ => input.advertisedEncoded)
+        (fun _ => input.snapshotBytes)
+      let state := {before with requested := true, response := response}
+      if response.isNone then
+        return ⟨true, {state with terminal := true, control := some {kind := 10, revision := before.revision}}, none, false, none, none⟩
+      return ⟨true, state, none, false, none, none⟩
+    | 9 => Id.run do
+      let some receiving := before.receiving | return ⟨false, before, none, false, none, none⟩
+      let page := appendPage receiving frame.page
+      let state := {before with receiving := some page.state}
+      if page.ok then
+        return ⟨true, state, none, false, none, none⟩
+      if !page.recovery then
+        return ⟨false, state, none, false, none, none⟩
+      return ⟨true, {state with terminal := true, control := some {kind := 10, revision := receiving.head.revision}}, none, false, none, none⟩
+    | 1 => Id.run do
+      let some receiving := before.receiving | return ⟨false, before, none, false, none, none⟩
+      if before.control.isSome then
+        return ⟨false, before, none, false, none, none⟩
+      let accepted := acceptResponse {input.acceptance with receiving := receiving, snapshot := frame.snapshot}
+      if !accepted.ok then
+        return {ok := false, state := before, imported := some accepted}
+      let state := {before with
+        control := some {kind := 3, revision := receiving.head.revision}
+        receiving := none
+        receiveDeadline := none}
+      let recovery := if input.recoveryObserver && !responseObsolete input.healthRead receiving.head then some false else none
+      return {ok := true, state := state, imported := some accepted, recovery := recovery}
+    | 3 => Id.run do
+      if before.advertised.isNone || frame.revision != before.revision || before.response.isSome then
+        return ⟨false, before, none, false, none, none⟩
+      return ⟨true, {before with advertised := none, advertisementDeadline := none}, none, false, none, none⟩
+    | 10 => Id.run do
+      return ⟨false, before, none, false, none, none⟩
+    | 2 => Id.run do
+      return {ok := true, state := before, operation := true}
+    | _ => ⟨false, before, none, false, none, none⟩
+
+/-- Terminal recovery discards later data without any import or operation dispatch. -/
+theorem receiveExchange_terminal {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} (terminal : before.terminal = true) (dataFrame : frame.kind ≠ 6) :
+    receiveExchange before current frame input = ⟨true, before, none, false, none, none⟩ := by
+  simp [receiveExchange, terminal, dataFrame]
+
+/-- A queued or in-flight frame cannot be replaced by the pump. -/
+theorem prepareOutgoing_occupied {before : Exchange} {current : Option State} {input : ExchangePrimitives}
+    (occupied : before.outgoing.isSome = true ∨ before.inFlight.isSome = true) :
+    prepareOutgoing before current input = ⟨true, before, none, false, none, none⟩ := by
+  rcases occupied with occupied | occupied <;> simp [prepareOutgoing, occupied]
+
+/-- Only an unblocked, nonterminal pinned snapshot dispatch can call host acceptance. -/
+theorem receiveExchange_import {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} {accepted : AcceptanceResult}
+    (imported : (receiveExchange before current frame input).imported = some accepted) :
+    before.terminal = false ∧ frame.kind = 1 ∧ before.control.isSome = false ∧
+      ∃ receiving, before.receiving = some receiving ∧
+        accepted = acceptResponse {input.acceptance with receiving := receiving, snapshot := frame.snapshot} := by
+  unfold receiveExchange at imported
+  simp only [Id.run, pure] at imported
+  repeat' first | split at imported | simp_all
+
+/-- Every host publication through the receiver uses the same complete suffix and atomic host validator. -/
+theorem receiveExchange_publication {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} {accepted : AcceptanceResult}
+    (imported : (receiveExchange before current frame input).imported = some accepted)
+    (wrote : accepted.host.wrote = true) :
+    ∃ receiving candidate, before.receiving = some receiving ∧ input.acceptance.decoded = some candidate ∧
+      importPeerSnapshot input.acceptance.previous candidate (receiving.changes.map (·.entry))
+        input.acceptance.localPeer input.acceptance.candidateBytes (historyBytes receiving.changes)
+        input.acceptance.lockOK input.acceptance.accessOK input.acceptance.writeOK = some accepted.host := by
+  obtain ⟨_, _, _, receiving, retained, same⟩ := receiveExchange_import imported
+  rw [same] at wrote ⊢
+  obtain ⟨candidate, decoded, publication⟩ := acceptResponse_publication wrote
+  exact ⟨receiving, candidate, retained, decoded, publication⟩
+
+/-- The owner processes no host operation when terminal recovery is pending. -/
+theorem receiveExchange_no_terminal_effects {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} (terminal : before.terminal = true) :
+    (receiveExchange before current frame input).state = before ∧
+    (receiveExchange before current frame input).imported = none ∧
+    (receiveExchange before current frame input).operation = false := by
+  by_cases authorization : frame.kind = 6
+  · simp [receiveExchange, authorization]
+  · simp [receiveExchange_terminal terminal authorization]
+
+/-- Pages retain the original receive deadline and cannot invoke host acceptance or operations. -/
+theorem receiveExchange_page_local {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} (page : frame.kind = 9) :
+    (receiveExchange before current frame input).state.receiveDeadline = before.receiveDeadline ∧
+    (receiveExchange before current frame input).imported = none ∧
+    (receiveExchange before current frame input).operation = false := by
+  cases terminal : before.terminal
+  · cases retained : before.receiving with
+    | none => simp [receiveExchange, page, terminal, retained]
+    | some receiving =>
+      cases accepted : (appendPage receiving frame.page).ok <;>
+        cases recovery : (appendPage receiving frame.page).recovery <;>
+          simp [receiveExchange, page, terminal, retained, accepted, recovery]
+  · simp [receiveExchange, page, terminal]
+
+/-- An existing request flag cannot be bypassed with another request under the same advertisement. -/
+theorem receiveExchange_repeated_request {before : Exchange} {current : State} {frame : ExchangeFrame}
+    {input : ExchangePrimitives} (request : frame.kind = 8) (live : before.terminal = false)
+    (requested : before.requested = true) :
+    receiveExchange before current frame input = ⟨false, before, none, false, none, none⟩ := by
+  cases advertised : before.advertised <;> simp [receiveExchange, request, live, requested, advertised]
+
+/-- A pending control takes the free writer slot while retaining the advertised response. -/
+theorem prepareOutgoing_control {before : Exchange} {current : Option State} {input : ExchangePrimitives}
+    {control : ExchangeFrame} (queued : before.control = some control)
+    (outgoing : before.outgoing = none) (inFlight : before.inFlight = none) :
+    prepareOutgoing before current input =
+      ⟨true, {before with outgoing := some control, control := none}, none, false, none, none⟩ := by
+  simp [prepareOutgoing, queued, outgoing, inFlight]
+
+/-- A healthy complete pinned response reaches publication and acknowledgment through the real dispatch. -/
+theorem receiveExchange_complete (before : Exchange) (current : State) (frame : ExchangeFrame)
+    (input : ExchangePrimitives) (candidate : State) (snapshot : Snapshot)
+    (kind : frame.kind = 1) (live : before.terminal = false) (control : before.control = none)
+    (receiving : before.receiving = some input.acceptance.receiving)
+    (frameSnapshot : frame.snapshot = input.acceptance.snapshot)
+    (present : input.acceptance.snapshot = some snapshot) (decoded : input.acceptance.decoded = some candidate)
+    (revision : snapshot.revision = input.acceptance.receiving.head.revision)
+    (base : snapshot.base = input.acceptance.receiving.base)
+    (cursor : input.acceptance.receiving.cursor = input.acceptance.receiving.head.configHash)
+    (digest : input.acceptance.digest = input.acceptance.receiving.head.stateHash)
+    (notObsolete : responseObsolete input.acceptance.beforeRead input.acceptance.receiving.head = false)
+    (snapshotRoot : snapshot.rootSeqno = input.acceptance.receiving.head.rootSeqno)
+    (rootSeq : candidate.root.seqno = snapshot.rootSeqno)
+    (configSeq : candidate.config.seqno = input.acceptance.receiving.head.configSeqno)
+    (configHash : candidate.config.hash = input.acceptance.receiving.head.configHash)
+    (bounded : input.acceptance.candidateBytes ≤ 10 * 1024 * 1024 ∧ input.acceptance.receiving.changes.length ≤ 4096 ∧
+      historyBytes input.acceptance.receiving.changes ≤ 8 * 1024 * 1024)
+    (chain : verifySuffix input.acceptance.previous.config candidate.config (input.acceptance.receiving.changes.map (·.entry)) = true)
+    (readable : readableBy candidate.config input.acceptance.localPeer = true)
+    (root : importRoot input.acceptance.previous.root candidate.root candidate.config = some candidate.root)
+    (progress : input.acceptance.previous.root.seqno < candidate.root.seqno) (valid : candidate.validate = true)
+    (localEmpty : input.acceptance.previous.ops = []) (remoteEmpty : candidate.ops = [])
+    (lock : input.acceptance.lockOK = true) (access : input.acceptance.accessOK = true) (write : input.acceptance.writeOK = true) :
+    (receiveExchange before current frame input).ok = true ∧
+    (receiveExchange before current frame input).state.receiving = none ∧
+    (receiveExchange before current frame input).state.control = some {kind := 3, revision := snapshot.revision} ∧
+    ∃ accepted, (receiveExchange before current frame input).imported = some accepted ∧
+      accepted.host.wrote = true ∧ sameCheckpoint accepted.host.state candidate = true := by
+  have accepted := acceptResponse_complete input.acceptance candidate snapshot present decoded revision base cursor digest
+    notObsolete snapshotRoot rootSeq configSeq configHash bounded chain readable root progress valid localEmpty remoteEmpty lock access write
+  have sameInput : {input.acceptance with receiving := input.acceptance.receiving, snapshot := frame.snapshot} = input.acceptance := by
+    simp [frameSnapshot]
+  simp [receiveExchange, kind, live, control, receiving, sameInput, accepted, revision]
 
 end Spacewave.SObject.Sync

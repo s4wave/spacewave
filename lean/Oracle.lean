@@ -49,6 +49,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
+- `prepareSyncOutgoing`, `receiveSyncExchange`: sole-owner protocol state and primitive observations.
 - `writeSyncFrames`: endpoint identities and current-authority/transport trace; result `{"ok", "writer"}`.
 - `startSyncStream`: authentication inputs and deadline observations; result `{"ok", "started"}`.
 - `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
@@ -136,6 +137,7 @@ deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Recei
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
 deriving instance ToJson, FromJson for Sync.WriterAttempt, Sync.WriterResult
+deriving instance ToJson, FromJson for Sync.ExchangeFrame, Sync.Exchange, Sync.ExchangePrimitives, Sync.ExchangeResult
 
 /-- respond evaluates one request against the model. -/
 def respond (req : Json) : Except String Json := do
@@ -174,6 +176,17 @@ def respond (req : Json) : Except String Json := do
     let result := Sync.nextMessage (← req.getObjValAs? Sync.Response "before")
       (← req.getObjValAs? (List Nat) "sizes")
     return json% {ok: $(result.ok), message: $result}
+  | "prepareSyncOutgoing" =>
+    let result := Sync.prepareOutgoing (← req.getObjValAs? Sync.Exchange "before")
+      (← req.getObjValAs? (Option State) "current") (← req.getObjValAs? Sync.ExchangePrimitives "input")
+    return json% {ok: $(result.ok), exchange: $result}
+  | "receiveSyncExchange" =>
+    let input ← req.getObjValAs? Sync.ExchangePrimitives "input"
+    let result := Sync.receiveExchange (← req.getObjValAs? Sync.Exchange "before")
+      (← req.getObjValAs? State "current") (← req.getObjValAs? Sync.ExchangeFrame "frame") input
+    let host := if result.operation then none else
+      some ((result.imported.map (·.host)).getD (visibleHost input.acceptance.previous none))
+    return json% {ok: $(result.ok), exchange: $result, host: $host}
   | "writeSyncFrames" =>
     let writer := Sync.writeFrames (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
       (← req.getObjValAs? (List Sync.WriterAttempt) "attempts")

@@ -170,14 +170,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 	}()
 
 	// Keep at most one advertisement, response, incoming suffix and control frame.
-	var advertised, lastAdvertised *sobject.SOState
-	var revision, remoteRevision uint64
-	var advertisementDeadline time.Time
-	var requested bool
-	var receiving *syncReceive
-	var response *syncResponse
-	var control, outgoing, inFlight *SOSyncMessage
-	var terminal error
+	x := &syncExchange{sync: s, remoteID: remoteID}
 	timer := time.NewTimer(catchupTimeout)
 	timer.Stop()
 	defer timer.Stop()
@@ -188,41 +181,14 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			_ = sendAccessDenied(sess)
 			return err
 		}
-		if outgoing == nil && inFlight == nil {
-			switch {
-			case control != nil:
-				outgoing, control = control, nil
-			case response != nil:
-				outgoing, err = response.nextMessage()
-				if err != nil {
-					return err
-				}
-				if outgoing.GetSnapshot() != nil {
-					response = nil
-				}
-			case advertised == nil && current != nil && !current.EqualVT(lastAdvertised):
-				revision++
-				if revision == 0 {
-					return errors.New("sync revision exhausted")
-				}
-				digest, err := syncStateHash(current)
-				if err != nil {
-					return err
-				}
-				advertised, lastAdvertised = current, current
-				advertisementDeadline = time.Now().Add(catchupTimeout)
-				requested = false
-				outgoing = &SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
-					Revision: revision, ConfigHash: bytes.Clone(current.GetConfig().GetConfigChainHash()),
-					ConfigSeqno: current.GetConfig().GetConfigChainSeqno(), RootSeqno: current.GetRoot().GetInnerSeqno(), StateHash: digest,
-				}}}
-			}
+		if err := x.prepareSend(current); err != nil {
+			return err
 		}
 
 		// One timer covers both directions without extending the budget on each page.
-		deadline := advertisementDeadline
-		if receiving != nil && (deadline.IsZero() || receiving.deadline.Before(deadline)) {
-			deadline = receiving.deadline
+		deadline := x.advertisementDeadline
+		if x.receiving != nil && (deadline.IsZero() || x.receiving.deadline.Before(deadline)) {
+			deadline = x.receiving.deadline
 		}
 		var expired <-chan time.Time
 		if !deadline.IsZero() {
@@ -232,7 +198,7 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			timer.Stop()
 		}
 		var send chan *SOSyncMessage
-		if outgoing != nil && inFlight == nil {
+		if x.outgoing != nil && x.inFlight == nil {
 			send = outbound
 		}
 
@@ -243,20 +209,20 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 			return context.DeadlineExceeded
 		case <-changed:
 			// The next iteration reads the latest authoritative state.
-		case send <- outgoing:
-			inFlight, outgoing = outgoing, nil
+		case send <- x.outgoing:
+			x.inFlight, x.outgoing = x.outgoing, nil
 		case err := <-sent:
 			if err != nil {
 				return s.drainDenial(ctx, incoming, remoteID, err)
 			}
-			if inFlight.GetRecoveryRequired() != nil {
+			if x.inFlight.GetRecoveryRequired() != nil {
 				return sobject.ErrConfigHistoryUnavailable
 			}
-			inFlight = nil
+			x.inFlight = nil
 		case received := <-incoming:
 			if received.err != nil {
-				if terminal != nil {
-					return terminal
+				if x.terminal != nil {
+					return x.terminal
 				}
 				return received.err
 			}
@@ -265,102 +231,181 @@ func (s *SOSync) synchronize(ctx context.Context, le *logrus.Entry, sess *stream
 				_ = sendAccessDenied(sess)
 				return err
 			}
-			if authorization, ok := received.message.GetBody().(*SOSyncMessage_Authorization); ok {
-				return s.handleDenial(remoteID, authorization.Authorization)
-			}
-
-			// Drain already-sent frames without admitting new data after recovery becomes terminal.
-			if terminal != nil {
-				continue
-			}
-
-			switch body := received.message.GetBody().(type) {
-			case *SOSyncMessage_Head:
-				head := body.Head
-				if len(head.GetConfigHash()) == 0 {
-					return sobject.ErrConfigHistoryUnavailable
-				}
-				if head.GetRevision() <= remoteRevision || len(head.GetConfigHash()) > 128 || len(head.GetStateHash()) != sha256.Size || receiving != nil || control != nil {
-					return errors.New("invalid or overlapping sync head")
-				}
-				remoteRevision = head.GetRevision()
-				digest, err := syncStateHash(current)
-				if err != nil {
-					return err
-				}
-				if bytes.Equal(head.GetStateHash(), digest) && s.peerRecovery != nil {
-					s.peerRecovery(remoteID, false)
-				}
-				config := current.GetConfig()
-				if bytes.Equal(head.GetStateHash(), digest) || head.GetConfigSeqno() < config.GetConfigChainSeqno() ||
-					(bytes.Equal(head.GetConfigHash(), config.GetConfigChainHash()) && head.GetRootSeqno() < current.GetRoot().GetInnerSeqno()) {
-					control = syncAcknowledgment(head.GetRevision())
-					continue
-				}
-				base := bytes.Clone(config.GetConfigChainHash())
-				receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout)}
-				control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: &SOSyncHistoryRequest{
-					Revision: head.GetRevision(), BaseHash: base,
-				}}}
-			case *SOSyncMessage_HistoryRequest:
-				request := body.HistoryRequest
-				if advertised == nil || request.GetRevision() != revision || requested || len(request.GetBaseHash()) == 0 || len(request.GetBaseHash()) > 128 {
-					return errors.New("invalid or repeated sync request")
-				}
-				requested = true
-				requestCtx, requestCancel := context.WithDeadline(ctx, advertisementDeadline)
-				response, err = s.prepareResponse(requestCtx, advertised, request)
-				requestCancel()
-				if err != nil {
-					terminal = sobject.ErrConfigHistoryUnavailable
-					control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: revision}}}
-				}
-			case *SOSyncMessage_HistoryPage:
-				if receiving == nil {
-					return errors.New("unsolicited history page")
-				}
-				if err := receiving.appendPage(received.message); err != nil {
-					if !errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
-						return err
-					}
-					terminal = err
-					control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: receiving.head.GetRevision()}}}
-				}
-			case *SOSyncMessage_Snapshot:
-				if receiving == nil || control != nil {
-					return errors.Wrap(sobject.ErrConfigHistoryUnavailable, "peer did not use requested snapshot protocol")
-				}
-				requestCtx, requestCancel := context.WithDeadline(ctx, receiving.deadline)
-				err := s.acceptResponse(requestCtx, receiving, body.Snapshot)
-				requestCancel()
-				if err != nil {
-					return err
-				}
-				if s.peerRecovery != nil && !s.responseObsolete(ctx, receiving.head) {
-					s.peerRecovery(remoteID, false)
-				}
-				control = syncAcknowledgment(receiving.head.GetRevision())
-				receiving = nil
-			case *SOSyncMessage_Ack:
-				if advertised == nil || body.Ack.GetRevision() != revision || response != nil {
-					return errors.New("invalid sync acknowledgment")
-				}
-				advertised = nil
-				advertisementDeadline = time.Time{}
-			case *SOSyncMessage_RecoveryRequired:
-				matchesRequest := receiving != nil && body.RecoveryRequired.GetRevision() == receiving.head.GetRevision()
-				matchesAdvertisement := advertised != nil && body.RecoveryRequired.GetRevision() == revision
-				if !matchesRequest && !matchesAdvertisement {
-					return errors.New("unsolicited recovery response")
-				}
-				return sobject.ErrConfigHistoryUnavailable
-			case *SOSyncMessage_Op:
-				s.handleRemoteOp(ctx, le, body.Op)
-			default:
-				return errors.New("unexpected authenticated sync message")
+			if err := x.receive(ctx, le, current, received.message); err != nil {
+				return err
 			}
 		}
 	}
+}
+
+// syncExchange is the negotiation state owned exclusively by synchronize's loop.
+// Worker routines receive frames and results through channels and never mutate this state.
+type syncExchange struct {
+	// sync supplies held-state verification, history and participant observers.
+	sync *SOSync
+	// remoteID is the participant established by the stream's mutual authentication.
+	remoteID peer.ID
+	// advertised pins the local checkpoint until its acknowledgment.
+	advertised *sobject.SOState
+	// lastAdvertised suppresses repeated advertisement of an unchanged checkpoint.
+	lastAdvertised *sobject.SOState
+	// revision identifies the current local advertisement without reuse.
+	revision uint64
+	// remoteRevision rejects repeated or reordered remote advertisements.
+	remoteRevision uint64
+	// advertisementDeadline bounds the local response through acknowledgment.
+	advertisementDeadline time.Time
+	// requested admits at most one history request for the pinned advertisement.
+	requested bool
+	// receiving retains the untrusted remote suffix and its original deadline.
+	receiving *syncReceive
+	// response retains the pinned local suffix while pages drain.
+	response *syncResponse
+	// control precedes response data at the next available writer handoff.
+	control *SOSyncMessage
+	// outgoing is the frame prepared for the next writer handoff.
+	outgoing *SOSyncMessage
+	// inFlight is the handed-off frame awaiting its writer result.
+	inFlight *SOSyncMessage
+	// terminal prevents further data admission while recovery notification drains.
+	terminal error
+}
+
+// prepareSend fills the next writer slot without replacing a queued or in-flight frame.
+func (x *syncExchange) prepareSend(current *sobject.SOState) error {
+	var err error
+	if x.outgoing == nil && x.inFlight == nil {
+		switch {
+		case x.control != nil:
+			x.outgoing, x.control = x.control, nil
+		case x.response != nil:
+			x.outgoing, err = x.response.nextMessage()
+			if err != nil {
+				return err
+			}
+			if x.outgoing.GetSnapshot() != nil {
+				x.response = nil
+			}
+		case x.advertised == nil && current != nil && !current.EqualVT(x.lastAdvertised):
+			x.revision++
+			if x.revision == 0 {
+				return errors.New("sync revision exhausted")
+			}
+			digest, err := syncStateHash(current)
+			if err != nil {
+				return err
+			}
+			x.advertised, x.lastAdvertised = current, current
+			x.advertisementDeadline = time.Now().Add(catchupTimeout)
+			x.requested = false
+			x.outgoing = &SOSyncMessage{Body: &SOSyncMessage_Head{Head: &SOSyncHead{
+				Revision: x.revision, ConfigHash: bytes.Clone(current.GetConfig().GetConfigChainHash()),
+				ConfigSeqno: current.GetConfig().GetConfigChainSeqno(), RootSeqno: current.GetRoot().GetInnerSeqno(), StateHash: digest,
+			}}}
+		}
+	}
+	return nil
+}
+
+// receive consumes one frame after the owner has checked current participant authority.
+// Terminal recovery still observes explicit denials while discarding later data frames.
+func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *sobject.SOState, message *SOSyncMessage) error {
+	var err error
+	if authorization, ok := message.GetBody().(*SOSyncMessage_Authorization); ok {
+		return x.sync.handleDenial(x.remoteID, authorization.Authorization)
+	}
+
+	// Drain already-sent frames without admitting new data after recovery becomes terminal.
+	if x.terminal != nil {
+		return nil
+	}
+
+	switch body := message.GetBody().(type) {
+	case *SOSyncMessage_Head:
+		head := body.Head
+		if len(head.GetConfigHash()) == 0 {
+			return sobject.ErrConfigHistoryUnavailable
+		}
+		if head.GetRevision() <= x.remoteRevision || len(head.GetConfigHash()) > 128 || len(head.GetStateHash()) != sha256.Size || x.receiving != nil || x.control != nil {
+			return errors.New("invalid or overlapping sync head")
+		}
+		x.remoteRevision = head.GetRevision()
+		digest, err := syncStateHash(current)
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(head.GetStateHash(), digest) && x.sync.peerRecovery != nil {
+			x.sync.peerRecovery(x.remoteID, false)
+		}
+		config := current.GetConfig()
+		if bytes.Equal(head.GetStateHash(), digest) || head.GetConfigSeqno() < config.GetConfigChainSeqno() ||
+			(bytes.Equal(head.GetConfigHash(), config.GetConfigChainHash()) && head.GetRootSeqno() < current.GetRoot().GetInnerSeqno()) {
+			x.control = syncAcknowledgment(head.GetRevision())
+			return nil
+		}
+		base := bytes.Clone(config.GetConfigChainHash())
+		x.receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout)}
+		x.control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: &SOSyncHistoryRequest{
+			Revision: head.GetRevision(), BaseHash: base,
+		}}}
+	case *SOSyncMessage_HistoryRequest:
+		request := body.HistoryRequest
+		if x.advertised == nil || request.GetRevision() != x.revision || x.requested || len(request.GetBaseHash()) == 0 || len(request.GetBaseHash()) > 128 {
+			return errors.New("invalid or repeated sync request")
+		}
+		x.requested = true
+		requestCtx, requestCancel := context.WithDeadline(ctx, x.advertisementDeadline)
+		x.response, err = x.sync.prepareResponse(requestCtx, x.advertised, request)
+		requestCancel()
+		if err != nil {
+			x.terminal = sobject.ErrConfigHistoryUnavailable
+			x.control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: x.revision}}}
+		}
+	case *SOSyncMessage_HistoryPage:
+		if x.receiving == nil {
+			return errors.New("unsolicited history page")
+		}
+		if err := x.receiving.appendPage(message); err != nil {
+			if !errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
+				return err
+			}
+			x.terminal = err
+			x.control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: x.receiving.head.GetRevision()}}}
+		}
+	case *SOSyncMessage_Snapshot:
+		if x.receiving == nil || x.control != nil {
+			return errors.Wrap(sobject.ErrConfigHistoryUnavailable, "peer did not use requested snapshot protocol")
+		}
+		requestCtx, requestCancel := context.WithDeadline(ctx, x.receiving.deadline)
+		err := x.sync.acceptResponse(requestCtx, x.receiving, body.Snapshot)
+		requestCancel()
+		if err != nil {
+			return err
+		}
+		if x.sync.peerRecovery != nil && !x.sync.responseObsolete(ctx, x.receiving.head) {
+			x.sync.peerRecovery(x.remoteID, false)
+		}
+		x.control = syncAcknowledgment(x.receiving.head.GetRevision())
+		x.receiving = nil
+	case *SOSyncMessage_Ack:
+		if x.advertised == nil || body.Ack.GetRevision() != x.revision || x.response != nil {
+			return errors.New("invalid sync acknowledgment")
+		}
+		x.advertised = nil
+		x.advertisementDeadline = time.Time{}
+	case *SOSyncMessage_RecoveryRequired:
+		matchesRequest := x.receiving != nil && body.RecoveryRequired.GetRevision() == x.receiving.head.GetRevision()
+		matchesAdvertisement := x.advertised != nil && body.RecoveryRequired.GetRevision() == x.revision
+		if !matchesRequest && !matchesAdvertisement {
+			return errors.New("unsolicited recovery response")
+		}
+		return sobject.ErrConfigHistoryUnavailable
+	case *SOSyncMessage_Op:
+		x.sync.handleRemoteOp(ctx, le, body.Op)
+	default:
+		return errors.New("unexpected authenticated sync message")
+	}
+	return nil
 }
 
 // writeMessages serializes frames under freshly observed participant authority.

@@ -3,6 +3,7 @@ package sobject_sync
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"strconv"
 	"testing"
 
@@ -243,6 +244,7 @@ func leanSyncCatchupCases(t *testing.T, seed uint64) []leanSyncCase {
 		expected.Set("ok", leanSyncBool(&arena, err == nil))
 		result.Set("ok", leanSyncBool(&arena, err == nil))
 		result.Set("state", leanSyncReceive(t, &arena, receiving))
+		result.Set("recovery", leanSyncBool(&arena, errors.Is(err, sobject.ErrConfigHistoryUnavailable)))
 		expected.Set("received", result)
 		cases = append(cases, leanSyncCase{
 			name:    "appendSyncPage seed " + strconv.FormatUint(seed, 10) + " variant " + strconv.Itoa(variant),
