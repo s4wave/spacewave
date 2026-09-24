@@ -113,21 +113,38 @@ func (r *StatusResource) WatchDirectives(
 }
 
 // WatchPlugins streams the plugin host scheduler's live plugin instances.
+// While no scheduler is mounted on the session bus it sends an empty
+// snapshot, so the caller never waits on a scheduler that may not exist.
 func (r *StatusResource) WatchPlugins(
 	_ *s4wave_status.WatchPluginsRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchPluginsStream,
 ) error {
 	ctx := strm.Context()
+	sentEmpty := false
 	for {
-		statusCtr, err := r.waitPluginStatusCtr(ctx)
-		if err != nil {
-			return err
+		waitCh := r.controllersWaitCh()
+		statusCtr := r.findPluginStatusCtr()
+		if statusCtr == nil {
+			if !sentEmpty {
+				if err := strm.Send(buildPluginsResponse(nil)); err != nil {
+					return err
+				}
+				sentEmpty = true
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-waitCh:
+			}
+			continue
 		}
+
+		sentEmpty = false
 		current := statusCtr.GetValue()
 		if err := strm.Send(buildPluginsResponse(current)); err != nil {
 			return err
 		}
-		err = ccontainer.WatchChanges(
+		err := ccontainer.WatchChanges(
 			ctx,
 			current,
 			statusCtr,
@@ -321,23 +338,6 @@ func rendererRecoveryStatusEqual(
 		return a == b
 	}
 	return a.EqualVT(b)
-}
-
-// waitPluginStatusCtr waits for a plugin scheduler or context cancellation.
-func (r *StatusResource) waitPluginStatusCtr(
-	ctx context.Context,
-) (ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot], error) {
-	for {
-		if ctr := r.findPluginStatusCtr(); ctr != nil {
-			return ctr, nil
-		}
-		waitCh := r.controllersWaitCh()
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-waitCh:
-		}
-	}
 }
 
 // findPluginStatusCtr locates the mounted plugin scheduler status owner.

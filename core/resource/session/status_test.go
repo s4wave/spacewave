@@ -4,9 +4,11 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/core/provider"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
@@ -327,5 +329,55 @@ func requireNetworkLinkInfo(
 	}
 	if linkInfo.GetRemotePeerId() != remotePeerID {
 		t.Fatalf("link[%d].remote_peer_id = %q, want %q", index, linkInfo.GetRemotePeerId(), remotePeerID)
+	}
+}
+
+// watchPluginsStream records WatchPlugins responses for a test.
+type watchPluginsStream struct {
+	srpc.Stream
+	ctx  context.Context
+	sent chan *s4wave_status.WatchPluginsResponse
+}
+
+func (s *watchPluginsStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *watchPluginsStream) Send(resp *s4wave_status.WatchPluginsResponse) error {
+	s.sent <- resp
+	return nil
+}
+
+func (s *watchPluginsStream) SendAndClose(resp *s4wave_status.WatchPluginsResponse) error {
+	return s.Send(resp)
+}
+
+func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	b := inmem.NewBus(cdc.NewController(ctx, logrus.NewEntry(logrus.New())))
+	statusRes := NewStatusResource(b, nil)
+	strm := &watchPluginsStream{
+		ctx:  ctx,
+		sent: make(chan *s4wave_status.WatchPluginsResponse, 1),
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- statusRes.WatchPlugins(&s4wave_status.WatchPluginsRequest{}, strm)
+	}()
+
+	select {
+	case resp := <-strm.sent:
+		if resp.GetPluginCount() != 0 || len(resp.GetPlugins()) != 0 {
+			t.Fatalf("unexpected plugins without a scheduler: %#v", resp)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("WatchPlugins sent nothing without a scheduler")
+	}
+
+	cancel()
+	if err := <-errCh; err != context.Canceled {
+		t.Fatalf("WatchPlugins returned %v, want context.Canceled", err)
 	}
 }
