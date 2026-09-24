@@ -83,6 +83,9 @@ func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Contex
 			if err != nil {
 				return false, err
 			}
+			if typeID == "" {
+				return false, errors.Errorf("object %s has a body but no type", object.GetKey())
+			}
 			ctor, err := resolve(ctx, typeID)
 			if err != nil {
 				return false, err

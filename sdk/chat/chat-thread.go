@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -391,6 +392,9 @@ func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key
 		object, err = ws.CreateObject(ctx, key, nil)
 		defer world.ReleaseObjectState(object)
 		if err != nil {
+			return err
+		}
+		if err := world_types.SetObjectType(ctx, ws, key, ChatThreadTypeID); err != nil {
 			return err
 		}
 	}

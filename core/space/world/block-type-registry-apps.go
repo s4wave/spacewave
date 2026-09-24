@@ -59,6 +59,8 @@ var applicationBlockTypes = map[string]blocktype.BlockType{
 	git_world.GitWorktreeTypeID:              blocktype.NewBlockType(git_world.GitWorktreeTypeID, git_world.NewWorktreeBlock),
 	s4wave_chat.ChatChannelTypeID:            blocktype.NewBlockType(s4wave_chat.ChatChannelTypeID, s4wave_chat.NewChatChannelBlock),
 	s4wave_chat.ChatMessageTypeID:            blocktype.NewBlockType(s4wave_chat.ChatMessageTypeID, s4wave_chat.NewChatMessageBlock),
+	s4wave_chat.ChatMessagePageTypeID:        blocktype.NewBlockType(s4wave_chat.ChatMessagePageTypeID, s4wave_chat.NewChatMessagePageBlock),
+	s4wave_chat.ChatThreadTypeID:             blocktype.NewBlockType(s4wave_chat.ChatThreadTypeID, s4wave_chat.NewChatThreadBlock),
 	s4wave_device.DeviceTypeID:               blocktype.NewBlockType(s4wave_device.DeviceTypeID, s4wave_device.NewDeviceBlock),
 	s4wave_device.ComputersDashboardTypeID:   blocktype.NewBlockType(s4wave_device.ComputersDashboardTypeID, func() *s4wave_device.ComputersDashboard { return &s4wave_device.ComputersDashboard{} }),
 	s4wave_org.OrganizationTypeID:            blocktype.NewBlockType(s4wave_org.OrganizationTypeID, s4wave_org.NewOrgStateBlock),
