@@ -19,7 +19,8 @@ type EngineTx struct {
 	rel    atomic.Bool
 	engine *Engine
 
-	readTx      *Tx
+	// readTx is replaced under Engine.bcast and read without it.
+	readTx      atomic.Pointer[Tx]
 	readRoot    *bucket.ObjectRef
 	writeTx     *Tx
 	baseHeadRef *bucket.ObjectRef
@@ -260,7 +261,7 @@ func (e *EngineTx) detachLocked() engineRetirement {
 	e.rel.Store(true)
 	delete(e.engine.snapshotTxs, e)
 	retirement := engineRetirement{
-		readTx:  e.readTx,
+		readTx:  e.readTx.Load(),
 		writeTx: e.writeTx,
 		lease:   e.lease,
 	}

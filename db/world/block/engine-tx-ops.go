@@ -246,11 +246,8 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	// refresh can retire the captured transaction, so retry against its replacement.
 	var err error
 	for tries := 0; tries <= maxEngineTxTries; tries++ {
-		locked := e.engine.bcast.Lock()
-		reader := e.readTx
-		released := e.rel.Load()
-		locked.Unlock()
-		if released || reader == nil {
+		reader := e.readTx.Load()
+		if e.rel.Load() || reader == nil {
 			return tx.ErrDiscarded
 		}
 		err = cb(reader)
@@ -274,7 +271,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 		locked.Unlock()
 		return tx.ErrDiscarded
 	}
-	if e.readTx != previous {
+	if e.readTx.Load() != previous {
 		locked.Unlock()
 		return nil
 	}
@@ -292,7 +289,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context, previous *Tx) error 
 
 	// Retire the replaced reader outside the Engine lock.
 	retirement := e.engine.beginRetirementLocked(engineRetirement{readTx: previous})
-	e.readTx = NewTx(state)
+	e.readTx.Store(NewTx(state))
 	locked.Unlock()
 	e.engine.drainRetirement(ctx, retirement)
 	return nil

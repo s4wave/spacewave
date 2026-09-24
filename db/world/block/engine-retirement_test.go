@@ -220,7 +220,7 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 	}
 	locked := engine.bcast.Lock()
 	registered := len(engine.snapshotTxs)
-	readTx := snapshot.readTx
+	readTx := snapshot.readTx.Load()
 	locked.Unlock()
 	if registered != 1 {
 		t.Fatalf("coordinator snapshot registrations = %d, want 1", registered)
