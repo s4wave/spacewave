@@ -2,6 +2,7 @@ export {
   ResourceDevToolsProvider,
   useResourceDevToolsContext,
   useTrackedResources,
+  useSelectedResourceId,
   useErrorCount,
   getResourceLabel,
   type TrackedResource,

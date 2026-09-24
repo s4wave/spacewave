@@ -43,16 +43,10 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mocks.navigate,
 }))
 
-vi.mock(
-  '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js')
-    >()),
-    useSelectedResourceId: () => null,
-    useTrackedResources: () => new Map([[1, {}]]),
-  }),
-)
+vi.mock('@s4wave/web/devtools/index.js', () => ({
+  useSelectedResourceId: () => null,
+  useTrackedResources: () => new Map([[1, {}]]),
+}))
 
 vi.mock('@s4wave/web/devtools/useStateInspectorEntries.js', () => ({
   useStateInspectorEntryMap: () => new Map(),

@@ -1,10 +1,10 @@
-import {
-  useSelectedResourceId,
-  useTrackedResources,
-} from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
 import { ResourceDetailsPanel } from '@s4wave/web/devtools/ResourceDetailsPanel.js'
 import { ResourceTreeTab } from '@s4wave/web/devtools/ResourceTreeTab.js'
 import { StateDetailsPanel } from '@s4wave/web/devtools/StateDetailsPanel.js'
+import {
+  useSelectedResourceId,
+  useTrackedResources,
+} from '@s4wave/web/devtools/index.js'
 import { useSelectedStateAtomId } from '@s4wave/web/devtools/StateDevToolsContext.js'
 import { StateTreeTab } from '@s4wave/web/devtools/StateTreeTab.js'
 import { useStateInspectorEntryMap } from '@s4wave/web/devtools/useStateInspectorEntries.js'

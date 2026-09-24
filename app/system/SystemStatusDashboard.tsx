@@ -23,12 +23,12 @@ import {
   LuX,
 } from 'react-icons/lu'
 
-import { useTrackedResources } from '@aptre/bldr-sdk/hooks/ResourceDevToolsContext.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import {
   useSessionIndex,
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
+import { useTrackedResources } from '@s4wave/web/devtools/index.js'
 import { useStateInspectorEntryMap } from '@s4wave/web/devtools/useStateInspectorEntries.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -511,6 +511,13 @@ function NetworkTile({
   )
 }
 
+// runtimeHeadline summarizes the session plugin host.
+function runtimeHeadline(plugins: SystemModel['plugins'], running: number) {
+  if (!plugins) return 'Reading…'
+  if (plugins.length === 0) return 'No session plugins'
+  return `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
+}
+
 // RuntimeTile shows plugin health and the busiest directive types.
 function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
   const plugins = model.plugins ?? []
@@ -521,11 +528,7 @@ function RuntimeTile({ base, model }: { base: TileBase; model: SystemModel }) {
     <SystemTile
       {...base}
       className="@2xl:col-span-4"
-      headline={
-        model.plugins
-          ? `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
-          : 'Reading…'
-      }
+      headline={runtimeHeadline(model.plugins, running)}
     >
       <p className="font-mono tabular-nums">
         {plural(model.controllers?.length ?? 0, 'controller')} ·{' '}

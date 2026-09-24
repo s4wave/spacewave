@@ -123,7 +123,11 @@ export function RuntimeInspector({
         {view === 'plugins' && (
           <Listing
             loading={!plugins}
-            empty={query ? 'No plugins match.' : 'No plugins are loaded.'}
+            empty={
+              query
+                ? 'No plugins match.'
+                : 'No plugins run on the session bus. Space plugins run inside each Space.'
+            }
             count={visiblePlugins.length}
           >
             {visiblePlugins.map((plugin) => (
