@@ -9,6 +9,7 @@ import {
   ObjectStateResourceServiceClient,
 } from './world_srpc.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
+import { throwOperationError } from './errors.js'
 import type {
   GetRootRefResponse,
   SetRootRefResponse,
@@ -47,9 +48,8 @@ export interface IObjectState {
   // ApplyObjectOp applies a batch operation at the object level.
   // The handling of the operation is operation-type specific.
   // Returns the revision following the operation execution.
-  // If nil is returned for the error, implies success.
+  // Throws WorldOperationRejection when the operation refuses the change.
   // If sysErr is set, the error is treated as a transient system error.
-  // Returns rev, sysErr, err
   applyObjectOp(
     opTypeId: string,
     opData: Uint8Array,
@@ -138,19 +138,20 @@ export class ObjectState extends Resource implements IObjectState {
   // ApplyObjectOp applies a batch operation at the object level.
   // The handling of the operation is operation-type specific.
   // Returns the revision following the operation execution.
-  // If nil is returned for the error, implies success.
+  // Throws WorldOperationRejection when the operation refuses the change.
   // If sysErr is set, the error is treated as a transient system error.
-  // Returns rev, sysErr, err
   public async applyObjectOp(
     opTypeId: string,
     opData: Uint8Array,
     opSender: string,
     abortSignal?: AbortSignal,
-  ) {
-    return await this.service.ApplyObjectOp(
+  ): Promise<ApplyObjectOpResponse> {
+    const response = await this.service.ApplyObjectOp(
       { opTypeId, opData, opSender },
       abortSignal,
     )
+    throwOperationError(response)
+    return response
   }
 
   // IncrementRev increments the revision of the object.

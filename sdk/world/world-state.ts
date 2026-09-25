@@ -10,6 +10,7 @@ import {
   WorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
+import { throwOperationError } from './errors.js'
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
@@ -199,12 +200,12 @@ export interface IWorldState {
   // Note: value should be the object key, NOT the object key <iri> format
   deleteGraphObject(objectKey: string, abortSignal?: AbortSignal): Promise<void>
 
-  // ApplyWorldOp applies a batch operation at the world level
-  // The handling of the operation is operation-type specific
-  // Returns the seqno following the operation execution
-  // If nil is returned for the error, implies success
-  // If sysErr is set, the error is treated as a transient system error
-  // Must support recursive calls to ApplyWorldOp / ApplyObjectOp
+  // ApplyWorldOp applies a batch operation at the world level.
+  // The handling of the operation is operation-type specific.
+  // Returns the seqno following the operation execution.
+  // Throws WorldOperationRejection when the operation refuses the change.
+  // If sysErr is set, the error is treated as a transient system error.
+  // Must support recursive calls to ApplyWorldOp / ApplyObjectOp.
   applyWorldOp(
     opTypeId: string,
     opData: Uint8Array,
@@ -612,6 +613,7 @@ export class WorldStateResource extends Resource implements IWorldState {
       { opTypeId, opData, opSender },
       abortSignal,
     )
+    throwOperationError(response)
     return { seqno: response.seqno ?? 0n, sysErr: response.sysErr ?? false }
   }
 
