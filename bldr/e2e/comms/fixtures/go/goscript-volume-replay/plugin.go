@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"syscall/js"
 	"time"
@@ -55,7 +56,7 @@ func run() {
 		return
 	}
 
-	// Run the mode: "check", or "replay:" and comma-separated trace names.
+	// Run the mode: "check", or "replay:<trace>/<target>".
 	ctx := context.Background()
 	mode := readMode()
 	var report any
@@ -64,7 +65,7 @@ func run() {
 	case mode == "check":
 		report, err = check(ctx)
 	case strings.HasPrefix(mode, "replay:"):
-		report, err = replay(ctx, strings.Split(strings.TrimPrefix(mode, "replay:"), ","))
+		report, err = replay(ctx, strings.TrimPrefix(mode, "replay:"))
 	default:
 		err = errors.Errorf("unknown mode %q", mode)
 	}
@@ -275,25 +276,27 @@ type replayReport struct {
 	Error          string                `json:"error,omitempty"`
 }
 
-// replay replays each named trace against every target, once durably and
-// once ordered.
-func replay(ctx context.Context, traces []string) ([]replayReport, error) {
-	var out []replayReport
-	for _, name := range traces {
-		recs, err := fetchRecords(name)
-		if err != nil {
-			return nil, err
+// replay replays one trace against one target, given as "<trace>/<target>",
+// once durably and once ordered.
+func replay(ctx context.Context, spec string) ([]replayReport, error) {
+	name, targetName, _ := strings.Cut(spec, "/")
+	i := slices.IndexFunc(targets, func(t target) bool { return t.name == targetName })
+	if i < 0 {
+		return nil, errors.Errorf("unknown target %q", targetName)
+	}
+	t := targets[i]
+	recs, err := fetchRecords(name)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]replayReport, 0, 2)
+	for _, policy := range []string{"durable", "ordered"} {
+		logf("replay %s %s %s", name, t.name, policy)
+		rep := replayReport{Trace: name, Target: t.name, Policy: policy}
+		if err := replayOne(ctx, recs, t, policy == "ordered", &rep); err != nil {
+			rep.Error = err.Error()
 		}
-		for _, t := range targets {
-			for _, policy := range []string{"durable", "ordered"} {
-				logf("replay %s %s %s", name, t.name, policy)
-				rep := replayReport{Trace: name, Target: t.name, Policy: policy}
-				if err := replayOne(ctx, recs, t, policy == "ordered", &rep); err != nil {
-					rep.Error = err.Error()
-				}
-				out = append(out, rep)
-			}
-		}
+		out = append(out, rep)
 	}
 	return out, nil
 }

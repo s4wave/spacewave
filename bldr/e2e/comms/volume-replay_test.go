@@ -53,6 +53,9 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 	}
 }
 
+// volumeTargets are the engines the replay fixture opens by name.
+var volumeTargets = []string{"e1-opfs", "e1-idb", "e5-idb", "e4-opfs"}
+
 // TestGoScriptVolumeReplay replays the workload traces in WORKLOAD_TRACES, a
 // directory of .trace files, against E1 on OPFS and IndexedDB, E5 on
 // IndexedDB, and format 3 on OPFS in a GoScript worker, and logs each
@@ -88,26 +91,29 @@ func TestGoScriptVolumeReplay(t *testing.T) {
 		names = append(names, name)
 	}
 
-	// Replay each trace in its own page so each run stays bounded.
+	// Replay each trace against each target in its own page so each run
+	// stays bounded.
 	ensureGoScriptFixtureWorker(t, &volumeReplayGoScriptFixtureWorker)
 	for _, browser := range volumeBrowsers(t) {
 		for _, name := range names {
-			t.Run(browser+"/"+name, func(t *testing.T) {
-				results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
-					persistent: true,
-					query:      "mode=replay:" + name,
-					timeout:    110 * time.Second,
-				})
-				if pass, ok := results["pass"].(bool); !ok || !pass {
-					t.Fatalf("volume replay fixture failed: %v", results["detail"])
-				}
-				for _, rep := range parseReport(t, results).GetArray() {
-					t.Logf("REPORT %s %s", browser, rep)
-					if msg := rep.GetStringBytes("error"); len(msg) != 0 {
-						t.Errorf("%s %s %s: %s", name, rep.GetStringBytes("target"), rep.GetStringBytes("policy"), msg)
+			for _, target := range volumeTargets {
+				t.Run(browser+"/"+name+"/"+target, func(t *testing.T) {
+					results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
+						persistent: true,
+						query:      "mode=replay:" + name + "/" + target,
+						timeout:    110 * time.Second,
+					})
+					if pass, ok := results["pass"].(bool); !ok || !pass {
+						t.Fatalf("volume replay fixture failed: %v", results["detail"])
 					}
-				}
-			})
+					for _, rep := range parseReport(t, results).GetArray() {
+						t.Logf("REPORT %s %s", browser, rep)
+						if msg := rep.GetStringBytes("error"); len(msg) != 0 {
+							t.Errorf("%s %s %s: %s", name, target, rep.GetStringBytes("policy"), msg)
+						}
+					}
+				})
+			}
 		}
 	}
 }
