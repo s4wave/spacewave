@@ -93,6 +93,22 @@ type PublicationRetention interface {
 	AccessPublicationRetention(context.Context) (kvtx.Store, func(), error)
 }
 
+// OrderedQueue is implemented by a SharedObject whose durable operation queue
+// write also makes every earlier write to its block store durable. A writer
+// may then queue an operation after writing its blocks without a block store
+// Sync in between.
+type OrderedQueue interface {
+	// QueueOrdersBlockWrites reports whether queueing orders block writes.
+	QueueOrdersBlockWrites() bool
+}
+
+// QueueOrdersBlockWrites reports whether so's queue write makes its earlier
+// block writes durable.
+func QueueOrdersBlockWrites(so SharedObject) bool {
+	ordered, ok := so.(OrderedQueue)
+	return ok && ordered.QueueOrdersBlockWrites()
+}
+
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.
 type SharedObjectHealthAccessor interface {
 	// AccessSharedObjectHealth adds a reference to SharedObject health and returns the state container.

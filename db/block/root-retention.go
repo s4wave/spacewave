@@ -14,7 +14,8 @@ type RootRetainer interface {
 	RootComplete(context.Context, *BlockRef) (bool, error)
 }
 
-// MarkRootComplete records that a locally constructed DAG has been fenced.
+// MarkRootComplete records that a locally constructed DAG has been fenced, or
+// written ahead of the proof on a volume that makes writes durable in order.
 // Its normal block writes must have supplied all outgoing reference metadata.
 func MarkRootComplete(ctx context.Context, store StoreOps, ref *BlockRef) error {
 	return MarkRootsComplete(ctx, store, []*BlockRef{ref})

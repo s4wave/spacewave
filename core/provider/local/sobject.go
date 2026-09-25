@@ -81,6 +81,13 @@ func (s *SharedObject) GetBackingVolume() volume.Volume {
 	return s.tkr.a.vol
 }
 
+// QueueOrdersBlockWrites reports whether queueing orders block writes. The
+// block store and the operation queue share the account volume, and the queue
+// write is a durable commit.
+func (s *SharedObject) QueueOrdersBlockWrites() bool {
+	return volume.OrdersWrites(s.tkr.a.vol)
+}
+
 // AccessLocalStateStore isolates state by SharedObject and store ID within the
 // account's object store. Releasing the mount invalidates its local stores.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {

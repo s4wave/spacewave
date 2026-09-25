@@ -204,6 +204,25 @@ func (t *WorldState) Sync(ctx context.Context) (bool, error) {
 	return fenced, err
 }
 
+// Flush writes the block writes made through this state to the backing store
+// without its durability fence, then records the root's completion proof. The
+// caller guarantees that a later durable commit makes both durable in order
+// (see volume.WriteOrderer). States without a buffered store have nothing to
+// write.
+func (t *WorldState) Flush(ctx context.Context) error {
+	store, ok := t.store.(*block.BufferedStore)
+	if !ok {
+		return nil
+	}
+	if err := store.Flush(ctx); err != nil {
+		return err
+	}
+	if t.write && !t.trackGC {
+		return block.MarkRootComplete(ctx, t.store, t.GetRootRef())
+	}
+	return nil
+}
+
 // SetBufferedStoreSettings overrides the BufferedStore settings used by the
 // underlying block Transaction during Commit. Pass nil to reset to defaults.
 // No-op if the world state has no write transaction.

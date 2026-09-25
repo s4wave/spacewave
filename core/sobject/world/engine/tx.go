@@ -83,10 +83,16 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Fence pending block writes before the candidate root can enter the
-	// SharedObject operation queue.
+	// SharedObject operation queue. A queue whose durable write orders the
+	// block writes before it needs them written, not flushed to the device.
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
-		_, err := t.btx.Sync(taskCtx)
+		var err error
+		if sobject.QueueOrdersBlockWrites(t.eng.so) {
+			err = t.btx.Flush(taskCtx)
+		} else {
+			_, err = t.btx.Sync(taskCtx)
+		}
 		task.End()
 		if err != nil {
 			return err
