@@ -12,7 +12,7 @@ import (
 // fixtureHTMLTemplate renders an HTML page that loads a fixture JS module.
 const fixtureHTMLTemplate = `<!doctype html>
 <html>
-<head><meta charset="utf-8"><title>%s</title></head>
+<head><meta charset="utf-8"><link rel="icon" href="data:,"><title>%s</title></head>
 <body>
 <div id="log">LOADING</div>
 <script type="module" src="/%s.js"></script>

@@ -190,10 +190,11 @@ func ensureGoScriptFixtureWorker(t *testing.T, worker *goScriptFixtureWorker) {
 	}
 }
 
-// browserType returns the playwright browser type by name.
+// browserType returns the playwright browser type by name. "chrome" is
+// branded Chrome, launched from chromeExecutable.
 func browserType(name string) playwright.BrowserType {
 	switch name {
-	case "chromium":
+	case "chromium", "chrome":
 		return pwInstance.Chromium
 	case "firefox":
 		return pwInstance.Firefox
@@ -208,6 +209,19 @@ func browserType(name string) playwright.BrowserType {
 // isolated home, which deny their deletion.
 func clearHomeACLs(home string) {
 	_ = exec.Command("/bin/chmod", "-R", "-N", home).Run()
+}
+
+// chromeExecutable returns the branded Chrome binary for browserName
+// "chrome", taken from CHROME_PATH, or nil for the bundled browser.
+func chromeExecutable(t *testing.T, browserName string) *string {
+	if browserName != "chrome" {
+		return nil
+	}
+	path := os.Getenv("CHROME_PATH")
+	if path == "" {
+		t.Skip("CHROME_PATH is not set")
+	}
+	return &path
 }
 
 func shouldSkipBrowserLaunch(browserName string, err error) bool {
@@ -250,7 +264,10 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 		// need an isolated home, whose Library ACLs must be cleared before the
 		// temporary directory is removed.
 		directory := t.TempDir()
-		opts := playwright.BrowserTypeLaunchPersistentContextOptions{Headless: new(true)}
+		opts := playwright.BrowserTypeLaunchPersistentContextOptions{
+			ExecutablePath: chromeExecutable(t, browserName),
+			Headless:       new(true),
+		}
 		if runtime.GOOS == "darwin" {
 			t.Cleanup(func() { clearHomeACLs(directory) })
 			opts.Env = make(map[string]string)
@@ -263,7 +280,10 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 		ctx, err = bt.LaunchPersistentContext(directory, opts)
 	} else {
 		var browser playwright.Browser
-		browser, err = bt.Launch(playwright.BrowserTypeLaunchOptions{Headless: new(true)})
+		browser, err = bt.Launch(playwright.BrowserTypeLaunchOptions{
+			ExecutablePath: chromeExecutable(t, browserName),
+			Headless:       new(true),
+		})
 		if err == nil {
 			t.Cleanup(func() { _ = browser.Close() })
 			ctx, err = browser.NewContext()
