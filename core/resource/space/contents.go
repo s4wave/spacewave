@@ -654,7 +654,7 @@ func spaceRuntimeBridgeFilter(inst directive.Instance) (bool, error) {
 // spaceRuntimeSchedulerLookupFilter forwards LookupPluginScheduler from the
 // parent bus into the Space runtime so session status sees its scheduler.
 func spaceRuntimeSchedulerLookupFilter(inst directive.Instance) (bool, error) {
-	_, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler)
+	_, ok := inst.GetDirective().(bldr_plugin.LookupPluginScheduler)
 	return ok, nil
 }
 
@@ -1109,7 +1109,7 @@ func waitSpaceContentsSources(
 }
 
 func spacePluginStatusesByID(
-	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
+	snapshot *bldr_plugin.PluginStatusSnapshot,
 	instanceKey string,
 ) map[string]*bldr_plugin.PluginStatus {
 	statuses := map[string]*bldr_plugin.PluginStatus{}

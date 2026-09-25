@@ -33,6 +33,40 @@ message PluginStatus {
   google.protobuf.Timestamp last_error_at = 6;
 }
 
+// PluginManifestRecoveryStatus describes the retained Manifest selection and
+// eligibility facts for one plugin instance.
+message PluginManifestRecoveryStatus {
+  // PluginId is the plugin identifier.
+  string plugin_id = 1;
+  // InstanceKey is the optional instance key for instanced plugins.
+  string instance_key = 2;
+  // ExecuteManifestRef is the ref of the manifest selected for execution.
+  string execute_manifest_ref = 3;
+  // DownloadManifestRef is the ref of the manifest selected for download.
+  string download_manifest_ref = 4;
+  // SkippedCandidateCount is how many candidates were skipped.
+  uint32 skipped_candidate_count = 5;
+  // SkippedCandidateSummary summarizes the skipped candidates.
+  string skipped_candidate_summary = 6;
+  // IgnoredCandidateCount is how many candidates were ignored.
+  uint32 ignored_candidate_count = 7;
+  // IgnoredCandidateSummary summarizes the ignored candidates.
+  string ignored_candidate_summary = 8;
+  // QuarantinedCandidateCount is how many candidates were quarantined.
+  uint32 quarantined_candidate_count = 9;
+  // QuarantinedCandidateSummary summarizes the quarantined candidates.
+  string quarantined_candidate_summary = 10;
+}
+
+// PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
+message PluginStatusSnapshot {
+  // Plugins lists the per-instance statuses sorted by plugin id and instance key.
+  repeated PluginStatus plugins = 1;
+  // ManifestRecovery lists the per-instance manifest selection facts sorted by
+  // plugin id and instance key.
+  repeated PluginManifestRecoveryStatus manifest_recovery = 2;
+}
+
 // PluginHost is the service exposed by the plugin host.
 //
 // Available at service ID plugin-host.
@@ -58,6 +92,10 @@ service PluginHost {
   // Component ID: plugin-assets or plugin-dist for current plugin
   // Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
   rpc PluginFsRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+
+  // WatchPluginStatus streams the host scheduler's plugin status.
+  // Sends the current snapshot, then each change.
+  rpc WatchPluginStatus(WatchPluginStatusRequest) returns (stream WatchPluginStatusResponse);
 }
 
 // Plugin is the service exposed by the plugin.
@@ -105,6 +143,18 @@ message PrepareUpdateRequest {
 }
 // PrepareUpdateResponse confirms the generation is ready for replacement.
 message PrepareUpdateResponse {
+}
+
+// WatchPluginStatusRequest is the request for WatchPluginStatus.
+message WatchPluginStatusRequest {
+}
+
+// WatchPluginStatusResponse is one plugin status update from the host.
+message WatchPluginStatusResponse {
+  // InstanceKey is the instance key the host scheduler was configured with.
+  string instance_key = 1;
+  // Status is the scheduler's current plugin status snapshot.
+  PluginStatusSnapshot status = 2;
 }
 
 // GetPluginInfoRequest is a request to return the information for the current plugin.

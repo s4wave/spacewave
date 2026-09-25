@@ -33,6 +33,9 @@ type SRPCPluginHostClient interface {
 	// Component ID: plugin-assets or plugin-dist for current plugin
 	// Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
 	PluginFsRpc(ctx context.Context) (SRPCPluginHost_PluginFsRpcClient, error)
+	// WatchPluginStatus streams the host scheduler's plugin status.
+	// Sends the current snapshot, then each change.
+	WatchPluginStatus(ctx context.Context, in *WatchPluginStatusRequest) (SRPCPluginHost_WatchPluginStatusClient, error)
 }
 
 type srpcPluginHostClient struct {
@@ -208,6 +211,40 @@ func (x *srpcPluginHost_PluginFsRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) 
 	return x.MsgRecv(m)
 }
 
+func (c *srpcPluginHostClient) WatchPluginStatus(ctx context.Context, in *WatchPluginStatusRequest) (SRPCPluginHost_WatchPluginStatusClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchPluginStatus", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHost_WatchPluginStatusClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCPluginHost_WatchPluginStatusClient interface {
+	srpc.Stream
+	Recv() (*WatchPluginStatusResponse, error)
+	RecvTo(*WatchPluginStatusResponse) error
+}
+
+type srpcPluginHost_WatchPluginStatusClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_WatchPluginStatusClient) Recv() (*WatchPluginStatusResponse, error) {
+	m := new(WatchPluginStatusResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHost_WatchPluginStatusClient) RecvTo(m *WatchPluginStatusResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginHostServer interface {
 	// GetPluginInfo returns the information for the current plugin.
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
@@ -226,6 +263,9 @@ type SRPCPluginHostServer interface {
 	// Component ID: plugin-assets or plugin-dist for current plugin
 	// Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
 	PluginFsRpc(SRPCPluginHost_PluginFsRpcStream) error
+	// WatchPluginStatus streams the host scheduler's plugin status.
+	// Sends the current snapshot, then each change.
+	WatchPluginStatus(*WatchPluginStatusRequest, SRPCPluginHost_WatchPluginStatusStream) error
 }
 
 const SRPCPluginHostServiceID = "bldr.plugin.PluginHost"
@@ -259,6 +299,7 @@ func (SRPCPluginHostHandler) GetMethodIDs() []string {
 		"LoadPlugin",
 		"PluginRpc",
 		"PluginFsRpc",
+		"WatchPluginStatus",
 	}
 }
 
@@ -281,6 +322,8 @@ func (d *SRPCPluginHostHandler) InvokeMethod(
 		return true, d.InvokeMethod_PluginRpc(d.impl, strm)
 	case "PluginFsRpc":
 		return true, d.InvokeMethod_PluginFsRpc(d.impl, strm)
+	case "WatchPluginStatus":
+		return true, d.InvokeMethod_WatchPluginStatus(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -324,6 +367,15 @@ func (SRPCPluginHostHandler) InvokeMethod_PluginRpc(impl SRPCPluginHostServer, s
 func (SRPCPluginHostHandler) InvokeMethod_PluginFsRpc(impl SRPCPluginHostServer, strm srpc.Stream) error {
 	clientStrm := &srpcPluginHost_PluginFsRpcStream{strm}
 	return impl.PluginFsRpc(clientStrm)
+}
+
+func (SRPCPluginHostHandler) InvokeMethod_WatchPluginStatus(impl SRPCPluginHostServer, strm srpc.Stream) error {
+	req := new(WatchPluginStatusRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcPluginHost_WatchPluginStatusStream{strm}
+	return impl.WatchPluginStatus(req, serverStrm)
 }
 
 type SRPCPluginHost_GetPluginInfoStream interface {
@@ -452,6 +504,29 @@ func (x *srpcPluginHost_PluginFsRpcStream) Recv() (*rpcstream.RpcStreamPacket, e
 
 func (x *srpcPluginHost_PluginFsRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
 	return x.MsgRecv(m)
+}
+
+type SRPCPluginHost_WatchPluginStatusStream interface {
+	srpc.Stream
+	Send(*WatchPluginStatusResponse) error
+	SendAndClose(*WatchPluginStatusResponse) error
+}
+
+type srpcPluginHost_WatchPluginStatusStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHost_WatchPluginStatusStream) Send(m *WatchPluginStatusResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHost_WatchPluginStatusStream) SendAndClose(m *WatchPluginStatusResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCPluginClient interface {

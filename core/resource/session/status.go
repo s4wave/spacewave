@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,10 +12,10 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_launcher_controller "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/space"
 	spacewave_transport "github.com/s4wave/spacewave/core/transport"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
@@ -121,20 +122,43 @@ func (r *StatusResource) WatchPlugins(
 	_ *s4wave_status.WatchPluginsRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchPluginsStream,
 ) error {
-	ctx, cancel := context.WithCancel(strm.Context())
+	var prev *s4wave_status.WatchPluginsResponse
+	return watchPluginSchedulers(strm.Context(), r.b, func(
+		schedulers []bldr_plugin.PluginScheduler,
+		snapshots []*bldr_plugin.PluginStatusSnapshot,
+	) error {
+		resp := buildPluginsResponse(schedulers, snapshots)
+		if prev != nil && resp.EqualVT(prev) {
+			return nil
+		}
+		prev = resp
+		return strm.Send(resp)
+	})
+}
+
+// watchPluginSchedulers calls cb with every plugin host scheduler reachable
+// from b and its current status snapshot, then again after each change to the
+// scheduler set or a snapshot. snapshots[i] belongs to schedulers[i]. It
+// returns when ctx ends, the lookup fails, or cb returns an error.
+func watchPluginSchedulers(
+	ctx context.Context,
+	b bus.Bus,
+	cb func([]bldr_plugin.PluginScheduler, []*bldr_plugin.PluginStatusSnapshot) error,
+) error {
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// bcast guards schedulers, collected, and lookupErr.
 	var bcast broadcast.Broadcast
-	var schedulers []plugin_host_scheduler.PluginScheduler
+	var schedulers []bldr_plugin.PluginScheduler
 	var collected bool
 	var lookupErr error
 	_, release, err := bus.ExecCollectValuesWatch(
 		ctx,
-		r.b,
-		plugin_host_scheduler.NewLookupPluginScheduler(),
+		b,
+		bldr_plugin.NewLookupPluginScheduler(),
 		true,
-		func(_ []error, vals []plugin_host_scheduler.LookupPluginSchedulerValue) error {
+		func(_ []error, vals []bldr_plugin.LookupPluginSchedulerValue) error {
 			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				schedulers = slices.Clone(vals)
 				collected = true
@@ -154,9 +178,8 @@ func (r *StatusResource) WatchPlugins(
 	}
 	defer release()
 
-	var prev *s4wave_status.WatchPluginsResponse
 	for {
-		var current []plugin_host_scheduler.PluginScheduler
+		var current []bldr_plugin.PluginScheduler
 		var ready bool
 		var setWaitCh <-chan struct{}
 		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -174,16 +197,12 @@ func (r *StatusResource) WatchPlugins(
 			}
 		}
 
-		snapshots := make([]*plugin_host_scheduler.PluginStatusSnapshot, len(current))
+		snapshots := make([]*bldr_plugin.PluginStatusSnapshot, len(current))
 		for i, scheduler := range current {
 			snapshots[i] = scheduler.GetPluginStatusCtr().GetValue()
 		}
-		resp := buildPluginsResponse(current, snapshots)
-		if prev == nil || !resp.EqualVT(prev) {
-			if err := strm.Send(resp); err != nil {
-				return err
-			}
-			prev = resp
+		if err := cb(current, snapshots); err != nil {
+			return err
 		}
 
 		waitCtx, waitCancel := context.WithCancel(ctx)
@@ -204,8 +223,8 @@ func (r *StatusResource) WatchPlugins(
 // ctx.
 func waitPluginStatusChange(
 	ctx context.Context,
-	schedulers []plugin_host_scheduler.PluginScheduler,
-	snapshots []*plugin_host_scheduler.PluginStatusSnapshot,
+	schedulers []bldr_plugin.PluginScheduler,
+	snapshots []*bldr_plugin.PluginStatusSnapshot,
 ) <-chan struct{} {
 	changed := make(chan struct{})
 	var once sync.Once
@@ -281,12 +300,14 @@ func (r *StatusResource) WatchRecoveryStatus(
 		default:
 		}
 	}
+	rootPlugins := ccontainer.NewCContainer[*bldr_plugin.PluginStatusSnapshot](nil)
 	go r.watchRecoveryOwnerChanges(ctx, notify)
 	go r.watchRecoveryRendererChanges(ctx, notify)
+	go watchRecoveryPluginChanges(ctx, r.b, rootPlugins, notify)
 
 	var last *s4wave_status.RecoveryStatus
 	for {
-		status := r.buildRecoveryStatus()
+		status := r.buildRecoveryStatus(rootPlugins.GetValue().GetManifestRecovery())
 		if last == nil || !last.EqualVT(status) {
 			if err := strm.Send(&s4wave_status.WatchRecoveryStatusResponse{Status: status}); err != nil {
 				return err
@@ -307,7 +328,6 @@ func (r *StatusResource) watchRecoveryOwnerChanges(ctx context.Context, notify f
 		waitCh := r.controllersWaitCh()
 		watchCtx, cancel := context.WithCancel(ctx)
 		go r.watchRecoveryLauncherChanges(watchCtx, notify)
-		go r.watchRecoveryPluginChanges(watchCtx, notify)
 		go r.watchRecoveryPackageChanges(watchCtx, notify)
 		select {
 		case <-ctx.Done():
@@ -356,23 +376,29 @@ func (r *StatusResource) watchRecoveryLauncherChanges(ctx context.Context, notif
 	}()
 }
 
-// watchRecoveryPluginChanges watches plugin facts until its controller-watch context ends.
-func (r *StatusResource) watchRecoveryPluginChanges(ctx context.Context, notify func()) {
-	ctr := r.findPluginStatusCtr()
-	if ctr == nil {
-		return
-	}
-	current := ctr.GetValue()
-	_ = ccontainer.WatchChanges(
-		ctx,
-		current,
-		ctr,
-		func(*plugin_host_scheduler.PluginStatusSnapshot) error {
-			notify()
-			return nil
-		},
-		nil,
-	)
+// watchRecoveryPluginChanges publishes the root plugin host's status snapshot
+// to rootPlugins until ctx ends.
+func watchRecoveryPluginChanges(
+	ctx context.Context,
+	b bus.Bus,
+	rootPlugins *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot],
+	notify func(),
+) {
+	_ = watchPluginSchedulers(ctx, b, func(
+		schedulers []bldr_plugin.PluginScheduler,
+		snapshots []*bldr_plugin.PluginStatusSnapshot,
+	) error {
+		var root *bldr_plugin.PluginStatusSnapshot
+		for i, scheduler := range schedulers {
+			if scheduler.GetInstanceKey() == "" {
+				root = snapshots[i]
+				break
+			}
+		}
+		rootPlugins.SetValue(root)
+		notify()
+		return nil
+	})
 }
 
 // watchRecoveryRendererChanges watches volatile renderer facts until the status stream ends.
@@ -401,16 +427,6 @@ func rendererRecoveryStatusEqual(
 	return a.EqualVT(b)
 }
 
-// findPluginStatusCtr locates the root plugin scheduler status owner on the
-// session bus.
-func (r *StatusResource) findPluginStatusCtr() ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot] {
-	scheduler := plugin_host_scheduler.FindControllerOnBus(r.b)
-	if scheduler == nil {
-		return nil
-	}
-	return scheduler.GetPluginStatusCtr()
-}
-
 // controllersWaitCh captures controller-change notification under its owning lock.
 func (r *StatusResource) controllersWaitCh() <-chan struct{} {
 	var waitCh <-chan struct{}
@@ -427,21 +443,21 @@ func (r *StatusResource) controllersWaitCh() <-chan struct{} {
 // records sorted by Space, plugin, and instance. snapshots[i] belongs to
 // schedulers[i].
 func buildPluginsResponse(
-	schedulers []plugin_host_scheduler.PluginScheduler,
-	snapshots []*plugin_host_scheduler.PluginStatusSnapshot,
+	schedulers []bldr_plugin.PluginScheduler,
+	snapshots []*bldr_plugin.PluginStatusSnapshot,
 ) *s4wave_status.WatchPluginsResponse {
 	var infos []*s4wave_status.PluginInfo
 	for i, snapshot := range snapshots {
 		if snapshot == nil {
 			continue
 		}
-		spaceID := schedulers[i].GetInstanceKey()
+		schedulerKey := schedulers[i].GetInstanceKey()
 		for _, plugin := range snapshot.Plugins {
 			infos = append(infos, &s4wave_status.PluginInfo{
 				Id:          plugin.GetPluginId(),
 				InstanceKey: plugin.GetInstanceKey(),
 				State:       pluginStateString(plugin.GetState()),
-				SpaceId:     spaceID,
+				SpaceId:     pluginSpaceID(schedulerKey, plugin.GetInstanceKey()),
 			})
 		}
 	}
@@ -456,6 +472,19 @@ func buildPluginsResponse(
 		Plugins:     infos,
 		PluginCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
 	}
+}
+
+// pluginSpaceID returns the engine ID of the Space a plugin instance serves: the
+// Space runtime's scheduler key, or on the root host, an instance key that
+// names a Space engine. Empty for system plugins.
+func pluginSpaceID(schedulerKey, instanceKey string) string {
+	if schedulerKey != "" {
+		return schedulerKey
+	}
+	if strings.HasPrefix(instanceKey, space.SpaceBodyType+"/") {
+		return instanceKey
+	}
+	return ""
 }
 
 // networkStatusProvider exposes the account-owned transport and its lifecycle.
@@ -532,16 +561,15 @@ func buildNetworkStatsResponse(
 	return resp
 }
 
-// buildRecoveryStatus combines current owner facts with volatile renderer facts.
-func (r *StatusResource) buildRecoveryStatus() *s4wave_status.RecoveryStatus {
-	pluginSnapshot := (*plugin_host_scheduler.PluginStatusSnapshot)(nil)
-	if statusCtr := r.findPluginStatusCtr(); statusCtr != nil {
-		pluginSnapshot = statusCtr.GetValue()
-	}
+// buildRecoveryStatus combines current owner facts, the root plugin host's
+// manifest recovery rows, and volatile renderer facts.
+func (r *StatusResource) buildRecoveryStatus(
+	plugins []*bldr_plugin.PluginManifestRecoveryStatus,
+) *s4wave_status.RecoveryStatus {
 	renderer := r.rendererRecoveryCtr.GetValue()
 	return &s4wave_status.RecoveryStatus{
 		Launcher:       r.buildLauncherRecoveryStatus(),
-		Plugins:        buildPluginManifestRecoveryStatuses(pluginSnapshot),
+		Plugins:        plugins,
 		NativePackages: r.buildNativePackageRecoveryStatuses(),
 		Boot:           buildBrowserBootRecoveryStatus(renderer),
 		RuntimeAsset:   buildRuntimeAssetRecoveryStatus(renderer),
@@ -607,34 +635,6 @@ func launcherUpdatePhaseString(phase spacewave_launcher.UpdatePhase) string {
 	default:
 		return "unknown"
 	}
-}
-
-// buildPluginManifestRecoveryStatuses projects retained plugin recovery outcomes.
-func buildPluginManifestRecoveryStatuses(
-	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
-) []*s4wave_status.PluginManifestRecoveryStatus {
-	if snapshot == nil || len(snapshot.ManifestRecovery) == 0 {
-		return nil
-	}
-	out := make([]*s4wave_status.PluginManifestRecoveryStatus, 0, len(snapshot.ManifestRecovery))
-	for _, row := range snapshot.ManifestRecovery {
-		if row == nil {
-			continue
-		}
-		out = append(out, &s4wave_status.PluginManifestRecoveryStatus{
-			PluginId:                    row.PluginID,
-			InstanceKey:                 row.InstanceKey,
-			ExecuteManifestRef:          row.ExecuteManifestRef,
-			DownloadManifestRef:         row.DownloadManifestRef,
-			SkippedCandidateCount:       uint32(row.SkippedCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
-			SkippedCandidateSummary:     row.SkippedCandidateSummary,
-			IgnoredCandidateCount:       uint32(row.IgnoredCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
-			IgnoredCandidateSummary:     row.IgnoredCandidateSummary,
-			QuarantinedCandidateCount:   uint32(row.QuarantinedCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
-			QuarantinedCandidateSummary: row.QuarantinedCandidateSummary,
-		})
-	}
-	return out
 }
 
 // buildBrowserBootRecoveryStatus copies the renderer boot report or marks it unreported.

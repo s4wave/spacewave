@@ -89,14 +89,14 @@ type Controller struct {
 	// key: plugin ID
 	pluginInstances *keyed.KeyedRefCount[pluginReference, *pluginInstance]
 	// pluginStatusCtr publishes live plugin instance states.
-	pluginStatusCtr *ccontainer.CContainer[*PluginStatusSnapshot]
+	pluginStatusCtr *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
 	// pluginStatusMtx guards pluginStatus.
 	pluginStatusMtx sync.Mutex
 	// pluginStatus stores live plugin instance states by pluginInstanceKey.
 	pluginStatus map[string]*bldr_plugin.PluginStatus
 	// pluginManifestRecoveryStatus stores retained Manifest selection and
 	// eligibility facts by pluginInstanceKey.
-	pluginManifestRecoveryStatus map[string]*PluginManifestRecoveryStatus
+	pluginManifestRecoveryStatus map[string]*bldr_plugin.PluginManifestRecoveryStatus
 }
 
 // hostVol contains a snapshot of the host volume.
@@ -180,11 +180,11 @@ func NewController(
 		pluginHostsCtr:      ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
 		manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](nil),
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*PluginManifestRecoveryStatus),
+		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
 	}
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
@@ -384,8 +384,8 @@ func (c *Controller) HandleDirective(
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, d, c))
 	case bifrost_rpc.LookupRpcService:
 		return directive.R(bldr_plugin.ResolveLookupRpcService(ctx, d, c))
-	case LookupPluginScheduler:
-		return directive.R(directive.NewValueResolver([]LookupPluginSchedulerValue{c}), nil)
+	case bldr_plugin.LookupPluginScheduler:
+		return directive.R(directive.NewValueResolver([]bldr_plugin.LookupPluginSchedulerValue{c}), nil)
 	}
 	return nil, nil
 }
@@ -517,6 +517,7 @@ func (c *Controller) buildPluginMux(
 	)
 	hostServer.SetPrepared(prepared)
 	hostServer.SetRegistrationInstanceKey(bindingKey)
+	hostServer.SetPluginScheduler(c)
 	_ = bldr_plugin.SRPCRegisterPluginHost(mux, hostServer)
 
 	// register plugin dist fs service
@@ -551,4 +552,5 @@ var (
 	_ controller.Controller                = (*Controller)(nil)
 	_ bldr_plugin.LookupRpcClientHandler   = (*Controller)(nil)
 	_ bldr_plugin_host.PluginHostScheduler = (*Controller)(nil)
+	_ bldr_plugin.PluginScheduler          = (*Controller)(nil)
 )

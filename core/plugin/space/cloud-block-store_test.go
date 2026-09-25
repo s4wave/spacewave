@@ -270,5 +270,9 @@ func (h *testPluginHost) PluginFsRpc(bldr_plugin.SRPCPluginHost_PluginFsRpcStrea
 	return errors.New("PluginFsRpc is not used by this test")
 }
 
+func (h *testPluginHost) WatchPluginStatus(*bldr_plugin.WatchPluginStatusRequest, bldr_plugin.SRPCPluginHost_WatchPluginStatusStream) error {
+	return errors.New("WatchPluginStatus is not used by this test")
+}
+
 // _ is a type assertion
 var _ bldr_plugin.SRPCPluginHostServer = (*testPluginHost)(nil)

@@ -13,6 +13,8 @@ import {
   LoadPluginResponse,
   PrepareUpdateRequest,
   PrepareUpdateResponse,
+  WatchPluginStatusRequest,
+  WatchPluginStatusResponse,
 } from './plugin.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
@@ -100,6 +102,18 @@ export const PluginHostDefinition = {
       O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming,
     },
+    /**
+     * WatchPluginStatus streams the host scheduler's plugin status.
+     * Sends the current snapshot, then each change.
+     *
+     * @generated from rpc bldr.plugin.PluginHost.WatchPluginStatus
+     */
+    WatchPluginStatus: {
+      name: 'WatchPluginStatus',
+      I: WatchPluginStatusRequest,
+      O: WatchPluginStatusResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -167,6 +181,17 @@ export interface PluginHost {
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
   ): MessageStream<RpcStreamPacket>
+
+  /**
+   * WatchPluginStatus streams the host scheduler's plugin status.
+   * Sends the current snapshot, then each change.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.WatchPluginStatus
+   */
+  WatchPluginStatus(
+    request: WatchPluginStatusRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginStatusResponse>
 }
 
 /**
@@ -238,6 +263,18 @@ export interface PluginHostHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<RpcStreamPacket>
+
+  /**
+   * WatchPluginStatus streams the host scheduler's plugin status.
+   * Sends the current snapshot, then each change.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.WatchPluginStatus
+   */
+  WatchPluginStatus(
+    request: WatchPluginStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchPluginStatusResponse>
 }
 
 export const PluginHostServiceName = PluginHostDefinition.typeName
@@ -253,6 +290,7 @@ export class PluginHostClient implements PluginHost {
     this.LoadPlugin = this.LoadPlugin.bind(this)
     this.PluginRpc = this.PluginRpc.bind(this)
     this.PluginFsRpc = this.PluginFsRpc.bind(this)
+    this.WatchPluginStatus = this.WatchPluginStatus.bind(this)
   }
   /**
    * GetPluginInfo returns the information for the current plugin.
@@ -352,6 +390,26 @@ export class PluginHostClient implements PluginHost {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(RpcStreamPacket)(result)
+  }
+
+  /**
+   * WatchPluginStatus streams the host scheduler's plugin status.
+   * Sends the current snapshot, then each change.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.WatchPluginStatus
+   */
+  WatchPluginStatus(
+    request: WatchPluginStatusRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchPluginStatusResponse> {
+    const requestMsg = WatchPluginStatusRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      PluginHostDefinition.methods.WatchPluginStatus.name,
+      WatchPluginStatusRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchPluginStatusResponse)(result)
   }
 }
 /**

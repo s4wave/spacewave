@@ -630,8 +630,8 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -731,8 +731,8 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -868,8 +868,8 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -970,8 +970,8 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -1084,8 +1084,8 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -1270,8 +1270,8 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -1357,8 +1357,8 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 		conf:   &Config{},
 		objKey: objKey,
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -1934,7 +1934,7 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 		peerID:          peer.ID("test"),
 		worldStateCtr:   ccontainer.NewCContainer(wsv),
 		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 	}
 	host := &testPluginHost{id: platformID}
 	newInstance := func(pluginID string) *pluginInstance {
@@ -2321,7 +2321,7 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 					VolumeId: tb.Volume.GetID(),
 				},
 			}),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 		},
 		le:               le,
@@ -2530,7 +2530,7 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -2703,7 +2703,7 @@ func TestDownloadManifestRetriesIncompleteCopyBeforePublication(t *testing.T) {
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -2849,7 +2849,7 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -2945,7 +2945,7 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -3473,7 +3473,7 @@ func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T)
 			worldStateCtr:       ccontainer.NewCContainer(wsv),
 			manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](gate),
 			pluginStatus:        make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr:     ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr:     ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:                      le,
 		pluginID:                "spacewave-core",
@@ -3650,7 +3650,7 @@ func TestDownloadManifestCopiesTransformedRemoteDAGAndStoresLocalWorldRef(t *tes
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",
@@ -3756,7 +3756,7 @@ func TestDownloadManifestRejectsMissingSnapshotMetadataBeforeStore(t *testing.T)
 			peerID:          peer.ID("test"),
 			worldStateCtr:   ccontainer.NewCContainer(wsv),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		},
 		le:       le,
 		pluginID: "spacewave-core",

@@ -117,6 +117,176 @@ export const PluginStatus: MessageType<PluginStatus> =
   })
 
 /**
+ * PluginManifestRecoveryStatus describes the retained Manifest selection and
+ * eligibility facts for one plugin instance.
+ *
+ * @generated from message bldr.plugin.PluginManifestRecoveryStatus
+ */
+export interface PluginManifestRecoveryStatus {
+  /**
+   * PluginId is the plugin identifier.
+   *
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId?: string
+  /**
+   * InstanceKey is the optional instance key for instanced plugins.
+   *
+   * @generated from field: string instance_key = 2;
+   */
+  instanceKey?: string
+  /**
+   * ExecuteManifestRef is the ref of the manifest selected for execution.
+   *
+   * @generated from field: string execute_manifest_ref = 3;
+   */
+  executeManifestRef?: string
+  /**
+   * DownloadManifestRef is the ref of the manifest selected for download.
+   *
+   * @generated from field: string download_manifest_ref = 4;
+   */
+  downloadManifestRef?: string
+  /**
+   * SkippedCandidateCount is how many candidates were skipped.
+   *
+   * @generated from field: uint32 skipped_candidate_count = 5;
+   */
+  skippedCandidateCount?: number
+  /**
+   * SkippedCandidateSummary summarizes the skipped candidates.
+   *
+   * @generated from field: string skipped_candidate_summary = 6;
+   */
+  skippedCandidateSummary?: string
+  /**
+   * IgnoredCandidateCount is how many candidates were ignored.
+   *
+   * @generated from field: uint32 ignored_candidate_count = 7;
+   */
+  ignoredCandidateCount?: number
+  /**
+   * IgnoredCandidateSummary summarizes the ignored candidates.
+   *
+   * @generated from field: string ignored_candidate_summary = 8;
+   */
+  ignoredCandidateSummary?: string
+  /**
+   * QuarantinedCandidateCount is how many candidates were quarantined.
+   *
+   * @generated from field: uint32 quarantined_candidate_count = 9;
+   */
+  quarantinedCandidateCount?: number
+  /**
+   * QuarantinedCandidateSummary summarizes the quarantined candidates.
+   *
+   * @generated from field: string quarantined_candidate_summary = 10;
+   */
+  quarantinedCandidateSummary?: string
+}
+
+export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoveryStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.PluginManifestRecoveryStatus',
+    fields: [
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'execute_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 4,
+        name: 'download_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 5,
+        name: 'skipped_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 6,
+        name: 'skipped_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'ignored_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 8,
+        name: 'ignored_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 9,
+        name: 'quarantined_candidate_count',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 10,
+        name: 'quarantined_candidate_summary',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * PluginStatusSnapshot describes a plugin host scheduler's plugin instances.
+ *
+ * @generated from message bldr.plugin.PluginStatusSnapshot
+ */
+export interface PluginStatusSnapshot {
+  /**
+   * Plugins lists the per-instance statuses sorted by plugin id and instance key.
+   *
+   * @generated from field: repeated bldr.plugin.PluginStatus plugins = 1;
+   */
+  plugins?: PluginStatus[]
+  /**
+   * ManifestRecovery lists the per-instance manifest selection facts sorted by
+   * plugin id and instance key.
+   *
+   * @generated from field: repeated bldr.plugin.PluginManifestRecoveryStatus manifest_recovery = 2;
+   */
+  manifestRecovery?: PluginManifestRecoveryStatus[]
+}
+
+export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.PluginStatusSnapshot',
+    fields: [
+      {
+        no: 1,
+        name: 'plugins',
+        kind: 'message',
+        T: () => PluginStatus,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'manifest_recovery',
+        kind: 'message',
+        T: () => PluginManifestRecoveryStatus,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CheckActivationRequest queries the running generation's replacement contract.
  *
  * @generated from message bldr.plugin.CheckActivationRequest
@@ -193,6 +363,49 @@ export const PrepareUpdateResponse: MessageType<PrepareUpdateResponse> =
     'bldr.plugin.PrepareUpdateResponse',
     true,
   )
+
+/**
+ * WatchPluginStatusRequest is the request for WatchPluginStatus.
+ *
+ * @generated from message bldr.plugin.WatchPluginStatusRequest
+ */
+export interface WatchPluginStatusRequest {}
+
+export const WatchPluginStatusRequest: MessageType<WatchPluginStatusRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchPluginStatusRequest>(
+    'bldr.plugin.WatchPluginStatusRequest',
+    true,
+  )
+
+/**
+ * WatchPluginStatusResponse is one plugin status update from the host.
+ *
+ * @generated from message bldr.plugin.WatchPluginStatusResponse
+ */
+export interface WatchPluginStatusResponse {
+  /**
+   * InstanceKey is the instance key the host scheduler was configured with.
+   *
+   * @generated from field: string instance_key = 1;
+   */
+  instanceKey?: string
+  /**
+   * Status is the scheduler's current plugin status snapshot.
+   *
+   * @generated from field: bldr.plugin.PluginStatusSnapshot status = 2;
+   */
+  status?: PluginStatusSnapshot
+}
+
+export const WatchPluginStatusResponse: MessageType<WatchPluginStatusResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.WatchPluginStatusResponse',
+    fields: [
+      { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'status', kind: 'message', T: () => PluginStatusSnapshot },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * GetPluginInfoRequest is a request to return the information for the current plugin.

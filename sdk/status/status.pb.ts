@@ -9,6 +9,7 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { PluginManifestRecoveryStatus } from '../../bldr/plugin/plugin.pb.js'
 
 export const protobufPackage = 's4wave.status'
 
@@ -104,8 +105,9 @@ export interface PluginInfo {
    */
   state?: string
   /**
-   * SpaceId is the engine ID of the Space runtime hosting the plugin.
-   * Empty when the plugin runs on the root plugin host.
+   * SpaceId is the engine ID of the Space the plugin instance serves: the
+   * hosting Space runtime, or the Space named by a root host instance key.
+   * Empty for system plugins.
    *
    * @generated from field: string space_id = 4;
    */
@@ -370,112 +372,6 @@ export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
   })
 
 /**
- * PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
- *
- * @generated from message s4wave.status.PluginManifestRecoveryStatus
- */
-export interface PluginManifestRecoveryStatus {
-  /**
-   * @generated from field: string plugin_id = 1;
-   */
-  pluginId?: string
-  /**
-   * @generated from field: string instance_key = 2;
-   */
-  instanceKey?: string
-  /**
-   * @generated from field: string execute_manifest_ref = 3;
-   */
-  executeManifestRef?: string
-  /**
-   * @generated from field: string download_manifest_ref = 4;
-   */
-  downloadManifestRef?: string
-  /**
-   * @generated from field: uint32 skipped_candidate_count = 5;
-   */
-  skippedCandidateCount?: number
-  /**
-   * @generated from field: string skipped_candidate_summary = 6;
-   */
-  skippedCandidateSummary?: string
-  /**
-   * @generated from field: uint32 ignored_candidate_count = 7;
-   */
-  ignoredCandidateCount?: number
-  /**
-   * @generated from field: string ignored_candidate_summary = 8;
-   */
-  ignoredCandidateSummary?: string
-  /**
-   * @generated from field: uint32 quarantined_candidate_count = 9;
-   */
-  quarantinedCandidateCount?: number
-  /**
-   * @generated from field: string quarantined_candidate_summary = 10;
-   */
-  quarantinedCandidateSummary?: string
-}
-
-export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoveryStatus> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.status.PluginManifestRecoveryStatus',
-    fields: [
-      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 3,
-        name: 'execute_manifest_ref',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 4,
-        name: 'download_manifest_ref',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 5,
-        name: 'skipped_candidate_count',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      {
-        no: 6,
-        name: 'skipped_candidate_summary',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 7,
-        name: 'ignored_candidate_count',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      {
-        no: 8,
-        name: 'ignored_candidate_summary',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 9,
-        name: 'quarantined_candidate_count',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      {
-        no: 10,
-        name: 'quarantined_candidate_summary',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
  * NativePackageRecoveryStatus reports process-host dist materialization facts.
  *
  * @generated from message s4wave.status.NativePackageRecoveryStatus
@@ -651,7 +547,9 @@ export interface RecoveryStatus {
    */
   launcher?: LauncherRecoveryStatus
   /**
-   * @generated from field: repeated s4wave.status.PluginManifestRecoveryStatus plugins = 2;
+   * Plugins lists the scheduler-owned Manifest recovery facts per plugin.
+   *
+   * @generated from field: repeated bldr.plugin.PluginManifestRecoveryStatus plugins = 2;
    */
   plugins?: PluginManifestRecoveryStatus[]
   /**

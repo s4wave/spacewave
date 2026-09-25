@@ -1,4 +1,4 @@
-package plugin_host_scheduler
+package bldr_plugin
 
 import (
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -18,8 +18,9 @@ type PluginScheduler interface {
 // reachable from a bus.
 //
 // Every scheduler resolves it with itself on its own bus. A runtime that runs
-// a scheduler on a child bus forwards the directive into that bus, so one
-// lookup on a parent bus collects every scheduler below it.
+// a scheduler on a child bus forwards the directive into that bus, and a
+// plugin resolves it with its host's scheduler over the PluginHost service, so
+// one lookup on a parent bus collects every scheduler below it.
 type LookupPluginScheduler interface {
 	// Directive indicates LookupPluginScheduler is a directive.
 	directive.Directive
@@ -71,7 +72,6 @@ func (d *lookupPluginScheduler) GetDebugVals() directive.DebugValues {
 
 // _ is a type assertion
 var (
-	_ PluginScheduler              = (*Controller)(nil)
 	_ LookupPluginScheduler        = (*lookupPluginScheduler)(nil)
 	_ directive.DirectiveWithEquiv = (*lookupPluginScheduler)(nil)
 )

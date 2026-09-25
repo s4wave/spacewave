@@ -14,41 +14,8 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
-// PluginStatusSnapshot describes the scheduler's current plugin instances.
-type PluginStatusSnapshot struct {
-	// Plugins lists the per-plugin statuses.
-	Plugins []*bldr_plugin.PluginStatus
-	// ManifestRecovery lists per-plugin manifest selection facts.
-	ManifestRecovery []*PluginManifestRecoveryStatus
-}
-
-// PluginManifestRecoveryStatus describes the scheduler-owned retained Manifest
-// selection and eligibility facts for one plugin instance.
-type PluginManifestRecoveryStatus struct {
-	// PluginID is the plugin's id.
-	PluginID string
-	// InstanceKey is the plugin's instance key.
-	InstanceKey string
-	// ExecuteManifestRef is the ref of the manifest selected for execution.
-	ExecuteManifestRef string
-	// DownloadManifestRef is the ref of the manifest selected for download.
-	DownloadManifestRef string
-	// SkippedCandidateCount is how many candidates were skipped.
-	SkippedCandidateCount int
-	// SkippedCandidateSummary summarizes the skipped candidates.
-	SkippedCandidateSummary string
-	// IgnoredCandidateCount is how many candidates were ignored.
-	IgnoredCandidateCount int
-	// IgnoredCandidateSummary summarizes the ignored candidates.
-	IgnoredCandidateSummary string
-	// QuarantinedCandidateCount is how many candidates were quarantined.
-	QuarantinedCandidateCount int
-	// QuarantinedCandidateSummary summarizes the quarantined candidates.
-	QuarantinedCandidateSummary string
-}
-
 // GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
-func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot] {
+func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
 	return c.pluginStatusCtr
 }
 
@@ -127,7 +94,7 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 		return nil
 	}
 
-	var current *PluginStatusSnapshot
+	var current *bldr_plugin.PluginStatusSnapshot
 	for {
 		next, err := c.pluginStatusCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
@@ -144,7 +111,7 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 
 // pluginsRunningOrError reports whether every required plugin is running,
 // returning an error naming any missing one.
-func pluginsRunningOrError(snapshot *PluginStatusSnapshot, required map[string]struct{}) (bool, error) {
+func pluginsRunningOrError(snapshot *bldr_plugin.PluginStatusSnapshot, required map[string]struct{}) (bool, error) {
 	if snapshot == nil {
 		return false, nil
 	}
@@ -259,10 +226,10 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
 	if c.pluginManifestRecoveryStatus == nil {
-		c.pluginManifestRecoveryStatus = make(map[string]*PluginManifestRecoveryStatus)
+		c.pluginManifestRecoveryStatus = make(map[string]*bldr_plugin.PluginManifestRecoveryStatus)
 	}
-	c.pluginManifestRecoveryStatus[key] = &PluginManifestRecoveryStatus{
-		PluginID:                    pluginID,
+	c.pluginManifestRecoveryStatus[key] = &bldr_plugin.PluginManifestRecoveryStatus{
+		PluginId:                    pluginID,
 		InstanceKey:                 instanceKey,
 		ExecuteManifestRef:          manifestSnapshotRefString(executeManifest),
 		DownloadManifestRef:         manifestSnapshotRefString(downloadManifest),
@@ -324,7 +291,7 @@ func (c *Controller) updatePluginStatus(
 			Running:          state == bldr_plugin.PluginState_PluginState_RUNNING,
 			State:            state,
 			LastErrorMessage: lastErrorMessage,
-			LastErrorAt:      cloneTimestamp(lastErrorAt),
+			LastErrorAt:      lastErrorAt.CloneVT(),
 		}
 	}
 	snapshot := c.buildPluginStatusSnapshotLocked()
@@ -336,20 +303,13 @@ func (c *Controller) updatePluginStatus(
 
 // buildPluginStatusSnapshotLocked builds the current snapshot. Caller must
 // hold pluginStatusMtx.
-func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
+func (c *Controller) buildPluginStatusSnapshotLocked() *bldr_plugin.PluginStatusSnapshot {
 	plugins := make([]*bldr_plugin.PluginStatus, 0, len(c.pluginStatus))
 	for _, plugin := range c.pluginStatus {
 		if plugin == nil {
 			continue
 		}
-		plugins = append(plugins, &bldr_plugin.PluginStatus{
-			PluginId:         plugin.PluginId,
-			InstanceKey:      plugin.InstanceKey,
-			Running:          plugin.Running,
-			State:            plugin.State,
-			LastErrorMessage: plugin.LastErrorMessage,
-			LastErrorAt:      cloneTimestamp(plugin.LastErrorAt),
-		})
+		plugins = append(plugins, plugin.CloneVT())
 	}
 	slices.SortFunc(plugins, func(a, b *bldr_plugin.PluginStatus) int {
 		if a.PluginId < b.PluginId {
@@ -366,18 +326,18 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 		}
 		return 0
 	})
-	recovery := make([]*PluginManifestRecoveryStatus, 0, len(c.pluginManifestRecoveryStatus))
+	recovery := make([]*bldr_plugin.PluginManifestRecoveryStatus, 0, len(c.pluginManifestRecoveryStatus))
 	for _, row := range c.pluginManifestRecoveryStatus {
 		if row == nil {
 			continue
 		}
-		recovery = append(recovery, clonePluginManifestRecoveryStatus(row))
+		recovery = append(recovery, row.CloneVT())
 	}
-	slices.SortFunc(recovery, func(a, b *PluginManifestRecoveryStatus) int {
-		if a.PluginID < b.PluginID {
+	slices.SortFunc(recovery, func(a, b *bldr_plugin.PluginManifestRecoveryStatus) int {
+		if a.PluginId < b.PluginId {
 			return -1
 		}
-		if a.PluginID > b.PluginID {
+		if a.PluginId > b.PluginId {
 			return 1
 		}
 		if a.InstanceKey < b.InstanceKey {
@@ -388,56 +348,7 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 		}
 		return 0
 	})
-	return &PluginStatusSnapshot{Plugins: plugins, ManifestRecovery: recovery}
-}
-
-// pluginStatusSnapshotEqual reports whether two snapshots are equal.
-func pluginStatusSnapshotEqual(a, b *PluginStatusSnapshot) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	if len(a.Plugins) != len(b.Plugins) {
-		return false
-	}
-	for i, ap := range a.Plugins {
-		bp := b.Plugins[i]
-		if ap.PluginId != bp.PluginId ||
-			ap.InstanceKey != bp.InstanceKey ||
-			ap.Running != bp.Running ||
-			ap.State != bp.State ||
-			ap.LastErrorMessage != bp.LastErrorMessage ||
-			!timestampEqual(ap.LastErrorAt, bp.LastErrorAt) {
-			return false
-		}
-	}
-	return slices.EqualFunc(a.ManifestRecovery, b.ManifestRecovery, pluginManifestRecoveryStatusEqual)
-}
-
-// clonePluginManifestRecoveryStatus deep-clones a recovery status row.
-func clonePluginManifestRecoveryStatus(row *PluginManifestRecoveryStatus) *PluginManifestRecoveryStatus {
-	if row == nil {
-		return nil
-	}
-	next := *row
-	return &next
-}
-
-// pluginManifestRecoveryStatusEqual reports whether two recovery rows are
-// equal.
-func pluginManifestRecoveryStatusEqual(a, b *PluginManifestRecoveryStatus) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.PluginID == b.PluginID &&
-		a.InstanceKey == b.InstanceKey &&
-		a.ExecuteManifestRef == b.ExecuteManifestRef &&
-		a.DownloadManifestRef == b.DownloadManifestRef &&
-		a.SkippedCandidateCount == b.SkippedCandidateCount &&
-		a.SkippedCandidateSummary == b.SkippedCandidateSummary &&
-		a.IgnoredCandidateCount == b.IgnoredCandidateCount &&
-		a.IgnoredCandidateSummary == b.IgnoredCandidateSummary &&
-		a.QuarantinedCandidateCount == b.QuarantinedCandidateCount &&
-		a.QuarantinedCandidateSummary == b.QuarantinedCandidateSummary
+	return &bldr_plugin.PluginStatusSnapshot{Plugins: plugins, ManifestRecovery: recovery}
 }
 
 // manifestSnapshotRefString renders a manifest snapshot's ref as a string.
@@ -482,7 +393,7 @@ func summarizeStartupManifestEligibility(
 func countStartupManifestEligibilityKind(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	eligibility bldr_manifest_world.StartupManifestEligibility,
-) int {
+) uint32 {
 	return countStartupManifestEligibility(candidates, func(candidate *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 		return candidate != nil && candidate.Eligibility == eligibility
 	})
@@ -493,26 +404,12 @@ func countStartupManifestEligibilityKind(
 func countStartupManifestEligibility(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	match func(*bldr_manifest_world.StartupManifestCandidateEligibility) bool,
-) int {
-	var count int
+) uint32 {
+	var count uint32
 	for _, candidate := range candidates {
 		if match(candidate) {
 			count++
 		}
 	}
 	return count
-}
-
-func cloneTimestamp(ts *timestamp.Timestamp) *timestamp.Timestamp {
-	if ts == nil {
-		return nil
-	}
-	return ts.CloneVT()
-}
-
-func timestampEqual(a, b *timestamp.Timestamp) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.EqualVT(b)
 }

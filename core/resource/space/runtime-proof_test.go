@@ -23,7 +23,6 @@ import (
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -175,14 +174,14 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	}
 
 	// Session status finds the Space scheduler from the parent bus.
-	schedulers, _, schedulersRef, err := bus.ExecCollectValues[plugin_host_scheduler.LookupPluginSchedulerValue](
-		ctx, tb.Bus, plugin_host_scheduler.NewLookupPluginScheduler(), false, nil,
+	schedulers, _, schedulersRef, err := bus.ExecCollectValues[bldr_plugin.LookupPluginSchedulerValue](
+		ctx, tb.Bus, bldr_plugin.NewLookupPluginScheduler(), false, nil,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	schedulersRef.Release()
-	if !slices.ContainsFunc(schedulers, func(s plugin_host_scheduler.PluginScheduler) bool {
+	if !slices.ContainsFunc(schedulers, func(s bldr_plugin.PluginScheduler) bool {
 		return s == scheduler && s.GetInstanceKey() == "space-test"
 	}) {
 		t.Fatalf("parent bus lookup did not reach the Space scheduler: %#v", schedulers)
@@ -928,6 +927,10 @@ func (h *spaceRuntimeEntrypointHost) PluginRpc(bldr_plugin.SRPCPluginHost_Plugin
 // PluginFsRpc rejects the unused plugin filesystem RPC path.
 func (h *spaceRuntimeEntrypointHost) PluginFsRpc(bldr_plugin.SRPCPluginHost_PluginFsRpcStream) error {
 	return errors.New("PluginFsRpc is not used by this test")
+}
+
+func (h *spaceRuntimeEntrypointHost) WatchPluginStatus(*bldr_plugin.WatchPluginStatusRequest, bldr_plugin.SRPCPluginHost_WatchPluginStatusStream) error {
+	return errors.New("WatchPluginStatus is not used by this test")
 }
 
 var _ bldr_plugin.SRPCPluginHostServer = (*spaceRuntimeEntrypointHost)(nil)

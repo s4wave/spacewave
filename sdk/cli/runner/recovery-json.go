@@ -2,6 +2,7 @@ package runner
 
 import (
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
@@ -88,7 +89,7 @@ func writeLauncherRecoveryJSON(ms *protojson.MarshalState, launcher *s4wave_stat
 	ms.WriteObjectEnd()
 }
 
-func writePluginRecoveryJSON(ms *protojson.MarshalState, plugin *s4wave_status.PluginManifestRecoveryStatus) {
+func writePluginRecoveryJSON(ms *protojson.MarshalState, plugin *bldr_plugin.PluginManifestRecoveryStatus) {
 	ms.WriteObjectStart()
 	var f bool
 	writeJSONStringField(ms, &f, "pluginId", plugin.GetPluginId())

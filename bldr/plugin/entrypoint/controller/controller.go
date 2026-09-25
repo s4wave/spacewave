@@ -22,7 +22,7 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller implements the plugin entrypoint controller.
 // Handles directives from the plugin bus forwarding RPCs to the host.
-// Ex: LoadPlugin, LookupRpcClient<plugin/foo/ or plugin-host/>
+// Ex: LoadPlugin, LookupPluginScheduler, LookupRpcClient<plugin/foo/ or plugin-host/>
 type Controller struct {
 	// b is the bus
 	b bus.Bus
@@ -81,6 +81,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 	switch dir := di.GetDirective().(type) {
 	case bldr_plugin.LoadPlugin:
 		return directive.R(c.resolveLoadPlugin(dir))
+	case bldr_plugin.LookupPluginScheduler:
+		return directive.R(&lookupPluginSchedulerResolver{c: c}, nil)
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, c))
 	case bifrost_rpc.LookupRpcService:

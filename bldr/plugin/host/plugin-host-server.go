@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -40,6 +41,8 @@ type PluginHostServer struct {
 	// instance allocates named volumes through. Empty selects the host
 	// default storage.
 	hostStorageID string
+	// scheduler is the host scheduler running this plugin, if any.
+	scheduler bldr_plugin.PluginScheduler
 	// pluginFsTracker tracks loaded plugin FSCursor servers
 	// TODO: we need a KeyedRefCountValue type which resolves a value with the same logic as refcount/refcount.go
 	// TODO: that would be a lot simpler and more robust here
@@ -87,6 +90,12 @@ func (s *PluginHostServer) SetPrepared(prepared bool) {
 // Set it before exposing this server to its plugin.
 func (s *PluginHostServer) SetRegistrationInstanceKey(instanceKey string) {
 	s.registrationInstanceKey = instanceKey
+}
+
+// SetPluginScheduler sets the host scheduler whose status WatchPluginStatus
+// streams. Set it before exposing this server to its plugin.
+func (s *PluginHostServer) SetPluginScheduler(scheduler bldr_plugin.PluginScheduler) {
+	s.scheduler = scheduler
 }
 
 // GetPluginInfo returns information about the currently running plugin.
@@ -244,6 +253,29 @@ func (s *PluginHostServer) ExecController(
 
 	ctx := strm.Context()
 	return req.Execute(ctx, s.b, true, strm.Send)
+}
+
+// WatchPluginStatus streams the host scheduler's plugin status.
+func (s *PluginHostServer) WatchPluginStatus(
+	req *bldr_plugin.WatchPluginStatusRequest,
+	strm bldr_plugin.SRPCPluginHost_WatchPluginStatusStream,
+) error {
+	if s.scheduler == nil {
+		return errors.New("plugin host has no scheduler")
+	}
+	instanceKey := s.scheduler.GetInstanceKey()
+	return ccontainer.WatchChanges(
+		strm.Context(),
+		nil,
+		s.scheduler.GetPluginStatusCtr(),
+		func(status *bldr_plugin.PluginStatusSnapshot) error {
+			return strm.Send(&bldr_plugin.WatchPluginStatusResponse{
+				InstanceKey: instanceKey,
+				Status:      status,
+			})
+		},
+		nil,
+	)
 }
 
 // _ is a type assertion

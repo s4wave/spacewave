@@ -101,7 +101,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 				vol:  tb.Volume,
 				info: &volume.VolumeInfo{VolumeId: tb.Volume.GetID()},
 			}),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 		},
 		le:               le,

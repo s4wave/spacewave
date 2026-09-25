@@ -13,7 +13,7 @@ import (
 
 func newStartupWaitBudgetTestInstance() *pluginInstance {
 	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 	}
 	return &pluginInstance{

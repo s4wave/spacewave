@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	"github.com/s4wave/spacewave/core/provider"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
@@ -27,7 +26,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 	b := inmem.NewBus(cdc.NewController(context.Background(), logrus.NewEntry(logrus.New())))
 	statusRes := NewStatusResource(b, nil)
 
-	initial := statusRes.buildRecoveryStatus()
+	initial := statusRes.buildRecoveryStatus(nil)
 	if initial.GetBoot().GetStatus() != "not-reported" {
 		t.Fatalf("initial boot status = %q, want not-reported", initial.GetBoot().GetStatus())
 	}
@@ -50,7 +49,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	status := statusRes.buildRecoveryStatus()
+	status := statusRes.buildRecoveryStatus(nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
 		status.GetBoot().GetStatus() != "reported" {
@@ -87,7 +86,7 @@ func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) 
 		t.Fatal(err.Error())
 	}
 
-	status := reader.buildRecoveryStatus()
+	status := reader.buildRecoveryStatus(nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
 		status.GetBoot().GetStatus() != "reported" {
@@ -124,7 +123,7 @@ func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	status := statusRes.buildRecoveryStatus()
+	status := statusRes.buildRecoveryStatus(nil)
 	if status.GetBoot().GetLastResetDecision() != "current" {
 		t.Fatalf("boot decision = %q, want current", status.GetBoot().GetLastResetDecision())
 	}
@@ -201,7 +200,7 @@ func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
 				SelectedEntrypointManifestRef: "entrypoint-ref",
 			},
 		),
-		Plugins: []*s4wave_status.PluginManifestRecoveryStatus{{
+		Plugins: []*bldr_plugin.PluginManifestRecoveryStatus{{
 			PluginId:            "spacewave-app",
 			ExecuteManifestRef:  "plugin-exec-ref",
 			DownloadManifestRef: "plugin-download-ref",
@@ -391,13 +390,13 @@ func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
 // with itself when added to a bus as a directive handler.
 type testPluginScheduler struct {
 	instanceKey string
-	statusCtr   *ccontainer.CContainer[*plugin_host_scheduler.PluginStatusSnapshot]
+	statusCtr   *ccontainer.CContainer[*bldr_plugin.PluginStatusSnapshot]
 }
 
 func newTestPluginScheduler(instanceKey string, plugins ...*bldr_plugin.PluginStatus) *testPluginScheduler {
 	return &testPluginScheduler{
 		instanceKey: instanceKey,
-		statusCtr: ccontainer.NewCContainer(&plugin_host_scheduler.PluginStatusSnapshot{
+		statusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{
 			Plugins: plugins,
 		}),
 	}
@@ -407,7 +406,7 @@ func (s *testPluginScheduler) GetInstanceKey() string {
 	return s.instanceKey
 }
 
-func (s *testPluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot] {
+func (s *testPluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot] {
 	return s.statusCtr
 }
 
@@ -415,8 +414,8 @@ func (s *testPluginScheduler) HandleDirective(
 	_ context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
-	if _, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler); ok {
-		return directive.R(directive.NewValueResolver([]plugin_host_scheduler.LookupPluginSchedulerValue{s}), nil)
+	if _, ok := inst.GetDirective().(bldr_plugin.LookupPluginScheduler); ok {
+		return directive.R(directive.NewValueResolver([]bldr_plugin.LookupPluginSchedulerValue{s}), nil)
 	}
 	return nil, nil
 }
@@ -427,9 +426,15 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 
 	le := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(cdc.NewController(ctx, le))
+	// The root host also runs Space plugin instances keyed by Space engine ID.
+	const rootSpaceID = "space/local/account/s0"
 	root := newTestPluginScheduler("", &bldr_plugin.PluginStatus{
 		PluginId: "spacewave-core",
 		State:    bldr_plugin.PluginState_PluginState_RUNNING,
+	}, &bldr_plugin.PluginStatus{
+		PluginId:    "notes",
+		InstanceKey: rootSpaceID,
+		State:       bldr_plugin.PluginState_PluginState_RUNNING,
 	})
 	if _, err := b.AddHandler(root); err != nil {
 		t.Fatal(err)
@@ -444,7 +449,7 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 	go func() {
 		errCh <- statusRes.WatchPlugins(&s4wave_status.WatchPluginsRequest{}, strm)
 	}()
-	requirePlugins(t, strm, "/spacewave-core:running")
+	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running")
 
 	// A Space runtime hosts its scheduler on a child bus reached through a
 	// bridge on the session bus.
@@ -458,24 +463,24 @@ func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
 		t.Fatal(err)
 	}
 	bridgeRelease, err := b.AddController(ctx, bus_bridge.NewBusBridge(child, func(inst directive.Instance) (bool, error) {
-		_, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler)
+		_, ok := inst.GetDirective().(bldr_plugin.LookupPluginScheduler)
 		return ok, nil
 	}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	requirePlugins(t, strm, "/spacewave-core:running", spaceID+"/notes:requested")
+	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running", spaceID+"/notes:requested")
 
-	spaceScheduler.statusCtr.SetValue(&plugin_host_scheduler.PluginStatusSnapshot{
+	spaceScheduler.statusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId: "notes",
 			State:    bldr_plugin.PluginState_PluginState_RUNNING,
 		}},
 	})
-	requirePlugins(t, strm, "/spacewave-core:running", spaceID+"/notes:running")
+	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running", spaceID+"/notes:running")
 
 	bridgeRelease()
-	requirePlugins(t, strm, "/spacewave-core:running")
+	requirePlugins(t, strm, "/spacewave-core:running", rootSpaceID+"/notes:running")
 
 	cancel()
 	if err := <-errCh; err != context.Canceled {

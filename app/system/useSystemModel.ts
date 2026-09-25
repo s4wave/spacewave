@@ -15,13 +15,13 @@ import type { SpaceSoListEntry } from '@s4wave/core/space/space.pb.js'
 import type {
   ControllerInfo,
   NativePackageRecoveryStatus,
-  PluginManifestRecoveryStatus,
   RecoveryStatus,
   WatchControllersResponse,
   WatchDirectivesResponse,
   WatchNetworkStatsResponse,
   WatchPluginsResponse,
 } from '@s4wave/sdk/status/status.pb.js'
+import type { PluginManifestRecoveryStatus } from '@go/github.com/s4wave/spacewave/bldr/plugin/plugin.pb.js'
 
 import {
   useWatchControllers,
@@ -62,18 +62,17 @@ export interface SystemVerdict {
   items: AttentionItem[]
 }
 
-// PluginView joins a plugin host instance with the host that runs it and,
-// for root host plugins, its retained manifest recovery and native package
-// facts.
+// PluginView joins a plugin host instance with the Space it serves and, for
+// root host plugins, its retained manifest recovery and native package facts.
 export interface PluginView {
   key: string
   id: string
   instanceKey: string
   state: string
-  // spaceId is the engine ID of the hosting Space runtime, empty for the root
-  // plugin host.
+  // spaceId is the engine ID of the Space the instance serves, empty for
+  // system plugins.
   spaceId: string
-  // host names the hosting Space, or the system for the root plugin host.
+  // host names the Space the instance serves, or the system.
   host: string
   manifest?: PluginManifestRecoveryStatus
   nativePackage?: NativePackageRecoveryStatus
@@ -239,9 +238,9 @@ function groupDirectives(resp: WatchDirectivesResponse): DirectiveGroup[] {
   )
 }
 
-// joinPlugins names the host of each plugin instance and attaches the root
-// host's manifest recovery and native package facts. Plugins are ordered with
-// the root host first, then by Space name.
+// joinPlugins names the Space each plugin instance serves and attaches the
+// root host's manifest recovery and native package facts. Plugins are ordered
+// with system plugins first, then by Space name.
 function joinPlugins(
   resp: WatchPluginsResponse,
   recovery: RecoveryStatus | null,
@@ -278,7 +277,12 @@ function joinPlugins(
         host: spaceId
           ? (spaceNames.get(spaceId) ?? 'Unlisted Space')
           : 'System',
-        manifest: spaceId ? undefined : manifests.get(rootKey),
+        // Recovery rows come from the root host, which keys its Space
+        // instances by Space engine ID.
+        manifest:
+          !spaceId || instanceKey === spaceId
+            ? manifests.get(rootKey)
+            : undefined,
         nativePackage: spaceId ? undefined : nativePackages.get(id),
       }
     })

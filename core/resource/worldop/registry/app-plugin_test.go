@@ -21,7 +21,6 @@ import (
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/bldr/testbed"
@@ -182,7 +181,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		}
 		current = next
 		if version == 2 {
-			_, err := tb.GetScheduler().GetPluginStatusCtr().WaitValueWithValidator(ctx, func(status *scheduler.PluginStatusSnapshot) (bool, error) {
+			_, err := tb.GetScheduler().GetPluginStatusCtr().WaitValueWithValidator(ctx, func(status *bldr_plugin.PluginStatusSnapshot) (bool, error) {
 				for _, item := range status.Plugins {
 					if item.GetPluginId() == "test-colors" && item.GetInstanceKey() == "space/first" && item.GetLastErrorMessage() != "" {
 						return true, nil

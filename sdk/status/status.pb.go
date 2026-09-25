@@ -11,6 +11,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // ControllerInfo describes a running controller.
@@ -89,8 +90,9 @@ type PluginInfo struct {
 	InstanceKey string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 	// State is the plugin runtime state.
 	State string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
-	// SpaceId is the engine ID of the Space runtime hosting the plugin.
-	// Empty when the plugin runs on the root plugin host.
+	// SpaceId is the engine ID of the Space the plugin instance serves: the
+	// hosting Space runtime, or the Space named by a root host instance key.
+	// Empty for system plugins.
 	SpaceId string `protobuf:"bytes,4,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
 }
 
@@ -353,97 +355,6 @@ func (x *LauncherRecoveryStatus) GetUpdateError() string {
 	return ""
 }
 
-// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
-type PluginManifestRecoveryStatus struct {
-	unknownFields               []byte
-	PluginId                    string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
-	InstanceKey                 string `protobuf:"bytes,2,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
-	ExecuteManifestRef          string `protobuf:"bytes,3,opt,name=execute_manifest_ref,json=executeManifestRef,proto3" json:"executeManifestRef,omitempty"`
-	DownloadManifestRef         string `protobuf:"bytes,4,opt,name=download_manifest_ref,json=downloadManifestRef,proto3" json:"downloadManifestRef,omitempty"`
-	SkippedCandidateCount       uint32 `protobuf:"varint,5,opt,name=skipped_candidate_count,json=skippedCandidateCount,proto3" json:"skippedCandidateCount,omitempty"`
-	SkippedCandidateSummary     string `protobuf:"bytes,6,opt,name=skipped_candidate_summary,json=skippedCandidateSummary,proto3" json:"skippedCandidateSummary,omitempty"`
-	IgnoredCandidateCount       uint32 `protobuf:"varint,7,opt,name=ignored_candidate_count,json=ignoredCandidateCount,proto3" json:"ignoredCandidateCount,omitempty"`
-	IgnoredCandidateSummary     string `protobuf:"bytes,8,opt,name=ignored_candidate_summary,json=ignoredCandidateSummary,proto3" json:"ignoredCandidateSummary,omitempty"`
-	QuarantinedCandidateCount   uint32 `protobuf:"varint,9,opt,name=quarantined_candidate_count,json=quarantinedCandidateCount,proto3" json:"quarantinedCandidateCount,omitempty"`
-	QuarantinedCandidateSummary string `protobuf:"bytes,10,opt,name=quarantined_candidate_summary,json=quarantinedCandidateSummary,proto3" json:"quarantinedCandidateSummary,omitempty"`
-}
-
-func (x *PluginManifestRecoveryStatus) Reset() {
-	*x = PluginManifestRecoveryStatus{}
-}
-
-func (*PluginManifestRecoveryStatus) ProtoMessage() {}
-
-func (x *PluginManifestRecoveryStatus) GetPluginId() string {
-	if x != nil {
-		return x.PluginId
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetInstanceKey() string {
-	if x != nil {
-		return x.InstanceKey
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetExecuteManifestRef() string {
-	if x != nil {
-		return x.ExecuteManifestRef
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetDownloadManifestRef() string {
-	if x != nil {
-		return x.DownloadManifestRef
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetSkippedCandidateCount() uint32 {
-	if x != nil {
-		return x.SkippedCandidateCount
-	}
-	return 0
-}
-
-func (x *PluginManifestRecoveryStatus) GetSkippedCandidateSummary() string {
-	if x != nil {
-		return x.SkippedCandidateSummary
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetIgnoredCandidateCount() uint32 {
-	if x != nil {
-		return x.IgnoredCandidateCount
-	}
-	return 0
-}
-
-func (x *PluginManifestRecoveryStatus) GetIgnoredCandidateSummary() string {
-	if x != nil {
-		return x.IgnoredCandidateSummary
-	}
-	return ""
-}
-
-func (x *PluginManifestRecoveryStatus) GetQuarantinedCandidateCount() uint32 {
-	if x != nil {
-		return x.QuarantinedCandidateCount
-	}
-	return 0
-}
-
-func (x *PluginManifestRecoveryStatus) GetQuarantinedCandidateSummary() string {
-	if x != nil {
-		return x.QuarantinedCandidateSummary
-	}
-	return ""
-}
-
 // NativePackageRecoveryStatus reports process-host dist materialization facts.
 type NativePackageRecoveryStatus struct {
 	unknownFields []byte
@@ -641,12 +552,13 @@ func (x *RuntimeAssetRecoveryStatus) GetStatus() string {
 
 // RecoveryStatus composes runtime recovery facts without owning decisions.
 type RecoveryStatus struct {
-	unknownFields  []byte
-	Launcher       *LauncherRecoveryStatus         `protobuf:"bytes,1,opt,name=launcher,proto3" json:"launcher,omitempty"`
-	Plugins        []*PluginManifestRecoveryStatus `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
-	NativePackages []*NativePackageRecoveryStatus  `protobuf:"bytes,3,rep,name=native_packages,json=nativePackages,proto3" json:"nativePackages,omitempty"`
-	Boot           *BrowserBootRecoveryStatus      `protobuf:"bytes,4,opt,name=boot,proto3" json:"boot,omitempty"`
-	RuntimeAsset   *RuntimeAssetRecoveryStatus     `protobuf:"bytes,5,opt,name=runtime_asset,json=runtimeAsset,proto3" json:"runtimeAsset,omitempty"`
+	unknownFields []byte
+	Launcher      *LauncherRecoveryStatus `protobuf:"bytes,1,opt,name=launcher,proto3" json:"launcher,omitempty"`
+	// Plugins lists the scheduler-owned Manifest recovery facts per plugin.
+	Plugins        []*plugin.PluginManifestRecoveryStatus `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	NativePackages []*NativePackageRecoveryStatus         `protobuf:"bytes,3,rep,name=native_packages,json=nativePackages,proto3" json:"nativePackages,omitempty"`
+	Boot           *BrowserBootRecoveryStatus             `protobuf:"bytes,4,opt,name=boot,proto3" json:"boot,omitempty"`
+	RuntimeAsset   *RuntimeAssetRecoveryStatus            `protobuf:"bytes,5,opt,name=runtime_asset,json=runtimeAsset,proto3" json:"runtimeAsset,omitempty"`
 }
 
 func (x *RecoveryStatus) Reset() {
@@ -662,7 +574,7 @@ func (x *RecoveryStatus) GetLauncher() *LauncherRecoveryStatus {
 	return nil
 }
 
-func (x *RecoveryStatus) GetPlugins() []*PluginManifestRecoveryStatus {
+func (x *RecoveryStatus) GetPlugins() []*plugin.PluginManifestRecoveryStatus {
 	if x != nil {
 		return x.Plugins
 	}
@@ -1065,31 +977,6 @@ func (m *LauncherRecoveryStatus) CloneVT() *LauncherRecoveryStatus {
 }
 
 func (m *LauncherRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *PluginManifestRecoveryStatus) CloneVT() *PluginManifestRecoveryStatus {
-	if m == nil {
-		return (*PluginManifestRecoveryStatus)(nil)
-	}
-	r := new(PluginManifestRecoveryStatus)
-	r.PluginId = m.PluginId
-	r.InstanceKey = m.InstanceKey
-	r.ExecuteManifestRef = m.ExecuteManifestRef
-	r.DownloadManifestRef = m.DownloadManifestRef
-	r.SkippedCandidateCount = m.SkippedCandidateCount
-	r.SkippedCandidateSummary = m.SkippedCandidateSummary
-	r.IgnoredCandidateCount = m.IgnoredCandidateCount
-	r.IgnoredCandidateSummary = m.IgnoredCandidateSummary
-	r.QuarantinedCandidateCount = m.QuarantinedCandidateCount
-	r.QuarantinedCandidateSummary = m.QuarantinedCandidateSummary
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *PluginManifestRecoveryStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1570,53 +1457,6 @@ func (this *LauncherRecoveryStatus) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *PluginManifestRecoveryStatus) EqualVT(that *PluginManifestRecoveryStatus) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.PluginId != that.PluginId {
-		return false
-	}
-	if this.InstanceKey != that.InstanceKey {
-		return false
-	}
-	if this.ExecuteManifestRef != that.ExecuteManifestRef {
-		return false
-	}
-	if this.DownloadManifestRef != that.DownloadManifestRef {
-		return false
-	}
-	if this.SkippedCandidateCount != that.SkippedCandidateCount {
-		return false
-	}
-	if this.SkippedCandidateSummary != that.SkippedCandidateSummary {
-		return false
-	}
-	if this.IgnoredCandidateCount != that.IgnoredCandidateCount {
-		return false
-	}
-	if this.IgnoredCandidateSummary != that.IgnoredCandidateSummary {
-		return false
-	}
-	if this.QuarantinedCandidateCount != that.QuarantinedCandidateCount {
-		return false
-	}
-	if this.QuarantinedCandidateSummary != that.QuarantinedCandidateSummary {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *PluginManifestRecoveryStatus) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*PluginManifestRecoveryStatus)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *NativePackageRecoveryStatus) EqualVT(that *NativePackageRecoveryStatus) bool {
 	if this == that {
 		return true
@@ -1737,7 +1577,7 @@ func (this *RecoveryStatus) EqualVT(that *RecoveryStatus) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Launcher, that.Launcher) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Plugins, that.Plugins, func() *PluginManifestRecoveryStatus { return &PluginManifestRecoveryStatus{} }) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Plugins, that.Plugins, func() *plugin.PluginManifestRecoveryStatus { return &plugin.PluginManifestRecoveryStatus{} }) {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.NativePackages, that.NativePackages, func() *NativePackageRecoveryStatus { return &NativePackageRecoveryStatus{} }) {
@@ -2487,120 +2327,6 @@ func (x *LauncherRecoveryStatus) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the PluginManifestRecoveryStatus message to JSON.
-func (x *PluginManifestRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.PluginId != "" || s.HasField("pluginId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("pluginId")
-		s.WriteString(x.PluginId)
-	}
-	if x.InstanceKey != "" || s.HasField("instanceKey") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("instanceKey")
-		s.WriteString(x.InstanceKey)
-	}
-	if x.ExecuteManifestRef != "" || s.HasField("executeManifestRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("executeManifestRef")
-		s.WriteString(x.ExecuteManifestRef)
-	}
-	if x.DownloadManifestRef != "" || s.HasField("downloadManifestRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("downloadManifestRef")
-		s.WriteString(x.DownloadManifestRef)
-	}
-	if x.SkippedCandidateCount != 0 || s.HasField("skippedCandidateCount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("skippedCandidateCount")
-		s.WriteUint32(x.SkippedCandidateCount)
-	}
-	if x.SkippedCandidateSummary != "" || s.HasField("skippedCandidateSummary") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("skippedCandidateSummary")
-		s.WriteString(x.SkippedCandidateSummary)
-	}
-	if x.IgnoredCandidateCount != 0 || s.HasField("ignoredCandidateCount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ignoredCandidateCount")
-		s.WriteUint32(x.IgnoredCandidateCount)
-	}
-	if x.IgnoredCandidateSummary != "" || s.HasField("ignoredCandidateSummary") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ignoredCandidateSummary")
-		s.WriteString(x.IgnoredCandidateSummary)
-	}
-	if x.QuarantinedCandidateCount != 0 || s.HasField("quarantinedCandidateCount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("quarantinedCandidateCount")
-		s.WriteUint32(x.QuarantinedCandidateCount)
-	}
-	if x.QuarantinedCandidateSummary != "" || s.HasField("quarantinedCandidateSummary") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("quarantinedCandidateSummary")
-		s.WriteString(x.QuarantinedCandidateSummary)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the PluginManifestRecoveryStatus to JSON.
-func (x *PluginManifestRecoveryStatus) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the PluginManifestRecoveryStatus message from JSON.
-func (x *PluginManifestRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "plugin_id", "pluginId":
-			s.AddField("plugin_id")
-			x.PluginId = s.ReadString()
-		case "instance_key", "instanceKey":
-			s.AddField("instance_key")
-			x.InstanceKey = s.ReadString()
-		case "execute_manifest_ref", "executeManifestRef":
-			s.AddField("execute_manifest_ref")
-			x.ExecuteManifestRef = s.ReadString()
-		case "download_manifest_ref", "downloadManifestRef":
-			s.AddField("download_manifest_ref")
-			x.DownloadManifestRef = s.ReadString()
-		case "skipped_candidate_count", "skippedCandidateCount":
-			s.AddField("skipped_candidate_count")
-			x.SkippedCandidateCount = s.ReadUint32()
-		case "skipped_candidate_summary", "skippedCandidateSummary":
-			s.AddField("skipped_candidate_summary")
-			x.SkippedCandidateSummary = s.ReadString()
-		case "ignored_candidate_count", "ignoredCandidateCount":
-			s.AddField("ignored_candidate_count")
-			x.IgnoredCandidateCount = s.ReadUint32()
-		case "ignored_candidate_summary", "ignoredCandidateSummary":
-			s.AddField("ignored_candidate_summary")
-			x.IgnoredCandidateSummary = s.ReadString()
-		case "quarantined_candidate_count", "quarantinedCandidateCount":
-			s.AddField("quarantined_candidate_count")
-			x.QuarantinedCandidateCount = s.ReadUint32()
-		case "quarantined_candidate_summary", "quarantinedCandidateSummary":
-			s.AddField("quarantined_candidate_summary")
-			x.QuarantinedCandidateSummary = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the PluginManifestRecoveryStatus from JSON.
-func (x *PluginManifestRecoveryStatus) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the NativePackageRecoveryStatus message to JSON.
 func (x *NativePackageRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2943,7 +2669,7 @@ func (x *RecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					x.Plugins = append(x.Plugins, nil)
 					return
 				}
-				v := &PluginManifestRecoveryStatus{}
+				v := &plugin.PluginManifestRecoveryStatus{}
 				v.UnmarshalProtoJSON(s.WithField("plugins", false))
 				if s.Err() != nil {
 					return
@@ -3942,88 +3668,6 @@ func (m *LauncherRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *PluginManifestRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PluginManifestRecoveryStatus) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *PluginManifestRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.QuarantinedCandidateSummary) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.QuarantinedCandidateSummary)
-		i--
-		dAtA[i] = 0x52
-	}
-	if m.QuarantinedCandidateCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.QuarantinedCandidateCount))
-		i--
-		dAtA[i] = 0x48
-	}
-	if len(m.IgnoredCandidateSummary) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.IgnoredCandidateSummary)
-		i--
-		dAtA[i] = 0x42
-	}
-	if m.IgnoredCandidateCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IgnoredCandidateCount))
-		i--
-		dAtA[i] = 0x38
-	}
-	if len(m.SkippedCandidateSummary) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SkippedCandidateSummary)
-		i--
-		dAtA[i] = 0x32
-	}
-	if m.SkippedCandidateCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SkippedCandidateCount))
-		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.DownloadManifestRef) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.DownloadManifestRef)
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.ExecuteManifestRef) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ExecuteManifestRef)
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.InstanceKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.InstanceKey)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.PluginId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *NativePackageRecoveryStatus) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4898,26 +4542,6 @@ func (m *LauncherRecoveryStatus) SizeVT() (n int) {
 	return n
 }
 
-func (m *PluginManifestRecoveryStatus) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InstanceKey)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ExecuteManifestRef)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DownloadManifestRef)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.SkippedCandidateCount)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SkippedCandidateSummary)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.IgnoredCandidateCount)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.IgnoredCandidateSummary)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.QuarantinedCandidateCount)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.QuarantinedCandidateSummary)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *NativePackageRecoveryStatus) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5349,56 +4973,6 @@ func (x *LauncherRecoveryStatus) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *PluginManifestRecoveryStatus) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PluginManifestRecoveryStatus")
-	if x.PluginId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
-		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
-	}
-	if x.InstanceKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "instance_key")
-		protobuf_go_lite.TextWriteString(&sb, x.InstanceKey)
-	}
-	if x.ExecuteManifestRef != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "execute_manifest_ref")
-		protobuf_go_lite.TextWriteString(&sb, x.ExecuteManifestRef)
-	}
-	if x.DownloadManifestRef != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "download_manifest_ref")
-		protobuf_go_lite.TextWriteString(&sb, x.DownloadManifestRef)
-	}
-	if x.SkippedCandidateCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "skipped_candidate_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.SkippedCandidateCount)
-	}
-	if x.SkippedCandidateSummary != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "skipped_candidate_summary")
-		protobuf_go_lite.TextWriteString(&sb, x.SkippedCandidateSummary)
-	}
-	if x.IgnoredCandidateCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ignored_candidate_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.IgnoredCandidateCount)
-	}
-	if x.IgnoredCandidateSummary != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ignored_candidate_summary")
-		protobuf_go_lite.TextWriteString(&sb, x.IgnoredCandidateSummary)
-	}
-	if x.QuarantinedCandidateCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quarantined_candidate_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.QuarantinedCandidateCount)
-	}
-	if x.QuarantinedCandidateSummary != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "quarantined_candidate_summary")
-		protobuf_go_lite.TextWriteString(&sb, x.QuarantinedCandidateSummary)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *PluginManifestRecoveryStatus) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *NativePackageRecoveryStatus) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativePackageRecoveryStatus")
@@ -5521,7 +5095,7 @@ func (x *RecoveryStatus) MarshalProtoText() string {
 		for i, v := range x.Plugins {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &PluginManifestRecoveryStatus{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &plugin.PluginManifestRecoveryStatus{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -6337,146 +5911,6 @@ func (m *LauncherRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *PluginManifestRecoveryStatus) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PluginManifestRecoveryStatus: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PluginManifestRecoveryStatus: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.PluginId = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InstanceKey", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.InstanceKey = v
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExecuteManifestRef", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.ExecuteManifestRef = v
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DownloadManifestRef", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DownloadManifestRef = v
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SkippedCandidateCount", wireType)
-			}
-			m.SkippedCandidateCount = 0
-			m.SkippedCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SkippedCandidateSummary", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SkippedCandidateSummary = v
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IgnoredCandidateCount", wireType)
-			}
-			m.IgnoredCandidateCount = 0
-			m.IgnoredCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IgnoredCandidateSummary", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.IgnoredCandidateSummary = v
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field QuarantinedCandidateCount", wireType)
-			}
-			m.QuarantinedCandidateCount = 0
-			m.QuarantinedCandidateCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 10:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field QuarantinedCandidateSummary", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.QuarantinedCandidateSummary = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
 func (m *NativePackageRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -6848,7 +6282,7 @@ func (m *RecoveryStatus) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			m.Plugins = append(m.Plugins, &PluginManifestRecoveryStatus{})
+			m.Plugins = append(m.Plugins, &plugin.PluginManifestRecoveryStatus{})
 			if err := m.Plugins[len(m.Plugins)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}

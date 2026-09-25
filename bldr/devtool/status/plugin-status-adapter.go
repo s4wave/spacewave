@@ -31,26 +31,23 @@ type pluginStatusAdapter struct {
 
 func (a *pluginStatusAdapter) watch(
 	ctx context.Context,
-	current *plugin_host_scheduler.PluginStatusSnapshot,
-	statusCtr ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot],
+	current *bldr_plugin.PluginStatusSnapshot,
+	statusCtr ccontainer.Watchable[*bldr_plugin.PluginStatusSnapshot],
 ) {
-	err := ccontainer.WatchChanges(
+	_ = ccontainer.WatchChanges(
 		ctx,
 		current,
 		statusCtr,
-		func(snapshot *plugin_host_scheduler.PluginStatusSnapshot) error {
+		func(snapshot *bldr_plugin.PluginStatusSnapshot) error {
 			a.setPluginStatusSnapshotRows(snapshot)
 			return nil
 		},
 		nil,
 	)
-	if err != nil && ctx.Err() == nil {
-		a.setPluginStatusSnapshotRows(nil)
-	}
 }
 
 func (a *pluginStatusAdapter) setPluginStatusSnapshotRows(
-	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
+	snapshot *bldr_plugin.PluginStatusSnapshot,
 ) {
 	rows := pluginStatusRows(snapshot)
 	a.producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
@@ -59,7 +56,7 @@ func (a *pluginStatusAdapter) setPluginStatusSnapshotRows(
 }
 
 func pluginStatusRows(
-	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
+	snapshot *bldr_plugin.PluginStatusSnapshot,
 ) []BldrDevtoolPluginRow {
 	if snapshot == nil || len(snapshot.Plugins) == 0 {
 		return nil

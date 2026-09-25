@@ -286,7 +286,7 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 	adapter := &pluginStatusAdapter{producer: producer}
 	lastErrorAt := timestamp.New(time.Date(2026, 5, 8, 14, 15, 16, 17, time.UTC))
 
-	adapter.setPluginStatusSnapshotRows(&plugin_host_scheduler.PluginStatusSnapshot{
+	adapter.setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "web",
 			InstanceKey: "right",
@@ -318,7 +318,7 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 		t.Fatalf("unexpected running plugin row: %+v", rows[1])
 	}
 
-	adapter.setPluginStatusSnapshotRows(&plugin_host_scheduler.PluginStatusSnapshot{})
+	adapter.setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{})
 	if rows := producer.GetStatus().GetPluginRows(); len(rows) != 0 {
 		t.Fatalf("expected empty scheduler snapshot to clear plugin rows: %+v", rows)
 	}
@@ -336,14 +336,14 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 	)
 	statusCtr := scheduler.GetPluginStatusCtr()
 	writableStatusCtr, ok := statusCtr.(interface {
-		SetValue(*plugin_host_scheduler.PluginStatusSnapshot)
+		SetValue(*bldr_plugin.PluginStatusSnapshot)
 	})
 	if !ok {
 		t.Fatal("expected scheduler plugin status container to be writable in test")
 	}
 
 	AttachPluginStatus(ctx, producer, scheduler)
-	writableStatusCtr.SetValue(&plugin_host_scheduler.PluginStatusSnapshot{
+	writableStatusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "notes",
 			InstanceKey: "left",
@@ -495,7 +495,7 @@ func TestBldrDevtoolStatusObserverDoesNotOverwriteSchedulerPluginRows(t *testing
 
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
-	(&pluginStatusAdapter{producer: producer}).setPluginStatusSnapshotRows(&plugin_host_scheduler.PluginStatusSnapshot{
+	(&pluginStatusAdapter{producer: producer}).setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "notes",
 			InstanceKey: "left",

@@ -104,8 +104,8 @@ func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
 func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -148,8 +148,8 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -188,8 +188,8 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 func TestIsPluginRunning(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -208,8 +208,8 @@ func TestIsPluginRunning(t *testing.T) {
 func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -228,8 +228,8 @@ func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -251,8 +251,8 @@ func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
@@ -262,7 +262,7 @@ func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 	ctrl.recordPluginStatusError("notes", "", "execute plugin", errors.New("boom"))
 	after := ctrl.GetPluginStatusCtr().GetValue()
 
-	if pluginStatusSnapshotEqual(before, after) {
+	if before.EqualVT(after) {
 		t.Fatal("expected snapshots with different last errors to differ")
 	}
 }
@@ -287,11 +287,11 @@ func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
 func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*PluginManifestRecoveryStatus),
+		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
 	}
 	executeRef := testObjectRef(t, "execute")
 	downloadRef := testObjectRef(t, "download")
@@ -344,7 +344,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 	before := status
 	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, nil, nil)
 	after := ctrl.GetPluginStatusCtr().GetValue()
-	if pluginStatusSnapshotEqual(before, after) {
+	if before.EqualVT(after) {
 		t.Fatal("expected recovery status changes to change the snapshot")
 	}
 }
@@ -352,11 +352,11 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
-			&PluginStatusSnapshot{},
-			pluginStatusSnapshotEqual,
+			&bldr_plugin.PluginStatusSnapshot{},
+			(*bldr_plugin.PluginStatusSnapshot).EqualVT,
 		),
 		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
-		pluginManifestRecoveryStatus: make(map[string]*PluginManifestRecoveryStatus),
+		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
 	}
 	ctrl.updatePluginStatus(
 		"spacewave-app",

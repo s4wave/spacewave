@@ -39,7 +39,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	c := &Controller{
 		le: le, conf: &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})

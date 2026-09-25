@@ -3,6 +3,8 @@ package s4wave.status;
 
 option go_package = "github.com/s4wave/spacewave/sdk/status;s4wave_status";
 
+import "github.com/s4wave/spacewave/bldr/plugin/plugin.proto";
+
 service SystemStatusService {
   rpc WatchControllers(WatchControllersRequest) returns (stream WatchControllersResponse);
 
@@ -43,8 +45,9 @@ message PluginInfo {
   string instance_key = 2;
   // State is the plugin runtime state.
   string state = 3;
-  // SpaceId is the engine ID of the Space runtime hosting the plugin.
-  // Empty when the plugin runs on the root plugin host.
+  // SpaceId is the engine ID of the Space the plugin instance serves: the
+  // hosting Space runtime, or the Space named by a root host instance key.
+  // Empty for system plugins.
   string space_id = 4;
 }
 
@@ -91,20 +94,6 @@ message LauncherRecoveryStatus {
   string update_error = 15;
 }
 
-// PluginManifestRecoveryStatus reports scheduler-owned Manifest recovery facts.
-message PluginManifestRecoveryStatus {
-  string plugin_id = 1;
-  string instance_key = 2;
-  string execute_manifest_ref = 3;
-  string download_manifest_ref = 4;
-  uint32 skipped_candidate_count = 5;
-  string skipped_candidate_summary = 6;
-  uint32 ignored_candidate_count = 7;
-  string ignored_candidate_summary = 8;
-  uint32 quarantined_candidate_count = 9;
-  string quarantined_candidate_summary = 10;
-}
-
 // NativePackageRecoveryStatus reports process-host dist materialization facts.
 message NativePackageRecoveryStatus {
   string plugin_id = 1;
@@ -142,7 +131,8 @@ message RuntimeAssetRecoveryStatus {
 // RecoveryStatus composes runtime recovery facts without owning decisions.
 message RecoveryStatus {
   LauncherRecoveryStatus launcher = 1;
-  repeated PluginManifestRecoveryStatus plugins = 2;
+  // Plugins lists the scheduler-owned Manifest recovery facts per plugin.
+  repeated bldr.plugin.PluginManifestRecoveryStatus plugins = 2;
   repeated NativePackageRecoveryStatus native_packages = 3;
   BrowserBootRecoveryStatus boot = 4;
   RuntimeAssetRecoveryStatus runtime_asset = 5;

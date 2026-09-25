@@ -20,7 +20,7 @@ import (
 func TestPluginInstanceWaitsForInitialCapabilityRegistration(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	ctrl := &Controller{
-		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 	}
 	instance := &pluginInstance{
@@ -211,7 +211,7 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 	ctrl := &Controller{
 		le:              le,
 		conf:            &Config{},
-		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
 		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
 	}
 	ctrl.pluginInstances = keyed.NewKeyedRefCountWithLogger(ctrl.newPluginInstance, le)
