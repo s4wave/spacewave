@@ -146,6 +146,31 @@ type OrderedCommitTx interface {
 	CommitOrdered(ctx context.Context) error
 }
 
+// CommitOrdered commits tx with write ordering when it implements
+// OrderedCommitTx, and with a full Commit otherwise.
+func CommitOrdered(ctx context.Context, tx Tx) error {
+	if otx, ok := tx.(OrderedCommitTx); ok {
+		return otx.CommitOrdered(ctx)
+	}
+	return tx.Commit(ctx)
+}
+
+// WithOrderedCommit returns tx with Commit replaced by CommitOrdered, for
+// callers that commit through a generic transaction runner.
+func WithOrderedCommit(tx Tx) Tx {
+	return orderedCommitTx{Tx: tx}
+}
+
+// orderedCommitTx commits its transaction with write ordering.
+type orderedCommitTx struct {
+	Tx
+}
+
+// Commit commits the transaction with write ordering when supported.
+func (t orderedCommitTx) Commit(ctx context.Context) error {
+	return CommitOrdered(ctx, t.Tx)
+}
+
 // OrderedCommitStore is a store whose write transactions implement
 // OrderedCommitTx. Sync makes every completed ordered commit durable.
 type OrderedCommitStore interface {

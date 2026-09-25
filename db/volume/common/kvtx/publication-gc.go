@@ -44,7 +44,7 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 		return err
 	}
 	if v.ordered != nil {
-		err = v.ordered.commit(ctx, tx)
+		err = kvtx.CommitOrdered(ctx, tx)
 	} else {
 		err = tx.Commit(ctx)
 	}

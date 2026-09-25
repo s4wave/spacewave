@@ -172,6 +172,9 @@ type soEngine struct {
 	so sobject.SharedObject
 	// bengine serves the accepted World and forks write candidates.
 	bengine *world_block.Engine
+	// retained is the last head updateEngineState installed and retained,
+	// guarded by the controller's writer lock.
+	retained *bucket.ObjectRef
 }
 
 // newSoEngine constructs the shared object engine.
@@ -317,13 +320,19 @@ func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.Object
 	defer task.End()
 
 	// Preserve the authority reference while resolving its blocks locally.
+	// The accepted watch, the next write and the committing write all
+	// install the same head; retain it once.
 	ref := headRef.CloneVT()
 	ref.BucketId = e.so.GetBlockStore().GetID()
+	if e.retained.EqualVT(ref) && e.bengine.GetRootRef().EqualVT(ref) {
+		return nil
+	}
 	if err := e.bengine.SetRootRef(ctx, ref); err != nil {
 		return err
 	}
 	store := e.so.GetBlockStore()
 	if ref.GetRootRef().GetEmpty() || !block.SupportsRootRetention(store) {
+		e.retained = ref
 		return nil
 	}
 	// Retire only accepted, completely local graphs. This runs under the
@@ -336,7 +345,11 @@ func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.Object
 	if err := RetainWorld(ctx, e.c.le, e.c.sfs, e.so, ref, proofs, nil); err != nil {
 		return err
 	}
-	return block.SetRetainedRoot(ctx, store, "accepted-world", ref.GetRootRef())
+	if err := block.SetRetainedRoot(ctx, store, "accepted-world", ref.GetRootRef()); err != nil {
+		return err
+	}
+	e.retained = ref
+	return nil
 }
 
 // _ is a type assertion

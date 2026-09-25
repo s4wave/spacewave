@@ -121,6 +121,12 @@ func (t *tx) Commit(ctx context.Context) error {
 	return t.lower.Commit(ctx)
 }
 
+// CommitOrdered commits with write ordering when the lower transaction
+// supports it, and with a full Commit otherwise.
+func (t *tx) CommitOrdered(ctx context.Context) error {
+	return kvtx.CommitOrdered(ctx, t.lower)
+}
+
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.
@@ -130,4 +136,4 @@ func (t *tx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = (*tx)(nil)
+var _ kvtx.OrderedCommitTx = (*tx)(nil)

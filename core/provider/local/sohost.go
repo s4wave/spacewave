@@ -509,7 +509,7 @@ func (l *LocalSOHost) writeAcceptedLocalOpResults(
 		}
 
 		// Record the root sequence whose publication completed this operation.
-		if err := l.writeLocalOpResult(ctx, &LocalSOOperationResult{
+		if err := l.writeAcceptedLocalOpResult(ctx, &LocalSOOperationResult{
 			LocalId:   localID,
 			RootSeqno: updatedState.GetRoot().GetInnerSeqno(),
 			Result: sobject.BuildSOOperationResult(
@@ -848,8 +848,23 @@ func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (
 	return opResult, err
 }
 
-// writeLocalOpResult writes the operation result to the object store.
+// writeLocalOpResult durably writes the operation result to the object store.
 func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
+	return l.putLocalOpResult(ctx, result, false)
+}
+
+// writeAcceptedLocalOpResult records an accepted operation's result with write
+// ordering only. The accepted head that carries the operation is already
+// durable, and the full commit that removed it from the local queue precedes
+// this one, so a crash can lose only the record, never the operation or a
+// replay of it.
+func (l *LocalSOHost) writeAcceptedLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
+	return l.putLocalOpResult(ctx, result, true)
+}
+
+// putLocalOpResult writes the operation result, with write ordering only if
+// ordered is set.
+func (l *LocalSOHost) putLocalOpResult(ctx context.Context, result *LocalSOOperationResult, ordered bool) error {
 	// Encode one result for identical writes across transaction retries.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/write-local-op-result")
 	defer task.End()
@@ -863,7 +878,11 @@ func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOpe
 	// Persist the acceptance or rejection atomically in the local object store.
 	return kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
-			return l.objStore.NewTransaction(ctx, true)
+			tx, err := l.objStore.NewTransaction(ctx, true)
+			if err != nil || !ordered {
+				return tx, err
+			}
+			return kvtx.WithOrderedCommit(tx), nil
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
 			return tx.Set(ctx, opResultKey, data)
