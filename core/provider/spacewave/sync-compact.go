@@ -30,15 +30,16 @@ const (
 )
 
 // CompactNow merges the oldest small committed packs into one replacement pack
-// when at least compactMinPacks have accumulated. It holds the flush lock, so
-// a merge never races a flush or a pull.
+// when at least compactMinPacks have accumulated. It holds the flush lock, so a
+// merge never races a flush. A concurrent pull that replaces an input makes the
+// merge push fail with a replacement conflict.
 //
 // A failed merge holds further merges until the next pull refreshes the
 // manifest. A replacement conflict pulls immediately.
 func (s *syncController) CompactNow(ctx context.Context) error {
 	s.flushMtx.Lock()
 	defer s.flushMtx.Unlock()
-	if s.compactWaitPull {
+	if s.compactWaitPull.Load() {
 		return nil
 	}
 	inputs := planCompaction(s.mfst.GetEntries())
@@ -50,10 +51,10 @@ func (s *syncController) CompactNow(ctx context.Context) error {
 	if err == nil || ctx.Err() != nil {
 		return err
 	}
-	s.compactWaitPull = true
+	s.compactWaitPull.Store(true)
 	if clouderror.IsPackReplacementConflict(err) {
 		s.le.WithError(err).Debug("small pack merge lost a replacement race, pulling")
-		return s.pull(ctx)
+		return s.PullNow(ctx)
 	}
 	return err
 }
@@ -106,10 +107,9 @@ func (s *syncController) mergePacks(ctx context.Context, inputs []*packfile.Pack
 	}
 
 	event := &packfile.PackReplacementEvent{ReplacedPackIds: chunk.replaces}
-	if err := s.mfst.ApplyDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}); err != nil {
+	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, []*packfile.PackReplacementEvent{event}); err != nil {
 		return errors.Wrap(err, "applying merge delta")
 	}
-	s.lower.UpdateManifest(s.mergedManifestEntries())
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
 		t.addSyncTelemetryMerge(id, len(chunk.replaces))
 	})

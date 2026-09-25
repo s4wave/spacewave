@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -38,12 +39,6 @@ const defaultSyncSizeThresholdBytes = 48 * 1024 * 1024
 
 const syncOrderDirtyBlocksLimit = 1024
 
-// syncFlushMaxPackBytes is the browser sync target for one upload body. The
-// wire cap remains writer.DefaultMaxPackBytes, but TinyGo browser builds need
-// enough headroom for the pack writer, request body, foreground uploads, OPFS,
-// and the full app runtime.
-const syncFlushMaxPackBytes int64 = 4 * 1024 * 1024
-
 // syncController manages packfile push/pull synchronization.
 type syncController struct {
 	le                *logrus.Entry
@@ -71,11 +66,16 @@ type syncController struct {
 	// dirtyMtx orders durable dirty mutations and their in-memory projection.
 	dirtyMtx csync.Mutex
 
-	// flushMtx serializes foreground and background flush operations.
+	// flushMtx serializes flushes and merges, the operations that push packs.
 	flushMtx sync.Mutex
+	// pullMtx serializes pulls. A pull never waits for a push.
+	pullMtx sync.Mutex
+	// manifestMtx orders each manifest change with its publication to the lower
+	// store, so a pull and a push commit never publish a stale entry set.
+	manifestMtx sync.Mutex
 	// compactWaitPull holds merges after a failed merge until a pull refreshes
-	// the manifest, so a stale plan is never retried. Guarded by flushMtx.
-	compactWaitPull bool
+	// the manifest, so a stale plan is never retried.
+	compactWaitPull atomic.Bool
 }
 
 // Init recalculates the dirty size and runs the initial pull. Access-gated pull
@@ -87,7 +87,7 @@ func (s *syncController) Init(ctx context.Context) error {
 	}
 
 	if s.skipPull {
-		s.lower.UpdateManifest(s.mergedManifestEntries())
+		s.publishManifest()
 		return nil
 	}
 
@@ -101,6 +101,31 @@ func (s *syncController) Init(ctx context.Context) error {
 	return nil
 }
 
+// applyManifestDelta records a delta in the manifest and publishes the merged
+// entries to the lower store.
+func (s *syncController) applyManifestDelta(
+	ctx context.Context,
+	entries []*packfile.PackfileEntry,
+	events []*packfile.PackReplacementEvent,
+) error {
+	s.manifestMtx.Lock()
+	defer s.manifestMtx.Unlock()
+	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
+		return err
+	}
+	s.lower.UpdateManifest(s.mergedManifestEntries())
+	return nil
+}
+
+// publishManifest publishes the merged manifest entries to the lower store.
+func (s *syncController) publishManifest() {
+	s.manifestMtx.Lock()
+	defer s.manifestMtx.Unlock()
+	s.lower.UpdateManifest(s.mergedManifestEntries())
+}
+
+// mergedManifestEntries joins the remote entries with the local manifest,
+// remote first. The caller holds manifestMtx.
 func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 	local := s.mfst.GetEntries()
 	if s.remote == nil {
@@ -287,14 +312,15 @@ func (s *syncController) FlushNowUnordered(ctx context.Context) error {
 	return s.flushCheckpoint(ctx, false)
 }
 
-// PullNow serializes an immediate remote packfile manifest pull.
+// PullNow serializes an immediate remote packfile manifest pull. It runs
+// alongside a flush or merge.
 func (s *syncController) PullNow(ctx context.Context) error {
-	s.flushMtx.Lock()
-	defer s.flushMtx.Unlock()
 	if s.skipPull {
-		s.lower.UpdateManifest(s.mergedManifestEntries())
+		s.publishManifest()
 		return nil
 	}
+	s.pullMtx.Lock()
+	defer s.pullMtx.Unlock()
 	return s.pull(ctx)
 }
 
@@ -678,50 +704,102 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 	return blocks, nil
 }
 
-// flushLoadedBlocks packs and pushes one chunk of loaded dirty blocks, halving
-// chunks that exceed the sync pack target, and commits each pushed pack.
-func (s *syncController) flushLoadedBlocks(ctx context.Context, blocks []dirtyBlock) error {
-	chunk, err := s.prepareFlushChunk(blocks)
-	if err != nil {
-		return err
-	}
-	if chunk == nil {
-		return nil
-	}
-	if int64(len(chunk.packData)) > syncFlushMaxPackBytes && len(blocks) > 1 {
-		chunk = nil
-		mid := len(blocks) / 2
-		if err := s.flushLoadedBlocks(ctx, blocks[:mid]); err != nil {
+// flushChunks packs the dirty blocks into chunks on a second goroutine while
+// this one pushes and commits the previous chunk, so packing overlaps the
+// upload with at most two chunks in memory. Chunks commit in order.
+func (s *syncController) flushChunks(ctx context.Context, blocks []dirtyCandidate) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	chunks := make(chan *preparedSyncChunk)
+	prepared := make(chan error, 1)
+	go func() {
+		defer close(chunks)
+		prepared <- s.prepareChunks(ctx, blocks, func(chunk *preparedSyncChunk) error {
+			select {
+			case chunks <- chunk:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
+	}()
+
+	for chunk := range chunks {
+		err := s.pushPreparedChunk(ctx, chunk)
+		if err == nil {
+			err = s.commitPushedChunk(ctx, chunk)
+		}
+		if err != nil {
+			// Stop the packer and wait for it before returning.
+			cancel()
+			for range chunks {
+			}
 			return err
 		}
-		return s.flushLoadedBlocks(ctx, blocks[mid:])
 	}
-	if int64(len(chunk.packData)) > writer.DefaultMaxPackBytes {
-		return errors.Errorf(
-			"dirty pack %s exceeds max pack size",
-			chunk.entry.GetId(),
-		)
+	return <-prepared
+}
+
+// prepareChunks loads and packs each bounded chunk of blocks in order and
+// passes each pack to emit.
+func (s *syncController) prepareChunks(
+	ctx context.Context,
+	blocks []dirtyCandidate,
+	emit func(*preparedSyncChunk) error,
+) error {
+	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
+	for start := 0; start < len(blocks); {
+		end, err := nextDirtyCandidateChunk(blocks, start, syncFlushMaxPackBytes, maxChunkBlocks)
+		if err != nil {
+			return err
+		}
+		loaded, err := s.loadDirtyBlocks(ctx, blocks[start:end])
+		if err != nil {
+			return err
+		}
+		if err := s.prepareLoadedBlocks(loaded, emit); err != nil {
+			return err
+		}
+		start = end
 	}
-	if int64(len(chunk.packData)) > syncFlushMaxPackBytes {
-		s.le.WithField("pack-id", chunk.entry.GetId()).
-			WithField("bytes", len(chunk.packData)).
-			WithField("target", syncFlushMaxPackBytes).
-			Debug("single-block sync pack exceeds browser target")
-	}
-	if err := s.pushPreparedChunk(ctx, chunk); err != nil {
+	return nil
+}
+
+// prepareLoadedBlocks packs loaded dirty blocks, halving a set whose pack
+// exceeds the sync pack target, and passes each pack to emit.
+func (s *syncController) prepareLoadedBlocks(blocks []dirtyBlock, emit func(*preparedSyncChunk) error) error {
+	chunk, err := s.prepareFlushChunk(blocks)
+	if err != nil || chunk == nil {
 		return err
 	}
-	return s.commitPushedChunk(ctx, chunk)
+	size := int64(len(chunk.packData))
+	if size > syncFlushMaxPackBytes && len(blocks) > 1 {
+		chunk = nil
+		mid := len(blocks) / 2
+		if err := s.prepareLoadedBlocks(blocks[:mid], emit); err != nil {
+			return err
+		}
+		return s.prepareLoadedBlocks(blocks[mid:], emit)
+	}
+	if size > writer.DefaultMaxPackBytes {
+		return errors.Errorf("dirty pack %s exceeds max pack size", chunk.entry.GetId())
+	}
+	if size > syncFlushMaxPackBytes {
+		s.le.WithField("pack-id", chunk.entry.GetId()).
+			WithField("bytes", size).
+			WithField("target", syncFlushMaxPackBytes).
+			Debug("single-block sync pack exceeds the sync pack target")
+	}
+	return emit(chunk)
 }
 
 // commitPushedChunk records a pushed pack in the manifest and clears the dirty
 // markers of its blocks, so a later failure in the same flush does not push the
 // same blocks again under a different pack.
 func (s *syncController) commitPushedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
-	if err := s.mfst.ApplyDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil); err != nil {
+	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil); err != nil {
 		return errors.Wrap(err, "applying push delta")
 	}
-	s.lower.UpdateManifest(s.mergedManifestEntries())
 
 	flushed := make([]dirtyCandidate, len(chunk.blocks))
 	for i, block := range chunk.blocks {
@@ -864,25 +942,11 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		}
 	}
 
-	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
-	for start := 0; start < len(blocks); {
-		end, err := nextDirtyCandidateChunk(blocks, start, syncFlushMaxPackBytes, maxChunkBlocks)
-		if err != nil {
-			return err
-		}
-		loadedBlocks, err := s.loadDirtyBlocks(ctx, blocks[start:end])
-		if err != nil {
-			return err
-		}
-		if err := s.flushLoadedBlocks(ctx, loadedBlocks); err != nil {
-			return err
-		}
-		start = end
-	}
-	return nil
+	return s.flushChunks(ctx, blocks)
 }
 
-// pull fetches new packfile entries from the server since the last pull.
+// pull fetches new packfile entries from the server since the last pull. The
+// caller holds pullMtx or runs before Execute.
 func (s *syncController) pull(ctx context.Context) error {
 	lastSeq, err := s.mfst.GetLastPullSequence(ctx)
 	if err != nil {
@@ -904,7 +968,7 @@ func (s *syncController) pull(ctx context.Context) error {
 		return errors.Wrap(err, "pulling from server")
 	}
 
-	s.compactWaitPull = false
+	s.compactWaitPull.Store(false)
 	if len(respData) == 0 {
 		return nil
 	}
@@ -927,7 +991,7 @@ func (s *syncController) pull(ctx context.Context) error {
 		return nil
 	}
 
-	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
+	if err := s.applyManifestDelta(ctx, entries, events); err != nil {
 		return errors.Wrap(err, "applying pull delta")
 	}
 	if latestSequence > lastSeq {
@@ -935,7 +999,6 @@ func (s *syncController) pull(ctx context.Context) error {
 			return errors.Wrap(err, "recording pull sequence")
 		}
 	}
-	s.lower.UpdateManifest(s.mergedManifestEntries())
 	s.recordSyncTelemetryRemoteSequence(latestSequence)
 
 	s.le.WithField("entries", len(entries)).

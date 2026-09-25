@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -51,9 +52,12 @@ func deletePack(ctx context.Context, tx kvtx.Tx, packID string) error {
 	return nil
 }
 
-// Manifest is a kvtx-backed persistent manifest of packfile entries.
+// Manifest is a kvtx-backed persistent manifest of packfile entries. It is safe
+// for concurrent use; deltas apply one at a time.
 type Manifest struct {
-	store   kvtx.Store
+	store kvtx.Store
+	// mtx guards entries and serializes ApplyDelta.
+	mtx     sync.RWMutex
 	entries []*packfile.PackfileEntry
 }
 
@@ -111,6 +115,8 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 
 // GetEntries returns a copy of the manifest entries.
 func (m *Manifest) GetEntries() []*packfile.PackfileEntry {
+	m.mtx.RLock()
+	defer m.mtx.RUnlock()
 	return slices.Clone(m.entries)
 }
 
@@ -174,7 +180,8 @@ func (m *Manifest) SetLastPullSequence(ctx context.Context, sequence uint64) err
 }
 
 // ApplyDelta applies entries and replacement events to the manifest and
-// persists the highest pull sequence cursor.
+// persists the highest pull sequence cursor. A locally authored entry, which
+// has no sequence, never overwrites a pulled entry for the same pack.
 func (m *Manifest) ApplyDelta(
 	ctx context.Context,
 	entries []*packfile.PackfileEntry,
@@ -184,6 +191,8 @@ func (m *Manifest) ApplyDelta(
 		return nil
 	}
 
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
 	var nextEntries []*packfile.PackfileEntry
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
@@ -211,6 +220,9 @@ func (m *Manifest) ApplyDelta(
 					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
 						return err
 					}
+					continue
+				}
+				if entry.GetSequence() == 0 && next[entry.GetId()].GetSequence() != 0 {
 					continue
 				}
 				storedEntry := entry.CloneVT()

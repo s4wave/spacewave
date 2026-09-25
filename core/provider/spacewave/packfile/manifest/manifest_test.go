@@ -21,6 +21,35 @@ func newTestStore() kvtx.Store {
 }
 
 // TestManifest tests ApplyDelta, GetEntries ordering, and
+
+// TestManifestApplyDeltaKeepsPulledSequence verifies a locally authored entry
+// committed after a pull of the same pack keeps the pulled sequence.
+func TestManifestApplyDeltaKeepsPulledSequence(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore()
+	m, err := New(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1, Sequence: 7}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{{Id: "pack-a", BlockCount: 1}}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := m.GetEntries()[0].GetSequence(); got != 7 {
+		t.Fatalf("sequence = %d, want the pulled 7", got)
+	}
+	reloaded, err := New(ctx, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reloaded.GetEntries()[0].GetSequence(); got != 7 {
+		t.Fatalf("stored sequence = %d, want the pulled 7", got)
+	}
+}
+
 // GetLastPullSequence.
 func TestManifest(t *testing.T) {
 	ctx := t.Context()
