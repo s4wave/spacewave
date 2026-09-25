@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume/device"
+	"github.com/s4wave/spacewave/db/volume/logindex"
 )
 
 // crashOps is the length of a crash workload.
@@ -44,35 +45,44 @@ func (s crashState) equal(o crashState) bool {
 	return maps.Equal(s.values, o.values) && maps.Equal(s.blocks, o.blocks) && s.journal == o.journal
 }
 
+// crashEngines are the engines the crash test runs on. The log engine
+// checkpoints often and in the foreground, so its device calls keep one order
+// and the crash points cover its checkpoints.
+var crashEngines = []engine{boltEngine, logEngine(logindex.Options{CheckpointBytes: 128, Foreground: true})}
+
 // TestCrashRecovery runs a randomized workload on the memory device, crashes
 // it at every mutating device call, applies a power loss, and checks that the
 // reopened store holds the state of the last acknowledged index commit or of
 // the commit the crash interrupted, and that the store keeps working.
 func TestCrashRecovery(t *testing.T) {
-	for seed := range uint64(2) {
-		// Count the device calls of the uncrashed workload.
-		d := device.NewMemory()
-		s := openStore(t, d)
-		base := d.Calls()
-		if _, _, err := runCrashWorkload(t.Context(), s, seed); err != nil {
-			t.Fatal(err)
-		}
-		calls := d.Calls() - base
+	for _, e := range crashEngines {
+		t.Run(e.name, func(t *testing.T) {
+			for seed := range uint64(2) {
+				// Count the device calls of the uncrashed workload.
+				d := device.NewMemory()
+				s := openStore(t, e, d)
+				base := d.Calls()
+				if _, _, err := runCrashWorkload(t.Context(), s, seed); err != nil {
+					t.Fatal(err)
+				}
+				calls := d.Calls() - base
 
-		// Crash at each call.
-		for n := range calls {
-			checkCrash(t, seed, n)
-		}
-		t.Logf("seed %d: %d crash points", seed, calls)
+				// Crash at each call.
+				for n := range calls {
+					checkCrash(t, e, seed, n)
+				}
+				t.Logf("seed %d: %d crash points", seed, calls)
+			}
+		})
 	}
 }
 
 // checkCrash runs the workload of seed, crashes after n mutating calls, and
 // checks the recovered store.
-func checkCrash(t *testing.T, seed uint64, n int) {
+func checkCrash(t *testing.T, e engine, seed uint64, n int) {
 	ctx := t.Context()
 	d := device.NewMemory()
-	s, err := Open(ctx, d)
+	s, err := e.openStore(ctx, d)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +95,7 @@ func checkCrash(t *testing.T, seed uint64, n int) {
 	d.PowerLoss(rand.New(rand.NewPCG(seed, uint64(n))))
 
 	// Recover and compare with the allowed states.
-	s, err = Open(ctx, d)
+	s, err = e.openStore(ctx, d)
 	if err != nil {
 		t.Fatalf("seed %d crash %d: reopen: %v", seed, n, err)
 	}

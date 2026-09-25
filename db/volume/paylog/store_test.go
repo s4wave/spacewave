@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume/device"
+	"github.com/s4wave/spacewave/db/volume/logindex"
 	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
@@ -32,10 +33,40 @@ func (t replayTarget) ReplayJournal(ctx context.Context) error {
 // _ checks that a Store serves a replay.
 var _ workload.Target = replayTarget{}
 
-// openStore opens a Store on d and closes it when the test ends.
-func openStore(t *testing.T, d device.Device) *Store {
+// engine opens an index on a device.
+type engine struct {
+	// name names the engine.
+	name string
+	// open opens the index.
+	open func(ctx context.Context, d device.Device) (Index, error)
+}
+
+// boltEngine is the bbolt index.
+var boltEngine = engine{name: "bolt", open: OpenBolt}
+
+// logEngine returns the log-structured index with opts.
+func logEngine(opts logindex.Options) engine {
+	return engine{name: "log", open: func(ctx context.Context, d device.Device) (Index, error) {
+		return logindex.Open(ctx, d, opts)
+	}}
+}
+
+// engines are the indexes every store test runs on.
+var engines = []engine{boltEngine, logEngine(logindex.Options{})}
+
+// openStore opens a Store on d with e.
+func (e engine) openStore(ctx context.Context, d device.Device) (*Store, error) {
+	index, err := e.open(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return Open(ctx, d, index)
+}
+
+// openStore opens a Store on d with e and closes it when the test ends.
+func openStore(t *testing.T, e engine, d device.Device) *Store {
 	t.Helper()
-	s, err := Open(t.Context(), d)
+	s, err := e.openStore(t.Context(), d)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +75,18 @@ func openStore(t *testing.T, d device.Device) *Store {
 }
 
 // TestStore checks interleaved write transactions, block publication by a
-// key-value commit, removes, the journal, and reopening.
+// key-value commit, removes, the journal, and reopening on every engine.
 func TestStore(t *testing.T) {
+	for _, e := range engines {
+		t.Run(e.name, func(t *testing.T) { testStore(t, e) })
+	}
+}
+
+// testStore runs TestStore on e.
+func testStore(t *testing.T, e engine) {
 	ctx := t.Context()
 	d := device.NewMemory()
-	s := openStore(t, d)
+	s := openStore(t, e, d)
 
 	// Two write transactions open at once both commit.
 	a, err := s.NewTransaction(ctx, true)
@@ -107,7 +145,7 @@ func TestStore(t *testing.T) {
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
-	s = openStore(t, d)
+	s = openStore(t, e, d)
 	read, err := s.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -140,8 +178,8 @@ func TestStore(t *testing.T) {
 }
 
 // TestWorkloadReplayTraces replays the captured traces named by the
-// comma-separated WORKLOAD_TRACES against the store on a file device and logs
-// the replay metrics. WORKLOAD_FILL_BLOCKS first fills the volume with that
+// comma-separated WORKLOAD_TRACES against the store on a file device with
+// every engine and logs the replay metrics. WORKLOAD_FILL_BLOCKS first fills the volume with that
 // many blocks of WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
 func TestWorkloadReplayTraces(t *testing.T) {
 	paths := os.Getenv("WORKLOAD_TRACES")
@@ -150,15 +188,17 @@ func TestWorkloadReplayTraces(t *testing.T) {
 	}
 	fillBlocks := envInt(t, "WORKLOAD_FILL_BLOCKS", 0)
 	fillSize := envInt(t, "WORKLOAD_FILL_SIZE", 1024)
-	for path := range strings.SplitSeq(paths, ",") {
-		t.Run(filepath.Base(path), func(t *testing.T) {
-			replayTrace(t, path, fillBlocks, fillSize)
-		})
+	for _, e := range engines {
+		for path := range strings.SplitSeq(paths, ",") {
+			t.Run(e.name+"/"+filepath.Base(path), func(t *testing.T) {
+				replayTrace(t, e, path, fillBlocks, fillSize)
+			})
+		}
 	}
 }
 
 // replayTrace replays one captured trace and logs its metrics.
-func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
+func replayTrace(t *testing.T, e engine, path string, fillBlocks, fillSize int) {
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
@@ -185,7 +225,7 @@ func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
 	}
 	defer dir.Close()
 	d := &countingDevice{Device: dir}
-	target := replayTarget{openStore(t, d)}
+	target := replayTarget{openStore(t, e, d)}
 
 	// Fill and seed the volume.
 	fillStart := time.Now()
@@ -212,7 +252,7 @@ func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
 		t.Fatal(err)
 	}
 	openStart := time.Now()
-	reopened := replayTarget{openStore(t, d)}
+	reopened := replayTarget{openStore(t, e, d)}
 	openTime := time.Since(openStart)
 	recoverStart := time.Now()
 	if err := reopened.ReplayJournal(ctx); err != nil {

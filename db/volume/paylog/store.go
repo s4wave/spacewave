@@ -18,17 +18,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	kvtx_txcache "github.com/s4wave/spacewave/db/kvtx/txcache"
-	kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
-
-// indexName is the device file holding the index.
-const indexName = "index"
 
 // segmentPrefix starts the device file name of every payload segment.
 const segmentPrefix = "seg-"
@@ -46,21 +41,28 @@ const (
 	journalPrefix = "j/"
 )
 
-// bucket is the bbolt bucket holding every index key.
-var bucket = []byte("paylog")
+// Index is the ordered key-value index a Store keeps on its device. Read
+// transactions see a snapshot and may stay open across commits. A write
+// transaction excludes other writers, and its Commit applies atomically and
+// makes every earlier write on the device durable no later than the commit
+// itself, so a crash never keeps a commit without them. The index keeps its own
+// files on the device, none named with segmentPrefix.
+type Index interface {
+	kvtx.Store
 
-// Store is a volume engine on a Device with a bbolt index.
+	// Close releases the index. Uncommitted writes are lost.
+	Close() error
+}
+
+// Store is a volume engine on a Device with an ordered index.
 type Store struct {
 	// kvtx.Store serves the key-value store under kvPrefix.
 	kvtx.Store
 
 	// dev holds the index and the segments.
 	dev device.Device
-	// db is the index.
-	db *bbolt.DB
-	// index serves unprefixed index transactions whose commits publish
-	// pending blocks.
-	index *kvtx_bolt.Store
+	// index holds the key-value store, the block locations, and the journal.
+	index Index
 
 	// mtx guards the fields below. It is held across segment writes so a
 	// pending location is never published before its payload write is issued.
@@ -81,55 +83,35 @@ type pendingBlock struct {
 	loc *location
 }
 
-// Open opens the store on dev, creating it when dev is empty.
-func Open(ctx context.Context, dev device.Device) (*Store, error) {
-	// Open the index on its device file.
-	h, err := device.OpenHandle(ctx, dev, indexName)
-	if err != nil {
-		return nil, err
-	}
-	db, err := bbolt.OpenStorage(h, &bbolt.Options{PageSize: 4096, NoGrowSync: true})
-	if err != nil {
-		return nil, errors.Wrap(err, "open index")
-	}
+// Open opens the store on dev with index, an index opened on the same device.
+// The store owns the index and closes it on Close or on failure.
+func Open(ctx context.Context, dev device.Device, index Index) (*Store, error) {
 	s := &Store{
 		dev:     dev,
-		db:      db,
-		index:   kvtx_bolt.NewStore(db, bucket),
+		index:   index,
 		pending: make(map[string]*pendingBlock),
 	}
 	s.Store = kvtx_prefixer.NewPrefixer(indexStore{s}, []byte(kvPrefix))
 
-	// Find the last journal sequence, and create the bucket on a new index.
-	var found bool
-	err = db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bucket)
-		if found = b != nil; !found {
-			return nil
+	// Find the last journal sequence.
+	err := s.view(ctx, func(tx kvtx.Tx) error {
+		it := tx.Iterate(ctx, []byte(journalPrefix), true, true)
+		defer it.Close()
+		if it.Next() {
+			s.journal = binary.BigEndian.Uint64(it.Key()[len(journalPrefix):])
 		}
-		c := b.Cursor()
-		c.Seek([]byte(journalPrefix + "\xff"))
-		if k, _ := c.Prev(); strings.HasPrefix(string(k), journalPrefix) {
-			s.journal = binary.BigEndian.Uint64(k[len(journalPrefix):])
-		}
-		return nil
+		return it.Err()
 	})
-	if err == nil && !found {
-		err = db.Update(func(tx *bbolt.Tx) error {
-			_, err := tx.CreateBucket(bucket)
-			return err
-		})
-	}
 	if err != nil {
-		_ = db.Close()
-		return nil, errors.Wrap(err, "init index")
+		_ = index.Close()
+		return nil, errors.Wrap(err, "read journal")
 	}
 
 	// Start a new segment after every existing one, since an unpublished tail
 	// of the last one may be torn.
 	files, err := dev.List(ctx)
 	if err != nil {
-		_ = db.Close()
+		_ = index.Close()
 		return nil, err
 	}
 	for _, f := range files {
@@ -143,50 +125,59 @@ func Open(ctx context.Context, dev device.Device) (*Store, error) {
 
 // Close closes the index. Unpublished block writes are lost.
 func (s *Store) Close() error {
-	return s.db.Close()
+	return s.index.Close()
+}
+
+// view runs fn in an index read transaction.
+func (s *Store) view(ctx context.Context, fn func(tx kvtx.Tx) error) error {
+	tx, err := s.index.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	return fn(tx)
 }
 
 // update runs fn in an index write transaction that also publishes the
 // pending blocks, and commits it.
-func (s *Store) update(fn func(b *bbolt.Bucket) error) error {
-	tx, err := s.db.Begin(true)
+func (s *Store) update(ctx context.Context, fn func(tx kvtx.Tx) error) error {
+	tx, err := s.index.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = tx.Rollback() }()
-	b := tx.Bucket(bucket)
+	defer tx.Discard()
 	if fn != nil {
-		if err := fn(b); err != nil {
+		if err := fn(tx); err != nil {
 			return err
 		}
 	}
-	return s.publish(tx, b)
+	return s.publish(ctx, tx)
 }
 
 // publish writes the pending block locations into tx, commits it, and drops
 // the published entries from pending. Entries replaced during the commit stay.
-func (s *Store) publish(tx *bbolt.Tx, b *bbolt.Bucket) error {
+func (s *Store) publish(ctx context.Context, tx kvtx.Tx) error {
 	// Snapshot pending after the payload writes it names were issued.
 	s.mtx.Lock()
 	published := maps.Clone(s.pending)
 	s.mtx.Unlock()
 
 	// Write the locations in key order and commit; the commit's flush covers
-	// the payloads. bbolt splits a node only at commit, so unordered puts
-	// would shift a growing leaf on every insert.
+	// the payloads. A B+tree index splits nodes only at commit, so unordered
+	// puts would shift a growing leaf on every insert.
 	for _, key := range slices.Sorted(maps.Keys(published)) {
 		loc := published[key].loc
 		if loc == nil {
-			if err := b.Delete([]byte(key)); err != nil {
+			if err := tx.Delete(ctx, []byte(key)); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := b.Put([]byte(key), loc.marshal()); err != nil {
+		if err := tx.Set(ctx, []byte(key), loc.marshal()); err != nil {
 			return err
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
@@ -202,7 +193,7 @@ func (s *Store) publish(tx *bbolt.Tx, b *bbolt.Bucket) error {
 }
 
 // indexStore serves index transactions. A write transaction collects its
-// changes and applies them in one bbolt write transaction at commit, which
+// changes and applies them in one index write transaction at commit, which
 // also publishes the pending blocks, so any number of write transactions can
 // be open at once.
 type indexStore struct {
@@ -215,7 +206,7 @@ func (i indexStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 	if err != nil || !write {
 		return read, err
 	}
-	w := &writeTx{s: i.s}
+	w := &writeTx{s: i.s, ctx: ctx}
 	w.Tx, err = kvtx_txcache.NewTxWithCbs(read, true, read.Discard, w.begin, false)
 	if err != nil {
 		read.Discard()
@@ -224,38 +215,40 @@ func (i indexStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 	return w, nil
 }
 
-// writeTx is an index write transaction.
+// writeTx is a buffered index write transaction.
 type writeTx struct {
 	// Tx collects the changes.
 	*kvtx_txcache.Tx
 	// s is the store.
 	s *Store
-	// btx is the bbolt write transaction opened at commit.
-	btx *bbolt.Tx
+	// ctx is the context the transaction was opened with.
+	ctx context.Context
+	// itx is the index write transaction opened at commit.
+	itx kvtx.Tx
 }
 
-// begin opens the bbolt write transaction the collected changes apply to.
+// begin opens the index write transaction the collected changes apply to.
 func (w *writeTx) begin() (kvtx.Tx, error) {
-	btx, err := w.s.db.Begin(true)
+	itx, err := w.s.index.NewTransaction(w.ctx, true)
 	if err != nil {
 		return nil, err
 	}
-	w.btx = btx
-	return kvtx_bolt.NewTx(btx, bucket), nil
+	w.itx = itx
+	return itx, nil
 }
 
 // Commit applies the collected changes, publishes the pending blocks, and
 // commits.
 func (w *writeTx) Commit(ctx context.Context) error {
 	err := w.Tx.Commit(ctx)
-	if w.btx == nil {
+	if w.itx == nil {
 		return err
 	}
-	defer func() { _ = w.btx.Rollback() }()
+	defer w.itx.Discard()
 	if err != nil {
 		return err
 	}
-	return w.s.publish(w.btx, w.btx.Bucket(bucket))
+	return w.s.publish(ctx, w.itx)
 }
 
 // location is where a block payload lives.

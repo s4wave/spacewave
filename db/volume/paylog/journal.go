@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/binary"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/pkg/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // AppendJournal durably journals reference graph changes in one index commit,
@@ -18,10 +18,10 @@ func (s *Store) AppendJournal(ctx context.Context, adds, removes []block_gc.RefE
 	}
 	value := appendEdges(nil, adds)
 	value = appendEdges(value, removes)
-	return s.update(func(b *bbolt.Bucket) error {
+	return s.update(ctx, func(tx kvtx.Tx) error {
 		seq := s.journal + 1
 		key := binary.BigEndian.AppendUint64([]byte(journalPrefix), seq)
-		if err := b.Put(key, value); err != nil {
+		if err := tx.Set(ctx, key, value); err != nil {
 			return err
 		}
 		s.journal = seq
@@ -31,22 +31,30 @@ func (s *Store) AppendJournal(ctx context.Context, adds, removes []block_gc.RefE
 
 // ReplayJournal passes every journal entry in order to apply and removes the
 // entries in one index commit, skipping the commit when the journal is empty.
-// Each removal moves the cursor, so the loop seeks the first remaining entry.
 func (s *Store) ReplayJournal(ctx context.Context, apply func(adds, removes []block_gc.RefEdge) error) error {
-	prefix := []byte(journalPrefix)
-	var empty bool
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		k, _ := tx.Bucket(bucket).Cursor().Seek(prefix)
-		empty = !bytes.HasPrefix(k, prefix)
-		return nil
+	// Read the entries.
+	var keys, values [][]byte
+	err := s.view(ctx, func(tx kvtx.Tx) error {
+		it := tx.Iterate(ctx, []byte(journalPrefix), true, false)
+		defer it.Close()
+		for it.Next() {
+			value, err := it.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			keys = append(keys, bytes.Clone(it.Key()))
+			values = append(values, value)
+		}
+		return it.Err()
 	})
-	if err != nil || empty {
+	if err != nil || len(keys) == 0 {
 		return err
 	}
-	return s.update(func(b *bbolt.Bucket) error {
-		c := b.Cursor()
-		for k, v := c.Seek(prefix); bytes.HasPrefix(k, prefix); k, v = c.Seek(prefix) {
-			adds, rest, err := readEdges(v)
+
+	// Apply and remove them.
+	return s.update(ctx, func(tx kvtx.Tx) error {
+		for i, key := range keys {
+			adds, rest, err := readEdges(values[i])
 			if err != nil {
 				return err
 			}
@@ -57,7 +65,7 @@ func (s *Store) ReplayJournal(ctx context.Context, apply func(adds, removes []bl
 			if err := apply(adds, removes); err != nil {
 				return err
 			}
-			if err := b.Delete(k); err != nil {
+			if err := tx.Delete(ctx, key); err != nil {
 				return err
 			}
 		}
