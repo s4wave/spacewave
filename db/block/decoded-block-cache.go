@@ -15,7 +15,8 @@ import (
 const (
 	// DecodedBlockCacheNoTransformKey identifies untransformed decoded-cache entries.
 	DecodedBlockCacheNoTransformKey = "transform:none"
-	decodedBlockCacheTrustKey       = "trust:verified-block-ref"
+	// decodedBlockCacheTrustKey marks entries decoded from a verified block ref.
+	decodedBlockCacheTrustKey = "trust:verified-block-ref"
 )
 
 // DecodedBlockCacheable identifies a block type for decoded-block caching.
@@ -28,6 +29,7 @@ type DecodedBlockCacheTransformer interface {
 	DecodedBlockCacheTransformKey() string
 }
 
+// decodedBlockCacheSizer reports a decoded block's size without marshaling it.
 type decodedBlockCacheSizer interface {
 	SizeVT() int
 }
@@ -40,9 +42,6 @@ const decodedBlockCacheEntryOverheadCost int64 = 256
 // scope. InvalidateRef advances the stripe its ref hashes to, so other refs in
 // that stripe miss once; the fixed array bounds invalidation state.
 const decodedBlockCacheStripes = 4096
-
-// decodedBlockCacheStripeSeed hashes refs to invalidation stripes.
-var decodedBlockCacheStripeSeed = maphash.MakeSeed()
 
 // decodedBlockPool is a Ristretto cache and cost budget shared by scopes.
 type decodedBlockPool struct {
@@ -102,8 +101,12 @@ type DecodedBlockCache struct {
 	clearEpoch atomic.Uint64
 	// refEpochs advance on InvalidateRef, one per stripe.
 	refEpochs [decodedBlockCacheStripes]atomic.Uint64
+	// stripeSeed hashes refs to refEpochs stripes.
+	stripeSeed maphash.Seed
 }
 
+// decodedBlockCacheKey identifies one decoded form of a block: its ref, type,
+// transform, and trust.
 type decodedBlockCacheKey struct {
 	ref       string
 	blockType string
@@ -118,6 +121,7 @@ type decodedBlockCacheEpochs struct {
 	clear uint64
 }
 
+// decodedBlockCacheEntry is a cached block and the epochs it was stored under.
 type decodedBlockCacheEntry struct {
 	block  Block
 	epochs decodedBlockCacheEpochs
@@ -146,13 +150,16 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	return newDecodedBlockCacheScope(pool, true), nil
 }
 
-// newDecodedBlockCacheScope allocates a scope in pool.
+// newDecodedBlockCacheScope allocates a scope in pool. The stripe seed is made
+// here, not at package init, because JavaScript hosts such as Cloudflare
+// Workers forbid generating random values while a module initializes.
 func newDecodedBlockCacheScope(pool *decodedBlockPool, ownsPool bool) *DecodedBlockCache {
 	id := pool.nextScope.Add(1)
 	return &DecodedBlockCache{
-		pool:     pool,
-		ownsPool: ownsPool,
-		scope:    strconv.FormatUint(id, 36) + "/",
+		pool:       pool,
+		ownsPool:   ownsPool,
+		scope:      strconv.FormatUint(id, 36) + "/",
+		stripeSeed: maphash.MakeSeed(),
 	}
 }
 
@@ -316,7 +323,7 @@ func (c *DecodedBlockCache) InvalidateRef(ctx context.Context, ref *BlockRef) {
 	if c == nil {
 		return
 	}
-	c.refEpochs[decodedBlockCacheStripe(refKey)].Add(1)
+	c.refEpoch(refKey).Add(1)
 }
 
 // InvalidateAll makes every cached entry of this scope stale.
@@ -336,7 +343,7 @@ func (c *DecodedBlockCache) enabled() bool {
 // epochs returns the current invalidation epochs for refKey.
 func (c *DecodedBlockCache) epochs(refKey string) decodedBlockCacheEpochs {
 	return decodedBlockCacheEpochs{
-		ref:   c.refEpochs[decodedBlockCacheStripe(refKey)].Load(),
+		ref:   c.refEpoch(refKey).Load(),
 		clear: c.clearEpoch.Load(),
 	}
 }
@@ -354,9 +361,9 @@ func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToke
 	return decodedBlockCacheStoreToken{cache: c, epochs: c.epochs(refKey), ok: true}
 }
 
-// decodedBlockCacheStripe returns the invalidation stripe for refKey.
-func decodedBlockCacheStripe(refKey string) uint64 {
-	return maphash.String(decodedBlockCacheStripeSeed, refKey) % decodedBlockCacheStripes
+// refEpoch returns the invalidation epoch of the stripe refKey hashes to.
+func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
+	return &c.refEpochs[maphash.String(c.stripeSeed, refKey)%decodedBlockCacheStripes]
 }
 
 // cloneDecodedBlockHit clones a cached block for the caller and records the
@@ -409,6 +416,7 @@ func storeDecodedBlock(
 	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, ref, blk, data)
 }
 
+// decodedBlockCacheContextKey is the context key of the attached cache.
 type decodedBlockCacheContextKey struct{}
 
 // decodedBlockCacheFromContext returns the shared decoded block cache
@@ -504,6 +512,8 @@ func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 	return key, true
 }
 
+// String encodes the key as length-prefixed parts, so no part can be confused
+// with a neighbor.
 func (k decodedBlockCacheKey) String() string {
 	var b strings.Builder
 	writePart := func(part string) {
