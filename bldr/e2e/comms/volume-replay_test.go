@@ -14,9 +14,13 @@ import (
 	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
-// volumeBrowsers are the browsers the volume storage checks run in. Linux
-// WebKit lacks OPFS sync access handles.
+// volumeBrowsers are the browsers the volume storage checks run in:
+// VOLUME_BROWSERS, a comma-separated list, when set, otherwise Chromium and
+// WebKit. Linux WebKit lacks OPFS sync access handles.
 func volumeBrowsers(t *testing.T) []string {
+	if list := os.Getenv("VOLUME_BROWSERS"); list != "" {
+		return strings.Split(list, ",")
+	}
 	if runtime.GOOS == "linux" {
 		t.Log("WebKit OPFS requires macOS; running Chromium only")
 		return []string{"chromium"}
@@ -32,8 +36,9 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ensureGoScriptFixtureWorker(t, &volumeReplayGoScriptFixtureWorker)
 			results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
-				query:   "mode=check",
-				timeout: 100 * time.Second,
+				persistent: true,
+				query:      "mode=check",
+				timeout:    100 * time.Second,
 			})
 			if pass, ok := results["pass"].(bool); !ok || !pass {
 				t.Fatalf("volume storage fixture failed: %v", results["detail"])
@@ -49,8 +54,9 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 }
 
 // TestGoScriptVolumeReplay replays the workload traces in WORKLOAD_TRACES, a
-// directory of .trace files, against E1 on OPFS and IndexedDB and E5 on
-// IndexedDB in a GoScript worker, and logs each replay's report.
+// directory of .trace files, against E1 on OPFS and IndexedDB, E5 on
+// IndexedDB, and format 3 on OPFS in a GoScript worker, and logs each
+// replay's report.
 func TestGoScriptVolumeReplay(t *testing.T) {
 	dir := os.Getenv("WORKLOAD_TRACES")
 	if dir == "" {
@@ -88,8 +94,9 @@ func TestGoScriptVolumeReplay(t *testing.T) {
 		for _, name := range names {
 			t.Run(browser+"/"+name, func(t *testing.T) {
 				results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
-					query:   "mode=replay:" + name,
-					timeout: 110 * time.Second,
+					persistent: true,
+					query:      "mode=replay:" + name,
+					timeout:    110 * time.Second,
 				})
 				if pass, ok := results["pass"].(bool); !ok || !pass {
 					t.Fatalf("volume replay fixture failed: %v", results["detail"])

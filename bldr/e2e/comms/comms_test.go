@@ -204,6 +204,12 @@ func browserType(name string) playwright.BrowserType {
 	}
 }
 
+// clearHomeACLs removes the ACLs macOS puts on the Library directories of an
+// isolated home, which deny their deletion.
+func clearHomeACLs(home string) {
+	_ = exec.Command("/bin/chmod", "-R", "-N", home).Run()
+}
+
 func shouldSkipBrowserLaunch(browserName string, err error) bool {
 	if err == nil || browserName != "webkit" {
 		return false
@@ -226,6 +232,10 @@ type fixtureRun struct {
 	timeout time.Duration
 	// allowedBrowserFailures are console errors that do not fail the run.
 	allowedBrowserFailures []string
+	// persistent runs the page in an on-disk profile. Private contexts keep
+	// OPFS and IndexedDB in memory in Chromium and Firefox, so storage
+	// measurements need it; WebKit always uses one.
+	persistent bool
 }
 
 // runFixtureWith runs a fixture page like runFixture with the options of run.
@@ -235,11 +245,14 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 	bt := browserType(browserName)
 	var ctx playwright.BrowserContext
 	var err error
-	if browserName == "webkit" {
-		// WebKit needs persistent storage for OPFS; Cocoa also needs an isolated home.
+	if browserName == "webkit" || run.persistent {
+		// WebKit needs persistent storage for OPFS. On macOS the browsers also
+		// need an isolated home, whose Library ACLs must be cleared before the
+		// temporary directory is removed.
 		directory := t.TempDir()
 		opts := playwright.BrowserTypeLaunchPersistentContextOptions{Headless: new(true)}
 		if runtime.GOOS == "darwin" {
+			t.Cleanup(func() { clearHomeACLs(directory) })
 			opts.Env = make(map[string]string)
 			for _, entry := range os.Environ() {
 				key, value, _ := strings.Cut(entry, "=")
