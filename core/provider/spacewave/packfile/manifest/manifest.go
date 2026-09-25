@@ -35,6 +35,22 @@ func manifestBloomKey(packID string) []byte {
 	return []byte("pack_bloom/" + shard + "/" + packID)
 }
 
+// indexCacheKey is the kvtx key of the cached raw index tail of a packfile.
+func indexCacheKey(packID string) []byte {
+	return []byte("pack_idx/" + packID)
+}
+
+// deletePack removes the entry, bloom filter, and cached index tail of a
+// packfile that left the active manifest.
+func deletePack(ctx context.Context, tx kvtx.Tx, packID string) error {
+	for _, key := range [][]byte{manifestPackKey(packID), manifestBloomKey(packID), indexCacheKey(packID)} {
+		if err := tx.Delete(ctx, key); err != nil {
+			return errors.Wrapf(err, "deleting packfile %s", packID)
+		}
+	}
+	return nil
+}
+
 // Manifest is a kvtx-backed persistent manifest of packfile entries.
 type Manifest struct {
 	store   kvtx.Store
@@ -184,22 +200,16 @@ func (m *Manifest) ApplyDelta(
 			for _, event := range events {
 				for _, id := range event.GetReplacedPackIds() {
 					delete(next, id)
-					if err := tx.Delete(ctx, manifestPackKey(id)); err != nil {
-						return errors.Wrap(err, "deleting replaced entry")
-					}
-					if err := tx.Delete(ctx, manifestBloomKey(id)); err != nil {
-						return errors.Wrap(err, "deleting replaced bloom filter")
+					if err := deletePack(ctx, tx, id); err != nil {
+						return err
 					}
 				}
 			}
 			for _, entry := range entries {
 				if entry.GetSupersededBy() != "" {
 					delete(next, entry.GetId())
-					if err := tx.Delete(ctx, manifestPackKey(entry.GetId())); err != nil {
-						return errors.Wrap(err, "deleting superseded entry")
-					}
-					if err := tx.Delete(ctx, manifestBloomKey(entry.GetId())); err != nil {
-						return errors.Wrap(err, "deleting superseded bloom filter")
+					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
+						return err
 					}
 					continue
 				}
@@ -290,7 +300,7 @@ func (c *IndexCache) Get(ctx context.Context, packID string) ([]byte, bool, erro
 			return c.store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			value, attemptFound, err := tx.Get(ctx, []byte("pack_idx/"+packID))
+			value, attemptFound, err := tx.Get(ctx, indexCacheKey(packID))
 			if err != nil {
 				return errors.Wrap(err, "get index cache entry")
 			}
@@ -317,7 +327,7 @@ func (c *IndexCache) Set(ctx context.Context, packID string, data []byte) error 
 			return c.store.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := tx.Set(ctx, []byte("pack_idx/"+packID), bytes.Clone(data)); err != nil {
+			if err := tx.Set(ctx, indexCacheKey(packID), bytes.Clone(data)); err != nil {
 				return errors.Wrap(err, "set index cache entry")
 			}
 			return nil

@@ -703,6 +703,33 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	}
 }
 
+func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
+	ctx := t.Context()
+	alphaBytes, alphaBloom := buildTestPack(t, map[string][]byte{"alpha": []byte("alpha-data")})
+	betaBytes, _ := buildTestPack(t, map[string][]byte{"beta": []byte("beta-data")})
+	packs := map[string][]byte{"alpha-pack": alphaBytes, "beta-pack": betaBytes}
+	opener := func(packID string, size int64) (*PackReader, error) {
+		return NewPackReader(packID, size, &bytesTransport{data: packs[packID]}, hash.HashType_HashType_SHA256), nil
+	}
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{Id: "alpha-pack", BloomFilter: alphaBloom, BlockCount: 1, SizeBytes: uint64(len(alphaBytes)), Sequence: 2},
+		{Id: "beta-pack", BlockCount: 1, SizeBytes: uint64(len(betaBytes)), Sequence: 1},
+	})
+
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("beta-data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
+	if err != nil {
+		t.Fatalf("GetBlock: %v", err)
+	}
+	if !found || string(data) != "beta-data" {
+		t.Fatalf("GetBlock found=%v data=%q, want beta-data from the pack without a bloom", found, data)
+	}
+}
+
 func TestPackfileStoreLookupStats(t *testing.T) {
 	ctx := t.Context()
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
@@ -1592,55 +1619,32 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 	close(blocked)
 }
 
-// TestPackfileStoreVerifyBeforeServeWaitsForPersistence verifies opt-in
-// backend reads do not expose resident bytes before hash verification and
-// publication complete.
-func TestPackfileStoreVerifyBeforeServeWaitsForPersistence(t *testing.T) {
+// TestPackfileStoreRejectsCorruptedBlock verifies a read whose bytes decode but
+// do not match the ref returns a mismatch error instead of the wrong data.
+func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
-	opener, _ := openerFromBytes(packBytes)
+	transport := &bytesTransport{data: packBytes}
+	transport.rewriteFn = func(_ int, _ int64, data []byte) []byte {
+		return bytes.ReplaceAll(data, []byte("alpha"), []byte("alphx"))
+	}
+	opener := func(packID string, size int64) (*PackReader, error) {
+		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
-		Id:          "verified-pack",
+		Id:          "corrupt-pack",
 		BloomFilter: bloomBytes,
 		BlockCount:  1,
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
-	blocked := make(chan struct{})
-	wb := newWritebackStore(func() { <-blocked })
-	store.SetWriteback(ctx, wb, 1<<20)
-	store.SetVerifyBeforeServe(true)
-
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
-	done := make(chan error, 1)
-	go func() {
-		got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
-		if err != nil {
-			done <- err
-			return
+	for range 2 {
+		got, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
+		if !errors.Is(err, block.ErrBlockRefMismatch) {
+			t.Fatalf("GetBlock data=%q err=%v, want ErrBlockRefMismatch", got, err)
 		}
-		if !found || !bytes.Equal(got, []byte("alpha")) {
-			done <- errors.New("verified read returned wrong block")
-			return
-		}
-		done <- nil
-	}()
-
-	select {
-	case err := <-done:
-		t.Fatalf("expected verified read to wait for persistence, got %v", err)
-	case <-time.After(50 * time.Millisecond):
-	}
-
-	close(blocked)
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("verified read returned error: %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("expected verified read to resume after persistence")
 	}
 }
 
@@ -1807,10 +1811,10 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	store.SetWriteback(ctx, nil, 0)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
-	// The first read serves the corrupted value before verification, so it
-	// fails to decode unless background verification already rejected it and
-	// the read retried transport.
-	_, _, _ = store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
+	// The first read fails on the corrupted value.
+	if _, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err == nil {
+		t.Fatal("expected corrupted read to fail")
+	}
 
 	// Observe rejection rather than transient catalog absence: a valid retry
 	// may already have installed its replacement record.

@@ -22,6 +22,5 @@ func NewPackfileStore(
 	store := packfile_store.NewPackfileStore(opener, cache)
 	store.UpdateManifest([]*packfile.PackfileEntry{meta.GetPack()})
 	store.SetWriteback(ctx, writeback, 0)
-	store.SetVerifyBeforeServe(true)
 	return store, nil
 }

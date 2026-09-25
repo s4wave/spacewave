@@ -3,10 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,7 +56,6 @@ type syncController struct {
 	upper             block.StoreOps
 	refGraph          packfile_order.RefGraph
 	conf              *SyncConfig
-	tmpDir            string
 	telemetry         *ProviderAccount
 	gateBcast         *broadcast.Broadcast
 	skipPull          bool
@@ -79,12 +75,10 @@ type syncController struct {
 	flushMtx sync.Mutex
 }
 
-// Init performs the initial setup: clean stale temp files, recalculate dirty
-// size, and run the initial pull. Access-gated pull failures are returned so
-// callers can wait for account/resource invalidation instead of retrying.
-// Must be called before Execute.
+// Init recalculates the dirty size and runs the initial pull. Access-gated pull
+// failures are returned so callers can wait for account/resource invalidation
+// instead of retrying. Must be called before Execute.
 func (s *syncController) Init(ctx context.Context) error {
-	s.cleanStaleTempFiles()
 	if err := s.recalcDirtySize(ctx); err != nil {
 		return err
 	}
@@ -474,18 +468,20 @@ type dirtyBlock struct {
 	stored *block.StoredBlock
 }
 
+// preparedSyncChunk is one packed flush chunk ready to push.
 type preparedSyncChunk struct {
-	blocks   []dirtyBlock
-	entry    *packfile.PackfileEntry
+	// blocks are the dirty blocks packed into packData.
+	blocks []dirtyBlock
+	// entry is the manifest entry describing the pack.
+	entry *packfile.PackfileEntry
+	// packData is the encoded pack body.
 	packData []byte
+	// bodyHash is the SHA-256 digest of packData.
 	bodyHash []byte
 }
 
-// packBlocks writes the dirty blocks to w and returns the pack result and body hash.
-func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.PackResult, []byte, error) {
-	hashWriter := sha256.New()
-	multiWriter := io.MultiWriter(w, hashWriter)
-
+// packBlocks writes the dirty blocks to w and returns the pack result.
+func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.PackResult, error) {
 	idx := 0
 	iter := func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
@@ -496,11 +492,11 @@ func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.P
 		return b.hash, b.stored, nil
 	}
 
-	result, err := writer.PackBlocks(multiWriter, iter)
+	result, err := writer.PackBlocks(w, iter)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "packing blocks")
+		return nil, errors.Wrap(err, "packing blocks")
 	}
-	return result, hashWriter.Sum(nil), nil
+	return result, nil
 }
 
 // cleanupDirtyCandidates removes acknowledged markers and resets an empty queue's deadline atomically.
@@ -672,12 +668,9 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 	return blocks, nil
 }
 
-func (s *syncController) flushLoadedBlocks(
-	ctx context.Context,
-	blocks []dirtyBlock,
-	entries *[]*packfile.PackfileEntry,
-	flushedBlocks *[]dirtyCandidate,
-) error {
+// flushLoadedBlocks packs and pushes one chunk of loaded dirty blocks, halving
+// chunks that exceed the sync pack target, and commits each pushed pack.
+func (s *syncController) flushLoadedBlocks(ctx context.Context, blocks []dirtyBlock) error {
 	chunk, err := s.prepareFlushChunk(blocks)
 	if err != nil {
 		return err
@@ -686,13 +679,12 @@ func (s *syncController) flushLoadedBlocks(
 		return nil
 	}
 	if int64(len(chunk.packData)) > syncFlushMaxPackBytes && len(blocks) > 1 {
-		chunk.blocks = nil
-		chunk.packData = nil
+		chunk = nil
 		mid := len(blocks) / 2
-		if err := s.flushLoadedBlocks(ctx, blocks[:mid], entries, flushedBlocks); err != nil {
+		if err := s.flushLoadedBlocks(ctx, blocks[:mid]); err != nil {
 			return err
 		}
-		return s.flushLoadedBlocks(ctx, blocks[mid:], entries, flushedBlocks)
+		return s.flushLoadedBlocks(ctx, blocks[mid:])
 	}
 	if int64(len(chunk.packData)) > writer.DefaultMaxPackBytes {
 		return errors.Errorf(
@@ -709,20 +701,30 @@ func (s *syncController) flushLoadedBlocks(
 	if err := s.pushPreparedChunk(ctx, chunk); err != nil {
 		return err
 	}
-	*entries = append(*entries, chunk.entry)
-	for _, block := range chunk.blocks {
-		*flushedBlocks = append(*flushedBlocks, block.dirtyCandidate)
+	return s.commitPushedChunk(ctx, chunk)
+}
+
+// commitPushedChunk records a pushed pack in the manifest and clears the dirty
+// markers of its blocks, so a later failure in the same flush does not push the
+// same blocks again under a different pack.
+func (s *syncController) commitPushedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
+	if err := s.mfst.ApplyDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil); err != nil {
+		return errors.Wrap(err, "applying push delta")
 	}
-	chunk.blocks = nil
-	chunk.packData = nil
-	return nil
+	s.lower.UpdateManifest(s.mergedManifestEntries())
+
+	flushed := make([]dirtyCandidate, len(chunk.blocks))
+	for i, block := range chunk.blocks {
+		flushed[i] = block.dirtyCandidate
+	}
+	return s.cleanupDirtyCandidates(ctx, flushed)
 }
 
 // prepareFlushChunk packs one bounded dirty-block chunk.
 func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncChunk, error) {
 	var buf bytes.Buffer
 	started := time.Now()
-	result, bodyHash, err := s.packBlocks(&buf, blocks)
+	result, err := s.packBlocks(&buf, blocks)
 	s.le.WithField("blocks", len(blocks)).
 		WithField("duration", time.Since(started)).
 		Debug("packed dirty blocks")
@@ -749,7 +751,7 @@ func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncCh
 		blocks:   blocks,
 		entry:    entry,
 		packData: buf.Bytes(),
-		bodyHash: bodyHash,
+		bodyHash: result.PackBytesDigest,
 	}, nil
 }
 
@@ -842,36 +844,29 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		}
 	}
 
+	// Clear blocks the cloud already holds before pushing the rest.
+	if len(dedupedBlocks) != 0 {
+		if err := s.cleanupDirtyCandidates(ctx, dedupedBlocks); err != nil {
+			return err
+		}
+	}
+
 	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
-	start := 0
-	entries := make([]*packfile.PackfileEntry, 0)
-	flushedBlocks := make([]dirtyCandidate, 0, len(dedupedBlocks)+len(blocks))
-	flushedBlocks = append(flushedBlocks, dedupedBlocks...)
-	for start < len(blocks) {
+	for start := 0; start < len(blocks); {
 		end, err := nextDirtyCandidateChunk(blocks, start, syncFlushMaxPackBytes, maxChunkBlocks)
 		if err != nil {
 			return err
 		}
-
 		loadedBlocks, err := s.loadDirtyBlocks(ctx, blocks[start:end])
 		if err != nil {
 			return err
 		}
-		if err := s.flushLoadedBlocks(ctx, loadedBlocks, &entries, &flushedBlocks); err != nil {
+		if err := s.flushLoadedBlocks(ctx, loadedBlocks); err != nil {
 			return err
 		}
 		start = end
 	}
-
-	if len(entries) != 0 {
-		if err := s.mfst.ApplyDelta(ctx, entries, nil); err != nil {
-			return errors.Wrap(err, "applying push delta")
-		}
-		s.lower.UpdateManifest(s.mergedManifestEntries())
-	}
-
-	// Reconcile cleanup with concurrent writes in the same metadata transaction.
-	return s.cleanupDirtyCandidates(ctx, flushedBlocks)
+	return nil
 }
 
 // pull fetches new packfile entries from the server since the last pull.
@@ -964,42 +959,6 @@ func isRetryableSyncPushCancel(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "context canceled") ||
 		strings.Contains(msg, "deadline exceeded")
-}
-
-// syncTmpDir returns the temp directory for packfile writes.
-// Uses BLDR_PLUGIN_STATE_PATH/tmp if set, otherwise system temp.
-func syncTmpDir() string {
-	dir := os.Getenv("BLDR_PLUGIN_STATE_PATH")
-	if dir == "" {
-		return ""
-	}
-	tmpDir := filepath.Join(dir, "tmp")
-	_ = os.MkdirAll(tmpDir, 0o755) //nolint:gosec // The launcher selects the plugin's local state directory.
-	return tmpDir
-}
-
-// cleanStaleTempFiles removes stale pack temp files older than 1 hour.
-func (s *syncController) cleanStaleTempFiles() {
-	if s.tmpDir == "" {
-		return
-	}
-	entries, err := os.ReadDir(s.tmpDir)
-	if err != nil {
-		return
-	}
-	threshold := time.Now().Add(-1 * time.Hour)
-	for _, e := range entries {
-		if !strings.HasPrefix(e.Name(), "pack-") || !strings.HasSuffix(e.Name(), ".tmp") {
-			continue
-		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		if info.ModTime().Before(threshold) {
-			_ = os.Remove(filepath.Join(s.tmpDir, e.Name()))
-		}
-	}
 }
 
 // _ is a type assertion

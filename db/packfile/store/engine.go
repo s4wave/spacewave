@@ -93,7 +93,6 @@ type PackReader struct {
 	maxBytes               int64
 	writebackWindow        int64
 	indexPromotion         bool
-	verifyBeforeServe      bool
 
 	// Span store.
 	spans         []*span
@@ -269,13 +268,6 @@ func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, wi
 		e.writebackCtx = ctx
 		e.writebackTarget = target
 		e.writebackWindow = windowBytes
-	})
-}
-
-// SetVerifyBeforeServe makes miss-path reads wait for hash verification before returning bytes.
-func (e *PackReader) SetVerifyBeforeServe(enabled bool) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		e.verifyBeforeServe = enabled
 	})
 }
 

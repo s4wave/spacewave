@@ -7,36 +7,33 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
 // getBlock is the top-level engine read path.
 //
-// Catalog hits and misses follow the same verifyBeforeServe policy. Default
-// readers use resident bytes while background verification and writeback run.
-// Opt-in readers wait on readyCh. Failed records are removed so reads can retry.
+// Fast path: serve a catalog record. A record still waiting for background
+// verification is hash-checked inline, so every returned block matches its
+// ref. Failed records are removed so reads can retry transport.
 //
 // Slow path: load the kvfile index (via the shared ReaderAt, so trailer
 // bytes land in the span store), find the target entry, compute the
 // semantic neighborhood window, ensure those bytes are resident, admit
-// every fully-contained block into the catalog, and either return the target
-// block immediately or wait for verification when verifyBeforeServe is set.
+// every fully-contained block into the catalog for background verification
+// and writeback, and return the target block after checking its hash.
 //
 // Returns nil when the pack does not hold the block.
 func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlock, error) {
 	keyStr := string(key)
 
-retry:
-	// Try fast path repeatedly: a verifying record may resolve while we wait.
+	// Fast path: serve a resident catalog record.
 	for {
-		var data []byte
 		var rec *blockRecord
+		var data []byte
 		var readErr error
-		var readyCh <-chan struct{}
-		var served bool
-		var failed bool
+		var verified bool
 		var invalidated bool
-
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if e.closed {
 				return
@@ -45,56 +42,31 @@ retry:
 			if rec == nil {
 				return
 			}
-			switch rec.state {
-			case blockStateFailed:
+			if rec.state == blockStateFailed {
+				e.removeBlockLocked(rec)
+				rec = nil
+				broadcast()
+				return
+			}
+			data, readErr = rec.readBytes()
+			if readErr != nil {
 				e.removeBlockLocked(rec)
 				invalidated = true
-				failed = true
 				broadcast()
-			case blockStateVerifying:
-				if e.verifyBeforeServe {
-					readyCh = rec.readyCh
-					return
-				}
-				fallthrough
-			case blockStateVerified, blockStatePublished:
-				data, readErr = rec.readBytes()
-				if readErr != nil {
-					e.removeBlockLocked(rec)
-					invalidated = true
-					broadcast()
-					return
-				}
-				served = true
-			default:
-				readyCh = rec.readyCh
+				return
 			}
+			verified = rec.state != blockStateVerifying
 		})
-
-		if failed {
-			// Treat failed blocks as a cache miss so the caller can retry.
-			break
-		}
 		if invalidated {
 			continue
-		}
-		if served {
-			return decodeBlockValue(data, readErr)
 		}
 		if rec == nil {
 			break
 		}
-		// Block is loading/verifying; wait.
-		if readyCh != nil {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-e.ctx.Done():
-				return nil, context.Canceled
-			case <-readyCh:
-				continue
-			}
+		if verified {
+			return block.DecodeBlockObject(data)
 		}
+		return decodeVerifiedBlock(rec.ref, data)
 	}
 
 	// Slow path: ensure the index is loaded, resolve the target entry.
@@ -126,12 +98,10 @@ retry:
 	}
 
 	// Admit every fully-contained block and gather verify jobs.
-	var firstMiss *blockRecord
-	var readyCh <-chan struct{}
+	var target *blockRecord
 	var jobs []func()
 	var data []byte
 	var readErr error
-	var verifyBeforeServe bool
 	var verifyJobs []func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if e.closed {
@@ -149,19 +119,13 @@ retry:
 				jobs = append(jobs, job)
 			}
 			if isTarget {
-				firstMiss = e.blocks[string(entry.GetKey())]
+				target = e.blocks[string(entry.GetKey())]
 			}
 		}
-		if firstMiss != nil {
-			readyCh = firstMiss.readyCh
-			verifyBeforeServe = e.verifyBeforeServe
-			if !verifyBeforeServe {
-				data, readErr = firstMiss.readBytes()
-				if readErr != nil {
-					e.removeBlockLocked(firstMiss)
-					broadcast()
-					return
-				}
+		if target != nil {
+			data, readErr = target.readBytes()
+			if readErr != nil {
+				e.removeBlockLocked(target)
 			}
 		}
 		if len(jobs) != 0 {
@@ -171,37 +135,29 @@ retry:
 	})
 	e.enqueueVerifyJobs(verifyJobs)
 
-	if firstMiss == nil {
+	if target == nil {
 		// The index entry existed but the block could not be admitted.
 		// This happens when spans failed to cover the target extent after
 		// ensureWindowResident, which usually means a short or truncated
 		// transport response.
 		return nil, nil
 	}
-
-	// Default miss-path callers serve directly from resident spans without
-	// blocking on verification. Backend bundle endpoints opt into
-	// verify-before-serve so externally visible bytes are hash-checked first.
-	if !verifyBeforeServe {
-		return decodeBlockValue(data, readErr)
-	}
-
-	select {
-	case <-readyCh:
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-e.ctx.Done():
-		return nil, context.Canceled
-	}
-	goto retry
-}
-
-// decodeBlockValue decodes a pack value read from the catalog.
-func decodeBlockValue(value []byte, readErr error) (*block.StoredBlock, error) {
 	if readErr != nil {
 		return nil, readErr
 	}
-	return block.DecodeBlockObject(value)
+	return decodeVerifiedBlock(target.ref, data)
+}
+
+// decodeVerifiedBlock decodes a pack value and checks its data against ref.
+func decodeVerifiedBlock(ref *block.BlockRef, value []byte) (*block.StoredBlock, error) {
+	stored, err := block.DecodeBlockObject(value)
+	if err != nil {
+		return nil, err
+	}
+	if err := ref.VerifyData(stored.Data, false); err != nil {
+		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "packfile block %s", ref.MarshalString())
+	}
+	return stored, nil
 }
 
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {

@@ -1368,6 +1368,106 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	}
 }
 
+// TestSyncControllerFlushCommitsPushedPacksBeforeFailure keeps the packs pushed
+// before a failed push in the manifest and clears their dirty markers.
+func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
+	ctx := context.Background()
+
+	dirtyStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+
+	const blockCount = 12
+	var pushedBlocks int
+	var pushCount int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pushCount++
+		if pushCount > 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		count, err := strconv.Atoi(r.Header.Get("X-Block-Count"))
+		if err != nil {
+			t.Fatalf("parse X-Block-Count: %v", err)
+		}
+		if _, err := io.Copy(io.Discard, r.Body); err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		pushedBlocks += count
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		_ string,
+		_ writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		return fn("ticket-push")
+	}
+
+	upper := newSyncTestBlockStore()
+	wtx, err := dirtyStore.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatalf("new dirty tx: %v", err)
+	}
+	defer wtx.Discard()
+	for i := range blockCount {
+		data := bytes.Repeat([]byte{byte(i + 1)}, 1024*1024)
+		ref, _, err := upper.PutBlock(ctx, data, nil)
+		if err != nil {
+			t.Fatalf("put upper block: %v", err)
+		}
+		if err := wtx.Set(
+			ctx,
+			[]byte("dirty/"+ref.GetHash().MarshalString()),
+			[]byte(strconv.Itoa(len(data))),
+		); err != nil {
+			t.Fatalf("set dirty key: %v", err)
+		}
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		t.Fatalf("commit dirty tx: %v", err)
+	}
+
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      dirtyStore,
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower:      packfile_store.NewPackfileStore(nil, nil),
+		upper:      upper,
+	}
+	if err := s.flush(ctx, false); err == nil {
+		t.Fatal("expected flush to fail on the third push")
+	}
+
+	if got := len(mfst.GetEntries()); got != 2 {
+		t.Fatalf("manifest entries = %d, want the 2 pushed packs", got)
+	}
+	rtx, err := dirtyStore.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatalf("new read tx: %v", err)
+	}
+	defer rtx.Discard()
+	dirtyCount := 0
+	if err := rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
+		dirtyCount++
+		return nil
+	}); err != nil {
+		t.Fatalf("scan dirty keys: %v", err)
+	}
+	if want := blockCount - pushedBlocks; dirtyCount != want {
+		t.Fatalf("dirty entries = %d, want %d unpushed blocks", dirtyCount, want)
+	}
+}
+
 // TestSyncControllerFlushDedupesLowerBlocks filters stored blocks before reading upper data.
 func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 	ctx := context.Background()

@@ -176,7 +176,6 @@ func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps,
 		return
 	}
 	s.pfs.SetWriteback(ctx, target, windowBytes)
-	s.pfs.SetVerifyBeforeServe(target != nil)
 }
 
 // SetRangeCacheMaxBytes sets the resident range-cache budget per pack reader.

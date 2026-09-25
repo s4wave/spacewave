@@ -15,8 +15,8 @@ func TestBuildPackIDIsDeterministic(t *testing.T) {
 	result := &writer.PackResult{
 		SortedKeyDigest:  bytes.Repeat([]byte{1}, 32),
 		PackBytesDigest:  bytes.Repeat([]byte{2}, 32),
-		PolicyTag:        PolicyTag(writer.DefaultPolicy()),
-		ValueOrderPolicy: ValueOrderIterator,
+		PolicyTag:        writer.PolicyTag(writer.DefaultPolicy()),
+		ValueOrderPolicy: writer.ValueOrderIterator,
 	}
 
 	first, err := BuildPackID("resource-a", result)
@@ -45,8 +45,8 @@ func TestBuildPackIDBindsResourceAndBytes(t *testing.T) {
 	result := &writer.PackResult{
 		SortedKeyDigest:  bytes.Repeat([]byte{1}, 32),
 		PackBytesDigest:  bytes.Repeat([]byte{2}, 32),
-		PolicyTag:        PolicyTag(writer.DefaultPolicy()),
-		ValueOrderPolicy: ValueOrderIterator,
+		PolicyTag:        writer.PolicyTag(writer.DefaultPolicy()),
+		ValueOrderPolicy: writer.ValueOrderIterator,
 	}
 	base, err := BuildPackID("resource-a", result)
 	if err != nil {

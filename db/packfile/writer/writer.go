@@ -86,9 +86,9 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 		BloomFilter:      bloomBytes,
 		BlockCount:       count,
 		BytesWritten:     kvw.GetPos(),
-		SortedKeyDigest:  digestSortedKeys(keys),
+		SortedKeyDigest:  DigestSortedKeys(keys),
 		PackBytesDigest:  packHash.Sum(nil),
-		PolicyTag:        policyTag(policy),
-		ValueOrderPolicy: valueOrderIterator,
+		PolicyTag:        PolicyTag(policy),
+		ValueOrderPolicy: ValueOrderIterator,
 	}, nil
 }
