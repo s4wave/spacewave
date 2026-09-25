@@ -211,8 +211,12 @@ func pipeStream(strm io.ReadWriteCloser, stdin io.Reader, stdout io.Writer) erro
 		buf := make([]byte, 8192)
 		_, _ = io.CopyBuffer(strm, stdin, buf)
 
-		// Signal that stdin is done - close the stream to signal EOF to remote
-		strm.Close()
+		// Signal EOF to the remote and keep reading its output.
+		if cw, ok := strm.(interface{ CloseWrite() error }); ok {
+			_ = cw.CloseWrite()
+		} else {
+			_ = strm.Close()
+		}
 	}()
 
 	// stream -> stdout (blocks until stream closes or errors)

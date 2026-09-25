@@ -24,7 +24,7 @@ type Stream interface {
 	// SetDeadline sets both read and write deadlines as defined by
 	// A zero time value disables the deadlines.
 	SetDeadline(t time.Time) error
-	// Close closes the stream.
+	// Close closes both directions of the stream. A pending Read returns.
 	Close() error
 }
 
