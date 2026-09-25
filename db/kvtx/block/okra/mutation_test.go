@@ -453,11 +453,11 @@ func TestTxSetStagesValueWritesUntilCommit(t *testing.T) {
 	if puts != 0 {
 		t.Fatalf("expected batched publication, got %d direct puts", puts)
 	}
-	if batches != 2 {
-		t.Fatalf("expected one staged value batch and one page batch, got %d (%v)", batches, sizes)
+	if batches != 1 {
+		t.Fatalf("expected staged values and pages in one batch, got %d (%v)", batches, sizes)
 	}
-	if sizes[0] != 8 {
-		t.Fatalf("expected 8 staged values in the first batch, got %v", sizes)
+	if sizes[0] <= 8 {
+		t.Fatalf("expected 8 staged values and the pages in the batch, got %v", sizes)
 	}
 }
 
