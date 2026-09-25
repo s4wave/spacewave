@@ -12,6 +12,12 @@ import (
 // withDirectAtomic joins direct preparation/sweep calls on Close and uses the
 // same raw physical transaction domain as the queued writer. It deliberately
 // does not acquire a coordinator lease or an Engine publication guard.
+//
+// It commits with write ordering when the store supports it. Every direct
+// stage is safe to lose in a crash as long as no earlier commit is lost:
+// prepared blocks stay owned by their bucket, and root proofs, pins and sweeps
+// are recomputed or redone. The head publication that follows commits fully
+// and makes these writes durable, as does Sync.
 func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) (bool, error)) error {
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
@@ -37,7 +43,12 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	if err != nil || !changed {
 		return err
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if v.ordered != nil {
+		err = v.ordered.commit(ctx, tx)
+	} else {
+		err = tx.Commit(ctx)
+	}
+	if err != nil {
 		return err
 	}
 	v.broadcastStorageStatsChanged()

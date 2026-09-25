@@ -162,20 +162,22 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
-func (t *Tx) Commit(ctx context.Context) (err error) {
+func (t *Tx) Commit(ctx context.Context) error {
+	return t.commit(t.txn.Commit)
+}
+
+// CommitOrdered commits the transaction with write ordering only.
+func (t *Tx) CommitOrdered(ctx context.Context) error {
+	return t.commit(t.txn.CommitOrdered)
+}
+
+// commit finishes the transaction with commitFn unless it was discarded.
+func (t *Tx) commit(commitFn func() error) (err error) {
 	defer recoverBoltTxPanic(&err)
-	var done bool
-	if t.discardOnce.CompareAndSwap(false, true) {
-		err = t.txn.Commit()
-		done = true
-	}
-	if err != nil {
-		return err
-	}
-	if !done {
+	if !t.discardOnce.CompareAndSwap(false, true) {
 		return errors.New("commit called after discard")
 	}
-	return nil
+	return commitFn()
 }
 
 // Exists checks if a key exists.
@@ -217,4 +219,4 @@ func recoverBoltTxPanic(err *error) {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = (*Tx)(nil)
+var _ kvtx.OrderedCommitTx = (*Tx)(nil)

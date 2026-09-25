@@ -136,6 +136,12 @@ func checkBoltPaths(dbPath, lockPath string) error {
 	return nil
 }
 
+// Sync flushes every committed transaction, including ordered commits, to
+// stable storage.
+func (s *Store) Sync(ctx context.Context) error {
+	return s.db.Sync()
+}
+
 // SupportsAtomicCommit excludes unsafe or externally deferred durability modes.
 func (s *Store) SupportsAtomicCommit() bool {
 	return !s.db.NoSync && !s.db.NoFreelistSync
