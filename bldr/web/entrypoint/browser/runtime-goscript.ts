@@ -48,6 +48,7 @@ interface Global {
     rootHash: string,
   ) => void
   BLDR_NOTIFY_DURABLE_MUTATION?: () => void
+  process?: { env?: Record<string, string | undefined> }
 }
 
 const globalScope = self as unknown as Global
@@ -131,15 +132,21 @@ function startGoRpcStreams() {
 let goStarted = false
 
 // startGoScriptRuntime starts the process once, after its host configuration is installed.
+// GoScript's os.Getenv reads process.env, so env is merged there before Go starts.
 async function startGoScriptRuntime(
   loadDistMain: GoScriptRuntimeMainLoader,
   webRuntimeId: string,
+  env: Record<string, string> | undefined,
 ) {
   if (goStarted) {
     return
   }
   goStarted = true
 
+  if (env) {
+    const host = (globalScope.process ??= {})
+    host.env = { ...host.env, ...env }
+  }
   globalScope.BLDR_INIT = WebRuntimeHostInit.toBinary({
     webRuntimeId,
   })
@@ -190,7 +197,7 @@ export default function runGoScriptRuntime(
     }
 
     if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
-      const webRuntimeId = msg.initWebRuntime.webRuntimeId
+      const { webRuntimeId, env } = msg.initWebRuntime
       void (async () => {
         // SharedWorker cannot open OPFS directly. A document must provide its
         // bridge before Go mounts volumes; retry when another document connects.
@@ -204,7 +211,7 @@ export default function runGoScriptRuntime(
           return
         }
         runtimeStarted = true
-        await startGoScriptRuntime(loadDistMain, webRuntimeId)
+        await startGoScriptRuntime(loadDistMain, webRuntimeId, env)
       })().catch((err) => {
         console.warn('runtime-goscript: error running web runtime', err)
       })
