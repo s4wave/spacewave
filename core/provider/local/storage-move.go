@@ -147,7 +147,8 @@ func (a *ProviderAccount) lookupSharedObjectBlockStoreID(sharedObjectID string) 
 }
 
 // fetchPlacedBlocks copies every block of the store the account's own storage
-// lacks from the backend's bucket or peers, one batch write per chunk.
+// lacks from the backend's bucket or peers, with the refs the source recorded,
+// one batch write per chunk.
 //
 // A block no source holds is skipped: the backend did not hold it either.
 func (a *ProviderAccount) fetchPlacedBlocks(ctx context.Context, tkr *bstoreTracker, fn func(MoveProgress) error) error {
@@ -180,12 +181,12 @@ func (a *ProviderAccount) fetchPlacedBlocks(ctx context.Context, tkr *bstoreTrac
 				continue
 			}
 			eg.Go(func() error {
-				data, ok, err := remote.GetBlock(egCtx, ref)
+				stored, err := remote.GetStoredBlock(egCtx, ref)
 				if err != nil {
 					return errors.Wrapf(err, "fetch block %s", ref.MarshalString())
 				}
-				if ok {
-					entries[i] = &block.PutBatchEntry{Ref: ref, Data: data}
+				if stored != nil {
+					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs}
 				}
 				return nil
 			})

@@ -17,7 +17,7 @@ import (
 const batchConcurrency = 16
 
 // S3Block is a block store on top of an S3-compatible bucket. It stores each
-// block as the object {objectPrefix}{block ref}.
+// block with its outgoing refs as the BlockObject {objectPrefix}{block ref}.
 type S3Block struct {
 	// write enables PutBlock, PutBlockBatch, and RmBlock.
 	write bool
@@ -96,8 +96,7 @@ func (b *S3Block) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts
 		return ref, exists, err
 	}
 
-	// create object
-	if err := b.client.PutObject(ctx, b.bucketName, objectKey, data, "application/octet-stream"); err != nil {
+	if err := b.putObject(ctx, objectKey, data, opts.GetRefs()); err != nil {
 		return ref, false, err
 	}
 	return ref, false, nil
@@ -128,45 +127,49 @@ func (b *S3Block) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEn
 // GetBlock looks up a block in the store.
 // Returns data, found, and any unexpected error.
 func (b *S3Block) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored, err := b.GetStoredBlock(ctx, ref)
+	if stored == nil {
+		return nil, false, err
+	}
+	return stored.Data, true, nil
+}
+
+// GetStoredBlock returns the block with the refs recorded when it was written.
+// Returns nil if the block is not found.
+func (b *S3Block) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if ref.GetEmpty() {
-		return nil, false, block.ErrEmptyBlockRef
+		return nil, block.ErrEmptyBlockRef
 	}
 
-	refB58 := ref.MarshalString()
-	objectKey := b.objectPrefix + refB58
-
-	body, err := b.client.GetObject(ctx, b.bucketName, objectKey)
+	body, err := b.client.GetObject(ctx, b.bucketName, b.objectPrefix+ref.MarshalString())
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return nil, false, nil
+			return nil, nil
 		}
-		return nil, false, err
+		return nil, err
 	}
-	data, err := io.ReadAll(body)
+	raw, err := io.ReadAll(body)
 	_ = body.Close()
 	if err != nil {
-		return nil, false, err
+		return nil, err
+	}
+	obj := &BlockObject{}
+	if err := obj.UnmarshalVT(raw); err != nil {
+		return nil, errors.Wrapf(err, "decode block object %s", ref.MarshalString())
 	}
 
 	// Verify the data matches the block ref.
 	dlRef, err := block.BuildBlockRef(
-		data,
+		obj.GetData(),
 		&block.PutOpts{HashType: ref.GetHash().GetHashType(), ForceBlockRef: ref},
 	)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	if !dlRef.EqualsRef(ref) {
-		return nil, true, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
+		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
 	}
-
-	return data, true, nil
-}
-
-// GetStoredBlock serves the block without refs because this store keeps
-// block bytes without their refs.
-func (b *S3Block) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block.GetBlockWithoutRefs(ctx, b, ref)
+	return &block.StoredBlock{Data: obj.GetData(), Refs: obj.GetRefs(), RefsKnown: true}, nil
 }
 
 // GetBlockExists checks if a block exists in the store.
@@ -199,7 +202,8 @@ func (b *S3Block) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRe
 	return out, nil
 }
 
-// StatBlock returns metadata about a block without reading its data.
+// StatBlock returns metadata about a block without reading its data. The size
+// is unknown: the object also holds the block's refs.
 // Returns nil, nil if the block does not exist.
 func (b *S3Block) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	if ref.GetEmpty() {
@@ -209,14 +213,11 @@ func (b *S3Block) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bl
 	refB58 := ref.MarshalString()
 	objectKey := b.objectPrefix + refB58
 
-	size, err := b.client.HeadObject(ctx, b.bucketName, objectKey)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, nil
-		}
+	exists, err := b.getKeyExists(ctx, objectKey)
+	if err != nil || !exists {
 		return nil, err
 	}
-	return &block.BlockStat{Ref: ref, Size: size}, nil
+	return &block.BlockStat{Ref: ref, Size: -1}, nil
 }
 
 // RmBlock deletes a block from the store.
@@ -252,7 +253,16 @@ func (b *S3Block) putBlockData(ctx context.Context, entry *block.PutBatchEntry) 
 	if err != nil {
 		return err
 	}
-	return b.client.PutObject(ctx, b.bucketName, b.objectPrefix+ref.MarshalString(), entry.Data, "application/octet-stream")
+	return b.putObject(ctx, b.objectPrefix+ref.MarshalString(), entry.Data, entry.Refs)
+}
+
+// putObject writes a block with its refs to objectKey.
+func (b *S3Block) putObject(ctx context.Context, objectKey string, data []byte, refs []*block.BlockRef) error {
+	obj, err := (&BlockObject{Data: data, Refs: refs}).MarshalVT()
+	if err != nil {
+		return err
+	}
+	return b.client.PutObject(ctx, b.bucketName, objectKey, obj, "application/octet-stream")
 }
 
 // getKeyExists checks if the given object key exists.

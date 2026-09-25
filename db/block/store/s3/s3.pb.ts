@@ -9,6 +9,7 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
+import { BlockRef } from '../../block.pb.js'
 
 export const protobufPackage = 'block.store.s3'
 
@@ -209,7 +210,7 @@ export interface Config {
   bucketName?: string
   /**
    * ObjectPrefix is the prefix to use for object names.
-   * Object name: {objectPrefix}{blockRefB58}
+   * Object name: {objectPrefix}{blockRefB58}, holding a BlockObject.
    *
    * @generated from field: string object_prefix = 4;
    */
@@ -268,6 +269,42 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
+
+/**
+ * BlockObject is the body of the object that stores one block.
+ *
+ * @generated from message block.store.s3.BlockObject
+ */
+export interface BlockObject {
+  /**
+   * Data is the encoded block.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data?: Uint8Array
+  /**
+   * Refs are the block's outgoing refs. Empty means a leaf.
+   *
+   * @generated from field: repeated block.BlockRef refs = 2;
+   */
+  refs?: BlockRef[]
+}
+
+export const BlockObject: MessageType<BlockObject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.store.s3.BlockObject',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ObjectUsage is the count and total size of the objects under a prefix.
