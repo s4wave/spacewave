@@ -744,9 +744,10 @@ export const LazyValue = "loaded from public plugin split chunk"
 		t.Fatal(err)
 	}
 	entrypointSource := string(entrypointData)
-	if !strings.Contains(entrypointSource, "export default function main(api)") ||
-		!strings.Contains(entrypointSource, "return runGoScriptPlugin") {
-		t.Fatalf("entrypoint does not return the GoScript startup lifecycle: %s", entrypointSource)
+	if !strings.Contains(entrypointSource, "export default function main(api, _abortSignal, env)") ||
+		!strings.Contains(entrypointSource, "return runGoScriptPlugin") ||
+		!strings.Contains(entrypointSource, ".main, env)") {
+		t.Fatalf("entrypoint does not forward the env and return the GoScript startup lifecycle: %s", entrypointSource)
 	}
 	assertInputsContainPaths(t, inputs, mainPath, lazyPath)
 	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, true, true, inputs)

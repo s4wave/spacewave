@@ -37,6 +37,31 @@ describe('plugin-goscript generation lifecycle', () => {
     await expect(Promise.resolve(lifecycle.done)).rejects.toBe(err)
   })
 
+  it('exposes the runtime env to the plugin before Go starts', async () => {
+    const api = buildBackendAPI()
+    const host = globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> }
+    }
+    const originalEnv = host.process?.env
+    try {
+      const storageMode = Promise.withResolvers<string | undefined>()
+      main(
+        api,
+        async () => async () => {
+          storageMode.resolve(host.process?.env?.BLDR_BROWSER_STORAGE)
+          await new Promise<void>(() => {})
+        },
+        { BLDR_BROWSER_STORAGE: 'indexeddb' },
+      )
+
+      await expect(storageMode.promise).resolves.toBe('indexeddb')
+    } finally {
+      if (host.process) {
+        host.process.env = originalEnv
+      }
+    }
+  })
+
   it('publishes startup only after the GoScript runtime accepts streams', async () => {
     const api = buildBackendAPI()
     const lifecycle = main(api, async () => async () => {

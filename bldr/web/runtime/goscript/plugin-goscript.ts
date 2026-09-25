@@ -30,6 +30,9 @@ declare global {
 }
 
 const globalScope = globalThis
+// goScriptHost is the process shape GoScript's os package reads its env from.
+const goScriptHost: { process?: { env?: Record<string, string | undefined> } } =
+  globalThis
 const baseURL = import.meta?.url
 globalScope.BLDR_BASE_URL = baseURL
 
@@ -44,12 +47,19 @@ class GoScriptPluginGeneration {
     void this.done.promise.catch(() => {})
   }
 
+  // start runs the plugin's Go main once its host configuration is installed.
+  // GoScript's os.Getenv reads process.env, so env is merged there first.
   public start(
     startInfo: PluginStartInfo,
     loadPluginMain: GoScriptPluginMainLoader,
+    env: Record<string, string> | undefined,
   ): BackendEntrypointLifecycle {
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
+    if (env) {
+      const host = (goScriptHost.process ??= {})
+      host.env = { ...host.env, ...env }
+    }
 
     void Promise.resolve()
       .then(() => loadPluginMain())
@@ -145,6 +155,7 @@ class GoScriptPluginGeneration {
 export default function main(
   api: BackendAPI,
   loadPluginMain: GoScriptPluginMainLoader,
+  env?: Record<string, string>,
 ): BackendEntrypointLifecycle {
   const generation = new GoScriptPluginGeneration(api)
 
@@ -220,7 +231,7 @@ export default function main(
     generation.setAcceptStream(acceptStrm)
   }
 
-  return generation.start(api.startInfo, loadPluginMain)
+  return generation.start(api.startInfo, loadPluginMain, env)
 }
 
 class BrowserMessagePortDuplex {

@@ -156,15 +156,17 @@ func buildWebGoScriptPluginScript(
 		return nil, err
 	}
 	mainImport := "@goscript/" + strings.Trim(mainPackagePath, "/") + "/plugin.gs.js"
+	// The entrypoint forwards the runtime env, which carries the document's
+	// storage selection, so the plugin's os.Getenv sees it.
 	entrypoint := "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n" +
 		"import { main as pluginMain } from " + strconv.Quote(mainImport) + "\n\n" +
-		"export default function main(api) {\n" +
-		"  return runGoScriptPlugin(api, () => Promise.resolve(pluginMain))\n" +
+		"export default function main(api, _abortSignal, env) {\n" +
+		"  return runGoScriptPlugin(api, () => Promise.resolve(pluginMain), env)\n" +
 		"}\n"
 	if codeSplitting {
 		entrypoint = "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n\n" +
-			"export default function main(api) {\n" +
-			"  return runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main)\n" +
+			"export default function main(api, _abortSignal, env) {\n" +
+			"  return runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main, env)\n" +
 			"}\n"
 	}
 	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {
