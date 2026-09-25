@@ -957,6 +957,7 @@ func (h *FSHandle) Release() {
 	if err == nil {
 		inode.removeRefLocked(h)
 		rel()
+		inode.releaseParentsIfNecessary()
 	}
 	for {
 		relCb := h.relCbs.Pop()
