@@ -295,7 +295,7 @@ func newStorageListCommand(statePath *string, sessionIdx *uint) *cli.Command {
 func newStorageTestCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	return &cli.Command{
 		Name:      "test",
-		Usage:     "write, read, and delete a probe object in a backend",
+		Usage:     "check a backend with a probe object and measure what it holds",
 		ArgsUsage: "<name>",
 		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
@@ -317,7 +317,7 @@ func newStorageTestCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				if err := checkResultError(resp.GetResult()); err != nil {
 					return err
 				}
-				os.Stdout.WriteString(backend.GetDisplayName() + ": ok\n")
+				os.Stdout.WriteString(backend.GetDisplayName() + ": ok, " + formatObjectUsage(resp.GetResult()) + "\n")
 				return nil
 			})
 		},
@@ -587,6 +587,21 @@ func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) strin
 		desc += ": " + uploadErr
 	}
 	return desc
+}
+
+// formatObjectUsage describes what a passing check measured under the
+// backend's prefix.
+func formatObjectUsage(result *block_store_s3.CheckResult) string {
+	usage := result.GetUsage()
+	if usage == nil {
+		return "stored size unknown (" + result.GetUsageError() + ")"
+	}
+	objects := " objects"
+	if usage.GetObjects() == 1 {
+		objects = " object"
+	}
+	return "holds " + formatByteCount(usage.GetBytes()) + " in " +
+		strconv.FormatInt(usage.GetObjects(), 10) + objects
 }
 
 // formatByteCount renders a byte count with a binary unit.

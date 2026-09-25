@@ -75,10 +75,34 @@ describe('describeStorageCheck', () => {
     expect(describeStorageCheck(result, false).showCors).toBe(false)
   })
 
-  it('reports a passing check as connected', () => {
+  it('reports a passing check as connected with the stored size', () => {
     expect(
-      describeStorageCheck({ outcome: CheckOutcome.OK }, true),
-    ).toMatchObject({ ok: true, title: 'Connected' })
+      describeStorageCheck(
+        {
+          outcome: CheckOutcome.OK,
+          usage: { objects: 928n, bytes: 3_716_268n },
+        },
+        true,
+      ),
+    ).toMatchObject({
+      ok: true,
+      title: 'Connected',
+      usage: '3.5 MiB in 928 objects',
+      usageDetail: '',
+    })
+  })
+
+  it('keeps a passing check when the listing fails', () => {
+    expect(
+      describeStorageCheck(
+        { outcome: CheckOutcome.OK, usageError: 'list: status 403' },
+        true,
+      ),
+    ).toMatchObject({
+      ok: true,
+      usage: '',
+      usageDetail: 'list: status 403',
+    })
   })
 })
 

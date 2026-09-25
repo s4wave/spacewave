@@ -148,6 +148,11 @@ export interface StorageCheckView {
   showCors: boolean
   // detail is the failing step and the server's message.
   detail: string
+  // usage is what the bucket holds under the prefix, empty when the check
+  // failed or the listing did not complete.
+  usage: string
+  // usageDetail is why the usage is unknown, empty when it is known.
+  usageDetail: string
 }
 
 // describeStorageCheck words a check result as an actionable row. inBrowser
@@ -164,6 +169,8 @@ export function describeStorageCheck(
     action,
     showCors,
     detail,
+    usage: '',
+    usageDetail: '',
   })
   switch (result?.outcome) {
     case CheckOutcome.OK:
@@ -173,6 +180,10 @@ export function describeStorageCheck(
         action: '',
         showCors: false,
         detail,
+        usage: result.usage
+          ? `${formatBytes(result.usage.bytes)} in ${plural(Number(result.usage.objects ?? 0n), 'object')}`
+          : '',
+        usageDetail: result.usage ? '' : (result.usageError ?? ''),
       }
     case CheckOutcome.UNREACHABLE:
       return inBrowser

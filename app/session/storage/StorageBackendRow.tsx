@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { LuPlugZap, LuStar, LuStarOff, LuTrash2 } from 'react-icons/lu'
 import { isDesktop } from '@aptre/bldr'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -23,8 +23,9 @@ interface StorageBackendRowProps {
   isDefault: boolean
 }
 
-// StorageBackendRow shows one storage backend, the upload state of each
-// Space placed on it, and its check, default, and remove actions.
+// StorageBackendRow shows one storage backend with its check result and
+// stored size, the upload state of each Space placed on it, and its check,
+// default, and remove actions.
 export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
@@ -60,6 +61,12 @@ export function StorageBackendRow({ info, isDefault }: StorageBackendRowProps) {
       setCheck(describeStorageCheck(resp.result, !isDesktop))
     }
   }, [id, run, session])
+
+  // Check the bucket once the session is ready, so the row opens with its
+  // health and stored size.
+  useEffect(() => {
+    void handleCheck()
+  }, [handleCheck])
 
   const handleDefault = useCallback(() => {
     if (!session) return

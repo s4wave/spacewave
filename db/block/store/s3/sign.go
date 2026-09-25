@@ -6,7 +6,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -37,13 +39,12 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 	}
 
 	signedHeaders, canonicalHeaders := canonicalRequestHeaders(req)
-	canonicalQuery := req.URL.Query().Encode()
 	canonicalURI := uriEncode(req.URL.Path, false)
 
 	canonicalRequest := strings.Join([]string{
 		req.Method,
 		canonicalURI,
-		canonicalQuery,
+		canonicalQuery(req.URL.Query()),
 		canonicalHeaders,
 		signedHeaders,
 		payloadHash,
@@ -97,6 +98,25 @@ func canonicalRequestHeaders(req *http.Request) (signed string, canonical string
 		sb.WriteString(k)
 	}
 	return sb.String(), hb.String()
+}
+
+// canonicalQuery encodes query with sorted keys and values, percent-encoded
+// per SigV4. The request sends the same string, so the server's canonical
+// form matches the signed one.
+func canonicalQuery(query url.Values) string {
+	keys := slices.Sorted(maps.Keys(query))
+	var b strings.Builder
+	for _, k := range keys {
+		for _, v := range slices.Sorted(slices.Values(query[k])) {
+			if b.Len() != 0 {
+				b.WriteByte('&')
+			}
+			b.WriteString(uriEncode(k, true))
+			b.WriteByte('=')
+			b.WriteString(uriEncode(v, true))
+		}
+	}
+	return b.String()
 }
 
 // uriEncode percent-encodes per AWS S3 SigV4 rules.

@@ -84,4 +84,17 @@ message CheckResult {
   // Detail is the failing step and the server's error message.
   // Empty when Outcome is CHECK_OUTCOME_OK.
   string detail = 2;
+  // Usage is what the bucket holds under the object prefix. Absent when the
+  // check failed or the access key cannot list objects.
+  ObjectUsage usage = 3;
+  // UsageError is why Usage is absent after a passing check.
+  string usage_error = 4;
+}
+
+// ObjectUsage is the count and total size of the objects under a prefix.
+message ObjectUsage {
+  // Objects is the number of objects.
+  int64 objects = 1;
+  // Bytes is the total size of the objects.
+  int64 bytes = 2;
 }

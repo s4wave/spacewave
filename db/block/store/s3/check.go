@@ -17,7 +17,8 @@ var checkProbeData = []byte("spacewave storage check\n")
 
 // CheckBucket writes, reads back, and deletes a probe object under
 // objectPrefix, and classifies the first failure. Every step a block store
-// performs must succeed for the result to be CHECK_OUTCOME_OK.
+// performs must succeed for the result to be CHECK_OUTCOME_OK. A passing check
+// then measures the objects under objectPrefix.
 func CheckBucket(ctx context.Context, client *Client, bucket, objectPrefix string) *CheckResult {
 	key := objectPrefix + ".spacewave-check/" + ulid.NewULID()
 
@@ -47,7 +48,17 @@ func CheckBucket(ctx context.Context, client *Client, bucket, objectPrefix strin
 	if err := client.DeleteObject(ctx, bucket, key); err != nil && !errors.Is(err, ErrNotFound) {
 		return newCheckFailure("delete", err)
 	}
-	return &CheckResult{Outcome: CheckOutcome_CHECK_OUTCOME_OK}
+
+	// Measure the prefix. A block store never lists, so a key without list
+	// permission still passes and only the usage stays unknown.
+	result := &CheckResult{Outcome: CheckOutcome_CHECK_OUTCOME_OK}
+	usage, err := client.SumObjects(ctx, bucket, objectPrefix)
+	if err != nil {
+		result.UsageError = "list: " + err.Error()
+	} else {
+		result.Usage = usage
+	}
+	return result
 }
 
 // newCheckFailure classifies the error from a failed check step.

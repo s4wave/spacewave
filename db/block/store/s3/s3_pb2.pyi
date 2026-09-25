@@ -72,9 +72,21 @@ class Credentials(_message.Message):
     def __init__(self, access_key_id: _Optional[str] = ..., secret_access_key: _Optional[str] = ..., token: _Optional[str] = ...) -> None: ...
 
 class CheckResult(_message.Message):
-    __slots__ = ("outcome", "detail")
+    __slots__ = ("outcome", "detail", "usage", "usage_error")
     OUTCOME_FIELD_NUMBER: _ClassVar[int]
     DETAIL_FIELD_NUMBER: _ClassVar[int]
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    USAGE_ERROR_FIELD_NUMBER: _ClassVar[int]
     outcome: CheckOutcome
     detail: str
-    def __init__(self, outcome: _Optional[_Union[CheckOutcome, str]] = ..., detail: _Optional[str] = ...) -> None: ...
+    usage: ObjectUsage
+    usage_error: str
+    def __init__(self, outcome: _Optional[_Union[CheckOutcome, str]] = ..., detail: _Optional[str] = ..., usage: _Optional[_Union[ObjectUsage, _Mapping]] = ..., usage_error: _Optional[str] = ...) -> None: ...
+
+class ObjectUsage(_message.Message):
+    __slots__ = ("objects", "bytes")
+    OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    BYTES_FIELD_NUMBER: _ClassVar[int]
+    objects: int
+    bytes: int
+    def __init__(self, objects: _Optional[int] = ..., bytes: _Optional[int] = ...) -> None: ...
