@@ -292,6 +292,12 @@ func (d *copyDestination) GetBlock(ctx context.Context, ref *block.BlockRef) ([]
 	return d.inner.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock serves the block without refs because this test store
+// keeps block bytes without their refs.
+func (d *copyDestination) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, d, ref)
+}
+
 // RmBlock removes a destination block.
 func (d *copyDestination) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return d.inner.RmBlock(ctx, ref)

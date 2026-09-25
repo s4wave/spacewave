@@ -62,6 +62,11 @@ func (s *objectCopyStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]
 	return s.inner.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (s *objectCopyStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return s.inner.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks destination presence.
 func (s *objectCopyStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return s.inner.GetBlockExists(ctx, ref)

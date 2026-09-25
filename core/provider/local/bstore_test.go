@@ -59,6 +59,8 @@ var (
 	_ block.StoreOps    = (*batchForwardTestStore)(nil)
 )
 
+// localDEXTestStore stands in for DEX, which serves leaf blocks with their
+// empty refs.
 type localDEXTestStore struct {
 	block.StoreOps
 	requests atomic.Int32
@@ -67,6 +69,15 @@ type localDEXTestStore struct {
 func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	s.requests.Add(1)
 	return s.StoreOps.GetBlock(ctx, ref)
+}
+
+func (s *localDEXTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	s.requests.Add(1)
+	data, found, err := s.StoreOps.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.StoredBlock{Data: data, RefsKnown: true}, nil
 }
 
 var _ block.StoreOps = (*localDEXTestStore)(nil)

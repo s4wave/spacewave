@@ -34,6 +34,9 @@ const (
 	ExistsPath = "exists"
 	// RmPath is the path of the rm endpoint.
 	RmPath = "rm"
+	// RefsQuery is the get endpoint query parameter that requests the
+	// block's refs with its data.
+	RefsQuery = "refs"
 )
 
 // NewHTTPBlock builds a new block store on top of a HTTP service.
@@ -187,49 +190,64 @@ func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 // GetBlock looks up a block in the store.
 // Returns data, found, and any unexpected error.
 func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored, err := b.get(ctx, ref, false)
+	if err != nil || stored == nil {
+		return nil, false, err
+	}
+	return stored.Data, true, nil
+}
+
+// GetStoredBlock looks up a block and its outgoing refs.
+func (b *HTTPBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return b.get(ctx, ref, true)
+}
+
+// get fetches and verifies a block from /get/{ref}, asking for its refs when
+// withRefs is set. Returns nil when the block is not found.
+func (b *HTTPBlock) get(ctx context.Context, ref *block.BlockRef, withRefs bool) (*block.StoredBlock, error) {
 	if ref.GetEmpty() {
-		return nil, false, block.ErrEmptyBlockRef
+		return nil, block.ErrEmptyBlockRef
 	}
 
-	// Getting a block: /get/{ref}
-	refB58 := ref.MarshalString()
-	getURL := b.baseURL.JoinPath(GetPath, refB58)
-
+	getURL := b.baseURL.JoinPath(GetPath, ref.MarshalString())
+	if withRefs {
+		getURL.RawQuery = RefsQuery
+	}
 	req, err := http.NewRequestWithContext(ctx, "GET", getURL.String(), nil)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	resp, err := httplog.DoRequest(b.le, b.client, req, b.verbose)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	// handle 404 not found
+	// A non-200 status still carries a GetResponse, such as not found.
 	if resp.StatusCode != 200 {
 		contentType := resp.Header.Get("content-type")
 		if contentType != "application/vnd.google.protobuf" {
-			return nil, false, errors.New("block get endpoint: " + resp.Status)
+			return nil, errors.New("block get endpoint: " + resp.Status)
 		}
 	}
 
 	getResp := &GetResponse{}
 	if err := getResp.UnmarshalVT(respBody); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	if errStr := getResp.GetErr(); errStr != "" {
-		return nil, false, errors.Wrap(errors.New(errStr), "service returned error")
+		return nil, errors.Wrap(errors.New(errStr), "service returned error")
 	}
 	if getResp.GetNotFound() {
-		return nil, false, nil
+		return nil, nil
 	}
 	data := getResp.GetData()
 	if len(data) == 0 {
-		return nil, false, errors.New("service returned empty data but not found was not set")
+		return nil, errors.New("service returned empty data but not found was not set")
 	}
 
 	// Verify the data matches the block ref.
@@ -238,13 +256,17 @@ func (b *HTTPBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		&block.PutOpts{HashType: ref.GetHash().GetHashType(), ForceBlockRef: ref},
 	)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	if !dlRef.EqualsRef(ref) {
-		return nil, true, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
+		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
 	}
 
-	return data, true, nil
+	return &block.StoredBlock{
+		Data:      data,
+		Refs:      getResp.GetRefs(),
+		RefsKnown: getResp.GetRefsKnown(),
+	}, nil
 }
 
 // GetBlockExists checks if a block exists in the store.

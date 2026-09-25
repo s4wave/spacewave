@@ -85,6 +85,11 @@ func (s *store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 	return s.ops.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner StoreOps.
+func (s *store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return s.ops.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists forwards to the inner StoreOps.
 func (s *store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return s.ops.GetBlockExists(ctx, ref)

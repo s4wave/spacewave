@@ -68,6 +68,11 @@ func (b *bucketRW) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, b
 	return b.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (b *bucketRW) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return b.store.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists forwards to the inner store.
 func (b *bucketRW) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.store.GetBlockExists(ctx, ref)

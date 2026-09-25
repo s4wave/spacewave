@@ -327,15 +327,17 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 			return t.fail(err)
 		}
 
-		data, found, err := srcBlocks.GetBlock(ctx, ref)
+		// A source without refs (cloud packs) copies bytes only; the
+		// transfer lists every block, so none are skipped.
+		stored, err := srcBlocks.GetStoredBlock(ctx, ref)
 		if err != nil {
 			return errors.Wrapf(err, "read block %s", ref.MarshalString())
 		}
-		if !found {
+		if stored == nil {
 			continue
 		}
 
-		if _, _, err := dstBlocks.PutBlock(ctx, data, nil); err != nil {
+		if _, _, err := dstBlocks.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
 			return errors.Wrapf(err, "write block %s", ref.MarshalString())
 		}
 

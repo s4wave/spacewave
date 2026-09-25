@@ -65,6 +65,20 @@ export interface DexMessage {
    * @generated from field: uint32 remaining_hops = 7;
    */
   remainingHops?: number
+  /**
+   * Refs are the block's outgoing references when refs_known is set
+   * (response only). An empty list with refs_known set means a leaf.
+   *
+   * @generated from field: repeated block.BlockRef refs = 8;
+   */
+  refs?: BlockRef[]
+  /**
+   * RefsKnown is false when the responder held the block without its
+   * outgoing references (response only).
+   *
+   * @generated from field: bool refs_known = 9;
+   */
+  refsKnown?: boolean
 }
 
 export const DexMessage: MessageType<DexMessage> =
@@ -78,6 +92,14 @@ export const DexMessage: MessageType<DexMessage> =
       { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'remaining_hops', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 8,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      { no: 9, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

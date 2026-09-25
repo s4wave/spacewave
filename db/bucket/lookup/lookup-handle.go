@@ -141,6 +141,21 @@ func (l *lookupBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	return lb.LookupBlock(ctx, ref)
 }
 
+// GetStoredBlock looks up a block and its refs with the lookup controller.
+func (l *lookupBucket) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	lb, err := l.getLookup(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if lb == nil {
+		return nil, bucket.ErrBucketNotFound
+	}
+	if l.localOnly {
+		return lb.LookupStoredBlock(ctx, ref, WithLocalOnly())
+	}
+	return lb.LookupStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // Note: the block may not be in the specified bucket.
 func (l *lookupBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

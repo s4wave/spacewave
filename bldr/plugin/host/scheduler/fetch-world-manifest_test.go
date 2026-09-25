@@ -4184,6 +4184,16 @@ func (l *testSchedulerStaticLookup) LookupBlock(
 	return l.store.GetBlock(ctx, ref)
 }
 
+// LookupStoredBlock reads the block without refs because this test lookup
+// keeps no ref graph.
+func (l *testSchedulerStaticLookup) LookupStoredBlock(ctx context.Context, ref *block.BlockRef, opts ...bucket_lookup.LookupBlockOption) (*block.StoredBlock, error) {
+	data, found, err := l.LookupBlock(ctx, ref, opts...)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.StoredBlock{Data: data}, nil
+}
+
 func (l *testSchedulerStaticLookup) LookupBlockExistsBatch(
 	ctx context.Context,
 	refs []*block.BlockRef,
@@ -4285,17 +4295,28 @@ func (s *writebackLookupBlockStore) GetBlock(
 	ctx context.Context,
 	ref *block.BlockRef,
 ) ([]byte, bool, error) {
-	data, found, err := s.cache.GetBlock(ctx, ref)
-	if err != nil || found {
-		return data, found, err
+	stored, err := s.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return nil, false, err
+	}
+	return stored.Data, true, nil
+}
+
+func (s *writebackLookupBlockStore) GetStoredBlock(
+	ctx context.Context,
+	ref *block.BlockRef,
+) (*block.StoredBlock, error) {
+	stored, err := s.cache.GetStoredBlock(ctx, ref)
+	if err != nil || stored != nil {
+		return stored, err
 	}
 	s.networkGets.Add(1)
-	data, found, err = s.StoreOps.GetBlock(ctx, ref)
-	if err != nil || !found {
-		return data, found, err
+	stored, err = s.StoreOps.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return stored, err
 	}
-	_, _, err = s.cache.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
-	return data, true, err
+	_, _, err = s.cache.PutBlock(ctx, stored.Data, stored.PutOpts(ref))
+	return stored, err
 }
 
 var _ block.StoreOps = (*writebackLookupBlockStore)(nil)
@@ -4336,6 +4357,12 @@ func (s *countingBlockStore) PutBlockBatch(ctx context.Context, entries []*block
 func (s *countingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	s.gets.Add(1)
 	return s.store.GetBlock(ctx, ref)
+}
+
+// GetStoredBlock serves the block without refs because this test store
+// keeps block bytes without their refs.
+func (s *countingBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
 }
 
 func (s *countingBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

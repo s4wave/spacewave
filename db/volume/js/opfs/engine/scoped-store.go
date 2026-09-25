@@ -28,6 +28,12 @@ func (s *scopedStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 	return data, found, err
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *scopedStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 // getBlock overlays pending content on the protected immutable generation.
 func (s *scopedStore) getBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	entry, err := s.pendingEntry(ctx, ref)

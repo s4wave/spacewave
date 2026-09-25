@@ -16,22 +16,22 @@ func (b *BlockStore) SetRetainedRoot(ctx context.Context, name string, ref *bloc
 
 // PinRoot forwards a reader pin to the underlying store.
 func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
-	// A peer-backed root may not be local yet. Bring its bytes into the
-	// destination before acquiring a local pin; full graph retention remains
-	// the copier's responsibility.
+	// A peer-backed root may not be local yet. Bring its bytes and refs into
+	// the destination before acquiring a local pin; full graph retention
+	// remains the copier's responsibility.
 	found, err := b.store.GetBlockExists(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 	if !found {
-		data, found, err := b.readOwner().GetBlock(ctx, ref)
+		stored, err := b.readOwner().GetStoredBlock(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
-		if !found {
+		if stored == nil {
 			return nil, block.ErrNotFound
 		}
-		if _, _, err := b.store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
+		if _, _, err := b.store.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
 			return nil, err
 		}
 	}

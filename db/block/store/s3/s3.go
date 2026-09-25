@@ -163,6 +163,12 @@ func (b *S3Block) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bo
 	return data, true, nil
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (b *S3Block) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, b, ref)
+}
+
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any unexpected error.
 func (b *S3Block) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

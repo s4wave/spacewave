@@ -94,13 +94,16 @@ func (s *BlockStore) GetBlock(
 	}
 
 	// Read through the underlying owner and encode its result.
-	data, existed, err := s.store.GetBlock(ctx, req.GetRef())
+	stored, err := block.ReadStoredBlock(ctx, s.store, req.GetRef(), req.GetWithRefs())
 	resp := &block_rpc.GetBlockResponse{}
-	if err != nil {
+	switch {
+	case err != nil:
 		resp.Error = err.Error()
-	} else {
-		resp.Data = data
-		resp.Exists = existed
+	case stored != nil:
+		resp.Exists = true
+		resp.Data = stored.Data
+		resp.Refs = stored.Refs
+		resp.RefsKnown = stored.RefsKnown
 	}
 	return resp, nil
 }

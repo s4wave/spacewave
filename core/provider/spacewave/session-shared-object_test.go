@@ -17,11 +17,13 @@ import (
 )
 
 type sessionLookupTestLower struct {
-	data      []byte
-	blocks    map[string][]byte
-	getCalls  atomic.Int32
-	putCalls  atomic.Int32
-	writable  bool
+	data     []byte
+	blocks   map[string][]byte
+	getCalls atomic.Int32
+	putCalls atomic.Int32
+	writable bool
+	// refsKnown serves blocks as leaves from GetStoredBlock, as DEX does.
+	refsKnown bool
 	beforeGet func()
 }
 
@@ -72,6 +74,16 @@ func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef
 		return nil, false, nil
 	}
 	return data, true, nil
+}
+
+// GetStoredBlock serves blocks as leaves when refsKnown is set, and otherwise
+// without refs like a byte-only store.
+func (s *sessionLookupTestLower) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, err := block.GetBlockWithoutRefs(ctx, s, ref)
+	if stored != nil {
+		stored.RefsKnown = s.refsKnown
+	}
+	return stored, err
 }
 
 func (s *sessionLookupTestLower) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
@@ -171,10 +183,12 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	}
 
 	direct1 := &sessionLookupTestLower{
-		blocks: map[string][]byte{refDirect.MarshalString(): []byte("session-one")},
+		blocks:    map[string][]byte{refDirect.MarshalString(): []byte("session-one")},
+		refsKnown: true,
 	}
 	direct2 := &sessionLookupTestLower{
-		blocks: map[string][]byte{refDirect.MarshalString(): []byte("session-two")},
+		blocks:    map[string][]byte{refDirect.MarshalString(): []byte("session-two")},
+		refsKnown: true,
 	}
 
 	cache1 := &sessionLookupTestLower{

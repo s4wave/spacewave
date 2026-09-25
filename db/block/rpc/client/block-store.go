@@ -163,6 +163,28 @@ func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return resp.GetData(), resp.GetExists(), nil
 }
 
+// GetStoredBlock gets a block and its outgoing refs.
+func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	resp, err := v.client.GetBlock(ctx, &block_rpc.GetBlockRequest{
+		Ref:      ref.Clone(),
+		WithRefs: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if errStr := resp.GetError(); errStr != "" {
+		return nil, errors.New(errStr)
+	}
+	if !resp.GetExists() {
+		return nil, nil
+	}
+	return &block.StoredBlock{
+		Data:      resp.GetData(),
+		Refs:      resp.GetRefs(),
+		RefsKnown: resp.GetRefsKnown(),
+	}, nil
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

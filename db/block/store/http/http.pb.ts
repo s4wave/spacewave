@@ -177,6 +177,19 @@ export interface GetResponse {
    * @generated from field: string err = 3;
    */
   err?: string
+  /**
+   * Refs are the block's outgoing refs when the request asked for refs and
+   * refs_known is set. Empty with refs_known set means a leaf.
+   *
+   * @generated from field: repeated block.BlockRef refs = 4;
+   */
+  refs?: BlockRef[]
+  /**
+   * RefsKnown indicates the store recorded the block's outgoing refs.
+   *
+   * @generated from field: bool refs_known = 5;
+   */
+  refsKnown?: boolean
 }
 
 export const GetResponse: MessageType<GetResponse> =
@@ -186,6 +199,14 @@ export const GetResponse: MessageType<GetResponse> =
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      { no: 5, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

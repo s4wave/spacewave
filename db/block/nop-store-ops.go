@@ -60,6 +60,11 @@ func (NopStoreOps) GetBlock(context.Context, *BlockRef) ([]byte, bool, error) {
 	return nil, false, nil
 }
 
+// GetStoredBlock returns a missing block.
+func (NopStoreOps) GetStoredBlock(context.Context, *BlockRef) (*StoredBlock, error) {
+	return nil, nil
+}
+
 // GetBlockExists returns false.
 func (NopStoreOps) GetBlockExists(context.Context, *BlockRef) (bool, error) {
 	return false, nil

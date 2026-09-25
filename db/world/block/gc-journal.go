@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	stderrors "errors"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -157,6 +158,29 @@ func (j *gcJournal) Iterate(ctx context.Context, cb func(adds, removes []block_g
 		}
 		return cb(adds, removes)
 	})
+}
+
+// GetPendingOutgoingRefs scans the journal for edges from node. Journal order
+// applies each removal after earlier additions.
+func (j *gcJournal) GetPendingOutgoingRefs(ctx context.Context, node string) ([]string, error) {
+	var targets []string
+	err := j.Iterate(ctx, func(adds, removes []block_gc.RefEdge) error {
+		for _, edge := range adds {
+			if edge.Subject == node {
+				targets = append(targets, edge.Object)
+			}
+		}
+		for _, edge := range removes {
+			if edge.Subject == node {
+				targets = slices.DeleteFunc(targets, func(target string) bool { return target == edge.Object })
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return targets, nil
 }
 
 // Take returns up to maxEntries and maxEdges journal entries in sequence order.

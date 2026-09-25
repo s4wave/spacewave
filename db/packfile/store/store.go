@@ -355,6 +355,12 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 	return nil, false, nil
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeCount int, targetHit bool) {
 	var notify func()
 	s.mtx.Lock()

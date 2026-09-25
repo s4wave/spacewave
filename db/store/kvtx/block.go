@@ -47,6 +47,11 @@ func (k *KVTx) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool,
 	return k.blk.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (k *KVTx) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return k.blk.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

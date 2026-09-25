@@ -125,55 +125,58 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 	}
 
 	// Check the local bucket before forwarding.
-	// Check local store first.
-	data, found, err := s.lookupLocalBlock(ctx, ref)
+	local, err := s.lookupLocalBlock(ctx, ref)
 	if err != nil {
 		resp.Error = err.Error()
 		return
 	}
-	if found {
-		resp.Found = true
-		resp.Data = data
+	if local != nil {
+		resp.SetBlock(local)
 		return
 	}
 
-	// Forward unresolved requests while hops remain.
 	// Forward to other peers if hops remain.
 	// Clamp to configured max so a malicious peer cannot amplify traffic.
 	maxHops := s.c.cc.GetMaxForwardHops()
 	hops := min(req.GetRemainingHops(), maxHops)
 	if hops > 0 {
-		data, found = s.c.forwardToPeers(ctx, ref, hops-1, s)
-		if found {
-			resp.Found = true
-			resp.Data = data
+		if found := s.c.forwardToPeers(ctx, ref, hops-1, s); found != nil {
+			resp.SetBlock(found)
 		}
 	}
 }
 
-// lookupLocalBlock looks up a block in the local bucket store only.
-func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+// lookupLocalBlock looks up a block and its refs in the local bucket store
+// only. Returns nil when the block is not found.
+func (s *peerSession) lookupLocalBlock(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
 	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, s.c.b, false, s.c.cc.GetBucketId(), nil)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	defer lkRel.Release()
 
 	lk, err := lkv.GetLookup(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	if lk == nil {
-		return nil, false, nil
+	if err != nil || lk == nil {
+		return nil, err
 	}
 
-	return lk.LookupBlock(ctx, ref, bucket_lookup.WithLocalOnly())
+	stored, err := lk.LookupStoredBlock(ctx, ref, bucket_lookup.WithLocalOnly())
+	if err != nil || stored == nil {
+		return nil, err
+	}
+	return &DexMessage{
+		Found:     true,
+		Data:      stored.Data,
+		Refs:      stored.Refs,
+		RefsKnown: stored.RefsKnown,
+	}, nil
 }
 
-// requestBlock sends a block request and waits for the response.
-func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32) ([]byte, bool, error) {
+// requestBlock sends a block request and waits for the response. Returns the
+// verified response, or nil when the peer does not have the block.
+func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hops uint32) (*DexMessage, error) {
 	if s.closed.Load() {
-		return nil, false, errors.New("session closed")
+		return nil, errors.New("session closed")
 	}
 
 	// Register the pending request before sending it.
@@ -182,7 +185,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 	s.mtx.Lock()
 	if s.closed.Load() {
 		s.mtx.Unlock()
-		return nil, false, errors.New("session closed")
+		return nil, errors.New("session closed")
 	}
 	s.pending[id] = ch
 	s.mtx.Unlock()
@@ -199,30 +202,29 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		RemainingHops: hops,
 	}
 	if err := s.sendMsg(req); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// Await the response or request cancellation.
 	select {
 	case <-ctx.Done():
-		return nil, false, ctx.Err()
+		return nil, ctx.Err()
 	case resp := <-ch:
 		if resp == nil {
-			return nil, false, errors.New("session closed")
+			return nil, errors.New("session closed")
 		}
 		if resp.GetError() != "" {
-			return nil, false, errors.New(resp.GetError())
+			return nil, errors.New(resp.GetError())
 		}
 		if !resp.GetFound() {
-			return nil, false, nil
+			return nil, nil
 		}
 
 		// Verify returned block data before reporting success.
-		data := resp.GetData()
-		if err := ref.VerifyData(data, true); err != nil {
-			return data, false, err
+		if err := ref.VerifyData(resp.GetData(), true); err != nil {
+			return nil, err
 		}
-		return data, true, nil
+		return resp, nil
 	}
 }
 

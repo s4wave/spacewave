@@ -986,3 +986,48 @@ func (r *recordingRefGraph) Close() error {
 
 // _ is a type assertion
 var _ RefGraphOps = (*recordingRefGraph)(nil)
+
+func TestGCStoreOpsGetStoredBlock(t *testing.T) {
+	env := newGCTestEnv(t)
+	child := env.putBlock(t, "child")
+	data := []byte("parent")
+	parent, _, err := env.gcStore.PutBlock(env.ctx, data, &block.PutOpts{Refs: []*block.BlockRef{child}})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	check := func(stage string) {
+		t.Helper()
+		got, err := env.gcStore.GetStoredBlock(env.ctx, parent)
+		if err != nil || got == nil || string(got.Data) != string(data) || !got.RefsKnown {
+			t.Fatalf("%s: parent = %+v/%v", stage, got, err)
+		}
+		if len(got.Refs) != 1 || !got.Refs[0].EqualsRef(child) {
+			t.Fatalf("%s: parent refs = %v, want [%v]", stage, got.Refs, child)
+		}
+		got, err = env.gcStore.GetStoredBlock(env.ctx, child)
+		if err != nil || got == nil || !got.RefsKnown || len(got.Refs) != 0 {
+			t.Fatalf("%s: child = %+v/%v, want leaf", stage, got, err)
+		}
+	}
+	check("buffered")
+	env.flush(t)
+	check("flushed")
+
+	targets, err := env.refGraph.GetOutgoingRefs(env.ctx, BlockIRI(parent))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Equal(targets, []string{BlockIRI(child)}) {
+		t.Fatalf("ref graph targets = %v, want [%s]", targets, BlockIRI(child))
+	}
+
+	missing, err := block.BuildBlockRef([]byte("missing"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	got, err := env.gcStore.GetStoredBlock(env.ctx, missing)
+	if err != nil || got != nil {
+		t.Fatalf("missing = %+v/%v, want not found", got, err)
+	}
+}

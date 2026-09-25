@@ -97,6 +97,16 @@ func (l *queueTestLookup) LookupBlock(
 	return nil, false, nil
 }
 
+// LookupStoredBlock reads the block without refs because this test lookup
+// keeps no ref graph.
+func (l *queueTestLookup) LookupStoredBlock(ctx context.Context, ref *block.BlockRef, opts ...bucket_lookup.LookupBlockOption) (*block.StoredBlock, error) {
+	data, found, err := l.LookupBlock(ctx, ref, opts...)
+	if err != nil || !found {
+		return nil, err
+	}
+	return &block.StoredBlock{Data: data}, nil
+}
+
 func (l *queueTestLookup) LookupBlockExistsBatch(
 	_ context.Context,
 	refs []*block.BlockRef,

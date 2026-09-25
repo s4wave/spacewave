@@ -152,6 +152,12 @@ func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return b.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock reads the block without its refs because cloud packs hold
+// block bytes without their refs.
+func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, b, ref)
+}
+
 // GetBlockExists forwards to the inner store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.store.GetBlockExists(ctx, ref)
@@ -562,12 +568,36 @@ func (s *sourceTrackingStore) BeginReadOperation(ctx context.Context) (block.Sto
 
 // GetBlock records the cache, direct, or Cloud source of a successful read.
 func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	var data []byte
+	found, err := s.track(ctx, ref, func() (bool, error) {
+		var found bool
+		var err error
+		data, found, err = s.StoreOps.GetBlock(ctx, ref)
+		return found, err
+	})
+	return data, found, err
+}
+
+// GetStoredBlock records the cache, direct, or Cloud source of a successful
+// read.
+func (s *sourceTrackingStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	var stored *block.StoredBlock
+	_, err := s.track(ctx, ref, func() (bool, error) {
+		var err error
+		stored, err = s.StoreOps.GetStoredBlock(ctx, ref)
+		return stored != nil, err
+	})
+	return stored, err
+}
+
+// track runs one demand read and records its source when it finds the block.
+func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, read func() (bool, error)) (bool, error) {
 	cached := false
 	if s.upperCache {
 		var err error
 		cached, err = s.GetBlockExists(ctx, ref)
 		if err != nil {
-			return nil, false, err
+			return false, err
 		}
 	}
 	if s.demandStarted != nil {
@@ -578,16 +608,16 @@ func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef)
 			}
 		}()
 	}
-	data, found, err := s.StoreOps.GetBlock(ctx, ref)
+	found, err := read()
 	if err != nil || !found {
-		return data, found, err
+		return found, err
 	}
 	source := s.source
 	if cached {
 		source = SyncTelemetryBlockSourceCache
 	}
 	s.account.recordSyncTelemetryBlockSource(s.bstoreID, source)
-	return data, true, nil
+	return true, nil
 }
 
 // BuildBlockStoreOpener builds a packfile Opener for a given block store ID.

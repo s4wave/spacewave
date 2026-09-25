@@ -134,6 +134,11 @@ func (s *SuppliedBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) 
 	return s.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (s *SuppliedBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return s.store.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists forwards to the supplied store.
 func (s *SuppliedBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return s.store.GetBlockExists(ctx, ref)

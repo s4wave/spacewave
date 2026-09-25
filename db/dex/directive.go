@@ -19,24 +19,37 @@ type LookupBlockFromNetwork interface {
 }
 
 // LookupBlockFromNetworkValue is the result type for LookupBlockFromNetwork.
-// Contains: error, data, ref, bucket id, source peer id, source volume id (?)
 type LookupBlockFromNetworkValue interface {
 	// GetError returns any error.
 	GetError() error
 	// GetData returns the returned data.
 	// Returns nil if not found.
 	GetData() []byte
+	// GetRefs returns the block's outgoing refs when GetRefsKnown is set.
+	GetRefs() []*block.BlockRef
+	// GetRefsKnown returns false when the source held the bytes without
+	// their refs.
+	GetRefsKnown() bool
 }
 
 // lookupBlockFromNetworkValue implements LookupBlockFromNetworkValue
 type lookupBlockFromNetworkValue struct {
-	err  error
-	data []byte
+	err       error
+	data      []byte
+	refs      []*block.BlockRef
+	refsKnown bool
 }
 
-// NewLookupBlockFromNetworkValue builds a new LookupBlockFromNetworkValue.
+// NewLookupBlockFromNetworkValue builds a LookupBlockFromNetworkValue whose
+// refs are unknown.
 func NewLookupBlockFromNetworkValue(data []byte, err error) LookupBlockFromNetworkValue {
 	return &lookupBlockFromNetworkValue{data: data, err: err}
+}
+
+// NewLookupBlockFromNetworkValueWithRefs builds a LookupBlockFromNetworkValue
+// for a found block and its outgoing refs.
+func NewLookupBlockFromNetworkValueWithRefs(data []byte, refs []*block.BlockRef) LookupBlockFromNetworkValue {
+	return &lookupBlockFromNetworkValue{data: data, refs: refs, refsKnown: true}
 }
 
 // GetError returns any error.
@@ -48,6 +61,17 @@ func (v *lookupBlockFromNetworkValue) GetError() error {
 // Returns nil if not found.
 func (v *lookupBlockFromNetworkValue) GetData() []byte {
 	return v.data
+}
+
+// GetRefs returns the block's outgoing refs when GetRefsKnown is set.
+func (v *lookupBlockFromNetworkValue) GetRefs() []*block.BlockRef {
+	return v.refs
+}
+
+// GetRefsKnown returns false when the source held the bytes without their
+// refs.
+func (v *lookupBlockFromNetworkValue) GetRefsKnown() bool {
+	return v.refsKnown
 }
 
 // NewLookupBlockFromNetwork constructs an LookupBlockFromNetwork.

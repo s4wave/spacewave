@@ -92,6 +92,12 @@ func (s *benchBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]
 	return data, found, err
 }
 
+// GetStoredBlock serves the block without refs because this test store
+// keeps block bytes without their refs.
+func (s *benchBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 func (s *benchBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	found, err := s.inner.GetBlockExists(ctx, ref)
 	if err == nil {

@@ -51,16 +51,44 @@ func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock fans the request out to the controller's current peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	found := s.fetch(ctx, ref)
+	if found == nil {
+		return nil, false, nil
+	}
+	return found.GetData(), true, nil
+}
+
+// GetStoredBlock fans the request out to the controller's current peer
+// sessions. RefsKnown is unset when the answering peer held the block without
+// its refs.
+func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	found := s.fetch(ctx, ref)
+	if found == nil {
+		return nil, nil
+	}
+	return &block.StoredBlock{
+		Data:      found.GetData(),
+		Refs:      found.GetRefs(),
+		RefsKnown: found.GetRefsKnown(),
+	}, nil
+}
+
+// fetch requests a block from the current peer sessions. Returns nil when no
+// peer has the block.
+func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) *DexMessage {
 	sessions := s.controller.snapshotSessions()
-	data, found := peerBlockFanout{
+	found := peerBlockFanout{
 		sessions: sessions,
 		ref:      ref,
 		hops:     s.controller.cc.GetMaxForwardHops(),
 	}.run(ctx)
-	if !found {
-		s.controller.le.WithField("session-count", len(sessions)).WithField("ref", ref.String()).Debug("dex block unavailable")
+	if found == nil {
+		s.controller.le.
+			WithField("session-count", len(sessions)).
+			WithField("ref", ref.String()).
+			Debug("dex block unavailable")
 	}
-	return data, found, nil
+	return found
 }
 
 // GetBlockExists checks whether any connected peer has the block.
@@ -91,4 +119,5 @@ func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bloc
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
+// _ is a type assertion
 var _ block.StoreOps = (*Store)(nil)

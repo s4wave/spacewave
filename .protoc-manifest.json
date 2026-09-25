@@ -1595,7 +1595,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/rpc": {
-      "hash": "bfdb9bb2883252f93e9e4aae899612db32bdc6dee6b08dd7c005b8aa8d582842",
+      "hash": "daaa46184b5f48a8b99a27e502fc0e240bb9541acfc8002ac2e153a8d2a653b9",
       "generatedFiles": [
         "db/block/rpc/block.pb.go",
         "db/block/rpc/block.pb.ts",
@@ -1617,7 +1617,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/http": {
-      "hash": "97b64d13e6ad1be7c9852ba83930df3b6c22d798744ea21956f147e3be18f3f7",
+      "hash": "91d82e951181726e62df18f8103c740cb6c28adfc101a5dc4f7de5983aca0515",
       "generatedFiles": [
         "db/block/store/http/http.pb.go",
         "db/block/store/http/http.pb.ts"
@@ -1957,7 +1957,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/dex/solicit": {
-      "hash": "1c71eba91fde587c906861d6b1efce9c3daa8d08399c28dae3b4c7e856ae54f2",
+      "hash": "e40d6372a9f35c6fc5c5c18f267bf8ad2951eae306c5e720df6cdb5799aefb70",
       "generatedFiles": [
         "db/dex/solicit/config.pb.go",
         "db/dex/solicit/config.pb.ts",

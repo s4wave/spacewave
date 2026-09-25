@@ -100,6 +100,11 @@ func (m *MarkingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	return m.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (m *MarkingStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return m.store.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists.
 func (m *MarkingStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return m.store.GetBlockExists(ctx, ref)

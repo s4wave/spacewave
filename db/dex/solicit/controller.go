@@ -206,9 +206,9 @@ func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession
 }
 
 // forwardToPeers forwards a block request to other connected peers,
-// excluding the session that originated the request. Returns (data, true)
-// on first successful response.
-func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) ([]byte, bool) {
+// excluding the session that originated the request. Returns the first
+// verified response, or nil when no peer has the block.
+func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) *DexMessage {
 	var sessions []*peerSession
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, s := range c.sessions {
@@ -217,10 +217,6 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 			}
 		}
 	})
-	if len(sessions) == 0 {
-		return nil, false
-	}
-
 	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 }
 
@@ -267,79 +263,57 @@ type lookupResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// Snapshot connected peer sessions.
-	var sessions []*peerSession
-	r.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, s := range r.c.sessions {
-			sessions = append(sessions, s)
-		}
-	})
-
-	// Query peers and emit the first successful block.
-	data, found := r.queryPeers(ctx, sessions)
-	if !found {
-		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
-		return nil
-	}
-
-	handler.AddValue(dex.NewLookupBlockFromNetworkValue(data, nil))
-	return nil
-}
-
-// queryPeers queries all sessions in parallel for the block.
-// Returns (data, true) on first successful response.
-func (r *lookupResolver) queryPeers(ctx context.Context, sessions []*peerSession) ([]byte, bool) {
-	if len(sessions) == 0 {
-		return nil, false
-	}
-
-	return peerBlockFanout{
-		sessions: sessions,
+	found := peerBlockFanout{
+		sessions: r.c.snapshotSessions(),
 		ref:      r.ref,
 		hops:     r.c.cc.GetMaxForwardHops(),
 	}.run(ctx)
+	switch {
+	case found == nil:
+		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
+	case found.GetRefsKnown():
+		handler.AddValue(dex.NewLookupBlockFromNetworkValueWithRefs(found.GetData(), found.GetRefs()))
+	default:
+		handler.AddValue(dex.NewLookupBlockFromNetworkValue(found.GetData(), nil))
+	}
+	return nil
 }
 
+// peerBlockFanout requests one block from several peer sessions at once.
 type peerBlockFanout struct {
 	sessions []*peerSession
 	ref      *block.BlockRef
 	hops     uint32
 }
 
-type peerBlockFanoutResult struct {
-	data  []byte
-	found bool
-}
-
-func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
+// run requests the block from every session under a bounded timeout. Returns
+// the first verified response, or nil when no peer has the block.
+func (f peerBlockFanout) run(ctx context.Context) *DexMessage {
+	if len(f.sessions) == 0 {
+		return nil
+	}
 	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
 	defer reqCancel()
 
-	// Fan out the request with a bounded timeout.
-	results := make(chan peerBlockFanoutResult, len(f.sessions))
+	// Fan out the request to every session.
+	results := make(chan *DexMessage, len(f.sessions))
 	for _, sess := range f.sessions {
-		go func(sess *peerSession) {
-			data, found, err := sess.requestBlock(reqCtx, f.ref, f.hops)
+		go func() {
+			resp, err := sess.requestBlock(reqCtx, f.ref, f.hops)
 			if err != nil {
 				sess.le.WithError(err).Debug("dex block request failed")
 			}
-			if err != nil || !found {
-				results <- peerBlockFanoutResult{}
-				return
-			}
-			results <- peerBlockFanoutResult{data: data, found: true}
-		}(sess)
+			results <- resp
+		}()
 	}
 
 	// Return the first successful peer response.
 	for range f.sessions {
-		res := <-results
-		if res.found {
-			reqCancel()
-			return res.data, true
+		if resp := <-results; resp != nil {
+			return resp
 		}
 	}
-	return nil, false
+	return nil
 }
 
 // _ is a type assertion

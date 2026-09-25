@@ -303,30 +303,37 @@ func copyBlockWithTransform(
 		if !found {
 			return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
 		}
+	}
+
+	// Decode before writing so the write records the block's refs. No
+	// constructor means we can't traverse children (leaf copy).
+	var blk block.Block
+	if ctor != nil {
+		decoded := data
+		if xfrm != nil {
+			decoded, err = xfrm.DecodeBlock(data)
+			if err != nil {
+				return errors.Wrapf(err, "decode block: %s", refStr)
+			}
+		}
+		blk = ctor()
+		if err := blk.UnmarshalBlock(decoded); err != nil {
+			return errors.Wrapf(err, "unmarshal block: %s", refStr)
+		}
+	}
+	if !exists {
+		refs, err := block.ExtractBlockRefs(blk)
+		if err != nil {
+			return errors.Wrapf(err, "get block refs: %s", refStr)
+		}
 
 		// Write raw data to dest and require content identity.
-		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
+		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs}); err != nil {
 			return errors.Wrapf(err, "put block: %s", refStr)
 		}
 	}
-
-	// No constructor means we can't traverse children (leaf copy).
-	if ctor == nil {
+	if blk == nil {
 		return nil
-	}
-
-	// Decode for protobuf unmarshal (decompress if needed).
-	decoded := data
-	if xfrm != nil {
-		decoded, err = xfrm.DecodeBlock(data)
-		if err != nil {
-			return errors.Wrapf(err, "decode block: %s", refStr)
-		}
-	}
-
-	blk := ctor()
-	if err := blk.UnmarshalBlock(decoded); err != nil {
-		return errors.Wrapf(err, "unmarshal block: %s", refStr)
 	}
 
 	return followBlockGraphWithTransform(ctx, blk, src, dest, xfrm, visited)
@@ -430,6 +437,12 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 		return nil, false, nil
 	}
 	return resp.GetData(), true, nil
+}
+
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *streamStoreOps) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
 }
 
 // GetBlockExists checks if a block exists.

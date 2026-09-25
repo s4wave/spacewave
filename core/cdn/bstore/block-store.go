@@ -202,6 +202,12 @@ func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 	return data, found, err
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *CdnBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 // GetBlockExists checks if a block exists.
 func (s *CdnBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	var found bool
