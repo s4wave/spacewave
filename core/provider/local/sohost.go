@@ -219,6 +219,17 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 		return nil
 	}
 
+	// Consume the host update produced by queueing an operation on the host.
+	// Processing it at once keeps the operation visible in the snapshot.
+	awaitHostUpdate := func() error {
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case updatedSoState := <-stateCh:
+			return processUpdatedSoState(updatedSoState)
+		}
+	}
+
 	// Publish initial host state before accepting local operations.
 	select {
 	case <-ctx.Done():
@@ -237,6 +248,36 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 			case <-ctx.Done():
 				return context.Canceled
 			case queueOp = <-l.queueOpCh:
+				// With nothing queued ahead of it, transmit the operation
+				// directly: the host queue commit is as durable as the local
+				// queue commit it replaces. The caller is released once the
+				// operation is visible in the snapshot.
+				if len(localState.OpQueue) == 0 {
+					xfrm, err := snap.GetTransformer(ctx)
+					if err != nil {
+						queueOp.err = err
+						close(queueOp.done)
+						return err
+					}
+					queued, err := l.executeQueueOp(ctx, xfrm, queueOp.op)
+					if err == nil {
+						if queued {
+							err = awaitHostUpdate()
+						}
+						close(queueOp.done)
+						if err != nil {
+							return err
+						}
+						continue
+					}
+					if ctx.Err() != nil {
+						queueOp.err = context.Canceled
+						close(queueOp.done)
+						return context.Canceled
+					}
+					l.le.WithError(err).Warn("failed to queue operation to host")
+				}
+
 				// Persist the operation before acknowledging its local queue entry.
 				localState.OpQueue = append(localState.OpQueue, queueOp.op)
 				err := l.writeLocalState(ctx, localState)
@@ -267,7 +308,8 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 			}
 
 			// Transmit one operation before consuming its resulting host update.
-			if err := l.executeQueueOp(ctx, xfrm, writeOp); err != nil {
+			queued, err := l.executeQueueOp(ctx, xfrm, writeOp)
+			if err != nil {
 				if ctx.Err() != nil {
 					return context.Canceled
 				}
@@ -282,39 +324,42 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 				return err
 			}
 
-			// Expect a soState update after the txn was queued.
-			// We must process this immediately so that the op doesn't disappear.
-			select {
-			case <-ctx.Done():
-				return context.Canceled
-			case updatedSoState := <-stateCh:
-				if err := processUpdatedSoState(updatedSoState); err != nil {
-					return err
-				}
+			// A resolved operation left the host state unchanged; publish the
+			// shorter queue. A queued one publishes with its host update.
+			if !queued {
+				updateSnapshot()
+				continue
+			}
+			if err := awaitHostUpdate(); err != nil {
+				return err
 			}
 		}
 	}
 }
 
-// executeQueueOp is the part of Execute that queues ops against the remote SOHost.
+// executeQueueOp transmits a queued operation to the SOHost. queued reports
+// whether this call added it to the host queue, which produces a host update.
+// A nil error with queued unset means the operation already has a durable
+// result: an earlier attempt's, or the host's rejection recorded here. An
+// error leaves the operation for a later attempt.
 func (l *LocalSOHost) executeQueueOp(
 	ctx context.Context,
 	xfrm *block_transform.Transformer,
 	writeOp *sobject.QueuedSOOperation,
-) error {
+) (bool, error) {
 	// Preserve any outcome recovered from an earlier transmission attempt.
 	existingResult, err := l.readLocalOpResult(ctx, writeOp.GetLocalId())
 	if err != nil {
-		return err
+		return false, err
 	}
 	if existingResult != nil {
-		return nil
+		return false, nil
 	}
 
 	// Encode the operation.
 	encOpData, err := xfrm.EncodeBlock(writeOp.GetOpData())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Queue the operation.
@@ -327,33 +372,30 @@ func (l *LocalSOHost) executeQueueOp(
 			writeOp.GetLocalId(),
 		)
 	})
-	if qerr != nil {
-		// Leave canceled transmissions in the durable queue for the next execution.
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
-
-		// Persist a terminal queue rejection so WaitOperation can report it.
-		werr := l.writeLocalOpResult(context.Background(), &LocalSOOperationResult{
-			LocalId: writeOp.GetLocalId(),
-			Result: &sobject.SOOperationResult{
-				OpRef: &sobject.SOOperationRef{
-					PeerId: l.peerID.String(),
-					Nonce:  0,
-				},
-				Body: &sobject.SOOperationResult_ErrorDetails{
-					ErrorDetails: &sobject.SOOperationRejectionErrorDetails{
-						ErrorMsg: qerr.Error(),
-					},
-				},
-			},
-		})
-		if werr != nil {
-			return werr
-		}
+	if qerr == nil {
+		return true, nil
 	}
 
-	return nil
+	// Leave canceled transmissions in the durable queue for the next execution.
+	if ctx.Err() != nil {
+		return false, context.Canceled
+	}
+
+	// Persist a terminal queue rejection so WaitOperation can report it.
+	return false, l.writeLocalOpResult(context.Background(), &LocalSOOperationResult{
+		LocalId: writeOp.GetLocalId(),
+		Result: &sobject.SOOperationResult{
+			OpRef: &sobject.SOOperationRef{
+				PeerId: l.peerID.String(),
+				Nonce:  0,
+			},
+			Body: &sobject.SOOperationResult_ErrorDetails{
+				ErrorDetails: &sobject.SOOperationRejectionErrorDetails{
+					ErrorMsg: qerr.Error(),
+				},
+			},
+		},
+	})
 }
 
 // waitPublishedConfig waits until body readers can observe target or a verified descendant.
@@ -392,7 +434,8 @@ func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func
 }
 
 // QueueOperation applies an operation to the shared object op queue.
-// Returns after the operation is applied to the local queue.
+// Returns after the operation is durable in the host queue, the local queue,
+// or as a recorded rejection, and visible in the published snapshot.
 // Returns the local op id.
 func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, error) {
 	// Trace one local enqueue through its persistence acknowledgement.
