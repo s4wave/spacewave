@@ -6,14 +6,17 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"maps"
 	"slices"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -21,6 +24,7 @@ import (
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,8 +52,11 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 // a listed entry names a complete packfile.
 //
 // Reads use the entries this store wrote or listed. A lookup that finds
-// nothing lists the entries again, which finds the packfiles other writers
-// added since.
+// nothing, or finds a packfile deleted, lists the entries again, which finds
+// the packfiles other writers added or merged since.
+//
+// After each write a background routine merges small packfiles, as
+// compact describes.
 type PackStore struct {
 	// client sends the signed requests.
 	client *Client
@@ -59,32 +66,56 @@ type PackStore struct {
 	prefix string
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
+	// compactor runs compact after writes.
+	compactor *routine.RoutineContainer
 
-	// mtx guards entries.
-	mtx sync.Mutex
+	// bcast guards entries and writes.
+	bcast broadcast.Broadcast
 	// entries are the known packfiles by id.
 	entries map[string]*packfile.PackfileEntry
+	// writes counts the packfiles this store wrote.
+	writes uint64
 
 	// listMtx serializes entry listings.
 	listMtx csync.Mutex
 	// listings counts the entry listings started.
 	listings atomic.Uint64
+	// compactMtx serializes compaction passes.
+	compactMtx csync.Mutex
 }
 
-// NewPackStore builds a packfile block store on the bucket.
-func NewPackStore(client *Client, bucket, prefix string) *PackStore {
+// compactBackoff spaces the retries of a failed compaction pass.
+var compactBackoff = &backoff.Backoff{
+	BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+	Exponential: &backoff.Exponential{
+		InitialInterval: 1000,
+		MaxInterval:     60000,
+		Multiplier:      2,
+	},
+}
+
+// NewPackStore builds a packfile block store on the bucket. Close stops its
+// compaction routine.
+func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string) *PackStore {
 	s := &PackStore{
 		client:  client,
 		bucket:  bucket,
 		prefix:  prefix,
 		entries: make(map[string]*packfile.PackfileEntry),
+		compactor: routine.NewRoutineContainerWithLogger(
+			le.WithField("routine", "pack-compaction"),
+			routine.WithRetry(compactBackoff),
+		),
 	}
 	s.packs = packfile_store.NewPackfileStore(s.openPack, nil)
+	s.compactor.SetRoutine(s.runCompaction)
+	s.compactor.SetContext(context.Background(), false)
 	return s
 }
 
-// Close releases the open packfile readers.
+// Close stops compaction and releases the open packfile readers.
 func (s *PackStore) Close() {
+	s.compactor.ClearContext()
 	s.packs.Close()
 }
 
@@ -121,9 +152,8 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // The batch must fit one packfile: at most writer.DefaultMaxBlocksPerPack
 // blocks and writer.DefaultMaxPackBytes bytes. Tombstones are rejected.
 func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) error {
-	var buf bytes.Buffer
 	i := 0
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+	entry, err := s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
 		if i == len(batch) {
 			return nil, nil, nil
 		}
@@ -134,19 +164,35 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 		}
 		return entry.Ref.GetHash(), &block.StoredBlock{Data: entry.Data, Refs: entry.Refs, RefsKnown: true}, nil
 	})
-	if err != nil {
+	if err != nil || entry == nil {
 		return err
 	}
+	s.updateEntries([]*packfile.PackfileEntry{entry}, nil)
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.writes++
+		broadcast()
+	})
+	return nil
+}
+
+// writePack writes the blocks next yields as one packfile, then its entry.
+// Returns nil when next yields no blocks.
+func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*packfile.PackfileEntry, error) {
+	var buf bytes.Buffer
+	result, err := writer.PackBlocks(&buf, next)
+	if err != nil {
+		return nil, err
+	}
 	if result.BlockCount == 0 {
-		return nil
+		return nil, nil
 	}
 	if int64(buf.Len()) > writer.DefaultMaxPackBytes {
-		return errors.Errorf("packfile of %d bytes exceeds the %d byte limit", buf.Len(), writer.DefaultMaxPackBytes)
+		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", buf.Len(), writer.DefaultMaxPackBytes)
 	}
 
 	id, err := identity.BuildPackID(s.bucket+"/"+s.prefix, result)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	entry := &packfile.PackfileEntry{
 		Id:                 id,
@@ -158,16 +204,15 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 	}
 	entryData, err := entry.MarshalVT()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, buf.Bytes(), "application/octet-stream"); err != nil {
-		return errors.Wrap(err, "write packfile")
+		return nil, errors.Wrap(err, "write packfile")
 	}
 	if err := s.client.PutObject(ctx, s.bucket, s.prefix+entryDir+id, entryData, "application/octet-stream"); err != nil {
-		return errors.Wrap(err, "write packfile entry")
+		return nil, errors.Wrap(err, "write packfile entry")
 	}
-	s.addEntries(entry)
-	return nil
+	return entry, nil
 }
 
 // GetBlock looks up a block in the store.
@@ -235,13 +280,13 @@ func (s *PackStore) Sync(context.Context) (bool, error) {
 	return true, nil
 }
 
-// lookup runs find against the known packfiles. When find reports a miss, it
-// lists the entries, which finds the packfiles other writers added, and runs
-// find again.
+// lookup runs find against the known packfiles. When find reports a miss or a
+// deleted packfile, it lists the entries, which finds the packfiles other
+// writers added and drops the ones merged away, and runs find again.
 func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error {
 	listed := s.listings.Load()
 	found, err := find()
-	if found || err != nil {
+	if found || (err != nil && !errors.Is(err, ErrNotFound)) {
 		return err
 	}
 	if err := s.listEntries(ctx, listed); err != nil {
@@ -251,8 +296,10 @@ func (s *PackStore) lookup(ctx context.Context, find func() (bool, error)) error
 	return err
 }
 
-// listEntries lists the packfile entries and reads the new ones, unless a
-// listing started after the caller's count of listed already completed.
+// listEntries lists the packfile entries, reads the new ones, and drops the
+// known ones the listing no longer holds, unless a listing started after the
+// caller's count of listed already completed. Entries added while the listing
+// runs are kept.
 func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	release, err := s.listMtx.Lock(ctx)
 	if err != nil {
@@ -264,11 +311,21 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	}
 	s.listings.Add(1)
 
+	var known map[string]bool
+	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		known = make(map[string]bool, len(s.entries))
+		for id := range s.entries {
+			known[id] = true
+		}
+	})
+
 	var ids []string
 	dir := s.prefix + entryDir
 	err = s.client.ListObjects(ctx, s.bucket, dir, func(key string, _ int64) error {
 		id := strings.TrimPrefix(key, dir)
-		if !s.hasEntry(id) {
+		if known[id] {
+			delete(known, id)
+		} else {
 			ids = append(ids, id)
 		}
 		return nil
@@ -283,6 +340,10 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	for i, id := range ids {
 		eg.Go(func() error {
 			entry, err := s.readEntry(egCtx, id)
+			if errors.Is(err, ErrNotFound) {
+				// A merge deleted the entry after the listing.
+				return nil
+			}
 			entries[i] = entry
 			return err
 		})
@@ -290,7 +351,10 @@ func (s *PackStore) listEntries(ctx context.Context, listed uint64) error {
 	if err := eg.Wait(); err != nil {
 		return err
 	}
-	s.addEntries(entries...)
+	entries = slices.DeleteFunc(entries, func(entry *packfile.PackfileEntry) bool {
+		return entry == nil
+	})
+	s.updateEntries(entries, slices.Collect(maps.Keys(known)))
 	return nil
 }
 
@@ -315,25 +379,18 @@ func (s *PackStore) readEntry(ctx context.Context, id string) (*packfile.Packfil
 	return entry, nil
 }
 
-// hasEntry reports whether packfile id is known.
-func (s *PackStore) hasEntry(id string) bool {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	return s.entries[id] != nil
-}
-
-// addEntries adds known packfiles and publishes them to the reader.
-func (s *PackStore) addEntries(entries ...*packfile.PackfileEntry) {
-	s.mtx.Lock()
-	for _, entry := range entries {
-		s.entries[entry.GetId()] = entry
-	}
-	all := make([]*packfile.PackfileEntry, 0, len(s.entries))
-	for _, entry := range s.entries {
-		all = append(all, entry)
-	}
-	s.mtx.Unlock()
-	s.packs.UpdateManifest(all)
+// updateEntries adds and removes known packfiles and publishes the result to
+// the reader. Publishing under the lock keeps concurrent updates in order.
+func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string) {
+	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		for _, id := range remove {
+			delete(s.entries, id)
+		}
+		for _, entry := range add {
+			s.entries[entry.GetId()] = entry
+		}
+		s.packs.UpdateManifest(slices.Collect(maps.Values(s.entries)))
+	})
 }
 
 // openPack opens a reader over the ranges of packfile id.

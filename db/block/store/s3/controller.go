@@ -25,7 +25,7 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 	return block_store_controller.NewController(
 		le,
 		controller.NewInfo(ControllerID, Version, "s3 block store"),
-		NewBlockStoreBuilder(conf),
+		NewBlockStoreBuilder(le, conf),
 		[]string{conf.GetBlockStoreId()},
 		true,
 		conf.GetBucketIds(),
@@ -35,13 +35,13 @@ func NewController(le *logrus.Entry, conf *Config) *Controller {
 }
 
 // NewBlockStoreBuilder constructs a new block store builder from config.
-func NewBlockStoreBuilder(conf *Config) block_store_controller.BlockStoreBuilder {
+func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		client, err := BuildClient(conf.GetClient())
 		if err != nil {
 			return nil, nil, err
 		}
-		packs := NewPackStore(client, conf.GetBucketName(), conf.GetObjectPrefix())
+		packs := NewPackStore(le, client, conf.GetBucketName(), conf.GetObjectPrefix())
 		return block_store.NewStore(conf.GetBlockStoreId(), packs), packs.Close, nil
 	}
 }

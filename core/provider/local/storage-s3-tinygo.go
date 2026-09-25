@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/sirupsen/logrus"
 )
 
 // errNoS3Client reports that TinyGo builds carry no S3 client.
@@ -27,6 +28,7 @@ func CheckS3Location(
 
 // buildS3BlockStore reports that TinyGo builds carry no S3 client.
 func buildS3BlockStore(
+	*logrus.Entry,
 	*account_settings.S3Location,
 	*block_store_s3.Credentials,
 ) (backendStore, error) {
