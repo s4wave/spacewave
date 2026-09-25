@@ -27,17 +27,34 @@ func CheckS3Location(
 	return block_store_s3.CheckBucket(ctx, client, location.GetBucket(), location.GetObjectPrefix())
 }
 
-// buildS3BlockStore opens a packfile block store on the location's bucket.
+// buildS3BlockStore opens the block store's packfile store on the location's
+// bucket.
 func buildS3BlockStore(
 	le *logrus.Entry,
 	location *account_settings.S3Location,
+	blockStoreID string,
 	creds *block_store_s3.Credentials,
 ) (backendStore, error) {
 	client, err := buildS3Client(location, creds)
 	if err != nil {
 		return nil, err
 	}
-	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.GetObjectPrefix()), nil
+	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID)), nil
+}
+
+// deleteS3BlockStore deletes the block store's objects from the location's
+// bucket.
+func deleteS3BlockStore(
+	ctx context.Context,
+	location *account_settings.S3Location,
+	blockStoreID string,
+	creds *block_store_s3.Credentials,
+) error {
+	client, err := buildS3Client(location, creds)
+	if err != nil {
+		return err
+	}
+	return block_store_s3.DeletePackStore(ctx, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID))
 }
 
 // buildS3Client builds a signing client for the location's endpoint.

@@ -30,7 +30,18 @@ func CheckS3Location(
 func buildS3BlockStore(
 	*logrus.Entry,
 	*account_settings.S3Location,
+	string,
 	*block_store_s3.Credentials,
 ) (backendStore, error) {
 	return nil, errNoS3Client
+}
+
+// deleteS3BlockStore reports that TinyGo builds carry no S3 client.
+func deleteS3BlockStore(
+	context.Context,
+	*account_settings.S3Location,
+	string,
+	*block_store_s3.Credentials,
+) error {
+	return errNoS3Client
 }

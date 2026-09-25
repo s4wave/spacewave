@@ -38,6 +38,9 @@ message AccountSettings {
   // BlockStorePlacements names the backend holding each placed block store.
   // A block store without a placement is on the account's own storage.
   repeated BlockStorePlacement block_store_placements = 12;
+  // StorageReleases are former placements whose objects remain in the
+  // backend's bucket. A device deletes them, then completes the release.
+  repeated BlockStorePlacement storage_releases = 13;
 }
 
 // StorageBackend is block storage the account's devices share.
@@ -160,6 +163,9 @@ message AccountSettingsOp {
     // SetBlockStorePlacement places a block store, or returns it to the
     // account's own storage when storage_backend_id is empty.
     BlockStorePlacement set_block_store_placement = 16;
+    // CompleteStorageRelease records that the released block store's objects
+    // are gone from the backend's bucket.
+    BlockStorePlacement complete_storage_release = 17;
   }
 }
 

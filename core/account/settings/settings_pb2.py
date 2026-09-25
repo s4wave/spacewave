@@ -29,7 +29,7 @@ from sdk.command import command_pb2 as github_dot_com_dot_s4wave_dot_spacewave_d
 from sdk.secret import secret_pb2 as github_dot_com_dot_s4wave_dot_spacewave_dot_sdk_dot_secret_dot_secret__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n@github.com/s4wave/spacewave/core/account/settings/settings.proto\x12\x10\x61\x63\x63ount.settings\x1a\x36github.com/s4wave/spacewave/core/session/session.proto\x1a\x38github.com/s4wave/spacewave/core/provider/provider.proto\x1a\x36github.com/s4wave/spacewave/core/sobject/sobject.proto\x1a\x35github.com/s4wave/spacewave/sdk/command/command.proto\x1a\x33github.com/s4wave/spacewave/sdk/secret/secret.proto\"\x99\x05\n\x0f\x41\x63\x63ountSettings\x12\x14\n\x0c\x64isplay_name\x18\x01 \x01(\t\x12\x36\n\x0epaired_devices\x18\x02 \x03(\x0b\x32\x1e.account.settings.PairedDevice\x12/\n\x0f\x65ntity_keypairs\x18\x03 \x03(\x0b\x32\x16.session.EntityKeypair\x12\x44\n\x15session_presentations\x18\x04 \x03(\x0b\x32%.account.settings.SessionPresentation\x12\x43\n\x14keybinding_overrides\x18\x05 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\x12\x32\n\x08sessions\x18\x06 \x03(\x0b\x32 .account.settings.AccountSession\x12\x36\n\x07\x63\x61talog\x18\x07 \x03(\x0b\x32%.account.settings.AccountCatalogEntry\x12/\n\ntransition\x18\x08 \x01(\x0b\x32\x1b.provider.AccountTransition\x12\x38\n\x13\x61\x63\x63\x65pted_migrations\x18\t \x03(\x0b\x32\x1b.provider.AccountTransition\x12:\n\x10storage_backends\x18\n \x03(\x0b\x32 .account.settings.StorageBackend\x12\"\n\x1a\x64\x65\x66\x61ult_storage_backend_id\x18\x0b \x01(\t\x12\x45\n\x16\x62lock_store_placements\x18\x0c \x03(\x0b\x32%.account.settings.BlockStorePlacement\"\x87\x01\n\x0eStorageBackend\x12\n\n\x02id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12(\n\x02s3\x18\x03 \x01(\x0b\x32\x1c.account.settings.S3Location\x12)\n\ncredential\x18\x04 \x01(\x0b\x32\x15.s4wave.secret.Secret\"j\n\nS3Location\x12\x10\n\x08\x65ndpoint\x18\x01 \x01(\t\x12\x0e\n\x06region\x18\x02 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x03 \x01(\t\x12\x15\n\robject_prefix\x18\x04 \x01(\t\x12\x13\n\x0b\x64isable_ssl\x18\x05 \x01(\x08\"I\n\x13\x42lockStorePlacement\x12\x16\n\x0e\x62lock_store_id\x18\x01 \x01(\t\x12\x1a\n\x12storage_backend_id\x18\x02 \x01(\t\"o\n\x0e\x41\x63\x63ountSession\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\x17\n\x0fstorage_peer_id\x18\x02 \x01(\t\x12\x0f\n\x07revoked\x18\x03 \x01(\x08\x12\"\n\x1arevoked_by_storage_peer_id\x18\x04 \x01(\t\"U\n\x13\x41\x63\x63ountCatalogEntry\x12-\n\x05\x65ntry\x18\x01 \x01(\x0b\x32\x1e.sobject.SharedObjectListEntry\x12\x0f\n\x07\x64\x65leted\x18\x02 \x01(\x08\"H\n\x0cPairedDevice\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\x11\n\tpaired_at\x18\x03 \x01(\x03\"}\n\x13SessionPresentation\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\r\n\x05label\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65vice_type\x18\x03 \x01(\t\x12\x13\n\x0b\x63lient_name\x18\x04 \x01(\t\x12\n\n\x02os\x18\x05 \x01(\t\x12\x10\n\x08location\x18\x06 \x01(\t\"\xa4\t\n\x11\x41\x63\x63ountSettingsOp\x12\x44\n\x13update_display_name\x18\x01 \x01(\x0b\x32%.account.settings.UpdateDisplayNameOpH\x00\x12;\n\x11\x61\x64\x64_paired_device\x18\x02 \x01(\x0b\x32\x1e.account.settings.PairedDeviceH\x00\x12\x46\n\x14remove_paired_device\x18\x03 \x01(\x0b\x32&.account.settings.RemovePairedDeviceOpH\x00\x12\x34\n\x12\x61\x64\x64_entity_keypair\x18\x04 \x01(\x0b\x32\x16.session.EntityKeypairH\x00\x12H\n\x15remove_entity_keypair\x18\x05 \x01(\x0b\x32\'.account.settings.RemoveEntityKeypairOpH\x00\x12L\n\x1bupsert_session_presentation\x18\x06 \x01(\x0b\x32%.account.settings.SessionPresentationH\x00\x12T\n\x1bremove_session_presentation\x18\x07 \x01(\x0b\x32-.account.settings.RemoveSessionPresentationOpH\x00\x12[\n\x1freplace_keybinding_override_set\x18\x08 \x01(\x0b\x32\x30.account.settings.ReplaceKeybindingOverrideSetOpH\x00\x12\x42\n\x16upsert_account_session\x18\t \x01(\x0b\x32 .account.settings.AccountSessionH\x00\x12\x45\n\x14upsert_catalog_entry\x18\n \x01(\x0b\x32%.account.settings.AccountCatalogEntryH\x00\x12?\n\x18\x61\x63\x63\x65pt_account_migration\x18\x0b \x01(\x0b\x32\x1b.provider.AccountTransitionH\x00\x12@\n\x19\x63ommit_account_transition\x18\x0c \x01(\x0b\x32\x1b.provider.AccountTransitionH\x00\x12\x42\n\x16upsert_storage_backend\x18\r \x01(\x0b\x32 .account.settings.StorageBackendH\x00\x12J\n\x16remove_storage_backend\x18\x0e \x01(\x0b\x32(.account.settings.RemoveStorageBackendOpH\x00\x12S\n\x1bset_default_storage_backend\x18\x0f \x01(\x0b\x32,.account.settings.SetDefaultStorageBackendOpH\x00\x12J\n\x19set_block_store_placement\x18\x10 \x01(\x0b\x32%.account.settings.BlockStorePlacementH\x00\x42\x04\n\x02op\"4\n\x16RemoveStorageBackendOp\x12\x1a\n\x12storage_backend_id\x18\x01 \x01(\t\"8\n\x1aSetDefaultStorageBackendOp\x12\x1a\n\x12storage_backend_id\x18\x01 \x01(\t\"\xa3\x01\n\x1eReplaceKeybindingOverrideSetOp\x12\x44\n\x15\x65xpected_override_set\x18\x01 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\x12;\n\x0coverride_set\x18\x02 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\"+\n\x13UpdateDisplayNameOp\x12\x14\n\x0c\x64isplay_name\x18\x01 \x01(\t\"(\n\x15RemoveEntityKeypairOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\"\'\n\x14RemovePairedDeviceOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\".\n\x1bRemoveSessionPresentationOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n@github.com/s4wave/spacewave/core/account/settings/settings.proto\x12\x10\x61\x63\x63ount.settings\x1a\x36github.com/s4wave/spacewave/core/session/session.proto\x1a\x38github.com/s4wave/spacewave/core/provider/provider.proto\x1a\x36github.com/s4wave/spacewave/core/sobject/sobject.proto\x1a\x35github.com/s4wave/spacewave/sdk/command/command.proto\x1a\x33github.com/s4wave/spacewave/sdk/secret/secret.proto\"\xda\x05\n\x0f\x41\x63\x63ountSettings\x12\x14\n\x0c\x64isplay_name\x18\x01 \x01(\t\x12\x36\n\x0epaired_devices\x18\x02 \x03(\x0b\x32\x1e.account.settings.PairedDevice\x12/\n\x0f\x65ntity_keypairs\x18\x03 \x03(\x0b\x32\x16.session.EntityKeypair\x12\x44\n\x15session_presentations\x18\x04 \x03(\x0b\x32%.account.settings.SessionPresentation\x12\x43\n\x14keybinding_overrides\x18\x05 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\x12\x32\n\x08sessions\x18\x06 \x03(\x0b\x32 .account.settings.AccountSession\x12\x36\n\x07\x63\x61talog\x18\x07 \x03(\x0b\x32%.account.settings.AccountCatalogEntry\x12/\n\ntransition\x18\x08 \x01(\x0b\x32\x1b.provider.AccountTransition\x12\x38\n\x13\x61\x63\x63\x65pted_migrations\x18\t \x03(\x0b\x32\x1b.provider.AccountTransition\x12:\n\x10storage_backends\x18\n \x03(\x0b\x32 .account.settings.StorageBackend\x12\"\n\x1a\x64\x65\x66\x61ult_storage_backend_id\x18\x0b \x01(\t\x12\x45\n\x16\x62lock_store_placements\x18\x0c \x03(\x0b\x32%.account.settings.BlockStorePlacement\x12?\n\x10storage_releases\x18\r \x03(\x0b\x32%.account.settings.BlockStorePlacement\"\x87\x01\n\x0eStorageBackend\x12\n\n\x02id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12(\n\x02s3\x18\x03 \x01(\x0b\x32\x1c.account.settings.S3Location\x12)\n\ncredential\x18\x04 \x01(\x0b\x32\x15.s4wave.secret.Secret\"j\n\nS3Location\x12\x10\n\x08\x65ndpoint\x18\x01 \x01(\t\x12\x0e\n\x06region\x18\x02 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x03 \x01(\t\x12\x15\n\robject_prefix\x18\x04 \x01(\t\x12\x13\n\x0b\x64isable_ssl\x18\x05 \x01(\x08\"I\n\x13\x42lockStorePlacement\x12\x16\n\x0e\x62lock_store_id\x18\x01 \x01(\t\x12\x1a\n\x12storage_backend_id\x18\x02 \x01(\t\"o\n\x0e\x41\x63\x63ountSession\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\x17\n\x0fstorage_peer_id\x18\x02 \x01(\t\x12\x0f\n\x07revoked\x18\x03 \x01(\x08\x12\"\n\x1arevoked_by_storage_peer_id\x18\x04 \x01(\t\"U\n\x13\x41\x63\x63ountCatalogEntry\x12-\n\x05\x65ntry\x18\x01 \x01(\x0b\x32\x1e.sobject.SharedObjectListEntry\x12\x0f\n\x07\x64\x65leted\x18\x02 \x01(\x08\"H\n\x0cPairedDevice\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\x11\n\tpaired_at\x18\x03 \x01(\x03\"}\n\x13SessionPresentation\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\x12\r\n\x05label\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65vice_type\x18\x03 \x01(\t\x12\x13\n\x0b\x63lient_name\x18\x04 \x01(\t\x12\n\n\x02os\x18\x05 \x01(\t\x12\x10\n\x08location\x18\x06 \x01(\t\"\xef\t\n\x11\x41\x63\x63ountSettingsOp\x12\x44\n\x13update_display_name\x18\x01 \x01(\x0b\x32%.account.settings.UpdateDisplayNameOpH\x00\x12;\n\x11\x61\x64\x64_paired_device\x18\x02 \x01(\x0b\x32\x1e.account.settings.PairedDeviceH\x00\x12\x46\n\x14remove_paired_device\x18\x03 \x01(\x0b\x32&.account.settings.RemovePairedDeviceOpH\x00\x12\x34\n\x12\x61\x64\x64_entity_keypair\x18\x04 \x01(\x0b\x32\x16.session.EntityKeypairH\x00\x12H\n\x15remove_entity_keypair\x18\x05 \x01(\x0b\x32\'.account.settings.RemoveEntityKeypairOpH\x00\x12L\n\x1bupsert_session_presentation\x18\x06 \x01(\x0b\x32%.account.settings.SessionPresentationH\x00\x12T\n\x1bremove_session_presentation\x18\x07 \x01(\x0b\x32-.account.settings.RemoveSessionPresentationOpH\x00\x12[\n\x1freplace_keybinding_override_set\x18\x08 \x01(\x0b\x32\x30.account.settings.ReplaceKeybindingOverrideSetOpH\x00\x12\x42\n\x16upsert_account_session\x18\t \x01(\x0b\x32 .account.settings.AccountSessionH\x00\x12\x45\n\x14upsert_catalog_entry\x18\n \x01(\x0b\x32%.account.settings.AccountCatalogEntryH\x00\x12?\n\x18\x61\x63\x63\x65pt_account_migration\x18\x0b \x01(\x0b\x32\x1b.provider.AccountTransitionH\x00\x12@\n\x19\x63ommit_account_transition\x18\x0c \x01(\x0b\x32\x1b.provider.AccountTransitionH\x00\x12\x42\n\x16upsert_storage_backend\x18\r \x01(\x0b\x32 .account.settings.StorageBackendH\x00\x12J\n\x16remove_storage_backend\x18\x0e \x01(\x0b\x32(.account.settings.RemoveStorageBackendOpH\x00\x12S\n\x1bset_default_storage_backend\x18\x0f \x01(\x0b\x32,.account.settings.SetDefaultStorageBackendOpH\x00\x12J\n\x19set_block_store_placement\x18\x10 \x01(\x0b\x32%.account.settings.BlockStorePlacementH\x00\x12I\n\x18\x63omplete_storage_release\x18\x11 \x01(\x0b\x32%.account.settings.BlockStorePlacementH\x00\x42\x04\n\x02op\"4\n\x16RemoveStorageBackendOp\x12\x1a\n\x12storage_backend_id\x18\x01 \x01(\t\"8\n\x1aSetDefaultStorageBackendOp\x12\x1a\n\x12storage_backend_id\x18\x01 \x01(\t\"\xa3\x01\n\x1eReplaceKeybindingOverrideSetOp\x12\x44\n\x15\x65xpected_override_set\x18\x01 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\x12;\n\x0coverride_set\x18\x02 \x01(\x0b\x32%.s4wave.command.KeybindingOverrideSet\"+\n\x13UpdateDisplayNameOp\x12\x14\n\x0c\x64isplay_name\x18\x01 \x01(\t\"(\n\x15RemoveEntityKeypairOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\"\'\n\x14RemovePairedDeviceOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\t\".\n\x1bRemoveSessionPresentationOp\x12\x0f\n\x07peer_id\x18\x01 \x01(\tb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,35 +37,35 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'github.com.s4wave.spacewave
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_ACCOUNTSETTINGS']._serialized_start=365
-  _globals['_ACCOUNTSETTINGS']._serialized_end=1030
-  _globals['_STORAGEBACKEND']._serialized_start=1033
-  _globals['_STORAGEBACKEND']._serialized_end=1168
-  _globals['_S3LOCATION']._serialized_start=1170
-  _globals['_S3LOCATION']._serialized_end=1276
-  _globals['_BLOCKSTOREPLACEMENT']._serialized_start=1278
-  _globals['_BLOCKSTOREPLACEMENT']._serialized_end=1351
-  _globals['_ACCOUNTSESSION']._serialized_start=1353
-  _globals['_ACCOUNTSESSION']._serialized_end=1464
-  _globals['_ACCOUNTCATALOGENTRY']._serialized_start=1466
-  _globals['_ACCOUNTCATALOGENTRY']._serialized_end=1551
-  _globals['_PAIREDDEVICE']._serialized_start=1553
-  _globals['_PAIREDDEVICE']._serialized_end=1625
-  _globals['_SESSIONPRESENTATION']._serialized_start=1627
-  _globals['_SESSIONPRESENTATION']._serialized_end=1752
-  _globals['_ACCOUNTSETTINGSOP']._serialized_start=1755
-  _globals['_ACCOUNTSETTINGSOP']._serialized_end=2943
-  _globals['_REMOVESTORAGEBACKENDOP']._serialized_start=2945
-  _globals['_REMOVESTORAGEBACKENDOP']._serialized_end=2997
-  _globals['_SETDEFAULTSTORAGEBACKENDOP']._serialized_start=2999
-  _globals['_SETDEFAULTSTORAGEBACKENDOP']._serialized_end=3055
-  _globals['_REPLACEKEYBINDINGOVERRIDESETOP']._serialized_start=3058
-  _globals['_REPLACEKEYBINDINGOVERRIDESETOP']._serialized_end=3221
-  _globals['_UPDATEDISPLAYNAMEOP']._serialized_start=3223
-  _globals['_UPDATEDISPLAYNAMEOP']._serialized_end=3266
-  _globals['_REMOVEENTITYKEYPAIROP']._serialized_start=3268
-  _globals['_REMOVEENTITYKEYPAIROP']._serialized_end=3308
-  _globals['_REMOVEPAIREDDEVICEOP']._serialized_start=3310
-  _globals['_REMOVEPAIREDDEVICEOP']._serialized_end=3349
-  _globals['_REMOVESESSIONPRESENTATIONOP']._serialized_start=3351
-  _globals['_REMOVESESSIONPRESENTATIONOP']._serialized_end=3397
+  _globals['_ACCOUNTSETTINGS']._serialized_end=1095
+  _globals['_STORAGEBACKEND']._serialized_start=1098
+  _globals['_STORAGEBACKEND']._serialized_end=1233
+  _globals['_S3LOCATION']._serialized_start=1235
+  _globals['_S3LOCATION']._serialized_end=1341
+  _globals['_BLOCKSTOREPLACEMENT']._serialized_start=1343
+  _globals['_BLOCKSTOREPLACEMENT']._serialized_end=1416
+  _globals['_ACCOUNTSESSION']._serialized_start=1418
+  _globals['_ACCOUNTSESSION']._serialized_end=1529
+  _globals['_ACCOUNTCATALOGENTRY']._serialized_start=1531
+  _globals['_ACCOUNTCATALOGENTRY']._serialized_end=1616
+  _globals['_PAIREDDEVICE']._serialized_start=1618
+  _globals['_PAIREDDEVICE']._serialized_end=1690
+  _globals['_SESSIONPRESENTATION']._serialized_start=1692
+  _globals['_SESSIONPRESENTATION']._serialized_end=1817
+  _globals['_ACCOUNTSETTINGSOP']._serialized_start=1820
+  _globals['_ACCOUNTSETTINGSOP']._serialized_end=3083
+  _globals['_REMOVESTORAGEBACKENDOP']._serialized_start=3085
+  _globals['_REMOVESTORAGEBACKENDOP']._serialized_end=3137
+  _globals['_SETDEFAULTSTORAGEBACKENDOP']._serialized_start=3139
+  _globals['_SETDEFAULTSTORAGEBACKENDOP']._serialized_end=3195
+  _globals['_REPLACEKEYBINDINGOVERRIDESETOP']._serialized_start=3198
+  _globals['_REPLACEKEYBINDINGOVERRIDESETOP']._serialized_end=3361
+  _globals['_UPDATEDISPLAYNAMEOP']._serialized_start=3363
+  _globals['_UPDATEDISPLAYNAMEOP']._serialized_end=3406
+  _globals['_REMOVEENTITYKEYPAIROP']._serialized_start=3408
+  _globals['_REMOVEENTITYKEYPAIROP']._serialized_end=3448
+  _globals['_REMOVEPAIREDDEVICEOP']._serialized_start=3450
+  _globals['_REMOVEPAIREDDEVICEOP']._serialized_end=3489
+  _globals['_REMOVESESSIONPRESENTATIONOP']._serialized_start=3491
+  _globals['_REMOVESESSIONPRESENTATIONOP']._serialized_end=3537
 # @@protoc_insertion_point(module_scope)

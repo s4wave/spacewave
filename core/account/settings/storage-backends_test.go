@@ -1,6 +1,7 @@
 package account_settings
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -64,6 +65,21 @@ func TestStorageBackendOps(t *testing.T) {
 			SetBlockStorePlacement: &BlockStorePlacement{BlockStoreId: blockStoreID, StorageBackendId: backendID},
 		}})
 	}
+	completeRelease := func(blockStoreID, backendID string) error {
+		return applyOp(t, s, &AccountSettingsOp{Op: &AccountSettingsOp_CompleteStorageRelease{
+			CompleteStorageRelease: &BlockStorePlacement{BlockStoreId: blockStoreID, StorageBackendId: backendID},
+		}})
+	}
+	expectReleases := func(want ...string) {
+		t.Helper()
+		var got []string
+		for _, release := range s.GetStorageReleases() {
+			got = append(got, release.GetBlockStoreId()+"@"+release.GetStorageBackendId())
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("expected releases %v, got %v", want, got)
+		}
+	}
 
 	// Add two backends; a duplicate name and an incomplete backend fail.
 	if err := upsert(testStorageBackend("a", "minio")); err != nil {
@@ -111,6 +127,7 @@ func TestStorageBackendOps(t *testing.T) {
 	if got := s.FindBlockStorePlacement("space-1").GetStorageBackendId(); got != "b" {
 		t.Fatalf("expected space-1 on b, got %q", got)
 	}
+	expectReleases("space-1@a")
 
 	// A backend holding a block store cannot be removed until it is empty.
 	if err := remove("b"); !errors.Is(err, ErrStorageBackendInUse) {
@@ -122,11 +139,15 @@ func TestStorageBackendOps(t *testing.T) {
 	if s.FindBlockStorePlacement("space-1") != nil {
 		t.Fatal("expected space-1 back on the account's storage")
 	}
+	expectReleases("space-1@a", "space-1@b")
 
-	// Deleting a placed Space releases its placement.
+	// Returning to a backend cancels its pending release.
 	if err := place("space-1", "b"); err != nil {
 		t.Fatal(err)
 	}
+	expectReleases("space-1@a")
+
+	// Deleting a placed Space releases its placement and its objects.
 	ref := &sobject.SharedObjectRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "space-1",
@@ -146,9 +167,20 @@ func TestStorageBackendOps(t *testing.T) {
 	if s.FindBlockStorePlacement("space-1") != nil {
 		t.Fatal("expected the deleted Space's placement released")
 	}
+	expectReleases("space-1@a", "space-1@b")
+
+	// Removing a backend drops its pending releases; completing one removes it.
 	if err := remove("b"); err != nil {
 		t.Fatal(err)
 	}
+	expectReleases("space-1@a")
+	if err := completeRelease("space-1", ""); err == nil {
+		t.Fatal("expected a release without a backend to fail")
+	}
+	if err := completeRelease("space-1", "a"); err != nil {
+		t.Fatal(err)
+	}
+	expectReleases()
 
 	// Removing the default backend clears the default.
 	if err := remove("a"); err != nil {

@@ -85,6 +85,7 @@ func (s *AccountSettings) upsertStorageBackend(backend *StorageBackend) error {
 
 // removeStorageBackend removes a storage backend that holds no block store.
 // Removing the default backend returns new Spaces to the account's storage.
+// Pending releases on the backend are dropped with it.
 func (s *AccountSettings) removeStorageBackend(id string) error {
 	if id == "" {
 		return errors.New("storage_backend_id is required")
@@ -94,6 +95,9 @@ func (s *AccountSettings) removeStorageBackend(id string) error {
 	}
 	s.StorageBackends = slices.DeleteFunc(s.StorageBackends, func(current *StorageBackend) bool {
 		return current.GetId() == id
+	})
+	s.StorageReleases = slices.DeleteFunc(s.StorageReleases, func(release *BlockStorePlacement) bool {
+		return release.GetStorageBackendId() == id
 	})
 	if s.GetDefaultStorageBackendId() == id {
 		s.DefaultStorageBackendId = ""
@@ -113,6 +117,9 @@ func (s *AccountSettings) setDefaultStorageBackend(id string) error {
 
 // setBlockStorePlacement places a block store on a storage backend, or
 // returns it to the account's own storage when the backend id is empty.
+//
+// Leaving a backend releases the store's objects there. Returning to a
+// backend cancels its pending release, since the store writes there again.
 func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement) error {
 	blockStoreID := placement.GetBlockStoreId()
 	if blockStoreID == "" {
@@ -122,13 +129,42 @@ func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement)
 	if backendID != "" && s.FindStorageBackend(backendID) == nil {
 		return ErrStorageBackendNotFound
 	}
+	s.unplaceBlockStore(blockStoreID)
+	if backendID != "" {
+		s.BlockStorePlacements = append(s.BlockStorePlacements, placement.CloneVT())
+		s.dropStorageRelease(placement)
+	}
+	return nil
+}
+
+// unplaceBlockStore removes the block store's placement and releases its
+// objects on the backend it leaves.
+func (s *AccountSettings) unplaceBlockStore(blockStoreID string) {
+	placement := s.FindBlockStorePlacement(blockStoreID)
+	if placement == nil {
+		return
+	}
 	s.BlockStorePlacements = slices.DeleteFunc(s.BlockStorePlacements, func(current *BlockStorePlacement) bool {
 		return current.GetBlockStoreId() == blockStoreID
 	})
-	if backendID != "" {
-		s.BlockStorePlacements = append(s.BlockStorePlacements, placement.CloneVT())
+	if !slices.ContainsFunc(s.StorageReleases, placement.EqualVT) {
+		s.StorageReleases = append(s.StorageReleases, placement)
 	}
+}
+
+// completeStorageRelease records that a released block store's objects are
+// gone from the backend's bucket.
+func (s *AccountSettings) completeStorageRelease(release *BlockStorePlacement) error {
+	if release.GetBlockStoreId() == "" || release.GetStorageBackendId() == "" {
+		return errors.New("block_store_id and storage_backend_id are required")
+	}
+	s.dropStorageRelease(release)
 	return nil
+}
+
+// dropStorageRelease removes a pending release, if any.
+func (s *AccountSettings) dropStorageRelease(release *BlockStorePlacement) {
+	s.StorageReleases = slices.DeleteFunc(s.StorageReleases, release.EqualVT)
 }
 
 // Validate checks that the storage backend is complete.
@@ -157,6 +193,11 @@ func (l *S3Location) Validate() error {
 		return errors.New("bucket is required")
 	}
 	return nil
+}
+
+// BlockStorePrefix returns the key prefix of the block store's objects.
+func (l *S3Location) BlockStorePrefix(blockStoreID string) string {
+	return l.GetObjectPrefix() + blockStoreID + "/"
 }
 
 // FindSpaceByBlockStore returns the id and name of the cataloged Space whose

@@ -104,6 +104,8 @@ func (s *AccountSettings) applyOpData(opData []byte) error {
 		return s.setDefaultStorageBackend(body.SetDefaultStorageBackend.GetStorageBackendId())
 	case *AccountSettingsOp_SetBlockStorePlacement:
 		return s.setBlockStorePlacement(body.SetBlockStorePlacement)
+	case *AccountSettingsOp_CompleteStorageRelease:
+		return s.completeStorageRelease(body.CompleteStorageRelease)
 	default:
 		return errors.New("unknown op type")
 	}

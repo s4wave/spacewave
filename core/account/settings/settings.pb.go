@@ -50,6 +50,9 @@ type AccountSettings struct {
 	// BlockStorePlacements names the backend holding each placed block store.
 	// A block store without a placement is on the account's own storage.
 	BlockStorePlacements []*BlockStorePlacement `protobuf:"bytes,12,rep,name=block_store_placements,json=blockStorePlacements,proto3" json:"blockStorePlacements,omitempty"`
+	// StorageReleases are former placements whose objects remain in the
+	// backend's bucket. A device deletes them, then completes the release.
+	StorageReleases []*BlockStorePlacement `protobuf:"bytes,13,rep,name=storage_releases,json=storageReleases,proto3" json:"storageReleases,omitempty"`
 }
 
 func (x *AccountSettings) Reset() {
@@ -138,6 +141,13 @@ func (x *AccountSettings) GetDefaultStorageBackendId() string {
 func (x *AccountSettings) GetBlockStorePlacements() []*BlockStorePlacement {
 	if x != nil {
 		return x.BlockStorePlacements
+	}
+	return nil
+}
+
+func (x *AccountSettings) GetStorageReleases() []*BlockStorePlacement {
+	if x != nil {
+		return x.StorageReleases
 	}
 	return nil
 }
@@ -477,6 +487,7 @@ type AccountSettingsOp struct {
 	//	*AccountSettingsOp_RemoveStorageBackend
 	//	*AccountSettingsOp_SetDefaultStorageBackend
 	//	*AccountSettingsOp_SetBlockStorePlacement
+	//	*AccountSettingsOp_CompleteStorageRelease
 	Op isAccountSettingsOp_Op `protobuf_oneof:"op"`
 }
 
@@ -605,6 +616,13 @@ func (x *AccountSettingsOp) GetSetBlockStorePlacement() *BlockStorePlacement {
 	return nil
 }
 
+func (x *AccountSettingsOp) GetCompleteStorageRelease() *BlockStorePlacement {
+	if x, ok := x.GetOp().(*AccountSettingsOp_CompleteStorageRelease); ok {
+		return x.CompleteStorageRelease
+	}
+	return nil
+}
+
 type isAccountSettingsOp_Op interface {
 	isAccountSettingsOp_Op()
 }
@@ -690,6 +708,12 @@ type AccountSettingsOp_SetBlockStorePlacement struct {
 	SetBlockStorePlacement *BlockStorePlacement `protobuf:"bytes,16,opt,name=set_block_store_placement,json=setBlockStorePlacement,proto3,oneof"`
 }
 
+type AccountSettingsOp_CompleteStorageRelease struct {
+	// CompleteStorageRelease records that the released block store's objects
+	// are gone from the backend's bucket.
+	CompleteStorageRelease *BlockStorePlacement `protobuf:"bytes,17,opt,name=complete_storage_release,json=completeStorageRelease,proto3,oneof"`
+}
+
 func (*AccountSettingsOp_UpdateDisplayName) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_AddPairedDevice) isAccountSettingsOp_Op() {}
@@ -721,6 +745,8 @@ func (*AccountSettingsOp_RemoveStorageBackend) isAccountSettingsOp_Op() {}
 func (*AccountSettingsOp_SetDefaultStorageBackend) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_SetBlockStorePlacement) isAccountSettingsOp_Op() {}
+
+func (*AccountSettingsOp_CompleteStorageRelease) isAccountSettingsOp_Op() {}
 
 // RemoveStorageBackendOp removes a storage backend by id.
 type RemoveStorageBackendOp struct {
@@ -889,6 +915,7 @@ func (m *AccountSettings) CloneVT() *AccountSettings {
 	r.AcceptedMigrations = protobuf_go_lite.CloneVTSlice(m.AcceptedMigrations)
 	r.StorageBackends = protobuf_go_lite.CloneVTSlice(m.StorageBackends)
 	r.BlockStorePlacements = protobuf_go_lite.CloneVTSlice(m.BlockStorePlacements)
+	r.StorageReleases = protobuf_go_lite.CloneVTSlice(m.StorageReleases)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1256,6 +1283,19 @@ func (m *AccountSettingsOp_SetBlockStorePlacement) CloneOneofVT() isAccountSetti
 	return m.CloneVT()
 }
 
+func (m *AccountSettingsOp_CompleteStorageRelease) CloneVT() *AccountSettingsOp_CompleteStorageRelease {
+	if m == nil {
+		return (*AccountSettingsOp_CompleteStorageRelease)(nil)
+	}
+	r := new(AccountSettingsOp_CompleteStorageRelease)
+	r.CompleteStorageRelease = protobuf_go_lite.CloneVTValue(m.CompleteStorageRelease)
+	return r
+}
+
+func (m *AccountSettingsOp_CompleteStorageRelease) CloneOneofVT() isAccountSettingsOp_Op {
+	return m.CloneVT()
+}
+
 func (m *RemoveStorageBackendOp) CloneVT() *RemoveStorageBackendOp {
 	if m == nil {
 		return (*RemoveStorageBackendOp)(nil)
@@ -1409,6 +1449,9 @@ func (this *AccountSettings) EqualVT(that *AccountSettings) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.BlockStorePlacements, that.BlockStorePlacements, func() *BlockStorePlacement { return &BlockStorePlacement{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.StorageReleases, that.StorageReleases, func() *BlockStorePlacement { return &BlockStorePlacement{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1920,6 +1963,23 @@ func (this *AccountSettingsOp_SetBlockStorePlacement) EqualVT(thatIface isAccoun
 	return true
 }
 
+func (this *AccountSettingsOp_CompleteStorageRelease) EqualVT(thatIface isAccountSettingsOp_Op) bool {
+	that, ok := thatIface.(*AccountSettingsOp_CompleteStorageRelease)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.CompleteStorageRelease, that.CompleteStorageRelease, func() *BlockStorePlacement { return &BlockStorePlacement{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *RemoveStorageBackendOp) EqualVT(that *RemoveStorageBackendOp) bool {
 	if this == that {
 		return true
@@ -2179,6 +2239,17 @@ func (x *AccountSettings) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.StorageReleases) > 0 || s.HasField("storageReleases") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageReleases")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.StorageReleases {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("storageReleases"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2359,6 +2430,24 @@ func (x *AccountSettings) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.BlockStorePlacements = append(x.BlockStorePlacements, v)
+			})
+		case "storage_releases", "storageReleases":
+			s.AddField("storage_releases")
+			if s.ReadNil() {
+				x.StorageReleases = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.StorageReleases = append(x.StorageReleases, nil)
+					return
+				}
+				v := &BlockStorePlacement{}
+				v.UnmarshalProtoJSON(s.WithField("storage_releases", false))
+				if s.Err() != nil {
+					return
+				}
+				x.StorageReleases = append(x.StorageReleases, v)
 			})
 		}
 	})
@@ -2901,6 +2990,10 @@ func (x *AccountSettingsOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("setBlockStorePlacement")
 			ov.SetBlockStorePlacement.MarshalProtoJSON(s.WithField("setBlockStorePlacement"))
+		case *AccountSettingsOp_CompleteStorageRelease:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("completeStorageRelease")
+			ov.CompleteStorageRelease.MarshalProtoJSON(s.WithField("completeStorageRelease"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -3064,6 +3157,15 @@ func (x *AccountSettingsOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.SetBlockStorePlacement = &BlockStorePlacement{}
 			ov.SetBlockStorePlacement.UnmarshalProtoJSON(s.WithField("set_block_store_placement", true))
+		case "complete_storage_release", "completeStorageRelease":
+			ov := &AccountSettingsOp_CompleteStorageRelease{}
+			x.Op = ov
+			if s.ReadNil() {
+				ov.CompleteStorageRelease = nil
+				return
+			}
+			ov.CompleteStorageRelease = &BlockStorePlacement{}
+			ov.CompleteStorageRelease.UnmarshalProtoJSON(s.WithField("complete_storage_release", true))
 		}
 	})
 }
@@ -3411,6 +3513,18 @@ func (m *AccountSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.StorageReleases) > 0 {
+		for iNdEx := len(m.StorageReleases) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.StorageReleases[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x6a
+		}
 	}
 	if len(m.BlockStorePlacements) > 0 {
 		for iNdEx := len(m.BlockStorePlacements) - 1; iNdEx >= 0; iNdEx-- {
@@ -4339,6 +4453,34 @@ func (m *AccountSettingsOp_SetBlockStorePlacement) MarshalToSizedBufferVT(dAtA [
 	return len(dAtA) - i, nil
 }
 
+func (m *AccountSettingsOp_CompleteStorageRelease) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccountSettingsOp_CompleteStorageRelease) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.CompleteStorageRelease != nil {
+		size, err := m.CompleteStorageRelease.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *RemoveStorageBackendOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4658,6 +4800,10 @@ func (m *AccountSettings) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DefaultStorageBackendId)
 	for _, e := range m.BlockStorePlacements {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.StorageReleases {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
@@ -5023,6 +5169,21 @@ func (m *AccountSettingsOp_SetBlockStorePlacement) SizeVT() (n int) {
 	return n
 }
 
+func (m *AccountSettingsOp_CompleteStorageRelease) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CompleteStorageRelease != nil {
+		l = m.CompleteStorageRelease.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	} else {
+		n += 3
+	}
+	return n
+}
+
 func (m *RemoveStorageBackendOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5213,6 +5374,18 @@ func (x *AccountSettings) MarshalProtoText() string {
 	if len(x.BlockStorePlacements) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "block_store_placements")
 		for i, v := range x.BlockStorePlacements {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockStorePlacement{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.StorageReleases) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "storage_releases")
+		for i, v := range x.StorageReleases {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockStorePlacement{})
@@ -5519,6 +5692,13 @@ func (x *AccountSettingsOp) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetBlockStorePlacement)
 		}
+	case *AccountSettingsOp_CompleteStorageRelease:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "complete_storage_release")
+		if body.CompleteStorageRelease == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockStorePlacement{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.CompleteStorageRelease)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5800,6 +5980,19 @@ func (m *AccountSettings) UnmarshalVT(dAtA []byte) error {
 			}
 			m.BlockStorePlacements = append(m.BlockStorePlacements, &BlockStorePlacement{})
 			if err := m.BlockStorePlacements[len(m.BlockStorePlacements)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageReleases", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageReleases = append(m.StorageReleases, &BlockStorePlacement{})
+			if err := m.StorageReleases[len(m.StorageReleases)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6739,6 +6932,26 @@ func (m *AccountSettingsOp) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Op = &AccountSettingsOp_SetBlockStorePlacement{SetBlockStorePlacement: v}
+			}
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompleteStorageRelease", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Op.(*AccountSettingsOp_CompleteStorageRelease); ok {
+				if err := oneof.CompleteStorageRelease.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &BlockStorePlacement{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Op = &AccountSettingsOp_CompleteStorageRelease{CompleteStorageRelease: v}
 			}
 			iNdEx = postIndex
 		default:
