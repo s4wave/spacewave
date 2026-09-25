@@ -6,7 +6,7 @@ const rejectionBrand = Symbol.for('spacewave.WorldOperationRejection')
 
 export class WorldOperationRejection extends Error {
   override readonly name = 'WorldOperationRejection'
-  private readonly [rejectionBrand] = true
+  readonly [rejectionBrand] = true
 
   // Client and plugin builds recognize the same public error across bundles.
   static [Symbol.hasInstance](value: unknown): boolean {
