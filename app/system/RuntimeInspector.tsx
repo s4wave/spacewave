@@ -52,8 +52,10 @@ export function RuntimeInspector({
   )
   const visibleControllers = useMemo(
     () =>
-      (controllers ?? []).filter((controller) =>
-        matches(query, controller.id, controller.description),
+      groupControllers(
+        (controllers ?? []).filter((controller) =>
+          matches(query, controller.id, controller.description),
+        ),
       ),
     [controllers, query],
   )
@@ -155,13 +157,19 @@ export function RuntimeInspector({
             }
             count={visibleControllers.length}
           >
-            {visibleControllers.map((controller, index) => (
+            {visibleControllers.map(({ key, controller, count }) => (
               <li
-                key={`${controller.id}:${index}`}
+                key={key}
                 className="flex items-baseline gap-3 px-4 py-2 text-xs"
               >
                 <span className="text-foreground min-w-0 flex-1 truncate font-mono">
                   {controller.id}
+                  {count > 1 && (
+                    <span className="text-foreground-alt/50">
+                      {' '}
+                      ×{formatCount(count)}
+                    </span>
+                  )}
                 </span>
                 {controller.description && (
                   <span className="text-foreground-alt/60 hidden min-w-0 flex-1 truncate @2xl:block">
@@ -194,6 +202,30 @@ export function RuntimeInspector({
       </div>
     </div>
   )
+}
+
+// ControllerGroup is one or more running controllers with the same id,
+// version, and description.
+interface ControllerGroup {
+  key: string
+  controller: ControllerInfo
+  count: number
+}
+
+// groupControllers folds identical controllers, such as the bus bridge each
+// Space runtime adds, into one row with a count, keeping first-seen order.
+function groupControllers(controllers: ControllerInfo[]): ControllerGroup[] {
+  const groups = new Map<string, ControllerGroup>()
+  for (const controller of controllers) {
+    const key = `${controller.id}@${controller.version}:${controller.description}`
+    const group = groups.get(key)
+    if (group) {
+      group.count++
+    } else {
+      groups.set(key, { key, controller, count: 1 })
+    }
+  }
+  return [...groups.values()]
 }
 
 // matches reports whether any field contains the lowercase query.

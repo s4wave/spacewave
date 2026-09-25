@@ -291,8 +291,9 @@ function joinPlugins(
 }
 
 // spaceEngineId builds the world engine ID a Space runtime uses as its plugin
-// scheduler instance key. It mirrors SpaceEngineId in core/space.
-function spaceEngineId(space: SpaceSoListEntry): string {
+// scheduler instance key. It mirrors SpaceEngineId in core/space and is
+// unique per Space.
+export function spaceEngineId(space: SpaceSoListEntry): string {
   const ref = space.entry?.ref?.providerResourceRef
   return [
     'space',

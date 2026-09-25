@@ -52,6 +52,7 @@ import {
 } from './format.js'
 import { toneDotClass, toneTextClass } from './tone.js'
 import {
+  spaceEngineId,
   updatePhaseLabel,
   useSystemModel,
   type AttentionItem,
@@ -630,9 +631,9 @@ function SpacesTile({
             sessionIndex={session.sessionIndex ?? 0}
           />
         ))}
-        {shown.map((space, index) => (
+        {shown.map((space) => (
           <li
-            key={space.entry?.ref?.providerResourceRef?.id || index}
+            key={spaceEngineId(space)}
             className="border-foreground/8 max-w-48 truncate rounded-md border px-2 py-1"
           >
             {space.spaceMeta?.name || 'Untitled Space'}

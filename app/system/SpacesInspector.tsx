@@ -21,6 +21,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 
 import { Facts } from './Facts.js'
 import { InspectorSection } from './InspectorSection.js'
+import { spaceEngineId } from './useSystemModel.js'
 
 // SpacesInspector lists every account session on this device and every Space
 // in the current session, with actions to switch to or open each one.
@@ -70,11 +71,11 @@ export function SpacesInspector({
           </p>
         ) : (
           <ul className="divide-foreground/6 -mx-2 divide-y">
-            {spaces.map((space, index) => {
+            {spaces.map((space) => {
               const id = space.entry?.ref?.providerResourceRef?.id ?? ''
               const name = space.spaceMeta?.name || 'Untitled Space'
               return (
-                <li key={id || index}>
+                <li key={spaceEngineId(space)}>
                   <button
                     type="button"
                     disabled={!id}

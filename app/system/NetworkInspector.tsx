@@ -85,9 +85,9 @@ export function NetworkInspector({
                       </tr>
                     </thead>
                     <tbody className="text-foreground/85 font-mono tabular-nums">
-                      {links.map((link, index) => (
+                      {links.map((link) => (
                         <tr
-                          key={String(link.linkId ?? index)}
+                          key={String(link.linkId)}
                           className="border-foreground/6 border-t"
                         >
                           <td className="py-1 pr-3">{String(link.linkId)}</td>
