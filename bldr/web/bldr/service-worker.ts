@@ -2205,6 +2205,11 @@ function initServiceWorker() {
 
   // fetch event is called when a URL within the scope is accessed.
   self.addEventListener('fetch', (ev: FetchEvent) => {
+    // Leave cross-origin requests to the browser, so a CORS or network
+    // failure reaches the caller as a failed fetch, not a synthesized 500.
+    if (!isSwOrigin(new URL(ev.request.url).origin)) {
+      return
+    }
     ev.respondWith(
       swFetch(ev).catch((e) => {
         const err = castToError(e, '500 internal error')
