@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
@@ -72,7 +72,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 	var external []string
 	var sourceOverrides map[string]string
 	if useTinygo {
-		nodeStubsLoc := bldr.ResolveDistSourcePath(bldrDistRoot, nodeStubsPath)
+		nodeStubsLoc := distpath.Resolve(bldrDistRoot, nodeStubsPath)
 		inject = append([]string{nodeStubsLoc}, inject...)
 		external = []string{"fs", "crypto", "util", "node:fs", "node:crypto", "node:util"}
 		patched, err := entrypoint_browser_bundle.LoadTinyGoWasmExecSource(wasmExecFile)
@@ -93,7 +93,7 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 			BldrDistRoot: bldrDistRoot,
 			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 				Name:      entrypointName,
-				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, webRuntimeWasmDir, "plugin-wasm.ts"),
+				InputPath: distpath.Resolve(bldrDistRoot, webRuntimeWasmDir, "plugin-wasm.ts"),
 			}},
 			Format:         "es",
 			Platform:       "browser",

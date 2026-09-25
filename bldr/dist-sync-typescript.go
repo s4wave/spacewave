@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/s4wave/spacewave/bldr/distpath"
 	util_iofs "github.com/s4wave/spacewave/bldr/util/iofs"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -46,7 +47,7 @@ func PrepareTypeScriptProject(ctx context.Context, le *logrus.Entry, sourceRoot,
 
 	// SDK files resolve their pinned packages independently of project dependencies.
 	install, err := npm.EnsureSharedBunInstall(ctx, le, distRoot,
-		ResolveDistSourcePath(distRoot, "dist", "deps", "package.json"), filepath.Join(distRoot, "deps"))
+		distpath.Resolve(distRoot, "dist", "deps", "package.json"), filepath.Join(distRoot, "deps"))
 	if err != nil {
 		return err
 	}

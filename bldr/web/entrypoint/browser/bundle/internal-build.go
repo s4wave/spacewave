@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
@@ -55,7 +55,7 @@ func browserScriptRequest(bldrDistRoot, buildDir string, spec browserScriptSpec)
 		BldrDistRoot: bldrDistRoot,
 		Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 			Name:      spec.name,
-			InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, spec.inputPath),
+			InputPath: distpath.Resolve(bldrDistRoot, spec.inputPath),
 		}},
 		Format:         spec.format,
 		GlobalName:     spec.globalName,
@@ -130,7 +130,7 @@ func directRendererRequest(
 		BldrDistRoot: bldrDistRoot,
 		Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 			Name:      "entrypoint",
-			InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, "web/entrypoint/entrypoint.tsx"),
+			InputPath: distpath.Resolve(bldrDistRoot, "web/entrypoint/entrypoint.tsx"),
 		}},
 		Format:          "es",
 		Platform:        "browser",

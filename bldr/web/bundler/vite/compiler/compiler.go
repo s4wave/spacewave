@@ -18,7 +18,7 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -959,7 +959,7 @@ func resolveBldrDistWebPkgRefs(
 
 	buildPkgsDir, err := npm.EnsureSharedBunInstall(
 		ctx, le, workingPath,
-		bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"),
+		distpath.Resolve(distSourcePath, "dist", "deps", "package.json"),
 		filepath.Join(workingPath, "build", "web-pkgs"),
 	)
 	if err != nil {

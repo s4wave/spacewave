@@ -21,7 +21,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -510,11 +510,11 @@ func (c *Controller) BuildManifest(
 	web_pkg.SortWebPkgRefs(allWebPkgRefs)
 
 	// Record the pinned dist dependency inputs used by the direct owner.
-	distDepsPackagePath := bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json")
+	distDepsPackagePath := distpath.Resolve(distSourcePath, "dist", "deps", "package.json")
 
 	// -- Compile the main JS entrypoint (plugin-{hash}.mjs) --
 	le.Info("compiling js plugin entrypoint")
-	entrypointTsSrcPath := bldr.ResolveDistSourcePath(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
+	entrypointTsSrcPath := distpath.Resolve(distSourcePath, "plugin", "compiler", "js", "entrypoint.ts")
 
 	// Verify entrypoint source exists
 	if _, err := os.Stat(entrypointTsSrcPath); err != nil {

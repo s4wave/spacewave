@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
@@ -41,7 +41,7 @@ func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldr
 			BldrDistRoot: bldrDistRoot,
 			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 				Name: entrypointName,
-				InputPath: bldr.ResolveDistSourcePath(
+				InputPath: distpath.Resolve(
 					bldrDistRoot,
 					webPluginBrowserPkg,
 					"web-plugin-browser.ts",

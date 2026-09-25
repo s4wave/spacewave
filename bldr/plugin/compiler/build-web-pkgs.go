@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
@@ -51,7 +51,7 @@ func BuildDirectWebPkgs(
 	// cache reuses one install across projects).
 	buildPkgsDir, err := npm.EnsureSharedBunInstall(
 		ctx, le, workingPath,
-		bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"),
+		distpath.Resolve(distSourcePath, "dist", "deps", "package.json"),
 		filepath.Join(workingPath, "build", "web-pkgs"),
 	)
 	if err != nil {

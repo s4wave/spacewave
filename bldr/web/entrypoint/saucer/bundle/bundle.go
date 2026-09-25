@@ -10,7 +10,7 @@ import (
 
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
@@ -75,7 +75,7 @@ func BuildSaucerJSBundle(
 			BldrDistRoot: bldrDistRoot,
 			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 				Name:      "entrypoint",
-				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, "web", "entrypoint", "entrypoint.tsx"),
+				InputPath: distpath.Resolve(bldrDistRoot, "web", "entrypoint", "entrypoint.tsx"),
 			}},
 			Format:         "es",
 			Platform:       "browser",

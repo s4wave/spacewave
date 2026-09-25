@@ -18,7 +18,7 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
-	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/distpath"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
@@ -1290,7 +1290,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 func EnsureBldrDistDepsInstall(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
 	buildPkgsDir, err := npm.EnsureSharedBunInstall(
 		ctx, le, stateDir,
-		bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"),
+		distpath.Resolve(bldrDistRoot, "dist", "deps", "package.json"),
 		filepath.Join(stateDir, "build-web-pkgs"),
 	)
 	if err != nil {
