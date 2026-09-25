@@ -1,5 +1,17 @@
 
-·
+È
+0.57.9
+2026-09-25dSpacewave 0.57.9 makes browser storage more reliable, and shows how much each storage backend holds."dSpacewave 0.57.9 makes browser storage more reliable, and shows how much each storage backend holds.2Þ
+mA browser storage write that fails, such as one over quota, now reports an error instead of stopping the app.mA browser storage write that fails, such as one over quota, now reports an error instead of stopping the app.2”
+HTwo tabs or workers can no longer open the same browser storage at once.HTwo tabs or workers can no longer open the same browser storage at once.2¼
+\Creating a Drive from a quickstart no longer fails when several writes run at the same time.\Creating a Drive from a quickstart no longer fails when several writes run at the same time.2ä
+pA storage bucket that blocks the app's origin is reported as unreachable instead of failing with a server error.pA storage bucket that blocks the app's origin is reported as unreachable instead of failing with a server error.2¬
+TUploading many files no longer slows down as each upload keeps old file state alive.TUploading many files no longer slows down as each upload keeps old file state alive.2~
+=The top bar logo and menu text are their intended size again.=The top bar logo and menu text are their intended size again.2l
+4Plugin progress is recorded in the desktop log file.4Plugin progress is recorded in the desktop log file.:°
+VThe storage settings show the number and total size of the objects each backend holds.VThe storage settings show the number and total size of the objects each backend holds.:x
+:Local Space edits write their state once instead of twice.:Local Space edits write their state once instead of twice.
+À
 0.57.8
 2026-09-24qSpacewave 0.57.8 fixes signing in with the desktop and command-line apps, and makes the browser app start faster."qSpacewave 0.57.8 fixes signing in with the desktop and command-line apps, and makes the browser app start faster.2Þ
 mThe desktop and command-line apps accept connections again, so signing in no longer hangs after installation.mThe desktop and command-line apps accept connections again, so signing in no longer hangs after installation.2v
@@ -7,7 +19,8 @@ mThe desktop and command-line apps accept connections again, so signing in no lo
 ELogs and helper processes stay inside the configured state directory.ELogs and helper processes stay inside the configured state directory.2†
 ASpace plugins and their manifests load reliably in nested Spaces.ASpace plugins and their manifests load reliably in nested Spaces.2Ž
 EPairing links open the pairing flow before the app finishes starting.EPairing links open the pairing flow before the app finishes starting.2®
-USynchronization handles interrupted journals, recovery and denied writes more safely.USynchronization handles interrupted journals, recovery and denied writes more safely.:Š
+USynchronization handles interrupted journals, recovery and denied writes more safely.USynchronization handles interrupted journals, recovery and denied writes more safely.2†
+AThe browser app starts in Safari and other browsers without OPFS.AThe browser app starts in Safari and other browsers without OPFS.:Š
 ‚The browser app downloads far fewer files at startup. Code highlighting loads from a shared plugin only when a code view needs it.‚The browser app downloads far fewer files at startup. Code highlighting loads from a shared plugin only when a code view needs it.:Š
 CGarbage collection sweeps in batches, reducing CPU and disk writes.CGarbage collection sweeps in batches, reducing CPU and disk writes.:l
 4Blocks share one decoded cache, reducing memory use.4Blocks share one decoded cache, reducing memory use.

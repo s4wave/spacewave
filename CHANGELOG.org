@@ -1,5 +1,29 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.9
+<2026-09-25 Fri>
+
+Spacewave 0.57.9 makes browser storage more reliable, and shows how much each
+storage backend holds.
+
+** Fixes
+- A browser storage write that fails, such as one over quota, now reports an
+  error instead of stopping the app.
+- Two tabs or workers can no longer open the same browser storage at once.
+- Creating a Drive from a quickstart no longer fails when several writes run at
+  the same time.
+- A storage bucket that blocks the app's origin is reported as unreachable
+  instead of failing with a server error.
+- Uploading many files no longer slows down as each upload keeps old file state
+  alive.
+- The top bar logo and menu text are their intended size again.
+- Plugin progress is recorded in the desktop log file.
+
+** Improvements
+- The storage settings show the number and total size of the objects each
+  backend holds.
+- Local Space edits write their state once instead of twice.
+
 * v0.57.8
 <2026-09-24 Thu>
 
@@ -15,6 +39,7 @@ makes the browser app start faster.
 - Pairing links open the pairing flow before the app finishes starting.
 - Synchronization handles interrupted journals, recovery and denied writes
   more safely.
+- The browser app starts in Safari and other browsers without OPFS.
 
 ** Improvements
 - The browser app downloads far fewer files at startup. Code highlighting loads
