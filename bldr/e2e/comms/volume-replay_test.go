@@ -16,7 +16,8 @@ import (
 
 // volumeBrowsers are the browsers the volume storage checks run in:
 // VOLUME_BROWSERS, a comma-separated list, when set, otherwise Chromium and
-// WebKit. Linux WebKit lacks OPFS sync access handles.
+// WebKit. Linux WebKit lacks OPFS sync access handles. The list may also
+// name "safari" and "android"; see remote-browsers_test.go.
 func volumeBrowsers(t *testing.T) []string {
 	if list := os.Getenv("VOLUME_BROWSERS"); list != "" {
 		return strings.Split(list, ",")

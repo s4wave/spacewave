@@ -277,6 +277,9 @@ func (f *pageFailures) String() string {
 // runFixtureWith runs a fixture page like runFixture with the options of run.
 func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) map[string]any {
 	t.Helper()
+	if browserName == "safari" {
+		return runSafari(t, fixture, run)
+	}
 	dir := ""
 	if browserName == "webkit" || run.persistent {
 		dir = t.TempDir()
@@ -286,9 +289,13 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 
 // launchContext launches browserName in a new context that closes with t. A
 // non-empty dir holds an on-disk profile, which WebKit needs for OPFS;
-// otherwise the context is private.
+// otherwise the context is private. "android" connects to the device's
+// Chrome profile instead.
 func launchContext(t *testing.T, browserName, dir string) playwright.BrowserContext {
 	t.Helper()
+	if browserName == "android" {
+		return androidContext(t)
+	}
 
 	bt := browserType(browserName)
 	var ctx playwright.BrowserContext

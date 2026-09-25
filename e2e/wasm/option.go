@@ -119,7 +119,8 @@ func WithHeadless(headless bool) Option {
 }
 
 // WithBrowserName chooses the Playwright browser type used by LaunchBrowser.
-// Supported values are "chromium", "firefox", and "webkit".
+// Supported values are "chromium", "firefox", "webkit", and "android", which
+// is Chrome on the adb device (see e2eharness.AndroidChrome).
 func WithBrowserName(name string) Option {
 	return func(o *options) {
 		o.browserName = name
