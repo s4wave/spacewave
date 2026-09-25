@@ -3,6 +3,7 @@ package world_block_test
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -53,8 +54,12 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 		if _, err := state.DeleteObject(ctx, "remove"); err != nil {
 			return err
 		}
-		// Refill an emptied graph through the same batch API as initial import.
-		return state.InsertGraphQuads(ctx, []world.GraphQuad{world.NewGraphQuadWithKeys("keep", "<edge>", "change", "")})
+		// Refill an emptied graph through the same batch API as initial import,
+		// including an endpoint created by this update.
+		return state.InsertGraphQuads(ctx, []world.GraphQuad{
+			world.NewGraphQuadWithKeys("keep", "<edge>", "change", ""),
+			world.NewGraphQuadWithKeys("added", "<edge>", "keep", ""),
+		})
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -99,12 +104,17 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 			if err != nil {
 				return fmt.Errorf("read graph from next=%v: %w", ref == next, err)
 			}
-			wantObject := world.KeyToGraphValue("remove").String()
+			wantObjects := []string{world.KeyToGraphValue("remove").String()}
 			if ref == next {
-				wantObject = world.KeyToGraphValue("change").String()
+				wantObjects = []string{world.KeyToGraphValue("change").String(), world.KeyToGraphValue("keep").String()}
 			}
-			if len(quads) != 1 || quads[0].GetObj() != wantObject {
-				t.Fatal("snapshot did not preserve its relationship set")
+			gotObjects := make([]string, len(quads))
+			for i, quad := range quads {
+				gotObjects[i] = quad.GetObj()
+			}
+			slices.Sort(gotObjects)
+			if !slices.Equal(gotObjects, wantObjects) {
+				t.Fatalf("relationships target %v, want %v", gotObjects, wantObjects)
 			}
 			found, err := cursor.GetBucket().GetBlockExists(ctx, superseded.RootRef)
 			if found {
