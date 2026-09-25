@@ -4,9 +4,9 @@ import (
 	"context"
 	"maps"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -95,11 +95,15 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 		}
 		keys[i] = key
 	}
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bucket)
+	err := s.view(ctx, func(tx kvtx.Tx) error {
 		for i, entry := range entries {
-			if !entry.Tombstone {
-				stored[i] = b.Get([]byte(keys[i])) != nil
+			if entry.Tombstone {
+				continue
+			}
+			var err error
+			stored[i], err = tx.Exists(ctx, []byte(keys[i]))
+			if err != nil {
+				return err
 			}
 		}
 		return nil
@@ -147,7 +151,7 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 // locate returns the locations of refs, nil for an absent block. It reads
 // pending entries before opening the index view, so an entry published in
 // between is found in the view.
-func (s *Store) locate(refs []*block.BlockRef) ([]*location, error) {
+func (s *Store) locate(ctx context.Context, refs []*block.BlockRef) ([]*location, error) {
 	// Resolve keys and answer from pending entries.
 	keys := make([]string, len(refs))
 	found := make([]bool, len(refs))
@@ -172,14 +176,16 @@ func (s *Store) locate(refs []*block.BlockRef) ([]*location, error) {
 	s.mtx.Unlock()
 
 	// Read the rest from one index view.
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(bucket)
+	err := s.view(ctx, func(tx kvtx.Tx) error {
 		for i, key := range keys {
 			if found[i] {
 				continue
 			}
-			v := b.Get([]byte(key))
-			if v == nil {
+			v, ok, err := tx.Get(ctx, []byte(key))
+			if err != nil {
+				return err
+			}
+			if !ok {
 				continue
 			}
 			loc, err := unmarshalLocation(v)
@@ -195,7 +201,7 @@ func (s *Store) locate(refs []*block.BlockRef) ([]*location, error) {
 
 // GetBlock reads a block's payload.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	locs, err := s.locate([]*block.BlockRef{ref})
+	locs, err := s.locate(ctx, []*block.BlockRef{ref})
 	if err != nil || locs[0] == nil {
 		return nil, false, err
 	}
@@ -210,13 +216,13 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 
 // GetBlockExists checks whether a block is stored.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	locs, err := s.locate([]*block.BlockRef{ref})
+	locs, err := s.locate(ctx, []*block.BlockRef{ref})
 	return err == nil && locs[0] != nil, err
 }
 
 // GetBlockExistsBatch checks each reference from one index view.
 func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	locs, err := s.locate(refs)
+	locs, err := s.locate(ctx, refs)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +235,7 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 
 // StatBlock returns a block's payload length without reading it.
 func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	locs, err := s.locate([]*block.BlockRef{ref})
+	locs, err := s.locate(ctx, []*block.BlockRef{ref})
 	if err != nil || locs[0] == nil {
 		return nil, err
 	}
@@ -251,7 +257,7 @@ func (s *Store) Sync(ctx context.Context) (bool, error) {
 	if idle {
 		return true, nil
 	}
-	return true, s.update(nil)
+	return true, s.update(ctx, nil)
 }
 
 // blockKey returns the index key of a block reference.
