@@ -399,6 +399,13 @@ func (v *Volume) Sync(ctx context.Context) (bool, error) {
 	return fenced, nil
 }
 
+// OrdersWrites reports whether direct atomic writes commit with write
+// ordering. Block and object store writes share one store, whose next full
+// Commit makes every earlier ordered commit durable.
+func (v *Volume) OrdersWrites() bool {
+	return v.ordered != nil
+}
+
 // BeginDeferFlush forwards the GC defer-flush scope to the embedded store.
 func (v *Volume) BeginDeferFlush() {
 	block.BeginDeferFlush(v.Store)

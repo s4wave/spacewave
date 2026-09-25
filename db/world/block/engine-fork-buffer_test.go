@@ -134,3 +134,31 @@ func TestForkBlockTransactionDiscardDropsNestedWrites(t *testing.T) {
 		t.Fatalf("discard published buffered writes: batches=%d entries=%d", batches, entries)
 	}
 }
+
+func TestForkBlockTransactionFlushWritesWithoutSync(t *testing.T) {
+	ctx := t.Context()
+	engine := newRetirementTestEngine(t, ctx)
+	recording := &forkBufferRecordingStore{StoreOps: engine.writeBlockStore}
+	engine.writeBlockStore = recording
+
+	tx, err := engine.ForkBlockTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	writeForkBufferTestBlock(ctx, t, tx, "flushed buffered block")
+	if _, err := tx.CommitBlockTransaction(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	batches, entries, syncs := recording.counts()
+	if batches != 1 || entries == 0 {
+		t.Fatalf("lower store writes after Flush: batches=%d entries=%d", batches, entries)
+	}
+	if syncs != 0 {
+		t.Fatalf("lower store Sync calls after Flush: got %d want 0", syncs)
+	}
+}

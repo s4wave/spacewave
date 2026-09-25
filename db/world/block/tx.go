@@ -57,6 +57,12 @@ func (t *Tx) Sync(ctx context.Context) (bool, error) {
 	return t.state.Sync(ctx)
 }
 
+// Flush writes the block writes made through this tx's world state without a
+// durability fence. See WorldState.Flush.
+func (t *Tx) Flush(ctx context.Context) error {
+	return t.state.Flush(ctx)
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.

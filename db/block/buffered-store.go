@@ -441,7 +441,7 @@ func (s *BufferedStore) StatBlock(ctx context.Context, ref *BlockRef) (*BlockSta
 }
 
 // Sync drains buffered blocks, then forwards the durability barrier to inner.
-// Draining is owned solely by Sync (and by backpressure inside PutBlock).
+// Draining is owned by Sync, Flush, and backpressure inside PutBlock.
 func (s *BufferedStore) Sync(ctx context.Context) (bool, error) {
 	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/sync/wait-durable")
 	defer subtask.End()
@@ -451,13 +451,27 @@ func (s *BufferedStore) Sync(ctx context.Context) (bool, error) {
 	return s.inner.Sync(ctx)
 }
 
+// Flush drains buffered blocks through every buffered layer into the first
+// unbuffered store, without its durability barrier.
+func (s *BufferedStore) Flush(ctx context.Context) error {
+	_, subtask := trace.NewTask(ctx, "hydra/block/buffered-store/flush")
+	defer subtask.End()
+	if err := s.drainAll(ctx); err != nil {
+		return err
+	}
+	if inner, ok := s.inner.(*BufferedStore); ok {
+		return inner.Flush(ctx)
+	}
+	return nil
+}
+
 // BeginDeferFlush forwards the GC defer-flush scope to the inner store.
 func (s *BufferedStore) BeginDeferFlush() {
 	BeginDeferFlush(s.inner)
 }
 
 // EndDeferFlush forwards closing the GC defer-flush scope to the inner store.
-// Buffered blocks are never drained here; only Sync drains.
+// Buffered blocks are never drained here; only Sync and Flush drain.
 func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
 	return EndDeferFlush(ctx, s.inner)
 }

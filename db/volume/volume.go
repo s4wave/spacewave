@@ -62,6 +62,21 @@ type Volume interface {
 	Delete() error
 }
 
+// WriteOrderer is implemented by a volume whose block and object store writes
+// become durable in commit order: once a durable commit completes, every
+// earlier write is durable too. A writer whose block writes are followed by a
+// durable object store commit on the same volume needs no Sync between them.
+type WriteOrderer interface {
+	// OrdersWrites reports whether the volume makes writes durable in order.
+	OrdersWrites() bool
+}
+
+// OrdersWrites reports whether vol makes its writes durable in commit order.
+func OrdersWrites(vol Volume) bool {
+	orderer, ok := vol.(WriteOrderer)
+	return ok && orderer.OrdersWrites()
+}
+
 // NewVolumeID constructs a new volume ID with a store type id and a peer id.
 //
 // storeTypeID should be like "hydra/volume/kvtxinmem"
