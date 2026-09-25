@@ -4,7 +4,6 @@ package engine
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io/fs"
 	"maps"
@@ -18,43 +17,11 @@ import (
 	"testing"
 	"time"
 
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
-// replayTarget drives a format 3 engine and its block store as one replay
-// target.
-type replayTarget struct {
-	*Engine
-	*BlockStore
-}
-
-// AppendJournal journals reference changes through the engine.
-func (t replayTarget) AppendJournal(ctx context.Context, adds, removes []block_gc.RefEdge) error {
-	return t.Append(ctx, adds, removes)
-}
-
-// ReplayJournal passes every journaled change to apply through the engine's
-// write-ahead log replay.
-func (t replayTarget) ReplayJournal(ctx context.Context, apply func(adds, removes []block_gc.RefEdge) error) error {
-	_, err := t.ReplayWAL(ctx, journalGraph{apply: apply})
-	return err
-}
-
-// journalGraph passes replayed reference changes to a journal apply function.
-type journalGraph struct {
-	block_gc.CollectorGraph
-	// apply receives each replayed batch.
-	apply func(adds, removes []block_gc.RefEdge) error
-}
-
-// ApplyRefBatch passes the changes to apply.
-func (g journalGraph) ApplyRefBatch(_ context.Context, adds, removes []block_gc.RefEdge) error {
-	return g.apply(adds, removes)
-}
-
 // openReplayTarget opens a fresh engine on d.
-func openReplayTarget(t *testing.T, d *diskBackend) replayTarget {
+func openReplayTarget(t *testing.T, d *diskBackend) ReplayTarget {
 	t.Helper()
 	e, err := Open(t.Context(), d)
 	if err != nil {
@@ -63,7 +30,7 @@ func openReplayTarget(t *testing.T, d *diskBackend) replayTarget {
 	t.Cleanup(func() { _ = e.Close() })
 	s := NewBlockStore(t.Context(), e, 0)
 	t.Cleanup(func() { _ = s.Close() })
-	return replayTarget{Engine: e, BlockStore: s}
+	return ReplayTarget{Engine: e, BlockStore: s}
 }
 
 // traceRecords runs fn under an execution trace and returns its records.
