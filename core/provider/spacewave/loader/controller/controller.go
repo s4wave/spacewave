@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -208,16 +209,21 @@ func (c *Controller) drainEvents(ctx context.Context, client *launcher_helper.Cl
 	}
 }
 
+// loaderFetchStatus converts launcher fetch status to the loader UI view.
 func loaderFetchStatus(status *spacewave_launcher.FetchStatus) *ui.FetchStatus {
 	if status == nil {
 		return nil
 	}
+	var nextRetryAt time.Time
+	if at := status.GetNextRetryAt(); at != nil {
+		nextRetryAt = at.AsTime()
+	}
 	return &ui.FetchStatus{
-		Fetching:    status.Fetching,
-		HasConfig:   status.HasConfig,
-		LastErr:     status.LastErr,
-		Attempts:    status.Attempts,
-		NextRetryAt: status.NextRetryAt,
+		Fetching:    status.GetFetching(),
+		HasConfig:   status.GetHasConfig(),
+		LastErr:     status.GetLastError(),
+		Attempts:    status.GetAttempts(),
+		NextRetryAt: nextRetryAt,
 	}
 }
 

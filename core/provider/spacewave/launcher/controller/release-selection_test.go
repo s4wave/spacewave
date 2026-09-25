@@ -50,7 +50,6 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 		bus:             b,
 		conf:            &Config{ProjectId: "orbit", EntrypointManifestId: "orbit-desktop", DisableCliUpdate: true},
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](&spacewave_launcher.LauncherInfo{}),
-		fetchStatusCtr:  ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](&spacewave_launcher.FetchStatus{}),
 		stagingDirFunc:  func() (string, error) { return dir, nil },
 	}
 	if err := ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{ProjectId: "orbit", Rev: 1, ChannelKey: "alpha"}); err != nil {
@@ -72,7 +71,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if _, err := os.Stat(sidecar); !os.IsNotExist(err) {
 		t.Fatalf("obsolete CLI sidecar remains: %v", err)
 	}
-	if got := ctrl.fetchStatusCtr.GetValue().SelectedCLIManifestID; got != "" {
+	if got := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().SelectedCliManifestId; got != "" {
 		t.Fatalf("desktop-only release selected CLI %q", got)
 	}
 
@@ -90,7 +89,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
 		t.Fatal("offered the installed executable as an update")
 	}
-	if ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome != "current" {
+	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT {
 		t.Fatal("installed release was not recognized")
 	}
 

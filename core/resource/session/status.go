@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
-	spacewave_launcher_controller "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/space"
 	spacewave_transport "github.com/s4wave/spacewave/core/transport"
@@ -301,13 +300,17 @@ func (r *StatusResource) WatchRecoveryStatus(
 		}
 	}
 	rootPlugins := ccontainer.NewCContainer[*bldr_plugin.PluginStatusSnapshot](nil)
+	launcher := spacewave_launcher.NewInfoWatcher(nil, r.b)
+	launcher.SetContext(ctx)
 	go r.watchRecoveryOwnerChanges(ctx, notify)
 	go r.watchRecoveryRendererChanges(ctx, notify)
 	go watchRecoveryPluginChanges(ctx, r.b, rootPlugins, notify)
+	go watchRecoveryLauncherChanges(ctx, launcher, notify)
 
 	var last *s4wave_status.RecoveryStatus
 	for {
-		status := r.buildRecoveryStatus(rootPlugins.GetValue().GetManifestRecovery())
+		launcherInfo, _ := launcher.Snapshot()
+		status := r.buildRecoveryStatus(launcherInfo, rootPlugins.GetValue().GetManifestRecovery())
 		if last == nil || !last.EqualVT(status) {
 			if err := strm.Send(&s4wave_status.WatchRecoveryStatusResponse{Status: status}); err != nil {
 				return err
@@ -327,7 +330,6 @@ func (r *StatusResource) watchRecoveryOwnerChanges(ctx context.Context, notify f
 	for {
 		waitCh := r.controllersWaitCh()
 		watchCtx, cancel := context.WithCancel(ctx)
-		go r.watchRecoveryLauncherChanges(watchCtx, notify)
 		go r.watchRecoveryPackageChanges(watchCtx, notify)
 		select {
 		case <-ctx.Done():
@@ -340,40 +342,21 @@ func (r *StatusResource) watchRecoveryOwnerChanges(ctx context.Context, notify f
 	}
 }
 
-// watchRecoveryLauncherChanges watches launcher facts for the supplied controller-watch lifetime.
-func (r *StatusResource) watchRecoveryLauncherChanges(ctx context.Context, notify func()) {
-	ctrl := spacewave_launcher_controller.FindControllerOnBus(r.b)
-	if ctrl == nil {
-		return
+// watchRecoveryLauncherChanges notifies on each launcher info change until ctx ends.
+func watchRecoveryLauncherChanges(
+	ctx context.Context,
+	launcher *spacewave_launcher.InfoWatcher,
+	notify func(),
+) {
+	for {
+		_, waitCh := launcher.Snapshot()
+		notify()
+		select {
+		case <-ctx.Done():
+			return
+		case <-waitCh:
+		}
 	}
-	ctr := ctrl.GetFetchStatusCtr()
-	current := ctr.GetValue()
-	go func() {
-		_ = ccontainer.WatchChanges(
-			ctx,
-			current,
-			ctr,
-			func(*spacewave_launcher.FetchStatus) error {
-				notify()
-				return nil
-			},
-			nil,
-		)
-	}()
-	infoCtr := ctrl.GetLauncherInfoCtr()
-	infoCurrent := infoCtr.GetValue()
-	go func() {
-		_ = ccontainer.WatchChanges(
-			ctx,
-			infoCurrent,
-			infoCtr,
-			func(*spacewave_launcher.LauncherInfo) error {
-				notify()
-				return nil
-			},
-			nil,
-		)
-	}()
 }
 
 // watchRecoveryPluginChanges publishes the root plugin host's status snapshot
@@ -561,14 +544,15 @@ func buildNetworkStatsResponse(
 	return resp
 }
 
-// buildRecoveryStatus combines current owner facts, the root plugin host's
-// manifest recovery rows, and volatile renderer facts.
+// buildRecoveryStatus combines the launcher info, current owner facts, the root
+// plugin host's manifest recovery rows, and volatile renderer facts.
 func (r *StatusResource) buildRecoveryStatus(
+	launcher *spacewave_launcher.LauncherInfo,
 	plugins []*bldr_plugin.PluginManifestRecoveryStatus,
 ) *s4wave_status.RecoveryStatus {
 	renderer := r.rendererRecoveryCtr.GetValue()
 	return &s4wave_status.RecoveryStatus{
-		Launcher:       r.buildLauncherRecoveryStatus(),
+		Launcher:       buildLauncherRecoveryStatus(launcher),
 		Plugins:        plugins,
 		NativePackages: r.buildNativePackageRecoveryStatuses(),
 		Boot:           buildBrowserBootRecoveryStatus(renderer),
@@ -576,47 +560,73 @@ func (r *StatusResource) buildRecoveryStatus(
 	}
 }
 
-// buildLauncherRecoveryStatus projects the current launcher metadata and update state.
-func (r *StatusResource) buildLauncherRecoveryStatus() *s4wave_status.LauncherRecoveryStatus {
-	ctrl := spacewave_launcher_controller.FindControllerOnBus(r.b)
-	if ctrl == nil {
+// buildLauncherRecoveryStatus projects the launcher metadata and update state,
+// or returns nil when no launcher is reachable.
+func buildLauncherRecoveryStatus(info *spacewave_launcher.LauncherInfo) *s4wave_status.LauncherRecoveryStatus {
+	if info == nil {
 		return nil
 	}
-	info := ctrl.GetLauncherInfoCtr().GetValue()
-	status := ctrl.GetFetchStatusCtr().GetValue()
-	return buildLauncherRecoveryStatus(info, status)
+	fetch := info.GetFetchStatus()
+	state := info.GetUpdateState()
+	return &s4wave_status.LauncherRecoveryStatus{
+		SelectedChannelKey:            info.GetDistConfig().ResolvedChannelKey(),
+		SelectedConfigRev:             fetch.GetSelectedConfigRev(),
+		SelectedConfigSource:          distConfigSourceString(fetch.GetSelectedConfigSource()),
+		FetchedConfigRev:              fetch.GetFetchedConfigRev(),
+		FetchedConfigSource:           fetch.GetFetchedConfigSource(),
+		ReleaseMetadataOutcome:        releaseMetadataOutcomeString(fetch.GetReleaseMetadataOutcome()),
+		ReleaseWorldHeadRef:           fetch.GetReleaseWorldHeadRef(),
+		SelectedEntrypointManifestId:  fetch.GetSelectedEntrypointManifestId(),
+		SelectedEntrypointPlatformId:  fetch.GetSelectedEntrypointPlatformId(),
+		SelectedEntrypointManifestRev: fetch.GetSelectedEntrypointManifestRev(),
+		SelectedEntrypointManifestRef: fetch.GetSelectedEntrypointManifestRef(),
+		UpdatePhase:                   launcherUpdatePhaseString(state.GetPhase()),
+		UpdateVersion:                 state.GetVersion(),
+		StagedPath:                    state.GetStagedPath(),
+		UpdateError:                   state.GetErrorMessage(),
+	}
 }
 
-// buildLauncherRecoveryStatus projects the current launcher metadata and update state.
-func buildLauncherRecoveryStatus(
-	info *spacewave_launcher.LauncherInfo,
-	status *spacewave_launcher.FetchStatus,
-) *s4wave_status.LauncherRecoveryStatus {
-	if info == nil && status == nil {
-		return nil
+// distConfigSourceString formats the selected DistConfig source for diagnostic status.
+func distConfigSourceString(source spacewave_launcher.DistConfigSource) string {
+	switch source {
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_NONE:
+		return "none"
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_STORED:
+		return "stored"
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_PACKAGE:
+		return "package"
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT:
+		return "embedded-default"
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT:
+		return "endpoint"
+	default:
+		return ""
 	}
-	out := &s4wave_status.LauncherRecoveryStatus{}
-	if status != nil {
-		out.SelectedConfigRev = status.SelectedConfigRev
-		out.SelectedConfigSource = status.SelectedConfigSource
-		out.FetchedConfigRev = status.FetchedConfigRev
-		out.FetchedConfigSource = status.FetchedConfigSource
-		out.ReleaseMetadataOutcome = status.ReleaseMetadataOutcome
-		out.ReleaseWorldHeadRef = status.ReleaseWorldHeadRef
-		out.SelectedEntrypointManifestId = status.SelectedEntrypointManifestID
-		out.SelectedEntrypointPlatformId = status.SelectedEntrypointPlatformID
-		out.SelectedEntrypointManifestRev = status.SelectedEntrypointManifestRev
-		out.SelectedEntrypointManifestRef = status.SelectedEntrypointManifestRef
+}
+
+// releaseMetadataOutcomeString formats the release metadata outcome for diagnostic status.
+func releaseMetadataOutcomeString(outcome spacewave_launcher.ReleaseMetadataOutcome) string {
+	switch outcome {
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_PENDING:
+		return "pending"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_IDLE:
+		return "idle"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_RESOLVING:
+		return "resolving"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_REFRESHING:
+		return "refreshing"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT:
+		return "current"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_DOWNLOADING:
+		return "downloading"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED:
+		return "staged"
+	case spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR:
+		return "error"
+	default:
+		return ""
 	}
-	if info != nil {
-		out.SelectedChannelKey = info.GetDistConfig().ResolvedChannelKey()
-		state := info.GetUpdateState()
-		out.UpdatePhase = launcherUpdatePhaseString(state.GetPhase())
-		out.UpdateVersion = state.GetVersion()
-		out.StagedPath = state.GetStagedPath()
-		out.UpdateError = state.GetErrorMessage()
-	}
-	return out
 }
 
 // launcherUpdatePhaseString formats the launcher update phase for diagnostic status.

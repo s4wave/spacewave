@@ -26,7 +26,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 	b := inmem.NewBus(cdc.NewController(context.Background(), logrus.NewEntry(logrus.New())))
 	statusRes := NewStatusResource(b, nil)
 
-	initial := statusRes.buildRecoveryStatus(nil)
+	initial := statusRes.buildRecoveryStatus(nil, nil)
 	if initial.GetBoot().GetStatus() != "not-reported" {
 		t.Fatalf("initial boot status = %q, want not-reported", initial.GetBoot().GetStatus())
 	}
@@ -49,7 +49,7 @@ func TestReportRecoveryStatusPublishesRendererFacts(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	status := statusRes.buildRecoveryStatus(nil)
+	status := statusRes.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
 		status.GetBoot().GetStatus() != "reported" {
@@ -86,7 +86,7 @@ func TestRecoveryStatusRegistrySharesRendererFactsAcrossResources(t *testing.T) 
 		t.Fatal(err.Error())
 	}
 
-	status := reader.buildRecoveryStatus(nil)
+	status := reader.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetCompatibilityVersion() != "1000000" ||
 		status.GetBoot().GetLastResetDecision() != "reset-complete" ||
 		status.GetBoot().GetStatus() != "reported" {
@@ -123,7 +123,7 @@ func TestReportRecoveryStatusReplacesRendererSnapshot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	status := statusRes.buildRecoveryStatus(nil)
+	status := statusRes.buildRecoveryStatus(nil, nil)
 	if status.GetBoot().GetLastResetDecision() != "current" {
 		t.Fatalf("boot decision = %q, want current", status.GetBoot().GetLastResetDecision())
 	}
@@ -146,23 +146,24 @@ func TestBuildLauncherRecoveryStatusIncludesEntrypointFacts(t *testing.T) {
 				Version:    "0.2.0",
 				StagedPath: "/var/folders/spacewave/Spacewave.app",
 			},
-		},
-		&spacewave_launcher.FetchStatus{
-			SelectedConfigRev:             42,
-			SelectedConfigSource:          "endpoint:https://release.example",
-			FetchedConfigRev:              43,
-			FetchedConfigSource:           "endpoint:https://release.example",
-			ReleaseMetadataOutcome:        "staged",
-			ReleaseWorldHeadRef:           "release-world-head",
-			SelectedEntrypointManifestID:  "spacewave-dist",
-			SelectedEntrypointPlatformID:  "desktop/darwin/arm64",
-			SelectedEntrypointManifestRev: 7,
-			SelectedEntrypointManifestRef: "manifest-ref",
+			FetchStatus: &spacewave_launcher.FetchStatus{
+				SelectedConfigRev:             42,
+				SelectedConfigSource:          spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT,
+				FetchedConfigRev:              43,
+				FetchedConfigSource:           "https://release.example",
+				ReleaseMetadataOutcome:        spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED,
+				ReleaseWorldHeadRef:           "release-world-head",
+				SelectedEntrypointManifestId:  "spacewave-dist",
+				SelectedEntrypointPlatformId:  "desktop/darwin/arm64",
+				SelectedEntrypointManifestRev: 7,
+				SelectedEntrypointManifestRef: "manifest-ref",
+			},
 		},
 	)
 
 	if status.GetSelectedChannelKey() != "staging" ||
 		status.GetSelectedConfigRev() != 42 ||
+		status.GetSelectedConfigSource() != "endpoint" ||
 		status.GetReleaseMetadataOutcome() != "staged" ||
 		status.GetReleaseWorldHeadRef() != "release-world-head" {
 		t.Fatalf("unexpected release status: %#v", status)
@@ -193,11 +194,11 @@ func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
 					Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
 					StagedPath: "/tmp/Spacewave.app",
 				},
-			},
-			&spacewave_launcher.FetchStatus{
-				SelectedEntrypointManifestID:  "spacewave-dist",
-				SelectedEntrypointPlatformID:  "desktop/darwin/arm64",
-				SelectedEntrypointManifestRef: "entrypoint-ref",
+				FetchStatus: &spacewave_launcher.FetchStatus{
+					SelectedEntrypointManifestId:  "spacewave-dist",
+					SelectedEntrypointPlatformId:  "desktop/darwin/arm64",
+					SelectedEntrypointManifestRef: "entrypoint-ref",
+				},
 			},
 		),
 		Plugins: []*bldr_plugin.PluginManifestRecoveryStatus{{

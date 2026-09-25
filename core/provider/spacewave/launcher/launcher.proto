@@ -2,6 +2,7 @@ syntax = "proto3";
 package spacewave.launcher;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "google/protobuf/timestamp.proto";
 
 // DistConfig is the encoded and signed object that is exposed on the
 // distribution URL endpoints. The config with the highest valid revision field
@@ -41,6 +42,113 @@ message LauncherInfo {
   DistConfig dist_config = 1;
   // UpdateState describes the entrypoint update state.
   UpdateState update_state = 2;
+  // FetchStatus describes DistConfig fetching and release selection.
+  FetchStatus fetch_status = 3;
+}
+
+// FetchStatus describes the launcher's DistConfig fetch and Release World
+// selection state. The launcher controller replaces it on every transition.
+message FetchStatus {
+  // Fetching is true while an endpoint fetch is in flight.
+  bool fetching = 1;
+  // HasConfig is true once the launcher selected a non-empty DistConfig from
+  // storage, the package, the built-in default, or an endpoint.
+  bool has_config = 2;
+  // SelectedConfigRev is the revision of the selected DistConfig.
+  uint64 selected_config_rev = 3;
+  // SelectedConfigSource is the source of the selected DistConfig.
+  DistConfigSource selected_config_source = 4;
+  // FetchedConfigRev is the most recent valid endpoint DistConfig revision.
+  uint64 fetched_config_rev = 5;
+  // FetchedConfigSource is the endpoint URL that produced FetchedConfigRev.
+  string fetched_config_source = 6;
+  // ReleaseMetadataOutcome is the latest Release World metadata resolution
+  // result for the selected DistConfig.
+  ReleaseMetadataOutcome release_metadata_outcome = 7;
+  // ReleaseWorldHeadRef is the Release World root ref used for the latest
+  // metadata resolution.
+  string release_world_head_ref = 8;
+  // SelectedEntrypointManifestId identifies the native entrypoint manifest
+  // selected from release metadata for staging.
+  string selected_entrypoint_manifest_id = 9;
+  // SelectedEntrypointPlatformId is the desktop platform of the selected
+  // native entrypoint manifest.
+  string selected_entrypoint_platform_id = 10;
+  // SelectedEntrypointManifestRev is the revision of the selected native
+  // entrypoint manifest.
+  uint64 selected_entrypoint_manifest_rev = 11;
+  // SelectedEntrypointManifestRef is the selected native entrypoint object
+  // ref in string form.
+  string selected_entrypoint_manifest_ref = 12;
+  // SelectedCliManifestId identifies the CLI entrypoint manifest selected
+  // from release metadata for the desktop-managed CLI.
+  string selected_cli_manifest_id = 13;
+  // SelectedCliPlatformId is the desktop platform of the selected CLI
+  // entrypoint manifest.
+  string selected_cli_platform_id = 14;
+  // SelectedCliManifestRev is the revision of the selected CLI entrypoint
+  // manifest.
+  uint64 selected_cli_manifest_rev = 15;
+  // SelectedCliManifestRef is the selected CLI entrypoint object ref in
+  // string form.
+  string selected_cli_manifest_ref = 16;
+  // SelectedCliBinaryPath is the local staged CLI binary path written to the
+  // managed CLI release sidecar.
+  string selected_cli_binary_path = 17;
+  // LastError is the most recent endpoint fetch error, empty when the last
+  // attempt succeeded or no fetch has run.
+  string last_error = 18;
+  // Attempts counts endpoint rounds since the last successful fetch.
+  uint32 attempts = 19;
+  // NextRetryAt is the time of the next scheduled fetch. Empty while a fetch
+  // is in flight or when none is scheduled.
+  google.protobuf.Timestamp next_retry_at = 20;
+}
+
+// DistConfigSource is where the launcher found its selected DistConfig.
+enum DistConfigSource {
+  // DIST_CONFIG_SOURCE_UNKNOWN means the launcher has not selected a config.
+  DIST_CONFIG_SOURCE_UNKNOWN = 0;
+  // DIST_CONFIG_SOURCE_NONE means no DistConfig was available at startup.
+  DIST_CONFIG_SOURCE_NONE = 1;
+  // DIST_CONFIG_SOURCE_STORED means the config came from launcher storage.
+  DIST_CONFIG_SOURCE_STORED = 2;
+  // DIST_CONFIG_SOURCE_PACKAGE means the config came from the app package.
+  DIST_CONFIG_SOURCE_PACKAGE = 3;
+  // DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT means the config came from the
+  // default built into the launcher.
+  DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT = 4;
+  // DIST_CONFIG_SOURCE_ENDPOINT means the config came from a dist endpoint.
+  DIST_CONFIG_SOURCE_ENDPOINT = 5;
+}
+
+// ReleaseMetadataOutcome is the state of Release World metadata resolution
+// for the selected DistConfig.
+enum ReleaseMetadataOutcome {
+  // RELEASE_METADATA_OUTCOME_UNKNOWN means resolution has not reported.
+  RELEASE_METADATA_OUTCOME_UNKNOWN = 0;
+  // RELEASE_METADATA_OUTCOME_PENDING means the launcher started and has not
+  // resolved release metadata yet.
+  RELEASE_METADATA_OUTCOME_PENDING = 1;
+  // RELEASE_METADATA_OUTCOME_IDLE means no DistConfig is selected.
+  RELEASE_METADATA_OUTCOME_IDLE = 2;
+  // RELEASE_METADATA_OUTCOME_RESOLVING means the launcher is reading the
+  // channel from the Release World.
+  RELEASE_METADATA_OUTCOME_RESOLVING = 3;
+  // RELEASE_METADATA_OUTCOME_REFRESHING means the Release World head is behind
+  // the selector and the launcher is refreshing it.
+  RELEASE_METADATA_OUTCOME_REFRESHING = 4;
+  // RELEASE_METADATA_OUTCOME_CURRENT means the running entrypoint matches the
+  // selected release.
+  RELEASE_METADATA_OUTCOME_CURRENT = 5;
+  // RELEASE_METADATA_OUTCOME_DOWNLOADING means the selected entrypoint is
+  // being downloaded.
+  RELEASE_METADATA_OUTCOME_DOWNLOADING = 6;
+  // RELEASE_METADATA_OUTCOME_STAGED means the selected entrypoint is staged
+  // for install.
+  RELEASE_METADATA_OUTCOME_STAGED = 7;
+  // RELEASE_METADATA_OUTCOME_ERROR means resolution failed and will retry.
+  RELEASE_METADATA_OUTCOME_ERROR = 8;
 }
 
 // UpdateState describes the current state of an entrypoint self-update.
@@ -71,18 +179,22 @@ enum UpdatePhase {
   UpdatePhase_ERROR = 4;
 }
 
+// Launcher exposes the launcher controller's DistConfig and update state.
 service Launcher {
+  // WatchLauncherInfo streams the launcher state on every change.
   rpc WatchLauncherInfo(WatchLauncherInfoRequest) returns (stream LauncherInfo) {}
+  // PushDistConfigMsg offers a signed DistConfig found in a block of text.
   rpc PushDistConfigMsg(PushDistConfigRequest) returns (PushDistConfigResponse) {}
+  // RecheckDistConfig starts an immediate DistConfig fetch.
   rpc RecheckDistConfig(RecheckDistConfigRequest) returns (RecheckDistConfigResponse) {}
+  // ApplyUpdate installs the staged entrypoint update and relaunches.
   rpc ApplyUpdate(ApplyUpdateRequest) returns (ApplyUpdateResponse) {}
 }
 
 // RecheckDistConfigRequest is a request to immediately recheck for updates.
 message RecheckDistConfigRequest {}
 
-// RecheckDistConfigRequest is a response to immediately recheck for updates.
-// Returned immediately
+// RecheckDistConfigResponse is returned as soon as the fetch starts.
 message RecheckDistConfigResponse {}
 
 // WatchLauncherInfoRequest is the request to get the launcher info.
