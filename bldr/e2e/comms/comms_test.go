@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mxschmitt/playwright-go"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
@@ -48,6 +49,10 @@ var (
 	opfsStorageGoScriptFixtureWorker = goScriptFixtureWorker{
 		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-opfs-storage",
 		outputName:      "goscript-opfs-storage-plugin.js",
+	}
+	volumeReplayGoScriptFixtureWorker = goScriptFixtureWorker{
+		mainPackagePath: "github.com/s4wave/spacewave/bldr/e2e/comms/fixtures/go/goscript-volume-replay",
+		outputName:      "goscript-volume-replay-plugin.js",
 	}
 )
 
@@ -210,15 +215,21 @@ func shouldSkipBrowserLaunch(browserName string, err error) bool {
 // runFixture opens a fixture page in the given browser, waits for "DONE" in
 // #log, and returns window.__results as a map.
 func runFixture(t *testing.T, browserName, fixture string) map[string]any {
-	return runFixtureWithAllowedBrowserFailures(t, browserName, fixture, nil)
+	return runFixtureWith(t, browserName, fixture, fixtureRun{})
 }
 
-func runFixtureWithAllowedBrowserFailures(
-	t *testing.T,
-	browserName string,
-	fixture string,
-	allowedBrowserFailures []string,
-) map[string]any {
+// fixtureRun configures one fixture page run.
+type fixtureRun struct {
+	// query is the page URL's query string, without the leading "?".
+	query string
+	// timeout bounds the wait for "DONE"; zero selects 30 seconds.
+	timeout time.Duration
+	// allowedBrowserFailures are console errors that do not fail the run.
+	allowedBrowserFailures []string
+}
+
+// runFixtureWith runs a fixture page like runFixture with the options of run.
+func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) map[string]any {
 	t.Helper()
 
 	bt := browserType(browserName)
@@ -266,7 +277,7 @@ func runFixtureWithAllowedBrowserFailures(
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		t.Logf("[%s console.%s] %s", browserName, msg.Type(), msg.Text())
 		if msg.Type() == "error" {
-			for _, allowed := range allowedBrowserFailures {
+			for _, allowed := range run.allowedBrowserFailures {
 				if strings.Contains(msg.Text(), allowed) {
 					return
 				}
@@ -284,6 +295,13 @@ func runFixtureWithAllowedBrowserFailures(
 	})
 
 	url := fmt.Sprintf("%s/%s.html", testServer.url, fixture)
+	if run.query != "" {
+		url += "?" + run.query
+	}
+	timeout := run.timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
 	if _, err := page.Goto(url); err != nil {
 		t.Fatalf("goto %s: %v", url, err)
 	}
@@ -299,7 +317,7 @@ func runFixtureWithAllowedBrowserFailures(
 
 	// Wait for "DONE" text.
 	if err := playwright.NewPlaywrightAssertions().Locator(logSel).ToContainText("DONE", playwright.LocatorAssertionsToContainTextOptions{
-		Timeout: playwright.Float(30000),
+		Timeout: new(float64(timeout.Milliseconds())),
 	}); err != nil {
 		text, _ := logSel.TextContent()
 		failureMu.Lock()
@@ -506,15 +524,12 @@ func TestStartupFailures(t *testing.T) {
 	for _, browser := range browsers {
 		t.Run(browser, func(t *testing.T) {
 			t.Parallel()
-			results := runFixtureWithAllowedBrowserFailures(
-				t,
-				browser,
-				"startup-failures",
-				[]string{
+			results := runFixtureWith(t, browser, "startup-failures", fixtureRun{
+				allowedBrowserFailures: []string{
 					"ServiceWorker: connecting via WebDocument failed: startup-failures-slow-doc",
 					"ServiceWorker: connecting via WebDocument failed: startup-failures-close-doc",
 				},
-			)
+			})
 
 			if pass, ok := results["pass"].(bool); !ok || !pass {
 				t.Fatalf("startup failures fixture failed: %v", results["detail"])

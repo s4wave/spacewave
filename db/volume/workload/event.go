@@ -55,8 +55,9 @@ func Extract(r io.Reader) ([]Event, error) {
 	}
 }
 
-// ReadTrace prepares a replay of the Go execution trace file at path.
-func ReadTrace(path string) (*Replay, error) {
+// ReadTraceRecords reads the workload records of the Go execution trace file
+// at path.
+func ReadTraceRecords(path string) ([]Record, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -69,6 +70,15 @@ func ReadTrace(path string) (*Replay, error) {
 	records := make([]Record, len(events))
 	for i, ev := range events {
 		records[i] = ev.Record
+	}
+	return records, nil
+}
+
+// ReadTrace prepares a replay of the Go execution trace file at path.
+func ReadTrace(path string) (*Replay, error) {
+	records, err := ReadTraceRecords(path)
+	if err != nil {
+		return nil, err
 	}
 	return NewReplay(records)
 }

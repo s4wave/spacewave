@@ -34,21 +34,23 @@ func (t replayTarget) AppendJournal(ctx context.Context, adds, removes []block_g
 	return t.Append(ctx, adds, removes)
 }
 
-// ReplayJournal replays the journal into a graph that stores nothing.
-func (t replayTarget) ReplayJournal(ctx context.Context) error {
-	_, err := t.ReplayWAL(ctx, discardGraph{})
+// ReplayJournal passes every journaled change to apply through the engine's
+// write-ahead log replay.
+func (t replayTarget) ReplayJournal(ctx context.Context, apply func(adds, removes []block_gc.RefEdge) error) error {
+	_, err := t.ReplayWAL(ctx, journalGraph{apply: apply})
 	return err
 }
 
-// discardGraph accepts journaled reference changes without storing them. A
-// replayed trace already carries the graph's own key-value writes.
-type discardGraph struct {
+// journalGraph passes replayed reference changes to a journal apply function.
+type journalGraph struct {
 	block_gc.CollectorGraph
+	// apply receives each replayed batch.
+	apply func(adds, removes []block_gc.RefEdge) error
 }
 
-// ApplyRefBatch discards the changes.
-func (discardGraph) ApplyRefBatch(context.Context, []block_gc.RefEdge, []block_gc.RefEdge) error {
-	return nil
+// ApplyRefBatch passes the changes to apply.
+func (g journalGraph) ApplyRefBatch(_ context.Context, adds, removes []block_gc.RefEdge) error {
+	return g.apply(adds, removes)
 }
 
 // openReplayTarget opens a fresh engine on d.
@@ -227,7 +229,7 @@ func replayTrace(t *testing.T, path string, fillBlocks, fillSize int) {
 	reopened := openReplayTarget(t, d)
 	openTime := time.Since(openStart)
 	recoverStart := time.Now()
-	if err := reopened.ReplayJournal(ctx); err != nil {
+	if err := reopened.ReplayJournal(ctx, workload.DiscardJournal); err != nil {
 		t.Fatal(err)
 	}
 	recoverTime := time.Since(recoverStart)
