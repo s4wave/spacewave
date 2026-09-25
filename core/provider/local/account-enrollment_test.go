@@ -20,8 +20,6 @@ import (
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/blocktype"
-	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -189,19 +187,6 @@ func TestAccountPairingExchange(t *testing.T) {
 			var payload []byte
 			if approve {
 				payloadRef, payload = seedAccountReplicaPayload(ctx, t, source, spaceRef)
-				for _, account := range []*ProviderAccount{source, receiver} {
-					lookup := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-						if typeID == "test/replica-payload" {
-							return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
-						}
-						return nil, nil
-					})
-					release, err := account.t.p.b.AddController(ctx, lookup, nil)
-					if err != nil {
-						t.Fatal(err)
-					}
-					defer release()
-				}
 			}
 
 			const agentLabel = "Test agent on build host"

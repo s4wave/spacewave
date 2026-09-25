@@ -33,6 +33,8 @@ type BlockStore struct {
 	store block_store.Store
 	// readStore optionally routes uncached reads through the active Session DEX.
 	readStore block_store.Store
+	// copyStore reads like readStore without filling the local cache.
+	copyStore block.StoreOps
 	// decodedBlocks is the decoded-block cache owned by the block-store lifecycle.
 	decodedBlocks *block.DecodedBlockCache
 	// placement is the store's storage backend and upload queue.
@@ -94,6 +96,15 @@ func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	return UploadStatus{Backend: b.placement.backend.Load(), Status: status}, changed
 }
 
+// GetCopySource returns the store a graph copy reads from. A copy writes each
+// block itself, so it reads peers without the per-block cache fill.
+func (b *BlockStore) GetCopySource() block.StoreOps {
+	if b.copyStore != nil {
+		return b.copyStore
+	}
+	return b.readOwner()
+}
+
 func (b *BlockStore) readOwner() block_store.Store {
 	if b.readStore != nil {
 		return b.readStore
@@ -116,6 +127,7 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 		return &BlockStore{
 			store:         b.store,
 			readStore:     scopedStore,
+			copyStore:     b.copyStore,
 			decodedBlocks: b.decodedBlocks,
 			placement:     b.placement,
 		}, release, nil
@@ -355,11 +367,17 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		func() block.StoreOps { return lowerOps },
 		true,
 	)
+	copyOps := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return localBucket },
+		func() block.StoreOps { return lowerOps },
+		false,
+	)
 	placement := &placementState{wb: wb, local: localBucket, remote: lowerOps}
 	placement.backend.Store(backend)
 	bstoreHandle := &BlockStore{
 		store:         localStore,
 		readStore:     block_store.NewStore(blockStoreLocalID, readOps),
+		copyStore:     copyOps,
 		decodedBlocks: decodedBlocks,
 		placement:     placement,
 	}

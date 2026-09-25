@@ -9,9 +9,6 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/blocktype"
-	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 )
 
 type replicaDestination struct {
@@ -30,17 +27,6 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	defer cancel()
 	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	decoder := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-		if typeID == "test/replica-payload" {
-			return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
-		}
-		return nil, nil
-	})
-	releaseDecoder, err := account.t.p.b.AddController(ctx, decoder, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer releaseDecoder()
 	ref, err := account.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)

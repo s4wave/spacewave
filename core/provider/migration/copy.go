@@ -2,20 +2,13 @@ package provider_migration
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/db/blocktype"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,42 +29,15 @@ func CopyWorld(ctx context.Context, b bus.Bus, le *logrus.Entry, factories *bloc
 	if err := state.UnmarshalVT(root.GetStateData()); err != nil {
 		return err
 	}
-	ref := state.GetHeadRef()
-	if ref != nil && !ref.GetRootRef().GetEmpty() {
-		xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, factories, ref.GetTransformConf())
-		if err != nil {
-			return err
+	head := state.GetHeadRef()
+	if head != nil && !head.GetRootRef().GetEmpty() {
+		source := object.GetBlockStore()
+		err := block.CopyGraph(ctx, source, destination, head.GetRootRef(), nil)
+		if errors.Is(err, block.ErrRefsUnknown) {
+			err = sobject_world_engine.WalkDecodedWorld(ctx, le, b, factories, source, head, func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
+				return destination.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: refs}})
+			}, nil)
 		}
-		store := object.GetBlockStore()
-		bucketID := store.GetID()
-		localRef := ref.CloneVT()
-		localRef.BucketId = bucketID
-		cursor := bucket_lookup.NewCursor(ctx, b, le, factories, store, xfrm, localRef, &bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, ref.GetTransformConf())
-		cursor.SetBucketIDOverride(bucketID)
-		defer cursor.Release()
-		worldState, err := world_block.BuildWorldStateFromCursor(ctx, le, false, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
-		if err != nil {
-			return err
-		}
-		defer worldState.Discard()
-		err = worldState.WalkBlocks(ctx, func(ctx context.Context, typeID string) (block.Ctor, error) {
-			lookupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			defer cancel()
-			info, release, err := blocktype.ExLookupBlockType(lookupCtx, b, typeID)
-			if release != nil {
-				defer release.Release()
-			}
-			if err != nil {
-				return nil, err
-			}
-			if info == nil {
-				return nil, errors.Errorf("block type unavailable: %s", typeID)
-			}
-			return info.Constructor, nil
-		}, func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
-			_, _, err := destination.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs})
-			return err
-		})
 		if err != nil {
 			return err
 		}
