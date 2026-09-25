@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ import (
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -756,6 +758,69 @@ func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
 	}
 }
 
+// TestSyncControllerPullDuringPush verifies a pull completes while a push is
+// still uploading.
+func TestSyncControllerPullDuringPush(t *testing.T) {
+	ctx := t.Context()
+	pushing := make(chan struct{})
+	pulled := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/pull") {
+			close(pulled)
+			return
+		}
+		_, _ = io.Copy(io.Discard, r.Body)
+		close(pushing)
+		select {
+		case <-pulled:
+		case <-time.After(10 * time.Second):
+			t.Error("the pull waited for the push")
+		}
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, fn func(string) error) error {
+		return fn("ticket-push")
+	}
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      newSyncTestKvStore(),
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower:      packfile_store.NewPackfileStore(nil, nil),
+		upper:      newSyncTestBlockStore(),
+	}
+	data := []byte("pull during push")
+	ref, _, err := s.upper.PutBlock(ctx, data, nil)
+	if err != nil {
+		t.Fatalf("put block: %v", err)
+	}
+	if err := s.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
+		t.Fatalf("mark dirty: %v", err)
+	}
+
+	flushed := make(chan error, 1)
+	go func() { flushed <- s.FlushNow(ctx) }()
+	select {
+	case <-pushing:
+	case err := <-flushed:
+		t.Fatalf("flush finished before pushing: %v", err)
+	}
+	if err := s.PullNow(ctx); err != nil {
+		t.Fatalf("pull: %v", err)
+	}
+	if err := <-flushed; err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+}
+
 // TestSyncControllerInitReturnsAccessGatedPullError propagates access failures during initialization.
 func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 	ctx := context.Background()
@@ -1239,7 +1304,12 @@ func newDirtySyncExecuteTestController(
 	return s
 }
 
-// TestSyncControllerFlushChunksLargeDirtySet uploads bounded packs before reading all dirty data.
+// syncTestChunkBlockBytes sizes test blocks so two fill one sync pack and a
+// third starts the next.
+const syncTestChunkBlockBytes = int(syncFlushMaxPackBytes/2) - 64*1024
+
+// TestSyncControllerFlushChunksLargeDirtySet uploads bounded packs before
+// reading all dirty data, and packs the next chunk while the first uploads.
 func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	ctx := context.Background()
 
@@ -1250,15 +1320,23 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	const blockCount = 48
+	const blockCount = 6
 	pushSizes := make([]int, 0, 4)
 	var getCount atomic.Int64
 	var firstPushGetCount atomic.Int64
+	// secondChunkLoaded closes once the packer has loaded the second chunk.
+	secondChunkLoaded := make(chan struct{})
+	var secondChunkOnce sync.Once
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		if len(pushSizes) == 0 {
+			select {
+			case <-secondChunkLoaded:
+			case <-time.After(10 * time.Second):
+				t.Error("the second chunk was not packed during the first upload")
+			}
 			firstPushGetCount.Store(getCount.Load())
 		}
 		body, err := io.ReadAll(r.Body)
@@ -1291,7 +1369,9 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	upper := &syncCountingBlockStore{
 		StoreOps: baseUpper,
 		onGet: func(*block.BlockRef) {
-			getCount.Add(1)
+			if getCount.Add(1) == 4 {
+				secondChunkOnce.Do(func() { close(secondChunkLoaded) })
+			}
 		},
 	}
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
@@ -1300,7 +1380,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	}
 	defer wtx.Discard()
 	for i := range blockCount {
-		data := bytes.Repeat([]byte{byte(i + 1)}, 1024*1024)
+		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
@@ -1331,15 +1411,15 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("flush: %v", err)
 	}
 
-	if len(pushSizes) < 2 {
-		t.Fatalf("expected multiple sync pushes, got %d", len(pushSizes))
+	if len(pushSizes) != 3 {
+		t.Fatalf("sync pushes = %d, want 3", len(pushSizes))
 	}
 	if firstPushGetCount.Load() >= blockCount {
 		t.Fatalf("expected first push before all dirty blocks loaded, loaded %d", firstPushGetCount.Load())
 	}
 	for i, size := range pushSizes {
 		if int64(size) > syncFlushMaxPackBytes {
-			t.Fatalf("push %d exceeded browser chunk target: %d", i, size)
+			t.Fatalf("push %d exceeded the sync pack target: %d", i, size)
 		}
 		if int64(size) > packfile_delta.DefaultMaxChunkBytes {
 			t.Fatalf("push %d exceeded wire chunk limit: %d", i, size)
@@ -1379,7 +1459,7 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	const blockCount = 12
+	const blockCount = 6
 	var pushedBlocks int
 	var pushCount int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1418,7 +1498,7 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 	}
 	defer wtx.Discard()
 	for i := range blockCount {
-		data := bytes.Repeat([]byte{byte(i + 1)}, 1024*1024)
+		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
