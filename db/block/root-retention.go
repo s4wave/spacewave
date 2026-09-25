@@ -10,43 +10,31 @@ type RootRetainer interface {
 	SupportsRootRetention() bool
 	SetRetainedRoot(context.Context, string, *BlockRef) error
 	PinRoot(context.Context, *BlockRef) (func(), error)
-	MarkRootsComplete(context.Context, []RootProof) error
-	RootComplete(context.Context, *BlockRef, ...string) (bool, error)
-}
-
-// RootProof identifies a fully retained DAG in one decoding domain. An empty
-// domain denotes a World whose normal writes supplied all dependency edges.
-type RootProof struct {
-	// Ref identifies the encoded root block.
-	Ref *BlockRef
-	// Domain separates opaque metadata from typed object traversal.
-	Domain string
+	MarkRootsComplete(context.Context, []*BlockRef) error
+	RootComplete(context.Context, *BlockRef) (bool, error)
 }
 
 // MarkRootComplete records that a locally constructed DAG has been fenced.
 // Its normal block writes must have supplied all outgoing reference metadata.
-func MarkRootComplete(ctx context.Context, store StoreOps, ref *BlockRef, domain ...string) error {
-	proof := RootProof{Ref: ref}
-	if len(domain) != 0 {
-		proof.Domain = domain[0]
-	}
-	return MarkRootsComplete(ctx, store, []RootProof{proof})
+func MarkRootComplete(ctx context.Context, store StoreOps, ref *BlockRef) error {
+	return MarkRootsComplete(ctx, store, []*BlockRef{ref})
 }
 
 // MarkRootsComplete fences a batch of completion proofs in the owning volume.
-func MarkRootsComplete(ctx context.Context, store StoreOps, proofs []RootProof) error {
-	if len(proofs) == 0 || !SupportsRootRetention(store) {
+// Each root's writes must have supplied all outgoing reference metadata.
+func MarkRootsComplete(ctx context.Context, store StoreOps, roots []*BlockRef) error {
+	if len(roots) == 0 || !SupportsRootRetention(store) {
 		return nil
 	}
-	return store.(RootRetainer).MarkRootsComplete(ctx, proofs)
+	return store.(RootRetainer).MarkRootsComplete(ctx, roots)
 }
 
 // RootComplete checks a proof whose lifetime is the physical root's lifetime.
-func RootComplete(ctx context.Context, store StoreOps, ref *BlockRef, domain ...string) (bool, error) {
+func RootComplete(ctx context.Context, store StoreOps, ref *BlockRef) (bool, error) {
 	if ref.GetEmpty() || !SupportsRootRetention(store) {
 		return false, nil
 	}
-	return store.(RootRetainer).RootComplete(ctx, ref, domain...)
+	return store.(RootRetainer).RootComplete(ctx, ref)
 }
 
 // SupportsRootRetention reports whether a store implements root ownership.

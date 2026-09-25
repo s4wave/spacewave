@@ -19,11 +19,11 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.MarkRootsComplete(ctx, []block.RootProof{{Ref: root, Domain: "objects"}}); err != nil {
+	if err := v.MarkRootsComplete(ctx, []*block.BlockRef{root}); err != nil {
 		t.Fatal(err)
 	}
-	if found, err := v.RootComplete(ctx, root, "metadata"); err != nil || found {
-		t.Fatalf("proof crossed decoder domains: %v %v", found, err)
+	if found, err := v.RootComplete(ctx, root); err != nil || !found {
+		t.Fatalf("root proof found=%v err=%v", found, err)
 	}
 	for _, name := range []string{"head", "fork"} {
 		if err := v.SetBucketRoot(ctx, "bucket", name, root); err != nil {
@@ -64,7 +64,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	collect(true)
 	two()
 	collect(false)
-	if found, err := v.RootComplete(ctx, root, "objects"); err != nil || found {
+	if found, err := v.RootComplete(ctx, root); err != nil || found {
 		t.Fatalf("collected root kept a completion proof: %v %v", found, err)
 	}
 

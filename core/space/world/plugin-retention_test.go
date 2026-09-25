@@ -1,17 +1,18 @@
 package space_world_test
 
 import (
-	"context"
 	"testing"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/byteslice"
+	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	"github.com/s4wave/spacewave/db/bucket"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -19,11 +20,13 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/identity"
 	identity_world "github.com/s4wave/spacewave/identity/world"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
-// TestPluginWorldRetention traverses app bindings and the complete built and
-// source trees without a running plugin or an editable source object.
+// TestPluginWorldRetention checks that a graph copy of a plugin World reaches
+// app bindings and the complete built and source trees from recorded edges,
+// with no block types or running plugin.
 func TestPluginWorldRetention(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -84,15 +87,16 @@ func TestPluginWorldRetention(t *testing.T) {
 		t.Fatal(err)
 	}
 	visited := make(map[string]bool)
-	err = ws.WalkBlocks(ctx, func(ctx context.Context, typeID string) (block.Ctor, error) {
-		decoder, err := space_world.LookupBlockType(ctx, typeID)
-		if err != nil || decoder == nil {
-			return nil, err
-		}
-		return decoder.Constructor, nil
-	}, func(ref *block.BlockRef, _ []byte, _ []*block.BlockRef) error {
-		visited[ref.MarshalString()] = true
-		return nil
+	dst := block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hash.RecommendedHashType,
+		false,
+	)
+	err = block.CopyGraph(ctx, cursor.GetBucket(), dst, ws.GetRootRef(), &block.GraphCopyOptions{
+		Visited: func(ref *block.BlockRef, _ []byte) {
+			visited[ref.MarshalString()] = true
+		},
 	})
 	if err != nil {
 		t.Fatal(err)

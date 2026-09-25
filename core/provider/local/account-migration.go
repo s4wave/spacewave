@@ -181,7 +181,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	}
 	defer release()
 	if entry.GetMeta().GetBodyType() == "space" {
-		if err := provider_migration.CopyWorld(ctx, a.t.p.b, a.le, a.t.p.sfs, object, state, blocks); err != nil {
+		if err := provider_migration.CopyWorld(ctx, a.le, a.t.p.sfs, object, state, blocks); err != nil {
 			return err
 		}
 	}

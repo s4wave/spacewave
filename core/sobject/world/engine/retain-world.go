@@ -2,22 +2,12 @@ package sobject_world_engine
 
 import (
 	"context"
-	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
-	"github.com/sirupsen/logrus"
 )
 
 // retainPublicationWorld fences dependencies for asynchronously persisted providers.
@@ -34,17 +24,16 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 		return err
 	}
 	defer release()
-	return RetainWorld(ctx, c.le, c.sfs, so, head, local, nil)
+	return RetainWorld(ctx, so, head, local, nil)
 }
 
 // RetainWorld copies a complete World graph into its SharedObject's block store.
 // It follows the refs the store reports for each block, so it needs no block
-// types. A store that holds some block without its refs falls back to the
-// decoding walk. Completion proofs skip immutable subtrees only after their
-// ownership writes are durable. The caller owns the proof store and serializes
-// calls for it. visited observes newly traversed blocks; cached complete
-// subtrees are omitted.
-func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
+// types. Completion proofs skip immutable subtrees only after their ownership
+// writes are durable. The caller owns the proof store and serializes calls for
+// it. visited observes newly traversed blocks; cached complete subtrees are
+// omitted.
+func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
 	store := so.GetBlockStore()
 	if complete, err := block.RootComplete(ctx, store, head.GetRootRef()); err != nil {
 		return err
@@ -67,21 +56,10 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 
 	proofs := newRetainProofs(store, store.GetID(), local)
 	err := block.CopyGraph(ctx, store, proofs.writes, head.GetRootRef(), &block.GraphCopyOptions{
-		Known: func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-			return proofs.known(ctx, refs, "")
-		},
-		Complete: func(ctx context.Context, ref *block.BlockRef) error {
-			return proofs.complete(ctx, ref, "")
-		},
-		Visited: visited,
+		Known:    proofs.known,
+		Complete: proofs.complete,
+		Visited:  visited,
 	})
-	if errors.Is(err, block.ErrRefsUnknown) {
-		// Proofs recorded so far cover complete subtrees and stay valid.
-		if err := proofs.flush(ctx); err != nil {
-			return err
-		}
-		err = retainDecodedWorld(ctx, le, sfs, so, head, proofs, visited)
-	}
 	if err != nil {
 		return err
 	}
@@ -89,74 +67,6 @@ func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.Ste
 		return err
 	}
 	return block.MarkRootComplete(ctx, store, head.GetRootRef())
-}
-
-// retainDecodedWorld copies a World by decoding each block to find its
-// children, recording proofs per decoding domain.
-func retainDecodedWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, so sobject.SharedObject, head *bucket.ObjectRef, proofs *retainProofs, visited func(*block.BlockRef, []byte)) error {
-	return WalkDecodedWorld(ctx, le, so.GetBus(), sfs, so.GetBlockStore(), head, func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error {
-		// Presence alone does not prove destination bucket ownership.
-		if err := proofs.writes.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, Refs: refs}}); err != nil {
-			return err
-		}
-		if visited != nil {
-			visited(ref, data)
-		}
-		return nil
-	}, &world_block.WalkBlocksOptions{
-		Known: func(domain string, ref *block.BlockRef) (bool, error) {
-			known, err := proofs.known(ctx, []*block.BlockRef{ref}, domain)
-			if err != nil {
-				return false, err
-			}
-			return known[0], nil
-		},
-		Complete: func(domain string, ref *block.BlockRef) error {
-			return proofs.complete(ctx, ref, domain)
-		},
-	})
-}
-
-// WalkDecodedWorld walks a World in store by decoding each block with its
-// registered type to find its children. It serves stores that hold blocks
-// without their refs; a graph copy needs no types and is preferred.
-func WalkDecodedWorld(ctx context.Context, le *logrus.Entry, b bus.Bus, sfs *block_transform.StepFactorySet, store bstore.BlockStore, head *bucket.ObjectRef, visit func(ref *block.BlockRef, data []byte, refs []*block.BlockRef) error, opts *world_block.WalkBlocksOptions) error {
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, sfs, head.GetTransformConf())
-	if err != nil {
-		return err
-	}
-	bucketID := store.GetID()
-	localRef := head.CloneVT()
-	localRef.BucketId = bucketID
-	cursor := bucket_lookup.NewCursor(ctx, b, le, sfs, store, xfrm, localRef, &bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, head.GetTransformConf())
-	cursor.SetBucketIDOverride(bucketID)
-	defer cursor.Release()
-	ws, err := world_block.BuildWorldStateFromCursor(ctx, le, false, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
-	if err != nil {
-		return err
-	}
-	defer ws.Discard()
-
-	constructors := make(map[string]block.Ctor)
-	return ws.WalkBlocks(ctx, func(ctx context.Context, typeID string) (block.Ctor, error) {
-		if ctor := constructors[typeID]; ctor != nil {
-			return ctor, nil
-		}
-		lookupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		info, release, err := blocktype.ExLookupBlockType(lookupCtx, b, typeID)
-		if release != nil {
-			defer release.Release()
-		}
-		if err != nil {
-			return nil, errors.Wrapf(err, "resolve World block type %q", typeID)
-		}
-		if info == nil {
-			return nil, errors.Errorf("block type unavailable: %s", typeID)
-		}
-		constructors[typeID] = info.Constructor
-		return info.Constructor, nil
-	}, visit, opts)
 }
 
 // retainProofBatchEntries is the number of proofs, and of buffered block
@@ -177,8 +87,8 @@ type retainProofs struct {
 	volume bool
 	// pending holds proof keys not yet flushed.
 	pending map[string]struct{}
-	// proofs holds volume proofs not yet flushed.
-	proofs []block.RootProof
+	// roots holds volume proofs not yet flushed.
+	roots []*block.BlockRef
 }
 
 // newRetainProofs builds the proof recorder and the buffered writer it fences.
@@ -197,21 +107,17 @@ func newRetainProofs(store block.StoreOps, bucketID string, local kvtx.Store) *r
 	}
 }
 
-// key returns the local proof key of ref. The graph copy uses the empty
-// domain; the decoding walk keeps one domain per decoder.
-func (p *retainProofs) key(ref *block.BlockRef, domain string) string {
-	if domain == "" {
-		return "world-publication-v3/" + p.bucketID + "/" + ref.MarshalString()
-	}
-	return "world-publication-v2/" + p.bucketID + "/" + domain + "/" + ref.MarshalString()
+// key returns the local proof key of ref.
+func (p *retainProofs) key(ref *block.BlockRef) string {
+	return "world-publication-v3/" + p.bucketID + "/" + ref.MarshalString()
 }
 
 // known reports which refs have a durable or pending completion proof.
-func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef, domain string) ([]bool, error) {
+func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	known := make([]bool, len(refs))
 	var check []int
 	for i, ref := range refs {
-		if _, ok := p.pending[p.key(ref, domain)]; ok {
+		if _, ok := p.pending[p.key(ref)]; ok {
 			known[i] = true
 		} else {
 			check = append(check, i)
@@ -223,7 +129,7 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef, domain
 	if p.volume {
 		for _, i := range check {
 			var err error
-			known[i], err = block.RootComplete(ctx, p.store, refs[i], domain)
+			known[i], err = block.RootComplete(ctx, p.store, refs[i])
 			if err != nil {
 				return nil, err
 			}
@@ -238,7 +144,7 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef, domain
 	var proved []*block.BlockRef
 	var provedIdx []int
 	for _, i := range check {
-		_, found, err := tx.Get(ctx, []byte(p.key(refs[i], domain)))
+		_, found, err := tx.Get(ctx, []byte(p.key(refs[i])))
 		if err != nil {
 			tx.Discard()
 			return nil, err
@@ -265,10 +171,10 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef, domain
 }
 
 // complete queues a proof for ref and flushes a full batch.
-func (p *retainProofs) complete(ctx context.Context, ref *block.BlockRef, domain string) error {
-	p.pending[p.key(ref, domain)] = struct{}{}
+func (p *retainProofs) complete(ctx context.Context, ref *block.BlockRef) error {
+	p.pending[p.key(ref)] = struct{}{}
 	if p.volume {
-		p.proofs = append(p.proofs, block.RootProof{Domain: domain, Ref: ref})
+		p.roots = append(p.roots, ref)
 	}
 	if len(p.pending) >= retainProofBatchEntries {
 		return p.flush(ctx)
@@ -291,10 +197,10 @@ func (p *retainProofs) flush(ctx context.Context) error {
 		return nil
 	}
 	if p.volume {
-		if err := block.MarkRootsComplete(ctx, p.store, p.proofs); err != nil {
+		if err := block.MarkRootsComplete(ctx, p.store, p.roots); err != nil {
 			return err
 		}
-		p.proofs = nil
+		p.roots = nil
 		clear(p.pending)
 		return nil
 	}
