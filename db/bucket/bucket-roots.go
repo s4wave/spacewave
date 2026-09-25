@@ -20,11 +20,11 @@ func (b *bucketRW) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), er
 }
 
 // MarkRootsComplete forwards the durable World proof.
-func (b *bucketRW) MarkRootsComplete(ctx context.Context, proofs []block.RootProof) error {
-	return block.MarkRootsComplete(ctx, b.store, proofs)
+func (b *bucketRW) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
+	return block.MarkRootsComplete(ctx, b.store, roots)
 }
 
 // RootComplete checks the underlying World proof.
-func (b *bucketRW) RootComplete(ctx context.Context, ref *block.BlockRef, domain ...string) (bool, error) {
-	return block.RootComplete(ctx, b.store, ref, domain...)
+func (b *bucketRW) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return block.RootComplete(ctx, b.store, ref)
 }

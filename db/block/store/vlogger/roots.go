@@ -20,11 +20,11 @@ func (s *VLoggerStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func()
 }
 
 // MarkRootsComplete forwards the durable World proof.
-func (s *VLoggerStore) MarkRootsComplete(ctx context.Context, proofs []block.RootProof) error {
-	return block.MarkRootsComplete(ctx, s.st, proofs)
+func (s *VLoggerStore) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
+	return block.MarkRootsComplete(ctx, s.st, roots)
 }
 
 // RootComplete checks the underlying World proof.
-func (s *VLoggerStore) RootComplete(ctx context.Context, ref *block.BlockRef, domain ...string) (bool, error) {
-	return block.RootComplete(ctx, s.st, ref, domain...)
+func (s *VLoggerStore) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return block.RootComplete(ctx, s.st, ref)
 }

@@ -10,18 +10,18 @@ type bucketRootVolume interface {
 	SupportsAtomicPublication() bool
 	SetBucketRoot(context.Context, string, string, *block.BlockRef) error
 	PinBucketRoot(context.Context, *block.BlockRef) (func(), error)
-	MarkRootsComplete(context.Context, []block.RootProof) error
-	RootComplete(context.Context, *block.BlockRef, ...string) (bool, error)
+	MarkRootsComplete(context.Context, []*block.BlockRef) error
+	RootComplete(context.Context, *block.BlockRef) (bool, error)
 }
 
 // MarkRootsComplete records a fenced World in the volume ownership graph.
-func (b *bucketHandle) MarkRootsComplete(ctx context.Context, proofs []block.RootProof) error {
-	return b.v.(bucketRootVolume).MarkRootsComplete(ctx, proofs)
+func (b *bucketHandle) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
+	return b.v.(bucketRootVolume).MarkRootsComplete(ctx, roots)
 }
 
 // RootComplete checks the volume's lifetime-bound World proof.
-func (b *bucketHandle) RootComplete(ctx context.Context, ref *block.BlockRef, domain ...string) (bool, error) {
-	return b.v.(bucketRootVolume).RootComplete(ctx, ref, domain...)
+func (b *bucketHandle) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	return b.v.(bucketRootVolume).RootComplete(ctx, ref)
 }
 
 // SupportsRootRetention requires ownership and bytes in one physical transaction.

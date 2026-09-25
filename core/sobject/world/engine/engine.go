@@ -342,7 +342,7 @@ func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.Object
 		return err
 	}
 	defer release()
-	if err := RetainWorld(ctx, e.c.le, e.c.sfs, e.so, ref, proofs, nil); err != nil {
+	if err := RetainWorld(ctx, e.so, ref, proofs, nil); err != nil {
 		return err
 	}
 	if err := block.SetRetainedRoot(ctx, store, "accepted-world", ref.GetRootRef()); err != nil {

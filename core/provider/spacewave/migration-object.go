@@ -85,7 +85,7 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 			return err
 		}
 		defer release()
-		if err := provider_migration.CopyWorld(ctx, a.p.b, a.le, a.p.sfs, object, state, store); err != nil {
+		if err := provider_migration.CopyWorld(ctx, a.le, a.p.sfs, object, state, store); err != nil {
 			return err
 		}
 		if err := store.(*BlockStore).ForceSync(ctx); err != nil {

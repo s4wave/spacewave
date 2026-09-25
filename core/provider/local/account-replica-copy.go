@@ -130,7 +130,7 @@ func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.Share
 	}
 	defer release()
 	lastUpdate := time.Now()
-	return sobject_world_engine.RetainWorld(ctx, a.le, a.t.p.sfs, so, progress.GetHead(), local, func(_ *block.BlockRef, data []byte) {
+	return sobject_world_engine.RetainWorld(ctx, so, progress.GetHead(), local, func(_ *block.BlockRef, data []byte) {
 		progress.Blocks++
 		progress.Bytes += uint64(len(data))
 		if time.Since(lastUpdate) >= 250*time.Millisecond {

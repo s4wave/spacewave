@@ -26,11 +26,11 @@ func (s *BufferedStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), err
 }
 
 // MarkRootsComplete forwards the durable World proof.
-func (s *BufferedStore) MarkRootsComplete(ctx context.Context, proofs []RootProof) error {
-	return MarkRootsComplete(ctx, s.inner, proofs)
+func (s *BufferedStore) MarkRootsComplete(ctx context.Context, roots []*BlockRef) error {
+	return MarkRootsComplete(ctx, s.inner, roots)
 }
 
 // RootComplete checks the underlying World proof.
-func (s *BufferedStore) RootComplete(ctx context.Context, ref *BlockRef, domain ...string) (bool, error) {
-	return RootComplete(ctx, s.inner, ref, domain...)
+func (s *BufferedStore) RootComplete(ctx context.Context, ref *BlockRef) (bool, error) {
+	return RootComplete(ctx, s.inner, ref)
 }

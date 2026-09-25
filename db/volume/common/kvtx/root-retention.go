@@ -19,37 +19,28 @@ const rootPinPrefix = "reader:"
 // proof edge together with its other immutable dependencies.
 const completeWorldNode = "world:complete"
 
-// completionNode separates World proofs from copy decoder domains.
-func completionNode(domain string) string {
-	if domain == "" {
-		return completeWorldNode
-	}
-	return "copy:complete:" + base64.RawURLEncoding.EncodeToString([]byte(domain))
-}
-
 // MarkRootsComplete persists a copy's proof batch without per-block commits.
-func (v *Volume) MarkRootsComplete(ctx context.Context, proofs []block.RootProof) error {
+func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
 		var adds []block_gc.RefEdge
-		for _, proof := range proofs {
-			if proof.Ref.GetEmpty() {
+		for _, root := range roots {
+			if root.GetEmpty() {
 				continue
 			}
-			found, err := blocks.GetBlockExists(ctx, proof.Ref)
+			found, err := blocks.GetBlockExists(ctx, root)
 			if err != nil {
 				return false, err
 			}
 			if !found {
 				return false, block.ErrNotFound
 			}
-			node := block_gc.BlockIRI(proof.Ref)
+			node := block_gc.BlockIRI(root)
 			refs, err := rg.GetOutgoingRefs(ctx, node)
 			if err != nil {
 				return false, err
 			}
-			marker := completionNode(proof.Domain)
-			if !slices.Contains(refs, marker) {
-				adds = append(adds, block_gc.RefEdge{Subject: node, Object: marker})
+			if !slices.Contains(refs, completeWorldNode) {
+				adds = append(adds, block_gc.RefEdge{Subject: node, Object: completeWorldNode})
 			}
 		}
 		if len(adds) == 0 {
@@ -61,13 +52,9 @@ func (v *Volume) MarkRootsComplete(ctx context.Context, proofs []block.RootProof
 }
 
 // RootComplete checks the proof in the volume ownership graph.
-func (v *Volume) RootComplete(ctx context.Context, ref *block.BlockRef, domain ...string) (bool, error) {
+func (v *Volume) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	refs, err := v.refGraph.GetOutgoingRefs(ctx, block_gc.BlockIRI(ref))
-	var name string
-	if len(domain) != 0 {
-		name = domain[0]
-	}
-	return slices.Contains(refs, completionNode(name)), err
+	return slices.Contains(refs, completeWorldNode), err
 }
 
 // SetBucketRoot replaces one durable root within a bucket. Ownership changes
