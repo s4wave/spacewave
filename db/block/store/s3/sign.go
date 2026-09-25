@@ -107,7 +107,9 @@ func canonicalQuery(query url.Values) string {
 	keys := slices.Sorted(maps.Keys(query))
 	var b strings.Builder
 	for _, k := range keys {
-		for _, v := range slices.Sorted(slices.Values(query[k])) {
+		values := slices.Clone(query[k])
+		slices.Sort(values)
+		for _, v := range values {
 			if b.Len() != 0 {
 				b.WriteByte('&')
 			}
