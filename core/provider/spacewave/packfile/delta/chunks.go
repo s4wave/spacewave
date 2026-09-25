@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -55,7 +56,7 @@ func EmitDeltaChunks(
 	// pendingBlock carries one lookahead block from one chunk to the next so
 	// the byte-ceiling check can decide to close before packing it.
 	var pendingHash *hash.Hash
-	var pendingData []byte
+	var pendingBlock *block.StoredBlock
 
 	// Encode and publish each complete chunk before consuming the next.
 	for {
@@ -66,7 +67,7 @@ func EmitDeltaChunks(
 		var chunkBlocks int
 		chunkClosed := false
 
-		chunkIter := func() (*hash.Hash, []byte, error) {
+		chunkIter := func() (*hash.Hash, *block.StoredBlock, error) {
 			if chunkClosed {
 				return nil, nil, nil
 			}
@@ -75,10 +76,10 @@ func EmitDeltaChunks(
 			if err := ctx.Err(); err != nil {
 				return nil, nil, err
 			}
-			h, data, err := pendingHash, pendingData, error(nil)
-			pendingHash, pendingData = nil, nil
+			h, blk, err := pendingHash, pendingBlock, error(nil)
+			pendingHash, pendingBlock = nil, nil
 			if h == nil {
-				h, data, err = iter()
+				h, blk, err = iter()
 				if err != nil {
 					return nil, nil, err
 				}
@@ -89,26 +90,27 @@ func EmitDeltaChunks(
 
 			// Include the generated entry, its size varint, and its fixed-width
 			// index position before accepting the block into this chunk.
+			valueSize := (&block.BlockObject{Data: blk.GetData(), Refs: blk.GetRefs()}).SizeVT()
 			entry := kvfile.IndexEntry{
 				Key:    []byte(h.MarshalString()),
 				Offset: uint64(chunkBytes), //nolint:gosec // chunkBytes is non-negative and bounded by the int64 pack byte ceiling.
-				Size:   uint64(len(data)),  //nolint:gosec // data is the in-memory block accepted by the bounded pack writer.
+				Size:   uint64(valueSize),  //nolint:gosec // the value is the in-memory block accepted by the bounded pack writer.
 			}
 			entrySize := entry.SizeVT()
 			entryBytes := int64(entrySize + binary.PutUvarint(sizeBuf[:], uint64(entrySize)) + 8) //nolint:gosec // the writer's pack ceiling bounds the encoded entry size below int64 max.
 			remaining := maxBytes - chunkBytes - indexBytes - entryBytes
-			if int64(len(data)) > remaining || (maxBlocks > 0 && chunkBlocks >= maxBlocks) {
+			if int64(valueSize) > remaining || (maxBlocks > 0 && chunkBlocks >= maxBlocks) {
 				if chunkBlocks == 0 {
 					return nil, nil, errors.Errorf("block %s cannot fit in a %d-byte encoded pack", h.MarshalString(), maxBytes)
 				}
-				pendingHash, pendingData = h, data
+				pendingHash, pendingBlock = h, blk
 				chunkClosed = true
 				return nil, nil, nil
 			}
-			chunkBytes += int64(len(data))
+			chunkBytes += int64(valueSize)
 			indexBytes += entryBytes
 			chunkBlocks++
-			return h, data, nil
+			return h, blk, nil
 		}
 
 		// Finalize the KVFile and derive its content-addressed identity.

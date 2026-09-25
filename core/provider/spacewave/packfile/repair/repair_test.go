@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -21,7 +22,7 @@ func testPack(t *testing.T, blocks ...[]byte) ([]byte, []byte, []*hash.Hash) {
 	hashes := make([]*hash.Hash, 0, len(blocks))
 	var buf bytes.Buffer
 	idx := 0
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
@@ -32,7 +33,7 @@ func testPack(t *testing.T, blocks ...[]byte) ([]byte, []byte, []*hash.Hash) {
 		}
 		hashes = append(hashes, h)
 		idx++
-		return h, data, nil
+		return h, &block.StoredBlock{Data: data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

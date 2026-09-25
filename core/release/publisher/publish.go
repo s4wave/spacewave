@@ -1,7 +1,6 @@
 package publisher
 
 import (
-	"bytes"
 	"context"
 	"maps"
 	"reflect"
@@ -68,7 +67,7 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	for i, entry := range blocks {
 		if !exists[i] {
 			missing = append(missing, entry)
-			missingBytes += uint64(len(entry.data))
+			missingBytes += uint64(len(entry.stored.Data))
 		}
 	}
 	blocks = missing
@@ -78,13 +77,13 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 
 	// Use the standard pack writer and resource-scoped content identity.
 	index := 0
-	_, err = delta.EmitDeltaChunks(ctx, opts.DstSpaceID, func() (*hash.Hash, []byte, error) {
+	_, err = delta.EmitDeltaChunks(ctx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
 		if index == len(blocks) {
 			return nil, nil, nil
 		}
 		entry := blocks[index]
 		index++
-		return entry.ref.GetHash(), entry.data, nil
+		return entry.ref.GetHash(), entry.stored, nil
 	}, delta.DefaultMaxChunkBytes, func(ctx context.Context, chunk int, entry *packfile.PackfileEntry, data []byte) error {
 		if opts.Logger != nil {
 			opts.Logger.WithField("pack", chunk).WithField("bytes", len(data)).Info("uploading release content")
@@ -99,12 +98,13 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	return cdn_publish.PostRoot(ctx, opts, head)
 }
 
-// packedBlock retains content-addressed bytes from the verified local closure.
+// packedBlock retains a content-addressed block from the verified local
+// closure.
 type packedBlock struct {
 	// ref identifies the bytes as stored, before read transformations.
 	ref *block.BlockRef
-	// data contains the immutable block payload.
-	data []byte
+	// stored holds the immutable block payload with its recorded refs.
+	stored *block.StoredBlock
 }
 
 // walkedBlock identifies a decoded subtree within its storage context.
@@ -239,9 +239,15 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 					}
 					key := entry.Ref.MarshalString()
 					if _, exists := blocks[key]; !exists {
-						content := packedBlock{ref: entry.Ref.CloneVT(), data: bytes.Clone(entry.Data)}
+						stored, err := walk.GetBucket().GetStoredBlock(ctx, entry.Ref)
+						if err != nil {
+							return false, err
+						}
+						if !stored.GetRefsKnown() {
+							return false, errors.Wrap(block.ErrRefsUnknown, key)
+						}
 						blocks[key] = struct{}{}
-						result = append(result, content)
+						result = append(result, packedBlock{ref: entry.Ref.CloneVT(), stored: stored})
 					}
 					// Reused filesystem trees need one complete traversal. Keep the
 					// decoder and storage context in the key so a differently typed

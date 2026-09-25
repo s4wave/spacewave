@@ -20,8 +20,10 @@ import (
 // bytes land in the span store), find the target entry, compute the
 // semantic neighborhood window, ensure those bytes are resident, admit
 // every fully-contained block into the catalog, and either return the target
-// bytes immediately or wait for verification when verifyBeforeServe is set.
-func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, error) {
+// block immediately or wait for verification when verifyBeforeServe is set.
+//
+// Returns nil when the pack does not hold the block.
+func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlock, error) {
 	keyStr := string(key)
 
 retry:
@@ -77,7 +79,7 @@ retry:
 			continue
 		}
 		if served {
-			return data, true, readErr
+			return decodeBlockValue(data, readErr)
 		}
 		if rec == nil {
 			break
@@ -86,9 +88,9 @@ retry:
 		if readyCh != nil {
 			select {
 			case <-ctx.Done():
-				return nil, false, ctx.Err()
+				return nil, ctx.Err()
 			case <-e.ctx.Done():
-				return nil, false, context.Canceled
+				return nil, context.Canceled
 			case <-readyCh:
 				continue
 			}
@@ -97,7 +99,7 @@ retry:
 
 	// Slow path: ensure the index is loaded, resolve the target entry.
 	if err := e.ensureIndexLoaded(ctx); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	var (
@@ -115,12 +117,12 @@ retry:
 		windowStart, windowEnd, contained = e.semanticWindowLocked(entry)
 	})
 	if indexMissing {
-		return nil, false, nil
+		return nil, nil
 	}
 
 	// Drive transport fetches to cover the semantic window.
 	if err := e.ensureWindowResident(ctx, windowStart, windowEnd); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// Admit every fully-contained block and gather verify jobs.
@@ -174,27 +176,32 @@ retry:
 		// This happens when spans failed to cover the target extent after
 		// ensureWindowResident, which usually means a short or truncated
 		// transport response.
-		return nil, false, nil
+		return nil, nil
 	}
 
 	// Default miss-path callers serve directly from resident spans without
 	// blocking on verification. Backend bundle endpoints opt into
 	// verify-before-serve so externally visible bytes are hash-checked first.
 	if !verifyBeforeServe {
-		if readErr != nil {
-			return nil, false, readErr
-		}
-		return data, true, nil
+		return decodeBlockValue(data, readErr)
 	}
 
 	select {
 	case <-readyCh:
 	case <-ctx.Done():
-		return nil, false, ctx.Err()
+		return nil, ctx.Err()
 	case <-e.ctx.Done():
-		return nil, false, context.Canceled
+		return nil, context.Canceled
 	}
 	goto retry
+}
+
+// decodeBlockValue decodes a pack value read from the catalog.
+func decodeBlockValue(value []byte, readErr error) (*block.StoredBlock, error) {
+	if readErr != nil {
+		return nil, readErr
+	}
+	return block.DecodeBlockObject(value)
 }
 
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {
@@ -209,25 +216,14 @@ func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, erro
 	return found, nil
 }
 
+// statBlock reports whether the pack holds the block. The data size is
+// unknown without decoding the value, so it is -1.
 func (e *PackReader) statBlock(ctx context.Context, key []byte, ref *block.BlockRef) (*block.BlockStat, error) {
-	if err := e.ensureIndexLoaded(ctx); err != nil {
+	found, err := e.getBlockExists(ctx, key)
+	if err != nil || !found {
 		return nil, err
 	}
-
-	var size int64
-	var found bool
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entry, ok := e.findEntryByKeyLocked(key)
-		if !ok {
-			return
-		}
-		size = int64(entry.GetSize()) //nolint:gosec // the catalog validator bounds entry sizes by the int64 pack size.
-		found = true
-	})
-	if !found {
-		return nil, nil
-	}
-	return &block.BlockStat{Ref: ref, Size: size}, nil
+	return &block.BlockStat{Ref: ref, Size: -1}, nil
 }
 
 // verifyBlock runs hash verification and optional writeback for one record.
@@ -245,20 +241,17 @@ func (e *PackReader) verifyBlock(rec *blockRecord) {
 		return
 	}
 
-	data, err := rec.readBytes()
+	value, err := rec.readBytes()
 	if err != nil {
 		e.finishVerify(rec, err, nil)
 		return
 	}
-
-	ref, err := block.BuildBlockRef(data, &block.PutOpts{
-		ForceBlockRef: rec.ref.Clone(),
-	})
+	stored, err := block.DecodeBlockObject(value)
 	if err != nil {
 		e.finishVerify(rec, err, nil)
 		return
 	}
-	if !ref.EqualsRef(rec.ref) {
+	if err := rec.ref.VerifyData(stored.Data, false); err != nil {
 		e.finishVerify(rec, block.ErrBlockRefMismatch, nil)
 		return
 	}
@@ -273,9 +266,7 @@ func (e *PackReader) verifyBlock(rec *blockRecord) {
 		}
 	})
 	if target != nil && wbCtx != nil {
-		_, _, writeErr = target.PutBlock(wbCtx, data, &block.PutOpts{
-			ForceBlockRef: rec.ref.Clone(),
-		})
+		_, _, writeErr = target.PutBlock(wbCtx, stored.Data, stored.PutOpts(rec.ref))
 	}
 	e.finishVerify(rec, nil, writeErr)
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -23,6 +24,7 @@ type errorIndexCache struct {
 type packItem struct {
 	h    *hash.Hash
 	data []byte
+	refs []*block.BlockRef
 }
 
 func newMemIndexCache() *memIndexCache {
@@ -77,17 +79,27 @@ func buildTestPackOrdered(t *testing.T, ordered []struct{ Name, Data string }) (
 	return packItems(t, items)
 }
 
+// testPackItem returns a leaf pack item holding data.
+func testPackItem(t *testing.T, data string) packItem {
+	t.Helper()
+	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return packItem{h: h, data: []byte(data)}
+}
+
 func packItems(t *testing.T, items []packItem) ([]byte, []byte) {
 	t.Helper()
 	var buf bytes.Buffer
 	idx := 0
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(items) {
 			return nil, nil, nil
 		}
 		e := items[idx]
 		idx++
-		return e.h, e.data, nil
+		return e.h, &block.StoredBlock{Data: e.data, Refs: e.refs, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

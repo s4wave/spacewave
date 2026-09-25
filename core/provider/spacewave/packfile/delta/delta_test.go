@@ -76,14 +76,16 @@ func buildTestKvfile(t *testing.T, prefix string, n int, sizePerBlock int) (spec
 	}
 
 	var buf bytes.Buffer
-	w := kvfile.NewWriter(&buf)
-	for _, s := range specs {
-		if err := w.WriteValue([]byte(s.key), bytes.NewReader(s.data)); err != nil {
-			t.Fatalf("write kvfile value: %v", err)
+	idx := 0
+	if _, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+		if idx >= len(specs) {
+			return nil, nil, nil
 		}
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("close kvfile: %v", err)
+		s := specs[idx]
+		idx++
+		return blockRefFromKey(t, s.key).GetHash(), &block.StoredBlock{Data: s.data, RefsKnown: true}, nil
+	}); err != nil {
+		t.Fatalf("pack blocks: %v", err)
 	}
 
 	rd := bytes.NewReader(buf.Bytes())
@@ -244,14 +246,18 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 		t.Fatalf("round-trip size=%d expected=%d", reader2.Size(), expectedCount)
 	}
 	for _, s := range specs[2:] {
-		data, found, err := reader2.Get([]byte(s.key))
+		value, found, err := reader2.Get([]byte(s.key))
 		if err != nil {
 			t.Fatalf("Get %s: %v", s.key, err)
 		}
 		if !found {
 			t.Fatalf("block %s missing from chunk", s.key)
 		}
-		if !bytes.Equal(data, s.data) {
+		_, stored, err := packfile.DecodeBlockValue([]byte(s.key), value)
+		if err != nil {
+			t.Fatalf("decode %s: %v", s.key, err)
+		}
+		if !bytes.Equal(stored.GetData(), s.data) {
 			t.Fatalf("block %s data mismatch", s.key)
 		}
 	}
@@ -446,12 +452,12 @@ func TestOpenMirrorUnionReadsRawPackKeys(t *testing.T) {
 	}
 	emitted := false
 	var pack bytes.Buffer
-	if _, err := writer.PackBlocks(&pack, func() (*hash.Hash, []byte, error) {
+	if _, err := writer.PackBlocks(&pack, func() (*hash.Hash, *block.StoredBlock, error) {
 		if emitted {
 			return nil, nil, nil
 		}
 		emitted = true
-		return h, body, nil
+		return h, &block.StoredBlock{Data: body, RefsKnown: true}, nil
 	}); err != nil {
 		t.Fatalf("PackBlocks: %v", err)
 	}

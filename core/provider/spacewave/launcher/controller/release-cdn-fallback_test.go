@@ -217,12 +217,12 @@ func buildReleaseCDNFallbackPack(t *testing.T, id string, data []byte) *releaseC
 	}
 	var buf bytes.Buffer
 	wrote := false
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if wrote {
 			return nil, nil, nil
 		}
 		wrote = true
-		return h, data, nil
+		return h, &block.StoredBlock{Data: data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err.Error())

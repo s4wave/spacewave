@@ -42,9 +42,9 @@ type blockRecord struct {
 	key string
 	// ref is the parsed block ref.
 	ref *block.BlockRef
-	// off is the absolute packfile offset of the block data.
+	// off is the absolute packfile offset of the encoded block value.
 	off int64
-	// size is the block data size in bytes.
+	// size is the encoded block value size in bytes.
 	size int64
 	// spans is the subset of resident spans fully covering [off, off+size).
 	spans []*span
@@ -66,7 +66,7 @@ type blockRecord struct {
 	enqueueAt time.Time
 }
 
-// readBytes copies the block bytes out of the backing spans.
+// readBytes copies the encoded block value out of the backing spans.
 func (b *blockRecord) readBytes() ([]byte, error) {
 	out := make([]byte, b.size)
 	if copySpans(out, b.spans, b.off) != len(out) {

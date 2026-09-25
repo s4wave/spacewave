@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
@@ -366,12 +367,12 @@ func TestIndexCache(t *testing.T) {
 	}
 
 	called := false
-	_, err = writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	_, err = writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if called {
 			return nil, nil, nil
 		}
 		called = true
-		return h, testData, nil
+		return h, &block.StoredBlock{Data: testData, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

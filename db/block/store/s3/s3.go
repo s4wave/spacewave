@@ -153,23 +153,14 @@ func (b *S3Block) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	if err != nil {
 		return nil, err
 	}
-	obj := &block.BlockObject{}
-	if err := obj.UnmarshalVT(raw); err != nil {
-		return nil, errors.Wrapf(err, "decode block object %s", ref.MarshalString())
-	}
-
-	// Verify the data matches the block ref.
-	dlRef, err := block.BuildBlockRef(
-		obj.GetData(),
-		&block.PutOpts{HashType: ref.GetHash().GetHashType(), ForceBlockRef: ref},
-	)
+	stored, err := block.DecodeBlockObject(raw)
 	if err != nil {
+		return nil, errors.Wrap(err, ref.MarshalString())
+	}
+	if err := ref.VerifyData(stored.Data, true); err != nil {
 		return nil, err
 	}
-	if !dlRef.EqualsRef(ref) {
-		return nil, errors.Wrapf(block.ErrBlockRefMismatch, "service returned %s but expected %s", dlRef.MarshalString(), ref.MarshalString())
-	}
-	return &block.StoredBlock{Data: obj.GetData(), Refs: obj.GetRefs(), RefsKnown: true}, nil
+	return stored, nil
 }
 
 // GetBlockExists checks if a block exists in the store.
@@ -258,7 +249,7 @@ func (b *S3Block) putBlockData(ctx context.Context, entry *block.PutBatchEntry) 
 
 // putObject writes a block with its refs to objectKey.
 func (b *S3Block) putObject(ctx context.Context, objectKey string, data []byte, refs []*block.BlockRef) error {
-	obj, err := (&block.BlockObject{Data: data, Refs: refs}).MarshalVT()
+	obj, err := block.EncodeBlockObject(data, refs)
 	if err != nil {
 		return err
 	}

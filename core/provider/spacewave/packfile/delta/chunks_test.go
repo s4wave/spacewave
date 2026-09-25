@@ -43,7 +43,11 @@ func TestEmitDeltaChunksEncodedLimit(t *testing.T) {
 			if !found {
 				t.Fatalf("missing block %s", key)
 			}
-			seen[key] = bytes.Clone(value)
+			_, stored, err := packfile.DecodeBlockValue(entry.GetKey(), value)
+			if err != nil {
+				return err
+			}
+			seen[key] = bytes.Clone(stored.GetData())
 			return nil
 		})
 	})

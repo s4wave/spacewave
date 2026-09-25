@@ -53,7 +53,8 @@ func verifyPackBytes(meta *ManifestPackMetadata, packBytes []byte) error {
 	return nil
 }
 
-// importPackBlocks imports every block from the pack bytes into the world state.
+// importPackBlocks imports every block from the pack bytes into the world
+// state with its refs. PutBlock verifies each block against its key.
 func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte) error {
 	rdr, err := kvfile.BuildReader(bytes.NewReader(packBytes), uint64(len(packBytes)))
 	if err != nil {
@@ -68,13 +69,15 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 			if err != nil {
 				return errors.Wrapf(err, "pack entry %d", idx)
 			}
-			data, err := rdr.GetWithEntry(entry, idx)
+			value, err := rdr.GetWithEntry(entry, idx)
 			if err != nil {
 				return errors.Wrapf(err, "read pack entry %d", idx)
 			}
-			_, _, err = bls.GetBucket().PutBlock(ctx, data, &block.PutOpts{
-				ForceBlockRef: ref,
-			})
+			stored, err := block.DecodeBlockObject(value)
+			if err != nil {
+				return errors.Wrapf(err, "pack entry %d", idx)
+			}
+			_, _, err = bls.GetBucket().PutBlock(ctx, stored.Data, stored.PutOpts(ref))
 			return err
 		})
 	})

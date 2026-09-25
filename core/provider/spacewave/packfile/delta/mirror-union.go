@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 
@@ -62,22 +63,20 @@ func (m *MirrorUnion) PutBlockBatch(_ context.Context, entries []*block.PutBatch
 
 // GetBlock returns the first hit across the union of packs.
 func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	for _, s := range m.stores {
-		data, found, err := getMirrorBlock(ctx, s, ref)
-		if err != nil {
-			return nil, false, err
-		}
-		if found {
-			return data, true, nil
-		}
-	}
-	return nil, false, nil
+	stored, err := m.GetStoredBlock(ctx, ref)
+	return stored.GetData(), stored != nil, err
 }
 
-// GetStoredBlock serves the block without refs because this store keeps
-// block bytes without their refs.
+// GetStoredBlock returns the first hit across the union of packs, with its
+// refs. Returns nil when no pack holds the block.
 func (m *MirrorUnion) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block.GetBlockWithoutRefs(ctx, m, ref)
+	for _, s := range m.stores {
+		stored, err := getMirrorBlock(ctx, s, ref)
+		if err != nil || stored != nil {
+			return stored, err
+		}
+	}
+	return nil, nil
 }
 
 // GetBlockExists returns true if any pack contains the block.
@@ -114,16 +113,11 @@ func (m *MirrorUnion) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // StatBlock returns metadata for the block if any pack contains it.
 func (m *MirrorUnion) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	for _, s := range m.stores {
-		data, found, err := getMirrorBlock(ctx, s, ref)
-		if err != nil {
-			return nil, err
-		}
-		if found {
-			return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
-		}
+	stored, err := m.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return nil, err
 	}
-	return nil, nil
+	return &block.BlockStat{Ref: ref, Size: int64(len(stored.Data))}, nil
 }
 
 // Sync reports always-durable: the read-only mirror holds no buffered writes.
@@ -245,15 +239,22 @@ func OpenMirrorUnion(
 	return u, nil
 }
 
-func getMirrorBlock(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) ([]byte, bool, error) {
+// getMirrorBlock reads and verifies one block from a pack. Returns nil when
+// the pack does not hold it.
+func getMirrorBlock(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	key := mirrorBlockKey(ref)
 	if key == nil {
-		return nil, false, nil
+		return nil, nil
 	}
-	return rdr.Get(key)
+	value, found, err := rdr.Get(key)
+	if err != nil || !found {
+		return nil, err
+	}
+	_, stored, err := packfile.DecodeBlockValue(key, value)
+	return stored, err
 }
 
 func getMirrorBlockExists(ctx context.Context, rdr *kvfile.Reader, ref *block.BlockRef) (bool, error) {
