@@ -70,6 +70,10 @@ type Snapshot struct {
 	DedupedUploadCount uint64
 	// DedupedUploadBytes is the number of dirty block bytes skipped because they already exist remotely.
 	DedupedUploadBytes int64
+	// MergeCount is the number of committed small-pack merges.
+	MergeCount uint64
+	// MergedPackCount is the number of packs replaced by committed merges.
+	MergedPackCount uint64
 	// PullActiveCount is the number of active sync-pull requests.
 	PullActiveCount int
 	// InFlightFetches is the number of active packfile range fetches.
@@ -208,6 +212,8 @@ type state struct {
 	pushedBytes               int64
 	dedupedUploadCount        uint64
 	dedupedUploadBytes        int64
+	mergeCount                uint64
+	mergedPackCount           uint64
 	pullActiveCount           int
 	lastPushAt                time.Time
 	lastPullAt                time.Time
@@ -421,6 +427,18 @@ func (s *Store) AddDeduped(bstoreID string, bytes int64, count int) {
 	})
 }
 
+// AddMerge records one committed merge that replaced mergedPacks packs.
+func (s *Store) AddMerge(bstoreID string, mergedPacks int) {
+	now := time.Now()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		state := s.getOrCreateStateLocked(bstoreID)
+		state.mergeCount++
+		state.mergedPackCount += uint64(max(mergedPacks, 0)) //nolint:gosec // clamped to a non-negative count.
+		state.lastActivityAt = now
+		broadcast()
+	})
+}
+
 // StartPull records a started sync pull.
 func (s *Store) StartPull(bstoreID string) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -522,6 +540,8 @@ func BuildSnapshot(states []state) Snapshot {
 		snap.PushedBytes += state.pushedBytes
 		snap.DedupedUploadCount += state.dedupedUploadCount
 		snap.DedupedUploadBytes += state.dedupedUploadBytes
+		snap.MergeCount += state.mergeCount
+		snap.MergedPackCount += state.mergedPackCount
 		snap.PullActiveCount += state.pullActiveCount
 		snap.LastPushAt = maxTime(snap.LastPushAt, state.lastPushAt)
 		snap.LastPullAt = maxTime(snap.LastPullAt, state.lastPullAt)

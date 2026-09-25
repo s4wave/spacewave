@@ -73,6 +73,9 @@ type syncController struct {
 
 	// flushMtx serializes foreground and background flush operations.
 	flushMtx sync.Mutex
+	// compactWaitPull holds merges after a failed merge until a pull refreshes
+	// the manifest, so a stale plan is never retried. Guarded by flushMtx.
+	compactWaitPull bool
 }
 
 // Init recalculates the dirty size and runs the initial pull. Access-gated pull
@@ -208,6 +211,11 @@ func (s *syncController) Execute(ctx context.Context) error {
 		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
 		next, _, changed := s.pendingSnapshot()
+		if next.IsZero() && s.conf.GetCompactSmallPacks() {
+			if err := s.CompactNow(ctx); err != nil && ctx.Err() == nil {
+				s.le.WithError(err).Warn("small pack merge failed")
+			}
+		}
 		if !next.IsZero() && !next.After(first) {
 			if err := waitDirtySyncRetry(ctx, changed, syncNoProgressBackoff); err != nil {
 				return nil
@@ -468,10 +476,12 @@ type dirtyBlock struct {
 	stored *block.StoredBlock
 }
 
-// preparedSyncChunk is one packed flush chunk ready to push.
+// preparedSyncChunk is one packed chunk ready to push.
 type preparedSyncChunk struct {
-	// blocks are the dirty blocks packed into packData.
+	// blocks are the dirty blocks packed into packData. Empty for a merge.
 	blocks []dirtyBlock
+	// replaces are the committed packs a merge supersedes.
+	replaces []string
 	// entry is the manifest entry describing the pack.
 	entry *packfile.PackfileEntry
 	// packData is the encoded pack body.
@@ -771,12 +781,15 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 			return s.client.syncPushDataWithProgress(
 				ctx,
 				s.resourceID,
-				packID,
-				blockCount,
+				&syncPushPack{
+					packID:             packID,
+					blockCount:         blockCount,
+					bodyHash:           chunk.bodyHash,
+					bloomFilter:        entry.GetBloomFilter(),
+					bloomFormatVersion: entry.GetBloomFormatVersion(),
+					replacedPackIDs:    chunk.replaces,
+				},
 				chunk.packData,
-				chunk.bodyHash,
-				entry.GetBloomFilter(),
-				entry.GetBloomFormatVersion(),
 				func(sent int64) {
 					s.telemetrySafeCall(func(t *ProviderAccount, id string) {
 						t.setSyncTelemetryPushProgress(id, sent)
@@ -891,6 +904,7 @@ func (s *syncController) pull(ctx context.Context) error {
 		return errors.Wrap(err, "pulling from server")
 	}
 
+	s.compactWaitPull = false
 	if len(respData) == 0 {
 		return nil
 	}
