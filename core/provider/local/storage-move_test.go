@@ -86,18 +86,31 @@ func (f *fakeS3) count() int {
 	return len(f.objects)
 }
 
-// TestMoveSpaceStorageRoundTrip moves a Space onto a storage backend, loses
-// its local blocks, and moves it back: the blocks return from the bucket.
-func TestMoveSpaceStorageRoundTrip(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
+// placedStoreTest is a Space whose root and child blocks are uploaded to a
+// fake S3 backend.
+type placedStoreTest struct {
+	acc       *ProviderAccount
+	bucket    *fakeS3
+	backendID string
+	soID      string
+	tkr       *bstoreTracker
+	blocks    map[*block.BlockRef][]byte
+	rootRef   *block.BlockRef
+	childRef  *block.BlockRef
+	record    func(MoveProgress) error
+	phases    []MovePhase
+}
 
+// setupPlacedStore writes a root referencing a child into a new Space, moves
+// the Space onto a fake S3 backend, and waits for both uploads.
+func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
+	t.Helper()
 	_, _, acc, _, release := setupProviderAndSessionInternal(ctx, t)
-	defer release()
+	t.Cleanup(release)
 
 	bucket := &fakeS3{objects: make(map[string][]byte)}
 	srv := httptest.NewServer(bucket)
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
 	backendID, check, err := acc.AddStorageBackend(ctx, "fake", &account_settings.S3Location{
 		Endpoint:     strings.TrimPrefix(srv.URL, "http://"),
@@ -123,83 +136,136 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 	soID := soRef.GetProviderResourceRef().GetId()
 	blockStoreID := acc.lookupSharedObjectBlockStoreID(soID)
 	tkrRef, tkr, _ := acc.bstores.AddKeyRef(blockStoreID)
-	defer tkrRef.Release()
+	t.Cleanup(tkrRef.Release)
 	bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Write a root and a child and reference them from the store's bucket
-	// node, as the World engine does.
+	// Write a root referencing a child and reference the root from the
+	// store's bucket node, as the World engine does.
 	child := []byte("child block")
 	childRef, _, err := bs.placement.local.PutBlock(ctx, child, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	root := []byte("root block")
-	rootRef, _, err := bs.placement.local.PutBlock(ctx, root, nil)
+	rootRef, _, err := bs.placement.local.PutBlock(ctx, root, &block.PutOpts{Refs: []*block.BlockRef{childRef}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg := acc.GetVolume().GetRefGraph()
 	bucketIRI := block_gc.BucketIRI(BlockStoreBucketID(acc.GetProviderID(), acc.GetAccountID(), blockStoreID))
-	if err := rg.AddRef(ctx, bucketIRI, block_gc.BlockIRI(rootRef)); err != nil {
-		t.Fatal(err)
-	}
-	if err := rg.AddRef(ctx, block_gc.BlockIRI(rootRef), block_gc.BlockIRI(childRef)); err != nil {
+	if err := acc.GetVolume().GetRefGraph().AddRef(ctx, bucketIRI, block_gc.BlockIRI(rootRef)); err != nil {
 		t.Fatal(err)
 	}
 
-	// Move onto the backend: the backfill uploads both blocks.
-	var phases []MovePhase
-	record := func(p MoveProgress) error {
-		if !slices.Contains(phases, p.Phase) {
-			phases = append(phases, p.Phase)
+	p := &placedStoreTest{
+		acc:       acc,
+		bucket:    bucket,
+		backendID: backendID,
+		soID:      soID,
+		tkr:       tkr,
+		blocks:    map[*block.BlockRef][]byte{rootRef: root, childRef: child},
+		rootRef:   rootRef,
+		childRef:  childRef,
+	}
+	p.record = func(progress MoveProgress) error {
+		if !slices.Contains(p.phases, progress.Phase) {
+			p.phases = append(p.phases, progress.Phase)
 		}
 		return nil
 	}
-	if err := acc.MoveSpaceStorage(ctx, soID, backendID, record); err != nil {
+
+	// Move onto the backend: the backfill uploads both blocks.
+	if err := acc.MoveSpaceStorage(ctx, soID, backendID, p.record); err != nil {
 		t.Fatal(err)
 	}
 	if n := bucket.count(); n != 2 {
 		t.Fatalf("bucket holds %d objects, want 2", n)
 	}
+	return p
+}
 
-	// Lose the local copies, then move back to the account's own storage.
-	for _, ref := range []*block.BlockRef{rootRef, childRef} {
-		if err := acc.GetVolume().RmBlock(ctx, ref); err != nil {
+// loseLocalBlocks removes the local copies of the blocks.
+func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *BlockStore {
+	t.Helper()
+	for ref := range p.blocks {
+		if err := p.acc.GetVolume().RmBlock(ctx, ref); err != nil {
 			t.Fatal(err)
 		}
 	}
-	bs, err = tkr.bstoreCtr.WaitValue(ctx, nil)
+	bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	found, err := bs.placement.local.GetBlockExistsBatch(ctx, []*block.BlockRef{rootRef, childRef})
+	found, err := bs.placement.local.GetBlockExistsBatch(ctx, []*block.BlockRef{p.rootRef, p.childRef})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if slices.Contains(found, true) {
 		t.Fatalf("local blocks remain after removal: %v", found)
 	}
-	phases = nil
-	if err := acc.MoveSpaceStorage(ctx, soID, "", record); err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(phases, []MovePhase{MovePhaseFetch, MovePhaseDone}) {
-		t.Fatalf("phases = %v, want fetch then done", phases)
-	}
-	bs, err = tkr.bstoreCtr.WaitValue(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for ref, want := range map[*block.BlockRef][]byte{rootRef: root, childRef: child} {
-		data, ok, err := bs.placement.local.GetBlock(ctx, ref)
+	return bs
+}
+
+// checkLocalGraph checks that the local store holds both blocks and the edge
+// from the root to the child.
+func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs *BlockStore) {
+	t.Helper()
+	for ref, want := range p.blocks {
+		stored, err := bs.placement.local.GetStoredBlock(ctx, ref)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !ok || !bytes.Equal(data, want) {
-			t.Fatalf("local block %s = %q, %v; want %q", ref.MarshalString(), data, ok, want)
+		if stored == nil || !bytes.Equal(stored.Data, want) {
+			t.Fatalf("local block %s = %v; want %q", ref.MarshalString(), stored, want)
 		}
 	}
+	refs, err := p.acc.GetVolume().GetRefGraph().GetOutgoingRefs(ctx, block_gc.BlockIRI(p.rootRef))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(refs, block_gc.BlockIRI(p.childRef)) {
+		t.Fatalf("root edges = %v, want the child", refs)
+	}
+}
+
+// TestMoveSpaceStorageRoundTrip moves a Space onto a storage backend, loses
+// its local blocks, and moves it back: the blocks return from the bucket.
+func TestMoveSpaceStorageRoundTrip(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	p := setupPlacedStore(ctx, t)
+	p.loseLocalBlocks(ctx, t)
+	p.phases = nil
+	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(p.phases, []MovePhase{MovePhaseFetch, MovePhaseDone}) {
+		t.Fatalf("phases = %v, want fetch then done", p.phases)
+	}
+	bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.checkLocalGraph(ctx, t, bs)
+}
+
+// TestPlacedStoreGraphCopyAfterCacheLoss loses the local blocks and edges of
+// a placed Space, then copies its graph through the store: the copy reads the
+// blocks and their edges back from the bucket.
+func TestPlacedStoreGraphCopyAfterCacheLoss(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	p := setupPlacedStore(ctx, t)
+	bs := p.loseLocalBlocks(ctx, t)
+	if _, err := p.acc.GetVolume().GetRefGraph().RemoveNodeRefs(ctx, block_gc.BlockIRI(p.rootRef), false); err != nil {
+		t.Fatal(err)
+	}
+	if err := block.CopyGraph(ctx, bs, bs.placement.local, p.rootRef, nil); err != nil {
+		t.Fatal(err)
+	}
+	p.checkLocalGraph(ctx, t, bs)
 }

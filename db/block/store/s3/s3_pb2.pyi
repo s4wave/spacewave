@@ -1,3 +1,4 @@
+from db.block import block_pb2 as _block_pb2
 from net.hash import hash_pb2 as _hash_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -48,6 +49,14 @@ class Config(_message.Message):
     skip_not_found: bool
     verbose: bool
     def __init__(self, block_store_id: _Optional[str] = ..., client: _Optional[_Union[ClientConfig, _Mapping]] = ..., bucket_name: _Optional[str] = ..., object_prefix: _Optional[str] = ..., read_only: _Optional[bool] = ..., force_hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ..., bucket_ids: _Optional[_Iterable[str]] = ..., skip_not_found: _Optional[bool] = ..., verbose: _Optional[bool] = ...) -> None: ...
+
+class BlockObject(_message.Message):
+    __slots__ = ("data", "refs")
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    REFS_FIELD_NUMBER: _ClassVar[int]
+    data: bytes
+    refs: _containers.RepeatedCompositeFieldContainer[_block_pb2.BlockRef]
+    def __init__(self, data: _Optional[bytes] = ..., refs: _Optional[_Iterable[_Union[_block_pb2.BlockRef, _Mapping]]] = ...) -> None: ...
 
 class ClientConfig(_message.Message):
     __slots__ = ("endpoint", "credentials", "disable_ssl", "region")

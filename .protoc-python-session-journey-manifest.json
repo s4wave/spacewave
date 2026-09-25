@@ -84,7 +84,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/s3": {
-      "hash": "aa9deecfc2c03bf20d585a28669ce581fe82a995f33cd41d973d5bf0a7848b29",
+      "hash": "20d4cd43a3da7a648913a866a2849c400e6248fd0b208d5bb3a2323c852b68fc",
       "generatedFiles": [
         "db/block/store/s3/s3_pb2.py",
         "db/block/store/s3/s3_pb2.pyi"

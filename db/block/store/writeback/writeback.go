@@ -276,17 +276,18 @@ func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 	return batch, nil
 }
 
-// uploadBatch writes the batch's blocks to remote, then clears their markers.
-// A block the local store no longer holds is dropped without upload.
+// uploadBatch writes the batch's blocks with their refs to remote, then clears
+// their markers. A block the local store no longer holds is dropped without
+// upload.
 func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []pendingBlock) error {
 	entries := make([]*block.PutBatchEntry, 0, len(batch))
 	for _, pending := range batch {
-		data, found, err := s.local.GetBlock(ctx, pending.ref)
+		stored, err := s.local.GetStoredBlock(ctx, pending.ref)
 		if err != nil {
 			return errors.Wrap(err, "read pending block")
 		}
-		if found {
-			entries = append(entries, &block.PutBatchEntry{Ref: pending.ref, Data: data})
+		if stored != nil {
+			entries = append(entries, &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs})
 		}
 	}
 	if len(entries) != 0 {
