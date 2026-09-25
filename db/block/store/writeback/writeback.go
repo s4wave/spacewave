@@ -220,13 +220,12 @@ func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []
 	return s.clear(ctx, batch)
 }
 
-// mark queues a written block for upload.
-func (s *Store) mark(ctx context.Context, h *hash.Hash, size int64) error {
-	var enabled bool
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		enabled = s.status.Enabled
-	})
-	if !enabled {
+// mark queues written blocks for upload in one transaction.
+//
+// A disabled store skips the lock. The check repeats under the lock so a mark
+// racing SetEnabled(false) cannot queue after the queue is dropped.
+func (s *Store) mark(ctx context.Context, marks []Mark) error {
+	if !s.isEnabled() {
 		return nil
 	}
 
@@ -235,26 +234,39 @@ func (s *Store) mark(ctx context.Context, h *hash.Hash, size int64) error {
 		return err
 	}
 	defer release()
+	if !s.isEnabled() {
+		return nil
+	}
 
 	// A repeated write finds its marker and leaves the count unchanged.
-	key := []byte(markerPrefix + h.MarshalString())
-	var added bool
+	var added int
+	var addedBytes int64
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
-		found, err := tx.Exists(ctx, key)
-		if err != nil || found {
-			added = false
-			return err
+		added, addedBytes = 0, 0
+		for _, mark := range marks {
+			key := []byte(markerPrefix + mark.Hash.MarshalString())
+			found, err := tx.Exists(ctx, key)
+			if err != nil {
+				return err
+			}
+			if found {
+				continue
+			}
+			if err := tx.Set(ctx, key, []byte(strconv.FormatInt(mark.Size, 10))); err != nil {
+				return err
+			}
+			added++
+			addedBytes += mark.Size
 		}
-		added = true
-		return tx.Set(ctx, key, []byte(strconv.FormatInt(size, 10)))
+		return nil
 	})
 	if err != nil {
 		return errors.Wrap(err, "queue block upload")
 	}
-	if added {
+	if added != 0 {
 		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			s.status.Pending++
-			s.status.PendingBytes += size
+			s.status.Pending += added
+			s.status.PendingBytes += addedBytes
 			broadcast()
 		})
 	}
@@ -309,6 +321,15 @@ func (s *Store) SetError(err error) {
 		s.status.Err = err
 		broadcast()
 	})
+}
+
+// isEnabled reports whether writes are queued for upload.
+func (s *Store) isEnabled() bool {
+	var enabled bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		enabled = s.status.Enabled
+	})
+	return enabled
 }
 
 // readTx opens a read transaction on the marker store.

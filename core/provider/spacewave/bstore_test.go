@@ -452,8 +452,8 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 	var dirtyMarks int
 	store := block_store_writeback.NewMarkingStore(
 		inner,
-		func(_ context.Context, _ *hash.Hash, _ int64) error {
-			dirtyMarks++
+		func(_ context.Context, marks []block_store_writeback.Mark) error {
+			dirtyMarks += len(marks)
 			return nil
 		},
 	)
@@ -497,8 +497,10 @@ func TestDirtyTrackingStoreBatchRepairsExistingBlocks(t *testing.T) {
 	var dirty []string
 	store := block_store_writeback.NewMarkingStore(
 		inner,
-		func(_ context.Context, h *hash.Hash, _ int64) error {
-			dirty = append(dirty, h.MarshalString())
+		func(_ context.Context, marks []block_store_writeback.Mark) error {
+			for _, mark := range marks {
+				dirty = append(dirty, mark.Hash.MarshalString())
+			}
 			return nil
 		},
 	)
@@ -877,8 +879,8 @@ func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {
 	var dirtyMarks int
 	dirtyUpper := block_store_writeback.NewMarkingStore(
 		upper,
-		func(context.Context, *hash.Hash, int64) error {
-			dirtyMarks++
+		func(_ context.Context, marks []block_store_writeback.Mark) error {
+			dirtyMarks += len(marks)
 			return nil
 		},
 	)

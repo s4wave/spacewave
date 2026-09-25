@@ -7,8 +7,17 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// MarkFunc durably records a written block before its write is acknowledged.
-type MarkFunc func(ctx context.Context, h *hash.Hash, size int64) error
+// Mark names a written block.
+type Mark struct {
+	// Hash is the block hash.
+	Hash *hash.Hash
+	// Size is the block size in bytes.
+	Size int64
+}
+
+// MarkFunc durably records written blocks before their writes are
+// acknowledged. A batch write passes all of its blocks in one call.
+type MarkFunc func(ctx context.Context, marks []Mark) error
 
 // decodedBlockRefInvalidator removes decoded values after storage mutation.
 type decodedBlockRefInvalidator interface {
@@ -54,19 +63,19 @@ func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ref, existed, err := m.store.PutBlock(ctx, data, opts)
 	if err == nil && !ref.GetEmpty() {
-		err = m.mark(ctx, ref.GetHash(), int64(len(data)))
+		err = m.mark(ctx, []Mark{{Hash: ref.GetHash(), Size: int64(len(data))}})
 	}
 	return ref, existed, err
 }
 
-// PutBlockBatch marks every successful non-tombstone write.
-// A failed marker returns an error; repeating the batch repairs the remaining work.
+// PutBlockBatch marks every successful non-tombstone write in one call.
+// A failed marker returns an error; repeating the batch repairs the markers.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	if err := m.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
 
-	var markErr error
+	marks := make([]Mark, 0, len(entries))
 	for _, entry := range entries {
 		if entry == nil {
 			continue
@@ -78,11 +87,12 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if entry.Ref.GetEmpty() {
 			continue
 		}
-		if err := m.mark(ctx, entry.Ref.GetHash(), int64(len(entry.Data))); err != nil && markErr == nil {
-			markErr = err
-		}
+		marks = append(marks, Mark{Hash: entry.Ref.GetHash(), Size: int64(len(entry.Data))})
 	}
-	return markErr
+	if len(marks) == 0 {
+		return nil
+	}
+	return m.mark(ctx, marks)
 }
 
 // GetBlock gets a block by reference.

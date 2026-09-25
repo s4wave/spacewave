@@ -11,7 +11,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,11 +32,11 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 			}
 			injected := errors.New("metadata unavailable")
 			fail := true
-			store := block_store_writeback.NewMarkingStore(newSyncTestBlockStore(), func(ctx context.Context, h *hash.Hash, size int64) error {
+			store := block_store_writeback.NewMarkingStore(newSyncTestBlockStore(), func(ctx context.Context, marks []block_store_writeback.Mark) error {
 				if fail {
 					return injected
 				}
-				return syncer.MarkDirty(ctx, h, size)
+				return syncer.MarkDirty(ctx, marks)
 			})
 			put := func() error {
 				if batch {
@@ -90,7 +89,7 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 			if next, size, _ := reopened.pendingSnapshot(); !next.IsZero() || size != 0 {
 				t.Fatal("acknowledged queue retained its deadline")
 			}
-			if err := reopened.MarkDirty(ctx, ref.GetHash(), int64(len(payload))); err != nil {
+			if err := reopened.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(payload))}}); err != nil {
 				t.Fatal(err)
 			}
 			if next, _, _ := reopened.pendingSnapshot(); !next.After(first) {
@@ -141,7 +140,7 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 	for {
 		select {
 		case <-writes.C:
-			if err := syncer.MarkDirty(ctx, candidates[0].hash, candidates[0].size); err != nil {
+			if err := syncer.MarkDirty(ctx, []block_store_writeback.Mark{{Hash: candidates[0].hash, Size: candidates[0].size}}); err != nil {
 				t.Fatal(err)
 			}
 		case at := <-uploaded:
@@ -165,7 +164,7 @@ func TestSyncMissingDirtyBlockPreservesPending(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := syncer.MarkDirty(t.Context(), ref.GetHash(), 15); err != nil {
+	if err := syncer.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: 15}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := syncer.FlushNowUnordered(t.Context()); !errors.Is(err, block.ErrNotFound) {

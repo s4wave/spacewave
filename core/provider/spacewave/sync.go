@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -344,31 +345,36 @@ func (s *syncController) pushPackfile(
 	return pushFn(retryCtx, packID, blockCount)
 }
 
-// MarkDirty durably schedules a block before its caller can acknowledge the write.
-// Repeating a write repairs a failed marker without double-counting pending bytes.
-func (s *syncController) MarkDirty(ctx context.Context, h *hash.Hash, size int64) error {
+// MarkDirty durably schedules written blocks before their caller can
+// acknowledge the writes. Repeating a write repairs a failed marker without
+// double-counting pending bytes.
+func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writeback.Mark) error {
 	release, err := s.dirtyMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
-	// The marker and first-pending timestamp share the metadata transaction.
-	key := []byte("dirty/" + h.MarshalString())
-	var added bool
+	// The markers and first-pending timestamp share the metadata transaction.
+	var addedBytes int64
 	var first time.Time
 	err = kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
 		func(ctx context.Context, tx kvtx.Tx) error {
-			_, found, err := tx.Get(ctx, key)
-			if err != nil {
-				return err
-			}
-			added = !found
-			if added {
-				if err := tx.Set(ctx, key, []byte(strconv.FormatInt(size, 10))); err != nil {
+			addedBytes = 0
+			for _, mark := range marks {
+				key := []byte("dirty/" + mark.Hash.MarshalString())
+				_, found, err := tx.Get(ctx, key)
+				if err != nil {
 					return err
 				}
+				if found {
+					continue
+				}
+				if err := tx.Set(ctx, key, []byte(strconv.FormatInt(mark.Size, 10))); err != nil {
+					return err
+				}
+				addedBytes += mark.Size
 			}
 			first, err = readDirtyPendingTime(ctx, tx)
 			return err
@@ -380,14 +386,12 @@ func (s *syncController) MarkDirty(ctx context.Context, h *hash.Hash, size int64
 
 	// Publish only the committed projection, ordered with startup and cleanup scans.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if added {
-			s.dirtySize += size
-		}
+		s.dirtySize += addedBytes
 		s.dirtyPendingAt = first
 		broadcast()
 	})
-	if added {
-		s.telemetrySafeCall(func(t *ProviderAccount, id string) { t.addSyncTelemetryDirty(id, size) })
+	if addedBytes != 0 {
+		s.telemetrySafeCall(func(t *ProviderAccount, id string) { t.addSyncTelemetryDirty(id, addedBytes) })
 	}
 	return nil
 }
