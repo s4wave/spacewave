@@ -236,7 +236,7 @@ func CodegenPluginWrapperFromAnalysis(
 
 	logLevel := "DebugLevel"
 	if bldr_manifest.ToBuildType(pluginMeta.GetBuildType()).IsRelease() {
-		logLevel = "WarnLevel"
+		logLevel = "InfoLevel"
 	}
 
 	// LogLevel is the default logging level.

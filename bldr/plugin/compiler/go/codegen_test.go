@@ -226,7 +226,7 @@ func TestCodegen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if output := string(formatDat); !strings.Contains(output, "var LogLevel = logrus.WarnLevel") {
-		t.Fatalf("expected release plugin to suppress routine logs, got:\n%s", output)
+	if output := string(formatDat); !strings.Contains(output, "var LogLevel = logrus.InfoLevel") {
+		t.Fatalf("expected release plugin to keep progress logs and drop debug, got:\n%s", output)
 	}
 }
