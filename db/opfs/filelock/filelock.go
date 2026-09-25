@@ -54,11 +54,11 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (File, func
 		var once atomic.Bool
 		release := func() {
 			if once.CompareAndSwap(false, true) {
-				handle.Close()
+				_ = handle.Close()
 				lockRelease()
 			}
 		}
-		return &syncAdapter{handle}, release, nil
+		return handle, release, nil
 	}
 
 	// Async path for SharedWorker/main thread.
@@ -98,12 +98,13 @@ func WriteFile(dir js.Value, name, lockPrefix string, data []byte) error {
 		return errors.Wrap(err, "open sync file")
 	}
 	defer handle.Close()
-	handle.Truncate(0)
+	if err := handle.Truncate(0); err != nil {
+		return errors.Wrap(err, "truncate sync file")
+	}
 	if _, err := handle.WriteAt(data, 0); err != nil {
 		return errors.Wrap(err, "write sync file")
 	}
-	handle.Flush()
-	return nil
+	return errors.Wrap(handle.Flush(), "flush sync file")
 }
 
 // openHandle opens or creates a sync access handle.
@@ -113,17 +114,6 @@ func openHandle(dir js.Value, name string, create bool) (*opfs.SyncFile, error) 
 	}
 	return opfs.OpenSyncFile(dir, name)
 }
-
-// syncAdapter wraps a SyncFile to implement File.
-type syncAdapter struct {
-	f *opfs.SyncFile
-}
-
-func (a *syncAdapter) ReadAt(p []byte, off int64) (int, error)  { return a.f.ReadAt(p, off) }
-func (a *syncAdapter) WriteAt(p []byte, off int64) (int, error) { return a.f.WriteAt(p, off) }
-func (a *syncAdapter) Size() (int64, error)                     { return a.f.Size(), nil }
-func (a *syncAdapter) Truncate(size int64) error                { a.f.Truncate(size); return nil }
-func (a *syncAdapter) Flush() error                             { a.f.Flush(); return nil }
 
 // asyncAdapter wraps an AsyncFile to implement File.
 type asyncAdapter struct {

@@ -317,8 +317,12 @@ func TestSyncFile(t *testing.T) {
 	}
 
 	// Size.
-	if f.Size() != int64(len(data)) {
-		t.Fatalf("size %d, expected %d", f.Size(), len(data))
+	size, err := f.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size != int64(len(data)) {
+		t.Fatalf("size %d, expected %d", size, len(data))
 	}
 	f.Close()
 }
