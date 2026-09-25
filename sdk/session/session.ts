@@ -28,6 +28,7 @@ import {
   RemoveSpaceParticipantsResponse,
   RenameSpaceRequest,
   MountSharedObjectRequest,
+  MoveSpaceStorageResponse,
   RevokeSpaceInviteResponse,
   StartTransferRequest,
   WatchLockStateRequest,
@@ -198,6 +199,20 @@ export class Session extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchSpaceStorageResponse> {
     return this.service.WatchSpaceStorage({ sharedObjectId }, abortSignal)
+  }
+
+  // moveSpaceStorage moves a Space's blocks to a storage backend, or to the
+  // account's own storage when storageBackendId is empty, and streams the
+  // progress. Uploading continues if the caller stops early.
+  public moveSpaceStorage(
+    sharedObjectId: string,
+    storageBackendId: string,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<MoveSpaceStorageResponse> {
+    return this.service.MoveSpaceStorage(
+      { sharedObjectId, storageBackendId },
+      abortSignal,
+    )
   }
 
   // mountSharedObject mounts a shared object and returns the SharedObject resource.

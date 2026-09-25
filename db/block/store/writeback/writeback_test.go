@@ -118,3 +118,66 @@ func TestDisableDropsMarkers(t *testing.T) {
 		t.Fatalf("pending %d after disable, expected 0", status.Pending)
 	}
 }
+
+// TestBackfillQueuesStoredBlocks checks that choosing a remote queues the
+// blocks stored before it, once per remote, across a reopen.
+func TestBackfillQueuesStoredBlocks(t *testing.T) {
+	ctx := t.Context()
+	local := newInmemBlockStore()
+	markers := store_kvtx_inmem.NewStore()
+	s, err := NewStore(ctx, local, markers, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Two blocks are stored while uploads are off, and a third ref is listed
+	// but not stored.
+	var refs []*block.BlockRef
+	for _, data := range []string{"before-a", "before-b"} {
+		ref, _, err := s.PutBlock(ctx, []byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, ref)
+	}
+	missing, _, err := newInmemBlockStore().PutBlock(ctx, []byte("elsewhere"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var listed int
+	list := func(context.Context) ([]*block.BlockRef, error) {
+		listed++
+		return append(refs, missing), nil
+	}
+
+	if err := s.SetEnabled(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Backfill(ctx, "bucket", list); err != nil {
+		t.Fatal(err)
+	}
+	status, _ := s.GetStatus()
+	if status.Pending != 2 || status.PendingBytes != 16 || status.Target != "bucket" {
+		t.Fatalf("after backfill: %+v", status)
+	}
+
+	// A reopened store remembers the completed backfill.
+	s, err = NewStore(ctx, local, markers, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Backfill(ctx, "bucket", list); err != nil {
+		t.Fatal(err)
+	}
+	if listed != 1 {
+		t.Fatalf("listed %d times, expected 1", listed)
+	}
+
+	// Disabling forgets it, so the next remote backfills again.
+	if err := s.SetEnabled(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.GetStatus(); status.Target != "" {
+		t.Fatalf("target %q after disable", status.Target)
+	}
+}

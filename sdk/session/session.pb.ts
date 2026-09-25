@@ -499,6 +499,52 @@ export const JoinSpaceViaInviteResult_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * MoveSpaceStoragePhase is a step of a storage move.
+ *
+ * @generated from enum s4wave.session.MoveSpaceStoragePhase
+ */
+export enum MoveSpaceStoragePhase {
+  /**
+   * MoveSpaceStoragePhase_UNKNOWN is the zero value.
+   *
+   * @generated from enum value: MoveSpaceStoragePhase_UNKNOWN = 0;
+   */
+  MoveSpaceStoragePhase_UNKNOWN = 0,
+
+  /**
+   * MoveSpaceStoragePhase_FETCH copies blocks held only by the old backend
+   * into the account's own storage.
+   *
+   * @generated from enum value: MoveSpaceStoragePhase_FETCH = 1;
+   */
+  MoveSpaceStoragePhase_FETCH = 1,
+
+  /**
+   * MoveSpaceStoragePhase_UPLOAD waits for the new backend to hold every block.
+   *
+   * @generated from enum value: MoveSpaceStoragePhase_UPLOAD = 2;
+   */
+  MoveSpaceStoragePhase_UPLOAD = 2,
+
+  /**
+   * MoveSpaceStoragePhase_DONE reports the completed move.
+   *
+   * @generated from enum value: MoveSpaceStoragePhase_DONE = 3;
+   */
+  MoveSpaceStoragePhase_DONE = 3,
+}
+
+export const MoveSpaceStoragePhase_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.session.MoveSpaceStoragePhase',
+  [
+    [0, 'MoveSpaceStoragePhase_UNKNOWN'],
+    [1, 'MoveSpaceStoragePhase_FETCH'],
+    [2, 'MoveSpaceStoragePhase_UPLOAD'],
+    [3, 'MoveSpaceStoragePhase_DONE'],
+  ],
+)
+
+/**
  * GetSessionInfoRequest is the request type for GetSessionInfo.
  *
  * @generated from message s4wave.session.GetSessionInfoRequest
@@ -4116,6 +4162,101 @@ export const WatchSpaceStorageResponse: MessageType<WatchSpaceStorageResponse> =
       { no: 3, name: 'pending_blocks', kind: 'scalar', T: ScalarType.INT64 },
       { no: 4, name: 'pending_bytes', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MoveSpaceStorageRequest is the request for MoveSpaceStorage.
+ *
+ * @generated from message s4wave.session.MoveSpaceStorageRequest
+ */
+export interface MoveSpaceStorageRequest {
+  /**
+   * SharedObjectId is the Space's SharedObject id.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+  /**
+   * StorageBackendId identifies the destination backend.
+   * Empty moves the blocks to the account's own storage.
+   *
+   * @generated from field: string storage_backend_id = 2;
+   */
+  storageBackendId?: string
+}
+
+export const MoveSpaceStorageRequest: MessageType<MoveSpaceStorageRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.MoveSpaceStorageRequest',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MoveSpaceStorageResponse is the progress of a storage move.
+ *
+ * @generated from message s4wave.session.MoveSpaceStorageResponse
+ */
+export interface MoveSpaceStorageResponse {
+  /**
+   * Phase is the current step.
+   *
+   * @generated from field: s4wave.session.MoveSpaceStoragePhase phase = 1;
+   */
+  phase?: MoveSpaceStoragePhase
+  /**
+   * BlocksFetched is the number of blocks checked during the fetch phase.
+   *
+   * @generated from field: int64 blocks_fetched = 2;
+   */
+  blocksFetched?: bigint
+  /**
+   * BlocksTotal is the number of blocks the fetch phase checks.
+   *
+   * @generated from field: int64 blocks_total = 3;
+   */
+  blocksTotal?: bigint
+  /**
+   * PendingBlocks is the number of blocks not yet uploaded during the
+   * upload phase.
+   *
+   * @generated from field: int64 pending_blocks = 4;
+   */
+  pendingBlocks?: bigint
+  /**
+   * PendingBytes is the size of the pending blocks.
+   *
+   * @generated from field: int64 pending_bytes = 5;
+   */
+  pendingBytes?: bigint
+  /**
+   * UploadError describes the last upload failure, empty while uploads succeed.
+   *
+   * @generated from field: string upload_error = 6;
+   */
+  uploadError?: string
+}
+
+export const MoveSpaceStorageResponse: MessageType<MoveSpaceStorageResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.MoveSpaceStorageResponse',
+    fields: [
+      { no: 1, name: 'phase', kind: 'enum', T: MoveSpaceStoragePhase_Enum },
+      { no: 2, name: 'blocks_fetched', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 3, name: 'blocks_total', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 4, name: 'pending_blocks', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'pending_bytes', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 6, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

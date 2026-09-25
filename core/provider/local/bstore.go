@@ -35,17 +35,22 @@ type BlockStore struct {
 	readStore block_store.Store
 	// decodedBlocks is the decoded-block cache owned by the block-store lifecycle.
 	decodedBlocks *block.DecodedBlockCache
-	// upload queues local writes for the store's storage backend.
-	upload *uploadState
+	// placement is the store's storage backend and upload queue.
+	placement *placementState
 }
 
-// uploadState is a block store's storage backend and its upload queue.
-type uploadState struct {
+// placementState is a block store's storage backend, its upload queue, and
+// the stores a storage move copies blocks between.
+type placementState struct {
 	// wb queues local writes for upload.
 	wb *block_store_writeback.Store
 	// backend is the storage backend holding the store, nil for the account's
 	// own storage. It changes before wb broadcasts the change.
 	backend atomic.Pointer[account_settings.StorageBackend]
+	// local is the account's own storage, written without upload markers.
+	local block.StoreOps
+	// remote reads the backend's bucket, then peers.
+	remote block.StoreOps
 }
 
 // UploadStatus is a block store's storage backend and upload status.
@@ -85,8 +90,8 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 // GetUploadStatus returns the storage backend and upload status, and a channel
 // closed when either changes.
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
-	status, changed := b.upload.wb.GetStatus()
-	return UploadStatus{Backend: b.upload.backend.Load(), Status: status}, changed
+	status, changed := b.placement.wb.GetStatus()
+	return UploadStatus{Backend: b.placement.backend.Load(), Status: status}, changed
 }
 
 func (b *BlockStore) readOwner() block_store.Store {
@@ -112,10 +117,10 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 			store:         b.store,
 			readStore:     scopedStore,
 			decodedBlocks: b.decodedBlocks,
-			upload:        b.upload,
+			placement:     b.placement,
 		}, release, nil
 	}
-	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks, upload: b.upload}, release, nil
+	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks, placement: b.placement}, release, nil
 }
 
 // PutBlock forwards to the inner store.
@@ -329,8 +334,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	upload.SetStateRoutine(func(ctx context.Context, backend *account_settings.StorageBackend) error {
 		return t.runUpload(ctx, wb, backend)
 	})
-	uploadState := &uploadState{wb: wb}
-	uploadState.backend.Store(backend)
 	upload.SetState(backend)
 	upload.SetContext(ctx, true)
 	defer upload.ClearContext()
@@ -347,11 +350,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		func() block.StoreOps { return lowerOps },
 		true,
 	)
+	placement := &placementState{wb: wb, local: localBucket, remote: lowerOps}
+	placement.backend.Store(backend)
 	bstoreHandle := &BlockStore{
 		store:         localStore,
 		readStore:     block_store.NewStore(blockStoreLocalID, readOps),
 		decodedBlocks: decodedBlocks,
-		upload:        uploadState,
+		placement:     placement,
 	}
 	bstoreCtrl := newLocalBlockStoreController(le, blockStoreLocalID, localStore)
 	relBstoreCtrl, err := t.a.t.p.b.AddController(ctx, bstoreCtrl, nil)
@@ -365,7 +370,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	t.bstoreCtr.SetValue(bstoreHandle)
 	defer t.bstoreCtr.SetValue(nil)
 
-	// Follow placement changes until the store unmounts.
+	// Follow placement changes until the store unmounts. The backend receives
+	// the blocks stored before it was chosen as well as new writes.
+	if err := t.backfill(ctx, wb, backend); err != nil {
+		return err
+	}
 	for settings != nil {
 		next, err := t.nextBackend(ctx, settings)
 		if err != nil {
@@ -374,12 +383,15 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		if next.EqualVT(backend) {
 			continue
 		}
-		uploadState.backend.Store(next)
+		placement.backend.Store(next)
 		if err := wb.SetEnabled(ctx, next != nil); err != nil {
 			return err
 		}
 		upload.SetState(next)
 		backend = next
+		if err := t.backfill(ctx, wb, backend); err != nil {
+			return err
+		}
 	}
 	<-ctx.Done()
 	return context.Canceled
@@ -400,6 +412,20 @@ func newLocalBlockStoreController(
 		false,
 		false,
 	)
+}
+
+// backfill queues the store's blocks for upload to backend, once per backend.
+func (t *bstoreTracker) backfill(
+	ctx context.Context,
+	wb *block_store_writeback.Store,
+	backend *account_settings.StorageBackend,
+) error {
+	if backend == nil {
+		return nil
+	}
+	return wb.Backfill(ctx, backend.GetId(), func(ctx context.Context) ([]*block.BlockRef, error) {
+		return t.a.ListBlockStoreRefs(ctx, t.id)
+	})
 }
 
 // buildBucketConf builds the bucket config for the bstore.

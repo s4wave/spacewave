@@ -8,7 +8,6 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
@@ -104,31 +103,8 @@ func (s *LocalTransferSource) GetBlockStore(ctx context.Context, ref *sobject.Sh
 }
 
 // GetBlockRefs returns all block refs tracked for a shared object's block store.
-// Uses the GC ref graph to enumerate blocks belonging to the bucket.
 func (s *LocalTransferSource) GetBlockRefs(ctx context.Context, ref *sobject.SharedObjectRef) ([]*block.BlockRef, error) {
-	vol := s.account.GetVolume()
-	rg := vol.GetRefGraph()
-	if rg == nil {
-		return nil, nil
-	}
-
-	blockStoreID := ref.GetBlockStoreId()
-	bucketID := provider_local.BlockStoreBucketID(s.providerID, s.accountID, blockStoreID)
-	bucketIRI := block_gc.BucketIRI(bucketID)
-
-	outgoing, err := rg.GetOutgoingRefs(ctx, bucketIRI)
-	if err != nil {
-		return nil, err
-	}
-
-	var refs []*block.BlockRef
-	for _, iri := range outgoing {
-		br, ok := block_gc.ParseBlockIRI(iri)
-		if ok {
-			refs = append(refs, br)
-		}
-	}
-	return refs, nil
+	return s.account.ListBlockStoreRefs(ctx, ref.GetBlockStoreId())
 }
 
 // buildObjectStore builds an object store handle for the source account.

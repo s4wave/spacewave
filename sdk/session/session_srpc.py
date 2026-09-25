@@ -350,6 +350,13 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
             True,
         ),
+        MethodDescriptor(
+            "MoveSpaceStorage",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse,
+            False,
+            True,
+        ),
     ),
 )
 
@@ -1372,6 +1379,28 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def move_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse
+    ]:
+        call = await self._client.open_call(
+            self._service,
+            "MoveSpaceStorage",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            while True:
+                data = await call.receive()
+                if data is None:
+                    return
+                response = _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse()
+                response.ParseFromString(data)
+                yield response
+        finally:
+            await call.aclose()
+
 
 class SessionResourceServiceServer(Protocol):
     async def get_session_info(
@@ -1619,6 +1648,12 @@ class SessionResourceServiceServer(Protocol):
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageResponse
+    ]: ...
+    def move_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse
     ]: ...
 
 
@@ -2196,3 +2231,14 @@ def register_session_resource_service(
             await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "WatchSpaceStorage", watch_space_storage_handler)
+
+    async def move_space_storage_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest()
+        request.ParseFromString(first)
+        async for response in implementation.move_space_storage(request):
+            await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "MoveSpaceStorage", move_space_storage_handler)

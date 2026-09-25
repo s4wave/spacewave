@@ -1,5 +1,10 @@
 import type { S3Location } from '@s4wave/core/account/settings/settings.pb.js'
 import {
+  MoveSpaceStoragePhase,
+  type MoveSpaceStorageResponse,
+} from '@s4wave/sdk/session/session.pb.js'
+import { formatBytes, plural } from '@s4wave/app/system/format.js'
+import {
   CheckOutcome,
   type CheckResult,
 } from '@go/github.com/s4wave/spacewave/db/block/store/s3/s3.pb.js'
@@ -297,4 +302,21 @@ export function formatStorageLocation(
   const bucket = location?.bucket ?? ''
   const prefix = location?.objectPrefix ? `/${location.objectPrefix}` : ''
   return `${bucket}${prefix} on ${location?.endpoint ?? ''}`
+}
+
+// describeMoveProgress words one step of a storage move to destination.
+export function describeMoveProgress(
+  progress: MoveSpaceStorageResponse,
+  destination: string,
+): string {
+  switch (progress.phase) {
+    case MoveSpaceStoragePhase.MoveSpaceStoragePhase_FETCH:
+      return `Copying blocks from the old bucket: ${Number(progress.blocksFetched ?? 0n)} of ${Number(progress.blocksTotal ?? 0n)}`
+    case MoveSpaceStoragePhase.MoveSpaceStoragePhase_UPLOAD:
+      return `Uploading to ${destination}: ${plural(Number(progress.pendingBlocks ?? 0n), 'block')} (${formatBytes(progress.pendingBytes)}) left`
+    case MoveSpaceStoragePhase.MoveSpaceStoragePhase_DONE:
+      return `Stored in ${destination}`
+    default:
+      return 'Starting the move'
+  }
 }

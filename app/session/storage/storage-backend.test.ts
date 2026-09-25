@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { CheckOutcome } from '@go/github.com/s4wave/spacewave/db/block/store/s3/s3.pb.js'
+import { MoveSpaceStoragePhase } from '@s4wave/sdk/session/session.pb.js'
 
 import {
   buildStorageCorsRule,
   buildStorageLocation,
+  describeMoveProgress,
   describeStorageCheck,
   type StorageLocationFields,
 } from './storage-backend.js'
@@ -94,5 +96,36 @@ describe('buildStorageCorsRule', () => {
     expect(buildStorageCorsRule('minio', 'https://a').text).toBe(
       'MINIO_API_CORS_ALLOW_ORIGIN=https://a',
     )
+  })
+})
+
+describe('describeMoveProgress', () => {
+  it('words each phase of a move', () => {
+    expect(
+      describeMoveProgress(
+        {
+          phase: MoveSpaceStoragePhase.MoveSpaceStoragePhase_FETCH,
+          blocksFetched: 64n,
+          blocksTotal: 928n,
+        },
+        'my-bucket',
+      ),
+    ).toBe('Copying blocks from the old bucket: 64 of 928')
+    expect(
+      describeMoveProgress(
+        {
+          phase: MoveSpaceStoragePhase.MoveSpaceStoragePhase_UPLOAD,
+          pendingBlocks: 1n,
+          pendingBytes: 512n,
+        },
+        'my-bucket',
+      ),
+    ).toBe('Uploading to my-bucket: 1 block (512 B) left')
+    expect(
+      describeMoveProgress(
+        { phase: MoveSpaceStoragePhase.MoveSpaceStoragePhase_DONE },
+        'my-bucket',
+      ),
+    ).toBe('Stored in my-bucket')
   })
 })

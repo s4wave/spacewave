@@ -35,3 +35,12 @@ func (s *Session) SetDefaultStorageBackend(ctx context.Context, storageBackendID
 	_, err := s.service.SetDefaultStorageBackend(ctx, &SetDefaultStorageBackendRequest{StorageBackendId: storageBackendID})
 	return err
 }
+
+// MoveSpaceStorage moves a Space's blocks to a backend, or to the account's
+// own storage when storageBackendID is empty, and streams the progress.
+func (s *Session) MoveSpaceStorage(ctx context.Context, sharedObjectID, storageBackendID string) (SRPCSessionResourceService_MoveSpaceStorageClient, error) {
+	return s.service.MoveSpaceStorage(ctx, &MoveSpaceStorageRequest{
+		SharedObjectId:   sharedObjectID,
+		StorageBackendId: storageBackendID,
+	})
+}
