@@ -28,8 +28,12 @@ const markerPrefix = "pending/"
 // targetKey names the remote whose backfill completed.
 const targetKey = "target"
 
-// uploadBatchSize bounds the blocks one upload request batch carries.
-const uploadBatchSize = 64
+// uploadBatchBlocks bounds the blocks one upload batch carries.
+const uploadBatchBlocks = 4096
+
+// uploadBatchBytes bounds the recorded block bytes one upload batch carries. A
+// batch holds at least one block, whatever its size.
+const uploadBatchBytes = 4 << 20
 
 // backfillBatchSize bounds the blocks one backfill marker transaction queues.
 const backfillBatchSize = 256
@@ -245,22 +249,29 @@ type pendingBlock struct {
 	size int64
 }
 
-// scanBatch reads up to uploadBatchSize markers.
+// scanBatch reads markers up to uploadBatchBlocks blocks and uploadBatchBytes
+// bytes.
 func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 	var batch []pendingBlock
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		batch = batch[:0]
+		var batchBytes int64
 		err := tx.ScanPrefix(ctx, []byte(markerPrefix), func(key, value []byte) error {
 			h := &hash.Hash{}
 			if err := h.ParseFromB58(string(key[len(markerPrefix):])); err != nil {
 				return errors.Wrap(err, "parse pending upload key")
 			}
+			size := parseMarkerSize(value)
+			if len(batch) != 0 && batchBytes+size > uploadBatchBytes {
+				return errBatchFull
+			}
 			batch = append(batch, pendingBlock{
 				key:  bytes.Clone(key),
 				ref:  block.NewBlockRef(h),
-				size: parseMarkerSize(value),
+				size: size,
 			})
-			if len(batch) == uploadBatchSize {
+			batchBytes += size
+			if len(batch) == uploadBatchBlocks {
 				return errBatchFull
 			}
 			return nil

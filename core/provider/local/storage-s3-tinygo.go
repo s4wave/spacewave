@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
-	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
 
@@ -30,6 +29,6 @@ func CheckS3Location(
 func buildS3BlockStore(
 	*account_settings.S3Location,
 	*block_store_s3.Credentials,
-) (block.StoreOps, error) {
+) (backendStore, error) {
 	return nil, errNoS3Client
 }

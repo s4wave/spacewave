@@ -41,14 +41,7 @@ func NewBlockStoreBuilder(conf *Config) block_store_controller.BlockStoreBuilder
 		if err != nil {
 			return nil, nil, err
 		}
-		s3Block := NewS3Block(
-			!conf.GetReadOnly(),
-			client,
-			conf.GetBucketName(),
-			conf.GetObjectPrefix(),
-			conf.GetForceHashType(),
-		)
-		store := block_store.NewStore(conf.GetBlockStoreId(), s3Block)
-		return store, nil, nil
+		packs := NewPackStore(client, conf.GetBucketName(), conf.GetObjectPrefix())
+		return block_store.NewStore(conf.GetBlockStoreId(), packs), packs.Close, nil
 	}
 }

@@ -1737,7 +1737,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/s3": {
-      "hash": "e8ffdb2267d5734fa78f4e713004f2a47d408f4cc30488e7281a896a42bacb6f",
+      "hash": "82629368896f6d806cc5c1395824cb49e20c8c4267c143062c24c65e7f02f0ff",
       "generatedFiles": [
         "db/block/store/s3/s3.pb.go",
         "db/block/store/s3/s3.pb.ts"

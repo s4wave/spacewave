@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
-import type { HashType } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
-import { HashType_Enum } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 
 export const protobufPackage = 'block.store.s3'
 
@@ -51,7 +49,7 @@ export enum CheckOutcome {
 
   /**
    * CHECK_OUTCOME_ACCESS_DENIED means the credentials are valid but lack
-   * permission to write, read, or delete objects in the bucket.
+   * permission to write, read, list, or delete objects in the bucket.
    *
    * @generated from enum value: CHECK_OUTCOME_ACCESS_DENIED = 4;
    */
@@ -209,24 +207,12 @@ export interface Config {
   bucketName?: string
   /**
    * ObjectPrefix is the prefix to use for object names.
-   * Object name: {objectPrefix}{blockRefB58}, holding a block.BlockObject.
+   * Packfiles are {objectPrefix}packs/{id}, and their entries are
+   * {objectPrefix}entries/{id}.
    *
    * @generated from field: string object_prefix = 4;
    */
   objectPrefix?: string
-  /**
-   * ReadOnly disables writing to the s3 store.
-   *
-   * @generated from field: bool read_only = 5;
-   */
-  readOnly?: boolean
-  /**
-   * ForceHashType forces writing the given hash type to the store.
-   * If unset, accepts any hash type.
-   *
-   * @generated from field: hash.HashType force_hash_type = 6;
-   */
-  forceHashType?: HashType
   /**
    * BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
    *
@@ -254,8 +240,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'client', kind: 'message', T: () => ClientConfig },
     { no: 3, name: 'bucket_name', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
-    { no: 5, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 6, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
     {
       no: 7,
       name: 'bucket_ids',
@@ -320,17 +304,11 @@ export interface CheckResult {
   detail?: string
   /**
    * Usage is what the bucket holds under the object prefix. Absent when the
-   * check failed or the access key cannot list objects.
+   * check failed.
    *
    * @generated from field: block.store.s3.ObjectUsage usage = 3;
    */
   usage?: ObjectUsage
-  /**
-   * UsageError is why Usage is absent after a passing check.
-   *
-   * @generated from field: string usage_error = 4;
-   */
-  usageError?: string
 }
 
 export const CheckResult: MessageType<CheckResult> =
@@ -340,7 +318,6 @@ export const CheckResult: MessageType<CheckResult> =
       { no: 1, name: 'outcome', kind: 'enum', T: CheckOutcome_Enum },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'usage', kind: 'message', T: () => ObjectUsage },
-      { no: 4, name: 'usage_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

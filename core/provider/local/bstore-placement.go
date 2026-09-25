@@ -125,26 +125,46 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 	}
 }
 
+// backendStore is a block store on a storage backend's bucket.
+type backendStore interface {
+	block.StoreOps
+	// Close releases the store's open readers.
+	Close()
+}
+
+// openBackend is the open store of a storage backend.
+type openBackend struct {
+	// backend is the storage backend the store reads and writes.
+	backend *account_settings.StorageBackend
+	// store is the block store on the backend's bucket.
+	store backendStore
+}
+
 // runUpload uploads the store's queued blocks to the backend's bucket, which
 // also serves reads the local store misses.
 //
-// The bucket keeps serving reads across failed uploads and their retries, so
-// an unreachable bucket fails reads with its own error. Clearing the placement
-// cancels ctx and withdraws the bucket.
+// The bucket store stays open across failed uploads and their retries, so an
+// unreachable bucket fails reads with its own error and the store keeps the
+// packfiles it knows. Clearing or changing the placement cancels ctx and
+// closes the store.
 func (t *bstoreTracker) runUpload(
 	ctx context.Context,
 	wb *block_store_writeback.Store,
 	backend *account_settings.StorageBackend,
 ) error {
-	remote, err := t.openBackendStore(ctx, backend)
-	if err != nil {
-		wb.SetError(err)
-		return err
+	remote := t.remote.Load()
+	if remote == nil || !remote.backend.EqualVT(backend) {
+		store, err := t.openBackendStore(ctx, backend)
+		if err != nil {
+			wb.SetError(err)
+			return err
+		}
+		remote = &openBackend{backend: backend, store: store}
+		t.swapRemote(remote)
 	}
-	t.remote.Store(&remote)
-	err = wb.Upload(ctx, remote)
+	err := wb.Upload(ctx, remote.store)
 	if ctx.Err() != nil {
-		t.remote.Store(nil)
+		t.swapRemote(nil)
 	}
 	return err
 }
@@ -153,7 +173,7 @@ func (t *bstoreTracker) runUpload(
 func (t *bstoreTracker) openBackendStore(
 	ctx context.Context,
 	backend *account_settings.StorageBackend,
-) (block.StoreOps, error) {
+) (backendStore, error) {
 	creds, err := t.a.ReadStorageCredentials(ctx, backend)
 	if err != nil {
 		return nil, err
@@ -161,10 +181,17 @@ func (t *bstoreTracker) openBackendStore(
 	return buildS3BlockStore(backend.GetS3(), creds)
 }
 
+// swapRemote replaces the open backend store and closes the previous one.
+func (t *bstoreTracker) swapRemote(next *openBackend) {
+	if prev := t.remote.Swap(next); prev != nil && prev != next {
+		prev.store.Close()
+	}
+}
+
 // getRemote returns the backend store serving reads, or nil when none is open.
 func (t *bstoreTracker) getRemote() block.StoreOps {
 	if remote := t.remote.Load(); remote != nil {
-		return *remote
+		return remote.store
 	}
 	return nil
 }

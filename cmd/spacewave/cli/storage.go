@@ -593,9 +593,6 @@ func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) strin
 // backend's prefix.
 func formatObjectUsage(result *block_store_s3.CheckResult) string {
 	usage := result.GetUsage()
-	if usage == nil {
-		return "stored size unknown (" + result.GetUsageError() + ")"
-	}
 	objects := " objects"
 	if usage.GetObjects() == 1 {
 		objects = " object"
