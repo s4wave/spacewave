@@ -7,6 +7,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
@@ -18,6 +20,14 @@ import (
 type Store struct {
 	db     *bdb.DB
 	bucket []byte
+
+	// ordered counts completed ordered commits.
+	ordered atomic.Uint64
+	// durable is the highest ordered count a flush or full commit has made
+	// durable. Sync flushes only while durable is behind ordered.
+	durable atomic.Uint64
+	// syncMtx serializes flushes.
+	syncMtx sync.Mutex
 }
 
 // NewStore constructs a new key-value store from a bolt db.
@@ -58,7 +68,9 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(txn, s.bucket), nil
+	tx := NewTx(txn, s.bucket)
+	tx.store = s
+	return tx, nil
 }
 
 // Execute executes the given store.
@@ -136,10 +148,33 @@ func checkBoltPaths(dbPath, lockPath string) error {
 	return nil
 }
 
-// Sync flushes every committed transaction, including ordered commits, to
-// stable storage.
+// Sync makes every completed ordered commit durable. It flushes only when an
+// ordered commit is not yet covered by an earlier flush or full commit.
 func (s *Store) Sync(ctx context.Context) error {
-	return s.db.Sync()
+	ordered := s.ordered.Load()
+	if s.durable.Load() >= ordered {
+		return nil
+	}
+	s.syncMtx.Lock()
+	defer s.syncMtx.Unlock()
+	if s.durable.Load() >= ordered {
+		return nil
+	}
+	if err := s.db.Sync(); err != nil {
+		return err
+	}
+	s.markDurable(ordered)
+	return nil
+}
+
+// markDurable records that the first n ordered commits are durable.
+func (s *Store) markDurable(n uint64) {
+	for {
+		durable := s.durable.Load()
+		if durable >= n || s.durable.CompareAndSwap(durable, n) {
+			return
+		}
+	}
 }
 
 // SupportsAtomicCommit excludes unsafe or externally deferred durability modes.

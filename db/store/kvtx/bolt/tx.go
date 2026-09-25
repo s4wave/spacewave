@@ -17,8 +17,10 @@ import (
 
 // Tx is a bolt transaction.
 type Tx struct {
-	txn         *bdb.Tx
-	bucket      []byte
+	txn    *bdb.Tx
+	bucket []byte
+	// store tracks ordered commit durability, nil outside a Store.
+	store       *Store
 	discardOnce atomic.Bool
 }
 
@@ -163,12 +165,31 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 // Can return an error to indicate tx failure.
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) error {
-	return t.commit(t.txn.Commit)
+	// Bolt serializes writers, so every ordered commit counted before this
+	// one completes is flushed by its sync.
+	flushes := t.store != nil && !t.store.db.NoSync
+	var ordered uint64
+	if flushes {
+		ordered = t.store.ordered.Load()
+	}
+	if err := t.commit(t.txn.Commit); err != nil {
+		return err
+	}
+	if flushes {
+		t.store.markDurable(ordered)
+	}
+	return nil
 }
 
 // CommitOrdered commits the transaction with write ordering only.
 func (t *Tx) CommitOrdered(ctx context.Context) error {
-	return t.commit(t.txn.CommitOrdered)
+	if err := t.commit(t.txn.CommitOrdered); err != nil {
+		return err
+	}
+	if t.store != nil {
+		t.store.ordered.Add(1)
+	}
+	return nil
 }
 
 // commit finishes the transaction with commitFn unless it was discarded.
