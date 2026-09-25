@@ -28,38 +28,16 @@ type sessionTransportState struct {
 	err    error
 }
 
-var errSessionTransportUnauthorized = errors.New("session transport unauthorized")
-
+// sessionTransportStatusError exposes the HTTP status of a cloud response.
 type sessionTransportStatusError interface {
 	StatusCode() int
 }
 
-type unauthorizedSessionTransportError struct {
-	err error
-}
-
-func (e *unauthorizedSessionTransportError) Error() string {
-	return e.err.Error()
-}
-
-func (e *unauthorizedSessionTransportError) Unwrap() error {
-	return e.err
-}
-
-func (e *unauthorizedSessionTransportError) Is(target error) bool {
-	return target == errSessionTransportUnauthorized
-}
-
-func classifySessionTransportError(err error) error {
+// sessionTransportUnauthorized reports whether the cloud rejected the Session
+// credential, which the Session repairs by registering again.
+func sessionTransportUnauthorized(err error) bool {
 	var statusErr sessionTransportStatusError
-	if errors.As(err, &statusErr) && statusErr.StatusCode() == http.StatusUnauthorized {
-		return &unauthorizedSessionTransportError{err: err}
-	}
-	return err
-}
-
-func sessionTransportReplacementContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return sessionTransportCleanupContext(ctx)
+	return errors.As(err, &statusErr) && statusErr.StatusCode() == http.StatusUnauthorized
 }
 
 func sessionTransportCleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -103,6 +81,10 @@ func (a *ProviderAccount) handleSessionTransportExit(
 	sts *sessionTransportState,
 	err error,
 ) {
+	// A failed transport stops the retry with a nil result.
+	if err == nil {
+		err = sts.transport.Err()
+	}
 	var ready bool
 	sts.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ready = sts.ready
@@ -235,7 +217,7 @@ func (a *ProviderAccount) createSessionTransportForSession(
 	signalingURL string,
 ) error {
 	// Acquire replacement cleanup scope and serialize transport changes.
-	cleanupCtx, cleanupCancel := sessionTransportReplacementContext(ctx)
+	cleanupCtx, cleanupCancel := sessionTransportCleanupContext(ctx)
 	rel, err := a.transportReplaceMtx.Lock(cleanupCtx)
 	if err != nil {
 		cleanupCancel()
@@ -282,7 +264,6 @@ func (a *ProviderAccount) createSessionTransportForSession(
 
 	// Await readiness and clean up failed startup.
 	if err := sts.WaitStarted(ctx); err != nil {
-		err = classifySessionTransportError(err)
 		if stopErr := a.stopSessionTransportForSession(ctx, sessionID, sts); stopErr != nil {
 			return errors.Wrap(stopErr, "cleanup failed session transport startup")
 		}

@@ -11,9 +11,8 @@ import (
 // TestSessionTransportBusLifetime keeps sibling Sessions independent and
 // invalidates a borrowed route when its actual transport owner stops.
 func TestSessionTransportBusLifetime(t *testing.T) {
-	ctx, cancel, tb, session := newTestSessionTransport(t, "", time.Second)
-	defer tb.Release()
-	defer cancel()
+	ctx, tb, session := newTestSessionTransport(t, "")
+	ctx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
 	go func() { done <- session.Execute(ctx) }()
 	if err := session.AwaitReady(ctx); err != nil {

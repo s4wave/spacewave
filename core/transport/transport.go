@@ -4,7 +4,6 @@ import (
 	"context"
 	"maps"
 	"slices"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
@@ -44,8 +43,8 @@ type SessionTransport struct {
 	lifecycleCtx context.Context
 	// linkControllers owns the links exposed by each active transport.
 	linkControllers []*transport_controller.Controller
-	// startLocalTransport optionally attaches a native process-local network.
-	startLocalTransport func(context.Context, bus.Bus) (*transport_controller.Controller, func(), error)
+	// startLocalTransport optionally attaches a process-local transport.
+	startLocalTransport LocalTransportFunc
 	// sessionKey is the session's Ed25519 private key.
 	sessionKey bifrost_crypto.PrivKey
 	// peerID is the peer ID derived from the session key.
@@ -56,66 +55,47 @@ type SessionTransport struct {
 	signingEnvPfx string
 	// bridgeFilter optionally excludes directives from the parent bridge.
 	bridgeFilter bus_bridge.FilterFn
-	// startupTimeout bounds the readiness phase for every consumer.
-	startupTimeout time.Duration
-	// startupDeadlineCtx is the startup budget shared by every readiness waiter.
-	startupDeadlineCtx context.Context
-	// startupDeadlineCancel stops the startup budget after a terminal outcome.
-	startupDeadlineCancel context.CancelFunc
-	// startupDeadlineStarted prevents retries and waiters from resetting the budget.
-	startupDeadlineStarted bool
-	// cancel cancels the SessionTransport context after startup stop admission.
+	// cancel cancels the running Execute when the transport fails.
 	cancel context.CancelFunc
-	// startupPhase is the startup lifecycle phase; bcast guards it together
-	// with startupErr and startupStage below.
-	startupPhase transportStartupPhase
-	// ready closes when the child bus and base controllers become ready.
+	// phase is the lifecycle phase; bcast guards it together with err and
+	// stage below.
+	phase transportPhase
+	// ready closes when the child bus and local controllers become ready.
 	ready chan struct{}
-	// startupErr is the terminal startup error, including timeout.
-	startupErr error
-	// startupStage records the last startup stage entered.
-	startupStage string
-	// startupRetryable keeps per-attempt failures private to the retrying caller.
-	startupRetryable bool
+	// err is why the transport failed.
+	err error
+	// stage records the last startup stage entered.
+	stage string
+	// retryable keeps per-attempt failures private to the retrying caller.
+	retryable bool
 }
 
-// transportStartupPhase is one coherent startup lifecycle state for a
-// SessionTransport.
-type transportStartupPhase uint8
+// transportPhase is one lifecycle state of a SessionTransport.
+type transportPhase uint8
 
 const (
-	// startupPhaseIdle is the state before the first Execute attempt enters
-	// its readiness phase.
-	startupPhaseIdle transportStartupPhase = iota
-	// startupPhaseStarting means startup controllers are still coming up.
-	startupPhaseStarting
-	// startupPhaseReady means every startup controller is running; terminal.
-	startupPhaseReady
-	// startupPhaseStopped means an admitted timeout or explicit stop owns the
-	// terminal error; retries are refused.
-	startupPhaseStopped
-	// startupPhaseFailed records a per-attempt failure a retrying caller may
-	// reset by re-entering Execute.
-	startupPhaseFailed
+	// The zero phase is the state before the first Execute attempt.
+	_ transportPhase = iota
+	// phaseStarting means the local controllers are still coming up.
+	phaseStarting
+	// phaseReady means the child bus and local controllers are running.
+	phaseReady
+	// phaseFailed means the transport cannot run again; err says why.
+	phaseFailed
 )
-
-// startupTerminal reports whether the phase ends startup with a stable
-// outcome: ready, an admitted stop, or a failure no retry will clear.
-func (p transportStartupPhase) startupTerminal() bool {
-	return p == startupPhaseReady || p == startupPhaseStopped || p == startupPhaseFailed
-}
 
 // SessionTransportOption configures child-bus directive routing and startup.
 type SessionTransportOption func(*SessionTransport)
 
-const defaultSessionTransportStartupTimeout = 2 * time.Minute
+// LocalTransportFunc starts a process-local transport on the session bus b
+// under peerID. It returns the controller owning the transport's links, or nil
+// when it exposes none, and a release func that detaches it.
+type LocalTransportFunc func(ctx context.Context, le *logrus.Entry, b bus.Bus, peerID peer.ID) (*transport_controller.Controller, func(), error)
 
-// WithStartupTimeout bounds the transport startup readiness phase.
-func WithStartupTimeout(timeout time.Duration) SessionTransportOption {
+// WithLocalTransport attaches a process-local transport before readiness.
+func WithLocalTransport(start LocalTransportFunc) SessionTransportOption {
 	return func(t *SessionTransport) {
-		if timeout > 0 {
-			t.startupTimeout = timeout
-		}
+		t.startLocalTransport = start
 	}
 }
 
@@ -127,12 +107,12 @@ func WithBridgeDirectiveFilter(filter bus_bridge.FilterFn) SessionTransportOptio
 	}
 }
 
-// WithStartupRetry enables retrying startup semantics. Execute attempts leave
-// transient failures to the retrying caller, while AwaitReady reports only the
-// transport's admitted terminal outcome.
+// WithStartupRetry enables retrying startup semantics. A failed Execute
+// attempt stays private to the retrying caller, and Execute returns nil once
+// the transport fails so the caller stops retrying.
 func WithStartupRetry() SessionTransportOption {
 	return func(t *SessionTransport) {
-		t.startupRetryable = true
+		t.retryable = true
 	}
 }
 
@@ -157,14 +137,13 @@ func NewSessionTransport(
 		return nil, err
 	}
 	t := &SessionTransport{
-		le:             le.WithField("transport-peer", pid.String()[:8]),
-		parentBus:      parentBus,
-		sessionKey:     sessionKey,
-		peerID:         pid,
-		signalingURL:   signalingURL,
-		signingEnvPfx:  signingEnvPfx,
-		startupTimeout: defaultSessionTransportStartupTimeout,
-		ready:          make(chan struct{}),
+		le:            le.WithField("transport-peer", pid.String()[:8]),
+		parentBus:     parentBus,
+		sessionKey:    sessionKey,
+		peerID:        pid,
+		signalingURL:  signalingURL,
+		signingEnvPfx: signingEnvPfx,
+		ready:         make(chan struct{}),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -229,261 +208,147 @@ func (t *SessionTransport) GetLinkSnapshotsWithWait() ([]transport_controller.Li
 	return links, waitChs
 }
 
-// Ready returns a channel that closes when the child bus and base controllers
-// become ready.
+// Ready returns a channel that closes when the child bus and local
+// controllers become ready. Signaling connects in the background and does not
+// delay readiness.
 func (t *SessionTransport) Ready() <-chan struct{} {
 	return t.ready
+}
+
+// Err returns why the transport failed, or nil while it can still run.
+func (t *SessionTransport) Err() error {
+	var err error
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		err = t.err
+	})
+	return err
 }
 
 // GetStartupStage returns the last startup stage entered by Execute.
 func (t *SessionTransport) GetStartupStage() string {
 	var stage string
 	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		stage = t.startupStage
+		stage = t.stage
 	})
 	return stage
 }
 
+// setStartupStage records the startup stage Execute entered.
 func (t *SessionTransport) setStartupStage(stage string) {
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupStage == stage {
+		if t.stage == stage {
 			return
 		}
-		t.startupStage = stage
+		t.stage = stage
 		broadcast()
 	})
 }
 
-func (t *SessionTransport) ensureStartupDeadline(ctx context.Context) {
-	var deadlineCtx context.Context
-	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if t.startupDeadlineStarted {
-			return
-		}
-		// #nosec G118 -- startupDeadlineCancel is invoked on terminal outcomes (see lines below).
-		deadlineCtx, t.startupDeadlineCancel = context.WithTimeout(
-			context.WithoutCancel(ctx),
-			t.startupTimeout,
-		)
-		t.startupDeadlineCtx = deadlineCtx
-		t.startupDeadlineStarted = true
-	})
-	if deadlineCtx == nil {
-		return
-	}
-	go func() {
-		<-deadlineCtx.Done()
-		if deadlineCtx.Err() == context.DeadlineExceeded {
-			_ = t.admitStartupTimeout()
-		}
-	}()
-}
-
-func (t *SessionTransport) cancelStartupDeadline() {
-	var cancel context.CancelFunc
-	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		cancel = t.startupDeadlineCancel
-		t.startupDeadlineCancel = nil
-	})
-	if cancel != nil {
-		cancel()
-	}
-}
-
-// AwaitReady blocks until the transport's child bus and base controllers are
-// started, startup fails, the startup budget expires, or ctx is canceled.
+// AwaitReady blocks until the child bus and local controllers are running,
+// the transport fails, or ctx is canceled.
 func (t *SessionTransport) AwaitReady(ctx context.Context) error {
-	return t.awaitReady(ctx, nil)
-}
-
-func (t *SessionTransport) awaitReady(ctx context.Context, beforeWait func()) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	t.ensureStartupDeadline(ctx)
-
 	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
 		var (
-			phase        transportStartupPhase
-			startupErr   error
-			startupStage string
-			waitCh       <-chan struct{}
-			deadlineCtx  context.Context
-			deadlineCh   <-chan struct{}
+			phase  transportPhase
+			err    error
+			stage  string
+			waitCh <-chan struct{}
 		)
 		t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			phase = t.startupPhase
-			startupErr = t.startupErr
-			startupStage = t.startupStage
-			if phase == startupPhaseStarting || phase == startupPhaseIdle {
-				waitCh = getWaitCh()
-				deadlineCtx = t.startupDeadlineCtx
-				if deadlineCtx != nil {
-					deadlineCh = deadlineCtx.Done()
-				}
-			}
+			phase, err, stage = t.phase, t.err, t.stage
+			waitCh = getWaitCh()
 		})
-		if phase == startupPhaseReady {
+		switch phase {
+		case phaseReady:
 			return nil
-		}
-		if startupErr != nil {
-			if phase == startupPhaseStopped {
-				return startupErr
-			}
-			return errors.Wrapf(startupErr, "session transport failed to start at %s", startupStage)
-		}
-		if beforeWait != nil {
-			beforeWait()
+		case phaseFailed:
+			return errors.Wrapf(err, "session transport failed at %s", stage)
 		}
 
-		if deadlineCh != nil {
-			select {
-			case <-deadlineCh:
-				if deadlineCtx.Err() != context.DeadlineExceeded {
-					if err := ctx.Err(); err != nil {
-						return err
-					}
-					continue
-				}
-				if err := t.admitStartupTimeout(); err != nil {
-					return err
-				}
-				continue
-			default:
-			}
-		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-deadlineCh:
-			if deadlineCtx == nil || deadlineCtx.Err() != context.DeadlineExceeded {
-				if err := ctx.Err(); err != nil {
-					return err
-				}
-				continue
-			}
-			if err := t.admitStartupTimeout(); err != nil {
-				return err
-			}
 		case <-waitCh:
 		}
 	}
 }
 
-func (t *SessionTransport) admitStartupTimeout() error {
-	var (
-		err    error
-		cancel context.CancelFunc
-	)
+// fail ends the transport with err and cancels the running Execute. Only the
+// first failure is kept.
+func (t *SessionTransport) fail(err error) {
+	var cancel context.CancelFunc
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupPhase == startupPhaseReady {
+		if t.phase == phaseFailed {
 			return
 		}
-		if t.startupErr != nil {
-			err = t.startupErr
-			if t.startupPhase != startupPhaseStopped {
-				err = errors.Wrapf(err, "session transport failed to start at %s", t.startupStage)
-			}
-			return
-		}
-		err = errors.Errorf(
-			"session transport did not become ready, stalled at %s",
-			t.startupStage,
-		)
-		t.startupPhase = startupPhaseStopped
-		t.startupErr = err
+		t.phase = phaseFailed
+		t.err = err
 		cancel = t.cancel
 		broadcast()
 	})
 	if cancel != nil {
 		cancel()
 	}
-	return err
 }
 
-func (t *SessionTransport) publishStartupError(err error) bool {
-	var (
-		cancel    context.CancelFunc
-		published bool
-	)
-	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupPhase.startupTerminal() {
-			return
-		}
-		t.startupErr = err
-		t.startupPhase = startupPhaseFailed
-		published = true
-		cancel = t.startupDeadlineCancel
-		t.startupDeadlineCancel = nil
-		broadcast()
+// failStartup fails a transport that has not become ready.
+func (t *SessionTransport) failStartup(err error) {
+	var ready bool
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		ready = t.phase == phaseReady
 	})
-	if cancel != nil {
-		cancel()
+	if !ready {
+		t.fail(err)
 	}
-	return published
 }
 
-func (t *SessionTransport) publishStartupReady() {
-	var cancel context.CancelFunc
+// publishReady marks startup complete unless the transport already failed.
+func (t *SessionTransport) publishReady() {
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupPhase.startupTerminal() {
+		if t.phase != phaseStarting {
 			return
 		}
-		t.startupPhase = startupPhaseReady
+		t.phase = phaseReady
 		close(t.ready)
-		cancel = t.startupDeadlineCancel
-		t.startupDeadlineCancel = nil
 		broadcast()
 	})
-	if cancel != nil {
-		cancel()
-	}
 }
 
 // Execute creates the child bus with bifrost transport controllers and
-// blocks until ctx is canceled.
+// blocks until ctx is canceled or the transport fails.
 func (t *SessionTransport) Execute(ctx context.Context) (err error) {
-	// Initialize cancellation and publish startup state.
+	// Register cancellation and enter startup unless the transport failed.
 	ctx, cancel := context.WithCancel(ctx)
-	t.ensureStartupDeadline(ctx)
-	var stopped bool
+	defer cancel()
+	var failed error
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if t.phase == phaseFailed {
+			failed = t.err
+			return
+		}
 		t.cancel = cancel
-		stopped = t.startupPhase == startupPhaseStopped
-		if !stopped && t.startupPhase != startupPhaseReady {
-			t.startupErr = nil
-			t.startupStage = ""
-			t.startupPhase = startupPhaseStarting
+		if t.phase != phaseReady {
+			t.phase = phaseStarting
+			t.stage = ""
 		}
 		broadcast()
 	})
-	if stopped {
-		cancel()
-		return context.Canceled
+	if failed != nil {
+		return t.exitFailed(failed)
 	}
-	defer cancel()
+
+	// Report a failure instead of the cancellation it caused.
 	defer func() {
-		if errors.Is(err, context.Canceled) {
-			t.cancelStartupDeadline()
+		if failed := t.Err(); failed != nil {
+			err = t.exitFailed(failed)
+			return
+		}
+		if !t.retryable && err != nil {
+			t.failStartup(err)
 		}
 	}()
 
 	le := t.le
-	if !t.startupRetryable {
-		defer func() {
-			t.publishStartupError(err)
-		}()
-	} else {
-		defer func() {
-			if errors.Is(err, errSignalTicketUnauthorized) && t.publishStartupError(err) {
-				err = nil
-			}
-		}()
-	}
 
 	// Create the child bus and its controller infrastructure.
 	t.setStartupStage("child-bus")
@@ -583,15 +448,17 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	// Attach process-local packet routes before announcing transport readiness.
 	if t.startLocalTransport != nil {
 		t.setStartupStage("local-transport")
-		localCtrl, releaseLocal, err := t.startLocalTransport(ctx, b)
+		localCtrl, releaseLocal, err := t.startLocalTransport(ctx, le, b, t.peerID)
 		if err != nil {
 			return err
 		}
 		defer releaseLocal()
-		t.bcast.HoldLock(func(notify func(), _ func() <-chan struct{}) {
-			t.linkControllers = append(t.linkControllers, localCtrl)
-			notify()
-		})
+		if localCtrl != nil {
+			t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				t.linkControllers = append(t.linkControllers, localCtrl)
+				broadcast()
+			})
+		}
 	}
 
 	t.setStartupStage("webrtc-controllers")
@@ -616,8 +483,17 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	defer releaseLookup()
 
 	t.setStartupStage("ready")
-	t.publishStartupReady()
+	t.publishReady()
 	le.Debug("session transport started")
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// exitFailed returns the Execute result for a failed transport: nil for a
+// retrying caller, which then stops, and the failure otherwise.
+func (t *SessionTransport) exitFailed(err error) error {
+	if t.retryable {
+		return nil
+	}
+	return err
 }

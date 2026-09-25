@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/pkg/errors"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/net/transport/webrtc"
 	"github.com/s4wave/spacewave/net/transport/websocket"
@@ -33,23 +34,21 @@ func (t *SessionTransport) startWebRTCControllers(
 		return nil, nil, nil
 	}
 
-	// Keep the initial ticket request synchronous so startup reports its
-	// existing signaling error at the webrtc-controllers stage.
-	ticket, err := acquireSignalTicket(ctx, t.signalingURL, t.sessionKey, t.peerID, t.signingEnvPfx)
-	if err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, nil, ctxErr
-		}
-		return nil, nil, err
-	}
-	if _, err := signalWebSocketURL(t.signalingURL, ticket); err != nil {
+	// Reject a malformed endpoint before starting the signaling controller.
+	if _, err := signalWebSocketURL(t.signalingURL, ""); err != nil {
 		return nil, nil, err
 	}
 
 	// Refresh the short-lived ticket before each signaling connection attempt.
+	// Signaling connects in the background: an unreachable endpoint retries
+	// without delaying readiness, and a rejected session identity fails the
+	// transport.
 	le.Debug("connecting to signaling")
 	sigCtrl := newWSSignalingCtrl(le, b, func(ctx context.Context) (string, error) {
 		ticket, err := acquireSignalTicket(ctx, t.signalingURL, t.sessionKey, t.peerID, t.signingEnvPfx)
+		if errors.Is(err, errSignalTicketUnauthorized) {
+			t.fail(err)
+		}
 		if err != nil {
 			return "", err
 		}
