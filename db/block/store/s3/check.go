@@ -5,7 +5,6 @@ package block_store_s3
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"strings"
 
@@ -18,6 +17,9 @@ const checkProbeDir = ".spacewave-check/"
 
 // checkProbeData is the body of the probe object the check writes.
 var checkProbeData = []byte("spacewave storage check\n")
+
+// checkProbeReadOffset is where the check's ranged read of the probe starts.
+const checkProbeReadOffset = 10
 
 // CheckBucket writes, reads back, and deletes a probe object under
 // objectPrefix, and classifies the first failure. Every step a block store
@@ -33,17 +35,14 @@ func CheckBucket(ctx context.Context, client *Client, bucket, objectPrefix strin
 		return newCheckFailure("write", err)
 	}
 
-	// Read the probe object back and compare its body.
-	body, err := client.GetObject(ctx, bucket, key)
+	// Read the probe object's tail back with a ranged read, as the block store
+	// reads packfiles, and compare it.
+	want := checkProbeData[checkProbeReadOffset:]
+	data, err := client.GetObjectRange(ctx, bucket, key, checkProbeReadOffset, len(want))
 	if err != nil {
 		return newCheckFailure("read", err)
 	}
-	data, err := io.ReadAll(body)
-	_ = body.Close()
-	if err != nil {
-		return newCheckFailure("read", err)
-	}
-	if !bytes.Equal(data, checkProbeData) {
+	if !bytes.Equal(data, want) {
 		return &CheckResult{
 			Outcome: CheckOutcome_CHECK_OUTCOME_FAILED,
 			Detail:  "read: the bucket returned different bytes than were written",
