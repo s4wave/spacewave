@@ -497,7 +497,7 @@ type SRPCWorldStateResourceServiceClient interface {
 	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
 	// OpenNestedWorld opens the immutable nested World published by an outer object.
 	OpenNestedWorld(ctx context.Context, in *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
-	// OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+	// OpenOuterWorld grants the enclosing Space Engine under the same authority.
 	OpenOuterWorld(ctx context.Context, in *OpenOuterWorldRequest) (*OpenOuterWorldResponse, error)
 
 	CreateObject(ctx context.Context, in *CreateObjectRequest) (*CreateObjectResponse, error)
@@ -829,7 +829,7 @@ type SRPCWorldStateResourceServiceServer interface {
 	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
 	// OpenNestedWorld opens the immutable nested World published by an outer object.
 	OpenNestedWorld(context.Context, *OpenNestedWorldRequest) (*OpenNestedWorldResponse, error)
-	// OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+	// OpenOuterWorld grants the enclosing Space Engine under the same authority.
 	OpenOuterWorld(context.Context, *OpenOuterWorldRequest) (*OpenOuterWorldResponse, error)
 
 	CreateObject(context.Context, *CreateObjectRequest) (*CreateObjectResponse, error)

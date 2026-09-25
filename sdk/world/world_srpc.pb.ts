@@ -670,7 +670,7 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+     * OpenOuterWorld grants the enclosing Space Engine under the same authority.
      *
      * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
      */
@@ -906,7 +906,7 @@ export interface WorldStateResourceService {
   ): Promise<OpenNestedWorldResponse>
 
   /**
-   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   * OpenOuterWorld grants the enclosing Space Engine under the same authority.
    *
    * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
    */
@@ -1133,7 +1133,7 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<OpenNestedWorldResponse>
 
   /**
-   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   * OpenOuterWorld grants the enclosing Space Engine under the same authority.
    *
    * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
    */
@@ -1474,7 +1474,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
   }
 
   /**
-   * OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+   * OpenOuterWorld grants the enclosing Space Engine under the same authority.
    *
    * @generated from rpc s4wave.world.WorldStateResourceService.OpenOuterWorld
    */

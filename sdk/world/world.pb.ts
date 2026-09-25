@@ -533,13 +533,13 @@ export const OpenOuterWorldRequest: MessageType<OpenOuterWorldRequest> =
   )
 
 /**
- * OpenOuterWorldResponse grants an independently retained read-only outer World state.
+ * OpenOuterWorldResponse grants the enclosing Space Engine, retained independently.
  *
  * @generated from message s4wave.world.OpenOuterWorldResponse
  */
 export interface OpenOuterWorldResponse {
   /**
-   * ResourceId identifies the outer World state resource.
+   * ResourceId identifies the enclosing Space Engine resource.
    *
    * @generated from field: uint32 resource_id = 1;
    */

@@ -132,9 +132,9 @@ message OpenNestedWorldResponse {
 message OpenOuterWorldRequest {
 }
 
-// OpenOuterWorldResponse grants an independently retained read-only outer World state.
+// OpenOuterWorldResponse grants the enclosing Space Engine, retained independently.
 message OpenOuterWorldResponse {
-  // ResourceId identifies the outer World state resource.
+  // ResourceId identifies the enclosing Space Engine resource.
   uint32 resource_id = 1;
 }
 
@@ -163,7 +163,7 @@ service WorldStateResourceService {
   // OpenNestedWorld opens the immutable nested World published by an outer object.
   rpc OpenNestedWorld(OpenNestedWorldRequest) returns (OpenNestedWorldResponse);
 
-  // OpenOuterWorld opens a separately retained read-only state under the enclosing Space authority.
+  // OpenOuterWorld grants the enclosing Space Engine under the same authority.
   rpc OpenOuterWorld(OpenOuterWorldRequest) returns (OpenOuterWorldResponse);
 
   rpc CreateObject(CreateObjectRequest) returns (CreateObjectResponse);

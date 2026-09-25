@@ -4,21 +4,22 @@ package resource_world_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
-	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
-// TestOpenOuterWorld keeps the enclosing Space capability independent of its
-// nested snapshot and never exposes another engine or a writable service.
+// TestOpenOuterWorld grants the enclosing Space Engine independently of its
+// nested snapshot, confines it to that Space, and applies World ops there.
 func TestOpenOuterWorld(t *testing.T) {
 	ctx := t.Context()
 	tb, releaseTestbed := setupWorldTestbed(ctx, t)
@@ -110,78 +111,83 @@ func TestOpenOuterWorld(t *testing.T) {
 			nested.Release()
 			t.Fatal(err)
 		}
-		if !outer.GetReadOnly() {
-			t.Fatal("outer World is writable")
-		}
-		serviceClient, err := outer.GetResourceRef().GetClient()
+		outerWorld, err := sdk_world_engine.NewSDKEngine(client, outer.GetResourceRef())
 		if err != nil {
 			t.Fatal(err)
 		}
-		service := s4wave_world.NewSRPCWorldStateResourceServiceClient(serviceClient)
-		// The read-only outer handle must not mount the engine's typed-object service.
-		typed := s4wave_world.NewSRPCTypedObjectResourceServiceClient(serviceClient)
-		if _, err := typed.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: key}); err == nil {
-			t.Fatal("outer World exposed typed-object access")
+		requireObject(ctx, t, outerWorld, key, true)
+		requireObject(ctx, t, outerWorld, otherKey, false)
+
+		// World ops applied through the outer Engine commit in the enclosing Space.
+		layoutKey := fmt.Sprintf("space/layout-%v", releaseNestedFirst)
+		err = world.ExecTransaction(ctx, outerWorld, true, func(ctx context.Context, state world.WorldState) error {
+			_, _, err := space_world_ops.InitObjectLayout(ctx, state, "", layoutKey, time.Now())
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
 		}
-		if _, err := service.CreateObject(ctx, &s4wave_world.CreateObjectRequest{ObjectKey: "forbidden"}); err == nil {
-			t.Fatal("outer World accepted a write")
+		requireObject(ctx, t, storage, layoutKey, true)
+		requireObject(ctx, t, other, layoutKey, false)
+
+		// A transaction on the outer Engine is top-level, and its nested World
+		// grants the same Space again.
+		outerTx, err := outer.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if _, err := service.SetGraphQuad(ctx, &s4wave_world.SetGraphQuadRequest{Quad: &quad.Quad{Subject: "forbidden", Predicate: "test", Obj: "value"}}); err == nil {
-			t.Fatal("outer World accepted graph mutation")
+		if _, err := outerTx.OpenOuterWorld(ctx); err == nil {
+			outerTx.Release()
+			t.Fatal("reopened outer World from a top-level transaction")
 		}
-		obj, found, err := outer.GetObject(ctx, key)
-		world.ReleaseObjectState(obj)
-		if err != nil || !found {
-			t.Fatalf("outer World lost enclosing Space object: found %v, err %v", found, err)
-		}
-		obj, found, err = outer.GetObject(ctx, otherKey)
-		world.ReleaseObjectState(obj)
-		if err != nil || found {
-			t.Fatalf("outer World accessed another Space: found %v, err %v", found, err)
-		}
-		// The returned outer state can open a nested World without granting
-		// OpenOuterWorld directly on that non-nested resource.
-		if _, err := outer.OpenOuterWorld(ctx); err == nil {
-			t.Fatal("reopened outer World from non-nested read-only state")
-		}
-		recursiveNested, err := outer.OpenNestedWorld(ctx, key)
+		recursiveNested, err := outerTx.OpenNestedWorld(ctx, key)
+		outerTx.Release()
 		if err != nil {
 			t.Fatal(err)
 		}
 		recursiveOuter, err := recursiveNested.OpenOuterWorld(ctx)
+		recursiveNested.Release()
 		if err != nil {
-			recursiveNested.Release()
 			t.Fatal(err)
 		}
-		recursiveNested.Release()
-		obj, found, err = recursiveOuter.GetObject(ctx, key)
-		world.ReleaseObjectState(obj)
-		if err != nil || !found {
-			t.Fatalf("recursive outer World after nested release: found %v, err %v", found, err)
+		recursiveWorld, err := sdk_world_engine.NewSDKEngine(client, recursiveOuter.GetResourceRef())
+		if err != nil {
+			t.Fatal(err)
 		}
-		obj, found, err = recursiveOuter.GetObject(ctx, otherKey)
-		world.ReleaseObjectState(obj)
-		if err != nil || found {
-			t.Fatalf("recursive outer World accessed another Space: found %v, err %v", found, err)
-		}
+		requireObject(ctx, t, recursiveWorld, layoutKey, true)
+		requireObject(ctx, t, recursiveWorld, otherKey, false)
 		recursiveOuter.Release()
 
 		if releaseNestedFirst {
 			nested.Release()
-			obj, found, err = outer.GetObject(ctx, key)
-			world.ReleaseObjectState(obj)
-			if err != nil || !found {
-				t.Fatalf("outer World after nested release: found %v, err %v", found, err)
-			}
+			requireObject(ctx, t, outerWorld, key, true)
 			outer.Release()
 		} else {
 			outer.Release()
-			obj, found, err = nested.GetObject(ctx, "inner")
+			obj, found, err := nested.GetObject(ctx, "inner")
 			world.ReleaseObjectState(obj)
 			if err != nil || !found {
 				t.Fatalf("nested World after outer release: found %v, err %v", found, err)
 			}
 			nested.Release()
 		}
+	}
+}
+
+// requireObject fails unless the current state of eng has key exactly when want.
+func requireObject(ctx context.Context, t *testing.T, eng world.Engine, key string, want bool) {
+	t.Helper()
+	var found bool
+	err := world.ExecTransaction(ctx, eng, false, func(ctx context.Context, state world.WorldState) error {
+		obj, ok, err := state.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
+		found = ok
+		return err
+	})
+	if err != nil {
+		t.Fatalf("lookup %s: %v", key, err)
+	}
+	if found != want {
+		t.Fatalf("lookup %s: found %v, want %v", key, found, want)
 	}
 }
