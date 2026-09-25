@@ -220,6 +220,7 @@ export function Pricing() {
             <FeatureList features={CLOUD_FEATURES} />
             <div className="flex-1" />
             <button
+              type="button"
               onClick={goToLogin}
               className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 mt-8 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
             >
@@ -243,6 +244,7 @@ export function Pricing() {
             <FeatureList features={FREE_FEATURES} />
             <div className="flex-1" />
             <button
+              type="button"
               onClick={goToQuickstart}
               className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 mt-8 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
             >

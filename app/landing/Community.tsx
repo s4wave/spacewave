@@ -167,6 +167,7 @@ export function Community() {
       {/* Back button */}
       <div className="px-4 pt-6 @lg:px-8">
         <button
+          type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
@@ -197,6 +198,7 @@ export function Community() {
             View on GitHub
           </ExternalLink>
           <button
+            type="button"
             onClick={handleEmailSupport}
             className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition"
           >
@@ -276,6 +278,7 @@ export function Community() {
         {devCount > 0 && (
           <div className="mb-10 flex justify-center">
             <button
+              type="button"
               onClick={() => setShowDev((v) => !v)}
               className={cn(
                 'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-all duration-150',

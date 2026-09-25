@@ -32,6 +32,7 @@ export function BlogIndex({ posts }: BlogIndexProps) {
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
       {/* Back to home */}
       <button
+        type="button"
         onClick={goHome}
         className="text-foreground-alt hover:text-brand absolute top-4 left-4 z-20 flex items-center gap-2 text-sm transition-colors"
       >

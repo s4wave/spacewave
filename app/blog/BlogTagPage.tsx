@@ -23,6 +23,7 @@ export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
     <div className="bg-background-landing @container flex w-full flex-1 flex-col overflow-y-auto">
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-6 @lg:px-8">
         <button
+          type="button"
           onClick={navigateBlog}
           className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
         >
