@@ -5,6 +5,9 @@ version: '2'
 run:
   concurrency: 4
   modules-download-mode: vendor
+  # Agents lint concurrently on one machine. Wait for the shared lock instead
+  # of failing the run, such as a commit hook, when another lint holds it.
+  allow-serial-runners: true
 
 linters:
   enable:
