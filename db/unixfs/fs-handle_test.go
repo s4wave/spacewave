@@ -34,8 +34,9 @@ func (f *fakeOps) MoveFrom(ctx context.Context, destName string, src FSCursorOps
 
 // fakeCursor serves one shared ops object.
 type fakeCursor struct {
-	mtx sync.Mutex
-	ops *fakeOps
+	mtx      sync.Mutex
+	ops      *fakeOps
+	released atomic.Bool
 }
 
 // CheckReleased reports the cursor as live.
@@ -63,8 +64,8 @@ func (c *fakeCursor) setOps(ops *fakeOps) {
 	c.ops = ops
 }
 
-// Release is a no-op.
-func (c *fakeCursor) Release() {}
+// Release records that the cursor was released.
+func (c *fakeCursor) Release() { c.released.Store(true) }
 
 // TestRenameResolvesReleasedDestOps tests that Rename re-resolves the
 // destination operations when they report released, instead of proceeding
@@ -115,5 +116,40 @@ func TestRenameResolvesReleasedDestOps(t *testing.T) {
 	}
 	if !errors.Is(err, unixfs_errors.ErrCrossFsRename) {
 		t.Fatalf("unexpected rename error: %v", err)
+	}
+}
+
+// TestReleaseAfterChildRelease tests that released descendant inodes do not
+// keep their ancestors alive: releasing a deep child releases the
+// intermediate inodes, and releasing the root handle then releases the root
+// cursor.
+func TestReleaseAfterChildRelease(t *testing.T) {
+	cursor := &fakeCursor{ops: &fakeOps{}}
+	rootHandle, err := NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	root := rootHandle.i()
+	mid := newFsInode(root, "a", nil)
+	root.children = []*fsInode{mid}
+	leaf := newFsInode(mid, "b", nil)
+	mid.children = []*fsInode{leaf}
+	leafHandle, _ := leaf.addReferenceLocked(false)
+
+	leafHandle.Release()
+	if !mid.checkReleased() {
+		t.Fatal("intermediate inode survived its last child")
+	}
+	if root.checkReleased() {
+		t.Fatal("root inode released while its handle is live")
+	}
+
+	rootHandle.Release()
+	if !root.checkReleased() {
+		t.Fatal("root inode survived its last handle")
+	}
+	if !cursor.released.Load() {
+		t.Fatal("root cursor was not released")
 	}
 }

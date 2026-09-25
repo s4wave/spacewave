@@ -372,17 +372,36 @@ func (i *fsInode) removeRefLocked(h *FSHandle) {
 	}
 }
 
-// releaseIfNecessaryLocked releases this inode if it has no refs and no children.
+// releaseIfNecessaryLocked releases this inode if it has no refs and no
+// non-released children, pruning released children from the list.
 // returns if the node was released
 func (i *fsInode) releaseIfNecessaryLocked() bool {
 	if i.checkReleased() {
 		return true
 	}
+	i.children = slices.DeleteFunc(i.children, (*fsInode).checkReleased)
 	if len(i.refs) != 0 || len(i.children) != 0 {
 		return false
 	}
 	i.releaseLocked(nil)
 	return true
+}
+
+// releaseParentsIfNecessary walks up from a released inode, releasing each
+// parent left with no refs and no non-released children.
+// must be called with mtx UNLOCKED on i and all parents
+func (i *fsInode) releaseParentsIfNecessary() {
+	for node := i; node.checkReleased() && node.parent != nil; node = node.parent {
+		rel, err := node.parent.rmtx.Lock(context.Background(), true)
+		if err != nil {
+			return
+		}
+		released := node.parent.releaseIfNecessaryLocked()
+		rel()
+		if !released {
+			return
+		}
+	}
 }
 
 // releaseLocked marks the fsInode as released.
