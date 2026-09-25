@@ -11,7 +11,7 @@ export function AppLogo(props: AppLogoProps) {
   return (
     <img
       {...imgProps}
-      className={cn('pointer-events-none h-auto p-3.5', className)}
+      className={cn('pointer-events-none h-auto p-app-logo-inset', className)}
       style={
         topbarHeight === undefined
           ? undefined

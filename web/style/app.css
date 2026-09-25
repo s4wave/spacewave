@@ -1472,7 +1472,6 @@
   --color-zinc-700: #3f3f46;
   --color-zinc-800: #27272a;
   --color-zinc-950: #09090b;
-  --color-metadata: var(--color-text-muted);
   --color-devtools-warning: var(--color-warning);
   --color-devtools-muted: var(--color-text-muted);
   --color-input: var(--color-background-card);
@@ -1485,8 +1484,6 @@
   --color-secondary-foreground: var(--color-foreground-alt);
   --color-editor-foreground: var(--color-text-primary);
   --color-popover-foreground: var(--color-popover-text);
-  --color-topbar-menu: var(--color-text-menu);
-  --color-ui: var(--color-text-primary);
   --color-danger: var(--color-error);
   --color-frame-overlay: var(--color-object-viewer-overlay);
   --color-partial: var(--color-warning);
@@ -1769,6 +1766,7 @@
   --bar-height: 22px;
   --spacing-bar: 22px;
   --spacing-shell-header: 28px;
+  --spacing-app-logo-inset: 3.5px;
   --color-bar: oklch(0.1776 0 0);
   --color-bar-font: oklch(1 0 0);
   --color-bar-border-top: oklch(1 0 0 / 0.1);
