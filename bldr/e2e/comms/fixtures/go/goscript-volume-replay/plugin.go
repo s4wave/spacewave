@@ -56,7 +56,8 @@ func run() {
 		return
 	}
 
-	// Run the mode: "check", or "replay:<trace>/<target>".
+	// Run the mode: "check", "replay:<trace>/<target>", or
+	// "reliability:<mode>:<name>[:<arg>]".
 	ctx := context.Background()
 	mode := readMode()
 	var report any
@@ -66,6 +67,8 @@ func run() {
 		report, err = check(ctx)
 	case strings.HasPrefix(mode, "replay:"):
 		report, err = replay(ctx, strings.TrimPrefix(mode, "replay:"))
+	case strings.HasPrefix(mode, "reliability:"):
+		report, err = reliability(ctx, strings.TrimPrefix(mode, "reliability:"))
 	default:
 		err = errors.Errorf("unknown mode %q", mode)
 	}

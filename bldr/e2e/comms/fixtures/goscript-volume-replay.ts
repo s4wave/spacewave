@@ -14,20 +14,24 @@ declare global {
   }
 }
 
-const documentId = 'goscript-volume-replay-doc'
-
 // run runs the GoScript volume worker in the mode named by the page's "mode"
-// query parameter and publishes its report.
+// query parameter and publishes its report. An "instance" query parameter
+// gives the page its own plugin and document identity, so pages of one
+// profile run separate workers.
 async function run() {
   const log = document.getElementById('log')!
   let releaseLock: (() => void) | undefined
   try {
-    const mode = new URLSearchParams(location.search).get('mode') ?? 'check'
+    const params = new URLSearchParams(location.search)
+    const mode = params.get('mode') ?? 'check'
+    const instance = params.get('instance')
+    const pluginId = 'goscript-volume-replay' + (instance ? '-' + instance : '')
+    const documentId = pluginId + '-doc'
     const detect = await detectWorkerCommsConfig()
     releaseLock = await holdWebDocumentLock(`bldr-doc-${documentId}`)
     const result = await runGoScriptWorker(detect, {
       script: 'goscript-volume-replay-plugin.js',
-      pluginId: 'goscript-volume-replay',
+      pluginId,
       documentId,
       mode,
       doneType: 'volume-done',
@@ -37,10 +41,9 @@ async function run() {
     const pass = result.workerReady && !result.failureReason
     window.__results = {
       pass,
-      detail:
-        pass ? 'done' : (
-          `workerReady=${result.workerReady}; failureReason=${result.failureReason ?? ''}`
-        ),
+      detail: pass
+        ? 'done'
+        : `workerReady=${result.workerReady}; failureReason=${result.failureReason ?? ''}`,
       report: String(result.done.report),
     }
   } catch (err) {
