@@ -84,19 +84,6 @@ func (e *PackReader) SetTransportWindowSmoothing(smoothing float64) {
 	})
 }
 
-// SetSparseReadTuning configures first-touch sparse payload range planning.
-func (e *PackReader) SetSparseReadTuning(enabled bool, coldWindow int, localityDistance int64) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		e.sparseReads = enabled
-		if coldWindow > 0 {
-			e.sparseColdWindow = coldWindow
-		}
-		if localityDistance > 0 {
-			e.sparseLocalityDistance = localityDistance
-		}
-	})
-}
-
 // SetIndexPromotionEnabled sets whether resident spans auto-promote covered blocks.
 func (e *PackReader) SetIndexPromotionEnabled(enabled bool) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

@@ -1,24 +1,20 @@
 package store
 
 type engineTuningOverrides struct {
-	pageSizeSet            bool
-	pageSize               int
-	minWindowSet           bool
-	minWindow              int
-	transportQuantumSet    bool
-	transportQuantum       int
-	maxWindowSet           bool
-	maxWindow              int
-	targetHzSet            bool
-	targetHz               float64
-	smoothingSet           bool
-	smoothing              float64
-	sparseReadsSet         bool
-	sparseReads            bool
-	sparseColdWindow       int
-	sparseLocalityDistance int64
-	indexPromotionSet      bool
-	indexPromotion         bool
+	pageSizeSet         bool
+	pageSize            int
+	minWindowSet        bool
+	minWindow           int
+	transportQuantumSet bool
+	transportQuantum    int
+	maxWindowSet        bool
+	maxWindow           int
+	targetHzSet         bool
+	targetHz            float64
+	smoothingSet        bool
+	smoothing           float64
+	indexPromotionSet   bool
+	indexPromotion      bool
 }
 
 func (o engineTuningOverrides) apply(e *PackReader) {
@@ -39,9 +35,6 @@ func (o engineTuningOverrides) apply(e *PackReader) {
 	}
 	if o.smoothingSet {
 		e.SetTransportWindowSmoothing(o.smoothing)
-	}
-	if o.sparseReadsSet {
-		e.SetSparseReadTuning(o.sparseReads, o.sparseColdWindow, o.sparseLocalityDistance)
 	}
 	if o.indexPromotionSet {
 		e.SetIndexPromotionEnabled(o.indexPromotion)
@@ -135,20 +128,6 @@ func (s *PackfileStore) SetTransportWindowSmoothing(smoothing float64) {
 	}
 }
 
-// SetSparseReadTuning configures first-touch sparse range planning on all engines.
-func (s *PackfileStore) SetSparseReadTuning(enabled bool, coldWindow int, localityDistance int64) {
-	s.mtx.Lock()
-	s.tuningOverrides.sparseReadsSet = true
-	s.tuningOverrides.sparseReads = enabled
-	s.tuningOverrides.sparseColdWindow = coldWindow
-	s.tuningOverrides.sparseLocalityDistance = localityDistance
-	engines := s.snapshotEnginesLocked()
-	s.mtx.Unlock()
-	for _, e := range engines {
-		e.SetSparseReadTuning(enabled, coldWindow, localityDistance)
-	}
-}
-
 // SetIndexPromotionEnabled sets whether resident spans auto-promote covered blocks.
 func (s *PackfileStore) SetIndexPromotionEnabled(enabled bool) {
 	s.mtx.Lock()
@@ -159,12 +138,4 @@ func (s *PackfileStore) SetIndexPromotionEnabled(enabled bool) {
 	for _, e := range engines {
 		e.SetIndexPromotionEnabled(enabled)
 	}
-}
-
-func (s *PackfileStore) snapshotEnginesLocked() []*PackReader {
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, e := range s.engines {
-		engines = append(engines, e)
-	}
-	return engines
 }

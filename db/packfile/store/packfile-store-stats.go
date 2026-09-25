@@ -73,6 +73,18 @@ type PackfileStoreStats struct {
 	LastRemoteIndexBytes      int64
 }
 
+// packLookup counts the packs one lookup consulted.
+type packLookup struct {
+	// candidates is the number of packs whose bloom filter may hold the key.
+	candidates int
+	// opened is the number of candidate engines consulted.
+	opened int
+	// negative is the number of consulted engines that lacked the key.
+	negative int
+	// hit reports whether an engine held the key.
+	hit bool
+}
+
 type packLookupStats struct {
 	LookupCount        uint64
 	CandidatePacks     uint64

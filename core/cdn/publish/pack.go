@@ -255,9 +255,9 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 	return &KVFilePushMetadata{
 		BlockCount:       blockCount,
 		BloomFilter:      bloomBytes,
-		SortedKeyDigest:  identity.DigestSortedKeys(keys),
+		SortedKeyDigest:  writer.DigestSortedKeys(keys),
 		PackBytesDigest:  packHash[:],
-		PolicyTag:        identity.PolicyTag(policy),
-		ValueOrderPolicy: identity.ValueOrderIterator,
+		PolicyTag:        writer.PolicyTag(policy),
+		ValueOrderPolicy: writer.ValueOrderIterator,
 	}, nil
 }

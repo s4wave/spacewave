@@ -1,12 +1,9 @@
 package identity
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
-	"slices"
-	"strconv"
 
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
@@ -18,9 +15,6 @@ const (
 	PackIDPrefix = "pfv1_"
 	// WriterVersionV1 is the v1 kvfile writer identity namespace.
 	WriterVersionV1 = "kvfile-writer-v1"
-	// ValueOrderIterator records that physical kvfile value order follows the
-	// writer iterator order.
-	ValueOrderIterator = "iterator"
 )
 
 const packIDDigestLen = 32
@@ -41,11 +35,11 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	}
 	policyTag := result.PolicyTag
 	if policyTag == "" {
-		policyTag = PolicyTag(writer.DefaultPolicy())
+		policyTag = writer.PolicyTag(writer.DefaultPolicy())
 	}
 	valueOrder := result.ValueOrderPolicy
 	if valueOrder == "" {
-		valueOrder = ValueOrderIterator
+		valueOrder = writer.ValueOrderIterator
 	}
 	h := sha256.New()
 	writePart(h, []byte("spacewave-packfile-id-v1"))
@@ -57,33 +51,6 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 	writePart(h, result.PackBytesDigest)
 	sum := h.Sum(nil)
 	return PackIDPrefix + b58.Encode(sum), nil
-}
-
-// DigestSortedKeys digests a pack's block keys independent of physical value
-// order.
-func DigestSortedKeys(keys [][]byte) []byte {
-	sorted := make([][]byte, len(keys))
-	for i, key := range keys {
-		sorted[i] = bytes.Clone(key)
-	}
-	slices.SortFunc(sorted, bytes.Compare)
-	h := sha256.New()
-	writePart(h, []byte("spacewave-packfile-key-digest-v1"))
-	for _, key := range sorted {
-		writePart(h, key)
-	}
-	return h.Sum(nil)
-}
-
-// PolicyTag returns the canonical v1 policy tag for a pack construction policy.
-func PolicyTag(policy writer.Policy) string {
-	return "max-bytes=" + strconv.FormatInt(policy.MaxPackBytes, 10) +
-		";max-blocks=" + strconv.FormatUint(policy.MaxBlocksPerPack, 10) +
-		";bloom-expected=" + strconv.FormatUint(policy.BloomExpectedBlocks, 10) +
-		";bloom-fp=" + strconv.FormatFloat(policy.BloomFalsePositive, 'g', -1, 64) +
-		";require-bloom=" + strconv.FormatBool(policy.RequireBloomFilter) +
-		";require-count=" + strconv.FormatBool(policy.RequireBlockCount) +
-		";require-created-at=" + strconv.FormatBool(policy.RequireCreatedAt)
 }
 
 // ValidatePackID validates the v1 packfile identifier shape.

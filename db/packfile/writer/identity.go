@@ -9,9 +9,13 @@ import (
 	"strconv"
 )
 
-const valueOrderIterator = "iterator"
+// ValueOrderIterator records that physical kvfile value order follows the
+// writer iterator order.
+const ValueOrderIterator = "iterator"
 
-func digestSortedKeys(keys [][]byte) []byte {
+// DigestSortedKeys digests a pack's block keys independent of physical value
+// order.
+func DigestSortedKeys(keys [][]byte) []byte {
 	sorted := make([][]byte, len(keys))
 	for i, key := range keys {
 		sorted[i] = bytes.Clone(key)
@@ -25,7 +29,8 @@ func digestSortedKeys(keys [][]byte) []byte {
 	return h.Sum(nil)
 }
 
-func policyTag(policy Policy) string {
+// PolicyTag returns the canonical v1 policy tag for a pack construction policy.
+func PolicyTag(policy Policy) string {
 	return "max-bytes=" + strconv.FormatInt(policy.MaxPackBytes, 10) +
 		";max-blocks=" + strconv.FormatUint(policy.MaxBlocksPerPack, 10) +
 		";bloom-expected=" + strconv.FormatUint(policy.BloomExpectedBlocks, 10) +

@@ -224,6 +224,9 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
+	if err := NewIndexCache(store).Set(ctx, "pack-a", []byte("tail-a")); err != nil {
+		t.Fatal(err)
+	}
 	if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
 		{Id: "pack-b", BloomFilter: []byte("bf-b2"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 2, SizeBytes: 30, Sequence: 3},
 		{Id: "pack-c", BloomFilter: []byte("bf-c"), BloomFormatVersion: packfile.BloomFormatVersionV1, BlockCount: 3, SizeBytes: 40, Sequence: 4},
@@ -272,6 +275,13 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	}
 	if found {
 		t.Fatal("replaced pack-a still persisted")
+	}
+	_, found, err = tx.Get(ctx, indexCacheKey("pack-a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Fatal("replaced pack-a index tail still cached")
 	}
 }
 

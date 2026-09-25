@@ -388,7 +388,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		upper:      upper,
 		refGraph:   t.getRefGraph(),
 		conf:       syncConf,
-		tmpDir:     syncTmpDir(),
 		telemetry:  t.a,
 		gateBcast:  &t.a.accountBcast,
 		skipPull:   publicRemote != nil,
@@ -802,21 +801,25 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	}
 
 	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalJSON(pullData); err != nil {
+	if err := resp.UnmarshalVT(pullData); err != nil {
 		return nil, errors.Wrap(err, "unmarshal pull response")
 	}
 
-	entries := resp.GetEntries()
-	if len(entries) == 0 {
-		return nil, nil
+	replaced := make(map[string]bool)
+	for _, event := range resp.GetReplacementEvents() {
+		for _, id := range event.GetReplacedPackIds() {
+			replaced[id] = true
+		}
 	}
 
-	// Build an opener for this block store.
+	// Scan the index of each active pack, keeping each block once.
 	opener := a.BuildBlockStoreOpener(bstoreID)
-
-	// For each packfile, open it and enumerate all block hashes from the index.
+	seen := make(map[string]bool)
 	var refs []*block.BlockRef
-	for _, entry := range entries {
+	for _, entry := range resp.GetEntries() {
+		if entry.GetSupersededBy() != "" || replaced[entry.GetId()] {
+			continue
+		}
 		if entry.GetSizeBytes() > math.MaxInt64 {
 			return nil, errors.Errorf("packfile %s size exceeds int64 range: %d", entry.GetId(), entry.GetSizeBytes())
 		}
@@ -828,21 +831,23 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 		if err != nil {
 			return nil, errors.Wrapf(err, "open packfile %s", entry.GetId())
 		}
-		ra := rd.ReaderAt(ctx)
-
-		reader, err := kvfile.BuildReader(ra, uint64(size))
-		if err != nil {
-			return nil, errors.Wrapf(err, "build reader for packfile %s", entry.GetId())
-		}
-
-		err = reader.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
-			h := &hash.Hash{}
-			if err := h.ParseFromB58(string(ie.GetKey())); err != nil {
+		reader, err := kvfile.BuildReader(rd.ReaderAt(ctx), uint64(size))
+		if err == nil {
+			err = reader.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
+				key := string(ie.GetKey())
+				if seen[key] {
+					return nil
+				}
+				h := &hash.Hash{}
+				if err := h.ParseFromB58(key); err != nil {
+					return nil
+				}
+				seen[key] = true
+				refs = append(refs, block.NewBlockRef(h))
 				return nil
-			}
-			refs = append(refs, block.NewBlockRef(h))
-			return nil
-		})
+			})
+		}
+		rd.Close()
 		if err != nil {
 			return nil, errors.Wrapf(err, "scan index entries for packfile %s", entry.GetId())
 		}

@@ -3,6 +3,7 @@ package store
 import (
 	"cmp"
 	"context"
+	"maps"
 	"math"
 	"slices"
 	"sync"
@@ -35,18 +36,6 @@ type IndexCache interface {
 	Get(ctx context.Context, packID string) ([]byte, bool, error)
 	// Set stores raw index-tail bytes for a packfile.
 	Set(ctx context.Context, packID string, data []byte) error
-}
-
-// bloomNode is a node in the manifest's bloom pruning tree.
-type bloomNode struct {
-	// merged is the OR-merged bloom filter covering all children.
-	merged *bloom.Filter
-	// left is the left child (nil for leaf nodes).
-	left *bloomNode
-	// right is the right child (nil for leaf nodes).
-	right *bloomNode
-	// entryIdx is the manifest index for leaf nodes (-1 for internal nodes).
-	entryIdx int
 }
 
 // PackfileStore is a read-only block.StoreOps over a set of remote packfiles.
@@ -84,13 +73,12 @@ type PackfileStore struct {
 	maxBytes int64
 	// tuningOverrides are explicit per-engine tuning overrides.
 	tuningOverrides engineTuningOverrides
-	// verifyBeforeServe makes miss-path reads wait for hash verification.
-	verifyBeforeServe bool
 
-	// manifest state, guarded by bcast.
+	// manifest is the active manifest in lookup order, guarded by bcast.
 	manifest []*packfile.PackfileEntry
-	blooms   map[string]bloomRef
-	tree     *bloomNode
+	// filters holds the parsed bloom filter of each manifest entry at the same
+	// index, guarded by bcast. A nil filter matches every key.
+	filters []*bloom.Filter
 }
 
 // NewPackfileStore creates a new packfile store.
@@ -103,7 +91,6 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
 		maxBytes:        defaultResidentBudget,
-		blooms:          make(map[string]bloomRef),
 	}
 	return s
 }
@@ -118,10 +105,7 @@ func (s *PackfileStore) Close() {
 		return
 	}
 	s.closed = true
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, engine := range s.engines {
-		engines = append(engines, engine)
-	}
+	engines := s.snapshotEnginesLocked()
 	s.engines = nil
 	s.mtx.Unlock()
 
@@ -143,8 +127,7 @@ func (s *PackfileStore) Close() {
 	s.mtx.Unlock()
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.manifest = nil
-		s.blooms = nil
-		s.tree = nil
+		s.filters = nil
 		s.closeComplete = true
 		broadcast()
 	})
@@ -186,31 +169,10 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	s.writebackCtx = ctx
 	s.writebackTarget = target
 	s.writebackWindow = windowBytes
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, e := range s.engines {
-		engines = append(engines, e)
-	}
+	engines := s.snapshotEnginesLocked()
 	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetWriteback(ctx, target, windowBytes)
-	}
-}
-
-// SetVerifyBeforeServe makes miss-path reads wait for hash verification before serving bytes.
-func (s *PackfileStore) SetVerifyBeforeServe(enabled bool) {
-	s.mtx.Lock()
-	if s.closed {
-		s.mtx.Unlock()
-		return
-	}
-	s.verifyBeforeServe = enabled
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, e := range s.engines {
-		engines = append(engines, e)
-	}
-	s.mtx.Unlock()
-	for _, e := range engines {
-		e.SetVerifyBeforeServe(enabled)
 	}
 }
 
@@ -222,10 +184,7 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 		return
 	}
 	s.maxBytes = maxBytes
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, e := range s.engines {
-		engines = append(engines, e)
-	}
+	engines := s.snapshotEnginesLocked()
 	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetMaxBytes(maxBytes)
@@ -259,10 +218,7 @@ func (s *PackfileStore) SetStatsChangedCallback(fn func()) {
 		return
 	}
 	s.notify = fn
-	engines := make([]*PackReader, 0, len(s.engines))
-	for _, e := range s.engines {
-		engines = append(engines, e)
-	}
+	engines := s.snapshotEnginesLocked()
 	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetStatsChangedCallback(fn)
@@ -292,9 +248,9 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 
 // GetStoredBlock gets a block with its refs from the packfile store.
 //
-// The manifest's bloom pruning selects candidate packs, and each candidate
-// engine is consulted in turn. The first engine that finds the block
-// returns it. Returns nil when no pack holds the block.
+// Each pack whose bloom filter may hold the block is consulted in manifest
+// order. The first pack that finds the block returns it. Returns nil when no
+// pack holds the block.
 func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
 	defer task.End()
@@ -307,79 +263,26 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	trace.Log(ctx, "block-ref", ref.MarshalString())
 	key := []byte(h.MarshalString())
 
-	var entries []*packfile.PackfileEntry
-	var tree *bloomNode
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries = s.manifest
-		tree = s.tree
+	var stored *block.StoredBlock
+	var lookup packLookup
+	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
+		trace.Log(ctx, "pack-id", eng.packID)
+		var err error
+		stored, err = eng.getBlock(ctx, key)
+		return stored != nil, err
 	})
-	if len(entries) == 0 {
-		trace.Log(ctx, "result", "empty-manifest")
+	s.recordLookupStats(lookup)
+	if err != nil {
+		trace.Log(ctx, "result", "error")
+		return nil, err
+	}
+	trace.Logf(ctx, "candidate-packs", "%d", lookup.candidates)
+	if stored == nil {
+		trace.Log(ctx, "result", "miss")
 		return nil, nil
 	}
-
-	candidates := findCandidates(key, tree)
-	trace.Logf(ctx, "candidate-packs", "%d", len(candidates))
-	opened := 0
-	negative := 0
-	hit := false
-	defer func() {
-		s.recordLookupStats(len(candidates), opened, negative, hit)
-	}()
-
-	for _, idx := range candidates {
-		entry := entries[idx]
-		size, err := manifestPackSize(entry)
-		if err != nil {
-			trace.Log(ctx, "result", "invalid-pack-size")
-			return nil, err
-		}
-		if size <= 0 {
-			continue
-		}
-		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
-		if err != nil {
-			trace.Log(ctx, "result", "open-pack-error")
-			return nil, errors.Wrap(err, "opening packfile")
-		}
-		opened++
-		trace.Log(ctx, "pack-id", entry.GetId())
-		stored, err := eng.getBlock(ctx, key)
-		if err != nil {
-			trace.Log(ctx, "result", "pack-error")
-			return nil, err
-		}
-		if stored != nil {
-			hit = true
-			trace.Log(ctx, "result", "hit")
-			return stored, nil
-		}
-		negative++
-	}
-
-	trace.Log(ctx, "result", "miss")
-	return nil, nil
-}
-
-func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeCount int, targetHit bool) {
-	var notify func()
-	s.mtx.Lock()
-	s.stats.LookupCount++
-	s.stats.CandidatePacks += uint64(candidateCount) //nolint:gosec // counts are non-negative slice/loop lengths.
-	s.stats.OpenedPacks += uint64(openedCount)       //nolint:gosec // counts are non-negative slice/loop lengths.
-	s.stats.NegativePacks += uint64(negativeCount)   //nolint:gosec // counts are non-negative slice/loop lengths.
-	if targetHit {
-		s.stats.TargetHits++
-	}
-	s.stats.LastCandidatePacks = candidateCount
-	s.stats.LastOpenedPacks = openedCount
-	s.stats.LastNegativePacks = negativeCount
-	s.stats.LastTargetHit = targetHit
-	notify = s.notify
-	s.mtx.Unlock()
-	if notify != nil {
-		notify()
-	}
+	trace.Log(ctx, "result", "hit")
+	return stored, nil
 }
 
 // GetBlockExists reports whether a block exists in the store.
@@ -390,137 +293,53 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 	}
 	key := []byte(h.MarshalString())
 
-	var entries []*packfile.PackfileEntry
-	var tree *bloomNode
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries = s.manifest
-		tree = s.tree
+	var lookup packLookup
+	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
+		return eng.getBlockExists(ctx, key)
 	})
-	if len(entries) == 0 {
-		return false, nil
-	}
-
-	candidates := findCandidates(key, tree)
-	opened := 0
-	negative := 0
-	hit := false
-	defer func() {
-		s.recordLookupStats(len(candidates), opened, negative, hit)
-	}()
-
-	for _, idx := range candidates {
-		entry := entries[idx]
-		size, err := manifestPackSize(entry)
-		if err != nil {
-			return false, err
-		}
-		if size <= 0 {
-			continue
-		}
-		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
-		if err != nil {
-			return false, errors.Wrap(err, "opening packfile")
-		}
-		opened++
-		found, err := eng.getBlockExists(ctx, key)
-		if err != nil {
-			return false, err
-		}
-		if found {
-			hit = true
-			return true, nil
-		}
-		negative++
-	}
-
-	return false, nil
+	s.recordLookupStats(lookup)
+	return lookup.hit, err
 }
 
 // GetBlockExistsBatch checks whether each block exists.
 func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
-	if len(refs) == 0 {
-		return out, nil
-	}
-
-	type pendingRef struct {
-		key     []byte
-		indexes []int
-	}
-
-	byKey := make(map[string]*pendingRef, len(refs))
-	var pending []*pendingRef
+	indexes := make(map[string][]int, len(refs))
+	var keys []string
 	for i, ref := range refs {
 		h := ref.GetHash()
 		if h == nil {
 			continue
 		}
-		key := []byte(h.MarshalString())
-		keyStr := string(key)
-		item, ok := byKey[keyStr]
-		if !ok {
-			item = &pendingRef{key: key}
-			byKey[keyStr] = item
-			pending = append(pending, item)
+		key := h.MarshalString()
+		if _, ok := indexes[key]; !ok {
+			keys = append(keys, key)
 		}
-		item.indexes = append(item.indexes, i)
+		indexes[key] = append(indexes[key], i)
 	}
-	if len(pending) == 0 {
+
+	if len(keys) == 0 {
 		return out, nil
 	}
 
-	var entries []*packfile.PackfileEntry
-	var tree *bloomNode
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries = s.manifest
-		tree = s.tree
-	})
-	if len(entries) == 0 {
-		return out, nil
-	}
-
-	candidateSets := make([][]int, len(pending))
-	candidateTotal := 0
-	for i, item := range pending {
-		candidates := findCandidates(item.key, tree)
-		candidateSets[i] = candidates
-		candidateTotal += len(candidates)
-	}
-
-	opened := 0
-	negative := 0
-	hit := false
+	var lookup packLookup
 	defer func() {
-		s.recordLookupStats(candidateTotal, opened, negative, hit)
+		s.recordLookupStats(lookup)
 	}()
-
-	for pi, item := range pending {
-		for _, idx := range candidateSets[pi] {
-			entry := entries[idx]
-			size, err := manifestPackSize(entry)
-			if err != nil {
-				return nil, err
+	for _, key := range keys {
+		var found bool
+		err := s.probePacks([]byte(key), &lookup, func(eng *PackReader) (bool, error) {
+			var err error
+			found, err = eng.getBlockExists(ctx, []byte(key))
+			return found, err
+		})
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			for _, index := range indexes[key] {
+				out[index] = true
 			}
-			if size <= 0 {
-				continue
-			}
-			eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
-			if err != nil {
-				return nil, errors.Wrap(err, "opening packfile")
-			}
-			opened++
-			found, err := eng.getBlockExists(ctx, item.key)
-			if err != nil {
-				return nil, err
-			}
-			if found {
-				hit = true
-				for _, index := range item.indexes {
-					out[index] = true
-				}
-				break
-			}
-			negative++
 		}
 	}
 	return out, nil
@@ -535,49 +354,89 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 	}
 	key := []byte(h.MarshalString())
 
-	var entries []*packfile.PackfileEntry
-	var tree *bloomNode
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries = s.manifest
-		tree = s.tree
+	var stat *block.BlockStat
+	var lookup packLookup
+	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
+		var err error
+		stat, err = eng.statBlock(ctx, key, ref)
+		return stat != nil, err
 	})
-	if len(entries) == 0 {
-		return nil, nil
+	s.recordLookupStats(lookup)
+	if err != nil {
+		return nil, err
 	}
+	return stat, nil
+}
 
-	candidates := findCandidates(key, tree)
-	opened := 0
-	negative := 0
-	hit := false
-	defer func() {
-		s.recordLookupStats(len(candidates), opened, negative, hit)
-	}()
+// probePacks visits the engine of each pack whose bloom filter may hold key,
+// in manifest order, until visit reports a hit. It accumulates the probe into
+// lookup.
+func (s *PackfileStore) probePacks(
+	key []byte,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) error {
+	var entries []*packfile.PackfileEntry
+	var filters []*bloom.Filter
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries, filters = s.manifest, s.filters
+	})
 
-	for _, idx := range candidates {
-		entry := entries[idx]
+	bloomKey := bloom.NewKey(key)
+	var candidates []*packfile.PackfileEntry
+	for i, entry := range entries {
+		if filters[i] == nil || filters[i].TestKey(bloomKey) {
+			candidates = append(candidates, entry)
+		}
+	}
+	lookup.candidates += len(candidates)
+
+	for _, entry := range candidates {
 		size, err := manifestPackSize(entry)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if size <= 0 {
 			continue
 		}
 		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 		if err != nil {
-			return nil, errors.Wrap(err, "opening packfile")
+			return errors.Wrap(err, "opening packfile")
 		}
-		opened++
-		stat, err := eng.statBlock(ctx, key, ref)
+		lookup.opened++
+		found, err := visit(eng)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if stat != nil {
-			hit = true
-			return stat, nil
+		if found {
+			lookup.hit = true
+			return nil
 		}
-		negative++
+		lookup.negative++
 	}
-	return nil, nil
+	return nil
+}
+
+// recordLookupStats adds one lookup to the store stats and notifies watchers.
+func (s *PackfileStore) recordLookupStats(lookup packLookup) {
+	var notify func()
+	s.mtx.Lock()
+	s.stats.LookupCount++
+	s.stats.CandidatePacks += uint64(lookup.candidates) //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.OpenedPacks += uint64(lookup.opened)        //nolint:gosec // counts are non-negative loop lengths.
+	s.stats.NegativePacks += uint64(lookup.negative)    //nolint:gosec // counts are non-negative loop lengths.
+	if lookup.hit {
+		s.stats.TargetHits++
+	}
+	s.stats.LastCandidatePacks = lookup.candidates
+	s.stats.LastOpenedPacks = lookup.opened
+	s.stats.LastNegativePacks = lookup.negative
+	s.stats.LastTargetHit = lookup.hit
+	notify = s.notify
+	s.mtx.Unlock()
+	if notify != nil {
+		notify()
+	}
 }
 
 // manifestPackSize validates the wire-sized pack length before it crosses
@@ -650,8 +509,8 @@ func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
 		return
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.filters = parseManifestFilters(active, s.manifest, s.filters)
 		s.manifest = active
-		s.tree = buildBloomTree(active, s.blooms)
 		broadcast()
 	})
 	s.mtx.Unlock()
@@ -709,7 +568,6 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	wbWindow := s.writebackWindow
 	maxBytes := s.maxBytes
 	verify := s.verifyQueue
-	verifyBeforeServe := s.verifyBeforeServe
 	overrides := s.tuningOverrides
 	notify := s.notify
 	s.mtx.Unlock()
@@ -726,7 +584,6 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.SetWriteback(wbCtx, wbTarget, wbWindow)
 	eng.SetMaxBytes(maxBytes)
 	eng.SetVerifyQueue(verify)
-	eng.SetVerifyBeforeServe(verifyBeforeServe)
 	eng.SetStatsChangedCallback(notify)
 	overrides.apply(eng)
 
@@ -747,92 +604,36 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	return eng, nil
 }
 
-// findCandidates returns the indices of the manifest entries whose bloom
-// filters may contain the key. The key is hashed once for the whole tree.
-func findCandidates(key []byte, tree *bloomNode) []int {
-	var result []int
-	collectCandidates(tree, bloom.NewKey(key), &result)
-	return result
+// snapshotEnginesLocked returns the open engines. Caller holds mtx.
+func (s *PackfileStore) snapshotEnginesLocked() []*PackReader {
+	return slices.Collect(maps.Values(s.engines))
 }
 
-// collectCandidates traverses the bloom tree, pruning subtrees.
-func collectCandidates(node *bloomNode, key bloom.Key, result *[]int) {
-	if node == nil {
-		return
+// parseManifestFilters returns the bloom filter of each entry, reusing filters
+// already parsed for the previous manifest. Entries without a usable filter get
+// nil, which matches every key.
+func parseManifestFilters(
+	entries []*packfile.PackfileEntry,
+	prevEntries []*packfile.PackfileEntry,
+	prevFilters []*bloom.Filter,
+) []*bloom.Filter {
+	prev := make(map[string]*bloom.Filter, len(prevEntries))
+	for i, entry := range prevEntries {
+		prev[entry.GetId()] = prevFilters[i]
 	}
-	if node.merged != nil && !node.merged.TestKey(key) {
-		return
-	}
-	if node.entryIdx >= 0 {
-		*result = append(*result, node.entryIdx)
-		return
-	}
-	collectCandidates(node.left, key, result)
-	collectCandidates(node.right, key, result)
-}
 
-// buildBloomTree builds a binary bloom tree from manifest entries.
-func buildBloomTree(entries []*packfile.PackfileEntry, blooms map[string]bloomRef) *bloomNode {
-	if len(entries) == 0 {
-		return nil
-	}
-	leaves := make([]*bloomNode, len(entries))
+	filters := make([]*bloom.Filter, len(entries))
 	for i, entry := range entries {
-		var bf *bloom.Filter
-		bloomData := entry.GetBloomFilter()
-		if len(bloomData) > 0 {
-			if wp, ok := blooms[entry.GetId()]; ok {
-				bf = wp.Value()
-			}
-			if bf == nil {
-				var pbf bloom.BloomFilter
-				if err := pbf.UnmarshalBlock(bloomData); err == nil {
-					bf = pbf.ToBloomFilter()
-					if bf != nil {
-						blooms[entry.GetId()] = makeBloomRef(bf)
-					}
-				}
-			}
+		if bf, ok := prev[entry.GetId()]; ok {
+			filters[i] = bf
+			continue
 		}
-		leaves[i] = &bloomNode{
-			merged:   bf,
-			entryIdx: i,
+		var pbf bloom.BloomFilter
+		if err := pbf.UnmarshalBlock(entry.GetBloomFilter()); err == nil {
+			filters[i] = pbf.ToBloomFilter()
 		}
 	}
-	nodes := leaves
-	for len(nodes) > 1 {
-		var next []*bloomNode
-		for i := 0; i < len(nodes); i += 2 {
-			if i+1 >= len(nodes) {
-				next = append(next, nodes[i])
-				continue
-			}
-			merged := mergeBloomFilters(nodes[i].merged, nodes[i+1].merged)
-			next = append(next, &bloomNode{
-				merged:   merged,
-				left:     nodes[i],
-				right:    nodes[i+1],
-				entryIdx: -1,
-			})
-		}
-		nodes = next
-	}
-	return nodes[0]
-}
-
-// mergeBloomFilters OR-merges two bloom filters.
-func mergeBloomFilters(a, b *bloom.Filter) *bloom.Filter {
-	if a == nil {
-		return b
-	}
-	if b == nil {
-		return a
-	}
-	merged := a.Copy()
-	if err := merged.Merge(b); err != nil {
-		return nil
-	}
-	return merged
+	return filters
 }
 
 // _ is a type assertion
