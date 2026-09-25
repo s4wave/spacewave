@@ -4,6 +4,7 @@ import { LuDatabase } from 'react-icons/lu'
 
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 
+import { StorageBackendsSection } from './StorageBackendsSection.js'
 import { StorageHealth } from './StorageHealth.js'
 
 interface StorageHealthSectionProps {
@@ -41,6 +42,9 @@ export function StorageHealthSection({
         onLinkDevice={handleLinkDevice}
         onUseCloud={handleUseCloud}
       />
+      <div className="mt-4">
+        <StorageBackendsSection />
+      </div>
     </CollapsibleSection>
   )
 }

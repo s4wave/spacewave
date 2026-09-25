@@ -120,7 +120,12 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			id := resp.GetSharedObjectRef().GetProviderResourceRef().GetId()
 			switch c.String("output") {
 			case "json", "yaml":
-				data, err := resp.MarshalJSON()
+				// Drop the mounted resource handles, which end with this command.
+				created := &s4wave_session.CreateSpaceResponse{
+					SharedObjectRef:  resp.GetSharedObjectRef(),
+					SharedObjectMeta: resp.GetSharedObjectMeta(),
+				}
+				data, err := created.MarshalJSON()
 				if err != nil {
 					return err
 				}

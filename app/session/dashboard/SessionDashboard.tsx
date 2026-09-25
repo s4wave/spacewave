@@ -35,6 +35,7 @@ import {
   type QuickstartOption,
 } from '@s4wave/app/quickstart/options.js'
 import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
+import { NewSpaceStorageChoice } from '@s4wave/app/session/dashboard/NewSpaceStorageChoice.js'
 import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
 import type { Account } from '@s4wave/sdk/account/account.js'
@@ -81,7 +82,9 @@ export interface SessionDashboardProps {
   spaces: DashboardSpace[] | undefined
   orgs?: DashboardOrg[]
   onSpaceClick?: (space: DashboardSpace) => void
-  onQuickstartClick?: (quickstartId: string) => void
+  // onQuickstartClick starts a quickstart. storage is a storage backend id,
+  // or 'account' for the account's own storage; undefined uses the default.
+  onQuickstartClick?: (quickstartId: string, storage?: string) => void
   readOnly?: boolean
   isCloud?: boolean
   accountResource?: Resource<Account | null>
@@ -112,16 +115,23 @@ export function SessionDashboard({
   const isLoading = spaces === undefined
   const isEmpty = spaces?.length === 0
   const quickstartOptions = useVisibleQuickstartOptions()
+  const [storage, setStorage] = useState('')
 
   const goToCommunity = useCallback(() => {
     navigate({ path: '/community' })
   }, [navigate])
 
+  const handleQuickstartClick = useCallback(
+    (quickstartId: string) => {
+      onQuickstartClick?.(quickstartId, storage || undefined)
+    },
+    [onQuickstartClick, storage],
+  )
   const handleQuickstartCommand = useCallback(
     (opt: QuickstartOption) => {
-      onQuickstartClick?.(opt.id)
+      handleQuickstartClick(opt.id)
     },
-    [onQuickstartClick],
+    [handleQuickstartClick],
   )
 
   return (
@@ -150,13 +160,16 @@ export function SessionDashboard({
             spaces={spaces}
             orgs={orgs}
             onSpaceClick={onSpaceClick}
-            onQuickstartClick={onQuickstartClick}
+            onQuickstartClick={handleQuickstartClick}
             quickstartOptions={quickstartOptions}
             objectTypeMetadataById={objectTypeMetadataById}
             isLoading={isLoading}
             isEmpty={isEmpty}
             canCreate={!readOnly}
           />
+          {!readOnly && (
+            <NewSpaceStorageChoice value={storage} onChange={setStorage} />
+          )}
         </div>
 
         {isEmpty && !isLoading && !readOnly && (
@@ -173,6 +186,7 @@ export function SessionDashboard({
         <p className="text-foreground-alt/60 text-xs">
           local-first · encrypted ·{' '}
           <button
+            type="button"
             onClick={goToCommunity}
             className="hover:text-foreground cursor-pointer transition-colors"
           >
@@ -414,6 +428,7 @@ function InlineSecureAccountSection(props: {
                 />
               </div>
               <button
+                type="button"
                 onClick={() => void handleDownloadPem()}
                 disabled={downloading || !account || !password}
                 className={cn(
@@ -530,6 +545,7 @@ function InlineSecureAccountSection(props: {
                 </div>
               )}
               <button
+                type="button"
                 onClick={() => void handleSetLockMode()}
                 disabled={savingLock}
                 className={cn(
@@ -617,6 +633,7 @@ function CreateOrgSection() {
             )}
           />
           <button
+            type="button"
             onClick={() => void handleCreate()}
             disabled={creating || !orgName.trim()}
             className={cn(
@@ -1073,6 +1090,7 @@ function SectionHeading(props: {
     <span className="flex w-full items-center justify-between">
       {props.onLabelClick ? (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation()
             props.onLabelClick?.()
@@ -1086,6 +1104,7 @@ function SectionHeading(props: {
       )}
       {props.actionLabel && props.onAction && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation()
             props.onAction?.()

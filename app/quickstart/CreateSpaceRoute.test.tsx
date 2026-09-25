@@ -11,6 +11,7 @@ import {
 interface MockRouteParams {
   quickstartId: string
   orgId?: string
+  storage?: string
 }
 
 const mockParams = vi.hoisted(() =>
@@ -269,6 +270,37 @@ describe('CreateSpaceRoute', () => {
       )
     })
   })
+
+  it.each([
+    ['backend-1', { storageBackendId: 'backend-1' }],
+    ['account', { accountStorage: true }],
+  ])(
+    'places the Space from the storage route segment %s',
+    async (storage, placement) => {
+      mockParams.mockReturnValue({ quickstartId: 'drive', storage })
+      mockSessionCreateSpace.mockResolvedValue({
+        sharedObjectRef: { providerResourceRef: { id: '01HXYZ' } },
+      })
+      mockCreateSetup.mockResolvedValue({
+        space: {},
+        spaceContents: {},
+        spaceWorld: {},
+        spaceWorldState: {},
+      })
+      mockPopulateSpace.mockResolvedValue(undefined)
+
+      act(() => {
+        render(<CreateSpaceRoute />)
+      })
+
+      await waitFor(() => {
+        expect(mockSessionCreateSpace).toHaveBeenCalledWith(
+          { spaceName: 'My Drive', ...placement },
+          expect.any(AbortSignal),
+        )
+      })
+    },
+  )
 
   it('surfaces populateSpace errors and allows retry', async () => {
     const spaceResp = {

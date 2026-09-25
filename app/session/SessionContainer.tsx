@@ -552,6 +552,9 @@ export function SessionContainer(props: SessionContainerProps) {
                       <Route path="/org/:orgId/*">
                         <OrgContainer />
                       </Route>
+                      <Route path="/new/:quickstartId/on/:storage">
+                        <CreateSpaceRoute />
+                      </Route>
                       <Route path="/new/:quickstartId">
                         <CreateSpaceRoute />
                       </Route>
