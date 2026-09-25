@@ -178,7 +178,7 @@ func (t *bstoreTracker) openBackendStore(
 	if err != nil {
 		return nil, err
 	}
-	return buildS3BlockStore(backend.GetS3(), creds)
+	return buildS3BlockStore(t.a.le.WithField("bstore-id", t.id), backend.GetS3(), creds)
 }
 
 // swapRemote replaces the open backend store and closes the previous one.

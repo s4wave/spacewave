@@ -6,7 +6,17 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/sirupsen/logrus"
 )
+
+// newTestPackStore opens a PackStore on prefix p/ of the fake bucket until the
+// test ends.
+func newTestPackStore(t *testing.T, client *Client) *PackStore {
+	t.Helper()
+	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/")
+	t.Cleanup(store.Close)
+	return store
+}
 
 // TestPackStoreBatch writes a batch as one packfile and reads each block back
 // with its refs, from the writing store and from a store that lists the
@@ -14,8 +24,7 @@ import (
 func TestPackStoreBatch(t *testing.T) {
 	ctx := t.Context()
 	bucket, client := newFakeBucket(t, nil)
-	writer := NewPackStore(client, "bucket", "p/")
-	defer writer.Close()
+	writer := newTestPackStore(t, client)
 
 	child := []byte("child")
 	childRef, err := block.BuildBlockRef(child, nil)
@@ -42,8 +51,7 @@ func TestPackStoreBatch(t *testing.T) {
 		t.Fatalf("keys = %v; want one entry and one packfile", keys)
 	}
 
-	reader := NewPackStore(client, "bucket", "p/")
-	defer reader.Close()
+	reader := newTestPackStore(t, client)
 	for _, store := range []*PackStore{writer, reader} {
 		stored, err := store.GetStoredBlock(ctx, rootRef)
 		if err != nil {
@@ -77,10 +85,8 @@ func TestPackStoreBatch(t *testing.T) {
 func TestPackStoreFindsLaterPacks(t *testing.T) {
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
-	reader := NewPackStore(client, "bucket", "p/")
-	defer reader.Close()
-	writer := NewPackStore(client, "bucket", "p/")
-	defer writer.Close()
+	reader := newTestPackStore(t, client)
+	writer := newTestPackStore(t, client)
 
 	first, _, err := writer.PutBlock(ctx, []byte("first"), nil)
 	if err != nil {

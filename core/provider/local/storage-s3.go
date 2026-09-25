@@ -7,6 +7,7 @@ import (
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+	"github.com/sirupsen/logrus"
 )
 
 // CheckS3Location writes, reads back, and deletes a probe object in the
@@ -28,6 +29,7 @@ func CheckS3Location(
 
 // buildS3BlockStore opens a packfile block store on the location's bucket.
 func buildS3BlockStore(
+	le *logrus.Entry,
 	location *account_settings.S3Location,
 	creds *block_store_s3.Credentials,
 ) (backendStore, error) {
@@ -35,7 +37,7 @@ func buildS3BlockStore(
 	if err != nil {
 		return nil, err
 	}
-	return block_store_s3.NewPackStore(client, location.GetBucket(), location.GetObjectPrefix()), nil
+	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.GetObjectPrefix()), nil
 }
 
 // buildS3Client builds a signing client for the location's endpoint.
