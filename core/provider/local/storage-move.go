@@ -93,8 +93,8 @@ func (a *ProviderAccount) ListBlockStoreRefs(ctx context.Context, blockStoreID s
 // Leaving a backend first copies the blocks only it holds into the account's
 // own storage, so the switch never strands a block. Entering a backend queues
 // every block for upload, which continues after this call returns early. A
-// repeated call resumes an interrupted move. The old backend's objects stay in
-// its bucket, where other Spaces placed on it may share them.
+// repeated call resumes an interrupted move. The switch releases the store's
+// objects on the old backend, which the account then deletes.
 func (a *ProviderAccount) MoveSpaceStorage(
 	ctx context.Context,
 	sharedObjectID string,

@@ -76,9 +76,7 @@ func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 
 	// A deleted object's blocks no longer need a storage backend.
 	if entry.GetDeleted() {
-		s.BlockStorePlacements = slices.DeleteFunc(s.BlockStorePlacements, func(current *BlockStorePlacement) bool {
-			return current.GetBlockStoreId() == ref.GetBlockStoreId()
-		})
+		s.unplaceBlockStore(ref.GetBlockStoreId())
 	}
 	return nil
 }

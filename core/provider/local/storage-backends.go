@@ -123,6 +123,10 @@ func (a *ProviderAccount) ReadStorageCredentials(
 
 // RemoveStorageBackend removes a backend that holds no Space and deletes its
 // credential Secret. While Spaces are placed on it, the error names them.
+//
+// It first deletes the objects of the block stores released on the backend,
+// since removal drops the credentials. A failed delete leaves its objects in
+// the bucket.
 func (a *ProviderAccount) RemoveStorageBackend(ctx context.Context, backendID string) error {
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
@@ -134,6 +138,15 @@ func (a *ProviderAccount) RemoveStorageBackend(ctx context.Context, backendID st
 	}
 	if err := settings.CheckStorageBackendUnused(backendID); err != nil {
 		return err
+	}
+	for _, release := range pendingStorageReleases(settings) {
+		if release.backendID != backendID {
+			continue
+		}
+		if err := a.releaseBlockStore(ctx, release); err != nil {
+			a.le.WithError(err).WithField("bstore-id", release.blockStoreID).
+				Warn("unable to delete released block store from the bucket")
+		}
 	}
 
 	// Commit the removal before deleting the Secret so no replica keeps a

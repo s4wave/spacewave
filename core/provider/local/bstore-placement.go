@@ -83,7 +83,8 @@ func (t *bstoreTracker) nextBackend(ctx context.Context, watch *settingsWatch) (
 }
 
 // runPlacedUploads keeps every placed block store mounted while the account
-// runs, so writes queued in a closed Space still upload.
+// runs, so writes queued in a closed Space still upload, and deletes the
+// objects of the block stores that left a backend.
 func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 	ref, err := a.lookupAccountSettingsRef(ctx)
 	if err != nil || ref == nil {
@@ -94,6 +95,10 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 		return err
 	}
 	defer watch.release()
+
+	releases := a.newStorageReleases()
+	releases.SetContext(ctx, true)
+	defer releases.SetContext(nil, false)
 
 	held := make(map[string]*keyed.KeyedRef[string, *bstoreTracker])
 	defer func() {
@@ -106,6 +111,7 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		releases.SyncKeys(pendingStorageReleases(settings), false)
 
 		placed := make(map[string]struct{}, len(settings.GetBlockStorePlacements()))
 		for _, placement := range settings.GetBlockStorePlacements() {
@@ -178,7 +184,7 @@ func (t *bstoreTracker) openBackendStore(
 	if err != nil {
 		return nil, err
 	}
-	return buildS3BlockStore(t.a.le.WithField("bstore-id", t.id), backend.GetS3(), creds)
+	return buildS3BlockStore(t.a.le.WithField("bstore-id", t.id), backend.GetS3(), t.id, creds)
 }
 
 // swapRemote replaces the open backend store and closes the previous one.

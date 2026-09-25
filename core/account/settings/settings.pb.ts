@@ -404,6 +404,13 @@ export interface AccountSettings {
    * @generated from field: repeated account.settings.BlockStorePlacement block_store_placements = 12;
    */
   blockStorePlacements?: BlockStorePlacement[]
+  /**
+   * StorageReleases are former placements whose objects remain in the
+   * backend's bucket. A device deletes them, then completes the release.
+   *
+   * @generated from field: repeated account.settings.BlockStorePlacement storage_releases = 13;
+   */
+  storageReleases?: BlockStorePlacement[]
 }
 
 export const AccountSettings: MessageType<AccountSettings> =
@@ -481,6 +488,13 @@ export const AccountSettings: MessageType<AccountSettings> =
       {
         no: 12,
         name: 'block_store_placements',
+        kind: 'message',
+        T: () => BlockStorePlacement,
+        repeated: true,
+      },
+      {
+        no: 13,
+        name: 'storage_releases',
         kind: 'message',
         T: () => BlockStorePlacement,
         repeated: true,
@@ -838,6 +852,16 @@ export interface AccountSettingsOp {
         value: BlockStorePlacement
         case: 'setBlockStorePlacement'
       }
+    | {
+        /**
+         * CompleteStorageRelease records that the released block store's objects
+         * are gone from the backend's bucket.
+         *
+         * @generated from field: account.settings.BlockStorePlacement complete_storage_release = 17;
+         */
+        value: BlockStorePlacement
+        case: 'completeStorageRelease'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -952,6 +976,13 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
       {
         no: 16,
         name: 'set_block_store_placement',
+        kind: 'message',
+        T: () => BlockStorePlacement,
+        oneof: 'op',
+      },
+      {
+        no: 17,
+        name: 'complete_storage_release',
         kind: 'message',
         T: () => BlockStorePlacement,
         oneof: 'op',
