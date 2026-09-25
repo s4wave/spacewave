@@ -153,7 +153,7 @@ func runCrashWorkload(t *testing.T, seed uint64, crashAfter int) int {
 
 // step runs one random operation and records its acknowledged effect. An
 // error leaves the operation's effect uncertain in the model.
-func (m *crashModel) step(ctx context.Context, rng *rand.Rand, target replayTarget, graph *recordingGraph) error {
+func (m *crashModel) step(ctx context.Context, rng *rand.Rand, target ReplayTarget, graph *recordingGraph) error {
 	switch n := rng.IntN(100); {
 	case n < 30:
 		return m.commit(ctx, rng, target)
@@ -183,7 +183,7 @@ func (m *crashModel) step(ctx context.Context, rng *rand.Rand, target replayTarg
 }
 
 // commit sets or deletes one to three keys in one transaction.
-func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target replayTarget) error {
+func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
 	tx, err := target.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -220,7 +220,7 @@ func (m *crashModel) commit(ctx context.Context, rng *rand.Rand, target replayTa
 }
 
 // put admits one unique block without syncing it.
-func (m *crashModel) put(ctx context.Context, rng *rand.Rand, target replayTarget) error {
+func (m *crashModel) put(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
 	m.blocks++
 	data := bytes.Repeat([]byte("block "+strconv.Itoa(m.blocks)+" "), 8+rng.IntN(256))
 	ref, _, err := target.PutBlock(ctx, data, nil)
@@ -232,7 +232,7 @@ func (m *crashModel) put(ctx context.Context, rng *rand.Rand, target replayTarge
 }
 
 // remove deletes one synced block, which RmBlock makes durable.
-func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target replayTarget) error {
+func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target ReplayTarget) error {
 	if len(m.synced) == 0 {
 		return nil
 	}
@@ -253,7 +253,7 @@ func (m *crashModel) remove(ctx context.Context, rng *rand.Rand, target replayTa
 }
 
 // append journals one or two unique edges.
-func (m *crashModel) append(ctx context.Context, target replayTarget) error {
+func (m *crashModel) append(ctx context.Context, target ReplayTarget) error {
 	var adds []block_gc.RefEdge
 	for range 2 {
 		m.edges++
@@ -271,7 +271,7 @@ func (m *crashModel) append(ctx context.Context, target replayTarget) error {
 }
 
 // check compares the recovered volume with the acknowledged state.
-func (m *crashModel) check(t *testing.T, target replayTarget, graph *recordingGraph) {
+func (m *crashModel) check(t *testing.T, target ReplayTarget, graph *recordingGraph) {
 	t.Helper()
 	ctx := t.Context()
 
