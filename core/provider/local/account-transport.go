@@ -246,6 +246,10 @@ func (a *ProviderAccount) startSessionTransportLocked(
 		a.le.WithField("routine", "session-transport"),
 		routine.WithRetry(providerBackoff),
 		routine.WithExitCb(func(err error) {
+			// A failed transport stops the retry with a nil result.
+			if err == nil {
+				err = st.Err()
+			}
 			var ready bool
 			sts.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				ready = sts.ready

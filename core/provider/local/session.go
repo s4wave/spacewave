@@ -400,11 +400,9 @@ func (t *sessionTracker) releasePinnedRef() {
 }
 
 // startTransport starts the account's session transport and restores P2P
-// sync for accounts with paired devices. Callers publish the Session first:
-// transport readiness waits on the signaling ticket, which stalls until the
-// startup deadline when the signaling endpoint is unreachable, and local work
-// must not wait on the network. Returns only context.Canceled; other failures
-// are logged.
+// sync for accounts with paired devices. Callers publish the Session first so
+// local work never waits on transport startup. Returns only context.Canceled;
+// other failures are logged.
 func (t *sessionTracker) startTransport(ctx context.Context, sessionPriv crypto.PrivKey) error {
 	relay := cloudRelayEndpoint{}
 	if t.cloudAccountID != "" {

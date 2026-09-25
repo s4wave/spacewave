@@ -65,7 +65,7 @@ func newSignalingServer() *signalingServer {
 		}
 		s.wsAccepted <- struct{}{}
 		defer conn.Close(websocket.StatusNormalClosure, "")
-		<-r.Context().Done()
+		<-conn.CloseRead(r.Context()).Done()
 	})
 	s.server = httptest.NewServer(mux)
 	return s
@@ -100,9 +100,8 @@ func awaitReadySessionTransport(ctx context.Context, t *testing.T, acc *provider
 }
 
 // TestStandaloneSessionMountsWithStalledSignaling checks that an unreachable
-// signaling endpoint does not delay the Session mount. The ticket request
-// stalls for the whole test, so the mount returns only if it does not wait
-// for transport readiness.
+// signaling endpoint delays neither the Session mount nor its transport. The
+// ticket request stalls for the whole test.
 func TestStandaloneSessionMountsWithStalledSignaling(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("stalled signaling test requires a native HTTP server")
@@ -128,9 +127,7 @@ func TestStandaloneSessionMountsWithStalledSignaling(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatalf("session transport did not request a signal ticket: %v", ctx.Err())
 	}
-	if st := acc.GetSessionTransport(); st != nil && st.GetStartupStage() == "ready" {
-		t.Fatal("session transport became ready while the signal ticket stalled")
-	}
+	awaitReadySessionTransport(ctx, t, acc)
 }
 
 // TestStandaloneSessionSignaling is the in-memory end-to-end regression for
@@ -176,8 +173,10 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 			defer release()
 
 			awaitReadySessionTransport(ctx, t, acc)
-			if n := sig.tickets.Load(); n == 0 {
-				t.Fatal("standalone session did not request a signal ticket")
+			select {
+			case <-sig.wsAccepted:
+			case <-ctx.Done():
+				t.Fatal("session transport did not connect to the signaling WebSocket")
 			}
 
 			req := sig.first.Load()
@@ -214,12 +213,6 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 			valid, err := pub.Verify(payload, signature)
 			if err != nil || !valid {
 				t.Fatalf("ticket signature not signed by the session keypair: valid=%v err=%v", valid, err)
-			}
-
-			select {
-			case <-sig.wsAccepted:
-			case <-ctx.Done():
-				t.Fatal("session transport did not connect to the signaling WebSocket")
 			}
 		})
 	}

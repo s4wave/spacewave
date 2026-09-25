@@ -26,6 +26,10 @@ func (s *compositionTestLinkSource) GetLinkSnapshotsWithWait() ([]transport_cont
 	return links, []<-chan struct{}{waitCh}
 }
 
+func (s *compositionTestLinkSource) Err() error {
+	return nil
+}
+
 func (s *compositionTestLinkSource) setLinkCount(count int) {
 	s.bcast.HoldLock(func(notify func(), _ func() <-chan struct{}) {
 		s.links = make([]transport_controller.LinkSnapshot, count)

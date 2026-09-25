@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -49,7 +48,6 @@ func startTestSessionTransport(
 	acc *ProviderAccount,
 	sessionKey crypto.PrivKey,
 	signalingURL string,
-	startupTimeout time.Duration,
 ) *sessionTransportState {
 	t.Helper()
 	st, err := transport.NewSessionTransport(
@@ -58,7 +56,6 @@ func startTestSessionTransport(
 		sessionKey,
 		signalingURL,
 		"",
-		transport.WithStartupTimeout(startupTimeout),
 		transport.WithStartupRetry(),
 	)
 	if err != nil {
@@ -102,29 +99,47 @@ func waitForPairingStatus(ctx context.Context, t *testing.T, engine *pairing.Eng
 	}
 }
 
-func TestTerminalTransportStartupFailureReturnsError(t *testing.T) {
+// TestUnauthorizedSignalingStopsSessionTransport checks that a rejected
+// session identity ends the transport and removes it from the account.
+func TestUnauthorizedSignalingStopsSessionTransport(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	var ticketRequests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket" {
-			ticketRequests.Add(1)
-		}
-		http.Error(w, "terminal test signaling failure", http.StatusServiceUnavailable)
+		http.Error(w, "unknown session", http.StatusUnauthorized)
 	}))
 	defer server.Close()
 
-	sts := startTestSessionTransport(ctx, t, acc, sessionKey, server.URL, 1500*time.Millisecond)
-	err := acc.waitSessionTransportReady(ctx, sts)
-	if err == nil {
-		t.Fatal("expected terminal startup failure")
+	sts, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+	if sts == nil {
+		t.Fatalf("ensureSessionTransport returned no transport state: %v", err)
 	}
-	if ticketRequests.Load() < 2 {
-		t.Fatalf("startup retry did not retain attempt ownership: %d requests", ticketRequests.Load())
+	for {
+		var exited bool
+		var exitErr error
+		var waitCh <-chan struct{}
+		sts.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			exited, exitErr = sts.exited, sts.err
+			waitCh = getWaitCh()
+		})
+		if exited {
+			var statusErr interface{ StatusCode() int }
+			if !errors.As(exitErr, &statusErr) || statusErr.StatusCode() != http.StatusUnauthorized {
+				t.Fatalf("transport exited with %v, want the unauthorized ticket error", exitErr)
+			}
+			break
+		}
+		select {
+		case <-waitCh:
+		case <-ctx.Done():
+			t.Fatalf("transport did not exit after the ticket was rejected: %v", ctx.Err())
+		}
+	}
+	if acc.GetSessionTransport() != nil {
+		t.Fatal("failed transport remained current")
 	}
 }
 
@@ -135,7 +150,7 @@ func TestTransportStartupCancellationReturnsCancellation(t *testing.T) {
 
 	transportCtx, transportCancel := context.WithCancel(ctx)
 	defer transportCancel()
-	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "", time.Second)
+	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "")
 
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	waitCancel()
@@ -151,7 +166,7 @@ func TestSupersededTransportStartupReturnsSuperseded(t *testing.T) {
 
 	transportCtx, transportCancel := context.WithCancel(ctx)
 	defer transportCancel()
-	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "", time.Second)
+	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "")
 	sts.setReplaced()
 
 	err := acc.waitSessionTransportReady(ctx, sts)

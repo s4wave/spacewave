@@ -46,7 +46,7 @@ func handleTestSignaling(w http.ResponseWriter, r *http.Request, signalTickets c
 			return true
 		}
 		defer conn.Close(websocket.StatusNormalClosure, "")
-		<-r.Context().Done()
+		<-conn.CloseRead(r.Context()).Done()
 		return true
 	default:
 		return false

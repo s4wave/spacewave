@@ -43,12 +43,16 @@ type TransportCompositionSnapshot struct {
 	ActivePeerCount uint32
 	// LastError describes the most recent transport failure.
 	LastError string
+	// Unauthorized reports that the cloud rejected the Session credential.
+	Unauthorized bool
 }
 
 // transportCompositionLinkSource exposes transport-owned link state and changes.
 type transportCompositionLinkSource interface {
 	// GetLinkSnapshotsWithWait returns links and every channel that can change them.
 	GetLinkSnapshotsWithWait() ([]transport_controller.LinkSnapshot, []<-chan struct{})
+	// Err returns the failure that ended the transport, or nil.
+	Err() error
 }
 
 type transportCompositionConfig struct {
@@ -233,7 +237,12 @@ func (o *transportCompositionOwner) configureLocked(ctx context.Context, state *
 	state.setSnapshot(TransportCompositionSnapshot{DirectP2PEnabled: true, P2PState: TransportCompositionP2PStateStarting})
 	linkSource, err := o.startDirect(ctx, config.sessionID, config.sessionKey, config.signalingURL)
 	if err != nil {
-		state.setSnapshot(TransportCompositionSnapshot{DirectP2PEnabled: true, P2PState: TransportCompositionP2PStateError, LastError: err.Error()})
+		state.setSnapshot(TransportCompositionSnapshot{
+			DirectP2PEnabled: true,
+			P2PState:         TransportCompositionP2PStateError,
+			LastError:        err.Error(),
+			Unauthorized:     sessionTransportUnauthorized(err),
+		})
 		return err
 	}
 
@@ -353,7 +362,7 @@ func (o *transportCompositionOwner) watchLinks(ctx context.Context, sessionID st
 	for {
 		running, transportWaitCh := o.transportState(sessionID)
 		if !running {
-			o.setTransportExited(state, generation)
+			o.setTransportExited(state, generation, source.Err())
 			return
 		}
 		links, linkWaitChs := source.GetLinkSnapshotsWithWait()
@@ -392,8 +401,9 @@ func (o *transportCompositionOwner) setLinks(state *transportCompositionSession,
 	})
 }
 
-// setTransportExited records unexpected exit only for the current watcher generation.
-func (o *transportCompositionOwner) setTransportExited(state *transportCompositionSession, generation uint64) {
+// setTransportExited records unexpected exit only for the current watcher
+// generation. err is the transport failure, or nil when it stopped cleanly.
+func (o *transportCompositionOwner) setTransportExited(state *transportCompositionSession, generation uint64, err error) {
 	state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if generation != state.generation {
 			return
@@ -401,6 +411,10 @@ func (o *transportCompositionOwner) setTransportExited(state *transportCompositi
 		state.snapshot.ActivePeerCount = 0
 		state.snapshot.P2PState = TransportCompositionP2PStateError
 		state.snapshot.LastError = "session transport stopped"
+		if err != nil {
+			state.snapshot.LastError = err.Error()
+		}
+		state.snapshot.Unauthorized = sessionTransportUnauthorized(err)
 		broadcast()
 	})
 }

@@ -4,20 +4,16 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"net/http"
-	"net/http/httptest"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/s4wave/spacewave/core/provider"
-	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	core_session "github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/transport"
@@ -25,6 +21,7 @@ import (
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
@@ -271,23 +268,14 @@ func TestSessionTransportReadyErrorCleanupUsesFreshBudgetAfterCallerExpiry(t *te
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	requestStarted := make(chan struct{})
-	var requestOnce sync.Once
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestOnce.Do(func() {
-			close(requestStarted)
-		})
-		<-r.Context().Done()
-	}))
-	defer server.Close()
-
+	gate := newStartupGate()
 	st, err := transport.NewSessionTransport(
 		acc.le,
 		acc.t.p.b,
 		sessionKey,
-		server.URL,
 		"",
-		transport.WithStartupTimeout(time.Second),
+		"",
+		gate.option(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -323,10 +311,10 @@ func TestSessionTransportReadyErrorCleanupUsesFreshBudgetAfterCallerExpiry(t *te
 	}()
 
 	select {
-	case <-requestStarted:
+	case <-gate.started:
 	case <-callerCtx.Done():
 		ownerRelease()
-		t.Fatal("transport startup did not reach its causal request")
+		t.Fatal("transport startup did not reach the gate")
 	}
 	select {
 	case <-callerCtx.Done():
@@ -373,46 +361,13 @@ func TestSessionTransportReadyErrorCleanupUsesFreshBudgetAfterCallerExpiry(t *te
 }
 
 func TestCanceledSessionTransportCreatorStopsPendingState(t *testing.T) {
-	if runtime.GOOS == "js" {
-		t.Skip("causal startup cancellation test requires native HTTP server context and WebSocket support")
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	var ticketRequests atomic.Int32
-	requestStarted := make(chan struct{}, 1)
-	requestCanceled := make(chan struct{}, 1)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
-			if ticketRequests.Add(1) == 1 {
-				requestStarted <- struct{}{}
-				<-r.Context().Done()
-				requestCanceled <- struct{}{}
-				return
-			}
-			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(data)
-		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
-			conn, err := websocket.Accept(w, r, nil)
-			if err != nil {
-				return
-			}
-			defer conn.Close(websocket.StatusNormalClosure, "")
-			<-r.Context().Done()
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
 
 	creatorCtx, creatorCancel := context.WithCancel(ctx)
 	type ensureResult struct {
@@ -421,20 +376,20 @@ func TestCanceledSessionTransportCreatorStopsPendingState(t *testing.T) {
 	}
 	creatorDone := make(chan ensureResult, 1)
 	go func() {
-		sts, _, err := acc.ensureSessionTransport(creatorCtx, sessionKey, server.URL, "")
+		sts, _, err := acc.ensureSessionTransport(creatorCtx, sessionKey, unreachableSignalingURL, "")
 		creatorDone <- ensureResult{sts: sts, err: err}
 	}()
 
 	select {
-	case <-requestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
-		t.Fatalf("creator did not reach signaling startup: %v", ctx.Err())
+		t.Fatalf("creator did not reach the startup gate: %v", ctx.Err())
 	}
 	creatorCancel()
 	select {
-	case <-requestCanceled:
+	case <-gate.canceled:
 	case <-ctx.Done():
-		t.Fatalf("signaling request did not observe creator cancellation: %v", ctx.Err())
+		t.Fatalf("startup did not observe creator cancellation: %v", ctx.Err())
 	}
 
 	var result ensureResult
@@ -465,7 +420,7 @@ func TestCanceledSessionTransportCreatorStopsPendingState(t *testing.T) {
 		t.Fatal("canceled creator left its transport current")
 	}
 
-	replacement, created, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+	replacement, created, err := acc.ensureSessionTransport(ctx, sessionKey, unreachableSignalingURL, "")
 	if err != nil {
 		t.Fatalf("same-configuration ensure after cancellation failed: %v", err)
 	}
@@ -568,56 +523,22 @@ func TestEnsureSessionTransportCoalescesSameConfiguration(t *testing.T) {
 }
 
 func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t *testing.T) {
-	if runtime.GOOS == "js" {
-		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	var ticketRequests atomic.Int32
-	firstRequestStarted := make(chan struct{})
-	releaseFirstRequest := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
-			if ticketRequests.Add(1) == 1 {
-				close(firstRequestStarted)
-				select {
-				case <-releaseFirstRequest:
-				case <-r.Context().Done():
-					return
-				}
-			}
-			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(data)
-		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
-			conn, err := websocket.Accept(w, r, nil)
-			if err != nil {
-				return
-			}
-			defer conn.Close(websocket.StatusNormalClosure, "")
-			<-r.Context().Done()
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
+	defer gate.release()
 
 	firstDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, unreachableSignalingURL, "")
 		firstDone <- err
 	}()
 	select {
-	case <-firstRequestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
 		t.Fatalf("first explicit transport did not begin startup: %v", ctx.Err())
 	}
@@ -639,7 +560,7 @@ func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t 
 	secondCtx := &observedDoneContext{Context: ctx, observed: secondObserved}
 	secondDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(secondCtx, sessionKey, server.URL, "")
+		_, _, err := acc.ensureSessionTransport(secondCtx, sessionKey, unreachableSignalingURL, "")
 		secondDone <- err
 	}()
 	select {
@@ -647,7 +568,7 @@ func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t 
 	case <-ctx.Done():
 		t.Fatalf("second explicit transport did not reach its readiness wait: %v", ctx.Err())
 	}
-	close(releaseFirstRequest)
+	gate.release()
 
 	for name, done := range map[string]<-chan error{
 		"first explicit":  firstDone,
@@ -669,9 +590,6 @@ func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t 
 }
 
 func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
-	if runtime.GOOS == "js" {
-		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
@@ -685,17 +603,17 @@ func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
 	}
 	acc.StopSessionTransport()
 
-	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
-	defer server.Close()
-	defer releaseFirstRequest()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
+	defer gate.release()
 
 	firstDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, unreachableSignalingURL, "")
 		firstDone <- err
 	}()
 	select {
-	case <-firstRequestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
 		t.Fatalf("explicit transport did not begin startup: %v", ctx.Err())
 	}
@@ -712,7 +630,7 @@ func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
 	case <-followObserved:
 	case err := <-firstDone:
 		firstPending = false
-		releaseFirstRequest()
+		gate.release()
 		if errors.Is(err, errSessionTransportSuperseded) {
 			t.Fatalf("explicit transport was superseded by unlock startup: %v", err)
 		}
@@ -722,7 +640,7 @@ func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatalf("unlock startup did not select a transport policy: %v", ctx.Err())
 	}
-	releaseFirstRequest()
+	gate.release()
 
 	if firstPending {
 		select {
@@ -748,25 +666,22 @@ func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
 }
 
 func TestEnsureSessionTransportWithoutReplacementRetriesAfterFollowedTransportIsSuperseded(t *testing.T) {
-	if runtime.GOOS == "js" {
-		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
-	defer server.Close()
-	defer releaseFirstRequest()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
+	defer gate.release()
 
 	firstDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, unreachableSignalingURL, "")
 		firstDone <- err
 	}()
 	select {
-	case <-firstRequestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
 		t.Fatalf("first transport did not begin startup: %v", ctx.Err())
 	}
@@ -806,25 +721,22 @@ func TestEnsureSessionTransportWithoutReplacementRetriesAfterFollowedTransportIs
 }
 
 func TestEnsureSessionTransportWithoutReplacementRetriesAfterStartedTransportIsSuperseded(t *testing.T) {
-	if runtime.GOOS == "js" {
-		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
-	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
-	defer server.Close()
-	defer releaseFirstRequest()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
+	defer gate.release()
 
 	starterDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransportWithoutReplacement(ctx, sessionKey, server.URL, "")
+		_, _, err := acc.ensureSessionTransportWithoutReplacement(ctx, sessionKey, unreachableSignalingURL, "")
 		starterDone <- err
 	}()
 	select {
-	case <-firstRequestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
 		t.Fatalf("non-replacing transport did not begin startup: %v", ctx.Err())
 	}
@@ -1172,20 +1084,9 @@ func TestSupersededSessionTransportCreatorKeepsNewConfiguration(t *testing.T) {
 		t.Fatalf("settle session transport startup: %v", err)
 	}
 
-	var requestCount atomic.Int32
-	requestStarted := make(chan struct{}, 1)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if requestCount.Add(1) == 1 {
-			requestStarted <- struct{}{}
-			<-r.Context().Done()
-			return
-		}
-		http.Error(w, "stale transport recreation", http.StatusServiceUnavailable)
-	}))
-	defer func() {
-		cancel()
-		server.Close()
-	}()
+	gate := newStartupGate()
+	acc.t.p.localNetwork = gate.option()
+	defer gate.release()
 
 	oldPriv := sess.GetPrivKey()
 	newPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
@@ -1195,14 +1096,14 @@ func TestSupersededSessionTransportCreatorKeepsNewConfiguration(t *testing.T) {
 
 	oldDone := make(chan error, 1)
 	go func() {
-		_, _, err := acc.ensureSessionTransport(ctx, oldPriv, server.URL, "old")
+		_, _, err := acc.ensureSessionTransport(ctx, oldPriv, unreachableSignalingURL, "old")
 		oldDone <- err
 	}()
 
 	select {
-	case <-requestStarted:
+	case <-gate.started:
 	case <-ctx.Done():
-		t.Fatalf("old transport did not reach signaling startup: %v", ctx.Err())
+		t.Fatalf("old transport did not reach the startup gate: %v", ctx.Err())
 	}
 
 	newDone := make(chan error, 1)
@@ -1260,48 +1161,51 @@ func stopMountedSessionTransportOwner(t *testing.T, acc *ProviderAccount, sess *
 	acc.StopSessionTransport()
 }
 
-func newBlockedSessionTransportServer(t *testing.T) (*httptest.Server, <-chan struct{}, func()) {
-	t.Helper()
+// unreachableSignalingURL refuses connections. Tests use it to give a
+// transport a distinct signaling configuration; signaling retries in the
+// background without affecting readiness.
+const unreachableSignalingURL = "http://127.0.0.1:1"
 
-	firstRequestStarted := make(chan struct{})
-	releaseFirstRequest := make(chan struct{})
-	var requestOnce, releaseOnce sync.Once
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
-			requestOnce.Do(func() {
-				close(firstRequestStarted)
-			})
-			select {
-			case <-releaseFirstRequest:
-			case <-r.Context().Done():
-				return
-			}
-			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/octet-stream")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(data)
-		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
-			conn, err := websocket.Accept(w, r, nil)
-			if err != nil {
-				return
-			}
-			defer conn.Close(websocket.StatusNormalClosure, "")
-			<-r.Context().Done()
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	release := func() {
-		releaseOnce.Do(func() {
-			close(releaseFirstRequest)
-		})
+// startupGate holds the first session transport that starts through it in
+// startup until release. Later transports start without waiting.
+type startupGate struct {
+	started     chan struct{}
+	canceled    chan struct{}
+	releaseCh   chan struct{}
+	first       atomic.Bool
+	releaseOnce sync.Once
+}
+
+func newStartupGate() *startupGate {
+	return &startupGate{
+		started:   make(chan struct{}),
+		canceled:  make(chan struct{}, 1),
+		releaseCh: make(chan struct{}),
 	}
-	return server, firstRequestStarted, release
+}
+
+// option returns the local transport option that waits on the gate.
+func (g *startupGate) option() transport.SessionTransportOption {
+	return transport.WithLocalTransport(func(ctx context.Context, _ *logrus.Entry, _ bus.Bus, _ peer.ID) (*transport_controller.Controller, func(), error) {
+		if g.first.Swap(true) {
+			return nil, func() {}, nil
+		}
+		close(g.started)
+		select {
+		case <-g.releaseCh:
+			return nil, func() {}, nil
+		case <-ctx.Done():
+			g.canceled <- struct{}{}
+			return nil, nil, ctx.Err()
+		}
+	})
+}
+
+// release lets the held startup continue.
+func (g *startupGate) release() {
+	g.releaseOnce.Do(func() {
+		close(g.releaseCh)
+	})
 }
 
 func configureLowCostPINLock(ctx context.Context, t *testing.T, sess *Session, pin []byte) {

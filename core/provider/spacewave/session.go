@@ -56,6 +56,8 @@ type Session struct {
 	pairingCancel context.CancelFunc
 	// transitionWatcher follows account authority only while this Session is unlocked.
 	transitionWatcher *routine.RoutineContainer
+	// transportAuthWatcher repairs a rejected registration while this Session is unlocked.
+	transportAuthWatcher *routine.RoutineContainer
 
 	// lockTransition serializes startup and changes to the unlocked lifetime.
 	lockTransition csync.Mutex
@@ -257,6 +259,9 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	if s.transitionWatcher != nil {
 		s.transitionWatcher.SetContext(s.lifecycleCtx, true)
 	}
+	if s.transportAuthWatcher != nil {
+		s.transportAuthWatcher.SetContext(s.lifecycleCtx, true)
+	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -283,9 +288,12 @@ func (s *Session) LockSession(ctx context.Context) error {
 	}
 
 	s.clearPairingEngine()
-	if s.transitionWatcher != nil {
-		s.transitionWatcher.ClearContext()
-		if err := s.transitionWatcher.WaitExited(ctx, true, nil); err != nil && !errors.Is(err, context.Canceled) {
+	for _, watcher := range []*routine.RoutineContainer{s.transitionWatcher, s.transportAuthWatcher} {
+		if watcher == nil {
+			continue
+		}
+		watcher.ClearContext()
+		if err := watcher.WaitExited(ctx, true, nil); err != nil && !errors.Is(err, context.Canceled) {
 			return err
 		}
 	}
@@ -646,43 +654,10 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		return errors.Wrap(err, "check session registration state")
 	}
 
-	// Register the peer identity, install its signer, and persist acceptance.
-	registerSession := func() (*api.ObservedSessionMetadata, error) {
-		// Register the Session identity and capture cloud-observed metadata.
-		resp, err := t.a.entityCli.RegisterSessionDirectWithResponse(ctx, sessionPeerID.String(), buildSessionDeviceInfo(), "", "")
-		if err != nil {
-			return nil, errors.Wrap(err, "register session with cloud")
-		}
-
-		// Install the accepted Session signer for authenticated account requests.
-		le.Debug("registered session with cloud")
-		t.a.maybeSetSessionClient(t.id, NewSessionClient(
-			t.a.p.httpCli,
-			t.a.p.endpoint,
-			t.a.p.signingEnvPfx,
-			sessionPriv,
-			sessionPeerID.String(),
-		))
-
-		// Persist the accepted peer ID so future mounts can skip registration.
-		err = kvtx.RunTransaction(ctx, true,
-			func(ctx context.Context) (kvtx.Tx, error) {
-				return objStore.NewTransaction(ctx, true)
-			},
-			func(ctx context.Context, tx kvtx.Tx) error {
-				return tx.Set(ctx, regKey, []byte(sessionPeerID.String()))
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		return resp.GetObservedMetadata(), nil
-	}
-
 	// Register identities that have not yet been accepted for this key.
 	var registeredObserved *api.ObservedSessionMetadata
 	if !registered {
-		observed, err := registerSession()
+		observed, err := t.registerSession(ctx, objStore, sessionPriv, sessionPeerID)
 		if err != nil {
 			return err
 		}
@@ -734,6 +709,8 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 
 	so.transitionWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "account-transition"), routine.WithRetry(providerBackoff))
 	so.transitionWatcher.SetRoutine(so.watchAccountTransition)
+	so.transportAuthWatcher = routine.NewRoutineContainerWithLogger(le.WithField("routine", "transport-authorization"), routine.WithRetry(providerBackoff))
+	so.transportAuthWatcher.SetRoutine(so.watchTransportAuthorization)
 
 	// Retain account storage before publishing the Session to callers.
 	accountRef, _, _ := t.a.p.accountRc.AddKeyRef(t.a.accountID)
@@ -766,7 +743,8 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}()
 
-	// Start direct transport and repair cloud registration when it was rejected.
+	// Start direct transport. The authorization watcher repairs a rejected
+	// registration whenever the cloud refuses the Session credential.
 	if err := t.a.ConfigureSessionTransport(
 		ctx,
 		t.id,
@@ -777,33 +755,15 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		if errors.Is(err, context.Canceled) {
 			return context.Canceled
 		}
-		if errors.Is(err, errSessionTransportUnauthorized) {
-			le.WithError(err).Warn("registered session rejected; re-registering")
-			observed, rerr := registerSession()
-			if rerr != nil {
-				le.WithError(rerr).Warn("failed to re-register rejected session")
-			}
-			if rerr == nil {
-				registeredObserved = observed
-
-				// Rebuild transport after the cloud accepts the Session registration.
-				if terr := t.a.ConfigureSessionTransport(
-					ctx,
-					t.id,
-					sessionPriv,
-					t.a.p.endpoint,
-					directP2PEnabled,
-				); terr != nil {
-					if errors.Is(terr, context.Canceled) {
-						return context.Canceled
-					}
-					le.WithError(terr).Warn("failed to reconcile session transport after re-registration")
-				}
-			}
-		} else {
-			le.WithError(err).Warn("failed to reconcile session transport")
-		}
+		le.WithError(err).Warn("failed to reconcile session transport")
 	}
+	transportAuthWatcher := so.transportAuthWatcher
+	transportAuthWatcher.SetContext(ctx, false)
+	defer func() {
+		if exited, _ := transportAuthWatcher.SetRoutine(nil); exited != nil {
+			<-exited
+		}
+	}()
 
 	releaseStartup()
 

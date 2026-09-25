@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	websocket "github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -22,15 +23,18 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/net/peer"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
 
-// These tests exercise the native WebRTC session transport startup lifecycle,
-// which reaches the signal-ticket HTTP endpoint through startWebRTCControllers.
-// The goscript browser build replaces that selector with a no-op (browser
-// sessions obtain transport from the web runtime), so the signal-ticket
-// lifecycle does not exist there and these tests only apply to the native build.
+// These tests exercise the native session transport lifecycle, whose WebRTC
+// signaling controller reaches the signal-ticket HTTP endpoint. The goscript
+// browser build replaces that selector with a no-op (browser sessions obtain
+// transport from the web runtime), so these tests only apply to the native
+// build.
 
 // TestCreateSessionTransportCancellationAfterReadyClearsCurrentTransport checks
 // that cancellation publishes exit and removes the ready transport.
@@ -107,8 +111,8 @@ func (e *testSessionTransportStatusError) StatusCode() int {
 }
 
 // TestMountedSessionReRegistersAfterUnauthorizedTransport checks that a mounted
-// Session renews its registration and transport after a rejected ticket even
-// when presentation metadata cannot be mirrored.
+// Session renews its registration and transport after the cloud rejects its
+// signal ticket, even when presentation metadata cannot be mirrored.
 func TestMountedSessionReRegistersAfterUnauthorizedTransport(t *testing.T) {
 	// Control the first rejected ticket and the replacement ticket independently.
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
@@ -157,7 +161,6 @@ func TestMountedSessionReRegistersAfterUnauthorizedTransport(t *testing.T) {
 			case 2:
 				close(secondTicketStarted)
 				<-permitSecondTicket
-			case 3:
 			default:
 				http.Error(w, "unexpected extra ticket", http.StatusInternalServerError)
 				return
@@ -177,7 +180,7 @@ func TestMountedSessionReRegistersAfterUnauthorizedTransport(t *testing.T) {
 			}
 			defer conn.Close(websocket.StatusNormalClosure, "")
 			websocketAcceptedOnce.Do(func() { close(websocketAccepted) })
-			<-r.Context().Done()
+			<-conn.CloseRead(r.Context()).Done()
 		default:
 			http.NotFound(w, r)
 		}
@@ -304,8 +307,8 @@ func TestMountedSessionReRegistersAfterUnauthorizedTransport(t *testing.T) {
 	if got := registrations.Load(); got < 2 {
 		t.Fatalf("session registrations = %d, want initial registration and re-registration", got)
 	}
-	if got := tickets.Load(); got != 3 {
-		t.Fatalf("signal tickets = %d, want rejected startup, replacement startup, and connection", got)
+	if got := tickets.Load(); got != 2 {
+		t.Fatalf("signal tickets = %d, want the rejected ticket and the replacement connection", got)
 	}
 
 	// Join the container-owned tracker after canceling its lifetime.
@@ -372,13 +375,13 @@ func TestSessionTransportReplacementReportsUncooperativeRoutine(t *testing.T) {
 	}
 }
 
-// TestClassifySessionTransportErrorUsesStatusThroughWrappedMessage checks status
+// TestSessionTransportUnauthorizedUsesStatusThroughWrappedMessage checks status
 // classification independently of wrapper text.
-func TestClassifySessionTransportErrorUsesStatusThroughWrappedMessage(t *testing.T) {
+func TestSessionTransportUnauthorizedUsesStatusThroughWrappedMessage(t *testing.T) {
 	err := errors.Wrap(&testSessionTransportStatusError{
 		statusCode: http.StatusUnauthorized,
 	}, "message changed")
-	if !errors.Is(classifySessionTransportError(err), errSessionTransportUnauthorized) {
+	if !sessionTransportUnauthorized(err) {
 		t.Fatalf("classification lost unauthorized status through wrapped message: %v", err)
 	}
 }
@@ -386,32 +389,16 @@ func TestClassifySessionTransportErrorUsesStatusThroughWrappedMessage(t *testing
 // TestCreateSessionTransportConcurrentReplacementKeepsNewTransport checks that
 // an old startup cannot clear its ready replacement.
 func TestCreateSessionTransportConcurrentReplacementKeepsNewTransport(t *testing.T) {
-	// Hold the old signal-ticket request until its transport is canceled.
-	requested := make(chan struct{})
-	unexpectedPath := make(chan string, 1)
-	var once sync.Once
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/signal/ticket" {
-			select {
-			case unexpectedPath <- r.URL.Path:
-			default:
-			}
-			http.NotFound(w, r)
-			return
-		}
-		once.Do(func() { close(requested) })
-		<-r.Context().Done()
-	}))
-	defer srv.Close()
-
-	// Start the old transport and wait for its blocked request.
-	acc := NewTestProviderAccount(t, srv.URL)
+	// Hold the old transport in startup until its replacement cancels it.
+	acc := NewTestProviderAccount(t, "")
+	gate := newStartupGate()
+	acc.p.transportOptions = []transport.SessionTransportOption{gate.option()}
 	oldPriv, _ := generateTestKeypair(t)
 	oldDone := make(chan error, 1)
 	go func() {
-		oldDone <- acc.CreateSessionTransport(context.Background(), oldPriv, srv.URL)
+		oldDone <- acc.CreateSessionTransport(context.Background(), oldPriv, "")
 	}()
-	waitForSessionTransportSignal(t, requested, time.Second, "old signal ticket request")
+	waitForSessionTransportSignal(t, gate.started, time.Second, "old transport startup")
 
 	// Replace it with a ready transport carrying a different peer identity.
 	newPriv, _ := generateTestKeypair(t)
@@ -438,39 +425,22 @@ func TestCreateSessionTransportConcurrentReplacementKeepsNewTransport(t *testing
 	if acc.GetSessionTransport() != current {
 		t.Fatal("old CreateSessionTransport cleared the newer transport")
 	}
-	assertNoUnexpectedSessionTransportPath(t, unexpectedPath)
 }
 
 // TestCreateSessionTransportCancellationStopsStartup checks that cancellation
-// stops a pending signal-ticket request and clears its transport.
+// stops a pending startup and clears its transport.
 func TestCreateSessionTransportCancellationStopsStartup(t *testing.T) {
-	// Keep the signal-ticket request pending until its context is canceled.
-	requested := make(chan struct{})
-	unexpectedPath := make(chan string, 1)
-	var once sync.Once
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/signal/ticket" {
-			select {
-			case unexpectedPath <- r.URL.Path:
-			default:
-			}
-			http.NotFound(w, r)
-			return
-		}
-		once.Do(func() { close(requested) })
-		<-r.Context().Done()
-	}))
-	defer srv.Close()
-
-	// Cancel startup only after the request has reached the endpoint.
-	acc := NewTestProviderAccount(t, srv.URL)
+	// Hold startup until its context is canceled.
+	acc := NewTestProviderAccount(t, "")
+	gate := newStartupGate()
+	acc.p.transportOptions = []transport.SessionTransportOption{gate.option()}
 	priv, _ := generateTestKeypair(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- acc.CreateSessionTransport(ctx, priv, srv.URL)
+		done <- acc.CreateSessionTransport(ctx, priv, "")
 	}()
-	waitForSessionTransportSignal(t, requested, time.Second, "signal ticket request")
+	waitForSessionTransportSignal(t, gate.started, time.Second, "transport startup")
 	cancel()
 
 	// Join startup and require the canceled transport to be removed.
@@ -485,7 +455,29 @@ func TestCreateSessionTransportCancellationStopsStartup(t *testing.T) {
 	if st := acc.GetSessionTransport(); st != nil {
 		t.Fatal("expected canceled session transport to be cleared")
 	}
-	assertNoUnexpectedSessionTransportPath(t, unexpectedPath)
+}
+
+// startupGate holds the first session transport that starts through it in
+// startup until its context ends. Later transports start without waiting.
+type startupGate struct {
+	started chan struct{}
+	first   atomic.Bool
+}
+
+func newStartupGate() *startupGate {
+	return &startupGate{started: make(chan struct{})}
+}
+
+// option returns the local transport option that waits on the gate.
+func (g *startupGate) option() transport.SessionTransportOption {
+	return transport.WithLocalTransport(func(ctx context.Context, _ *logrus.Entry, _ bus.Bus, _ peer.ID) (*transport_controller.Controller, func(), error) {
+		if g.first.Swap(true) {
+			return nil, func() {}, nil
+		}
+		close(g.started)
+		<-ctx.Done()
+		return nil, nil, ctx.Err()
+	})
 }
 
 // waitForSessionTransportSignal waits for a fixture event within the test bound.
@@ -495,15 +487,5 @@ func waitForSessionTransportSignal(t *testing.T, ch <-chan struct{}, timeout tim
 	case <-ch:
 	case <-time.After(timeout):
 		t.Fatalf("timed out waiting for %s", name)
-	}
-}
-
-// assertNoUnexpectedSessionTransportPath rejects any recorded unexpected request.
-func assertNoUnexpectedSessionTransportPath(t *testing.T, ch <-chan string) {
-	t.Helper()
-	select {
-	case path := <-ch:
-		t.Fatalf("unexpected path: %s", path)
-	default:
 	}
 }
