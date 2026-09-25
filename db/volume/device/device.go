@@ -17,6 +17,10 @@ import (
 // ErrShortRead reports a read range that extends past the end of its file.
 var ErrShortRead = errors.New("read past end of file")
 
+// ErrHeld reports a device that another opener holds open. A device has one
+// opener at a time, which is the only writer of its files.
+var ErrHeld = errors.New("device is held by another opener")
+
 // Write is one positional write.
 type Write struct {
 	// Name is the file to write, created when absent.
