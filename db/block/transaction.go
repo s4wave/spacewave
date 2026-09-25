@@ -310,24 +310,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return writeRoot.ref, nil, nil
 	}
 
-	// Publish staged sub-tree blocks before encoding roots that reference them.
-	// The staging store can intentionally bypass the GC WAL wrapper used by
-	// page writes, so it drains separately from the per-write coalescer.
-	if staged := t.stagedStore.Load(); staged != nil {
-		_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-staged-store")
-		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/before")
-		err := staged.drainAll(ctx)
-		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/after")
-		subtask.End()
-		if err != nil {
-			return nil, nil, err
-		}
-		t.stagedStore.CompareAndSwap(staged, nil)
-	}
-
 	// buffered is the per-write coalescer wrapping the write store. A borrowed
 	// write buffer collects blocks for its parent transaction and is not drained
 	// by this write.
+	staged := t.stagedStore.Load()
 	var buffered *BufferedStore
 	drainBuffered := false
 	existingBuffer, _ := writeStore.(*BufferedStore)
@@ -340,10 +326,33 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		// Draining another coalescer into that buffer only repeats hashing,
 		// cloning, and queue bookkeeping for every block.
 		buffered = existingBuffer
+	case staged != nil && staged.inner == writeStore:
+		// The staging store already coalesces into the write store with the
+		// same settings. Queueing this write's blocks behind the staged
+		// sub-tree blocks drains both in one pass, in arrival order, so no
+		// root reaches the store before the blocks it references.
+		buffered = staged
+		writeStore = buffered
+		drainBuffered = true
 	case writeStore != nil:
 		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 		writeStore = buffered
 		drainBuffered = true
+	}
+
+	// Publish other staged sub-tree blocks before encoding roots that
+	// reference them. The staging store can intentionally bypass the GC WAL
+	// wrapper used by page writes, so it drains separately from the coalescer.
+	if staged != nil && staged != buffered {
+		_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-staged-store")
+		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/before")
+		err := staged.drainAll(ctx)
+		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/after")
+		subtask.End()
+		if err != nil {
+			return nil, nil, err
+		}
+		t.stagedStore.CompareAndSwap(staged, nil)
 	}
 
 	// Batch GC reference updates for the dirty write.
@@ -679,6 +688,9 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		subtask.End()
 		if err != nil {
 			return nil, nil, err
+		}
+		if buffered == staged {
+			t.stagedStore.CompareAndSwap(staged, nil)
 		}
 	}
 
