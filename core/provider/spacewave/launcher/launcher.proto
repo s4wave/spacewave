@@ -167,16 +167,16 @@ message UpdateState {
 
 // UpdatePhase is the phase of the entrypoint update.
 enum UpdatePhase {
-  // UpdatePhase_IDLE means no update in progress.
-  UpdatePhase_IDLE = 0;
-  // UpdatePhase_DOWNLOADING means the update is being downloaded.
-  UpdatePhase_DOWNLOADING = 1;
-  // UpdatePhase_STAGED means the update is downloaded and ready to install.
-  UpdatePhase_STAGED = 2;
-  // UpdatePhase_APPLYING means the update is being applied.
-  UpdatePhase_APPLYING = 3;
-  // UpdatePhase_ERROR means an error occurred.
-  UpdatePhase_ERROR = 4;
+  // UPDATE_PHASE_UNKNOWN means no update is in progress.
+  UPDATE_PHASE_UNKNOWN = 0;
+  // UPDATE_PHASE_DOWNLOADING means the update is being downloaded.
+  UPDATE_PHASE_DOWNLOADING = 1;
+  // UPDATE_PHASE_STAGED means the update is downloaded and ready to install.
+  UPDATE_PHASE_STAGED = 2;
+  // UPDATE_PHASE_APPLYING means the update is being applied.
+  UPDATE_PHASE_APPLYING = 3;
+  // UPDATE_PHASE_ERROR means the update failed.
+  UPDATE_PHASE_ERROR = 4;
 }
 
 // Launcher exposes the launcher controller's DistConfig and update state.

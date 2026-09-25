@@ -226,7 +226,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
 
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
-	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("phase = %v error=%q", state.GetPhase(), state.GetErrorMessage())
 	}
 	if state.GetStagedPath() != filepath.Join(stagingDir, "0.1.0", "dist", "spacewave") {
@@ -396,7 +396,7 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 		t.Fatalf("error = %q", err.Error())
 	}
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
-	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
 	}
 	if _, err := os.Stat(filepath.Join(stagingDir, "0.1.0")); !os.IsNotExist(err) {
@@ -449,14 +449,14 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
 	defer ctrl.releaseMetadataRoutine.ClearContext()
 
-	waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UpdatePhase_ERROR)
+	waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer rel()
 
-	state := waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UpdatePhase_STAGED)
+	state := waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED)
 	if state.GetStagedPath() != filepath.Join(stagingDir, "0.1.0", "dist", "spacewave") {
 		t.Fatalf("staged path = %q", state.GetStagedPath())
 	}
@@ -496,7 +496,7 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_REFRESHING {
 		t.Fatalf("release metadata outcome = %v, want refreshing", outcome)
 	}
-	if phase := ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase(); phase == spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+	if phase := ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase(); phase == spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatal("a lagging World must not surface an update error")
 	}
 }
@@ -518,7 +518,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: ctrl.launcherInfoCtr.GetValue().GetDistConfig(),
 		UpdateState: &spacewave_launcher.UpdateState{
-			Phase:        spacewave_launcher.UpdatePhase_UpdatePhase_ERROR,
+			Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR,
 			ErrorMessage: "previous",
 		},
 	})
@@ -531,7 +531,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 		t.Fatalf("error = %q, want %q", err.Error(), want)
 	}
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
-	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
 	}
 	if !strings.Contains(state.GetErrorMessage(), want) {

@@ -59,7 +59,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 		{
 			name:         "staging update",
-			info:         launcherInfo(spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING, "0.2.0", ""),
+			info:         launcherInfo(spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING, "0.2.0", ""),
 			wantChanged:  true,
 			wantState:    s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_STAGING,
 			wantLive:     s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
@@ -68,7 +68,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 		{
 			name:         "ready to apply",
-			info:         launcherInfo(spacewave_launcher.UpdatePhase_UpdatePhase_STAGED, "0.2.0", ""),
+			info:         launcherInfo(spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED, "0.2.0", ""),
 			wantChanged:  true,
 			wantState:    s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY,
 			wantLive:     s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
@@ -77,7 +77,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 		{
 			name:         "applying update",
-			info:         launcherInfo(spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING, "0.2.0", ""),
+			info:         launcherInfo(spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING, "0.2.0", ""),
 			wantChanged:  true,
 			wantState:    s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_APPLYING,
 			wantLive:     s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
@@ -86,7 +86,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 		{
 			name:         "failed staging remains visible",
-			info:         launcherInfo(spacewave_launcher.UpdatePhase_UpdatePhase_ERROR, "", "checkout release manifest: denied"),
+			info:         launcherInfo(spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR, "", "checkout release manifest: denied"),
 			wantChanged:  true,
 			wantState:    s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_FAILED,
 			wantLive:     s4wave_device.DeviceLiveness_DEVICE_LIVENESS_DEGRADED,
@@ -96,7 +96,7 @@ func TestProjectLauncherUpdateOntoDeviceLifecycle(t *testing.T) {
 		},
 		{
 			name:         "failed apply remains visible",
-			info:         launcherInfo(spacewave_launcher.UpdatePhase_UpdatePhase_ERROR, "", "stat staged path: missing"),
+			info:         launcherInfo(spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR, "", "stat staged path: missing"),
 			wantChanged:  true,
 			wantState:    s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_FAILED,
 			wantLive:     s4wave_device.DeviceLiveness_DEVICE_LIVENESS_DEGRADED,

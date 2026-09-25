@@ -58,7 +58,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 
 	// The desktop becomes installable without a CLI or a stale CLI discovery file.
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
-	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("update phase = %v: %s", state.GetPhase(), state.GetErrorMessage())
 	}
 	dat, err := os.ReadFile(state.GetStagedPath())
@@ -86,7 +86,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if err := ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{ProjectId: "orbit", Rev: 1, ChannelKey: "alpha"}); err != nil {
 		t.Fatal(err)
 	}
-	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatal("offered the installed executable as an update")
 	}
 	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT {

@@ -21,7 +21,7 @@ func (c *Controller) applyUpdate() error {
 		return errors.New("launcher info not available")
 	}
 	us := info.GetUpdateState()
-	if us == nil || us.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+	if us == nil || us.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		return errors.New("no staged update available")
 	}
 	stagedPath := us.GetStagedPath()
@@ -43,7 +43,7 @@ func (c *Controller) applyUpdate() error {
 	// set applying state
 	c.modifyLauncherInfo(func(li *spacewave_launcher.LauncherInfo) (bool, error) {
 		li.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING,
+			Phase:      spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
 			Version:    us.GetVersion(),
 			StagedPath: stagedPath,
 		}

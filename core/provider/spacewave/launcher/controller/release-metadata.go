@@ -266,7 +266,7 @@ func (c *Controller) resolveStagingDir() (string, error) {
 func (c *Controller) setUpdateDownloading(version string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:   spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING,
+			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING,
 			Version: version,
 		}
 		return true, nil
@@ -278,7 +278,7 @@ func (c *Controller) setUpdateDownloading(version string) {
 func (c *Controller) setUpdateStaged(version, stagedPath string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:            spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+			Phase:            spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 			Version:          version,
 			DownloadProgress: 100,
 			StagedPath:       stagedPath,

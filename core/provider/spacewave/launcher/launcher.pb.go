@@ -144,33 +144,33 @@ func (x ReleaseMetadataOutcome) String() string {
 type UpdatePhase int32
 
 const (
-	// UpdatePhase_IDLE means no update in progress.
-	UpdatePhase_UpdatePhase_IDLE UpdatePhase = 0
-	// UpdatePhase_DOWNLOADING means the update is being downloaded.
-	UpdatePhase_UpdatePhase_DOWNLOADING UpdatePhase = 1
-	// UpdatePhase_STAGED means the update is downloaded and ready to install.
-	UpdatePhase_UpdatePhase_STAGED UpdatePhase = 2
-	// UpdatePhase_APPLYING means the update is being applied.
-	UpdatePhase_UpdatePhase_APPLYING UpdatePhase = 3
-	// UpdatePhase_ERROR means an error occurred.
-	UpdatePhase_UpdatePhase_ERROR UpdatePhase = 4
+	// UPDATE_PHASE_UNKNOWN means no update is in progress.
+	UpdatePhase_UPDATE_PHASE_UNKNOWN UpdatePhase = 0
+	// UPDATE_PHASE_DOWNLOADING means the update is being downloaded.
+	UpdatePhase_UPDATE_PHASE_DOWNLOADING UpdatePhase = 1
+	// UPDATE_PHASE_STAGED means the update is downloaded and ready to install.
+	UpdatePhase_UPDATE_PHASE_STAGED UpdatePhase = 2
+	// UPDATE_PHASE_APPLYING means the update is being applied.
+	UpdatePhase_UPDATE_PHASE_APPLYING UpdatePhase = 3
+	// UPDATE_PHASE_ERROR means the update failed.
+	UpdatePhase_UPDATE_PHASE_ERROR UpdatePhase = 4
 )
 
 // Enum value maps for UpdatePhase.
 var (
 	UpdatePhase_name = map[int32]string{
-		0: "UpdatePhase_IDLE",
-		1: "UpdatePhase_DOWNLOADING",
-		2: "UpdatePhase_STAGED",
-		3: "UpdatePhase_APPLYING",
-		4: "UpdatePhase_ERROR",
+		0: "UPDATE_PHASE_UNKNOWN",
+		1: "UPDATE_PHASE_DOWNLOADING",
+		2: "UPDATE_PHASE_STAGED",
+		3: "UPDATE_PHASE_APPLYING",
+		4: "UPDATE_PHASE_ERROR",
 	}
 	UpdatePhase_value = map[string]int32{
-		"UpdatePhase_IDLE":        0,
-		"UpdatePhase_DOWNLOADING": 1,
-		"UpdatePhase_STAGED":      2,
-		"UpdatePhase_APPLYING":    3,
-		"UpdatePhase_ERROR":       4,
+		"UPDATE_PHASE_UNKNOWN":     0,
+		"UPDATE_PHASE_DOWNLOADING": 1,
+		"UPDATE_PHASE_STAGED":      2,
+		"UPDATE_PHASE_APPLYING":    3,
+		"UPDATE_PHASE_ERROR":       4,
 	}
 )
 
@@ -513,7 +513,7 @@ func (x *UpdateState) GetPhase() UpdatePhase {
 	if x != nil {
 		return x.Phase
 	}
-	return UpdatePhase_UpdatePhase_IDLE
+	return UpdatePhase_UPDATE_PHASE_UNKNOWN
 }
 
 func (x *UpdateState) GetVersion() string {
