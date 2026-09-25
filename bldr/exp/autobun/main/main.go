@@ -33,6 +33,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "autobun"
 	app.Usage = "automatically download and run bun"
+	app.ArgsUsage = "[--] <bun arguments...>"
 	app.Version = Version
 	app.HideVersion = true
 	app.Flags = []cli.Flag{
@@ -92,7 +93,7 @@ func main() {
 			cancel()
 		}()
 
-		// Get remaining args to pass to bun
+		// Pass the remaining args to bun. Bun flags follow a "--" terminator.
 		args := c.Args().Slice()
 
 		return autobun.RunBun(ctx, le, resolvedStateDir, bunVersion, args)

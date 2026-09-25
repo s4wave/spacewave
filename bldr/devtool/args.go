@@ -381,11 +381,7 @@ func (a *DevtoolArgs) BuildStartCommands() []*cli.Command {
 				if manifestID == "" {
 					return errors.New("manifest ID required")
 				}
-				args := c.Args().Tail()
-				if len(args) > 0 && args[0] == "--" {
-					args = args[1:]
-				}
-				return a.ExecuteCliProject(c.Context, manifestID, args)
+				return a.ExecuteCliProject(c.Context, manifestID, c.Args().Tail())
 			},
 		},
 		{

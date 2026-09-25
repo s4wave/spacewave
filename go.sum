@@ -24,8 +24,8 @@ github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f h1:mRUz
 github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f/go.mod h1:JhryVCD7kmbK43h9jijrjcpgxbJjlrDdIQ5fKHRkkBE=
 github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65 h1:W06v/eUgxsHtTUmRk90czbLTFTYBMX0HWBBv8KitzNY=
 github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
-github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
-github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
+github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 h1:JOVV25FrBW3l+Hns+j34ahMwzijVeNAl1KYpEWOusbM=
+github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
 github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337 h1:e9kZ8XRvAXoVYNc73tytyT+XD/bRZiVxC2c+PbPAGes=
 github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337/go.mod h1:Nl6r+XZVA/SX2FmhXYBU2Y8+hf3RZIJQh2ZnCBwNa24=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20260924000448-6d90c9b4e2fe h1:esmjA99T1ypN+XoN1If2dj4Dmvu54g6qZiyT9jJK4I4=
