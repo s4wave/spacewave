@@ -15,12 +15,14 @@ on:
       - 'CHANGELOG.org'
   workflow_dispatch:
 
-# Pull request runs group by pull request number so a new push supersedes the
-# previous run. Branch pushes group by commit so every commit on master keeps its
-# own result and a burst of pushes does not leave the branch unmeasured.
+# Pull request runs group by pull request number, and a new push cancels the
+# previous run. Branch pushes group by ref without cancelling: a started run
+# always finishes, so a burst of pushes cannot leave the branch unmeasured, and
+# GitHub keeps only the newest pending run, so a burst cannot queue a run per
+# commit and starve release workflows of runners.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
