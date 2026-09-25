@@ -19,7 +19,7 @@ type ExistsChecker interface {
 }
 
 // DiffBlockStores returns a =writer.BlockIterator= that yields every block
-// present in =src= whose hash is NOT already present in =mirror=. Keys that
+// in the pack =src= whose hash is NOT already present in =mirror=. Keys that
 // fail to parse as a base58 =hash.Hash= are skipped silently (kvfile entries
 // that are not hydra blocks).
 //
@@ -93,19 +93,23 @@ func DiffBlockStoresWithRefGraph(
 	}
 
 	idx := 0
-	return func() (*hash.Hash, []byte, error) {
+	return func() (*hash.Hash, *block.StoredBlock, error) {
 		for idx < len(entries) {
 			entry := entries[idx]
 			idx++
 
-			data, found, err := src.Get(entry.entry.GetKey())
+			value, found, err := src.Get(entry.entry.GetKey())
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "read src block")
 			}
 			if !found {
 				continue
 			}
-			return entry.hash, data, nil
+			blk, err := block.DecodeBlockObject(value)
+			if err != nil {
+				return nil, nil, errors.Wrap(err, entry.hash.MarshalString())
+			}
+			return entry.hash, blk, nil
 		}
 		return nil, nil, nil
 	}, nil

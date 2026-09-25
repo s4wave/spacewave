@@ -7,17 +7,22 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// TestPackBlocks verifies that PackBlocks writes a valid kvfile, the bloom
-// filter contains all packed hashes, and rejects unknown hashes.
+// TestPackBlocks verifies that PackBlocks writes a valid kvfile whose values
+// carry each block's bytes and refs, the bloom filter contains all packed
+// hashes, and rejects unknown hashes.
 func TestPackBlocks(t *testing.T) {
-	// Generate test blocks.
+	// Generate test blocks, each referencing the one before it.
 	type testBlock struct {
 		hash *hash.Hash
 		data []byte
+		refs []*block.BlockRef
 	}
 	var blocks []testBlock
 	for i := range 10 {
@@ -26,19 +31,23 @@ func TestPackBlocks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		blocks = append(blocks, testBlock{hash: h, data: data})
+		refs := []*block.BlockRef{}
+		if i != 0 {
+			refs = append(refs, block.NewBlockRef(blocks[i-1].hash))
+		}
+		blocks = append(blocks, testBlock{hash: h, data: data, refs: refs})
 	}
 
 	// Pack blocks.
 	var buf bytes.Buffer
 	idx := 0
-	result, err := PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
 		b := blocks[idx]
 		idx++
-		return b.hash, b.data, nil
+		return b.hash, &block.StoredBlock{Data: b.data, Refs: b.refs, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -54,7 +63,7 @@ func TestPackBlocks(t *testing.T) {
 		t.Fatal("expected non-empty bloom filter")
 	}
 
-	// Verify kvfile is readable and contains all blocks.
+	// Verify kvfile is readable and contains all blocks with their refs.
 	rd := bytes.NewReader(buf.Bytes())
 	reader, err := kvfile.BuildReader(rd, uint64(buf.Len()))
 	if err != nil {
@@ -66,15 +75,27 @@ func TestPackBlocks(t *testing.T) {
 
 	for _, b := range blocks {
 		key := []byte(b.hash.MarshalString())
-		data, found, err := reader.Get(key)
+		value, found, err := reader.Get(key)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if !found {
 			t.Fatalf("block %s not found in kvfile", b.hash.MarshalString())
 		}
-		if !bytes.Equal(data, b.data) {
+		_, stored, err := packfile.DecodeBlockValue(key, value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(stored.GetData(), b.data) {
 			t.Fatalf("block data mismatch for %s", b.hash.MarshalString())
+		}
+		if len(stored.GetRefs()) != len(b.refs) {
+			t.Fatalf("block %s has %d refs, want %d", b.hash.MarshalString(), len(stored.GetRefs()), len(b.refs))
+		}
+		for i, ref := range b.refs {
+			if !stored.GetRefs()[i].EqualsRef(ref) {
+				t.Fatalf("block %s ref %d mismatch", b.hash.MarshalString(), i)
+			}
 		}
 	}
 
@@ -117,7 +138,7 @@ func TestPackBlocks(t *testing.T) {
 
 	// Verify empty pack.
 	var emptyBuf bytes.Buffer
-	emptyResult, err := PackBlocks(&emptyBuf, func() (*hash.Hash, []byte, error) {
+	emptyResult, err := PackBlocks(&emptyBuf, func() (*hash.Hash, *block.StoredBlock, error) {
 		return nil, nil, nil
 	})
 	if err != nil {
@@ -128,11 +149,19 @@ func TestPackBlocks(t *testing.T) {
 	}
 
 	// Verify error propagation.
-	_, err = PackBlocks(io.Discard, func() (*hash.Hash, []byte, error) {
+	_, err = PackBlocks(io.Discard, func() (*hash.Hash, *block.StoredBlock, error) {
 		return nil, nil, io.ErrUnexpectedEOF
 	})
 	if err == nil {
 		t.Fatal("expected error from iterator")
+	}
+
+	// Verify a block without known refs is rejected.
+	_, err = PackBlocks(io.Discard, func() (*hash.Hash, *block.StoredBlock, error) {
+		return blocks[0].hash, &block.StoredBlock{Data: blocks[0].data}, nil
+	})
+	if !errors.Is(err, block.ErrRefsUnknown) {
+		t.Fatalf("pack byte-only block err = %v, want ErrRefsUnknown", err)
 	}
 }
 
@@ -143,7 +172,7 @@ func TestPackBlocksPolicyFalsePositiveRateAtBlockCeiling(t *testing.T) {
 
 	var buf bytes.Buffer
 	idx := 0
-	result, err := PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= blockCount {
 			return nil, nil, nil
 		}
@@ -154,7 +183,7 @@ func TestPackBlocksPolicyFalsePositiveRateAtBlockCeiling(t *testing.T) {
 		}
 		blocks = append(blocks, h)
 		idx++
-		return h, data, nil
+		return h, &block.StoredBlock{Data: data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatalf("pack blocks: %v", err)

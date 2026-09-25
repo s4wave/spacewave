@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -29,12 +30,14 @@ type PackResult struct {
 	ValueOrderPolicy string
 }
 
-// BlockIterator yields hash/data pairs for packing.
-type BlockIterator func() (h *hash.Hash, data []byte, err error)
+// BlockIterator yields each block to pack with its hash. It returns a nil
+// hash when exhausted.
+type BlockIterator func() (h *hash.Hash, blk *block.StoredBlock, err error)
 
 // PackBlocks packs blocks from the iterator into a kvfile and computes a bloom
-// filter. The iterator should return nil hash when exhausted. Returns the pack
-// result or an error.
+// filter. Each value is the encoded block.BlockObject of the block's bytes and
+// refs, so every block must carry known refs. Returns the pack result or an
+// error.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 	packHash := sha256.New()
 	kvw := kvfile.NewWriter(io.MultiWriter(w, packHash))
@@ -45,7 +48,7 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 	var count uint64
 	var keys [][]byte
 	for {
-		h, data, err := iter()
+		h, blk, err := iter()
 		if err != nil {
 			return nil, errors.Wrap(err, "iterating blocks")
 		}
@@ -54,7 +57,14 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 		}
 
 		key := []byte(h.MarshalString())
-		if err := kvw.WriteValue(key, bytes.NewReader(data)); err != nil {
+		if !blk.GetRefsKnown() {
+			return nil, errors.Wrapf(block.ErrRefsUnknown, "packing block %s", key)
+		}
+		value, err := block.EncodeBlockObject(blk.Data, blk.Refs)
+		if err != nil {
+			return nil, errors.Wrap(err, "encoding block value")
+		}
+		if err := kvw.WriteValue(key, bytes.NewReader(value)); err != nil {
 			return nil, errors.Wrap(err, "writing block to kvfile")
 		}
 		bf.Add(key)

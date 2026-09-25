@@ -987,17 +987,32 @@ func (t *syncErrorTransport) Fetch(context.Context, int64, int) ([]byte, error) 
 	return nil, t.err
 }
 
-// GetBlock observes the read before forwarding it.
-func (s *syncCountingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+// GetStoredBlock observes the read before forwarding it.
+func (s *syncCountingBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if s.onGet != nil {
 		s.onGet(ref)
 	}
-	return s.StoreOps.GetBlock(ctx, ref)
+	return s.StoreOps.GetStoredBlock(ctx, ref)
+}
+
+// syncTestBlockStore stands in for the GC-backed bucket handle, which knows
+// every block's refs. Test blocks carry none, so each reads as a leaf.
+type syncTestBlockStore struct {
+	block.StoreOps
+}
+
+// GetStoredBlock returns the block's bytes with an empty, known ref list.
+func (s syncTestBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, err := block.GetBlockWithoutRefs(ctx, s.StoreOps, ref)
+	if stored != nil {
+		stored.RefsKnown = true
+	}
+	return stored, err
 }
 
 // newSyncTestBlockStore constructs the provider block test store.
 func newSyncTestBlockStore() block.StoreOps {
-	return newProviderSpacewaveTestBlockStore(hash.RecommendedHashType)
+	return syncTestBlockStore{StoreOps: newProviderSpacewaveTestBlockStore(hash.RecommendedHashType)}
 }
 
 // newSyncTestLowerPackfileStore packs fixture blocks into a readable lower store.
@@ -1020,13 +1035,13 @@ func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *pack
 
 	var buf bytes.Buffer
 	idx := 0
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(items) {
 			return nil, nil, nil
 		}
 		item := items[idx]
 		idx++
-		return item.h, item.data, nil
+		return item.h, &block.StoredBlock{Data: item.data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatalf("pack lower blocks: %v", err)

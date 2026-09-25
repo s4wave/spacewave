@@ -20,7 +20,6 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
 	"github.com/s4wave/spacewave/db/packfile/writer"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // FetchSourcePackToTempFile downloads one source pack into a temporary file.
@@ -229,19 +228,15 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 			return err
 		}
 		key := ie.GetKey()
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(string(key)); err != nil {
-			return errors.Wrap(err, "parse block hash key")
-		}
-		block, found, err := rdr.Get(key)
+		value, found, err := rdr.Get(key)
 		if err != nil {
 			return errors.Wrap(err, "read indexed block")
 		}
 		if !found {
 			return errors.New("indexed block not found")
 		}
-		if _, err := h.VerifyData(block); err != nil {
-			return errors.Wrap(err, "verify indexed block hash")
+		if _, _, err := packfile.DecodeBlockValue(key, value); err != nil {
+			return errors.Wrap(err, "verify indexed block")
 		}
 		bf.Add(key)
 		keys = append(keys, bytes.Clone(key))

@@ -66,13 +66,13 @@ func buildSinglePack(t *testing.T, id string, blocks map[string][]byte) testPack
 
 	var buf bytes.Buffer
 	idx := 0
-	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(items) {
 			return nil, nil, nil
 		}
 		e := items[idx]
 		idx++
-		return e.h, e.data, nil
+		return e.h, &block.StoredBlock{Data: e.data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)

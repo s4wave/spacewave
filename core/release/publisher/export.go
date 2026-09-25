@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/delta"
 	"github.com/s4wave/spacewave/core/release"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/world"
@@ -31,13 +32,13 @@ func Export(ctx context.Context, eng world.Engine, metadata *release.ReleaseMeta
 
 	// Preserve the same manifest-local ordering and pack limits as publication.
 	index := 0
-	entries, err := delta.EmitDeltaChunks(ctx, spaceID, func() (*hash.Hash, []byte, error) {
+	entries, err := delta.EmitDeltaChunks(ctx, spaceID, func() (*hash.Hash, *block.StoredBlock, error) {
 		if index == len(blocks) {
 			return nil, nil, nil
 		}
 		entry := blocks[index]
 		index++
-		return entry.ref.GetHash(), entry.data, nil
+		return entry.ref.GetHash(), entry.stored, nil
 	}, delta.DefaultMaxChunkBytes, emit)
 	if err != nil {
 		return nil, nil, err

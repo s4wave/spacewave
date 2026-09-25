@@ -152,10 +152,9 @@ func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return b.store.GetBlock(ctx, ref)
 }
 
-// GetStoredBlock reads the block without its refs because cloud packs hold
-// block bytes without their refs.
+// GetStoredBlock forwards to the inner store.
 func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block.GetBlockWithoutRefs(ctx, b, ref)
+	return b.store.GetStoredBlock(ctx, ref)
 }
 
 // GetBlockExists forwards to the inner store.

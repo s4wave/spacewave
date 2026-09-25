@@ -537,16 +537,16 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := eng.getBlock(ctx, []byte(keyHash.MarshalString())); err == nil {
+	if _, err := eng.getBlock(ctx, []byte(keyHash.MarshalString())); err == nil {
 		t.Fatal("expected first read to fail during index load")
 	}
 
-	got, found, err := eng.getBlock(ctx, []byte(keyHash.MarshalString()))
+	got, err := eng.getBlock(ctx, []byte(keyHash.MarshalString()))
 	if err != nil {
 		t.Fatalf("second read returned error: %v", err)
 	}
-	if !found || !bytes.Equal(got, []byte("alpha")) {
-		t.Fatalf("expected retry to return alpha, found=%v data=%q", found, string(got))
+	if !bytes.Equal(got.GetData(), []byte("alpha")) {
+		t.Fatalf("expected retry to return alpha, got %q", string(got.GetData()))
 	}
 }
 

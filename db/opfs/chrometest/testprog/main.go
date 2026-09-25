@@ -3198,13 +3198,13 @@ func nextProbeDirtyChunk(blocks []probeDirtyCandidate, start int, maxChunkBytes 
 func packProbeDirtyBlocks(blocks []probeDirtyBlock) error {
 	var buf bytes.Buffer
 	idx := 0
-	_, err := packfile_writer.PackBlocks(&buf, func() (*hash.Hash, []byte, error) {
+	_, err := packfile_writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
-		block := blocks[idx]
+		dirty := blocks[idx]
 		idx++
-		return block.hash, block.data, nil
+		return dirty.hash, &block.StoredBlock{Data: dirty.data, RefsKnown: true}, nil
 	})
 	return errors.Wrap(err, "pack dirty blocks")
 }

@@ -467,10 +467,11 @@ type dirtyCandidate struct {
 	size int64
 }
 
-// dirtyBlock holds one loaded block for the currently packed flush chunk.
+// dirtyBlock holds one loaded block with its refs for the currently packed
+// flush chunk.
 type dirtyBlock struct {
 	dirtyCandidate
-	data []byte
+	stored *block.StoredBlock
 }
 
 type preparedSyncChunk struct {
@@ -486,13 +487,13 @@ func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.P
 	multiWriter := io.MultiWriter(w, hashWriter)
 
 	idx := 0
-	iter := func() (*hash.Hash, []byte, error) {
+	iter := func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
 		b := blocks[idx]
 		idx++
-		return b.hash, b.data, nil
+		return b.hash, b.stored, nil
 	}
 
 	result, err := writer.PackBlocks(multiWriter, iter)
@@ -650,14 +651,14 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 	blocks := make([]dirtyBlock, 0, len(candidates))
 	for _, candidate := range candidates {
 		ref := block.NewBlockRef(candidate.hash)
-		data, found, err := s.upper.GetBlock(ctx, ref)
+		stored, err := s.upper.GetStoredBlock(ctx, ref)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting dirty block")
 		}
-		if !found {
+		if stored == nil {
 			return nil, errors.Wrap(block.ErrNotFound, candidate.hash.MarshalString())
 		}
-		if int64(len(data)) > writer.DefaultMaxPackBytes {
+		if int64(len(stored.Data)) > writer.DefaultMaxPackBytes {
 			return nil, errors.Errorf(
 				"dirty block %s exceeds max pack chunk size",
 				candidate.hash.MarshalString(),
@@ -665,7 +666,7 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 		}
 		blocks = append(blocks, dirtyBlock{
 			dirtyCandidate: candidate,
-			data:           data,
+			stored:         stored,
 		})
 	}
 	return blocks, nil

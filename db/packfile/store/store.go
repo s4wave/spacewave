@@ -285,18 +285,24 @@ func (s *PackfileStore) BeginReadOperation(context.Context) (block.StoreOps, fun
 }
 
 // GetBlock gets a block by reference from the packfile store.
+func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored, err := s.GetStoredBlock(ctx, ref)
+	return stored.GetData(), stored != nil, err
+}
+
+// GetStoredBlock gets a block with its refs from the packfile store.
 //
 // The manifest's bloom pruning selects candidate packs, and each candidate
 // engine is consulted in turn. The first engine that finds the block
-// returns its bytes.
-func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+// returns it. Returns nil when no pack holds the block.
+func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/store/get-block")
 	defer task.End()
 
 	h := ref.GetHash()
 	if h == nil {
 		trace.Log(ctx, "result", "empty-hash")
-		return nil, false, nil
+		return nil, nil
 	}
 	trace.Log(ctx, "block-ref", ref.MarshalString())
 	key := []byte(h.MarshalString())
@@ -309,7 +315,7 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 	})
 	if len(entries) == 0 {
 		trace.Log(ctx, "result", "empty-manifest")
-		return nil, false, nil
+		return nil, nil
 	}
 
 	candidates := findCandidates(key, tree)
@@ -326,7 +332,7 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		size, err := manifestPackSize(entry)
 		if err != nil {
 			trace.Log(ctx, "result", "invalid-pack-size")
-			return nil, false, err
+			return nil, err
 		}
 		if size <= 0 {
 			continue
@@ -334,31 +340,25 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 		if err != nil {
 			trace.Log(ctx, "result", "open-pack-error")
-			return nil, false, errors.Wrap(err, "opening packfile")
+			return nil, errors.Wrap(err, "opening packfile")
 		}
 		opened++
 		trace.Log(ctx, "pack-id", entry.GetId())
-		data, found, err := eng.getBlock(ctx, key)
+		stored, err := eng.getBlock(ctx, key)
 		if err != nil {
 			trace.Log(ctx, "result", "pack-error")
-			return data, found, err
+			return nil, err
 		}
-		if found {
+		if stored != nil {
 			hit = true
 			trace.Log(ctx, "result", "hit")
-			return data, found, err
+			return stored, nil
 		}
 		negative++
 	}
 
 	trace.Log(ctx, "result", "miss")
-	return nil, false, nil
-}
-
-// GetStoredBlock serves the block without refs because this store keeps
-// block bytes without their refs.
-func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	return block.GetBlockWithoutRefs(ctx, s, ref)
+	return nil, nil
 }
 
 func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeCount int, targetHit bool) {

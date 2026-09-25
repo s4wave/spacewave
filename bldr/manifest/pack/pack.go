@@ -33,7 +33,7 @@ func PackManifestBundle(
 		return nil, nil, err
 	}
 
-	// Retain structural edges while collecting encoded bytes. The walker may
+	// Retain structural edges with the encoded bytes. The walker may
 	// visit siblings before descendants; physical output follows each subtree.
 	blocks := make(map[string]packBlock)
 	graph := order.NewGraph()
@@ -70,8 +70,8 @@ func PackManifestBundle(
 					}
 					graph.Add(entry.Ref, children)
 					blocks[key] = packBlock{
-						hash: entry.Ref.GetHash().CloneVT(),
-						data: bytes.Clone(entry.Data),
+						hash:   entry.Ref.GetHash().CloneVT(),
+						stored: &block.StoredBlock{Data: bytes.Clone(entry.Data), Refs: children, RefsKnown: true},
 					}
 					return true, nil
 				},
@@ -103,13 +103,13 @@ func PackManifestBundle(
 		return nil, nil, err
 	}
 	idx := 0
-	res, err := writer.PackBlocks(w, func() (*hash.Hash, []byte, error) {
+	res, err := writer.PackBlocks(w, func() (*hash.Hash, *block.StoredBlock, error) {
 		if idx >= len(refs) {
 			return nil, nil, nil
 		}
 		blk := blocks[refs[idx].GetHash().MarshalString()]
 		idx++
-		return blk.hash, blk.data, nil
+		return blk.hash, blk.stored, nil
 	})
 	if err != nil {
 		return nil, nil, err
@@ -176,6 +176,7 @@ func NewMetadata(
 type packBlock struct {
 	// hash identifies the encoded payload.
 	hash *hash.Hash
-	// data is the encoded payload copied from the source store.
-	data []byte
+	// stored is the encoded payload copied from the source store, with the
+	// refs its block holds.
+	stored *block.StoredBlock
 }

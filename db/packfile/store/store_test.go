@@ -115,12 +115,34 @@ func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.
 		return nil, false, err
 	}
 	w.mtx.Lock()
-	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data)})
+	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data), Refs: opts.GetRefs()})
 	w.mtx.Unlock()
 	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
 	return ref, existed, nil
+}
+
+// PutBlockBatch records each entry through PutBlock.
+func (w *writebackStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	for _, entry := range entries {
+		opts := &block.PutOpts{ForceBlockRef: entry.Ref, Refs: entry.Refs}
+		if _, _, err := w.PutBlock(ctx, entry.Data, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// putRefs returns the refs recorded for each written block, by hash.
+func (w *writebackStore) putRefs() map[string][]*block.BlockRef {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	refs := make(map[string][]*block.BlockRef, len(w.puts))
+	for _, p := range w.puts {
+		refs[p.Ref.GetHash().MarshalString()] = p.Refs
+	}
+	return refs
 }
 
 func (w *writebackStore) putCount() int {
@@ -389,8 +411,8 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	if stat == nil {
 		t.Fatal("expected block stat")
 	}
-	if stat.Size != int64(len("alpha-data")) {
-		t.Fatalf("stat size = %d, want %d", stat.Size, len("alpha-data"))
+	if stat.Size != -1 {
+		t.Fatalf("stat size = %d, want unknown", stat.Size)
 	}
 	if got := transport.callCount(); got != firstCalls {
 		t.Fatalf("StatBlock fetched payload window: calls %d -> %d", firstCalls, got)
@@ -1328,6 +1350,73 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreServesAndWritesBackRefs verifies that a pack serves each
+// block's refs as known, that co-block writeback records them, and that a
+// graph copy can read a World straight from packs.
+func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
+	ctx := t.Context()
+	leaves := []packItem{testPackItem(t, "beta"), testPackItem(t, "charlie")}
+	root := testPackItem(t, "alpha")
+	for _, leaf := range leaves {
+		root.refs = append(root.refs, block.NewBlockRef(leaf.h))
+	}
+	items := append([]packItem{root}, leaves...)
+	packBytes, bloomBytes := packItems(t, items)
+	entry := &packfile.PackfileEntry{
+		Id:          "refs-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  uint64(len(items)),
+		SizeBytes:   uint64(len(packBytes)),
+	}
+	openStore := func() *PackfileStore {
+		opener, _ := openerFromBytes(packBytes)
+		store := NewPackfileStore(opener, newMemIndexCache())
+		store.UpdateManifest([]*packfile.PackfileEntry{entry})
+		return store
+	}
+	checkRefs := func(what string, got map[string][]*block.BlockRef) {
+		t.Helper()
+		for _, item := range items {
+			refs, ok := got[item.h.MarshalString()]
+			if !ok {
+				t.Fatalf("%s: %q missing", what, item.data)
+			}
+			if len(refs) != len(item.refs) {
+				t.Fatalf("%s: %q has %d refs, want %d", what, item.data, len(refs), len(item.refs))
+			}
+			for i, ref := range item.refs {
+				if !refs[i].EqualsRef(ref) {
+					t.Fatalf("%s: %q ref %d mismatch", what, item.data, i)
+				}
+			}
+		}
+	}
+
+	store := openStore()
+	wb := newWritebackStore(nil)
+	store.SetWriteback(ctx, wb, 1<<20)
+	rootRef := block.NewBlockRef(root.h)
+	stored, err := store.GetStoredBlock(ctx, rootRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.GetRefsKnown() || len(stored.GetRefs()) != len(leaves) {
+		t.Fatalf("root refs known=%v count=%d, want %d", stored.GetRefsKnown(), len(stored.GetRefs()), len(leaves))
+	}
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(items))
+	}) {
+		t.Fatalf("expected %d co-block writebacks, got %d", len(items), wb.putCount())
+	}
+	checkRefs("writeback", wb.putRefs())
+
+	dst := newWritebackStore(nil)
+	if err := block.CopyGraph(ctx, openStore(), dst, rootRef, nil); err != nil {
+		t.Fatal(err)
+	}
+	checkRefs("graph copy", dst.putRefs())
+}
+
 // TestPackfileStoreTrailerPromotesBlocks verifies that bytes fetched during a
 // cold kvfile trailer/index scan become first-class residents: blocks fully
 // contained in those spans are immediately published into the writeback
@@ -1718,11 +1807,10 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	store.SetWriteback(ctx, nil, 0)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
-	// Background verification may reject the first response before this read
-	// returns, allowing it to retry and return valid data immediately.
-	if _, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil {
-		t.Fatalf("first GetBlock: %v", err)
-	}
+	// The first read serves the corrupted value before verification, so it
+	// fails to decode unless background verification already rejected it and
+	// the read retried transport.
+	_, _, _ = store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 
 	// Observe rejection rather than transient catalog absence: a valid retry
 	// may already have installed its replacement record.
@@ -1866,14 +1954,18 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 			if err != nil {
 				t.Fatal(err)
 			}
-			sp := newSpan(int64(i*16), defaultTransportPageBytes, data)
+			value, err := block.EncodeBlockObject(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sp := newSpan(int64(i*16), defaultTransportPageBytes, value)
 			eng.insertSpanLocked(sp)
 			eng.retainSpansLocked([]*span{sp})
 			rec := &blockRecord{
 				key:       ref.GetHash().MarshalString(),
 				ref:       ref,
 				off:       sp.off,
-				size:      int64(len(data)),
+				size:      int64(len(value)),
 				spans:     []*span{sp},
 				state:     blockStateVerifying,
 				readyCh:   make(chan struct{}),

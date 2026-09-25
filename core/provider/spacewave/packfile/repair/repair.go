@@ -11,7 +11,6 @@ import (
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/writer"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 const falsePositiveSlack = 1.01
@@ -162,19 +161,15 @@ func repairEntry(
 			return err
 		}
 		key := ie.GetKey()
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(string(key)); err != nil {
-			return errors.Wrap(err, "parse block hash key")
-		}
-		data, found, err := reader.Get(key)
+		value, found, err := reader.Get(key)
 		if err != nil {
 			return errors.Wrap(err, "read indexed block")
 		}
 		if !found {
 			return errors.New("indexed block not found")
 		}
-		if _, err := h.VerifyData(data); err != nil {
-			return errors.Wrap(err, "verify indexed block hash")
+		if _, _, err := packfile.DecodeBlockValue(key, value); err != nil {
+			return errors.Wrap(err, "verify indexed block")
 		}
 		bf.Add(key)
 		count++

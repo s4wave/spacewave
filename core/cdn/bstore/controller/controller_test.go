@@ -142,11 +142,11 @@ func TestBlockStoreBuilderDurableIndexCacheSurvivesRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	var packData bytes.Buffer
-	packResult, err := writer.PackBlocks(&packData, func() (*hash.Hash, []byte, error) {
+	packResult, err := writer.PackBlocks(&packData, func() (*hash.Hash, *block.StoredBlock, error) {
 		if packData.Len() != 0 {
 			return nil, nil, nil
 		}
-		return blockHash, data, nil
+		return blockHash, &block.StoredBlock{Data: data, RefsKnown: true}, nil
 	})
 	if err != nil {
 		t.Fatal(err)
