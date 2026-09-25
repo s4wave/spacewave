@@ -250,34 +250,66 @@ type fixtureRun struct {
 	// OPFS and IndexedDB in memory in Chromium and Firefox, so storage
 	// measurements need it; WebKit always uses one.
 	persistent bool
+	// onLine, when set, receives the text of every console message.
+	onLine func(string)
+}
+
+// pageFailures collects the browser-side failures of one page.
+type pageFailures struct {
+	mu   sync.Mutex
+	list []string
+}
+
+// add records one failure.
+func (f *pageFailures) add(failure string) {
+	f.mu.Lock()
+	f.list = append(f.list, failure)
+	f.mu.Unlock()
+}
+
+// String joins the recorded failures.
+func (f *pageFailures) String() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return strings.Join(f.list, "; ")
 }
 
 // runFixtureWith runs a fixture page like runFixture with the options of run.
 func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) map[string]any {
 	t.Helper()
+	dir := ""
+	if browserName == "webkit" || run.persistent {
+		dir = t.TempDir()
+	}
+	return runPage(t, launchContext(t, browserName, dir), browserName, fixture, run)
+}
+
+// launchContext launches browserName in a new context that closes with t. A
+// non-empty dir holds an on-disk profile, which WebKit needs for OPFS;
+// otherwise the context is private.
+func launchContext(t *testing.T, browserName, dir string) playwright.BrowserContext {
+	t.Helper()
 
 	bt := browserType(browserName)
 	var ctx playwright.BrowserContext
 	var err error
-	if browserName == "webkit" || run.persistent {
-		// WebKit needs persistent storage for OPFS. On macOS the browsers also
-		// need an isolated home, whose Library ACLs must be cleared before the
-		// temporary directory is removed.
-		directory := t.TempDir()
+	if dir != "" {
+		// On macOS the browsers need an isolated home, whose Library ACLs
+		// must be cleared before the temporary directory is removed.
 		opts := playwright.BrowserTypeLaunchPersistentContextOptions{
 			ExecutablePath: chromeExecutable(t, browserName),
 			Headless:       new(true),
 		}
 		if runtime.GOOS == "darwin" {
-			t.Cleanup(func() { clearHomeACLs(directory) })
+			t.Cleanup(func() { clearHomeACLs(dir) })
 			opts.Env = make(map[string]string)
 			for _, entry := range os.Environ() {
 				key, value, _ := strings.Cut(entry, "=")
 				opts.Env[key] = value
 			}
-			opts.Env["CFFIXED_USER_HOME"] = directory
+			opts.Env["CFFIXED_USER_HOME"] = dir
 		}
-		ctx, err = bt.LaunchPersistentContext(directory, opts)
+		ctx, err = bt.LaunchPersistentContext(dir, opts)
 	} else {
 		var browser playwright.Browser
 		browser, err = bt.Launch(playwright.BrowserTypeLaunchOptions{
@@ -296,35 +328,48 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 		t.Fatalf("launch %s context: %v", browserName, err)
 	}
 	t.Cleanup(func() { _ = ctx.Close() })
+	return ctx
+}
+
+// runPage runs a fixture page in ctx, waits for "DONE" in #log, and returns
+// window.__results as a map.
+func runPage(t *testing.T, ctx playwright.BrowserContext, browserName, fixture string, run fixtureRun) map[string]any {
+	t.Helper()
+	_, wait := startPage(t, ctx, browserName, fixture, run)
+	return wait()
+}
+
+// startPage opens a fixture page in ctx and returns it with a function that
+// waits for "DONE" in #log and returns window.__results as a map.
+func startPage(t *testing.T, ctx playwright.BrowserContext, browserName, fixture string, run fixtureRun) (playwright.Page, func() map[string]any) {
+	t.Helper()
 
 	page, err := ctx.NewPage()
 	if err != nil {
 		t.Fatalf("new page: %v", err)
 	}
 
-	var failureMu sync.Mutex
-	var browserFailures []string
+	failures := &pageFailures{}
 
 	// Forward console messages to test log and retain browser-side failures so
 	// fixture crashes do not collapse into opaque DONE timeouts.
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		t.Logf("[%s console.%s] %s", browserName, msg.Type(), msg.Text())
+		if run.onLine != nil {
+			run.onLine(msg.Text())
+		}
 		if msg.Type() == "error" {
 			for _, allowed := range run.allowedBrowserFailures {
 				if strings.Contains(msg.Text(), allowed) {
 					return
 				}
 			}
-			failureMu.Lock()
-			browserFailures = append(browserFailures, "console.error: "+msg.Text())
-			failureMu.Unlock()
+			failures.add("console.error: " + msg.Text())
 		}
 	})
 	page.On("pageerror", func(err error) {
 		t.Logf("[%s pageerror] %s", browserName, err.Error())
-		failureMu.Lock()
-		browserFailures = append(browserFailures, "pageerror: "+err.Error())
-		failureMu.Unlock()
+		failures.add("pageerror: " + err.Error())
 	})
 
 	url := fmt.Sprintf("%s/%s.html", testServer.url, fixture)
@@ -338,8 +383,17 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 	if _, err := page.Goto(url); err != nil {
 		t.Fatalf("goto %s: %v", url, err)
 	}
+	return page, func() map[string]any {
+		t.Helper()
+		return waitPage(t, page, timeout, failures)
+	}
+}
 
-	// Wait for fixture to complete.
+// waitPage waits for "DONE" in the #log of page, fails t on any browser
+// failure, and returns window.__results as a map.
+func waitPage(t *testing.T, page playwright.Page, timeout time.Duration, failures *pageFailures) map[string]any {
+	t.Helper()
+
 	logSel := page.Locator("#log")
 	if err := logSel.WaitFor(playwright.LocatorWaitForOptions{
 		State:   playwright.WaitForSelectorStateVisible,
@@ -353,19 +407,13 @@ func runFixtureWith(t *testing.T, browserName, fixture string, run fixtureRun) m
 		Timeout: new(float64(timeout.Milliseconds())),
 	}); err != nil {
 		text, _ := logSel.TextContent()
-		failureMu.Lock()
-		failures := strings.Join(browserFailures, "; ")
-		failureMu.Unlock()
-		if failures != "" {
+		if failures := failures.String(); failures != "" {
 			t.Fatalf("fixture did not complete (text=%q, browser failures=%s): %v", text, failures, err)
 		}
 		t.Fatalf("fixture did not complete (text=%q): %v", text, err)
 	}
 
-	failureMu.Lock()
-	failures := strings.Join(browserFailures, "; ")
-	failureMu.Unlock()
-	if failures != "" {
+	if failures := failures.String(); failures != "" {
 		t.Fatalf("fixture reported browser failures: %s", failures)
 	}
 
