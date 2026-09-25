@@ -100,13 +100,13 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 }
 
 // Discard cancels the transaction.
+//
+// Staged writes belong to the block transaction. A tree borrowing its
+// cursor's transaction leaves them to that transaction's owner, which may
+// still publish blocks staged by other trees.
 func (t *Tx) Discard() {
 	if t.commitOnce.CompareAndSwap(false, true) {
-		btx := t.tx
-		if btx == nil && t.bcs != nil {
-			btx = t.bcs.GetTransaction()
-		}
-		btx.DiscardStagedWrites()
+		t.tx.DiscardStagedWrites()
 		if t.rel != nil {
 			t.rel()
 		}

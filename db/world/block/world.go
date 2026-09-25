@@ -569,6 +569,7 @@ func (t *WorldState) Discard() {
 	if t.gcJournalTree != nil {
 		t.gcJournalTree.Discard()
 	}
+	t.btx.DiscardStagedWrites()
 	if t.readRelease != nil {
 		t.readRelease()
 		t.readRelease = nil
