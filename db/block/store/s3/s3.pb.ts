@@ -270,6 +270,36 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * ObjectUsage is the count and total size of the objects under a prefix.
+ *
+ * @generated from message block.store.s3.ObjectUsage
+ */
+export interface ObjectUsage {
+  /**
+   * Objects is the number of objects.
+   *
+   * @generated from field: int64 objects = 1;
+   */
+  objects?: bigint
+  /**
+   * Bytes is the total size of the objects.
+   *
+   * @generated from field: int64 bytes = 2;
+   */
+  bytes?: bigint
+}
+
+export const ObjectUsage: MessageType<ObjectUsage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.store.s3.ObjectUsage',
+    fields: [
+      { no: 1, name: 'objects', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 2, name: 'bytes', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CheckResult is the result of a bucket connectivity check.
  *
  * @generated from message block.store.s3.CheckResult
@@ -288,6 +318,19 @@ export interface CheckResult {
    * @generated from field: string detail = 2;
    */
   detail?: string
+  /**
+   * Usage is what the bucket holds under the object prefix. Absent when the
+   * check failed or the access key cannot list objects.
+   *
+   * @generated from field: block.store.s3.ObjectUsage usage = 3;
+   */
+  usage?: ObjectUsage
+  /**
+   * UsageError is why Usage is absent after a passing check.
+   *
+   * @generated from field: string usage_error = 4;
+   */
+  usageError?: string
 }
 
 export const CheckResult: MessageType<CheckResult> =
@@ -296,6 +339,8 @@ export const CheckResult: MessageType<CheckResult> =
     fields: [
       { no: 1, name: 'outcome', kind: 'enum', T: CheckOutcome_Enum },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'usage', kind: 'message', T: () => ObjectUsage },
+      { no: 4, name: 'usage_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

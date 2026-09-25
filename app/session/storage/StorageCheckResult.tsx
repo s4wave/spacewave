@@ -24,6 +24,12 @@ export function StorageCheckResult({
       >
         <LuCircleCheck className="size-3.5 shrink-0" aria-hidden="true" />
         Connected. A test object was written, read, and deleted.
+        <span
+          className="text-foreground-alt/70"
+          title={check.usageDetail || undefined}
+        >
+          {check.usage ? `Holds ${check.usage}.` : 'Stored size unknown.'}
+        </span>
       </p>
     )
   }
