@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,10 +16,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
@@ -27,6 +30,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -462,6 +466,45 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	}
 }
 
+func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+
+	dc := cdc.NewController(ctx, le)
+	b := inmem.NewBus(dc)
+	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rel()
+	refresher := &releaseWorldRefreshTestController{}
+	relRefresh, err := b.AddController(ctx, refresher, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer relRefresh()
+
+	// The pushed selector names revision 2 while the mounted World holds 1.
+	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
+		DistConfig: &spacewave_launcher.DistConfig{ProjectId: "spacewave", Rev: 2, ChannelKey: "stable"},
+	})
+	err = ctrl.refreshCurrentReleaseMetadataStatus(ctx)
+	if err == nil || !strings.Contains(err.Error(), "behind selector 2") {
+		t.Fatalf("error = %v, want release world behind selector", err)
+	}
+	if refresher.calls.Load() != 1 {
+		t.Fatalf("refresh calls = %d, want 1", refresher.calls.Load())
+	}
+	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "refreshing" {
+		t.Fatalf("release metadata outcome = %q, want refreshing", outcome)
+	}
+	if phase := ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase(); phase == spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+		t.Fatal("a lagging World must not surface an update error")
+	}
+}
+
 func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -860,6 +903,40 @@ func waitForUpdatePhase(
 			t.Fatalf("wait for update phase %v: %v, last state=%+v", phase, err, state)
 		}
 	}
+}
+
+// releaseWorldRefreshTestController counts refreshes of the release World.
+type releaseWorldRefreshTestController struct {
+	calls atomic.Int32
+}
+
+func (c *releaseWorldRefreshTestController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("release-world-refresh-test", controller.MustParseVersion("0.0.1"), "release world refresh test")
+}
+
+func (c *releaseWorldRefreshTestController) Execute(context.Context) error { return nil }
+
+func (c *releaseWorldRefreshTestController) Close() error { return nil }
+
+func (c *releaseWorldRefreshTestController) HandleDirective(
+	ctx context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	dir, ok := di.GetDirective().(bifrost_rpc.LookupRpcService)
+	if !ok || dir.LookupRpcServiceID() != cdn_world_controller.WorldRefreshServiceID(releaseWorldEngineID) {
+		return nil, nil
+	}
+	return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c), nil)
+}
+
+func (c *releaseWorldRefreshTestController) InvokeMethod(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+	handler := cdn_world_controller.NewSRPCWorldRefreshHandler(c, cdn_world_controller.WorldRefreshServiceID(releaseWorldEngineID))
+	return handler.InvokeMethod(serviceID, methodID, stream)
+}
+
+func (c *releaseWorldRefreshTestController) Refresh(context.Context, *cdn_world_controller.RefreshRequest) (*cdn_world_controller.RefreshResponse, error) {
+	c.calls.Add(1)
+	return &cdn_world_controller.RefreshResponse{Accepted: true}, nil
 }
 
 type releaseWorldLookupTestController struct {

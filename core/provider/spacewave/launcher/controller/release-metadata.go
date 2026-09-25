@@ -11,11 +11,13 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
@@ -23,6 +25,7 @@ import (
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -71,6 +74,17 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 		return err
 	}
 
+	// A running World keeps its head until refreshed. A selector newer than
+	// the head means the CDN published a root this process has not read yet:
+	// queue a refresh and let the routine's backoff retry the resolution.
+	if metadata.GetRev() < distConf.GetRev() {
+		c.setReleaseMetadataOutcome("refreshing")
+		if err := c.refreshReleaseWorld(ctx); err != nil {
+			return err
+		}
+		return errors.Errorf("release world at revision %d is behind selector %d", metadata.GetRev(), distConf.GetRev())
+	}
+
 	// Select only manifests compatible with this desktop and application.
 	platformID, err := nativeDesktopPlatformID()
 	if err != nil {
@@ -113,6 +127,21 @@ func (c *Controller) resolveReleaseMetadata(
 	}
 	c.setReleaseWorldHeadRef(headRef)
 	return metadata, err
+}
+
+// refreshReleaseWorld queues a root fetch on the mounted release World. A
+// World mounted without a refresh service has nothing to refresh.
+func (c *Controller) refreshReleaseWorld(ctx context.Context) error {
+	serviceID := cdn_world_controller.WorldRefreshServiceID(releaseWorldEngineID)
+	invokers, _, ref, err := bifrost_rpc.ExLookupRpcService(ctx, c.bus, serviceID, "", false, nil)
+	if err != nil || ref == nil {
+		return errors.Wrap(err, "lookup release world refresh")
+	}
+	defer ref.Release()
+	server := srpc.NewServer(invokers[0])
+	client := cdn_world_controller.NewSRPCWorldRefreshClientWithServiceID(srpc.NewClient(srpc.NewServerPipe(server)), serviceID)
+	_, err = client.Refresh(ctx, &cdn_world_controller.RefreshRequest{})
+	return errors.Wrap(err, "refresh release world")
 }
 
 // stageReleaseManifestUpdate checks out and verifies the selected executable set.
