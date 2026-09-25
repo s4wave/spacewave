@@ -69,6 +69,8 @@ type Harness struct {
 	// Browser process (populated by LaunchBrowser, shared across sessions).
 	pw      *playwright.Playwright
 	browser playwright.Browser
+	// device is the connection behind browser when it is Chrome on Android.
+	device *e2eharness.AndroidChrome
 
 	// Retained-state BrowserContext (lazy init). This is intentionally not used
 	// by NewCleanSession/NewCleanBlankSession, which keep strict isolated

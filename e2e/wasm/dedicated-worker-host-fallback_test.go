@@ -179,8 +179,8 @@ func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
 
 func skipDedicatedWorkerFallbackIfUnsupported(t testing.TB, h *Harness) {
 	t.Helper()
-	if h.BrowserName() != "chromium" {
-		t.Skipf("DedicatedWorker fallback proof is Chromium-only; browser=%s", h.BrowserName())
+	if name := h.BrowserName(); name != "chromium" && name != "android" {
+		t.Skipf("DedicatedWorker fallback proof is Chromium-only; browser=%s", name)
 	}
 }
 

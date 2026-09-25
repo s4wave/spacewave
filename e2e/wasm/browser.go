@@ -65,6 +65,17 @@ func (h *Harness) launchBrowser(pw *playwright.Playwright) (playwright.Browser, 
 			return nil, errors.Wrap(err, "launch webkit")
 		}
 		return browser, nil
+	case "android":
+		server, err := url.Parse(h.baseURL)
+		if err != nil {
+			return nil, err
+		}
+		device, err := e2eharness.ConnectAndroidChrome(pw, server.Port())
+		if err != nil {
+			return nil, err
+		}
+		h.device = device
+		return device.Browser, nil
 	default:
 		return nil, errors.Errorf("unknown e2e wasm browser %q", h.browserName)
 	}
@@ -134,6 +145,9 @@ func (h *Harness) newRetainedStateBrowserPage(s *TestSession) (playwright.Page, 
 // storage. WebKit's ephemeral contexts reject OPFS; its macOS persistent
 // profiles share OPFS by origin, so each fixture also owns a loopback origin.
 func (h *Harness) newStorageContext() (playwright.BrowserContext, string, error) {
+	if h.device != nil {
+		return h.device.Context(), h.baseURL, nil
+	}
 	if h.browserName != "webkit" {
 		ctx, err := h.browser.NewContext(playwright.BrowserNewContextOptions{AcceptDownloads: new(true)})
 		return ctx, h.baseURL, err
@@ -173,7 +187,14 @@ func (h *Harness) newStorageContext() (playwright.BrowserContext, string, error)
 
 // closeStorageContext removes only the fixture origin after its workers stop.
 // WebKit's macOS OPFS directory is outside its explicit profile directory.
+// The Android device's context is its user profile, so it stays open.
 func (h *Harness) closeStorageContext(ctx playwright.BrowserContext, baseURL string) {
+	if h.device != nil {
+		if err := h.device.ClearOrigin(baseURL); err != nil {
+			h.le.WithError(err).Warn("remove device fixture storage")
+		}
+		return
+	}
 	defer ctx.Close()
 	if h.browserName != "webkit" {
 		return
@@ -327,6 +348,11 @@ func (h *Harness) closeRetainedStateContext() {
 
 // closeBrowser tears down the shared Playwright browser process.
 func (h *Harness) closeBrowser() {
+	if h.device != nil {
+		h.device.Close()
+		h.device = nil
+		h.browser = nil
+	}
 	if h.browser != nil {
 		h.browser.Close()
 		h.browser = nil

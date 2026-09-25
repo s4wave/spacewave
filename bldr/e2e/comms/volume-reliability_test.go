@@ -27,8 +27,14 @@ func TestGoScriptVolumeReliability(t *testing.T) {
 	ensureGoScriptFixtureWorker(t, &volumeReplayGoScriptFixtureWorker)
 	for _, browser := range volumeBrowsers(t) {
 		t.Run(browser, func(t *testing.T) {
+			if browser == "safari" {
+				t.Skip("Safari's WebDriver cannot kill, observe, or coordinate a page")
+			}
 			for _, at := range []int{40, 400} {
-				t.Run("kill-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityKill(t, browser, at) })
+				// Killing the device browser would take down the operator's Chrome.
+				if browser != "android" {
+					t.Run("kill-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityKill(t, browser, at) })
+				}
 				t.Run("page-close-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityPageClose(t, browser, at) })
 			}
 			t.Run("evict-at-rest", func(t *testing.T) { testReliabilityEvictAtRest(t, browser) })
@@ -161,7 +167,7 @@ func testReliabilityEvictOpen(t *testing.T, browser string) {
 
 // chromiumFamily reports whether browser speaks the Chrome DevTools Protocol.
 func chromiumFamily(browser string) bool {
-	return browser == "chromium" || browser == "chrome"
+	return browser == "chromium" || browser == "chrome" || browser == "android"
 }
 
 // reliabilityRun is the page run of one reliability mode, feeding its console
