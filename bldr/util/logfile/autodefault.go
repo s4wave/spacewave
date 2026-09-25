@@ -125,7 +125,7 @@ func EnableAutoDefault(
 	}
 
 	logsDir := filepath.Dir(spec.Path)
-	if _, err := PruneOldLogs(logsDir, retention, now); err != nil {
+	if _, err := PruneOldLogs(logsDir, retention, DefaultKeepLogs, now); err != nil {
 		logger.WithError(err).Warn("failed to prune old logs")
 	}
 

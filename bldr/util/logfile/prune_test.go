@@ -30,7 +30,7 @@ func TestPruneOldLogs_DeletesAged(t *testing.T) {
 	young := writeFile(t, dir, "20260503-000000.log", now.Add(-24*time.Hour))
 	nonLog := writeFile(t, dir, "old.txt", now.Add(-30*24*time.Hour))
 
-	removed, err := PruneOldLogs(dir, maxAge, now)
+	removed, err := PruneOldLogs(dir, maxAge, 0, now)
 	if err != nil {
 		t.Fatalf("PruneOldLogs: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestPruneOldLogs_KeepsAtCutoff(t *testing.T) {
 	// File whose mtime is exactly at the cutoff is kept (Before is strict).
 	atCutoff := writeFile(t, dir, "edge.log", now.Add(-maxAge))
 
-	removed, err := PruneOldLogs(dir, maxAge, now)
+	removed, err := PruneOldLogs(dir, maxAge, 0, now)
 	if err != nil {
 		t.Fatalf("PruneOldLogs: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestPruneOldLogs_KeepsAtCutoff(t *testing.T) {
 
 func TestPruneOldLogs_NonExistentDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "missing")
-	removed, err := PruneOldLogs(dir, time.Hour, time.Now())
+	removed, err := PruneOldLogs(dir, time.Hour, 0, time.Now())
 	if err != nil {
 		t.Errorf("non-existent dir should be no-op, got err = %v", err)
 	}
@@ -92,7 +92,7 @@ func TestPruneOldLogs_SkipsSubdirs(t *testing.T) {
 		t.Fatalf("chtimes subdir: %v", err)
 	}
 
-	removed, err := PruneOldLogs(dir, maxAge, now)
+	removed, err := PruneOldLogs(dir, maxAge, 0, now)
 	if err != nil {
 		t.Fatalf("PruneOldLogs: %v", err)
 	}
@@ -106,11 +106,39 @@ func TestPruneOldLogs_SkipsSubdirs(t *testing.T) {
 
 func TestPruneOldLogs_EmptyDir(t *testing.T) {
 	dir := t.TempDir()
-	removed, err := PruneOldLogs(dir, time.Hour, time.Now())
+	removed, err := PruneOldLogs(dir, time.Hour, 0, time.Now())
 	if err != nil {
 		t.Errorf("empty dir: err = %v", err)
 	}
 	if removed != 0 {
 		t.Errorf("removed = %d, want 0", removed)
+	}
+}
+
+func TestPruneOldLogs_KeepsNewest(t *testing.T) {
+	dir := t.TempDir()
+	now := time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC)
+
+	oldest := writeFile(t, dir, "20260504-080000.log", now.Add(-4*time.Hour))
+	older := writeFile(t, dir, "20260504-090000.log", now.Add(-3*time.Hour))
+	newer := writeFile(t, dir, "20260504-100000.log", now.Add(-2*time.Hour))
+	newest := writeFile(t, dir, "20260504-110000.log", now.Add(-time.Hour))
+
+	removed, err := PruneOldLogs(dir, 7*24*time.Hour, 2, now)
+	if err != nil {
+		t.Fatalf("PruneOldLogs: %v", err)
+	}
+	if removed != 2 {
+		t.Errorf("removed = %d, want 2", removed)
+	}
+	for _, path := range []string{oldest, older} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("%s should be removed, stat err = %v", path, err)
+		}
+	}
+	for _, path := range []string{newer, newest} {
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("%s should be kept: %v", path, err)
+		}
 	}
 }
