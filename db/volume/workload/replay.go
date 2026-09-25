@@ -209,8 +209,7 @@ func (r *Replay) block(key []byte, sizes map[string]int64) (*replayBlock, error)
 // Seed writes the state the workload reads before writing it, then syncs.
 func (r *Replay) Seed(ctx context.Context, t Target) error {
 	// Write the seeded blocks in bounded batches.
-	for start := 0; start < len(r.seedBlocks); start += seedBatch {
-		chunk := r.seedBlocks[start:min(start+seedBatch, len(r.seedBlocks))]
+	for chunk := range slices.Chunk(r.seedBlocks, seedBatch) {
 		entries := make([]*block.PutBatchEntry, len(chunk))
 		for i, b := range chunk {
 			entries[i] = &block.PutBatchEntry{Ref: b.ref, Data: b.data}
@@ -229,8 +228,7 @@ func (r *Replay) Seed(ctx context.Context, t Target) error {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
-	for start := 0; start < len(keys); start += seedBatch {
-		chunk := keys[start:min(start+seedBatch, len(keys))]
+	for chunk := range slices.Chunk(keys, seedBatch) {
 		if err := r.seedValueChunk(ctx, t, chunk); err != nil {
 			return err
 		}
