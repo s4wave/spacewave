@@ -149,10 +149,8 @@ export interface StorageCheckView {
   // detail is the failing step and the server's message.
   detail: string
   // usage is what the bucket holds under the prefix, empty when the check
-  // failed or the listing did not complete.
+  // failed.
   usage: string
-  // usageDetail is why the usage is unknown, empty when it is known.
-  usageDetail: string
 }
 
 // describeStorageCheck words a check result as an actionable row. inBrowser
@@ -170,7 +168,6 @@ export function describeStorageCheck(
     showCors,
     detail,
     usage: '',
-    usageDetail: '',
   })
   switch (result?.outcome) {
     case CheckOutcome.OK:
@@ -180,10 +177,7 @@ export function describeStorageCheck(
         action: '',
         showCors: false,
         detail,
-        usage: result.usage
-          ? `${formatBytes(result.usage.bytes)} in ${plural(Number(result.usage.objects ?? 0n), 'object')}`
-          : '',
-        usageDetail: result.usage ? '' : (result.usageError ?? ''),
+        usage: `${formatBytes(result.usage?.bytes)} in ${plural(Number(result.usage?.objects ?? 0n), 'object')}`,
       }
     case CheckOutcome.UNREACHABLE:
       return inBrowser
@@ -204,7 +198,7 @@ export function describeStorageCheck(
     case CheckOutcome.ACCESS_DENIED:
       return view(
         'The access key cannot write to this bucket',
-        'Give the key permission to read, write, and delete objects in the bucket.',
+        'Give the key permission to read, write, list, and delete objects in the bucket.',
       )
     case CheckOutcome.BUCKET_NOT_FOUND:
       return view(
@@ -228,6 +222,7 @@ const corsMethods = ['GET', 'PUT', 'HEAD', 'DELETE']
 const corsHeaders = [
   'authorization',
   'content-type',
+  'range',
   'x-amz-content-sha256',
   'x-amz-date',
   'x-amz-security-token',

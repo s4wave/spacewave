@@ -1,8 +1,6 @@
 syntax = "proto3";
 package block.store.s3;
 
-import "github.com/s4wave/spacewave/net/hash/hash.proto";
-
 // Config configures the s3 block store controller.
 message Config {
   // BlockStoreId is the block store id to use on the bus.
@@ -12,13 +10,9 @@ message Config {
   // BucketName is the s3 bucket name to use.
   string bucket_name = 3;
   // ObjectPrefix is the prefix to use for object names.
-  // Object name: {objectPrefix}{blockRefB58}, holding a block.BlockObject.
+  // Packfiles are {objectPrefix}packs/{id}, and their entries are
+  // {objectPrefix}entries/{id}.
   string object_prefix = 4;
-  // ReadOnly disables writing to the s3 store.
-  bool read_only = 5;
-  // ForceHashType forces writing the given hash type to the store.
-  // If unset, accepts any hash type.
-  .hash.HashType force_hash_type = 6;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 7;
   // SkipNotFound skips returning a value if the block was not found.
@@ -67,7 +61,7 @@ enum CheckOutcome {
   // key or its signature.
   CHECK_OUTCOME_CREDENTIALS_REJECTED = 3;
   // CHECK_OUTCOME_ACCESS_DENIED means the credentials are valid but lack
-  // permission to write, read, or delete objects in the bucket.
+  // permission to write, read, list, or delete objects in the bucket.
   CHECK_OUTCOME_ACCESS_DENIED = 4;
   // CHECK_OUTCOME_BUCKET_NOT_FOUND means the bucket does not exist.
   CHECK_OUTCOME_BUCKET_NOT_FOUND = 5;
@@ -85,10 +79,8 @@ message CheckResult {
   // Empty when Outcome is CHECK_OUTCOME_OK.
   string detail = 2;
   // Usage is what the bucket holds under the object prefix. Absent when the
-  // check failed or the access key cannot list objects.
+  // check failed.
   ObjectUsage usage = 3;
-  // UsageError is why Usage is absent after a passing check.
-  string usage_error = 4;
 }
 
 // ObjectUsage is the count and total size of the objects under a prefix.

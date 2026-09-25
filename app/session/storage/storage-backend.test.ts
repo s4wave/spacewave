@@ -88,20 +88,6 @@ describe('describeStorageCheck', () => {
       ok: true,
       title: 'Connected',
       usage: '3.5 MiB in 928 objects',
-      usageDetail: '',
-    })
-  })
-
-  it('keeps a passing check when the listing fails', () => {
-    expect(
-      describeStorageCheck(
-        { outcome: CheckOutcome.OK, usageError: 'list: status 403' },
-        true,
-      ),
-    ).toMatchObject({
-      ok: true,
-      usage: '',
-      usageDetail: 'list: status 403',
     })
   })
 })

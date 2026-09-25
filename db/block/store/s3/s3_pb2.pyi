@@ -1,5 +1,3 @@
-from db.block import block_pb2 as _block_pb2
-from net.hash import hash_pb2 as _hash_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -29,13 +27,11 @@ CHECK_OUTCOME_WRONG_REGION: CheckOutcome
 CHECK_OUTCOME_FAILED: CheckOutcome
 
 class Config(_message.Message):
-    __slots__ = ("block_store_id", "client", "bucket_name", "object_prefix", "read_only", "force_hash_type", "bucket_ids", "skip_not_found", "verbose")
+    __slots__ = ("block_store_id", "client", "bucket_name", "object_prefix", "bucket_ids", "skip_not_found", "verbose")
     BLOCK_STORE_ID_FIELD_NUMBER: _ClassVar[int]
     CLIENT_FIELD_NUMBER: _ClassVar[int]
     BUCKET_NAME_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PREFIX_FIELD_NUMBER: _ClassVar[int]
-    READ_ONLY_FIELD_NUMBER: _ClassVar[int]
-    FORCE_HASH_TYPE_FIELD_NUMBER: _ClassVar[int]
     BUCKET_IDS_FIELD_NUMBER: _ClassVar[int]
     SKIP_NOT_FOUND_FIELD_NUMBER: _ClassVar[int]
     VERBOSE_FIELD_NUMBER: _ClassVar[int]
@@ -43,20 +39,10 @@ class Config(_message.Message):
     client: ClientConfig
     bucket_name: str
     object_prefix: str
-    read_only: bool
-    force_hash_type: _hash_pb2.HashType
     bucket_ids: _containers.RepeatedScalarFieldContainer[str]
     skip_not_found: bool
     verbose: bool
-    def __init__(self, block_store_id: _Optional[str] = ..., client: _Optional[_Union[ClientConfig, _Mapping]] = ..., bucket_name: _Optional[str] = ..., object_prefix: _Optional[str] = ..., read_only: _Optional[bool] = ..., force_hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ..., bucket_ids: _Optional[_Iterable[str]] = ..., skip_not_found: _Optional[bool] = ..., verbose: _Optional[bool] = ...) -> None: ...
-
-class BlockObject(_message.Message):
-    __slots__ = ("data", "refs")
-    DATA_FIELD_NUMBER: _ClassVar[int]
-    REFS_FIELD_NUMBER: _ClassVar[int]
-    data: bytes
-    refs: _containers.RepeatedCompositeFieldContainer[_block_pb2.BlockRef]
-    def __init__(self, data: _Optional[bytes] = ..., refs: _Optional[_Iterable[_Union[_block_pb2.BlockRef, _Mapping]]] = ...) -> None: ...
+    def __init__(self, block_store_id: _Optional[str] = ..., client: _Optional[_Union[ClientConfig, _Mapping]] = ..., bucket_name: _Optional[str] = ..., object_prefix: _Optional[str] = ..., bucket_ids: _Optional[_Iterable[str]] = ..., skip_not_found: _Optional[bool] = ..., verbose: _Optional[bool] = ...) -> None: ...
 
 class ClientConfig(_message.Message):
     __slots__ = ("endpoint", "credentials", "disable_ssl", "region")
@@ -81,16 +67,14 @@ class Credentials(_message.Message):
     def __init__(self, access_key_id: _Optional[str] = ..., secret_access_key: _Optional[str] = ..., token: _Optional[str] = ...) -> None: ...
 
 class CheckResult(_message.Message):
-    __slots__ = ("outcome", "detail", "usage", "usage_error")
+    __slots__ = ("outcome", "detail", "usage")
     OUTCOME_FIELD_NUMBER: _ClassVar[int]
     DETAIL_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
-    USAGE_ERROR_FIELD_NUMBER: _ClassVar[int]
     outcome: CheckOutcome
     detail: str
     usage: ObjectUsage
-    usage_error: str
-    def __init__(self, outcome: _Optional[_Union[CheckOutcome, str]] = ..., detail: _Optional[str] = ..., usage: _Optional[_Union[ObjectUsage, _Mapping]] = ..., usage_error: _Optional[str] = ...) -> None: ...
+    def __init__(self, outcome: _Optional[_Union[CheckOutcome, str]] = ..., detail: _Optional[str] = ..., usage: _Optional[_Union[ObjectUsage, _Mapping]] = ...) -> None: ...
 
 class ObjectUsage(_message.Message):
     __slots__ = ("objects", "bytes")

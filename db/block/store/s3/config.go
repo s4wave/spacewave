@@ -10,13 +10,12 @@ import (
 const ConfigID = ControllerID
 
 // NewConfig constructs a new config.
-func NewConfig(blockStoreId string, clientConfig *ClientConfig, bucketName, objectPrefix string, readOnly bool, bucketIDs []string) *Config {
+func NewConfig(blockStoreId string, clientConfig *ClientConfig, bucketName, objectPrefix string, bucketIDs []string) *Config {
 	return &Config{
 		BlockStoreId: blockStoreId,
 		Client:       clientConfig,
 		BucketName:   bucketName,
 		ObjectPrefix: objectPrefix,
-		ReadOnly:     readOnly,
 		BucketIds:    bucketIDs,
 	}
 }

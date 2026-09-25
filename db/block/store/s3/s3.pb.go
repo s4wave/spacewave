@@ -12,7 +12,6 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	hash "github.com/s4wave/spacewave/net/hash"
 )
 
 // CheckOutcome classifies a bucket connectivity check.
@@ -31,7 +30,7 @@ const (
 	// key or its signature.
 	CheckOutcome_CHECK_OUTCOME_CREDENTIALS_REJECTED CheckOutcome = 3
 	// CHECK_OUTCOME_ACCESS_DENIED means the credentials are valid but lack
-	// permission to write, read, or delete objects in the bucket.
+	// permission to write, read, list, or delete objects in the bucket.
 	CheckOutcome_CHECK_OUTCOME_ACCESS_DENIED CheckOutcome = 4
 	// CHECK_OUTCOME_BUCKET_NOT_FOUND means the bucket does not exist.
 	CheckOutcome_CHECK_OUTCOME_BUCKET_NOT_FOUND CheckOutcome = 5
@@ -89,13 +88,9 @@ type Config struct {
 	// BucketName is the s3 bucket name to use.
 	BucketName string `protobuf:"bytes,3,opt,name=bucket_name,json=bucketName,proto3" json:"bucketName,omitempty"`
 	// ObjectPrefix is the prefix to use for object names.
-	// Object name: {objectPrefix}{blockRefB58}, holding a block.BlockObject.
+	// Packfiles are {objectPrefix}packs/{id}, and their entries are
+	// {objectPrefix}entries/{id}.
 	ObjectPrefix string `protobuf:"bytes,4,opt,name=object_prefix,json=objectPrefix,proto3" json:"objectPrefix,omitempty"`
-	// ReadOnly disables writing to the s3 store.
-	ReadOnly bool `protobuf:"varint,5,opt,name=read_only,json=readOnly,proto3" json:"readOnly,omitempty"`
-	// ForceHashType forces writing the given hash type to the store.
-	// If unset, accepts any hash type.
-	ForceHashType hash.HashType `protobuf:"varint,6,opt,name=force_hash_type,json=forceHashType,proto3" json:"forceHashType,omitempty"`
 	// BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
 	BucketIds []string `protobuf:"bytes,7,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
 	// SkipNotFound skips returning a value if the block was not found.
@@ -136,20 +131,6 @@ func (x *Config) GetObjectPrefix() string {
 		return x.ObjectPrefix
 	}
 	return ""
-}
-
-func (x *Config) GetReadOnly() bool {
-	if x != nil {
-		return x.ReadOnly
-	}
-	return false
-}
-
-func (x *Config) GetForceHashType() hash.HashType {
-	if x != nil {
-		return x.ForceHashType
-	}
-	return hash.HashType(0)
 }
 
 func (x *Config) GetBucketIds() []string {
@@ -271,10 +252,8 @@ type CheckResult struct {
 	// Empty when Outcome is CHECK_OUTCOME_OK.
 	Detail string `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
 	// Usage is what the bucket holds under the object prefix. Absent when the
-	// check failed or the access key cannot list objects.
+	// check failed.
 	Usage *ObjectUsage `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage,omitempty"`
-	// UsageError is why Usage is absent after a passing check.
-	UsageError string `protobuf:"bytes,4,opt,name=usage_error,json=usageError,proto3" json:"usageError,omitempty"`
 }
 
 func (x *CheckResult) Reset() {
@@ -302,13 +281,6 @@ func (x *CheckResult) GetUsage() *ObjectUsage {
 		return x.Usage
 	}
 	return nil
-}
-
-func (x *CheckResult) GetUsageError() string {
-	if x != nil {
-		return x.UsageError
-	}
-	return ""
 }
 
 // ObjectUsage is the count and total size of the objects under a prefix.
@@ -348,8 +320,6 @@ func (m *Config) CloneVT() *Config {
 	r.BlockStoreId = m.BlockStoreId
 	r.BucketName = m.BucketName
 	r.ObjectPrefix = m.ObjectPrefix
-	r.ReadOnly = m.ReadOnly
-	r.ForceHashType = m.ForceHashType
 	r.SkipNotFound = m.SkipNotFound
 	r.Verbose = m.Verbose
 	r.Client = protobuf_go_lite.CloneVTValue(m.Client)
@@ -408,7 +378,6 @@ func (m *CheckResult) CloneVT() *CheckResult {
 	r := new(CheckResult)
 	r.Outcome = m.Outcome
 	r.Detail = m.Detail
-	r.UsageError = m.UsageError
 	r.Usage = protobuf_go_lite.CloneVTValue(m.Usage)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -453,12 +422,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ObjectPrefix != that.ObjectPrefix {
-		return false
-	}
-	if this.ReadOnly != that.ReadOnly {
-		return false
-	}
-	if this.ForceHashType != that.ForceHashType {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.BucketIds, that.BucketIds) {
@@ -549,9 +512,6 @@ func (this *CheckResult) EqualVT(that *CheckResult) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Usage, that.Usage) {
-		return false
-	}
-	if this.UsageError != that.UsageError {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -656,16 +616,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectPrefix")
 		s.WriteString(x.ObjectPrefix)
 	}
-	if x.ReadOnly || s.HasField("readOnly") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("readOnly")
-		s.WriteBool(x.ReadOnly)
-	}
-	if x.ForceHashType != 0 || s.HasField("forceHashType") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("forceHashType")
-		x.ForceHashType.MarshalProtoJSON(s)
-	}
 	if len(x.BucketIds) > 0 || s.HasField("bucketIds") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("bucketIds")
@@ -714,12 +664,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "object_prefix", "objectPrefix":
 			s.AddField("object_prefix")
 			x.ObjectPrefix = s.ReadString()
-		case "read_only", "readOnly":
-			s.AddField("read_only")
-			x.ReadOnly = s.ReadBool()
-		case "force_hash_type", "forceHashType":
-			s.AddField("force_hash_type")
-			x.ForceHashType.UnmarshalProtoJSON(s)
 		case "bucket_ids", "bucketIds":
 			s.AddField("bucket_ids")
 			if s.ReadNil() {
@@ -893,11 +837,6 @@ func (x *CheckResult) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("usage")
 		x.Usage.MarshalProtoJSON(s.WithField("usage"))
 	}
-	if x.UsageError != "" || s.HasField("usageError") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("usageError")
-		s.WriteString(x.UsageError)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -928,9 +867,6 @@ func (x *CheckResult) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Usage = &ObjectUsage{}
 			x.Usage.UnmarshalProtoJSON(s.WithField("usage", true))
-		case "usage_error", "usageError":
-			s.AddField("usage_error")
-			x.UsageError = s.ReadString()
 		}
 	})
 }
@@ -1035,16 +971,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x3a
 		}
-	}
-	if m.ForceHashType != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ForceHashType))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.ReadOnly {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReadOnly)
-		i--
-		dAtA[i] = 0x28
 	}
 	if len(m.ObjectPrefix) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectPrefix)
@@ -1207,11 +1133,6 @@ func (m *CheckResult) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.UsageError) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.UsageError)
-		i--
-		dAtA[i] = 0x22
-	}
 	if m.Usage != nil {
 		size, err := m.Usage.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1290,8 +1211,6 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BucketName)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectPrefix)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReadOnly)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ForceHashType)
 	n += protobuf_go_lite.SizeStringSlice(1, m.BucketIds)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.SkipNotFound)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Verbose)
@@ -1341,7 +1260,6 @@ func (m *CheckResult) SizeVT() (n int) {
 		l = m.Usage.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UsageError)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1380,14 +1298,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.ObjectPrefix != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_prefix")
 		protobuf_go_lite.TextWriteString(&sb, x.ObjectPrefix)
-	}
-	if x.ReadOnly != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "read_only")
-		protobuf_go_lite.TextWriteBool(&sb, x.ReadOnly)
-	}
-	if x.ForceHashType != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "force_hash_type")
-		protobuf_go_lite.TextWriteStringer(&sb, hash.HashType(x.ForceHashType))
 	}
 	if len(x.BucketIds) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "bucket_ids")
@@ -1474,10 +1384,6 @@ func (x *CheckResult) MarshalProtoText() string {
 	if x.Usage != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "usage")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Usage)
-	}
-	if x.UsageError != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "usage_error")
-		protobuf_go_lite.TextWriteString(&sb, x.UsageError)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1569,27 +1475,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectPrefix = v
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReadOnly", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.ReadOnly = bool(v)
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ForceHashType", wireType)
-			}
-			m.ForceHashType = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.ForceHashType = hash.HashType(_v)
-			if err != nil {
-				return err
-			}
 		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BucketIds", wireType)
@@ -1860,16 +1745,6 @@ func (m *CheckResult) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UsageError", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.UsageError = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

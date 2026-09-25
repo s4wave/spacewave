@@ -6,7 +6,6 @@ import (
 	"context"
 
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
-	"github.com/s4wave/spacewave/db/block"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 )
 
@@ -27,16 +26,16 @@ func CheckS3Location(
 	return block_store_s3.CheckBucket(ctx, client, location.GetBucket(), location.GetObjectPrefix())
 }
 
-// buildS3BlockStore opens a writable block store on the location's bucket.
+// buildS3BlockStore opens a packfile block store on the location's bucket.
 func buildS3BlockStore(
 	location *account_settings.S3Location,
 	creds *block_store_s3.Credentials,
-) (block.StoreOps, error) {
+) (backendStore, error) {
 	client, err := buildS3Client(location, creds)
 	if err != nil {
 		return nil, err
 	}
-	return block_store_s3.NewS3Block(true, client, location.GetBucket(), location.GetObjectPrefix(), 0), nil
+	return block_store_s3.NewPackStore(client, location.GetBucket(), location.GetObjectPrefix()), nil
 }
 
 // buildS3Client builds a signing client for the location's endpoint.

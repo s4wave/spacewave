@@ -229,7 +229,7 @@ type bstoreTracker struct {
 	// bstoreCtr is the bstore container
 	bstoreCtr *ccontainer.CContainer[*BlockStore]
 	// remote is the open storage backend store, or nil.
-	remote atomic.Pointer[block.StoreOps]
+	remote atomic.Pointer[openBackend]
 }
 
 // buildBlockStoreTracker builds a new bstoreTracker for a bstore id.
@@ -353,6 +353,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	})
 	upload.SetState(backend)
 	upload.SetContext(ctx, true)
+	defer t.swapRemote(nil)
 	defer upload.ClearContext()
 
 	// Read the local store first, then the backend's bucket, then peers.
