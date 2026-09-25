@@ -75,14 +75,23 @@ const commandEmptyVariants = cva('', {
   },
 })
 
+// groupHeadingCaps sets group headings as small, spaced capitals. The
+// landing launcher instead matches its prerendered sentence-case labels, so
+// the headings do not change when the page hydrates.
+const groupHeadingCaps =
+  '[&_[cmdk-group-heading]]:text-foreground-alt/70 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:micro-ten [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-widest [&_[cmdk-group-heading]]:uppercase'
+
 const commandGroupVariants = cva('', {
   variants: {
     variant: {
-      default: '',
-      compact: 'py-1',
-      palette: '!px-0 [&_[cmdk-group-heading]]:px-3',
+      default: cn(groupHeadingCaps, '[&_[cmdk-group-heading]]:px-2'),
+      compact: cn(groupHeadingCaps, 'py-1 [&_[cmdk-group-heading]]:px-2'),
+      palette: cn(groupHeadingCaps, '!px-0 [&_[cmdk-group-heading]]:px-3'),
+      landing:
+        '[&_[cmdk-group-heading]]:text-foreground/50 py-0 [&_[cmdk-group-heading]]:px-4 [&_[cmdk-group-heading]]:pt-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:tracking-wide',
     },
   },
+  defaultVariants: { variant: 'default' },
 })
 
 const commandItemVariants = cva('', {
@@ -249,7 +258,7 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        'text-foreground [&_[cmdk-group-heading]]:text-foreground-alt/70 overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:micro-ten [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:tracking-widest [&_[cmdk-group-heading]]:uppercase',
+        'text-foreground overflow-hidden p-1',
         commandGroupVariants({ variant }),
         className,
       )}

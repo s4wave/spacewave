@@ -235,7 +235,7 @@ export function Community() {
       </section>
 
       {/* Divider */}
-      <div className="via-foreground/8 mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/7 mx-auto h-px w-full max-w-4xl" />
 
       {/* Principles */}
       <section className="mx-auto w-full max-w-4xl px-4 py-14 @lg:px-8 @lg:py-16">
@@ -262,7 +262,7 @@ export function Community() {
       </section>
 
       {/* Divider */}
-      <div className="via-foreground/8 mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/7 mx-auto h-px w-full max-w-4xl" />
 
       {/* Built With Open Source */}
       <section className="mx-auto w-full max-w-4xl px-4 py-14 @lg:px-8 @lg:py-16">
@@ -425,7 +425,7 @@ export function Community() {
       </section>
 
       {/* Divider */}
-      <div className="via-foreground/8 mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/7 mx-auto h-px w-full max-w-4xl" />
 
       {/* Open source acknowledgment */}
       <section className="mx-auto w-full max-w-3xl px-4 py-10 text-center @lg:px-8 @lg:py-12">

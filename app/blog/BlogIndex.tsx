@@ -57,7 +57,7 @@ export function BlogIndex({ posts }: BlogIndexProps) {
       </header>
 
       {/* Gradient separator */}
-      <div className="via-foreground/8 relative z-10 mx-auto h-px w-full max-w-5xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/7 relative z-10 mx-auto h-px w-full max-w-5xl" />
 
       <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-10 pb-20 @lg:px-8">
         {/* Featured post */}
@@ -74,7 +74,7 @@ export function BlogIndex({ posts }: BlogIndexProps) {
               <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
                 More posts
               </h2>
-              <div className="via-foreground/8 h-px flex-1 bg-gradient-to-r from-transparent to-transparent" />
+              <div className="bg-foreground/7 h-px flex-1" />
             </div>
             <PostList posts={rest} />
           </section>

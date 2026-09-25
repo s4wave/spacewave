@@ -74,7 +74,7 @@ function Section({
       )}
     >
       {withTopSeparator && (
-        <div className="via-foreground/10 absolute top-0 right-0 left-0 h-px bg-gradient-to-r from-transparent to-transparent" />
+        <div className="bg-foreground/7 absolute inset-x-4 top-0 mx-auto h-px max-w-5xl" />
       )}
       <div className="mx-auto max-w-5xl">{children}</div>
     </section>
@@ -1406,26 +1406,26 @@ const OpenSourceSection: React.FC = () => {
   return (
     <Section
       id="open-source"
-      className="via-brand/5 relative w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 py-12"
+      className="bg-background-card relative w-full py-12"
       withTopSeparator
     >
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 @lg:flex-row @2xl:px-6">
         <div className="flex items-center gap-4">
-          <div className="rounded-lg bg-blue-500/10 p-3">
+          <div className="bg-brand/8 inset-ring-brand/14 rounded-lg p-3 inset-ring">
             <LuCode className="text-brand size-6" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-foreground text-xl font-medium tracking-tight">
               Open Source Software
             </h2>
-            <p className="text-sm text-zinc-400">
+            <p className="text-foreground-alt text-sm">
               Built in the open, for everyone
             </p>
           </div>
         </div>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-zinc-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition duration-300"
+          className="group hover:border-brand/40 hover:bg-brand/8 border-foreground/15 bg-background/50 text-foreground rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 text-sm font-medium no-underline transition duration-300"
         >
           <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>
@@ -1436,43 +1436,34 @@ const OpenSourceSection: React.FC = () => {
 }
 
 function Footer() {
-  const dmcaHref = useStaticHref('/dmca')
-  const tosHref = useStaticHref('/tos')
-  const privacyHref = useStaticHref('/privacy')
+  const links = [
+    { label: 'DMCA', href: useStaticHref('/dmca') },
+    { label: 'Terms of Service', href: useStaticHref('/tos') },
+    { label: 'Privacy', href: useStaticHref('/privacy') },
+  ]
 
   return (
-    <footer className="flex w-full shrink-0 flex-col items-center gap-2 border-t border-zinc-800 bg-black/90 px-4 py-6 @lg:flex-row @2xl:px-6">
-      <p className="text-xs text-zinc-400 select-none">
+    <footer className="border-foreground/6 bg-background-landing flex w-full shrink-0 flex-col items-center gap-2 border-t px-4 py-6 @lg:flex-row @2xl:px-6">
+      <p className="text-foreground-alt/60 text-xs select-none">
         &copy; 2018-2026{' '}
         <ExternalLink
           href="https://github.com/aperturerobotics"
-          className="text-zinc-300 hover:text-white hover:underline"
+          className="text-foreground-alt hover:text-foreground hover:underline"
         >
           Aperture Robotics
         </ExternalLink>
         , LLC. and contributors
       </p>
       <nav className="flex gap-2 @lg:ml-auto @lg:gap-6">
-        <a
-          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
-          href={dmcaHref}
-        >
-          DMCA
-        </a>
-
-        <a
-          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
-          href={tosHref}
-        >
-          Terms of Service
-        </a>
-
-        <a
-          className="text-xs text-zinc-400 underline-offset-4 select-none hover:text-white hover:underline"
-          href={privacyHref}
-        >
-          Privacy
-        </a>
+        {links.map((link) => (
+          <a
+            key={link.label}
+            className="text-foreground-alt/60 hover:text-foreground text-xs underline-offset-4 select-none hover:underline"
+            href={link.href}
+          >
+            {link.label}
+          </a>
+        ))}
       </nav>
     </footer>
   )

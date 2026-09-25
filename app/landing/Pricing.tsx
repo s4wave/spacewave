@@ -314,7 +314,7 @@ export function Pricing() {
       </section>
 
       {/* Divider */}
-      <div className="via-foreground/8 mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/7 mx-auto h-px w-full max-w-4xl" />
 
       {/* FAQ */}
       <FaqSection />

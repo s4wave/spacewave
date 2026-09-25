@@ -169,7 +169,7 @@ function StaticGetStarted({ className }: { className?: string }) {
       </div>
       <div className="bg-background-get-started flex-1 pb-2.5 @lg:min-h-0 @lg:overflow-y-auto">
         {itemsByCategory.map(({ category, items }) => (
-          <div key={category} className="mb-0 py-0">
+          <div key={category}>
             <div className="text-foreground/50 px-5 pt-2.5 pb-1 text-xs font-medium tracking-wide">
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </div>
@@ -258,7 +258,7 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
       <CommandList variant="landing">
         <CommandEmpty>No templates found.</CommandEmpty>
         {sessions && sessions.length > 0 && (
-          <CommandGroup heading="Sessions" variant="compact" className="mb-0">
+          <CommandGroup heading="Sessions" variant="landing">
             {sessions.map((session) => (
               <SessionItem key={session.sessionIndex} session={session} />
             ))}
@@ -268,8 +268,7 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
           <CommandGroup
             key={category}
             heading={category.charAt(0).toUpperCase() + category.slice(1)}
-            variant="compact"
-            className="mb-0"
+            variant="landing"
           >
             {items.map((item, idx) => (
               <React.Fragment key={item.id}>
