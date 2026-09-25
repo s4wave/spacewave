@@ -147,14 +147,30 @@ function healthyInputs(): SystemModelInputs {
       ],
     },
     plugins: {
-      pluginCount: 1,
-      plugins: [{ id: 'spacewave-app', instanceKey: '', state: 'running' }],
+      pluginCount: 2,
+      plugins: [
+        { id: 'spacewave-app', instanceKey: '', state: 'running' },
+        {
+          id: 'spacewave-notes',
+          instanceKey: '',
+          state: 'running',
+          spaceId: 'space/local/account-1/space-1',
+        },
+      ],
     },
     recovery: { launcher: { updatePhase: 'idle' } },
     sessions: [{ sessionIndex: 1 }],
     spaces: [
       {
-        entry: { ref: { providerResourceRef: { id: 'space-1' } } },
+        entry: {
+          ref: {
+            providerResourceRef: {
+              id: 'space-1',
+              providerId: 'local',
+              providerAccountId: 'account-1',
+            },
+          },
+        },
         spaceMeta: { name: 'Primary Space' },
       },
     ],
@@ -184,6 +200,40 @@ describe('buildSystemModel', () => {
       name: 'LookupRpcService',
       idents: ['svc-a', 'svc-b'],
     })
+  })
+
+  it('names the host of each plugin and joins recovery to the root host', () => {
+    const inputs = healthyInputs()
+    inputs.recovery = {
+      plugins: [
+        {
+          pluginId: 'spacewave-notes',
+          instanceKey: '',
+          executeManifestRef: 'm',
+        },
+      ],
+    }
+    inputs.plugins = {
+      pluginCount: 3,
+      plugins: [
+        ...(inputs.plugins?.plugins ?? []),
+        {
+          id: 'spacewave-notes',
+          instanceKey: '',
+          state: 'requested',
+          spaceId: '',
+        },
+      ],
+    }
+    const model = buildSystemModel(inputs)
+
+    expect(
+      model.plugins?.map((plugin) => [plugin.host, plugin.id, plugin.manifest]),
+    ).toEqual([
+      ['System', 'spacewave-app', undefined],
+      ['System', 'spacewave-notes', inputs.recovery.plugins?.[0]],
+      ['Primary Space', 'spacewave-notes', undefined],
+    ])
   })
 
   it('waits for every watch before calling the system nominal', () => {
@@ -240,7 +290,7 @@ describe('SystemStatusDashboard', () => {
         }),
       ).toBeTruthy()
     }
-    expect(screen.getByText('1 of 1 plugin running')).toBeTruthy()
+    expect(screen.getByText('2 of 2 plugins running in 1 Space')).toBeTruthy()
   })
 
   it('opens an inspector in place and returns to its tile on Escape', () => {
@@ -254,6 +304,7 @@ describe('SystemStatusDashboard', () => {
       screen.getByRole('heading', { level: 2, name: 'Runtime' }),
     ).toBeTruthy()
     expect(screen.getByText('spacewave-app')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Primary Space/ })).toBeTruthy()
 
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
     expect(screen.queryByRole('heading', { level: 2, name: 'Runtime' })).toBe(

@@ -6,9 +6,14 @@ import (
 	"testing"
 	"time"
 
+	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
+	"github.com/aperturerobotics/controllerbus/directive"
 	cdc "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	"github.com/s4wave/spacewave/core/provider"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
@@ -379,5 +384,120 @@ func TestWatchPluginsWithoutSchedulerSendsEmptySnapshot(t *testing.T) {
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("WatchPlugins returned %v, want context.Canceled", err)
+	}
+}
+
+// testPluginScheduler is a PluginScheduler that resolves LookupPluginScheduler
+// with itself when added to a bus as a directive handler.
+type testPluginScheduler struct {
+	instanceKey string
+	statusCtr   *ccontainer.CContainer[*plugin_host_scheduler.PluginStatusSnapshot]
+}
+
+func newTestPluginScheduler(instanceKey string, plugins ...*bldr_plugin.PluginStatus) *testPluginScheduler {
+	return &testPluginScheduler{
+		instanceKey: instanceKey,
+		statusCtr: ccontainer.NewCContainer(&plugin_host_scheduler.PluginStatusSnapshot{
+			Plugins: plugins,
+		}),
+	}
+}
+
+func (s *testPluginScheduler) GetInstanceKey() string {
+	return s.instanceKey
+}
+
+func (s *testPluginScheduler) GetPluginStatusCtr() ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot] {
+	return s.statusCtr
+}
+
+func (s *testPluginScheduler) HandleDirective(
+	_ context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	if _, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler); ok {
+		return directive.R(directive.NewValueResolver([]plugin_host_scheduler.LookupPluginSchedulerValue{s}), nil)
+	}
+	return nil, nil
+}
+
+func TestWatchPluginsMergesSpaceRuntimeSchedulers(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	le := logrus.NewEntry(logrus.New())
+	b := inmem.NewBus(cdc.NewController(ctx, le))
+	root := newTestPluginScheduler("", &bldr_plugin.PluginStatus{
+		PluginId: "spacewave-core",
+		State:    bldr_plugin.PluginState_PluginState_RUNNING,
+	})
+	if _, err := b.AddHandler(root); err != nil {
+		t.Fatal(err)
+	}
+
+	statusRes := NewStatusResource(b, nil)
+	strm := &watchPluginsStream{
+		ctx:  ctx,
+		sent: make(chan *s4wave_status.WatchPluginsResponse, 1),
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- statusRes.WatchPlugins(&s4wave_status.WatchPluginsRequest{}, strm)
+	}()
+	requirePlugins(t, strm, "/spacewave-core:running")
+
+	// A Space runtime hosts its scheduler on a child bus reached through a
+	// bridge on the session bus.
+	const spaceID = "space/local/account/s1"
+	child := inmem.NewBus(cdc.NewController(ctx, le))
+	spaceScheduler := newTestPluginScheduler(spaceID, &bldr_plugin.PluginStatus{
+		PluginId: "notes",
+		State:    bldr_plugin.PluginState_PluginState_REQUESTED,
+	})
+	if _, err := child.AddHandler(spaceScheduler); err != nil {
+		t.Fatal(err)
+	}
+	bridgeRelease, err := b.AddController(ctx, bus_bridge.NewBusBridge(child, func(inst directive.Instance) (bool, error) {
+		_, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler)
+		return ok, nil
+	}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requirePlugins(t, strm, "/spacewave-core:running", spaceID+"/notes:requested")
+
+	spaceScheduler.statusCtr.SetValue(&plugin_host_scheduler.PluginStatusSnapshot{
+		Plugins: []*bldr_plugin.PluginStatus{{
+			PluginId: "notes",
+			State:    bldr_plugin.PluginState_PluginState_RUNNING,
+		}},
+	})
+	requirePlugins(t, strm, "/spacewave-core:running", spaceID+"/notes:running")
+
+	bridgeRelease()
+	requirePlugins(t, strm, "/spacewave-core:running")
+
+	cancel()
+	if err := <-errCh; err != context.Canceled {
+		t.Fatalf("WatchPlugins returned %v, want context.Canceled", err)
+	}
+}
+
+// requirePlugins waits for the next WatchPlugins response and checks it lists
+// want as "<space_id>/<id>:<state>" in order.
+func requirePlugins(t *testing.T, strm *watchPluginsStream, want ...string) {
+	t.Helper()
+	var resp *s4wave_status.WatchPluginsResponse
+	select {
+	case resp = <-strm.sent:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("WatchPlugins sent nothing, want %v", want)
+	}
+	got := make([]string, 0, len(resp.GetPlugins()))
+	for _, plugin := range resp.GetPlugins() {
+		got = append(got, plugin.GetSpaceId()+"/"+plugin.GetId()+":"+plugin.GetState())
+	}
+	if !slices.Equal(got, want) || resp.GetPluginCount() != uint32(len(want)) {
+		t.Fatalf("plugins = %v (count %d), want %v", got, resp.GetPluginCount(), want)
 	}
 }

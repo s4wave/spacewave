@@ -511,11 +511,15 @@ function NetworkTile({
   )
 }
 
-// runtimeHeadline summarizes the session plugin host.
+// runtimeHeadline summarizes the plugins running across every plugin host.
 function runtimeHeadline(plugins: SystemModel['plugins'], running: number) {
   if (!plugins) return 'Reading…'
-  if (plugins.length === 0) return 'No session plugins'
-  return `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
+  if (plugins.length === 0) return 'No plugins running'
+  const headline = `${formatCount(running)} of ${plural(plugins.length, 'plugin')} running`
+  const spaces = new Set(
+    plugins.filter((plugin) => plugin.spaceId).map((plugin) => plugin.spaceId),
+  ).size
+  return spaces ? `${headline} in ${plural(spaces, 'Space')}` : headline
 }
 
 // RuntimeTile shows plugin health and the busiest directive types.

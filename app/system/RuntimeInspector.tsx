@@ -11,8 +11,9 @@ import type { DirectiveGroup, PluginView } from './useSystemModel.js'
 // RuntimeView selects which runtime listing the inspector shows.
 export type RuntimeView = 'plugins' | 'controllers' | 'directives'
 
-// RuntimeInspector lists the plugin host instances, controllers on the bus,
-// and active directives grouped by type, with one filter across all three.
+// RuntimeInspector lists plugin instances grouped by the host that runs them,
+// controllers on the bus, and active directives grouped by type, with one
+// filter across all three.
 export function RuntimeInspector({
   plugins,
   controllers,
@@ -35,9 +36,19 @@ export function RuntimeInspector({
   const visiblePlugins = useMemo(
     () =>
       (plugins ?? []).filter((plugin) =>
-        matches(query, plugin.id, plugin.instanceKey, plugin.state),
+        matches(
+          query,
+          plugin.id,
+          plugin.instanceKey,
+          plugin.state,
+          plugin.host,
+        ),
       ),
     [plugins, query],
+  )
+  const pluginHosts = useMemo(
+    () => groupByHost(visiblePlugins),
+    [visiblePlugins],
   )
   const visibleControllers = useMemo(
     () =>
@@ -126,12 +137,12 @@ export function RuntimeInspector({
             empty={
               query
                 ? 'No plugins match.'
-                : 'No plugins run on the session bus. Space plugins run inside each Space.'
+                : 'No plugins are running. Open a Space to start its plugins.'
             }
             count={visiblePlugins.length}
           >
-            {visiblePlugins.map((plugin) => (
-              <PluginRow key={plugin.key} plugin={plugin} />
+            {pluginHosts.map((group) => (
+              <PluginHostGroup key={group.spaceId} group={group} />
             ))}
           </Listing>
         )}
@@ -213,6 +224,57 @@ function Listing({
     return <p className="text-foreground-alt/50 px-4 py-3 text-xs">{empty}</p>
   }
   return <ul className="divide-foreground/6 divide-y">{children}</ul>
+}
+
+// PluginHost is the plugins one host runs: the root plugin host or a Space
+// runtime.
+interface PluginHost {
+  spaceId: string
+  host: string
+  plugins: PluginView[]
+}
+
+// groupByHost splits host-ordered plugins into one group per host.
+function groupByHost(plugins: PluginView[]): PluginHost[] {
+  const groups: PluginHost[] = []
+  for (const plugin of plugins) {
+    const last = groups.at(-1)
+    if (last?.spaceId === plugin.spaceId) {
+      last.plugins.push(plugin)
+    } else {
+      groups.push({
+        spaceId: plugin.spaceId,
+        host: plugin.host,
+        plugins: [plugin],
+      })
+    }
+  }
+  return groups
+}
+
+// PluginHostGroup is one host's heading followed by its plugin rows.
+function PluginHostGroup({ group }: { group: PluginHost }) {
+  const running = group.plugins.filter(
+    (plugin) => plugin.state === 'running',
+  ).length
+
+  return (
+    <li>
+      <h4 className="bg-foreground/[0.02] text-foreground-alt/70 flex items-baseline gap-3 px-4 py-1.5 text-xs">
+        <span className="text-foreground min-w-0 flex-1 truncate font-medium">
+          {group.host}
+        </span>
+        <span className="shrink-0 font-mono tabular-nums">
+          {formatCount(running)}/{formatCount(group.plugins.length)} running
+        </span>
+      </h4>
+      <ul className="divide-foreground/6 divide-y">
+        {group.plugins.map((plugin) => (
+          <PluginRow key={plugin.key} plugin={plugin} />
+        ))}
+      </ul>
+    </li>
+  )
 }
 
 // pluginStateClass colors the plugin lifecycle: running is healthy and

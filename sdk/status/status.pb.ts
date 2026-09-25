@@ -103,6 +103,13 @@ export interface PluginInfo {
    * @generated from field: string state = 3;
    */
   state?: string
+  /**
+   * SpaceId is the engine ID of the Space runtime hosting the plugin.
+   * Empty when the plugin runs on the root plugin host.
+   *
+   * @generated from field: string space_id = 4;
+   */
+  spaceId?: string
 }
 
 export const PluginInfo: MessageType<PluginInfo> =
@@ -112,6 +119,7 @@ export const PluginInfo: MessageType<PluginInfo> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -818,7 +826,8 @@ export const WatchPluginsRequest: MessageType<WatchPluginsRequest> =
  */
 export interface WatchPluginsResponse {
   /**
-   * Plugins is the current list of plugin load requests.
+   * Plugins lists the plugin load requests of every reachable plugin host,
+   * sorted by space_id, then id, then instance_key.
    *
    * @generated from field: repeated s4wave.status.PluginInfo plugins = 1;
    */

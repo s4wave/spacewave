@@ -56,13 +56,16 @@ type spaceRuntime struct {
 	bus              bus.Bus
 	scheduler        *plugin_host_scheduler.Controller
 	schedulerRelease func()
-	mirrorRelease    func()
-	hostWatchRelease func()
-	bridgeRef        func()
-	cancel           context.CancelFunc
-	done             chan struct{}
-	terminal         <-chan error
-	released         atomic.Bool
+	// schedulerLookupRelease removes the parent bus bridge that exposes the
+	// scheduler to LookupPluginScheduler on the parent bus.
+	schedulerLookupRelease func()
+	mirrorRelease          func()
+	hostWatchRelease       func()
+	bridgeRef              func()
+	cancel                 context.CancelFunc
+	done                   chan struct{}
+	terminal               <-chan error
+	released               atomic.Bool
 }
 
 func (r *spaceRuntime) Release() {
@@ -71,6 +74,9 @@ func (r *spaceRuntime) Release() {
 	}
 	if !r.released.CompareAndSwap(false, true) {
 		return
+	}
+	if r.schedulerLookupRelease != nil {
+		r.schedulerLookupRelease()
 	}
 	if r.schedulerRelease != nil {
 		r.schedulerRelease()
@@ -614,21 +620,42 @@ func startSpaceRuntime(
 		childCancel()
 		return nil, err
 	}
+	schedulerLookupRelease, err := parent.AddController(
+		childCtx,
+		bus_bridge.NewBusBridge(child, spaceRuntimeSchedulerLookupFilter),
+		nil,
+	)
+	if err != nil {
+		schedulerRelease()
+		hostWatchRelease()
+		mirrorRelease()
+		bridgeRef()
+		childCancel()
+		return nil, err
+	}
 	return &spaceRuntime{
-		bus:              child,
-		scheduler:        scheduler,
-		schedulerRelease: schedulerRelease,
-		mirrorRelease:    mirrorRelease,
-		hostWatchRelease: hostWatchRelease,
-		bridgeRef:        bridgeRef,
-		cancel:           childCancel,
-		done:             make(chan struct{}),
-		terminal:         terminal,
+		bus:                    child,
+		scheduler:              scheduler,
+		schedulerRelease:       schedulerRelease,
+		schedulerLookupRelease: schedulerLookupRelease,
+		mirrorRelease:          mirrorRelease,
+		hostWatchRelease:       hostWatchRelease,
+		bridgeRef:              bridgeRef,
+		cancel:                 childCancel,
+		done:                   make(chan struct{}),
+		terminal:               terminal,
 	}, nil
 }
 
 func spaceRuntimeBridgeFilter(inst directive.Instance) (bool, error) {
 	return spaceRuntimeBridgeDirective(inst.GetDirective()), nil
+}
+
+// spaceRuntimeSchedulerLookupFilter forwards LookupPluginScheduler from the
+// parent bus into the Space runtime so session status sees its scheduler.
+func spaceRuntimeSchedulerLookupFilter(inst directive.Instance) (bool, error) {
+	_, ok := inst.GetDirective().(plugin_host_scheduler.LookupPluginScheduler)
+	return ok, nil
 }
 
 func spaceRuntimeBridgeDirective(dir directive.Directive) bool {

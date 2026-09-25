@@ -15,7 +15,6 @@ import (
 )
 
 // PluginStatusSnapshot describes the scheduler's current plugin instances.
-// PluginStatusSnapshot is the scheduler's live plugin-status snapshot.
 type PluginStatusSnapshot struct {
 	// Plugins lists the per-plugin statuses.
 	Plugins []*bldr_plugin.PluginStatus
@@ -51,6 +50,11 @@ type PluginManifestRecoveryStatus struct {
 // GetPluginStatusCtr returns the scheduler's live plugin-status snapshot.
 func (c *Controller) GetPluginStatusCtr() ccontainer.Watchable[*PluginStatusSnapshot] {
 	return c.pluginStatusCtr
+}
+
+// GetInstanceKey returns the instance key the scheduler was configured with.
+func (c *Controller) GetInstanceKey() string {
+	return c.conf.GetInstanceKey()
 }
 
 // FindControllerOnBus returns the first plugin host scheduler on b.

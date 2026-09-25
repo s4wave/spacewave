@@ -43,6 +43,9 @@ message PluginInfo {
   string instance_key = 2;
   // State is the plugin runtime state.
   string state = 3;
+  // SpaceId is the engine ID of the Space runtime hosting the plugin.
+  // Empty when the plugin runs on the root plugin host.
+  string space_id = 4;
 }
 
 // NetworkLinkInfo describes a live bifrost link.
@@ -172,7 +175,8 @@ message WatchPluginsRequest {}
 
 // WatchPluginsResponse is the response type for WatchPlugins.
 message WatchPluginsResponse {
-  // Plugins is the current list of plugin load requests.
+  // Plugins lists the plugin load requests of every reachable plugin host,
+  // sorted by space_id, then id, then instance_key.
   repeated PluginInfo plugins = 1;
   // PluginCount is the total number of plugin load requests.
   uint32 plugin_count = 2;

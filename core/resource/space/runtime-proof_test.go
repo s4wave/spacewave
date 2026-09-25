@@ -23,6 +23,7 @@ import (
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -171,6 +172,20 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	}
 	if !requested {
 		t.Fatalf("plugin lifecycle did not reach requested: %#v", scheduler.GetPluginStatusCtr().GetValue())
+	}
+
+	// Session status finds the Space scheduler from the parent bus.
+	schedulers, _, schedulersRef, err := bus.ExecCollectValues[plugin_host_scheduler.LookupPluginSchedulerValue](
+		ctx, tb.Bus, plugin_host_scheduler.NewLookupPluginScheduler(), false, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schedulersRef.Release()
+	if !slices.ContainsFunc(schedulers, func(s plugin_host_scheduler.PluginScheduler) bool {
+		return s == scheduler && s.GetInstanceKey() == "space-test"
+	}) {
+		t.Fatalf("parent bus lookup did not reach the Space scheduler: %#v", schedulers)
 	}
 	select {
 	case load := <-parentLoads.loads:

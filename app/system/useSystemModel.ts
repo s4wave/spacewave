@@ -62,13 +62,19 @@ export interface SystemVerdict {
   items: AttentionItem[]
 }
 
-// PluginView joins a plugin host instance with its retained manifest recovery
-// and native package facts.
+// PluginView joins a plugin host instance with the host that runs it and,
+// for root host plugins, its retained manifest recovery and native package
+// facts.
 export interface PluginView {
   key: string
   id: string
   instanceKey: string
   state: string
+  // spaceId is the engine ID of the hosting Space runtime, empty for the root
+  // plugin host.
+  spaceId: string
+  // host names the hosting Space, or the system for the root plugin host.
+  host: string
   manifest?: PluginManifestRecoveryStatus
   nativePackage?: NativePackageRecoveryStatus
 }
@@ -166,7 +172,7 @@ export function useSystemModel(): SystemModel {
 export function buildSystemModel(inputs: SystemModelInputs): SystemModel {
   // Project the runtime snapshots into display order.
   const pluginViews = inputs.plugins
-    ? joinPlugins(inputs.plugins, inputs.recovery)
+    ? joinPlugins(inputs.plugins, inputs.recovery, inputs.spaces)
     : null
   const directiveGroups = inputs.directives
     ? groupDirectives(inputs.directives)
@@ -233,11 +239,13 @@ function groupDirectives(resp: WatchDirectivesResponse): DirectiveGroup[] {
   )
 }
 
-// joinPlugins attaches manifest recovery and native package facts to each
-// plugin host instance.
+// joinPlugins names the host of each plugin instance and attaches the root
+// host's manifest recovery and native package facts. Plugins are ordered with
+// the root host first, then by Space name.
 function joinPlugins(
   resp: WatchPluginsResponse,
   recovery: RecoveryStatus | null,
+  spaces: ReadonlyArray<SpaceSoListEntry> | null,
 ): PluginView[] {
   const manifests = new Map(
     (recovery?.plugins ?? []).map((m) => [
@@ -248,22 +256,50 @@ function joinPlugins(
   const nativePackages = new Map(
     (recovery?.nativePackages ?? []).map((p) => [p.pluginId ?? '', p]),
   )
+  const spaceNames = new Map(
+    (spaces ?? []).map((space) => [
+      spaceEngineId(space),
+      space.spaceMeta?.name || 'Untitled Space',
+    ]),
+  )
 
   return (resp.plugins ?? [])
     .map((plugin) => {
       const id = plugin.id ?? ''
       const instanceKey = plugin.instanceKey ?? ''
-      const key = `${id}:${instanceKey}`
+      const spaceId = plugin.spaceId ?? ''
+      const rootKey = `${id}:${instanceKey}`
       return {
-        key,
+        key: `${spaceId}:${rootKey}`,
         id,
         instanceKey,
         state: plugin.state || 'unknown',
-        manifest: manifests.get(key),
-        nativePackage: nativePackages.get(id),
+        spaceId,
+        host: spaceId
+          ? (spaceNames.get(spaceId) ?? 'Unlisted Space')
+          : 'System',
+        manifest: spaceId ? undefined : manifests.get(rootKey),
+        nativePackage: spaceId ? undefined : nativePackages.get(id),
       }
     })
-    .sort((a, b) => a.key.localeCompare(b.key))
+    .sort(
+      (a, b) =>
+        Number(!!a.spaceId) - Number(!!b.spaceId) ||
+        a.host.localeCompare(b.host) ||
+        a.key.localeCompare(b.key),
+    )
+}
+
+// spaceEngineId builds the world engine ID a Space runtime uses as its plugin
+// scheduler instance key. It mirrors SpaceEngineId in core/space.
+function spaceEngineId(space: SpaceSoListEntry): string {
+  const ref = space.entry?.ref?.providerResourceRef
+  return [
+    'space',
+    ref?.providerId ?? '',
+    ref?.providerAccountId ?? '',
+    ref?.id ?? '',
+  ].join('/')
 }
 
 // collectAttention lists every live fault or risk, most severe first.

@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -112,51 +113,111 @@ func (r *StatusResource) WatchDirectives(
 	)
 }
 
-// WatchPlugins streams the plugin host scheduler's live plugin instances.
-// While no scheduler is mounted on the session bus it sends an empty
-// snapshot, so the caller never waits on a scheduler that may not exist.
+// WatchPlugins streams the plugin instances of every plugin host scheduler
+// reachable from the session bus: the root scheduler, when mounted, and the
+// scheduler of each running Space runtime. The first snapshot is sent once the
+// scheduler lookup is idle, so the stream starts even when no scheduler exists.
 func (r *StatusResource) WatchPlugins(
 	_ *s4wave_status.WatchPluginsRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchPluginsStream,
 ) error {
-	ctx := strm.Context()
-	sentEmpty := false
+	ctx, cancel := context.WithCancel(strm.Context())
+	defer cancel()
+
+	// bcast guards schedulers, collected, and lookupErr.
+	var bcast broadcast.Broadcast
+	var schedulers []plugin_host_scheduler.PluginScheduler
+	var collected bool
+	var lookupErr error
+	_, release, err := bus.ExecCollectValuesWatch(
+		ctx,
+		r.b,
+		plugin_host_scheduler.NewLookupPluginScheduler(),
+		true,
+		func(_ []error, vals []plugin_host_scheduler.LookupPluginSchedulerValue) error {
+			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				schedulers = slices.Clone(vals)
+				collected = true
+				broadcast()
+			})
+			return nil
+		},
+		func(err error) {
+			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				lookupErr = err
+				broadcast()
+			})
+		},
+	)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	var prev *s4wave_status.WatchPluginsResponse
 	for {
-		waitCh := r.controllersWaitCh()
-		statusCtr := r.findPluginStatusCtr()
-		if statusCtr == nil {
-			if !sentEmpty {
-				if err := strm.Send(buildPluginsResponse(nil)); err != nil {
-					return err
-				}
-				sentEmpty = true
-			}
+		var current []plugin_host_scheduler.PluginScheduler
+		var ready bool
+		var setWaitCh <-chan struct{}
+		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			current, ready, err, setWaitCh = schedulers, collected, lookupErr, getWaitCh()
+		})
+		if err != nil {
+			return err
+		}
+		if !ready {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case <-waitCh:
+			case <-setWaitCh:
+				continue
 			}
-			continue
 		}
 
-		sentEmpty = false
-		current := statusCtr.GetValue()
-		if err := strm.Send(buildPluginsResponse(current)); err != nil {
-			return err
+		snapshots := make([]*plugin_host_scheduler.PluginStatusSnapshot, len(current))
+		for i, scheduler := range current {
+			snapshots[i] = scheduler.GetPluginStatusCtr().GetValue()
 		}
-		err := ccontainer.WatchChanges(
-			ctx,
-			current,
-			statusCtr,
-			func(snapshot *plugin_host_scheduler.PluginStatusSnapshot) error {
-				return strm.Send(buildPluginsResponse(snapshot))
-			},
-			nil,
-		)
-		if ctx.Err() != nil {
-			return err
+		resp := buildPluginsResponse(current, snapshots)
+		if prev == nil || !resp.EqualVT(prev) {
+			if err := strm.Send(resp); err != nil {
+				return err
+			}
+			prev = resp
 		}
+
+		waitCtx, waitCancel := context.WithCancel(ctx)
+		statusCh := waitPluginStatusChange(waitCtx, current, snapshots)
+		select {
+		case <-ctx.Done():
+			waitCancel()
+			return ctx.Err()
+		case <-setWaitCh:
+		case <-statusCh:
+		}
+		waitCancel()
 	}
+}
+
+// waitPluginStatusChange returns a channel closed when any scheduler's status
+// snapshot differs from the matching entry in snapshots. The watches end with
+// ctx.
+func waitPluginStatusChange(
+	ctx context.Context,
+	schedulers []plugin_host_scheduler.PluginScheduler,
+	snapshots []*plugin_host_scheduler.PluginStatusSnapshot,
+) <-chan struct{} {
+	changed := make(chan struct{})
+	var once sync.Once
+	for i, scheduler := range schedulers {
+		go func() {
+			_, err := scheduler.GetPluginStatusCtr().WaitValueChange(ctx, snapshots[i], nil)
+			if err == nil {
+				once.Do(func() { close(changed) })
+			}
+		}()
+	}
+	return changed
 }
 
 // WatchNetworkStats streams the session transport's live bifrost link snapshot.
@@ -340,15 +401,14 @@ func rendererRecoveryStatusEqual(
 	return a.EqualVT(b)
 }
 
-// findPluginStatusCtr locates the mounted plugin scheduler status owner.
+// findPluginStatusCtr locates the root plugin scheduler status owner on the
+// session bus.
 func (r *StatusResource) findPluginStatusCtr() ccontainer.Watchable[*plugin_host_scheduler.PluginStatusSnapshot] {
-	for _, ctrl := range r.b.GetControllers() {
-		scheduler, ok := ctrl.(*plugin_host_scheduler.Controller)
-		if ok {
-			return scheduler.GetPluginStatusCtr()
-		}
+	scheduler := plugin_host_scheduler.FindControllerOnBus(r.b)
+	if scheduler == nil {
+		return nil
 	}
-	return nil
+	return scheduler.GetPluginStatusCtr()
 }
 
 // controllersWaitCh captures controller-change notification under its owning lock.
@@ -363,19 +423,35 @@ func (r *StatusResource) controllersWaitCh() <-chan struct{} {
 	return waitCh
 }
 
-// buildPluginsResponse projects the scheduler snapshot into plugin status records.
-func buildPluginsResponse(snapshot *plugin_host_scheduler.PluginStatusSnapshot) *s4wave_status.WatchPluginsResponse {
+// buildPluginsResponse merges the scheduler snapshots into plugin status
+// records sorted by Space, plugin, and instance. snapshots[i] belongs to
+// schedulers[i].
+func buildPluginsResponse(
+	schedulers []plugin_host_scheduler.PluginScheduler,
+	snapshots []*plugin_host_scheduler.PluginStatusSnapshot,
+) *s4wave_status.WatchPluginsResponse {
 	var infos []*s4wave_status.PluginInfo
-	if snapshot != nil {
-		infos = make([]*s4wave_status.PluginInfo, 0, len(snapshot.Plugins))
+	for i, snapshot := range snapshots {
+		if snapshot == nil {
+			continue
+		}
+		spaceID := schedulers[i].GetInstanceKey()
 		for _, plugin := range snapshot.Plugins {
 			infos = append(infos, &s4wave_status.PluginInfo{
 				Id:          plugin.GetPluginId(),
 				InstanceKey: plugin.GetInstanceKey(),
 				State:       pluginStateString(plugin.GetState()),
+				SpaceId:     spaceID,
 			})
 		}
 	}
+	slices.SortFunc(infos, func(a, b *s4wave_status.PluginInfo) int {
+		return cmp.Or(
+			cmp.Compare(a.GetSpaceId(), b.GetSpaceId()),
+			cmp.Compare(a.GetId(), b.GetId()),
+			cmp.Compare(a.GetInstanceKey(), b.GetInstanceKey()),
+		)
+	})
 	return &s4wave_status.WatchPluginsResponse{
 		Plugins:     infos,
 		PluginCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
