@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/logpolicy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
@@ -47,7 +48,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 	le.Debug("desktop tray status projector opened host desktop tray")
 
-	launcher := newLauncherInfoWatcher(ctx, c.GetBus())
+	launcher := spacewave_launcher.NewInfoWatcher(le, c.GetBus())
+	launcher.SetContext(ctx)
 	return projectRuntimeTrayStatus(
 		ctx,
 		c.GetBus(),
@@ -64,7 +66,7 @@ func projectRuntimeTrayStatus(
 	b bus.Bus,
 	broker *resource_listener.StatusBroker,
 	sessionCtrl session.SessionController,
-	launcher *launcherInfoWatcher,
+	launcher *spacewave_launcher.InfoWatcher,
 	publisher *desktopTrayPublisher,
 	le *logrus.Entry,
 ) error {

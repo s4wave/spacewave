@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/http"
 	"github.com/aperturerobotics/util/routine"
@@ -36,18 +37,13 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 	currDistConf := currLauncherInfo.GetDistConfig()
 	currRev := currDistConf.GetRev()
 
-	// publish fetching=true, preserving has-config / attempts state.
-	prevStatus := c.fetchStatusCtr.GetValue()
-	var attempts uint32
-	if prevStatus != nil {
-		attempts = prevStatus.Attempts
-	}
-	attempts++
+	// Publish the fetch in flight, counting it as another attempt.
+	attempts := currLauncherInfo.GetFetchStatus().GetAttempts() + 1
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
 		next.Fetching = true
 		next.HasConfig = currRev != 0
 		next.Attempts = attempts
-		next.NextRetryAt = time.Time{}
+		next.NextRetryAt = nil
 	})
 	var fetchedRev uint64
 	var fetchedSource string
@@ -61,10 +57,10 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 				next.FetchedConfigRev = fetchedRev
 				next.FetchedConfigSource = fetchedSource
 			}
-			next.LastErr = ""
+			next.LastError = ""
 			next.Attempts = 0
 			if rerr != nil {
-				next.LastErr = rerr.Error()
+				next.LastError = rerr.Error()
 				next.Attempts = attempts
 			}
 		})
@@ -137,7 +133,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 		_, _ = c.swapDistConf(updatedAppDistConf)
 		c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
 			next.SelectedConfigRev = rev
-			next.SelectedConfigSource = "endpoint"
+			next.SelectedConfigSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT
 			next.FetchedConfigRev = fetchedRev
 			next.FetchedConfigSource = fetchedSource
 		})
@@ -177,13 +173,12 @@ func (c *Controller) confFetcherExited(err error) {
 	refetchDur += time.Millisecond * time.Duration(staggerMs)
 
 	c.le.Debugf("scheduling re-check in %v", refetchDur.String())
-	// stamp the next-retry time so WatchLauncherFetchStatus consumers can
-	// render a countdown without having to re-implement backoff themselves.
-	if curr := c.fetchStatusCtr.GetValue(); curr != nil {
-		next := *curr
-		next.NextRetryAt = time.Now().Add(refetchDur)
-		c.fetchStatusCtr.SetValue(&next)
-	}
+	// Stamp the next fetch time so fetch status watchers can render a
+	// countdown without reimplementing the backoff.
+	nextRetryAt := timestamp.ToTimestamp(time.Now().Add(refetchDur))
+	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		next.NextRetryAt = nextRetryAt
+	})
 	c.confFetcherRefetch = time.AfterFunc(refetchDur, func() {
 		_ = c.confFetcherRoutine.RestartRoutine()
 	})

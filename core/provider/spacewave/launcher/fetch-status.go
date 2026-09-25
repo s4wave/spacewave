@@ -6,71 +6,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 )
 
-// FetchStatus is a read-only snapshot of the launcher controller's DistConfig
-// fetch state. Instances are immutable: transitions swap in a new pointer so
-// equality by pointer identity doubles as a change signal.
-type FetchStatus struct {
-	// Fetching is true while an endpoint fetch is in flight.
-	Fetching bool
-	// HasConfig is true once the controller has a non-empty DistConfig
-	// (either loaded from disk, the built-in default, or a successful fetch).
-	HasConfig bool
-	// SelectedConfigRev is the revision currently selected by the launcher.
-	SelectedConfigRev uint64
-	// SelectedConfigSource names the source of the selected DistConfig.
-	SelectedConfigSource string
-	// FetchedConfigRev is the most recent valid endpoint DistConfig revision.
-	FetchedConfigRev uint64
-	// FetchedConfigSource names the endpoint/source that produced
-	// FetchedConfigRev.
-	FetchedConfigSource string
-	// ReleaseMetadataOutcome describes the latest release metadata resolution
-	// result for the selected DistConfig.
-	ReleaseMetadataOutcome string
-	// ReleaseWorldHeadRef is the Release World root ref used for the latest
-	// metadata resolution.
-	ReleaseWorldHeadRef string
-	// SelectedEntrypointManifestID is the native entrypoint manifest selected
-	// from release metadata for staging.
-	SelectedEntrypointManifestID string
-	// SelectedEntrypointPlatformID is the native desktop platform of the
-	// selected entrypoint manifest.
-	SelectedEntrypointPlatformID string
-	// SelectedEntrypointManifestRev is the revision of the selected native
-	// entrypoint manifest.
-	SelectedEntrypointManifestRev uint64
-	// SelectedEntrypointManifestRef is the selected native entrypoint object
-	// ref in string form.
-	SelectedEntrypointManifestRef string
-	// SelectedCLIManifestID is the CLI entrypoint manifest selected from release
-	// metadata for desktop-managed CLI install/update.
-	SelectedCLIManifestID string
-	// SelectedCLIPlatformID is the native desktop platform of the selected CLI
-	// entrypoint manifest.
-	SelectedCLIPlatformID string
-	// SelectedCLIManifestRev is the revision of the selected CLI entrypoint
-	// manifest.
-	SelectedCLIManifestRev uint64
-	// SelectedCLIManifestRef is the selected CLI entrypoint object ref in string
-	// form.
-	SelectedCLIManifestRef string
-	// SelectedCLIBinaryPath is the local staged binary path written to the
-	// managed CLI release sidecar.
-	SelectedCLIBinaryPath string
-	// LastErr is the most recent endpoint-fetch error string, or empty when
-	// the last attempt succeeded or no fetch has run yet.
-	LastErr string
-	// Attempts is the number of endpoint rounds tried since the controller
-	// started. It resets to 0 on successful fetch.
-	Attempts uint32
-	// NextRetryAt is the wall-clock time of the next scheduled retry. Zero
-	// when no retry is pending (either fetch in flight or idle).
-	NextRetryAt time.Time
-}
-
 // WatchLauncherFetchStatus is a directive that emits FetchStatus snapshots
 // for a launcher controller matching ProjectID. The resolver pushes a new
-// value on every state transition and removes the prior value.
+// value on every state transition and removes the prior value. Values are
+// immutable; the launcher replaces the message on each transition.
 type WatchLauncherFetchStatus interface {
 	// Directive indicates WatchLauncherFetchStatus is a directive.
 	directive.Directive
@@ -86,6 +25,7 @@ type WatchLauncherFetchStatusValue = *FetchStatus
 
 // watchLauncherFetchStatus implements WatchLauncherFetchStatus.
 type watchLauncherFetchStatus struct {
+	// projectID is the launcher project to match, or empty for any.
 	projectID string
 }
 

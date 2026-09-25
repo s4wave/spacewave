@@ -54,13 +54,13 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 		c.clearUpdateState()
 		c.setSelectedEntrypointManifestRef(nil)
 		c.setSelectedCLIManifestRef(nil, "")
-		c.setReleaseMetadataOutcome("idle")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_IDLE)
 		_ = c.clearManagedCLIReleaseSidecar()
 		return nil
 	}
 
 	// Clear prior selection before reading the new channel.
-	c.setReleaseMetadataOutcome("resolving")
+	c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_RESOLVING)
 	c.setSelectedEntrypointManifestRef(nil)
 	c.setSelectedCLIManifestRef(nil, "")
 	c.setReleaseWorldHeadRef("")
@@ -70,7 +70,7 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	metadata, err := c.resolveReleaseMetadata(ctx, distConf.ResolvedChannelKey())
 	if err != nil {
 		c.setUpdateError(err)
-		c.setReleaseMetadataOutcome("error")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR)
 		return err
 	}
 
@@ -78,7 +78,7 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	// the head means the CDN published a root this process has not read yet:
 	// queue a refresh and let the routine's backoff retry the resolution.
 	if metadata.GetRev() < distConf.GetRev() {
-		c.setReleaseMetadataOutcome("refreshing")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_REFRESHING)
 		if err := c.refreshReleaseWorld(ctx); err != nil {
 			return err
 		}
@@ -89,20 +89,20 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	platformID, err := nativeDesktopPlatformID()
 	if err != nil {
 		c.setUpdateError(err)
-		c.setReleaseMetadataOutcome("error")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR)
 		return err
 	}
 	manifestRef, cliManifestRef, err := c.conf.SelectReleaseManifests(metadata, platformID)
 	if err != nil {
 		c.setUpdateError(err)
-		c.setReleaseMetadataOutcome("error")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR)
 		return err
 	}
 
 	// Stage the selected artifacts before exposing a restart action.
 	if err := c.stageReleaseManifestUpdate(ctx, metadata, platformID, manifestRef, cliManifestRef); err != nil {
 		c.setUpdateError(err)
-		c.setReleaseMetadataOutcome("error")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR)
 		return err
 	}
 	return nil
@@ -240,7 +240,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	}
 	if current {
 		c.clearUpdateState()
-		c.setReleaseMetadataOutcome("current")
+		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT)
 		return nil
 	}
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
@@ -271,7 +271,7 @@ func (c *Controller) setUpdateDownloading(version string) {
 		}
 		return true, nil
 	})
-	c.setReleaseMetadataOutcome("downloading")
+	c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_DOWNLOADING)
 }
 
 // setUpdateStaged publishes a verified replacement ready for an explicit restart.
@@ -285,11 +285,11 @@ func (c *Controller) setUpdateStaged(version, stagedPath string) {
 		}
 		return true, nil
 	})
-	c.setReleaseMetadataOutcome("staged")
+	c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED)
 }
 
 // setReleaseMetadataOutcome updates release-resolution diagnostics.
-func (c *Controller) setReleaseMetadataOutcome(outcome string) {
+func (c *Controller) setReleaseMetadataOutcome(outcome spacewave_launcher.ReleaseMetadataOutcome) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
 		next.ReleaseMetadataOutcome = outcome
 	})
@@ -305,15 +305,15 @@ func (c *Controller) setReleaseWorldHeadRef(ref string) {
 // setSelectedEntrypointManifestRef replaces desktop selection diagnostics.
 func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.ManifestRef) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
-		next.SelectedEntrypointManifestID = ""
-		next.SelectedEntrypointPlatformID = ""
+		next.SelectedEntrypointManifestId = ""
+		next.SelectedEntrypointPlatformId = ""
 		next.SelectedEntrypointManifestRev = 0
 		next.SelectedEntrypointManifestRef = ""
 		if ref == nil {
 			return
 		}
-		next.SelectedEntrypointManifestID = ref.GetMeta().GetManifestId()
-		next.SelectedEntrypointPlatformID = ref.GetMeta().GetPlatformId()
+		next.SelectedEntrypointManifestId = ref.GetMeta().GetManifestId()
+		next.SelectedEntrypointPlatformId = ref.GetMeta().GetPlatformId()
 		next.SelectedEntrypointManifestRev = ref.GetMeta().GetRev()
 		next.SelectedEntrypointManifestRef = ref.GetManifestRef().MarshalString()
 	})
@@ -322,19 +322,19 @@ func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.Manifes
 // setSelectedCLIManifestRef replaces companion CLI selection diagnostics.
 func (c *Controller) setSelectedCLIManifestRef(ref *bldr_manifest.ManifestRef, stagedPath string) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
-		next.SelectedCLIManifestID = ""
-		next.SelectedCLIPlatformID = ""
-		next.SelectedCLIManifestRev = 0
-		next.SelectedCLIManifestRef = ""
-		next.SelectedCLIBinaryPath = ""
+		next.SelectedCliManifestId = ""
+		next.SelectedCliPlatformId = ""
+		next.SelectedCliManifestRev = 0
+		next.SelectedCliManifestRef = ""
+		next.SelectedCliBinaryPath = ""
 		if ref == nil {
 			return
 		}
-		next.SelectedCLIManifestID = ref.GetMeta().GetManifestId()
-		next.SelectedCLIPlatformID = ref.GetMeta().GetPlatformId()
-		next.SelectedCLIManifestRev = ref.GetMeta().GetRev()
-		next.SelectedCLIManifestRef = ref.GetManifestRef().MarshalString()
-		next.SelectedCLIBinaryPath = stagedPath
+		next.SelectedCliManifestId = ref.GetMeta().GetManifestId()
+		next.SelectedCliPlatformId = ref.GetMeta().GetPlatformId()
+		next.SelectedCliManifestRev = ref.GetMeta().GetRev()
+		next.SelectedCliManifestRef = ref.GetManifestRef().MarshalString()
+		next.SelectedCliBinaryPath = stagedPath
 	})
 }
 

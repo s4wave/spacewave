@@ -38,13 +38,10 @@ type Controller struct {
 	endps []*HttpEndpoint
 	// distPeerIDs is the list of distribution peer ids
 	distPeerIDs []peer.ID
-	// launcherInfoCtr contains the current launcher info.
-	// the pointer changes when updated (immutable object)
+	// launcherInfoCtr contains the current launcher info, including the
+	// DistConfig fetch status. Values are immutable: every change swaps in a
+	// new pointer.
 	launcherInfoCtr *ccontainer.CContainer[*spacewave_launcher.LauncherInfo]
-	// fetchStatusCtr publishes DistConfig fetch-status snapshots. Consumers
-	// (e.g. spacewave-loader) observe transitions via the
-	// WatchLauncherFetchStatus directive to drive loading-UI retry messages.
-	fetchStatusCtr *ccontainer.CContainer[*spacewave_launcher.FetchStatus]
 	// confFetcherRoutine fetches configurations from the list of endpoints.
 	// tries each endpoint in order until it finds a valid dist config
 	// stops after finding a valid config
@@ -80,9 +77,6 @@ func NewController(
 		mux:  srpc.NewMux(),
 
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](nil),
-		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
-			&spacewave_launcher.FetchStatus{},
-		),
 	}
 	ctrl.endps = endpoints
 	ctrl.distPeerIDs = distPeerIDs
@@ -122,39 +116,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	)
 }
 
-// GetFetchStatusCtr returns launcher-owned DistConfig/release recovery status.
-func (c *Controller) GetFetchStatusCtr() ccontainer.Watchable[*spacewave_launcher.FetchStatus] {
-	return c.fetchStatusCtr
-}
-
-// GetLauncherInfoCtr returns launcher-owned entrypoint update state.
-func (c *Controller) GetLauncherInfoCtr() ccontainer.Watchable[*spacewave_launcher.LauncherInfo] {
-	return c.launcherInfoCtr
-}
-
-// FindControllerOnBus returns the first launcher controller on b.
-func FindControllerOnBus(b bus.Bus) *Controller {
-	for _, ctrl := range b.GetControllers() {
-		launcher, ok := ctrl.(*Controller)
-		if ok {
-			return launcher
-		}
-	}
-	return nil
-}
-
-func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStatus)) {
-	if c.fetchStatusCtr == nil {
-		return
-	}
-	next := &spacewave_launcher.FetchStatus{}
-	if current := c.fetchStatusCtr.GetValue(); current != nil {
-		*next = *current
-	}
-	update(next)
-	c.fetchStatusCtr.SetValue(next)
-}
-
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
@@ -171,7 +132,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// load the initial app dist config
 	var distConf *spacewave_launcher.DistConfig
-	distConfSource := "none"
+	distConfSource := spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_NONE
 	loadedPackageDistConf := false
 	distConfDat, err := c.loadDistConf(ctx)
 	if err != nil {
@@ -180,7 +141,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		distConf = nil
 	}
 	if len(distConfDat) != 0 {
-		distConfSource = "stored"
+		distConfSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_STORED
 	}
 	if len(distConfDat) == 0 {
 		localDistConfDat, localDistConfPath, localErr := c.loadLocalDistConf()
@@ -190,7 +151,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		if len(localDistConfDat) != 0 {
 			distConfDat = localDistConfDat
 			loadedPackageDistConf = true
-			distConfSource = "package"
+			distConfSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_PACKAGE
 			c.le.WithField("path", localDistConfPath).Info("loaded package dist config")
 		}
 	}
@@ -219,7 +180,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	if defDistConf != nil && distConfRev < defDistConf.GetRev() {
 		distConf = defDistConf
-		distConfSource = "embedded-default"
+		distConfSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT
 		c.le.
 			WithField("defconf-rev", defDistConf.GetRev()).
 			WithField("defconf-signer", defDistConfSigner.String()).
@@ -229,21 +190,20 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		distConf = &spacewave_launcher.DistConfig{}
 	}
 
-	// set the initial launcher info object
+	// Publish the initial launcher info. The fetch status records whether a
+	// DistConfig was found so watchers start in the right state: with a
+	// config the loader skips its retry UI, without one it shows connecting.
 	c.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: distConf,
+		FetchStatus: &spacewave_launcher.FetchStatus{
+			HasConfig:              distConf.GetRev() != 0,
+			SelectedConfigRev:      distConf.GetRev(),
+			SelectedConfigSource:   distConfSource,
+			ReleaseMetadataOutcome: spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_PENDING,
+		},
 	})
 	_ = c.configSetRoutine.SetContext(ctx, true)
 	_ = c.releaseMetadataRoutine.SetContext(ctx, true)
-	// seed fetch status with whether a non-empty dist config was found on disk
-	// or in the embedded default so downstream watchers start in the right
-	// state (has-config -> skip retry UI; no-config -> show connecting).
-	c.fetchStatusCtr.SetValue(&spacewave_launcher.FetchStatus{
-		HasConfig:              distConf.GetRev() != 0,
-		SelectedConfigRev:      distConf.GetRev(),
-		SelectedConfigSource:   distConfSource,
-		ReleaseMetadataOutcome: "pending",
-	})
 
 	// start the dist conf update fetcher
 	if len(c.endps) != 0 {
@@ -282,36 +242,55 @@ func (c *Controller) HandleDirective(
 		if projectID != "" && projectID != c.conf.GetProjectId() {
 			return nil, nil
 		}
-		return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
-			var curr *spacewave_launcher.FetchStatus
-			var currVid uint32
-			for {
-				next, err := c.fetchStatusCtr.WaitValueChange(ctx, curr, nil)
-				if err != nil {
-					return err
-				}
-				if next == curr {
-					continue
-				}
-				if currVid != 0 {
-					handler.RemoveValue(currVid)
-					currVid = 0
-				}
-				curr = next
-				if curr == nil {
-					continue
-				}
-				vid, accepted := handler.AddValue(curr)
-				if !accepted {
-					curr = nil
-					continue
-				}
-				currVid = vid
-				handler.MarkIdle(true)
-			}
-		}), nil)
+		return directive.R(directive.NewFuncResolver(c.resolveWatchFetchStatus), nil)
 	}
 	return nil, nil
+}
+
+// resolveWatchFetchStatus replaces the WatchLauncherFetchStatus value whenever
+// the fetch status in the launcher info changes.
+func (c *Controller) resolveWatchFetchStatus(ctx context.Context, handler directive.ResolverHandler) error {
+	var info *spacewave_launcher.LauncherInfo
+	var curr *spacewave_launcher.FetchStatus
+	var currVid uint32
+	for {
+		// Wait for launcher info whose fetch status differs from the value.
+		var err error
+		info, err = c.launcherInfoCtr.WaitValueChange(ctx, info, nil)
+		if err != nil {
+			return err
+		}
+		next := info.GetFetchStatus()
+		if next == nil || next.EqualVT(curr) {
+			continue
+		}
+
+		// Replace the previous value with the new status.
+		if currVid != 0 {
+			handler.RemoveValue(currVid)
+			currVid = 0
+		}
+		curr = next
+		vid, accepted := handler.AddValue(curr)
+		if !accepted {
+			curr = nil
+			continue
+		}
+		currVid = vid
+		handler.MarkIdle(true)
+	}
+}
+
+// updateFetchStatus applies update to a copy of the fetch status and publishes
+// the launcher info when it changed.
+func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStatus)) {
+	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.FetchStatus == nil {
+			info.FetchStatus = &spacewave_launcher.FetchStatus{}
+		}
+		update(info.FetchStatus)
+		return true, nil
+	})
 }
 
 // PushDistConf pushes an updated dist configuration signed packedmsg.

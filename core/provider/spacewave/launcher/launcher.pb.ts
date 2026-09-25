@@ -11,8 +11,163 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'spacewave.launcher'
+
+/**
+ * DistConfigSource is where the launcher found its selected DistConfig.
+ *
+ * @generated from enum spacewave.launcher.DistConfigSource
+ */
+export enum DistConfigSource {
+  /**
+   * DIST_CONFIG_SOURCE_UNKNOWN means the launcher has not selected a config.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * DIST_CONFIG_SOURCE_NONE means no DistConfig was available at startup.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_NONE = 1;
+   */
+  NONE = 1,
+
+  /**
+   * DIST_CONFIG_SOURCE_STORED means the config came from launcher storage.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_STORED = 2;
+   */
+  STORED = 2,
+
+  /**
+   * DIST_CONFIG_SOURCE_PACKAGE means the config came from the app package.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_PACKAGE = 3;
+   */
+  PACKAGE = 3,
+
+  /**
+   * DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT means the config came from the
+   * default built into the launcher.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT = 4;
+   */
+  EMBEDDED_DEFAULT = 4,
+
+  /**
+   * DIST_CONFIG_SOURCE_ENDPOINT means the config came from a dist endpoint.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_ENDPOINT = 5;
+   */
+  ENDPOINT = 5,
+}
+
+export const DistConfigSource_Enum = /* @__PURE__ */ createEnumType(
+  'spacewave.launcher.DistConfigSource',
+  [
+    [0, 'DIST_CONFIG_SOURCE_UNKNOWN'],
+    [1, 'DIST_CONFIG_SOURCE_NONE'],
+    [2, 'DIST_CONFIG_SOURCE_STORED'],
+    [3, 'DIST_CONFIG_SOURCE_PACKAGE'],
+    [4, 'DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT'],
+    [5, 'DIST_CONFIG_SOURCE_ENDPOINT'],
+  ],
+)
+
+/**
+ * ReleaseMetadataOutcome is the state of Release World metadata resolution
+ * for the selected DistConfig.
+ *
+ * @generated from enum spacewave.launcher.ReleaseMetadataOutcome
+ */
+export enum ReleaseMetadataOutcome {
+  /**
+   * RELEASE_METADATA_OUTCOME_UNKNOWN means resolution has not reported.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_PENDING means the launcher started and has not
+   * resolved release metadata yet.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_PENDING = 1;
+   */
+  PENDING = 1,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_IDLE means no DistConfig is selected.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_IDLE = 2;
+   */
+  IDLE = 2,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_RESOLVING means the launcher is reading the
+   * channel from the Release World.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_RESOLVING = 3;
+   */
+  RESOLVING = 3,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_REFRESHING means the Release World head is behind
+   * the selector and the launcher is refreshing it.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_REFRESHING = 4;
+   */
+  REFRESHING = 4,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_CURRENT means the running entrypoint matches the
+   * selected release.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_CURRENT = 5;
+   */
+  CURRENT = 5,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_DOWNLOADING means the selected entrypoint is
+   * being downloaded.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_DOWNLOADING = 6;
+   */
+  DOWNLOADING = 6,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_STAGED means the selected entrypoint is staged
+   * for install.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_STAGED = 7;
+   */
+  STAGED = 7,
+
+  /**
+   * RELEASE_METADATA_OUTCOME_ERROR means resolution failed and will retry.
+   *
+   * @generated from enum value: RELEASE_METADATA_OUTCOME_ERROR = 8;
+   */
+  ERROR = 8,
+}
+
+export const ReleaseMetadataOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'spacewave.launcher.ReleaseMetadataOutcome',
+  [
+    [0, 'RELEASE_METADATA_OUTCOME_UNKNOWN'],
+    [1, 'RELEASE_METADATA_OUTCOME_PENDING'],
+    [2, 'RELEASE_METADATA_OUTCOME_IDLE'],
+    [3, 'RELEASE_METADATA_OUTCOME_RESOLVING'],
+    [4, 'RELEASE_METADATA_OUTCOME_REFRESHING'],
+    [5, 'RELEASE_METADATA_OUTCOME_CURRENT'],
+    [6, 'RELEASE_METADATA_OUTCOME_DOWNLOADING'],
+    [7, 'RELEASE_METADATA_OUTCOME_STAGED'],
+    [8, 'RELEASE_METADATA_OUTCOME_ERROR'],
+  ],
+)
 
 /**
  * UpdatePhase is the phase of the entrypoint update.
@@ -182,6 +337,252 @@ export const UpdateState: MessageType<UpdateState> =
   })
 
 /**
+ * FetchStatus describes the launcher's DistConfig fetch and Release World
+ * selection state. The launcher controller replaces it on every transition.
+ *
+ * @generated from message spacewave.launcher.FetchStatus
+ */
+export interface FetchStatus {
+  /**
+   * Fetching is true while an endpoint fetch is in flight.
+   *
+   * @generated from field: bool fetching = 1;
+   */
+  fetching?: boolean
+  /**
+   * HasConfig is true once the launcher selected a non-empty DistConfig from
+   * storage, the package, the built-in default, or an endpoint.
+   *
+   * @generated from field: bool has_config = 2;
+   */
+  hasConfig?: boolean
+  /**
+   * SelectedConfigRev is the revision of the selected DistConfig.
+   *
+   * @generated from field: uint64 selected_config_rev = 3;
+   */
+  selectedConfigRev?: bigint
+  /**
+   * SelectedConfigSource is the source of the selected DistConfig.
+   *
+   * @generated from field: spacewave.launcher.DistConfigSource selected_config_source = 4;
+   */
+  selectedConfigSource?: DistConfigSource
+  /**
+   * FetchedConfigRev is the most recent valid endpoint DistConfig revision.
+   *
+   * @generated from field: uint64 fetched_config_rev = 5;
+   */
+  fetchedConfigRev?: bigint
+  /**
+   * FetchedConfigSource is the endpoint URL that produced FetchedConfigRev.
+   *
+   * @generated from field: string fetched_config_source = 6;
+   */
+  fetchedConfigSource?: string
+  /**
+   * ReleaseMetadataOutcome is the latest Release World metadata resolution
+   * result for the selected DistConfig.
+   *
+   * @generated from field: spacewave.launcher.ReleaseMetadataOutcome release_metadata_outcome = 7;
+   */
+  releaseMetadataOutcome?: ReleaseMetadataOutcome
+  /**
+   * ReleaseWorldHeadRef is the Release World root ref used for the latest
+   * metadata resolution.
+   *
+   * @generated from field: string release_world_head_ref = 8;
+   */
+  releaseWorldHeadRef?: string
+  /**
+   * SelectedEntrypointManifestId identifies the native entrypoint manifest
+   * selected from release metadata for staging.
+   *
+   * @generated from field: string selected_entrypoint_manifest_id = 9;
+   */
+  selectedEntrypointManifestId?: string
+  /**
+   * SelectedEntrypointPlatformId is the desktop platform of the selected
+   * native entrypoint manifest.
+   *
+   * @generated from field: string selected_entrypoint_platform_id = 10;
+   */
+  selectedEntrypointPlatformId?: string
+  /**
+   * SelectedEntrypointManifestRev is the revision of the selected native
+   * entrypoint manifest.
+   *
+   * @generated from field: uint64 selected_entrypoint_manifest_rev = 11;
+   */
+  selectedEntrypointManifestRev?: bigint
+  /**
+   * SelectedEntrypointManifestRef is the selected native entrypoint object
+   * ref in string form.
+   *
+   * @generated from field: string selected_entrypoint_manifest_ref = 12;
+   */
+  selectedEntrypointManifestRef?: string
+  /**
+   * SelectedCliManifestId identifies the CLI entrypoint manifest selected
+   * from release metadata for the desktop-managed CLI.
+   *
+   * @generated from field: string selected_cli_manifest_id = 13;
+   */
+  selectedCliManifestId?: string
+  /**
+   * SelectedCliPlatformId is the desktop platform of the selected CLI
+   * entrypoint manifest.
+   *
+   * @generated from field: string selected_cli_platform_id = 14;
+   */
+  selectedCliPlatformId?: string
+  /**
+   * SelectedCliManifestRev is the revision of the selected CLI entrypoint
+   * manifest.
+   *
+   * @generated from field: uint64 selected_cli_manifest_rev = 15;
+   */
+  selectedCliManifestRev?: bigint
+  /**
+   * SelectedCliManifestRef is the selected CLI entrypoint object ref in
+   * string form.
+   *
+   * @generated from field: string selected_cli_manifest_ref = 16;
+   */
+  selectedCliManifestRef?: string
+  /**
+   * SelectedCliBinaryPath is the local staged CLI binary path written to the
+   * managed CLI release sidecar.
+   *
+   * @generated from field: string selected_cli_binary_path = 17;
+   */
+  selectedCliBinaryPath?: string
+  /**
+   * LastError is the most recent endpoint fetch error, empty when the last
+   * attempt succeeded or no fetch has run.
+   *
+   * @generated from field: string last_error = 18;
+   */
+  lastError?: string
+  /**
+   * Attempts counts endpoint rounds since the last successful fetch.
+   *
+   * @generated from field: uint32 attempts = 19;
+   */
+  attempts?: number
+  /**
+   * NextRetryAt is the time of the next scheduled fetch. Empty while a fetch
+   * is in flight or when none is scheduled.
+   *
+   * @generated from field: google.protobuf.Timestamp next_retry_at = 20;
+   */
+  nextRetryAt?: Date
+}
+
+export const FetchStatus: MessageType<FetchStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.FetchStatus',
+    fields: [
+      { no: 1, name: 'fetching', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'has_config', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 3,
+        name: 'selected_config_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 4,
+        name: 'selected_config_source',
+        kind: 'enum',
+        T: DistConfigSource_Enum,
+      },
+      {
+        no: 5,
+        name: 'fetched_config_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 6,
+        name: 'fetched_config_source',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'release_metadata_outcome',
+        kind: 'enum',
+        T: ReleaseMetadataOutcome_Enum,
+      },
+      {
+        no: 8,
+        name: 'release_world_head_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 9,
+        name: 'selected_entrypoint_manifest_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 10,
+        name: 'selected_entrypoint_platform_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 11,
+        name: 'selected_entrypoint_manifest_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 12,
+        name: 'selected_entrypoint_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 13,
+        name: 'selected_cli_manifest_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 14,
+        name: 'selected_cli_platform_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 15,
+        name: 'selected_cli_manifest_rev',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 16,
+        name: 'selected_cli_manifest_ref',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 17,
+        name: 'selected_cli_binary_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 18, name: 'last_error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 19, name: 'attempts', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 20, name: 'next_retry_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * LauncherInfo contains information about the state of the launcher.
  *
  * @generated from message spacewave.launcher.LauncherInfo
@@ -200,6 +601,12 @@ export interface LauncherInfo {
    * @generated from field: spacewave.launcher.UpdateState update_state = 2;
    */
   updateState?: UpdateState
+  /**
+   * FetchStatus describes DistConfig fetching and release selection.
+   *
+   * @generated from field: spacewave.launcher.FetchStatus fetch_status = 3;
+   */
+  fetchStatus?: FetchStatus
 }
 
 export const LauncherInfo: MessageType<LauncherInfo> =
@@ -208,6 +615,7 @@ export const LauncherInfo: MessageType<LauncherInfo> =
     fields: [
       { no: 1, name: 'dist_config', kind: 'message', T: () => DistConfig },
       { no: 2, name: 'update_state', kind: 'message', T: () => UpdateState },
+      { no: 3, name: 'fetch_status', kind: 'message', T: () => FetchStatus },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -226,8 +634,7 @@ export const RecheckDistConfigRequest: MessageType<RecheckDistConfigRequest> =
   )
 
 /**
- * RecheckDistConfigRequest is a response to immediately recheck for updates.
- * Returned immediately
+ * RecheckDistConfigResponse is returned as soon as the fetch starts.
  *
  * @generated from message spacewave.launcher.RecheckDistConfigResponse
  */

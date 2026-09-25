@@ -10,6 +10,9 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
+// applyDistConfigSet applies the signed launcher config set of the current
+// DistConfig to the bus, replacing the previous set when the DistConfig
+// changes.
 func (c *Controller) applyDistConfigSet(ctx context.Context) error {
 	var info *spacewave_launcher.LauncherInfo
 	var currRef directive.Reference
@@ -49,9 +52,22 @@ func (c *Controller) applyDistConfigSet(ctx context.Context) error {
 			resInfo := info
 			var changed atomic.Bool
 			go func() {
-				_, _ = c.launcherInfoCtr.WaitValueChange(resolveCtx, resInfo, nil)
-				changed.Store(true)
-				cancel()
+				// Cancel resolution once the DistConfig changes. Fetch
+				// status updates also replace the launcher info and must
+				// not restart it.
+				curr := resInfo
+				for {
+					next, err := c.launcherInfoCtr.WaitValueChange(resolveCtx, curr, nil)
+					if err != nil {
+						return
+					}
+					if !next.GetDistConfig().EqualVT(resInfo.GetDistConfig()) {
+						changed.Store(true)
+						cancel()
+						return
+					}
+					curr = next
+				}
 			}()
 			cs, err = launcherConfigSet.Resolve(resolveCtx, c.bus)
 			cancel()

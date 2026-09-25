@@ -21,12 +21,16 @@ import {
 } from 'starpc'
 
 /**
+ * Launcher exposes the launcher controller's DistConfig and update state.
+ *
  * @generated from service spacewave.launcher.Launcher
  */
 export const LauncherDefinition = {
   typeName: 'spacewave.launcher.Launcher',
   methods: {
     /**
+     * WatchLauncherInfo streams the launcher state on every change.
+     *
      * @generated from rpc spacewave.launcher.Launcher.WatchLauncherInfo
      */
     WatchLauncherInfo: {
@@ -36,6 +40,8 @@ export const LauncherDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * PushDistConfigMsg offers a signed DistConfig found in a block of text.
+     *
      * @generated from rpc spacewave.launcher.Launcher.PushDistConfigMsg
      */
     PushDistConfigMsg: {
@@ -45,6 +51,8 @@ export const LauncherDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RecheckDistConfig starts an immediate DistConfig fetch.
+     *
      * @generated from rpc spacewave.launcher.Launcher.RecheckDistConfig
      */
     RecheckDistConfig: {
@@ -54,6 +62,8 @@ export const LauncherDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ApplyUpdate installs the staged entrypoint update and relaunches.
+     *
      * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
      */
     ApplyUpdate: {
@@ -66,10 +76,14 @@ export const LauncherDefinition = {
 } as const
 
 /**
+ * Launcher exposes the launcher controller's DistConfig and update state.
+ *
  * @generated from service spacewave.launcher.Launcher
  */
 export interface Launcher {
   /**
+   * WatchLauncherInfo streams the launcher state on every change.
+   *
    * @generated from rpc spacewave.launcher.Launcher.WatchLauncherInfo
    */
   WatchLauncherInfo(
@@ -78,6 +92,8 @@ export interface Launcher {
   ): MessageStream<LauncherInfo>
 
   /**
+   * PushDistConfigMsg offers a signed DistConfig found in a block of text.
+   *
    * @generated from rpc spacewave.launcher.Launcher.PushDistConfigMsg
    */
   PushDistConfigMsg(
@@ -86,6 +102,8 @@ export interface Launcher {
   ): Promise<PushDistConfigResponse>
 
   /**
+   * RecheckDistConfig starts an immediate DistConfig fetch.
+   *
    * @generated from rpc spacewave.launcher.Launcher.RecheckDistConfig
    */
   RecheckDistConfig(
@@ -94,6 +112,8 @@ export interface Launcher {
   ): Promise<RecheckDistConfigResponse>
 
   /**
+   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */
   ApplyUpdate(
@@ -103,10 +123,14 @@ export interface Launcher {
 }
 
 /**
+ * Launcher exposes the launcher controller's DistConfig and update state.
+ *
  * @generated from service spacewave.launcher.Launcher
  */
 export interface LauncherHandler {
   /**
+   * WatchLauncherInfo streams the launcher state on every change.
+   *
    * @generated from rpc spacewave.launcher.Launcher.WatchLauncherInfo
    */
   WatchLauncherInfo(
@@ -116,6 +140,8 @@ export interface LauncherHandler {
   ): MessageStream<LauncherInfo>
 
   /**
+   * PushDistConfigMsg offers a signed DistConfig found in a block of text.
+   *
    * @generated from rpc spacewave.launcher.Launcher.PushDistConfigMsg
    */
   PushDistConfigMsg(
@@ -125,6 +151,8 @@ export interface LauncherHandler {
   ): Promise<PushDistConfigResponse>
 
   /**
+   * RecheckDistConfig starts an immediate DistConfig fetch.
+   *
    * @generated from rpc spacewave.launcher.Launcher.RecheckDistConfig
    */
   RecheckDistConfig(
@@ -134,6 +162,8 @@ export interface LauncherHandler {
   ): Promise<RecheckDistConfigResponse>
 
   /**
+   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */
   ApplyUpdate(
@@ -157,6 +187,8 @@ export class LauncherClient implements Launcher {
     this.ApplyUpdate = this.ApplyUpdate.bind(this)
   }
   /**
+   * WatchLauncherInfo streams the launcher state on every change.
+   *
    * @generated from rpc spacewave.launcher.Launcher.WatchLauncherInfo
    */
   WatchLauncherInfo(
@@ -174,6 +206,8 @@ export class LauncherClient implements Launcher {
   }
 
   /**
+   * PushDistConfigMsg offers a signed DistConfig found in a block of text.
+   *
    * @generated from rpc spacewave.launcher.Launcher.PushDistConfigMsg
    */
   async PushDistConfigMsg(
@@ -191,6 +225,8 @@ export class LauncherClient implements Launcher {
   }
 
   /**
+   * RecheckDistConfig starts an immediate DistConfig fetch.
+   *
    * @generated from rpc spacewave.launcher.Launcher.RecheckDistConfig
    */
   async RecheckDistConfig(
@@ -208,6 +244,8 @@ export class LauncherClient implements Launcher {
   }
 
   /**
+   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */
   async ApplyUpdate(

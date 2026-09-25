@@ -221,9 +221,6 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 				},
 			},
 		),
-		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
-			&spacewave_launcher.FetchStatus{},
-		),
 		stagingDirFunc: func() (string, error) { return stagingDir, nil },
 	}
 	ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
@@ -242,15 +239,15 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if string(got) != "binary" {
 		t.Fatalf("staged binary = %q", string(got))
 	}
-	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "staged" {
-		t.Fatalf("release metadata outcome = %q, want staged", outcome)
+	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
+		t.Fatalf("release metadata outcome = %v, want staged", outcome)
 	}
-	fetchStatus := ctrl.fetchStatusCtr.GetValue()
-	if fetchStatus.SelectedEntrypointManifestID != nativeEntrypointManifestID {
-		t.Fatalf("selected entrypoint id = %q", fetchStatus.SelectedEntrypointManifestID)
+	fetchStatus := ctrl.launcherInfoCtr.GetValue().GetFetchStatus()
+	if fetchStatus.SelectedEntrypointManifestId != nativeEntrypointManifestID {
+		t.Fatalf("selected entrypoint id = %q", fetchStatus.SelectedEntrypointManifestId)
 	}
-	if fetchStatus.SelectedEntrypointPlatformID != nativeTestPlatformID() {
-		t.Fatalf("selected entrypoint platform = %q", fetchStatus.SelectedEntrypointPlatformID)
+	if fetchStatus.SelectedEntrypointPlatformId != nativeTestPlatformID() {
+		t.Fatalf("selected entrypoint platform = %q", fetchStatus.SelectedEntrypointPlatformId)
 	}
 	if fetchStatus.SelectedEntrypointManifestRev != 1 {
 		t.Fatalf("selected entrypoint rev = %d", fetchStatus.SelectedEntrypointManifestRev)
@@ -258,20 +255,20 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if fetchStatus.SelectedEntrypointManifestRef == "" {
 		t.Fatal("selected entrypoint ref is empty")
 	}
-	if fetchStatus.SelectedCLIManifestID != cliEntrypointManifestID {
-		t.Fatalf("selected CLI entrypoint id = %q", fetchStatus.SelectedCLIManifestID)
+	if fetchStatus.SelectedCliManifestId != cliEntrypointManifestID {
+		t.Fatalf("selected CLI entrypoint id = %q", fetchStatus.SelectedCliManifestId)
 	}
-	if fetchStatus.SelectedCLIPlatformID != nativeTestPlatformID() {
-		t.Fatalf("selected CLI entrypoint platform = %q", fetchStatus.SelectedCLIPlatformID)
+	if fetchStatus.SelectedCliPlatformId != nativeTestPlatformID() {
+		t.Fatalf("selected CLI entrypoint platform = %q", fetchStatus.SelectedCliPlatformId)
 	}
-	if fetchStatus.SelectedCLIManifestRev != 2 {
-		t.Fatalf("selected CLI entrypoint rev = %d", fetchStatus.SelectedCLIManifestRev)
+	if fetchStatus.SelectedCliManifestRev != 2 {
+		t.Fatalf("selected CLI entrypoint rev = %d", fetchStatus.SelectedCliManifestRev)
 	}
-	if fetchStatus.SelectedCLIManifestRef == "" {
+	if fetchStatus.SelectedCliManifestRef == "" {
 		t.Fatal("selected CLI entrypoint ref is empty")
 	}
-	if fetchStatus.SelectedCLIBinaryPath != filepath.Join(stagingDir, "0.1.0", "cli-dist", "spacewave") {
-		t.Fatalf("selected CLI binary path = %q", fetchStatus.SelectedCLIBinaryPath)
+	if fetchStatus.SelectedCliBinaryPath != filepath.Join(stagingDir, "0.1.0", "cli-dist", "spacewave") {
+		t.Fatalf("selected CLI binary path = %q", fetchStatus.SelectedCliBinaryPath)
 	}
 	sidecar, err := os.ReadFile(filepath.Join(stagingDir, managedCLIReleaseSidecarFilename))
 	if err != nil {
@@ -287,7 +284,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if !strings.Contains(sidecarText, `"binary_path": `) {
 		t.Fatalf("sidecar missing binary path: %s", sidecarText)
 	}
-	cliBinary, err := os.ReadFile(fetchStatus.SelectedCLIBinaryPath)
+	cliBinary, err := os.ReadFile(fetchStatus.SelectedCliBinaryPath)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -316,13 +313,12 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 		le:  le,
 		bus: b,
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
-			&spacewave_launcher.LauncherInfo{},
-		),
-		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
-			&spacewave_launcher.FetchStatus{
-				ReleaseWorldHeadRef:           "previous-head",
-				SelectedEntrypointManifestRef: "previous-manifest",
-				SelectedCLIManifestRef:        "previous-cli-manifest",
+			&spacewave_launcher.LauncherInfo{
+				FetchStatus: &spacewave_launcher.FetchStatus{
+					ReleaseWorldHeadRef:           "previous-head",
+					SelectedEntrypointManifestRef: "previous-manifest",
+					SelectedCliManifestRef:        "previous-cli-manifest",
+				},
 			},
 		),
 		stagingDirFunc: func() (string, error) { return t.TempDir(), nil },
@@ -335,9 +331,9 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 	if err == nil {
 		t.Fatal("expected missing channel error")
 	}
-	fetchStatus := ctrl.fetchStatusCtr.GetValue()
-	if fetchStatus.ReleaseMetadataOutcome != "error" {
-		t.Fatalf("release metadata outcome = %q, want error", fetchStatus.ReleaseMetadataOutcome)
+	fetchStatus := ctrl.launcherInfoCtr.GetValue().GetFetchStatus()
+	if fetchStatus.GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR {
+		t.Fatalf("release metadata outcome = %v, want error", fetchStatus.ReleaseMetadataOutcome)
 	}
 	if fetchStatus.ReleaseWorldHeadRef != "" {
 		t.Fatalf("release world head ref = %q, want cleared", fetchStatus.ReleaseWorldHeadRef)
@@ -345,8 +341,8 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 	if fetchStatus.SelectedEntrypointManifestRef != "" {
 		t.Fatalf("selected entrypoint ref = %q, want cleared", fetchStatus.SelectedEntrypointManifestRef)
 	}
-	if fetchStatus.SelectedCLIManifestRef != "" {
-		t.Fatalf("selected CLI entrypoint ref = %q, want cleared", fetchStatus.SelectedCLIManifestRef)
+	if fetchStatus.SelectedCliManifestRef != "" {
+		t.Fatalf("selected CLI entrypoint ref = %q, want cleared", fetchStatus.SelectedCliManifestRef)
 	}
 }
 
@@ -497,8 +493,8 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 	if refresher.calls.Load() != 1 {
 		t.Fatalf("refresh calls = %d, want 1", refresher.calls.Load())
 	}
-	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "refreshing" {
-		t.Fatalf("release metadata outcome = %q, want refreshing", outcome)
+	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_REFRESHING {
+		t.Fatalf("release metadata outcome = %v, want refreshing", outcome)
 	}
 	if phase := ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase(); phase == spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
 		t.Fatal("a lagging World must not surface an update error")
@@ -541,8 +537,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	if !strings.Contains(state.GetErrorMessage(), want) {
 		t.Fatalf("error message = %q, want %q", state.GetErrorMessage(), want)
 	}
-	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "error" {
-		t.Fatalf("release metadata outcome = %q, want error", outcome)
+	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR {
+		t.Fatalf("release metadata outcome = %v, want error", outcome)
 	}
 }
 
@@ -582,8 +578,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q, want %q", err.Error(), want)
 	}
-	if outcome := ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome; outcome != "error" {
-		t.Fatalf("release metadata outcome = %q, want error", outcome)
+	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_ERROR {
+		t.Fatalf("release metadata outcome = %v, want error", outcome)
 	}
 }
 
@@ -813,9 +809,6 @@ func newReleaseMetadataRoutineTestController(
 					ChannelKey: "stable",
 				},
 			},
-		),
-		fetchStatusCtr: ccontainer.NewCContainer[*spacewave_launcher.FetchStatus](
-			&spacewave_launcher.FetchStatus{},
 		),
 		stagingDirFunc: func() (string, error) { return stagingDir, nil },
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector/updatepolicy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/s4wave/spacewave/core/session"
@@ -26,7 +27,7 @@ func snapshotDesktopTraySources(
 	b bus.Bus,
 	broker *resource_listener.StatusBroker,
 	sessionCtrl session.SessionController,
-	launcher *launcherInfoWatcher,
+	launcher *spacewave_launcher.InfoWatcher,
 ) (*desktopTraySourceSnapshot, error) {
 	listener, listenerWaitCh := broker.Snapshot()
 	projection, sessionWaitChs, releases, err := snapshotSessionProjection(ctx, b, sessionCtrl)
