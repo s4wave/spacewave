@@ -69,17 +69,6 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	}
 }
 
-// CompleteDriveIntroWizard opens the raw files browser for both current Drive
-// wrapper quickstarts and legacy wizard-indexed quickstarts.
-func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
-	t.Helper()
-
-	_, err := page.Evaluate(completeDriveIntroWizardScript)
-	if err != nil {
-		failWithPageBody(t, page, "open drive files", err)
-	}
-}
-
 // AssertSetupBannerHidden verifies the setup banner does not render before the
 // session has enough local storage to justify the onboarding nudge.
 func AssertSetupBannerHidden(t testing.TB, page playwright.Page) {

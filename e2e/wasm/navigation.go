@@ -216,7 +216,7 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	// Complete onboarding before waiting for the raw file browser.
-	CompleteDriveIntroWizardIfPresent(t, page)
+	CompleteDriveIntroWizard(t, page)
 	err := visibleDriveBrowser(page).WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	)
@@ -417,9 +417,10 @@ const completeDriveIntroWizardScript = `async () => {
 	}
 }`
 
-// CompleteDriveIntroWizardIfPresent completes the first-run Drive intro when
-// the current route opens it before the raw files browser.
-func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
+// CompleteDriveIntroWizard advances the first-run Drive intro, when the route
+// opens it, until the raw files browser renders. On timeout it fails with the
+// quickstart phase timing, startup marks, and a probe of the Space route.
+func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	_, err := page.Evaluate(completeDriveIntroWizardScript)
@@ -517,7 +518,7 @@ func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
 		if debugErr != nil {
 			debug = "failed to collect page debug: " + debugErr.Error()
 		}
-		t.Fatalf("complete drive intro if present: %v\nurl: %s\nbody: %s\ndebug: %v", err, page.URL(), trimPageText(body), debug)
+		t.Fatalf("open drive files: %v\nurl: %s\nbody: %s\ndebug: %v", err, page.URL(), trimPageText(body), debug)
 	}
 }
 
