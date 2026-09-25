@@ -137,6 +137,22 @@ type Tx interface {
 	tx.Tx
 }
 
+// OrderedCommitTx is a transaction that can commit with write ordering in place
+// of a full durability flush. CommitOrdered finishes the transaction like Commit,
+// but a crash may lose it along with later commits, never an earlier one. The
+// next Commit makes it durable.
+type OrderedCommitTx interface {
+	Tx
+	CommitOrdered(ctx context.Context) error
+}
+
+// OrderedCommitStore is a store whose write transactions implement
+// OrderedCommitTx. Sync makes every completed ordered commit durable.
+type OrderedCommitStore interface {
+	Store
+	Sync(ctx context.Context) error
+}
+
 // AtomicCommitStore opts into using one physical transaction as a publication
 // fence. Commit must synchronously finish the transaction (including its normal
 // durability barrier), and Discard must roll back every mutation. Wrappers that

@@ -52,6 +52,8 @@ type Volume struct {
 	deleteFn func() error
 	// publications owns bounded grouped writes in this volume's raw transaction domain.
 	publications *publicationWriter
+	// ordered commits direct atomic writes with write ordering, may be nil.
+	ordered *orderedCommits
 	// atomicHashGet records whether hash verification reads are enabled for
 	// atomic publication block construction.
 	atomicHashGet bool
@@ -123,6 +125,9 @@ func NewVolume(
 		}
 		v.refGraph = &transactionRefGraph{volume: v}
 		v.publications = newPublicationWriter(v)
+		if orderedStore, ok := store.(kvtx.OrderedCommitStore); ok {
+			v.ordered = &orderedCommits{store: orderedStore}
+		}
 	}
 	return v, nil
 }
@@ -382,6 +387,11 @@ func (v *Volume) Sync(ctx context.Context) (bool, error) {
 	fenced, err := v.Store.Sync(ctx)
 	if err != nil {
 		return false, err
+	}
+	if v.ordered != nil {
+		if err := v.ordered.sync(ctx); err != nil {
+			return false, err
+		}
 	}
 	v.broadcastStorageStatsChanged()
 	return fenced, nil
