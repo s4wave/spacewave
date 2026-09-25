@@ -17,7 +17,7 @@ import (
 const batchConcurrency = 16
 
 // S3Block is a block store on top of an S3-compatible bucket. It stores each
-// block with its outgoing refs as the BlockObject {objectPrefix}{block ref}.
+// block with its outgoing refs as the block.BlockObject {objectPrefix}{block ref}.
 type S3Block struct {
 	// write enables PutBlock, PutBlockBatch, and RmBlock.
 	write bool
@@ -153,7 +153,7 @@ func (b *S3Block) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*blo
 	if err != nil {
 		return nil, err
 	}
-	obj := &BlockObject{}
+	obj := &block.BlockObject{}
 	if err := obj.UnmarshalVT(raw); err != nil {
 		return nil, errors.Wrapf(err, "decode block object %s", ref.MarshalString())
 	}
@@ -258,7 +258,7 @@ func (b *S3Block) putBlockData(ctx context.Context, entry *block.PutBatchEntry) 
 
 // putObject writes a block with its refs to objectKey.
 func (b *S3Block) putObject(ctx context.Context, objectKey string, data []byte, refs []*block.BlockRef) error {
-	obj, err := (&BlockObject{Data: data, Refs: refs}).MarshalVT()
+	obj, err := (&block.BlockObject{Data: data, Refs: refs}).MarshalVT()
 	if err != nil {
 		return err
 	}

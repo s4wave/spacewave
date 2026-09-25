@@ -11,6 +11,15 @@ message BlockRef {
   .hash.Hash hash = 1;
 }
 
+// BlockObject is a block's bytes with its outgoing refs, as stored by
+// backends that keep blocks as opaque objects.
+message BlockObject {
+  // Data is the encoded block.
+  bytes data = 1;
+  // Refs are the block's outgoing refs. Empty means a leaf.
+  repeated BlockRef refs = 2;
+}
+
 // PutOpts are options that can be passed to PutBlock.
 message PutOpts {
   // HashType is the hash type to use.
