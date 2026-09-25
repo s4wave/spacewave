@@ -16,6 +16,7 @@ import (
 	s4wave_git_core "github.com/s4wave/spacewave/core/git"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
@@ -952,7 +953,7 @@ func buildGitCloneCommand() *cli.Command {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
-			op := git_world.NewGitInitOp(key, repoRef, c.Bool("no-checkout"), nil, nil)
+			op := git_world.NewGitInitOp(key, repoRef, c.Bool("no-checkout"), nil, unixfs_block.ToTimestamp(time.Now(), false))
 			_, _, err = tx.ApplyWorldOp(c.Context, op, "")
 			if err != nil {
 				return errors.Wrap(err, "publish git repo")
