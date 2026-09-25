@@ -42,7 +42,7 @@ func TestMetadataTransactionIgnoresBlockAndGCChanges(t *testing.T) {
 	if _, _, err := blocks.PutBlock(ctx, []byte("new block"), nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Apply(ctx, nil, []*Record{{Key: []byte{0x02, 'g'}, Value: []byte("edge")}}); err != nil {
+	if err := e.Apply(ctx, []*Record{{Key: []byte{0x02, 'g'}, Value: []byte("edge")}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.ScanPrefix(ctx, nil, func(key, value []byte) error {

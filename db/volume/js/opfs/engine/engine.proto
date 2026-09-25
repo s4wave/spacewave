@@ -24,8 +24,6 @@ message Root {
   uint64 journal_sequence = 9;
   // Revision changes for logical writes, not relocation or retirement.
   uint64 revision = 10;
-  // MetadataRevision changes only when public metadata records change.
-  uint64 metadata_revision = 11;
 }
 
 // Catalogue contains either ordered children or ordered run partitions.

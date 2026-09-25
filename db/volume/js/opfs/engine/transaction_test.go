@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -65,62 +66,88 @@ func TestTransactionBlindWritesSerialize(t *testing.T) {
 	}
 }
 
-// TestTransactionReadDependencyRejectsLogicalWrite proves revision validation.
-func TestTransactionReadDependencyRejectsLogicalWrite(t *testing.T) {
-	ctx := t.Context()
-	engine, err := Open(ctx, newDiskBackend(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer engine.Close()
+// TestTransactionReadSetValidation proves a commit conflicts only with later
+// writes to the keys and prefixes it read.
+func TestTransactionReadSetValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		read     func(ctx context.Context, tx kvtx.Tx) error
+		write    string
+		conflict bool
+	}{{
+		name:  "disjoint key",
+		read:  getKey("source"),
+		write: "other",
+	}, {
+		name:     "read key",
+		read:     getKey("source"),
+		write:    "source",
+		conflict: true,
+	}, {
+		name:     "absent key",
+		read:     getKey("missing"),
+		write:    "missing",
+		conflict: true,
+	}, {
+		name:     "iterated prefix",
+		read:     scanPrefix("p/"),
+		write:    "p/new",
+		conflict: true,
+	}, {
+		name:  "outside prefix",
+		read:  scanPrefix("p/"),
+		write: "q",
+	}} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			engine, err := Open(ctx, newDiskBackend(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer engine.Close()
+			if err := engine.Apply(ctx, []*Record{{Key: []byte("p/old"), Value: []byte("initial")}, {Key: []byte("source"), Value: []byte("initial")}}); err != nil {
+				t.Fatal(err)
+			}
 
-	seed, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := seed.Set(ctx, []byte("source"), []byte("initial")); err != nil {
-		t.Fatal(err)
-	}
-	if err := seed.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+			dependent, err := engine.NewTransaction(ctx, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dependent.Discard()
+			if err := tc.read(ctx, dependent); err != nil {
+				t.Fatal(err)
+			}
+			if err := dependent.Set(ctx, []byte("derived"), []byte("result")); err != nil {
+				t.Fatal(err)
+			}
+			if err := engine.Apply(ctx, []*Record{{Key: []byte(tc.write), Value: []byte("competing")}}); err != nil {
+				t.Fatal(err)
+			}
+			err = dependent.Commit(ctx)
+			if tc.conflict != errors.Is(err, kvtx.ErrInvalidSnapshot) || (!tc.conflict && err != nil) {
+				t.Fatalf("dependent commit error = %v, want conflict %t", err, tc.conflict)
+			}
 
-	dependent, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
+			_, found, _, err := engine.Get(ctx, []byte("derived"))
+			if err != nil || found == tc.conflict {
+				t.Fatalf("derived write found = %t, error = %v", found, err)
+			}
+		})
 	}
-	value, found, err := dependent.Get(ctx, []byte("source"))
-	if err != nil || !found || string(value) != "initial" {
-		t.Fatalf("dependent read = %q, %t, %v", value, found, err)
-	}
-	if err := dependent.Set(ctx, []byte("derived"), []byte("result")); err != nil {
-		t.Fatal(err)
-	}
+}
 
-	competing, err := engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
+// getKey reads one key through a transaction.
+func getKey(key string) func(context.Context, kvtx.Tx) error {
+	return func(ctx context.Context, tx kvtx.Tx) error {
+		_, _, err := tx.Get(ctx, []byte(key))
+		return err
 	}
-	if err := competing.Set(ctx, []byte("other"), []byte("logical write")); err != nil {
-		t.Fatal(err)
-	}
-	if err := competing.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := dependent.Commit(ctx); !errors.Is(err, kvtx.ErrInvalidSnapshot) {
-		t.Fatalf("dependent commit error = %v, want %v", err, kvtx.ErrInvalidSnapshot)
-	}
+}
 
-	read, err := engine.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer read.Discard()
-	if _, found, err := read.Get(ctx, []byte("derived")); err != nil || found {
-		t.Fatalf("rejected write exists = %t, error = %v", found, err)
-	}
-	if value, found, err := read.Get(ctx, []byte("other")); err != nil || !found || string(value) != "logical write" {
-		t.Fatalf("competing write = %q, %t, %v", value, found, err)
+// scanPrefix reads every key under a prefix through a transaction.
+func scanPrefix(prefix string) func(context.Context, kvtx.Tx) error {
+	return func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.ScanPrefixKeys(ctx, []byte(prefix), func([]byte) error { return nil })
 	}
 }
 
@@ -135,7 +162,7 @@ func TestTransactionRetainsSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer engine.Close()
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("before")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("before")}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -169,7 +196,7 @@ func TestTransactionRetainsSnapshot(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			t.Fatal("reclamation did not queue")
 		}
-		if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("after")}}); err != nil {
+		if err := engine.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("after")}}); err != nil {
 			t.Fatal(err)
 		}
 		if got, found, err := tx.Get(ctx, []byte("key")); err != nil || !found || string(got) != string(value) {

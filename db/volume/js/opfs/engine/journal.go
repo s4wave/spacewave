@@ -91,7 +91,7 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 		if err := graph.ApplyRefBatch(ctx, adds, removes); err != nil {
 			return count, err
 		}
-		if err := e.Apply(ctx, nil, []*Record{{Key: key, Deleted: true}}); err != nil {
+		if err := e.Apply(ctx, []*Record{{Key: key, Deleted: true}}); err != nil {
 			return count, err
 		}
 		count++

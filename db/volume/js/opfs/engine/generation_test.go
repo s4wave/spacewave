@@ -61,7 +61,7 @@ func TestGenerationWaitRecoversLostHintsAndCloses(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
-	if err := writer.Apply(ctx, nil, []*Record{{Key: []byte("changed"), Value: []byte("value")}}); err != nil {
+	if err := writer.Apply(ctx, []*Record{{Key: []byte("changed"), Value: []byte("value")}}); err != nil {
 		t.Fatal(err)
 	}
 	select {

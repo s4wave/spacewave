@@ -17,7 +17,7 @@ func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("saved"), Value: []byte("durable data")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("saved"), Value: []byte("durable data")}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := engine.Close(); err != nil {
@@ -39,7 +39,7 @@ func TestOpenRemovesEmptyIntentWithoutLosingData(t *testing.T) {
 	if _, err := backend.Read(ctx, "intent", 0, readAll); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("empty intent remains after recovery: %v", err)
 	}
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("after"), Value: []byte("new write")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("after"), Value: []byte("new write")}}); err != nil {
 		t.Fatal(err)
 	}
 	value, found, _, err = engine.Get(ctx, []byte("after"))
@@ -61,7 +61,7 @@ func TestOpenIgnoresEmptyInitialRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer engine.Close()
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("value")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("value")}}); err != nil {
 		t.Fatal(err)
 	}
 	value, found, _, err := engine.Get(ctx, []byte("key"))
@@ -90,7 +90,7 @@ func TestOpenRepairsEmptyInitialIdentity(t *testing.T) {
 	if !bytes.Equal(identity, []byte("immutable-opfs-3\n")) {
 		t.Fatalf("identity = %q", identity)
 	}
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("value")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("value")}}); err != nil {
 		t.Fatal(err)
 	}
 	value, found, _, err := engine.Get(ctx, []byte("key"))
@@ -107,7 +107,7 @@ func TestOpenRejectsNonemptyMalformedIntent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := engine.Apply(ctx, nil, []*Record{{Key: []byte("saved"), Value: []byte("durable data")}}); err != nil {
+	if err := engine.Apply(ctx, []*Record{{Key: []byte("saved"), Value: []byte("durable data")}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := engine.Close(); err != nil {

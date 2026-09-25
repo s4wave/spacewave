@@ -18,24 +18,16 @@ type transaction struct {
 	id uint64
 	// write permits pending mutations.
 	write bool
-	// metadata confines conflict validation to the public metadata namespace.
-	metadata bool
 	// discarded closes the transaction and all derived iterators.
 	discarded bool
 	// snapshot retains the first committed view until the transaction ends.
 	snapshot *snapshot
+	// reads records the committed ranges observed through snapshot.
+	reads readSet
 	// pending provides read-your-writes within explicit memory bounds.
 	pending map[string]*Record
 	// pendingBytes charges retained mutation keys, values, and record overhead.
 	pendingBytes int
-}
-
-// revision selects the logical state visible through this transaction's store.
-func (t *transaction) revision(root *Root) uint64 {
-	if t.metadata {
-		return root.MetadataRevision
-	}
-	return root.Revision
 }
 
 // readSnapshot acquires the transaction's committed view on its first read.
@@ -93,6 +85,7 @@ func (t *transaction) get(ctx context.Context, key []byte) ([]byte, bool, error)
 	if pending := t.pending[string(key)]; pending != nil {
 		return bytes.Clone(pending.Value), !pending.Deleted, nil
 	}
+	t.reads.addKey(key)
 	value, found, err := snapshot.get(ctx, key)
 	return bytes.Clone(value), found, err
 }
@@ -177,6 +170,7 @@ func (t *transaction) Iterate(ctx context.Context, prefix []byte, _ bool, revers
 		}
 	}
 	slices.SortFunc(pending, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
+	t.reads.add(prefix, prefixEnd(prefix))
 	it := &iterator{ctx: ctx, tx: t, id: t.engine.workloadIDs.Add(1), prefix: bytes.Clone(prefix), reverse: reverse, pending: pending}
 	var order int64
 	if reverse {
@@ -186,7 +180,7 @@ func (t *transaction) Iterate(ctx context.Context, prefix []byte, _ bool, revers
 	return it
 }
 
-// Commit validates the complete observed generation and durably publishes writes.
+// Commit validates the observed ranges and durably publishes writes.
 func (t *transaction) Commit(ctx context.Context) error {
 	workload.Record{Op: workload.OpCommit, ID: t.id, Size: int64(len(t.pending))}.Log(ctx)
 	if err := t.check(ctx); err != nil {
@@ -201,13 +195,12 @@ func (t *transaction) Commit(ctx context.Context) error {
 		records = append(records, record)
 	}
 	slices.SortFunc(records, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
-	// Blind writes serialize against the current root without a stale read dependency.
-	var base *uint64
+	// Blind writes serialize against the current root without a read dependency.
+	var base *Root
 	if t.snapshot != nil {
-		revision := t.revision(t.snapshot.root)
-		base = &revision
+		base = t.snapshot.root
 	}
-	err := t.engine.apply(ctx, base, records, t.metadata)
+	err := t.engine.apply(ctx, base, &t.reads, records)
 	t.release()
 	return err
 }
@@ -227,6 +220,7 @@ func (t *transaction) release() {
 	t.discarded = true
 	t.pending = nil
 	t.pendingBytes = 0
+	t.reads = readSet{}
 }
 
 // _ verifies the transaction interface.

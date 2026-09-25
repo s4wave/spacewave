@@ -239,14 +239,14 @@ func (e *Engine) RefreshGenerationContext(ctx context.Context) (uint64, error) {
 	return s.root.Revision, nil
 }
 
-// Apply atomically publishes sorted-record mutations, rejecting a stale base.
-// A nil base serializes blind mutations that have observed no committed state.
-func (e *Engine) Apply(ctx context.Context, base *uint64, records []*Record) error {
-	return e.apply(ctx, base, records, false)
+// Apply atomically publishes sorted-record mutations in commit order.
+func (e *Engine) Apply(ctx context.Context, records []*Record) error {
+	return e.apply(ctx, nil, nil, records)
 }
 
-// apply validates the caller's revision domain under the shared publication lock.
-func (e *Engine) apply(ctx context.Context, base *uint64, records []*Record, metadata bool) error {
+// apply publishes records unless a generation after base changed a range in
+// reads. A nil base serializes blind mutations that observed no committed state.
+func (e *Engine) apply(ctx context.Context, base *Root, reads *readSet, records []*Record) error {
 	// Serialize publication while protecting the generation's immutable files.
 	if err := validateRecords(records); err != nil {
 		return err
@@ -267,12 +267,14 @@ func (e *Engine) apply(ctx context.Context, base *uint64, records []*Record, met
 	if err != nil {
 		return err
 	}
-	revision := root.Revision
-	if metadata {
-		revision = root.MetadataRevision
-	}
-	if base != nil && revision != *base {
-		return kvtx.ErrInvalidSnapshot
+	if base != nil {
+		conflict, err := e.conflicts(ctx, reads, base, root)
+		if err != nil {
+			return err
+		}
+		if conflict {
+			return kvtx.ErrInvalidSnapshot
+		}
 	}
 	if len(records) == 0 {
 		return nil
@@ -280,12 +282,6 @@ func (e *Engine) apply(ctx context.Context, base *uint64, records []*Record, met
 	// Build the next immutable generation before replacing either descriptor.
 	p := newPublication(e, root)
 	p.root.Revision++
-	for _, record := range records {
-		if len(record.Key) != 0 && record.Key[0] == metadataPrefix {
-			p.root.MetadataRevision++
-			break
-		}
-	}
 	children, err := p.updateCatalogue(ctx, root.Catalogue, records)
 	if err != nil {
 		return err

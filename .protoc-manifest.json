@@ -2382,7 +2382,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/js/opfs/engine": {
-      "hash": "755fbf4e888cf8bf17e3dfbe2200070b2956e2e76a1cb72de6794908f88e5fd2",
+      "hash": "9c63ebeb3d3863f02d623f4d3b4c306b439b3fe0050e151444598d421e790f2e",
       "generatedFiles": [
         "db/volume/js/opfs/engine/engine.pb.go",
         "db/volume/js/opfs/engine/engine.pb.ts"
