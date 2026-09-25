@@ -66,6 +66,7 @@ var notEnrolledInAnySlice = []string{
 	"TestGoScriptSharedObjectDirectRouteBodyMountGate",
 	"TestGoScriptSharedWorkerOPFSProbe",
 	"TestGoScriptUnixFSLargeMultiFileDropCompletes",
+	"TestGoScriptVolumeWorkloadTraces",
 	// Locally qualified on macOS; the paired build-device and Notes fixtures
 	// still need Linux runner qualification before joining an automated slice.
 	"TestNotebookSavedViewsAcrossClients",
