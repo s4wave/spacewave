@@ -20,6 +20,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/packfile"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
@@ -449,13 +450,13 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 	ctx := context.Background()
 	inner := newWrapperForwardTestStore("", 0)
 	var dirtyMarks int
-	store := &dirtyTrackingStore{
-		store: inner,
-		markDirty: func(_ context.Context, _ *hash.Hash, _ int64) error {
+	store := block_store_writeback.NewMarkingStore(
+		inner,
+		func(_ context.Context, _ *hash.Hash, _ int64) error {
 			dirtyMarks++
 			return nil
 		},
-	}
+	)
 
 	ref1, err := block.BuildBlockRef([]byte("hello"), nil)
 	if err != nil {
@@ -494,13 +495,13 @@ func TestDirtyTrackingStoreBatchRepairsExistingBlocks(t *testing.T) {
 	ctx := context.Background()
 	inner := newWrapperForwardTestStore("", 0)
 	var dirty []string
-	store := &dirtyTrackingStore{
-		store: inner,
-		markDirty: func(_ context.Context, h *hash.Hash, _ int64) error {
+	store := block_store_writeback.NewMarkingStore(
+		inner,
+		func(_ context.Context, h *hash.Hash, _ int64) error {
 			dirty = append(dirty, h.MarshalString())
 			return nil
 		},
-	}
+	)
 
 	existing, err := block.BuildBlockRef([]byte("existing"), nil)
 	if err != nil {
@@ -874,13 +875,13 @@ func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {
 
 	upper := newWrapperForwardTestStore("", hash.HashType_HashType_SHA256)
 	var dirtyMarks int
-	dirtyUpper := &dirtyTrackingStore{
-		store: upper,
-		markDirty: func(context.Context, *hash.Hash, int64) error {
+	dirtyUpper := block_store_writeback.NewMarkingStore(
+		upper,
+		func(context.Context, *hash.Hash, int64) error {
 			dirtyMarks++
 			return nil
 		},
-	}
+	)
 
 	overlay := newCloudOverlay(ctx, nil, lower, dirtyUpper)
 	got, found, err := overlay.GetBlock(ctx, ref)

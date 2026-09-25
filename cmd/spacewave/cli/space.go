@@ -24,6 +24,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 )
@@ -61,14 +62,32 @@ func newSpaceListCommand(_ *string, sessionIdx *uint) *cli.Command {
 
 // newSpaceCreateCommand builds the space create subcommand.
 func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	var storage string
+	var accountStorage bool
 	return &cli.Command{
 		Name:      "create",
 		Usage:     "create a new space",
 		ArgsUsage: "<name>",
+		Flags: []cli.Flag{
+			outputFlag(),
+			&cli.StringFlag{
+				Name:        "storage",
+				Usage:       "store the space's blocks on this storage backend",
+				Destination: &storage,
+			},
+			&cli.BoolFlag{
+				Name:        "account-storage",
+				Usage:       "store the space's blocks on the account's own storage",
+				Destination: &accountStorage,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			name := c.Args().First()
 			if name == "" {
 				return errors.New("space name required")
+			}
+			if storage != "" && accountStorage {
+				return errors.New("choose --storage or --account-storage, not both")
 			}
 
 			ctx := c.Context
@@ -85,7 +104,15 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer sess.Release()
 
-			resp, err := sess.CreateSpace(ctx, name, "", "")
+			req := &s4wave_session.CreateSpaceRequest{SpaceName: name, AccountStorage: accountStorage}
+			if storage != "" {
+				backend, err := findStorageBackend(ctx, sess, storage)
+				if err != nil {
+					return err
+				}
+				req.StorageBackendId = backend.GetId()
+			}
+			resp, err := sess.CreateSpace(ctx, req)
 			if err != nil {
 				return errors.Wrap(err, "create space")
 			}
@@ -189,6 +216,7 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Name:      "info",
 		Usage:     "show space details",
 		ArgsUsage: "<space-id>",
+		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
 			// Connect to the daemon, mount the selected session and Space resource.
@@ -234,7 +262,7 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				}
 				return formatOutput(data, c.String("output"))
 			default:
-				printSpaceState(spaceID, state)
+				printSpaceState(spaceID, state, readSpaceStorage(ctx, sess, spaceID))
 				return nil
 			}
 		},
@@ -284,6 +312,7 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Name:      "settings",
 		Usage:     "show space settings",
 		ArgsUsage: "[space-id]",
+		Flags:     []cli.Flag{outputFlag()},
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
 			// Connect to the daemon, mount the selected session and Space resource.
@@ -675,16 +704,20 @@ func runDeployBlockExchange(
 }
 
 // printSpaceState prints space state details to stdout.
-func printSpaceState(spaceID string, state *s4wave_space.SpaceState) {
+func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4wave_session.WatchSpaceStorageResponse) {
 	w := os.Stdout
 	stateStr := "loading"
 	if state.GetReady() {
 		stateStr = "ready"
 	}
-	writeFields(w, [][2]string{
+	fields := [][2]string{
 		{"Space", spaceID},
 		{"State", stateStr},
-	})
+	}
+	if storage != nil {
+		fields = append(fields, [2]string{"Storage", formatSpaceStorage(storage)})
+	}
+	writeFields(w, fields)
 	if state.GetReady() {
 		if wc := state.GetWorldContents(); wc != nil {
 			objs := wc.GetObjects()

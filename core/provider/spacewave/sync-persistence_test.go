@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -32,12 +33,12 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 			}
 			injected := errors.New("metadata unavailable")
 			fail := true
-			store := &dirtyTrackingStore{store: newSyncTestBlockStore(), markDirty: func(ctx context.Context, h *hash.Hash, size int64) error {
+			store := block_store_writeback.NewMarkingStore(newSyncTestBlockStore(), func(ctx context.Context, h *hash.Hash, size int64) error {
 				if fail {
 					return injected
 				}
 				return syncer.MarkDirty(ctx, h, size)
-			}}
+			})
 			put := func() error {
 				if batch {
 					return store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: payload}})

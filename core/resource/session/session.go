@@ -358,9 +358,18 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		ownerID = r.session.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	}
 
+	// Place the Space's blocks before its first write reaches them.
+	placedID, err := r.placeNewSpaceBlockStore(ctx, soId, req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create and mount the shared object.
 	soRef, err := soFeature.CreateSharedObject(ctx, soId, soMeta, ownerType, ownerID)
 	if err != nil {
+		if placedID != "" {
+			r.releaseNewSpaceBlockStore(ctx, placedID)
+		}
 		return nil, err
 	}
 

@@ -25,6 +25,12 @@ func BlockStoreBucketID(providerID, accountID, blockStoreID string) string {
 	}, "/")
 }
 
+// BlockStoreWritebackObjectStoreID returns the object store id holding a block
+// store's queued uploads.
+func BlockStoreWritebackObjectStoreID(providerID, accountID, blockStoreID string) string {
+	return BlockStoreBucketID(providerID, accountID, blockStoreID) + "/writeback"
+}
+
 // BlockStoreLocalID returns the local block store id for a block store.
 func BlockStoreLocalID(providerID, accountID, blockStoreID string) string {
 	// use the same id format as the bucket id

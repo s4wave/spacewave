@@ -3461,6 +3461,84 @@ func (x *SetDefaultStorageBackendResponse) Reset() {
 
 func (*SetDefaultStorageBackendResponse) ProtoMessage() {}
 
+// WatchSpaceStorageRequest is the request for WatchSpaceStorage.
+type WatchSpaceStorageRequest struct {
+	unknownFields []byte
+	// SharedObjectId is the Space's SharedObject id.
+	SharedObjectId string `protobuf:"bytes,1,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+}
+
+func (x *WatchSpaceStorageRequest) Reset() {
+	*x = WatchSpaceStorageRequest{}
+}
+
+func (*WatchSpaceStorageRequest) ProtoMessage() {}
+
+func (x *WatchSpaceStorageRequest) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+// WatchSpaceStorageResponse is where a Space's blocks are stored.
+type WatchSpaceStorageResponse struct {
+	unknownFields []byte
+	// StorageBackendId is the backend holding the blocks, empty when the
+	// account's own storage holds them.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// StorageBackendName is the backend's display name.
+	StorageBackendName string `protobuf:"bytes,2,opt,name=storage_backend_name,json=storageBackendName,proto3" json:"storageBackendName,omitempty"`
+	// PendingBlocks is the number of blocks written locally and not yet
+	// uploaded to the backend.
+	PendingBlocks int64 `protobuf:"varint,3,opt,name=pending_blocks,json=pendingBlocks,proto3" json:"pendingBlocks,omitempty"`
+	// PendingBytes is the size of the pending blocks.
+	PendingBytes int64 `protobuf:"varint,4,opt,name=pending_bytes,json=pendingBytes,proto3" json:"pendingBytes,omitempty"`
+	// UploadError describes the last upload failure, empty while uploads succeed.
+	UploadError string `protobuf:"bytes,5,opt,name=upload_error,json=uploadError,proto3" json:"uploadError,omitempty"`
+}
+
+func (x *WatchSpaceStorageResponse) Reset() {
+	*x = WatchSpaceStorageResponse{}
+}
+
+func (*WatchSpaceStorageResponse) ProtoMessage() {}
+
+func (x *WatchSpaceStorageResponse) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *WatchSpaceStorageResponse) GetStorageBackendName() string {
+	if x != nil {
+		return x.StorageBackendName
+	}
+	return ""
+}
+
+func (x *WatchSpaceStorageResponse) GetPendingBlocks() int64 {
+	if x != nil {
+		return x.PendingBlocks
+	}
+	return 0
+}
+
+func (x *WatchSpaceStorageResponse) GetPendingBytes() int64 {
+	if x != nil {
+		return x.PendingBytes
+	}
+	return 0
+}
+
+func (x *WatchSpaceStorageResponse) GetUploadError() string {
+	if x != nil {
+		return x.UploadError
+	}
+	return ""
+}
+
 func (m *GetSessionInfoRequest) CloneVT() *GetSessionInfoRequest {
 	if m == nil {
 		return (*GetSessionInfoRequest)(nil)
@@ -5201,6 +5279,42 @@ func (m *SetDefaultStorageBackendResponse) CloneVT() *SetDefaultStorageBackendRe
 }
 
 func (m *SetDefaultStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceStorageRequest) CloneVT() *WatchSpaceStorageRequest {
+	if m == nil {
+		return (*WatchSpaceStorageRequest)(nil)
+	}
+	r := new(WatchSpaceStorageRequest)
+	r.SharedObjectId = m.SharedObjectId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceStorageRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchSpaceStorageResponse) CloneVT() *WatchSpaceStorageResponse {
+	if m == nil {
+		return (*WatchSpaceStorageResponse)(nil)
+	}
+	r := new(WatchSpaceStorageResponse)
+	r.StorageBackendId = m.StorageBackendId
+	r.StorageBackendName = m.StorageBackendName
+	r.PendingBlocks = m.PendingBlocks
+	r.PendingBytes = m.PendingBytes
+	r.UploadError = m.UploadError
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchSpaceStorageResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -7571,6 +7685,58 @@ func (this *SetDefaultStorageBackendResponse) EqualVT(that *SetDefaultStorageBac
 
 func (this *SetDefaultStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetDefaultStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceStorageRequest) EqualVT(that *WatchSpaceStorageRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceStorageRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceStorageRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchSpaceStorageResponse) EqualVT(that *WatchSpaceStorageResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if this.StorageBackendName != that.StorageBackendName {
+		return false
+	}
+	if this.PendingBlocks != that.PendingBlocks {
+		return false
+	}
+	if this.PendingBytes != that.PendingBytes {
+		return false
+	}
+	if this.UploadError != that.UploadError {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchSpaceStorageResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchSpaceStorageResponse)
 	if !ok {
 		return false
 	}
@@ -13231,6 +13397,122 @@ func (x *SetDefaultStorageBackendResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchSpaceStorageRequest message to JSON.
+func (x *WatchSpaceStorageRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceStorageRequest to JSON.
+func (x *WatchSpaceStorageRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceStorageRequest message from JSON.
+func (x *WatchSpaceStorageRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceStorageRequest from JSON.
+func (x *WatchSpaceStorageRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchSpaceStorageResponse message to JSON.
+func (x *WatchSpaceStorageResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.StorageBackendName != "" || s.HasField("storageBackendName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendName")
+		s.WriteString(x.StorageBackendName)
+	}
+	if x.PendingBlocks != 0 || s.HasField("pendingBlocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pendingBlocks")
+		s.WriteInt64(x.PendingBlocks)
+	}
+	if x.PendingBytes != 0 || s.HasField("pendingBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pendingBytes")
+		s.WriteInt64(x.PendingBytes)
+	}
+	if x.UploadError != "" || s.HasField("uploadError") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("uploadError")
+		s.WriteString(x.UploadError)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchSpaceStorageResponse to JSON.
+func (x *WatchSpaceStorageResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchSpaceStorageResponse message from JSON.
+func (x *WatchSpaceStorageResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "storage_backend_name", "storageBackendName":
+			s.AddField("storage_backend_name")
+			x.StorageBackendName = s.ReadString()
+		case "pending_blocks", "pendingBlocks":
+			s.AddField("pending_blocks")
+			x.PendingBlocks = s.ReadInt64()
+		case "pending_bytes", "pendingBytes":
+			s.AddField("pending_bytes")
+			x.PendingBytes = s.ReadInt64()
+		case "upload_error", "uploadError":
+			s.AddField("upload_error")
+			x.UploadError = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchSpaceStorageResponse from JSON.
+func (x *WatchSpaceStorageResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *GetSessionInfoRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -17846,6 +18128,100 @@ func (m *SetDefaultStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchSpaceStorageRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceStorageRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceStorageRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchSpaceStorageResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchSpaceStorageResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchSpaceStorageResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.UploadError) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.UploadError)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.PendingBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingBytes))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.PendingBlocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingBlocks))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.StorageBackendName) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendName)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetSessionInfoRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -19171,6 +19547,32 @@ func (m *SetDefaultStorageBackendResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceStorageRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchSpaceStorageResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendName)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingBlocks)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UploadError)
 	n += len(m.unknownFields)
 	return n
 }
@@ -21180,6 +21582,50 @@ func (x *SetDefaultStorageBackendResponse) MarshalProtoText() string {
 }
 
 func (x *SetDefaultStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceStorageRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchSpaceStorageRequest")
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchSpaceStorageRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchSpaceStorageResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchSpaceStorageResponse")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.StorageBackendName != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_name")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendName)
+	}
+	if x.PendingBlocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending_blocks")
+		protobuf_go_lite.TextWriteInt(&sb, x.PendingBlocks)
+	}
+	if x.PendingBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending_bytes")
+		protobuf_go_lite.TextWriteInt(&sb, x.PendingBytes)
+	}
+	if x.UploadError != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload_error")
+		protobuf_go_lite.TextWriteString(&sb, x.UploadError)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchSpaceStorageResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -27753,6 +28199,150 @@ func (m *SetDefaultStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: SetDefaultStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceStorageRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceStorageRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceStorageRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchSpaceStorageResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchSpaceStorageResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchSpaceStorageResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendName", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendName = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingBlocks", wireType)
+			}
+			m.PendingBlocks = 0
+			m.PendingBlocks, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingBytes", wireType)
+			}
+			m.PendingBytes = 0
+			m.PendingBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UploadError", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UploadError = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -51,6 +51,23 @@ func (s *AccountSettings) PlacedBlockStoreIDs(backendID string) []string {
 	return ids
 }
 
+// CheckStorageBackendUnused returns a StorageBackendInUseError naming the
+// Spaces placed on the backend, or nil when it holds none.
+func (s *AccountSettings) CheckStorageBackendUnused(backendID string) error {
+	placed := s.PlacedBlockStoreIDs(backendID)
+	if len(placed) == 0 {
+		return nil
+	}
+	spaces := make([]string, len(placed))
+	for i, blockStoreID := range placed {
+		spaces[i] = blockStoreID
+		if _, name := s.FindSpaceByBlockStore(blockStoreID); name != "" {
+			spaces[i] = name
+		}
+	}
+	return &StorageBackendInUseError{Spaces: spaces}
+}
+
 // upsertStorageBackend adds a storage backend or replaces the one with its id.
 func (s *AccountSettings) upsertStorageBackend(backend *StorageBackend) error {
 	if err := backend.Validate(); err != nil {
@@ -72,8 +89,8 @@ func (s *AccountSettings) removeStorageBackend(id string) error {
 	if id == "" {
 		return errors.New("storage_backend_id is required")
 	}
-	if placed := s.PlacedBlockStoreIDs(id); len(placed) != 0 {
-		return errors.Wrapf(ErrStorageBackendInUse, "%d block stores", len(placed))
+	if err := s.CheckStorageBackendUnused(id); err != nil {
+		return err
 	}
 	s.StorageBackends = slices.DeleteFunc(s.StorageBackends, func(current *StorageBackend) bool {
 		return current.GetId() == id

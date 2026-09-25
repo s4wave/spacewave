@@ -252,6 +252,12 @@ class SessionResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
+    def watch_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageResponse
+    ]: ...
 
 class SessionResourceServiceServer(Protocol):
     async def get_session_info(
@@ -494,6 +500,12 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
+    def watch_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageResponse
+    ]: ...
 
 def register_session_resource_service(
     registry: ServiceRegistry,

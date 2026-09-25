@@ -180,3 +180,70 @@ func decodeAccountSettings(
 	}
 	return settings, nil
 }
+
+// placeNewSpaceBlockStore places a new Space's block store on the requested
+// or default storage backend. Returns the placed block store id, or empty when
+// the Space stays on the account's own storage.
+func (r *SessionResource) placeNewSpaceBlockStore(
+	ctx context.Context,
+	soID string,
+	req *s4wave_session.CreateSpaceRequest,
+) (string, error) {
+	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
+	if !ok || localAcc == nil {
+		if req.GetStorageBackendId() != "" {
+			return "", errStorageBackendsLocalOnly
+		}
+		return "", nil
+	}
+	backendID, err := localAcc.ResolveNewSpaceStorageBackend(ctx, req.GetStorageBackendId(), req.GetAccountStorage())
+	if err != nil || backendID == "" {
+		return "", err
+	}
+	blockStoreID := provider_local.SobjectBlockStoreID(soID)
+	if err := localAcc.PlaceBlockStore(ctx, blockStoreID, backendID); err != nil {
+		return "", err
+	}
+	return blockStoreID, nil
+}
+
+// releaseNewSpaceBlockStore removes the placement of a Space that failed to
+// create. The placement names no data, so a failure only logs.
+func (r *SessionResource) releaseNewSpaceBlockStore(ctx context.Context, blockStoreID string) {
+	localAcc, err := r.localProviderAccount()
+	if err != nil {
+		return
+	}
+	if err := localAcc.PlaceBlockStore(context.WithoutCancel(ctx), blockStoreID, ""); err != nil {
+		r.le.WithError(err).Warn("unable to remove placement of uncreated space")
+	}
+}
+
+// WatchSpaceStorage streams where a Space's blocks are stored and the
+// progress of their upload.
+func (r *SessionResource) WatchSpaceStorage(
+	req *s4wave_session.WatchSpaceStorageRequest,
+	strm s4wave_session.SRPCSessionResourceService_WatchSpaceStorageStream,
+) error {
+	localAcc, err := r.localProviderAccount()
+	if err != nil {
+		return err
+	}
+	var prev *s4wave_session.WatchSpaceStorageResponse
+	return localAcc.WatchUploadStatus(strm.Context(), req.GetSharedObjectId(), func(status provider_local.UploadStatus) error {
+		resp := &s4wave_session.WatchSpaceStorageResponse{
+			StorageBackendId:   status.Backend.GetId(),
+			StorageBackendName: status.Backend.GetDisplayName(),
+			PendingBlocks:      int64(status.Pending),
+			PendingBytes:       status.PendingBytes,
+		}
+		if status.Err != nil {
+			resp.UploadError = status.Err.Error()
+		}
+		if prev != nil && resp.EqualVT(prev) {
+			return nil
+		}
+		prev = resp
+		return strm.Send(resp)
+	})
+}

@@ -89,6 +89,8 @@ import {
   WatchSessionStateAtomsResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchSpaceStorageRequest,
+  WatchSpaceStorageResponse,
   WatchStorageBackendsRequest,
   WatchStorageBackendsResponse,
   WatchStorageStatsRequest,
@@ -554,6 +556,18 @@ export const SessionResourceServiceDefinition = {
       O: SetDefaultStorageBackendResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * WatchSpaceStorage streams where a Space's blocks are stored and the
+     * progress of their upload.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceStorage
+     */
+    WatchSpaceStorage: {
+      name: 'WatchSpaceStorage',
+      I: WatchSpaceStorageRequest,
+      O: WatchSpaceStorageResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -955,6 +969,17 @@ export interface SessionResourceService {
     request: SetDefaultStorageBackendRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetDefaultStorageBackendResponse>
+
+  /**
+   * WatchSpaceStorage streams where a Space's blocks are stored and the
+   * progress of their upload.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceStorage
+   */
+  WatchSpaceStorage(
+    request: WatchSpaceStorageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceStorageResponse>
 }
 
 /**
@@ -1402,6 +1427,18 @@ export interface SessionResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<SetDefaultStorageBackendResponse>
+
+  /**
+   * WatchSpaceStorage streams where a Space's blocks are stored and the
+   * progress of their upload.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceStorage
+   */
+  WatchSpaceStorage(
+    request: WatchSpaceStorageRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSpaceStorageResponse>
 }
 
 export const SessionResourceServiceServiceName =
@@ -1460,6 +1497,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.AddStorageBackend = this.AddStorageBackend.bind(this)
     this.RemoveStorageBackend = this.RemoveStorageBackend.bind(this)
     this.SetDefaultStorageBackend = this.SetDefaultStorageBackend.bind(this)
+    this.WatchSpaceStorage = this.WatchSpaceStorage.bind(this)
   }
   /**
    * @generated from rpc s4wave.session.SessionResourceService.GetSessionInfo
@@ -2277,5 +2315,25 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return SetDefaultStorageBackendResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchSpaceStorage streams where a Space's blocks are stored and the
+   * progress of their upload.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSpaceStorage
+   */
+  WatchSpaceStorage(
+    request: WatchSpaceStorageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchSpaceStorageResponse> {
+    const requestMsg = WatchSpaceStorageRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.WatchSpaceStorage.name,
+      WatchSpaceStorageRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchSpaceStorageResponse)(result)
   }
 }
