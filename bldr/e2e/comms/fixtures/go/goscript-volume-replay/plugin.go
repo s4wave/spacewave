@@ -107,6 +107,8 @@ var targets = []target{
 	{name: "e1-idb", open: openE1IDB},
 	{name: "e5-idb", open: openE5IDB},
 	{name: "e4-opfs", open: openE4OPFS},
+	{name: "e3-sqlite", open: openE3SQLite},
+	{name: "e1-opfs-t2", open: openT2(openE1OPFS)},
 }
 
 // check runs the device and record store contract checks, each followed by a
