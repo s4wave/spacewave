@@ -3,9 +3,10 @@
 // Package device_opfs implements device.Device on an OPFS directory with sync
 // access handles, which only a dedicated worker can open.
 //
-// Each file keeps one sync access handle open from first use until Remove or
-// Close. A flush calls flush() on every handle written or truncated since the
-// last flush.
+// A Device holds an exclusive Web Lock on its path from Open until Close, so
+// one opener in the origin owns the directory. Each file keeps one sync access
+// handle open from first use until Remove or Close. A flush calls flush() on
+// every handle written or truncated since the last flush.
 package device_opfs
 
 import (
@@ -19,10 +20,15 @@ import (
 	"github.com/s4wave/spacewave/db/volume/device"
 )
 
+// lockPrefix prefixes the name of the Web Lock each Device holds.
+const lockPrefix = "volume-device-opfs/"
+
 // Device is a device.Device on one OPFS directory.
 type Device struct {
 	// dir is the directory handle.
 	dir js.Value
+	// release releases the Device's Web Lock.
+	release func()
 
 	// mtx serializes the device calls.
 	mtx sync.Mutex
@@ -33,17 +39,32 @@ type Device struct {
 }
 
 // Open opens the directory at the slash-separated path under the OPFS root,
-// creating it when absent.
+// creating it when absent. It returns device.ErrHeld while another Device in
+// the origin has path open.
 func Open(path string) (*Device, error) {
+	release, acquired, err := opfs.AcquireWebLockIfAvailable(lockPrefix+path, true)
+	if err != nil {
+		return nil, err
+	}
+	if !acquired {
+		return nil, errors.Wrap(device.ErrHeld, path)
+	}
 	root, err := opfs.GetRoot()
 	if err != nil {
+		release()
 		return nil, err
 	}
 	dir, err := opfs.GetDirectoryPath(root, strings.Split(path, "/"), true)
 	if err != nil {
+		release()
 		return nil, err
 	}
-	return &Device{dir: dir, files: make(map[string]*opfs.SyncFile), dirty: make(map[string]bool)}, nil
+	return &Device{
+		dir:     dir,
+		release: release,
+		files:   make(map[string]*opfs.SyncFile),
+		dirty:   make(map[string]bool),
+	}, nil
 }
 
 // Delete removes the directory at path and everything in it. A missing
@@ -95,10 +116,12 @@ func (d *Device) Write(ctx context.Context, writes []device.Write, flush bool) e
 	// Flush every file changed since the last flush.
 	for name := range d.dirty {
 		if f := d.files[name]; f != nil {
-			f.Flush()
+			if err := f.Flush(); err != nil {
+				return err
+			}
 		}
+		delete(d.dirty, name)
 	}
-	clear(d.dirty)
 	return nil
 }
 
@@ -111,7 +134,14 @@ func (d *Device) Read(ctx context.Context, reads []device.Read) error {
 		if err != nil {
 			return err
 		}
-		if f == nil || r.Offset+int64(len(r.Data)) > f.Size() {
+		if f == nil {
+			return errors.Wrapf(device.ErrShortRead, "%s at %d", r.Name, r.Offset)
+		}
+		size, err := f.Size()
+		if err != nil {
+			return err
+		}
+		if r.Offset+int64(len(r.Data)) > size {
 			return errors.Wrapf(device.ErrShortRead, "%s at %d", r.Name, r.Offset)
 		}
 		if len(r.Data) == 0 {
@@ -139,7 +169,9 @@ func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
 	if err != nil {
 		return err
 	}
-	f.Truncate(size)
+	if err := f.Truncate(size); err != nil {
+		return err
+	}
 	d.dirty[name] = true
 	return nil
 }
@@ -178,14 +210,19 @@ func (d *Device) List(ctx context.Context) ([]device.File, error) {
 		if err != nil {
 			return nil, err
 		}
-		if f != nil {
-			out = append(out, device.File{Name: name, Size: f.Size()})
+		if f == nil {
+			continue
 		}
+		size, err := f.Size()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, device.File{Name: name, Size: size})
 	}
 	return out, nil
 }
 
-// Close closes every handle.
+// Close closes every handle and releases the Web Lock.
 func (d *Device) Close() error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -193,6 +230,7 @@ func (d *Device) Close() error {
 		_ = f.Close()
 		delete(d.files, name)
 	}
+	d.release()
 	return nil
 }
 

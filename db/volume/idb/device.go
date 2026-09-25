@@ -11,6 +11,7 @@ import (
 	"syscall/js"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
 
@@ -26,12 +27,18 @@ const (
 // ChunkSize is the length of a full chunk.
 const ChunkSize = 64 << 10
 
+// lockPrefix prefixes the name of the Web Lock each Device holds.
+const lockPrefix = "volume-device-idb/"
+
 // Device is a device.Device on one IndexedDB database. It is the database's
-// only writer: it holds the file lengths and the last chunk written to each
-// file, so appends need no read.
+// only writer, enforced by an exclusive Web Lock held from OpenDevice until
+// Close: it holds the file lengths and the last chunk written to each file,
+// so appends need no read.
 type Device struct {
 	// db is the database connection.
 	db js.Value
+	// release releases the Device's Web Lock.
+	release func()
 
 	// mtx serializes the device calls.
 	mtx sync.Mutex
@@ -57,10 +64,19 @@ type chunkID struct {
 	index int64
 }
 
-// OpenDevice opens the device database name, creating it when absent.
+// OpenDevice opens the device database name, creating it when absent. It
+// returns device.ErrHeld while another Device in the origin has name open.
 func OpenDevice(ctx context.Context, name string) (*Device, error) {
+	release, acquired, err := opfs.AcquireWebLockIfAvailable(lockPrefix+name, true)
+	if err != nil {
+		return nil, err
+	}
+	if !acquired {
+		return nil, errors.Wrap(device.ErrHeld, name)
+	}
 	db, err := openDB(name, fileStore, chunkStore, syncStore)
 	if err != nil {
+		release()
 		return nil, err
 	}
 
@@ -70,9 +86,10 @@ func OpenDevice(ctx context.Context, name string) (*Device, error) {
 	keysReq, sizesReq := store.Call("getAllKeys"), store.Call("getAll")
 	if err := complete(tx); err != nil {
 		db.Call("close")
+		release()
 		return nil, err
 	}
-	d := &Device{db: db, sizes: make(map[string]int64), tails: make(map[string]tail)}
+	d := &Device{db: db, release: release, sizes: make(map[string]int64), tails: make(map[string]tail)}
 	keys, sizes := keysReq.Get("result"), sizesReq.Get("result")
 	for i := range keys.Length() {
 		d.sizes[keys.Index(i).String()] = int64(sizes.Index(i).Float())
@@ -300,9 +317,10 @@ func (d *Device) List(ctx context.Context) ([]device.File, error) {
 	return out, nil
 }
 
-// Close closes the database connection.
+// Close closes the database connection and releases the Web Lock.
 func (d *Device) Close() error {
 	d.db.Call("close")
+	d.release()
 	return nil
 }
 
