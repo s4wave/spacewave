@@ -52,6 +52,28 @@
   --max-height-confirmation: 90dvh;
   --width-session-overlay: min(22rem, calc(100vw - 2rem));
   --width-content-inset: calc(100% - 1.5rem);
+
+  /* The landing finish draws edges and depth with hairlines, inset top
+     highlights, and soft long shadows mixed from existing tokens. */
+  --text-landing-prompt: 15px;
+  --radius-landing-launcher: 14px;
+  --radius-landing-control: 9px;
+  --shadow-landing-launcher:
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 7%, transparent),
+    0 0 0 1px oklch(0 0 0 / 0.35), 0 48px 96px -40px oklch(0 0 0 / 0.8),
+    0 14px 32px -18px oklch(0 0 0 / 0.55);
+  --shadow-landing-card:
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 5%, transparent),
+    0 24px 48px -32px oklch(0 0 0 / 0.7);
+  --shadow-landing-card-raised:
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 7%, transparent),
+    0 32px 56px -30px oklch(0 0 0 / 0.85);
+  --shadow-landing-tile:
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 8%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--color-foreground) 5%, transparent);
+  --shadow-landing-button:
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 6%, transparent),
+    0 1px 2px oklch(0 0 0 / 0.3), 0 10px 24px -14px oklch(0 0 0 / 0.6);
 }
 
 /* Fonts */
@@ -814,10 +836,6 @@
 
   .landing-stack-position {
     z-index: var(--landing-stack-z-index);
-  }
-
-  .landing-stack-top {
-    box-shadow: 0 4px 20px rgb(0 0 0 / 30%);
   }
 
   .landing-stack-offset {
@@ -2060,7 +2078,7 @@ body,
 
 /* Hero Button Styles */
 .hero-button {
-  @apply border-foreground/20 bg-background/50 flex cursor-pointer items-center rounded-md border px-6 py-2 no-underline transition-all duration-300;
+  @apply border-foreground/20 bg-background/50 rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 no-underline transition-all duration-300;
 }
 
 .hero-button:hover {
@@ -2092,6 +2110,26 @@ body,
   /* outline: -webkit-color-focus-ring auto 1px; */
   outline-color: var(--color-focus-ring);
   outline-width: 1px;
+}
+
+/* landing-finish sets the landing page's selection, focus ring, motion
+   easing, and paragraph wrapping for everything inside it. It stays
+   unlayered so its focus ring wins over the global one above. */
+.landing-finish {
+  --default-transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  & ::selection {
+    background-color: color-mix(in oklab, var(--color-brand) 30%, transparent);
+  }
+
+  & :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-brand) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  & p:not(.text-balance) {
+    text-wrap: pretty;
+  }
 }
 
 .aria-selected\:bg-accent[aria-selected='true'] {

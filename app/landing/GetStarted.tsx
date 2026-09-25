@@ -52,12 +52,12 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
 
   return (
     <CommandItem key={item.id} variant="landing" onSelect={handleClick}>
-      <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
         <item.icon className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">{item.name}</div>
-        <div className="text-xs opacity-70">{item.description}</div>
+        <div className="text-xs opacity-60">{item.description}</div>
       </div>
     </CommandItem>
   )
@@ -75,12 +75,12 @@ function AddStateRootItem() {
       disabled={!canAddRootAlias}
       onSelect={handleClick}
     >
-      <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
         <LuFolderOpen className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">Open a local state root</div>
-        <div className="text-xs opacity-70">
+        <div className="text-xs opacity-60">
           Add an existing .spacewave directory
         </div>
       </div>
@@ -117,12 +117,12 @@ function SessionItem({ session }: { session: SessionListEntry }) {
       variant="landing"
       onSelect={handleClick}
     >
-      <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md transition-colors">
+      <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center transition-colors">
         <LuUser className="icon-stroke-thin size-5" />
       </div>
       <div>
         <div className="text-sm font-medium">Account: {accountName}</div>
-        <div className="text-xs opacity-70">{subtitle}</div>
+        <div className="text-xs opacity-60">{subtitle}</div>
       </div>
     </CommandItem>
   )
@@ -151,13 +151,13 @@ function StaticGetStarted({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'border-foreground/20 bg-background-get-started relative flex min-h-50 flex-col rounded-lg border shadow-lg backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
+        'border-foreground/11 bg-background-get-started rounded-landing-launcher shadow-landing-launcher relative flex min-h-50 flex-col border backdrop-blur-sm @lg:flex-1 @lg:overflow-hidden',
         '@lg:max-h-(--max-height-get-started) @lg:flex-initial @2xl:max-h-(--max-height-get-started-wide)',
         className,
       )}
     >
-      <div className="placeholder:text-foreground/70 border-foreground/10 flex items-center gap-2 border-b px-3 py-2.5">
-        <span className="text-foreground/70 text-sm">
+      <div className="border-foreground/7 flex items-center gap-2 border-b px-4.5 py-3.25">
+        <span className="text-foreground/70 text-landing-prompt">
           <span className="whitespace-nowrap">
             Where would you like to start?
           </span>
@@ -167,24 +167,24 @@ function StaticGetStarted({ className }: { className?: string }) {
           </span>
         </span>
       </div>
-      <div className="bg-background-get-started flex-1 pb-2 @lg:min-h-0 @lg:overflow-y-auto">
+      <div className="bg-background-get-started flex-1 pb-2.5 @lg:min-h-0 @lg:overflow-y-auto">
         {itemsByCategory.map(({ category, items }) => (
           <div key={category} className="mb-0 py-0">
-            <div className="text-foreground/50 px-4 py-1.5 text-xs font-medium">
+            <div className="text-foreground/50 px-5 pt-2.5 pb-1 text-xs font-medium tracking-wide">
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </div>
             {items.map((item) => (
               <a
                 key={item.id}
                 href={getStaticQuickstartHref(item, useHandoffLinks)}
-                className="text-foreground-alt flex items-center gap-3 px-4 py-1.5 no-underline"
+                className="text-foreground-alt hover:bg-foreground/5 mx-2 flex items-center gap-3 rounded-lg px-3 py-1.5 no-underline transition-colors duration-200"
               >
-                <div className="bg-foreground/10 text-foreground flex size-9 shrink-0 items-center justify-center rounded-md">
+                <div className="bg-foreground/10 text-foreground rounded-landing-control shadow-landing-tile flex size-9 shrink-0 items-center justify-center">
                   <item.icon className="icon-stroke-thin size-5" />
                 </div>
                 <div>
                   <div className="text-sm font-medium">{item.name}</div>
-                  <div className="text-xs opacity-70">{item.description}</div>
+                  <div className="text-xs opacity-60">{item.description}</div>
                 </div>
               </a>
             ))}

@@ -64,7 +64,7 @@ function Section({
       id={id}
       ref={reveal && !isStatic ? ref : undefined}
       className={cn(
-        'relative w-full px-4 py-20 @lg:px-8 @2xl:px-12',
+        'relative w-full px-4 py-28 @lg:px-8 @2xl:px-12',
         reveal &&
           cn(
             'transition duration-700',
@@ -84,7 +84,7 @@ function Section({
 // SectionLabel renders the small uppercase tracking label above section headings.
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-foreground-alt mb-4 text-center text-xs font-semibold tracking-widest uppercase">
+    <div className="text-foreground-alt tracking-brand-wide mb-4 text-center text-xs font-medium uppercase">
       {children}
     </div>
   )
@@ -93,7 +93,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // SectionTitle renders a section heading.
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-foreground mb-4 text-center text-3xl font-semibold @lg:text-4xl">
+    <h2 className="text-foreground mb-4 text-center text-3xl font-medium tracking-tight text-balance @lg:text-4xl">
       {children}
     </h2>
   )
@@ -122,9 +122,10 @@ function CtaButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5',
+        'rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5',
         variant === 'primary'
           ? 'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
@@ -148,7 +149,7 @@ interface SectionHeadingProps {
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ children }) => (
-  <h2 className="text-foreground mb-8 text-center text-3xl font-semibold @lg:text-4xl">
+  <h2 className="text-foreground mb-8 text-center text-3xl font-medium tracking-tight text-balance @lg:text-4xl">
     {children}
   </h2>
 )
@@ -162,7 +163,7 @@ interface HeroTextProps {
 const HeroText: React.FC<HeroTextProps> = ({ className, children }) => (
   <p
     className={cn(
-      'text-foreground-alt mx-auto max-w-2xl text-sm leading-relaxed font-light @lg:text-base @lg:leading-relaxed',
+      'text-foreground-alt mx-auto max-w-2xl text-sm leading-relaxed @lg:text-base @lg:leading-relaxed',
       className,
     )}
   >
@@ -177,7 +178,7 @@ interface HeroButtonProps {
 }
 
 const HeroButton: React.FC<HeroButtonProps> = ({ icon, children, onClick }) => (
-  <button className="hero-button" onClick={onClick}>
+  <button type="button" className="hero-button" onClick={onClick}>
     {icon}
     <span className="select-none">{children}</span>
   </button>
@@ -244,7 +245,7 @@ const FaqItem: React.FC<FaqItemProps> = ({
       role="button"
       tabIndex={0}
       className={cn(
-        'group cursor-pointer rounded-lg border p-5 backdrop-blur-sm transition',
+        'group shadow-landing-card hover:shadow-landing-card-raised cursor-pointer rounded-xl border p-5 backdrop-blur-sm transition',
         isOpen
           ? 'border-foreground/12 bg-background-card/60'
           : 'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:-translate-y-0.5',
@@ -347,7 +348,7 @@ const FaqAccordion: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-semibold uppercase">
+      <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-medium uppercase">
         Frequently asked questions
       </span>
       <div className="flex flex-col gap-3">
@@ -370,7 +371,7 @@ const HeroSection: React.FC = () => {
   const nav = useNavLinks()
   const blogHref = useStaticHref('/blog/2026/04/launch')
   return (
-    <Section className="pt-36 pb-32" withTopSeparator>
+    <Section withTopSeparator>
       <div className="text-center">
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="bg-background absolute inset-0">
@@ -439,7 +440,7 @@ const HeroSection: React.FC = () => {
 
         <a
           href={blogHref}
-          className="border-brand/30 text-brand hover:border-brand/50 mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
+          className="border-brand/30 text-brand hover:border-brand/50 shadow-landing-button mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
         >
           <PiRocketLaunchDuotone className="mr-2 inline-block size-4 -translate-y-0.5" />
           Announcing open beta
@@ -912,8 +913,8 @@ function HowItWorksSection() {
       </SectionSubtitle>
 
       <div className="grid gap-8 @lg:grid-cols-2">
-        <div className="border-foreground/6 bg-background-card/20 rounded-lg border p-6 backdrop-blur-sm">
-          <div className="text-foreground-alt mb-4 text-center text-xs font-semibold tracking-widest uppercase opacity-50">
+        <div className="border-foreground/6 bg-background-card/20 shadow-landing-card rounded-xl border p-6 backdrop-blur-sm">
+          <div className="text-foreground-alt tracking-brand-wide mb-4 text-center text-xs font-medium uppercase opacity-50">
             Traditional Cloud
           </div>
           <div className="h-64">
@@ -921,8 +922,8 @@ function HowItWorksSection() {
           </div>
         </div>
 
-        <div className="border-brand/20 bg-background-card/30 rounded-lg border p-6 backdrop-blur-sm">
-          <div className="text-brand mb-4 text-center text-xs font-semibold tracking-widest uppercase">
+        <div className="border-brand/20 bg-background-card/30 shadow-landing-card rounded-xl border p-6 backdrop-blur-sm">
+          <div className="text-brand tracking-brand-wide mb-4 text-center text-xs font-medium uppercase">
             Spacewave
           </div>
           <div className="h-64">
@@ -937,7 +938,7 @@ function HowItWorksSection() {
           return (
             <div
               key={card.title}
-              className="border-foreground/6 bg-background-card/30 group rounded-lg border p-5 backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
+              className="border-foreground/6 bg-background-card/30 group shadow-landing-card hover:shadow-landing-card-raised rounded-xl border p-5 backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
             >
               <CardIcon className="text-brand mb-3 size-5" />
               <h3 className="text-foreground mb-2 text-sm font-semibold">
@@ -1033,7 +1034,7 @@ function UseCaseCard({
       ref={ref}
       href={resolvedHref}
       className={cn(
-        'feature-reveal-delay border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition duration-500',
+        'feature-reveal-delay border-foreground/6 bg-background-card/30 group shadow-landing-card hover:shadow-landing-card-raised cursor-pointer rounded-xl border p-6 no-underline backdrop-blur-sm transition duration-500',
         visible
           ? 'translate-y-0 opacity-100 hover:-translate-y-1'
           : 'translate-y-8 opacity-0',
@@ -1041,7 +1042,7 @@ function UseCaseCard({
       style={{ '--feature-reveal-delay': `${index * 80}ms` }}
     >
       <div className="mb-4 flex items-center gap-3">
-        <div className="bg-brand/8 group-hover:bg-brand/15 flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
+        <div className="bg-brand/8 group-hover:bg-brand/15 inset-ring-brand/14 flex size-10 shrink-0 items-center justify-center rounded-lg inset-ring transition-colors">
           <Icon className="text-brand size-5" />
         </div>
         <span className="text-brand/70 text-metadata font-semibold tracking-widest uppercase">
@@ -1049,7 +1050,7 @@ function UseCaseCard({
         </span>
       </div>
       <h3 className="text-foreground mb-2 text-base font-semibold">{title}</h3>
-      <p className="text-foreground-alt text-sm leading-relaxed text-balance">
+      <p className="text-foreground-alt text-sm leading-relaxed font-normal text-balance">
         {description}
       </p>
     </a>
@@ -1123,7 +1124,7 @@ function ArchitectureStackDiagram() {
             >
               {isTop ? (
                 <div
-                  className="landing-stack-position landing-stack-top border-foreground/8 bg-background-card relative rounded-lg border px-5 py-4 backdrop-blur-sm"
+                  className="landing-stack-position border-foreground/8 bg-background-card shadow-landing-card relative rounded-xl border px-5 py-4 backdrop-blur-sm"
                   style={{
                     '--landing-stack-z-index': STACK_LAYERS.length - i,
                   }}
@@ -1226,12 +1227,12 @@ function ForDevelopersSection() {
         right in front of you.
       </SectionSubtitle>
 
-      <div className="border-brand/20 bg-background-card/30 mx-auto max-w-2xl rounded-lg border p-6 backdrop-blur-sm">
+      <div className="border-brand/20 bg-background-card/30 shadow-landing-card mx-auto max-w-2xl rounded-xl border p-6 backdrop-blur-sm">
         <ArchitectureStackDiagram />
       </div>
 
       <div className="mx-auto mt-10 max-w-3xl">
-        <div className="border-foreground/6 bg-background-card/20 rounded-lg border p-6 backdrop-blur-sm">
+        <div className="border-foreground/6 bg-background-card/20 shadow-landing-card rounded-xl border p-6 backdrop-blur-sm">
           <div className="grid gap-6 @lg:grid-cols-3">
             {DEV_CARDS.map((card, i) => {
               const CardIcon = DEV_CARD_ICONS[i]
@@ -1257,7 +1258,7 @@ function ForDevelopersSection() {
         </CtaButton>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
+          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
         >
           <LuGithub className="size-4" />
           <span>Browse Source</span>
@@ -1343,9 +1344,9 @@ const ComparisonChart: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-4xl text-base @md:text-lg">
-      <div className="border-foreground/10 bg-background-card-alt overflow-hidden rounded-lg border backdrop-blur-sm">
+      <div className="border-foreground/10 bg-background-card-alt shadow-landing-card overflow-hidden rounded-xl border backdrop-blur-sm">
         {/* Header */}
-        <div className="comparison-chart-grid border-foreground/10 grid border-b">
+        <div className="comparison-chart-grid border-foreground/6 grid border-b">
           <div className="p-4 font-medium">Feature</div>
           <div className="px-1 py-4 text-center text-sm font-medium text-white @md:p-4 @md:text-base">
             Spacewave
@@ -1356,7 +1357,7 @@ const ComparisonChart: React.FC = () => {
         </div>
 
         {/* Features */}
-        <div className="divide-foreground/10 divide-y">
+        <div className="divide-foreground/6 divide-y">
           {features.map((feature) => (
             <div
               key={feature.name}

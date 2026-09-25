@@ -29,7 +29,7 @@ export function UseCaseCtaLink({
       href={href}
       data-landing-primary-cta={variant === 'primary' || undefined}
       className={cn(
-        'flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
+        'rounded-landing-control shadow-landing-button flex items-center gap-2 border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5',
         variant === 'primary'
           ? 'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',

@@ -15,38 +15,50 @@ import {
 const commandVariants = cva('', {
   variants: {
     variant: {
-      default: '',
+      default: 'rounded-md',
       landing:
-        'border-foreground/20 bg-background-get-started relative min-h-50 rounded-lg border shadow-lg backdrop-blur-sm',
+        'border-foreground/11 bg-background-get-started rounded-landing-launcher shadow-landing-launcher relative min-h-50 border backdrop-blur-sm',
       dashboard:
         'border-ui-outline bg-background-get-started/95 relative rounded-lg border shadow-xl backdrop-blur-sm',
       dashboardEmpty:
         'border-ui-outline bg-background-get-started/95 relative max-h-(--max-height-dashboard-list) rounded-lg border shadow-xl backdrop-blur-sm',
-      folder: 'bg-transparent',
+      folder: 'rounded-md bg-transparent',
       palette:
-        'border-foreground/10 bg-background-card/95 bottom-4 top-auto translate-y-0 overflow-hidden shadow-none sm:max-w-none',
+        'border-foreground/10 bg-background-card/95 bottom-4 top-auto translate-y-0 overflow-hidden rounded-md shadow-none sm:max-w-none',
     },
   },
   defaultVariants: { variant: 'default' },
 })
 
-const commandInputVariants = cva('', {
+const commandInputWrapperVariants = cva('', {
   variants: {
     variant: {
       default: '',
-      landing: 'placeholder:text-foreground/70 border-foreground/10 border-b',
-      dashboard:
-        'border-ui-outline placeholder:text-foreground-alt/50 h-11 border-b',
-      folder: 'border-0',
+      landing: 'border-foreground/7 h-12 px-4.5',
+      dashboard: '',
+      folder: '',
     },
   },
+})
+
+const commandInputVariants = cva('', {
+  variants: {
+    variant: {
+      default: 'text-sm',
+      landing: 'placeholder:text-foreground/70 text-landing-prompt',
+      dashboard:
+        'border-ui-outline placeholder:text-foreground-alt/50 h-11 border-b text-sm',
+      folder: 'border-0 text-sm',
+    },
+  },
+  defaultVariants: { variant: 'default' },
 })
 
 const commandListVariants = cva('', {
   variants: {
     variant: {
       default: '',
-      landing: 'bg-background-get-started pb-2',
+      landing: 'bg-background-get-started pb-2.5',
       transparent: 'bg-transparent',
       palette: 'pb-0',
     },
@@ -78,7 +90,7 @@ const commandItemVariants = cva('', {
     variant: {
       default: '',
       landing:
-        'text-foreground-alt flex cursor-pointer items-center gap-3 px-4 py-1.5',
+        'text-foreground-alt mx-1 flex rounded-lg cursor-pointer items-center gap-3 px-3 py-1.5 duration-200',
       dashboard:
         'group flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5',
       dashboardIdentifier:
@@ -114,7 +126,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        'bg-popover text-popover-foreground flex max-h-[inherit] w-full flex-col overflow-hidden rounded-md',
+        'bg-popover text-popover-foreground flex max-h-[inherit] w-full flex-col overflow-hidden',
         commandVariants({ variant }),
         className,
       )}
@@ -170,13 +182,16 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className="border-border/60 flex h-10 items-center gap-2 border-b px-3"
+      className={cn(
+        'border-border/60 flex h-10 items-center gap-2 border-b px-3',
+        commandInputWrapperVariants({ variant }),
+      )}
     >
       <LuSearch className="text-foreground-alt size-4 shrink-0" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          'placeholder:text-foreground-alt/60 flex h-10 w-full bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+          'placeholder:text-foreground-alt/60 flex h-10 w-full bg-transparent outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
           commandInputVariants({ variant }),
           className,
         )}

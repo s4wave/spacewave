@@ -187,7 +187,7 @@ export function Landing() {
   return (
     <div
       ref={containerRef}
-      className="bg-background-landing @container relative flex w-full flex-1 flex-col overflow-auto"
+      className="bg-background-landing landing-finish @container relative flex w-full flex-1 flex-col overflow-auto"
     >
       <QuickstartCommands onQuickstart={handleQuickstartCommand} />
       {visibility.tooNarrow && (
