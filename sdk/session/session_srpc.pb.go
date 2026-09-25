@@ -110,6 +110,9 @@ type SRPCSessionResourceServiceClient interface {
 	RemoveStorageBackend(ctx context.Context, in *RemoveStorageBackendRequest) (*RemoveStorageBackendResponse, error)
 	// SetDefaultStorageBackend selects the backend that new Spaces use.
 	SetDefaultStorageBackend(ctx context.Context, in *SetDefaultStorageBackendRequest) (*SetDefaultStorageBackendResponse, error)
+	// WatchSpaceStorage streams where a Space's blocks are stored and the
+	// progress of their upload.
+	WatchSpaceStorage(ctx context.Context, in *WatchSpaceStorageRequest) (SRPCSessionResourceService_WatchSpaceStorageClient, error)
 }
 
 type srpcSessionResourceServiceClient struct {
@@ -803,6 +806,40 @@ func (c *srpcSessionResourceServiceClient) SetDefaultStorageBackend(ctx context.
 	return out, nil
 }
 
+func (c *srpcSessionResourceServiceClient) WatchSpaceStorage(ctx context.Context, in *WatchSpaceStorageRequest) (SRPCSessionResourceService_WatchSpaceStorageClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchSpaceStorage", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_WatchSpaceStorageClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSessionResourceService_WatchSpaceStorageClient interface {
+	srpc.Stream
+	Recv() (*WatchSpaceStorageResponse, error)
+	RecvTo(*WatchSpaceStorageResponse) error
+}
+
+type srpcSessionResourceService_WatchSpaceStorageClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchSpaceStorageClient) Recv() (*WatchSpaceStorageResponse, error) {
+	m := new(WatchSpaceStorageResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_WatchSpaceStorageClient) RecvTo(m *WatchSpaceStorageResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSessionResourceServiceServer interface {
 	GetSessionInfo(context.Context, *GetSessionInfoRequest) (*GetSessionInfoResponse, error)
 
@@ -900,6 +937,9 @@ type SRPCSessionResourceServiceServer interface {
 	RemoveStorageBackend(context.Context, *RemoveStorageBackendRequest) (*RemoveStorageBackendResponse, error)
 	// SetDefaultStorageBackend selects the backend that new Spaces use.
 	SetDefaultStorageBackend(context.Context, *SetDefaultStorageBackendRequest) (*SetDefaultStorageBackendResponse, error)
+	// WatchSpaceStorage streams where a Space's blocks are stored and the
+	// progress of their upload.
+	WatchSpaceStorage(*WatchSpaceStorageRequest, SRPCSessionResourceService_WatchSpaceStorageStream) error
 }
 
 const SRPCSessionResourceServiceServiceID = "s4wave.session.SessionResourceService"
@@ -975,6 +1015,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"AddStorageBackend",
 		"RemoveStorageBackend",
 		"SetDefaultStorageBackend",
+		"WatchSpaceStorage",
 	}
 }
 
@@ -1081,6 +1122,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_RemoveStorageBackend(d.impl, strm)
 	case "SetDefaultStorageBackend":
 		return true, d.InvokeMethod_SetDefaultStorageBackend(d.impl, strm)
+	case "WatchSpaceStorage":
+		return true, d.InvokeMethod_WatchSpaceStorage(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -1620,6 +1663,15 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_SetDefaultStorageBackend(i
 	return strm.MsgSend(out)
 }
 
+func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchSpaceStorage(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchSpaceStorageRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_WatchSpaceStorageStream{strm}
+	return impl.WatchSpaceStorage(req, serverStrm)
+}
+
 type SRPCSessionResourceService_GetSessionInfoStream interface {
 	srpc.Stream
 }
@@ -2144,4 +2196,27 @@ type SRPCSessionResourceService_SetDefaultStorageBackendStream interface {
 
 type srpcSessionResourceService_SetDefaultStorageBackendStream struct {
 	srpc.Stream
+}
+
+type SRPCSessionResourceService_WatchSpaceStorageStream interface {
+	srpc.Stream
+	Send(*WatchSpaceStorageResponse) error
+	SendAndClose(*WatchSpaceStorageResponse) error
+}
+
+type srpcSessionResourceService_WatchSpaceStorageStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_WatchSpaceStorageStream) Send(m *WatchSpaceStorageResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_WatchSpaceStorageStream) SendAndClose(m *WatchSpaceStorageResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

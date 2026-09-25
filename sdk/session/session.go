@@ -50,14 +50,8 @@ func (s *Session) GetSessionInfo(ctx context.Context) (*GetSessionInfoResponse, 
 }
 
 // CreateSpace creates a new Space as a SharedObject within the Session.
-// ownerType is "account" or "organization"; ownerID is the principal id
-// (account id or organization id).
-func (s *Session) CreateSpace(ctx context.Context, spaceName, ownerType, ownerID string) (*CreateSpaceResponse, error) {
-	return s.service.CreateSpace(ctx, &CreateSpaceRequest{
-		SpaceName: spaceName,
-		OwnerType: ownerType,
-		OwnerId:   ownerID,
-	})
+func (s *Session) CreateSpace(ctx context.Context, req *CreateSpaceRequest) (*CreateSpaceResponse, error) {
+	return s.service.CreateSpace(ctx, req)
 }
 
 // DeleteSpace deletes a space and its associated storage.

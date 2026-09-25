@@ -960,3 +960,23 @@ class SetDefaultStorageBackendRequest(_message.Message):
 class SetDefaultStorageBackendResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class WatchSpaceStorageRequest(_message.Message):
+    __slots__ = ("shared_object_id",)
+    SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    shared_object_id: str
+    def __init__(self, shared_object_id: _Optional[str] = ...) -> None: ...
+
+class WatchSpaceStorageResponse(_message.Message):
+    __slots__ = ("storage_backend_id", "storage_backend_name", "pending_blocks", "pending_bytes", "upload_error")
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_BACKEND_NAME_FIELD_NUMBER: _ClassVar[int]
+    PENDING_BLOCKS_FIELD_NUMBER: _ClassVar[int]
+    PENDING_BYTES_FIELD_NUMBER: _ClassVar[int]
+    UPLOAD_ERROR_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    storage_backend_name: str
+    pending_blocks: int
+    pending_bytes: int
+    upload_error: str
+    def __init__(self, storage_backend_id: _Optional[str] = ..., storage_backend_name: _Optional[str] = ..., pending_blocks: _Optional[int] = ..., pending_bytes: _Optional[int] = ..., upload_error: _Optional[str] = ...) -> None: ...

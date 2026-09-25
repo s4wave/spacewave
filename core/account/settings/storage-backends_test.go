@@ -122,6 +122,30 @@ func TestStorageBackendOps(t *testing.T) {
 	if s.FindBlockStorePlacement("space-1") != nil {
 		t.Fatal("expected space-1 back on the account's storage")
 	}
+
+	// Deleting a placed Space releases its placement.
+	if err := place("space-1", "b"); err != nil {
+		t.Fatal(err)
+	}
+	ref := &sobject.SharedObjectRef{
+		ProviderResourceRef: &provider.ProviderResourceRef{
+			Id:                "space-1",
+			ProviderId:        "local",
+			ProviderAccountId: "account",
+		},
+		BlockStoreId: "space-1",
+	}
+	if err := applyOp(t, s, &AccountSettingsOp{Op: &AccountSettingsOp_UpsertCatalogEntry{
+		UpsertCatalogEntry: &AccountCatalogEntry{
+			Entry:   &sobject.SharedObjectListEntry{Ref: ref, Meta: &sobject.SharedObjectMeta{BodyType: "space"}},
+			Deleted: true,
+		},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if s.FindBlockStorePlacement("space-1") != nil {
+		t.Fatal("expected the deleted Space's placement released")
+	}
 	if err := remove("b"); err != nil {
 		t.Fatal(err)
 	}

@@ -23,6 +23,12 @@ func (s *Session) RemoveStorageBackend(ctx context.Context, storageBackendID str
 	return err
 }
 
+// WatchSpaceStorage streams where a Space's blocks are stored and the
+// progress of their upload.
+func (s *Session) WatchSpaceStorage(ctx context.Context, sharedObjectID string) (SRPCSessionResourceService_WatchSpaceStorageClient, error) {
+	return s.service.WatchSpaceStorage(ctx, &WatchSpaceStorageRequest{SharedObjectId: sharedObjectID})
+}
+
 // SetDefaultStorageBackend selects the backend new Spaces use, or the
 // account's own storage when storageBackendID is empty.
 func (s *Session) SetDefaultStorageBackend(ctx context.Context, storageBackendID string) error {

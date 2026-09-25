@@ -3,18 +3,23 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/aperturerobotics/util/routine"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +35,26 @@ type BlockStore struct {
 	readStore block_store.Store
 	// decodedBlocks is the decoded-block cache owned by the block-store lifecycle.
 	decodedBlocks *block.DecodedBlockCache
+	// upload queues local writes for the store's storage backend.
+	upload *uploadState
+}
+
+// uploadState is a block store's storage backend and its upload queue.
+type uploadState struct {
+	// wb queues local writes for upload.
+	wb *block_store_writeback.Store
+	// backend is the storage backend holding the store, nil for the account's
+	// own storage. It changes before wb broadcasts the change.
+	backend atomic.Pointer[account_settings.StorageBackend]
+}
+
+// UploadStatus is a block store's storage backend and upload status.
+type UploadStatus struct {
+	// Backend is the storage backend holding the store, nil for the account's
+	// own storage.
+	Backend *account_settings.StorageBackend
+	// Status is the upload status of the queued writes.
+	block_store_writeback.Status
 }
 
 // GetID returns the inner store id.
@@ -57,6 +82,13 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 	b.decodedBlocks.InvalidateRef(ctx, ref)
 }
 
+// GetUploadStatus returns the storage backend and upload status, and a channel
+// closed when either changes.
+func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
+	status, changed := b.upload.wb.GetStatus()
+	return UploadStatus{Backend: b.upload.backend.Load(), Status: status}, changed
+}
+
 func (b *BlockStore) readOwner() block_store.Store {
 	if b.readStore != nil {
 		return b.readStore
@@ -80,9 +112,10 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 			store:         b.store,
 			readStore:     scopedStore,
 			decodedBlocks: b.decodedBlocks,
+			upload:        b.upload,
 		}, release, nil
 	}
-	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks}, release, nil
+	return &BlockStore{store: scopedStore, decodedBlocks: b.decodedBlocks, upload: b.upload}, release, nil
 }
 
 // PutBlock forwards to the inner store.
@@ -173,6 +206,8 @@ type bstoreTracker struct {
 	id string
 	// bstoreCtr is the bstore container
 	bstoreCtr *ccontainer.CContainer[*BlockStore]
+	// remote is the open storage backend store, or nil.
+	remote atomic.Pointer[block.StoreOps]
 }
 
 // buildBlockStoreTracker builds a new bstoreTracker for a bstore id.
@@ -247,16 +282,76 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		t.a.t.accountInfo.GetProviderAccountId(),
 		t.id,
 	)
-	localStore := block_store.NewStore(blockStoreLocalID, localBucket)
+
+	// Queue writes for upload when the account places the store on a backend.
+	// The settings cannot place their own block store, which they mount from.
+	settingsRef, err := t.a.lookupAccountSettingsRef(ctx)
+	if err != nil {
+		return err
+	}
+	var settings *settingsWatch
+	var backend *account_settings.StorageBackend
+	if settingsRef != nil && settingsRef.GetBlockStoreId() != t.id {
+		settings, err = t.a.watchAccountSettings(ctx, settingsRef)
+		if err != nil {
+			return err
+		}
+		defer settings.release()
+		backend, err = t.nextBackend(ctx, settings)
+		if err != nil {
+			return err
+		}
+	}
+	markers, _, markersRef, err := volume.ExBuildObjectStoreAPI(
+		ctx,
+		t.a.t.p.b,
+		false,
+		BlockStoreWritebackObjectStoreID(
+			t.a.t.p.info.GetProviderId(),
+			t.a.t.accountInfo.GetProviderAccountId(),
+			t.id,
+		),
+		volID,
+		ctxCancel,
+	)
+	if err != nil {
+		return err
+	}
+	defer markersRef.Release()
+	wb, err := block_store_writeback.NewStore(ctx, localBucket, markers.GetObjectStore(), backend != nil)
+	if err != nil {
+		return err
+	}
+	upload := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.StorageBackend](
+		le.WithField("routine", "storage-upload"),
+		routine.WithRetry(providerBackoff),
+	)
+	upload.SetStateRoutine(func(ctx context.Context, backend *account_settings.StorageBackend) error {
+		return t.runUpload(ctx, wb, backend)
+	})
+	uploadState := &uploadState{wb: wb}
+	uploadState.backend.Store(backend)
+	upload.SetState(backend)
+	upload.SetContext(ctx, true)
+	defer upload.ClearContext()
+
+	// Read the local store first, then the backend's bucket, then peers.
+	localStore := block_store.NewStore(blockStoreLocalID, wb)
+	lowerOps := block_store.NewStoreReadThrough(
+		t.getRemote,
+		func() block.StoreOps { return t.a.getP2PStore(bucketID) },
+		false,
+	)
 	readOps := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return localBucket },
-		func() block.StoreOps { return t.a.getP2PStore(bucketID) },
+		func() block.StoreOps { return lowerOps },
 		true,
 	)
 	bstoreHandle := &BlockStore{
 		store:         localStore,
 		readStore:     block_store.NewStore(blockStoreLocalID, readOps),
 		decodedBlocks: decodedBlocks,
+		upload:        uploadState,
 	}
 	bstoreCtrl := newLocalBlockStoreController(le, blockStoreLocalID, localStore)
 	relBstoreCtrl, err := t.a.t.p.b.AddController(ctx, bstoreCtrl, nil)
@@ -268,9 +363,25 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Done
 	le.Debug("mounted bstore successfully")
 	t.bstoreCtr.SetValue(bstoreHandle)
-	<-ctx.Done()
+	defer t.bstoreCtr.SetValue(nil)
 
-	t.bstoreCtr.SetValue(nil)
+	// Follow placement changes until the store unmounts.
+	for settings != nil {
+		next, err := t.nextBackend(ctx, settings)
+		if err != nil {
+			return err
+		}
+		if next.EqualVT(backend) {
+			continue
+		}
+		uploadState.backend.Store(next)
+		if err := wb.SetEnabled(ctx, next != nil); err != nil {
+			return err
+		}
+		upload.SetState(next)
+		backend = next
+	}
+	<-ctx.Done()
 	return context.Canceled
 }
 

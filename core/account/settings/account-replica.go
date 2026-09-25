@@ -56,6 +56,7 @@ func (s *AccountSettings) applyAccountSession(member *AccountSession) error {
 }
 
 // applyCatalogEntry prevents an offline inventory from resurrecting a deletion.
+// A deletion also releases the object's block store placement.
 func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 	ref := entry.GetEntry().GetRef()
 	if err := ref.Validate(); err != nil {
@@ -72,5 +73,12 @@ func (s *AccountSettings) applyCatalogEntry(entry *AccountCatalogEntry) error {
 		return current.GetEntry().GetRef().GetProviderResourceRef().GetId() == objectID
 	})
 	s.Catalog = append(s.Catalog, entry.CloneVT())
+
+	// A deleted object's blocks no longer need a storage backend.
+	if entry.GetDeleted() {
+		s.BlockStorePlacements = slices.DeleteFunc(s.BlockStorePlacements, func(current *BlockStorePlacement) bool {
+			return current.GetBlockStoreId() == ref.GetBlockStoreId()
+		})
+	}
 	return nil
 }

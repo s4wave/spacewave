@@ -87,6 +87,8 @@ type ProviderAccount struct {
 	envelopeRewrapWatcher *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
 	orgProcessors *routine.RoutineContainer
+	// placedUploads keeps placed block stores mounted so their writes upload.
+	placedUploads *routine.RoutineContainer
 	// gcCleanup runs block GC cleanup after foreground delete paths unroot data.
 	gcCleanup *routine.RoutineContainer
 	// gcCleanupRunner serializes provider-account cleanup sweeps.
@@ -236,6 +238,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		routine.WithRetry(providerBackoff),
 	)
 	providerAcc.orgProcessors.SetRoutine(providerAcc.watchOrgProcessors)
+	providerAcc.placedUploads = routine.NewRoutineContainerWithLogger(
+		le.WithField("routine", "placed-uploads"),
+		routine.WithRetry(providerBackoff),
+	)
+	providerAcc.placedUploads.SetRoutine(providerAcc.runPlacedUploads)
 	providerAcc.gcCleanupRunner = providerAcc.newGCCleanupRunner()
 	providerAcc.gcCleanup = routine.NewRoutineContainerWithLogger(
 		le.WithField("routine", "gc-cleanup-runner"),
@@ -288,6 +295,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	defer providerAcc.envelopeRewrapWatcher.ClearContext()
 	providerAcc.orgProcessors.SetContext(ctx, true)
 	defer providerAcc.orgProcessors.ClearContext()
+	providerAcc.placedUploads.SetContext(ctx, true)
+	defer providerAcc.placedUploads.ClearContext()
 	providerAcc.gcCleanup.SetContext(ctx, true)
 	defer providerAcc.gcCleanup.ClearContext()
 

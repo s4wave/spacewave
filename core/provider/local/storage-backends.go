@@ -2,7 +2,6 @@ package provider_local
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
@@ -133,15 +132,8 @@ func (a *ProviderAccount) RemoveStorageBackend(ctx context.Context, backendID st
 	if backend == nil {
 		return account_settings.ErrStorageBackendNotFound
 	}
-	if placed := settings.PlacedBlockStoreIDs(backendID); len(placed) != 0 {
-		names := make([]string, len(placed))
-		for i, blockStoreID := range placed {
-			names[i] = blockStoreID
-			if _, name := settings.FindSpaceByBlockStore(blockStoreID); name != "" {
-				names[i] = name
-			}
-		}
-		return errors.Wrap(account_settings.ErrStorageBackendInUse, strings.Join(names, ", "))
+	if err := settings.CheckStorageBackendUnused(backendID); err != nil {
+		return err
 	}
 
 	// Commit the removal before deleting the Secret so no replica keeps a
@@ -170,6 +162,42 @@ func (a *ProviderAccount) SetDefaultStorageBackend(ctx context.Context, backendI
 	})
 }
 
+// ResolveNewSpaceStorageBackend returns the backend a new Space's blocks go
+// on: the requested backend, else the account's default, else none. When
+// accountStorage is set, returns none.
+func (a *ProviderAccount) ResolveNewSpaceStorageBackend(ctx context.Context, requestedID string, accountStorage bool) (string, error) {
+	if accountStorage {
+		if requestedID != "" {
+			return "", errors.New("choose a storage backend or account storage, not both")
+		}
+		return "", nil
+	}
+	settings, err := a.readAccountSettings(ctx)
+	if err != nil {
+		return "", err
+	}
+	if requestedID == "" {
+		return settings.GetDefaultStorageBackendId(), nil
+	}
+	if settings.FindStorageBackend(requestedID) == nil {
+		return "", errors.Wrap(account_settings.ErrStorageBackendNotFound, requestedID)
+	}
+	return requestedID, nil
+}
+
+// PlaceBlockStore places a block store on a storage backend. An empty
+// backendID returns the store to the account's own storage.
+func (a *ProviderAccount) PlaceBlockStore(ctx context.Context, blockStoreID, backendID string) error {
+	return a.commitAccountSettingsOps(ctx, &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_SetBlockStorePlacement{
+			SetBlockStorePlacement: &account_settings.BlockStorePlacement{
+				BlockStoreId:     blockStoreID,
+				StorageBackendId: backendID,
+			},
+		},
+	})
+}
+
 // commitAccountSettingsOps commits each op to the account settings in order.
 func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*account_settings.AccountSettingsOp) error {
 	ref, err := a.GetAccountSettingsRef(ctx)
@@ -187,4 +215,59 @@ func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*
 		}
 	}
 	return nil
+}
+
+// WatchUploadStatus calls fn with the storage backend and upload status of a
+// SharedObject's block store, then again after each change, until ctx ends
+// or fn fails.
+func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID string, fn func(UploadStatus) error) error {
+	var blockStoreID string
+	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() == sharedObjectID {
+			blockStoreID = entry.GetRef().GetBlockStoreId()
+			break
+		}
+	}
+	if blockStoreID == "" {
+		return sobject.ErrSharedObjectNotFound
+	}
+	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
+	defer tkrRef.Release()
+
+	for {
+		bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
+		if err != nil {
+			return err
+		}
+
+		// Follow the handle until the tracker replaces it.
+		handleCtx, handleCancel := context.WithCancel(ctx)
+		go func() {
+			_, _ = tkr.bstoreCtr.WaitValueChange(handleCtx, bs, nil)
+			handleCancel()
+		}()
+		err = watchHandleUploadStatus(handleCtx, bs, fn)
+		handleCancel()
+		if ctx.Err() != nil {
+			return context.Canceled
+		}
+		if err != nil && !errors.Is(err, context.Canceled) {
+			return err
+		}
+	}
+}
+
+// watchHandleUploadStatus calls fn with each upload status of one handle.
+func watchHandleUploadStatus(ctx context.Context, bs *BlockStore, fn func(UploadStatus) error) error {
+	for {
+		status, changed := bs.GetUploadStatus()
+		if err := fn(status); err != nil {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-changed:
+		}
+	}
 }

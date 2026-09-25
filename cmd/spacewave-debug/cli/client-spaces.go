@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 // RunListSpaces lists spaces in the current session.
@@ -59,7 +60,7 @@ func (a *ClientArgs) RunCreateSpace(c *cli.Context) error {
 	}
 	defer cleanup()
 
-	resp, err := sess.CreateSpace(ctx, a.SpaceName, "", "")
+	resp, err := sess.CreateSpace(ctx, &s4wave_session.CreateSpaceRequest{SpaceName: a.SpaceName})
 	if err != nil {
 		return errors.Wrap(err, "create space")
 	}

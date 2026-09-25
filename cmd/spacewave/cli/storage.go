@@ -400,7 +400,7 @@ func withSession(
 }
 
 // withStorageBackend mounts the session and resolves the backend named by
-// the first argument, by display name or id.
+// the first argument.
 func withStorageBackend(
 	c *cli.Context,
 	statePath string,
@@ -412,18 +412,27 @@ func withStorageBackend(
 		return errors.New("backend name required")
 	}
 	return withSession(c, statePath, sessionIdx, func(ctx context.Context, sess *s4wave_session.Session) error {
-		resp, err := readStorageBackends(ctx, sess)
+		backend, err := findStorageBackend(ctx, sess, name)
 		if err != nil {
 			return err
 		}
-		for _, info := range resp.GetStorageBackends() {
-			backend := info.GetBackend()
-			if backend.GetDisplayName() == name || backend.GetId() == name {
-				return fn(ctx, sess, backend)
-			}
-		}
-		return errors.Errorf("no storage backend named %q", name)
+		return fn(ctx, sess, backend)
 	})
+}
+
+// findStorageBackend resolves a backend by display name or id.
+func findStorageBackend(ctx context.Context, sess *s4wave_session.Session, name string) (*account_settings.StorageBackend, error) {
+	resp, err := readStorageBackends(ctx, sess)
+	if err != nil {
+		return nil, err
+	}
+	for _, info := range resp.GetStorageBackends() {
+		backend := info.GetBackend()
+		if backend.GetDisplayName() == name || backend.GetId() == name {
+			return backend, nil
+		}
+	}
+	return nil, errors.Errorf("no storage backend named %q", name)
 }
 
 // readStorageBackends reads the current storage backends from the watch.
@@ -439,6 +448,60 @@ func readStorageBackends(ctx context.Context, sess *s4wave_session.Session) (*s4
 		return nil, errors.Wrap(err, "read storage backends")
 	}
 	return resp, nil
+}
+
+// readSpaceStorage reads where a Space's blocks are stored, or nil when the
+// session's provider does not report it.
+func readSpaceStorage(ctx context.Context, sess *s4wave_session.Session, spaceID string) *s4wave_session.WatchSpaceStorageResponse {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	strm, err := sess.WatchSpaceStorage(ctx, spaceID)
+	if err != nil {
+		return nil
+	}
+	resp, err := strm.Recv()
+	if err != nil {
+		return nil
+	}
+	return resp
+}
+
+// formatSpaceStorage describes where a Space's blocks are stored and what
+// remains to upload.
+func formatSpaceStorage(storage *s4wave_session.WatchSpaceStorageResponse) string {
+	name := storage.GetStorageBackendName()
+	if name == "" {
+		return "account storage"
+	}
+	pending := storage.GetPendingBlocks()
+	if pending == 0 {
+		return name + ", uploaded"
+	}
+	blocks := " blocks"
+	if pending == 1 {
+		blocks = " block"
+	}
+	desc := name + ", " + strconv.FormatInt(pending, 10) + blocks + " (" +
+		formatByteCount(storage.GetPendingBytes()) + ") waiting to upload"
+	if uploadErr := storage.GetUploadError(); uploadErr != "" {
+		desc += ": " + uploadErr
+	}
+	return desc
+}
+
+// formatByteCount renders a byte count with a binary unit.
+func formatByteCount(size int64) string {
+	if size < 1024 {
+		return strconv.FormatInt(size, 10) + " B"
+	}
+	value := float64(size) / 1024
+	for _, unit := range []string{"KiB", "MiB", "GiB"} {
+		if value < 1024 {
+			return strconv.FormatFloat(value, 'f', 1, 64) + " " + unit
+		}
+		value /= 1024
+	}
+	return strconv.FormatFloat(value, 'f', 1, 64) + " TiB"
 }
 
 // checkResultError explains a failed connectivity check, or returns nil.

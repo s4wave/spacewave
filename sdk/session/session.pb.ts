@@ -4033,3 +4033,89 @@ export const SetDefaultStorageBackendResponse: MessageType<SetDefaultStorageBack
     's4wave.session.SetDefaultStorageBackendResponse',
     true,
   )
+
+/**
+ * WatchSpaceStorageRequest is the request for WatchSpaceStorage.
+ *
+ * @generated from message s4wave.session.WatchSpaceStorageRequest
+ */
+export interface WatchSpaceStorageRequest {
+  /**
+   * SharedObjectId is the Space's SharedObject id.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+}
+
+export const WatchSpaceStorageRequest: MessageType<WatchSpaceStorageRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.WatchSpaceStorageRequest',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchSpaceStorageResponse is where a Space's blocks are stored.
+ *
+ * @generated from message s4wave.session.WatchSpaceStorageResponse
+ */
+export interface WatchSpaceStorageResponse {
+  /**
+   * StorageBackendId is the backend holding the blocks, empty when the
+   * account's own storage holds them.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+  /**
+   * StorageBackendName is the backend's display name.
+   *
+   * @generated from field: string storage_backend_name = 2;
+   */
+  storageBackendName?: string
+  /**
+   * PendingBlocks is the number of blocks written locally and not yet
+   * uploaded to the backend.
+   *
+   * @generated from field: int64 pending_blocks = 3;
+   */
+  pendingBlocks?: bigint
+  /**
+   * PendingBytes is the size of the pending blocks.
+   *
+   * @generated from field: int64 pending_bytes = 4;
+   */
+  pendingBytes?: bigint
+  /**
+   * UploadError describes the last upload failure, empty while uploads succeed.
+   *
+   * @generated from field: string upload_error = 5;
+   */
+  uploadError?: string
+}
+
+export const WatchSpaceStorageResponse: MessageType<WatchSpaceStorageResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.WatchSpaceStorageResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 2,
+        name: 'storage_backend_name',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'pending_blocks', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 4, name: 'pending_bytes', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

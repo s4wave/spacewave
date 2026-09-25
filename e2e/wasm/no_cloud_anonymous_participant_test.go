@@ -112,7 +112,7 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	waitForPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED)
 
 	spaceName := "P2P Sync Space"
-	createResp, err := sdkA.CreateSpace(ctx, spaceName, "", "")
+	createResp, err := sdkA.CreateSpace(ctx, &s4wave_session.CreateSpaceRequest{SpaceName: spaceName})
 	if err != nil {
 		t.Fatalf("CreateSpace on A: %v", err)
 	}

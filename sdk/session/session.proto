@@ -70,6 +70,9 @@ service SessionResourceService {
   rpc RemoveStorageBackend(RemoveStorageBackendRequest) returns (RemoveStorageBackendResponse);
   // SetDefaultStorageBackend selects the backend that new Spaces use.
   rpc SetDefaultStorageBackend(SetDefaultStorageBackendRequest) returns (SetDefaultStorageBackendResponse);
+  // WatchSpaceStorage streams where a Space's blocks are stored and the
+  // progress of their upload.
+  rpc WatchSpaceStorage(WatchSpaceStorageRequest) returns (stream WatchSpaceStorageResponse);
 }
 
 // GetSessionInfoRequest is the request type for GetSessionInfo.
@@ -1023,3 +1026,25 @@ message SetDefaultStorageBackendRequest {
 
 // SetDefaultStorageBackendResponse is the response for SetDefaultStorageBackend.
 message SetDefaultStorageBackendResponse {}
+
+// WatchSpaceStorageRequest is the request for WatchSpaceStorage.
+message WatchSpaceStorageRequest {
+  // SharedObjectId is the Space's SharedObject id.
+  string shared_object_id = 1;
+}
+
+// WatchSpaceStorageResponse is where a Space's blocks are stored.
+message WatchSpaceStorageResponse {
+  // StorageBackendId is the backend holding the blocks, empty when the
+  // account's own storage holds them.
+  string storage_backend_id = 1;
+  // StorageBackendName is the backend's display name.
+  string storage_backend_name = 2;
+  // PendingBlocks is the number of blocks written locally and not yet
+  // uploaded to the backend.
+  int64 pending_blocks = 3;
+  // PendingBytes is the size of the pending blocks.
+  int64 pending_bytes = 4;
+  // UploadError describes the last upload failure, empty while uploads succeed.
+  string upload_error = 5;
+}

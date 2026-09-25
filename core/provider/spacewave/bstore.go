@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
@@ -43,11 +44,6 @@ const (
 // blockStoreBucketConfigRev 2 keeps the account-owned cache local-only.
 // SessionTransport child buses provide the optional direct lookup layer.
 const blockStoreBucketConfigRev = 2
-
-// decodedBlockRefInvalidator removes decoded values after storage mutation.
-type decodedBlockRefInvalidator interface {
-	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
-}
 
 // publicReadRemoteRefresher fetches the authoritative anonymous manifest.
 type publicReadRemoteRefresher interface {
@@ -373,8 +369,37 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		source:   SyncTelemetryBlockSourceCloud,
 	}
 
-	// Wrap upper with dirty tracking for the sync controller.
-	dirtyUpper := &dirtyTrackingStore{store: sourceUpper}
+	// Snapshot under the account lock: another mounted Session can replace
+	// the shared signing client while this tracker starts.
+	syncConf := t.a.conf.GetSync()
+	sc := &syncController{
+		le:         le.WithField("component", "sync"),
+		store:      objStore,
+		client:     t.a.currentSessionClient(),
+		resourceID: t.id,
+		mfst:       mfst,
+		lower:      lower,
+		remote:     nil,
+		upper:      upper,
+		refGraph:   t.getRefGraph(),
+		conf:       syncConf,
+		tmpDir:     syncTmpDir(),
+		telemetry:  t.a,
+		gateBcast:  &t.a.accountBcast,
+		skipPull:   publicRemote != nil,
+	}
+	sc.remotePullRoutine = newCoalescedTriggerRoutine(
+		le,
+		"bstore-remote-pull",
+		sc.pullRemoteOnTrigger,
+	)
+	if publicRemote != nil {
+		sc.remote = publicRemote.Entries
+	}
+
+	// Wrap upper with dirty tracking for the sync controller, before any
+	// write can reach it.
+	dirtyUpper := block_store_writeback.NewMarkingStore(sourceUpper, sc.MarkDirty)
 
 	localID := BlockStoreID(accountID, t.id)
 	overlay := newCloudOverlay(ctx, le, sourceLower, dirtyUpper)
@@ -406,36 +431,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer relBstoreCtrl()
 
-	// Snapshot under the account lock: another mounted Session can replace
-	// the shared signing client while this tracker starts.
-	syncConf := t.a.conf.GetSync()
-	sc := &syncController{
-		le:         le.WithField("component", "sync"),
-		store:      objStore,
-		client:     t.a.currentSessionClient(),
-		resourceID: t.id,
-		mfst:       mfst,
-		lower:      lower,
-		remote:     nil,
-		upper:      upper,
-		refGraph:   t.getRefGraph(),
-		conf:       syncConf,
-		tmpDir:     syncTmpDir(),
-		telemetry:  t.a,
-		gateBcast:  &t.a.accountBcast,
-		skipPull:   publicRemote != nil,
-	}
-	sc.remotePullRoutine = newCoalescedTriggerRoutine(
-		le,
-		"bstore-remote-pull",
-		sc.pullRemoteOnTrigger,
-	)
-	if publicRemote != nil {
-		sc.remote = publicRemote.Entries
-	}
-
-	// Wire dirty tracking from PutBlock to syncController.
-	dirtyUpper.markDirty = sc.MarkDirty
+	// Wire the sync controller into the handle.
 	bstoreHandle.syncer = sc
 	bstoreHandle.forceSync = sc.FlushNowUnordered
 	bstoreHandle.refreshRemote = sc.PullNow
@@ -592,113 +588,6 @@ func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef)
 	}
 	s.account.recordSyncTelemetryBlockSource(s.bstoreID, source)
 	return data, true, nil
-}
-
-// dirtyTrackingStore acknowledges writes only after retaining their sync markers.
-type dirtyTrackingStore struct {
-	// store owns block writes; markDirty durably records every supplied block.
-	store     block.StoreOps
-	markDirty func(ctx context.Context, h *hash.Hash, size int64) error
-}
-
-// GetHashType returns the inner store hash type.
-func (d *dirtyTrackingStore) GetHashType() hash.HashType {
-	return d.store.GetHashType()
-}
-
-// GetSupportedFeatures returns the inner store native feature bitset.
-func (d *dirtyTrackingStore) GetSupportedFeatures() block.StoreFeature {
-	return d.store.GetSupportedFeatures()
-}
-
-// BeginReadOperation opens a read scope on the inner store.
-func (d *dirtyTrackingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
-	store, release, err := d.store.BeginReadOperation(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &dirtyTrackingStore{store: store, markDirty: d.markDirty}, release, nil
-}
-
-// PutBlock stores a block and repairs its durable sync marker even on a retry.
-func (d *dirtyTrackingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	ref, existed, err := d.store.PutBlock(ctx, data, opts)
-	if err == nil && d.markDirty != nil && !ref.GetEmpty() {
-		err = d.markDirty(ctx, ref.GetHash(), int64(len(data)))
-	}
-	return ref, existed, err
-}
-
-// PutBlockBatch retains markers for every successful non-tombstone write.
-// A failed marker returns an error; repeating the batch repairs the remaining work.
-func (d *dirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := d.store.PutBlockBatch(ctx, entries); err != nil {
-		return err
-	}
-	var markErr error
-	for _, entry := range entries {
-		if entry == nil {
-			continue
-		}
-		if entry.Tombstone {
-			if invalidator, ok := d.store.(decodedBlockRefInvalidator); ok {
-				invalidator.InvalidateDecodedBlockRef(ctx, entry.Ref)
-			}
-			continue
-		}
-		if d.markDirty != nil && !entry.Ref.GetEmpty() {
-			if err := d.markDirty(ctx, entry.Ref.GetHash(), int64(len(entry.Data))); err != nil && markErr == nil {
-				markErr = err
-			}
-		}
-	}
-	return markErr
-}
-
-// GetBlock gets a block by reference.
-func (d *dirtyTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	return d.store.GetBlock(ctx, ref)
-}
-
-// GetBlockExists checks if a block exists.
-func (d *dirtyTrackingStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	return d.store.GetBlockExists(ctx, ref)
-}
-
-// GetBlockExistsBatch forwards batched existence probes to the inner store.
-func (d *dirtyTrackingStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	return d.store.GetBlockExistsBatch(ctx, refs)
-}
-
-// RmBlock removes a block.
-func (d *dirtyTrackingStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	if err := d.store.RmBlock(ctx, ref); err != nil {
-		return err
-	}
-	if invalidator, ok := d.store.(decodedBlockRefInvalidator); ok {
-		invalidator.InvalidateDecodedBlockRef(ctx, ref)
-	}
-	return nil
-}
-
-// StatBlock returns block metadata.
-func (d *dirtyTrackingStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	return d.store.StatBlock(ctx, ref)
-}
-
-// Sync forwards the durability barrier to the inner store.
-func (d *dirtyTrackingStore) Sync(ctx context.Context) (bool, error) {
-	return d.store.Sync(ctx)
-}
-
-// BeginDeferFlush forwards the GC ref-batch scope to the inner store.
-func (d *dirtyTrackingStore) BeginDeferFlush() {
-	block.BeginDeferFlush(d.store)
-}
-
-// EndDeferFlush forwards the GC ref-batch scope to the inner store.
-func (d *dirtyTrackingStore) EndDeferFlush(ctx context.Context) error {
-	return block.EndDeferFlush(ctx, d.store)
 }
 
 // BuildBlockStoreOpener builds a packfile Opener for a given block store ID.
@@ -938,5 +827,4 @@ var (
 	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
 	_ bstore.BlockStore         = (*BlockStore)(nil)
 	_ block.StoreOps            = (*BlockStore)(nil)
-	_ block.StoreOps            = (*dirtyTrackingStore)(nil)
 )
