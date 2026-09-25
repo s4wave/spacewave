@@ -103,7 +103,6 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 	}`); err != nil {
 		return RunMetadata{}, errors.Wrap(err, "navigate to Drive quickstart")
 	}
-	wasm.CompleteDriveIntroWizard(p.t, p.session.Page())
 	wasm.WaitForDriveShell(p.t, p.session.Page())
 	if err := p.requireDedicatedRuntime(); err != nil {
 		return RunMetadata{}, err
