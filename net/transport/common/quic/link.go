@@ -161,7 +161,7 @@ func (l *Link) OpenStream(opts stream.OpenOpts) (stream.Stream, error) {
 		return nil, err
 	}
 	if !opts.Unreliable {
-		return qstream, nil
+		return reliableStream{qstream}, nil
 	}
 	msgs, err := l.newMessageStream(qstream)
 	if err != nil {
@@ -179,7 +179,7 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 	if l.ctx.Err() != nil {
 		// Close a partially accepted stream after link shutdown.
 		if qstream != nil {
-			_ = qstream.Close()
+			_ = reliableStream{qstream}.Close()
 		}
 		return nil, stream.OpenOpts{}, context.Canceled
 	}
@@ -193,8 +193,7 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 	}
 
 	// Return the accepted stream with default open options.
-	opts := stream.OpenOpts{}
-	return qstream, opts, nil
+	return reliableStream{qstream}, stream.OpenOpts{}, nil
 }
 
 // Close closes the connection.

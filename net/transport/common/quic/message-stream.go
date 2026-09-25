@@ -87,16 +87,16 @@ func (l *Link) receiveDatagrams() {
 // AcceptMessageStream binds the message plane of an accepted stream whose
 // opener set OpenOpts.Unreliable.
 func (l *Link) AcceptMessageStream(control stream.Stream) (stream.MessageStream, error) {
-	qstream, ok := control.(*quic.Stream)
+	qstream, ok := control.(reliableStream)
 	if !ok {
 		return nil, errors.Errorf("message stream control must be a quic stream, got %T", control)
 	}
-	return l.newMessageStream(qstream)
+	return l.newMessageStream(qstream.Stream)
 }
 
 // Control returns the reliable stream of this message stream.
 func (s *messageStream) Control() stream.Stream {
-	return s.control
+	return reliableStream{s.control}
 }
 
 // Read returns the next received message.
