@@ -415,6 +415,14 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 	return lk.WriteSOState(ctx, nextState, entry)
 }
 
+// QueuedOpsProcessor validates the pending operations of a locked state and
+// returns the next root and operation results in the form UpdateRootState
+// admits.
+type QueuedOpsProcessor = func(
+	ctx context.Context,
+	state *SOState,
+) (nextRoot *SORoot, rejectedOps []*SOOperationRejection, acceptedOps []*SOOperation, err error)
+
 // QueueOperation locks the host state and applies the QueueOperation operation.
 //
 // Calls the callback to build the SOOperation with the given nonce.
@@ -424,6 +432,20 @@ func (s *SOHost) QueueOperation(
 	ctx context.Context,
 	peerID peer.ID,
 	cb func(nonce uint64) (*SOOperation, error),
+) error {
+	return s.QueueOperationAndProcess(ctx, peerID, cb, nil)
+}
+
+// QueueOperationAndProcess queues an operation like QueueOperation. When
+// process is set, peerID must be a validator: the root that process returns
+// for the queued state is admitted as by UpdateRootState and written with the
+// queued operation in one state write. If processing or admission fails, only
+// the queued operation is written, leaving it for the next validator pass.
+func (s *SOHost) QueueOperationAndProcess(
+	ctx context.Context,
+	peerID peer.ID,
+	cb func(nonce uint64) (*SOOperation, error),
+	process QueuedOpsProcessor,
 ) error {
 	// Serialize nonce selection and operation acceptance under the provider lock.
 	lk, err := s.lockFn(ctx, s.sharedObjectID)
@@ -451,6 +473,34 @@ func (s *SOHost) QueueOperation(
 		return err
 	}
 
+	// Apply the validated root when processing succeeds.
+	if process != nil {
+		if validated, ok := s.processQueued(ctx, peerID, nextState, process); ok {
+			nextState = validated
+		}
+	}
+
 	// Commit the accepted operation.
 	return lk.WriteSOState(ctx, nextState)
+}
+
+// processQueued runs process on a locked state and applies the root it
+// returns to a copy. ok is false if processing or admission failed; the
+// validator's next pass reports those errors.
+func (s *SOHost) processQueued(
+	ctx context.Context,
+	validatorPeerID peer.ID,
+	state *SOState,
+	process QueuedOpsProcessor,
+) (*SOState, bool) {
+	nextRoot, rejectedOps, acceptedOps, err := process(ctx, state)
+	if err != nil {
+		return nil, false
+	}
+	validated := state.CloneVT()
+	err = validated.UpdateRootState(s.sharedObjectID, nextRoot, validatorPeerID.String(), rejectedOps, acceptedOps)
+	if err != nil {
+		return nil, false
+	}
+	return validated, true
 }

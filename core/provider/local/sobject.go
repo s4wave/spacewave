@@ -163,6 +163,11 @@ func (s *SharedObject) ProcessOperations(ctx context.Context, watch bool, cb sob
 	}
 	defer relStateCtr()
 
+	// A watching validator also validates local operations as they are queued.
+	if watch {
+		defer s.lsoHost.setValidator(cb)()
+	}
+
 	// Validate each pending batch against the state that exposed it.
 	var current *sobject.SOState
 	for {

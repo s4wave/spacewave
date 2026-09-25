@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/scrub"
@@ -44,6 +45,9 @@ type LocalSOHost struct {
 	stateSnapCtr *ccontainer.CContainer[sobject.SharedObjectStateSnapshot]
 	// publishedConfigCtr acknowledges the configuration represented by stateSnapCtr.
 	publishedConfigCtr *ccontainer.CContainer[*sobject.SharedObjectConfig]
+	// validator is the local validator's processing function while it runs.
+	// Transmission validates queued operations with it in the queue write.
+	validator atomic.Pointer[sobject.ProcessOpsFunc]
 }
 
 // queueOpTxn contains the txn to queue an operation.
@@ -362,8 +366,9 @@ func (l *LocalSOHost) executeQueueOp(
 		return false, err
 	}
 
-	// Queue the operation.
-	qerr := l.soHost.QueueOperation(ctx, l.peerID, func(nonce uint64) (*sobject.SOOperation, error) {
+	// Queue the operation, validating it in the same write when the local
+	// validator runs.
+	qerr := l.soHost.QueueOperationAndProcess(ctx, l.peerID, func(nonce uint64) (*sobject.SOOperation, error) {
 		return sobject.BuildSOOperation(
 			l.soHost.GetSharedObjectID(),
 			l.privKey,
@@ -371,7 +376,7 @@ func (l *LocalSOHost) executeQueueOp(
 			nonce,
 			writeOp.GetLocalId(),
 		)
-	})
+	}, l.queuedOpsProcessor())
 	if qerr == nil {
 		return true, nil
 	}
@@ -396,6 +401,29 @@ func (l *LocalSOHost) executeQueueOp(
 			},
 		},
 	})
+}
+
+// setValidator registers cb as the local validator until the returned
+// function is called.
+func (l *LocalSOHost) setValidator(cb sobject.ProcessOpsFunc) func() {
+	ptr := &cb
+	l.validator.Store(ptr)
+	return func() { l.validator.CompareAndSwap(ptr, nil) }
+}
+
+// queuedOpsProcessor returns a processor that runs the local validator on a
+// locked host state, or nil if no local validator runs.
+func (l *LocalSOHost) queuedOpsProcessor() sobject.QueuedOpsProcessor {
+	cb := l.validator.Load()
+	if cb == nil {
+		return nil
+	}
+	return func(ctx context.Context, state *sobject.SOState) (*sobject.SORoot, []*sobject.SOOperationRejection, []*sobject.SOOperation, error) {
+		snap := sobject.NewSOStateParticipantHandle(l.le, l.sfs, l.sharedObjectID, state, l.privKey, l.peerID)
+		return snap.ProcessOperations(ctx, state.GetOps(), func(ctx context.Context, data []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
+			return (*cb)(ctx, snap, data, ops)
+		})
+	}
 }
 
 // waitPublishedConfig waits until body readers can observe target or a verified descendant.
