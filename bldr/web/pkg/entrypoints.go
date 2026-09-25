@@ -35,10 +35,10 @@ type WebPkgEntrypointConfig struct {
 //   - "." resolves to the root index file.
 //   - "./foo" resolves to foo.ts, foo.tsx, foo/index.ts, etc.
 //
-// For node_modules packages (has package.json with exports or main):
-//   - Uses configured entrypoints if set.
-//   - Otherwise reads package.json exports field to discover entry points.
-//   - Falls back to main field or index.js.
+// For node_modules packages (has package.json):
+//   - Always serves the root import: the exports "." target, then module or main.
+//   - Configured entrypoints add subpaths, resolved through the exports map
+//     ("./langs" -> "dist/langs.mjs") or else as local files.
 func ResolveWebPkgEntrypoints(
 	pkgRoot string,
 	entrypoints []WebPkgEntrypointConfig,
@@ -81,12 +81,16 @@ func resolveLocalEntrypoints(
 }
 
 // resolveNodeModuleEntrypoints resolves entry points for a node_modules package.
+//
+// The package root import is always served so bare imports resolve. Explicit
+// entrypoints add subpaths, each resolved through the package.json exports map
+// when the package exports it, so the served file matches what a consumer's
+// subpath import resolves to.
 func resolveNodeModuleEntrypoints(
 	pkgRoot string,
 	pkgJsonData []byte,
 	entrypoints []WebPkgEntrypointConfig,
 ) ([]string, error) {
-	// Parse package.json to find exports or main.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(pkgJsonData)
 	if err != nil {
@@ -94,43 +98,37 @@ func resolveNodeModuleEntrypoints(
 	}
 
 	rootImport := resolvePackageJSONRootImport(v)
+	if len(entrypoints) == 0 {
+		if rootImport != "" {
+			return []string{rootImport}, nil
+		}
+		// No JS exports/main/module: treat as local package for entrypoint resolution.
+		return resolveLocalEntrypoints(pkgRoot, nil)
+	}
 
-	// Explicit entrypoints add package subpaths, but node module web packages
-	// still need their package root so bare imports can be served.
-	if len(entrypoints) > 0 {
-		imports, err := resolveLocalEntrypoints(pkgRoot, entrypoints)
+	var imports []string
+	add := func(imps ...string) {
+		for _, imp := range imps {
+			if imp != "" && !slices.Contains(imports, imp) {
+				imports = append(imports, imp)
+			}
+		}
+	}
+	add(rootImport)
+	exports := v.Get("exports")
+	for _, ep := range entrypoints {
+		if exported := resolvePackageJSONSubpathExport(exports, ep.Path); exported != "" {
+			add(exported)
+			continue
+		}
+
+		resolved, err := resolveLocalEntrypoints(pkgRoot, []WebPkgEntrypointConfig{ep})
 		if err != nil {
 			return nil, err
 		}
-		if rootImport != "" && !stringSliceContains(imports, rootImport) {
-			imports = append([]string{rootImport}, imports...)
-		}
-		return imports, nil
+		add(resolved...)
 	}
-
-	// Try exports field first.
-	if exports := v.Get("exports"); exports != nil {
-		imports := resolvePackageJSONExports(exports)
-		if len(imports) != 0 {
-			return imports, nil
-		}
-	}
-
-	// Fall back to main or module field.
-	for _, entryBytes := range [][]byte{v.GetStringBytes("module"), v.GetStringBytes("main")} {
-		entry := string(entryBytes)
-		if entry == "" {
-			continue
-		}
-		ext := filepath.Ext(entry)
-		switch ext {
-		case ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".css":
-			return []string{entry}, nil
-		}
-	}
-
-	// No JS exports/main/module: treat as local package for entrypoint resolution.
-	return resolveLocalEntrypoints(pkgRoot, nil)
+	return imports, nil
 }
 
 func resolvePackageJSONRootImport(v *fastjson.Value) string {
@@ -198,60 +196,29 @@ func resolvePackageJSONRootExport(exports *fastjson.Value) string {
 	return importPath
 }
 
-// resolvePackageJSONExports extracts entry points from a package.json exports value.
-//
-// Handles the common patterns:
-//
-//	{ ".": "./dist/index.mjs" }
-//	{ ".": { "import": "./dist/index.mjs" } }
-//	{ ".": { "import": { "default": "./dist/index.mjs" } } }
-//	{ "./jsx-runtime": { "import": { "default": "./jsx-runtime.js" } } }
-//
-// Skips entries that resolve to non-bundleable files (types, binary).
-func resolvePackageJSONExports(exports *fastjson.Value) []string {
+// resolvePackageJSONSubpathExport resolves an entrypoint subpath such as
+// "./langs" through a package.json exports map to its bundleable target. It
+// returns "" when the package does not export the subpath.
+func resolvePackageJSONSubpathExport(exports *fastjson.Value, subpath string) string {
 	if exports == nil {
-		return nil
+		return ""
 	}
-	if resolved := resolveExportCondition(exports); resolved != "" {
-		if importPath, ok := normalizeResolvedExport(resolved); ok {
-			return []string{importPath}
-		}
-		return []string{"index.js"}
+	if subpath == "" || subpath == "." {
+		return resolvePackageJSONRootExport(exports)
+	}
+	if !strings.HasPrefix(subpath, "./") {
+		subpath = "./" + subpath
 	}
 
-	var imports []string
-	obj := exports.GetObject()
-	if obj == nil {
-		return []string{"index.js"}
+	resolved := resolveExportCondition(exports.Get(subpath))
+	if resolved == "" {
+		return ""
 	}
-	obj.Visit(func(k []byte, raw *fastjson.Value) {
-		subpath := string(k)
-		// Skip internal/private exports.
-		if strings.HasPrefix(subpath, "#") {
-			return
-		}
-
-		// Skip wildcard exports (e.g. "./*", "./*.css", "./files/*").
-		if strings.Contains(subpath, "*") {
-			return
-		}
-
-		resolved := resolveExportCondition(raw)
-		if resolved == "" {
-			return
-		}
-
-		importPath, ok := normalizeResolvedExport(resolved)
-		if !ok {
-			return
-		}
-		imports = append(imports, importPath)
-	})
-
-	if len(imports) == 0 {
-		return []string{"index.js"}
+	importPath, ok := normalizeResolvedExport(resolved)
+	if !ok {
+		return ""
 	}
-	return imports
+	return importPath
 }
 
 // resolveExportCondition resolves a package.json export value to a file path.
@@ -563,8 +530,4 @@ type WebPkgResolveConfig struct {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
-}
-
-func stringSliceContains(values []string, value string) bool {
-	return slices.Contains(values, value)
 }

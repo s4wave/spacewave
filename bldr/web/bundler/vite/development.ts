@@ -22,7 +22,11 @@ import {
   bindDevelopmentImports,
 } from './development-client.js'
 import { goTsResolver } from './go-ts-resolver.js'
-import { isWebPkgModule } from './plugin.js'
+import {
+  isWebPkgModule,
+  readPackageServedNameMap,
+  resolveNodeWebPkgRoot,
+} from './plugin.js'
 
 /**
  * excludeExternalAliases keeps aliases from rewriting external packages or
@@ -127,6 +131,11 @@ export class DevelopmentEnvironment {
       ...configPaths,
     )
     const webPkgIDs = this.config.webPkgIds ?? []
+    const servedNameMaps: Record<string, Map<string, string>> = {}
+    for (const pkgID of webPkgIDs) {
+      const pkgRoot = resolveNodeWebPkgRoot(pkgID, root)
+      if (pkgRoot) servedNameMaps[pkgID] = readPackageServedNameMap(pkgRoot)
+    }
     const external = [...(this.config.externalPkgs ?? []), ...webPkgIDs]
     const isExternal = (source: string) =>
       external.some((pkg) => source === pkg || source.startsWith(pkg + '/'))
@@ -184,6 +193,7 @@ export class DevelopmentEnvironment {
             external,
             refreshPath,
             webPkgIDs,
+            servedNameMaps,
           )
           return bound === code ? null : { code: bound, map: null }
         },

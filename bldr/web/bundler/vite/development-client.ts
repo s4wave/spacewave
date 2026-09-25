@@ -1,6 +1,6 @@
 import { parseAst } from 'rolldown/parseAst'
 
-import { remapWebPkgSpecifier } from './plugin.js'
+import { resolveWebPkgImportURL } from './plugin.js'
 
 /** adaptDevelopmentClient replaces only Vite's transport initializer. */
 export function adaptDevelopmentClient(
@@ -46,13 +46,18 @@ export function adaptDevelopmentClient(
   )
 }
 
-/** bindDevelopmentImports preserves the document's canonical module identities. */
+/**
+ * bindDevelopmentImports preserves the document's canonical module identities.
+ * Web package imports resolve through servedNameMaps, keyed by package ID, to
+ * the entries their providers serve.
+ */
 export function bindDevelopmentImports(
   code: string,
   prefix: string,
   external: string[],
   refreshPath: string,
   webPkgIDs: string[] = [],
+  servedNameMaps: Record<string, Map<string, string>> = {},
 ): string {
   if (
     !code.includes(prefix + '@react-refresh') &&
@@ -72,7 +77,9 @@ export function bindDevelopmentImports(
     if (source === prefix + '@react-refresh') target = refreshPath
     else if (source.startsWith(prefix + '@id/')) {
       const id = source.slice((prefix + '@id/').length)
-      target = remapWebPkgSpecifier(id, webPkgIDs, '/b/pkg')?.remapped
+      target =
+        resolveWebPkgImportURL(id, webPkgIDs, '/b/pkg', servedNameMaps) ??
+        undefined
       if (
         !target &&
         external.some((pkg) => id === pkg || id.startsWith(pkg + '/'))

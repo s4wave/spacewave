@@ -35,7 +35,9 @@ export interface WebPkgRemapPluginConfig {
   debug?: boolean
 }
 
-function normalizePackageRootExport(raw: unknown): string | null {
+// resolveExportTarget resolves a package.json export value to its target path,
+// preferring the import, default, then require conditions.
+function resolveExportTarget(raw: unknown): string | null {
   if (typeof raw === 'string') {
     return raw
   }
@@ -45,13 +47,13 @@ function normalizePackageRootExport(raw: unknown): string | null {
 
   const obj = raw as Record<string, unknown>
   for (const key of ['import', 'default', 'require']) {
-    const resolved = normalizePackageRootExport(obj[key])
+    const resolved = resolveExportTarget(obj[key])
     if (resolved) {
       return resolved
     }
   }
   for (const value of Object.values(obj)) {
-    const resolved = normalizePackageRootExport(value)
+    const resolved = resolveExportTarget(value)
     if (resolved) {
       return resolved
     }
@@ -59,45 +61,95 @@ function normalizePackageRootExport(raw: unknown): string | null {
   return null
 }
 
-export function readPackageRootServedName(pkgRoot: string): string | null {
+// readPackageExportTargets maps each concrete export subpath of a package,
+// "" for the root, to its target path. The root falls back to module or main.
+// Wildcard subpaths are skipped: the provider serves only concrete entries.
+function readPackageExportTargets(pkgRoot: string): Map<string, string> {
+  const targets = new Map<string, string>()
+  let pkgJSON: Record<string, unknown>
   try {
-    const pkgJSON = JSON.parse(
+    pkgJSON = JSON.parse(
       fs.readFileSync(path.join(pkgRoot, 'package.json'), 'utf8'),
     ) as Record<string, unknown>
-    const exportsValue = pkgJSON['exports']
-    if (exportsValue !== undefined) {
-      let rootExport: unknown
-      if (typeof exportsValue === 'string') {
-        rootExport = exportsValue
-      } else if (exportsValue && typeof exportsValue === 'object') {
-        const exportsObj = exportsValue as Record<string, unknown>
-        rootExport = exportsObj['.']
-        if (rootExport === undefined) {
-          const hasSubpath = Object.keys(exportsObj).some(
-            (key) => key.startsWith('.') || key.startsWith('#'),
-          )
-          if (!hasSubpath) {
-            rootExport = exportsObj
-          }
-        }
-      }
+  } catch {
+    return targets
+  }
 
-      const resolved = normalizePackageRootExport(rootExport)
-      if (resolved) {
-        return servedEntryName(resolved)
-      }
+  const exportsValue = pkgJSON['exports']
+  if (typeof exportsValue === 'string') {
+    targets.set('', exportsValue)
+  } else if (exportsValue && typeof exportsValue === 'object') {
+    const exportsObj = exportsValue as Record<string, unknown>
+    const subpaths = Object.keys(exportsObj).filter(
+      (key) => key.startsWith('.') || key.startsWith('#'),
+    )
+    if (subpaths.length === 0) {
+      const root = resolveExportTarget(exportsObj)
+      if (root) targets.set('', root)
     }
+    for (const key of subpaths) {
+      if (key.startsWith('#') || key.includes('*')) continue
+      const target = resolveExportTarget(exportsObj[key])
+      if (!target || target.includes('*')) continue
+      targets.set(key === '.' ? '' : key.replace(/^\.\//, ''), target)
+    }
+  }
 
+  if (!targets.has('')) {
     for (const key of ['module', 'main']) {
       const resolved = pkgJSON[key]
       if (typeof resolved === 'string' && resolved) {
-        return servedEntryName(resolved)
+        targets.set('', resolved)
+        break
       }
     }
-  } catch {
-    return null
   }
-  return null
+  return targets
+}
+
+/** readPackageRootServedName returns the served name of a package's root entry. */
+export function readPackageRootServedName(pkgRoot: string): string | null {
+  const root = readPackageExportTargets(pkgRoot).get('')
+  return root ? servedEntryName(root) : null
+}
+
+/**
+ * readPackageServedNameMap maps each export subpath of a package, "" for the
+ * root, to the served "[name].mjs" file of its target, so "shiki/langs"
+ * reaches the "dist/langs.mjs" entry the provider builds. Each target's own
+ * served name maps too, for imports that address the file directly.
+ */
+export function readPackageServedNameMap(pkgRoot: string): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const [subPath, target] of readPackageExportTargets(pkgRoot)) {
+    const name = servedEntryName(target)
+    const served = name + '.mjs'
+    map.set(name, served)
+    for (const key of subPath ? specifierEntryNames(subPath) : ['']) {
+      map.set(key, served)
+    }
+  }
+  return map
+}
+
+/**
+ * resolveNodeWebPkgRoot returns the node_modules directory of a web package,
+ * or null when the package is not installed there.
+ */
+export function resolveNodeWebPkgRoot(
+  pkgID: string,
+  root: string,
+): string | null {
+  try {
+    return path.dirname(
+      require.resolve(pkgID + '/package.json', { paths: [root] }),
+    )
+  } catch {
+    const candidate = path.join(root, 'node_modules', pkgID)
+    return fs.existsSync(path.join(candidate, 'package.json'))
+      ? candidate
+      : null
+  }
 }
 
 // buildServedNameMap maps each declared entry's served name to its served
@@ -177,6 +229,29 @@ export function remapWebPkgSpecifier(
   return null
 }
 
+/**
+ * resolveWebPkgImportURL returns the served URL for a web package import:
+ * the package's served-name map when it names the import, else the specifier
+ * remap. Returns null if the id does not match any webPkgID.
+ */
+export function resolveWebPkgImportURL(
+  id: string,
+  webPkgIDs: string[],
+  basePath: string,
+  servedNameMaps: Record<string, Map<string, string>>,
+): string | null {
+  const remap = remapWebPkgSpecifier(id, webPkgIDs, basePath)
+  if (!remap) return null
+  return (
+    lookupDeclaredServedURL(
+      basePath,
+      id,
+      remap.pkg,
+      servedNameMaps[remap.pkg],
+    ) ?? remap.remapped
+  )
+}
+
 // escapeRegExp escapes special regex characters in a string.
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -250,43 +325,29 @@ export function createWebPkgRemapPlugin(
           }
         }
       }
-      // Fall back to trying node_modules resolution for any unresolved pkgs
+      // Fall back to node_modules resolution for any unresolved pkgs.
       for (const pkgID of remappedWebPkgIDs) {
         if (!webPkgRoots[pkgID]) {
-          try {
-            const pkgJsonPath = require.resolve(pkgID + '/package.json', {
-              paths: [root],
-            })
-            webPkgRoots[pkgID] = path.dirname(pkgJsonPath)
+          const pkgRoot = resolveNodeWebPkgRoot(pkgID, root)
+          if (pkgRoot) {
+            webPkgRoots[pkgID] = pkgRoot
             if (debug)
               console.log(
-                `[bldr-pkg-resolve] root for ${pkgID} (node_modules): ${webPkgRoots[pkgID]}`,
+                `[bldr-pkg-resolve] root for ${pkgID} (node_modules): ${pkgRoot}`,
               )
-          } catch {
-            // Not resolvable from node_modules, will use empty root
           }
         }
         // Declared imports own served names relative to the provider's root.
-        // Without them, use the package's root export and retain its directory
-        // path, matching the entries emitted by buildWebPkg.
-        const rootServedName =
-          !servedNameMaps[pkgID] && webPkgRoots[pkgID]
-            ? readPackageRootServedName(webPkgRoots[pkgID])
-            : null
-        if (rootServedName) {
-          let map = servedNameMaps[pkgID]
-          if (!map) {
-            map = new Map<string, string>()
-            servedNameMaps[pkgID] = map
-          }
-          const served = rootServedName + '.mjs'
-          map.set('', served)
-          map.set(rootServedName, served)
-          if (debug)
-            console.log(
-              `[bldr-pkg-resolve] root served name for ${pkgID}: ${served}`,
-            )
-        }
+        // Without them, map the package's exports to the entries emitted by
+        // buildWebPkg, retaining their directory paths.
+        if (servedNameMaps[pkgID] || !webPkgRoots[pkgID]) continue
+        const map = readPackageServedNameMap(webPkgRoots[pkgID])
+        if (map.size === 0) continue
+        servedNameMaps[pkgID] = map
+        if (debug)
+          console.log(
+            `[bldr-pkg-resolve] export served names for ${pkgID}: ${[...map.keys()].join(', ')}`,
+          )
       }
     },
 
@@ -428,34 +489,21 @@ export function createWebPkgRemapPlugin(
       let result = code
 
       for (const { pattern, pkg } of webPkgPatterns) {
-        result = result.replace(pattern, (_match, prefix, subPathMatch) => {
+        result = result.replace(pattern, (match, prefix, subPathMatch) => {
           const fullId = pkg + (subPathMatch ?? '')
-          const declaredURL = lookupDeclaredServedURL(
-            webPkgBasePath,
-            fullId,
-            pkg,
-            servedNameMaps[pkg],
-          )
-          if (declaredURL) {
-            modified = true
-            if (debug)
-              console.log(
-                `[bldr-pkg-resolve] renderChunk (declared): ${fullId} -> ${declaredURL}`,
-              )
-            return prefix + declaredURL
-          }
-          const remap = remapWebPkgSpecifier(
+          const remapped = resolveWebPkgImportURL(
             fullId,
             remappedWebPkgIDs,
             webPkgBasePath,
+            servedNameMaps,
           )
-          if (!remap) return _match
+          if (!remapped) return match
           modified = true
           if (debug)
             console.log(
-              `[bldr-pkg-resolve] renderChunk: ${fullId} -> ${remap.remapped}`,
+              `[bldr-pkg-resolve] renderChunk: ${fullId} -> ${remapped}`,
             )
-          return prefix + remap.remapped
+          return prefix + remapped
         })
       }
 

@@ -508,7 +508,7 @@ manifest("spacewave-web",
 # plugin that excludes these packages depends on spacewave-code.
 manifest("spacewave-code",
     builder="bldr/plugin/compiler/js",
-    rev=1,
+    rev=2,
     config={
         "webPluginId": "web",
         "modules": [
@@ -519,7 +519,8 @@ manifest("spacewave-code",
             web_pkg("@pierre/diffs"),
             web_pkg("@shikijs/core"),
             web_pkg("@shikijs/engine-javascript"),
-            web_pkg("shiki"),
+            # @lexical/code-shiki imports the grammar and theme registries.
+            web_pkg("shiki", entrypoints=["./langs", "./themes"]),
         ],
     },
 )

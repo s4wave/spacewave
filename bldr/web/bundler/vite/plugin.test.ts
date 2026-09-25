@@ -4,7 +4,12 @@ import os from 'os'
 import fs from 'fs'
 import type { ResolvedConfig } from 'vite'
 
-import { createWebPkgRemapPlugin } from './plugin.js'
+import { bindDevelopmentImports } from './development-client.js'
+import {
+  createWebPkgRemapPlugin,
+  readPackageServedNameMap,
+  resolveWebPkgImportURL,
+} from './plugin.js'
 
 describe('createWebPkgRemapPlugin', () => {
   it('preserves runtime externals and rewrites sibling web packages in rendered chunks', () => {
@@ -328,6 +333,52 @@ describe('createWebPkgRemapPlugin', () => {
 
       expect(rendered).toContain('"/b/pkg/non-index-root/build/foo.module.mjs"')
       expect(rendered).not.toContain('"/b/pkg/non-index-root/index.mjs"')
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('maps export subpaths to the served entries of their targets', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-exports-'))
+    try {
+      const pkgRoot = path.join(root, 'node_modules', 'shiki')
+      fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
+      fs.writeFileSync(
+        path.join(pkgRoot, 'package.json'),
+        JSON.stringify({
+          name: 'shiki',
+          type: 'module',
+          exports: {
+            '.': { types: './dist/index.d.mts', default: './dist/index.mjs' },
+            './langs': {
+              types: './dist/langs.d.mts',
+              default: './dist/langs.mjs',
+            },
+            './*': './dist/*',
+          },
+        }),
+      )
+
+      const maps = { shiki: readPackageServedNameMap(pkgRoot) }
+      const resolve = (id: string) =>
+        resolveWebPkgImportURL(id, ['shiki'], '/b/pkg', maps)
+      expect(resolve('shiki')).toBe('/b/pkg/shiki/dist/index.mjs')
+      expect(resolve('shiki/langs')).toBe('/b/pkg/shiki/dist/langs.mjs')
+      expect(resolve('shiki/dist/langs.mjs')).toBe(
+        '/b/pkg/shiki/dist/langs.mjs',
+      )
+      expect(resolve('other')).toBeNull()
+
+      expect(
+        bindDevelopmentImports(
+          'import { bundledLanguages } from "/b/fe/test/@id/shiki/langs"',
+          '/b/fe/test/',
+          ['shiki'],
+          '/refresh.mjs',
+          ['shiki'],
+          maps,
+        ),
+      ).toBe('import { bundledLanguages } from "/b/pkg/shiki/dist/langs.mjs"')
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }

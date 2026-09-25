@@ -165,3 +165,35 @@ func TestResolveWebPkgRefsFromConfigAddsNodeModuleRootWithExplicitEntrypoints(t 
 		t.Fatalf("unexpected imports: got %v want %v", got, want)
 	}
 }
+
+func TestResolveWebPkgEntrypointsNodeModuleSubpathExports(t *testing.T) {
+	pkgRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(pkgRoot, "package.json"), []byte(`{
+  "name": "exported-subpaths",
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.mts", "default": "./dist/index.mjs" },
+    "./langs": { "types": "./dist/langs.d.mts", "default": "./dist/langs.mjs" },
+    "./worker": "./dist/worker.mjs",
+    "./*": "./dist/*"
+  }
+}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ResolveWebPkgEntrypoints(pkgRoot, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"dist/index.mjs"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("default imports: got %v want %v", got, want)
+	}
+
+	got, err = ResolveWebPkgEntrypoints(pkgRoot, []WebPkgEntrypointConfig{{Path: "./langs"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"dist/index.mjs", "dist/langs.mjs"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("explicit imports: got %v want %v", got, want)
+	}
+}
