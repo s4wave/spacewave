@@ -8,7 +8,9 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
+	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -60,5 +62,48 @@ func TestBoltPanicIsInvalidSnapshot(t *testing.T) {
 	}()
 	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("panic error = %v, want ErrInvalidSnapshot", err)
+	}
+}
+
+// TestExecuteClosesWhenDatabaseRemoved tests that Execute keeps running
+// through commits and returns ErrLockFileChanged once the database file is
+// removed.
+func TestExecuteClosesWhenDatabaseRemoved(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbPath := path.Join(t.TempDir(), "database.boltdb")
+	store, err := Open(dbPath, 0o644, nil, []byte("test-bucket"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.db.Close()
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- store.Execute(ctx) }()
+
+	for i := range 10 {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, []byte("key"), []byte{byte(i)}); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	select {
+	case err := <-errCh:
+		t.Fatalf("execute returned during commits: %v", err)
+	default:
+	}
+
+	if err := os.Remove(dbPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-errCh; !errors.Is(err, bdberrors.ErrLockFileChanged) {
+		t.Fatalf("execute error = %v, want ErrLockFileChanged", err)
 	}
 }

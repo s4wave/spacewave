@@ -117,9 +117,14 @@ func (s *Store) Execute(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case _, ok := <-watcher.Events:
+		case ev, ok := <-watcher.Events:
 			if !ok {
 				return nil
+			}
+			// Every commit writes the database file; only creating, removing,
+			// or renaming an entry can change what the paths refer to.
+			if !ev.Has(fsnotify.Create | fsnotify.Remove | fsnotify.Rename) {
+				continue
 			}
 			if err := checkBoltPaths(dbPath, lockPath); err != nil {
 				_ = s.db.Close()
@@ -138,6 +143,8 @@ func (s *Store) Execute(ctx context.Context) error {
 	}
 }
 
+// checkBoltPaths returns ErrLockFileChanged if the database or lock file path
+// no longer exists.
 func checkBoltPaths(dbPath, lockPath string) error {
 	if _, err := os.Stat(dbPath); err != nil {
 		return errors.Join(bdberrors.ErrLockFileChanged, err)
