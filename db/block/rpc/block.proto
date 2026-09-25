@@ -104,6 +104,8 @@ message PutBlockBatchResponse {
 message GetBlockRequest {
   // Ref is the reference to the block to fetch.
   .block.BlockRef ref = 1;
+  // WithRefs requests the block's outgoing refs with its data.
+  bool with_refs = 2;
 }
 
 // GetBlockResponse is the response to looking up a block in the store.
@@ -114,6 +116,11 @@ message GetBlockResponse {
   bytes data = 2;
   // Error is any error getting the block from the store.
   string error = 3;
+  // Refs are the block's outgoing refs when with_refs was requested and
+  // refs_known is set. Empty with refs_known set means a leaf.
+  repeated .block.BlockRef refs = 4;
+  // RefsKnown indicates the store recorded the block's outgoing refs.
+  bool refs_known = 5;
 }
 
 // GetBlockExistsRequest requests to check if a block exists in the store.

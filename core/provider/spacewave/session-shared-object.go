@@ -176,6 +176,11 @@ func (s *sessionBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) (
 	return s.readStore.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (s *sessionBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return s.readStore.GetStoredBlock(ctx, ref)
+}
+
 func (s *sessionBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return s.readStore.GetBlockExists(ctx, ref)
 }

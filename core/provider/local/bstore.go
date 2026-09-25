@@ -145,6 +145,11 @@ func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return b.readOwner().GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (b *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return b.readOwner().GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists forwards to the configured Session read store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.readOwner().GetBlockExists(ctx, ref)

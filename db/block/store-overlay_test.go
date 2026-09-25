@@ -16,6 +16,9 @@ import (
 type overlayBatchTestStore struct {
 	block.StoreOps
 
+	// leaves serves stored blocks as leaves from GetStoredBlock.
+	leaves bool
+
 	mu               sync.Mutex
 	putCalls         int
 	rmCalls          int
@@ -59,6 +62,14 @@ func (s *overlayBatchTestStore) PutBlock(ctx context.Context, data []byte, opts 
 	default:
 	}
 	return s.StoreOps.PutBlock(ctx, data, opts)
+}
+
+func (s *overlayBatchTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, err := s.StoreOps.GetStoredBlock(ctx, ref)
+	if stored != nil && s.leaves {
+		stored.RefsKnown = true
+	}
+	return stored, err
 }
 
 func (s *overlayBatchTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
@@ -145,6 +156,7 @@ func TestStoreOverlayPutBlockForwards(t *testing.T) {
 func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
+	lower.leaves = true
 	upper := newOverlayBatchTestStore()
 	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_READBACK_CACHE, 0, nil)
 	data := []byte("from-lower")

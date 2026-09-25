@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	bifrost_core "github.com/s4wave/spacewave/net/core"
@@ -20,7 +21,8 @@ import (
 )
 
 // TestThreeNodeRelayRequiresOneForwardHop proves a cold immediate relay can
-// reach a writer only when the DEX forwarding budget permits one hop.
+// reach a writer only when the DEX forwarding budget permits one hop, and that
+// the relayed block carries the writer's recorded refs.
 func TestThreeNodeRelayRequiresOneForwardHop(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -60,7 +62,8 @@ func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
 			len(writer.dex.snapshotSessions()) == 1
 	})
 
-	// Store the block only in the writer's distinct local volume and bucket.
+	// Store the block and its child only in the writer's distinct local
+	// volume and bucket.
 	data := []byte("writer-only block")
 	writerBucket, _, writerBucketRef, err := bucket.ExBuildBucketAPI(
 		ctx,
@@ -74,7 +77,13 @@ func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
 		t.Fatal(err)
 	}
 	t.Cleanup(writerBucketRef.Release)
-	ref, _, err := writerBucket.GetBucket().PutBlock(ctx, data, nil)
+	child, _, err := writerBucket.GetBucket().PutBlock(ctx, []byte("writer-only child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, _, err := writerBucket.GetBucket().PutBlock(ctx, data, &block.PutOpts{
+		Refs: []*block.BlockRef{child},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,15 +98,21 @@ func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
 	}
 
 	// Read through the recipient's DEX view without pre-reading the relay.
-	got, found, err := NewStore(recipient.dex).GetBlock(ctx, ref)
+	stored, err := NewStore(recipient.dex).GetStoredBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if found != wantFound {
+	if found := stored != nil; found != wantFound {
 		t.Fatalf("relay lookup found = %t, want %t", found, wantFound)
 	}
-	if wantFound && !bytes.Equal(got, data) {
-		t.Fatalf("relay lookup data = %q, want %q", got, data)
+	if !wantFound {
+		return
+	}
+	if !bytes.Equal(stored.Data, data) {
+		t.Fatalf("relay lookup data = %q, want %q", stored.Data, data)
+	}
+	if !stored.RefsKnown || len(stored.Refs) != 1 || !stored.Refs[0].EqualsRef(child) {
+		t.Fatalf("relay lookup refs = %v known %v, want [%v]", stored.Refs, stored.RefsKnown, child)
 	}
 }
 

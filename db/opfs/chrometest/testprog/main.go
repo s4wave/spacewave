@@ -2963,6 +2963,11 @@ func (d *probeDirtyTrackingStore) GetBlock(ctx context.Context, ref *block.Block
 	return d.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (d *probeDirtyTrackingStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return d.store.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists delegates the underlying store's presence check.
 func (d *probeDirtyTrackingStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return d.store.GetBlockExists(ctx, ref)

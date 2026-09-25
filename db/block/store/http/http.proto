@@ -52,6 +52,11 @@ message GetResponse {
   // Err contains any error getting the ref.
   // If empty, not_found or data must be set.
   string err = 3;
+  // Refs are the block's outgoing refs when the request asked for refs and
+  // refs_known is set. Empty with refs_known set means a leaf.
+  repeated .block.BlockRef refs = 4;
+  // RefsKnown indicates the store recorded the block's outgoing refs.
+  bool refs_known = 5;
 }
 
 // ExistsResponse is the response to a Exists request.

@@ -74,6 +74,12 @@ func (m *MirrorUnion) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 	return nil, false, nil
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (m *MirrorUnion) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, m, ref)
+}
+
 // GetBlockExists returns true if any pack contains the block.
 func (m *MirrorUnion) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	for _, s := range m.stores {

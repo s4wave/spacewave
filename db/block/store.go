@@ -36,6 +36,11 @@ type StoreOps interface {
 	// Returns nil, false, nil if not found.
 	// Note: the block may not be in the specified bucket.
 	GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error)
+	// GetStoredBlock gets a block and its outgoing block references in one
+	// read. RefsKnown is unset when the store holds the bytes without their
+	// references; with RefsKnown set, empty Refs means the block is a leaf.
+	// Returns nil, nil if not found.
+	GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error)
 	// GetBlockExists checks if a block exists with a cid reference.
 	// The ref should not be modified or retained by GetBlock.
 	// Note: the block may not be in the specified bucket.

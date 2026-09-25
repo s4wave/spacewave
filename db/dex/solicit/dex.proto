@@ -26,4 +26,10 @@ message DexMessage {
   // it forwards the request to other connected peers with remaining_hops - 1.
   // Zero means no forwarding allowed (local lookup only).
   uint32 remaining_hops = 7;
+  // Refs are the block's outgoing references when refs_known is set
+  // (response only). An empty list with refs_known set means a leaf.
+  repeated .block.BlockRef refs = 8;
+  // RefsKnown is false when the responder held the block without its
+  // outgoing references (response only).
+  bool refs_known = 9;
 }

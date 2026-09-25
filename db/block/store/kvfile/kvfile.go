@@ -101,6 +101,12 @@ func (k *KvfileBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte
 	return k.store.Get(key)
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (k *KvfileBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, k, ref)
+}
+
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any unexpected error.
 func (k *KvfileBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

@@ -277,6 +277,12 @@ func (s *packStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	return data, err == nil, err
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *packStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 // openRead reuses an explicit bounded operation scope when supplied.
 func (s *packStore) openRead(ctx context.Context) (*snapshot, func(), error) {
 	if s.read != nil {

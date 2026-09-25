@@ -80,19 +80,47 @@ func (c *LookupController) LookupBlock(
 	rctx context.Context,
 	ref *block.BlockRef,
 	optf ...lookup.LookupBlockOption,
-) (retData []byte, retFound bool, retErr error) {
+) ([]byte, bool, error) {
+	res, err := c.lookupBlock(rctx, ref, false, optf...)
+	if err != nil || res == nil {
+		return nil, false, err
+	}
+	return res.Data, true, nil
+}
+
+// LookupStoredBlock searches for a block and its outgoing refs using the
+// bucket lookup controller. RefsKnown is unset when the source that held the
+// block could not supply its refs. Returns nil if not found.
+func (c *LookupController) LookupStoredBlock(
+	rctx context.Context,
+	ref *block.BlockRef,
+	optf ...lookup.LookupBlockOption,
+) (*block.StoredBlock, error) {
+	return c.lookupBlock(rctx, ref, true, optf...)
+}
+
+// lookupBlock reads a block from the bucket handles, then the fallback store
+// and the network. Handle reads include refs when withRefs is set. Misses
+// always ask for refs, so the write-back can record the block's edges.
+// Returns nil when the block is not found.
+func (c *LookupController) lookupBlock(
+	rctx context.Context,
+	ref *block.BlockRef,
+	withRefs bool,
+	optf ...lookup.LookupBlockOption,
+) (retRes *block.StoredBlock, retErr error) {
 	opts := lookup.NewLookupBlockOpts(optf...)
 	if ref.GetEmpty() {
-		return nil, false, block.ErrEmptyBlockRef
+		return nil, block.ErrEmptyBlockRef
 	}
 
 	// apply lookup timeout
-	var reqCtx context.Context
-	var reqCtxCancel context.CancelFunc
 	timeoutDur := opts.Timeout
 	if timeoutDur == 0 {
 		timeoutDur, _ = c.conf.ParseLookupTimeoutDur()
 	}
+	var reqCtx context.Context
+	var reqCtxCancel context.CancelFunc
 	if timeoutDur > 0 {
 		reqCtx, reqCtxCancel = context.WithTimeout(rctx, timeoutDur)
 	} else {
@@ -104,7 +132,7 @@ func (c *LookupController) LookupBlock(
 	if opts.TimeoutNotFound {
 		defer func() {
 			if retErr == context.DeadlineExceeded {
-				retErr, retFound, retData = nil, false, nil
+				retRes, retErr = nil, nil
 			}
 		}()
 	}
@@ -112,138 +140,58 @@ func (c *LookupController) LookupBlock(
 	// acquire handles
 	bh, err := c.getBucketHandles(reqCtx)
 	if err != nil {
-		return nil, false, err
+		return nil, err
+	}
+	if len(bh) == 0 {
+		return nil, errors.Wrap(bucket.ErrBucketNotFound, c.conf.GetBucketConf().GetId())
 	}
 
 	le := func() *logrus.Entry {
 		return c.le.WithField("ref", ref.MarshalString())
 	}
-	writeback := func(data []byte) error {
-		if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL {
-			return nil
-		}
-		putOpts := &block.PutOpts{
-			HashType:      ref.GetHash().GetHashType(),
-			ForceBlockRef: ref,
-		}
-		doFns := make([]func(), 0, len(bh))
-		var lastErr atomic.Pointer[error]
-		var nw atomic.Uint32
-		for _, h := range bh {
-			if !h.GetExists() || h.GetBucket() == nil {
-				continue
-			}
-			doFns = append(doFns, func() {
-				_, existed, werr := h.GetBucket().PutBlock(reqCtx, data, putOpts)
-				if werr != nil {
-					lastErr.Store(&werr)
-				} else if !existed {
-					nw.Add(1)
-				}
-			})
-		}
-		if len(doFns) == 0 {
-			return nil
-		}
-		q := conc.NewConcurrentQueue(runtime.NumCPU(), doFns...)
-		if werr := q.WaitIdle(reqCtx, nil); werr != nil {
-			return werr
-		}
-		if errp := lastErr.Load(); errp != nil {
-			return *errp
-		}
-		if c.conf.GetVerbose() {
-			if written := nw.Load(); written != 0 {
-				le().Debugf("wrote-back block to %d handles", written)
-			}
-		}
-		return nil
-	}
-	notFound := func() (data []byte, found bool, err error) {
-		if c.conf.GetVerbose() {
-			le().Debugf("ref not found against %d handles", len(bh))
-		}
 
-		if c.fallbackBlockStoreRc != nil {
-			var fallbackBlockStore block_store.Store
-			var fallbackBlockStoreRef *refcount.Ref[block_store.Store]
-			fallbackBlockStore, fallbackBlockStoreRef, err = c.fallbackBlockStoreRc.Wait(reqCtx)
-			if err != nil {
-				return nil, false, err
-			}
-			data, found, err = fallbackBlockStore.GetBlock(reqCtx, ref)
-			fallbackBlockStoreRef.Release()
-		}
-
-		if !found && err == nil {
-			notFoundBehavior := c.conf.GetNotFoundBehavior()
-			var wait bool
-			lookupDirective := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE
-			if notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT {
-				lookupDirective = true
-				wait = true
-			}
-			if lookupDirective && !opts.LocalOnly {
-				data, found, err = c.lookupWithDirective(reqCtx, ref, wait)
-			}
-		}
-
-		if found && err == nil {
-			if werr := writeback(data); werr != nil {
-				le().WithError(werr).Warn("unable to write-back block")
-			}
-		}
-
-		return data, found, err
-	}
-
-	// fast path: only 0 or 1 bucket handle
-	if len(bh) == 0 {
-		return nil, false, errors.Wrap(bucket.ErrBucketNotFound, c.conf.GetBucketConf().GetId())
-	}
+	// fast path: one bucket handle
 	if len(bh) == 1 {
-		d, ok, err := bh[0].GetBucket().GetBlock(reqCtx, ref)
+		res, err := block.ReadStoredBlock(reqCtx, bh[0].GetBucket(), ref, withRefs)
 		if err != nil {
 			if err != context.Canceled {
 				le().WithError(err).Warn("unable to lookup ref")
 			}
-			return nil, false, err
+			return nil, err
 		}
-		if !ok {
-			return notFound()
+		if res == nil {
+			return c.lookupMissing(reqCtx, bh, ref, opts)
 		}
-		return d, true, nil
+		return res, nil
 	}
 
 	// perform concurrent lookup
 	var bcast broadcast.Broadcast
-	var rdata *[]byte
+	var rres *block.StoredBlock
 	var rerr error
 	var waitCh <-chan struct{}
-
 	bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		var running int
 		queue := make([]func(), 0, len(bh))
-		for _, hx := range bh {
-			h := hx
+		for _, h := range bh {
 			if !h.GetExists() {
 				continue
 			}
 			running++
 
 			queue = append(queue, func() {
-				d, ok, err := h.GetBucket().GetBlock(reqCtx, ref)
+				res, err := block.ReadStoredBlock(reqCtx, h.GetBucket(), ref, withRefs)
 				bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 					if err != nil {
 						// prioritize non context canceled errors
 						if rerr == nil || err != context.Canceled {
 							rerr = err
 						}
-					} else if ok && rdata == nil {
-						rdata = &d
+					} else if res != nil && rres == nil {
+						rres = res
 					}
 					running--
-					if running == 0 || rerr != nil || rdata != nil {
+					if running == 0 || rerr != nil || rres != nil {
 						broadcast()
 					}
 				})
@@ -260,17 +208,117 @@ func (c *LookupController) LookupBlock(
 	// wait for running == 0
 	select {
 	case <-reqCtx.Done():
-		return nil, false, context.Canceled
+		return nil, context.Canceled
 	case <-waitCh:
 	}
 
 	if rerr != nil {
-		return nil, false, rerr
+		return nil, rerr
 	}
-	if rdata == nil {
-		return notFound()
+	if rres == nil {
+		return c.lookupMissing(reqCtx, bh, ref, opts)
 	}
-	return *rdata, true, nil
+	return rres, nil
+}
+
+// lookupMissing reads a block that no bucket handle holds from the fallback
+// store, then the network, and writes a hit back to the bucket handles.
+func (c *LookupController) lookupMissing(
+	reqCtx context.Context,
+	bh []bucket.BucketHandle,
+	ref *block.BlockRef,
+	opts *lookup.LookupBlockOpts,
+) (*block.StoredBlock, error) {
+	if c.conf.GetVerbose() {
+		c.le.WithField("ref", ref.MarshalString()).
+			Debugf("ref not found against %d handles", len(bh))
+	}
+
+	var res *block.StoredBlock
+	if c.fallbackBlockStoreRc != nil {
+		fallbackBlockStore, fallbackBlockStoreRef, err := c.fallbackBlockStoreRc.Wait(reqCtx)
+		if err != nil {
+			return nil, err
+		}
+		res, err = fallbackBlockStore.GetStoredBlock(reqCtx, ref)
+		fallbackBlockStoreRef.Release()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if res == nil && !opts.LocalOnly {
+		notFoundBehavior := c.conf.GetNotFoundBehavior()
+		wait := notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT
+		if wait || notFoundBehavior == NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE {
+			var err error
+			res, err = c.lookupWithDirective(reqCtx, ref, wait)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if res != nil {
+		if err := c.writeback(reqCtx, bh, ref, res); err != nil {
+			c.le.WithField("ref", ref.MarshalString()).
+				WithError(err).
+				Warn("unable to write-back block")
+		}
+	}
+	return res, nil
+}
+
+// writeback writes a block found outside the bucket handles back to them
+// with its refs. A block without known refs is not written back, so a bucket
+// never holds a block whose edges were lost.
+func (c *LookupController) writeback(
+	reqCtx context.Context,
+	bh []bucket.BucketHandle,
+	ref *block.BlockRef,
+	res *block.StoredBlock,
+) error {
+	if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_ALL || !res.RefsKnown {
+		return nil
+	}
+	putOpts := &block.PutOpts{
+		HashType:      ref.GetHash().GetHashType(),
+		ForceBlockRef: ref,
+		Refs:          res.Refs,
+	}
+	doFns := make([]func(), 0, len(bh))
+	var lastErr atomic.Pointer[error]
+	var nw atomic.Uint32
+	for _, h := range bh {
+		if !h.GetExists() || h.GetBucket() == nil {
+			continue
+		}
+		doFns = append(doFns, func() {
+			_, existed, werr := h.GetBucket().PutBlock(reqCtx, res.Data, putOpts)
+			if werr != nil {
+				lastErr.Store(&werr)
+			} else if !existed {
+				nw.Add(1)
+			}
+		})
+	}
+	if len(doFns) == 0 {
+		return nil
+	}
+	q := conc.NewConcurrentQueue(runtime.NumCPU(), doFns...)
+	if err := q.WaitIdle(reqCtx, nil); err != nil {
+		return err
+	}
+	if errp := lastErr.Load(); errp != nil {
+		return *errp
+	}
+	if c.conf.GetVerbose() {
+		if written := nw.Load(); written != 0 {
+			c.le.WithField("ref", ref.MarshalString()).
+				Debugf("wrote-back block to %d handles", written)
+		}
+	}
+	return nil
 }
 
 // LookupBlockExistsBatch checks whether each block exists using local block
@@ -470,7 +518,7 @@ func (c *LookupController) putBlockAllVolumes(
 }
 
 // lookupWithDirective uses the dex directive to lookup a block.
-func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) ([]byte, bool, error) {
+func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *block.BlockRef, wait bool) (*block.StoredBlock, error) {
 	bucketID := c.conf.GetBucketConf().GetId()
 	dir := dex.NewLookupBlockFromNetwork(bucketID, ref)
 
@@ -516,10 +564,19 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 		aref.Release()
 	}
 	if err != nil || lval == nil {
-		return nil, false, err
+		return nil, err
 	}
-
-	return lval.GetData(), len(lval.GetData()) > 0 && lval.GetError() == nil, lval.GetError()
+	if err := lval.GetError(); err != nil {
+		return nil, err
+	}
+	if len(lval.GetData()) == 0 {
+		return nil, nil
+	}
+	return &block.StoredBlock{
+		Data:      lval.GetData(),
+		Refs:      lval.GetRefs(),
+		RefsKnown: lval.GetRefsKnown(),
+	}, nil
 }
 
 // getBucketHandles waits for the bucket handle set.

@@ -42,16 +42,15 @@ func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler di
 	}
 	defer storeRef.Release()
 
-	data, found, err := store.GetBlock(ctx, r.d.LookupBlockFromNetworkRef())
+	val, err := dex.ReadLookupBlockFromNetworkValue(ctx, store, r.d.LookupBlockFromNetworkRef())
 	if err != nil {
 		return err
 	}
 	handler.ClearValues()
-	if found || !r.c.skipNotFound || err != nil {
-		val := dex.NewLookupBlockFromNetworkValue(data, err)
+	if len(val.GetData()) != 0 || !r.c.skipNotFound {
 		_, _ = handler.AddValue(val)
 	}
-	return err
+	return nil
 }
 
 // _ is a type assertion

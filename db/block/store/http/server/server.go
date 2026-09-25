@@ -102,7 +102,8 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if ref == nil {
 			return
 		}
-		h.ServeGetBlock(req.Context(), rw, ref)
+		withRefs := req.URL.Query().Has(block_store_http.RefsQuery)
+		h.ServeGetBlock(req.Context(), rw, ref, withRefs)
 		return
 	case block_store_http.ExistsPath:
 		if !checkMethod("GET") {
@@ -141,16 +142,19 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// ServeGetBlock serves a get block request.
-// ref must have been validated already.
-func (h *HTTPBlockServer) ServeGetBlock(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef) {
-	data, exists, err := h.store.GetBlock(ctx, ref)
+// ServeGetBlock serves a get block request, with the block's refs when
+// withRefs is set. ref must have been validated already.
+func (h *HTTPBlockServer) ServeGetBlock(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef, withRefs bool) {
+	stored, err := block.ReadStoredBlock(ctx, h.store, ref, withRefs)
 	resp := &block_store_http.GetResponse{}
-	if err != nil {
+	switch {
+	case err != nil:
 		resp.Err = err.Error()
-	} else if exists && len(data) != 0 {
-		resp.Data = data
-	} else {
+	case stored != nil && len(stored.Data) != 0:
+		resp.Data = stored.Data
+		resp.Refs = stored.Refs
+		resp.RefsKnown = stored.RefsKnown
+	default:
 		resp.NotFound = true
 	}
 

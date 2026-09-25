@@ -307,6 +307,25 @@ func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bo
 	return s.inner.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock gets a block and its references, preferring pending writes.
+func (s *BufferedStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
+	pending, err := s.getPending(ref)
+	if err != nil {
+		return nil, err
+	}
+	if pending != nil {
+		if pending.tombstone {
+			return nil, nil
+		}
+		return &StoredBlock{
+			Data:      bytes.Clone(pending.data),
+			Refs:      CloneBlockRefs(pending.refs),
+			RefsKnown: true,
+		}, nil
+	}
+	return s.inner.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists.
 func (s *BufferedStore) GetBlockExists(ctx context.Context, ref *BlockRef) (bool, error) {
 	pending, err := s.getPending(ref)

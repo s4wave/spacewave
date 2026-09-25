@@ -403,6 +403,22 @@ func (b *bucketHandle) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byt
 	return b.v.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock gets a block and its outgoing refs. The refs come from the
+// volume's GC ref graph, so a bucket without GC reads the block without refs.
+func (b *bucketHandle) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	if b.bucketConf == nil {
+		return nil, bucket.ErrBucketNotFound
+	}
+	switch {
+	case b.readOps != nil:
+		return b.readOps.GetStoredBlock(ctx, ref)
+	case b.gcOps != nil:
+		return b.gcOps.GetStoredBlock(ctx, ref)
+	default:
+		return block.GetBlockWithoutRefs(ctx, b, ref)
+	}
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlockExists.
 func (b *bucketHandle) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

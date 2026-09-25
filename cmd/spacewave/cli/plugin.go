@@ -219,42 +219,45 @@ func copyManifestBlock(
 	if err != nil {
 		return errors.Wrapf(err, "check block exists: %s", refStr)
 	}
-	var data []byte
+	store := src
 	if exists {
-		var found bool
-		data, found, err = dest.GetBlock(ctx, ref)
+		store = dest
+	}
+	data, found, err := store.GetBlock(ctx, ref)
+	if err != nil {
+		return errors.Wrapf(err, "get block: %s", refStr)
+	}
+	if !found {
+		return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
+	}
+
+	// Decode before writing so the write records the block's refs.
+	var blk block.Block
+	if ctor != nil {
+		decoded := data
+		if xfrm != nil {
+			decoded, err = xfrm.DecodeBlock(data)
+			if err != nil {
+				return errors.Wrapf(err, "decode block: %s", refStr)
+			}
+		}
+		blk = ctor()
+		if err := blk.UnmarshalBlock(decoded); err != nil {
+			return errors.Wrapf(err, "unmarshal block: %s", refStr)
+		}
+	}
+	if !exists {
+		refs, err := block.ExtractBlockRefs(blk)
 		if err != nil {
-			return errors.Wrapf(err, "get existing block: %s", refStr)
+			return errors.Wrapf(err, "get block refs: %s", refStr)
 		}
-		if !found {
-			return errors.Wrapf(block.ErrNotFound, "existing block: %s", refStr)
-		}
-	} else {
-		var found bool
-		data, found, err = src.GetBlock(ctx, ref)
-		if err != nil {
-			return errors.Wrapf(err, "get block: %s", refStr)
-		}
-		if !found {
-			return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
-		}
-		if _, _, err := dest.PutBlock(ctx, data, nil); err != nil {
+		putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs}
+		if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
 			return errors.Wrapf(err, "put block: %s", refStr)
 		}
 	}
-	if ctor == nil {
+	if blk == nil {
 		return nil
-	}
-	decoded := data
-	if xfrm != nil {
-		decoded, err = xfrm.DecodeBlock(data)
-		if err != nil {
-			return errors.Wrapf(err, "decode block: %s", refStr)
-		}
-	}
-	blk := ctor()
-	if err := blk.UnmarshalBlock(decoded); err != nil {
-		return errors.Wrapf(err, "unmarshal block: %s", refStr)
 	}
 	return followManifestBlockRefs(ctx, blk, src, dest, xfrm, visited)
 }

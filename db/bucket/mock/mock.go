@@ -75,6 +75,11 @@ func (b *mockBucket) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return b.store.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock forwards to the inner store.
+func (b *mockBucket) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return b.store.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists forwards to the inner store.
 func (b *mockBucket) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.store.GetBlockExists(ctx, ref)

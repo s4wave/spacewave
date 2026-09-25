@@ -83,6 +83,11 @@ func (b *StoreRW) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, er
 	return b.readHandle.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock gets a block and its references from the read handle.
+func (b *StoreRW) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
+	return b.readHandle.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

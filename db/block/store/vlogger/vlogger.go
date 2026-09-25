@@ -104,6 +104,24 @@ func (s *VLoggerStore) GetBlock(ctx context.Context, ref *block.BlockRef) (data 
 	return s.st.GetBlock(ctx, ref)
 }
 
+// GetStoredBlock gets a block and its refs, logging the result.
+func (s *VLoggerStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (stored *block.StoredBlock, err error) {
+	t1 := time.Now()
+	defer func() {
+		s.le.Debugf(
+			"GetStoredBlock(%v) => dur(%v) data(%d) refs(%d) refs-known(%v) found(%v) err(%v)",
+			ref.MarshalString(),
+			time.Since(t1).String(),
+			len(stored.GetData()),
+			len(stored.GetRefs()),
+			stored.GetRefsKnown(),
+			stored != nil,
+			err,
+		)
+	}()
+	return s.st.GetStoredBlock(ctx, ref)
+}
+
 // GetBlockExists checks if a block exists with a cid reference.
 // The ref should not be modified or retained by GetBlock.
 // Note: the block may not be in the specified bucket.

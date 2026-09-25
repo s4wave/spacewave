@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_http "github.com/s4wave/spacewave/db/block/store/http"
 	block_store_vlogger "github.com/s4wave/spacewave/db/block/store/vlogger"
@@ -68,15 +67,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 // GetBlockStore returns the http store.
 func (c *Controller) GetBlockStore(ctx context.Context) (block_store.Store, error) {
 	return c.store.WaitValue(ctx, nil)
-}
-
-// GetBlock looks up a block with the block store.
-func (c *Controller) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	store, err := c.GetBlockStore(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	return store.GetBlock(ctx, ref)
 }
 
 // HandleDirective asks if the handler can resolve the directive.

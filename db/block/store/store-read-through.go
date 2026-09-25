@@ -31,11 +31,8 @@ func NewStoreReadThrough(primary, lower StoreSource, writeback bool) *StoreReadT
 
 // GetHashType returns the first available source hash type.
 func (s *StoreReadThrough) GetHashType() hash.HashType {
-	for _, source := range []StoreSource{s.primary, s.lower} {
-		if source == nil {
-			continue
-		}
-		if store := source(); store != nil {
+	for _, src := range []StoreSource{s.primary, s.lower} {
+		if store := s.source(src); store != nil {
 			if hashType := store.GetHashType(); hashType != 0 {
 				return hashType
 			}
@@ -46,10 +43,7 @@ func (s *StoreReadThrough) GetHashType() hash.HashType {
 
 // GetSupportedFeatures returns the primary source's feature set.
 func (s *StoreReadThrough) GetSupportedFeatures() block.StoreFeature {
-	if s.primary == nil {
-		return 0
-	}
-	if primary := s.primary(); primary != nil {
+	if primary := s.source(s.primary); primary != nil {
 		return primary.GetSupportedFeatures()
 	}
 	return 0
@@ -59,14 +53,8 @@ func (s *StoreReadThrough) GetSupportedFeatures() block.StoreFeature {
 // Writeback keeps the primary source writable because lower-source hits are
 // inserted into it before the scoped read returns.
 func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
-	primary := block.StoreOps(nil)
-	if s.primary != nil {
-		primary = s.primary()
-	}
-	lower := block.StoreOps(nil)
-	if s.lower != nil {
-		lower = s.lower()
-	}
+	primary := s.source(s.primary)
+	lower := s.source(s.lower)
 
 	var releasePrimary, releaseLower func()
 	if primary != nil && !s.writeback {
@@ -129,36 +117,72 @@ func (*StoreReadThrough) RmBlock(context.Context, *block.BlockRef) error {
 func (*StoreReadThrough) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock reads the primary source, then the current lower source. When
-// writeback is enabled, a lower hit is synchronously inserted into primary.
+// writeback is enabled, a lower hit with known refs is synchronously inserted
+// into primary with its refs. A lower hit with unknown refs is served without
+// the writeback.
 func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	primary := block.StoreOps(nil)
-	if s.primary != nil {
-		primary = s.primary()
-	}
+	primary := s.source(s.primary)
 	if primary != nil {
 		data, found, err := primary.GetBlock(ctx, ref)
 		if err != nil || found {
 			return data, found, err
 		}
 	}
-	if s.lower == nil {
-		return nil, false, nil
-	}
-	lower := s.lower()
+	lower := s.source(s.lower)
 	if lower == nil {
 		return nil, false, nil
 	}
-	data, found, err := lower.GetBlock(ctx, ref)
-	if err != nil || !found {
-		return data, found, err
-	}
 	if !s.writeback || primary == nil {
-		return data, true, nil
+		return lower.GetBlock(ctx, ref)
 	}
-	if _, _, err := primary.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref.Clone()}); err != nil {
+	stored, err := s.readLower(ctx, primary, lower, ref)
+	if err != nil || stored == nil {
 		return nil, false, err
 	}
-	return data, true, nil
+	return stored.Data, true, nil
+}
+
+// GetStoredBlock reads the block and its refs from the primary source, then
+// the current lower source. The refs come from the source that answered. When
+// writeback is enabled, a lower hit with known refs is synchronously inserted
+// into primary with its refs.
+func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	primary := s.source(s.primary)
+	if primary != nil {
+		stored, err := primary.GetStoredBlock(ctx, ref)
+		if err != nil || stored != nil {
+			return stored, err
+		}
+	}
+	lower := s.source(s.lower)
+	if lower == nil {
+		return nil, nil
+	}
+	return s.readLower(ctx, primary, lower, ref)
+}
+
+// source resolves an optional store source.
+func (s *StoreReadThrough) source(src StoreSource) block.StoreOps {
+	if src == nil {
+		return nil
+	}
+	return src()
+}
+
+// readLower reads a block and its refs from lower. With writeback enabled, a
+// hit with known refs is written into primary with them; a block with unknown
+// refs would look like a leaf there, so it is served without the writeback.
+func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.StoreOps, ref *block.BlockRef) (*block.StoredBlock, error) {
+	stored, err := lower.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return nil, err
+	}
+	if s.writeback && primary != nil && stored.RefsKnown {
+		if _, _, err := primary.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
+			return nil, err
+		}
+	}
+	return stored, nil
 }
 
 // GetBlockExists follows the same source order as GetBlock.
@@ -189,4 +213,5 @@ func (s *StoreReadThrough) StatBlock(ctx context.Context, ref *block.BlockRef) (
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
+// _ is a type assertion
 var _ block.StoreOps = (*StoreReadThrough)(nil)

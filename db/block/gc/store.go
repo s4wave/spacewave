@@ -22,7 +22,11 @@ type pendingRef struct {
 // log. When set on GCStoreOps, FlushPending writes to the WAL instead
 // of calling ApplyRefBatch on the RefGraph directly.
 type WALAppender interface {
+	// Append durably journals one batch of edge additions and removals.
 	Append(ctx context.Context, adds, removes []RefEdge) error
+	// GetPendingOutgoingRefs returns the targets of journaled edges from node
+	// that the ref graph has not applied yet, net of journaled removals.
+	GetPendingOutgoingRefs(ctx context.Context, node string) ([]string, error)
 }
 
 // GCStoreOps wraps a StoreOps with GC ref graph tracking.

@@ -269,6 +269,12 @@ export interface GetBlockRequest {
    * @generated from field: block.BlockRef ref = 1;
    */
   ref?: BlockRef
+  /**
+   * WithRefs requests the block's outgoing refs with its data.
+   *
+   * @generated from field: bool with_refs = 2;
+   */
+  withRefs?: boolean
 }
 
 export const GetBlockRequest: MessageType<GetBlockRequest> =
@@ -276,6 +282,7 @@ export const GetBlockRequest: MessageType<GetBlockRequest> =
     typeName: 'block.rpc.GetBlockRequest',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
+      { no: 2, name: 'with_refs', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -304,6 +311,19 @@ export interface GetBlockResponse {
    * @generated from field: string error = 3;
    */
   error?: string
+  /**
+   * Refs are the block's outgoing refs when with_refs was requested and
+   * refs_known is set. Empty with refs_known set means a leaf.
+   *
+   * @generated from field: repeated block.BlockRef refs = 4;
+   */
+  refs?: BlockRef[]
+  /**
+   * RefsKnown indicates the store recorded the block's outgoing refs.
+   *
+   * @generated from field: bool refs_known = 5;
+   */
+  refsKnown?: boolean
 }
 
 export const GetBlockResponse: MessageType<GetBlockResponse> =
@@ -313,6 +333,14 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
       { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      { no: 5, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

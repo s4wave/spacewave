@@ -403,6 +403,12 @@ func (s *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 	return data, found, err
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (s *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, s, ref)
+}
+
 // getBlock preserves local visibility when a caller supplies a protected scope.
 func (s *BlockStore) getBlock(ctx context.Context, ref *block.BlockRef, raw *packStore) ([]byte, bool, error) {
 	pending, err := s.pendingEntry(ctx, ref)

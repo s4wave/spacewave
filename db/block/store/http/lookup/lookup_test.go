@@ -33,11 +33,16 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Create a block to lookup.
-	serverVol := serverTb.Volume
+	// Create a block to lookup in the server bucket, which records its refs.
+	serverBkt, _, serverBktRef, err := bucket.ExBuildBucketAPI(ctx, serverTb.Bus, false, serverTb.BucketId, serverTb.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer serverBktRef.Release()
+	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
-	sampleBlockRef, _, err := serverVol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
+	sampleBlockRef, _, err := serverStore.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -45,7 +50,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 
 	// Create the HTTP server
 	blockStorePrefix := "/block-store"
-	handler := block_store_http_server.NewHTTPBlock(serverVol, true, blockStorePrefix, 0)
+	handler := block_store_http_server.NewHTTPBlock(serverStore, true, blockStorePrefix, 0)
 	srv := httptest.NewServer(httplog.LoggingMiddleware(handler, le, httplog.LoggingMiddlewareOpts{
 		UserAgent: true,
 	}))

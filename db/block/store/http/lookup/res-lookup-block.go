@@ -37,12 +37,19 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 // Values will be maintained from the previous call.
 func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	handler.ClearValues()
-	data, found, err := r.c.GetBlock(ctx, r.d.LookupBlockFromNetworkRef())
-	if found || !r.c.conf.GetSkipNotFound() || err != nil {
-		val := dex.NewLookupBlockFromNetworkValue(data, err)
+	store, err := r.c.GetBlockStore(ctx)
+	if err != nil {
+		return err
+	}
+	val, err := dex.ReadLookupBlockFromNetworkValue(ctx, store, r.d.LookupBlockFromNetworkRef())
+	if err != nil {
+		_, _ = handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, err))
+		return err
+	}
+	if len(val.GetData()) != 0 || !r.c.conf.GetSkipNotFound() {
 		_, _ = handler.AddValue(val)
 	}
-	return err
+	return nil
 }
 
 // _ is a type assertion

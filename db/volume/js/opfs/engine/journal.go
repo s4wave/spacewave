@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"slices"
 
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume/workload"
@@ -112,24 +113,75 @@ func (e *Engine) nextJournalEntry(ctx context.Context) ([]byte, *JournalEntry, e
 	if len(records) == 0 || !bytes.HasPrefix(records[0].Key, []byte(journalPrefix)) {
 		return nil, nil, nil
 	}
-	if len(records[0].Key) != len(journalPrefix)+8 {
-		return nil, nil, ErrCorrupt
-	}
-	entry := new(JournalEntry)
-	if err := decode(records[0].Value, entry); err != nil {
+	entry, err := decodeJournalRecord(records[0])
+	if err != nil {
 		return nil, nil, err
 	}
+	return records[0].Key, entry, nil
+}
+
+// GetPendingOutgoingRefs scans the unreplayed journal in one snapshot for
+// edges from node. Journal order applies each removal after earlier additions.
+func (e *Engine) GetPendingOutgoingRefs(ctx context.Context, node string) ([]string, error) {
+	read, err := e.snapshot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer read.release()
+
+	var targets []string
+	key, exclusive := []byte(journalPrefix), false
+	for {
+		records, err := read.seekEntries(ctx, key, exclusive, false)
+		if err != nil {
+			return nil, err
+		}
+		for _, record := range records {
+			if !bytes.HasPrefix(record.Key, []byte(journalPrefix)) {
+				return targets, nil
+			}
+			entry, err := decodeJournalRecord(record)
+			if err != nil {
+				return nil, err
+			}
+			for _, edge := range entry.Adds {
+				if edge.Subject == node {
+					targets = append(targets, edge.Object)
+				}
+			}
+			for _, edge := range entry.Removes {
+				if edge.Subject == node {
+					targets = slices.DeleteFunc(targets, func(target string) bool { return target == edge.Object })
+				}
+			}
+		}
+		if len(records) == 0 {
+			return targets, nil
+		}
+		key, exclusive = records[len(records)-1].Key, true
+	}
+}
+
+// decodeJournalRecord decodes and bounds one journal record.
+func decodeJournalRecord(record *Record) (*JournalEntry, error) {
+	if len(record.Key) != len(journalPrefix)+8 {
+		return nil, ErrCorrupt
+	}
+	entry := new(JournalEntry)
+	if err := decode(record.Value, entry); err != nil {
+		return nil, err
+	}
 	if len(entry.Adds)+len(entry.Removes) > maxBatchRecords {
-		return nil, nil, ErrCorrupt
+		return nil, ErrCorrupt
 	}
 	for _, edges := range [][]*Edge{entry.Adds, entry.Removes} {
 		for _, edge := range edges {
 			if edge == nil || len(edge.Subject)+len(edge.Object)+10 > maxKeyBytes {
-				return nil, nil, ErrCorrupt
+				return nil, ErrCorrupt
 			}
 		}
 	}
-	return records[0].Key, entry, nil
+	return entry, nil
 }
 
 // AcquireSTW excludes new journal appends during the collector's final sweep.

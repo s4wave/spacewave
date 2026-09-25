@@ -196,6 +196,12 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	return data, found, err
 }
 
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (k *KVTxBlock) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, k, ref)
+}
+
 // getBlock reads a block through the given tx ops, verifying the hash
 // when hashGet is set.
 func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
@@ -261,6 +267,12 @@ func (r *readOperation) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 		return nil, false, ErrReadOperationClosed
 	}
 	return r.parent.getBlock(ctx, r.tx, ref)
+}
+
+// GetStoredBlock serves the block without refs because this store keeps
+// block bytes without their refs.
+func (r *readOperation) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	return block.GetBlockWithoutRefs(ctx, r, ref)
 }
 
 func (r *readOperation) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {

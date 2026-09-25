@@ -46,7 +46,7 @@ func TestControllerSamePeerReplacementWakesOldPendingAndKeepsNewSession(t *testi
 
 	requestDone := make(chan error, 1)
 	go func() {
-		_, _, err := first.requestBlock(ctx, ref, 0)
+		_, err := first.requestBlock(ctx, ref, 0)
 		requestDone <- err
 	}()
 
@@ -104,7 +104,7 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 
 	requestDone := make(chan error, 1)
 	go func() {
-		_, _, err := sess.requestBlock(ctx, ref, 0)
+		_, err := sess.requestBlock(ctx, ref, 0)
 		requestDone <- err
 	}()
 
@@ -149,22 +149,19 @@ func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
 		})
 	}()
 
-	data, found, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0)
+	resp, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0)
 	if err == nil {
 		t.Fatal("mismatched block data returned no error")
 	}
-	if found {
-		t.Fatal("mismatched block data returned found=true")
-	}
-	if string(data) != "corrupt" {
-		t.Fatalf("diagnostic data = %q, want corrupt response bytes", data)
+	if resp != nil {
+		t.Fatalf("mismatched block data returned a response: %q", resp.GetData())
 	}
 	if remoteErr := recvTestDexValue(t, remoteErr, "corrupt block response"); remoteErr != nil {
 		t.Fatal(remoteErr)
 	}
 }
 
-func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
+func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
@@ -206,13 +203,12 @@ func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 		})
 	}()
 
-	resolver := &lookupResolver{c: c, ref: ref}
-	data, found := resolver.queryPeers(ctx, []*peerSession{slow, fast})
-	if !found {
-		t.Fatal("queryPeers did not return first successful response")
+	found := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
+	if found == nil {
+		t.Fatal("fanout did not return first successful response")
 	}
-	if string(data) != "fast-data" {
-		t.Fatalf("data = %q, want fast-data", data)
+	if string(found.GetData()) != "fast-data" {
+		t.Fatalf("data = %q, want fast-data", found.GetData())
 	}
 	if err := recvTestDexValue(t, fastErr, "fast responder result"); err != nil {
 		t.Fatalf("fast responder: %v", err)
@@ -222,7 +218,7 @@ func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	})
 }
 
-func TestLookupResolverQueryPeersDeadlineClearsPendingRequests(t *testing.T) {
+func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 
@@ -240,10 +236,9 @@ func TestLookupResolverQueryPeersDeadlineClearsPendingRequests(t *testing.T) {
 		}
 	}()
 
-	resolver := &lookupResolver{c: c, ref: ref}
-	data, found := resolver.queryPeers(ctx, []*peerSession{slow})
-	if found {
-		t.Fatalf("queryPeers returned data after caller deadline: %q", data)
+	found := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
+	if found != nil {
+		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
 	}
 	recvTestDexValue(t, received, "deadline request")
 	waitTestDexCondition(t, "slow pending request to clear after caller deadline", func() bool {
@@ -420,9 +415,8 @@ func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 		})
 	}()
 
-	data, found := c.forwardToPeers(ctx, ref, 0, origin)
-	if found {
-		t.Fatalf("forwardToPeers used excluded origin session and returned %q", data)
+	if found := c.forwardToPeers(ctx, ref, 0, origin); found != nil {
+		t.Fatalf("forwardToPeers used excluded origin session and returned %q", found.GetData())
 	}
 	assertNoTestDexValue(t, originErr, "origin request")
 }
@@ -475,12 +469,12 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 		})
 	}()
 
-	data, found := c.forwardToPeers(ctx, ref, 0, nil)
-	if !found {
+	found := c.forwardToPeers(ctx, ref, 0, nil)
+	if found == nil {
 		t.Fatal("forwardToPeers did not return first successful response")
 	}
-	if string(data) != "forward-data" {
-		t.Fatalf("data = %q, want forward-data", data)
+	if string(found.GetData()) != "forward-data" {
+		t.Fatalf("data = %q, want forward-data", found.GetData())
 	}
 	if err := recvTestDexValue(t, fastErr, "fast responder result"); err != nil {
 		t.Fatalf("fast responder: %v", err)

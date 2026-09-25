@@ -62,6 +62,14 @@ type Lookup interface {
 		ref *block.BlockRef,
 		opts ...LookupBlockOption,
 	) ([]byte, bool, error)
+	// LookupStoredBlock searches for a block and its outgoing refs using the
+	// bucket lookup controller. RefsKnown is unset when the source that held
+	// the block could not supply its refs. Returns nil if not found.
+	LookupStoredBlock(
+		reqCtx context.Context,
+		ref *block.BlockRef,
+		opts ...LookupBlockOption,
+	) (*block.StoredBlock, error)
 	// LookupBlockExistsBatch checks whether each block exists using the bucket
 	// lookup controller.
 	LookupBlockExistsBatch(
