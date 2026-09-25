@@ -15,6 +15,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/sirupsen/logrus"
 )
 
@@ -155,7 +156,7 @@ func TestCloudPublicationMissingBlockCannotPublish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := syncer.MarkDirty(t.Context(), ref.GetHash(), 22); err != nil {
+	if err := syncer.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: 22}}); err != nil {
 		t.Fatal(err)
 	}
 	host := &cloudSOHost{pending: &api.PendingSOPublication{FirstPendingUnixMilli: 1}}
