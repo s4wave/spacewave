@@ -1,7 +1,6 @@
 syntax = "proto3";
 package block.store.s3;
 
-import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/net/hash/hash.proto";
 
 // Config configures the s3 block store controller.
@@ -13,7 +12,7 @@ message Config {
   // BucketName is the s3 bucket name to use.
   string bucket_name = 3;
   // ObjectPrefix is the prefix to use for object names.
-  // Object name: {objectPrefix}{blockRefB58}, holding a BlockObject.
+  // Object name: {objectPrefix}{blockRefB58}, holding a block.BlockObject.
   string object_prefix = 4;
   // ReadOnly disables writing to the s3 store.
   bool read_only = 5;
@@ -26,14 +25,6 @@ message Config {
   bool skip_not_found = 8;
   // Verbose enables verbose logging of the block store.
   bool verbose = 9;
-}
-
-// BlockObject is the body of the object that stores one block.
-message BlockObject {
-  // Data is the encoded block.
-  bytes data = 1;
-  // Refs are the block's outgoing refs. Empty means a leaf.
-  repeated .block.BlockRef refs = 2;
 }
 
 // ClientConfig configures the s3 client.

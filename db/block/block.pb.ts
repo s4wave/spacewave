@@ -214,6 +214,43 @@ export const BlockRef: MessageType<BlockRef> =
   })
 
 /**
+ * BlockObject is a block's bytes with its outgoing refs, as stored by
+ * backends that keep blocks as opaque objects.
+ *
+ * @generated from message block.BlockObject
+ */
+export interface BlockObject {
+  /**
+   * Data is the encoded block.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data?: Uint8Array
+  /**
+   * Refs are the block's outgoing refs. Empty means a leaf.
+   *
+   * @generated from field: repeated block.BlockRef refs = 2;
+   */
+  refs?: BlockRef[]
+}
+
+export const BlockObject: MessageType<BlockObject> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.BlockObject',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * PutOpts are options that can be passed to PutBlock.
  *
  * @generated from message block.PutOpts

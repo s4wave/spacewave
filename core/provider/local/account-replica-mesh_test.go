@@ -3,7 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
-	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -262,12 +262,15 @@ func assertSameBlockGraph(ctx context.Context, t *testing.T, src, dst block.Stor
 
 // sameRefs compares two edge lists as sets.
 func sameRefs(a, b []*block.BlockRef) bool {
-	set := func(refs []*block.BlockRef) map[string]bool {
-		keys := make(map[string]bool, len(refs))
-		for _, ref := range refs {
-			keys[ref.MarshalString()] = true
-		}
-		return keys
+	return slices.Equal(refKeys(a), refKeys(b))
+}
+
+// refKeys returns the sorted, distinct keys of refs.
+func refKeys(refs []*block.BlockRef) []string {
+	keys := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		keys = append(keys, ref.MarshalString())
 	}
-	return maps.Equal(set(a), set(b))
+	slices.Sort(keys)
+	return slices.Compact(keys)
 }
