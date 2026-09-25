@@ -8,6 +8,10 @@ import {
   AcceptLocalPairingAnswerResponse,
   AcceptLocalPairingOfferResponse,
   AccessSessionStateAtomRequest,
+  AddStorageBackendRequest,
+  AddStorageBackendResponse,
+  CheckStorageBackendRequest,
+  CheckStorageBackendResponse,
   CompletePairingRequest,
   CreateLocalPairingOfferResponse,
   CreateSpaceInviteRequest,
@@ -34,6 +38,8 @@ import {
   WatchResourcesListResponse,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
+  WatchSpaceStorageResponse,
+  WatchStorageBackendsResponse,
   WatchStorageStatsRequest,
   WatchStorageStatsResponse,
   WatchSyncStatusRequest,
@@ -137,6 +143,61 @@ export class Session extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchStorageStatsResponse> {
     return this.service.WatchStorageStats(req ?? {}, abortSignal)
+  }
+
+  // watchStorageBackends streams the account's storage backends and the
+  // Spaces placed on each.
+  public watchStorageBackends(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchStorageBackendsResponse> {
+    return this.service.WatchStorageBackends({}, abortSignal)
+  }
+
+  // checkStorageBackend runs the connectivity check against a saved backend,
+  // or against an unsaved location and credentials.
+  public async checkStorageBackend(
+    req: CheckStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CheckStorageBackendResponse> {
+    return await this.service.CheckStorageBackend(req, abortSignal)
+  }
+
+  // addStorageBackend checks a bucket and saves it when the check passes.
+  // The response carries no id when the check failed and nothing was saved.
+  public async addStorageBackend(
+    req: AddStorageBackendRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AddStorageBackendResponse> {
+    return await this.service.AddStorageBackend(req, abortSignal)
+  }
+
+  // removeStorageBackend removes a storage backend that holds no Space.
+  public async removeStorageBackend(
+    storageBackendId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.RemoveStorageBackend({ storageBackendId }, abortSignal)
+  }
+
+  // setDefaultStorageBackend selects the backend new Spaces use. An empty id
+  // returns new Spaces to the account's own storage.
+  public async setDefaultStorageBackend(
+    storageBackendId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.SetDefaultStorageBackend(
+      { storageBackendId },
+      abortSignal,
+    )
+  }
+
+  // watchSpaceStorage streams where a Space's blocks are stored and the
+  // progress of their upload.
+  public watchSpaceStorage(
+    sharedObjectId: string,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchSpaceStorageResponse> {
+    return this.service.WatchSpaceStorage({ sharedObjectId }, abortSignal)
   }
 
   // mountSharedObject mounts a shared object and returns the SharedObject resource.

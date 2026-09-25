@@ -185,7 +185,7 @@ export function SessionDashboardContainer() {
   )
 
   const handleQuickstartClick = useCallback(
-    (quickstartId: string) => {
+    (quickstartId: string, storage?: string) => {
       if (isReadOnly) {
         toast.error('This cloud account is read-only')
         return
@@ -209,7 +209,11 @@ export function SessionDashboardContainer() {
       ) {
         return
       }
-      navigateSession({ path: `new/${quickstartId}` })
+      navigateSession({
+        path: storage
+          ? `new/${quickstartId}/on/${storage}`
+          : `new/${quickstartId}`,
+      })
     },
     [isReadOnly, navigate, navigateSession, quickstartOptionById],
   )
@@ -259,7 +263,11 @@ export function SessionDashboardContainer() {
   )
 }
 
-function PendingDeleteNotice(props: {
+function PendingDeleteNotice({
+  deleteAt,
+  onUndo,
+  onLogout,
+}: {
   deleteAt?: bigint
   onUndo: () => Promise<void>
   onLogout: () => Promise<void>
@@ -271,20 +279,20 @@ function PendingDeleteNotice(props: {
   const handleUndoClick = useCallback(async () => {
     setUndoing(true)
     try {
-      await props.onUndo()
+      await onUndo()
     } finally {
       setUndoing(false)
     }
-  }, [props])
+  }, [onUndo])
 
   const handleLogoutClick = useCallback(async () => {
     setLoggingOut(true)
     try {
-      await props.onLogout()
+      await onLogout()
     } finally {
       setLoggingOut(false)
     }
-  }, [props])
+  }, [onLogout])
 
   return (
     <div className="border-warning/20 bg-warning/5 w-content-inset mx-auto mt-3 max-w-3xl rounded-lg border px-4 py-3">
@@ -300,18 +308,19 @@ function PendingDeleteNotice(props: {
               the account remains lapsed and read-only until you start a fresh
               subscription.
             </p>
-            {props.deleteAt && (
+            {deleteAt && (
               <p
                 suppressHydrationWarning
                 className="text-foreground-alt text-xs"
               >
-                Scheduled deletion: {formatScheduledDeletion(props.deleteAt)}
+                Scheduled deletion: {formatScheduledDeletion(deleteAt)}
               </p>
             )}
           </div>
         </div>
         <div className="flex flex-col gap-2 md:w-56">
           <button
+            type="button"
             onClick={() => void handleUndoClick()}
             disabled={undoing}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -319,6 +328,7 @@ function PendingDeleteNotice(props: {
             {undoing ? 'Canceling deletion…' : 'Undo Deletion'}
           </button>
           <button
+            type="button"
             onClick={() => setLogoutOpen(true)}
             disabled={loggingOut}
             className="border-warning/20 bg-warning/10 hover:bg-warning/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"

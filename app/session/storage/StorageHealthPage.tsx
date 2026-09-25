@@ -4,6 +4,7 @@ import { LuDatabase, LuShieldCheck } from 'react-icons/lu'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 
+import { StorageBackendsSection } from './StorageBackendsSection.js'
 import { StorageHealth } from './StorageHealth.js'
 
 interface StorageHealthPageProps {
@@ -61,6 +62,11 @@ export function StorageHealthPage({
           onLinkDevice={handleLinkDevice}
           onUseCloud={handleUseCloud}
         />
+        {!recovery && (
+          <div className="mt-4">
+            <StorageBackendsSection />
+          </div>
+        )}
       </main>
     </div>
   )

@@ -16,6 +16,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 
 import { SetupPageLayout } from '@s4wave/app/session/setup/SetupPageLayout.js'
 import { PhaseChecklist } from '@s4wave/app/session/setup/PhaseChecklist.js'
+import { accountStorageChoice } from '@s4wave/app/session/storage/storage-backend.js'
 
 import {
   getQuickstartOption,
@@ -44,6 +45,14 @@ function isSpaceCreatingOption(opt: QuickstartOption): boolean {
   return (
     !opt.path && opt.id !== 'account' && opt.id !== 'pair' && opt.id !== 'local'
   )
+}
+
+// storagePlacement maps the route's storage choice to the createSpace fields.
+// No choice leaves the account's default storage backend in effect.
+function storagePlacement(storage: string) {
+  if (!storage) return {}
+  if (storage === accountStorageChoice) return { accountStorage: true }
+  return { storageBackendId: storage }
 }
 
 type Phase = 'create' | 'mount' | 'populate' | 'done' | 'failed'
@@ -78,6 +87,7 @@ export function CreateSpaceRoute() {
   const params = useParams()
   const quickstartId = params.quickstartId ?? ''
   const orgId = params.orgId ?? ''
+  const storage = params.storage ?? ''
   const navigateSession = useSessionNavigate()
 
   const sessionResource = SessionContext.useContext()
@@ -146,6 +156,7 @@ export function CreateSpaceRoute() {
           {
             spaceName,
             ...(orgId ? { ownerType: 'organization', ownerId: orgId } : {}),
+            ...storagePlacement(storage),
           },
           signal,
         )
@@ -216,6 +227,7 @@ export function CreateSpaceRoute() {
       session,
       spaceName,
       staticQuickstartId,
+      storage,
       valid,
     ],
   )
