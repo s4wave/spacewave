@@ -85,7 +85,7 @@ func TestRootReadExcludesReplacement(t *testing.T) {
 
 	// Leave generation three in root-1 so the next publication replaces root-0.
 	for _, value := range []string{"initial", "before"} {
-		if err := writer.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte(value)}}); err != nil {
+		if err := writer.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte(value)}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -118,7 +118,7 @@ func TestRootReadExcludesReplacement(t *testing.T) {
 	}
 	writeDone := make(chan error, 1)
 	go func() {
-		writeDone <- writer.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("after")}})
+		writeDone <- writer.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("after")}})
 	}()
 	select {
 	case <-writes.attempted:

@@ -254,12 +254,12 @@ func TestDurableIndexReopen(t *testing.T) {
 			key := []byte(strconv.Itoa(100000 + batch*128 + i))
 			records = append(records, &Record{Key: key, Value: value})
 		}
-		if err := e.Apply(ctx, nil, records); err != nil {
+		if err := e.Apply(ctx, records); err != nil {
 			t.Fatal(err)
 		}
 	}
 	for round := range 9 {
-		if err := e.Apply(ctx, nil, []*Record{{Key: []byte("100020"), Value: []byte(strconv.Itoa(round))}, {Key: []byte("100021"), Deleted: true}}); err != nil {
+		if err := e.Apply(ctx, []*Record{{Key: []byte("100020"), Value: []byte(strconv.Itoa(round))}, {Key: []byte("100021"), Deleted: true}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -301,7 +301,7 @@ func TestPublicationCrashRecovery(t *testing.T) {
 				t.Fatal(err)
 			}
 			d.failAfter = boundary
-			commitErr := e.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("value")}})
+			commitErr := e.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("value")}})
 			d.failAfter = -1
 			_ = e.Close()
 			e, err = Open(ctx, d)
@@ -313,7 +313,7 @@ func TestPublicationCrashRecovery(t *testing.T) {
 			if err != nil || found != (commitErr == nil) || (found && string(value) != "value") {
 				t.Fatalf("commit=%v reopened=%q found=%t error=%v", commitErr, value, found, err)
 			}
-			if err := e.Apply(ctx, nil, []*Record{{Key: []byte("after"), Value: []byte("recovery")}}); err != nil {
+			if err := e.Apply(ctx, []*Record{{Key: []byte("after"), Value: []byte("recovery")}}); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -330,7 +330,7 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 	}
 	defer e.Close()
 	for i := range 8 {
-		if err := e.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: bytes.Repeat([]byte{byte(i)}, 100000)}}); err != nil {
+		if err := e.Apply(ctx, []*Record{{Key: []byte("key"), Value: bytes.Repeat([]byte{byte(i)}, 100000)}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -363,7 +363,7 @@ func TestReclamationProtectsReadersAndTerminates(t *testing.T) {
 	}
 }
 
-// TestStaleTransactionCannotOverwriteNewGeneration proves publication validation.
+// TestStaleTransactionCannotOverwriteNewGeneration proves validation across instances.
 func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
 	ctx := t.Context()
 	d := newDiskBackend(t)
@@ -377,14 +377,21 @@ func TestStaleTransactionCannotOverwriteNewGeneration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer other.Close()
-	base, err := e.RefreshGenerationContext(ctx)
+	tx, err := e.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := other.Apply(ctx, nil, []*Record{{Key: []byte("key"), Value: []byte("other")}}); err != nil {
+	defer tx.Discard()
+	if _, _, err := tx.Get(ctx, []byte("key")); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Apply(ctx, &base, []*Record{{Key: []byte("key"), Value: []byte("stale")}}); !errors.Is(err, kvtx.ErrInvalidSnapshot) {
+	if err := other.Apply(ctx, []*Record{{Key: []byte("key"), Value: []byte("other")}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("key"), []byte("stale")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 		t.Fatalf("stale commit: %v", err)
 	}
 }
@@ -474,7 +481,7 @@ func TestTransactionCursor(t *testing.T) {
 			return nil
 		}
 		written = true
-		return e.Apply(ctx, nil, []*Record{{Key: []byte("new"), Value: []byte("generation")}})
+		return e.Apply(ctx, []*Record{{Key: []byte("new"), Value: []byte("generation")}})
 	})
 	if err != nil {
 		t.Fatalf("scan across publication: %v", err)
@@ -722,7 +729,7 @@ func TestMissingCommittedRootsNeverInitializeEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Apply(ctx, nil, []*Record{{Key: []byte("saved"), Value: []byte("data")}}); err != nil {
+	if err := e.Apply(ctx, []*Record{{Key: []byte("saved"), Value: []byte("data")}}); err != nil {
 		t.Fatal(err)
 	}
 	_ = e.Close()

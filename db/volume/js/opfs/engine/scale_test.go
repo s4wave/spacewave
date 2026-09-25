@@ -70,7 +70,7 @@ func TestDurableIndexScale(t *testing.T) {
 			for index := start; index < start+512; index++ {
 				records = append(records, &Record{Key: key(index), Value: value})
 			}
-			if err := e.Apply(ctx, nil, records); err != nil {
+			if err := e.Apply(ctx, records); err != nil {
 				t.Fatalf("populate through key %d: %v", start+511, err)
 			}
 		}
@@ -110,7 +110,7 @@ func TestDurableIndexScale(t *testing.T) {
 		for index := start; index < start+512; index++ {
 			records = append(records, &Record{Key: key(index), Deleted: true})
 		}
-		if err := e.Apply(ctx, nil, records); err != nil {
+		if err := e.Apply(ctx, records); err != nil {
 			t.Fatalf("delete through key %d: %v", start+511, err)
 		}
 	}

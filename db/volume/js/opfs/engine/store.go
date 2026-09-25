@@ -9,11 +9,6 @@ import (
 
 // NewTransaction opens a lazy generation-consistent transaction.
 func (e *Engine) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	return e.newTransaction(ctx, write, false)
-}
-
-// newTransaction fixes the revision domain before observing committed records.
-func (e *Engine) newTransaction(ctx context.Context, write, metadata bool) (kvtx.Tx, error) {
 	// Reject cancellation and use after Close.
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -26,7 +21,7 @@ func (e *Engine) newTransaction(ctx context.Context, write, metadata bool) (kvtx
 	}
 
 	// Number the transaction and record its opening.
-	t := &transaction{engine: e, id: e.workloadIDs.Add(1), write: write, metadata: metadata, pending: make(map[string]*Record)}
+	t := &transaction{engine: e, id: e.workloadIDs.Add(1), write: write, pending: make(map[string]*Record)}
 	op := workload.OpTxRead
 	if write {
 		op = workload.OpTxWrite

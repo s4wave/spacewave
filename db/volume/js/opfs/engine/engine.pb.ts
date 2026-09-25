@@ -75,12 +75,6 @@ export interface Root {
    * @generated from field: uint64 revision = 10;
    */
   revision?: bigint
-  /**
-   * MetadataRevision changes only when public metadata records change.
-   *
-   * @generated from field: uint64 metadata_revision = 11;
-   */
-  metadataRevision?: bigint
 }
 
 export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
@@ -96,7 +90,6 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'block_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 9, name: 'journal_sequence', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 10, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 11, name: 'metadata_revision', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
