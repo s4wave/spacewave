@@ -5,7 +5,7 @@ import spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/l
 func (c *Controller) setUpdateError(err error) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:        spacewave_launcher.UpdatePhase_UpdatePhase_ERROR,
+			Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR,
 			ErrorMessage: err.Error(),
 		}
 		return true, nil

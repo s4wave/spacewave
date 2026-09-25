@@ -18,7 +18,7 @@ func Build(
 		Label:   label(state),
 		Detail:  detail(state),
 	}
-	if state.GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+	if state.GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		status.Ready = true
 		return status, &desktop_runtime.DesktopRuntimeAttentionItem{
 			Kind:     desktop_runtime.DesktopRuntimeAttentionKind_DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY,
@@ -32,13 +32,13 @@ func Build(
 
 func label(state *spacewave_launcher.UpdateState) string {
 	switch state.GetPhase() {
-	case spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING:
 		return "Downloading update"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_STAGED:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED:
 		return "Update ready"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING:
 		return "Applying update"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_ERROR:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR:
 		return "Update failed"
 	default:
 		return ""

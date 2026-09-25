@@ -176,49 +176,49 @@ export const ReleaseMetadataOutcome_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum UpdatePhase {
   /**
-   * UpdatePhase_IDLE means no update in progress.
+   * UPDATE_PHASE_UNKNOWN means no update is in progress.
    *
-   * @generated from enum value: UpdatePhase_IDLE = 0;
+   * @generated from enum value: UPDATE_PHASE_UNKNOWN = 0;
    */
-  UpdatePhase_IDLE = 0,
+  UNKNOWN = 0,
 
   /**
-   * UpdatePhase_DOWNLOADING means the update is being downloaded.
+   * UPDATE_PHASE_DOWNLOADING means the update is being downloaded.
    *
-   * @generated from enum value: UpdatePhase_DOWNLOADING = 1;
+   * @generated from enum value: UPDATE_PHASE_DOWNLOADING = 1;
    */
-  UpdatePhase_DOWNLOADING = 1,
+  DOWNLOADING = 1,
 
   /**
-   * UpdatePhase_STAGED means the update is downloaded and ready to install.
+   * UPDATE_PHASE_STAGED means the update is downloaded and ready to install.
    *
-   * @generated from enum value: UpdatePhase_STAGED = 2;
+   * @generated from enum value: UPDATE_PHASE_STAGED = 2;
    */
-  UpdatePhase_STAGED = 2,
+  STAGED = 2,
 
   /**
-   * UpdatePhase_APPLYING means the update is being applied.
+   * UPDATE_PHASE_APPLYING means the update is being applied.
    *
-   * @generated from enum value: UpdatePhase_APPLYING = 3;
+   * @generated from enum value: UPDATE_PHASE_APPLYING = 3;
    */
-  UpdatePhase_APPLYING = 3,
+  APPLYING = 3,
 
   /**
-   * UpdatePhase_ERROR means an error occurred.
+   * UPDATE_PHASE_ERROR means the update failed.
    *
-   * @generated from enum value: UpdatePhase_ERROR = 4;
+   * @generated from enum value: UPDATE_PHASE_ERROR = 4;
    */
-  UpdatePhase_ERROR = 4,
+  ERROR = 4,
 }
 
 export const UpdatePhase_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.UpdatePhase',
   [
-    [0, 'UpdatePhase_IDLE'],
-    [1, 'UpdatePhase_DOWNLOADING'],
-    [2, 'UpdatePhase_STAGED'],
-    [3, 'UpdatePhase_APPLYING'],
-    [4, 'UpdatePhase_ERROR'],
+    [0, 'UPDATE_PHASE_UNKNOWN'],
+    [1, 'UPDATE_PHASE_DOWNLOADING'],
+    [2, 'UPDATE_PHASE_STAGED'],
+    [3, 'UPDATE_PHASE_APPLYING'],
+    [4, 'UPDATE_PHASE_ERROR'],
   ],
 )
 

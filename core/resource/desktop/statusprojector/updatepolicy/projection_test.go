@@ -10,7 +10,7 @@ import (
 func TestBuildAddsReadyAttention(t *testing.T) {
 	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
-			Phase:   spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 			Version: "1.2.3",
 		},
 	})
@@ -34,7 +34,7 @@ func TestBuildAddsReadyAttention(t *testing.T) {
 func TestBuildKeepsDownloadNonReady(t *testing.T) {
 	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
-			Phase:   spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING,
+			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING,
 			Version: "1.2.3",
 		},
 	})
@@ -52,7 +52,7 @@ func TestBuildKeepsDownloadNonReady(t *testing.T) {
 func TestBuildMapsNativeErrors(t *testing.T) {
 	status, attention := Build(&spacewave_launcher.LauncherInfo{
 		UpdateState: &spacewave_launcher.UpdateState{
-			Phase:        spacewave_launcher.UpdatePhase_UpdatePhase_ERROR,
+			Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR,
 			ErrorMessage: "release metadata missing",
 		},
 	})

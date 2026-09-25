@@ -62,7 +62,7 @@ function UpdateNotifierInner({
 
   // announcePhase shows the toast for an update phase the launcher entered.
   const announcePhase = useEffectEvent((phase: UpdatePhase | undefined) => {
-    if (phase === UpdatePhase.UpdatePhase_STAGED) {
+    if (phase === UpdatePhase.STAGED) {
       const version = info?.updateState?.version || 'new version'
       toast('Update ready', {
         description: `Version ${version} is ready to install.`,
@@ -80,7 +80,7 @@ function UpdateNotifierInner({
           },
         },
       })
-    } else if (phase === UpdatePhase.UpdatePhase_ERROR) {
+    } else if (phase === UpdatePhase.ERROR) {
       const msg = info?.updateState?.errorMessage || 'Unknown error'
       toast.error('Update error', { description: msg })
     }

@@ -213,7 +213,7 @@ func deviceLauncherUpdateProjection(
 ) (s4wave_device.DeviceUpdateState, *s4wave_device.DeviceStatus) {
 	ts := timestamppb.New(now)
 	state := info.GetUpdateState()
-	if state == nil || state.GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_IDLE {
+	if state.GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_UNKNOWN {
 		if existing.GetUpdateState() == s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_APPLYING {
 			return s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_UPDATED, &s4wave_device.DeviceStatus{
 				Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
@@ -229,25 +229,25 @@ func deviceLauncherUpdateProjection(
 	}
 
 	switch state.GetPhase() {
-	case spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING:
 		return s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_STAGING, &s4wave_device.DeviceStatus{
 			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
 			Message:    deviceUpdateStatusMessage("staging update", state),
 			ObservedAt: ts,
 		}
-	case spacewave_launcher.UpdatePhase_UpdatePhase_STAGED:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED:
 		return s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_READY, &s4wave_device.DeviceStatus{
 			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
 			Message:    deviceUpdateStatusMessage("update ready", state),
 			ObservedAt: ts,
 		}
-	case spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING:
 		return s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_APPLYING, &s4wave_device.DeviceStatus{
 			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_ONLINE,
 			Message:    deviceUpdateStatusMessage("applying update", state),
 			ObservedAt: ts,
 		}
-	case spacewave_launcher.UpdatePhase_UpdatePhase_ERROR:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR:
 		return s4wave_device.DeviceUpdateState_DEVICE_UPDATE_STATE_FAILED, &s4wave_device.DeviceStatus{
 			Liveness:   s4wave_device.DeviceLiveness_DEVICE_LIVENESS_DEGRADED,
 			Message:    "update failed",

@@ -142,7 +142,7 @@ func TestBuildLauncherRecoveryStatusIncludesEntrypointFacts(t *testing.T) {
 				ChannelKey: "staging",
 			},
 			UpdateState: &spacewave_launcher.UpdateState{
-				Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+				Phase:      spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 				Version:    "0.2.0",
 				StagedPath: "/var/folders/spacewave/Spacewave.app",
 			},
@@ -191,7 +191,7 @@ func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
 					ChannelKey: "stable",
 				},
 				UpdateState: &spacewave_launcher.UpdateState{
-					Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+					Phase:      spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 					StagedPath: "/tmp/Spacewave.app",
 				},
 				FetchStatus: &spacewave_launcher.FetchStatus{

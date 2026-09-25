@@ -632,15 +632,15 @@ func releaseMetadataOutcomeString(outcome spacewave_launcher.ReleaseMetadataOutc
 // launcherUpdatePhaseString formats the launcher update phase for diagnostic status.
 func launcherUpdatePhaseString(phase spacewave_launcher.UpdatePhase) string {
 	switch phase {
-	case spacewave_launcher.UpdatePhase_UpdatePhase_IDLE:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_UNKNOWN:
 		return "idle"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_DOWNLOADING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING:
 		return "downloading"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_STAGED:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED:
 		return "staged"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_APPLYING:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING:
 		return "applying"
-	case spacewave_launcher.UpdatePhase_UpdatePhase_ERROR:
+	case spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR:
 		return "error"
 	default:
 		return "unknown"

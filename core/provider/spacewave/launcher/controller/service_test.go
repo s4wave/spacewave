@@ -18,7 +18,7 @@ func TestApplyUpdateRecordsFailureInLauncherInfo(t *testing.T) {
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
 			&spacewave_launcher.LauncherInfo{
 				UpdateState: &spacewave_launcher.UpdateState{
-					Phase:      spacewave_launcher.UpdatePhase_UpdatePhase_STAGED,
+					Phase:      spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 					Version:    "0.2.0",
 					StagedPath: stagedPath,
 				},
@@ -31,7 +31,7 @@ func TestApplyUpdateRecordsFailureInLauncherInfo(t *testing.T) {
 		t.Fatal("ApplyUpdate succeeded with missing staged path")
 	}
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
-	if state.GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
 	}
 	if !strings.Contains(state.GetErrorMessage(), "stat staged path") {
