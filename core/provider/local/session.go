@@ -165,26 +165,6 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		s.sessionPriv = privKey
 	})
 
-	transportCtx := ctx
-	relay := cloudRelayEndpoint{}
-	if s.tkr.cloudAccountID != "" {
-		relay = s.tkr.a.lookupCloudRelayEndpoint(transportCtx)
-	}
-	if relay.url == "" {
-		relay = s.tkr.a.fallbackSignalingEndpoint()
-	}
-	_, _, transportErr := s.tkr.a.ensureSessionTransportWithOwner(transportCtx, s.tkr.a.lifecycleCtx, privKey, relay.url, relay.signingEnvPrefix, false)
-	if transportErr != nil {
-		if errors.Is(transportErr, context.Canceled) {
-			return context.Canceled
-		}
-		s.tkr.a.le.WithError(transportErr).Warn("failed to start session transport after unlock")
-	} else if st := s.tkr.a.GetSessionTransport(); st != nil {
-		if err := s.tkr.a.AutoStartP2PSyncIfNeeded(transportCtx, st); err != nil {
-			s.tkr.a.le.WithError(err).Warn("failed to auto-start P2P sync after unlock")
-		}
-	}
-
 	selfRef, _, _ := s.tkr.a.sessions.AddKeyRef(s.tkr.id)
 	s.tkr.setPinnedRef(selfRef.Release)
 	s.tkr.sessionProm.SetResult(s, nil)
@@ -196,7 +176,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		broadcast()
 	})
 
-	return nil
+	return s.tkr.startTransport(ctx, privKey)
 }
 
 // LockSession locks a running session, scrubbing the privkey from memory.
@@ -419,6 +399,38 @@ func (t *sessionTracker) releasePinnedRef() {
 	}
 }
 
+// startTransport starts the account's session transport and restores P2P
+// sync for accounts with paired devices. Callers publish the Session first:
+// transport readiness waits on the signaling ticket, which stalls until the
+// startup deadline when the signaling endpoint is unreachable, and local work
+// must not wait on the network. Returns only context.Canceled; other failures
+// are logged.
+func (t *sessionTracker) startTransport(ctx context.Context, sessionPriv crypto.PrivKey) error {
+	relay := cloudRelayEndpoint{}
+	if t.cloudAccountID != "" {
+		relay = t.a.lookupCloudRelayEndpoint(ctx)
+	}
+	if relay.url == "" {
+		relay = t.a.fallbackSignalingEndpoint()
+	}
+
+	le := t.a.le.WithField("session-id", t.id)
+	_, _, err := t.a.ensureSessionTransportWithOwner(ctx, t.a.lifecycleCtx, sessionPriv, relay.url, relay.signingEnvPrefix, false)
+	if errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if err != nil {
+		le.WithError(err).Warn("failed to start session transport")
+		return nil
+	}
+	if st := t.a.GetSessionTransport(); st != nil {
+		if err := t.a.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
+			le.WithError(err).Warn("failed to auto-start P2P sync")
+		}
+	}
+	return nil
+}
+
 // buildSessionTracker builds a new sessionTracker for a session id.
 func (a *ProviderAccount) buildSessionTracker(sessionID string) (keyed.Routine, *sessionTracker) {
 	tracker := &sessionTracker{
@@ -632,16 +644,6 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	defer t.sessionProm.SetPromise(nil)
 	t.a.setLinkedCloudAccountID(t.cloudAccountID)
 
-	// Always start the session transport. Only cloud-linked local accounts
-	// need the cloud signaling controller; no-cloud accounts can run direct
-	// manual links through the same session bus.
-	relay := cloudRelayEndpoint{}
-	if t.cloudAccountID != "" {
-		relay = t.a.lookupCloudRelayEndpoint(ctx)
-	}
-	if relay.url == "" {
-		relay = t.a.fallbackSignalingEndpoint()
-	}
 	// Transport and background replication belong to the account. A temporary
 	// Session mount ending must not tear down the next consumer's connection.
 	// PIN credentials remain authorized only for the unlocked Session lifetime.
@@ -654,21 +656,6 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 			}
 		}
 	}()
-	_, _, err = t.a.ensureSessionTransportWithOwner(ctx, t.a.lifecycleCtx, sessionPriv, relay.url, relay.signingEnvPrefix, false)
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return context.Canceled
-		}
-		le.WithError(err).Warn("failed to start session transport")
-	} else if st := t.a.GetSessionTransport(); st != nil {
-		// Restore P2P sync controllers for accounts that already have paired
-		// devices, so a session that was paired in a prior mount resumes
-		// DEX/SOSync without requiring an explicit re-pair.
-		if err := t.a.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
-			le.WithError(err).Warn("failed to auto-start P2P sync on session mount")
-		}
-	}
-
 	so.transitionWatcher.SetContext(ctx, false)
 	defer func() {
 		if exited, _ := so.transitionWatcher.SetRoutine(nil); exited != nil {
@@ -676,6 +663,13 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}()
 	t.sessionProm.SetResult(so, nil)
+
+	// Always start the session transport. Only cloud-linked local accounts
+	// need the cloud signaling controller; no-cloud accounts can run direct
+	// manual links through the same session bus.
+	if err := t.startTransport(ctx, sessionPriv); err != nil {
+		return err
+	}
 	<-ctx.Done()
 	return ctx.Err()
 }
