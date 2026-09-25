@@ -23,8 +23,8 @@ type Target interface {
 	block.StoreOps
 	// AppendJournal durably journals reference graph changes.
 	AppendJournal(ctx context.Context, adds, removes []block_gc.RefEdge) error
-	// ReplayJournal applies and removes every journaled change.
-	ReplayJournal(ctx context.Context) error
+	// ReplayJournal passes every journaled change to apply, then removes it.
+	ReplayJournal(ctx context.Context, apply func(adds, removes []block_gc.RefEdge) error) error
 }
 
 // OrderedJournal is a Target that can journal with write ordering in place of
@@ -33,6 +33,12 @@ type OrderedJournal interface {
 	// AppendJournalOrdered journals reference graph changes with write
 	// ordering only.
 	AppendJournalOrdered(ctx context.Context, adds, removes []block_gc.RefEdge) error
+}
+
+// DiscardJournal accepts replayed journal changes without applying them. A
+// replayed trace already carries the reference graph's own key-value writes.
+func DiscardJournal(adds, removes []block_gc.RefEdge) error {
+	return nil
 }
 
 // headSuffix ends the key of a shared object's head, whose commit publishes
@@ -395,7 +401,7 @@ func (run *replayRun) apply(ctx context.Context, rec Record) error {
 	case OpJournalAppend:
 		return run.appendJournal(ctx, rec.Size)
 	case OpJournalReplay:
-		return run.timed(OpJournalReplay, func() error { return run.target.ReplayJournal(ctx) })
+		return run.timed(OpJournalReplay, func() error { return run.target.ReplayJournal(ctx, DiscardJournal) })
 	}
 	return run.applyBlock(ctx, rec)
 }

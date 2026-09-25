@@ -19,21 +19,10 @@ import (
 	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
-// replayTarget drives a Store as a workload replay target.
-type replayTarget struct {
-	*Store
-}
-
-// ReplayJournal replays the journal into a graph that stores nothing. A
-// replayed trace already carries the graph's own key-value writes.
-func (t replayTarget) ReplayJournal(ctx context.Context) error {
-	return t.Store.ReplayJournal(ctx, func(adds, removes []block_gc.RefEdge) error { return nil })
-}
-
 // _ checks that a Store serves a replay with ordered journal appends.
 var (
-	_ workload.Target         = replayTarget{}
-	_ workload.OrderedJournal = replayTarget{}
+	_ workload.Target         = (*Store)(nil)
+	_ workload.OrderedJournal = (*Store)(nil)
 )
 
 // engine opens an index on a device.
@@ -221,7 +210,7 @@ func replayTrace(t *testing.T, e engine, path string, ordered bool, fillBlocks, 
 	}
 	defer dir.Close()
 	d := &countingDevice{Device: dir}
-	target := replayTarget{openStore(t, e, d)}
+	target := openStore(t, e, d)
 
 	// Fill and seed the volume.
 	fillStart := time.Now()
@@ -248,10 +237,10 @@ func replayTrace(t *testing.T, e engine, path string, ordered bool, fillBlocks, 
 		t.Fatal(err)
 	}
 	openStart := time.Now()
-	reopened := replayTarget{openStore(t, e, d)}
+	reopened := openStore(t, e, d)
 	openTime := time.Since(openStart)
 	recoverStart := time.Now()
-	if err := reopened.ReplayJournal(ctx); err != nil {
+	if err := reopened.ReplayJournal(ctx, workload.DiscardJournal); err != nil {
 		t.Fatal(err)
 	}
 	recoverTime := time.Since(recoverStart)

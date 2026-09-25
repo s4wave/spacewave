@@ -70,3 +70,25 @@ func (r Record) AppendText(b []byte) []byte {
 	b = append(b, ' ')
 	return hex.AppendEncode(b, r.Key)
 }
+
+// AppendRecords appends records in their text form, one per line.
+func AppendRecords(b []byte, records []Record) []byte {
+	for _, rec := range records {
+		b = rec.AppendText(b)
+		b = append(b, '\n')
+	}
+	return b
+}
+
+// ParseRecords decodes the lines AppendRecords produced.
+func ParseRecords(text string) ([]Record, error) {
+	var out []Record
+	for line := range strings.Lines(text) {
+		rec, err := ParseRecord(strings.TrimSuffix(line, "\n"))
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rec)
+	}
+	return out, nil
+}
