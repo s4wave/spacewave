@@ -13,12 +13,24 @@ import (
 // AppendJournal durably journals reference graph changes in one index commit,
 // which also publishes the pending blocks.
 func (s *Store) AppendJournal(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	return s.appendJournal(ctx, adds, removes, false)
+}
+
+// AppendJournalOrdered journals reference graph changes in one ordered index
+// commit, which the next Sync or durable commit makes durable.
+func (s *Store) AppendJournalOrdered(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	return s.appendJournal(ctx, adds, removes, true)
+}
+
+// appendJournal journals reference graph changes in one index commit, ordered
+// if ordered is set.
+func (s *Store) appendJournal(ctx context.Context, adds, removes []block_gc.RefEdge, ordered bool) error {
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
 	value := appendEdges(nil, adds)
 	value = appendEdges(value, removes)
-	return s.update(ctx, func(tx kvtx.Tx) error {
+	return s.update(ctx, ordered, func(tx kvtx.Tx) error {
 		seq := s.journal + 1
 		key := binary.BigEndian.AppendUint64([]byte(journalPrefix), seq)
 		if err := tx.Set(ctx, key, value); err != nil {
@@ -52,7 +64,7 @@ func (s *Store) ReplayJournal(ctx context.Context, apply func(adds, removes []bl
 	}
 
 	// Apply and remove them.
-	return s.update(ctx, func(tx kvtx.Tx) error {
+	return s.update(ctx, false, func(tx kvtx.Tx) error {
 		for i, key := range keys {
 			adds, rest, err := readEdges(values[i])
 			if err != nil {

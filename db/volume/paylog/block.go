@@ -249,15 +249,17 @@ func (s *Store) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return err
 }
 
-// Sync publishes every pending block write and remove in one index commit.
+// Sync publishes every pending block write and remove in one index commit,
+// which also makes the earlier ordered commits durable. With nothing pending
+// it flushes the device instead, which costs nothing when nothing is dirty.
 func (s *Store) Sync(ctx context.Context) (bool, error) {
 	s.mtx.Lock()
 	idle := len(s.pending) == 0
 	s.mtx.Unlock()
 	if idle {
-		return true, nil
+		return true, s.dev.Write(ctx, nil, true)
 	}
-	return true, s.update(ctx, nil)
+	return true, s.update(ctx, false, nil)
 }
 
 // blockKey returns the index key of a block reference.
