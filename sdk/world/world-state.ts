@@ -15,11 +15,15 @@ import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import type { Engine } from './engine.js'
 import type {
+  ObjectBody,
   ObjectRecordBase,
   GraphEdgeBucketDirection,
   ListGraphEdgeBucketsResponse,
   LookupGraphQuadsResponse,
 } from './world.pb.js'
+
+// maxObjectBodiesRevisionRetries bounds restarts when writes land between body pages.
+const maxObjectBodiesRevisionRetries = 3
 
 // TypedObjectAccess represents access to a typed resource from a world object.
 // The resourceId can be used with resourceRef.createRef() to access the typed resource.
@@ -184,6 +188,12 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<string[]>
 
+  /** getObjectBodies reads object root bodies from one World revision, in request order. */
+  getObjectBodies(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectBody[]>
+
   // DeleteGraphObject deletes all quads with Subject or Object set to value
   // Note: value should be the object key, NOT the object key <iri> format
   deleteGraphObject(objectKey: string, abortSignal?: AbortSignal): Promise<void>
@@ -266,7 +276,6 @@ export class WorldStateResource extends Resource implements IWorldState {
     return { seqno: response.seqno ?? 0n }
   }
 
-  /** getObjectRootRefs returns existence, revision, and root from this snapshot. */
   /** compareObjectRecords compares previous immutable roots with this snapshot. */
   public async compareObjectRecords(
     bases: ObjectRecordBase[],
@@ -275,6 +284,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     return this.service.CompareObjectRecords({ bases }, signal)
   }
 
+  /** getObjectRootRefs returns existence, revision, and root from this snapshot. */
   public async getObjectRootRefs(
     objectKeys: string[],
     abortSignal?: AbortSignal,
@@ -521,6 +531,45 @@ export class WorldStateResource extends Resource implements IWorldState {
       },
       options.abortSignal,
     )
+  }
+
+  /**
+   * getObjectBodies reads object root bodies from one World revision, in
+   * request order. A body reports exists=false for a missing object. The
+   * server streams large responses in pages; a write between pages restarts
+   * the read.
+   */
+  public async getObjectBodies(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectBody[]> {
+    if (objectKeys.length === 0) return []
+    for (
+      let attempt = 0;
+      attempt <= maxObjectBodiesRevisionRetries;
+      attempt++
+    ) {
+      const bodies = await this.readObjectBodyPages(objectKeys, abortSignal)
+      if (bodies) return bodies
+    }
+    throw new Error('The World changed on every attempt to read object bodies.')
+  }
+
+  // readObjectBodyPages returns null when the World revision changes between pages.
+  private async readObjectBodyPages(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectBody[] | null> {
+    const bodies: ObjectBody[] = []
+    let worldSeqno: bigint | undefined
+    const pages = this.service.GetObjectBodiesBatch({ objectKeys }, abortSignal)
+    for await (const page of pages) {
+      const pageSeqno = page.worldSeqno ?? 0n
+      worldSeqno ??= pageSeqno
+      if (pageSeqno !== worldSeqno) return null
+      bodies.push(...(page.bodies ?? []))
+    }
+    return bodies
   }
 
   // ListObjectsWithType lists object keys with the given type identifier.

@@ -1963,12 +1963,6 @@ export interface GetObjectBodiesBatchRequest {
    * @generated from field: repeated string object_keys = 1;
    */
   objectKeys?: string[]
-  /**
-   * StartKeyIndex is the first object key index to include in this page.
-   *
-   * @generated from field: uint32 start_key_index = 2;
-   */
-  startKeyIndex?: number
 }
 
 export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchRequest> =
@@ -1982,34 +1976,30 @@ export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchReques
         T: ScalarType.STRING,
         repeated: true,
       },
-      { no: 2, name: 'start_key_index', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * GetObjectBodiesBatchResponse is the response type for
- * GetObjectBodiesBatch.
+ * GetObjectBodiesBatchResponse is one page of GetObjectBodiesBatch.
+ *
+ * The server streams pages in request order, each within the encoded body
+ * budget, and ends the stream after the last key.
  *
  * @generated from message s4wave.world.GetObjectBodiesBatchResponse
  */
 export interface GetObjectBodiesBatchResponse {
   /**
-   * Bodies preserves the request object key order.
+   * Bodies continues the request object key order.
    *
    * @generated from field: repeated s4wave.world.ObjectBody bodies = 1;
    */
   bodies?: ObjectBody[]
   /**
-   * NextKeyIndex is the next key index to request. Zero means complete.
+   * WorldSeqno is the World sequence number observed for this page. A reader
+   * that needs one revision restarts when pages disagree.
    *
-   * @generated from field: uint32 next_key_index = 2;
-   */
-  nextKeyIndex?: number
-  /**
-   * WorldSeqno is the World sequence number observed for this page.
-   *
-   * @generated from field: uint64 world_seqno = 3;
+   * @generated from field: uint64 world_seqno = 2;
    */
   worldSeqno?: bigint
 }
@@ -2025,8 +2015,7 @@ export const GetObjectBodiesBatchResponse: MessageType<GetObjectBodiesBatchRespo
         T: () => ObjectBody,
         repeated: true,
       },
-      { no: 2, name: 'next_key_index', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 3, name: 'world_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'world_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

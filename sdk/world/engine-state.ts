@@ -16,6 +16,7 @@ import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import type {
   GetRootRefResponse,
   ListGraphEdgeBucketsResponse,
+  ObjectBody,
   SetRootRefResponse,
   ApplyObjectOpResponse,
   IncrementRevResponse,
@@ -273,6 +274,16 @@ export class EngineWorldState implements IWorldState {
         limitPerOrigin,
         options,
       )
+    })
+  }
+
+  // getObjectBodies reads object root bodies from one World revision.
+  public async getObjectBodies(
+    objectKeys: string[],
+    abortSignal?: AbortSignal,
+  ): Promise<ObjectBody[]> {
+    return this.performOp(false, abortSignal, async (tx) => {
+      return await tx.getObjectBodies(objectKeys, abortSignal)
     })
   }
 

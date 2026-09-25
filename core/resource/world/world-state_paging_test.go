@@ -4,6 +4,7 @@ package resource_world
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/world"
@@ -61,7 +62,7 @@ func (w *objectBodyPageWorld) GetObjectBodiesBatchPageWithSeqno(
 	return bodies, next, seqno, nil
 }
 
-func encodedBodyResponseSize(bodies []*world.ObjectBody, nextKeyIndex ...uint32) int {
+func encodedBodyResponseSize(bodies []*world.ObjectBody) int {
 	out := make([]*s4wave_world.ObjectBody, len(bodies))
 	for i, body := range bodies {
 		out[i] = &s4wave_world.ObjectBody{
@@ -70,46 +71,27 @@ func encodedBodyResponseSize(bodies []*world.ObjectBody, nextKeyIndex ...uint32)
 			Exists:    body.Exists,
 		}
 	}
-	var next uint32
-	if len(nextKeyIndex) > 0 {
-		next = nextKeyIndex[0]
-	}
-	return (&s4wave_world.GetObjectBodiesBatchResponse{
-		Bodies:       out,
-		NextKeyIndex: next,
-	}).SizeVT()
+	return (&s4wave_world.GetObjectBodiesBatchResponse{Bodies: out}).SizeVT()
 }
 
-func TestGetObjectBodiesBatchPageBudgetsEncodedResponseSize(t *testing.T) {
-	ctx := context.Background()
-	ws := &objectBodyPageWorld{}
-	keys := make([]string, 32)
-	for i := range keys {
-		keys[i] = "body/tiny"
-		ws.bodies = append(ws.bodies, &world.ObjectBody{
-			ObjectKey: keys[i],
-			Body:      []byte("x"),
-			Exists:    true,
-		})
-	}
-
-	page, next, _, err := getObjectBodiesBatchPage(ctx, ws, keys, 0, 100)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if next == 0 {
-		t.Fatal("expected a continuation for many tiny bodies")
-	}
-	if len(page) < 2 {
-		t.Fatalf("page length = %d, want multiple tiny bodies", len(page))
-	}
-	if size := encodedBodyResponseSize(page, next); size > 100 {
-		t.Fatalf("encoded page size = %d, want <= 100", size)
-	}
+// objectBodiesPageStream collects the pages a GetObjectBodiesBatch handler
+// sends.
+type objectBodiesPageStream struct {
+	s4wave_world.SRPCWorldStateResourceService_GetObjectBodiesBatchStream
+	ctx   context.Context
+	pages []*s4wave_world.GetObjectBodiesBatchResponse
 }
 
-func TestGetObjectBodiesBatchPageReadsOnlyOneBoundedPageAtATime(t *testing.T) {
-	ctx := context.Background()
+func (s *objectBodiesPageStream) Context() context.Context {
+	return s.ctx
+}
+
+func (s *objectBodiesPageStream) Send(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
+	s.pages = append(s.pages, resp)
+	return nil
+}
+
+func TestStreamObjectBodyPagesSendsBoundedPagesInOrder(t *testing.T) {
 	ws := &objectBodyPageWorld{}
 	keys := make([]string, 32)
 	for i := range keys {
@@ -121,24 +103,31 @@ func TestGetObjectBodiesBatchPageReadsOnlyOneBoundedPageAtATime(t *testing.T) {
 		})
 	}
 
-	var all []*world.ObjectBody
-	for start := uint32(0); ; {
-		page, next, _, err := getObjectBodiesBatchPage(ctx, ws, keys, start, 100)
-		if err != nil {
-			t.Fatal(err)
+	var pages []*s4wave_world.GetObjectBodiesBatchResponse
+	err := streamObjectBodyPages(context.Background(), ws, keys, 100, func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
+		pages = append(pages, resp)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pages) < 2 {
+		t.Fatalf("page count = %d, want multiple pages for many tiny bodies", len(pages))
+	}
+
+	var got []string
+	for i, page := range pages {
+		if size := page.SizeVT(); size > 100 {
+			t.Fatalf("page %d encoded size = %d, want <= 100", i, size)
 		}
-		all = append(all, page...)
-		if next == 0 {
-			break
+		for _, body := range page.GetBodies() {
+			got = append(got, body.GetObjectKey())
 		}
-		start = next
 	}
-	if len(all) != len(keys) {
-		t.Fatalf("read %d bodies, want %d", len(all), len(keys))
+	if !slices.Equal(got, keys) {
+		t.Fatalf("streamed keys = %v, want %v", got, keys)
 	}
-	if len(ws.readSizes) < 2 {
-		t.Fatalf("read sizes = %v, want multiple owner reads", ws.readSizes)
-	}
+
 	remaining := len(keys)
 	for i, read := range ws.readSizes {
 		if i < len(ws.readSizes)-1 && read >= remaining {
@@ -151,28 +140,6 @@ func TestGetObjectBodiesBatchPageReadsOnlyOneBoundedPageAtATime(t *testing.T) {
 	}
 }
 
-func TestGetObjectBodiesBatchPageRejectsUint32IndexOverflow(t *testing.T) {
-	ctx := context.Background()
-	ws := &objectBodyPageWorld{
-		bodies: []*world.ObjectBody{{ObjectKey: "body/only", Body: []byte("x"), Exists: true}},
-	}
-	resource := &WorldStateResource{ws: ws}
-
-	resp, err := resource.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
-		ObjectKeys:    []string{"body/only"},
-		StartKeyIndex: ^uint32(0),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(resp.GetBodies()) != 0 || resp.GetNextKeyIndex() != 0 {
-		t.Fatalf("out-of-range response = %+v, want empty terminal page", resp)
-	}
-	if len(ws.readSizes) != 0 {
-		t.Fatalf("out-of-range request performed reads: %v", ws.readSizes)
-	}
-}
-
 func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
 	ws := &objectBodyPageWorld{
 		bodies: []*world.ObjectBody{
@@ -181,15 +148,19 @@ func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
 		seqnos: []uint64{42},
 	}
 	resource := &WorldStateResource{ws: ws}
+	strm := &objectBodiesPageStream{ctx: context.Background()}
 
-	resp, err := resource.GetObjectBodiesBatch(context.Background(), &s4wave_world.GetObjectBodiesBatchRequest{
+	err := resource.GetObjectBodiesBatch(&s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{"body/one"},
-	})
+	}, strm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.GetWorldSeqno() != 42 {
-		t.Fatalf("world seqno = %d, want 42", resp.GetWorldSeqno())
+	if len(strm.pages) != 1 {
+		t.Fatalf("page count = %d, want 1", len(strm.pages))
+	}
+	if got := strm.pages[0].GetWorldSeqno(); got != 42 {
+		t.Fatalf("world seqno = %d, want 42", got)
 	}
 }
 
@@ -202,18 +173,19 @@ func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
 		seqnos: []uint64{42},
 	}
 	resource := &WorldStateResource{ws: ws}
+	strm := &objectBodiesPageStream{ctx: context.Background()}
 
-	resp, err := resource.GetObjectBodiesBatch(context.Background(), &s4wave_world.GetObjectBodiesBatchRequest{
+	err := resource.GetObjectBodiesBatch(&s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{"body/one", "body/two"},
-	})
+	}, strm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(resp.GetBodies()) != 2 {
-		t.Fatalf("body count = %d, want 2", len(resp.GetBodies()))
+	if len(strm.pages) != 1 || len(strm.pages[0].GetBodies()) != 2 {
+		t.Fatalf("pages = %+v, want one page with 2 bodies", strm.pages)
 	}
 	for i, want := range []uint64{7, 9} {
-		if got := resp.GetBodies()[i].GetRev(); got != want {
+		if got := strm.pages[0].GetBodies()[i].GetRev(); got != want {
 			t.Fatalf("body %d rev = %d, want %d", i, got, want)
 		}
 	}

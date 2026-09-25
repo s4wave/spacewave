@@ -117,11 +117,16 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 		t.Fatalf("tracked resource client: %v", err)
 	}
 	bodyService := s4wave_world.NewSRPCWorldStateResourceServiceClient(trackedClient)
-	resp, err := bodyService.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
+	bodyStream, err := bodyService.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
 		ObjectKeys: []string{objectKey},
 	})
 	if err != nil {
 		t.Fatalf("GetObjectBodiesBatch: %v", err)
+	}
+	resp, err := bodyStream.Recv()
+	bodyStream.Close()
+	if err != nil {
+		t.Fatalf("GetObjectBodiesBatch page: %v", err)
 	}
 	if resp.GetWorldSeqno() == 0 {
 		t.Fatal("GetObjectBodiesBatch returned zero world_seqno for nonzero revision")

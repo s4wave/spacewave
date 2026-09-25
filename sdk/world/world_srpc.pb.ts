@@ -804,7 +804,7 @@ export const WorldStateResourceServiceDefinition = {
       name: 'GetObjectBodiesBatch',
       I: GetObjectBodiesBatchRequest,
       O: GetObjectBodiesBatchResponse,
-      kind: MethodKind.Unary,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
@@ -1025,7 +1025,7 @@ export interface WorldStateResourceService {
   GetObjectBodiesBatch(
     request: GetObjectBodiesBatchRequest,
     abortSignal?: AbortSignal,
-  ): Promise<GetObjectBodiesBatchResponse>
+  ): MessageStream<GetObjectBodiesBatchResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
@@ -1267,7 +1267,7 @@ export interface WorldStateResourceServiceHandler {
     request: GetObjectBodiesBatchRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): Promise<GetObjectBodiesBatchResponse>
+  ): MessageStream<GetObjectBodiesBatchResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
@@ -1716,18 +1716,18 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectBodiesBatch
    */
-  async GetObjectBodiesBatch(
+  GetObjectBodiesBatch(
     request: GetObjectBodiesBatchRequest,
     abortSignal?: AbortSignal,
-  ): Promise<GetObjectBodiesBatchResponse> {
+  ): MessageStream<GetObjectBodiesBatchResponse> {
     const requestMsg = GetObjectBodiesBatchRequest.create(request)
-    const result = await this.rpc.request(
+    const result = this.rpc.serverStreamingRequest(
       this.service,
       WorldStateResourceServiceDefinition.methods.GetObjectBodiesBatch.name,
       GetObjectBodiesBatchRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return GetObjectBodiesBatchResponse.fromBinary(result)
+    return buildDecodeMessageTransform(GetObjectBodiesBatchResponse)(result)
   }
 
   /**

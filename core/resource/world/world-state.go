@@ -573,80 +573,84 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: out}, nil
 }
 
-// GetObjectBodiesBatch returns serialized object bodies for object keys.
-func (r *WorldStateResource) GetObjectBodiesBatch(ctx context.Context, req *s4wave_world.GetObjectBodiesBatchRequest) (*s4wave_world.GetObjectBodiesBatchResponse, error) {
+// GetObjectBodiesBatch streams serialized object bodies for object keys.
+//
+// Each response is one page within the encoded body budget, in request
+// order, with the World seqno the page was read at. The stream ends after the
+// page holding the last key.
+func (r *WorldStateResource) GetObjectBodiesBatch(
+	req *s4wave_world.GetObjectBodiesBatchRequest,
+	strm s4wave_world.SRPCWorldStateResourceService_GetObjectBodiesBatchStream,
+) error {
 	started := time.Now()
 	record := WorldStateOperationRecord{
-		Name:              "GetObjectBodiesBatch",
-		StartKeyCount:     len(req.GetObjectKeys()),
-		ResultObjectCount: 0,
+		Name:          "GetObjectBodiesBatch",
+		StartKeyCount: len(req.GetObjectKeys()),
 	}
 	var retErr error
-	ctx, readCounter := block.WithReadCounter(ctx)
+	ctx, readCounter := block.WithReadCounter(strm.Context())
 	defer func() {
 		recordBlockReadSnapshot(&record, readCounter)
 		r.observeOperation(record, started, retErr)
 	}()
 
-	keys := req.GetObjectKeys()
-	var bodies []*world.ObjectBody
-	var nextKeyIndex uint32
-	var worldSeqno uint64
-	startKeyIndex := req.GetStartKeyIndex()
-	if uint64(startKeyIndex) < uint64(len(keys)) {
-		bodies, nextKeyIndex, worldSeqno, retErr = getObjectBodiesBatchPage(
-			ctx,
-			r.ws,
-			keys,
-			startKeyIndex,
-			objectBodiesBatchBudget,
-		)
-		if retErr != nil {
-			return nil, retErr
-		}
-	}
-
-	out := make([]*s4wave_world.ObjectBody, len(bodies))
-	for i, body := range bodies {
-		if body.Exists {
-			record.ResultObjectCount++
-		}
-		out[i] = &s4wave_world.ObjectBody{
-			ObjectKey: body.ObjectKey,
-			Body:      body.Body,
-			Exists:    body.Exists,
-			Rev:       body.Rev,
-		}
-	}
-
-	return &s4wave_world.GetObjectBodiesBatchResponse{
-		Bodies:       out,
-		NextKeyIndex: nextKeyIndex,
-		WorldSeqno:   worldSeqno,
-	}, nil
+	retErr = streamObjectBodyPages(
+		ctx,
+		r.ws,
+		req.GetObjectKeys(),
+		objectBodiesBatchBudget,
+		func(resp *s4wave_world.GetObjectBodiesBatchResponse) error {
+			for _, body := range resp.GetBodies() {
+				if body.GetExists() {
+					record.ResultObjectCount++
+				}
+			}
+			return strm.Send(resp)
+		},
+	)
+	return retErr
 }
 
 const objectBodiesBatchBudget = world.ObjectBodiesBatchByteBudget
 
-func getObjectBodiesBatchPage(
+// streamObjectBodyPages reads keys in pages of at most bodyBudget encoded
+// body bytes and passes each page to send in request order.
+func streamObjectBodyPages(
 	ctx context.Context,
 	ws world.WorldState,
 	keys []string,
-	startKeyIndex uint32,
 	bodyBudget int,
-) ([]*world.ObjectBody, uint32, uint64, error) {
-	if uint64(startKeyIndex) >= uint64(len(keys)) {
-		return nil, 0, 0, nil
+	send func(*s4wave_world.GetObjectBodiesBatchResponse) error,
+) error {
+	for start := 0; start < len(keys); {
+		bodies, consumed, worldSeqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, ws, keys[start:], bodyBudget)
+		if err != nil {
+			return err
+		}
+
+		out := make([]*s4wave_world.ObjectBody, len(bodies))
+		for i, body := range bodies {
+			out[i] = &s4wave_world.ObjectBody{
+				ObjectKey: body.ObjectKey,
+				Body:      body.Body,
+				Exists:    body.Exists,
+				Rev:       body.Rev,
+			}
+		}
+		err = send(&s4wave_world.GetObjectBodiesBatchResponse{
+			Bodies:     out,
+			WorldSeqno: worldSeqno,
+		})
+		if err != nil {
+			return err
+		}
+
+		if consumed == 0 {
+			return nil
+		}
+		start += int(consumed)
 	}
-	start := int(startKeyIndex)
-	bodies, consumed, worldSeqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, ws, keys[start:], bodyBudget)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	if consumed <= 0 || uint64(consumed) >= uint64(len(keys)-start) { //nolint:gosec // consumed is a bounded page count from the world batch API.
-		return bodies, 0, worldSeqno, nil
-	}
-	return bodies, startKeyIndex + consumed, worldSeqno, nil
+	return nil
 }
 
 // QueryGraphPath creates a resource for a bounded graph path query.

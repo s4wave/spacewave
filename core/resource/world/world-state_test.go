@@ -802,31 +802,33 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
 		records = append(records, record)
 	}))
-	resp, err := resource.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
-		ObjectKeys: []string{"body/gamma", "body/missing", "body/alpha", "body/alpha"},
-	})
+	mux := srpc.NewMux()
+	if err := s4wave_world.SRPCRegisterWorldStateResourceService(mux, resource); err != nil {
+		t.Fatal(err)
+	}
+	service := s4wave_world.NewSRPCWorldStateResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+	bodies, err := s4wave_world.GetObjectBodiesBatch(ctx, service, []string{"body/gamma", "body/missing", "body/alpha", "body/alpha"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	bodies := resp.GetBodies()
 	if len(bodies) != 4 {
 		t.Fatalf("expected 4 bodies, got %d", len(bodies))
 	}
 	checkBody := func(index int, key string, msg string, exists bool) {
 		t.Helper()
 		body := bodies[index]
-		if body.GetObjectKey() != key || body.GetExists() != exists {
-			t.Fatalf("body %d = key %q exists %v, want key %q exists %v", index, body.GetObjectKey(), body.GetExists(), key, exists)
+		if body.ObjectKey != key || body.Exists != exists {
+			t.Fatalf("body %d = key %q exists %v, want key %q exists %v", index, body.ObjectKey, body.Exists, key, exists)
 		}
 		if !exists {
-			if body.GetBody() != nil {
+			if body.Body != nil {
 				t.Fatalf("body %d has data for missing key", index)
 			}
 			return
 		}
 		decoded := block_mock.NewExample("")
-		if err := decoded.UnmarshalBlock(body.GetBody()); err != nil {
+		if err := decoded.UnmarshalBlock(body.Body); err != nil {
 			t.Fatalf("decode body %d: %v", index, err)
 		}
 		if decoded.GetMsg() != msg {

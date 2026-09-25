@@ -2,6 +2,7 @@ package s4wave_world
 
 import (
 	"context"
+	"io"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/pkg/errors"
@@ -10,13 +11,19 @@ import (
 
 const maxObjectBodiesBatchRevisionRetries = 3
 
-// ObjectBodiesBatchService reads one page of object bodies from a WorldState resource.
+// ObjectBodiesBatchService streams pages of object bodies from a WorldState
+// resource.
 type ObjectBodiesBatchService interface {
-	GetObjectBodiesBatch(context.Context, *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error)
+	GetObjectBodiesBatch(
+		context.Context,
+		*GetObjectBodiesBatchRequest,
+	) (SRPCWorldStateResourceService_GetObjectBodiesBatchClient, error)
 }
 
 // ForEachObjectBodyPage calls cb with each page of serialized object bodies.
-// The callback must finish with the page before the next RPC response is read.
+// The callback must finish with the page before the next page is read.
+// Returns ObjectBodiesBatchRevisionError when pages come from different World
+// revisions.
 func ForEachObjectBodyPage(
 	ctx context.Context,
 	service ObjectBodiesBatchService,
@@ -37,47 +44,48 @@ func ForEachObjectBodyPage(
 	var worldSeqno uint64
 	var haveWorldSeqno bool
 	for _, chunk := range chunks {
-		for startKeyIndex := uint32(0); ; {
-			resp, err := service.GetObjectBodiesBatch(ctx, &GetObjectBodiesBatchRequest{
-				ObjectKeys:    chunk,
-				StartKeyIndex: startKeyIndex,
-			})
-			if err != nil {
-				return err
-			}
+		strm, err := service.GetObjectBodiesBatch(ctx, &GetObjectBodiesBatchRequest{ObjectKeys: chunk})
+		if err != nil {
+			return err
+		}
+		err = func() error {
+			defer strm.Close()
+			for {
+				resp, err := strm.Recv()
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
 
-			pageSeqno := resp.GetWorldSeqno()
-			if !haveWorldSeqno {
-				worldSeqno = pageSeqno
-				haveWorldSeqno = true
-			} else if pageSeqno != worldSeqno {
-				return &ObjectBodiesBatchRevisionError{
-					Expected: worldSeqno,
-					Got:      pageSeqno,
+				pageSeqno := resp.GetWorldSeqno()
+				if !haveWorldSeqno {
+					worldSeqno = pageSeqno
+					haveWorldSeqno = true
+				} else if pageSeqno != worldSeqno {
+					return &ObjectBodiesBatchRevisionError{
+						Expected: worldSeqno,
+						Got:      pageSeqno,
+					}
+				}
+
+				page := make([]*world.ObjectBody, len(resp.GetBodies()))
+				for i, body := range resp.GetBodies() {
+					page[i] = &world.ObjectBody{
+						ObjectKey: body.GetObjectKey(),
+						Body:      append([]byte(nil), body.GetBody()...),
+						Exists:    body.GetExists(),
+						Rev:       body.GetRev(),
+					}
+				}
+				if err := cb(page); err != nil {
+					return err
 				}
 			}
-
-			page := make([]*world.ObjectBody, len(resp.GetBodies()))
-			for i, body := range resp.GetBodies() {
-				page[i] = &world.ObjectBody{
-					ObjectKey: body.GetObjectKey(),
-					Body:      append([]byte(nil), body.GetBody()...),
-					Exists:    body.GetExists(),
-					Rev:       body.GetRev(),
-				}
-			}
-			if err := cb(page); err != nil {
-				return err
-			}
-
-			nextKeyIndex := resp.GetNextKeyIndex()
-			if nextKeyIndex == 0 {
-				break
-			}
-			if nextKeyIndex <= startKeyIndex || uint64(nextKeyIndex) > uint64(len(chunk)) {
-				return errors.Errorf("object bodies batch page did not advance: next key index %d after %d", nextKeyIndex, startKeyIndex)
-			}
-			startKeyIndex = nextKeyIndex
+		}()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -108,11 +116,9 @@ func GetObjectBodiesBatch(ctx context.Context, service ObjectBodiesBatchService,
 
 func chunkObjectBodyKeys(keys []string) ([][]string, error) {
 	var chunks [][]string
-	const maxStartKeyIndex = ^uint32(0)
-	startKeyIndexSize := protobuf_go_lite.SizeVarintValue(1, maxStartKeyIndex)
 	for start := 0; start < len(keys); {
 		end := start
-		encodedSize := startKeyIndexSize
+		encodedSize := 0
 		for end < len(keys) {
 			keySize := protobuf_go_lite.SizeStringValue(1, keys[end])
 			if encodedSize+keySize > world.ObjectBodiesBatchByteBudget {

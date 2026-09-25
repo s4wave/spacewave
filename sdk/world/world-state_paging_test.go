@@ -3,6 +3,7 @@ package s4wave_world
 import (
 	"context"
 	"errors"
+	"io"
 	"slices"
 	"strings"
 	"testing"
@@ -12,28 +13,47 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
+// objectBodiesBatchService answers each GetObjectBodiesBatch call with the
+// next scripted stream of pages.
 type objectBodiesBatchService struct {
 	SRPCWorldStateResourceServiceClient
-	responses []*GetObjectBodiesBatchResponse
-	requests  []*GetObjectBodiesBatchRequest
+	streams  [][]*GetObjectBodiesBatchResponse
+	requests []*GetObjectBodiesBatchRequest
 }
 
-func (s *objectBodiesBatchService) GetObjectBodiesBatch(_ context.Context, req *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error) {
+func (s *objectBodiesBatchService) GetObjectBodiesBatch(
+	_ context.Context,
+	req *GetObjectBodiesBatchRequest,
+) (SRPCWorldStateResourceService_GetObjectBodiesBatchClient, error) {
 	s.requests = append(s.requests, req)
-	return s.responses[len(s.requests)-1], nil
+	return &objectBodiesBatchClient{pages: s.streams[len(s.requests)-1]}, nil
+}
+
+// objectBodiesBatchClient replays pages, then ends the stream.
+type objectBodiesBatchClient struct {
+	SRPCWorldStateResourceService_GetObjectBodiesBatchClient
+	pages []*GetObjectBodiesBatchResponse
+}
+
+func (c *objectBodiesBatchClient) Recv() (*GetObjectBodiesBatchResponse, error) {
+	if len(c.pages) == 0 {
+		return nil, io.EOF
+	}
+	page := c.pages[0]
+	c.pages = c.pages[1:]
+	return page, nil
+}
+
+func (c *objectBodiesBatchClient) Close() error {
+	return nil
 }
 
 func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{
-				Bodies:       []*ObjectBody{{ObjectKey: "body/one"}, {ObjectKey: "body/two"}},
-				NextKeyIndex: 2,
-			},
-			{
-				Bodies: []*ObjectBody{{ObjectKey: "body/three"}},
-			},
-		},
+		streams: [][]*GetObjectBodiesBatchResponse{{
+			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}, {ObjectKey: "body/two"}}},
+			{Bodies: []*ObjectBody{{ObjectKey: "body/three"}}},
+		}},
 	}
 	ws := &WorldState{service: service}
 
@@ -62,14 +82,14 @@ func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 
 func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
+		streams: [][]*GetObjectBodiesBatchResponse{{
 			{
 				Bodies: []*ObjectBody{
 					{ObjectKey: "body/one", Exists: true, Rev: 7},
 					{ObjectKey: "body/two", Exists: true, Rev: 9},
 				},
 			},
-		},
+		}},
 	}
 	ws := &WorldState{service: service}
 
@@ -90,9 +110,9 @@ func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
 
 func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}},
+		streams: [][]*GetObjectBodiesBatchResponse{
+			{{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}}},
+			{{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}}},
 		},
 	}
 	ws := &WorldState{service: service}
@@ -120,7 +140,6 @@ func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 }
 
 func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
-	const maxStartKeyIndex = ^uint32(0)
 	budget := world.ObjectBodiesBatchByteBudget
 	cases := [][]string{
 		{
@@ -150,14 +169,11 @@ func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
 		}
 		var flattened []string
 		for chunkIndex, chunk := range chunks {
-			incrementalSize := protobuf_go_lite.SizeVarintValue(1, maxStartKeyIndex)
+			incrementalSize := 0
 			for _, key := range chunk {
 				incrementalSize += protobuf_go_lite.SizeStringValue(1, key)
 			}
-			request := &GetObjectBodiesBatchRequest{
-				ObjectKeys:    chunk,
-				StartKeyIndex: maxStartKeyIndex,
-			}
+			request := &GetObjectBodiesBatchRequest{ObjectKeys: chunk}
 			if got := request.SizeVT(); got != incrementalSize {
 				t.Fatalf(
 					"case %d chunk %d encoded size = %d, incremental size = %d",
@@ -191,18 +207,15 @@ func TestChunkObjectBodyKeysRejectsOversizedSingleKey(t *testing.T) {
 
 func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{
-				Bodies:       []*ObjectBody{{ObjectKey: "body/large", Body: []byte("12345"), Exists: true}},
-				NextKeyIndex: 1,
-			},
+		streams: [][]*GetObjectBodiesBatchResponse{{
+			{Bodies: []*ObjectBody{{ObjectKey: "body/large", Body: []byte("12345"), Exists: true}}},
 			{
 				Bodies: []*ObjectBody{
 					{ObjectKey: "body/missing", Exists: false},
 					{ObjectKey: "body/large", Body: []byte("12345"), Exists: true},
 				},
 			},
-		},
+		}},
 	}
 	ws := &WorldState{service: service}
 	keys := []string{"body/large", "body/missing", "body/large"}
@@ -211,11 +224,8 @@ func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(service.requests) != 2 {
-		t.Fatalf("request count = %d, want 2", len(service.requests))
-	}
-	if service.requests[0].GetStartKeyIndex() != 0 || service.requests[1].GetStartKeyIndex() != 1 {
-		t.Fatalf("request start indexes = %d, %d, want 0, 1", service.requests[0].GetStartKeyIndex(), service.requests[1].GetStartKeyIndex())
+	if len(service.requests) != 1 {
+		t.Fatalf("request count = %d, want 1", len(service.requests))
 	}
 	if len(bodies) != len(keys) {
 		t.Fatalf("body count = %d, want %d", len(bodies), len(keys))
@@ -232,11 +242,15 @@ func TestWorldStateGetObjectBodiesBatchPagesResults(t *testing.T) {
 
 func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 1},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 2},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2},
+		streams: [][]*GetObjectBodiesBatchResponse{
+			{
+				{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, WorldSeqno: 1},
+				{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2},
+			},
+			{
+				{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, WorldSeqno: 2},
+				{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2},
+			},
 		},
 	}
 	ws := &WorldState{service: service}
@@ -245,13 +259,8 @@ func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(service.requests) != 4 {
-		t.Fatalf("request count = %d, want 4", len(service.requests))
-	}
-	for i, want := range []uint32{0, 1, 0, 1} {
-		if got := service.requests[i].GetStartKeyIndex(); got != want {
-			t.Fatalf("request %d start index = %d, want %d", i, got, want)
-		}
+	if len(service.requests) != 2 {
+		t.Fatalf("request count = %d, want 2", len(service.requests))
 	}
 	if len(bodies) != 2 || bodies[0].ObjectKey != "body/one" || bodies[1].ObjectKey != "body/two" {
 		t.Fatalf("bodies = %+v, want both consistent pages", bodies)
@@ -259,17 +268,12 @@ func TestWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.T) 
 }
 
 func TestWorldStateGetObjectBodiesBatchReturnsTypedRevisionError(t *testing.T) {
-	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 1},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, NextKeyIndex: 1, WorldSeqno: 2},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 3},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, NextKeyIndex: 1, WorldSeqno: 4},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 5},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, NextKeyIndex: 1, WorldSeqno: 6},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 7},
-			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 8},
-		},
+	service := &objectBodiesBatchService{}
+	for attempt := range uint64(4) {
+		service.streams = append(service.streams, []*GetObjectBodiesBatchResponse{
+			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, WorldSeqno: 2*attempt + 1},
+			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2*attempt + 2},
+		})
 	}
 	ws := &WorldState{service: service}
 
@@ -285,10 +289,10 @@ func TestWorldStateGetObjectBodiesBatchReturnsTypedRevisionError(t *testing.T) {
 
 func TestWorldStateForEachObjectBodyPageReturnsRevisionError(t *testing.T) {
 	service := &objectBodiesBatchService{
-		responses: []*GetObjectBodiesBatchResponse{
-			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1, WorldSeqno: 1},
+		streams: [][]*GetObjectBodiesBatchResponse{{
+			{Bodies: []*ObjectBody{{ObjectKey: "body/one"}}, WorldSeqno: 1},
 			{Bodies: []*ObjectBody{{ObjectKey: "body/two"}}, WorldSeqno: 2},
-		},
+		}},
 	}
 	ws := &WorldState{service: service}
 

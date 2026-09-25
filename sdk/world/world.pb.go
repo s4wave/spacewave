@@ -1748,8 +1748,6 @@ type GetObjectBodiesBatchRequest struct {
 	unknownFields []byte
 	// ObjectKeys is the list of object keys to inspect.
 	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
-	// StartKeyIndex is the first object key index to include in this page.
-	StartKeyIndex uint32 `protobuf:"varint,2,opt,name=start_key_index,json=startKeyIndex,proto3" json:"startKeyIndex,omitempty"`
 }
 
 func (x *GetObjectBodiesBatchRequest) Reset() {
@@ -1765,23 +1763,17 @@ func (x *GetObjectBodiesBatchRequest) GetObjectKeys() []string {
 	return nil
 }
 
-func (x *GetObjectBodiesBatchRequest) GetStartKeyIndex() uint32 {
-	if x != nil {
-		return x.StartKeyIndex
-	}
-	return 0
-}
-
-// GetObjectBodiesBatchResponse is the response type for
-// GetObjectBodiesBatch.
+// GetObjectBodiesBatchResponse is one page of GetObjectBodiesBatch.
+//
+// The server streams pages in request order, each within the encoded body
+// budget, and ends the stream after the last key.
 type GetObjectBodiesBatchResponse struct {
 	unknownFields []byte
-	// Bodies preserves the request object key order.
+	// Bodies continues the request object key order.
 	Bodies []*ObjectBody `protobuf:"bytes,1,rep,name=bodies,proto3" json:"bodies,omitempty"`
-	// NextKeyIndex is the next key index to request. Zero means complete.
-	NextKeyIndex uint32 `protobuf:"varint,2,opt,name=next_key_index,json=nextKeyIndex,proto3" json:"nextKeyIndex,omitempty"`
-	// WorldSeqno is the World sequence number observed for this page.
-	WorldSeqno uint64 `protobuf:"varint,3,opt,name=world_seqno,json=worldSeqno,proto3" json:"worldSeqno,omitempty"`
+	// WorldSeqno is the World sequence number observed for this page. A reader
+	// that needs one revision restarts when pages disagree.
+	WorldSeqno uint64 `protobuf:"varint,2,opt,name=world_seqno,json=worldSeqno,proto3" json:"worldSeqno,omitempty"`
 }
 
 func (x *GetObjectBodiesBatchResponse) Reset() {
@@ -1795,13 +1787,6 @@ func (x *GetObjectBodiesBatchResponse) GetBodies() []*ObjectBody {
 		return x.Bodies
 	}
 	return nil
-}
-
-func (x *GetObjectBodiesBatchResponse) GetNextKeyIndex() uint32 {
-	if x != nil {
-		return x.NextKeyIndex
-	}
-	return 0
 }
 
 func (x *GetObjectBodiesBatchResponse) GetWorldSeqno() uint64 {
@@ -4008,7 +3993,6 @@ func (m *GetObjectBodiesBatchRequest) CloneVT() *GetObjectBodiesBatchRequest {
 		return (*GetObjectBodiesBatchRequest)(nil)
 	}
 	r := new(GetObjectBodiesBatchRequest)
-	r.StartKeyIndex = m.StartKeyIndex
 	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -4025,7 +4009,6 @@ func (m *GetObjectBodiesBatchResponse) CloneVT() *GetObjectBodiesBatchResponse {
 		return (*GetObjectBodiesBatchResponse)(nil)
 	}
 	r := new(GetObjectBodiesBatchResponse)
-	r.NextKeyIndex = m.NextKeyIndex
 	r.WorldSeqno = m.WorldSeqno
 	r.Bodies = protobuf_go_lite.CloneVTSlice(m.Bodies)
 	if len(m.unknownFields) > 0 {
@@ -6278,9 +6261,6 @@ func (this *GetObjectBodiesBatchRequest) EqualVT(that *GetObjectBodiesBatchReque
 	if !protobuf_go_lite.EqualSlice(this.ObjectKeys, that.ObjectKeys) {
 		return false
 	}
-	if this.StartKeyIndex != that.StartKeyIndex {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6299,9 +6279,6 @@ func (this *GetObjectBodiesBatchResponse) EqualVT(that *GetObjectBodiesBatchResp
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Bodies, that.Bodies, func() *ObjectBody { return &ObjectBody{} }) {
-		return false
-	}
-	if this.NextKeyIndex != that.NextKeyIndex {
 		return false
 	}
 	if this.WorldSeqno != that.WorldSeqno {
@@ -10618,11 +10595,6 @@ func (x *GetObjectBodiesBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("objectKeys")
 		s.WriteStringArray(x.ObjectKeys)
 	}
-	if x.StartKeyIndex != 0 || s.HasField("startKeyIndex") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("startKeyIndex")
-		s.WriteUint32(x.StartKeyIndex)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -10647,9 +10619,6 @@ func (x *GetObjectBodiesBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState)
 				return
 			}
 			x.ObjectKeys = s.ReadStringArray()
-		case "start_key_index", "startKeyIndex":
-			s.AddField("start_key_index")
-			x.StartKeyIndex = s.ReadUint32()
 		}
 	})
 }
@@ -10677,11 +10646,6 @@ func (x *GetObjectBodiesBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("bodies"))
 		}
 		s.WriteArrayEnd()
-	}
-	if x.NextKeyIndex != 0 || s.HasField("nextKeyIndex") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("nextKeyIndex")
-		s.WriteUint32(x.NextKeyIndex)
 	}
 	if x.WorldSeqno != 0 || s.HasField("worldSeqno") {
 		s.WriteMoreIf(&wroteField)
@@ -10723,9 +10687,6 @@ func (x *GetObjectBodiesBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState
 				}
 				x.Bodies = append(x.Bodies, v)
 			})
-		case "next_key_index", "nextKeyIndex":
-			s.AddField("next_key_index")
-			x.NextKeyIndex = s.ReadUint32()
 		case "world_seqno", "worldSeqno":
 			s.AddField("world_seqno")
 			x.WorldSeqno = s.ReadUint64()
@@ -15662,11 +15623,6 @@ func (m *GetObjectBodiesBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.StartKeyIndex != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StartKeyIndex))
-		i--
-		dAtA[i] = 0x10
-	}
 	if len(m.ObjectKeys) > 0 {
 		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKeys[iNdEx])
@@ -15708,11 +15664,6 @@ func (m *GetObjectBodiesBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 	}
 	if m.WorldSeqno != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WorldSeqno))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.NextKeyIndex != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextKeyIndex))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -18431,7 +18382,6 @@ func (m *GetObjectBodiesBatchRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.StartKeyIndex)
 	n += len(m.unknownFields)
 	return n
 }
@@ -18446,7 +18396,6 @@ func (m *GetObjectBodiesBatchResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextKeyIndex)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WorldSeqno)
 	n += len(m.unknownFields)
 	return n
@@ -20150,10 +20099,6 @@ func (x *GetObjectBodiesBatchRequest) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if x.StartKeyIndex != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "start_key_index")
-		protobuf_go_lite.TextWriteUint(&sb, x.StartKeyIndex)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -20175,10 +20120,6 @@ func (x *GetObjectBodiesBatchResponse) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if x.NextKeyIndex != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_key_index")
-		protobuf_go_lite.TextWriteUint(&sb, x.NextKeyIndex)
 	}
 	if x.WorldSeqno != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world_seqno")
@@ -24809,15 +24750,6 @@ func (m *GetObjectBodiesBatchRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ObjectKeys = append(m.ObjectKeys, v)
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartKeyIndex", wireType)
-			}
-			m.StartKeyIndex = 0
-			m.StartKeyIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -24875,15 +24807,6 @@ func (m *GetObjectBodiesBatchResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextKeyIndex", wireType)
-			}
-			m.NextKeyIndex = 0
-			m.NextKeyIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WorldSeqno", wireType)
 			}

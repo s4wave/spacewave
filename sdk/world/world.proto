@@ -191,7 +191,7 @@ service WorldStateResourceService {
   rpc GetObjectRootRefsBatch(GetObjectRootRefsBatchRequest) returns (GetObjectRootRefsBatchResponse);
 
   rpc GetObjectMetadataBatch(GetObjectMetadataBatchRequest) returns (GetObjectMetadataBatchResponse);
-  rpc GetObjectBodiesBatch(GetObjectBodiesBatchRequest) returns (GetObjectBodiesBatchResponse);
+  rpc GetObjectBodiesBatch(GetObjectBodiesBatchRequest) returns (stream GetObjectBodiesBatchResponse);
 
   rpc QueryGraphPath(QueryGraphPathRequest) returns (QueryGraphPathResponse);
 
@@ -566,19 +566,18 @@ message ObjectBody {
 message GetObjectBodiesBatchRequest {
   // ObjectKeys is the list of object keys to inspect.
   repeated string object_keys = 1;
-  // StartKeyIndex is the first object key index to include in this page.
-  uint32 start_key_index = 2;
 }
 
-// GetObjectBodiesBatchResponse is the response type for
-// GetObjectBodiesBatch.
+// GetObjectBodiesBatchResponse is one page of GetObjectBodiesBatch.
+//
+// The server streams pages in request order, each within the encoded body
+// budget, and ends the stream after the last key.
 message GetObjectBodiesBatchResponse {
-  // Bodies preserves the request object key order.
+  // Bodies continues the request object key order.
   repeated ObjectBody bodies = 1;
-  // NextKeyIndex is the next key index to request. Zero means complete.
-  uint32 next_key_index = 2;
-  // WorldSeqno is the World sequence number observed for this page.
-  uint64 world_seqno = 3;
+  // WorldSeqno is the World sequence number observed for this page. A reader
+  // that needs one revision restarts when pages disagree.
+  uint64 world_seqno = 2;
 }
 
 

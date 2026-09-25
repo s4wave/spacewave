@@ -526,7 +526,7 @@ type SRPCWorldStateResourceServiceClient interface {
 
 	GetObjectMetadataBatch(ctx context.Context, in *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
 
-	GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error)
+	GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (SRPCWorldStateResourceService_GetObjectBodiesBatchClient, error)
 
 	QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
@@ -751,13 +751,38 @@ func (c *srpcWorldStateResourceServiceClient) GetObjectMetadataBatch(ctx context
 	return out, nil
 }
 
-func (c *srpcWorldStateResourceServiceClient) GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error) {
-	out := new(GetObjectBodiesBatchResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "GetObjectBodiesBatch", in, out)
+func (c *srpcWorldStateResourceServiceClient) GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (SRPCWorldStateResourceService_GetObjectBodiesBatchClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "GetObjectBodiesBatch", in)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	strm := &srpcWorldStateResourceService_GetObjectBodiesBatchClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCWorldStateResourceService_GetObjectBodiesBatchClient interface {
+	srpc.Stream
+	Recv() (*GetObjectBodiesBatchResponse, error)
+	RecvTo(*GetObjectBodiesBatchResponse) error
+}
+
+type srpcWorldStateResourceService_GetObjectBodiesBatchClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_GetObjectBodiesBatchClient) Recv() (*GetObjectBodiesBatchResponse, error) {
+	m := new(GetObjectBodiesBatchResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWorldStateResourceService_GetObjectBodiesBatchClient) RecvTo(m *GetObjectBodiesBatchResponse) error {
+	return x.MsgRecv(m)
 }
 
 func (c *srpcWorldStateResourceServiceClient) QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error) {
@@ -833,7 +858,7 @@ type SRPCWorldStateResourceServiceServer interface {
 
 	GetObjectMetadataBatch(context.Context, *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
 
-	GetObjectBodiesBatch(context.Context, *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error)
+	GetObjectBodiesBatch(*GetObjectBodiesBatchRequest, SRPCWorldStateResourceService_GetObjectBodiesBatchStream) error
 
 	QueryGraphPath(context.Context, *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
@@ -1232,11 +1257,8 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectBodiesBatch(im
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.GetObjectBodiesBatch(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
+	serverStrm := &srpcWorldStateResourceService_GetObjectBodiesBatchStream{strm}
+	return impl.GetObjectBodiesBatch(req, serverStrm)
 }
 
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_QueryGraphPath(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
@@ -1453,10 +1475,25 @@ type srpcWorldStateResourceService_GetObjectMetadataBatchStream struct {
 
 type SRPCWorldStateResourceService_GetObjectBodiesBatchStream interface {
 	srpc.Stream
+	Send(*GetObjectBodiesBatchResponse) error
+	SendAndClose(*GetObjectBodiesBatchResponse) error
 }
 
 type srpcWorldStateResourceService_GetObjectBodiesBatchStream struct {
 	srpc.Stream
+}
+
+func (x *srpcWorldStateResourceService_GetObjectBodiesBatchStream) Send(m *GetObjectBodiesBatchResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWorldStateResourceService_GetObjectBodiesBatchStream) SendAndClose(m *GetObjectBodiesBatchResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCWorldStateResourceService_QueryGraphPathStream interface {
