@@ -1,4 +1,4 @@
-package logindex
+package memtable
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ type iterator struct {
 }
 
 // newIterator returns an iterator over the keys of tree with prefix.
-func newIterator(tree *table, prefix []byte, reverse bool) *iterator {
+func newIterator(tree *tree, prefix []byte, reverse bool) *iterator {
 	i := &iterator{it: tree.Iter(), prefix: prefix, reverse: reverse}
 	if reverse {
 		i.prefixEnd = prefixUpperBound(prefix)
