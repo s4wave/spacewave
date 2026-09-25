@@ -145,7 +145,9 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 	}
 
 	conf := config.CloneVT()
-	conf.SessionId = rand.Text()
+	// The session id appears in every module URL; 40 random bits keep it short
+	// while still distinguishing one environment from the one it replaced.
+	conf.SessionId = strings.ToLower(rand.Text()[:8])
 	err = compiler.RunDevelopment(ctx, conf, func(client vite.SRPCViteBundlerClient, result *vite.DevelopmentResult) {
 		target, parseErr := url.Parse(result.GetPrivateUrl())
 		if parseErr != nil || target.Scheme != "http" || target.Hostname() != "127.0.0.1" {
