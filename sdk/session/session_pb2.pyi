@@ -82,6 +82,13 @@ class JoinSpaceViaInviteResult(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL: _ClassVar[JoinSpaceViaInviteResult]
     JoinSpaceViaInviteResult_REJECTED: _ClassVar[JoinSpaceViaInviteResult]
     JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE: _ClassVar[JoinSpaceViaInviteResult]
+
+class MoveSpaceStoragePhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    MoveSpaceStoragePhase_UNKNOWN: _ClassVar[MoveSpaceStoragePhase]
+    MoveSpaceStoragePhase_FETCH: _ClassVar[MoveSpaceStoragePhase]
+    MoveSpaceStoragePhase_UPLOAD: _ClassVar[MoveSpaceStoragePhase]
+    MoveSpaceStoragePhase_DONE: _ClassVar[MoveSpaceStoragePhase]
 SyncStatusState_SYNCED: SyncStatusState
 SyncStatusState_ACTIVE: SyncStatusState
 SyncStatusState_ERROR: SyncStatusState
@@ -126,6 +133,10 @@ JoinSpaceViaInviteResult_ACCEPTED: JoinSpaceViaInviteResult
 JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL: JoinSpaceViaInviteResult
 JoinSpaceViaInviteResult_REJECTED: JoinSpaceViaInviteResult
 JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE: JoinSpaceViaInviteResult
+MoveSpaceStoragePhase_UNKNOWN: MoveSpaceStoragePhase
+MoveSpaceStoragePhase_FETCH: MoveSpaceStoragePhase
+MoveSpaceStoragePhase_UPLOAD: MoveSpaceStoragePhase
+MoveSpaceStoragePhase_DONE: MoveSpaceStoragePhase
 
 class GetSessionInfoRequest(_message.Message):
     __slots__ = ()
@@ -980,3 +991,27 @@ class WatchSpaceStorageResponse(_message.Message):
     pending_bytes: int
     upload_error: str
     def __init__(self, storage_backend_id: _Optional[str] = ..., storage_backend_name: _Optional[str] = ..., pending_blocks: _Optional[int] = ..., pending_bytes: _Optional[int] = ..., upload_error: _Optional[str] = ...) -> None: ...
+
+class MoveSpaceStorageRequest(_message.Message):
+    __slots__ = ("shared_object_id", "storage_backend_id")
+    SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    shared_object_id: str
+    storage_backend_id: str
+    def __init__(self, shared_object_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ...) -> None: ...
+
+class MoveSpaceStorageResponse(_message.Message):
+    __slots__ = ("phase", "blocks_fetched", "blocks_total", "pending_blocks", "pending_bytes", "upload_error")
+    PHASE_FIELD_NUMBER: _ClassVar[int]
+    BLOCKS_FETCHED_FIELD_NUMBER: _ClassVar[int]
+    BLOCKS_TOTAL_FIELD_NUMBER: _ClassVar[int]
+    PENDING_BLOCKS_FIELD_NUMBER: _ClassVar[int]
+    PENDING_BYTES_FIELD_NUMBER: _ClassVar[int]
+    UPLOAD_ERROR_FIELD_NUMBER: _ClassVar[int]
+    phase: MoveSpaceStoragePhase
+    blocks_fetched: int
+    blocks_total: int
+    pending_blocks: int
+    pending_bytes: int
+    upload_error: str
+    def __init__(self, phase: _Optional[_Union[MoveSpaceStoragePhase, str]] = ..., blocks_fetched: _Optional[int] = ..., blocks_total: _Optional[int] = ..., pending_blocks: _Optional[int] = ..., pending_bytes: _Optional[int] = ..., upload_error: _Optional[str] = ...) -> None: ...

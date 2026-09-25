@@ -258,6 +258,12 @@ class SessionResourceServiceClient:
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageResponse
     ]: ...
+    def move_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse
+    ]: ...
 
 class SessionResourceServiceServer(Protocol):
     async def get_session_info(
@@ -505,6 +511,12 @@ class SessionResourceServiceServer(Protocol):
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,
     ) -> AsyncIterator[
         _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageResponse
+    ]: ...
+    def move_space_storage(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageRequest,
+    ) -> AsyncIterator[
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.MoveSpaceStorageResponse
     ]: ...
 
 def register_session_resource_service(

@@ -5,11 +5,13 @@
 // marker names it. Upload drains the markers to the remote store and clears
 // each marker only after the remote store holds its block, so writes made
 // while the remote is unreachable upload after it returns, across restarts.
+// Backfill queues the blocks stored before a remote was chosen.
 package block_store_writeback
 
 import (
 	"bytes"
 	"context"
+	"slices"
 	"strconv"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -23,8 +25,14 @@ import (
 // markerPrefix prefixes the marker key of each block awaiting upload.
 const markerPrefix = "pending/"
 
+// targetKey names the remote whose backfill completed.
+const targetKey = "target"
+
 // uploadBatchSize bounds the blocks one upload request batch carries.
 const uploadBatchSize = 64
+
+// backfillBatchSize bounds the blocks one backfill marker transaction queues.
+const backfillBatchSize = 256
 
 // errBatchFull stops a marker scan once a batch is full.
 var errBatchFull = errors.New("upload batch full")
@@ -39,6 +47,9 @@ type Status struct {
 	PendingBytes int64
 	// Err is the last upload failure, cleared by the next successful batch.
 	Err error
+	// Target is the remote every block stored before it was chosen is queued
+	// for, empty until a backfill completes.
+	Target string
 }
 
 // Store is a local block store whose writes queue for upload.
@@ -66,8 +77,14 @@ func NewStore(ctx context.Context, local block.StoreOps, markers kvtx.Store, ena
 
 	var pending int
 	var pendingBytes int64
+	var target []byte
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
 		pending, pendingBytes = 0, 0
+		var err error
+		target, _, err = tx.Get(ctx, []byte(targetKey))
+		if err != nil {
+			return err
+		}
 		return tx.ScanPrefix(ctx, []byte(markerPrefix), func(_, value []byte) error {
 			pending++
 			pendingBytes += parseMarkerSize(value)
@@ -77,7 +94,12 @@ func NewStore(ctx context.Context, local block.StoreOps, markers kvtx.Store, ena
 	if err != nil {
 		return nil, errors.Wrap(err, "count pending uploads")
 	}
-	s.status = Status{Enabled: enabled, Pending: pending, PendingBytes: pendingBytes}
+	s.status = Status{
+		Enabled:      enabled,
+		Pending:      pending,
+		PendingBytes: pendingBytes,
+		Target:       string(target),
+	}
 	return s, nil
 }
 
@@ -93,8 +115,8 @@ func (s *Store) GetStatus() (Status, <-chan struct{}) {
 
 // SetEnabled starts or stops queueing writes for upload.
 //
-// Disabling drops the queued markers: the local store keeps every block, and
-// the remote store no longer needs them.
+// Disabling drops the queued markers and the backfill target: the local store
+// keeps every block, and the remote store no longer needs them.
 func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
@@ -117,7 +139,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 					return err
 				}
 			}
-			return nil
+			return tx.Delete(ctx, []byte(targetKey))
 		})
 		if err != nil {
 			return errors.Wrap(err, "drop pending uploads")
@@ -127,8 +149,63 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.status.Enabled = enabled
 		if !enabled {
-			s.status.Pending, s.status.PendingBytes, s.status.Err = 0, 0, nil
+			s.status.Pending, s.status.PendingBytes = 0, 0
+			s.status.Err, s.status.Target = nil, ""
 		}
+		broadcast()
+	})
+	return nil
+}
+
+// Backfill queues every block list names for upload to target, unless a
+// backfill for target already completed. Call it after enabling uploads for
+// target, so the backfill and new writes together cover every block.
+//
+// A block the local store does not hold is skipped. The completed target is
+// recorded durably, so an interrupted backfill runs again on the next call.
+func (s *Store) Backfill(
+	ctx context.Context,
+	target string,
+	list func(ctx context.Context) ([]*block.BlockRef, error),
+) error {
+	status, _ := s.GetStatus()
+	if status.Target == target {
+		return nil
+	}
+
+	refs, err := list(ctx)
+	if err != nil {
+		return errors.Wrap(err, "list blocks to upload")
+	}
+	for batch := range slices.Chunk(refs, backfillBatchSize) {
+		marks := make([]Mark, 0, len(batch))
+		for _, ref := range batch {
+			stat, err := s.local.StatBlock(ctx, ref)
+			if err != nil {
+				return errors.Wrap(err, "stat block to upload")
+			}
+			if stat != nil {
+				marks = append(marks, Mark{Hash: ref.GetHash(), Size: max(stat.Size, 0)})
+			}
+		}
+		if err := s.mark(ctx, marks); err != nil {
+			return err
+		}
+	}
+
+	release, err := s.mtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, []byte(targetKey), []byte(target))
+	})
+	if err != nil {
+		return errors.Wrap(err, "record upload backfill")
+	}
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.status.Target = target
 		broadcast()
 	})
 	return nil

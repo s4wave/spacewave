@@ -1,5 +1,6 @@
 import { LuDatabase } from 'react-icons/lu'
 
+import { SpaceStorageMove } from '@s4wave/app/session/storage/SpaceStorageMove.js'
 import { SpaceUploadStatus } from '@s4wave/app/session/storage/SpaceUploadStatus.js'
 import {
   formatStorageLocation,
@@ -8,8 +9,8 @@ import {
 import { useStorageBackends } from '@s4wave/app/session/storage/useStorageBackends.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 
-// SpaceStorageCard shows where the Space stores its data. It shows only for
-// accounts with storage backends, where a Space may be in a bucket.
+// SpaceStorageCard shows where the Space stores its data and moves it to
+// another storage. It shows only for accounts with storage backends.
 export function SpaceStorageCard() {
   const { spaceId } = SpaceContainerContext.useContext()
   const resource = useStorageBackends()
@@ -27,7 +28,7 @@ export function SpaceStorageCard() {
         className="text-foreground-alt mt-0.5 size-3.5 shrink-0"
         aria-hidden="true"
       />
-      <div className="min-w-0">
+      <div className="min-w-0 space-y-1.5">
         <div className="text-foreground">
           {placed
             ? `Stored in ${placed.displayName}`
@@ -44,6 +45,11 @@ export function SpaceStorageCard() {
             />
           </>
         )}
+        <SpaceStorageMove
+          sharedObjectId={spaceId}
+          placedId={placed?.id ?? ''}
+          backends={backends}
+        />
       </div>
     </div>
   )

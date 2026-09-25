@@ -73,6 +73,10 @@ service SessionResourceService {
   // WatchSpaceStorage streams where a Space's blocks are stored and the
   // progress of their upload.
   rpc WatchSpaceStorage(WatchSpaceStorageRequest) returns (stream WatchSpaceStorageResponse);
+  // MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+  // account's own storage, and streams the progress until the destination
+  // holds every block. Uploading continues if the caller stops early.
+  rpc MoveSpaceStorage(MoveSpaceStorageRequest) returns (stream MoveSpaceStorageResponse);
 }
 
 // GetSessionInfoRequest is the request type for GetSessionInfo.
@@ -1047,4 +1051,43 @@ message WatchSpaceStorageResponse {
   int64 pending_bytes = 4;
   // UploadError describes the last upload failure, empty while uploads succeed.
   string upload_error = 5;
+}
+
+// MoveSpaceStorageRequest is the request for MoveSpaceStorage.
+message MoveSpaceStorageRequest {
+  // SharedObjectId is the Space's SharedObject id.
+  string shared_object_id = 1;
+  // StorageBackendId identifies the destination backend.
+  // Empty moves the blocks to the account's own storage.
+  string storage_backend_id = 2;
+}
+
+// MoveSpaceStoragePhase is a step of a storage move.
+enum MoveSpaceStoragePhase {
+  // MoveSpaceStoragePhase_UNKNOWN is the zero value.
+  MoveSpaceStoragePhase_UNKNOWN = 0;
+  // MoveSpaceStoragePhase_FETCH copies blocks held only by the old backend
+  // into the account's own storage.
+  MoveSpaceStoragePhase_FETCH = 1;
+  // MoveSpaceStoragePhase_UPLOAD waits for the new backend to hold every block.
+  MoveSpaceStoragePhase_UPLOAD = 2;
+  // MoveSpaceStoragePhase_DONE reports the completed move.
+  MoveSpaceStoragePhase_DONE = 3;
+}
+
+// MoveSpaceStorageResponse is the progress of a storage move.
+message MoveSpaceStorageResponse {
+  // Phase is the current step.
+  MoveSpaceStoragePhase phase = 1;
+  // BlocksFetched is the number of blocks checked during the fetch phase.
+  int64 blocks_fetched = 2;
+  // BlocksTotal is the number of blocks the fetch phase checks.
+  int64 blocks_total = 3;
+  // PendingBlocks is the number of blocks not yet uploaded during the
+  // upload phase.
+  int64 pending_blocks = 4;
+  // PendingBytes is the size of the pending blocks.
+  int64 pending_bytes = 5;
+  // UploadError describes the last upload failure, empty while uploads succeed.
+  string upload_error = 6;
 }

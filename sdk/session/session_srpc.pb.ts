@@ -55,6 +55,8 @@ import {
   LockSessionResponse,
   MountSharedObjectRequest,
   MountSharedObjectResponse,
+  MoveSpaceStorageRequest,
+  MoveSpaceStorageResponse,
   RemoveSpaceParticipantsRequest,
   RemoveSpaceParticipantsResponse,
   RemoveStorageBackendRequest,
@@ -568,6 +570,19 @@ export const SessionResourceServiceDefinition = {
       O: WatchSpaceStorageResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+     * account's own storage, and streams the progress until the destination
+     * holds every block. Uploading continues if the caller stops early.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.MoveSpaceStorage
+     */
+    MoveSpaceStorage: {
+      name: 'MoveSpaceStorage',
+      I: MoveSpaceStorageRequest,
+      O: MoveSpaceStorageResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -980,6 +995,18 @@ export interface SessionResourceService {
     request: WatchSpaceStorageRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchSpaceStorageResponse>
+
+  /**
+   * MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+   * account's own storage, and streams the progress until the destination
+   * holds every block. Uploading continues if the caller stops early.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.MoveSpaceStorage
+   */
+  MoveSpaceStorage(
+    request: MoveSpaceStorageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<MoveSpaceStorageResponse>
 }
 
 /**
@@ -1439,6 +1466,19 @@ export interface SessionResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<WatchSpaceStorageResponse>
+
+  /**
+   * MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+   * account's own storage, and streams the progress until the destination
+   * holds every block. Uploading continues if the caller stops early.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.MoveSpaceStorage
+   */
+  MoveSpaceStorage(
+    request: MoveSpaceStorageRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<MoveSpaceStorageResponse>
 }
 
 export const SessionResourceServiceServiceName =
@@ -1498,6 +1538,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.RemoveStorageBackend = this.RemoveStorageBackend.bind(this)
     this.SetDefaultStorageBackend = this.SetDefaultStorageBackend.bind(this)
     this.WatchSpaceStorage = this.WatchSpaceStorage.bind(this)
+    this.MoveSpaceStorage = this.MoveSpaceStorage.bind(this)
   }
   /**
    * @generated from rpc s4wave.session.SessionResourceService.GetSessionInfo
@@ -2335,5 +2376,26 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchSpaceStorageResponse)(result)
+  }
+
+  /**
+   * MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+   * account's own storage, and streams the progress until the destination
+   * holds every block. Uploading continues if the caller stops early.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.MoveSpaceStorage
+   */
+  MoveSpaceStorage(
+    request: MoveSpaceStorageRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<MoveSpaceStorageResponse> {
+    const requestMsg = MoveSpaceStorageRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SessionResourceServiceDefinition.methods.MoveSpaceStorage.name,
+      MoveSpaceStorageRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(MoveSpaceStorageResponse)(result)
   }
 }

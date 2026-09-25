@@ -113,6 +113,10 @@ type SRPCSessionResourceServiceClient interface {
 	// WatchSpaceStorage streams where a Space's blocks are stored and the
 	// progress of their upload.
 	WatchSpaceStorage(ctx context.Context, in *WatchSpaceStorageRequest) (SRPCSessionResourceService_WatchSpaceStorageClient, error)
+	// MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+	// account's own storage, and streams the progress until the destination
+	// holds every block. Uploading continues if the caller stops early.
+	MoveSpaceStorage(ctx context.Context, in *MoveSpaceStorageRequest) (SRPCSessionResourceService_MoveSpaceStorageClient, error)
 }
 
 type srpcSessionResourceServiceClient struct {
@@ -840,6 +844,40 @@ func (x *srpcSessionResourceService_WatchSpaceStorageClient) RecvTo(m *WatchSpac
 	return x.MsgRecv(m)
 }
 
+func (c *srpcSessionResourceServiceClient) MoveSpaceStorage(ctx context.Context, in *MoveSpaceStorageRequest) (SRPCSessionResourceService_MoveSpaceStorageClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "MoveSpaceStorage", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSessionResourceService_MoveSpaceStorageClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSessionResourceService_MoveSpaceStorageClient interface {
+	srpc.Stream
+	Recv() (*MoveSpaceStorageResponse, error)
+	RecvTo(*MoveSpaceStorageResponse) error
+}
+
+type srpcSessionResourceService_MoveSpaceStorageClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_MoveSpaceStorageClient) Recv() (*MoveSpaceStorageResponse, error) {
+	m := new(MoveSpaceStorageResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSessionResourceService_MoveSpaceStorageClient) RecvTo(m *MoveSpaceStorageResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSessionResourceServiceServer interface {
 	GetSessionInfo(context.Context, *GetSessionInfoRequest) (*GetSessionInfoResponse, error)
 
@@ -940,6 +978,10 @@ type SRPCSessionResourceServiceServer interface {
 	// WatchSpaceStorage streams where a Space's blocks are stored and the
 	// progress of their upload.
 	WatchSpaceStorage(*WatchSpaceStorageRequest, SRPCSessionResourceService_WatchSpaceStorageStream) error
+	// MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+	// account's own storage, and streams the progress until the destination
+	// holds every block. Uploading continues if the caller stops early.
+	MoveSpaceStorage(*MoveSpaceStorageRequest, SRPCSessionResourceService_MoveSpaceStorageStream) error
 }
 
 const SRPCSessionResourceServiceServiceID = "s4wave.session.SessionResourceService"
@@ -1016,6 +1058,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"RemoveStorageBackend",
 		"SetDefaultStorageBackend",
 		"WatchSpaceStorage",
+		"MoveSpaceStorage",
 	}
 }
 
@@ -1124,6 +1167,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetDefaultStorageBackend(d.impl, strm)
 	case "WatchSpaceStorage":
 		return true, d.InvokeMethod_WatchSpaceStorage(d.impl, strm)
+	case "MoveSpaceStorage":
+		return true, d.InvokeMethod_MoveSpaceStorage(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -1672,6 +1717,15 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_WatchSpaceStorage(impl SRP
 	return impl.WatchSpaceStorage(req, serverStrm)
 }
 
+func (SRPCSessionResourceServiceHandler) InvokeMethod_MoveSpaceStorage(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(MoveSpaceStorageRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSessionResourceService_MoveSpaceStorageStream{strm}
+	return impl.MoveSpaceStorage(req, serverStrm)
+}
+
 type SRPCSessionResourceService_GetSessionInfoStream interface {
 	srpc.Stream
 }
@@ -2213,6 +2267,29 @@ func (x *srpcSessionResourceService_WatchSpaceStorageStream) Send(m *WatchSpaceS
 }
 
 func (x *srpcSessionResourceService_WatchSpaceStorageStream) SendAndClose(m *WatchSpaceStorageResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSessionResourceService_MoveSpaceStorageStream interface {
+	srpc.Stream
+	Send(*MoveSpaceStorageResponse) error
+	SendAndClose(*MoveSpaceStorageResponse) error
+}
+
+type srpcSessionResourceService_MoveSpaceStorageStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSessionResourceService_MoveSpaceStorageStream) Send(m *MoveSpaceStorageResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSessionResourceService_MoveSpaceStorageStream) SendAndClose(m *MoveSpaceStorageResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

@@ -378,6 +378,106 @@ func newStorageRemoveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	}
 }
 
+// newSpaceMoveStorageCommand builds the space move-storage command.
+func newSpaceMoveStorageCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	var accountStorage bool
+	return &cli.Command{
+		Name:      "move-storage",
+		Usage:     "move a Space's blocks to another storage backend",
+		ArgsUsage: "<space> <backend>",
+		Description: "Copies blocks only the old backend holds to this device, switches the\n" +
+			"Space to the new storage, and waits for the upload. Stopping early\n" +
+			"leaves the upload running in the background.",
+		Flags: []cli.Flag{
+			outputFlag(),
+			&cli.BoolFlag{
+				Name:        "account-storage",
+				Usage:       "move the blocks to the account's own storage",
+				Destination: &accountStorage,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			spaceArg, backendName := c.Args().Get(0), c.Args().Get(1)
+			if accountStorage == (backendName != "") {
+				return errors.New("name a backend or pass --account-storage")
+			}
+
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, *statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
+			if err != nil {
+				return err
+			}
+			defer sess.Release()
+
+			spaceID, err := client.resolveSpaceID(ctx, sess, spaceArg)
+			if err != nil {
+				return err
+			}
+			var backendID string
+			dest := "the account's own storage"
+			if backendName != "" {
+				backend, err := findStorageBackend(ctx, sess, backendName)
+				if err != nil {
+					return err
+				}
+				backendID, dest = backend.GetId(), backend.GetDisplayName()
+			}
+
+			strm, err := sess.MoveSpaceStorage(ctx, spaceID, backendID)
+			if err != nil {
+				return errors.Wrap(err, "move space storage")
+			}
+			defer strm.Close()
+			output := c.String("output")
+			for {
+				resp, err := strm.Recv()
+				if err != nil {
+					return errors.Wrap(err, "move space storage")
+				}
+				if output == "json" || output == "yaml" {
+					data, err := resp.MarshalJSON()
+					if err != nil {
+						return err
+					}
+					if err := formatOutput(data, output); err != nil {
+						return err
+					}
+				} else {
+					os.Stdout.WriteString(formatMoveProgress(resp, dest) + "\n")
+				}
+				if resp.GetPhase() == s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_DONE {
+					return nil
+				}
+			}
+		},
+	}
+}
+
+// formatMoveProgress describes one step of a storage move.
+func formatMoveProgress(resp *s4wave_session.MoveSpaceStorageResponse, dest string) string {
+	switch resp.GetPhase() {
+	case s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_FETCH:
+		return "copying blocks from the old backend: " +
+			strconv.FormatInt(resp.GetBlocksFetched(), 10) + " of " +
+			strconv.FormatInt(resp.GetBlocksTotal(), 10)
+	case s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_UPLOAD:
+		desc := "uploading to " + dest + ": " +
+			strconv.FormatInt(resp.GetPendingBlocks(), 10) + " blocks (" +
+			formatByteCount(resp.GetPendingBytes()) + ") left"
+		if uploadErr := resp.GetUploadError(); uploadErr != "" {
+			desc += ": " + uploadErr
+		}
+		return desc
+	default:
+		return "stored in " + dest
+	}
+}
+
 // withSession connects to the daemon and mounts the selected session.
 func withSession(
 	c *cli.Context,

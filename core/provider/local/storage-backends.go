@@ -221,19 +221,18 @@ func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*
 // SharedObject's block store, then again after each change, until ctx ends
 // or fn fails.
 func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID string, fn func(UploadStatus) error) error {
-	var blockStoreID string
-	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
-		if entry.GetRef().GetProviderResourceRef().GetId() == sharedObjectID {
-			blockStoreID = entry.GetRef().GetBlockStoreId()
-			break
-		}
-	}
+	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
 	if blockStoreID == "" {
 		return sobject.ErrSharedObjectNotFound
 	}
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
 	defer tkrRef.Release()
+	return watchTrackerUploadStatus(ctx, tkr, fn)
+}
 
+// watchTrackerUploadStatus calls fn with each upload status of the tracker's
+// mounted handle, following the handle across remounts.
+func watchTrackerUploadStatus(ctx context.Context, tkr *bstoreTracker, fn func(UploadStatus) error) error {
 	for {
 		bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
 		if err != nil {

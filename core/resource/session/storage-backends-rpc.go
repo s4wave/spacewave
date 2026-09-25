@@ -247,3 +247,48 @@ func (r *SessionResource) WatchSpaceStorage(
 		return strm.Send(resp)
 	})
 }
+
+// MoveSpaceStorage moves a Space's blocks to a storage backend or to the
+// account's own storage, and streams the progress until the destination holds
+// every block.
+func (r *SessionResource) MoveSpaceStorage(
+	req *s4wave_session.MoveSpaceStorageRequest,
+	strm s4wave_session.SRPCSessionResourceService_MoveSpaceStorageStream,
+) error {
+	localAcc, err := r.localProviderAccount()
+	if err != nil {
+		return err
+	}
+	return localAcc.MoveSpaceStorage(
+		strm.Context(),
+		req.GetSharedObjectId(),
+		req.GetStorageBackendId(),
+		func(progress provider_local.MoveProgress) error {
+			resp := &s4wave_session.MoveSpaceStorageResponse{
+				Phase:         moveSpaceStoragePhase(progress.Phase),
+				BlocksFetched: int64(progress.Fetched),
+				BlocksTotal:   int64(progress.Total),
+				PendingBlocks: int64(progress.Upload.Pending),
+				PendingBytes:  progress.Upload.PendingBytes,
+			}
+			if progress.Upload.Err != nil {
+				resp.UploadError = progress.Upload.Err.Error()
+			}
+			return strm.Send(resp)
+		},
+	)
+}
+
+// moveSpaceStoragePhase converts a move phase to its wire value.
+func moveSpaceStoragePhase(phase provider_local.MovePhase) s4wave_session.MoveSpaceStoragePhase {
+	switch phase {
+	case provider_local.MovePhaseFetch:
+		return s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_FETCH
+	case provider_local.MovePhaseUpload:
+		return s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_UPLOAD
+	case provider_local.MovePhaseDone:
+		return s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_DONE
+	default:
+		return s4wave_session.MoveSpaceStoragePhase_MoveSpaceStoragePhase_UNKNOWN
+	}
+}
