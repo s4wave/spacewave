@@ -40,12 +40,26 @@ type diskBackend struct {
 	writeStarted chan struct{}
 	// failAfter injects a failed durable write after this many successful writes.
 	failAfter int
+	// written counts bytes published by Write.
+	written int64
+	// files counts files published by Write.
+	files int
+	// kindBytes counts written bytes by file kind, the name before its first
+	// hyphen.
+	kindBytes map[string]int64
+	// unsynced skips flushes for setup writes whose durability is irrelevant.
+	unsynced bool
 }
 
 // newDiskBackend creates an isolated durable fixture.
 func newDiskBackend(t *testing.T) *diskBackend {
 	t.Helper()
-	return &diskBackend{root: t.TempDir(), locks: make(map[string]*semaphore.Weighted), failAfter: -1}
+	return &diskBackend{
+		root:      t.TempDir(),
+		locks:     make(map[string]*semaphore.Weighted),
+		failAfter: -1,
+		kindBytes: make(map[string]int64),
+	}
 }
 
 // Read reads one immutable file or range from disk.
@@ -103,6 +117,11 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 	if d.failAfter > 0 {
 		d.failAfter--
 	}
+	d.written += int64(len(data))
+	d.files++
+	kind, _, _ := strings.Cut(name, "-")
+	d.kindBytes[kind] += int64(len(data))
+	unsynced := d.unsynced
 	d.mtx.Unlock()
 	f, err := os.CreateTemp(d.root, "write-")
 	if err != nil {
@@ -113,15 +132,20 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 		_ = f.Close()
 		return err
 	}
-	if err := f.Sync(); err != nil {
-		_ = f.Close()
-		return err
+	if !unsynced {
+		if err := f.Sync(); err != nil {
+			_ = f.Close()
+			return err
+		}
 	}
 	if err := f.Close(); err != nil {
 		return err
 	}
 	if err := os.Rename(f.Name(), filepath.Join(d.root, name)); err != nil {
 		return err
+	}
+	if unsynced {
+		return nil
 	}
 	dir, err := os.Open(d.root)
 	if err != nil {
