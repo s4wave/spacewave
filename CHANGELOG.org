@@ -1,5 +1,35 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.10
+<2026-09-25 Fri>
+
+Spacewave 0.57.10 refreshes its public pages and improves storage, connections,
+updates, and command-line reliability. Cloud storage now keeps the links between
+blocks, so this release accompanies a reset of hosted beta content. Existing
+accounts and billing records are retained, but hosted Spaces and files must be
+recreated.
+
+** Fixes
+- Copying a Space between devices and the cloud completes for every Space,
+  including Spaces holding object types a device does not recognize.
+- Command-line options now work after positional arguments, and options for
+  parent commands work from their subcommands.
+- Interrupted cloud file-storage uploads retain completed progress, avoiding
+  unnecessary repeat uploads.
+- Cloud file storage can read packs that do not include a lookup filter.
+- Connections close cleanly during session shutdown instead of occasionally
+  hanging.
+- Space updates no longer lose staged changes when nested content is refreshed.
+- Go plugins respond reliably during activation.
+- Desktop update status is available consistently to the app and desktop tray.
+
+** Improvements
+- The landing, Community, Pricing, and Blog pages have a cleaner, more
+  consistent design with stable launcher labels.
+- Local storage performs fewer filesystem checks during routine reads, reducing
+  CPU use.
+- Views can open related items directly while staying within the current Space.
+
 * v0.57.9
 <2026-09-25 Fri>
 

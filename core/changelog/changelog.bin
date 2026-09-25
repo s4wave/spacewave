@@ -1,4 +1,18 @@
 
+Ø
+0.57.10
+2026-09-25«Spacewave 0.57.10 refreshes its public pages and improves storage, connections, updates, and command-line reliability. Cloud storage now keeps the links between blocks, so this release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated."«Spacewave 0.57.10 refreshes its public pages and improves storage, connections, updates, and command-line reliability. Cloud storage now keeps the links between blocks, so this release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated.2ú
+ãCopying a Space between devices and the cloud completes for every Space, including Spaces holding object types a device does not recognize.ãCopying a Space between devices and the cloud completes for every Space, including Spaces holding object types a device does not recognize.2
+vCommand-line options now work after positional arguments, and options for parent commands work from their subcommands.vCommand-line options now work after positional arguments, and options for parent commands work from their subcommands.2–
+fInterrupted cloud file-storage uploads retain completed progress, avoiding unnecessary repeat uploads.fInterrupted cloud file-storage uploads retain completed progress, avoiding unnecessary repeat uploads.2ê
+FCloud file storage can read packs that do not include a lookup filter.FCloud file storage can read packs that do not include a lookup filter.2®
+RConnections close cleanly during session shutdown instead of occasionally hanging.RConnections close cleanly during session shutdown instead of occasionally hanging.2û
+MSpace updates no longer lose staged changes when nested content is refreshed.MSpace updates no longer lose staged changes when nested content is refreshed.2`
+.Go plugins respond reliably during activation..Go plugins respond reliably during activation.2ú
+LDesktop update status is available consistently to the app and desktop tray.LDesktop update status is available consistently to the app and desktop tray.:Í
+sThe landing, Community, Pricing, and Blog pages have a cleaner, more consistent design with stable launcher labels.sThe landing, Community, Pricing, and Blog pages have a cleaner, more consistent design with stable launcher labels.:∞
+VLocal storage performs fewer filesystem checks during routine reads, reducing CPU use.VLocal storage performs fewer filesystem checks during routine reads, reducing CPU use.:û
+MViews can open related items directly while staying within the current Space.MViews can open related items directly while staying within the current Space.
 »
 0.57.9
 2026-09-25dSpacewave 0.57.9 makes browser storage more reliable, and shows how much each storage backend holds."dSpacewave 0.57.9 makes browser storage more reliable, and shows how much each storage backend holds.2ﬁ
