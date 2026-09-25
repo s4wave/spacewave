@@ -27,6 +27,18 @@ type Target interface {
 	ReplayJournal(ctx context.Context) error
 }
 
+// OrderedJournal is a Target that can journal with write ordering in place of
+// a full durability flush, like kvtx.OrderedCommitTx.
+type OrderedJournal interface {
+	// AppendJournalOrdered journals reference graph changes with write
+	// ordering only.
+	AppendJournalOrdered(ctx context.Context, adds, removes []block_gc.RefEdge) error
+}
+
+// headSuffix ends the key of a shared object's head, whose commit publishes
+// the blocks and state before it.
+const headSuffix = "/host"
+
 // Result reports one replay.
 type Result struct {
 	// Ops is the number of records replayed.
@@ -39,6 +51,9 @@ type Result struct {
 	// CommitErrors counts commits the target rejected. A replay that commits
 	// transactions the recording interleaved may conflict where it did not.
 	CommitErrors int
+	// OrderedCommits counts commits and journal appends made with write
+	// ordering only.
+	OrderedCommits int
 	// BlockBytes is the payload written by block puts.
 	BlockBytes int64
 	// ValueBytes is the payload written by key-value sets.
@@ -71,6 +86,11 @@ type Replay struct {
 	seedBlocks []*replayBlock
 	// values is a shared random buffer sliced for key-value values.
 	values []byte
+
+	// Ordered commits every key-value commit that writes no shared object head,
+	// and every journal append, with write ordering only, so only block Sync
+	// and head commits flush.
+	Ordered bool
 }
 
 // replayBlock is one regenerated block.
@@ -279,6 +299,7 @@ func (r *Replay) Run(ctx context.Context, t Target) (*Result, error) {
 		replay: r,
 		target: t,
 		txs:    make(map[uint64]kvtx.Tx),
+		heads:  make(map[uint64]bool),
 		iters:  make(map[uint64]kvtx.Iterator),
 		scopes: make(map[uint64]replayScope),
 		result: &Result{Latency: make(map[Op][]time.Duration)},
@@ -304,6 +325,9 @@ type replayRun struct {
 	target Target
 	// txs holds open transactions by recorded ID.
 	txs map[uint64]kvtx.Tx
+	// heads holds the IDs of open transactions that write a shared object
+	// head.
+	heads map[uint64]bool
 	// iters holds open iterators by recorded ID.
 	iters map[uint64]kvtx.Iterator
 	// scopes holds open read scopes by recorded ID.
@@ -395,21 +419,34 @@ func (run *replayRun) applyTx(ctx context.Context, rec Record) error {
 		return err
 	case OpSet:
 		run.result.ValueBytes += rec.Size
+		run.heads[id] = run.heads[id] || bytes.HasSuffix(rec.Key, []byte(headSuffix))
 		return tx.Set(ctx, rec.Key, run.replay.values[:rec.Size])
 	case OpDelete:
+		run.heads[id] = run.heads[id] || bytes.HasSuffix(rec.Key, []byte(headSuffix))
 		return tx.Delete(ctx, rec.Key)
 	case OpIterate:
 		run.iters[rec.ID] = tx.Iterate(ctx, rec.Key, true, rec.Size == 1)
 		return nil
 	case OpCommit:
-		if err := run.timed(OpCommit, func() error { return tx.Commit(ctx) }); err != nil {
+		if err := run.timed(OpCommit, func() error { return run.commit(ctx, tx, run.heads[id]) }); err != nil {
 			run.result.CommitErrors++
 		}
 		return nil
 	}
 	tx.Discard()
 	delete(run.txs, id)
+	delete(run.heads, id)
 	return nil
+}
+
+// commit commits tx, with write ordering only under the ordered policy unless
+// it writes a head.
+func (run *replayRun) commit(ctx context.Context, tx kvtx.Tx, head bool) error {
+	if !run.replay.Ordered || head {
+		return tx.Commit(ctx)
+	}
+	run.result.OrderedCommits++
+	return kvtx.CommitOrdered(ctx, tx)
 }
 
 // tx returns the open transaction id. A transaction the trace began inside
@@ -537,7 +574,13 @@ func (run *replayRun) appendJournal(ctx context.Context, size int64) error {
 		subject := "replay/" + strconv.Itoa(run.journals)
 		adds = append(adds, block_gc.RefEdge{Subject: subject, Object: journalPadding[:journalEdgeBytes-len(subject)-8]})
 	}
-	return run.timed(OpJournalAppend, func() error { return run.target.AppendJournal(ctx, adds, nil) })
+	return run.timed(OpJournalAppend, func() error {
+		if oj, ok := run.target.(OrderedJournal); ok && run.replay.Ordered {
+			run.result.OrderedCommits++
+			return oj.AppendJournalOrdered(ctx, adds, nil)
+		}
+		return run.target.AppendJournal(ctx, adds, nil)
+	})
 }
 
 // timed runs fn and records its latency under op.

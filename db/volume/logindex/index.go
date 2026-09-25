@@ -1,8 +1,10 @@
 // Package logindex is an ordered key-value index on a storage Device that
 // keeps the whole table in memory and writes it as a log.
 //
-// Every commit flushes the device's earlier writes and then appends one record
-// to the current log file with a flush. A
+// A commit flushes the device's earlier writes and then appends one record to
+// the current log file with a flush. An ordered commit appends its record
+// without either flush. Recovery replays records only while their sequence
+// continues, so a crash loses at most a suffix of the ordered commits. A
 // checkpoint writes the table to a checkpoint file and then a manifest naming
 // that checkpoint and the first log file written after it, and removes the
 // files the manifest no longer names. Recovery loads the manifest's
@@ -256,9 +258,10 @@ func (i *Index) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 	return &Tx{index: i, tree: tree}, nil
 }
 
-// commit appends ops as one flushed log record after a flush barrier, publishes tree, and starts a
-// checkpoint when the log is long enough. The caller holds wmtx.
-func (i *Index) commit(ctx context.Context, tree *table, ops []logOp) error {
+// commit appends ops as one log record, publishes tree, and starts a
+// checkpoint when the log is long enough. With flush set, a flush barrier
+// precedes the record and the record is flushed. The caller holds wmtx.
+func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool) error {
 	i.mtx.Lock()
 	seq, log, off, err := i.seq+1, i.log, i.logSize, i.err
 	i.mtx.Unlock()
@@ -269,14 +272,16 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp) error {
 	// Flush the earlier writes on the device, which the record may reference,
 	// so a crash during the record's own flush never keeps the record without
 	// them. The barrier costs nothing on a device with no unflushed writes.
-	if err := i.dev.Write(ctx, nil, true); err != nil {
-		return errors.Wrap(err, "flush before log")
+	if flush {
+		if err := i.dev.Write(ctx, nil, true); err != nil {
+			return errors.Wrap(err, "flush before log")
+		}
 	}
 
-	// Write and flush the record.
+	// Write the record.
 	rec := appendRecord(nil, seq, ops)
 	w := device.Write{Name: fileName(logPrefix, log), Offset: off, Data: rec}
-	if err := i.dev.Write(ctx, []device.Write{w}, true); err != nil {
+	if err := i.dev.Write(ctx, []device.Write{w}, flush); err != nil {
 		err = errors.Wrap(err, "write log")
 		i.mtx.Lock()
 		i.err = err

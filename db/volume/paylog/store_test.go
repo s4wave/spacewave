@@ -30,8 +30,11 @@ func (t replayTarget) ReplayJournal(ctx context.Context) error {
 	return t.Store.ReplayJournal(ctx, func(adds, removes []block_gc.RefEdge) error { return nil })
 }
 
-// _ checks that a Store serves a replay.
-var _ workload.Target = replayTarget{}
+// _ checks that a Store serves a replay with ordered journal appends.
+var (
+	_ workload.Target         = replayTarget{}
+	_ workload.OrderedJournal = replayTarget{}
+)
 
 // engine opens an index on a device.
 type engine struct {
@@ -179,8 +182,10 @@ func testStore(t *testing.T, e engine) {
 
 // TestWorkloadReplayTraces replays the captured traces named by the
 // comma-separated WORKLOAD_TRACES against the store on a file device with
-// every engine and logs the replay metrics. WORKLOAD_FILL_BLOCKS first fills the volume with that
-// many blocks of WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
+// every engine and logs the replay metrics. Each trace runs once flushing on
+// every commit and once ordered, flushing only on block Sync and head commits.
+// WORKLOAD_FILL_BLOCKS first fills the volume with that many blocks of
+// WORKLOAD_FILL_SIZE bytes (default 1024) to measure scale.
 func TestWorkloadReplayTraces(t *testing.T) {
 	paths := os.Getenv("WORKLOAD_TRACES")
 	if paths == "" {
@@ -189,16 +194,19 @@ func TestWorkloadReplayTraces(t *testing.T) {
 	fillBlocks := envInt(t, "WORKLOAD_FILL_BLOCKS", 0)
 	fillSize := envInt(t, "WORKLOAD_FILL_SIZE", 1024)
 	for _, e := range engines {
-		for path := range strings.SplitSeq(paths, ",") {
-			t.Run(e.name+"/"+filepath.Base(path), func(t *testing.T) {
-				replayTrace(t, e, path, fillBlocks, fillSize)
-			})
+		for _, policy := range []string{"durable", "ordered"} {
+			for path := range strings.SplitSeq(paths, ",") {
+				t.Run(e.name+"/"+policy+"/"+filepath.Base(path), func(t *testing.T) {
+					replayTrace(t, e, path, policy == "ordered", fillBlocks, fillSize)
+				})
+			}
 		}
 	}
 }
 
-// replayTrace replays one captured trace and logs its metrics.
-func replayTrace(t *testing.T, e engine, path string, fillBlocks, fillSize int) {
+// replayTrace replays one captured trace, with ordered commits if ordered is
+// set, and logs its metrics.
+func replayTrace(t *testing.T, e engine, path string, ordered bool, fillBlocks, fillSize int) {
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
@@ -219,6 +227,7 @@ func replayTrace(t *testing.T, e engine, path string, fillBlocks, fillSize int) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	replay.Ordered = ordered
 	dir, err := device.OpenDir(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -263,7 +272,7 @@ func replayTrace(t *testing.T, e engine, path string, fillBlocks, fillSize int) 
 	// Report.
 	t.Logf("fill %d blocks of %d B in %s: %s", fillBlocks, fillSize, fillTime.Round(time.Millisecond), fill)
 	t.Logf("records %d", result.Ops)
-	t.Logf("wall %s, commit errors %d", result.Wall.Round(time.Microsecond), result.CommitErrors)
+	t.Logf("wall %s, commit errors %d, ordered commits %d", result.Wall.Round(time.Microsecond), result.CommitErrors, result.OrderedCommits)
 	for _, op := range []workload.Op{workload.OpCommit, workload.OpSync, workload.OpPutBatch, workload.OpPut, workload.OpGetBlock, workload.OpJournalAppend, workload.OpJournalReplay} {
 		if n := len(result.Latency[op]); n != 0 {
 			t.Logf("%-15s n %4d  p50 %9s  p99 %9s", op, n, result.Percentile(op, 0.5).Round(time.Microsecond), result.Percentile(op, 0.99).Round(time.Microsecond))

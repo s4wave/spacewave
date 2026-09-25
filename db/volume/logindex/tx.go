@@ -114,6 +114,19 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // Commit makes a write transaction's changes durable and publishes them. A
 // write transaction without changes writes nothing.
 func (t *Tx) Commit(ctx context.Context) error {
+	return t.commit(ctx, true)
+}
+
+// CommitOrdered publishes a write transaction's changes and appends them to
+// the log without a flush. A crash may lose them along with every later
+// commit; the next Commit or device flush makes them durable.
+func (t *Tx) CommitOrdered(ctx context.Context) error {
+	return t.commit(ctx, false)
+}
+
+// commit ends the transaction and commits its changes, durably if flush is
+// set.
+func (t *Tx) commit(ctx context.Context, flush bool) error {
 	if t.done {
 		return kvtx.ErrDiscarded
 	}
@@ -121,7 +134,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	if t.index == nil || len(t.ops) == 0 {
 		return nil
 	}
-	return t.index.commit(ctx, t.tree, t.ops)
+	return t.index.commit(ctx, t.tree, t.ops, flush)
 }
 
 // Discard ends the transaction, dropping uncommitted changes.
@@ -136,4 +149,4 @@ func (t *Tx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = (*Tx)(nil)
+var _ kvtx.OrderedCommitTx = (*Tx)(nil)

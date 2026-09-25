@@ -2,10 +2,11 @@
 // payloads append to a log of segment files, and one ordered index holds the
 // key-value store, the block locations, and the garbage collection journal.
 //
-// Every index commit also publishes the locations of the blocks written since
-// the previous one. The commit's flush covers the earlier segment writes, so a
-// published block is durable, and a key-value commit that follows a block write
-// publishes that block with it.
+// Every durable index commit also publishes the locations of the blocks
+// written since the previous one. The commit's flush covers the earlier segment
+// writes, so a published block is durable, and a key-value commit that follows
+// a block write publishes that block with it. An ordered commit publishes no
+// blocks, since a crash could keep its record and lose their payloads.
 package paylog
 
 import (
@@ -45,8 +46,10 @@ const (
 // transactions see a snapshot and may stay open across commits. A write
 // transaction excludes other writers, and its Commit applies atomically and
 // makes every earlier write on the device durable no later than the commit
-// itself, so a crash never keeps a commit without them. The index keeps its own
-// files on the device, none named with segmentPrefix.
+// itself, so a crash never keeps a commit without them. A write transaction
+// may also implement kvtx.OrderedCommitTx, whose commits a device flush makes
+// durable. The index keeps its own files on the device, none named with
+// segmentPrefix.
 type Index interface {
 	kvtx.Store
 
@@ -138,9 +141,9 @@ func (s *Store) view(ctx context.Context, fn func(tx kvtx.Tx) error) error {
 	return fn(tx)
 }
 
-// update runs fn in an index write transaction that also publishes the
-// pending blocks, and commits it.
-func (s *Store) update(ctx context.Context, fn func(tx kvtx.Tx) error) error {
+// update runs fn in an index write transaction and commits it, durably with
+// the pending blocks unless ordered is set.
+func (s *Store) update(ctx context.Context, ordered bool, fn func(tx kvtx.Tx) error) error {
 	tx, err := s.index.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -150,6 +153,15 @@ func (s *Store) update(ctx context.Context, fn func(tx kvtx.Tx) error) error {
 		if err := fn(tx); err != nil {
 			return err
 		}
+	}
+	return s.commit(ctx, tx, ordered)
+}
+
+// commit commits the index write transaction tx with write ordering if
+// ordered is set, and otherwise publishes the pending blocks with it.
+func (s *Store) commit(ctx context.Context, tx kvtx.Tx, ordered bool) error {
+	if ordered {
+		return kvtx.CommitOrdered(ctx, tx)
 	}
 	return s.publish(ctx, tx)
 }
@@ -240,6 +252,17 @@ func (w *writeTx) begin() (kvtx.Tx, error) {
 // Commit applies the collected changes, publishes the pending blocks, and
 // commits.
 func (w *writeTx) Commit(ctx context.Context) error {
+	return w.commit(ctx, false)
+}
+
+// CommitOrdered applies the collected changes and commits them with write
+// ordering, leaving the pending blocks to the next Sync or durable commit.
+func (w *writeTx) CommitOrdered(ctx context.Context) error {
+	return w.commit(ctx, true)
+}
+
+// commit applies the collected changes and commits the index transaction.
+func (w *writeTx) commit(ctx context.Context, ordered bool) error {
 	err := w.Tx.Commit(ctx)
 	if w.itx == nil {
 		return err
@@ -248,8 +271,11 @@ func (w *writeTx) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return w.s.publish(ctx, w.itx)
+	return w.s.commit(ctx, w.itx, ordered)
 }
+
+// _ is a type assertion
+var _ kvtx.OrderedCommitTx = (*writeTx)(nil)
 
 // location is where a block payload lives.
 type location struct {
