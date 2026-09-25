@@ -210,6 +210,23 @@ func newJSErrorCode(code int) *JSError {
 	}
 }
 
+// callSync calls target[method](...args) and returns a thrown JavaScript
+// value as a *JSError.
+func callSync(target js.Value, method string, args ...any) (v js.Value, err error) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		thrown, ok := r.(js.Error)
+		if !ok {
+			panic(r)
+		}
+		err = newJSError(thrown.Value)
+	}()
+	return jsutil.Call(target, method, args...), nil
+}
+
 // AwaitPromise blocks the calling goroutine until a JS Promise resolves or rejects.
 // Returns the resolved value or an error wrapping the rejection reason.
 func AwaitPromise(promise js.Value) (js.Value, error) {
@@ -1146,7 +1163,10 @@ func (BrowserDriver) CreateSyncFileContext(ctx context.Context, dir js.Value, na
 
 // SyncFile wraps a FileSystemSyncAccessHandle as an fs.File.
 // Supports Read, ReadAt, Write, WriteAt, Seek, Truncate, Flush, Close.
-// Only available in DedicatedWorker contexts.
+// Only available in DedicatedWorker contexts. Every method returns an
+// exception the handle throws, such as a QuotaExceededError from a write or
+// an InvalidStateError after the browser invalidates the handle, as a
+// *JSError.
 type SyncFile struct {
 	name string
 	ah   js.Value
@@ -1215,7 +1235,11 @@ func (f *SyncFile) ReadAt(p []byte, off int64) (int, error) {
 	arr := jsutil.NewUint8Array(len(p))
 	opts := jsutil.NewObject()
 	opts.Set("at", off)
-	n := jsutil.Call(f.ah, "read", arr, opts).Int()
+	v, err := f.call("read", arr, opts)
+	if err != nil {
+		return 0, err
+	}
+	n := v.Int()
 	js.CopyBytesToGo(p[:n], arr)
 	if n == 0 && len(p) > 0 {
 		return 0, io.EOF
@@ -1236,8 +1260,14 @@ func (f *SyncFile) WriteAt(p []byte, off int64) (int, error) {
 	js.CopyBytesToJS(arr, p)
 	opts := jsutil.NewObject()
 	opts.Set("at", off)
-	n := jsutil.Call(f.ah, "write", arr, opts).Int()
-	return n, nil
+	v, err := f.call("write", arr, opts)
+	if err != nil {
+		return 0, err
+	}
+	if n := v.Int(); n < len(p) {
+		return n, errors.Wrapf(io.ErrShortWrite, "write %s", f.name)
+	}
+	return len(p), nil
 }
 
 // openWritable creates a FileSystemWritableFileStream on fileHandle.
@@ -1287,24 +1317,34 @@ func (f *SyncFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		f.pos += offset
 	case io.SeekEnd:
-		f.pos = int64(jsutil.Call(f.ah, "getSize").Int()) + offset
+		size, err := f.Size()
+		if err != nil {
+			return f.pos, err
+		}
+		f.pos = size + offset
 	}
 	return f.pos, nil
 }
 
 // Size returns the file size in bytes.
-func (f *SyncFile) Size() int64 {
-	return int64(jsutil.Call(f.ah, "getSize").Int())
+func (f *SyncFile) Size() (int64, error) {
+	v, err := f.call("getSize")
+	if err != nil {
+		return 0, err
+	}
+	return int64(v.Int()), nil
 }
 
 // Truncate sets the file size. Pads with zero bytes if growing.
-func (f *SyncFile) Truncate(size int64) {
-	jsutil.Call(f.ah, "truncate", size)
+func (f *SyncFile) Truncate(size int64) error {
+	_, err := f.call("truncate", size)
+	return err
 }
 
 // Flush flushes buffered writes to stable storage.
-func (f *SyncFile) Flush() {
-	jsutil.Call(f.ah, "flush")
+func (f *SyncFile) Flush() error {
+	_, err := f.call("flush")
+	return err
 }
 
 // Stat returns file info.
@@ -1312,13 +1352,26 @@ func (f *SyncFile) Flush() {
 // OPFS does not expose a modification time, so ModTime() on the returned
 // fs.FileInfo is always the zero Time. Do not rely on it for ordering.
 func (f *SyncFile) Stat() (fs.FileInfo, error) {
-	return &syncFileInfo{name: f.name, size: f.Size()}, nil
+	size, err := f.Size()
+	if err != nil {
+		return nil, err
+	}
+	return &syncFileInfo{name: f.name, size: size}, nil
 }
 
 // Close releases the sync access handle.
 func (f *SyncFile) Close() error {
-	jsutil.Call(f.ah, "close")
-	return nil
+	_, err := f.call("close")
+	return err
+}
+
+// call calls method on the access handle.
+func (f *SyncFile) call(method string, args ...any) (js.Value, error) {
+	v, err := callSync(f.ah, method, args...)
+	if err != nil {
+		return v, errors.Wrapf(err, "%s %s", method, f.name)
+	}
+	return v, nil
 }
 
 // syncFileInfo implements fs.FileInfo for SyncFile.
