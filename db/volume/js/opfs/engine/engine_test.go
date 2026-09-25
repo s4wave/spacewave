@@ -49,17 +49,53 @@ type diskBackend struct {
 	kindBytes map[string]int64
 	// unsynced skips flushes for setup writes whose durability is irrelevant.
 	unsynced bool
+	// crashAfter crashes the backend after this many further Write and Remove
+	// calls succeed; negative never crashes.
+	crashAfter int
+	// crashed rejects every later Write and Remove, as after a process crash.
+	crashed bool
+	// mutations counts Write and Remove calls, including rejected ones.
+	mutations int
 }
+
+// errCrashed reports a Write or Remove after an injected crash.
+var errCrashed = errors.New("injected crash")
 
 // newDiskBackend creates an isolated durable fixture.
 func newDiskBackend(t *testing.T) *diskBackend {
 	t.Helper()
 	return &diskBackend{
-		root:      t.TempDir(),
-		locks:     make(map[string]*semaphore.Weighted),
-		failAfter: -1,
-		kindBytes: make(map[string]int64),
+		root:       t.TempDir(),
+		locks:      make(map[string]*semaphore.Weighted),
+		failAfter:  -1,
+		crashAfter: -1,
+		kindBytes:  make(map[string]int64),
 	}
+}
+
+// crash counts one Write or Remove and reports whether the injected crash
+// rejects it, and whether this call is the one the crash interrupted. The
+// caller holds mtx.
+func (d *diskBackend) crash() (rejected, interrupted bool) {
+	d.mutations++
+	if d.crashed {
+		return true, false
+	}
+	if d.crashAfter == 0 {
+		d.crashed = true
+		return true, true
+	}
+	if d.crashAfter > 0 {
+		d.crashAfter--
+	}
+	return false, false
+}
+
+// restart ends an injected crash so a new engine can recover the files.
+func (d *diskBackend) restart() {
+	d.mtx.Lock()
+	d.crashed, d.crashAfter = false, -1
+	d.mtx.Unlock()
 }
 
 // Read reads one immutable file or range from disk.
@@ -108,8 +144,18 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 		case <-d.writeGate:
 		}
 	}
-	// Allocate failure boundaries across concurrent immutable writes.
+	// Allocate crash and failure boundaries across concurrent immutable writes.
+	// A crash interrupting the first creation of a file leaves an empty entry,
+	// as the Backend contract allows.
 	d.mtx.Lock()
+	if rejected, interrupted := d.crash(); rejected {
+		d.mtx.Unlock()
+		path := filepath.Join(d.root, name)
+		if _, err := os.Stat(path); interrupted && errors.Is(err, os.ErrNotExist) {
+			_ = os.WriteFile(path, nil, 0o600)
+		}
+		return errCrashed
+	}
 	if d.failAfter == 0 {
 		d.mtx.Unlock()
 		return errors.New("injected write failure")
@@ -159,6 +205,12 @@ func (d *diskBackend) Write(ctx context.Context, name string, data []byte) error
 func (d *diskBackend) Remove(ctx context.Context, name string) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	d.mtx.Lock()
+	rejected, _ := d.crash()
+	d.mtx.Unlock()
+	if rejected {
+		return errCrashed
 	}
 	err := os.Remove(filepath.Join(d.root, name))
 	if errors.Is(err, os.ErrNotExist) {
