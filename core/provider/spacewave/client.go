@@ -200,6 +200,26 @@ func marshalSObjectWriteTicketProofPayload(
 	})
 }
 
+// syncPushPack describes one pack upload to a block store.
+type syncPushPack struct {
+	// packID is the content-derived pack ID.
+	packID string
+	// blockCount is the number of blocks in the pack.
+	blockCount int
+	// bodyHash is the SHA-256 digest of the pack bytes.
+	bodyHash []byte
+	// bloomFilter is the serialized pack bloom filter.
+	bloomFilter []byte
+	// bloomFormatVersion identifies the bloom encoding.
+	bloomFormatVersion uint32
+	// replacedPackIDs are committed packs the upload supersedes atomically.
+	// Empty for an ordinary push.
+	replacedPackIDs []string
+}
+
+// syncPushReplacesHeader names the packs a push replaces, comma separated.
+const syncPushReplacesHeader = "X-Replaces-Pack-IDs"
+
 // marshalSyncPushWriteTicketProofPayload builds the canonical proof payload for
 // sync/push hot writes. The signed metadata binds the precomputed body hash and
 // the critical push headers without requiring the caller to re-hash the body.
@@ -209,20 +229,23 @@ func marshalSyncPushWriteTicketProofPayload(
 	reqPath string,
 	contentType string,
 	contentLength int64,
-	bodyHash []byte,
-	packID string,
-	blockCount int,
-	bloomFilter []byte,
+	pack *syncPushPack,
 	timestampMs int64,
 ) ([]byte, error) {
 	signedHeaders := map[string]string{
 		"content-type":  contentType,
-		"x-pack-id":     packID,
-		"x-block-count": strconv.Itoa(blockCount),
+		"x-pack-id":     pack.packID,
+		"x-block-count": strconv.Itoa(pack.blockCount),
 	}
-	if len(bloomFilter) != 0 {
+	if len(pack.bloomFilter) != 0 {
 		signedHeaders["x-bloom-filter"] = base64.StdEncoding.EncodeToString(
-			bloomFilter,
+			pack.bloomFilter,
+		)
+	}
+	if len(pack.replacedPackIDs) != 0 {
+		signedHeaders[strings.ToLower(syncPushReplacesHeader)] = strings.Join(
+			pack.replacedPackIDs,
+			",",
 		)
 	}
 	return marshalWriteTicketProofPayload(WriteTicketProofPayloadFields{
@@ -231,7 +254,7 @@ func marshalSyncPushWriteTicketProofPayload(
 		Path:          reqPath,
 		TimestampMs:   timestampMs,
 		ContentLength: contentLength,
-		BodyHashHex:   hex.EncodeToString(bodyHash),
+		BodyHashHex:   hex.EncodeToString(pack.bodyHash),
 		SignedHeaders: signedHeaders,
 	})
 }
@@ -1397,22 +1420,18 @@ func (c *SessionClient) executeRequiredWriteTicketAudience(
 func (c *SessionClient) postSyncPushWithTicket(
 	ctx context.Context,
 	resourceID string,
-	packID string,
-	blockCount int,
+	pack *syncPushPack,
 	body io.Reader,
 	contentLength int64,
-	bodyHash []byte,
-	bloomFilter []byte,
-	bloomFormatVersion uint32,
 	ticket string,
 ) ([]byte, error) {
 	if ticket == "" {
 		return nil, errors.New("missing write ticket")
 	}
-	if len(bloomFilter) == 0 {
+	if len(pack.bloomFilter) == 0 {
 		return nil, errors.New("sync push bloom filter required")
 	}
-	if bloomFormatVersion == 0 {
+	if pack.bloomFormatVersion == 0 {
 		return nil, errors.New("sync push bloom_format_version required")
 	}
 
@@ -1428,10 +1447,7 @@ func (c *SessionClient) postSyncPushWithTicket(
 		reqPath,
 		"application/octet-stream",
 		contentLength,
-		bodyHash,
-		packID,
-		blockCount,
-		bloomFilter,
+		pack,
 		time.Now().UnixMilli(),
 	)
 	if err != nil {
@@ -1452,17 +1468,23 @@ func (c *SessionClient) postSyncPushWithTicket(
 	}
 	req.ContentLength = contentLength
 	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("X-Sw-Hash", hex.EncodeToString(bodyHash))
-	req.Header.Set("X-Pack-ID", packID)
-	req.Header.Set("X-Block-Count", strconv.Itoa(blockCount))
+	req.Header.Set("X-Sw-Hash", hex.EncodeToString(pack.bodyHash))
+	req.Header.Set("X-Pack-ID", pack.packID)
+	req.Header.Set("X-Block-Count", strconv.Itoa(pack.blockCount))
 	req.Header.Set(
 		"X-Bloom-Filter",
-		base64.StdEncoding.EncodeToString(bloomFilter),
+		base64.StdEncoding.EncodeToString(pack.bloomFilter),
 	)
 	req.Header.Set(
 		"X-Bloom-Format-Version",
-		strconv.FormatUint(uint64(bloomFormatVersion), 10),
+		strconv.FormatUint(uint64(pack.bloomFormatVersion), 10),
 	)
+	if len(pack.replacedPackIDs) != 0 {
+		req.Header.Set(
+			syncPushReplacesHeader,
+			strings.Join(pack.replacedPackIDs, ","),
+		)
+	}
 	req.Header.Set("X-Write-Ticket", ticket)
 	req.Header.Set(
 		"X-Write-Proof",
@@ -1512,13 +1534,15 @@ func (c *SessionClient) SyncPush(ctx context.Context, resourceID string, packID 
 			respData, postErr = c.postSyncPushWithTicket(
 				ctx,
 				resourceID,
-				packID,
-				blockCount,
+				&syncPushPack{
+					packID:             packID,
+					blockCount:         blockCount,
+					bodyHash:           bodyHash,
+					bloomFilter:        bloomFilter,
+					bloomFormatVersion: bloomFormatVersion,
+				},
 				f,
 				stat.Size(),
-				bodyHash,
-				bloomFilter,
-				bloomFormatVersion,
 				ticket,
 			)
 			return postErr
@@ -1542,18 +1566,22 @@ func (c *SessionClient) SyncPush(ctx context.Context, resourceID string, packID 
 // bloomFormatVersion identifies the bloom encoding (currently
 // packfile.BloomFormatVersionV1).
 func (c *SessionClient) SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error {
-	return c.syncPushDataWithProgress(ctx, resourceID, packID, blockCount, packData, bodyHash, bloomFilter, bloomFormatVersion, nil)
+	return c.syncPushDataWithProgress(ctx, resourceID, &syncPushPack{
+		packID:             packID,
+		blockCount:         blockCount,
+		bodyHash:           bodyHash,
+		bloomFilter:        bloomFilter,
+		bloomFormatVersion: bloomFormatVersion,
+	}, packData, nil)
 }
 
+// syncPushDataWithProgress uploads an in-memory pack, reporting sent bytes to
+// progress when set. A replacement conflict fails without retry.
 func (c *SessionClient) syncPushDataWithProgress(
 	ctx context.Context,
 	resourceID string,
-	packID string,
-	blockCount int,
+	pack *syncPushPack,
 	packData []byte,
-	bodyHash []byte,
-	bloomFilter []byte,
-	bloomFormatVersion uint32,
 	progress func(int64),
 ) error {
 	var respData []byte
@@ -1570,13 +1598,9 @@ func (c *SessionClient) syncPushDataWithProgress(
 			respData, postErr = c.postSyncPushWithTicket(
 				ctx,
 				resourceID,
-				packID,
-				blockCount,
+				pack,
 				body,
 				int64(len(packData)),
-				bodyHash,
-				bloomFilter,
-				bloomFormatVersion,
 				ticket,
 			)
 			return postErr

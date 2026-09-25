@@ -72,6 +72,13 @@ export interface SyncConfig {
    * @generated from field: provider.spacewave.SyncMode sync_mode = 4;
    */
   syncMode?: SyncMode
+  /**
+   * CompactSmallPacks merges small cloud packs into one replacement pack after
+   * the dirty queue drains. Default: false.
+   *
+   * @generated from field: bool compact_small_packs = 5;
+   */
+  compactSmallPacks?: boolean
 }
 
 export const SyncConfig: MessageType<SyncConfig> =
@@ -92,6 +99,12 @@ export const SyncConfig: MessageType<SyncConfig> =
       },
       { no: 3, name: 'auto_sync', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'sync_mode', kind: 'enum', T: SyncMode_Enum },
+      {
+        no: 5,
+        name: 'compact_small_packs',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

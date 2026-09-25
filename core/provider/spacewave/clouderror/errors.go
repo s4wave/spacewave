@@ -69,9 +69,15 @@ var blockedCodes = map[string]bool{
 	"dmca_blocked": true,
 }
 
-// permanentCodes is the union of unauthCodes, deletedCodes, and blockedCodes.
+// PackReplacementConflictCode rejects a pack replacement whose replaced packs
+// are missing, superseded, or claimed by another replacement. Retrying the
+// same replacement cannot succeed; the client must pull and plan again.
+const PackReplacementConflictCode = "pack_replacement_conflict"
+
+// permanentCodes is the union of unauthCodes, deletedCodes, blockedCodes, and
+// the pack replacement conflict.
 var permanentCodes = func() map[string]bool {
-	m := make(map[string]bool, len(unauthCodes)+len(deletedCodes)+len(blockedCodes))
+	m := make(map[string]bool, len(unauthCodes)+len(deletedCodes)+len(blockedCodes)+1)
 	for k := range unauthCodes {
 		m[k] = true
 	}
@@ -81,6 +87,7 @@ var permanentCodes = func() map[string]bool {
 	for k := range blockedCodes {
 		m[k] = true
 	}
+	m[PackReplacementConflictCode] = true
 	return m
 }()
 
@@ -188,6 +195,13 @@ func IsBlocked(err error) bool {
 		return blockedCodes[ce.Code]
 	}
 	return false
+}
+
+// IsPackReplacementConflict checks if an error rejects a stale pack
+// replacement.
+func IsPackReplacementConflict(err error) bool {
+	var ce *Error
+	return errors.As(err, &ce) && ce.Code == PackReplacementConflictCode
 }
 
 // IsAccessGated checks if a cloud error should wait for access-state

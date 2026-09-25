@@ -418,10 +418,13 @@ func TestMarshalSyncPushWriteTicketProofPayload(t *testing.T) {
 		"/api/bstore/01/sync/push",
 		"application/octet-stream",
 		42,
-		bodyHash,
-		"pack-1",
-		12,
-		bloom,
+		&syncPushPack{
+			packID:          "pack-1",
+			blockCount:      12,
+			bodyHash:        bodyHash,
+			bloomFilter:     bloom,
+			replacedPackIDs: []string{"pack-a", "pack-b"},
+		},
 		123456790,
 	)
 	if err != nil {
@@ -435,7 +438,7 @@ func TestMarshalSyncPushWriteTicketProofPayload(t *testing.T) {
 	if payload.GetTicket() != "ticket-456" {
 		t.Fatalf("unexpected ticket: %q", payload.GetTicket())
 	}
-	if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream,x-block-count=12,x-bloom-filter=AQID,x-pack-id=pack-1" {
+	if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream,x-block-count=12,x-bloom-filter=AQID,x-pack-id=pack-1,x-replaces-pack-ids=pack-a%2Cpack-b" {
 		t.Fatalf("unexpected signed headers: %q", payload.GetSignedHeaders())
 	}
 	if payload.GetBodyHashHex() != hex.EncodeToString(bodyHash) {

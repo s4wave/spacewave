@@ -88,6 +88,10 @@ func (a *ProviderAccount) addSyncTelemetryDeduped(bstoreID string, bytes int64, 
 	a.syncTelemetry.AddDeduped(bstoreID, bytes, count)
 }
 
+func (a *ProviderAccount) addSyncTelemetryMerge(bstoreID string, mergedPacks int) {
+	a.syncTelemetry.AddMerge(bstoreID, mergedPacks)
+}
+
 func (a *ProviderAccount) startSyncTelemetryPull(bstoreID string) {
 	a.syncTelemetry.StartPull(bstoreID)
 }

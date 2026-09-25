@@ -83,3 +83,20 @@ func TestRetryDelayKeepsLongerLocalBackoff(t *testing.T) {
 		t.Fatalf("retry delay: got %s, want %s", delay, 5*time.Second)
 	}
 }
+
+// TestPackReplacementConflictIsFinal verifies a replacement conflict is never
+// retried, even when the server marks it retryable.
+func TestPackReplacementConflictIsFinal(t *testing.T) {
+	body, err := (&api.ErrorResponse{
+		Code:      PackReplacementConflictCode,
+		Message:   "conflict",
+		Retryable: true,
+	}).MarshalJSON()
+	if err != nil {
+		t.Fatalf("marshal error response: %v", err)
+	}
+	err = Parse(http.StatusConflict, body)
+	if !IsPackReplacementConflict(err) || !IsNonRetryable(err) {
+		t.Fatalf("conflict = %v, want a final pack replacement conflict", err)
+	}
+}
