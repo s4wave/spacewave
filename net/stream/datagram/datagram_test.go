@@ -5,11 +5,16 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"io"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/net/stream"
 )
+
+// pipeMessageSize is the message size limit of the test message pipes. Larger
+// packets take the control stream fallback.
+const pipeMessageSize = 1200
 
 func udpSocket(t *testing.T) *net.UDPConn {
 	t.Helper()
@@ -24,8 +29,8 @@ func udpSocket(t *testing.T) *net.UDPConn {
 	return socket
 }
 
-// Actual UDP endpoints exercise framing across a stream seam. net.Pipe does not
-// claim WebRTC connectivity; it deliberately permits split stream reads/writes.
+// Actual UDP endpoints exercise both the message plane and the framed control
+// fallback. The message pipe does not claim WebRTC connectivity.
 func TestForwardPacketsAndPlayerIsolation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -35,7 +40,7 @@ func TestForwardPacketsAndPlayerIsolation(t *testing.T) {
 	var upstream []string
 	for _, payloads := range [][][]byte{{[]byte("first"), {}, bytes.Repeat([]byte{7}, 1400)}, {[]byte("second"), []byte("two packets")}} {
 		client, endpoint := udpSocket(t), udpSocket(t)
-		left, right := net.Pipe()
+		left, right := stream.NewMessagePipe(pipeMessageSize)
 		result := make(chan error, 2)
 		results = append(results, result)
 		go func() { result <- Forward(ctx, endpoint, client.LocalAddr().(*net.UDPAddr), left) }()
@@ -88,7 +93,7 @@ func TestForwardPacketsAndPlayerIsolation(t *testing.T) {
 func TestForwardRejectsForeignSenderAndOversizedFrame(t *testing.T) {
 	ctx := t.Context()
 	client, foreign, endpoint := udpSocket(t), udpSocket(t), udpSocket(t)
-	left, right := net.Pipe()
+	left, right := stream.NewMessagePipe(pipeMessageSize)
 	defer right.Close()
 	done := make(chan error, 1)
 	go func() { done <- Forward(ctx, endpoint, client.LocalAddr().(*net.UDPAddr), left) }()
@@ -100,20 +105,18 @@ func TestForwardRejectsForeignSenderAndOversizedFrame(t *testing.T) {
 		t.Fatal(err)
 	}
 	right.SetReadDeadline(time.Now().Add(5 * time.Second))
+	// Reading exactly one message proves an untrusted sender cannot become the peer.
+	packet := make([]byte, MaxPacketSize)
+	n, err := right.Read(packet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(packet[:n]) != "valid" {
+		t.Fatalf("foreign sender forwarded: %q", packet[:n])
+	}
 	var header [2]byte
-	// Reading exactly a frame proves an untrusted sender cannot become the peer.
-	if _, err := io.ReadFull(right, header[:]); err != nil {
-		t.Fatal(err)
-	}
-	packet := make([]byte, int(binary.BigEndian.Uint16(header[:])))
-	if _, err := io.ReadFull(right, packet); err != nil {
-		t.Fatal(err)
-	}
-	if string(packet) != "valid" {
-		t.Fatalf("foreign sender forwarded: %q", packet)
-	}
 	binary.BigEndian.PutUint16(header[:], MaxPacketSize+1)
-	if _, err := right.Write(header[:]); err != nil {
+	if _, err := right.Control().Write(header[:]); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -130,7 +133,7 @@ func TestForwardLocalLearnsOneSender(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	client, other, endpoint, server := udpSocket(t), udpSocket(t), udpSocket(t), udpSocket(t)
-	left, right := net.Pipe()
+	left, right := stream.NewMessagePipe(pipeMessageSize)
 	results := make(chan error, 2)
 	go func() { results <- ForwardLocal(ctx, endpoint, left) }()
 	go func() { results <- ForwardTarget(ctx, server.LocalAddr().(*net.UDPAddr), right) }()
@@ -176,7 +179,7 @@ func TestForwardLocalLearnsOneSender(t *testing.T) {
 func TestForwardLocalCancellationBeforeFirstPacket(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	endpoint := udpSocket(t)
-	left, right := net.Pipe()
+	left, right := stream.NewMessagePipe(pipeMessageSize)
 	defer right.Close()
 	result := make(chan error, 1)
 	go func() { result <- ForwardLocal(ctx, endpoint, left) }()

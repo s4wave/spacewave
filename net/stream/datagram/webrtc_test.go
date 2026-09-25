@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -54,7 +55,7 @@ func TestDatagramsOverWebRTC(t *testing.T) {
 	defer sim.Close()
 	mounted, release, err := link.OpenStreamWithPeerEx(ctx,
 		sim.GetPeerByID(source.GetPeerID()).GetTestbed().Bus, stream_echo.DefaultProtocolID,
-		source.GetPeerID(), target.GetPeerID(), 0, stream.OpenOpts{})
+		source.GetPeerID(), target.GetPeerID(), 0, stream.OpenOpts{Unreliable: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,20 +63,37 @@ func TestDatagramsOverWebRTC(t *testing.T) {
 	if mounted.GetPeerID() != target.GetPeerID() {
 		t.Fatal("wrong authenticated remote peer")
 	}
+	messages, ok := mounted.GetStream().(stream.MessageStream)
+	if !ok {
+		t.Fatalf("unreliable stream is a %T", mounted.GetStream())
+	}
 	endpoint, client := udpSocket(t), udpSocket(t)
 	result := make(chan error, 1)
-	go func() { result <- ForwardLocal(ctx, endpoint, mounted.GetStream()) }()
-	for _, payload := range [][]byte{{}, []byte("initial game handshake"), bytes.Repeat([]byte{0x5a}, 1400), bytes.Repeat([]byte{0xa5}, 8192)} {
-		if _, err := client.WriteToUDP(payload, endpoint.LocalAddr().(*net.UDPAddr)); err != nil {
-			t.Fatal(err)
-		}
-		packet := make([]byte, MaxPacketSize)
-		n, _, err := client.ReadFromUDP(packet)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(payload, packet[:n]) {
-			t.Fatalf("UDP echo differs for %d byte payload", len(payload))
+	go func() { result <- ForwardLocal(ctx, endpoint, messages) }()
+	// Messages may be dropped, such as one arriving before the echo peer
+	// binds the stream, so each payload is resent until it echoes, as a game
+	// client resends its handshake. The 8192 byte payload takes the control
+	// stream fallback. The echo peer cannot echo an empty message.
+	packet := make([]byte, MaxPacketSize)
+	for _, payload := range [][]byte{[]byte("initial game handshake"), bytes.Repeat([]byte{0x5a}, 1000), bytes.Repeat([]byte{0xa5}, 8192)} {
+		for {
+			if _, err := client.WriteToUDP(payload, endpoint.LocalAddr().(*net.UDPAddr)); err != nil {
+				t.Fatal(err)
+			}
+			if err := client.SetReadDeadline(time.Now().Add(250 * time.Millisecond)); err != nil {
+				t.Fatal(err)
+			}
+			n, _, err := client.ReadFromUDP(packet)
+			if errors.Is(err, os.ErrDeadlineExceeded) && ctx.Err() == nil {
+				continue
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(payload, packet[:n]) {
+				t.Fatalf("UDP echo differs for %d byte payload", len(payload))
+			}
+			break
 		}
 	}
 	cancel()

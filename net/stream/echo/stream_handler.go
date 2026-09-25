@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ioproxy"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/stream"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,8 +51,12 @@ func (m *MountedStreamHandler) HandleMountedStream(
 		subCtx, subCtxCancel := context.WithCancel(ctx)
 		defer subCtxCancel()
 
-		// Proxy the stream back to itself until either side closes.
+		// Proxy the stream back to itself until either side closes. A message
+		// stream also echoes its control stream.
 		ioproxy.ProxyStreams(s, s, subCtxCancel)
+		if ms, ok := s.(stream.MessageStream); ok {
+			ioproxy.ProxyStreams(ms.Control(), ms.Control(), subCtxCancel)
+		}
 
 		// Wait for the proxy to finish before releasing the reference.
 		<-subCtx.Done()
