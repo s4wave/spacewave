@@ -118,15 +118,15 @@ func (ws *WorldState) OpenNestedWorld(ctx context.Context, key string) (*WorldSt
 	return nested, nil
 }
 
-// OpenOuterWorld opens the enclosing Space World under the same authority.
-// Release the returned read-only state independently of the nested state.
-func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*WorldState, error) {
+// OpenOuterWorld grants the Engine of the enclosing Space under the same authority.
+// Release the returned Engine independently of the nested state.
+func (ws *WorldState) OpenOuterWorld(ctx context.Context) (*Engine, error) {
 	resp, err := ws.service.OpenOuterWorld(ctx, &OpenOuterWorldRequest{})
 	if err != nil {
 		return nil, err
 	}
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
-	outer, err := NewWorldState(ws.client, ref, true)
+	outer, err := NewEngine(ws.client, ref)
 	if err != nil {
 		ref.Release()
 		return nil, err

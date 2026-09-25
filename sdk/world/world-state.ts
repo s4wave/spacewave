@@ -13,7 +13,8 @@ import {
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
-import type { Engine } from './engine.js'
+import { Engine } from './engine.js'
+import { EngineWorldState } from './engine-state.js'
 import type {
   ObjectBody,
   ObjectRecordBase,
@@ -92,7 +93,7 @@ export interface IWorldState {
     abortSignal?: AbortSignal,
   ): Promise<IWorldState & Disposable>
 
-  /** openOuterWorld opens an independently disposable read-only state in the enclosing Space. */
+  /** openOuterWorld grants the enclosing Space World under the same authority. Dispose of it independently. */
   openOuterWorld(abortSignal?: AbortSignal): Promise<IWorldState & Disposable>
 
   // CreateObject creates a object with a key and initial root ref
@@ -341,16 +342,16 @@ export class WorldStateResource extends Resource implements IWorldState {
     )
   }
 
-  /** openOuterWorld opens the enclosing Space World under the same authority. Dispose of its handle independently. */
+  /** openOuterWorld grants the enclosing Space World under the same authority. Dispose of it independently. */
   public async openOuterWorld(
     abortSignal?: AbortSignal,
-  ): Promise<WorldStateResource> {
+  ): Promise<EngineWorldState> {
     const response = await this.service.OpenOuterWorld({}, abortSignal)
-    return this.resourceRef.createResource(
+    const engine = this.resourceRef.createResource(
       response.resourceId ?? 0,
-      WorldStateResource,
-      { readOnly: true },
+      Engine,
     )
+    return new EngineWorldState(engine, true, true)
   }
 
   // WorldStateObject implementation

@@ -499,10 +499,10 @@ func (x *OpenOuterWorldRequest) Reset() {
 
 func (*OpenOuterWorldRequest) ProtoMessage() {}
 
-// OpenOuterWorldResponse grants an independently retained read-only outer World state.
+// OpenOuterWorldResponse grants the enclosing Space Engine, retained independently.
 type OpenOuterWorldResponse struct {
 	unknownFields []byte
-	// ResourceId identifies the outer World state resource.
+	// ResourceId identifies the enclosing Space Engine resource.
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 }
 

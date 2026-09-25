@@ -243,8 +243,9 @@ func (r *WorldStateResource) OpenNestedWorld(ctx context.Context, req *s4wave_wo
 	return &s4wave_world.OpenNestedWorldResponse{ResourceId: id}, nil
 }
 
-// OpenOuterWorld opens a read-only state in the Space that granted this nested World.
-// Its transaction pins the current outer root until the returned resource is released.
+// OpenOuterWorld grants the Space Engine that authorized this nested World.
+// The Engine reads current Space state and writes under the same session
+// authority, including World ops. It outlives this nested state.
 func (r *WorldStateResource) OpenOuterWorld(ctx context.Context, _ *s4wave_world.OpenOuterWorldRequest) (*s4wave_world.OpenOuterWorldResponse, error) {
 	if r.outerEngine == nil {
 		return nil, errors.New("outer World is unavailable on this resource")
@@ -254,20 +255,14 @@ func (r *WorldStateResource) OpenOuterWorld(ctx context.Context, _ *s4wave_world
 		return nil, err
 	}
 
-	tx, err := r.outerEngine.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
 	opts := []WorldStateResourceOption{}
 	if r.sessionPeerIDBound {
 		opts = append(opts, WithSessionPeerID(r.sessionPeerID))
 	}
-	resource := NewWorldStateResource(r.le, r.b, tx, r.lookupOp, opts...)
-	// Nested openings from this read-only state retain the original Space authority.
-	resource.storage = r.outerEngine
-	id, err := resourceCtx.AddResource(resource.GetMux(), tx.Discard)
+	resource := NewEngineResource(r.le, r.b, r.outerEngine, r.lookupOp, nil, opts...)
+	id, err := resourceCtx.AddResource(resource.GetMux(), resource.Close)
 	if err != nil {
-		tx.Discard()
+		resource.Close()
 		return nil, err
 	}
 	return &s4wave_world.OpenOuterWorldResponse{ResourceId: id}, nil

@@ -139,11 +139,11 @@ func TestRemoteNestedWorldResourceReleaseReturnsServerCountToBaseline(t *testing
 		if i%2 == 0 {
 			nested.Release()
 			waitForTrackedResourceCount(t, server, baseline+1)
-			obj, found, err = enclosing.GetObject(ctx, outerKey)
-			world.ReleaseObjectState(obj)
-			if err != nil || !found {
-				t.Fatalf("iteration %d: enclosing after nested release: found %v, err %v", i, found, err)
+			enclosingWorld, err := sdk_world_engine.NewSDKEngine(client, enclosing.GetResourceRef())
+			if err != nil {
+				t.Fatal(err)
 			}
+			requireObject(ctx, t, enclosingWorld, outerKey, true)
 			enclosing.Release()
 		} else {
 			enclosing.Release()
