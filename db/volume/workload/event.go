@@ -4,6 +4,7 @@ package workload
 
 import (
 	"io"
+	"os"
 
 	"github.com/pkg/errors"
 	exptrace "golang.org/x/exp/trace"
@@ -52,4 +53,22 @@ func Extract(r io.Reader) ([]Event, error) {
 		}
 		out = append(out, Event{Time: int64(ev.Time()), Goroutine: int64(ev.Goroutine()), Record: rec})
 	}
+}
+
+// ReadTrace prepares a replay of the Go execution trace file at path.
+func ReadTrace(path string) (*Replay, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	events, err := Extract(f)
+	_ = f.Close()
+	if err != nil {
+		return nil, err
+	}
+	records := make([]Record, len(events))
+	for i, ev := range events {
+		records[i] = ev.Record
+	}
+	return NewReplay(records)
 }

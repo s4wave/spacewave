@@ -10,12 +10,11 @@
 // files the manifest no longer names. Recovery loads the manifest's
 // checkpoint and replays the later log records in sequence order.
 //
-// Published tables are copy-on-write snapshots that are never changed, so a
-// read transaction sees one snapshot for its whole life without locks.
+// The table is a memtable, whose snapshots serve read transactions without
+// locks.
 package logindex
 
 import (
-	"bytes"
 	"context"
 	"hash/crc32"
 	"slices"
@@ -24,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume/device"
-	"github.com/tidwall/btree"
+	"github.com/s4wave/spacewave/db/volume/memtable"
 )
 
 // defaultCheckpointBytes is the log length that starts a checkpoint by
@@ -44,30 +43,11 @@ type Options struct {
 	Foreground bool
 }
 
-// entry is one key and its value.
-type entry struct {
-	// key is the key.
-	key []byte
-	// value is the value.
-	value []byte
-}
-
-// lessEntry orders entries by key.
-func lessEntry(a, b entry) bool {
-	return bytes.Compare(a.key, b.key) < 0
-}
-
-// table is the ordered set of entries.
-type table = btree.BTreeG[entry]
-
-// newTable returns an empty table. Tables skip the btree's lock: a published
-// table is only read, and a write transaction owns its copy.
-func newTable() *table {
-	return btree.NewBTreeGOptions(lessEntry, btree.Options{NoLocks: true})
-}
-
 // Index is the log-structured index.
 type Index struct {
+	// Table serves the transactions.
+	*memtable.Table
+
 	// ctx bounds background checkpoints.
 	ctx context.Context
 	// dev holds the index files.
@@ -77,13 +57,8 @@ type Index struct {
 	// wg tracks the running checkpoint.
 	wg sync.WaitGroup
 
-	// wmtx is held by the open write transaction.
-	wmtx sync.Mutex
-
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// tree is the published table.
-	tree *table
 	// seq is the sequence of the last committed record.
 	seq uint64
 	// log is the number of the log file taking records.
@@ -107,7 +82,8 @@ func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) 
 	if opts.CheckpointBytes <= 0 {
 		opts.CheckpointBytes = defaultCheckpointBytes
 	}
-	i := &Index{ctx: ctx, dev: dev, opts: opts, tree: newTable()}
+	i := &Index{ctx: ctx, dev: dev, opts: opts}
+	i.Table = memtable.New(i.commit)
 
 	// Find the manifest and the files.
 	files, err := dev.List(ctx)
@@ -207,7 +183,7 @@ func (i *Index) loadCheckpoint(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		i.tree.Load(entry{key: key, value: value})
+		i.Load(key, value)
 		b = rest
 	}
 	return nil
@@ -225,43 +201,16 @@ func (i *Index) replayLog(ctx context.Context, n uint64, size int64) error {
 		if !ok || seq != i.seq+1 {
 			return nil
 		}
-		apply(i.tree, ops)
+		i.Apply(ops)
 		i.seq = seq
 		b = b[l:]
 	}
 }
 
-// apply applies ops to t.
-func apply(t *table, ops []logOp) {
-	for _, op := range ops {
-		if op.del {
-			t.Delete(entry{key: op.key})
-			continue
-		}
-		t.Set(entry{key: op.key, value: op.value})
-	}
-}
-
-// NewTransaction opens a transaction on the published table. A write
-// transaction holds the index's writer lock until Commit or Discard.
-func (i *Index) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	if !write {
-		i.mtx.Lock()
-		tree := i.tree
-		i.mtx.Unlock()
-		return &Tx{tree: tree}, nil
-	}
-	i.wmtx.Lock()
-	i.mtx.Lock()
-	tree := i.tree.Copy()
-	i.mtx.Unlock()
-	return &Tx{index: i, tree: tree}, nil
-}
-
-// commit appends ops as one log record, publishes tree, and starts a
-// checkpoint when the log is long enough. With flush set, a flush barrier
-// precedes the record and the record is flushed. The caller holds wmtx.
-func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool) error {
+// commit appends ops as one log record and starts a checkpoint of next when
+// the log is long enough. Unless ordered is set, a flush barrier precedes the
+// record and the record is flushed.
+func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtable.Op, ordered bool) error {
 	i.mtx.Lock()
 	seq, log, off, err := i.seq+1, i.log, i.logSize, i.err
 	i.mtx.Unlock()
@@ -272,7 +221,7 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool
 	// Flush the earlier writes on the device, which the record may reference,
 	// so a crash during the record's own flush never keeps the record without
 	// them. The barrier costs nothing on a device with no unflushed writes.
-	if flush {
+	if !ordered {
 		if err := i.dev.Write(ctx, nil, true); err != nil {
 			return errors.Wrap(err, "flush before log")
 		}
@@ -281,7 +230,7 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool
 	// Write the record.
 	rec := appendRecord(nil, seq, ops)
 	w := device.Write{Name: fileName(logPrefix, log), Offset: off, Data: rec}
-	if err := i.dev.Write(ctx, []device.Write{w}, flush); err != nil {
+	if err := i.dev.Write(ctx, []device.Write{w}, !ordered); err != nil {
 		err = errors.Wrap(err, "write log")
 		i.mtx.Lock()
 		i.err = err
@@ -289,9 +238,9 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool
 		return err
 	}
 
-	// Publish the table and decide on a checkpoint.
+	// Advance the log and decide on a checkpoint.
 	i.mtx.Lock()
-	i.tree, i.seq = tree, seq
+	i.seq = seq
 	i.logSize += int64(len(rec))
 	start := !i.checkpointing && i.logSize > max(i.opts.CheckpointBytes, int64(i.man.checkpointLen/2)) //nolint:gosec
 	if start {
@@ -301,18 +250,18 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool
 		i.log++
 		i.logSize = 0
 	}
-	next := i.log
+	log = i.log
 	i.mtx.Unlock()
 	if !start {
 		return nil
 	}
 
-	// Checkpoint the published table.
+	// Checkpoint the table the commit publishes.
 	if i.opts.Foreground {
-		return i.checkpoint(ctx, tree, seq, next)
+		return i.checkpoint(ctx, next, seq, log)
 	}
 	i.wg.Go(func() {
-		err := i.checkpoint(i.ctx, tree, seq, next)
+		err := i.checkpoint(i.ctx, next, seq, log)
 		if err != nil {
 			i.mtx.Lock()
 			i.checkpointErr = err
@@ -322,10 +271,10 @@ func (i *Index) commit(ctx context.Context, tree *table, ops []logOp, flush bool
 	return nil
 }
 
-// checkpoint writes tree, which holds every record through seq, as checkpoint
-// number log, then a manifest naming it with log as the first log to replay,
-// and removes the files that manifest replaces.
-func (i *Index) checkpoint(ctx context.Context, tree *table, seq, log uint64) error {
+// checkpoint writes table, which holds every record through seq, as
+// checkpoint number log, then a manifest naming it with log as the first log to
+// replay, and removes the files that manifest replaces.
+func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, log uint64) error {
 	defer func() {
 		i.mtx.Lock()
 		i.checkpointing = false
@@ -348,9 +297,9 @@ func (i *Index) checkpoint(ctx context.Context, tree *table, seq, log uint64) er
 		return nil
 	}
 	var err error
-	tree.Scan(func(e entry) bool {
-		buf = appendBytes(buf, e.key)
-		buf = appendBytes(buf, e.value)
+	table.Scan(func(key, value []byte) bool {
+		buf = appendBytes(buf, key)
+		buf = appendBytes(buf, value)
 		if len(buf) >= checkpointChunk {
 			err = flushChunk(false)
 		}

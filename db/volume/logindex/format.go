@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/volume/memtable"
 )
 
 // Device file names.
@@ -90,29 +91,19 @@ func unmarshalManifest(b []byte) (manifest, bool) {
 	return m, m.gen != 0
 }
 
-// logOp is one operation of a log record.
-type logOp struct {
-	// key is the key.
-	key []byte
-	// value is the value a set stores.
-	value []byte
-	// del deletes the key.
-	del bool
-}
-
 // appendRecord appends a log record holding ops at seq.
-func appendRecord(b []byte, seq uint64, ops []logOp) []byte {
+func appendRecord(b []byte, seq uint64, ops []memtable.Op) []byte {
 	start := len(b)
 	b = append(b, make([]byte, recordHeader)...)
 	for _, op := range ops {
-		if op.del {
+		if op.Delete {
 			b = append(b, opDelete)
-			b = appendBytes(b, op.key)
+			b = appendBytes(b, op.Key)
 			continue
 		}
 		b = append(b, opSet)
-		b = appendBytes(b, op.key)
-		b = appendBytes(b, op.value)
+		b = appendBytes(b, op.Key)
+		b = appendBytes(b, op.Value)
 	}
 	header := b[start : start+recordHeader]
 	binary.LittleEndian.PutUint32(header[0:], uint32(len(b)-start-recordHeader)) //nolint:gosec
@@ -124,7 +115,7 @@ func appendRecord(b []byte, seq uint64, ops []logOp) []byte {
 // readRecord decodes the record at the start of b, returning its sequence,
 // its operations, and its length. It reports false for a torn, partial, or
 // absent record.
-func readRecord(b []byte) (uint64, []logOp, int, bool) {
+func readRecord(b []byte) (uint64, []memtable.Op, int, bool) {
 	if len(b) < recordHeader {
 		return 0, nil, 0, false
 	}
@@ -137,17 +128,17 @@ func readRecord(b []byte) (uint64, []logOp, int, bool) {
 		return 0, nil, 0, false
 	}
 	seq := binary.LittleEndian.Uint64(b[8:])
-	var ops []logOp
+	var ops []memtable.Op
 	for body := b[recordHeader:end]; len(body) != 0; {
 		kind := body[0]
 		key, rest, err := readBytes(body[1:])
 		if err != nil {
 			return 0, nil, 0, false
 		}
-		op := logOp{key: key, del: kind == opDelete}
+		op := memtable.Op{Key: key, Delete: kind == opDelete}
 		switch kind {
 		case opSet:
-			op.value, rest, err = readBytes(rest)
+			op.Value, rest, err = readBytes(rest)
 			if err != nil {
 				return 0, nil, 0, false
 			}

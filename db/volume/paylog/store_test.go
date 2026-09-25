@@ -210,20 +210,7 @@ func replayTrace(t *testing.T, e engine, path string, ordered bool, fillBlocks, 
 	ctx := t.Context()
 
 	// Prepare the workload and the volume it runs against.
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	events, err := workload.Extract(f)
-	_ = f.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	records := make([]workload.Record, len(events))
-	for i, ev := range events {
-		records[i] = ev.Record
-	}
-	replay, err := workload.NewReplay(records)
+	replay, err := workload.ReadTrace(path)
 	if err != nil {
 		t.Fatal(err)
 	}
