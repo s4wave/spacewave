@@ -216,32 +216,7 @@ func ExecutePluginEntrypoint(
 		rels = append(rels, csetRef.Release)
 	}
 
-	// construct the rpc mux
-	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
-
-	// handle ManifestFetch requests via bus ManifestFetch.
-	pluginFetchViaBus := manifest.NewManifestFetchViaBus(le, b)
-	_ = manifest.SRPCRegisterManifestFetch(rpcMux, pluginFetchViaBus)
-
-	// handle AccessRpcService requests via bus LookupRpcService.
-	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
-		b,
-		true,
-		func(remoteServerID string) (string, error) {
-			if remoteServerID == "" {
-				remoteServerID = "default"
-			}
-			// simplify plugin-host/web-view/ to web-view/
-			if strings.HasPrefix(remoteServerID, "web-view/") {
-				return remoteServerID, nil
-			}
-			return bldr_plugin.HostServerIDPrefix + remoteServerID, nil
-		},
-	)
-	_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
-
-	// handle incoming PluginRpc calls by forwarding to the bus
-	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
+	rpcMux := newPluginRpcMux(le, b)
 
 	// Listen for incoming requests before publishing initial capabilities.
 	srv := srpc.NewServer(rpcMux)
@@ -292,6 +267,55 @@ func ExecutePluginEntrypoint(
 		rel()
 		return err
 	}
+}
+
+// newPluginRpcMux serves the plugin host's calls into this plugin. Unknown
+// services wait on the plugin bus for a LookupRpcService resolver.
+func newPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
+	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
+
+	// Go plugins publish their registrations as they start, so they keep the
+	// in-place replacement contract. Answer the scheduler's probe here: the bus
+	// fallback would wait for an Activation service that never appears.
+	_ = bldr_plugin.SRPCRegisterActivation(rpcMux, inPlaceActivation{})
+
+	// handle ManifestFetch requests via bus ManifestFetch.
+	pluginFetchViaBus := manifest.NewManifestFetchViaBus(le, b)
+	_ = manifest.SRPCRegisterManifestFetch(rpcMux, pluginFetchViaBus)
+
+	// handle AccessRpcService requests via bus LookupRpcService.
+	accessRpcServiceServer := bifrost_rpc_access.NewAccessRpcServiceServer(
+		b,
+		true,
+		func(remoteServerID string) (string, error) {
+			if remoteServerID == "" {
+				remoteServerID = "default"
+			}
+			// simplify plugin-host/web-view/ to web-view/
+			if strings.HasPrefix(remoteServerID, "web-view/") {
+				return remoteServerID, nil
+			}
+			return bldr_plugin.HostServerIDPrefix + remoteServerID, nil
+		},
+	)
+	_ = bifrost_rpc_access.SRPCRegisterAccessRpcService(rpcMux, accessRpcServiceServer)
+
+	// handle incoming PluginRpc calls by forwarding to the bus
+	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
+	return rpcMux
+}
+
+// inPlaceActivation reports that a Go plugin has no staged registrations.
+type inPlaceActivation struct{}
+
+// Check reports the in-place replacement contract.
+func (inPlaceActivation) Check(context.Context, *bldr_plugin.CheckActivationRequest) (*bldr_plugin.CheckActivationResponse, error) {
+	return nil, srpc.ErrUnimplemented
+}
+
+// Activate is never called for a plugin that reports in-place replacement.
+func (inPlaceActivation) Activate(context.Context, *bldr_plugin.ActivatePluginRequest) (*bldr_plugin.ActivatePluginResponse, error) {
+	return nil, srpc.ErrUnimplemented
 }
 
 // startInitialCapabilityRegistration serves incoming plugin host streams and

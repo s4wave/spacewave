@@ -5,7 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/sirupsen/logrus"
 )
 
 func TestHandlePluginEntrypointError(t *testing.T) {
@@ -224,5 +227,21 @@ func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
 	}
 	if completeCalled {
 		t.Fatal("initial capability registration completed after cancellation")
+	}
+}
+
+// TestPluginActivationProbe checks that a Go plugin answers the scheduler's
+// replacement probe instead of waiting on its bus for an Activation service.
+func TestPluginActivationProbe(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(newPluginRpcMux(le, b))))
+	_, err = bldr_plugin.NewSRPCActivationClient(client).Check(ctx, &bldr_plugin.CheckActivationRequest{})
+	if err == nil || err.Error() != srpc.ErrUnimplemented.Error() {
+		t.Fatal("probe did not report in-place replacement", err)
 	}
 }
