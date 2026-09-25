@@ -6,7 +6,10 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { resolvePath, type To, useNavigate } from '@s4wave/web/router/router.js'
-import { isLocalNavigation } from '@s4wave/web/router/HistoryRouter.js'
+import {
+  isLocalNavigation,
+  isWorldObjectNavigation,
+} from '@s4wave/web/router/HistoryRouter.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
@@ -89,6 +92,12 @@ function NestedWorldObjectViewer({
   )
   const handleNavigate = useCallback(
     (to: To) => {
+      // Open sibling objects inside the same nested World.
+      if (isWorldObjectNavigation(to)) {
+        navigateToSubPath(routeFor(to.objectKey, to.path))
+        return
+      }
+
       // Leave the nested viewer for global destinations.
       if (to.path.startsWith('/') && !isLocalNavigation(to)) {
         navigate(to)
@@ -165,6 +174,12 @@ export function SpaceObjectContainer() {
 
   const handleViewerNavigate = useCallback(
     (to: To) => {
+      if (isWorldObjectNavigation(to)) {
+        navigateToSubPath(
+          to.path ? to.objectKey + '/-/' + to.path : to.objectKey,
+        )
+        return
+      }
       if (to.path.startsWith('/') && !isLocalNavigation(to)) {
         navigate(to)
         return

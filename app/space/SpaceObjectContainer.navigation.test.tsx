@@ -16,6 +16,7 @@ import {
   Routes,
   type To,
 } from '@s4wave/web/router/router.js'
+import { worldObjectNavigation } from '@s4wave/web/router/HistoryRouter.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 
 import { SpaceObjectContainer } from './SpaceObjectContainer.js'
@@ -291,6 +292,14 @@ describe('nested World route', () => {
     props.onNavigate({ path: 'history' })
     expect(h.navigateToSubPath).toHaveBeenCalledWith(
       'projection/logbook/-/world/-/orient/plan/first/-/details/history',
+    )
+    props.onNavigate(worldObjectNavigation('plans/second.org'))
+    expect(h.navigateToSubPath).toHaveBeenLastCalledWith(
+      'projection/logbook/-/world/-/plans/second.org',
+    )
+    props.onNavigate(worldObjectNavigation('orient/repo', 'plans'))
+    expect(h.navigateToSubPath).toHaveBeenLastCalledWith(
+      'projection/logbook/-/world/-/orient/repo/-/plans',
     )
 
     h.spaceContext.objectPath = ''

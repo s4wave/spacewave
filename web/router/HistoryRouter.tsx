@@ -43,6 +43,31 @@ export function localNavigation(to: Pick<To, 'path'>): LocalNavigation {
   return { ...to, navigation: 'local' }
 }
 
+// WorldObjectNavigation identifies another object in the viewer's World.
+//
+// The viewer's host opens objectKey at path. A viewer in a nested World
+// stays in that World, so it can link to its siblings without knowing where
+// the host mounted it.
+export interface WorldObjectNavigation {
+  path: string
+  objectKey: string
+}
+
+// worldObjectNavigation targets objectKey, optionally at a path inside its viewer.
+export function worldObjectNavigation(
+  objectKey: string,
+  path = '',
+): WorldObjectNavigation {
+  return { path, objectKey }
+}
+
+// isWorldObjectNavigation reports whether a target opens another World object.
+export function isWorldObjectNavigation(
+  to: To,
+): to is To & WorldObjectNavigation {
+  return typeof (to as Partial<WorldObjectNavigation>).objectKey === 'string'
+}
+
 // LocalHistoryNavigation identifies a target restored from this router's private stack.
 export interface LocalHistoryNavigation extends To {
   history: 'local'
