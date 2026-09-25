@@ -16,9 +16,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
-	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/blocktype"
-	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 )
 
@@ -226,19 +223,6 @@ func setupMigrationClient(ctx context.Context, t *testing.T, network *inproc.Net
 	if err := account.EnsureConfiguredSessionTransport(ctx, mounted.GetPrivKey()); err != nil {
 		t.Fatal(err)
 	}
-
-	// Decode the file DAG used to prove that replicas retain independent copies.
-	decoder := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-		if typeID == "test/replica-payload" {
-			return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
-		}
-		return nil, nil
-	})
-	releaseDecoder, err := tb.Bus.AddController(ctx, decoder, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseDecoder)
 
 	// Register the mounted Session so production recovery can reattach its entry.
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))

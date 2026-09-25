@@ -16,9 +16,6 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
-	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/blocktype"
-	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 )
 
@@ -50,17 +47,6 @@ func TestPairingAccountChoice(t *testing.T) {
 				if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
 					t.Fatal(err)
 				}
-				decoder := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-					if typeID == "test/replica-payload" {
-						return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
-					}
-					return nil, nil
-				})
-				releaseDecoder, err := account.t.p.b.AddController(ctx, decoder, nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Cleanup(releaseDecoder)
 				tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 				_, reference, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{VolumeId: tb.EngineVolumeID}), nil)
 				if err != nil {

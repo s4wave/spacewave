@@ -3,18 +3,19 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"maps"
 	"testing"
 	"time"
 
 	"github.com/s4wave/spacewave/core/pairing"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
-	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	"github.com/s4wave/spacewave/db/blocktype"
-	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 )
 
@@ -37,17 +38,6 @@ func TestAccountReplicaMesh(t *testing.T) {
 		if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
 			t.Fatal(err)
 		}
-		decoder := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
-			if typeID == "test/replica-payload" {
-				return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
-			}
-			return nil, nil
-		})
-		releaseDecoder, err := account.t.p.b.AddController(ctx, decoder, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer releaseDecoder()
 		originals = append(originals, account)
 		sessions = append(sessions, sess)
 	}
@@ -79,6 +69,12 @@ func TestAccountReplicaMesh(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(data, payload) {
 		t.Fatalf("third replica lacks the original payload: found=%v err=%v", found, err)
 	}
+	source, releaseSource, err := a.MountSharedObject(ctx, spaceRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseSource()
+	assertSameBlockGraph(ctx, t, source.GetBlockStore(), so.GetBlockStore().(*BlockStore).store, replicaWorldHead(ctx, t, source).GetRootRef())
 
 	// A Space created on the third replica reaches B without A or new pairing.
 	later, err := c.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -211,4 +207,67 @@ func waitReplicaObject(ctx context.Context, t *testing.T, account *ProviderAccou
 	}, nil); err != nil {
 		t.Fatalf("replica did not discover the Space: %v", err)
 	}
+}
+
+// replicaWorldHead returns the World head of a mounted Space.
+func replicaWorldHead(ctx context.Context, t *testing.T, so sobject.SharedObject) *bucket.ObjectRef {
+	t.Helper()
+	states, release, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	inner, err := states.GetValue().GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := &sobject_world_engine.InnerState{}
+	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
+		t.Fatal(err)
+	}
+	return head.GetHeadRef()
+}
+
+// assertSameBlockGraph checks that dst holds every block reachable from root in
+// src with the same bytes and edges.
+func assertSameBlockGraph(ctx context.Context, t *testing.T, src, dst block.StoreOps, root *block.BlockRef) {
+	t.Helper()
+	seen := map[string]bool{root.MarshalString(): true}
+	queue := []*block.BlockRef{root}
+	for len(queue) != 0 {
+		ref := queue[0]
+		queue = queue[1:]
+		want, err := src.GetStoredBlock(ctx, ref)
+		if err != nil || want == nil || !want.GetRefsKnown() {
+			t.Fatalf("source block %s: stored=%v err=%v", ref.MarshalString(), want, err)
+		}
+		got, err := dst.GetStoredBlock(ctx, ref)
+		if err != nil || got == nil || !got.GetRefsKnown() {
+			t.Fatalf("replica block %s: stored=%v err=%v", ref.MarshalString(), got, err)
+		}
+		if !bytes.Equal(got.GetData(), want.GetData()) || !sameRefs(got.GetRefs(), want.GetRefs()) {
+			t.Fatalf("replica block %s differs from its source", ref.MarshalString())
+		}
+		for _, child := range want.GetRefs() {
+			if key := child.MarshalString(); !seen[key] {
+				seen[key] = true
+				queue = append(queue, child)
+			}
+		}
+	}
+	if len(seen) < 3 {
+		t.Fatalf("source graph has only %d blocks", len(seen))
+	}
+}
+
+// sameRefs compares two edge lists as sets.
+func sameRefs(a, b []*block.BlockRef) bool {
+	set := func(refs []*block.BlockRef) map[string]bool {
+		keys := make(map[string]bool, len(refs))
+		for _, ref := range refs {
+			keys[ref.MarshalString()] = true
+		}
+		return keys
+	}
+	return maps.Equal(set(a), set(b))
 }

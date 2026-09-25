@@ -113,11 +113,15 @@ type BlockStat struct {
 	Size int64
 }
 
-// PutBlock marshals & puts a block into a bucket.
+// PutBlock marshals b and puts it into bk with the refs it holds.
 func PutBlock(ctx context.Context, bk StoreOps, b Block) (*BlockRef, bool, error) {
 	dat, err := b.MarshalBlock()
 	if err != nil {
 		return nil, false, err
 	}
-	return bk.PutBlock(ctx, dat, nil)
+	refs, err := ExtractBlockRefs(b)
+	if err != nil {
+		return nil, false, err
+	}
+	return bk.PutBlock(ctx, dat, &PutOpts{Refs: refs})
 }
