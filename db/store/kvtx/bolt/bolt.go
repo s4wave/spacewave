@@ -9,14 +9,23 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/fsnotify"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
+// SyncDeadline is how long an ordered commit may stay pending before the store
+// flushes it on its own.
+const SyncDeadline = time.Second
+
 // Store is a bolt database key-value store.
+//
+// An ordered commit becomes durable at the first of: Sync, a later full
+// commit, SyncDeadline after the first pending ordered commit, or Close.
 type Store struct {
 	db     *bdb.DB
 	bucket []byte
@@ -28,6 +37,16 @@ type Store struct {
 	durable atomic.Uint64
 	// syncMtx serializes flushes.
 	syncMtx sync.Mutex
+
+	// bcast guards the fields below and broadcasts when durable advances or
+	// the deadline flush fails.
+	bcast broadcast.Broadcast
+	// deadline flushes pending ordered commits, nil while none is armed.
+	deadline *time.Timer
+	// closed stops arming the deadline.
+	closed bool
+	// syncErr is the last deadline flush failure, cleared by a flush.
+	syncErr error
 }
 
 // NewStore constructs a new key-value store from a bolt db.
@@ -35,7 +54,9 @@ func NewStore(db *bdb.DB, bucket []byte) *Store {
 	return &Store{db: db, bucket: bucket}
 }
 
-// Open opens a bolt database store.
+// Open opens a bolt database store. It flushes once, so ordered commits that
+// an earlier process left in the page cache are durable before this store's
+// counters start.
 func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*Store, error) {
 	if len(bucket) == 0 {
 		return nil, errors.New("bucket len cannot be zero")
@@ -44,6 +65,11 @@ func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*
 	b, err := bdb.Open(path, mode, options)
 	if err != nil {
 		return nil, err
+	}
+	if !b.IsReadOnly() {
+		if err := b.Sync(); err != nil {
+			return nil, errors.Join(err, b.Close())
+		}
 	}
 
 	return NewStore(b, bucket), nil
@@ -174,14 +200,88 @@ func (s *Store) Sync(ctx context.Context) error {
 	return nil
 }
 
+// WaitDurable waits until every ordered commit completed before the call is
+// durable, without forcing a flush. It returns the deadline flush error if
+// that flush fails first.
+func (s *Store) WaitDurable(ctx context.Context) error {
+	target := s.ordered.Load()
+	for {
+		var waitCh <-chan struct{}
+		var err error
+		done := false
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if s.durable.Load() >= target {
+				done = true
+				return
+			}
+			err = s.syncErr
+			waitCh = getWaitCh()
+		})
+		if done || err != nil {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-waitCh:
+		}
+	}
+}
+
+// Close stops the deadline, flushes pending ordered commits, and closes the
+// database.
+func (s *Store) Close() error {
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.closed = true
+		if s.deadline != nil {
+			s.deadline.Stop()
+			s.deadline = nil
+		}
+	})
+	return errors.Join(s.Sync(context.Background()), s.db.Close())
+}
+
+// markOrdered counts a completed ordered commit and arms the deadline flush
+// unless one is already armed.
+func (s *Store) markOrdered() {
+	s.ordered.Add(1)
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if s.closed || s.deadline != nil {
+			return
+		}
+		s.deadline = time.AfterFunc(SyncDeadline, s.flushDeadline)
+	})
+}
+
+// flushDeadline flushes the ordered commits pending when the deadline fired.
+func (s *Store) flushDeadline() {
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.deadline = nil
+	})
+	err := s.Sync(context.Background())
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if err != nil {
+			s.syncErr = err
+			broadcast()
+		}
+	})
+}
+
 // markDurable records that the first n ordered commits are durable.
 func (s *Store) markDurable(n uint64) {
 	for {
 		durable := s.durable.Load()
-		if durable >= n || s.durable.CompareAndSwap(durable, n) {
+		if durable >= n {
 			return
 		}
+		if s.durable.CompareAndSwap(durable, n) {
+			break
+		}
 	}
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.syncErr = nil
+		broadcast()
+	})
 }
 
 // SupportsAtomicCommit excludes unsafe or externally deferred durability modes.

@@ -72,7 +72,7 @@ func NewBolt(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
-	closeFn := store.GetDB().Close
+	closeFn := store.Close
 	if batchStore != nil {
 		origClose := closeFn
 		closeFn = func() error {

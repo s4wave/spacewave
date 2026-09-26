@@ -134,6 +134,16 @@ func (s *SOHost) UpdateSOState(ctx context.Context, fn func(state *SOState) erro
 	return lk.WriteSOState(ctx, nextState)
 }
 
+// WaitDurable waits until every state write completed before the call is
+// durable. Callers that send state off the machine capture it, call
+// WaitDurable, then send, so no peer sees a state a power loss could undo.
+func (s *SOHost) WaitDurable(ctx context.Context) error {
+	if s.syncFuncs.WaitDurable == nil {
+		return nil
+	}
+	return s.syncFuncs.WaitDurable(ctx)
+}
+
 // ReadConfigHistory returns retained transitions between exact configuration heads.
 func (s *SOHost) ReadConfigHistory(ctx context.Context, base, target []byte) ([]*SOConfigChange, error) {
 	if bytes.Equal(base, target) && len(base) != 0 {

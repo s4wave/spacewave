@@ -122,6 +122,9 @@ func (a *ProviderAccount) deliverAccountTransitions(ctx context.Context, state *
 					return err
 				}
 				base, history, err := local.ReadSharedObjectConfigHistory(ctx, checkpoint.GetConfig())
+				if err == nil {
+					err = local.soHost.WaitDurable(ctx)
+				}
 				release()
 				if err != nil {
 					return err

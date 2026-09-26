@@ -22,9 +22,6 @@ var boltBucket = []byte("paylog")
 // a flush, then the meta page with a flush.
 type boltIndex struct {
 	*kvtx_bolt.Store
-
-	// db is the database.
-	db *bbolt.DB
 }
 
 // OpenBolt opens the bbolt index on dev, creating it when dev has none.
@@ -54,10 +51,5 @@ func OpenBolt(ctx context.Context, dev device.Device) (Index, error) {
 		_ = db.Close()
 		return nil, errors.Wrap(err, "init index")
 	}
-	return &boltIndex{Store: kvtx_bolt.NewStore(db, boltBucket), db: db}, nil
-}
-
-// Close closes the database.
-func (i *boltIndex) Close() error {
-	return i.db.Close()
+	return &boltIndex{Store: kvtx_bolt.NewStore(db, boltBucket)}, nil
 }

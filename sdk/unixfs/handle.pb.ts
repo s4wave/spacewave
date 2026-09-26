@@ -1118,6 +1118,15 @@ export const HandleUploadTreeFileStart: MessageType<HandleUploadTreeFileStart> =
  */
 export interface HandleUploadTreeRequest {
   /**
+   * OrderedCommit asks the tree to commit ordered when set on any message:
+   * the call returns once the change is applied, and the change becomes
+   * durable at the next world Sync or within a second.
+   *
+   * @generated from field: bool ordered_commit = 4;
+   */
+  orderedCommit?: boolean
+
+  /**
    * @generated from oneof s4wave.unixfs.HandleUploadTreeRequest.body
    */
   body?:
@@ -1179,6 +1188,7 @@ export const HandleUploadTreeRequest: MessageType<HandleUploadTreeRequest> =
         T: ScalarType.BYTES,
         oneof: 'body',
       },
+      { no: 4, name: 'ordered_commit', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

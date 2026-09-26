@@ -35,6 +35,10 @@ type SOHostSyncFuncs struct {
 	// Entry returns the retained configuration change addressed by its hash, or
 	// nil when it is not retained.
 	Entry func(context.Context, string, []byte) (*SOConfigChange, error)
+	// WaitDurable waits, without forcing a flush, until every state write
+	// completed before the call is durable. When nil, state writes are durable
+	// when they return.
+	WaitDurable func(context.Context) error
 }
 
 // ReadConfigSuffix follows retained hash-addressed entries from target to base.

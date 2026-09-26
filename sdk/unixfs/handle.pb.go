@@ -1051,6 +1051,10 @@ type HandleUploadTreeRequest struct {
 	//	*HandleUploadTreeRequest_FileStart
 	//	*HandleUploadTreeRequest_Data
 	Body isHandleUploadTreeRequest_Body `protobuf_oneof:"body"`
+	// OrderedCommit asks the tree to commit ordered when set on any message:
+	// the call returns once the change is applied, and the change becomes
+	// durable at the next world Sync or within a second.
+	OrderedCommit bool `protobuf:"varint,4,opt,name=ordered_commit,json=orderedCommit,proto3" json:"orderedCommit,omitempty"`
 }
 
 func (x *HandleUploadTreeRequest) Reset() {
@@ -1085,6 +1089,13 @@ func (x *HandleUploadTreeRequest) GetData() []byte {
 		return x.Data
 	}
 	return nil
+}
+
+func (x *HandleUploadTreeRequest) GetOrderedCommit() bool {
+	if x != nil {
+		return x.OrderedCommit
+	}
+	return false
 }
 
 type isHandleUploadTreeRequest_Body interface {
@@ -1832,6 +1843,7 @@ func (m *HandleUploadTreeRequest) CloneVT() *HandleUploadTreeRequest {
 		return (*HandleUploadTreeRequest)(nil)
 	}
 	r := new(HandleUploadTreeRequest)
+	r.OrderedCommit = m.OrderedCommit
 	if m.Body != nil {
 		r.Body = m.Body.(interface {
 			CloneOneofVT() isHandleUploadTreeRequest_Body
@@ -2798,6 +2810,9 @@ func (this *HandleUploadTreeRequest) EqualVT(that *HandleUploadTreeRequest) bool
 		}).EqualVT(that.Body) {
 			return false
 		}
+	}
+	if this.OrderedCommit != that.OrderedCommit {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -4798,6 +4813,11 @@ func (x *HandleUploadTreeRequest) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteBytes(ov.Data)
 		}
 	}
+	if x.OrderedCommit || s.HasField("orderedCommit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("orderedCommit")
+		s.WriteBool(x.OrderedCommit)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4838,6 +4858,9 @@ func (x *HandleUploadTreeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			ov := &HandleUploadTreeRequest_Data{}
 			x.Body = ov
 			ov.Data = s.ReadBytes()
+		case "ordered_commit", "orderedCommit":
+			s.AddField("ordered_commit")
+			x.OrderedCommit = s.ReadBool()
 		}
 	})
 }
@@ -6622,6 +6645,11 @@ func (m *HandleUploadTreeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		}
 		i -= size
 	}
+	if m.OrderedCommit {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.OrderedCommit)
+		i--
+		dAtA[i] = 0x20
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -7284,6 +7312,7 @@ func (m *HandleUploadTreeRequest) SizeVT() (n int) {
 	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
 		n += vtmsg.SizeVT()
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.OrderedCommit)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8040,6 +8069,10 @@ func (x *HandleUploadTreeRequest) MarshalProtoText() string {
 	case *HandleUploadTreeRequest_Data:
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
 		protobuf_go_lite.TextWriteBytes(&sb, body.Data)
+	}
+	if x.OrderedCommit != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ordered_commit")
+		protobuf_go_lite.TextWriteBool(&sb, x.OrderedCommit)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10449,6 +10482,16 @@ func (m *HandleUploadTreeRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Body = &HandleUploadTreeRequest_Data{Data: v}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrderedCommit", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OrderedCommit = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

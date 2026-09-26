@@ -69,12 +69,26 @@ type Volume interface {
 type WriteOrderer interface {
 	// OrdersWrites reports whether the volume makes writes durable in order.
 	OrdersWrites() bool
+	// WaitDurable waits until every write completed before the call is
+	// durable, without forcing a flush.
+	WaitDurable(ctx context.Context) error
 }
 
 // OrdersWrites reports whether vol makes its writes durable in commit order.
 func OrdersWrites(vol Volume) bool {
 	orderer, ok := vol.(WriteOrderer)
 	return ok && orderer.OrdersWrites()
+}
+
+// WaitDurable waits until every write to vol completed before the call is
+// durable. Volumes that do not order writes make each write durable before it
+// returns.
+func WaitDurable(ctx context.Context, vol Volume) error {
+	orderer, ok := vol.(WriteOrderer)
+	if !ok {
+		return nil
+	}
+	return orderer.WaitDurable(ctx)
 }
 
 // NewVolumeID constructs a new volume ID with a store type id and a peer id.

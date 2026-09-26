@@ -406,6 +406,15 @@ func (v *Volume) OrdersWrites() bool {
 	return v.ordered != nil
 }
 
+// WaitDurable waits until every ordered commit completed before the call is
+// durable, without forcing a flush.
+func (v *Volume) WaitDurable(ctx context.Context) error {
+	if v.ordered == nil {
+		return nil
+	}
+	return v.ordered.WaitDurable(ctx)
+}
+
 // BeginDeferFlush forwards the GC defer-flush scope to the embedded store.
 func (v *Volume) BeginDeferFlush() {
 	block.BeginDeferFlush(v.Store)

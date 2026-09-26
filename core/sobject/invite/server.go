@@ -195,6 +195,9 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	if err != nil {
 		return nil, errors.Wrap(err, "read updated owner shared object state")
 	}
+	if err := result.Host.WaitDurable(ctx); err != nil {
+		return nil, errors.Wrap(err, "wait for durable shared object state")
+	}
 
 	return &AcceptInviteResponse{
 		Grant:             grant,

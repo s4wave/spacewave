@@ -187,7 +187,7 @@ func (t *Tx) CommitOrdered(ctx context.Context) error {
 		return err
 	}
 	if t.store != nil {
-		t.store.ordered.Add(1)
+		t.store.markOrdered()
 	}
 	return nil
 }

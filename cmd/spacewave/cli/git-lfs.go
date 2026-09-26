@@ -228,13 +228,15 @@ func buildGitLfsAgentCommand() *cli.Command {
 }
 
 // buildGitLfsFlushCommand builds the git lfs flush subcommand that the
-// pre-push hook runs after git-lfs uploads the pushed objects.
+// pre-push hook runs after git-lfs uploads the pushed objects. The agent
+// commits objects ordered, so flush makes the Space's world durable before
+// git sends refs, then waits for the session to sync.
 func buildGitLfsFlushCommand() *cli.Command {
 	var statePath, spaceID string
 	var sessIdx int
 	return &cli.Command{
 		Name:      "flush",
-		Usage:     "wait until the session has synced its pending changes",
+		Usage:     "make pushed objects durable and wait until the session has synced",
 		ArgsUsage: "<uri>",
 		Hidden:    true,
 		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
@@ -254,6 +256,23 @@ func buildGitLfsFlushCommand() *cli.Command {
 				return err
 			}
 			defer sess.Release()
+			sid, err := client.resolveSpaceID(ctx, sess, uri.spaceID)
+			if err != nil {
+				return err
+			}
+			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
+			if err != nil {
+				return err
+			}
+			defer spaceCleanup()
+			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+			if err != nil {
+				return err
+			}
+			defer engineCleanup()
+			if _, err := engine.Sync(ctx); err != nil {
+				return errors.Wrap(err, "sync world")
+			}
 			return waitSessionSynced(ctx, sess)
 		},
 	}

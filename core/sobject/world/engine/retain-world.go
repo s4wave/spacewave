@@ -50,6 +50,11 @@ func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.Obje
 		if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 			return err
 		}
+		// The caller retires the old root next. A store ordered with the
+		// SharedObject state never makes that write durable before this one.
+		if sobject.QueueOrdersBlockWrites(so) {
+			return nil
+		}
 		_, err = store.Sync(ctx)
 		return err
 	}

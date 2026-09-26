@@ -81,9 +81,15 @@ func (s *SharedObject) GetBackingVolume() volume.Volume {
 	return s.tkr.a.vol
 }
 
+// WaitDurable waits until every state write completed before the call is
+// durable, without forcing a flush.
+func (s *SharedObject) WaitDurable(ctx context.Context) error {
+	return s.soHost.WaitDurable(ctx)
+}
+
 // QueueOrdersBlockWrites reports whether queueing orders block writes. The
-// block store and the operation queue share the account volume, and the queue
-// write is a durable commit.
+// block store and the operation queue share the account volume's ordered
+// store.
 func (s *SharedObject) QueueOrdersBlockWrites() bool {
 	return volume.OrdersWrites(s.tkr.a.vol)
 }
@@ -386,7 +392,12 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 
 	// Share the accepted-state watch and lock with the local persistence owner.
+	// State writes share the account volume, which reports their durability.
 	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID)
+	vol := t.a.vol
+	syncFuncs.WaitDurable = func(ctx context.Context) error {
+		return volume.WaitDurable(ctx, vol)
+	}
 	soHost := sobject.NewSOHost(ctx, watchFn, lockFn, sharedObjectID, syncFuncs)
 
 	// Construct the local operation queue and mounted SharedObject handle.

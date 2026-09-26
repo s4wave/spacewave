@@ -54,6 +54,9 @@ type LocalSOHost struct {
 type queueOpTxn struct {
 	// op is the operation to queue.
 	op *sobject.QueuedSOOperation
+	// ordered allows a direct transmission to accept op with an ordered
+	// state write (see sobject.WithOrderedOperation).
+	ordered bool
 	// done is closed when the transaction is processed.
 	done chan struct{}
 	// err contains the result and must not be read until done is closed.
@@ -253,9 +256,10 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 				return context.Canceled
 			case queueOp = <-l.queueOpCh:
 				// With nothing queued ahead of it, transmit the operation
-				// directly: the host queue commit is as durable as the local
-				// queue commit it replaces. The caller is released once the
-				// operation is visible in the snapshot.
+				// directly: the host state write replaces the local queue
+				// write, and is ordered when the caller allowed it. The
+				// caller is released once the operation is visible in the
+				// snapshot.
 				if len(localState.OpQueue) == 0 {
 					xfrm, err := snap.GetTransformer(ctx)
 					if err != nil {
@@ -263,7 +267,11 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 						close(queueOp.done)
 						return err
 					}
-					queued, err := l.executeQueueOp(ctx, xfrm, queueOp.op)
+					opCtx := ctx
+					if queueOp.ordered {
+						opCtx = sobject.WithOrderedOperation(ctx)
+					}
+					queued, err := l.executeQueueOp(opCtx, xfrm, queueOp.op)
 					if err == nil {
 						if queued {
 							err = awaitHostUpdate()
@@ -463,7 +471,9 @@ func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func
 
 // QueueOperation applies an operation to the shared object op queue.
 // Returns after the operation is durable in the host queue, the local queue,
-// or as a recorded rejection, and visible in the published snapshot.
+// or as a recorded rejection, and visible in the published snapshot. When ctx
+// carries sobject.WithOrderedOperation, a direct host state write is ordered
+// instead: applied on return and durable at the store's next durability point.
 // Returns the local op id.
 func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, error) {
 	// Trace one local enqueue through its persistence acknowledgement.
@@ -478,7 +488,8 @@ func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, er
 			LocalId: id,
 			OpData:  op,
 		},
-		done: done,
+		ordered: sobject.OrderedOperation(ctx),
+		done:    done,
 	}
 
 	// Hand the operation to Execute unless the caller cancels first.
@@ -925,10 +936,10 @@ func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOpe
 }
 
 // writeAcceptedLocalOpResult records an accepted operation's result with write
-// ordering only. The accepted head that carries the operation is already
-// durable, and the full commit that removed it from the local queue precedes
-// this one, so a crash can lose only the record, never the operation or a
-// replay of it.
+// ordering only. The state write that accepted the operation, and any commit
+// that removed it from the local queue, precede this one in the same ordered
+// store, so a crash can lose only the record, never the operation or a replay
+// of it.
 func (l *LocalSOHost) writeAcceptedLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
 	return l.putLocalOpResult(ctx, result, true)
 }

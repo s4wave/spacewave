@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 )
 
@@ -26,6 +27,8 @@ type uploadTreeState struct {
 	b    *unixfs_world.BatchFSWriter
 	dirs map[string]struct{}
 	resp s4wave_unixfs.HandleUploadTreeResponse
+	// ordered is set when any message asked for an ordered commit.
+	ordered bool
 }
 
 // UploadTree uploads a directory tree relative to this handle in one batch.
@@ -87,7 +90,11 @@ func (r *FSHandleResource) UploadTree(
 	defer r.handleMtx.Unlock()
 
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
-	if err := state.b.Commit(ctx); err != nil {
+	commitCtx := ctx
+	if state.ordered {
+		commitCtx = world.WithOrderedCommit(ctx)
+	}
+	if err := state.b.Commit(commitCtx); err != nil {
 		return nil, err
 	}
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-complete"})
@@ -110,6 +117,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 	state *uploadTreeState,
 	msg *s4wave_unixfs.HandleUploadTreeRequest,
 ) error {
+	state.ordered = state.ordered || msg.GetOrderedCommit()
 	if dir := msg.GetDirectory(); dir != nil {
 		recordUploadMetric(ctx, UploadMetric{Stage: "receive-directory"})
 		parts, err := parseUploadTreePath(dir.GetPath())
@@ -274,6 +282,7 @@ func (f *uploadTreeFile) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	f.state.ordered = f.state.ordered || msg.GetOrderedCommit()
 	data := msg.GetData()
 	if len(data) == 0 {
 		return 0, errors.Errorf("tree upload file %q expected data before declared size", f.name)
