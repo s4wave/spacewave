@@ -8,9 +8,12 @@ import {
   WatchWorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
 } from './world_srpc.pb.js'
-import { Tx } from './tx.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
-import { WorldStateResource, type TypedObjectAccess } from './world-state.js'
+import {
+  Tx,
+  WorldStateResource,
+  type TypedObjectAccess,
+} from './world-state.js'
 
 // Engine is the top-level resource for the World data structure.
 // Engine implements a transactional world state container.

@@ -251,7 +251,7 @@ Block Storage (Hydra)
 - Provides storage cursor access
 - Implements reactive watching via `WatchWorldState`
 
-**Transaction** (`sdk/world/tx.ts`):
+**Transaction** (`sdk/world/tx.go`, `Tx` in `sdk/world/world-state.ts`):
 
 - Short-lived read or write transaction
 - Implements `WorldState` interface (create/get/delete objects)

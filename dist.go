@@ -66,8 +66,9 @@ import "embed"
 //go:embed sdk/unixfs/handle.pb.ts sdk/unixfs/handle.ts sdk/unixfs/handle_srpc.pb.ts sdk/unixfs/index.ts
 //go:embed sdk/unixfs/path.ts sdk/unixfs/type.ts sdk/viewer/registry/registry.pb.ts
 //go:embed sdk/viewer/registry/registry_srpc.pb.ts sdk/vm/v86-wizard.pb.ts sdk/vm/v86.pb.ts
-//go:embed sdk/world/engine-state.ts sdk/world/engine.ts sdk/world/graph-utils.ts sdk/world/object-ref.ts
-//go:embed sdk/world/object-state.ts sdk/world/object_iterator.ts sdk/world/tx.ts sdk/world/types/errors.ts
+//go:embed sdk/world/engine-state.ts sdk/world/engine.ts sdk/world/errors.ts sdk/world/graph-utils.ts
+//go:embed sdk/world/object-ref.ts sdk/world/object-state.ts sdk/world/object_iterator.ts
+//go:embed sdk/world/types/errors.ts
 //go:embed sdk/world/types/types.ts sdk/world/utils.ts sdk/world/wizard/create-wizard.ts
 //go:embed sdk/world/wizard/wizard.pb.ts sdk/world/wizard/wizard_srpc.pb.ts sdk/world/world-state.ts
 //go:embed sdk/world/world.pb.ts sdk/world/world_srpc.pb.ts
