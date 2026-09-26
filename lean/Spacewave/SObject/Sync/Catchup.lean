@@ -595,7 +595,8 @@ theorem acceptResponse_binding {input : AcceptanceInput}
 theorem acceptResponse_authority {input : AcceptanceInput}
     (wrote : (acceptResponse input).host.wrote = true) :
     ∃ candidate, input.decoded = some candidate ∧
-      verifySuffix input.previous.config candidate.config (input.receiving.changes.map (·.entry)) = true := by
+      verifySuffix input.previous.config candidate.config
+        (unappliedEntries input.previous.config.hash (input.receiving.changes.map (·.entry))) = true := by
   obtain ⟨candidate, decoded, imported⟩ := acceptResponse_publication wrote
   exact ⟨candidate, decoded, importPeerSnapshot_authority imported⟩
 
@@ -636,7 +637,8 @@ theorem acceptResponse_complete (input : AcceptanceInput) (candidate : State) (s
   have imported : importPeerSnapshot input.previous candidate (input.receiving.changes.map (·.entry))
       input.localPeer input.candidateBytes (historyBytes input.receiving.changes) true true true =
       some ⟨next, false, true⟩ := by
-    simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2, chain, readable,
+    simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2,
+      unappliedEntries_of_verifySuffix chain, chain, readable,
       prepareReadableSnapshot_clean root valid localEmpty remoteEmpty, publishHost, next, changed]
   simp [acceptResponse, present, decoded, revision, base, cursor, digest, current, snapshotRoot,
     rootSeq, configSeq, configHash, lock, access, write, imported, visibleHost, next,

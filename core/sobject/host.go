@@ -145,6 +145,26 @@ func (s *SOHost) ReadConfigHistory(ctx context.Context, base, target []byte) ([]
 	return s.syncFuncs.History(ctx, s.sharedObjectID, base, target)
 }
 
+// unappliedConfigChanges drops the proof prefix through the held checkpoint's
+// head when the proof does not already link to it. Ordinary sync can apply part
+// of a peer's proof while it is in flight; the remaining changes must still link
+// to that head.
+func unappliedConfigChanges(head []byte, changes []*SOConfigChange) ([]*SOConfigChange, error) {
+	if len(changes) == 0 || bytes.Equal(changes[0].GetPreviousHash(), head) {
+		return changes, nil
+	}
+	for i, change := range changes {
+		hash, err := HashSOConfigChange(change)
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Equal(hash, head) {
+			return changes[i+1:], nil
+		}
+	}
+	return changes, nil
+}
+
 // ReadConfigEntry returns the retained transition that produced an exact head.
 func (s *SOHost) ReadConfigEntry(ctx context.Context, head []byte) (*SOConfigChange, error) {
 	if s.syncFuncs.Entry == nil || len(head) == 0 {
@@ -202,6 +222,10 @@ func (s *SOHost) ImportPeerSnapshot(
 
 	// Authenticate the exact configuration using the checkpoint held by this lock.
 	previous := lock.GetSOState()
+	changes, err = unappliedConfigChanges(previous.GetConfig().GetConfigChainHash(), changes)
+	if err != nil {
+		return err
+	}
 	if err := VerifyConfigChainSuffix(previous.GetConfig(), candidate.GetConfig(), changes); err != nil {
 		return errors.Wrap(err, "peer snapshot configuration authority")
 	}

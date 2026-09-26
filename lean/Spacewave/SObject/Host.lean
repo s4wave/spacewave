@@ -3,8 +3,8 @@ import Spacewave.SObject.State
 /-!
 # SharedObject host acceptance
 
-Mirrors `core/sobject/host.go` at `f7e1a3a78` with historical-root retention and
-snapshot nonce-progress corrections. `importPeerSnapshot`, `applyConfigChange`,
+Mirrors `core/sobject/host.go` with historical-root retention and snapshot
+nonce-progress corrections. `importPeerSnapshot`, `applyConfigChange`,
 `installInviteSnapshot`, and `hostUpdateRootState` clone before admission.
 Ordinary failure is `none`; committed revocation is a successful `HostResult`
 with `revoked = true`, matching Go's write followed by ErrParticipantRevoked.
@@ -89,15 +89,54 @@ def prepareReadableSnapshot (previous candidate : State) (accessOK : Bool) : Opt
       {next with invites := previous.invites, ops := [], queued := []} next.ops
     mergeLocalOps replayed previous.ops
 
+/--
+unappliedEntries drops the proof prefix through the held checkpoint's head when
+the proof does not already link to it.
+-/
+def unappliedEntries (head : String) (entries : List Entry) : List Entry :=
+  match entries with
+  | [] => []
+  | e :: _ =>
+    if e.prev = head then entries
+    else match entries.findIdx? (·.hash == head) with
+      | some i => entries.drop (i + 1)
+      | none => entries
+
+/-- A proof that already verifies from the checkpoint is used unchanged. -/
+theorem unappliedEntries_of_verifySuffix {cur cand : Config} {entries : List Entry}
+    (h : verifySuffix cur cand entries = true) : unappliedEntries cur.hash entries = entries := by
+  cases entries with
+  | nil => rfl
+  | cons e rest =>
+    by_cases linked : e.prev = cur.hash
+    · simp [unappliedEntries, linked]
+    · have step : suffixStep cur e = none := by
+        unfold suffixStep verifyChange
+        split <;> (try split) <;> simp [linked]
+      simp [verifySuffix, applySuffix, List.foldlM, step] at h
+
+/-- Trimming keeps only entries from the original proof. -/
+theorem mem_of_mem_unappliedEntries {head : String} {entries : List Entry} {e : Entry}
+    (h : e ∈ unappliedEntries head entries) : e ∈ entries := by
+  unfold unappliedEntries at h
+  split at h
+  · simp at h
+  · split at h
+    · exact h
+    · split at h
+      · exact List.mem_of_mem_drop h
+      · exact h
+
 /-- importPeerSnapshot mirrors bounds, chain/root/access checks, replay and write. -/
 def importPeerSnapshot (previous candidate : State) (entries : List Entry)
     (localPeer : String) (candidateBytes historyBytes : Nat)
     (lockOK accessOK writeOK : Bool) : Option HostResult := do
   if candidateBytes > 10 * 1024 * 1024 || entries.length > 4096 ||
       historyBytes > 8 * 1024 * 1024 || !lockOK then none
-  else if !verifySuffix previous.config candidate.config entries then none
+  else if !verifySuffix previous.config candidate.config
+      (unappliedEntries previous.config.hash entries) then none
   else if !readableBy candidate.config localPeer then
-    if entries.isEmpty then some ⟨previous, true, false⟩
+    if (unappliedEntries previous.config.hash entries).isEmpty then some ⟨previous, true, false⟩
     else publishHost {previous with
       config := candidate.config
       grants := []
@@ -382,7 +421,8 @@ theorem importPeerSnapshot_authority {previous candidate : State} {entries : Lis
     {peer : String} {bytes history : Nat} {lockOK accessOK writeOK : Bool} {out : HostResult}
     (h : importPeerSnapshot previous candidate entries peer bytes history
       lockOK accessOK writeOK = some out) :
-    verifySuffix previous.config candidate.config entries = true := by
+    verifySuffix previous.config candidate.config
+      (unappliedEntries previous.config.hash entries) = true := by
   unfold importPeerSnapshot at h
   split at h
   · contradiction
@@ -427,7 +467,8 @@ theorem importPeerSnapshot_config_monotone {previous candidate : State} {entries
     (h : importPeerSnapshot previous candidate entries peer bytes history
       lockOK accessOK writeOK = some out) :
     previous.config.seqno ≤ out.state.config.seqno := by
-  have seq := verifySuffix_seqno hashes (importPeerSnapshot_authority h)
+  have seq := verifySuffix_seqno (fun e mem => hashes e (mem_of_mem_unappliedEntries mem))
+    (importPeerSnapshot_authority h)
   obtain ⟨_, unchanged | advanced⟩ := importPeerSnapshot_progress h
   · simp [unchanged]
   · rw [advanced, seq]; omega
@@ -442,8 +483,8 @@ theorem importPeerSnapshot_revoked {previous candidate : State} {entries : List 
       some ⟨{previous with
         config := candidate.config, grants := [], ops := [], queued := [], rejections := []},
         true, true⟩ := by
-  simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2, chain, removed,
-    nonempty, publishHost]
+  simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2,
+    unappliedEntries_of_verifySuffix chain, chain, removed, nonempty, publishHost]
 
 /-- Readable imports reach the candidate checkpoint, retaining local invitation capabilities. -/
 theorem importPeerSnapshot_target {previous candidate : State} {entries : List Entry}
@@ -541,7 +582,8 @@ theorem cleanExchange_converges {older newer : State} {entries : List Entry} {pe
     omega
   have accepted : importPeerSnapshot older newer entries peer bytes history true true true =
       some ⟨next, false, true⟩ := by
-    simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2, chain, readable,
+    simp [importPeerSnapshot, bounded.1, bounded.2.1, bounded.2.2,
+      unappliedEntries_of_verifySuffix chain, chain, readable,
       prepareReadableSnapshot_clean root valid localEmpty remoteEmpty, publishHost]
     split
     · rename_i same
