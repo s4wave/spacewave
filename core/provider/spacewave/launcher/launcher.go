@@ -3,10 +3,20 @@ package spacewave_launcher
 import (
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // ChannelStable is the default release channel.
 const ChannelStable = "stable"
+
+// PluginID is the plugin that runs the launcher controller: its own process on
+// desktop and its own worker in the browser.
+const PluginID = "spacewave-launcher"
+
+// PluginLauncherServiceID routes Launcher calls from any process to the
+// launcher plugin. The controller answers the bare SRPCLauncherServiceID only
+// on its own plugin bus.
+var PluginLauncherServiceID = bldr_plugin.PluginServiceID(PluginID, SRPCLauncherServiceID)
 
 // ResolvedChannelKey returns the DistConfig channel key with the empty-string
 // fallback applied.

@@ -22,7 +22,7 @@ func (h *applyUpdateTrayActionHandler) HandleDesktopTrayAction(
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
 		h.bus,
-		spacewave_launcher.SRPCLauncherServiceID,
+		spacewave_launcher.PluginLauncherServiceID,
 		"",
 		true,
 		nil,

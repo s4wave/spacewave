@@ -14,8 +14,8 @@ import (
 )
 
 // InfoWatcher mirrors the LauncherInfo of the launcher reachable on a bus.
-// Desktop builds run the launcher in its own plugin process, so the watcher
-// reads it through the Launcher RPC service rather than the controller. When
+// The launcher runs in its own plugin, so the watcher reads it through the
+// plugin's Launcher RPC service rather than the controller. When
 // the stream ends, the watcher clears its snapshot and looks the service up
 // again with backoff.
 type InfoWatcher struct {
@@ -77,7 +77,7 @@ func (w *InfoWatcher) watch(ctx context.Context) error {
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
 		w.b,
-		SRPCLauncherServiceID,
+		PluginLauncherServiceID,
 		"",
 		true,
 		func() {

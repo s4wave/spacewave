@@ -54,7 +54,7 @@ func runDeviceLauncherUpdateProjection(
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
 		b,
-		spacewave_launcher.SRPCLauncherServiceID,
+		spacewave_launcher.PluginLauncherServiceID,
 		"",
 		true,
 		nil,
