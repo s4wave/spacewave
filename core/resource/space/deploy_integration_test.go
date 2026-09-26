@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -244,6 +245,41 @@ func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
 	_, _ = eng.Sync(ctx)
 	if e := runIntegrationDeploy(t, r, ctx, map[string][]byte{native.GetManifestRef().GetRootRef().MarshalString(): nativeData}, &deploy.DeployManifestsMessage{Body: &deploy.DeployManifestsMessage_Request{Request: &deploy.DeployManifestsRequest{ObjectKey: "wrong-host", ManifestRefs: []*bldr_manifest.ManifestRef{native}}}}, nil); e == nil {
 		t.Fatal("wrong host accepted")
+	}
+}
+
+// TestDeployManifestsRejectsMaskedRevision rejects a build the Space would never
+// start because it already holds a newer build for the same platform.
+func TestDeployManifestsRejectsMaskedRevision(t *testing.T) {
+	ctx := context.Background()
+	tb, eng := newDeployIntegrationEngine(t, ctx)
+	defer tb.Release()
+	defer eng.Close()
+	r := &SpaceResource{le: tb.Logger, space: &deployIntegrationBody{engine: eng, bucketID: tb.BucketId}}
+
+	// Deploy a newer build, then an older one for the same platform.
+	newer, newerData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 42, "newer")
+	older, olderData := integrationRef(t, "glados-core", "desktop/darwin/arm64", 36, "older")
+	blocks := map[string][]byte{
+		newer.GetManifestRef().GetRootRef().MarshalString(): newerData,
+		older.GetManifestRef().GetRootRef().MarshalString(): olderData,
+	}
+	if e := runIntegrationDeploy(t, r, ctx, blocks, integrationRequest(newer), nil); e != nil {
+		t.Fatal(e)
+	}
+	e := runIntegrationDeploy(t, r, ctx, blocks, integrationRequest(older), nil)
+	if e == nil || !strings.Contains(e.Error(), "rev 36 would not run") {
+		t.Fatalf("masked deploy error = %v", e)
+	}
+
+	// The rejected build stays unpublished.
+	ws := world.NewEngineWorldState(eng, false)
+	edges, e := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("plugin-host", bldr_manifest_world.PredManifest.String(), "", ""), 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(edges) != 1 {
+		t.Fatalf("edge count=%d want 1", len(edges))
 	}
 }
 
