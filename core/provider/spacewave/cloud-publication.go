@@ -211,6 +211,10 @@ func (s *syncController) flushCheckpoint(ctx context.Context, orderBlocks bool) 
 			return err
 		}
 	}
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.compactDue = true
+		broadcast()
+	})
 	return nil
 }
 

@@ -61,6 +61,9 @@ type syncController struct {
 	dirtyPendingAt time.Time
 	// publications tracks mounted hosts with durable pending cloud work.
 	publications map[*cloudSOHost]time.Time
+	// compactDue records a successful flush since the last merge check, under
+	// bcast. Any flush path sets it, so the scheduler merges once the queue drains.
+	compactDue bool
 	// bcast wakes the scheduler when the durable dirty queue changes.
 	bcast broadcast.Broadcast
 	// dirtyMtx orders durable dirty mutations and their in-memory projection.
@@ -172,6 +175,16 @@ func (s *syncController) pendingSnapshot() (time.Time, int64, <-chan struct{}) {
 	return first, dirty, changed
 }
 
+// takeCompactDue clears and reports whether a flush since the last check calls
+// for a merge.
+func (s *syncController) takeCompactDue() bool {
+	var due bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		due, s.compactDue = s.compactDue, false
+	})
+	return due && !s.conf.GetDisableCompaction()
+}
+
 // Execute dispatches from the first pending change, without extending its deadline.
 func (s *syncController) Execute(ctx context.Context) error {
 	if s.remotePullRoutine != nil && !s.skipPull {
@@ -194,6 +207,12 @@ func (s *syncController) Execute(ctx context.Context) error {
 		first, dirty, changed := s.pendingSnapshot()
 		if first.IsZero() && dirty < threshold {
 			bo.Reset()
+			if s.takeCompactDue() {
+				if err := s.CompactNow(ctx); err != nil && ctx.Err() == nil {
+					s.le.WithError(err).Warn("small pack merge failed")
+				}
+				continue
+			}
 			select {
 			case <-ctx.Done():
 				return nil
@@ -236,11 +255,6 @@ func (s *syncController) Execute(ctx context.Context) error {
 		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
 		next, _, changed := s.pendingSnapshot()
-		if next.IsZero() && !s.conf.GetDisableCompaction() {
-			if err := s.CompactNow(ctx); err != nil && ctx.Err() == nil {
-				s.le.WithError(err).Warn("small pack merge failed")
-			}
-		}
 		if !next.IsZero() && !next.After(first) {
 			if err := waitDirtySyncRetry(ctx, changed, syncNoProgressBackoff); err != nil {
 				return nil
