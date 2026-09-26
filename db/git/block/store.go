@@ -1,10 +1,12 @@
 package git_block
 
 import (
+	"container/list"
 	"context"
 	"io"
 
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/cache"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/go-git/go-git/v6/storage"
 	"github.com/s4wave/spacewave/db/block"
@@ -23,11 +25,16 @@ type Store struct {
 	root      *Repo
 	refStore  ReferenceStore
 
-	refTree   kvtx.BlockTx
-	modTree   kvtx.BlockTx
-	objTree   kvtx.BlockTx
-	packTree  kvtx.BlockTx
+	refTree  kvtx.BlockTx
+	modTree  kvtx.BlockTx
+	objTree  kvtx.BlockTx
+	packTree kvtx.BlockTx
+	// packCache retains decoded indexes for the Store lifetime.
 	packCache map[plumbing.Hash]*storePackCacheEntry
+	// packLRU orders open data readers from newest to oldest.
+	packLRU *list.List
+	// objectCache is shared by all pack readers in this Store.
+	objectCache *cache.ObjectLRU
 
 	// Bulk mode state: objects are written to KV via per-object
 	// mini-transactions, then IAVL trees are built bottom-up at Commit.
@@ -114,7 +121,9 @@ func (r *Store) Commit() error {
 // Close closes the store, canceling the context.
 func (r *Store) Close() error {
 	for _, entry := range r.packCache {
-		_ = entry.pack.Close()
+		if entry.pack != nil {
+			_ = entry.pack.Close()
+		}
 	}
 	r.packCache = nil
 	r.ctxCancel()
@@ -175,6 +184,13 @@ func (r *Store) buildModRefTree() (kvtx.BlockTx, *block.Cursor, error) {
 
 // setBlockTransaction sets the root block transaction and cursor.
 func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) error {
+	for _, entry := range r.packCache {
+		if entry.pack != nil {
+			if err := entry.pack.Close(); err != nil {
+				return err
+			}
+		}
+	}
 	root, err := UnmarshalRepo(r.ctx, bcs)
 	if err != nil {
 		return err
@@ -198,6 +214,9 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 	}
 	r.btx, r.bcs = btx, bcs
 	r.packCache = make(map[plumbing.Hash]*storePackCacheEntry)
+	r.packLRU = list.New()
+	// Match go-git's 96 MiB default once per Store, rather than once per pack.
+	r.objectCache = cache.NewObjectLRU(cache.DefaultMaxSize)
 	r.initBulkMode()
 	return nil
 }
