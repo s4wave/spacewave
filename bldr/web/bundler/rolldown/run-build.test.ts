@@ -290,11 +290,16 @@ describe('direct Rolldown/Oxc owner', () => {
     'rejects an unresolved import: %s',
     async (specifier) => {
       const project = await makeProject()
+      const importer = join(project.root, 'importer.ts')
       await fs.writeFile(
         join(project.root, 'main.ts'),
-        `import '${specifier}'\n`,
+        "import './importer.js'\n",
       )
+      await fs.writeFile(importer, `import '${specifier}'\n`)
       const result = await runBuild(project.request(), dependencyRoot)
+      // The failed build still reports its loaded sources so fixing any of
+      // them rebuilds.
+      expect(result.inputs).toContain(await fs.realpath(importer))
       const diagnostics = result.diagnostics ?? []
       expect(diagnostics.length).toBeGreaterThan(0)
       expect(
