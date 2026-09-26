@@ -836,8 +836,8 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 				if seen[key] {
 					return nil
 				}
-				h := &hash.Hash{}
-				if err := h.ParseFromB58(key); err != nil {
+				h, err := packfile.ParseBlockKey(ie.GetKey())
+				if err != nil {
 					return nil
 				}
 				seen[key] = true

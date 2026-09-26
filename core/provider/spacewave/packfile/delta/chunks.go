@@ -92,7 +92,7 @@ func EmitDeltaChunks(
 			// index position before accepting the block into this chunk.
 			valueSize := (&block.BlockObject{Data: blk.GetData(), Refs: blk.GetRefs()}).SizeVT()
 			entry := kvfile.IndexEntry{
-				Key:    []byte(h.MarshalString()),
+				Key:    packfile.BlockKey(h),
 				Offset: uint64(chunkBytes), //nolint:gosec // chunkBytes is non-negative and bounded by the int64 pack byte ceiling.
 				Size:   uint64(valueSize),  //nolint:gosec // the value is the in-memory block accepted by the bounded pack writer.
 			}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +40,7 @@ func TestManifestPackStartsAtBundleRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pos, _, _, _, err := reader.GetValuePosition([]byte(bundle.GetRootRef().GetHash().MarshalString()))
+	pos, _, _, _, err := reader.GetValuePosition(packfile.BlockKey(bundle.GetRootRef().GetHash()))
 	if err != nil {
 		t.Fatal(err)
 	}

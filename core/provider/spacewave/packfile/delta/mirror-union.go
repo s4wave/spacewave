@@ -273,7 +273,7 @@ func mirrorBlockKey(ref *block.BlockRef) []byte {
 	if h == nil {
 		return nil
 	}
-	return []byte(h.MarshalString())
+	return packfile.BlockKey(h)
 }
 
 // verifyMirrorRootPointer enforces that a =root.packedmsg= present in the

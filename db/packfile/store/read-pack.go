@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -63,8 +64,8 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 
 	blocks := make([]PackBlock, 0, len(entries))
 	for _, e := range entries {
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(string(e.entry.GetKey())); err != nil {
+		h, err := packfile.ParseBlockKey(e.entry.GetKey())
+		if err != nil {
 			return nil, errors.Wrapf(err, "packfile %s key", packID)
 		}
 		value, err := kv.GetWithEntry(e.entry, e.idx)

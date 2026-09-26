@@ -1337,7 +1337,7 @@ func TestValidateIndexEntriesRejectsMalformedCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := []byte(h.MarshalString())
+	key := packfile.BlockKey(h)
 	duplicate := []*kvfile.IndexEntry{
 		{Key: key, Offset: 0, Size: 5},
 		{Key: key, Offset: 5, Size: 4},
@@ -2010,7 +2010,7 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 			sp := newSpan(int64(i*16), value)
 			eng.insertSpanLocked(sp)
 			entries = append(entries, &kvfile.IndexEntry{
-				Key:    []byte(ref.GetHash().MarshalString()),
+				Key:    packfile.BlockKey(ref.GetHash()),
 				Offset: uint64(sp.off),
 				Size:   uint64(len(value)),
 			})

@@ -12,8 +12,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/world"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -164,9 +164,9 @@ func readManifestBundle(
 
 // parsePackBlockRef parses a pack index entry key into a block ref.
 func parsePackBlockRef(entry *kvfile.IndexEntry) (*block.BlockRef, error) {
-	h := &hash.Hash{}
-	if err := h.ParseFromB58(string(entry.GetKey())); err != nil {
+	h, err := packfile.ParseBlockKey(entry.GetKey())
+	if err != nil {
 		return nil, err
 	}
-	return &block.BlockRef{Hash: h}, nil
+	return block.NewBlockRef(h), nil
 }

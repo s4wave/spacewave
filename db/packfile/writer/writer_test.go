@@ -74,7 +74,7 @@ func TestPackBlocks(t *testing.T) {
 	}
 
 	for _, b := range blocks {
-		key := []byte(b.hash.MarshalString())
+		key := packfile.BlockKey(b.hash)
 		value, found, err := reader.Get(key)
 		if err != nil {
 			t.Fatal(err)
@@ -117,7 +117,7 @@ func TestPackBlocks(t *testing.T) {
 	}
 
 	for _, b := range blocks {
-		key := []byte(b.hash.MarshalString())
+		key := packfile.BlockKey(b.hash)
 		if !bf.Test(key) {
 			t.Fatalf("bloom filter should contain %s", b.hash.MarshalString())
 		}
@@ -129,7 +129,7 @@ func TestPackBlocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unknownKey := []byte(unknownHash.MarshalString())
+	unknownKey := packfile.BlockKey(unknownHash)
 	// Bloom may false-positive, but with 10 items and 1% FPR it is unlikely.
 	// We just log it rather than fail.
 	if bf.Test(unknownKey) {
@@ -211,7 +211,7 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 	}
 
 	for _, h := range blocks {
-		if !bf.Test([]byte(h.MarshalString())) {
+		if !bf.Test(packfile.BlockKey(h)) {
 			t.Fatalf("bloom filter should contain %s", h.MarshalString())
 		}
 	}
@@ -224,7 +224,7 @@ func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int
 		if err != nil {
 			t.Fatalf("sum absent block hash: %v", err)
 		}
-		if bf.Test([]byte(h.MarshalString())) {
+		if bf.Test(packfile.BlockKey(h)) {
 			falsePositives++
 		}
 	}

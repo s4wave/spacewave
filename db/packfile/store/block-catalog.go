@@ -11,7 +11,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/db/packfile"
 )
 
 // defaultIndexTailInitialWindow is the first index-tail read size.
@@ -411,9 +411,9 @@ func entryExtent(entry *kvfile.IndexEntry) (int64, int64) {
 
 // parseBlockRef builds a block ref from a kvfile index entry key.
 func parseBlockRef(entry *kvfile.IndexEntry) (*block.BlockRef, error) {
-	h := &hash.Hash{}
-	if err := h.ParseFromB58(string(entry.GetKey())); err != nil {
+	h, err := packfile.ParseBlockKey(entry.GetKey())
+	if err != nil {
 		return nil, err
 	}
-	return &block.BlockRef{Hash: h}, nil
+	return block.NewBlockRef(h), nil
 }
