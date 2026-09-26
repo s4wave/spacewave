@@ -19,7 +19,6 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -79,7 +78,7 @@ func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
 	}
 	transport := manifestPackBytesTransport{data: buf.Bytes()}
 	opener := func(packID string, size int64) (*packfile_store.PackReader, error) {
-		return packfile_store.NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return packfile_store.NewPackReader(packID, size, transport), nil
 	}
 	store, err := NewPackfileStore(ctx, meta, opener, nil, nil)
 	if err != nil {

@@ -45,13 +45,12 @@ type IndexCache interface {
 // PackfileStore is a read-only block.StoreOps over a set of remote packfiles.
 //
 // The store fans reads out to per-pack engines: it handles manifest-wide
-// concerns (bloom pruning, engine registry, write-back/index cache
-// configuration) while the engines own per-pack spans, block catalogs, and
-// publication.
+// concerns (bloom lookup, engine registry, writeback and index cache
+// configuration, the shared resident budget) while the engines own per-pack
+// spans, indexes, and writeback.
 type PackfileStore struct {
-	opener      Opener
-	cache       IndexCache
-	verifyQueue verifyExecutor
+	opener Opener
+	cache  IndexCache
 
 	// mtx guards store construction, configuration, and shutdown.
 	mtx sync.Mutex
@@ -75,8 +74,6 @@ type PackfileStore struct {
 	writebackWindow int64
 	// budget bounds the resident span bytes of every engine.
 	budget *residentBudget
-	// tuningOverrides are explicit per-engine tuning overrides.
-	tuningOverrides engineTuningOverrides
 
 	// manifest is the active manifest in lookup order, guarded by bcast.
 	manifest []*packfile.PackfileEntry
@@ -90,7 +87,6 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 	s := &PackfileStore{
 		opener:          opener,
 		cache:           cache,
-		verifyQueue:     newDefaultVerifyExecutor(defaultVerifyConcurrency()),
 		engines:         make(map[string]*PackReader),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
@@ -124,7 +120,6 @@ func (s *PackfileStore) Close() {
 	s.mtx.Lock()
 	s.opener = nil
 	s.cache = nil
-	s.verifyQueue = nil
 	s.writebackCtx = nil
 	s.writebackTarget = nil
 	s.notify = nil
@@ -156,11 +151,11 @@ func (s *PackfileStore) waitCloseComplete() {
 
 // SetWriteback enables co-block persistence to a target store.
 //
-// When a block is fetched from a remote packfile the engine also verifies
-// every other block that fully fits within windowBytes of the target and
-// writes those neighbors to target asynchronously. ctx scopes the
-// background work. Pass nil target to disable persistence while keeping
-// verification.
+// When a block is fetched from a remote packfile the engine also fetches
+// every other block that fully fits within windowBytes of the target, and
+// writes each fetched block to target in an asynchronous batch after
+// verifying it. ctx scopes the background work. Pass nil target to disable
+// persistence.
 func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
 	if windowBytes <= 0 {
 		windowBytes = defaultWritebackWindow
@@ -184,25 +179,6 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 	s.budget.limit.Store(maxBytes)
 	s.budget.reclaim()
-}
-
-// SetVerifyConcurrency replaces the shared verify/persist queue.
-//
-// Must be called before any reads begin; changing the queue while
-// engines are servicing verify jobs is not supported.
-func (s *PackfileStore) SetVerifyConcurrency(maxConcurrency int) error {
-	s.mtx.Lock()
-	if s.closed {
-		s.mtx.Unlock()
-		return ErrPackfileStoreClosed
-	}
-	if len(s.engines) != 0 {
-		s.mtx.Unlock()
-		return errors.New("SetVerifyConcurrency must be called before reads begin")
-	}
-	s.verifyQueue = newDefaultVerifyExecutor(maxConcurrency)
-	s.mtx.Unlock()
-	return nil
 }
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
@@ -610,8 +586,6 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	wbCtx := s.writebackCtx
 	wbTarget := s.writebackTarget
 	wbWindow := s.writebackWindow
-	verify := s.verifyQueue
-	overrides := s.tuningOverrides
 	notify := s.notify
 	s.mtx.Unlock()
 
@@ -626,9 +600,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.SetIndexCache(cache)
 	eng.SetWriteback(wbCtx, wbTarget, wbWindow)
 	eng.setBudget(s.budget)
-	eng.SetVerifyQueue(verify)
 	eng.SetStatsChangedCallback(notify)
-	overrides.apply(eng)
 
 	s.mtx.Lock()
 	if s.closed {

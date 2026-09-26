@@ -63,7 +63,7 @@ func (c *compactTestCloud) open(packID string, size int64) (*packfile_store.Pack
 	c.mtx.Lock()
 	data := c.packs[packID]
 	c.mtx.Unlock()
-	return packfile_store.NewPackReader(packID, size, &syncPackTransport{data: data}, hash.RecommendedHashType), nil
+	return packfile_store.NewPackReader(packID, size, &syncPackTransport{data: data}), nil
 }
 
 // newCompactTestController commits one small pack per block list, in order,

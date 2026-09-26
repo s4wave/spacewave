@@ -396,7 +396,7 @@ func (s *PackStore) updateEntries(add []*packfile.PackfileEntry, remove []string
 // openPack opens a reader over the ranges of packfile id.
 func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader, error) {
 	transport := &rangeTransport{client: s.client, bucket: s.bucket, key: s.prefix + packDir + id}
-	return packfile_store.NewPackReader(id, size, transport, 0), nil
+	return packfile_store.NewPackReader(id, size, transport), nil
 }
 
 // rangeTransport reads byte ranges of one packfile object.

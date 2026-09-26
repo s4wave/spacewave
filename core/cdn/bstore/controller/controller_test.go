@@ -118,6 +118,18 @@ func (s *notifyingStore) PutBlock(
 	return ref, existed, nil
 }
 
+// PutBlockBatch writes entries and signals one put.
+func (s *notifyingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+	select {
+	case s.putCh <- struct{}{}:
+	default:
+	}
+	return nil
+}
+
 func (s *notifyingStore) waitPut(ctx context.Context) error {
 	select {
 	case <-s.putCh:

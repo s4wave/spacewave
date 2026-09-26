@@ -55,7 +55,7 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
 	eng := NewPackReader("shift-pack", 8<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.minWindow = 1 << 20
 	eng.transportQuantum = 1 << 20
 	eng.maxWindow = 2 << 20
@@ -73,7 +73,7 @@ func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
 func TestPackReaderSparsePlanCapsColdBackshift(t *testing.T) {
 	eng := NewPackReader("sparse-shift-pack", 10<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.minWindow = 256 << 10
 	eng.transportQuantum = 256 << 10
 	eng.maxWindow = 8 << 20
@@ -93,7 +93,7 @@ func TestPackReaderSparsePlanCapsColdBackshift(t *testing.T) {
 func TestPackReaderSparsePlanPromotesNearbyReads(t *testing.T) {
 	eng := NewPackReader("sparse-local-pack", 10<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.minWindow = 256 << 10
 	eng.transportQuantum = 256 << 10
 	eng.maxWindow = 2 << 20
@@ -116,7 +116,7 @@ func TestPackReaderSparsePlanPromotesNearbyReads(t *testing.T) {
 func TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides(t *testing.T) {
 	eng := NewPackReader("shrink-pack", 8<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.minWindow = 1 << 20
 	eng.transportQuantum = 1 << 20
 	eng.maxWindow = 2 << 20
@@ -136,24 +136,19 @@ func TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides(t *testing.T) {
 func TestPackReaderSnapshotStats(t *testing.T) {
 	eng := NewPackReader("stats-pack", 1024, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		eng.currentWindow = 256
 		eng.loading = map[fetchKey]*fetchLoad{
 			{off: 0, size: 8}: {done: make(chan struct{})},
 		}
 		eng.spans = []*span{
-			{off: 0, size: 8, pins: 1},
+			{off: 0, size: 8},
 			{off: 8, size: 8},
 		}
 		eng.residentBytes = 16
-		eng.blocks = map[string]*blockRecord{
-			"verifying": {state: blockStateVerifying},
-			"verified":  {state: blockStateVerified},
-		}
-		eng.verifyQueued = 2
-		eng.verifyRunning = 1
-		eng.verifyCompleted = 3
+		eng.published = map[string]struct{}{"a": {}, "b": {}}
+		eng.writebackRunning = 1
 		eng.verifyFailures = 1
 		eng.writebackCount = 4
 		eng.writebackErrors = 1
@@ -162,7 +157,7 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 	})
 
 	stats := eng.SnapshotStats()
-	if stats.ResidentBytes != 16 || stats.PinnedBytes != 8 {
+	if stats.ResidentBytes != 16 || stats.SpanCount != 2 {
 		t.Fatalf("unexpected resident stats: %+v", stats)
 	}
 	if stats.FetchCount != 1 || stats.FetchedBytes != 64 || stats.LastFetchBytes != 64 {
@@ -171,44 +166,11 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 	if stats.RangeRequestCount != 1 || stats.RangeResponseBytes != 48 {
 		t.Fatalf("unexpected range response stats: %+v", stats)
 	}
-	if stats.BlockCount != 2 || stats.VerifyingBlocks != 1 || stats.VerifiedBlocks != 1 {
-		t.Fatalf("unexpected block stats: %+v", stats)
-	}
-	if stats.VerifyQueued != 2 || stats.VerifyRunning != 1 || stats.VerifyCompleted != 3 {
-		t.Fatalf("unexpected verify stats: %+v", stats)
+	if stats.PublishedBlocks != 2 || stats.WritebackRunning != 1 || stats.VerifyFailures != 1 {
+		t.Fatalf("unexpected writeback stats: %+v", stats)
 	}
 	if stats.WritebackCount != 4 || stats.WritebackErrors != 1 || !stats.IndexLoaded {
 		t.Fatalf("unexpected publication stats: %+v", stats)
-	}
-}
-
-// TestPackfileStoreAppliesTuningOverrides verifies newly opened readers inherit store policy.
-func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
-	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
-			return nil, nil
-		}), 0), nil
-	}, newMemIndexCache())
-	store.SetTransportMinWindow(32)
-	store.SetTransportQuantum(64)
-	store.SetTransportMaxWindow(256)
-	store.SetTransportTargetRequestHz(2)
-	store.SetTransportWindowSmoothing(0.5)
-	store.SetIndexPromotionEnabled(false)
-
-	eng, err := store.getOrOpenEngine("cfg-pack", 4096, 0)
-	if err != nil {
-		t.Fatalf("getOrOpenEngine: %v", err)
-	}
-	tuning := eng.SnapshotTuning()
-	if tuning.MinWindow != 32 || tuning.TransportQuantum != 64 {
-		t.Fatalf("unexpected min/quantum tuning: %+v", tuning)
-	}
-	if tuning.MaxWindow != 256 || tuning.TargetRequestHz != 2 || tuning.Smoothing != 0.5 {
-		t.Fatalf("unexpected transport tuning: %+v", tuning)
-	}
-	if tuning.IndexPromotion {
-		t.Fatalf("expected index promotion disabled, got %+v", tuning)
 	}
 }
 
@@ -216,24 +178,18 @@ func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
 func TestPackReaderTransportFetchMaxBytesClampsTuning(t *testing.T) {
 	eng := NewPackReader("cap-pack", 16<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
-	}), 0)
+	}))
 	eng.setTransportFetchMaxBytes(2 << 20)
-	eng.SetTransportMinWindow(4 << 20)
-	eng.SetTransportQuantum(4 << 20)
-	eng.SetTransportMaxWindow(8 << 20)
+	eng.setTransportWindows(4<<20, 4<<20, 8<<20)
 
-	tuning := eng.SnapshotTuning()
-	if tuning.MinWindow != 2<<20 {
-		t.Fatalf("min window = %d, want %d", tuning.MinWindow, 2<<20)
+	if eng.minWindow != 2<<20 {
+		t.Fatalf("min window = %d, want %d", eng.minWindow, 2<<20)
 	}
-	if tuning.TransportQuantum != 2<<20 {
-		t.Fatalf("transport quantum = %d, want %d", tuning.TransportQuantum, 2<<20)
+	if eng.transportQuantum != 2<<20 {
+		t.Fatalf("transport quantum = %d, want %d", eng.transportQuantum, 2<<20)
 	}
-	if tuning.MaxWindow != 2<<20 {
-		t.Fatalf("max window = %d, want %d", tuning.MaxWindow, 2<<20)
-	}
-	if tuning.TransportFetchMaxBytes != 2<<20 {
-		t.Fatalf("transport fetch cap = %d, want %d", tuning.TransportFetchMaxBytes, 2<<20)
+	if eng.maxWindow != 2<<20 {
+		t.Fatalf("max window = %d, want %d", eng.maxWindow, 2<<20)
 	}
 	key := eng.planFetchLocked(0, 1, 0)
 	if key.size > 2<<20 {
@@ -333,11 +289,9 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 		case <-release:
 			return bytes.Clone(data[off : off+int64(length)]), nil
 		}
-	}), hash.HashType_HashType_SHA256)
+	}))
 	t.Cleanup(eng.Close)
-	eng.SetTransportMinWindow(len(data))
-	eng.SetTransportQuantum(len(data))
-	eng.SetTransportMaxWindow(len(data))
+	eng.setTransportWindows(len(data), len(data), len(data))
 
 	leaderCtx, cancelLeader := context.WithCancel(t.Context())
 	leaderDone := make(chan error, 1)
@@ -394,10 +348,8 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 		<-ctx.Done()
 		close(transportDone)
 		return nil, ctx.Err()
-	}), hash.HashType_HashType_SHA256)
-	eng.SetTransportMinWindow(8)
-	eng.SetTransportQuantum(8)
-	eng.SetTransportMaxWindow(8)
+	}))
+	eng.setTransportWindows(8, 8, 8)
 
 	readDone := make(chan error, 1)
 	go func() {
@@ -513,8 +465,8 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 		return make([]byte, size), nil
 	})
 	budget := newResidentBudget(300)
-	a := NewPackReader("a", 1000, transport, 0)
-	b := NewPackReader("b", 1000, transport, 0)
+	a := NewPackReader("a", 1000, transport)
+	b := NewPackReader("b", 1000, transport)
 	a.setBudget(budget)
 	b.setBudget(budget)
 
@@ -606,7 +558,7 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 		return bytes.Clone(ft.data[off:end]), nil
 	}
 
-	eng := NewPackReader("retry-pack", int64(len(packBytes)), TransportFunc(fetch), hash.HashType_HashType_SHA256)
+	eng := NewPackReader("retry-pack", int64(len(packBytes)), TransportFunc(fetch))
 	eng.SetExpectedBlockCount(1)
 	eng.minWindow = 8
 	eng.currentWindow = 8

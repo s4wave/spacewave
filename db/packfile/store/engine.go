@@ -12,7 +12,6 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
 // Default tuning knobs for a pack access engine. See the packfile-reader
@@ -41,15 +40,16 @@ const (
 
 // PackReader is the per-pack access engine.
 //
-// The engine composes three conceptual projections over one shared byte
-// substrate:
+// The engine composes two projections over one shared byte substrate:
 //
 //   - Span Store: resident raw packfile bytes, LRU eviction, uncovered-gap
 //     planning for transport fetches.
-//   - Block Catalog: physical-order map of known block extents with
-//     per-block publication state (loaded, verifying, verified, failed).
-//   - Publication Queue: verify-hash + optional writeback, keyed by block
-//     identity so overlapping fetches never duplicate work.
+//   - Block Index: the kvfile index entries of the pack, and the set of
+//     blocks handed to the writeback target.
+//
+// Reads verify the requested block inline. Each fetched span hands every
+// block it completes to one batched writeback job, so a block is published
+// at most once.
 //
 // The engine is addressable as an io.ReaderAt (backed by the span store) and
 // exposes higher-level GetBlock operations keyed by kvfile index entries.
@@ -64,8 +64,6 @@ type PackReader struct {
 	size int64
 	// transport fetches uncovered packfile ranges.
 	transport Transport
-	// hashType verifies block records read from transport.
-	hashType hash.HashType
 	// blockCount validates the loaded pack index.
 	blockCount uint64
 
@@ -75,7 +73,7 @@ type PackReader struct {
 	closed bool
 	// closeComplete records that Close has released all reader state.
 	closeComplete bool
-	// workCount is the number of admitted index, fetch, and verify jobs.
+	// workCount is the number of admitted index, fetch, and writeback jobs.
 	workCount int
 
 	// Tuning (mutable via setters, guarded by bcast).
@@ -90,11 +88,10 @@ type PackReader struct {
 	sparseColdWindow       int
 	sparseLocalityDistance int64
 	writebackWindow        int64
-	indexPromotion         bool
 
 	// Span store. spans are sorted by offset and disjoint. lru orders the
-	// unpinned spans from least to most recently used. newest is the span
-	// inserted last, which eviction skips until a reader can consume it.
+	// spans from least to most recently used. newest is the span inserted
+	// last, which eviction skips until a reader can consume it.
 	spans         []*span
 	lru           list.List
 	newest        *span
@@ -115,8 +112,8 @@ type PackReader struct {
 	indexTailFetchBytes    int64
 	indexTailResponseBytes int64
 
-	// Block catalog.
-	blocks                map[string]*blockRecord
+	// Block index. published holds the keys handed to the writeback target.
+	published             map[string]struct{}
 	entriesByOff          []*kvfile.IndexEntry
 	entriesByKey          []*kvfile.IndexEntry
 	indexLoaded           bool
@@ -130,24 +127,19 @@ type PackReader struct {
 	remoteIndexBytes      int64
 	lastRemoteIndexBytes  int64
 
-	// Publication / writeback / verify.
-	indexCache      IndexCache
-	writebackCtx    context.Context
-	writebackTarget block.StoreOps
-	verifyQueue     verifyExecutor
-	ownVerifyQueue  bool
-	verifyQueued    int
-	verifyRunning   int
-	verifyCompleted uint64
-	verifyFailures  uint64
-	writebackCount  uint64
-	writebackErrors uint64
-	lastPublishDur  time.Duration
-	statsChanged    func()
+	// Index cache and writeback.
+	indexCache       IndexCache
+	writebackCtx     context.Context
+	writebackTarget  block.StoreOps
+	writebackRunning int
+	verifyFailures   uint64
+	writebackCount   uint64
+	writebackErrors  uint64
+	statsChanged     func()
 }
 
 // NewPackReader builds a per-pack access engine wrapping a transport.
-func NewPackReader(packID string, size int64, transport Transport, hashType hash.HashType) *PackReader {
+func NewPackReader(packID string, size int64, transport Transport) *PackReader {
 	ctx, cancel := newPackReaderContext()
 	e := &PackReader{
 		ctx:                    ctx,
@@ -155,7 +147,6 @@ func NewPackReader(packID string, size int64, transport Transport, hashType hash
 		packID:                 packID,
 		size:                   size,
 		transport:              transport,
-		hashType:               hashType,
 		minWindow:              defaultTransportMinWindow,
 		transportQuantum:       defaultTransportMinWindow,
 		maxWindow:              defaultTransportMaxWindow,
@@ -166,9 +157,8 @@ func NewPackReader(packID string, size int64, transport Transport, hashType hash
 		sparseColdWindow:       defaultSparseColdWindow,
 		sparseLocalityDistance: defaultSparseLocalityDistance,
 		writebackWindow:        defaultWritebackWindow,
-		indexPromotion:         true,
 		budget:                 newResidentBudget(defaultResidentBudget),
-		blocks:                 make(map[string]*blockRecord),
+		published:              make(map[string]struct{}),
 	}
 	e.budget.attach(e)
 	return e
@@ -204,10 +194,9 @@ func (e *PackReader) Close() {
 			e.indexCache = nil
 			e.writebackCtx = nil
 			e.writebackTarget = nil
-			e.verifyQueue = nil
 			e.entriesByOff = nil
 			e.entriesByKey = nil
-			e.blocks = nil
+			e.published = nil
 			e.spans = nil
 			e.lru.Init()
 			e.newest = nil
@@ -266,9 +255,9 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 
 // SetWriteback configures co-block publication to a target store.
 //
-// ctx scopes background publication work. target receives verified block
-// copies when non-nil. windowBytes is the semantic neighborhood window for
-// eager co-block verification around a miss. Pass 0 to use the default.
+// ctx scopes background writeback work. target receives verified block
+// copies when non-nil. windowBytes is the neighborhood fetched around a miss
+// so its co-blocks are published with it. Pass 0 to use the default.
 func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
 	if windowBytes <= 0 {
 		windowBytes = defaultWritebackWindow
@@ -300,22 +289,6 @@ func (e *PackReader) SetIndexCache(cache IndexCache) {
 	})
 }
 
-// SetVerifyQueue shares a verify/persist worker pool with the engine.
-//
-// Callers may share one queue across multiple engines to bound total verify
-// concurrency. When not set, the engine lazily creates its own pool at the
-// default concurrency the first time work is enqueued. *conc.ConcurrentQueue
-// satisfies the verifyExecutor interface.
-func (e *PackReader) SetVerifyQueue(q verifyExecutor) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if e.closed {
-			return
-		}
-		e.verifyQueue = q
-		e.ownVerifyQueue = false
-	})
-}
-
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
 func (e *PackReader) SetStatsChangedCallback(fn func()) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -333,59 +306,6 @@ func (e *PackReader) SetStatsChangedCallback(fn func()) {
 // fetches via the uncovered-window planner.
 func (e *PackReader) ReaderAt(ctx context.Context) io.ReaderAt {
 	return &engineReaderAt{ctx: ctx, e: e}
-}
-
-// prepareVerifyJobsLocked prepares verify/publish jobs for the shared worker pool.
-// Must be called with bcast held; the returned jobs must be enqueued after the
-// caller releases bcast.
-func (e *PackReader) prepareVerifyJobsLocked(jobs ...func()) []func() {
-	if len(jobs) == 0 || e.closed {
-		return nil
-	}
-	if e.verifyQueue == nil {
-		e.verifyQueue = newDefaultVerifyExecutor(defaultVerifyConcurrency())
-		e.ownVerifyQueue = true
-	}
-	wrapped := make([]func(), 0, len(jobs))
-	for _, job := range jobs {
-		if job == nil {
-			continue
-		}
-		e.verifyQueued++
-		e.workCount++
-		wrapped = append(wrapped, e.wrapVerifyJob(job))
-	}
-	return wrapped
-}
-
-func (e *PackReader) enqueueVerifyJobs(jobs []func()) {
-	if len(jobs) == 0 {
-		return
-	}
-	e.verifyQueue.Enqueue(jobs...)
-}
-
-func (e *PackReader) wrapVerifyJob(job func()) func() {
-	return func() {
-		defer e.finishOwnerWork()
-		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if e.verifyQueued > 0 {
-				e.verifyQueued--
-			}
-			e.verifyRunning++
-			broadcast()
-		})
-		defer func() {
-			e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				if e.verifyRunning > 0 {
-					e.verifyRunning--
-				}
-				e.verifyCompleted++
-				broadcast()
-			})
-		}()
-		job()
-	}
 }
 
 // engineReaderAt is a request-scoped io.ReaderAt view onto an engine.
