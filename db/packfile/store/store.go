@@ -69,8 +69,8 @@ type PackfileStore struct {
 	writebackTarget block.StoreOps
 	// writebackWindow is the byte window for selecting neighbor blocks.
 	writebackWindow int64
-	// maxBytes is the resident-byte budget applied to each engine.
-	maxBytes int64
+	// budget bounds the resident span bytes of every engine.
+	budget *residentBudget
 	// tuningOverrides are explicit per-engine tuning overrides.
 	tuningOverrides engineTuningOverrides
 
@@ -90,7 +90,7 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		engines:         make(map[string]*PackReader),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
-		maxBytes:        defaultResidentBudget,
+		budget:          newResidentBudget(defaultResidentBudget),
 	}
 	return s
 }
@@ -176,19 +176,10 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	}
 }
 
-// SetRangeCacheMaxBytes sets the resident-byte budget applied to each engine.
+// SetRangeCacheMaxBytes sets the resident-byte budget shared by every engine.
 func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
-	s.mtx.Lock()
-	if s.closed {
-		s.mtx.Unlock()
-		return
-	}
-	s.maxBytes = maxBytes
-	engines := s.snapshotEnginesLocked()
-	s.mtx.Unlock()
-	for _, e := range engines {
-		e.SetMaxBytes(maxBytes)
-	}
+	s.budget.limit.Store(maxBytes)
+	s.budget.reclaim()
 }
 
 // SetVerifyConcurrency replaces the shared verify/persist queue.
@@ -566,7 +557,6 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	wbCtx := s.writebackCtx
 	wbTarget := s.writebackTarget
 	wbWindow := s.writebackWindow
-	maxBytes := s.maxBytes
 	verify := s.verifyQueue
 	overrides := s.tuningOverrides
 	notify := s.notify
@@ -582,7 +572,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.SetExpectedBlockCount(blockCount)
 	eng.SetIndexCache(cache)
 	eng.SetWriteback(wbCtx, wbTarget, wbWindow)
-	eng.SetMaxBytes(maxBytes)
+	eng.setBudget(s.budget)
 	eng.SetVerifyQueue(verify)
 	eng.SetStatsChangedCallback(notify)
 	overrides.apply(eng)

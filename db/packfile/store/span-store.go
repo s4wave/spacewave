@@ -3,117 +3,19 @@ package store
 import (
 	"context"
 	"io"
+	"slices"
+	"sort"
 	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
-// fetchMiss drives a transport fetch to cover off, bounded by readEnd.
+// ensureResident fetches every uncovered byte of [start, end).
 //
-// It returns once the requested offset is resident or an error occurs. Other
-// concurrent callers for overlapping offsets fold onto the same in-flight
-// fetch via the loading map, guaranteeing one transport call per uncovered
-// span. Transport work belongs to the PackReader, so canceling the caller
-// that starts a fetch does not cancel another caller waiting for it.
-func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
-	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
-	defer task.End()
-	trace.Log(ctx, "pack-id", e.packID)
-	trace.Logf(ctx, "target-offset", "%d", off)
-	trace.Logf(ctx, "target-end", "%d", readEnd)
-
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		var resident, closed, started bool
-		var key fetchKey
-		var load *fetchLoad
-		var notifyStart func()
-
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if e.closed {
-				closed = true
-				return
-			}
-			if e.findCoveringSpanLocked(off) != nil {
-				resident = true
-				return
-			}
-			load = e.findLoadingLocked(off)
-			if load != nil {
-				return
-			}
-			key = e.planFetchLocked(off, readEnd, block.ReadAhead(ctx))
-			if key.size == 0 {
-				return
-			}
-			if e.loading == nil {
-				e.loading = make(map[fetchKey]*fetchLoad)
-			}
-			if existing, ok := e.loading[key]; ok {
-				load = existing
-				return
-			}
-			load = &fetchLoad{done: make(chan struct{})}
-			e.loading[key] = load
-			e.workCount++
-			started = true
-			notifyStart = e.statsChanged
-		})
-
-		if notifyStart != nil {
-			notifyStart()
-		}
-		if closed {
-			return context.Canceled
-		}
-		if resident {
-			trace.Log(ctx, "result", "resident")
-			return nil
-		}
-		if load == nil && key.size == 0 {
-			trace.Log(ctx, "result", "empty-plan")
-			return io.EOF
-		}
-		if started {
-			trace.Log(ctx, "role", "leader")
-			trace.Logf(ctx, "range-offset", "%d", key.off)
-			trace.Logf(ctx, "range-size", "%d", key.size)
-			e.startFetch(key, load, false)
-		} else {
-			trace.Log(ctx, "role", "waiter")
-		}
-
-		select {
-		case <-ctx.Done():
-			trace.Log(ctx, "result", "wait-canceled")
-			return ctx.Err()
-		case <-e.ctx.Done():
-			trace.Log(ctx, "result", "owner-canceled")
-			return context.Canceled
-		case <-load.done:
-			if load.err != nil {
-				trace.Log(ctx, "result", "wait-error")
-				return load.err
-			}
-			if load.sp == nil {
-				trace.Log(ctx, "result", "wait-empty-response")
-				return io.EOF
-			}
-			trace.Log(ctx, "result", "waited")
-			return nil
-		}
-	}
-}
-
-// ensureExactRangeResident fills missing bytes without speculative read-ahead.
-func (e *PackReader) ensureExactRangeResident(ctx context.Context, start, end int64) error {
-	if end <= start {
-		return nil
-	}
+// exact limits each fetch to the uncovered gap, as index-tail reads need.
+// Otherwise the planner may widen fetches for read-ahead.
+func (e *PackReader) ensureResident(ctx context.Context, start, end int64, exact bool) error {
 	for cur := start; cur < end; {
 		var resident *span
 		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -123,105 +25,109 @@ func (e *PackReader) ensureExactRangeResident(ctx context.Context, start, end in
 			cur = min(end, resident.end())
 			continue
 		}
-		if err := e.fetchExact(ctx, cur, end); err != nil {
+		if err := e.fetchRange(ctx, cur, end, exact); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// fetchExact shares resident and in-flight spans while loading only requested
-// index bytes. Transport lifetime remains owned by the PackReader.
-func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
-	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/exact-range-fetch")
+// fetchRange drives a transport fetch to cover off, bounded by readEnd.
+//
+// It returns once the requested offset is resident or an error occurs. Other
+// concurrent callers for overlapping offsets fold onto the same in-flight
+// fetch via the loading map, guaranteeing one transport call per uncovered
+// span. Transport work belongs to the PackReader, so canceling the caller
+// that starts a fetch does not cancel another caller waiting for it. exact
+// selects the gap-clipped index planner instead of the adaptive planner.
+func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact bool) error {
+	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
 	defer task.End()
 	trace.Log(ctx, "pack-id", e.packID)
 	trace.Logf(ctx, "target-offset", "%d", off)
 	trace.Logf(ctx, "target-end", "%d", readEnd)
+	trace.Logf(ctx, "exact", "%t", exact)
 
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	var resident, closed, started bool
+	var key fetchKey
+	var load *fetchLoad
+	var notifyStart func()
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			closed = true
+			return
 		}
-
-		var resident, closed, started bool
-		var key fetchKey
-		var load *fetchLoad
-		var notifyStart func()
-
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if e.closed {
-				closed = true
-				return
-			}
-			if e.findCoveringSpanLocked(off) != nil {
-				resident = true
-				return
-			}
-			load = e.findLoadingLocked(off)
-			if load != nil {
-				return
-			}
+		if e.findCoveringSpanLocked(off) != nil {
+			resident = true
+			return
+		}
+		load = e.findLoadingLocked(off)
+		if load != nil {
+			return
+		}
+		if exact {
 			key = e.planExactFetchLocked(off, readEnd)
-			if key.size == 0 {
-				return
-			}
-			if e.loading == nil {
-				e.loading = make(map[fetchKey]*fetchLoad)
-			}
-			if existing, ok := e.loading[key]; ok {
-				load = existing
-				return
-			}
-			load = &fetchLoad{done: make(chan struct{})}
-			e.loading[key] = load
-			e.workCount++
-			started = true
-			notifyStart = e.statsChanged
-		})
+		} else {
+			key = e.planFetchLocked(off, readEnd, block.ReadAhead(ctx))
+		}
+		if key.size == 0 {
+			return
+		}
+		if e.loading == nil {
+			e.loading = make(map[fetchKey]*fetchLoad)
+		}
+		load = &fetchLoad{done: make(chan struct{})}
+		e.loading[key] = load
+		e.workCount++
+		started = true
+		notifyStart = e.statsChanged
+	})
 
-		if notifyStart != nil {
-			notifyStart()
+	if notifyStart != nil {
+		notifyStart()
+	}
+	if closed {
+		return context.Canceled
+	}
+	if resident {
+		trace.Log(ctx, "result", "resident")
+		return nil
+	}
+	if load == nil {
+		trace.Log(ctx, "result", "empty-plan")
+		return io.EOF
+	}
+	if started {
+		trace.Log(ctx, "role", "leader")
+		trace.Logf(ctx, "range-offset", "%d", key.off)
+		trace.Logf(ctx, "range-size", "%d", key.size)
+		e.startFetch(key, load, exact)
+	} else {
+		trace.Log(ctx, "role", "waiter")
+	}
+
+	select {
+	case <-ctx.Done():
+		trace.Log(ctx, "result", "wait-canceled")
+		return ctx.Err()
+	case <-e.ctx.Done():
+		trace.Log(ctx, "result", "owner-canceled")
+		return context.Canceled
+	case <-load.done:
+		if load.err != nil {
+			trace.Log(ctx, "result", "wait-error")
+			return load.err
 		}
-		if closed {
-			return context.Canceled
-		}
-		if resident {
-			trace.Log(ctx, "result", "resident")
-			return nil
-		}
-		if load == nil && key.size == 0 {
-			trace.Log(ctx, "result", "empty-plan")
+		if load.sp == nil {
+			trace.Log(ctx, "result", "wait-empty-response")
 			return io.EOF
 		}
-		if started {
-			trace.Log(ctx, "role", "leader")
-			trace.Logf(ctx, "range-offset", "%d", key.off)
-			trace.Logf(ctx, "range-size", "%d", key.size)
-			e.startFetch(key, load, true)
-		} else {
-			trace.Log(ctx, "role", "waiter")
-		}
-
-		select {
-		case <-ctx.Done():
-			trace.Log(ctx, "result", "wait-canceled")
-			return ctx.Err()
-		case <-e.ctx.Done():
-			trace.Log(ctx, "result", "owner-canceled")
-			return context.Canceled
-		case <-load.done:
-			if load.err != nil {
-				trace.Log(ctx, "result", "wait-error")
-				return load.err
-			}
-			if load.sp == nil {
-				trace.Log(ctx, "result", "wait-empty-response")
-				return io.EOF
-			}
-			trace.Log(ctx, "result", "waited")
-			return nil
-		}
+		trace.Log(ctx, "result", "waited")
+		return nil
 	}
 }
 
@@ -233,12 +139,14 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 		data, err := e.transport.Fetch(e.ctx, key.off, key.size)
 		var sp *span
 		if len(data) != 0 {
-			sp = newSpan(key.off, e.pageSize, data)
+			sp = newSpan(key.off, data)
 		}
 
 		var notifyDone func()
 		var verifyJobs []func()
+		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			budget = e.budget
 			if e.closed {
 				sp = nil
 				err = context.Canceled
@@ -258,6 +166,7 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 			broadcast()
 		})
 		e.enqueueVerifyJobs(verifyJobs)
+		budget.reclaim()
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			load.sp = sp
 			load.err = err
@@ -328,8 +237,8 @@ func (e *PackReader) planFetchLocked(off, readEnd int64, readAhead int) fetchKey
 	// shared resident/in-flight gap rules without raising foreground defaults.
 	if readAhead > 0 {
 		readAhead = e.clampWindow(readAhead)
-		if e.maxBytes > 0 {
-			readAhead = int(min(int64(readAhead), e.maxBytes))
+		if limit := e.budget.limit.Load(); limit > 0 {
+			readAhead = int(min(int64(readAhead), limit))
 		}
 		windowSize = max(windowSize, readAhead)
 	}
@@ -437,19 +346,23 @@ func (e *PackReader) readResidentRange(start, end int64) ([]byte, bool) {
 	return out, ok
 }
 
+// spanIndexLocked returns the index of the first span ending after off.
+func (e *PackReader) spanIndexLocked(off int64) int {
+	return sort.Search(len(e.spans), func(i int) bool {
+		return e.spans[i].end() > off
+	})
+}
+
 // findCoveringSpanLocked returns the resident span covering off, or nil.
 // Touches the span's LRU sequence if found.
 func (e *PackReader) findCoveringSpanLocked(off int64) *span {
-	for _, s := range e.spans {
-		if off < s.off {
-			return nil
-		}
-		if off < s.end() {
-			e.touchSpanLocked(s)
-			return s
-		}
+	i := e.spanIndexLocked(off)
+	if i == len(e.spans) || e.spans[i].off > off {
+		return nil
 	}
-	return nil
+	s := e.spans[i]
+	e.touchSpanLocked(s)
+	return s
 }
 
 // findLoadingLocked returns any in-flight load that will cover off.
@@ -464,9 +377,9 @@ func (e *PackReader) findLoadingLocked(off int64) *fetchLoad {
 
 // findGapLocked returns the uncovered byte interval around off.
 //
-// If off is already covered by a resident or in-flight span the gap is empty. Otherwise
-// the gap is the widest [prevEnd, nextStart) that contains off, where
-// prevEnd is the end of the span before off (or 0) and nextStart is the
+// If off is already covered by a resident or in-flight span the gap is empty.
+// Otherwise the gap is the widest [prevEnd, nextStart) that contains off,
+// where prevEnd is the end of the span before off (or 0) and nextStart is the
 // start of the next span (or the pack size).
 func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
 	if off < 0 {
@@ -474,20 +387,20 @@ func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
 	}
 
 	// Find the resident gap around this offset.
+	i := e.spanIndexLocked(off)
+	if i < len(e.spans) && e.spans[i].off <= off {
+		return 0, 0, false
+	}
 	prevEnd := int64(0)
+	if i > 0 {
+		prevEnd = e.spans[i-1].end()
+	}
 	end := e.size
 	if end <= 0 {
 		end = int64(1 << 62)
 	}
-	for _, s := range e.spans {
-		if off < s.off {
-			end = s.off
-			break
-		}
-		if off < s.end() {
-			return 0, 0, false
-		}
-		prevEnd = s.end()
+	if i < len(e.spans) {
+		end = e.spans[i].off
 	}
 
 	// Reserve in-flight bytes too. A larger neighboring miss must not overlap
@@ -505,24 +418,57 @@ func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
 	return prevEnd, end, off >= prevEnd && off < end
 }
 
-// insertSpanLocked inserts a span in ascending order and applies eviction.
+// insertSpanLocked inserts a span in ascending order and charges the budget.
+//
+// The span enters the LRU list as the newest unpinned span. The caller runs
+// budget reclaim after releasing bcast.
 func (e *PackReader) insertSpanLocked(s *span) {
-	idx := 0
-	for idx < len(e.spans) && e.spans[idx].off < s.off {
-		idx++
-	}
-	e.spans = append(e.spans, nil)
-	copy(e.spans[idx+1:], e.spans[idx:])
-	e.spans[idx] = s
-	e.residentBytes += s.size
+	i := sort.Search(len(e.spans), func(i int) bool {
+		return e.spans[i].off >= s.off
+	})
+	e.spans = slices.Insert(e.spans, i, s)
+	s.lru = e.lru.PushBack(s)
+	e.newest = s
+	e.chargeLocked(s.size)
 	e.touchSpanLocked(s)
-	e.evictLocked()
 }
 
-// touchSpanLocked advances the LRU sequence.
+// removeSpanLocked removes a resident span and returns its bytes to the budget.
+func (e *PackReader) removeSpanLocked(s *span) {
+	i := sort.Search(len(e.spans), func(i int) bool {
+		return e.spans[i].off >= s.off
+	})
+	if i == len(e.spans) || e.spans[i] != s {
+		return
+	}
+	e.spans = slices.Delete(e.spans, i, i+1)
+	if s.lru != nil {
+		e.lru.Remove(s.lru)
+		s.lru = nil
+	}
+	if e.newest == s {
+		e.newest = nil
+	}
+	e.chargeLocked(-s.size)
+}
+
+// chargeLocked adds delta resident bytes to the reader and its budget.
+func (e *PackReader) chargeLocked(delta int64) {
+	e.residentBytes += delta
+	e.budget.used.Add(delta)
+}
+
+// nextUseSeqLocked returns the next budget-wide LRU sequence.
+func (e *PackReader) nextUseSeqLocked() uint64 {
+	return e.budget.clock.Add(1)
+}
+
+// touchSpanLocked marks a span as the most recently used.
 func (e *PackReader) touchSpanLocked(s *span) {
-	e.useSeq++
-	s.lastUseSeq = e.useSeq
+	s.lastUseSeq = e.nextUseSeqLocked()
+	if s.lru != nil {
+		e.lru.MoveToBack(s.lru)
+	}
 }
 
 // collectSpansLocked returns the disjoint spans covering [start, end).
@@ -530,12 +476,9 @@ func (e *PackReader) touchSpanLocked(s *span) {
 func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
 	var out []*span
 	cur := start
-	for _, s := range e.spans {
+	for _, s := range e.spans[e.spanIndexLocked(start):] {
 		if cur < s.off {
 			return nil, false
-		}
-		if cur >= s.end() {
-			continue
 		}
 		e.touchSpanLocked(s)
 		out = append(out, s)
@@ -547,97 +490,99 @@ func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
 	return nil, false
 }
 
-// retainSpansLocked pins each span, incrementing pin counts.
-// Returns the bytes that transitioned from unpinned to pinned.
-func (e *PackReader) retainSpansLocked(spans []*span) int64 {
-	var retained int64
+// retainSpansLocked pins each span, taking unpinned spans off the LRU list.
+func (e *PackReader) retainSpansLocked(spans []*span) {
 	for _, s := range spans {
-		if s == nil {
-			continue
-		}
-		if s.pins == 0 {
-			retained += s.size
+		if s.lru != nil {
+			e.lru.Remove(s.lru)
+			s.lru = nil
 		}
 		s.pins++
 		e.touchSpanLocked(s)
 	}
-	return retained
 }
 
-// releaseSpansLocked decrements pin counts on each span.
-// Returns the bytes that transitioned from pinned to unpinned.
-func (e *PackReader) releaseSpansLocked(spans []*span) int64 {
-	var released int64
+// releaseSpansLocked unpins each span. A span whose last pin drops returns to
+// the LRU list as the most recently used.
+func (e *PackReader) releaseSpansLocked(spans []*span) {
 	for _, s := range spans {
-		if s == nil || s.pins == 0 {
+		if s.pins == 0 {
 			continue
 		}
 		s.pins--
 		if s.pins == 0 {
-			released += s.size
+			s.lru = e.lru.PushBack(s)
 		}
 	}
-	return released
 }
 
-// removeUnpinnedSpansLocked removes any matching resident spans that are no
-// longer pinned.
+// removeUnpinnedSpansLocked removes any of spans that are no longer pinned.
 func (e *PackReader) removeUnpinnedSpansLocked(spans []*span) {
-	for _, victim := range spans {
-		if victim == nil || victim.pins != 0 {
-			continue
-		}
-		for i, resident := range e.spans {
-			if resident != victim {
-				continue
-			}
-			e.spans = append(e.spans[:i], e.spans[i+1:]...)
-			e.residentBytes -= victim.size
-			if e.residentBytes < 0 {
-				e.residentBytes = 0
-			}
-			break
+	for _, s := range spans {
+		if s.pins == 0 {
+			e.removeSpanLocked(s)
 		}
 	}
 }
 
-// evictLocked evicts least-recently-used unpinned spans over the byte budget.
+// oldestEvictableLocked returns the least recently used unpinned span.
 //
-// Pinned spans are never evicted (a block record holds them). The newest
-// span (lastUseSeq == useSeq) is never evicted in the same call that
-// inserted it to prevent immediate re-eviction of the span that just landed.
-func (e *PackReader) evictLocked() {
-	if e.maxBytes <= 0 {
-		return
+// The span inserted last is never returned: a caller that fetched it may not
+// have read it yet.
+func (e *PackReader) oldestEvictableLocked() *span {
+	front := e.lru.Front()
+	if front == nil {
+		return nil
 	}
-	for e.residentBytes > e.maxBytes {
-		var victimSpan *span
-		var victimSpanIdx int
-		for i, s := range e.spans {
-			if s.pins != 0 {
-				continue
-			}
-			if s.lastUseSeq == e.useSeq {
-				continue
-			}
-			if victimSpan == nil || s.lastUseSeq < victimSpan.lastUseSeq {
-				victimSpan = s
-				victimSpanIdx = i
-			}
-		}
-		if victimSpan != nil {
-			e.spans = append(e.spans[:victimSpanIdx], e.spans[victimSpanIdx+1:]...)
-			e.residentBytes -= victimSpan.size
-			if e.residentBytes < 0 {
-				e.residentBytes = 0
-			}
-			continue
-		}
+	s := front.Value.(*span)
+	if s == e.newest {
+		return nil
+	}
+	return s
+}
 
-		victimRecord := e.pickEvictionRecordLocked()
-		if victimRecord == nil {
+// oldestEvictableSeq returns the LRU sequence of the reader's oldest
+// evictable span.
+func (e *PackReader) oldestEvictableSeq() (uint64, bool) {
+	var seq uint64
+	var ok bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
 			return
 		}
-		e.removeBlockLocked(victimRecord)
-	}
+		if s := e.oldestEvictableLocked(); s != nil {
+			seq, ok = s.lastUseSeq, true
+		}
+	})
+	return seq, ok
+}
+
+// evictOldestSpan removes the reader's oldest evictable span.
+func (e *PackReader) evictOldestSpan() bool {
+	var evicted bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
+		if s := e.oldestEvictableLocked(); s != nil {
+			e.removeSpanLocked(s)
+			evicted = true
+		}
+	})
+	return evicted
+}
+
+// evictRecord releases the completed block record that best covers overage.
+func (e *PackReader) evictRecord(overage int64) bool {
+	var evicted bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
+		if rec := e.pickEvictionRecordLocked(overage); rec != nil {
+			e.removeBlockLocked(rec)
+			evicted = true
+		}
+	})
+	return evicted
 }

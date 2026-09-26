@@ -37,7 +37,6 @@ import (
 
 const (
 	httpReaderAtReadAheadSize = 1 * 1024 * 1024
-	httpReaderPageSize        = 4 * 1024
 	forceSyncTimeout          = 30 * time.Second
 )
 
@@ -637,7 +636,6 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 			url,
 			size,
 			httpReaderAtReadAheadSize,
-			httpReaderPageSize,
 			func(req *http.Request) error {
 				return cli.signPackReadRequest(req, bstoreID)
 			},

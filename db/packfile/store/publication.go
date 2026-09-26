@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"context"
 	"slices"
 	"time"
@@ -15,15 +14,12 @@ import (
 //
 // Fast path: serve a catalog record. A record still waiting for background
 // verification is hash-checked inline, so every returned block matches its
-// ref. Failed records are removed so reads can retry transport.
+// ref.
 //
-// Slow path: load the kvfile index (via the shared ReaderAt, so trailer
-// bytes land in the span store), find the target entry, compute the
-// semantic neighborhood window, ensure those bytes are resident, admit
-// every fully-contained block into the catalog for background verification
-// and writeback, and return the target block after checking its hash.
+// Slow path: fetchBlock. Fetched target bytes can be evicted before the read
+// copies them, so the slow path runs at most twice.
 //
-// Returns nil when the pack does not hold the block.
+// Returns nil when the pack index does not hold the block.
 func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlock, error) {
 	keyStr := string(key)
 
@@ -39,13 +35,8 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 				return
 			}
 			rec = e.lookupBlockLocked(keyStr)
-			if rec == nil {
-				return
-			}
-			if rec.state == blockStateFailed {
-				e.removeBlockLocked(rec)
+			if rec == nil || rec.state == blockStatePublished {
 				rec = nil
-				broadcast()
 				return
 			}
 			data, readErr = rec.readBytes()
@@ -69,16 +60,41 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 		return decodeVerifiedBlock(rec.ref, data)
 	}
 
-	// Slow path: ensure the index is loaded, resolve the target entry.
+	for range 2 {
+		stored, lost, err := e.fetchBlock(ctx, key)
+		if !lost {
+			return stored, err
+		}
+	}
+	return nil, errors.Errorf("packfile block %x not resident after fetch", key)
+}
+
+// fetchBlock loads the kvfile index (via the shared ReaderAt, so trailer
+// bytes land in the span store), finds the target entry, ensures its
+// semantic neighborhood window is resident, admits every fully-contained
+// block into the catalog for background verification and writeback, and
+// returns the target block read from the resident spans after checking its
+// hash.
+//
+// Fetched spans promote their blocks at once, so background verification can
+// reject the target bytes and drop them before this read copies them; that
+// returns ErrBlockRefMismatch like an inline check would. lost reports that
+// the target bytes were evicted instead and the read may retry.
+func (e *PackReader) fetchBlock(ctx context.Context, key []byte) (stored *block.StoredBlock, lost bool, err error) {
 	if err := e.ensureIndexLoaded(ctx); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	var (
+		targetRef    *block.BlockRef
+		refErr       error
+		targetOff    int64
+		targetEnd    int64
 		windowStart  int64
 		windowEnd    int64
 		contained    []*kvfile.IndexEntry
 		indexMissing bool
+		failures     uint64
 	)
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		entry, ok := e.findEntryByKeyLocked(key)
@@ -86,23 +102,30 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 			indexMissing = true
 			return
 		}
+		targetRef, refErr = parseBlockRef(entry)
+		targetOff = int64(entry.GetOffset())           //nolint:gosec // the catalog validator bounds offsets by the int64 pack size.
+		targetEnd = targetOff + int64(entry.GetSize()) //nolint:gosec // validated entry extents cannot overflow or exceed the pack.
 		windowStart, windowEnd, contained = e.semanticWindowLocked(entry)
+		failures = e.verifyFailures
 	})
 	if indexMissing {
-		return nil, nil
+		return nil, false, nil
+	}
+	if refErr != nil {
+		return nil, false, refErr
 	}
 
 	// Drive transport fetches to cover the semantic window.
-	if err := e.ensureWindowResident(ctx, windowStart, windowEnd); err != nil {
-		return nil, err
+	if err := e.ensureResident(ctx, windowStart, windowEnd, false); err != nil {
+		return nil, false, err
 	}
 
-	// Admit every fully-contained block and gather verify jobs.
-	var target *blockRecord
-	var jobs []func()
+	// Admit every fully-contained block, gather verify jobs, and copy the
+	// target bytes.
 	var data []byte
-	var readErr error
+	var jobs []func()
 	var verifyJobs []func()
+	var rejected bool
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if e.closed {
 			return
@@ -110,24 +133,15 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 		for _, entry := range contained {
 			off := int64(entry.GetOffset())     //nolint:gosec // the catalog validator bounds offsets by the int64 pack size.
 			end := off + int64(entry.GetSize()) //nolint:gosec // validated entry extents cannot overflow or exceed the pack.
-			isTarget := bytes.Equal(entry.GetKey(), key)
-			job, ok := e.admitBlockLocked(entry, off, end, isTarget)
-			if !ok {
-				continue
-			}
-			if job != nil {
+			if job, ok := e.admitBlockLocked(entry, off, end); ok && job != nil {
 				jobs = append(jobs, job)
 			}
-			if isTarget {
-				target = e.blocks[string(entry.GetKey())]
-			}
 		}
-		if target != nil {
-			data, readErr = target.readBytes()
-			if readErr != nil {
-				e.removeBlockLocked(target)
-			}
+		if spans, covered := e.collectSpansLocked(targetOff, targetEnd); covered {
+			data = make([]byte, targetEnd-targetOff)
+			copySpans(data, spans, targetOff)
 		}
+		rejected = e.verifyFailures != failures
 		if len(jobs) != 0 {
 			verifyJobs = e.prepareVerifyJobsLocked(jobs...)
 		}
@@ -135,17 +149,14 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 	})
 	e.enqueueVerifyJobs(verifyJobs)
 
-	if target == nil {
-		// The index entry existed but the block could not be admitted.
-		// This happens when spans failed to cover the target extent after
-		// ensureWindowResident, which usually means a short or truncated
-		// transport response.
-		return nil, nil
+	switch {
+	case data == nil && rejected:
+		return nil, false, errors.Wrapf(block.ErrBlockRefMismatch, "packfile block %x", key)
+	case data == nil:
+		return nil, true, nil
 	}
-	if readErr != nil {
-		return nil, readErr
-	}
-	return decodeVerifiedBlock(target.ref, data)
+	stored, err = decodeVerifiedBlock(targetRef, data)
+	return stored, false, err
 }
 
 // decodeVerifiedBlock decodes a pack value and checks its data against ref.
@@ -185,8 +196,8 @@ func (e *PackReader) statBlock(ctx context.Context, key []byte, ref *block.Block
 // verifyBlock runs hash verification and optional writeback for one record.
 //
 // On success the record transitions to Verified, or Published when writeback
-// is enabled. On mismatch the record transitions to Failed and is removed
-// from the catalog so a later read can retry transport.
+// is enabled. On mismatch the record is removed from the catalog so a later
+// read can retry transport.
 func (e *PackReader) verifyBlock(rec *blockRecord) {
 	var closed bool
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -230,43 +241,36 @@ func (e *PackReader) verifyBlock(rec *blockRecord) {
 // finishVerify records verify/publish completion for a block record.
 //
 // A verify error removes the record so the caller can retry transport
-// (corruption in flight is not guaranteed to recur). A publish error
-// leaves the record in the Verified state but unpublished; callers that
-// observed the published state via readBytes are unaffected.
+// (corruption in flight is not guaranteed to recur). Publishing releases the
+// record's spans: the writeback target serves the block from now on, so the
+// bytes become evictable. A publish error leaves the record Verified and
+// resident.
 func (e *PackReader) finishVerify(rec *blockRecord, verifyErr, writeErr error) {
+	var budget *residentBudget
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		dur := time.Duration(0)
+		budget = e.budget
 		if !rec.enqueueAt.IsZero() {
-			dur = time.Since(rec.enqueueAt)
+			e.lastPublishDur = time.Since(rec.enqueueAt)
 		}
 		rec.queued = false
-		if verifyErr != nil {
+		switch {
+		case verifyErr != nil:
 			spans := slices.Clone(rec.spans)
-			rec.state = blockStateFailed
-			rec.err = verifyErr
 			e.verifyFailures++
-			e.lastPublishDur = dur
-			// Remove the failed record so later reads retry cleanly.
 			e.removeBlockLocked(rec)
 			e.removeUnpinnedSpansLocked(spans)
-			close(rec.readyCh)
-			broadcast()
-			return
-		}
-		rec.err = writeErr
-		if writeErr == nil && e.writebackTarget != nil {
+		case writeErr != nil:
+			rec.state = blockStateVerified
+			e.writebackErrors++
+		case e.writebackTarget != nil:
 			rec.state = blockStatePublished
-			rec.writtenBack = true
 			e.writebackCount++
-		} else {
+			e.releaseSpansLocked(rec.spans)
+			rec.spans = nil
+		default:
 			rec.state = blockStateVerified
 		}
-		if writeErr != nil {
-			e.writebackErrors++
-		}
-		e.lastPublishDur = dur
-		close(rec.readyCh)
-		e.evictLocked()
 		broadcast()
 	})
+	budget.reclaim()
 }

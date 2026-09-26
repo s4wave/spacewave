@@ -4,7 +4,6 @@ import "time"
 
 // PackReaderTuning describes the active engine tuning values.
 type PackReaderTuning struct {
-	PageSize               int
 	MinWindow              int
 	TransportQuantum       int
 	MaxWindow              int
@@ -18,15 +17,6 @@ type PackReaderTuning struct {
 	ResidentBudget         int64
 	WritebackWindow        int64
 	IndexPromotion         bool
-}
-
-// SetTransportPageSize sets the resident span page size.
-func (e *PackReader) SetTransportPageSize(pageSize int) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if pageSize > 0 {
-			e.pageSize = pageSize
-		}
-	})
 }
 
 // SetTransportMinWindow sets the minimum transport fetch size.
@@ -96,7 +86,6 @@ func (e *PackReader) SnapshotTuning() PackReaderTuning {
 	var snap PackReaderTuning
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		snap = PackReaderTuning{
-			PageSize:               e.pageSize,
 			MinWindow:              e.minWindow,
 			TransportQuantum:       e.transportQuantum,
 			MaxWindow:              e.maxWindow,
@@ -107,7 +96,7 @@ func (e *PackReader) SnapshotTuning() PackReaderTuning {
 			SparseReads:            e.sparseReads,
 			SparseColdWindow:       e.sparseColdWindow,
 			SparseLocalityDistance: e.sparseLocalityDistance,
-			ResidentBudget:         e.maxBytes,
+			ResidentBudget:         e.budget.limit.Load(),
 			WritebackWindow:        e.writebackWindow,
 			IndexPromotion:         e.indexPromotion,
 		}

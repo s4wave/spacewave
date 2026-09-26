@@ -25,7 +25,7 @@ func NewHTTPPackfileStore(
 		if packID != meta.GetPack().GetId() {
 			return nil, errors.Errorf("unknown manifest-pack id %q", packID)
 		}
-		return packfile_store.NewHTTPRangeReader(cli, packURL, size, 0, 0, nil, nil), nil
+		return packfile_store.NewHTTPRangeReader(cli, packURL, size, 0, nil, nil), nil
 	}
 	return NewPackfileStore(ctx, meta, opener, cache, writeback)
 }

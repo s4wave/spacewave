@@ -15,28 +15,30 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// blockState is the publication state of a block record.
-type blockState int
-
+// defaultIndexTailInitialWindow is the first index-tail read size.
 const defaultIndexTailInitialWindow = 256 * 1024
+
+// blockState is the verification state of a block record.
+type blockState int
 
 const (
 	// blockStateVerifying indicates hash verification is scheduled or running.
 	blockStateVerifying blockState = iota
 	// blockStateVerified indicates hash verification succeeded.
 	blockStateVerified
-	// blockStatePublished indicates the block was written to the writeback target.
+	// blockStatePublished indicates the writeback target holds the block.
+	// The record keeps no spans; it remains only so the block is not written
+	// back again.
 	blockStatePublished
-	// blockStateFailed indicates hash verification failed.
-	blockStateFailed
 )
 
 // blockRecord is the publication state of one known block extent.
 //
-// Block records replace the legacy "logical range cache" as the semantic
-// object the engine cares about. Each record points at the subset of spans
-// that cover its physical extent and pins them so block bytes remain
-// reachable across range evictions.
+// Each record points at the subset of spans that cover its physical extent
+// and pins them so block bytes remain reachable across range evictions. A
+// record leaves the catalog when its verification fails or eviction releases
+// it. Publishing the block to the writeback target releases the spans and
+// keeps the record as a marker against a second writeback.
 type blockRecord struct {
 	// key is the kvfile index key (block hash as base58 string).
 	key string
@@ -48,18 +50,10 @@ type blockRecord struct {
 	size int64
 	// spans is the subset of resident spans fully covering [off, off+size).
 	spans []*span
-	// state is the current publication state.
+	// state is the current verification state.
 	state blockState
-	// err is the verify/publish error, if any.
-	err error
-	// readyCh closes when verification finishes (success or failure).
-	readyCh chan struct{}
 	// queued indicates verify work has been enqueued.
 	queued bool
-	// writtenBack indicates the block was successfully published.
-	writtenBack bool
-	// isTarget indicates this was the original fetch target (for tests).
-	isTarget bool
 	// lastUseSeq is the LRU sequence.
 	lastUseSeq uint64
 	// enqueueAt is when publication work was first queued.
@@ -305,7 +299,7 @@ func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]
 		return nil, errors.New("index tail window is empty")
 	}
 	start := max(e.size-int64(window), 0)
-	if err := e.ensureExactRangeResident(ctx, start, e.size); err != nil {
+	if err := e.ensureResident(ctx, start, e.size, true); err != nil {
 		return nil, err
 	}
 	suffix, ok := e.readResidentRange(start, e.size)
@@ -453,7 +447,7 @@ func (e *PackReader) promoteBlocksInSpanLocked(sp *span) []func() {
 		if eEnd > sp.end() {
 			continue
 		}
-		job, ok := e.admitBlockLocked(entry, eOff, eEnd, false)
+		job, ok := e.admitBlockLocked(entry, eOff, eEnd)
 		if ok && job != nil {
 			jobs = append(jobs, job)
 		}
@@ -470,11 +464,10 @@ func (e *PackReader) promoteBlocksInSpanLocked(sp *span) []func() {
 // (possibly nil) verify job to enqueue. A job is returned only when a new
 // record was created; existing records are left alone to avoid duplicate
 // verification.
-func (e *PackReader) admitBlockLocked(entry *kvfile.IndexEntry, off, end int64, isTarget bool) (func(), bool) {
+func (e *PackReader) admitBlockLocked(entry *kvfile.IndexEntry, off, end int64) (func(), bool) {
 	key := string(entry.GetKey())
 	if existing, ok := e.blocks[key]; ok {
-		e.useSeq++
-		existing.lastUseSeq = e.useSeq
+		existing.lastUseSeq = e.nextUseSeqLocked()
 		return nil, true
 	}
 	spans, covered := e.collectSpansLocked(off, end)
@@ -492,14 +485,11 @@ func (e *PackReader) admitBlockLocked(entry *kvfile.IndexEntry, off, end int64, 
 		size:      end - off,
 		spans:     spans,
 		state:     blockStateVerifying,
-		readyCh:   make(chan struct{}),
 		queued:    true,
-		isTarget:  isTarget,
 		enqueueAt: time.Now(),
 	}
 	e.retainSpansLocked(spans)
-	e.useSeq++
-	rec.lastUseSeq = e.useSeq
+	rec.lastUseSeq = e.nextUseSeqLocked()
 	e.blocks[key] = rec
 	return func() { e.verifyBlock(rec) }, true
 }
@@ -508,8 +498,7 @@ func (e *PackReader) admitBlockLocked(entry *kvfile.IndexEntry, off, end int64, 
 func (e *PackReader) lookupBlockLocked(key string) *blockRecord {
 	rec := e.blocks[key]
 	if rec != nil {
-		e.useSeq++
-		rec.lastUseSeq = e.useSeq
+		rec.lastUseSeq = e.nextUseSeqLocked()
 	}
 	return rec
 }
@@ -543,9 +532,8 @@ func (e *PackReader) releasableBytesLocked(rec *blockRecord) int64 {
 }
 
 // pickEvictionRecordLocked chooses a completed block record to unpin under
-// resident-byte pressure.
-func (e *PackReader) pickEvictionRecordLocked() *blockRecord {
-	overage := e.residentBytes - e.maxBytes
+// overage bytes of budget pressure.
+func (e *PackReader) pickEvictionRecordLocked(overage int64) *blockRecord {
 	if overage <= 0 {
 		return nil
 	}
@@ -556,7 +544,7 @@ func (e *PackReader) pickEvictionRecordLocked() *blockRecord {
 		if rec == nil || rec.queued {
 			continue
 		}
-		if rec.state != blockStateVerified && rec.state != blockStatePublished {
+		if rec.state != blockStateVerified {
 			continue
 		}
 		free := e.releasableBytesLocked(rec)
@@ -630,28 +618,6 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 		contained = append(contained, entry)
 	}
 	return start, end, contained
-}
-
-// ensureWindowResident ensures the byte window [start, end) is resident,
-// fetching uncovered sub-intervals via the span store planner.
-func (e *PackReader) ensureWindowResident(ctx context.Context, start, end int64) error {
-	if end <= start {
-		return nil
-	}
-	for cur := start; cur < end; {
-		var resident *span
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			resident = e.findCoveringSpanLocked(cur)
-		})
-		if resident != nil {
-			cur = min(end, resident.end())
-			continue
-		}
-		if err := e.fetchMiss(ctx, cur, end); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // parseBlockRef builds a block ref from a kvfile index entry key.

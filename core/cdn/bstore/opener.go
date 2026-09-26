@@ -8,14 +8,10 @@ import (
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
-const (
-	// readAheadSize permits the pack reader's sparse cold window. Hash-ordered
-	// packs do not imply locality between consecutive file-content blocks;
-	// the reader grows its window only after observing nearby requests.
-	readAheadSize = 128 * 1024
-	// anonymousReaderPageSize sets resident cache granularity.
-	anonymousReaderPageSize = 4 * 1024
-)
+// readAheadSize permits the pack reader's sparse cold window. Hash-ordered
+// packs do not imply locality between consecutive file-content blocks; the
+// reader grows its window only after observing nearby requests.
+const readAheadSize = 128 * 1024
 
 // packURL formats the anonymous CDN pack URL path.
 func packURL(cdnBaseURL, spaceID, packID string) string {
@@ -46,7 +42,6 @@ func NewAnonymousOpener(httpCli *http.Client, cdnBaseURL, spaceID string) packfi
 			packURL(cdnBaseURL, spaceID, packID),
 			size,
 			readAheadSize,
-			anonymousReaderPageSize,
 			nil,
 			nil,
 		), nil

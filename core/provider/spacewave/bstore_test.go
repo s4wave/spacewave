@@ -556,7 +556,6 @@ func TestHTTPReaderAtReadsOffsetFromFullBodyFallback(t *testing.T) {
 		srv.URL,
 		int64(len(data)),
 		16,
-		httpReaderPageSize,
 		nil,
 		nil,
 	)
@@ -596,7 +595,6 @@ func TestHTTPReaderAtReadAheadCache(t *testing.T) {
 		srv.URL,
 		int64(len(data)),
 		16,
-		httpReaderPageSize,
 		nil,
 		nil,
 	)
@@ -673,7 +671,6 @@ func TestHTTPReaderAtReusesPackReadTicket(t *testing.T) {
 		srv.URL,
 		int64(len(data)),
 		4,
-		httpReaderPageSize,
 		func(req *http.Request) error {
 			return sessionCli.signPackReadRequest(req, resourceID)
 		},
@@ -726,7 +723,6 @@ func TestHTTPReaderAtRetainsMultipleRanges(t *testing.T) {
 		srv.URL,
 		int64(len(data)),
 		16,
-		httpReaderPageSize,
 		nil,
 		nil,
 	)
