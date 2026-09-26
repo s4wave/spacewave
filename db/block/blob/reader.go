@@ -24,10 +24,10 @@ type Reader struct {
 	// This speeds up seeking for idx during sequential reads.
 	chunkIdx int
 	chunkSet *sbset.SubBlockSet
-	// chunkCache keeps active data and bounded read-ahead. The cursor cache is
-	// intentionally bypassed for sequential reads so large HTTP readbacks do not
-	// retain every chunk, but repeated small reads inside one chunk must still
-	// avoid refetching the same block.
+	// chunkCache keeps recently read chunks and bounded read-ahead. The cursor
+	// cache is intentionally bypassed so large HTTP readbacks do not retain
+	// every chunk, but repeated small reads inside one chunk must still avoid
+	// refetching the same block.
 	chunkCache chunkReadCache
 }
 
@@ -64,6 +64,13 @@ func NewRawReader(ctx context.Context, blob *Blob) *Reader {
 		ctxCancel: func() {},
 		root:      blob,
 	}
+}
+
+// SetChunkCacheLimit retains up to limit bytes of recently read chunks, so
+// random access that revisits chunks does not fetch them again. The latest
+// chunk is always retained. The default limit of zero suits streaming reads.
+func (r *Reader) SetChunkCacheLimit(limit int) {
+	r.chunkCache.limit = limit
 }
 
 // Read implements the reader interface.

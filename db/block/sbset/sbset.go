@@ -69,6 +69,16 @@ func (r *SubBlockSet) Get(idx int) (block.SubBlock, *block.Cursor) {
 	return r.sl.Get(idx), nbcs
 }
 
+// GetSubBlock gets the sub-block at the index without following its cursor.
+//
+// returns nil if out of bounds.
+func (r *SubBlockSet) GetSubBlock(idx int) block.SubBlock {
+	if r.sl == nil || idx < 0 || idx >= r.sl.Len() {
+		return nil
+	}
+	return r.sl.Get(idx)
+}
+
 // Len is the number of elements in the collection.
 func (r *SubBlockSet) Len() int {
 	if r.sl == nil {

@@ -17,28 +17,8 @@ import (
 // TestPackfileFileSeeksWithoutMaterializingArchive protects bounded reads and
 // independent positional reads on a persisted chunked blob.
 func TestPackfileFileSeeksWithoutMaterializingArchive(t *testing.T) {
-	// Persist a multi-chunk archive, then open a fresh cursor over counted storage.
-	ctx := t.Context()
-	base := block_mock.NewMockStore(0)
-	tx, cursor := block.NewTransaction(base, nil, nil, nil)
 	const count, size = 16, 64 << 10
-	root := &blob.Blob{BlobType: blob.BlobType_BlobType_CHUNKED, TotalSize: count * size, ChunkIndex: &blob.ChunkIndex{}}
-	cursor.SetBlock(root, true)
-	chunks := root.ChunkIndex.GetChunkSet(cursor.FollowSubBlock(4))
-	for idx := range count {
-		root.ChunkIndex.AppendChunk(chunks, idx, size, uint64(idx*size), bytes.Repeat([]byte{byte(idx + 1)}, size))
-	}
-	ref, _, err := tx.Write(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := &packfileReadStore{StoreOps: base}
-	_, cursor = block.NewTransaction(store, nil, ref, nil)
-	file, err := NewPackfileFile(ctx, "test.pack", cursor)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = file.Close() })
+	file, store := newCountedPackfileFile(t, count, size)
 
 	// Read the last bytes positionally, then verify sequential reads still start at zero.
 	data := make([]byte, 3)
@@ -65,6 +45,66 @@ func TestPackfileFileSeeksWithoutMaterializingArchive(t *testing.T) {
 	}
 }
 
+// TestPackfileFileRevisitsRetainedChunks protects object lookups, which reread
+// the pack header before each object, from fetching the same chunks again.
+func TestPackfileFileRevisitsRetainedChunks(t *testing.T) {
+	const count, size = 16, 64 << 10
+	file, store := newCountedPackfileFile(t, count, size)
+
+	// Alternate between the header chunk and two object chunks.
+	data := make([]byte, 12)
+	for range 10 {
+		for _, idx := range []int{0, 5, 0, 11} {
+			if _, err := file.Seek(int64(idx*size), io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.ReadFull(file, data); err != nil {
+				t.Fatal(err)
+			}
+			if data[0] != byte(idx+1) {
+				t.Fatalf("chunk %d read %v", idx, data)
+			}
+		}
+	}
+	if fetched := store.bytes.Load(); fetched >= 4*size {
+		t.Fatalf("revisiting three chunks fetched %d bytes, want under %d", fetched, 4*size)
+	}
+}
+
+// newCountedPackfileFile persists a multi-chunk archive and opens it through
+// storage that counts fetched bytes.
+func newCountedPackfileFile(t *testing.T, count, size int) (*PackfileFile, *packfileReadStore) {
+	t.Helper()
+	ctx := t.Context()
+	base := block_mock.NewMockStore(0)
+	tx, cursor := block.NewTransaction(base, nil, nil, nil)
+	root := &blob.Blob{
+		BlobType:   blob.BlobType_BlobType_CHUNKED,
+		TotalSize:  uint64(count * size),
+		ChunkIndex: &blob.ChunkIndex{},
+	}
+	cursor.SetBlock(root, true)
+	chunks := root.ChunkIndex.GetChunkSet(cursor.FollowSubBlock(4))
+	for idx := range count {
+		data := bytes.Repeat([]byte{byte(idx + 1)}, size)
+		root.ChunkIndex.AppendChunk(chunks, idx, uint64(size), uint64(idx*size), data)
+	}
+	ref, _, err := tx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := &packfileReadStore{StoreOps: base}
+	_, cursor = block.NewTransaction(store, nil, ref, nil)
+	file, err := NewPackfileFile(ctx, "test.pack", cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = file.Close() })
+	return file, store
+}
+
+// packfileReadStore counts the bytes fetched from its store.
 type packfileReadStore struct {
 	block.StoreOps
 	bytes atomic.Int64
