@@ -10,6 +10,7 @@ import type {
   FileInfo,
   NodeType,
   HandleReaddirResponse,
+  HandleReadStreamResponse,
   HandleWatchReaddirResponse,
   MknodType,
   DirEntry,
@@ -48,7 +49,6 @@ export interface TreeUploadFile {
 // TreeUploadEntry is one tree upload entry.
 export type TreeUploadEntry = TreeUploadDirectory | TreeUploadFile
 
-const fsHandleReadChunkSize = 64 * 1024
 const uploadDataFrameMaxBytes = 64 * 1024
 
 function concatReadChunks(chunks: Uint8Array[], bytesRead: bigint): Uint8Array {
@@ -125,7 +125,9 @@ export interface IFSHandle {
     abortSignal?: AbortSignal,
   ): Promise<{ handle: FSHandle; traversedPath: string[] }>
 
-  // readAt reads bytes at the given offset.
+  // readAt reads length bytes at offset, or the rest of the file when length
+  // is not positive. eof reports that the read reached the end of the file
+  // before filling length.
   readAt(
     offset: bigint,
     length: bigint,
@@ -339,65 +341,33 @@ export class FSHandle extends Resource implements IFSHandle {
     }
   }
 
-  // readAt reads bytes at the given offset.
+  // readAt reads length bytes at offset, or the rest of the file when length
+  // is not positive. The daemon streams the range in order on one handle, so
+  // the file's chunk read-ahead overlaps block fetches with the transfer. eof
+  // reports that the read reached the end of the file before filling length.
   public async readAt(
     offset: bigint,
     length: bigint,
     abortSignal?: AbortSignal,
   ): Promise<{ data: Uint8Array; bytesRead: bigint; eof: boolean }> {
-    const targetLength =
-      length > 0n ? length : await this.readRemainingLength(offset, abortSignal)
-    if (targetLength <= 0n) {
-      return {
-        data: new Uint8Array(),
-        bytesRead: 0n,
-        eof: true,
-      }
-    }
-
+    // Collect the frames in file order.
     const chunks: Uint8Array[] = []
-    let nextOffset = offset
-    let remaining = targetLength
     let bytesRead = 0n
-    let eof = false
-    while (remaining > 0n) {
-      const requestLength =
-        remaining > BigInt(fsHandleReadChunkSize)
-          ? BigInt(fsHandleReadChunkSize)
-          : remaining
-      const resp = await this.service.ReadAt(
-        { offset: nextOffset, length: requestLength },
-        abortSignal,
-      )
-      const data = resp.data ?? new Uint8Array()
-      if (data.byteLength === 0) {
-        eof = resp.eof ?? false
-        break
+    const stream = this.service.ReadStream({ offset, length }, abortSignal)
+    for await (const resp of stream as AsyncIterable<HandleReadStreamResponse>) {
+      const data = resp.data
+      if (!data?.byteLength) {
+        continue
       }
       chunks.push(data)
-      const n = BigInt(data.byteLength)
-      bytesRead += n
-      nextOffset += n
-      remaining -= n
-      eof = resp.eof ?? false
-      if (eof) {
-        break
-      }
+      bytesRead += BigInt(data.byteLength)
     }
 
     return {
       data: concatReadChunks(chunks, bytesRead),
       bytesRead,
-      eof,
+      eof: length <= 0n || bytesRead < length,
     }
-  }
-
-  private async readRemainingLength(
-    offset: bigint,
-    abortSignal?: AbortSignal,
-  ): Promise<bigint> {
-    const size = await this.getSize(abortSignal)
-    return size > offset ? size - offset : 0n
   }
 
   // writeAt writes bytes at the given offset.
