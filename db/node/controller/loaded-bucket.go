@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// errBucketReleased is returned by lookups through a handle whose bucket run
+// has exited.
+var errBucketReleased = errors.Wrap(bucket.ErrBucketNotFound, "bucket released")
+
 // loadedBucket contains state for a loaded bucket.
 type loadedBucket struct {
 	c        *Controller
@@ -39,6 +43,10 @@ type loadedBucketState struct {
 	disposed bool
 	// info contains the latest bucket information
 	info *bucket.BucketInfo
+	// released closes when the bucket run that published this state exits. It
+	// never carries a value: ccontainer waits end when their error channel
+	// closes, so lookup waits select on it directly.
+	released <-chan error
 }
 
 // clone copies the state.
@@ -49,6 +57,7 @@ func (l *loadedBucketState) clone() *loadedBucketState {
 	return &loadedBucketState{
 		disposed: l.disposed,
 		info:     l.info.CloneVT(),
+		released: l.released,
 	}
 }
 
@@ -60,7 +69,9 @@ func (l *loadedBucketState) equal(ot *loadedBucketState) bool {
 	if ot == nil {
 		return true
 	}
-	return l.disposed == ot.disposed && l.info.EqualVT(ot.info)
+	return l.disposed == ot.disposed &&
+		l.released == ot.released &&
+		l.info.EqualVT(ot.info)
 }
 
 // newLoadedBucket constructs a new loaded bucket.
@@ -85,8 +96,12 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	defer b.blockStores.SyncKeys(nil, false)
 	defer b.le.Debug("exited bucket tracking")
 
+	// Handles published by this run fail their lookup waits once it exits.
+	released := make(chan error)
+	defer close(released)
+
 	// Publish state changes through the state container.
-	var st loadedBucketState
+	st := loadedBucketState{released: released}
 	emitState := func() {
 		if b.lastState.equal(&st) {
 			return
@@ -100,7 +115,6 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 	}()
 
 	// Start block-store tracking and wait for state changes.
-	// startup
 	var waitCh <-chan struct{}
 	b.blockStores.SetContext(ctx, true)
 
@@ -158,7 +172,6 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 			}
 
 			// Start or retain the configured lookup controller.
-			// if necessary, start the lookup controller.
 			if bc := b.bucketConf; bc != nil &&
 				lookupCtrCancel == nil &&
 				!bc.GetLookup().GetDisable() {
@@ -195,9 +208,24 @@ func (b *loadedBucket) ClearBlockStore(blockStoreID string) {
 	})
 }
 
-// GetLookup waits for the lookup.
-func (b *loadedBucket) GetLookup(ctx context.Context) (bucket_lookup.Lookup, error) {
-	return b.lookupCtr.WaitValue(ctx, nil)
+// GetLookup waits for the lookup. It fails with errBucketReleased once released
+// closes: the run that publishes the lookup has exited, and a lookup still set
+// belongs to a controller that is shutting down.
+func (b *loadedBucket) GetLookup(
+	ctx context.Context,
+	released <-chan error,
+) (bucket_lookup.Lookup, error) {
+	select {
+	case <-released:
+		return nil, errBucketReleased
+	default:
+	}
+
+	lookup, err := b.lookupCtr.WaitValue(ctx, released)
+	if err != nil && ctx.Err() == nil {
+		return nil, errBucketReleased
+	}
+	return lookup, err
 }
 
 // clearLookup clears the current lookup value.
