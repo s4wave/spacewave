@@ -40,8 +40,8 @@ github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 h1:PEE
 github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O2eZNtS1Cy4p8nn8k0+U=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260924094834-67576591e16a h1:PNWokQPkWZUK9zK4/icNYgH57k3j+QxrBm3ZlgIGKp0=
-github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260924094834-67576591e16a/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260926030804-1c368f809160 h1:jRiUUaaLm0xcnoaSkt1PKwyoHUEYDuYwI3S3oLMiMeE=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260926030804-1c368f809160/go.mod h1:AbY5mLveXdjT5HjUkM8eTkXW9YfXzDFSBzCSTQ/cAWo=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 h1:X7jF/waiUPTRjUZkzRInP03rFAXbmEtPSgPzDNuwXcg=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe h1:WrZSu4hkdfPGqao8LBY5bsRxDjlNPVe+02o0hxVGQmc=
@@ -285,8 +285,6 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.3.3-0.20260925195426-c7a9ce04c120 h1:TVWFoB9wKnF5a2Ne95ZV9cyvdjn45kIyDw4+eb936MA=
-github.com/s4wave/goscript v0.3.3-0.20260925195426-c7a9ce04c120/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
 github.com/s4wave/goscript v0.3.3-0.20260926020211-cbe1705e22cb h1:NUF8a8KBbDI0q+AcesbeSjc5+1gmzRFUZ8TifkocHAo=
 github.com/s4wave/goscript v0.3.3-0.20260926020211-cbe1705e22cb/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
 github.com/s4wave/goscript v0.3.3-0.20260926022610-7f9f7d1a2439 h1:y/yJ6OKl7U0yFCKdo3gLyKLPViORpactle7cPJi+tMo=

@@ -96,7 +96,7 @@ func runGitLfsSetup(c *cli.Context, statePath, spaceID string, sessIdx int) erro
 		return errors.Wrap(err, "resolve executable")
 	}
 	exe = filepath.Clean(exe)
-	daemonFlags, err := gitLfsDaemonFlags(c, statePath)
+	daemonFlags, err := gitDaemonFlags(c, statePath)
 	if err != nil {
 		return err
 	}
@@ -343,10 +343,10 @@ func countGitLfsFiles(ctx context.Context) (int, error) {
 	return strings.Count(out, "\n") + 1, nil
 }
 
-// gitLfsDaemonFlags returns the daemon flags the agent and hook repeat so they
-// reach the daemon setup used. Unset flags are omitted, leaving the agent the
-// same default resolution setup had.
-func gitLfsDaemonFlags(c *cli.Context, statePath string) ([]string, error) {
+// gitDaemonFlags returns the daemon flags that Git helpers and hooks repeat so
+// they reach the daemon that setup used. Unset flags are omitted, leaving the
+// helper the same default resolution setup had.
+func gitDaemonFlags(c *cli.Context, statePath string) ([]string, error) {
 	var flags []string
 	if statePathUserSet(c) {
 		resolved, err := resolveStatePathFromContext(c, statePath)

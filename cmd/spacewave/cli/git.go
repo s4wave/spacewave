@@ -19,6 +19,7 @@ import (
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
@@ -74,44 +75,48 @@ func mountGitContext(c *cli.Context, statePath string, uri fsURI) (*gitContext, 
 }
 
 // mountGitEngine connects to the daemon and mounts the engine without
-// accessing a typed object. Used by standalone commands like clone.
-func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sdk_engine.SDKEngine, func(), error) {
+// accessing a typed object. spaceID may be a Space ID or name; empty selects
+// the first Space. Used by standalone commands like clone and the remote
+// helper.
+func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sdk_engine.SDKEngine, *s4wave_session.Session, func(), error) {
 	ctx := c.Context
 
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	idx := uint32(1)
 	if sessIdx > 0 {
-		var err error
 		idx, err = sessionIndexFromInt(sessIdx)
 		if err != nil {
-			return nil, nil, err
+			client.close()
+			return nil, nil, nil, err
 		}
 	}
 
 	sess, err := client.mountSession(ctx, idx)
 	if err != nil {
 		client.close()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if spaceID == "" {
 		spaceID, err = client.getSpaceByName(ctx, sess, "")
-		if err != nil {
-			sess.Release()
-			client.close()
-			return nil, nil, errors.Wrap(err, "resolve default space")
-		}
+	} else {
+		spaceID, err = client.resolveSpaceID(ctx, sess, spaceID)
+	}
+	if err != nil {
+		sess.Release()
+		client.close()
+		return nil, nil, nil, errors.Wrap(err, "resolve space")
 	}
 
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		sess.Release()
 		client.close()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
@@ -119,7 +124,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		spaceCleanup()
 		sess.Release()
 		client.close()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	cleanup := func() {
@@ -128,7 +133,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		sess.Release()
 		client.close()
 	}
-	return engine, cleanup, nil
+	return engine, sess, cleanup, nil
 }
 
 // commonGitFlags returns the flags shared by git subcommands that need a URI.
@@ -248,6 +253,7 @@ func newGitCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			buildGitFetchCommand(),
 			buildGitWorktreeCommand(),
 			buildGitLfsCommand(),
+			buildGitRemoteCommand(),
 		},
 	}
 }
@@ -903,7 +909,7 @@ func buildGitCloneCommand() *cli.Command {
 				return err
 			}
 
-			engine, cleanup, err := mountGitEngine(c, statePath, spaceID, sessIdx)
+			engine, _, cleanup, err := mountGitEngine(c, statePath, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
