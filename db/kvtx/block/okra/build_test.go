@@ -21,7 +21,7 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 64)
 
-	tx, _, err := BuildTree(store, nil, nil, fixture.seq())
+	tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +364,7 @@ func writeOkraBuildEntries(
 	entries []BuildEntry,
 ) (*block.BlockRef, *Root) {
 	t.Helper()
-	builderTx, _, err := BuildTreeWithEntries(store, nil, nil, func(yield func(BuildEntry) bool) {
+	builderTx, _, err := BuildTreeWithEntries(ctx, store, nil, nil, func(yield func(BuildEntry) bool) {
 		for _, ent := range entries {
 			if !yield(ent) {
 				return
@@ -435,8 +435,9 @@ func TestBuildTreeDepthIsLowerThanIAVL(t *testing.T) {
 }
 
 func TestBuildTreeRejectsUnsortedEntries(t *testing.T) {
+	ctx := context.Background()
 	store := newOkraTestStore()
-	_, _, err := BuildTreeWithEntries(store, nil, nil, func(yield func(BuildEntry) bool) {
+	_, _, err := BuildTreeWithEntries(ctx, store, nil, nil, func(yield func(BuildEntry) bool) {
 		yield(BuildEntry{Key: []byte("b")})
 		yield(BuildEntry{Key: []byte("a")})
 	})
@@ -496,7 +497,7 @@ func writeOkraFixture(
 	fixture *okraFixture,
 ) (*block.BlockRef, *Root) {
 	t.Helper()
-	tx, rootCursor, err := BuildTree(store, nil, nil, fixture.seq())
+	tx, rootCursor, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}

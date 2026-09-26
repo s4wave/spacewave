@@ -45,7 +45,7 @@ func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
 	store := &readOrderStore{StoreOps: newOkraTestStore()}
 	fixture := newOkraFixture(t, ctx, store, 4096)
 
-	tx, _, err := BuildTree(store, nil, nil, fixture.seq())
+	tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}

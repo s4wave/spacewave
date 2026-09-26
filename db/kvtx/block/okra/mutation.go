@@ -600,45 +600,13 @@ func (t *Tx) buildBlobValue(ctx context.Context, val []byte) (*block.BlockRef, e
 	return t.materializeValueCursor(ctx, valueCursor)
 }
 
-// buildValueCursor returns a detached cursor for building a value block
-// against the staged value store.
+// buildValueCursor returns a cursor for building a value block against the
+// tree's staging store.
 func (t *Tx) buildValueCursor(ctx context.Context) *block.Cursor {
 	if t.bcs == nil {
 		return nil
 	}
-	btx := t.bcs.GetTransaction()
-	if btx == nil {
-		return t.bcs.Detach(false)
-	}
-	staged := t.stagedValueStore(ctx, btx)
-	valueTx, valueCursor := block.NewTransaction(staged, btx.GetTransformer(), nil, btx.GetPutOpts())
-	valueTx.SetWriteBuffer(staged)
-	return valueCursor
-}
-
-// stagedValueStore returns the store that stages value writes for the tree
-// transaction, skipping GC WAL journaling for eager value writes.
-func (t *Tx) stagedValueStore(ctx context.Context, btx *block.Transaction) *block.BufferedStore {
-	store, _ := t.bcs.GetBlockStore()
-	return btx.StageWrites(ctx, valueMaterializationStore(store))
-}
-
-type walTrackingStore interface {
-	// HasWALAppender reports whether writes append to the garbage collection WAL.
-	HasWALAppender() bool
-	// GetStore returns the underlying store without WAL tracking.
-	GetStore() block.StoreOps
-}
-
-// valueMaterializationStore returns the store to materialize values against:
-// the untracked store while a GC WAL append is in progress, else the store.
-func valueMaterializationStore(store block.StoreOps) block.StoreOps {
-	if tracked, ok := store.(walTrackingStore); ok && tracked.HasWALAppender() {
-		// The containing Okra page records the value ref; avoid journaling the
-		// eager value write while a GC WAL append is in progress.
-		return tracked.GetStore()
-	}
-	return store
+	return stagedCursor(ctx, t.bcs)
 }
 
 // materializeValueCursor writes the cursor's block if dirty and returns its
@@ -653,7 +621,7 @@ func (t *Tx) materializeValueCursor(ctx context.Context, cursor *block.Cursor) (
 			if t.bcs != nil && (cursor.IsSubBlock() || btx == t.bcs.GetTransaction()) {
 				// The adopting tree owns staged writes, including inline values
 				// borrowed from a different read transaction.
-				staged := t.stagedValueStore(ctx, t.bcs.GetTransaction())
+				staged := stagedStore(ctx, t.bcs)
 				cursor = cursor.DetachRecursive(true, true, true)
 				cursor.MarkDirty()
 				btx = cursor.GetTransaction()

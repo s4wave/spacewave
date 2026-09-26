@@ -87,17 +87,6 @@ func hashLeaf(key []byte, valueRef *block.BlockRef, valueIsBlob bool) ([]byte, e
 	return hashKeyValue(key, valueData)
 }
 
-func hashNodeRange(nodes []*buildNode) ([]byte, error) {
-	h := borrowOkraHasher()
-	defer releaseOkraHasher(h)
-	for _, node := range nodes {
-		if _, err := h.Write(node.entry.GetHash()); err != nil {
-			return nil, err
-		}
-	}
-	return finishOkraHash(h), nil
-}
-
 func hashEntryRange(entries []*Entry) ([]byte, error) {
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
