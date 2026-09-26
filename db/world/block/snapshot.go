@@ -211,9 +211,14 @@ func (t *WorldState) packSnapshotObjects(ctx context.Context, bucketID string) e
 	}, false); err != nil {
 		return err
 	}
+	// Release the mutable index and its value cursors once the packed tree
+	// replaces it. Only the packed tree's blocks are written.
+	mutable := t.bcs.FollowSubBlock(1)
 	if err := packedCursor.SetAsSubBlock(1, t.bcs); err != nil {
 		return err
 	}
+	t.objTree.Discard()
 	t.objTree = packed
+	mutable.DiscardDetachedTree()
 	return nil
 }
