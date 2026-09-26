@@ -33,6 +33,22 @@ func (s *streamHandler) writePacket(pkt *Packet) {
 	}
 }
 
+// tryWritePacket queues a packet without blocking.
+// Returns false if the session is closed or its queue is full.
+func (s *streamHandler) tryWritePacket(pkt *Packet) bool {
+	select {
+	case <-s.ctx.Done():
+		return false
+	default:
+	}
+	select {
+	case s.packetCh <- pkt:
+		return true
+	default:
+		return false
+	}
+}
+
 // executeSession executes the stream session.
 func (s *streamHandler) executeSession() error {
 	ctx := s.ctx

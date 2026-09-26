@@ -110,6 +110,9 @@ func (d *solicitProtocol) IsEquivalent(other directive.Directive) bool {
 	if d.peerID != od.SolicitProtocolPeerID() {
 		return false
 	}
+	if d.transportID != od.SolicitProtocolTransportID() {
+		return false
+	}
 	if string(d.context) != string(od.SolicitProtocolContext()) {
 		return false
 	}

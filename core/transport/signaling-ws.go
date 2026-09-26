@@ -66,8 +66,10 @@ type wsSignalingCtrl struct {
 	client *signaling_rpc_client.Client
 	conn   *ws.Conn
 
-	mtx        sync.Mutex
-	ready      chan struct{}
+	mtx   sync.Mutex
+	ready chan struct{}
+	// done is closed when the current connection generation ends.
+	done       chan struct{}
 	refs       map[string]listenRef
 	retryDelay time.Duration
 }
@@ -154,6 +156,7 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 	c.mtx.Lock()
 	c.client = client
 	c.conn = conn
+	c.done = make(chan struct{})
 	close(c.ready)
 	c.mtx.Unlock()
 	defer func() {
@@ -161,6 +164,8 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 		c.releaseAllRefsLocked()
 		c.client = nil
 		c.conn = nil
+		close(c.done)
+		c.done = nil
 		c.ready = make(chan struct{})
 		c.mtx.Unlock()
 	}()
@@ -283,36 +288,45 @@ type wsSignalPeerResolver struct {
 // Resolve resolves the values, emitting them to the handler.
 func (r *wsSignalPeerResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	remotePeerIDStr := r.dir.SignalRemotePeerID().String()
-	var peerRef *signaling_rpc_client.ClientPeerRef
-	for peerRef == nil {
-		r.c.mtx.Lock()
-		client := r.c.client
-		ready := r.c.ready
-		if client != nil {
-			peerRef = client.AddPeerRef(remotePeerIDStr)
+	for {
+		// Wait for a connection generation and reference the remote peer on it.
+		var peerRef *signaling_rpc_client.ClientPeerRef
+		var genDone <-chan struct{}
+		for peerRef == nil {
+			r.c.mtx.Lock()
+			client := r.c.client
+			ready := r.c.ready
+			if client != nil {
+				peerRef = client.AddPeerRef(remotePeerIDStr)
+				genDone = r.c.done
+			}
+			r.c.mtx.Unlock()
+			if peerRef != nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-ready:
+			}
 		}
-		r.c.mtx.Unlock()
-		if peerRef != nil {
-			break
+
+		var val signaling.SignalPeerValue = signaling_rpc_client.NewSessionWithRef(peerRef)
+		vid, accepted := handler.AddValue(val)
+		if !accepted {
+			peerRef.Release()
+			return nil
 		}
+		handler.AddValueRemovedCallback(vid, peerRef.Release)
+
+		// Replace the value when this connection generation ends.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-ready:
+		case <-genDone:
+			_, _ = handler.RemoveValue(vid)
 		}
 	}
-
-	var val signaling.SignalPeerValue = signaling_rpc_client.NewSessionWithRef(peerRef)
-	vid, accepted := handler.AddValue(val)
-	if !accepted {
-		peerRef.Release()
-		return nil
-	}
-
-	handler.AddValueRemovedCallback(vid, peerRef.Release)
-
-	<-ctx.Done()
-	return ctx.Err()
 }
 
 // _ is a type assertion

@@ -331,15 +331,14 @@ func (t *Transport) Close() error {
 // handleLinkLost is called when a link is lost.
 func (t *Transport) handleLinkLost(addrStr string, lnk *Link) {
 	t.mtx.Lock()
-	existing := t.links[addrStr]
-	rel := existing == lnk
-	if rel {
+	if t.links[addrStr] == lnk {
 		delete(t.links, addrStr)
 	}
 	t.mtx.Unlock()
 
-	// Notify the handler only when this link remains the registered address entry.
-	if t.handler != nil && rel {
+	// Notify the handler even if a newer link replaced this address entry:
+	// the handler tracks each established link by its unique link UUID.
+	if t.handler != nil {
 		t.handler.HandleLinkLost(lnk)
 	}
 }

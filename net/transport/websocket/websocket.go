@@ -95,8 +95,9 @@ func NewWebSocket(
 		laddr := peer.NewNetAddr(peerID)
 		raddr := saddr.NewStringAddr("ws", addr)
 		pc := NewPacketConn(ctx, conn, laddr, raddr)
-		qconn, _, err := transport_quic.DialSession(ctx, le, quicOpts, pc, tpt.GetIdentity(), raddr, "")
+		qconn, _, err := transport_quic.DialSession(dctx, le, quicOpts, pc, tpt.GetIdentity(), raddr, "")
 		if err != nil {
+			_ = pc.Close()
 			return nil, raddr, err
 		}
 		return qconn, raddr, nil

@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	ws "github.com/aperturerobotics/go-websocket"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/signaling"
+	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -134,5 +136,125 @@ func TestWSSignalingControllerRefreshesTicketAfterConnectionExpires(t *testing.T
 	}
 	if want := []string{"ticket-1", "ticket-2"}; !slices.Equal(gotAuthorized, want) {
 		t.Fatalf("authorized tickets = %v, want %v", gotAuthorized, want)
+	}
+}
+
+// genTestHandler records SignalPeer resolver values.
+type genTestHandler struct {
+	directive.ResolverHandler
+
+	mtx     sync.Mutex
+	nextID  uint32
+	values  map[uint32]directive.Value
+	removed map[uint32]func()
+	addedCh chan uint32
+}
+
+// AddValue records an added value.
+func (h *genTestHandler) AddValue(val directive.Value) (uint32, bool) {
+	h.mtx.Lock()
+	h.nextID++
+	id := h.nextID
+	h.values[id] = val
+	h.mtx.Unlock()
+	h.addedCh <- id
+	return id, true
+}
+
+// RemoveValue removes a value and calls its removed callback.
+func (h *genTestHandler) RemoveValue(id uint32) (directive.Value, bool) {
+	h.mtx.Lock()
+	val, ok := h.values[id]
+	delete(h.values, id)
+	cb := h.removed[id]
+	delete(h.removed, id)
+	h.mtx.Unlock()
+	if cb != nil {
+		cb()
+	}
+	return val, ok
+}
+
+// AddValueRemovedCallback records the value removed callback.
+func (h *genTestHandler) AddValueRemovedCallback(id uint32, cb func()) func() {
+	h.mtx.Lock()
+	h.removed[id] = cb
+	h.mtx.Unlock()
+	return func() {}
+}
+
+// TestWSSignalPeerResolverReplacesValueOnReconnect verifies the resolver
+// replaces its value when the signaling connection generation changes.
+func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	le := logrus.NewEntry(logrus.New())
+	ctrl := &wsSignalingCtrl{ready: make(chan struct{})}
+	startGen := func() chan struct{} {
+		client, err := signaling_rpc_client.NewClient(le, nil, priv, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctrl.mtx.Lock()
+		defer ctrl.mtx.Unlock()
+		ctrl.client = client
+		ctrl.done = make(chan struct{})
+		close(ctrl.ready)
+		return ctrl.done
+	}
+	endGen := func() {
+		ctrl.mtx.Lock()
+		defer ctrl.mtx.Unlock()
+		ctrl.client = nil
+		close(ctrl.done)
+		ctrl.done = nil
+		ctrl.ready = make(chan struct{})
+	}
+
+	handler := &genTestHandler{
+		values:  make(map[uint32]directive.Value),
+		removed: make(map[uint32]func()),
+		addedCh: make(chan uint32, 4),
+	}
+	resolver := &wsSignalPeerResolver{
+		c:   ctrl,
+		dir: signaling.NewSignalPeer("webrtc", peer.ID("local"), peer.ID("remote")),
+	}
+	errCh := make(chan error, 1)
+	go func() { errCh <- resolver.Resolve(ctx, handler) }()
+
+	waitAdded := func() uint32 {
+		t.Helper()
+		select {
+		case id := <-handler.addedCh:
+			return id
+		case <-ctx.Done():
+			t.Fatal("timed out waiting for resolver value")
+		}
+		return 0
+	}
+
+	startGen()
+	first := waitAdded()
+	endGen()
+	startGen()
+	second := waitAdded()
+	if second == first {
+		t.Fatal("expected a new value for the new generation")
+	}
+	handler.mtx.Lock()
+	_, firstPresent := handler.values[first]
+	handler.mtx.Unlock()
+	if firstPresent {
+		t.Fatal("expected stale value to be removed")
+	}
+
+	cancel()
+	if err := <-errCh; !errors.Is(err, context.Canceled) {
+		t.Fatalf("resolve error = %v, want context cancellation", err)
 	}
 }

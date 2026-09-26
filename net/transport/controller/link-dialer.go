@@ -102,7 +102,10 @@ func (l *linkDialer) executeLinkDialer(
 	}
 
 	// Publish an outgoing link returned directly by the transport.
-	l.lnk.SetValue(lnk)
+	// Publish under the owner lock so link removal cannot interleave.
+	l.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		l.lnk.SetValue(lnk)
+	})
 	return nil
 }
 

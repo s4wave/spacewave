@@ -337,7 +337,7 @@ func (c *Controller) HandleIncomingStream(
 		strm, strmOpts.Unreliable = msgs, true
 	}
 
-	var mlnk link.MountedLink = newMountedLink(c, c.tpt, lnk)
+	var mlnk link.MountedLink = newMountedLink(c, tpt, lnk)
 	var mstrm link.MountedStream = newMountedStream(strm, strmOpts, pid, mlnk)
 
 	// bus is the controller bus
@@ -367,12 +367,13 @@ func (c *Controller) HandleIncomingStream(
 		strm.Close()
 		return
 	}
-	go func() {
-		<-rctx.Done()
+	// Close the stream when the link closes without parking a goroutine.
+	stopCloseOnLinkDone := context.AfterFunc(rctx, func() {
 		_ = mstrm.GetStream().Close()
-	}()
+	})
 
 	if err := mhnd.HandleMountedStream(rctx, mstrm); err != nil {
+		stopCloseOnLinkDone()
 		c.le.
 			WithError(err).
 			WithField("protocol-id", pid).

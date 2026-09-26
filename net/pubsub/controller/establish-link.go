@@ -28,8 +28,10 @@ func (c *Controller) handleEstablishLink(di directive.Instance) {
 	if ref == nil {
 		return
 	}
-	handler.ref = ref
-	c.cleanupRefs = append(c.cleanupRefs, ref)
+	c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		handler.ref = ref
+		c.cleanupRefs = append(c.cleanupRefs, ref)
+	})
 }
 
 // HandleValueAdded is called when a value is added to the directive.
@@ -74,13 +76,12 @@ func (e *establishLinkHandler) HandleValueRemoved(inst directive.Instance, val d
 // HandleInstanceDisposed is called when a directive instance is disposed.
 // This will occur if Close() is called on the directive instance.
 func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
-	eref := e.ref
-	if eref == nil {
-		return
-	}
-	e.ref = nil
-
 	e.c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		eref := e.ref
+		if eref == nil {
+			return
+		}
+		e.ref = nil
 		for i, ref := range e.c.cleanupRefs {
 			if ref == eref {
 				a := e.c.cleanupRefs

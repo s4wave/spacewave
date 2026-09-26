@@ -44,11 +44,13 @@ func DialSession(
 	select {
 	case remotePubKey = <-keyCh:
 	case <-ctx.Done():
+		_ = sess.CloseWithError(0, "canceled")
 		return nil, nil, ctx.Err()
 	}
 
 	// Require the TLS verifier to provide the remote public key.
 	if remotePubKey == nil {
+		_ = sess.CloseWithError(0, "missing remote key")
 		return nil, nil, errors.New("expected remote pub key to be set")
 	}
 
@@ -84,11 +86,13 @@ func DialSessionViaTransport(
 	select {
 	case remotePubKey = <-keyCh:
 	case <-ctx.Done():
+		_ = sess.CloseWithError(0, "canceled")
 		return nil, nil, ctx.Err()
 	}
 
 	// Require the TLS verifier to provide the remote public key.
 	if remotePubKey == nil {
+		_ = sess.CloseWithError(0, "missing remote key")
 		return nil, nil, errors.New("expected remote pub key to be set")
 	}
 

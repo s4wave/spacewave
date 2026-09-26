@@ -23,6 +23,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 		tkr.listenNonce++
 		tkr.broadcast()
 	}
+	tkr.listening = true
 	listenNonce := tkr.listenNonce
 	s.mtx.Unlock()
 

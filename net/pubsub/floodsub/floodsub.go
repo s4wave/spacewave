@@ -129,6 +129,7 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 				m.mtx.Lock()
 				if m.peers[s.tpl] == s {
 					delete(m.peers, s.tpl)
+					m.removePeerChannelsLocked(s.tpl)
 				}
 				m.mtx.Unlock()
 
@@ -225,26 +226,38 @@ func (m *FloodSub) execPublish(prevHopPeerID peer.ID, pubMsg *publishChMsg) {
 		},
 	}
 	chid := pubMsg.channelID
-	tosend := make(map[pubsub.PeerLinkTuple]struct{})
+	fromPeerID := pubMsg.msg.GetFromPeerId()
+	var targets []*streamHandler
 	m.mtx.Lock()
-	if peerChannels, ok := m.peerChannels[chid]; ok {
-		for p := range peerChannels {
-			tosend[p] = struct{}{}
-		}
-	}
-	for pid := range tosend {
-		pidString := pid.PeerID.String()
-		if pidString == pubMsg.msg.GetFromPeerId() ||
-			pid.PeerID == prevHopPeerID {
+	for pid := range m.peerChannels[chid] {
+		if pid.PeerID.String() == fromPeerID || pid.PeerID == prevHopPeerID {
 			continue
 		}
-
-		peer, ok := m.peers[pid]
-		if ok {
-			peer.writePacket(pkt)
+		// skip peers whose session has not started executing yet
+		if peer, ok := m.peers[pid]; ok && peer.ctx != nil {
+			targets = append(targets, peer)
 		}
 	}
 	m.mtx.Unlock()
+
+	for _, peer := range targets {
+		if !peer.tryWritePacket(pkt) {
+			peer.le.
+				WithField("channel-id", chid).
+				Debug("dropped publish to slow peer")
+		}
+	}
+}
+
+// removePeerChannelsLocked removes a peer from all peer channel subscriptions.
+// Expects m.mtx to be held.
+func (m *FloodSub) removePeerChannelsLocked(tpl pubsub.PeerLinkTuple) {
+	for chid, cm := range m.peerChannels {
+		delete(cm, tpl)
+		if len(cm) == 0 {
+			delete(m.peerChannels, chid)
+		}
+	}
 }
 
 // AddSubscription adds a channel subscription, returning a subscription handle.
