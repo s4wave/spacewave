@@ -66,6 +66,16 @@ func (h *cloudSOHost) readConfigHistory(ctx context.Context, _ string, base, tar
 	})
 }
 
+// readConfigEntry resolves one entry from retained verified cloud history.
+func (h *cloudSOHost) readConfigEntry(ctx context.Context, _ string, hash []byte) (*sobject.SOConfigChange, error) {
+	release, err := h.acceptMu.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return h.historyIndex[string(hash)].CloneVT(), nil
+}
+
 // stateWithVerifiedConfig preserves the accepted root while fencing capabilities
 // and queued work that no longer have authority in the verified configuration.
 func (h *cloudSOHost) stateWithVerifiedConfig(state *sobject.SOState, config *sobject.SharedObjectConfig) *sobject.SOState {

@@ -92,7 +92,7 @@ func WriteSOConfigHistory(
 	return nil
 }
 
-// NewSOHostSyncFuncs reads retained lineage from one object-store transaction.
+// NewSOHostSyncFuncs reads retained lineage from the object store.
 // Local imports use the ordinary host lock, which commits state and lineage together.
 func NewSOHostSyncFuncs(store kvtx.Store) *sobject.SOHostSyncFuncs {
 	return &sobject.SOHostSyncFuncs{
@@ -105,6 +105,15 @@ func NewSOHostSyncFuncs(store kvtx.Store) *sobject.SOHostSyncFuncs {
 			defer tx.Discard()
 
 			return readSOConfigHistory(ctx, tx, id, base, target)
+		},
+		Entry: func(ctx context.Context, id string, hash []byte) (*sobject.SOConfigChange, error) {
+			tx, err := store.NewTransaction(ctx, false)
+			if err != nil {
+				return nil, err
+			}
+			defer tx.Discard()
+
+			return readSOConfigEntry(ctx, tx, id, hash)
 		},
 	}
 }
@@ -135,16 +144,21 @@ func WriteSOConfigCheckpoint(ctx context.Context, tx kvtx.Tx, id string, config 
 // readSOConfigHistory traverses immutable entries in the caller's read transaction.
 func readSOConfigHistory(ctx context.Context, tx kvtx.Tx, id string, base, target []byte) ([]*sobject.SOConfigChange, error) {
 	return sobject.ReadConfigSuffix(ctx, base, target, func(ctx context.Context, head []byte) (*sobject.SOConfigChange, error) {
-		data, found, err := tx.Get(ctx, SOConfigHistoryEntryKey(id, head))
-		if err != nil || !found {
-			return nil, err
-		}
-		entry := &sobject.SOConfigChange{}
-		if err := entry.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-		return entry, nil
+		return readSOConfigEntry(ctx, tx, id, head)
 	})
+}
+
+// readSOConfigEntry reads one retained entry, returning nil when it is absent.
+func readSOConfigEntry(ctx context.Context, tx kvtx.Tx, id string, hash []byte) (*sobject.SOConfigChange, error) {
+	data, found, err := tx.Get(ctx, SOConfigHistoryEntryKey(id, hash))
+	if err != nil || !found {
+		return nil, err
+	}
+	entry := &sobject.SOConfigChange{}
+	if err := entry.UnmarshalVT(data); err != nil {
+		return nil, err
+	}
+	return entry, nil
 }
 
 // ReadSharedObjectConfigHistory returns accepted lineage from the local trust checkpoint.
@@ -186,12 +200,8 @@ func (s *SharedObject) ReadSharedObjectGenesis(ctx context.Context, base *sobjec
 		return nil, err
 	}
 	defer read.Discard()
-	data, found, err := read.Get(ctx, SOConfigHistoryEntryKey(s.GetSharedObjectID(), base.GetConfigChainHash()))
-	if err != nil || !found {
-		return nil, err
-	}
-	entry := &sobject.SOConfigChange{}
-	if err := entry.UnmarshalVT(data); err != nil {
+	entry, err := readSOConfigEntry(ctx, read, s.GetSharedObjectID(), base.GetConfigChainHash())
+	if err != nil || entry == nil {
 		return nil, err
 	}
 	hash, err := sobject.HashSOConfigChange(entry)

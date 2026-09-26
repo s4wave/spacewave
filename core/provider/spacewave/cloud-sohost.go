@@ -186,7 +186,7 @@ func newCloudSOHost(
 	}
 
 	// Pass nil context; SetContext called in Execute.
-	h.soHost = sobject.NewSOHost(nil, watchFn, lockFn, soID, &sobject.SOHostSyncFuncs{Lock: h.peerImportLock, History: h.readConfigHistory})
+	h.soHost = sobject.NewSOHost(nil, watchFn, lockFn, soID, &sobject.SOHostSyncFuncs{Lock: h.peerImportLock, History: h.readConfigHistory, Entry: h.readConfigEntry})
 	return h
 }
 

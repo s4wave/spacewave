@@ -113,7 +113,11 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 					return &SOLeaveResponse{Changes: changes[:i+1]}, nil
 				}
 			}
-			if !leaveProofsRemainCurrent(peers, changes) {
+			signed, err := host.ReadConfigEntry(ctx, request.GetConfigHash())
+			if err != nil {
+				return nil, err
+			}
+			if !leaveProofsRemainCurrent(peers, signed.GetConfig(), changes) {
 				return nil, errors.New("leave configuration changed before removal")
 			}
 		}
@@ -150,24 +154,20 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 	}
 }
 
-// leaveProofsRemainCurrent permits rebasing consent only across transitions that
-// prove every signer remained admitted. Admission changes require fresh consent
-// because the first resulting configuration cannot prove the preceding audience.
-func leaveProofsRemainCurrent(peers []string, changes []*SOConfigChange) bool {
+// leaveProofsRemainCurrent permits rebasing consent only when every signer was
+// admitted at the signed head and remained admitted through each later transition.
+// A signer absent from any of those configurations must consent again.
+func leaveProofsRemainCurrent(peers []string, signed *SharedObjectConfig, changes []*SOConfigChange) bool {
 	if len(changes) == 0 {
 		return false
 	}
-	switch changes[0].GetChangeType() {
-	case SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT,
-		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
-		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE,
-		SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES:
-	default:
-		return false
-	}
+	configs := []*SharedObjectConfig{signed}
 	for _, change := range changes {
+		configs = append(configs, change.GetConfig())
+	}
+	for _, config := range configs {
 		for _, peerID := range peers {
-			if !slices.ContainsFunc(change.GetConfig().GetParticipants(), func(p *SOParticipantConfig) bool {
+			if !slices.ContainsFunc(config.GetParticipants(), func(p *SOParticipantConfig) bool {
 				return p.GetPeerId() == peerID
 			}) {
 				return false
