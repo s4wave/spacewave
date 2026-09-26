@@ -407,8 +407,7 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 	defer releaseHandle()
 
 	// length<=0 requests the remaining file from offset, but only when that
-	// fits in one bounded resource response. Larger reads must use GetSize and
-	// issue chunked positive-length ReadAt calls.
+	// fits in one bounded resource response. Larger reads use ReadStream.
 	if length <= 0 {
 		size, err := handle.GetSize(ctx)
 		if err != nil {
@@ -425,7 +424,7 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 		}
 		if length > fsHandleMaxReadSize {
 			return nil, errors.Errorf(
-				"unixfs ReadAt length=0 would exceed max response size %d; use GetSize and chunked ReadAt",
+				"unixfs ReadAt length=0 would exceed max response size %d; use ReadStream",
 				fsHandleMaxReadSize,
 			)
 		}

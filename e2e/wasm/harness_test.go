@@ -1629,6 +1629,39 @@ func assertGoScriptFSHandleBrowserResourceOperations(t testing.TB, page playwrig
 				return { error: 'single-file upload mismatch' }
 			}
 
+			step = 'read-stream'
+			const largeBytes = new Uint8Array(200000)
+			for (let i = 0; i < largeBytes.length; i++) {
+				largeBytes[i] = (i * 31 + 7) & 0xff
+			}
+			await rootHandle.uploadFile(
+				'row2-large.bin',
+				BigInt(largeBytes.length),
+				new ReadableStream({
+					start(controller) {
+						controller.enqueue(largeBytes)
+						controller.close()
+					},
+				}),
+				0o644,
+				undefined,
+				abort,
+			)
+			const largeFile = await rootHandle.lookup('row2-large.bin', abort)
+			const largeRead = await largeFile.readAt(0n, 0n, abort)
+			const rangeRead = await largeFile.readAt(1000n, 140000n, abort)
+			largeFile.release()
+			await rootHandle.remove(['row2-large.bin'], abort)
+			function sameBytes(got, want) {
+				return got.length === want.length && got.every((b, i) => b === want[i])
+			}
+			if (!largeRead.eof || !sameBytes(largeRead.data, largeBytes)) {
+				return { error: 'multi-frame read mismatch' }
+			}
+			if (rangeRead.eof || !sameBytes(rangeRead.data, largeBytes.subarray(1000, 141000))) {
+				return { error: 'multi-frame range read mismatch' }
+			}
+
 			step = 'upload-tree'
 			const treeUpload = await rootHandle.uploadTree(
 				[
