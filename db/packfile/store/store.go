@@ -16,7 +16,11 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
+	"golang.org/x/sync/errgroup"
 )
+
+// indexLoadConcurrency bounds the concurrent index loads of one batch probe.
+const indexLoadConcurrency = 8
 
 // Opener returns a per-pack access engine for a remote packfile of the
 // given size.
@@ -313,6 +317,10 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 		return out, nil
 	}
 
+	if err := s.loadCandidateIndexes(ctx, keys); err != nil {
+		return nil, err
+	}
+
 	var lookup packLookup
 	defer func() {
 		s.recordLookupStats(lookup)
@@ -334,6 +342,51 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 		}
 	}
 	return out, nil
+}
+
+// loadCandidateIndexes loads the index of every pack whose bloom filter may
+// hold one of keys, indexLoadConcurrency at a time, so the probes that follow
+// search resident indexes instead of loading them one after another.
+func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, keys []string) error {
+	var entries []*packfile.PackfileEntry
+	var filters []*bloom.Filter
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		entries, filters = s.manifest, s.filters
+	})
+
+	bloomKeys := make([]bloom.Key, len(keys))
+	for i, key := range keys {
+		bloomKeys[i] = bloom.NewKey([]byte(key))
+	}
+	var candidates []*packfile.PackfileEntry
+	for i, entry := range entries {
+		if filters[i] == nil || slices.ContainsFunc(bloomKeys, filters[i].TestKey) {
+			candidates = append(candidates, entry)
+		}
+	}
+	if len(candidates) < 2 {
+		return nil
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(indexLoadConcurrency)
+	for _, entry := range candidates {
+		size, err := manifestPackSize(entry)
+		if err != nil {
+			return err
+		}
+		if size <= 0 {
+			continue
+		}
+		eg.Go(func() error {
+			eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+			if err != nil {
+				return errors.Wrap(err, "opening packfile")
+			}
+			return eng.ensureIndexLoaded(ctx)
+		})
+	}
+	return eg.Wait()
 }
 
 // StatBlock returns metadata about a block without reading its data.
