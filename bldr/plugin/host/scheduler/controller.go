@@ -357,6 +357,9 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
+	if slices.Contains(c.conf.GetExternalPluginIds(), dir.LoadPluginID()) {
+		return nil, nil
+	}
 	instanceKey := dir.LoadPluginInstanceKey()
 	configuredInstanceKey := c.conf.GetInstanceKey()
 	if instanceKey != "" && configuredInstanceKey != "" && instanceKey != configuredInstanceKey {

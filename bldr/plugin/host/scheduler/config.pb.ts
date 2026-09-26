@@ -207,6 +207,13 @@ export interface Config {
    * @generated from field: string host_storage_id = 18;
    */
   hostStorageId?: string
+  /**
+   * ExternalPluginIds lists plugins another controller on the bus supplies.
+   * The scheduler leaves their LoadPlugin directives to that controller.
+   *
+   * @generated from field: repeated string external_plugin_ids = 19;
+   */
+  externalPluginIds?: string[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -268,6 +275,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
     { no: 18, name: 'host_storage_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 19,
+      name: 'external_plugin_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

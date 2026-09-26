@@ -103,7 +103,8 @@ func (g *Generation) start(
 	g.bus = child
 
 	// plugin/space fetches manifests from the parent and, when the Space names a
-	// host plugin, loads its plugins through the parent.
+	// host plugin, loads its plugins through the parent. App plugins always load
+	// from the parent through the bridge.
 	resolver.AddFactory(plugin_host_scheduler.NewFactory(child))
 	resolver.AddFactory(volume_rpc_server.NewFactory(child))
 	factoryOpts := []plugin_space.FactoryOption{
@@ -147,6 +148,7 @@ func (g *Generation) start(
 		true,
 	)
 	schedulerConf.HostStorageId = conf.GetHostStorageId()
+	schedulerConf.ExternalPluginIds = appPluginIDs
 	scheduler, schedulerRelease, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, child, schedulerConf)
 	if err != nil {
 		return err
