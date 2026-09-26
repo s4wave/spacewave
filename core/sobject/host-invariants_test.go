@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -38,6 +39,55 @@ func TestImportHistoricalRoot(t *testing.T) {
 	}
 	if !(*current).Root.EqualVT(previous.Root) || !EqualSOConfigs((*current).Config, candidate.Config) {
 		t.Fatal("import did not preserve the accepted root and advance configuration")
+	}
+}
+
+// TestImportProofAfterPartialSync accepts a proof whose prefix this replica
+// already applied through ordinary sync.
+func TestImportProofAfterPartialSync(t *testing.T) {
+	peers := createMockPeers(t, 3)
+	previous := createMockSOState(peers, []SOParticipantRole{
+		SOParticipantRole_SOParticipantRole_OWNER,
+		SOParticipantRole_SOParticipantRole_OWNER,
+		SOParticipantRole_SOParticipantRole_READER,
+	})
+	previous.Config.ConfigChainHash = bytes.Repeat([]byte{1}, 32)
+	owner, err := peers[0].GetPrivKey(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The owner removes the reader and then peer 1; the replica has synced only the first.
+	var entries []*SOConfigChange
+	config := previous.Config
+	for range 2 {
+		next := config.CloneVT()
+		next.Participants = next.Participants[:len(next.Participants)-1]
+		entry, err := BuildSOConfigChange(config, next,
+			SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		config, err = VerifyConfigChange(config, entry)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, entry)
+	}
+	synced := previous.CloneVT()
+	synced.Config, err = VerifyConfigChange(previous.Config, entries[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate := synced.CloneVT()
+	candidate.Config = config
+	host, current := newTestSOHost(t.Context(), synced)
+	err = host.ImportPeerSnapshot(t.Context(), candidate, entries, peers[1].GetPeerID(), nil)
+	if !errors.Is(err, ErrParticipantRevoked) {
+		t.Fatalf("expected committed revocation, got %v", err)
+	}
+	if !EqualSOConfigs((*current).Config, candidate.Config) {
+		t.Fatal("import did not apply the unsynced remainder of the proof")
 	}
 }
 
