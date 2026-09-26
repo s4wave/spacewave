@@ -13,9 +13,14 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
+// packfileChunkCacheLimit bounds the chunk data one open pack retains. Every
+// object lookup rereads the pack header in the first chunk and delta bases sit
+// in other chunks, so random access revisits a small set of chunks.
+const packfileChunkCacheLimit = 8 << 20
+
 // PackfileFile exposes an immutable chunked blob as a seekable Git packfile.
-// Reads retain only the blob reader's bounded chunk window. Close joins pending
-// reads before the caller releases the enclosing block transaction.
+// Reads retain at most packfileChunkCacheLimit bytes of chunk data. Close joins
+// pending reads before the caller releases the enclosing block transaction.
 type PackfileFile struct {
 	mtx    sync.Mutex
 	name   string
@@ -30,6 +35,7 @@ func NewPackfileFile(ctx context.Context, name string, cursor *block.Cursor) (*P
 	if err != nil {
 		return nil, err
 	}
+	reader.SetChunkCacheLimit(packfileChunkCacheLimit)
 	size, err := reader.Seek(0, io.SeekEnd)
 	if err != nil {
 		_ = reader.Close()
