@@ -59,14 +59,32 @@ type PluginLoadResult = {
   code: string | Uint8Array
   moduleType?: string
 }
+// IdFilter selects the ids Rolldown passes to a hook. Rolldown tests it
+// natively, so ids it rejects never cross into JavaScript.
+type IdFilter = {
+  include: RegExp[]
+  exclude?: RegExp[]
+}
+
+type PluginContext = {
+  getModuleIds: () => IterableIterator<string>
+}
+
 type Plugin = {
   name: string
   buildStart?: () => void
-  resolveId?: (
-    source: string,
-    importer?: string,
-  ) => string | { id: string; external?: boolean } | null
-  load?: (id: string) => string | Uint8Array | PluginLoadResult | null
+  buildEnd?: (this: PluginContext) => void
+  resolveId?: {
+    filter: { id: IdFilter }
+    handler: (
+      source: string,
+      importer?: string,
+    ) => string | { id: string; external?: boolean } | null
+  }
+  load?: {
+    filter: { id: IdFilter }
+    handler: (id: string) => string | Uint8Array | PluginLoadResult | null
+  }
   transform?: {
     filter: { code: RegExp }
     handler: (code: string, id: string) => null
@@ -413,6 +431,7 @@ export async function runBuild(
   }
   const sharedGoScriptRel = (relativePath: string): boolean =>
     relativePath !== '' && !relativePath.startsWith('github.com/s4wave/')
+  const goScriptRoot = join(goScriptOutputRoot, '@goscript')
   const resolveSharedGoScriptImport = (
     source: string,
     importer: string | undefined,
@@ -431,9 +450,8 @@ export async function runBuild(
     ) {
       return null
     }
-    const outputRoot = join(goScriptOutputRoot, '@goscript')
     const targetPath = normalize(join(dirname(importer), source))
-    const rel = relative(outputRoot, targetPath).split(sep).join('/')
+    const rel = relative(goScriptRoot, targetPath).split(sep).join('/')
     if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) return null
     if (!sharedGoScriptRel(rel) || !existingTypeScriptSibling(targetPath))
       return null
@@ -441,24 +459,47 @@ export async function runBuild(
   }
   const resolveGoScriptOverrideSourceImport = (
     source: string,
-    importer: string | undefined,
+    importer: string,
   ): string | null => {
-    if (
-      !importer ||
-      importer.startsWith('\0') ||
-      !source.endsWith('.js') ||
-      (!source.startsWith('./') && !source.startsWith('../'))
-    ) {
-      return null
-    }
-    const outputRoot = join(goScriptOutputRoot, '@goscript')
     const targetPath = normalize(join(dirname(importer), source))
-    const rel = relative(outputRoot, targetPath)
+    const rel = relative(goScriptRoot, targetPath)
     if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) return null
     return existingSourcePath(
       join(sourceRoot, 'vendor', 'github.com', 's4wave', 'goscript', 'gs', rel),
     )
   }
+
+  // resolvedSources selects the specifiers internalResolver handles. The
+  // native resolver handles the rest through resolve.alias, which maps
+  // @goscript to the GoScript output, and extensionAlias, which prefers the
+  // TypeScript source of a .js import.
+  const resolvedSources = [
+    /^@aptre\/bldr(?:-sdk|-react)?(?:\/|$)/,
+    /^@go\/.*\.js$/,
+    new RegExp(
+      `^(?:${DIST_SOURCE_PREFIXES.map(escapeRegExp).join('|')}).*\\.js$`,
+    ),
+    ...[...virtualModules.keys()].map(exactPattern),
+    ...configuredAliases.map(([specifier]) => exactPattern(specifier)),
+    ...prefixAliases.map(([prefix]) => new RegExp(`^${escapeRegExp(prefix)}`)),
+    ...(request.external ?? []).map(
+      (specifier) => new RegExp(`^${escapeRegExp(specifier)}(?:/|$)`),
+    ),
+  ]
+  if (request.externalPackages) resolvedSources.push(/^[^./\0]/)
+  if (goscript) {
+    // An import leaving its GoScript package may reach a shared package or a
+    // runtime override missing from the output.
+    resolvedSources.push(exactPattern('node:events'), /^\.\.\/.*\.js$/)
+    if (goscript.sharedExternalImports) resolvedSources.push(/^@goscript\//)
+  }
+  const loadedIds = [
+    /^\0virtual:/,
+    ...[...sourceOverrides.keys(), ...entryInjects.keys()].map((filePath) =>
+      exactPattern(filePath.split(sep).join('/')),
+    ),
+  ]
+  if (goscript) loadedIds.push(exactPattern(NODE_EVENTS_ID))
 
   const internalResolver: Plugin = {
     name: 'bldr-internal-resolver',
@@ -468,92 +509,67 @@ export async function runBuild(
       for (const input of injectedPaths) trackInput(input)
       for (const input of sourceOverrides.keys()) trackInput(input)
     },
-    resolveId(source, importer) {
-      if (virtualModules.has(source)) return `\0virtual:${source}`
-      if (goscript && source === 'node:events') return NODE_EVENTS_ID
-      if (isConfiguredExternal(source)) {
-        return { id: source, external: true }
-      }
-      const configuredAlias = resolveConfiguredAlias(source)
-      if (configuredAlias) {
-        trackInput(configuredAlias)
-        return configuredAlias
-      }
-      const bldrAlias = resolveBldrAlias(source)
-      if (bldrAlias) {
-        trackInput(bldrAlias)
-        return bldrAlias
-      }
-      const goImport = resolveGoImport(source)
-      if (goImport) {
-        trackInput(goImport)
-        return goImport
-      }
-      const distSourceImport = resolveDistSourceImport(source)
-      if (distSourceImport) {
-        trackInput(distSourceImport)
-        return distSourceImport
-      }
-      if (request.externalPackages && isBarePackageImport(source)) {
-        return { id: source, external: true }
-      }
-      if (!goscript) return null
-      if (source.startsWith('@goscript/')) {
-        const sharedImport = resolveSharedGoScriptImport(source, importer)
-        if (sharedImport) return { id: sharedImport, external: true }
-        const resolved = existingTypeScriptSibling(
-          join(
-            goScriptOutputRoot,
-            '@goscript',
-            source.slice('@goscript/'.length),
-          ),
-        )
-        if (resolved) {
-          trackInput(resolved)
-          return resolved
+    buildEnd() {
+      for (const id of this.getModuleIds()) trackInput(id)
+    },
+    resolveId: {
+      filter: {
+        id: {
+          include: resolvedSources,
+          exclude: [/^@goscript\/github\.com\/s4wave\//],
+        },
+      },
+      handler(source, importer) {
+        if (virtualModules.has(source)) return `\0virtual:${source}`
+        if (goscript && source === 'node:events') return NODE_EVENTS_ID
+        if (isConfiguredExternal(source)) {
+          return { id: source, external: true }
         }
-        return null
-      }
-      if (
-        importer &&
-        !importer.startsWith('\0') &&
-        source.endsWith('.js') &&
-        (source.startsWith('./') || source.startsWith('../'))
-      ) {
+        const resolved =
+          resolveConfiguredAlias(source) ??
+          resolveBldrAlias(source) ??
+          resolveGoImport(source) ??
+          resolveDistSourceImport(source)
+        if (resolved) return resolved
+        if (request.externalPackages && isBarePackageImport(source)) {
+          return { id: source, external: true }
+        }
+        if (!goscript) return null
         const sharedImport = resolveSharedGoScriptImport(source, importer)
         if (sharedImport) return { id: sharedImport, external: true }
-        const resolved = existingTypeScriptSibling(
+        if (
+          !importer ||
+          importer.startsWith('\0') ||
+          !source.startsWith('../')
+        ) {
+          return null
+        }
+        const sibling = existingTypeScriptSibling(
           join(dirname(importer), source),
         )
-        if (resolved) {
-          trackInput(resolved)
-          return resolved
-        }
-        const overrideSource = resolveGoScriptOverrideSourceImport(
-          source,
-          importer,
-        )
-        if (overrideSource) {
-          trackInput(overrideSource)
-          return overrideSource
-        }
-      }
-      return null
+        if (sibling) return canonicalPath(sibling)
+        return resolveGoScriptOverrideSourceImport(source, importer)
+      },
     },
-    load(id) {
-      if (id === NODE_EVENTS_ID) return 'export function setMaxListeners() {}\n'
-      if (id.startsWith('\0virtual:'))
-        return virtualModules.get(id.slice(9)) ?? null
-      const normalizedID = normalize(id)
-      trackInput(normalizedID)
-      const overrideSource = sourceOverrides.get(normalizedID)
-      const injects = entryInjects.get(normalizedID)
-      if (!injects) return overrideSource ?? null
-      const original = overrideSource ?? readFileSync(normalizedID, 'utf8')
-      const imports = injects
-        .map((filePath) => `import ${JSON.stringify(filePath)};`)
-        .join('\n')
-      return `${imports}\n${original}`
+    load: {
+      filter: { id: { include: loadedIds } },
+      handler(id) {
+        if (id === NODE_EVENTS_ID) {
+          return 'export function setMaxListeners() {}\n'
+        }
+        if (id.startsWith('\0virtual:')) {
+          return virtualModules.get(id.slice('\0virtual:'.length)) ?? null
+        }
+        const normalizedID = normalize(id)
+        const overrideSource = sourceOverrides.get(normalizedID)
+        const injects = entryInjects.get(normalizedID)
+        if (!injects) return overrideSource ?? null
+        const original = overrideSource ?? readFileSync(normalizedID, 'utf8')
+        const imports = injects
+          .map((filePath) => `import ${JSON.stringify(filePath)};`)
+          .join('\n')
+        return `${imports}\n${original}`
+      },
     },
   }
   // Every hook call crosses from Rolldown into JavaScript, so hooks are
@@ -637,7 +653,10 @@ export async function runBuild(
     checks: { importIsUndefined: true },
     moduleTypes: { ...request.loaders },
     resolve: {
-      alias: { ...request.aliases },
+      alias: {
+        ...(goscript ? { '@goscript': goScriptRoot } : {}),
+        ...request.aliases,
+      },
       extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
       // Project dependencies belong to the supplied source tree. The compiler's
       // locked packages supply SDK dependencies when the project has none.
@@ -743,6 +762,14 @@ export async function runBuild(
       hasCssImports,
     }
   }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function exactPattern(value: string): RegExp {
+  return new RegExp(`^${escapeRegExp(value)}$`)
 }
 
 function isBarePackageImport(source: string): boolean {
