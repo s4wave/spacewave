@@ -45,12 +45,14 @@ module = [
     "core.session.session_pb2",
     "core.sobject.sobject_pb2",
     "core.space.space_pb2",
+    "db.block.store.s3.s3_pb2",
     "db.block.transform.transform_pb2",
     "net.hash.hash_pb2",
     "net.peer.peer_pb2",
     "rpcstream.rpcstream_pb2",
     "sdk.command.command_pb2",
     "sdk.root.root_pb2",
+    "sdk.secret.secret_pb2",
     "sdk.session.session_pb2",
 ]
 disable_error_code = ["type-arg"]
