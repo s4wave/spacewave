@@ -1,4 +1,25 @@
 
+í"
+0.57.11
+2026-09-25¨Spacewave 0.57.11 adds Git remotes for Git Spaces and improves storage, synchronization, connections, updates, and command-line reliability. This release includes a cloud storage upgrade that resets hosted beta content: accounts and billing are retained, but cloud Spaces and files must be recreated."¨Spacewave 0.57.11 adds Git remotes for Git Spaces and improves storage, synchronization, connections, updates, and command-line reliability. This release includes a cloud storage upgrade that resets hosted beta content: accounts and billing are retained, but cloud Spaces and files must be recreated.*⁄
+kGit Spaces can now be used as ordinary Git remotes for push, fetch, pull, and clone with spacewave:// URLs.kGit Spaces can now be used as ordinary Git remotes for push, fetch, pull, and clone with spacewave:// URLs.2à
+ÅCopying a Space between devices and the cloud now completes even when a device does not recognize every object type in the Space.ÅCopying a Space between devices and the cloud now completes even when a device does not recognize every object type in the Space.2Ú
+wDrive quickstarts can finish while cloud connections are unavailable instead of remaining on ‚ÄúCreating your space.‚ÄùwDrive quickstarts can finish while cloud connections are unavailable instead of remaining on ‚ÄúCreating your space.‚Äù2å
+ÉLeaving a shared Space now succeeds when synchronization overlaps the request or the device is behind on recent membership changes.ÉLeaving a shared Space now succeeds when synchronization overlaps the request or the device is behind on recent membership changes.2–
+fInterrupted cloud file-storage uploads retain completed progress, avoiding unnecessary repeat uploads.fInterrupted cloud file-storage uploads retain completed progress, avoiding unnecessary repeat uploads.2Ú
+wCloud file storage can read older packs that do not include a lookup filter and verifies downloaded content before use.wCloud file storage can read older packs that do not include a lookup filter and verifies downloaded content before use.2®
+RConnections close cleanly during session shutdown instead of occasionally hanging.RConnections close cleanly during session shutdown instead of occasionally hanging.2û
+MSpace updates no longer lose staged changes when nested content is refreshed.MSpace updates no longer lose staged changes when nested content is refreshed.2`
+.Go plugins respond reliably during activation..Go plugins respond reliably during activation.2ú
+LDesktop update status is available consistently to the app and desktop tray.LDesktop update status is available consistently to the app and desktop tray.2
+vCommand-line options now work after positional arguments, and options for parent commands work from their subcommands.vCommand-line options now work after positional arguments, and options for parent commands work from their subcommands.:‰
+pCloud synchronization uploads more efficiently and can download updates without waiting for an upload to finish.pCloud synchronization uploads more efficiently and can download updates without waiting for an upload to finish.:
+vGit and command-line file reads now stream data in order, improving performance for large files and Git LFS downloads.vGit and command-line file reads now stream data in order, improving performance for large files and Git LFS downloads.:Œ
+eFile storage consolidates small uploads over time, keeping long-lived Spaces faster to open and read.eFile storage consolidates small uploads over time, keeping long-lived Spaces faster to open and read.:º
+\Removing or moving a Space now releases its file storage from the previous storage location.\Removing or moving a Space now releases its file storage from the previous storage location.:∞
+VLocal storage performs fewer filesystem checks during routine reads, reducing CPU use.VLocal storage performs fewer filesystem checks during routine reads, reducing CPU use.:û
+MViews can open related items directly while staying within the current Space.MViews can open related items directly while staying within the current Space.:Í
+sThe landing, Community, Pricing, and Blog pages have a cleaner, more consistent design with stable launcher labels.sThe landing, Community, Pricing, and Blog pages have a cleaner, more consistent design with stable launcher labels.
 Ø
 0.57.10
 2026-09-25«Spacewave 0.57.10 refreshes its public pages and improves storage, connections, updates, and command-line reliability. Cloud storage now keeps the links between blocks, so this release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated."«Spacewave 0.57.10 refreshes its public pages and improves storage, connections, updates, and command-line reliability. Cloud storage now keeps the links between blocks, so this release accompanies a reset of hosted beta content. Existing accounts and billing records are retained, but hosted Spaces and files must be recreated.2ú
