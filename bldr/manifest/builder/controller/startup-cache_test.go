@@ -188,6 +188,19 @@ func (startupCacheBlockingLookupResolver) Resolve(
 	return context.Canceled
 }
 
+// writeSettledFile writes a fixture input dated a second back, so builds the
+// test starts do not see it as modified during the build.
+func writeSettledFile(t *testing.T, filePath, content string) {
+	t.Helper()
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	settled := time.Now().Add(-time.Second)
+	if err := os.Chtimes(filePath, settled, settled); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestValidateStartupFilesHashFallback(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.ts")
@@ -435,9 +448,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(hookInputPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(hookInputPath, []byte("{\"v\":1}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSettledFile(t, hookInputPath, "{\"v\":1}\n")
 
 	controllerConfig := &configset_proto.ControllerConfig{}
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
@@ -498,9 +509,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 
 func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	builderResult := bldr_manifest_builder.NewBuilderResult(
@@ -582,9 +591,7 @@ func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
 
 func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
 	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
@@ -600,12 +607,8 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 	tmpDir := t.TempDir()
 	mainPath := filepath.Join(tmpDir, "main.go")
 	childPath := filepath.Join(tmpDir, "child.ts")
-	if err := os.WriteFile(mainPath, []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(childPath, []byte("export const child = true;\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSettledFile(t, mainPath, "package main\n")
+	writeSettledFile(t, childPath, "export const child = true;\n")
 
 	testStartupCacheBuilderState.buildSubManifest.Store(true)
 	t.Cleanup(func() {
@@ -656,9 +659,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 
 func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T) {
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
 	sink := newRecordingLifecycleSink()

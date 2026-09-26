@@ -253,12 +253,18 @@ func (c *Controller) validateStartupSubManifestResults(
 	return manifestIDs, "", nil
 }
 
+// fileTimestampSlack is how far a file modification time may lag the wall
+// clock. Linux stamps files from the coarse clock, which trails time.Now by up
+// to one scheduler tick.
+const fileTimestampSlack = 10 * time.Millisecond
+
 // enrichBuilderResultForStartupReuse adds generic startup validation inputs.
 //
 // Identities are captured after the build, so an input modified at or after
 // buildStart may hold content the build never read. In that case the result
 // gets no startup inputs, validation misses on the next startup, and the path
-// of the changed input is returned.
+// of the changed input is returned. Modification times within
+// fileTimestampSlack before buildStart count as changed.
 func enrichBuilderResultForStartupReuse(
 	builderConfig *bldr_manifest_builder.BuilderConfig,
 	controllerConfig *configset_proto.ControllerConfig,
@@ -278,8 +284,9 @@ func enrichBuilderResultForStartupReuse(
 	if err := captureFileIdentities(builderConfig.GetSourcePath(), inputManifest); err != nil {
 		return "", err
 	}
+	changedSince := buildStart.Add(-fileTimestampSlack).UnixNano()
 	for _, inputFile := range inputManifest.GetFiles() {
-		if inputFile.GetIdentity().GetModTimeUnixNano() >= buildStart.UnixNano() {
+		if inputFile.GetIdentity().GetModTimeUnixNano() >= changedSince {
 			return inputFile.GetPath(), nil
 		}
 	}
