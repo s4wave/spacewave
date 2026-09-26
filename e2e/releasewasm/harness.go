@@ -30,49 +30,79 @@ import (
 )
 
 const (
-	releaseDistRelPath          = ".bldr-dist/build/js/spacewave-browser/dist"
-	prerenderDistRelPath        = "app/prerender/dist"
-	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
+	// releaseDistRelPath locates the compiled browser release in the repository.
+	releaseDistRelPath = ".bldr-dist/build/js/spacewave-browser/dist"
+	// prerenderDistRelPath locates the generated static pages.
+	prerenderDistRelPath = "app/prerender/dist"
+	// releaseWasmDistDirEnv selects a prebuilt browser release directory.
+	releaseWasmDistDirEnv = "E2E_RELEASE_WASM_DIST_DIR"
+	// releaseWasmPrerenderDistEnv selects the matching prebuilt static pages.
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
-	releaseAuthConfigPath       = "/api/auth/config"
+	// releaseAuthConfigPath serves the harness's local authentication endpoints.
+	releaseAuthConfigPath = "/api/auth/config"
 )
 
 // browserReleaseDescriptor is parsed field-by-field from browser-release.json
 // via fastjson in browserRelease; it is never marshaled or unmarshaled by
 // encoding/json, so it carries no struct tags.
 type browserReleaseDescriptor struct {
-	SchemaVersion        int
-	GenerationID         string
-	ShellAssets          browserReleaseShellAssets
-	PrerenderedRoutes    []string
+	// SchemaVersion identifies the browser release descriptor format.
+	SchemaVersion int
+	// GenerationID identifies the built release.
+	GenerationID string
+	// ShellAssets lists the browser shell's entrypoints.
+	ShellAssets browserReleaseShellAssets
+	// PrerenderedRoutes lists routes with generated HTML.
+	PrerenderedRoutes []string
+	// RequiredStaticAssets lists assets the release must serve.
 	RequiredStaticAssets []string
 }
 
+// browserReleaseShellAssets names the shell's scripts, styles, and runtime.
 type browserReleaseShellAssets struct {
-	Entrypoint    string
+	// Entrypoint starts the browser shell.
+	Entrypoint string
+	// ServiceWorker names the offline worker script.
 	ServiceWorker string
-	SharedWorker  string
-	Wasm          string
-	CSS           []string
+	// SharedWorker names the shared runtime script.
+	SharedWorker string
+	// Wasm names the runtime binary when present in the release.
+	Wasm string
+	// CSS lists the shell's stylesheets.
+	CSS []string
 }
 
+// harness holds the release server and browser for one suite run.
 type harness struct {
-	artifactDir    string
-	distDirs       releaseWasmDistDirs
-	baseURL        string
-	browserName    string
-	repoRoot       string
-	server         *http.Server
-	pw             *playwright.Playwright
-	browser        playwright.Browser
+	// artifactDir receives diagnostics from the suite.
+	artifactDir string
+	// distDirs identifies the release assets served by this run.
+	distDirs releaseWasmDistDirs
+	// baseURL is the local HTTP origin.
+	baseURL string
+	// browserName selects the Playwright browser engine.
+	browserName string
+	// repoRoot is the source checkout used to build the release.
+	repoRoot string
+	// server serves assets until release shuts it down.
+	server *http.Server
+	// pw is the Playwright driver stopped by release.
+	pw *playwright.Playwright
+	// browser is the browser process closed by release.
+	browser playwright.Browser
+	// chromiumPolicy selects the shared Chromium launch configuration.
 	chromiumPolicy *e2eharness.ChromiumLaunchPolicy
 }
 
+// releaseWasmDistDirs pairs browser assets with their prerendered pages.
 type releaseWasmDistDirs struct {
+	// releaseDist contains the compiled browser assets.
 	releaseDist string
-	prerender   string
+	// prerender contains the generated static pages.
+	prerender string
 }
 
+// boot builds the release and starts its local server and browser.
 func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
@@ -184,6 +214,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	return h, nil
 }
 
+// getBaseURL returns the local release origin.
 func (h *harness) getBaseURL() string { return h.baseURL }
 
 // persistentBrowserContextLaunchOptions maps the shared Chromium launch
@@ -204,6 +235,7 @@ func persistentBrowserContextLaunchOptions(
 	return options
 }
 
+// prepareReleaseWasmDist resolves or builds assets matching the current inputs.
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
 	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
 	if err != nil {
@@ -244,6 +276,7 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 	}, nil
 }
 
+// prebuiltReleaseWasmDistDirs resolves the optional pair of prebuilt directories.
 func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {
 	distDir := strings.TrimSpace(os.Getenv(releaseWasmDistDirEnv))
 	prerenderDir := strings.TrimSpace(os.Getenv(releaseWasmPrerenderDistEnv))
@@ -259,6 +292,7 @@ func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, er
 	}, true, nil
 }
 
+// repoPath resolves a configured path relative to the repository when needed.
 func repoPath(repoRoot, path string) string {
 	if filepath.IsAbs(path) {
 		return path
@@ -266,6 +300,7 @@ func repoPath(repoRoot, path string) string {
 	return filepath.Join(repoRoot, path)
 }
 
+// releaseWasmBrowserName selects a supported browser from the environment.
 func releaseWasmBrowserName() (string, error) {
 	name := strings.ToLower(strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_BROWSER")))
 	switch name {
@@ -280,6 +315,7 @@ func releaseWasmBrowserName() (string, error) {
 	}
 }
 
+// releaseWasmBuildScript returns the configured release build command.
 func releaseWasmBuildScript() string {
 	script := strings.TrimSpace(os.Getenv("E2E_RELEASE_WASM_BUILD_SCRIPT"))
 	if script == "" {
@@ -288,6 +324,7 @@ func releaseWasmBuildScript() string {
 	return script
 }
 
+// buildReleaseWeb builds the release with the selected compiler or lazy fixture.
 func buildReleaseWeb(ctx context.Context, repoRoot string) error {
 	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") == "1" {
 		return runBun(
@@ -320,6 +357,7 @@ func buildReleaseWeb(ctx context.Context, repoRoot string) error {
 	return runBun(ctx, repoRoot, "run", releaseWasmBuildScript())
 }
 
+// playwrightBrowserType resolves the selected browser engine from the driver.
 func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playwright.BrowserType, error) {
 	switch browserName {
 	case "chromium":
@@ -333,6 +371,7 @@ func playwrightBrowserType(pw *playwright.Playwright, browserName string) (playw
 	}
 }
 
+// quickstartSmokeArtifactPath names the current test's smoke diagnostics.
 func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	t.Helper()
 
@@ -341,6 +380,7 @@ func (h *harness) quickstartSmokeArtifactPath(t testing.TB) string {
 	return filepath.Join(h.artifactDir, name+".json")
 }
 
+// quickstartRuntimeTraceArtifactPath names the current test's browser trace.
 func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
 	t.Helper()
 
@@ -349,6 +389,7 @@ func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
 	return filepath.Join(h.artifactDir, name+".chromium-trace.json")
 }
 
+// newPage creates an isolated page with diagnostics attached.
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()
 	page, _ := h.newPageWithDiagnosticsControl(t)
@@ -377,6 +418,7 @@ func (h *harness) newBrowserContext(t testing.TB) playwright.BrowserContext {
 	return ctx
 }
 
+// newPageWithDiagnosticsControl also returns a callback that mutes error capture.
 func (h *harness) newPageWithDiagnosticsControl(t testing.TB) (playwright.Page, func()) {
 	t.Helper()
 
@@ -391,6 +433,7 @@ func (h *harness) newPageWithDiagnosticsControl(t testing.TB) (playwright.Page, 
 	return page, muteDiagnostics
 }
 
+// newDedicatedWorkerPage disables SharedWorker before any application script runs.
 func (h *harness) newDedicatedWorkerPage(t testing.TB) playwright.Page {
 	t.Helper()
 
@@ -415,6 +458,7 @@ Object.defineProperty(globalThis, 'SharedWorker', {
 	return page
 }
 
+// newPageInContext adds a page with diagnostics to an existing browser context.
 func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) playwright.Page {
 	t.Helper()
 
@@ -426,6 +470,7 @@ func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) 
 	return page
 }
 
+// newPersistentBrowserContext opens the selected browser with a persistent profile.
 func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) playwright.BrowserContext {
 	t.Helper()
 
@@ -463,6 +508,7 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 	return ctx
 }
 
+// attachPageDiagnostics fails the test on captured browser errors unless muted.
 func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func() {
 	t.Helper()
 
@@ -591,6 +637,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 	return muteDiagnostics
 }
 
+// browserPageErrorMessage preserves the browser stack when Playwright supplies it.
 func browserPageErrorMessage(err error) string {
 	var pwErr *playwright.Error
 	if stderrors.As(err, &pwErr) && pwErr.Stack != "" {
@@ -599,6 +646,7 @@ func browserPageErrorMessage(err error) string {
 	return err.Error()
 }
 
+// isRelevantReleaseWasmRequest identifies runtime and plugin asset requests.
 func isRelevantReleaseWasmRequest(url string) bool {
 	if strings.Contains(url, "runtime.wasm") ||
 		strings.Contains(url, "runtime-wasm") ||
@@ -630,10 +678,12 @@ func isExpectedReleaseWasmConsoleError(msg playwright.ConsoleMessage) bool {
 		strings.HasPrefix(msg.Text(), "Failed to load resource:")
 }
 
+// isBrowserAbortedRequest recognizes cancellation during browser navigation.
 func isBrowserAbortedRequest(failure string) bool {
 	return failure == "cancelled" || strings.Contains(failure, "net::ERR_ABORTED")
 }
 
+// newContextOptions applies the optional Playwright device profile.
 func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOptions {
 	t.Helper()
 
@@ -663,6 +713,7 @@ func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOp
 	}
 }
 
+// ignoreBrowserError filters expected runtime diagnostics from browser errors.
 func ignoreBrowserError(msg string) bool {
 	return strings.Contains(msg, "cache disabled") ||
 		strings.Contains(msg, "detected ctrl+shift+r") ||
@@ -671,6 +722,7 @@ func ignoreBrowserError(msg string) bool {
 		strings.HasPrefix(msg, "level=info ")
 }
 
+// browserRelease fetches and decodes the release descriptor from the local server.
 func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+"/browser-release.json", nil)
 	if err != nil {
@@ -715,6 +767,7 @@ func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor
 	return desc, nil
 }
 
+// release closes the browser, driver, and HTTP server.
 func (h *harness) release(le *logrus.Entry) {
 	if h.browser != nil {
 		if err := h.browser.Close(); err != nil {
@@ -735,9 +788,14 @@ func (h *harness) release(le *logrus.Entry) {
 	}
 }
 
+// releaseHandler serves release assets and prerendered pages from their roots.
 func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
+	// Delegate filesystem path resolution to rooted file servers.
 	fileServer := http.FileServer(http.Dir(distDir))
+	staticServer := http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir)))
 	authConfigHandler := releaseAuthConfigHandler(endpoint)
+
+	// Apply release headers before dispatching auth, static, and bundle requests.
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
@@ -754,9 +812,8 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 		if strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Type", "application/javascript")
 		}
-		if after, ok := strings.CutPrefix(req.URL.Path, "/static/"); ok {
-			// #nosec G703 -- http.ServeFile rejects paths escaping the served root.
-			http.ServeFile(rw, req, filepath.Join(staticDir, after))
+		if strings.HasPrefix(req.URL.Path, "/static/") {
+			staticServer.ServeHTTP(rw, req)
 			return
 		}
 		if staticPath, ok := resolveStaticHTML(staticDir, req.URL.Path); ok {
@@ -767,6 +824,7 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 	})
 }
 
+// releaseAuthConfigHandler describes the local authentication endpoints.
 func releaseAuthConfigHandler(endpoint string) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet {
@@ -797,6 +855,7 @@ func releaseAuthConfigHandler(endpoint string) http.Handler {
 	})
 }
 
+// resolveStaticHTML maps a route to an existing prerendered HTML page.
 func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 	clean := strings.Trim(strings.Split(reqPath, "?")[0], "/")
 	if clean == "" {
@@ -814,6 +873,7 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 	return "", false
 }
 
+// runBun runs a build command in dir with output attached to the test process.
 func runBun(ctx context.Context, dir string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "bun", args...)
 	cmd.Dir = dir

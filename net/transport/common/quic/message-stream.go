@@ -2,6 +2,7 @@ package transport_quic
 
 import (
 	"io"
+	"math"
 	"sync"
 	"time"
 
@@ -24,14 +25,22 @@ var ErrDatagramsUnsupported = errors.New("link does not support unreliable strea
 // bidirectional QUIC stream; each message is one QUIC datagram carrying the
 // control stream's ID as a varint prefix, as in RFC 9297.
 type messageStream struct {
-	link    *Link
+	// link carries the datagrams and registers this stream.
+	link *Link
+	// control is the reliable stream paired with the message plane.
 	control *quic.Stream
-	prefix  []byte
+	// prefix encodes the control stream ID at the start of each datagram.
+	prefix []byte
 
-	inbox         chan []byte
-	closed        chan struct{}
-	closeOnce     sync.Once
-	readDeadline  *deadline.Deadline
+	// inbox holds received messages until Read consumes them.
+	inbox chan []byte
+	// closed wakes readers and rejects writes after Close.
+	closed chan struct{}
+	// closeOnce serializes closing the message plane and control stream.
+	closeOnce sync.Once
+	// readDeadline bounds waiting for the next message.
+	readDeadline *deadline.Deadline
+	// writeDeadline rejects writes after the configured time.
 	writeDeadline *deadline.Deadline
 }
 
@@ -118,12 +127,18 @@ func (s *messageStream) Read(b []byte) (int, error) {
 
 // Write sends b as one message.
 func (s *messageStream) Write(b []byte) (int, error) {
+	// Reject writes after closure or expiry before assembling a datagram.
 	select {
 	case <-s.closed:
 		return 0, io.ErrClosedPipe
 	case <-s.writeDeadline.Done():
 		return 0, s.writeDeadline.Err()
 	default:
+	}
+
+	// Check the combined length before allocating the prefixed datagram.
+	if len(b) > math.MaxInt-len(s.prefix) {
+		return 0, &quic.DatagramTooLargeError{MaxDatagramPayloadSize: int64(math.MaxInt)}
 	}
 	datagram := make([]byte, 0, len(s.prefix)+len(b))
 	datagram = append(append(datagram, s.prefix...), b...)

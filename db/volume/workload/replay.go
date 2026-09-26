@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"math"
 	"math/rand/v2"
 	"slices"
 	"strconv"
@@ -127,7 +128,7 @@ func NewReplay(records []Record) (*Replay, error) {
 
 	// Size every block from its first known length.
 	sizes := make(map[string]int64)
-	var maxValue int64 = defaultValueSize
+	maxValue := defaultValueSize
 	for _, rec := range records {
 		switch rec.Op {
 		case OpPut, OpGetBlock, OpStatBlock:
@@ -135,10 +136,17 @@ func NewReplay(records []Record) (*Replay, error) {
 				sizes[string(rec.Key)] = rec.Size
 			}
 		case OpSet, OpGet:
-			maxValue = max(maxValue, rec.Size)
+			if rec.Op == OpGet && rec.Size == -1 {
+				continue
+			}
+			size, err := replaySize(rec.Size)
+			if err != nil {
+				return nil, err
+			}
+			maxValue = max(maxValue, size)
 		}
 	}
-	r.values = randomBytes([]byte("values"), int(maxValue))
+	r.values = randomBytes([]byte("values"), maxValue)
 
 	// Seed what the workload finds before it writes it.
 	written := make(map[string]bool)
@@ -153,15 +161,23 @@ func NewReplay(records []Record) (*Replay, error) {
 			if written[key] || rec.Size <= 0 {
 				continue
 			}
-			size := int(rec.Size)
-			if rec.Op == OpExists {
-				size = defaultValueSize
+			size := defaultValueSize
+			if rec.Op == OpGet {
+				var err error
+				size, err = replaySize(rec.Size)
+				if err != nil {
+					return nil, err
+				}
 			}
 			r.seedValues[key] = max(r.seedValues[key], size)
 		case OpIterate:
 			prefixes[rec.ID] = rec.Key
 		case OpIterEnd:
-			r.seedPrefix(prefixes[rec.ID], int(rec.Size), written)
+			size, err := replaySize(rec.Size)
+			if err != nil {
+				return nil, err
+			}
+			r.seedPrefix(prefixes[rec.ID], size, written)
 		case OpPut:
 			writtenBlocks[key] = true
 		case OpGetBlock, OpStatBlock, OpBlockExists:
@@ -215,14 +231,21 @@ func (r *Replay) seedPrefix(prefix []byte, n int, written map[string]bool) {
 
 // block returns the regenerated block for a recorded key.
 func (r *Replay) block(key []byte, sizes map[string]int64) (*replayBlock, error) {
+	// Reuse the first regenerated payload for each recorded block key.
 	if b := r.blocks[string(key)]; b != nil {
 		return b, nil
 	}
+
+	// Validate the recorded length before generating and hashing the payload.
 	size := sizes[string(key)]
 	if size <= 0 {
 		size = defaultBlockSize
 	}
-	data := randomBytes(key, int(size))
+	n, err := replaySize(size)
+	if err != nil {
+		return nil, err
+	}
+	data := randomBytes(key, n)
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		return nil, err
@@ -361,7 +384,7 @@ type replayBatch struct {
 	// id is the recorded batch or scope ID the entries carry.
 	id uint64
 	// want is the recorded entry count.
-	want int
+	want int64
 	// entries holds gathered put entries.
 	entries []*block.PutBatchEntry
 	// refs holds gathered existence references.
@@ -474,7 +497,7 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 	b := run.replay.blocks[string(rec.Key)]
 	switch rec.Op {
 	case OpPutBatch:
-		run.batch = &replayBatch{id: rec.ID, want: int(rec.Size)}
+		run.batch = &replayBatch{id: rec.ID, want: rec.Size}
 		return run.flushBatch(ctx)
 	case OpPut, OpTombstone:
 		if rec.ID != 0 && run.batch != nil && run.batch.id == rec.ID {
@@ -512,7 +535,7 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 		}
 		return nil
 	case OpExistsBatch:
-		run.exists = &replayBatch{id: rec.ID, want: int(rec.Size)}
+		run.exists = &replayBatch{id: rec.ID, want: rec.Size}
 		return run.flushExists(ctx)
 	}
 
@@ -544,7 +567,7 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 // flushBatch writes the open put batch once it holds every recorded entry.
 func (run *replayRun) flushBatch(ctx context.Context) error {
 	batch := run.batch
-	if len(batch.entries) < batch.want {
+	if int64(len(batch.entries)) < batch.want {
 		return nil
 	}
 	run.batch = nil
@@ -554,7 +577,7 @@ func (run *replayRun) flushBatch(ctx context.Context) error {
 // flushExists checks the open existence batch once it holds every reference.
 func (run *replayRun) flushExists(ctx context.Context) error {
 	batch := run.exists
-	if len(batch.refs) < batch.want {
+	if int64(len(batch.refs)) < batch.want {
 		return nil
 	}
 	run.exists = nil
@@ -610,10 +633,21 @@ func (run *replayRun) release() {
 	}
 }
 
+// replaySize converts a recorded allocation size or entry count to a native int.
+func replaySize(size int64) (int, error) {
+	// Recorded sizes must fit the host allocation and indexing range.
+	if size < 0 || size > math.MaxInt {
+		return 0, errors.Errorf("workload replay size out of range: %d", size)
+	}
+
+	// Narrow only after both bounds have been checked.
+	return int(size), nil
+}
+
 // randomBytes returns size deterministic pseudorandom bytes seeded by seed.
 func randomBytes(seed []byte, size int) []byte {
 	rng := rand.NewChaCha8(sha256.Sum256(seed))
 	out := make([]byte, size)
-	_, _ = rng.Read(out)
+	_, _ = rng.Read(out) // ChaCha8.Read always fills out and returns a nil error.
 	return out
 }
