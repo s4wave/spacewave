@@ -139,18 +139,14 @@ func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
 }
 
 // GetRequestedPluginIDsAndWaitCh returns the sorted manifest IDs with a live
-// FetchManifest in the Space that no resolver has answered, and a channel
-// closed when that set changes. A requested plugin that SpaceSettings does not
-// list waits until it is listed. Manifests the parent supplies resolve and are
-// not reported.
+// FetchManifest in the Space, and a channel closed when the resolver set
+// changes. A requested plugin that SpaceSettings does not list waits until it
+// is listed.
 func (c *Controller) GetRequestedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
 	var ids []string
 	var waitCh <-chan struct{}
 	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		for entry := range c.resolvers {
-			if entry.resolved {
-				continue
-			}
 			if mid := entry.dir.GetManifestId(); !slices.Contains(ids, mid) {
 				ids = append(ids, mid)
 			}
@@ -328,7 +324,7 @@ func (c *Controller) resolveLookupObjectType(
 // supplied by the parent.
 func (c *Controller) resolveFetchManifest(
 	_ context.Context,
-	di directive.Instance,
+	_ directive.Instance,
 	dir manifest.FetchManifest,
 ) ([]directive.Resolver, error) {
 	if dir.GetManifestId() == "" {
@@ -336,7 +332,7 @@ func (c *Controller) resolveFetchManifest(
 	}
 
 	resolvers := []directive.Resolver{directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
-		return c.resolveWorldFetchManifest(ctx, di, handler, dir)
+		return c.resolveWorldFetchManifest(ctx, handler, dir)
 	})}
 	if c.manifestSource != nil {
 		resolvers = append(resolvers, directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
@@ -347,10 +343,9 @@ func (c *Controller) resolveFetchManifest(
 }
 
 // resolveWorldFetchManifest registers a resolver entry for processResolvers
-// until ctx ends. The entry follows whether di has a value from any resolver.
+// until ctx ends.
 func (c *Controller) resolveWorldFetchManifest(
 	ctx context.Context,
-	di directive.Instance,
 	handler directive.ResolverHandler,
 	dir manifest.FetchManifest,
 ) error {
@@ -362,17 +357,7 @@ func (c *Controller) resolveWorldFetchManifest(
 	c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
-	releaseState := di.AddStateCallback(func(_ bool, _ []error, vals []directive.AttachedValue) {
-		resolved := len(vals) != 0
-		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			if entry.resolved != resolved {
-				entry.resolved = resolved
-				broadcast()
-			}
-		})
-	})
 	defer func() {
-		releaseState()
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			delete(c.resolvers, entry)
 			broadcast()

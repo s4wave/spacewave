@@ -23,9 +23,6 @@ type resolverEntry struct {
 	handler directive.ResolverHandler
 	// emitted is the previously emitted value for diffing.
 	emitted *manifest.FetchManifestValue
-	// resolved is set while the directive has a value from any resolver.
-	// Guarded by the controller bcast.
-	resolved bool
 }
 
 // processResolvers processes all active FetchManifest resolvers against the current world state.
