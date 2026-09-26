@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.6-0.20260924000448-6d90c9b4e2fe",
+      "version": "v0.53.6-0.20260926160117-2b0285c5096d",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -933,7 +933,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.19.0",
+      "version": "v0.19.1-0.20260926160815-9337dc7c6cda",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
