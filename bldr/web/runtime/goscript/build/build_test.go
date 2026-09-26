@@ -147,7 +147,7 @@ export const AppValue = "local-app-payload"
 		goScriptOutputRoot,
 		outPath,
 		"github.com/s4wave/spacewave/main",
-		false,
+		GoScriptMinifyNone,
 		false,
 		false,
 		GoScriptSharedBundleOptions{
@@ -221,7 +221,7 @@ export const LocalOnlyValue = "must-not-be-published"
 		goScriptOutputRoot,
 		outWebPkgPath,
 		GoScriptSharedWebPkgID,
-		false,
+		GoScriptMinifyNone,
 		false,
 	)
 	if err != nil {
@@ -558,7 +558,7 @@ export const LazyValue = "loaded from dynamic goscript chunk"
 		goScriptOutputRoot,
 		entrypointPath,
 		outPath,
-		false,
+		GoScriptMinifyNone,
 		false,
 		true,
 		GoScriptSharedBundleOptions{},
@@ -637,7 +637,7 @@ export const LazyValue = "loaded from dynamic goscript sourcemap chunk"
 		goScriptOutputRoot,
 		entrypointPath,
 		outPath,
-		false,
+		GoScriptMinifyNone,
 		true,
 		true,
 		GoScriptSharedBundleOptions{},
@@ -969,6 +969,36 @@ export const Unused = 2
 		t.Fatal(err)
 	}
 	assertInlineAndExternalSourceMap(t, readableMapOutPath)
+
+	mangleWorkDir := filepath.Join(root, "work-mangle")
+	mangleOutPath := filepath.Join(root, "out", "plugin.mangle.mjs")
+	_, err = BuildWebGoScriptPluginScriptWithOptions(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		mangleWorkDir,
+		goScriptOutputRoot,
+		mangleOutPath,
+		"example/main",
+		GoScriptMinifyMangle,
+		false,
+		false,
+		GoScriptSharedBundleOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mangleOut, err := os.ReadFile(mangleOutPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(mangleOut), "verboseLocalName") {
+		t.Fatalf("mangle output should mangle local names:\n%s", mangleOut)
+	}
+	// Compress folds the constant sum; the mangle level leaves it in place.
+	if !strings.Contains(minCode, "return 7") || !strings.Contains(string(mangleOut), "1+1+2+3") {
+		t.Fatalf("mangle output should skip compress:\nmangle: %s\nfull: %s", mangleOut, minCode)
+	}
 }
 
 func assertBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string) {

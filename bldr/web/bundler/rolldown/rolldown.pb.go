@@ -100,13 +100,16 @@ type BuildRequest struct {
 	PublicPath     string `protobuf:"bytes,11,opt,name=public_path,json=publicPath,proto3" json:"publicPath,omitempty"`
 	CodeSplitting  bool   `protobuf:"varint,12,opt,name=code_splitting,json=codeSplitting,proto3" json:"codeSplitting,omitempty"`
 	// Sourcemap is one of none, inline, external, or both.
-	Sourcemap   string            `protobuf:"bytes,13,opt,name=sourcemap,proto3" json:"sourcemap,omitempty"`
-	Minify      bool              `protobuf:"varint,14,opt,name=minify,proto3" json:"minify,omitempty"`
-	TreeShaking bool              `protobuf:"varint,15,opt,name=tree_shaking,json=treeShaking,proto3" json:"treeShaking,omitempty"`
-	Banner      string            `protobuf:"bytes,16,opt,name=banner,proto3" json:"banner,omitempty"`
-	Defines     map[string]string `protobuf:"bytes,17,rep,name=defines,proto3" json:"defines,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	External    []string          `protobuf:"bytes,18,rep,name=external,proto3" json:"external,omitempty"`
-	Aliases     map[string]string `protobuf:"bytes,19,rep,name=aliases,proto3" json:"aliases,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Sourcemap string `protobuf:"bytes,13,opt,name=sourcemap,proto3" json:"sourcemap,omitempty"`
+	Minify    bool   `protobuf:"varint,14,opt,name=minify,proto3" json:"minify,omitempty"`
+	// MinifySkipCompress keeps minify's mangling and whitespace removal but skips
+	// the compress pass, which dominates minify time on large bundles.
+	MinifySkipCompress bool              `protobuf:"varint,31,opt,name=minify_skip_compress,json=minifySkipCompress,proto3" json:"minifySkipCompress,omitempty"`
+	TreeShaking        bool              `protobuf:"varint,15,opt,name=tree_shaking,json=treeShaking,proto3" json:"treeShaking,omitempty"`
+	Banner             string            `protobuf:"bytes,16,opt,name=banner,proto3" json:"banner,omitempty"`
+	Defines            map[string]string `protobuf:"bytes,17,rep,name=defines,proto3" json:"defines,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	External           []string          `protobuf:"bytes,18,rep,name=external,proto3" json:"external,omitempty"`
+	Aliases            map[string]string `protobuf:"bytes,19,rep,name=aliases,proto3" json:"aliases,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Loaders map extensions to js, jsx, ts, tsx, json, text, dataurl, base64, binary, or asset.
 	Loaders        map[string]string `protobuf:"bytes,20,rep,name=loaders,proto3" json:"loaders,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	VirtualModules map[string]string `protobuf:"bytes,21,rep,name=virtual_modules,json=virtualModules,proto3" json:"virtualModules,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
@@ -227,6 +230,13 @@ func (x *BuildRequest) GetSourcemap() string {
 func (x *BuildRequest) GetMinify() bool {
 	if x != nil {
 		return x.Minify
+	}
+	return false
+}
+
+func (x *BuildRequest) GetMinifySkipCompress() bool {
+	if x != nil {
+		return x.MinifySkipCompress
 	}
 	return false
 }
@@ -816,6 +826,7 @@ func (m *BuildRequest) CloneVT() *BuildRequest {
 	r.CodeSplitting = m.CodeSplitting
 	r.Sourcemap = m.Sourcemap
 	r.Minify = m.Minify
+	r.MinifySkipCompress = m.MinifySkipCompress
 	r.TreeShaking = m.TreeShaking
 	r.Banner = m.Banner
 	r.BldrDistRoot = m.BldrDistRoot
@@ -1069,6 +1080,9 @@ func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 		return false
 	}
 	if this.RouteCssImports != that.RouteCssImports {
+		return false
+	}
+	if this.MinifySkipCompress != that.MinifySkipCompress {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1839,6 +1853,11 @@ func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("routeCssImports")
 		s.WriteBool(x.RouteCssImports)
 	}
+	if x.MinifySkipCompress || s.HasField("minifySkipCompress") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("minifySkipCompress")
+		s.WriteBool(x.MinifySkipCompress)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2015,6 +2034,9 @@ func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "route_css_imports", "routeCssImports":
 			s.AddField("route_css_imports")
 			x.RouteCssImports = s.ReadBool()
+		case "minify_skip_compress", "minifySkipCompress":
+			s.AddField("minify_skip_compress")
+			x.MinifySkipCompress = s.ReadBool()
 		}
 	})
 }
@@ -2576,6 +2598,13 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MinifySkipCompress {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.MinifySkipCompress)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xf8
 	}
 	if m.RouteCssImports {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RouteCssImports)
@@ -3207,6 +3236,7 @@ func (m *BuildRequest) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.GlobalName)
 	n += protobuf_go_lite.SizeBoolNonZero(2, m.RouteCssImports)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.MinifySkipCompress)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3616,6 +3646,10 @@ func (x *BuildRequest) MarshalProtoText() string {
 	if x.RouteCssImports != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "route_css_imports")
 		protobuf_go_lite.TextWriteBool(&sb, x.RouteCssImports)
+	}
+	if x.MinifySkipCompress != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "minify_skip_compress")
+		protobuf_go_lite.TextWriteBool(&sb, x.MinifySkipCompress)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4457,6 +4491,16 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RouteCssImports = bool(v)
+		case 31:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinifySkipCompress", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.MinifySkipCompress = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

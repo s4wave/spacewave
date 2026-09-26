@@ -28,6 +28,27 @@ const (
 	goScriptBundleReportFilename = "plugin-goscript-bundle-report.json"
 )
 
+// GoScriptMinify selects how Rolldown compacts a GoScript bundle.
+type GoScriptMinify int
+
+const (
+	// GoScriptMinifyNone leaves the bundle readable.
+	GoScriptMinifyNone GoScriptMinify = iota
+	// GoScriptMinifyMangle mangles names and removes whitespace but skips the
+	// compress pass, which dominates minify time on large bundles.
+	GoScriptMinifyMangle
+	// GoScriptMinifyFull also runs the compress pass.
+	GoScriptMinifyFull
+)
+
+// goScriptMinifyFrom maps a minify flag to the full or no minify level.
+func goScriptMinifyFrom(minify bool) GoScriptMinify {
+	if minify {
+		return GoScriptMinifyFull
+	}
+	return GoScriptMinifyNone
+}
+
 // GoScriptSharedImportMap maps a local @goscript import to the provider URL
 // that serves the shared module.
 type GoScriptSharedImportMap map[string]string
@@ -79,7 +100,7 @@ func BuildWebGoScriptPluginScript(
 		goScriptOutputRoot,
 		outPath,
 		mainPackagePath,
-		minify,
+		goScriptMinifyFrom(minify),
 		sourcemaps,
 		codeSplitting,
 		GoScriptSharedBundleOptions{},
@@ -95,7 +116,7 @@ func BuildWebGoScriptPluginScriptWithOptions(
 	goScriptOutputRoot,
 	outPath,
 	mainPackagePath string,
-	minify,
+	minify GoScriptMinify,
 	sourcemaps,
 	codeSplitting bool,
 	sharedOptions GoScriptSharedBundleOptions,
@@ -118,7 +139,7 @@ func BuildWebGoScriptCloudflarePluginScript(
 	goScriptOutputRoot,
 	outPath,
 	mainPackagePath string,
-	minify,
+	minify GoScriptMinify,
 	sourcemaps,
 	codeSplitting bool,
 	sharedOptions GoScriptSharedBundleOptions,
@@ -135,7 +156,8 @@ func buildWebGoScriptPluginScript(
 	le *logrus.Entry,
 	bldrDistRoot, workDir, goScriptOutputRoot, outPath, mainPackagePath,
 	runtimeFile string,
-	minify, sourcemaps, codeSplitting bool,
+	minify GoScriptMinify,
+	sourcemaps, codeSplitting bool,
 	sharedOptions GoScriptSharedBundleOptions,
 ) ([]string, error) {
 	if strings.TrimSpace(mainPackagePath) == "" {
@@ -210,7 +232,7 @@ func BuildWebGoScriptRuntimeScript(
 		return nil, errors.Wrap(err, "write goscript runtime entrypoint")
 	}
 
-	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, minify, sourcemaps, codeSplitting, GoScriptSharedBundleOptions{})
+	return runRolldownGoScriptBundle(ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, entrypointPath, outPath, goScriptMinifyFrom(minify), sourcemaps, codeSplitting, GoScriptSharedBundleOptions{})
 }
 
 // BuildWebGoScriptSharedProviderScript builds the shared GoScript provider web package.
@@ -222,7 +244,7 @@ func BuildWebGoScriptSharedProviderScript(
 	goScriptOutputRoot,
 	outWebPkgPath,
 	webPkgID string,
-	minify,
+	minify GoScriptMinify,
 	sourcemaps bool,
 ) (GoScriptSharedImportMap, []string, error) {
 	if strings.TrimSpace(webPkgID) == "" {
@@ -249,7 +271,7 @@ func runRolldownGoScriptBundle(
 	goScriptOutputRoot,
 	entrypointPath,
 	outPath string,
-	minify,
+	minify GoScriptMinify,
 	sourcemaps,
 	codeSplitting bool,
 	sharedOptions GoScriptSharedBundleOptions,
@@ -260,21 +282,22 @@ func runRolldownGoScriptBundle(
 	}
 
 	request := &bldr_rolldown.BuildRequest{
-		WorkingDir:     workDir,
-		SourceRoot:     resolveGoScriptSourceRoot(bldrDistRoot),
-		OutputRoot:     filepath.Dir(outPath),
-		BldrDistRoot:   bldrDistRoot,
-		Format:         "es",
-		Platform:       "browser",
-		Target:         "es2024",
-		EntryFileNames: filepath.Base(outPath),
-		ChunkFileNames: "chunks/[name]-[hash].mjs",
-		AssetFileNames: "assets/[name]-[hash][extname]",
-		CodeSplitting:  codeSplitting,
-		Sourcemap:      goScriptSourceMapPolicy(sourcemaps, codeSplitting),
-		Minify:         minify,
-		TreeShaking:    true,
-		Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+		WorkingDir:         workDir,
+		SourceRoot:         resolveGoScriptSourceRoot(bldrDistRoot),
+		OutputRoot:         filepath.Dir(outPath),
+		BldrDistRoot:       bldrDistRoot,
+		Format:             "es",
+		Platform:           "browser",
+		Target:             "es2024",
+		EntryFileNames:     filepath.Base(outPath),
+		ChunkFileNames:     "chunks/[name]-[hash].mjs",
+		AssetFileNames:     "assets/[name]-[hash][extname]",
+		CodeSplitting:      codeSplitting,
+		Sourcemap:          goScriptSourceMapPolicy(sourcemaps, codeSplitting),
+		Minify:             minify != GoScriptMinifyNone,
+		MinifySkipCompress: minify == GoScriptMinifyMangle,
+		TreeShaking:        true,
+		Banner:             entrypoint_browser_bundle.DefaultBanner()["js"],
 		Defines: map[string]string{
 			"BLDR_IS_BROWSER": "true",
 			"BLDR_IS_PLUGIN":  "true",
@@ -304,7 +327,7 @@ func runRolldownGoScriptBundle(
 	if err != nil {
 		return nil, err
 	}
-	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, result.Inputs, minify, sourcemaps, codeSplitting); err != nil {
+	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, result.Inputs, minify != GoScriptMinifyNone, sourcemaps, codeSplitting); err != nil {
 		return nil, err
 	}
 	return result.Inputs, nil
@@ -319,7 +342,7 @@ func runRolldownGoScriptSharedProvider(
 	outWebPkgPath string,
 	entrypoints map[string]string,
 	importMap GoScriptSharedImportMap,
-	minify,
+	minify GoScriptMinify,
 	sourcemaps bool,
 ) (GoScriptSharedImportMap, []string, error) {
 	le.Infof("building shared GoScript provider with Rolldown/Oxc to %v", outWebPkgPath)
@@ -340,21 +363,22 @@ func runRolldownGoScriptSharedProvider(
 		})
 	}
 	request := &bldr_rolldown.BuildRequest{
-		WorkingDir:     workDir,
-		SourceRoot:     resolveGoScriptSourceRoot(bldrDistRoot),
-		OutputRoot:     outWebPkgPath,
-		BldrDistRoot:   bldrDistRoot,
-		Format:         "es",
-		Platform:       "browser",
-		Target:         "es2024",
-		EntryFileNames: "[name].mjs",
-		ChunkFileNames: "chunks/[name]-[hash].mjs",
-		AssetFileNames: "assets/[name]-[hash][extname]",
-		CodeSplitting:  true,
-		Sourcemap:      goScriptSourceMapPolicy(sourcemaps, true),
-		Minify:         minify,
-		TreeShaking:    true,
-		Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+		WorkingDir:         workDir,
+		SourceRoot:         resolveGoScriptSourceRoot(bldrDistRoot),
+		OutputRoot:         outWebPkgPath,
+		BldrDistRoot:       bldrDistRoot,
+		Format:             "es",
+		Platform:           "browser",
+		Target:             "es2024",
+		EntryFileNames:     "[name].mjs",
+		ChunkFileNames:     "chunks/[name]-[hash].mjs",
+		AssetFileNames:     "assets/[name]-[hash][extname]",
+		CodeSplitting:      true,
+		Sourcemap:          goScriptSourceMapPolicy(sourcemaps, true),
+		Minify:             minify != GoScriptMinifyNone,
+		MinifySkipCompress: minify == GoScriptMinifyMangle,
+		TreeShaking:        true,
+		Banner:             entrypoint_browser_bundle.DefaultBanner()["js"],
 		Defines: map[string]string{
 			"BLDR_IS_BROWSER": "true",
 			"BLDR_IS_PLUGIN":  "true",
@@ -369,7 +393,7 @@ func runRolldownGoScriptSharedProvider(
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := writeGoScriptBundleDirectoryReport(GoScriptBundleReportPath(workDir), outWebPkgPath, result.Inputs, minify, sourcemaps, true); err != nil {
+	if err := writeGoScriptBundleDirectoryReport(GoScriptBundleReportPath(workDir), outWebPkgPath, result.Inputs, minify != GoScriptMinifyNone, sourcemaps, true); err != nil {
 		return nil, nil, err
 	}
 	return importMap, result.Inputs, nil

@@ -1036,9 +1036,14 @@ func (c *Controller) BuildPlugin(
 		timeStart := time.Now()
 		// Raw GoScript browser plugin bundles can be hundreds of megabytes
 		// before Oxc compaction. Keep dev FetchManifest output runnable by
-		// always serving the minified entrypoint; the generated package tree
-		// remains under the working path for source-level inspection.
-		goScriptJSMinification := true
+		// always serving the mangled entrypoint; the generated package tree
+		// remains under the working path for source-level inspection. Dev
+		// builds skip the compress pass, which costs most of the minify time
+		// for a few percent of output size.
+		goScriptJSMinification := web_runtime_goscript_build.GoScriptMinifyMangle
+		if isRelease {
+			goScriptJSMinification = web_runtime_goscript_build.GoScriptMinifyFull
+		}
 		goScriptJSSourcemaps := false
 		sharedOptions := web_runtime_goscript_build.GoScriptSharedBundleOptions{
 			WebPkgID: goScriptSharedWebPkgID,
