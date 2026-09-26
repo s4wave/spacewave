@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestAnalyzePackagesDoesNotRequireRootVendor analyzes a module without a vendor directory and loads no types for untagged declarations.
 func TestAnalyzePackagesDoesNotRequireRootVendor(t *testing.T) {
 	ctx := context.Background()
 	workDir := t.TempDir()
@@ -60,14 +61,15 @@ var Value = dep.Value
 	if err != nil {
 		t.Fatal(err)
 	}
-	if an.webBundlerOutputType == nil {
-		t.Fatal("expected esbuild output type to be loaded")
+	if len(an.typedPackages) != 0 {
+		t.Fatal("untagged ordinary declarations unexpectedly loaded types")
 	}
 	if _, err := os.Stat(filepath.Join(workDir, "vendor")); !os.IsNotExist(err) {
 		t.Fatalf("expected no vendor directory, stat err = %v", err)
 	}
 }
 
+// TestAnalyzePackagesHonorsBuildTags selects factory files by the target build tags.
 func TestAnalyzePackagesHonorsBuildTags(t *testing.T) {
 	ctx := context.Background()
 	workDir := t.TempDir()
@@ -127,6 +129,7 @@ func NewFactory() {}
 	}
 }
 
+// TestAnalyzePackagesScansImportedFactoriesOnlyWhenEnabled discovers imported same-module factories only when enabled.
 func TestAnalyzePackagesScansImportedFactoriesOnlyWhenEnabled(t *testing.T) {
 	ctx := context.Background()
 	workDir := t.TempDir()
@@ -192,6 +195,7 @@ func NewFactory() {}
 	}
 }
 
+// TestAnalysisProgramGoCodeFilesIncludesDependencies lists same-module dependency files as program sources.
 func TestAnalysisProgramGoCodeFilesIncludesDependencies(t *testing.T) {
 	ctx := context.Background()
 	workDir := t.TempDir()
@@ -230,11 +234,11 @@ const Value = "dep"
 		t.Fatal(err)
 	}
 
-	programFiles := an.GetProgramGoCodeFiles()
+	programFiles := an.GetProgramSourceFiles()
 	var programRelPaths []string
 	for _, pkgFiles := range programFiles {
 		for _, file := range pkgFiles {
-			relPath, err := filepath.Rel(workDir, an.GetFileToken(file).Name())
+			relPath, err := filepath.Rel(workDir, file)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -263,6 +267,7 @@ const Value = "dep"
 	}
 }
 
+// TestAnalysisProgramGoCodeFilesExcludesHelperModule omits files from a separate helper module.
 func TestAnalysisProgramGoCodeFilesExcludesHelperModule(t *testing.T) {
 	ctx := context.Background()
 	testDir := t.TempDir()
@@ -308,20 +313,11 @@ type WebBundlerOutput struct{}
 		t.Fatal(err)
 	}
 
-	root := an.GetLoadedPackages()["example.com/plugin/plugin/root"]
-	if root.Types.Scope().Lookup("Value").Type().String() != "string" {
-		t.Fatal("program declaration lost its inferred type")
-	}
-	dependency := root.Imports["strings"]
-	if dependency == nil || len(dependency.Syntax) != 0 || dependency.TypesInfo != nil {
-		t.Fatal("analysis retained external dependency syntax or expression records")
-	}
-
-	programFiles := an.GetProgramGoCodeFiles()
+	programFiles := an.GetProgramSourceFiles()
 	var programRelPaths []string
 	for _, pkgFiles := range programFiles {
 		for _, file := range pkgFiles {
-			relPath, err := filepath.Rel(workDir, an.GetFileToken(file).Name())
+			relPath, err := filepath.Rel(workDir, file)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -338,6 +334,7 @@ type WebBundlerOutput struct{}
 	}
 }
 
+// TestAnalyzePackagesReportsLoadFailureContext names the target and patterns in load failures.
 func TestAnalyzePackagesReportsLoadFailureContext(t *testing.T) {
 	ctx := context.Background()
 	workDir := t.TempDir()
@@ -390,6 +387,7 @@ var Value = missing.Value
 	}
 }
 
+// TestNewBuildTagsForAnalyzeIncludesTinyGoTag adds the tinygo tag for TinyGo targets.
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerTinyGo)
 	for _, want := range []string{
@@ -417,6 +415,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 	}
 }
 
+// TestNewBuildTagsForAnalyzeIncludesGoScriptTag adds the goscript tag for GoScript targets.
 func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
 	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerGoScript)
 	for _, want := range []string{
@@ -431,6 +430,7 @@ func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
 	}
 }
 
+// writeFile creates a fixture source file and its parent directories.
 func writeFile(t *testing.T, root, relPath, contents string) {
 	t.Helper()
 	absPath := filepath.Join(root, relPath)

@@ -7,7 +7,6 @@ import (
 	gast "go/ast"
 	"go/format"
 	"go/token"
-	"go/types"
 	"slices"
 	"strconv"
 	"strings"
@@ -31,50 +30,18 @@ func FormatFile(gf *gast.File) ([]byte, error) {
 	return outDat.Bytes(), nil
 }
 
-// BuildPackageName builds the unique name for the package.
-func BuildPackageName(pkg *types.Package) string {
-	// for now just use package name
-	return pkg.Name()
-}
-
-// FactoryNeedsBus reports whether a package NewFactory takes the controller bus
-// argument, validating that its required arity is 0 or 1.
-//
-// A trailing variadic parameter (e.g. options) is optional: generated factory
-// wrappers never pass it, so it does not count toward required arity. This lets
-// a factory expose an injection seam such as NewFactory(bus, ...Option) while
-// the wrapper still calls NewFactory(bus).
-func FactoryNeedsBus(pkgPath string, sig *types.Signature) (bool, error) {
-	required := sig.Params().Len()
-	if sig.Variadic() {
-		required--
-	}
-	switch required {
-	case 0:
-		return false, nil
-	case 1:
-		return true, nil
-	default:
-		return false, errors.Errorf("package %s NewFactory has unsupported arity %d", pkgPath, required)
-	}
-}
-
-func buildFactoryCall(pkgName string, pkg *types.Package) (gast.Expr, error) {
-	newFactoryObj := pkg.Scope().Lookup("NewFactory")
-	if newFactoryObj == nil {
-		return nil, errors.Errorf("package %s has no NewFactory", pkg.Path())
-	}
-	sig, ok := newFactoryObj.Type().(*types.Signature)
-	if !ok {
-		return nil, errors.Errorf("package %s NewFactory is not a function", pkg.Path())
-	}
-	needsBus, err := FactoryNeedsBus(pkg.Path(), sig)
+// buildFactoryCall emits the call shape already resolved by discovery.
+func buildFactoryCall(pkg *Package) (gast.Expr, error) {
+	// Validate only the required factory arity, as the wrapper compiler checks types.
+	needsBus, err := pkg.Factory.NeedsBus(pkg.Path)
 	if err != nil {
 		return nil, err
 	}
+
+	// Omit the optional variadic tail from generated calls.
 	call := &gast.CallExpr{
 		Fun: &gast.SelectorExpr{
-			X:   gast.NewIdent(pkgName),
+			X:   gast.NewIdent(pkg.Name),
 			Sel: gast.NewIdent("NewFactory"),
 		},
 	}
@@ -108,10 +75,10 @@ func CodegenPluginWrapperFromAnalysis(
 
 	for _, impPath := range importStrs {
 		impPkg := a.imports[impPath]
-		// impPkg may be nil
+		// Empty aliases use the imported package name.
 		var impIdent *gast.Ident
-		if impPkg != nil {
-			impIdent = gast.NewIdent(BuildPackageName(impPkg))
+		if impPkg != "" {
+			impIdent = gast.NewIdent(impPkg)
 		}
 		allDecls = append(allDecls, &gast.GenDecl{
 			Tok: token.IMPORT,
@@ -169,7 +136,7 @@ func CodegenPluginWrapperFromAnalysis(
 	slices.Sort(controllerFactoriesPackages)
 	for _, fpkg := range controllerFactoriesPackages {
 		factoryPkg := a.controllerFactories[fpkg]
-		factoryCall, err := buildFactoryCall(fpkg, factoryPkg.Types)
+		factoryCall, err := buildFactoryCall(factoryPkg)
 		if err != nil {
 			return nil, err
 		}
@@ -421,8 +388,7 @@ func CodegenPluginWrapperFromAnalysis(
 
 		// set each of the variables
 		for _, varDef := range goVarDefs {
-			imp := a.imports[varDef.GetPkgImportPath()]
-			pkgName := BuildPackageName(imp)
+			pkgName := a.imports[varDef.GetPkgImportPath()]
 			var rhs []gast.Expr
 
 			// if the dev info file is set, use it instead of hardcoding the value.

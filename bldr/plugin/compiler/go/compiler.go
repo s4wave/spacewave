@@ -718,7 +718,7 @@ func (c *Controller) BuildPlugin(
 
 	// ensure all go packages were found.
 	for srcPkg, dstPkg := range an.GetPackagePathMappings() {
-		if _, ok := an.GetLoadedPackages()[dstPkg]; !ok {
+		if _, ok := an.GetPackages()[dstPkg]; !ok {
 			return nil, errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
 		}
 	}
@@ -728,16 +728,13 @@ func (c *Controller) BuildPlugin(
 	var goVariableDefs []*vardef.PluginVar
 
 	codeFiles := an.GetGoCodeFiles()
-	programCodeFiles := an.GetProgramGoCodeFiles()
+	programCodeFiles := an.GetProgramSourceFiles()
 	fset := an.GetFileSet()
 
 	// build source files list with go files
 	var goSrcFiles []string
 	for _, pkgFiles := range programCodeFiles {
-		for _, codeFile := range pkgFiles {
-			pkgFile := an.GetFileToken(codeFile)
-			goSrcFiles = append(goSrcFiles, pkgFile.Name())
-		}
+		goSrcFiles = append(goSrcFiles, pkgFiles...)
 	}
 
 	// parse bldr:asset comments

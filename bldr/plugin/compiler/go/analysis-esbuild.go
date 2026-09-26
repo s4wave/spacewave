@@ -6,8 +6,6 @@ import (
 	"go/ast"
 	"go/types"
 	"strings"
-
-	"golang.org/x/tools/go/packages"
 )
 
 // EsbuildTag is the comment tag used for esbuild.
@@ -27,7 +25,7 @@ type EsbuildDirective struct {
 	// EsbuildFlags are the esbuild build options.
 	// Note that all BuildOptions for the same BundleID are merged.
 	EsbuildFlags []string
-	// EsbuildVarType is the type of esbuild output variable we are using.
+	// EsbuildVarType is the type of esbuild output variable.
 	EsbuildVarType EsbuildVarType
 }
 
@@ -37,16 +35,15 @@ func TrimEsbuildDirective(value string) (string, bool) {
 	return TrimCommentArgs(EsbuildTag, value)
 }
 
-// EsbuildOutputPkgPath is the package path for EsbuildOutput type
+// EsbuildOutputPkgPath is the package path for EsbuildOutput type.
 const EsbuildOutputPkgPath = "github.com/s4wave/spacewave/bldr/web/bundler"
 
-// EsbuildOutputTypeName is the type name for EsbuildOutput
+// EsbuildOutputTypeName is the type name for EsbuildOutput.
 const EsbuildOutputTypeName = "WebBundlerOutput"
 
-// determineEsbuildVarType determines the variable type for an esbuild variable
+// determineEsbuildVarType determines the variable type for an esbuild variable.
 func (a *Analysis) determineEsbuildVarType(obj types.Object) (EsbuildVarType, error) {
 	return determineVarTypeWithReference[EsbuildVarType](
-		a,
 		obj,
 		a.webBundlerOutputType,
 		EsbuildVarType_EsbuildVarType_ENTRYPOINT_PATH,
@@ -55,7 +52,7 @@ func (a *Analysis) determineEsbuildVarType(obj types.Object) (EsbuildVarType, er
 	)
 }
 
-// parseEsbuildArgs parses esbuild directive arguments to extract bundle ID and other flags
+// parseEsbuildArgs parses esbuild directive arguments to extract bundle ID and other flags.
 func parseEsbuildArgs(args []string) (string, []string) {
 	bundleID := DefaultBundleID
 	for _, arg := range args {
@@ -75,17 +72,17 @@ func (a *Analysis) FindEsbuildVariables(codeFiles map[string][]*ast.File) (map[s
 		EsbuildTag,
 		a,
 		codeFiles,
-		func(values []string, varName string, pkg *packages.Package, obj types.Object) (*EsbuildDirective, bool, error) {
-			// Parse the comments for esbuild directives
+		func(values []string, obj types.Object) (*EsbuildDirective, bool, error) {
+			// Parse the comments for esbuild directives.
 			args, found, err := CombineShellComments(EsbuildTag, values)
 			if err != nil || !found {
 				return nil, found, err
 			}
 
-			// Determine bundle ID from the args
+			// Determine bundle ID from the args.
 			bundleID, esbuildFlags := parseEsbuildArgs(args)
 
-			// Determine the variable type using the type system
+			// Determine the variable type using the type system.
 			varType, err := a.determineEsbuildVarType(obj)
 			if err != nil {
 				return nil, true, err
