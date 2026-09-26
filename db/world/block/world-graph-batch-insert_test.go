@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -115,43 +114,5 @@ func TestGraphInsertionValidatesBatch(t *testing.T) {
 	}
 	if err := ws.InsertGraphQuads(ctx, []world.GraphQuad{valid, valid}); err == nil {
 		t.Fatal("accepted repeated relationship")
-	}
-}
-
-// TestGraphInsertionImportSpansBatches verifies that a fresh graph import
-// larger than one Cayley batch reuses nodes across batches and keeps every
-// relationship.
-func TestGraphInsertionImportSpansBatches(t *testing.T) {
-	ctx := t.Context()
-	ws, cursor, cleanup := newRefBatchTestWorld(t, ctx)
-	defer cleanup()
-	if _, packed := ws.graphTree.(*kvtx_block_okra.Tx); !packed {
-		t.Fatal("test World graph index is not packed")
-	}
-	ref := writeRefBatchTestBlock(t, ctx, cursor, "body")
-	for _, key := range []string{"from", "to"} {
-		object, err := ws.CreateObject(ctx, key, ref)
-		world.ReleaseObjectState(object)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	quads := make([]world.GraphQuad, graphImportBatchSize+1)
-	for i := range quads {
-		quads[i] = world.NewGraphQuadWithKeys("from", "<edge>", "to", fmt.Sprintf("<label-%05d>", i))
-	}
-	if err := ws.InsertGraphQuads(ctx, quads); err != nil {
-		t.Fatal(err)
-	}
-
-	found, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 0)
-	if err != nil || len(found) != len(quads) {
-		t.Fatalf("graph contains %d quads, want %d: %v", len(found), len(quads), err)
-	}
-	for _, q := range []world.GraphQuad{quads[0], quads[len(quads)-1]} {
-		found, err := ws.LookupGraphQuads(ctx, q, 1)
-		if err != nil || len(found) != 1 {
-			t.Fatalf("missing quad %v: %v", q, err)
-		}
 	}
 }

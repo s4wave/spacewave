@@ -48,7 +48,7 @@ func BuildTreeWithEntries(
 ) (*block.Transaction, *block.Cursor, error) {
 	tx, rootCursor := block.NewTransaction(store, xfrm, nil, putOpts)
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
-		return writeStagedPage(ctx, rootCursor, page)
+		return writeStagedBlock(ctx, rootCursor, page)
 	})
 	if err != nil {
 		return nil, nil, err

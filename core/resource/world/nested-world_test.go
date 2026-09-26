@@ -4,6 +4,7 @@ package resource_world_test
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -24,13 +25,9 @@ func TestOpenNestedWorldResourceRelease(t *testing.T) {
 	tb, cleanup := setupWorldTestbed(ctx, t)
 	defer cleanup()
 
-	snapshot, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-		_, _, err := world.AccessWorldObject(ctx, state, "inner", true, func(cursor *block.Cursor) error {
-			cursor.SetBlock(block_mock.NewExample("content"), true)
-			return nil
-		})
-		return err
-	})
+	snapshot, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+		"inner": block_mock.NewExample("content"),
+	}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,6 +4,7 @@ package resource_testbed
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -52,13 +53,9 @@ func TestNestedWorldResource(t *testing.T) {
 	defer storage.Release()
 
 	// Publish a typed outer object with a standard nested-World root.
-	snapshot, err := world_block.BuildSnapshot(ctx, tb.Logger, storage, func(ctx context.Context, state *world_block.WorldState) error {
-		_, _, err := world.AccessWorldObject(ctx, state, "inner", true, func(cursor *block.Cursor) error {
-			cursor.SetBlock(block_mock.NewExample("nested content"), true)
-			return nil
-		})
-		return err
-	})
+	snapshot, err := world_block.ImportSnapshot(ctx, storage, maps.All(map[string]block.Block{
+		"inner": block_mock.NewExample("nested content"),
+	}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

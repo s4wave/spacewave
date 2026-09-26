@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 )
 
 func TestReplaceAllMatchesIncrementalTreeAndPreservesReaders(t *testing.T) {
@@ -51,5 +54,53 @@ func TestReplaceAllMatchesIncrementalTreeAndPreservesReaders(t *testing.T) {
 		if err != nil || !found || !bytes.Equal(got, want) {
 			t.Fatalf("%s: %q, %v, %v", key, got, found, err)
 		}
+	}
+}
+
+// TestReplaceAllBlocksMatchesIncrementalTree verifies that streamed value
+// blocks build the same tree as value cursors set one key at a time, and that
+// a value reads back from the written root.
+func TestReplaceAllBlocksMatchesIncrementalTree(t *testing.T) {
+	ctx := t.Context()
+	store := newOkraTestStore()
+	values := func(yield func([]byte, block.Block) bool) {
+		for i := range 512 {
+			key := fmt.Sprintf("key-%04d", i)
+			if !yield([]byte(key), block_mock.NewExample(key)) {
+				return
+			}
+		}
+	}
+	want := writeMutatedOkraRoot(t, ctx, store, func(tx *Tx) {
+		for key, value := range values {
+			cursor := tx.bcs.Detach(false)
+			cursor.ClearAllRefs()
+			cursor.SetBlock(value, true)
+			if err := tx.SetCursorAtKey(ctx, key, cursor, false); err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
+	got := writeMutatedOkraRoot(t, ctx, store, func(tx *Tx) {
+		if err := tx.ReplaceAllBlocks(ctx, values); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if !want.EqualsRef(got) {
+		t.Fatal("streamed blocks differ from incremental tree")
+	}
+
+	read := openOkraRoot(t, ctx, store, got, false)
+	defer read.Discard()
+	cursor, err := read.GetCursorAtKey(ctx, []byte("key-0511"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := block.UnmarshalBlock[*block_mock.Example](ctx, cursor, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.GetMsg() != "key-0511" {
+		t.Fatalf("value = %q", value.GetMsg())
 	}
 }
