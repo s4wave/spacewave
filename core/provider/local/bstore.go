@@ -51,8 +51,6 @@ type placementState struct {
 	backend atomic.Pointer[account_settings.StorageBackend]
 	// local is the account's own storage, written without upload markers.
 	local block.StoreOps
-	// remote reads the backend's bucket, then peers.
-	remote block.StoreOps
 }
 
 // UploadStatus is a block store's storage backend and upload status.
@@ -373,7 +371,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		func() block.StoreOps { return lowerOps },
 		false,
 	)
-	placement := &placementState{wb: wb, local: localBucket, remote: lowerOps}
+	placement := &placementState{wb: wb, local: localBucket}
 	placement.backend.Store(backend)
 	bstoreHandle := &BlockStore{
 		store:         localStore,

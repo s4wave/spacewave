@@ -442,8 +442,10 @@ func TestLocalMergeResume(t *testing.T) {
 	// Simulate a partial transfer: save a checkpoint at index 1 (space-a done).
 	cp := &provider_transfer.TransferCheckpoint{
 		State: &provider_transfer.TransferState{
-			Mode:  provider_transfer.TransferMode_TransferMode_MERGE,
-			Phase: provider_transfer.TransferPhase_TransferPhase_COPYING_SO,
+			Mode:               provider_transfer.TransferMode_TransferMode_MERGE,
+			Phase:              provider_transfer.TransferPhase_TransferPhase_COPYING_SO,
+			SourceSessionIndex: 1,
+			TargetSessionIndex: 2,
 		},
 		SpaceIds:          []string{"space-a", "space-b", "space-c"},
 		CurrentSpaceIndex: 1,

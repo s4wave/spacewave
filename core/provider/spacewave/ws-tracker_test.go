@@ -206,3 +206,50 @@ func TestWaitForAccountChangedCancellation(t *testing.T) {
 		t.Fatal("expected cancellation to wake wait")
 	}
 }
+
+// TestRunWebSocketPingClosesUnresponsiveConn checks that a ping without a pong
+// times out and closes the connection so the read loop fails.
+func TestRunWebSocketPingClosesUnresponsiveConn(t *testing.T) {
+	serverDone := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			t.Errorf("accept websocket: %v", err)
+			return
+		}
+		defer conn.CloseNow()
+		// Never read, so pings receive no pong.
+		<-serverDone
+	}))
+	defer srv.Close()
+	defer close(serverDone)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	conn, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(srv.URL, "http"), nil)
+	if err != nil {
+		t.Fatalf("dial websocket: %v", err)
+	}
+	defer conn.CloseNow()
+
+	readErr := make(chan error, 1)
+	go func() {
+		_, _, err := conn.Read(ctx)
+		readErr <- err
+	}()
+
+	if err := runWebSocketPing(ctx, conn, 10*time.Millisecond, 50*time.Millisecond); err == nil {
+		t.Fatal("expected ping error")
+	}
+	select {
+	case err := <-readErr:
+		if err == nil {
+			t.Fatal("expected read error after ping failure")
+		}
+		if ctx.Err() != nil {
+			t.Fatal("read loop ended by test timeout, not ping failure")
+		}
+	case <-ctx.Done():
+		t.Fatal("read loop did not end after ping failure")
+	}
+}

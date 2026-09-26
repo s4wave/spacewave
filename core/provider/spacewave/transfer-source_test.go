@@ -26,15 +26,31 @@ func buildTestTransferSource(t *testing.T, srvURL string) *provider_transfer.Spa
 // TestCloudTransferSource verifies that the spacewave transfer source reads
 // the shared object list from the cloud API.
 func TestCloudTransferSource(t *testing.T) {
-	soListJSON := `{"sharedObjects":[` +
-		`{"ref":{"providerResourceRef":{"id":"so-1","providerId":"spacewave","providerAccountId":"test-account"},"blockStoreId":"so-1"},"meta":{"bodyType":"space"}},` +
-		`{"ref":{"providerResourceRef":{"id":"so-2","providerId":"spacewave","providerAccountId":"test-account"},"blockStoreId":"so-2"},"meta":{"bodyType":"space"}}` +
-		`]}`
+	soListData, err := (&sobject.SharedObjectList{SharedObjects: []*sobject.SharedObjectListEntry{
+		{
+			Ref: &sobject.SharedObjectRef{
+				ProviderResourceRef: &provider.ProviderResourceRef{Id: "so-1", ProviderAccountId: "test-account"},
+				BlockStoreId:        "so-1",
+			},
+			Meta: &sobject.SharedObjectMeta{BodyType: "space"},
+		},
+		{
+			Ref: &sobject.SharedObjectRef{
+				ProviderResourceRef: &provider.ProviderResourceRef{Id: "so-2", ProviderId: "spacewave", ProviderAccountId: "test-account"},
+				BlockStoreId:        "so-2",
+			},
+			Meta: &sobject.SharedObjectMeta{BodyType: "space"},
+		},
+	}}).MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal SO list: %v", err)
+	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/sobject/list") {
+			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(soListJSON))
+			_, _ = w.Write(soListData)
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -55,7 +71,11 @@ func TestCloudTransferSource(t *testing.T) {
 
 	ids := make(map[string]bool)
 	for _, e := range entries {
-		ids[e.GetRef().GetProviderResourceRef().GetId()] = true
+		prr := e.GetRef().GetProviderResourceRef()
+		ids[prr.GetId()] = true
+		if prr.GetProviderId() != "spacewave" {
+			t.Fatalf("expected provider id filled in for %s, got %q", prr.GetId(), prr.GetProviderId())
+		}
 	}
 	if !ids["so-1"] || !ids["so-2"] {
 		t.Fatalf("expected so-1 and so-2, got %v", ids)
@@ -65,9 +85,12 @@ func TestCloudTransferSource(t *testing.T) {
 // TestCloudTransferSourceSOState verifies that the spacewave transfer source
 // reads SO state from the cloud API.
 func TestCloudTransferSourceSOState(t *testing.T) {
-	stateJSON, err := (&sobject.SOState{
-		Root: &sobject.SORoot{InnerSeqno: 1},
-	}).MarshalJSON()
+	stateData, err := (&api.SOStateMessage{
+		Seqno: 1,
+		Content: &api.SOStateMessage_Snapshot{
+			Snapshot: &sobject.SOState{Root: &sobject.SORoot{InnerSeqno: 1}},
+		},
+	}).MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal SO state: %v", err)
 	}
@@ -75,7 +98,7 @@ func TestCloudTransferSourceSOState(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/state") {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(stateJSON)
+			_, _ = w.Write(stateData)
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -100,7 +123,6 @@ func TestCloudTransferSourceSOState(t *testing.T) {
 func TestCloudTransferSourceEmptyList(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"sharedObjects":[]}`))
 	}))
 	defer srv.Close()
 

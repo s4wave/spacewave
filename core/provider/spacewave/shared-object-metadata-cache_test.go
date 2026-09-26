@@ -353,3 +353,72 @@ func writeSharedObjectMetadata(
 func errorsUnexpectedMetadata(displayName string) error {
 	return errors.Errorf("unexpected display name: %q", displayName)
 }
+
+// TestSharedObjectMetadataFetchSuperseded checks that an in-flight fetch does
+// not overwrite a deletion or pushed metadata that arrived during the fetch.
+func TestSharedObjectMetadataFetchSuperseded(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		supersede func(acc *ProviderAccount)
+		check     func(t *testing.T, metadata *api.SpaceMetadataResponse, err error)
+	}{
+		{
+			name: "deleted",
+			supersede: func(acc *ProviderAccount) {
+				acc.DeleteSharedObjectMetadata("so-1")
+			},
+			check: func(t *testing.T, _ *api.SpaceMetadataResponse, err error) {
+				if err != ErrSharedObjectMetadataDeleted {
+					t.Fatalf("expected deleted metadata error, got %v", err)
+				}
+			},
+		},
+		{
+			name: "pushed",
+			supersede: func(acc *ProviderAccount) {
+				acc.SetSharedObjectMetadata("so-1", &api.SpaceMetadataResponse{DisplayName: "Pushed"})
+			},
+			check: func(t *testing.T, metadata *api.SpaceMetadataResponse, err error) {
+				if err != nil {
+					t.Fatalf("get metadata: %v", err)
+				}
+				if metadata.GetDisplayName() != "Pushed" {
+					t.Fatalf("expected pushed metadata, got %q", metadata.GetDisplayName())
+				}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			hitStarted := make(chan struct{})
+			release := make(chan struct{})
+			var hits atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if hits.Add(1) == 1 {
+					close(hitStarted)
+					<-release
+				}
+				writeSharedObjectMetadata(t, w, &api.SpaceMetadataResponse{DisplayName: "Stale"})
+			}))
+			defer srv.Close()
+
+			acc := NewTestProviderAccount(t, srv.URL)
+			type result struct {
+				metadata *api.SpaceMetadataResponse
+				err      error
+			}
+			done := make(chan result, 1)
+			go func() {
+				metadata, err := acc.GetSharedObjectMetadata(context.Background(), "so-1")
+				done <- result{metadata, err}
+			}()
+			<-hitStarted
+			tc.supersede(acc)
+			close(release)
+			res := <-done
+			tc.check(t, res.metadata, res.err)
+			if hits.Load() != 1 {
+				t.Fatalf("expected one fetch, got %d", hits.Load())
+			}
+		})
+	}
+}

@@ -158,6 +158,9 @@ func isIdleableCloudError(err error) bool {
 // sessionWebSocketPingInterval is the liveness interval for the session WS.
 const sessionWebSocketPingInterval = 15 * time.Second
 
+// sessionWebSocketPingTimeout bounds the wait for one pong on the session WS.
+const sessionWebSocketPingTimeout = 10 * time.Second
+
 // Execute runs the wsTracker lifecycle until cancellation or a terminal error.
 func (t *wsTracker) Execute(ctx context.Context) error {
 	for {
@@ -281,7 +284,7 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 
 	pingRoutine := routine.NewRoutineContainer()
 	pingRoutine.SetRoutine(func(rctx context.Context) error {
-		return runWebSocketPing(rctx, conn, sessionWebSocketPingInterval)
+		return runWebSocketPing(rctx, conn, sessionWebSocketPingInterval, sessionWebSocketPingTimeout)
 	})
 	pingRoutine.SetContext(ctx, false)
 	defer pingRoutine.ClearContext()
@@ -387,7 +390,10 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 }
 
 // runWebSocketPing pings the websocket until the context is canceled.
-func runWebSocketPing(ctx context.Context, conn *ws.Conn, interval time.Duration) error {
+//
+// A ping that fails or receives no pong within timeout closes the connection,
+// which fails the read loop so the tracker reconnects.
+func runWebSocketPing(ctx context.Context, conn *ws.Conn, interval, timeout time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -395,10 +401,14 @@ func runWebSocketPing(ctx context.Context, conn *ws.Conn, interval time.Duration
 		case <-time.After(interval):
 		}
 
-		if err := conn.Ping(ctx); err != nil {
+		pingCtx, pingCancel := context.WithTimeout(ctx, timeout)
+		err := conn.Ping(pingCtx)
+		pingCancel()
+		if err != nil {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
+			_ = conn.CloseNow()
 			return errors.Wrap(err, "ping websocket")
 		}
 	}

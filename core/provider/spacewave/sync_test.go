@@ -20,6 +20,7 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	packfile_delta "github.com/s4wave/spacewave/core/provider/spacewave/packfile/delta"
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
@@ -2003,4 +2004,65 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("expected 2 manifest entries, got %d", len(mfst.GetEntries()))
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
+}
+
+// TestSyncPush_RetryResendsFullBody verifies that a write-ticket retry sends
+// the whole packfile again rather than the drained reader of the first attempt.
+func TestSyncPush_RetryResendsFullBody(t *testing.T) {
+	fileContent := []byte("retry-pack-data")
+	h := sha256.Sum256(fileContent)
+	bloomFilter := []byte("bloom-filter-bytes")
+
+	var bodies [][]byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("read body: %v", err)
+		}
+		bodies = append(bodies, body)
+		if len(bodies) == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tmpFile.Write(fileContent); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	cli.executeWriteTicketAudience = func(
+		ctx context.Context,
+		resourceID string,
+		audience writeTicketAudience,
+		fn func(ticket string) error,
+	) error {
+		if err := fn("ticket-1"); err == nil {
+			return errors.New("expected first attempt to fail")
+		}
+		return fn("ticket-2")
+	}
+
+	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 attempts, got %d", len(bodies))
+	}
+	for i, body := range bodies {
+		if !bytes.Equal(body, fileContent) {
+			t.Fatalf("attempt %d sent %q, want %q", i+1, body, fileContent)
+		}
+	}
 }

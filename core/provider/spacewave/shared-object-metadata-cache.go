@@ -26,6 +26,9 @@ type sharedObjectMetadataState struct {
 	metadata *api.SpaceMetadataResponse
 	// status indicates whether metadata is valid, invalid, or deleted.
 	status sharedObjectMetadataStatus
+	// gen increments on every store, invalidation, or deletion so an
+	// in-flight fetch can detect that it was superseded.
+	gen uint64
 	// seed coordinates concurrent callers around a single seed HTTP fetch.
 	// Guarded by accountBcast like the rest of the state.
 	seed seedflight.Seed
@@ -95,6 +98,9 @@ func (a *ProviderAccount) getSharedObjectMetadataSnapshot(
 }
 
 // syncSharedObjectMetadata fetches and stores full metadata for one shared object.
+//
+// A fetch superseded by a store or deletion is discarded. A fetch superseded
+// by an invalidation is discarded and repeated.
 func (a *ProviderAccount) syncSharedObjectMetadata(
 	ctx context.Context,
 	soID string,
@@ -104,16 +110,34 @@ func (a *ProviderAccount) syncSharedObjectMetadata(
 		return errors.New("session client not ready")
 	}
 
-	data, err := cli.GetSOMetadata(ctx, soID)
-	if err != nil {
-		return errors.Wrap(err, "get shared object metadata")
+	for {
+		var gen uint64
+		a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			gen = a.getOrCreateSharedObjectMetadataStateLocked(soID).gen
+		})
+
+		data, err := cli.GetSOMetadata(ctx, soID)
+		if err != nil {
+			return errors.Wrap(err, "get shared object metadata")
+		}
+		metadata := &api.SpaceMetadataResponse{}
+		if err := metadata.UnmarshalVT(data); err != nil {
+			return errors.Wrap(err, "unmarshal shared object metadata")
+		}
+
+		var retry bool
+		a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			state := a.getOrCreateSharedObjectMetadataStateLocked(soID)
+			if state.gen != gen {
+				retry = state.status == sharedObjectMetadataInvalid
+				return
+			}
+			setSharedObjectMetadataLocked(state, metadata, broadcast)
+		})
+		if !retry {
+			return nil
+		}
 	}
-	metadata := &api.SpaceMetadataResponse{}
-	if err := metadata.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal shared object metadata")
-	}
-	a.SetSharedObjectMetadata(soID, metadata)
-	return nil
 }
 
 // UpdateSharedObjectMetadata updates cloud metadata and stores the returned snapshot.
@@ -151,15 +175,29 @@ func (a *ProviderAccount) SetSharedObjectMetadata(
 		return
 	}
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		state := a.getOrCreateSharedObjectMetadataStateLocked(soID)
-		next := cloneSharedObjectMetadata(metadata)
-		if state.status == sharedObjectMetadataValid && sharedObjectMetadataEqual(state.metadata, next) {
-			return
-		}
-		state.metadata = next
-		state.status = sharedObjectMetadataValid
-		broadcast()
+		setSharedObjectMetadataLocked(
+			a.getOrCreateSharedObjectMetadataStateLocked(soID),
+			metadata,
+			broadcast,
+		)
 	})
+}
+
+// setSharedObjectMetadataLocked stores a valid metadata snapshot in state.
+// Caller must hold accountBcast.
+func setSharedObjectMetadataLocked(
+	state *sharedObjectMetadataState,
+	metadata *api.SpaceMetadataResponse,
+	broadcast func(),
+) {
+	state.gen++
+	next := cloneSharedObjectMetadata(metadata)
+	if state.status == sharedObjectMetadataValid && sharedObjectMetadataEqual(state.metadata, next) {
+		return
+	}
+	state.metadata = next
+	state.status = sharedObjectMetadataValid
+	broadcast()
 }
 
 // InvalidateSharedObjectMetadata marks one shared-object metadata cache entry stale.
@@ -174,7 +212,11 @@ func (a *ProviderAccount) InvalidateSharedObjectMetadata(
 			return
 		}
 		state := a.state.sharedObjectMetadata[soID]
-		if state == nil || state.status == sharedObjectMetadataInvalid {
+		if state == nil {
+			return
+		}
+		state.gen++
+		if state.status == sharedObjectMetadataInvalid {
 			return
 		}
 		state.status = sharedObjectMetadataInvalid
@@ -190,7 +232,11 @@ func (a *ProviderAccount) InvalidateSharedObjectMetadataCache() {
 		}
 		changed := false
 		for _, state := range a.state.sharedObjectMetadata {
-			if state == nil || state.status == sharedObjectMetadataInvalid ||
+			if state == nil {
+				continue
+			}
+			state.gen++
+			if state.status == sharedObjectMetadataInvalid ||
 				state.status == sharedObjectMetadataDeleted {
 				continue
 			}
@@ -212,6 +258,7 @@ func (a *ProviderAccount) DeleteSharedObjectMetadata(
 	}
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		state := a.getOrCreateSharedObjectMetadataStateLocked(soID)
+		state.gen++
 		if state.status == sharedObjectMetadataDeleted && state.metadata == nil {
 			return
 		}

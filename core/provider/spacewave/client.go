@@ -1541,7 +1541,8 @@ func (c *SessionClient) SyncPush(ctx context.Context, resourceID string, packID 
 					bloomFilter:        bloomFilter,
 					bloomFormatVersion: bloomFormatVersion,
 				},
-				f,
+				// Read the packfile from the start on each attempt.
+				io.NewSectionReader(f, 0, stat.Size()),
 				stat.Size(),
 				ticket,
 			)

@@ -134,17 +134,8 @@ func (w *checkoutWatcher) runWebSocket(ctx context.Context, ticket string) error
 	for {
 		_, data, rErr := conn.Read(ctx)
 		if rErr != nil {
-			// Normal close with 1000 means completed.
-			if websocket.CloseStatus(rErr) == 1000 {
-				w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-					w.status = "completed"
-					broadcast()
-				})
-				if w.onCompleted != nil {
-					w.onCompleted()
-				}
-				return nil
-			}
+			// Only a terminal status frame completes the checkout. A close,
+			// including a normal close, is a disconnect.
 			return errors.Wrap(rErr, "read checkout websocket")
 		}
 

@@ -2,6 +2,7 @@ package provider_transfer
 
 import (
 	"context"
+	"maps"
 	"slices"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -126,20 +127,9 @@ func (t *Transfer) setSpaceBlocksCopied(idx int, count uint64) {
 }
 
 // Execute runs the transfer operation.
-// If a checkpoint exists, resumes from the last saved position.
+// If a checkpoint from the same transfer exists, skips the spaces it completed.
 func (t *Transfer) Execute(ctx context.Context) error {
-	// Try to load checkpoint for resume.
-	var resumeIdx uint32
-	if t.checkpoint != nil {
-		cp, err := t.checkpoint.LoadCheckpoint(ctx)
-		if err != nil {
-			t.le.WithError(err).Warn("failed to load checkpoint, starting fresh")
-		}
-		if cp != nil && cp.GetState() != nil {
-			resumeIdx = cp.GetCurrentSpaceIndex()
-			t.le.WithField("resume-idx", resumeIdx).Info("resuming from checkpoint")
-		}
-	}
+	done := t.loadCompletedSpaces(ctx)
 
 	// Phase: scanning
 	t.setPhase(TransferPhase_TransferPhase_SCANNING)
@@ -176,7 +166,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		soID := entry.GetRef().GetProviderResourceRef().GetId()
 		spaceIDs[i] = soID
 		phase := TransferPhase_TransferPhase_IDLE
-		if uint32(i) < resumeIdx {
+		if _, ok := done[soID]; ok {
 			phase = TransferPhase_TransferPhase_COMPLETE
 		}
 		spaces[i] = &SpaceTransferState{
@@ -193,7 +183,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	// Phase: copying blocks per space.
 	t.setPhase(TransferPhase_TransferPhase_COPYING_BLOCKS)
 	for i, entry := range entries {
-		if uint32(i) < resumeIdx {
+		if _, ok := done[spaceIDs[i]]; ok {
 			continue
 		}
 		if err := ctx.Err(); err != nil {
@@ -216,7 +206,7 @@ func (t *Transfer) Execute(ctx context.Context) error {
 	// Phase: copying SO state and adding to target list.
 	t.setPhase(TransferPhase_TransferPhase_COPYING_SO)
 	for i, entry := range entries {
-		if uint32(i) < resumeIdx {
+		if _, ok := done[spaceIDs[i]]; ok {
 			continue
 		}
 		if err := ctx.Err(); err != nil {
@@ -258,7 +248,8 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		t.setSpacePhase(i, TransferPhase_TransferPhase_COMPLETE)
 
 		// Save checkpoint after each completed space.
-		t.saveCheckpoint(ctx, spaceIDs, uint32(i+1))
+		done[soID] = struct{}{}
+		t.saveCheckpoint(ctx, done)
 		le.Debug("SO merge complete for space")
 	}
 
@@ -349,15 +340,48 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 	return err
 }
 
-// saveCheckpoint persists the current progress if a checkpoint store is set.
-func (t *Transfer) saveCheckpoint(ctx context.Context, spaceIDs []string, nextIdx uint32) {
+// loadCompletedSpaces returns the IDs of spaces a previous run of this same
+// transfer completed. A checkpoint from a transfer with a different mode or
+// session pair is ignored: its spaces were not copied to this target.
+func (t *Transfer) loadCompletedSpaces(ctx context.Context) map[string]struct{} {
+	done := make(map[string]struct{})
+	if t.checkpoint == nil {
+		return done
+	}
+	cp, err := t.checkpoint.LoadCheckpoint(ctx)
+	if err != nil {
+		t.le.WithError(err).Warn("failed to load checkpoint, starting fresh")
+		return done
+	}
+	cpState := cp.GetState()
+	if cpState == nil {
+		return done
+	}
+	if cpState.GetMode() != t.state.GetMode() ||
+		cpState.GetSourceSessionIndex() != t.state.GetSourceSessionIndex() ||
+		cpState.GetTargetSessionIndex() != t.state.GetTargetSessionIndex() {
+		t.le.Warn("ignoring checkpoint from a different transfer")
+		return done
+	}
+	ids := cp.GetSpaceIds()
+	n := min(int(cp.GetCurrentSpaceIndex()), len(ids))
+	for _, id := range ids[:n] {
+		done[id] = struct{}{}
+	}
+	t.le.WithField("resume-count", len(done)).Info("resuming from checkpoint")
+	return done
+}
+
+// saveCheckpoint persists the completed space IDs if a checkpoint store is set.
+func (t *Transfer) saveCheckpoint(ctx context.Context, done map[string]struct{}) {
 	if t.checkpoint == nil {
 		return
 	}
+	spaceIDs := slices.Sorted(maps.Keys(done))
 	cp := &TransferCheckpoint{
 		State:             t.GetState(),
 		SpaceIds:          spaceIDs,
-		CurrentSpaceIndex: nextIdx,
+		CurrentSpaceIndex: uint32(len(spaceIDs)), //nolint:gosec // bounded by the source shared object list length.
 	}
 	if err := t.checkpoint.SaveCheckpoint(ctx, cp); err != nil {
 		t.le.WithError(err).Warn("failed to save checkpoint")

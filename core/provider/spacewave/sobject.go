@@ -868,25 +868,33 @@ func (a *ProviderAccount) fetchSharedObjectList(ctx context.Context) error {
 		return err
 	}
 
-	list := &sobject.SharedObjectList{}
-	if err := list.UnmarshalVT(listData); err != nil {
-		return errors.Wrap(err, "unmarshal shared object list")
+	list, err := DecodeSharedObjectList(listData, a.p.info.GetProviderId())
+	if err != nil {
+		return err
 	}
 
-	// The cloud response omits provider_id since the server is not aware of the
-	// client's configured provider identifier. Fill it in so ref.Validate()
-	// succeeds downstream (e.g. MountSharedObject in the self-rejoin sweep).
-	providerID := a.p.info.GetProviderId()
+	a.soListCtr.SetValue(mergeSharedObjectListSnapshot(list, a.soListCtr.GetValue()))
+	a.refreshSelfEnrollmentSummary(ctx)
+	return nil
+}
+
+// DecodeSharedObjectList decodes a cloud shared object list response.
+//
+// The cloud response omits provider_id since the server is not aware of the
+// client's configured provider identifier. Entries missing it are filled in
+// with providerID so ref.Validate() succeeds downstream.
+func DecodeSharedObjectList(data []byte, providerID string) (*sobject.SharedObjectList, error) {
+	list := &sobject.SharedObjectList{}
+	if err := list.UnmarshalVT(data); err != nil {
+		return nil, errors.Wrap(err, "unmarshal shared object list")
+	}
 	for _, entry := range list.GetSharedObjects() {
 		prr := entry.GetRef().GetProviderResourceRef()
 		if prr != nil && prr.GetProviderId() == "" {
 			prr.ProviderId = providerID
 		}
 	}
-
-	a.soListCtr.SetValue(mergeSharedObjectListSnapshot(list, a.soListCtr.GetValue()))
-	a.refreshSelfEnrollmentSummary(ctx)
-	return nil
+	return list, nil
 }
 
 func mergeSharedObjectListSnapshot(

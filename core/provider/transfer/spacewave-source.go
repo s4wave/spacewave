@@ -42,11 +42,7 @@ func (s *SpacewaveTransferSource) GetSharedObjectList(ctx context.Context) (*sob
 		return nil, errors.Wrap(err, "list shared objects from cloud")
 	}
 
-	list := &sobject.SharedObjectList{}
-	if err := list.UnmarshalJSON(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal shared object list")
-	}
-	return list, nil
+	return provider_spacewave.DecodeSharedObjectList(data, s.providerID)
 }
 
 // GetSharedObjectState reads the SO state for a shared object from the cloud.
@@ -60,9 +56,9 @@ func (s *SpacewaveTransferSource) GetSharedObjectState(ctx context.Context, shar
 		return nil, sobject.ErrSharedObjectNotFound
 	}
 
-	state := &sobject.SOState{}
-	if err := state.UnmarshalJSON(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal SO state")
+	state, err := provider_spacewave.DecodeSOStateSnapshot(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode SO state")
 	}
 	return state, nil
 }

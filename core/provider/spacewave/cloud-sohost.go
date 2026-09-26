@@ -414,6 +414,14 @@ func (h *cloudSOHost) noteInitialStateRejection(err error) {
 	})
 }
 
+// DecodeSOStateSnapshot decodes a full-snapshot SOStateMessage response.
+//
+// Returns an error if the response carries a delta instead of a snapshot.
+func DecodeSOStateSnapshot(data []byte) (*sobject.SOState, error) {
+	state, _, _, err := decodeSOStateResponse(data)
+	return state, err
+}
+
 // decodeSOStateResponse decodes an SOStateMessage snapshot or delta marker.
 func decodeSOStateResponse(data []byte) (*sobject.SOState, uint64, *sobject.SOConfigChainResponse, error) {
 	msg := &api.SOStateMessage{}

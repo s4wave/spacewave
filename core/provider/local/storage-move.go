@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	block_store "github.com/s4wave/spacewave/db/block/store"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -119,7 +120,11 @@ func (a *ProviderAccount) MoveSpaceStorage(
 	current := settings.FindBlockStorePlacement(blockStoreID).GetStorageBackendId()
 	if current != backendID {
 		if current != "" {
-			if err := a.fetchPlacedBlocks(ctx, tkr, fn); err != nil {
+			backend := settings.FindStorageBackend(current)
+			if backend == nil {
+				return errors.Wrap(account_settings.ErrStorageBackendNotFound, current)
+			}
+			if err := a.fetchPlacedBlocks(ctx, tkr, backend, fn); err != nil {
 				return err
 			}
 		}
@@ -150,12 +155,31 @@ func (a *ProviderAccount) lookupSharedObjectBlockStoreID(sharedObjectID string) 
 // lacks from the backend's bucket or peers, with the refs the source recorded,
 // one batch write per chunk.
 //
-// A block no source holds is skipped: the backend did not hold it either.
-func (a *ProviderAccount) fetchPlacedBlocks(ctx context.Context, tkr *bstoreTracker, fn func(MoveProgress) error) error {
+// The fetch opens its own store on the backend's bucket, so a backend that
+// cannot be reached fails the move before the placement changes and releases
+// the bucket's objects. A block neither the bucket nor a peer holds is
+// skipped: the backend did not hold it either.
+func (a *ProviderAccount) fetchPlacedBlocks(
+	ctx context.Context,
+	tkr *bstoreTracker,
+	backend *account_settings.StorageBackend,
+	fn func(MoveProgress) error,
+) error {
 	bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
+	bucket, err := tkr.openBackendStore(ctx, backend)
+	if err != nil {
+		return errors.Wrap(err, "open storage backend")
+	}
+	defer bucket.Close()
+	bucketID := BlockStoreBucketID(a.t.p.info.GetProviderId(), a.t.accountInfo.GetProviderAccountId(), tkr.id)
+	remote := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return bucket },
+		func() block.StoreOps { return a.getP2PStore(bucketID) },
+		false,
+	)
 	refs, err := a.ListBlockStoreRefs(ctx, tkr.id)
 	if err != nil {
 		return errors.Wrap(err, "list blocks to fetch")
@@ -165,7 +189,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(ctx context.Context, tkr *bstoreTrac
 	if err := fn(progress); err != nil {
 		return err
 	}
-	local, remote := bs.placement.local, bs.placement.remote
+	local := bs.placement.local
 	for chunk := range slices.Chunk(refs, moveProgressInterval) {
 		found, err := local.GetBlockExistsBatch(ctx, chunk)
 		if err != nil {

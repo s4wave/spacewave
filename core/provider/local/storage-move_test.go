@@ -26,6 +26,8 @@ import (
 type fakeS3 struct {
 	mtx     sync.Mutex
 	objects map[string][]byte
+	// unavailable fails every request with a server error.
+	unavailable bool
 }
 
 // ServeHTTP handles one request against the single bucket.
@@ -33,6 +35,10 @@ func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
+	if f.unavailable {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
 	_, key, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 	if key == "" {
 		f.list(w, r.URL.Query().Get("prefix"))
@@ -265,6 +271,58 @@ func TestPlacedStoreGraphCopyAfterCacheLoss(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := block.CopyGraph(ctx, bs, bs.placement.local, p.rootRef, nil); err != nil {
+		t.Fatal(err)
+	}
+	p.checkLocalGraph(ctx, t, bs)
+}
+
+// TestMoveSpaceStorageUnreachableBackend loses the local blocks of a placed
+// Space and moves it off a backend that cannot be reached: the move fails and
+// keeps the placement and the bucket's objects.
+func TestMoveSpaceStorageUnreachableBackend(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	p := setupPlacedStore(ctx, t)
+	p.loseLocalBlocks(ctx, t)
+	p.bucket.mtx.Lock()
+	p.bucket.unavailable = true
+	p.bucket.mtx.Unlock()
+
+	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err == nil {
+		t.Fatal("move off an unreachable backend succeeded")
+	}
+	settings, err := p.acc.readAccountSettings(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := settings.FindBlockStorePlacement(p.tkr.id).GetStorageBackendId(); got != p.backendID {
+		t.Fatalf("placement = %q, want %q", got, p.backendID)
+	}
+	if n := len(settings.GetStorageReleases()); n != 0 {
+		t.Fatalf("settings record %d releases, want none", n)
+	}
+	if n := p.bucket.count(); n != 2 {
+		t.Fatalf("bucket holds %d objects, want 2", n)
+	}
+}
+
+// TestMoveSpaceStorageClosedRemote loses the local blocks of a placed Space
+// and closes the tracker's backend store before moving it back: the move reads
+// the blocks from the bucket rather than skipping them.
+func TestMoveSpaceStorageClosedRemote(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	p := setupPlacedStore(ctx, t)
+	p.loseLocalBlocks(ctx, t)
+	p.tkr.swapRemote(nil)
+
+	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
+		t.Fatal(err)
+	}
+	bs, err := p.tkr.bstoreCtr.WaitValue(ctx, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
 	p.checkLocalGraph(ctx, t, bs)
