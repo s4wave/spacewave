@@ -1,5 +1,35 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.12
+<2026-09-26 Sat>
+
+Spacewave 0.57.12 improves Drive storage efficiency, Space recovery, plugin
+loading, and large-Space performance while strengthening network and web asset
+safeguards.
+
+** Fixes
+- Rejoining a Space through a new invite now clears stale access errors
+  immediately.
+- Native Spaces now load required app plugins reliably.
+- Devices connect to each other again through Spacewave Cloud, which now
+  relays each connection message on its own.
+- File changes are saved in a durable order, reducing the risk of incomplete
+  data after an interruption.
+- Local file storage shuts down safely if its database becomes unavailable.
+
+** Improvements
+- Drive uploads no longer store and synchronize a duplicate copy of larger
+  files, reducing upload and storage use.
+- Large Spaces use less memory when importing fresh snapshots.
+- Git Spaces read large files and packfiles faster by reusing recently read
+  data.
+- Cloud file storage combines small uploads more consistently, keeping
+  long-lived Spaces efficient.
+
+** Security
+- Oversized network messages are rejected safely before memory is allocated.
+- Static web assets are restricted to the intended release directory.
+
 * v0.57.11
 <2026-09-25 Fri>
 
