@@ -157,6 +157,13 @@ export interface BuildRequest {
    */
   minify?: boolean
   /**
+   * MinifySkipCompress keeps minify's mangling and whitespace removal but skips
+   * the compress pass, which dominates minify time on large bundles.
+   *
+   * @generated from field: bool minify_skip_compress = 31;
+   */
+  minifySkipCompress?: boolean
+  /**
    * @generated from field: bool tree_shaking = 15;
    */
   treeShaking?: boolean
@@ -265,6 +272,12 @@ export const BuildRequest: MessageType<BuildRequest> =
       { no: 12, name: 'code_splitting', kind: 'scalar', T: ScalarType.BOOL },
       { no: 13, name: 'sourcemap', kind: 'scalar', T: ScalarType.STRING },
       { no: 14, name: 'minify', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 31,
+        name: 'minify_skip_compress',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
       { no: 15, name: 'tree_shaking', kind: 'scalar', T: ScalarType.BOOL },
       { no: 16, name: 'banner', kind: 'scalar', T: ScalarType.STRING },
       {

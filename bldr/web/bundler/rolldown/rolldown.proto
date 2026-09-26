@@ -40,6 +40,9 @@ message BuildRequest {
   // Sourcemap is one of none, inline, external, or both.
   string sourcemap = 13;
   bool minify = 14;
+  // MinifySkipCompress keeps minify's mangling and whitespace removal but skips
+  // the compress pass, which dominates minify time on large bundles.
+  bool minify_skip_compress = 31;
   bool tree_shaking = 15;
   string banner = 16;
   map<string, string> defines = 17;

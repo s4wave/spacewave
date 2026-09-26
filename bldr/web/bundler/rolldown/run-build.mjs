@@ -482,7 +482,7 @@ ${original}`;
       assetFileNames: request.assetFileNames || "[name]-[hash][extname]",
       sourcemap: outputSourcemap,
       codeSplitting: request.codeSplitting ?? false,
-      minify: request.minify ? { compress: true, mangle: true } : false,
+      minify: request.minify ? { compress: !request.minifySkipCompress, mangle: true } : false,
       comments: false,
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false
@@ -700,6 +700,7 @@ function requestFromJSON(value) {
     codeSplitting: read("codeSplitting", "code_splitting"),
     sourcemap: read("sourcemap", "sourcemap"),
     minify: read("minify", "minify"),
+    minifySkipCompress: read("minifySkipCompress", "minify_skip_compress"),
     treeShaking: read("treeShaking", "tree_shaking"),
     banner: read("banner", "banner"),
     defines: read("defines", "defines"),

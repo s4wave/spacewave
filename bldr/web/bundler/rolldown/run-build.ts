@@ -127,7 +127,7 @@ type BuildOptions = {
     assetFileNames: string
     sourcemap: false | true | 'inline'
     codeSplitting: boolean
-    minify: false | { compress: true; mangle: true }
+    minify: false | { compress: boolean; mangle: true }
     comments: false
     banner?: string
     cleanDir: boolean
@@ -695,7 +695,9 @@ export async function runBuild(
       assetFileNames: request.assetFileNames || '[name]-[hash][extname]',
       sourcemap: outputSourcemap,
       codeSplitting: request.codeSplitting ?? false,
-      minify: request.minify ? { compress: true, mangle: true } : false,
+      minify: request.minify
+        ? { compress: !request.minifySkipCompress, mangle: true }
+        : false,
       comments: false,
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false,
@@ -998,6 +1000,9 @@ function requestFromJSON(value: unknown): BuildRequest {
       | undefined,
     sourcemap: read('sourcemap', 'sourcemap') as string | undefined,
     minify: read('minify', 'minify') as boolean | undefined,
+    minifySkipCompress: read('minifySkipCompress', 'minify_skip_compress') as
+      | boolean
+      | undefined,
     treeShaking: read('treeShaking', 'tree_shaking') as boolean | undefined,
     banner: read('banner', 'banner') as string | undefined,
     defines: read('defines', 'defines') as Record<string, string> | undefined,
