@@ -265,39 +265,6 @@ export const InputManifest_File: MessageType<InputManifest_File> =
   })
 
 /**
- * ManifestDep declares a dependency on another manifest.
- * The builder controller watches for changes to the manifest's ref
- * in the world and triggers a rebuild when it changes.
- *
- * @generated from message bldr.manifest.builder.InputManifest.ManifestDep
- */
-export interface InputManifest_ManifestDep {
-  /**
-   * ManifestId is the manifest ID to depend on.
-   *
-   * @generated from field: string manifest_id = 1;
-   */
-  manifestId?: string
-  /**
-   * ManifestRef is the ref of the manifest at the time of the build.
-   * When the world ref differs from this, a rebuild is triggered.
-   *
-   * @generated from field: bucket.ObjectRef manifest_ref = 2;
-   */
-  manifestRef?: ObjectRef
-}
-
-export const InputManifest_ManifestDep: MessageType<InputManifest_ManifestDep> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.manifest.builder.InputManifest.ManifestDep',
-    fields: [
-      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
  * StartupInput declares a typed non-file startup validation input.
  *
  * @generated from message bldr.manifest.builder.InputManifest.StartupInput
@@ -367,15 +334,6 @@ export interface InputManifest {
    */
   metadata?: Uint8Array
   /**
-   * ManifestDeps are manifests this build depends on.
-   * The builder controller watches these for changes and triggers
-   * a rebuild when any dependency's ref changes in the world.
-   * Optional.
-   *
-   * @generated from field: repeated bldr.manifest.builder.InputManifest.ManifestDep manifest_deps = 3;
-   */
-  manifestDeps?: InputManifest_ManifestDep[]
-  /**
    * StartupInputs are typed non-file inputs used for startup validation.
    * Optional.
    *
@@ -396,13 +354,6 @@ export const InputManifest: MessageType<InputManifest> =
         repeated: true,
       },
       { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
-      {
-        no: 3,
-        name: 'manifest_deps',
-        kind: 'message',
-        T: () => InputManifest_ManifestDep,
-        repeated: true,
-      },
       {
         no: 4,
         name: 'startup_inputs',

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -38,8 +37,6 @@ var testStartupCacheBuilderState struct {
 	cacheSafe        atomic.Bool
 	buildCalls       atomic.Int32
 	buildSubManifest atomic.Bool
-	buildHookMtx     sync.Mutex
-	buildHook        func(context.Context, int32) error
 }
 
 type testStartupCacheBuilderConfig struct{}
@@ -110,15 +107,7 @@ func (c *testStartupCacheBuilder) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
-	buildCall := testStartupCacheBuilderState.buildCalls.Add(1)
-	testStartupCacheBuilderState.buildHookMtx.Lock()
-	buildHook := testStartupCacheBuilderState.buildHook
-	testStartupCacheBuilderState.buildHookMtx.Unlock()
-	if buildHook != nil {
-		if err := buildHook(ctx, buildCall); err != nil {
-			return nil, err
-		}
-	}
+	testStartupCacheBuilderState.buildCalls.Add(1)
 	builderConfig := args.GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta().CloneVT()
 	inputPath := "main.go"
@@ -591,29 +580,6 @@ func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
 	}
 }
 
-func TestManifestDepsEqual(t *testing.T) {
-	cachedDeps := []*bldr_manifest_builder.InputManifest_ManifestDep{
-		{
-			ManifestId:  "web",
-			ManifestRef: &bucket.ObjectRef{BucketId: "bucket-a"},
-		},
-	}
-	currentDeps := []*bldr_manifest_builder.InputManifest_ManifestDep{
-		{
-			ManifestId:  "web",
-			ManifestRef: &bucket.ObjectRef{BucketId: "bucket-a"},
-		},
-	}
-
-	if !manifestDepsEqual(cachedDeps, currentDeps) {
-		t.Fatal("expected manifest deps to match")
-	}
-	currentDeps[0].ManifestRef = &bucket.ObjectRef{BucketId: "bucket-b"}
-	if manifestDepsEqual(cachedDeps, currentDeps) {
-		t.Fatal("expected manifest deps mismatch")
-	}
-}
-
 func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
@@ -621,7 +587,7 @@ func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 	}
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
-	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true, nil)
+	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 0 {
 		t.Fatalf("expected 0 build calls, got %d", buildCalls)
 	}
@@ -646,7 +612,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 		testStartupCacheBuilderState.buildSubManifest.Store(false)
 	})
 
-	startupResult, buildCalls := runStartupExecuteTest(t, tmpDir, nil, true, nil)
+	startupResult, buildCalls := runStartupExecuteTest(t, tmpDir, nil, true)
 	if buildCalls != 2 {
 		t.Fatalf("initial build calls = %d, want parent and child", buildCalls)
 	}
@@ -663,7 +629,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 		t.Fatal("parent result did not retain child input for startup validation")
 	}
 
-	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true)
 	if buildCalls != 0 {
 		t.Fatalf("unchanged build calls = %d, want 0", buildCalls)
 	}
@@ -671,7 +637,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 	if err := os.WriteFile(mainPath, []byte("package main\n// changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true)
 	if buildCalls != 1 {
 		t.Fatalf("parent-only mutation build calls = %d, want parent only", buildCalls)
 	}
@@ -682,7 +648,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 	if err := os.WriteFile(childPath, []byte("export const child = false;\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true)
 	if buildCalls != 2 {
 		t.Fatalf("child mutation build calls = %d, want parent and child", buildCalls)
 	}
@@ -702,7 +668,6 @@ func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T)
 		startupBuilderResult,
 		true,
 		false,
-		nil,
 		sink,
 	)
 	if buildCalls != 0 {
@@ -734,7 +699,7 @@ func TestControllerStartupFileMissRebuilds(t *testing.T) {
 	if err := os.WriteFile(filePath, []byte("package main\n// changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true, nil)
+	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 1 {
 		t.Fatalf("expected 1 build call, got %d", buildCalls)
 	}
@@ -761,7 +726,6 @@ func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
 		startupBuilderResult,
 		true,
 		false,
-		nil,
 		sink,
 	)
 	if buildCalls != 1 {
@@ -894,107 +858,12 @@ func TestControllerStartupEnvMissRebuilds(t *testing.T) {
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_ENV", "old"),
 	)
 	t.Setenv("BLDR_TEST_ENV", "new")
-	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true, nil)
+	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 1 {
 		t.Fatalf("expected 1 build call, got %d", buildCalls)
 	}
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
-	}
-}
-
-func TestControllerStartupManifestDepMissRebuilds(t *testing.T) {
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	builderControllerConfig := newTestBuilderControllerProto(t)
-	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
-	startupBuilderResult.GetInputManifest().ManifestDeps = []*bldr_manifest_builder.InputManifest_ManifestDep{
-		{
-			ManifestId:  "web",
-			ManifestRef: &bucket.ObjectRef{BucketId: "cached-bucket"},
-		},
-	}
-	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true, []string{"web"})
-	if buildCalls != 1 {
-		t.Fatalf("expected 1 build call, got %d", buildCalls)
-	}
-	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
-		t.Fatal("expected rebuilt result")
-	}
-}
-
-func TestControllerCapturesManifestDepThatAppearsDuringBuild(t *testing.T) {
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	rootLogger := logrus.New()
-	rootLogger.SetLevel(logrus.DebugLevel)
-	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tb.Release()
-
-	var expectedRef *bucket.ObjectRef
-	testStartupCacheBuilderState.buildHookMtx.Lock()
-	testStartupCacheBuilderState.buildHook = func(ctx context.Context, buildCall int32) error {
-		if buildCall != 1 {
-			return nil
-		}
-		_, _, err := tb.CreateManifestWithBilly(
-			ctx,
-			bldr_manifest.NewManifestMeta("web", bldr_manifest.BuildType_DEV, "other/platform", 2),
-			"",
-			nil,
-			nil,
-			nil,
-		)
-		if err != nil {
-			return err
-		}
-		_, manifestRef, err := tb.CreateManifestWithBilly(
-			ctx,
-			bldr_manifest.NewManifestMeta("web", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
-			"",
-			nil,
-			nil,
-			nil,
-		)
-		if err == nil {
-			expectedRef = manifestRef.GetManifestRef()
-		}
-		return err
-	}
-	testStartupCacheBuilderState.buildHookMtx.Unlock()
-	t.Cleanup(func() {
-		testStartupCacheBuilderState.buildHookMtx.Lock()
-		testStartupCacheBuilderState.buildHook = nil
-		testStartupCacheBuilderState.buildHookMtx.Unlock()
-	})
-
-	result, buildCalls := runStartupExecuteWithTestbed(
-		t,
-		tb,
-		tmpDir,
-		nil,
-		true,
-		[]string{"web"},
-		tb.GetWorldEngineID(),
-	)
-	if buildCalls != 1 {
-		t.Fatalf("build calls = %d, want 1", buildCalls)
-	}
-	deps := result.GetInputManifest().GetManifestDeps()
-	if len(deps) != 1 || deps[0].GetManifestId() != "web" ||
-		!deps[0].GetManifestRef().EqualVT(expectedRef) {
-		t.Fatalf("persisted manifest deps = %v, want platform-matched web ref", deps)
 	}
 }
 
@@ -1005,7 +874,7 @@ func TestControllerStartupUnsafeBuilderRebuilds(t *testing.T) {
 	}
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
-	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, false, nil)
+	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, false)
 	if buildCalls != 1 {
 		t.Fatalf("expected 1 build call, got %d", buildCalls)
 	}
@@ -1042,7 +911,6 @@ func TestControllerStartupMissingManifestRebuilds(t *testing.T) {
 		tmpDir,
 		startupBuilderResult,
 		true,
-		nil,
 		tb.GetWorldEngineID(),
 	)
 	if buildCalls != 1 {
@@ -1081,7 +949,6 @@ func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
 		tmpDir,
 		startupBuilderResult,
 		true,
-		nil,
 		tb.GetWorldEngineID(),
 	)
 	if buildCalls != 1 {
@@ -1279,7 +1146,6 @@ func runStartupExecuteTest(
 	sourcePath string,
 	startupBuilderResult *bldr_manifest_builder.BuilderResult,
 	cacheSafe bool,
-	watchManifestIDs []string,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
 	t.Helper()
 
@@ -1300,7 +1166,6 @@ func runStartupExecuteTest(
 		sourcePath,
 		startupBuilderResult,
 		cacheSafe,
-		watchManifestIDs,
 		"",
 	)
 }
@@ -1311,7 +1176,6 @@ func runStartupExecuteWithTestbed(
 	sourcePath string,
 	startupBuilderResult *bldr_manifest_builder.BuilderResult,
 	cacheSafe bool,
-	watchManifestIDs []string,
 	engineID string,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
 	t.Helper()
@@ -1343,7 +1207,6 @@ func runStartupExecuteWithTestbed(
 		false,
 		startupBuilderResult,
 	)
-	controllerConfig.WatchManifestIds = watchManifestIDs
 
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
 	errCh := make(chan error, 1)
@@ -1367,7 +1230,6 @@ func runStartupExecuteWithLifecycle(
 	startupBuilderResult *bldr_manifest_builder.BuilderResult,
 	cacheSafe bool,
 	watch bool,
-	watchManifestIDs []string,
 	sink *recordingLifecycleSink,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
 	t.Helper()
@@ -1399,7 +1261,6 @@ func runStartupExecuteWithLifecycle(
 		watch,
 		startupBuilderResult,
 	)
-	controllerConfig.WatchManifestIds = watchManifestIDs
 
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
 	ctrl.SetManifestBuilderLifecycleSink(sink)

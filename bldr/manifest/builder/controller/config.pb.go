@@ -30,11 +30,6 @@ type Config struct {
 	BuildBackoff *backoff.Backoff `protobuf:"bytes,3,opt,name=build_backoff,json=buildBackoff,proto3" json:"buildBackoff,omitempty"`
 	// Watch enables watching for changes.
 	Watch bool `protobuf:"varint,4,opt,name=watch,proto3" json:"watch,omitempty"`
-	// WatchManifestIds is the list of manifest IDs to watch for changes.
-	// When any of these manifests are rebuilt (ref changes in the world),
-	// the builder controller triggers a rebuild of this manifest.
-	// Populated by the project controller from the webPkg dependency graph.
-	WatchManifestIds []string `protobuf:"bytes,5,rep,name=watch_manifest_ids,json=watchManifestIds,proto3" json:"watchManifestIds,omitempty"`
 	// StartupBuilderResult is the persisted startup build result to validate
 	// before the first build attempt.
 	StartupBuilderResult *builder.BuilderResult `protobuf:"bytes,6,opt,name=startup_builder_result,json=startupBuilderResult,proto3" json:"startupBuilderResult,omitempty"`
@@ -74,13 +69,6 @@ func (x *Config) GetWatch() bool {
 	return false
 }
 
-func (x *Config) GetWatchManifestIds() []string {
-	if x != nil {
-		return x.WatchManifestIds
-	}
-	return nil
-}
-
 func (x *Config) GetStartupBuilderResult() *builder.BuilderResult {
 	if x != nil {
 		return x.StartupBuilderResult
@@ -97,7 +85,6 @@ func (m *Config) CloneVT() *Config {
 	r.BuilderConfig = protobuf_go_lite.CloneVTValue(m.BuilderConfig)
 	r.ControllerConfig = protobuf_go_lite.CloneVTValue(m.ControllerConfig)
 	r.BuildBackoff = protobuf_go_lite.CloneVTValue(m.BuildBackoff)
-	r.WatchManifestIds = protobuf_go_lite.CloneSlice(m.WatchManifestIds)
 	r.StartupBuilderResult = protobuf_go_lite.CloneVTValue(m.StartupBuilderResult)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -125,9 +112,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.Watch != that.Watch {
-		return false
-	}
-	if !protobuf_go_lite.EqualSlice(this.WatchManifestIds, that.WatchManifestIds) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.StartupBuilderResult, that.StartupBuilderResult) {
@@ -171,11 +155,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("watch")
 		s.WriteBool(x.Watch)
-	}
-	if len(x.WatchManifestIds) > 0 || s.HasField("watchManifestIds") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("watchManifestIds")
-		s.WriteStringArray(x.WatchManifestIds)
 	}
 	if x.StartupBuilderResult != nil || s.HasField("startupBuilderResult") {
 		s.WriteMoreIf(&wroteField)
@@ -223,13 +202,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "watch":
 			s.AddField("watch")
 			x.Watch = s.ReadBool()
-		case "watch_manifest_ids", "watchManifestIds":
-			s.AddField("watch_manifest_ids")
-			if s.ReadNil() {
-				x.WatchManifestIds = nil
-				return
-			}
-			x.WatchManifestIds = s.ReadStringArray()
 		case "startup_builder_result", "startupBuilderResult":
 			if s.ReadNil() {
 				x.StartupBuilderResult = nil
@@ -284,13 +256,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x32
-	}
-	if len(m.WatchManifestIds) > 0 {
-		for iNdEx := len(m.WatchManifestIds) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeString(dAtA, i, m.WatchManifestIds[iNdEx])
-			i--
-			dAtA[i] = 0x2a
-		}
 	}
 	if m.Watch {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Watch)
@@ -349,7 +314,6 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Watch)
-	n += protobuf_go_lite.SizeStringSlice(1, m.WatchManifestIds)
 	if m.StartupBuilderResult != nil {
 		l = m.StartupBuilderResult.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -376,14 +340,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.Watch != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "watch")
 		protobuf_go_lite.TextWriteBool(&sb, x.Watch)
-	}
-	if len(x.WatchManifestIds) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "watch_manifest_ids")
-		for i, v := range x.WatchManifestIds {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteString(&sb, v)
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	if x.StartupBuilderResult != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "startup_builder_result")
@@ -471,16 +427,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Watch = bool(v)
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WatchManifestIds", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.WatchManifestIds = append(m.WatchManifestIds, v)
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartupBuilderResult", wireType)

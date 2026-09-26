@@ -4,8 +4,9 @@ package bldr_project_controller
 
 import (
 	"context"
+	"slices"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,60 +188,50 @@ func TestFetchManifestPropagatesBuilderErrorInWatchMode(t *testing.T) {
 	}
 }
 
-type orderedFetchManifestBuilderState struct {
-	providerStarted chan struct{}
-	releaseProvider chan struct{}
-	consumerStarted chan struct{}
-	providerDone    atomic.Bool
+// recordingFetchManifestBuilderState records the builds started by a
+// FetchManifest request.
+type recordingFetchManifestBuilderState struct {
+	mtx   sync.Mutex
+	built map[string][]string
 }
 
-type orderedFetchManifestBuilder struct {
+// recordingFetchManifestBuilder records each manifest ID and its dependencies.
+type recordingFetchManifestBuilder struct {
 	*bus.BusController[*js_compiler.Config]
-	state *orderedFetchManifestBuilderState
+	state *recordingFetchManifestBuilderState
 }
 
-func newOrderedFetchManifestBuilderFactory(
+func newRecordingFetchManifestBuilderFactory(
 	b bus.Bus,
-	state *orderedFetchManifestBuilderState,
+	state *recordingFetchManifestBuilderState,
 ) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,
 		js_compiler.ConfigID,
 		js_compiler.ConfigID,
 		controller.MustParseVersion("0.0.1"),
-		"ordered fetch manifest builder",
+		"recording fetch manifest builder",
 		func() *js_compiler.Config { return &js_compiler.Config{} },
-		func(base *bus.BusController[*js_compiler.Config]) (*orderedFetchManifestBuilder, error) {
-			return &orderedFetchManifestBuilder{BusController: base, state: state}, nil
+		func(base *bus.BusController[*js_compiler.Config]) (*recordingFetchManifestBuilder, error) {
+			return &recordingFetchManifestBuilder{BusController: base, state: state}, nil
 		},
 	)
 }
 
-func (c *orderedFetchManifestBuilder) Execute(ctx context.Context) error {
+func (c *recordingFetchManifestBuilder) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (c *orderedFetchManifestBuilder) BuildManifest(
+func (c *recordingFetchManifestBuilder) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
-	meta := args.GetBuilderConfig().GetManifestMeta().CloneVT()
-	switch meta.GetManifestId() {
-	case "provider":
-		close(c.state.providerStarted)
-		select {
-		case <-ctx.Done():
-			return nil, context.Canceled
-		case <-c.state.releaseProvider:
-		}
-		c.state.providerDone.Store(true)
-	case "consumer":
-		if !c.state.providerDone.Load() {
-			return nil, errors.New("consumer started before provider completed")
-		}
-		close(c.state.consumerStarted)
-	}
+	builderConfig := args.GetBuilderConfig()
+	meta := builderConfig.GetManifestMeta().CloneVT()
+	c.state.mtx.Lock()
+	c.state.built[meta.GetManifestId()] = builderConfig.GetDeps()
+	c.state.mtx.Unlock()
 	return bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/"+meta.GetManifestId()),
 		&bucket.ObjectRef{BucketId: meta.GetManifestId()},
@@ -248,15 +239,18 @@ func (c *orderedFetchManifestBuilder) BuildManifest(
 	), nil
 }
 
-func (c *orderedFetchManifestBuilder) SupportsStartupManifestCache() bool {
+func (c *recordingFetchManifestBuilder) SupportsStartupManifestCache() bool {
 	return false
 }
 
-func (c *orderedFetchManifestBuilder) GetSupportedPlatforms() []string {
+func (c *recordingFetchManifestBuilder) GetSupportedPlatforms() []string {
 	return nil
 }
 
-func TestAddFetchManifestBuilderRefWaitsForWebPkgProviders(t *testing.T) {
+// A web package consumer references its provider only by package ID, so its
+// build neither starts nor waits for the provider build. The plugin host loads
+// the provider from the recorded dependency.
+func TestAddFetchManifestBuilderRefBuildsWebPkgConsumerAlone(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -266,19 +260,21 @@ func TestAddFetchManifestBuilderRefWaitsForWebPkgProviders(t *testing.T) {
 	}
 	defer tb.Release()
 
-	state := &orderedFetchManifestBuilderState{
-		providerStarted: make(chan struct{}),
-		releaseProvider: make(chan struct{}),
-		consumerStarted: make(chan struct{}),
-	}
+	state := &recordingFetchManifestBuilderState{built: make(map[string][]string)}
 	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(newOrderedFetchManifestBuilderFactory(tb.GetBus(), state))
+	tb.GetStaticResolver().AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), state))
 
 	projectConfig := &bldr_project.ProjectConfig{
 		Id: "test-project",
 		Manifests: map[string]*bldr_project.ManifestConfig{
-			"provider": makeJSManifestConfig(t, nil),
-			"consumer": makeJSManifestConfig(t, nil),
+			"provider": makeJSManifestConfig(
+				t,
+				[]*bldr_web_bundler.WebPkgRefConfig{{Id: "@pkg/shared"}},
+			),
+			"consumer": makeJSManifestConfig(
+				t,
+				[]*bldr_web_bundler.WebPkgRefConfig{{Id: "@pkg/shared", Exclude: true}},
+			),
 		},
 		Remotes: map[string]*bldr_project.RemoteConfig{
 			"devtool": {
@@ -288,14 +284,6 @@ func TestAddFetchManifestBuilderRefWaitsForWebPkgProviders(t *testing.T) {
 			},
 		},
 	}
-	projectConfig.Manifests["provider"] = makeJSManifestConfig(
-		t,
-		[]*bldr_web_bundler.WebPkgRefConfig{{Id: "@pkg/shared"}},
-	)
-	projectConfig.Manifests["consumer"] = makeJSManifestConfig(
-		t,
-		[]*bldr_web_bundler.WebPkgRefConfig{{Id: "@pkg/shared", Exclude: true}},
-	)
 
 	sourcePath := t.TempDir()
 	ctrlConf := NewConfig(sourcePath, sourcePath, projectConfig, true, false)
@@ -307,60 +295,31 @@ func TestAddFetchManifestBuilderRefWaitsForWebPkgProviders(t *testing.T) {
 	}
 	defer relProjectCtrl()
 
-	type fetchResult struct {
-		builderRef *ManifestBuilderRef
-		remoteRef  *RemoteRef
-		err        error
-	}
-	fetchCh := make(chan fetchResult, 1)
-	go func() {
-		builderRef, remoteRef, err := projectCtrl.AddFetchManifestBuilderRef(
-			ctx,
-			bldr_manifest.NewManifestMeta(
-				"consumer",
-				bldr_manifest.BuildType_DEV,
-				"web/js/wasm",
-				0,
-			),
-		)
-		fetchCh <- fetchResult{builderRef: builderRef, remoteRef: remoteRef, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	case <-state.providerStarted:
-	}
-	select {
-	case result := <-fetchCh:
-		t.Fatalf("consumer fetch returned before provider completed: %v", result.err)
-	default:
-	}
-	close(state.releaseProvider)
-
-	var result fetchResult
-	select {
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	case result = <-fetchCh:
-	}
-	if result.err != nil {
-		t.Fatal(result.err)
-	}
-	defer result.builderRef.Release()
-	defer result.remoteRef.Release()
-	if _, err := result.builderRef.GetResultPromiseContainer().Await(ctx); err != nil {
+	builderRef, remoteRef, err := projectCtrl.AddFetchManifestBuilderRef(
+		ctx,
+		bldr_manifest.NewManifestMeta("consumer", bldr_manifest.BuildType_DEV, "web/js/wasm", 0),
+	)
+	if err != nil {
 		t.Fatal(err)
 	}
-	select {
-	case <-ctx.Done():
-		t.Fatal(ctx.Err())
-	case <-state.consumerStarted:
+	defer builderRef.Release()
+	defer remoteRef.Release()
+	if _, err := builderRef.GetResultPromiseContainer().Await(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	state.mtx.Lock()
+	defer state.mtx.Unlock()
+	if _, ok := state.built["provider"]; ok {
+		t.Fatal("consumer fetch built its provider")
+	}
+	if deps := state.built["consumer"]; !slices.Equal(deps, []string{"provider"}) {
+		t.Fatalf("consumer deps = %v, want [provider]", deps)
 	}
 }
 
 // _ is a type assertion
 var (
 	_ bldr_manifest_builder.Controller = (*failingFetchManifestBuilder)(nil)
-	_ bldr_manifest_builder.Controller = (*orderedFetchManifestBuilder)(nil)
+	_ bldr_manifest_builder.Controller = (*recordingFetchManifestBuilder)(nil)
 )
