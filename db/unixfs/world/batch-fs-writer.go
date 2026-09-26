@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
@@ -50,6 +51,10 @@ type pendingDir struct {
 // BatchFSWriter accumulates file, directory, and symlink entries keyed by
 // parent path and commits them under a single world transaction.
 //
+// File blobs are buffered in memory and published with the tree in one block
+// batch at Commit. The buffer drains to the world's block store early only
+// when it reaches its capacity bounds.
+//
 // Local-only: Commit bypasses ApplyWorldOp and mutates the world object via
 // AccessObjectState directly. Remote peers learn of the result only via
 // packfile sync of the new root ref.
@@ -75,6 +80,12 @@ type BatchFSWriter struct {
 	// that parent. The key encoding is produced by joinPathKey.
 	pending map[string]*pendingDir
 
+	// storage is the world storage cursor blobs are built against, opened by
+	// the first AddFile with data and released by Commit or Release.
+	storage *bucket_lookup.Cursor
+	// blobs buffers blob blocks until Commit stages them into the tree.
+	blobs *block.BufferedStore
+
 	metricsRecorder BatchFSWriterMetricsRecorder
 }
 
@@ -96,10 +107,9 @@ func NewBatchFSWriter(
 }
 
 // AddFile records a regular file entry to be created under parentPath at
-// Commit time. The file blob is built eagerly here via the same per-op blob
-// path as FsMknodWithContent (one btx.Write per blob); only the blob ref and
-// entry metadata are accumulated. No parent directory mutation happens
-// until Commit.
+// Commit time. The file blob is built eagerly into the writer's blob buffer;
+// only the blob ref and entry metadata are accumulated. No parent directory
+// mutation happens until Commit.
 func (b *BatchFSWriter) AddFile(
 	ctx context.Context,
 	parentPath []string,
@@ -124,25 +134,15 @@ func (b *BatchFSWriter) AddFile(
 		Bytes: dataLen,
 	})
 
-	// Build the blob in an isolated object. Mirrors FsMknodWithContent
-	// phase 1: exactly one btx.Write writes the blob blocks + computes the
-	// root BlockRef. Parent dir is NOT touched.
+	// Build the blob in an isolated transaction whose writes stay in the
+	// blob buffer. The parent dir is NOT touched.
 	var blobRef *block.BlockRef
 	if dataLen > 0 {
-		objRef, err := world.AccessObject(
-			ctx,
-			b.ws.AccessWorldState,
-			nil,
-			func(bcs *block.Cursor) error {
-				bcs.SetRefAtCursor(nil, true)
-				_, berr := blob.BuildBlob(ctx, dataLen, rdr, bcs, nil)
-				return berr
-			},
-		)
+		var err error
+		blobRef, err = b.buildBlob(ctx, dataLen, rdr)
 		if err != nil {
 			return err
 		}
-		blobRef = objRef.GetRootRef()
 	}
 
 	pd := b.pendingDirFor(parentPath)
@@ -161,6 +161,29 @@ func (b *BatchFSWriter) AddFile(
 		PendingEntries: pendingEntries,
 	})
 	return nil
+}
+
+// buildBlob writes a blob of dataLen bytes from rdr into the blob buffer and
+// returns its root reference.
+func (b *BatchFSWriter) buildBlob(ctx context.Context, dataLen int64, rdr io.Reader) (*block.BlockRef, error) {
+	if b.storage == nil {
+		storage, err := b.ws.BuildStorageCursor(ctx)
+		if err != nil {
+			return nil, err
+		}
+		b.storage = storage
+		b.blobs = block.NewBufferedStore(ctx, storage.GetBlockStore())
+	}
+
+	// The borrowed write buffer keeps the blob's root write from draining.
+	btx, bcs := b.storage.BuildTransactionWithStore(nil, b.blobs)
+	btx.SetWriteBuffer(b.blobs)
+	bcs.SetRefAtCursor(nil, true)
+	if _, err := blob.BuildBlob(ctx, dataLen, rdr, bcs, nil); err != nil {
+		return nil, err
+	}
+	ref, _, err := btx.Write(ctx, true)
+	return ref, err
 }
 
 // AddDir records an explicit directory entry under parentPath. The sync
@@ -238,10 +261,10 @@ func (b *BatchFSWriter) AddSymlink(
 // Commit flushes every accumulated entry to the world object under a single
 // AccessObjectState transaction. Touched directories are merged in
 // depth-ascending order so a parent directory exists in the FSTree before
-// any of its children are written. The trailing btx.Write inside
-// AccessObjectState walks the dirty tree bottom-up to produce a single
-// root-ref update.
-func (b *BatchFSWriter) Commit(ctx context.Context) error {
+// any of its children are written. The buffered blob blocks are staged into
+// the tree transaction, so the trailing btx.Write inside AccessObjectState
+// publishes them with the tree in one batch and a single root-ref update.
+func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 	if b.released {
 		return errors.New("batch writer released")
 	}
@@ -249,6 +272,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		return errors.New("batch writer already committed")
 	}
 	b.committed = true
+	defer b.releaseStorage()
 
 	if len(b.pending) == 0 {
 		b.recordBatchFSWriterMetric(ctx, BatchFSWriterMetric{
@@ -273,7 +297,25 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 		return unixfs_errors.ErrNotExist
 	}
 
+	// Borrow the buffered blob blocks until the tree write publishes them.
+	var blobs *block.PendingBatch
+	if b.blobs != nil {
+		blobs, err = b.blobs.TakePending(ctx)
+		if err != nil {
+			return err
+		}
+		defer func() { blobs.Complete(rerr) }()
+	}
+
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+		// Stage the blobs on every attempt: a replay runs on a new transaction.
+		if blobs != nil && len(blobs.Entries) != 0 {
+			btx := bcs.GetTransaction()
+			if err := btx.StageWrites(ctx, btx.GetStoreOps()).PutBlockBatch(ctx, blobs.Entries); err != nil {
+				return err
+			}
+		}
+
 		root, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_UNKNOWN)
 		if err != nil {
 			return err
@@ -539,20 +581,29 @@ func (b *BatchFSWriter) syncExistingFile(
 // Release discards any accumulated state without committing. Safe to call
 // after Commit; after Release the writer rejects all further calls.
 //
-// Released blobs already live in the world's block store (AddFile writes
-// them via AccessObject at record time, not at Commit time). Release does
-// not attempt to reclaim those blobs; they will be garbage-collected by
-// the block-store GC as part of normal world upkeep.
+// Buffered blobs are dropped. Blobs the buffer already drained for capacity
+// stay in the world's block store unreferenced until block-store GC
+// reclaims them.
 func (b *BatchFSWriter) Release() {
 	pendingDirs, pendingEntries := b.pendingMetricCounts()
 	b.released = true
 	b.pending = nil
+	b.releaseStorage()
 	b.recordBatchFSWriterMetric(context.Background(), BatchFSWriterMetric{
 		Stage:          "release",
 		PendingDirs:    pendingDirs,
 		PendingEntries: pendingEntries,
 		Released:       true,
 	})
+}
+
+// releaseStorage drops the blob buffer and releases the storage cursor.
+func (b *BatchFSWriter) releaseStorage() {
+	if b.storage != nil {
+		b.storage.Release()
+		b.storage = nil
+	}
+	b.blobs = nil
 }
 
 // checkOpen returns an error if the writer is no longer accepting entries.

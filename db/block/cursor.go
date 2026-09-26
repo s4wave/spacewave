@@ -135,13 +135,21 @@ func (c *Cursor) Detach(keepRefs bool) *Cursor {
 }
 
 // DetachTransaction creates a new ephemeral transaction rooted at the cursor.
+// The detached cursor reads through the source transaction's staged writes, so
+// it can load blocks the source staged but has not yet published.
 func (c *Cursor) DetachTransaction() *Cursor {
 	if c == nil {
 		return nil
 	}
 
-	// clone the cursor
-	nc := &Cursor{store: c.store, t: c.t}
+	// Clone the cursor, keeping the source's view of staged blocks.
+	store := c.store
+	if store == nil && c.t != nil {
+		if staged := c.t.GetStagedStore(); staged != nil {
+			store = staged
+		}
+	}
+	nc := &Cursor{store: store, t: c.t}
 	nc.pos = c.pos.Clone()
 	nc.pos.blkPreWrite = nil
 	nc.pos.isSubBlock = false
