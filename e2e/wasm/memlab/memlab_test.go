@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 		le.WithError(err).Fatal("launch browser")
 	}
 
-	if err := h.CompileScripts(".."); err != nil {
+	if err := h.CompileScripts(wasm.ScriptDir()); err != nil {
 		h.Release()
 		le.WithError(err).Fatal("compile test scripts")
 	}
