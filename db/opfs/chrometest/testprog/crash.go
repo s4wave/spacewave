@@ -96,7 +96,7 @@ func runEngineCrash(ctx context.Context, c *config, after, blocks bool) error {
 		_, _, err := store.PutBlock(ctx, []byte("uncommitted crash payload"), &block.PutOpts{Sync: true})
 		return err
 	}
-	return e.Apply(ctx, nil, []*engine.Record{{Key: []byte("\x01crash-marker"), Value: []byte("committed")}})
+	return e.Apply(ctx, []*engine.Record{{Key: []byte("\x01crash-marker"), Value: []byte("committed")}})
 }
 
 // verifyEngineCrash checks recovery through a fresh engine and public KV store.
