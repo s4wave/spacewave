@@ -1169,6 +1169,71 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	}
 }
 
+func TestFSHandleResourceReadStream(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	data := uploadTestPatternBytes(3*fsHandleMaxReadSize + 1000)
+	uploadTreeFileViaResource(t, ctx, rootSvc, "stream.bin", data)
+
+	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: "stream.bin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileRef := resClient.CreateResourceReference(fileResp.GetResourceId())
+	defer fileRef.Release()
+	fileClient, err := fileRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(fileClient)
+
+	// readStream collects one stream, checking every frame fits a response.
+	readStream := func(offset, length int64) []byte {
+		t.Helper()
+		strm, err := fileSvc.ReadStream(ctx, &s4wave_unixfs.HandleReadStreamRequest{
+			Offset: offset,
+			Length: length,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer strm.Close()
+		var out []byte
+		for {
+			frame, err := strm.Recv()
+			if err == io.EOF {
+				return out
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(frame.GetData()) > fsHandleMaxReadSize {
+				t.Fatalf("frame of %d bytes exceeds %d", len(frame.GetData()), fsHandleMaxReadSize)
+			}
+			out = append(out, frame.GetData()...)
+		}
+	}
+
+	if got := readStream(0, 0); !slices.Equal(got, data) {
+		t.Fatalf("whole file: read %d bytes, want %d matching", len(got), len(data))
+	}
+	if got := readStream(1000, 2*fsHandleMaxReadSize); !slices.Equal(got, data[1000:1000+2*fsHandleMaxReadSize]) {
+		t.Fatalf("range: read %d bytes, want %d matching", len(got), 2*fsHandleMaxReadSize)
+	}
+	if got := readStream(int64(len(data))-10, 100); !slices.Equal(got, data[len(data)-10:]) {
+		t.Fatalf("past end: read %d bytes, want the last 10", len(got))
+	}
+}
+
 func uploadTreeFileViaResource(
 	t *testing.T,
 	ctx context.Context,

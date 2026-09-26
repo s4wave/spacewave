@@ -386,6 +386,62 @@ export const HandleReadAtResponse: MessageType<HandleReadAtResponse> =
   })
 
 /**
+ * HandleReadStreamRequest is the request for ReadStream.
+ *
+ * @generated from message s4wave.unixfs.HandleReadStreamRequest
+ */
+export interface HandleReadStreamRequest {
+  /**
+   * Offset is the byte offset to start reading from.
+   *
+   * @generated from field: int64 offset = 1;
+   */
+  offset?: bigint
+  /**
+   * Length is the number of bytes to read. A length <= 0 reads to the end of
+   * the file.
+   *
+   * @generated from field: int64 length = 2;
+   */
+  length?: bigint
+}
+
+export const HandleReadStreamRequest: MessageType<HandleReadStreamRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.unixfs.HandleReadStreamRequest',
+    fields: [
+      { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 2, name: 'length', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * HandleReadStreamResponse is one frame of a ReadStream. Frames arrive in
+ * file order, each at most the resource response limit, and the stream ends
+ * after the last requested byte or at the end of the file.
+ *
+ * @generated from message s4wave.unixfs.HandleReadStreamResponse
+ */
+export interface HandleReadStreamResponse {
+  /**
+   * Data is the next bytes of the file.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data?: Uint8Array
+}
+
+export const HandleReadStreamResponse: MessageType<HandleReadStreamResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.unixfs.HandleReadStreamResponse',
+    fields: [
+      { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * HandleWriteAtRequest is the request for WriteAt.
  *
  * @generated from message s4wave.unixfs.HandleWriteAtRequest

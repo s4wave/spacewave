@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"context"
 	"io"
 	"math"
 	"os"
@@ -19,8 +20,35 @@ import (
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 )
 
-// readChunkSize is the size of chunks when reading file data.
-const readChunkSize = 32 * 1024
+// streamFile writes length bytes of the file behind svc from offset to w
+// through one ReadStream call. A length <= 0 writes to the end of the file.
+func streamFile(
+	ctx context.Context,
+	svc s4wave_unixfs.SRPCFSHandleResourceServiceClient,
+	offset, length int64,
+	w io.Writer,
+) error {
+	strm, err := svc.ReadStream(ctx, &s4wave_unixfs.HandleReadStreamRequest{
+		Offset: offset,
+		Length: length,
+	})
+	if err != nil {
+		return errors.Wrap(err, "read file")
+	}
+	defer strm.Close()
+	for {
+		frame, err := strm.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "read file")
+		}
+		if _, err := w.Write(frame.GetData()); err != nil {
+			return errors.Wrap(err, "write output")
+		}
+	}
+}
 
 // writeChunkSize is the size of chunks when writing file data.
 const writeChunkSize = 32 * 1024
@@ -396,47 +424,8 @@ func buildFsCatCommand() *cli.Command {
 			}
 			defer pathCleanup()
 
-			ctx := c.Context
-			pos := int64(offset) //nolint:gosec // the MaxInt64 check above bounds the UnixFS request offset.
-			var totalRead uint64
-
-			for {
-				chunkLen := int64(readChunkSize)
-				if limit > 0 {
-					if totalRead >= limit {
-						break
-					}
-					remaining := min(limit-totalRead, math.MaxInt64)
-					remainingInt := int64(remaining) //nolint:gosec // remaining is capped at MaxInt64 above.
-					if chunkLen > remainingInt {
-						chunkLen = remainingInt
-					}
-				}
-
-				resp, err := svc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
-					Offset: pos,
-					Length: chunkLen,
-				})
-				if err != nil {
-					return errors.Wrap(err, "read at offset "+strconv.FormatInt(pos, 10))
-				}
-
-				data := resp.GetData()
-				if len(data) > 0 {
-					_, err = os.Stdout.Write(data)
-					if err != nil {
-						return errors.Wrap(err, "write stdout")
-					}
-					pos += int64(len(data))
-					totalRead += uint64(len(data))
-				}
-
-				if resp.GetEof() || len(data) == 0 {
-					break
-				}
-			}
-
-			return nil
+			//nolint:gosec // the MaxInt64 check above bounds offset and limit.
+			return streamFile(c.Context, svc, int64(offset), int64(limit), os.Stdout)
 		},
 	}
 }

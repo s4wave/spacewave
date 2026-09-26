@@ -26,6 +26,8 @@ service FSHandleResourceService {
 
   rpc ReadAt(HandleReadAtRequest) returns (HandleReadAtResponse);
 
+  rpc ReadStream(HandleReadStreamRequest) returns (stream HandleReadStreamResponse);
+
   rpc WriteAt(HandleWriteAtRequest) returns (HandleWriteAtResponse);
 
   rpc Truncate(HandleTruncateRequest) returns (HandleTruncateResponse);
@@ -130,6 +132,23 @@ message HandleReadAtResponse {
   int64 bytes_read = 2;
   // Eof indicates if end of file was reached.
   bool eof = 3;
+}
+
+// HandleReadStreamRequest is the request for ReadStream.
+message HandleReadStreamRequest {
+  // Offset is the byte offset to start reading from.
+  int64 offset = 1;
+  // Length is the number of bytes to read. A length <= 0 reads to the end of
+  // the file.
+  int64 length = 2;
+}
+
+// HandleReadStreamResponse is one frame of a ReadStream. Frames arrive in
+// file order, each at most the resource response limit, and the stream ends
+// after the last requested byte or at the end of the file.
+message HandleReadStreamResponse {
+  // Data is the next bytes of the file.
+  bytes data = 1;
 }
 
 // HandleWriteAtRequest is the request for WriteAt.

@@ -25,6 +25,8 @@ import {
   HandleReaddirResponse,
   HandleReadlinkRequest,
   HandleReadlinkResponse,
+  HandleReadStreamRequest,
+  HandleReadStreamResponse,
   HandleRemoveRequest,
   HandleRemoveResponse,
   HandleRenameRequest,
@@ -81,6 +83,15 @@ export const FSHandleResourceServiceDefinition = {
       I: HandleReadAtRequest,
       O: HandleReadAtResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.unixfs.FSHandleResourceService.ReadStream
+     */
+    ReadStream: {
+      name: 'ReadStream',
+      I: HandleReadStreamRequest,
+      O: HandleReadStreamResponse,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * @generated from rpc s4wave.unixfs.FSHandleResourceService.WriteAt
@@ -249,6 +260,14 @@ export interface FSHandleResourceService {
   ): Promise<HandleReadAtResponse>
 
   /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.ReadStream
+   */
+  ReadStream(
+    request: HandleReadStreamRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleReadStreamResponse>
+
+  /**
    * @generated from rpc s4wave.unixfs.FSHandleResourceService.WriteAt
    */
   WriteAt(
@@ -401,6 +420,15 @@ export interface FSHandleResourceServiceHandler {
   ): Promise<HandleReadAtResponse>
 
   /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.ReadStream
+   */
+  ReadStream(
+    request: HandleReadStreamRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleReadStreamResponse>
+
+  /**
    * @generated from rpc s4wave.unixfs.FSHandleResourceService.WriteAt
    */
   WriteAt(
@@ -548,6 +576,7 @@ export class FSHandleResourceServiceClient implements FSHandleResourceService {
     this.Lookup = this.Lookup.bind(this)
     this.LookupPath = this.LookupPath.bind(this)
     this.ReadAt = this.ReadAt.bind(this)
+    this.ReadStream = this.ReadStream.bind(this)
     this.WriteAt = this.WriteAt.bind(this)
     this.Truncate = this.Truncate.bind(this)
     this.GetSize = this.GetSize.bind(this)
@@ -613,6 +642,23 @@ export class FSHandleResourceServiceClient implements FSHandleResourceService {
       abortSignal || undefined,
     )
     return HandleReadAtResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.ReadStream
+   */
+  ReadStream(
+    request: HandleReadStreamRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<HandleReadStreamResponse> {
+    const requestMsg = HandleReadStreamRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      FSHandleResourceServiceDefinition.methods.ReadStream.name,
+      HandleReadStreamRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(HandleReadStreamResponse)(result)
   }
 
   /**
