@@ -16,15 +16,14 @@ import (
 // most twice. A hash mismatch drops the spans holding the target so a later
 // read fetches it again.
 //
-// Returns nil when the pack index does not hold the block.
-func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlock, error) {
+// key is the index key of ref's hash. Returns nil when the pack index does not
+// hold the block.
+func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockRef) (*block.StoredBlock, error) {
 	if err := e.ensureIndexLoaded(ctx); err != nil {
 		return nil, err
 	}
 
 	var (
-		ref         *block.BlockRef
-		refErr      error
 		off, end    int64
 		windowStart int64
 		windowEnd   int64
@@ -36,15 +35,11 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte) (*block.StoredBlo
 		if !found {
 			return
 		}
-		ref, refErr = parseBlockRef(entry)
 		off, end = entryExtent(entry)
 		windowStart, windowEnd = e.semanticWindowLocked(entry)
 	})
 	if !found {
 		return nil, nil
-	}
-	if refErr != nil {
-		return nil, refErr
 	}
 
 	for range 3 {

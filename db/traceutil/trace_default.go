@@ -17,6 +17,12 @@ func NewTask(ctx context.Context, taskType string) (context.Context, *Task) {
 	return trace.NewTask(ctx, taskType)
 }
 
+// IsEnabled reports whether tracing is active. Callers check it before
+// building an expensive log message.
+func IsEnabled() bool {
+	return trace.IsEnabled()
+}
+
 // Log emits a single trace log message in the given category.
 func Log(ctx context.Context, category string, message string) {
 	trace.Log(ctx, category, message)
