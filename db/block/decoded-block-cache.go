@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"hash/maphash"
 	"strconv"
 	"strings"
 	"sync"
@@ -101,8 +100,6 @@ type DecodedBlockCache struct {
 	clearEpoch atomic.Uint64
 	// refEpochs advance on InvalidateRef, one per stripe.
 	refEpochs [decodedBlockCacheStripes]atomic.Uint64
-	// stripeSeed hashes refs to refEpochs stripes.
-	stripeSeed maphash.Seed
 }
 
 // decodedBlockCacheKey identifies one decoded form of a block: its ref, type,
@@ -150,16 +147,13 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	return newDecodedBlockCacheScope(pool, true), nil
 }
 
-// newDecodedBlockCacheScope allocates a scope in pool. The stripe seed is made
-// here, not at package init, because JavaScript hosts such as Cloudflare
-// Workers forbid generating random values while a module initializes.
+// newDecodedBlockCacheScope allocates a scope in pool.
 func newDecodedBlockCacheScope(pool *decodedBlockPool, ownsPool bool) *DecodedBlockCache {
 	id := pool.nextScope.Add(1)
 	return &DecodedBlockCache{
-		pool:       pool,
-		ownsPool:   ownsPool,
-		scope:      strconv.FormatUint(id, 36) + "/",
-		stripeSeed: maphash.MakeSeed(),
+		pool:     pool,
+		ownsPool: ownsPool,
+		scope:    strconv.FormatUint(id, 36) + "/",
 	}
 }
 
@@ -362,8 +356,15 @@ func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToke
 }
 
 // refEpoch returns the invalidation epoch of the stripe refKey hashes to.
+// Ref keys encode content hashes, so unseeded FNV-1a spreads them evenly; a
+// collision only invalidates more entries than needed.
 func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
-	return &c.refEpochs[maphash.String(c.stripeSeed, refKey)%decodedBlockCacheStripes]
+	h := uint64(14695981039346656037)
+	for i := range len(refKey) {
+		h ^= uint64(refKey[i])
+		h *= 1099511628211
+	}
+	return &c.refEpochs[h%decodedBlockCacheStripes]
 }
 
 // cloneDecodedBlockHit clones a cached block for the caller and records the
