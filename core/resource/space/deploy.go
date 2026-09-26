@@ -62,6 +62,9 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 			if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, objectKey); err != nil {
 				return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type").Error())
 			}
+			if err := checkManifestSetSupersedes(ctx, ws, objectKey, manifestID, refs); err != nil {
+				return sendDeployManifestsResult(strm, err.Error())
+			}
 		}
 	}
 
@@ -123,6 +126,9 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 			if err := bldr_manifest_world.CheckManifestStoreType(ctx, txws, objectKey); err != nil {
 				return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type in transaction").Error())
 			}
+			if err := checkManifestSetSupersedes(ctx, txws, objectKey, manifestID, refs); err != nil {
+				return sendDeployManifestsResult(strm, err.Error())
+			}
 		} else if _, err := bldr_manifest_world.CreateManifestStore(ctx, txws, objectKey); err != nil {
 			return sendDeployManifestsResult(strm, errors.Wrap(err, "create manifest store").Error())
 		}
@@ -183,6 +189,37 @@ func validateManifestSet(refs []*bldr_manifest.ManifestRef) (string, error) {
 		platforms[platformID] = struct{}{}
 	}
 	return manifestID, nil
+}
+
+// checkManifestSetSupersedes rejects a set the host would never start. A Space
+// runs the highest revision of each manifest ID and platform, so a build at or
+// below a different deployed build publishes without effect. Redeploying the
+// same build is allowed.
+func checkManifestSetSupersedes(
+	ctx context.Context,
+	ws world.WorldState,
+	objectKey, manifestID string,
+	refs []*bldr_manifest.ManifestRef,
+) error {
+	deployed, _, err := bldr_manifest_world.CollectManifestsForManifestID(ctx, ws, manifestID, nil, objectKey)
+	if err != nil {
+		return errors.Wrap(err, "collect deployed manifests")
+	}
+	for _, ref := range refs {
+		meta := ref.GetMeta()
+		for _, current := range deployed {
+			if current.Manifest.GetMeta().GetPlatformId() != meta.GetPlatformId() ||
+				current.GetRev() < meta.GetRev() ||
+				current.ManifestRef.GetRootRef().EqualVT(ref.GetManifestRef().GetRootRef()) {
+				continue
+			}
+			return errors.Errorf(
+				"%s %s rev %d would not run: the Space already holds rev %d; raise the manifest rev above it and rebuild",
+				manifestID, meta.GetPlatformId(), meta.GetRev(), current.GetRev(),
+			)
+		}
+	}
+	return nil
 }
 
 func newManifestTransformer(le *logrus.Entry, tc *block_transform.Config) (block.Transformer, error) {
