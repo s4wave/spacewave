@@ -139,7 +139,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 
 	// Supply the default in-memory storage when no backend was requested.
 	if len(storages) == 0 {
-		storages = []storage.Storage{storage_inmem.NewInmemStorage()}
+		storages = []storage.Storage{storage_inmem.NewInmemStorage(storageID)}
 	}
 
 	// Register each configured storage backend and reject nil entries.

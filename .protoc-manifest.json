@@ -517,7 +517,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/storage/inmem": {
-      "hash": "ae6617a7282de76f3868704232f62cdfc32da2d45aa2aab9c452ce0002464356",
+      "hash": "12df3468b81232fa01e80dff2a0b3b5861d43944e511d24ee06b09cef054e16c",
       "generatedFiles": [
         "bldr/storage/inmem/config.pb.go",
         "bldr/storage/inmem/config.pb.ts"

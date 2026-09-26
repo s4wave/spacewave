@@ -46,7 +46,10 @@ func TestSelectedHostStorage(t *testing.T) {
 	}
 	t.Cleanup(release)
 	for _, id := range []string{"default", "left/app", "right/app"} {
-		release, err := hostBus.AddController(ctx, storage_inmem.NewController(id), nil)
+		st := storage_inmem.NewInmemStorage(id)
+		st.AddFactories(hostBus, hostResolver)
+		info := controller.NewInfo(storage_inmem.ControllerID, storage_inmem.Version, "")
+		release, err := hostBus.AddController(ctx, storage_controller.BuildStorageController(id, []storage.Storage{st}, info), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

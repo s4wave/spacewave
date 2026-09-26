@@ -16,6 +16,8 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
+	"github.com/s4wave/spacewave/bldr/storage"
+	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
@@ -119,7 +121,13 @@ func BuildTestbedWithSchedulerConfig(
 
 	// attach the inmem storage controller
 	storageID := default_storage.StorageID
-	storageCtrl := storage_inmem.NewController(storageID)
+	st := storage_inmem.NewInmemStorage(storageID)
+	st.AddFactories(b, sr)
+	storageCtrl := storage_controller.BuildStorageController(
+		storageID,
+		[]storage.Storage{st},
+		controller.NewInfo(storage_inmem.ControllerID, storage_inmem.Version, "bldr testbed storage"),
+	)
 	relStorageCtrl, err := b.AddController(ctx, storageCtrl, nil)
 	if err != nil {
 		rel()
