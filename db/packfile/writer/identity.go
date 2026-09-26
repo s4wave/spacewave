@@ -33,7 +33,6 @@ func DigestSortedKeys(keys [][]byte) []byte {
 func PolicyTag(policy Policy) string {
 	return "max-bytes=" + strconv.FormatInt(policy.MaxPackBytes, 10) +
 		";max-blocks=" + strconv.FormatUint(policy.MaxBlocksPerPack, 10) +
-		";bloom-expected=" + strconv.FormatUint(policy.BloomExpectedBlocks, 10) +
 		";bloom-fp=" + strconv.FormatFloat(policy.BloomFalsePositive, 'g', -1, 64) +
 		";require-bloom=" + strconv.FormatBool(policy.RequireBloomFilter) +
 		";require-count=" + strconv.FormatBool(policy.RequireBlockCount) +

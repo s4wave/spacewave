@@ -1014,9 +1014,6 @@ func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 			stats.BloomInvalidCount,
 		)
 	}
-	if stats.BloomParameterShapeCount != 1 {
-		t.Fatalf("BloomParameterShapeCount = %d, want 1", stats.BloomParameterShapeCount)
-	}
 	if stats.BloomMaxFalsePositiveRate <= 0 {
 		t.Fatalf("BloomMaxFalsePositiveRate = %f, want positive", stats.BloomMaxFalsePositiveRate)
 	}

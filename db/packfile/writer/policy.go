@@ -13,37 +13,32 @@ const (
 
 // Policy describes pack construction limits and required metadata.
 type Policy struct {
-	MaxPackBytes        int64
-	MaxBlocksPerPack    uint64
-	BloomExpectedBlocks uint64
-	BloomFalsePositive  float64
-	RequireBloomFilter  bool
-	RequireBlockCount   bool
-	RequireCreatedAt    bool
+	MaxPackBytes       int64
+	MaxBlocksPerPack   uint64
+	BloomFalsePositive float64
+	RequireBloomFilter bool
+	RequireBlockCount  bool
+	RequireCreatedAt   bool
 }
 
 // DefaultPolicy returns the shared Spacewave pack construction policy.
 func DefaultPolicy() Policy {
 	return Policy{
-		MaxPackBytes:        DefaultMaxPackBytes,
-		MaxBlocksPerPack:    DefaultMaxBlocksPerPack,
-		BloomExpectedBlocks: DefaultMaxBlocksPerPack,
-		BloomFalsePositive:  DefaultBloomFalsePositiveRate,
-		RequireBloomFilter:  true,
-		RequireBlockCount:   true,
-		RequireCreatedAt:    true,
+		MaxPackBytes:       DefaultMaxPackBytes,
+		MaxBlocksPerPack:   DefaultMaxBlocksPerPack,
+		BloomFalsePositive: DefaultBloomFalsePositiveRate,
+		RequireBloomFilter: true,
+		RequireBlockCount:  true,
+		RequireCreatedAt:   true,
 	}
 }
 
-// NewBloomFilter creates an empty bloom filter for the policy.
-func (p Policy) NewBloomFilter() *bloom.Filter {
-	n := p.BloomExpectedBlocks
-	if n == 0 {
-		n = DefaultMaxBlocksPerPack
-	}
+// NewBloomFilter creates an empty bloom filter sized for a pack of
+// blockCount blocks at the policy false-positive rate.
+func (p Policy) NewBloomFilter(blockCount uint64) *bloom.Filter {
 	fp := p.BloomFalsePositive
 	if fp <= 0 {
 		fp = DefaultBloomFalsePositiveRate
 	}
-	return bloom.NewFilter(uint(n), fp)
+	return bloom.NewFilter(uint(blockCount), fp)
 }

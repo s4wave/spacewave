@@ -379,8 +379,6 @@ message WatchSyncStatusResponse {
   uint32 pack_bloom_missing_count = 28;
   // PackBloomInvalidCount is the number of entries with malformed bloom metadata.
   uint32 pack_bloom_invalid_count = 29;
-  // PackBloomParameterShapeCount is the summed per-store count of bloom parameter shapes.
-  uint32 pack_bloom_parameter_shape_count = 30;
   // PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
   double pack_bloom_max_false_positive_rate = 31;
   // PackBloomRiskPackCount is the number of packs above the bloom false-positive target.

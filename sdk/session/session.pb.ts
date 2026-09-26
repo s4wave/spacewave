@@ -1505,12 +1505,6 @@ export interface WatchSyncStatusResponse {
    */
   packBloomInvalidCount?: number
   /**
-   * PackBloomParameterShapeCount is the summed per-store count of bloom parameter shapes.
-   *
-   * @generated from field: uint32 pack_bloom_parameter_shape_count = 30;
-   */
-  packBloomParameterShapeCount?: number
-  /**
    * PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
    *
    * @generated from field: double pack_bloom_max_false_positive_rate = 31;
@@ -1847,12 +1841,6 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
       {
         no: 29,
         name: 'pack_bloom_invalid_count',
-        kind: 'scalar',
-        T: ScalarType.UINT32,
-      },
-      {
-        no: 30,
-        name: 'pack_bloom_parameter_shape_count',
         kind: 'scalar',
         T: ScalarType.UINT32,
       },

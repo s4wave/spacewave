@@ -120,8 +120,6 @@ type Snapshot struct {
 	BloomMissingCount int
 	// BloomInvalidCount is the number of entries with malformed bloom metadata.
 	BloomInvalidCount int
-	// BloomParameterShapeCount is the summed per-store count of bloom parameter shapes.
-	BloomParameterShapeCount int
 	// BloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
 	BloomMaxFalsePositiveRate float64
 	// BloomRiskPackCount is the number of packs above the bloom false-positive target.
@@ -600,7 +598,6 @@ func BuildSnapshot(states []state) Snapshot {
 		snap.BloomFilterCount += stats.BloomFilterCount
 		snap.BloomMissingCount += stats.BloomMissingCount
 		snap.BloomInvalidCount += stats.BloomInvalidCount
-		snap.BloomParameterShapeCount += stats.BloomParameterShapeCount
 		if snap.BloomMaxFalsePositiveRate < stats.BloomMaxFalsePositiveRate {
 			snap.BloomMaxFalsePositiveRate = stats.BloomMaxFalsePositiveRate
 		}

@@ -228,7 +228,6 @@ func syncStatusFromSpacewaveTelemetry(
 		PackBloomFilterCount:              uint32Count(telemetry.BloomFilterCount),
 		PackBloomMissingCount:             uint32Count(telemetry.BloomMissingCount),
 		PackBloomInvalidCount:             uint32Count(telemetry.BloomInvalidCount),
-		PackBloomParameterShapeCount:      uint32Count(telemetry.BloomParameterShapeCount),
 		PackBloomMaxFalsePositiveRate:     telemetry.BloomMaxFalsePositiveRate,
 		PackBloomRiskPackCount:            uint32Count(telemetry.BloomRiskPackCount),
 		PackLookupCount:                   telemetry.LookupCount,

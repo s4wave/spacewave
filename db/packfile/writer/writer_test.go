@@ -108,7 +108,7 @@ func TestPackBlocks(t *testing.T) {
 	if bf == nil {
 		t.Fatal("bloom filter deserialized to nil")
 	}
-	policyBloom := DefaultPolicy().NewBloomFilter()
+	policyBloom := DefaultPolicy().NewBloomFilter(uint64(len(blocks)))
 	if bf.Cap() != policyBloom.Cap() {
 		t.Fatalf("bloom cap = %d, want %d", bf.Cap(), policyBloom.Cap())
 	}
@@ -165,9 +165,18 @@ func TestPackBlocks(t *testing.T) {
 	}
 }
 
-func TestPackBlocksPolicyFalsePositiveRateAtBlockCeiling(t *testing.T) {
+// TestPackBlocksPolicyFalsePositiveRate checks the observed false-positive
+// rate of packed filters from a small pack up to the block ceiling.
+func TestPackBlocksPolicyFalsePositiveRate(t *testing.T) {
 	policy := DefaultPolicy()
-	blockCount := int(policy.MaxBlocksPerPack)
+	for _, blockCount := range []int{64, int(policy.MaxBlocksPerPack)} {
+		t.Run(strconv.Itoa(blockCount), func(t *testing.T) {
+			testPackBlocksFalsePositiveRate(t, policy, blockCount)
+		})
+	}
+}
+
+func testPackBlocksFalsePositiveRate(t *testing.T, policy Policy, blockCount int) {
 	blocks := make([]*hash.Hash, 0, blockCount)
 
 	var buf bytes.Buffer

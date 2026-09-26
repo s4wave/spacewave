@@ -1119,8 +1119,6 @@ type WatchSyncStatusResponse struct {
 	PackBloomMissingCount uint32 `protobuf:"varint,28,opt,name=pack_bloom_missing_count,json=packBloomMissingCount,proto3" json:"packBloomMissingCount,omitempty"`
 	// PackBloomInvalidCount is the number of entries with malformed bloom metadata.
 	PackBloomInvalidCount uint32 `protobuf:"varint,29,opt,name=pack_bloom_invalid_count,json=packBloomInvalidCount,proto3" json:"packBloomInvalidCount,omitempty"`
-	// PackBloomParameterShapeCount is the summed per-store count of bloom parameter shapes.
-	PackBloomParameterShapeCount uint32 `protobuf:"varint,30,opt,name=pack_bloom_parameter_shape_count,json=packBloomParameterShapeCount,proto3" json:"packBloomParameterShapeCount,omitempty"`
 	// PackBloomMaxFalsePositiveRate is the highest estimated bloom false-positive rate.
 	PackBloomMaxFalsePositiveRate float64 `protobuf:"fixed64,31,opt,name=pack_bloom_max_false_positive_rate,json=packBloomMaxFalsePositiveRate,proto3" json:"packBloomMaxFalsePositiveRate,omitempty"`
 	// PackBloomRiskPackCount is the number of packs above the bloom false-positive target.
@@ -1405,13 +1403,6 @@ func (x *WatchSyncStatusResponse) GetPackBloomMissingCount() uint32 {
 func (x *WatchSyncStatusResponse) GetPackBloomInvalidCount() uint32 {
 	if x != nil {
 		return x.PackBloomInvalidCount
-	}
-	return 0
-}
-
-func (x *WatchSyncStatusResponse) GetPackBloomParameterShapeCount() uint32 {
-	if x != nil {
-		return x.PackBloomParameterShapeCount
 	}
 	return 0
 }
@@ -4058,7 +4049,6 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	r.PackBloomFilterCount = m.PackBloomFilterCount
 	r.PackBloomMissingCount = m.PackBloomMissingCount
 	r.PackBloomInvalidCount = m.PackBloomInvalidCount
-	r.PackBloomParameterShapeCount = m.PackBloomParameterShapeCount
 	r.PackBloomMaxFalsePositiveRate = m.PackBloomMaxFalsePositiveRate
 	r.PackBloomRiskPackCount = m.PackBloomRiskPackCount
 	r.PackLookupCount = m.PackLookupCount
@@ -6054,9 +6044,6 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 		return false
 	}
 	if this.PackBloomInvalidCount != that.PackBloomInvalidCount {
-		return false
-	}
-	if this.PackBloomParameterShapeCount != that.PackBloomParameterShapeCount {
 		return false
 	}
 	if this.PackBloomMaxFalsePositiveRate != that.PackBloomMaxFalsePositiveRate {
@@ -9494,11 +9481,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("packBloomInvalidCount")
 		s.WriteUint32(x.PackBloomInvalidCount)
 	}
-	if x.PackBloomParameterShapeCount != 0 || s.HasField("packBloomParameterShapeCount") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("packBloomParameterShapeCount")
-		s.WriteUint32(x.PackBloomParameterShapeCount)
-	}
 	if x.PackBloomMaxFalsePositiveRate != 0 || s.HasField("packBloomMaxFalsePositiveRate") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("packBloomMaxFalsePositiveRate")
@@ -9780,9 +9762,6 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "pack_bloom_invalid_count", "packBloomInvalidCount":
 			s.AddField("pack_bloom_invalid_count")
 			x.PackBloomInvalidCount = s.ReadUint32()
-		case "pack_bloom_parameter_shape_count", "packBloomParameterShapeCount":
-			s.AddField("pack_bloom_parameter_shape_count")
-			x.PackBloomParameterShapeCount = s.ReadUint32()
 		case "pack_bloom_max_false_positive_rate", "packBloomMaxFalsePositiveRate":
 			s.AddField("pack_bloom_max_false_positive_rate")
 			x.PackBloomMaxFalsePositiveRate = s.ReadFloat64()
@@ -15081,13 +15060,6 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0xf9
 	}
-	if m.PackBloomParameterShapeCount != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomParameterShapeCount))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xf0
-	}
 	if m.PackBloomInvalidCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PackBloomInvalidCount))
 		i--
@@ -19039,7 +19011,6 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomFilterCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomMissingCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomInvalidCount)
-	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomParameterShapeCount)
 	n += protobuf_go_lite.SizeFixed64NonZero(2, m.PackBloomMaxFalsePositiveRate)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackBloomRiskPackCount)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.PackLookupCount)
@@ -20644,10 +20615,6 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	if x.PackBloomInvalidCount != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_bloom_invalid_count")
 		protobuf_go_lite.TextWriteUint(&sb, x.PackBloomInvalidCount)
-	}
-	if x.PackBloomParameterShapeCount != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_bloom_parameter_shape_count")
-		protobuf_go_lite.TextWriteUint(&sb, x.PackBloomParameterShapeCount)
 	}
 	if x.PackBloomMaxFalsePositiveRate != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_bloom_max_false_positive_rate")
@@ -23829,15 +23796,6 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PackBloomInvalidCount = 0
 			m.PackBloomInvalidCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 30:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PackBloomParameterShapeCount", wireType)
-			}
-			m.PackBloomParameterShapeCount = 0
-			m.PackBloomParameterShapeCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

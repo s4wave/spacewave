@@ -35,17 +35,13 @@ type PackResult struct {
 type BlockIterator func() (h *hash.Hash, blk *block.StoredBlock, err error)
 
 // PackBlocks packs blocks from the iterator into a kvfile and computes a bloom
-// filter. Each value is the encoded block.BlockObject of the block's bytes and
-// refs, so every block must carry known refs. Returns the pack result or an
-// error.
+// filter sized to the packed block count. Each value is the encoded
+// block.BlockObject of the block's bytes and refs, so every block must carry
+// known refs.
 func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 	packHash := sha256.New()
 	kvw := kvfile.NewWriter(io.MultiWriter(w, packHash))
 
-	policy := DefaultPolicy()
-	bf := policy.NewBloomFilter()
-
-	var count uint64
 	var keys [][]byte
 	for {
 		h, blk, err := iter()
@@ -67,17 +63,20 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 		if err := kvw.WriteValue(key, bytes.NewReader(value)); err != nil {
 			return nil, errors.Wrap(err, "writing block to kvfile")
 		}
-		bf.Add(key)
 		keys = append(keys, bytes.Clone(key))
-		count++
 	}
 
 	if err := kvw.Close(); err != nil {
 		return nil, errors.Wrap(err, "closing kvfile writer")
 	}
 
-	bloomProto := bloom.NewBloom(bf)
-	bloomBytes, err := bloomProto.MarshalBlock()
+	policy := DefaultPolicy()
+	count := uint64(len(keys))
+	bf := policy.NewBloomFilter(count)
+	for _, key := range keys {
+		bf.Add(key)
+	}
+	bloomBytes, err := bloom.NewBloom(bf).MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshaling bloom filter")
 	}
