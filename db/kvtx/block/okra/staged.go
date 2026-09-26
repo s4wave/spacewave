@@ -33,6 +33,15 @@ func stagedCursor(ctx context.Context, tree *block.Cursor) *block.Cursor {
 	return cursor
 }
 
+// writeStagedBlock writes a finished page or value block into the staging
+// store of the tree cursor's transaction and returns its reference.
+func writeStagedBlock(ctx context.Context, tree *block.Cursor, blk block.Block) (*block.BlockRef, error) {
+	cursor := stagedCursor(ctx, tree)
+	cursor.SetBlock(blk, true)
+	ref, _, err := cursor.GetTransaction().WriteAtRoot(ctx, false, nil)
+	return ref, err
+}
+
 // valueMaterializationStore returns the store to write staged blocks against:
 // the untracked store while a GC WAL append is in progress, else the store.
 func valueMaterializationStore(store block.StoreOps) block.StoreOps {

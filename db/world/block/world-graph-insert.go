@@ -1,23 +1,15 @@
 package world_block
 
 import (
+	"cmp"
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/cayley/graph"
-	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
-	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/kvtx"
-	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
-	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
-	"github.com/s4wave/spacewave/db/kvtx/hashmap"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
-
-// graphImportBatchSize is the number of deltas a fresh graph index import
-// applies per Cayley call.
-const graphImportBatchSize = 8192
 
 // InsertGraphQuads inserts new, unique relationships in one graph index update.
 // It validates all endpoints before writing and records the same endpoint
@@ -35,14 +27,18 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 		return err
 	}
 
-	seen := make(map[string]struct{}, len(quads))
-	deltas := make([]graph.Delta, len(quads))
+	// Cayley drops some repeats within one call, so reject them first.
+	if err := requireUniqueGraphQuads(quads); err != nil {
+		return err
+	}
+
 	// Keep first-seen order while counting both ends of every relationship.
 	// A shared endpoint needs one lookup and one revision mutation per batch.
 	type endpointUpdate struct {
 		state *ObjectState
 		count uint64
 	}
+	deltas := make([]graph.Delta, len(quads))
 	endpointIndexes := make(map[string]int)
 	var endpoints []endpointUpdate
 	for i, q := range quads {
@@ -54,11 +50,6 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			return err
 		}
 		deltas[i] = graph.Delta{Quad: cq, Action: graph.Add}
-		key := cq.NQuad()
-		if _, exists := seen[key]; exists {
-			return &graph.DeltaError{Delta: deltas[i], Err: graph.ErrQuadExists}
-		}
-		seen[key] = struct{}{}
 		for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
 			key, err := world.GraphValueToKey(value)
 			if err != nil {
@@ -76,7 +67,7 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			endpoints = append(endpoints, endpointUpdate{state: state, count: 1})
 		}
 	}
-	if err := t.insertGraphDeltas(ctx, deltas); err != nil {
+	if err := t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		return err
 	}
 
@@ -96,44 +87,30 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 	return nil
 }
 
-// insertGraphDeltas bulk-builds a fresh index instead of rewriting its pages
-// for every Cayley key. Existing graphs retain their incremental update path.
-func (t *WorldState) insertGraphDeltas(ctx context.Context, deltas []graph.Delta) error {
-	_, packed := t.graphTree.(*kvtx_block_okra.Tx)
-	if !packed || len(deltas) < 2 {
-		return t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{})
-	}
-	existing, err := t.LookupGraphQuads(ctx, world.NewGraphQuad("", "", "", ""), 1)
-	if err != nil {
-		return err
-	}
-	if len(existing) != 0 {
-		return t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{})
-	}
-
-	index := hashmap.NewBTreeMap[[]byte]()
-	opts := graph.Options{cayley_kv.OptAssumeDefaultIdx: true}
-	staged, err := kvtx_cayley.NewGraph(ctx, hashmap.NewHashmapKvtx(index), opts)
-	if err != nil {
-		return errors.Wrap(err, "create graph import index")
-	}
-	defer staged.Close()
-	// Bounded batches keep Cayley's per-call delta indexes small. Each batch
-	// resolves the nodes written by the batches before it.
-	for batch := range slices.Chunk(deltas, graphImportBatchSize) {
-		if err := staged.ApplyDeltas(ctx, batch, graph.IgnoreOpts{}); err != nil {
-			return errors.Wrap(err, "build graph import index")
+// requireUniqueGraphQuads rejects a relationship repeated within quads. Graph
+// values are raw Cayley terms, so equal terms are the same relationship.
+func requireUniqueGraphQuads(quads []world.GraphQuad) error {
+	sorted := slices.SortedFunc(slices.Values(quads), compareGraphQuads)
+	for i := 1; i < len(sorted); i++ {
+		if compareGraphQuads(sorted[i-1], sorted[i]) != 0 {
+			continue
 		}
+		cq, err := world.GraphQuadToCayleyQuad(sorted[i], false)
+		if err != nil {
+			return err
+		}
+		return &graph.DeltaError{Delta: graph.Delta{Quad: cq, Action: graph.Add}, Err: graph.ErrQuadExists}
 	}
-	if err := t.packSnapshotGraph(ctx, index); err != nil {
-		return errors.Wrap(err, "write graph import index")
-	}
-	// Reopen Cayley so its cached counts and node IDs describe the new index.
-	replacement, err := kvtx_cayley.NewGraph(ctx, kvtx.NewTxStore(t.graphTree), opts)
-	if err != nil {
-		return errors.Wrap(err, "open graph import index")
-	}
-	_ = t.graphHd.Close()
-	t.graphHd = replacement
 	return nil
+}
+
+// compareGraphQuads orders relationships by subject, predicate, object and
+// label.
+func compareGraphQuads(a, b world.GraphQuad) int {
+	return cmp.Or(
+		strings.Compare(a.GetSubject(), b.GetSubject()),
+		strings.Compare(a.GetPredicate(), b.GetPredicate()),
+		strings.Compare(a.GetObj(), b.GetObj()),
+		strings.Compare(a.GetLabel(), b.GetLabel()),
+	)
 }

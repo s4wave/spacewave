@@ -11,6 +11,6 @@ var (
 	ErrUnexpectedPageMetadata = errors.New("okra page metadata is invalid")
 	// ErrUnexpectedEntryMetadata is returned when Okra entry metadata is invalid.
 	ErrUnexpectedEntryMetadata = errors.New("okra entry metadata is invalid")
-	// ErrUnsortedEntries is returned when fixture entries are not strictly sorted.
+	// ErrUnsortedEntries is returned when build entries are not strictly sorted.
 	ErrUnsortedEntries = errors.New("okra entries must be strictly sorted")
 )

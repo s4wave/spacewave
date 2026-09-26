@@ -1,7 +1,6 @@
 package kvtx_block_okra
 
 import (
-	"context"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -123,15 +122,6 @@ func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte) (
 		return nil, nil, err
 	}
 	return page, ref, nil
-}
-
-// writeStagedPage writes a finished page into the staging store of the tree
-// cursor's transaction and returns its reference.
-func writeStagedPage(ctx context.Context, tree *block.Cursor, page *Page) (*block.BlockRef, error) {
-	cursor := stagedCursor(ctx, tree)
-	cursor.SetBlock(page, true)
-	ref, _, err := cursor.GetTransaction().WriteAtRoot(ctx, false, nil)
-	return ref, err
 }
 
 // mustAnchorHash returns the anchor entry's hash, panicking only if the

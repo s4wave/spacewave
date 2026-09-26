@@ -24,13 +24,3 @@ func (c *Cursor) DiscardDetached() map[uint32]*Cursor {
 	c.t.blockGraph.RemoveNode(c.pos.ID())
 	return refs
 }
-
-// DiscardDetachedTree releases an abandoned cursor position and every
-// descendant left without another parent. Descendants still referenced from
-// outside the discarded tree survive. The caller must no longer use any
-// discarded position.
-func (c *Cursor) DiscardDetachedTree() {
-	for _, child := range c.DiscardDetached() {
-		child.DiscardDetachedTree()
-	}
-}

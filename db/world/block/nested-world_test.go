@@ -2,6 +2,7 @@ package world_block_test
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -55,13 +56,9 @@ func TestNestedWorldPublication(t *testing.T) {
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 
-	nestedRef, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-		_, _, err := world.AccessWorldObject(ctx, state, "inner", true, func(cursor *block.Cursor) error {
-			cursor.SetBlock(block_mock.NewExample("nested content"), true)
-			return nil
-		})
-		return err
-	})
+	nestedRef, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+		"inner": block_mock.NewExample("nested content"),
+	}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,13 +156,9 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 
 	publish := func(content string) *block.BlockRef {
 		t.Helper()
-		ref, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-			_, _, err := world.AccessWorldObject(ctx, state, "inner", true, func(cursor *block.Cursor) error {
-				cursor.SetBlock(block_mock.NewExample(content), true)
-				return nil
-			})
-			return err
-		})
+		ref, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
+			"inner": block_mock.NewExample(content),
+		}), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

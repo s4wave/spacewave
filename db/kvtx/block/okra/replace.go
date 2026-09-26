@@ -22,20 +22,23 @@ func (t *Tx) ReplaceAll(ctx context.Context, values iter.Seq2[[]byte, []byte]) e
 	})
 }
 
-// ReplaceAllCursors builds one tree from sorted block values. Values are
-// materialized once, after their final mutations, using the existing block
-// transformer and write buffer. Discard the transaction on error.
-func (t *Tx) ReplaceAllCursors(ctx context.Context, values iter.Seq2[[]byte, *block.Cursor], isBlob bool) error {
+// ReplaceAllBlocks builds one tree from sorted keys and their value blocks.
+// Each block is encoded into the tree's staged writes as the builder reaches
+// it, so the build retains no cursor per value. Discard the transaction on
+// error.
+func (t *Tx) ReplaceAllBlocks(ctx context.Context, values iter.Seq2[[]byte, block.Block]) error {
 	return t.replaceAll(ctx, func(yield func(BuildEntry, error) bool) {
-		for key, cursor := range values {
-			ref, err := t.materializeValueCursor(ctx, cursor)
-			if !yield(BuildEntry{Key: key, ValueRef: ref, ValueIsBlob: isBlob}, err) {
+		for key, value := range values {
+			ref, err := writeStagedBlock(ctx, t.bcs, value)
+			if !yield(BuildEntry{Key: key, ValueRef: ref}, err) {
 				return
 			}
 		}
 	})
 }
 
+// replaceAll replaces every key with a tree built from sorted entries. The
+// first entry error stops the build and is returned.
 func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]) error {
 	if !t.write {
 		return kvtx.ErrNotWrite
@@ -59,7 +62,7 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 		}
 	}
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
-		return writeStagedPage(ctx, t.bcs, page)
+		return writeStagedBlock(ctx, t.bcs, page)
 	})
 	if valueErr != nil {
 		return valueErr

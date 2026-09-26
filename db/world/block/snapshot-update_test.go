@@ -27,13 +27,8 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 		})
 		return ref, err
 	}
-	base, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-		for _, key := range []string{"keep", "change", "remove"} {
-			if _, err := write(ctx, state, key, key); err != nil {
-				return err
-			}
-		}
-		return state.InsertGraphQuads(ctx, []world.GraphQuad{world.NewGraphQuadWithKeys("keep", "<edge>", "remove", "")})
+	base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects("change", "keep", "remove"), []world.GraphQuad{
+		world.NewGraphQuadWithKeys("keep", "<edge>", "remove", ""),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -141,6 +136,15 @@ func TestUpdateSnapshotPreservesHistoryAndCopiesFinalBlocks(t *testing.T) {
 	}
 }
 
+// chainQuads links each key to the key after it.
+func chainQuads(keys []string) []world.GraphQuad {
+	quads := make([]world.GraphQuad, 0, len(keys)-1)
+	for i := 1; i < len(keys); i++ {
+		quads = append(quads, world.NewGraphQuadWithKeys(keys[i-1], "<edge>", keys[i], ""))
+	}
+	return quads
+}
+
 // BenchmarkUpdateSnapshot measures deleting one eighth of an existing graph,
 // including final index packing and durable copying in the in-memory testbed.
 func BenchmarkUpdateSnapshot(b *testing.B) {
@@ -151,22 +155,7 @@ func BenchmarkUpdateSnapshot(b *testing.B) {
 	for i := range keys {
 		keys[i] = fmt.Sprintf("object-%04d", i)
 	}
-	base, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-		quads := make([]world.GraphQuad, 0, size-1)
-		for i, key := range keys {
-			_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
-				cursor.SetBlock(block_mock.NewExample(key), true)
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-			if i != 0 {
-				quads = append(quads, world.NewGraphQuadWithKeys(keys[i-1], "<edge>", key, ""))
-			}
-		}
-		return state.InsertGraphQuads(ctx, quads)
-	})
+	base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(keys...), chainQuads(keys))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -197,22 +186,7 @@ func BenchmarkUpdateSnapshotFixedChange(b *testing.B) {
 			for i := range keys {
 				keys[i] = fmt.Sprintf("object-%05d", i)
 			}
-			base, err := world_block.BuildSnapshot(ctx, tb.Logger, tb.Engine, func(ctx context.Context, state *world_block.WorldState) error {
-				quads := make([]world.GraphQuad, 0, size-1)
-				for i, key := range keys {
-					_, _, err := world.AccessWorldObject(ctx, state, key, true, func(cursor *block.Cursor) error {
-						cursor.SetBlock(block_mock.NewExample(key), true)
-						return nil
-					})
-					if err != nil {
-						return err
-					}
-					if i != 0 {
-						quads = append(quads, world.NewGraphQuadWithKeys(keys[i-1], "<edge>", key, ""))
-					}
-				}
-				return state.InsertGraphQuads(ctx, quads)
-			})
+			base, err := world_block.ImportSnapshot(ctx, tb.Engine, exampleObjects(keys...), chainQuads(keys))
 			if err != nil {
 				b.Fatal(err)
 			}
