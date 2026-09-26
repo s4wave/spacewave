@@ -45,15 +45,19 @@ interface CommandResult {
   logPath: string
 }
 
+interface ProductionWrapperOutputFile {
+  path: string
+  bytes: number
+}
+
 interface ProductionWrapperReport {
   schemaVersion: number
   outputPath: string
   outputBytes: number
-  outputGzipBytes: number
-  totalOutputBytes?: number
-  totalOutputGzipBytes?: number
-  outputFileCount?: number
-  codeSplitting?: boolean
+  totalOutputBytes: number
+  outputFileCount: number
+  outputFiles: ProductionWrapperOutputFile[]
+  codeSplitting: boolean
   minify: boolean
   sourcemaps: boolean
   inputCount: number
@@ -333,6 +337,15 @@ async function walkFiles(root: string): Promise<FileRecord[]> {
   return out
 }
 
+async function gzipBytesTotal(paths: string[]): Promise<number> {
+  const sizes = await Promise.all(
+    paths.map(
+      async (path) => gzipSync(await readFile(path), { level: 9 }).length,
+    ),
+  )
+  return sizes.reduce((total, size) => total + size, 0)
+}
+
 async function gzipFile(path: string): Promise<string> {
   const data = await readFile(path)
   const outPath = `${path}.gz`
@@ -532,17 +545,17 @@ async function readProductionWrapperReport(
   if (
     !isNonEmptyString(parsed.outputPath) ||
     !isPositiveSafeInteger(parsed.outputBytes) ||
-    !isPositiveSafeInteger(parsed.outputGzipBytes) ||
     typeof parsed.minify !== 'boolean' ||
     typeof parsed.sourcemaps !== 'boolean' ||
-    (parsed.totalOutputBytes !== undefined &&
-      !isPositiveSafeInteger(parsed.totalOutputBytes)) ||
-    (parsed.totalOutputGzipBytes !== undefined &&
-      !isPositiveSafeInteger(parsed.totalOutputGzipBytes)) ||
-    (parsed.outputFileCount !== undefined &&
-      !isPositiveSafeInteger(parsed.outputFileCount)) ||
-    (parsed.codeSplitting !== undefined &&
-      typeof parsed.codeSplitting !== 'boolean') ||
+    !isPositiveSafeInteger(parsed.totalOutputBytes) ||
+    !isPositiveSafeInteger(parsed.outputFileCount) ||
+    !Array.isArray(parsed.outputFiles) ||
+    parsed.outputFileCount !== parsed.outputFiles.length ||
+    !parsed.outputFiles.every(
+      (file) =>
+        isNonEmptyString(file.path) && isPositiveSafeInteger(file.bytes),
+    ) ||
+    typeof parsed.codeSplitting !== 'boolean' ||
     !isNonNegativeSafeInteger(parsed.inputCount) ||
     !Array.isArray(parsed.inputPaths) ||
     parsed.inputCount !== parsed.inputPaths.length ||
@@ -596,8 +609,8 @@ async function renderMarkdown(report: any): Promise<string> {
       '| --- | --- |',
       `| Report path | \`${report.paths.productionWrapperReport}\` |`,
       `| Output path | \`${report.productionWrapperReport.outputPath}\` |`,
-      `| Code splitting | ${report.productionWrapperReport.codeSplitting ?? false} |`,
-      `| Output files | ${report.productionWrapperReport.outputFileCount ?? 1} |`,
+      `| Code splitting | ${report.productionWrapperReport.codeSplitting} |`,
+      `| Output files | ${report.productionWrapperReport.outputFileCount} |`,
       `| Minify | ${report.productionWrapperReport.minify} |`,
       `| Sourcemaps | ${report.productionWrapperReport.sourcemaps} |`,
       `| Dependency inputs | ${report.productionWrapperReport.inputCount} |`,
@@ -697,26 +710,19 @@ async function main(): Promise<void> {
     )
   }
   if (productionWrapperReport) {
+    const outputGzipBytes = await gzipBytesTotal(
+      productionWrapperReport.outputFiles.map((file) => file.path),
+    )
     sizeRows.push(
       {
         name: 'Production Bldr GoScript wrapper JavaScript outputs',
-        bytes:
-          productionWrapperReport.totalOutputBytes ??
-          productionWrapperReport.outputBytes,
-        mib: miB(
-          productionWrapperReport.totalOutputBytes ??
-            productionWrapperReport.outputBytes,
-        ),
+        bytes: productionWrapperReport.totalOutputBytes,
+        mib: miB(productionWrapperReport.totalOutputBytes),
       },
       {
         name: 'Production Bldr GoScript wrapper JavaScript outputs gzip',
-        bytes:
-          productionWrapperReport.totalOutputGzipBytes ??
-          productionWrapperReport.outputGzipBytes,
-        mib: miB(
-          productionWrapperReport.totalOutputGzipBytes ??
-            productionWrapperReport.outputGzipBytes,
-        ),
+        bytes: outputGzipBytes,
+        mib: miB(outputGzipBytes),
       },
     )
   }

@@ -26,15 +26,17 @@ graph output, and protobuf TypeScript binding.
 
 After GoScript writes the TypeScript package tree, Bldr builds
 `plugin-goscript-entrypoint.ts` through the Bldr-owned Rolldown/Oxc wrapper
-path. The generated package tree stays under `dist/@goscript` for inspection;
-the served entrypoint is the bundled `.mjs` output.
+path. The generated package tree stays under `goscript/@goscript` in the build
+working directory for inspection, outside the manifest; the served entrypoint is
+the bundled `.mjs` output.
 
 The wrapper preserves generated-tree `@goscript/...` imports, relative
 JavaScript-to-TypeScript sibling resolution, Bldr SDK aliases, `@go/...`
 vendor/local module imports, the `node:events` browser shim, source-map policy,
 minification policy, and dependency input accounting. Each wrapper build writes
 `plugin-goscript-bundle-report.json` in the build work directory with output
-bytes, best-gzip bytes, minify/sourcemap policy, and Rolldown dependency inputs.
+bytes, minify/sourcemap policy, and Rolldown dependency inputs.
+`scripts/goscript-size-report.ts` computes gzip sizes from the listed outputs.
 That report is build-private and is not emitted into the plugin manifest output.
 
 ## Js

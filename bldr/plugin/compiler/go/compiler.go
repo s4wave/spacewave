@@ -1014,10 +1014,16 @@ func (c *Controller) BuildPlugin(
 		if err != nil {
 			return nil, err
 		}
+		// The generated package tree stays outside dist so the manifest stores
+		// only the bundled entrypoint.
+		goScriptOutputRoot := filepath.Join(workingPath, "goscript")
+		if err := fsutil.CleanCreateDir(goScriptOutputRoot); err != nil {
+			return nil, err
+		}
 		mainPackagePath, err := mc.CompilePluginGoScript(
 			ctx,
 			le,
-			outDistPath,
+			goScriptOutputRoot,
 			goScriptCacheRoot,
 			goScriptBuildFlags,
 			goScriptOverrideDirs,
@@ -1031,7 +1037,7 @@ func (c *Controller) BuildPlugin(
 		// Raw GoScript browser plugin bundles can be hundreds of megabytes
 		// before Oxc compaction. Keep dev FetchManifest output runnable by
 		// always serving the minified entrypoint; the generated package tree
-		// remains in dist/@goscript for source-level inspection.
+		// remains under the working path for source-level inspection.
 		goScriptJSMinification := true
 		goScriptJSSourcemaps := false
 		sharedOptions := web_runtime_goscript_build.GoScriptSharedBundleOptions{
@@ -1047,7 +1053,7 @@ func (c *Controller) BuildPlugin(
 			le,
 			distSourcePath,
 			mc.pluginCodegenPath,
-			outDistPath,
+			goScriptOutputRoot,
 			outScriptPath,
 			mainPackagePath,
 			goScriptJSMinification,
@@ -1065,7 +1071,7 @@ func (c *Controller) BuildPlugin(
 				le,
 				distSourcePath,
 				filepath.Join(mc.pluginCodegenPath, "goscript-shared-provider"),
-				outDistPath,
+				goScriptOutputRoot,
 				sharedOutPath,
 				goScriptSharedWebPkgID,
 				goScriptJSMinification,
