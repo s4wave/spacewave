@@ -628,6 +628,9 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	if got := rangeRequests.Load(); got != 1 {
 		t.Fatalf("joined host and plugin reads made %d Range requests, want one", got)
 	}
+	if err := cacheStore.waitPut(ctx); err != nil {
+		t.Fatalf("wait for durable writeback: %v", err)
+	}
 	cached, found, err := cacheStore.GetBlock(ctx, ref)
 	if err != nil || !found || !bytes.Equal(cached, data) {
 		t.Fatalf("durable writeback found=%v err=%v data=%q", found, err, cached)
