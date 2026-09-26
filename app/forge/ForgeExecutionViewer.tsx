@@ -205,6 +205,13 @@ export function ForgeExecutionViewer({
       title="Execution"
       state={execution?.executionState ?? 0}
       stateLabels={execStateLabels}
+      headerStatus={
+        execution?.waitingPluginId && (
+          <div className="border-foreground/8 text-foreground border-b px-4 py-2 text-xs">
+            Waiting for plugin {execution.waitingPluginId} to load
+          </div>
+        )
+      }
       tabs={tabs}
     />
   )

@@ -156,5 +156,29 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 	return err
 }
 
+// SetWaitingPlugin records the plugin load wait on the Execution object.
+func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID string) error {
+	select {
+	case <-h.ctx.Done():
+		return h.ctx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+
+	tx := execution_transaction.NewTxSetWaitingPlugin(pluginID, &forge_execution.Claim{
+		ClaimId: h.c.claimID,
+		Epoch:   h.claimEpoch,
+	})
+	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
+	return err
+}
+
 // _ is a type assertion
 var _ forge_target.ExecControllerHandle = (*execControllerHandle)(nil)

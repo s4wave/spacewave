@@ -27,6 +27,8 @@ message Tx {
   // TxReclaim transfers a running execution after owner liveness is resolved.
   // TxType_RECLAIM
   TxReclaim tx_reclaim = 7;
+  // TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
+  TxSetWaitingPlugin tx_set_waiting_plugin = 8;
 }
 
 // TxType indicates the kind of transaction.
@@ -44,6 +46,18 @@ enum TxType {
   TxType_CANCEL = 5;
   // TxType_RECLAIM transfers a running execution to a new claim owner.
   TxType_RECLAIM = 6;
+  // TxType_SET_WAITING_PLUGIN changes the plugin load wait.
+  TxType_SET_WAITING_PLUGIN = 7;
+}
+
+// TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
+message TxSetWaitingPlugin {
+  // PluginId is the plugin being awaited, or empty after its client is available.
+  string plugin_id = 1;
+  // ClaimEpoch fences this update to the current claim.
+  uint64 claim_epoch = 2;
+  // ClaimId identifies the controller carrying the claim.
+  string claim_id = 3;
 }
 
 // TxStart starts the execution with a peer id.

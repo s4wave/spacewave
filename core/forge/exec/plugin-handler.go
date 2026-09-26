@@ -28,6 +28,7 @@ type pluginExecClientLoader func(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
+	onWaiting func() error,
 ) (SRPCPluginExecServiceClient, directive.Reference, error)
 
 // pluginExecHandler forwards execution to a plugin-owned controller.
@@ -43,7 +44,11 @@ type pluginExecHandler struct {
 // Execute loads the target plugin, calls its PluginExecService, and forwards
 // logs and outputs back to Forge.
 func (h *pluginExecHandler) Execute(ctx context.Context) error {
-	client, ref, err := h.load(ctx, h.b, h.conf.GetPluginId())
+	var waited bool
+	client, ref, err := h.load(ctx, h.b, h.conf.GetPluginId(), func() error {
+		waited = true
+		return h.handle.SetWaitingPlugin(ctx, h.conf.GetPluginId())
+	})
 	if err != nil {
 		return errors.Wrap(err, "load plugin exec service")
 	}
@@ -52,6 +57,11 @@ func (h *pluginExecHandler) Execute(ctx context.Context) error {
 	}
 	if client == nil {
 		return errors.Errorf("plugin not found: %s", h.conf.GetPluginId())
+	}
+	if waited {
+		if err := h.handle.SetWaitingPlugin(ctx, ""); err != nil {
+			return errors.Wrap(err, "clear plugin load wait")
+		}
 	}
 
 	req := &PluginExecRequest{
@@ -227,11 +237,29 @@ func defaultPluginExecClientLoader(
 	ctx context.Context,
 	b bus.Bus,
 	pluginID string,
+	onWaiting func() error,
 ) (SRPCPluginExecServiceClient, directive.Reference, error) {
 	if b == nil {
 		return nil, nil, errors.New("plugin exec bridge requires bus")
 	}
-	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+	running, _, initialRef, err := bldr_plugin.ExLoadPlugin(ctx, b, true, pluginID, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	var client srpc.Client
+	var ref directive.Reference
+	if running != nil {
+		client = running.GetRpcClient()
+		ref = initialRef
+	} else {
+		if initialRef != nil {
+			initialRef.Release()
+		}
+		if err := onWaiting(); err != nil {
+			return nil, nil, err
+		}
+		client, ref, err = bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+	}
 	if err != nil || client == nil {
 		if ref != nil {
 			ref.Release()

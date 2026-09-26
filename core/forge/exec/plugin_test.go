@@ -20,19 +20,100 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
+	"github.com/s4wave/spacewave/db/world"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
+	execution_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
+// TestPluginExecWaitingStatus observes the same durable Execution while its
+// plugin client is unavailable and after the client becomes available.
+func TestPluginExecWaitingStatus(t *testing.T) {
+	const pluginID = "example-plugin"
+	available := make(chan struct{})
+	waitingPosted := make(chan struct{})
+	responses := make(chan *PluginExecResponse)
+	streamStarted := make(chan struct{})
+	client := &pluginExecClientStub{stream: &pluginExecStreamStub{ch: responses}, streamStarted: streamStarted}
+	registry := NewRegistry()
+	registry.Register(PluginExecConfigID, newPluginExecHandler(nil, func(ctx context.Context, b bus.Bus, id string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		if id != pluginID {
+			return nil, nil, errors.Errorf("unexpected plugin: %s", id)
+		}
+		if err := onWaiting(); err != nil {
+			return nil, nil, err
+		}
+		close(waitingPosted)
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case <-available:
+			return client, nil, nil
+		}
+	}))
+	tb, peerID := setupIntegrationTest(t, registry)
+	conf := &PluginExecConfig{PluginId: pluginID, ControllerId: "example-controller"}
+	configData, err := conf.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const execKey = "exec/waiting-plugin"
+	createTestExecution(t, tb.Context, tb.WorldState, peerID, execKey, PluginExecConfigID, configData)
+	controllerConf := execution_controller.NewConfig(tb.EngineID, execKey, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
+	_, ctrlRef, err := execution_controller.StartControllerWithConfig(t.Context(), tb.Bus, controllerConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctrlRef.Release()
+
+	<-waitingPosted
+	waiting, stateRef, err := forge_execution.LookupExecution(t.Context(), tb.WorldState, execKey)
+	if err != nil {
+		world.ReleaseObjectState(stateRef)
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(stateRef)
+	if got := waiting.GetWaitingPluginId(); got != pluginID {
+		t.Fatalf("waiting plugin = %q, want %q", got, pluginID)
+	}
+	if waiting.GetExecutionState() != forge_execution.State_ExecutionState_RUNNING {
+		t.Fatalf("waiting execution state = %v", waiting.GetExecutionState())
+	}
+
+	close(available)
+	<-streamStarted
+	proceeding, proceedingRef, err := forge_execution.LookupExecution(t.Context(), tb.WorldState, execKey)
+	if err != nil {
+		world.ReleaseObjectState(proceedingRef)
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(proceedingRef)
+	if got := proceeding.GetWaitingPluginId(); got != "" {
+		t.Fatalf("proceeding waiting plugin = %q", got)
+	}
+	responses <- &PluginExecResponse{}
+	close(responses)
+	completed, err := forge_execution.WaitExecutionComplete(t.Context(), tb.Logger, tb.WorldState, execKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertComplete(t, completed)
+	if got := completed.GetWaitingPluginId(); got != "" {
+		t.Fatalf("completed waiting plugin = %q", got)
+	}
+}
+
 type pluginExecClientStub struct {
-	req          *PluginExecRequest
-	resp         *PluginExecResponse
-	err          error
-	stream       *pluginExecStreamStub
-	streamErr    error
-	streamCalled bool
+	req           *PluginExecRequest
+	resp          *PluginExecResponse
+	err           error
+	stream        *pluginExecStreamStub
+	streamErr     error
+	streamCalled  bool
+	streamStarted chan struct{}
 }
 
 func (s *pluginExecClientStub) SRPCClient() srpc.Client {
@@ -53,6 +134,9 @@ func (s *pluginExecClientStub) ExecuteStream(
 ) (SRPCPluginExecService_ExecuteStreamClient, error) {
 	s.req = req
 	s.streamCalled = true
+	if s.streamStarted != nil {
+		close(s.streamStarted)
+	}
 	if s.streamErr != nil {
 		return nil, s.streamErr
 	}
@@ -115,6 +199,10 @@ type pluginExecHandleStub struct {
 	logCh   chan *PluginExecLog
 	outputs forge_value.ValueSlice
 	cursor  *bucket_lookup.Cursor
+}
+
+func (h *pluginExecHandleStub) SetWaitingPlugin(ctx context.Context, pluginID string) error {
+	return nil
 }
 
 func (h *pluginExecHandleStub) GetExecutionUniqueId() string {
@@ -214,8 +302,8 @@ func (h *pluginExecHandleStub) WriteLog(ctx context.Context, level, message stri
 
 func TestPluginExecConfigRoundTrip(t *testing.T) {
 	conf := &PluginExecConfig{
-		PluginId:         "glados-core",
-		ControllerId:     "glados/exec-controller/v86/browser",
+		PluginId:         "example-core",
+		ControllerId:     "example/exec-controller/v86/browser",
 		ControllerConfig: []byte{1, 2, 3},
 	}
 	if err := conf.Validate(); err != nil {
@@ -248,16 +336,16 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 			}},
 		},
 	}
-	load := func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
-		if pluginID != "glados-core" {
+	load := func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		if pluginID != "example-core" {
 			t.Fatalf("plugin id: %s", pluginID)
 		}
 		return client, nil, nil
 	}
 
 	conf := &PluginExecConfig{
-		PluginId:         "glados-core",
-		ControllerId:     "glados/exec-controller/v86/browser",
+		PluginId:         "example-core",
+		ControllerId:     "example/exec-controller/v86/browser",
 		ControllerConfig: []byte{4, 5, 6},
 	}
 	configData, err := conf.MarshalVT()
@@ -267,8 +355,8 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	handle := &pluginExecHandleStub{}
 	factory := newPluginExecHandler(
 		nil,
-		func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
-			return load(ctx, b, pluginID)
+		func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
+			return load(ctx, b, pluginID, onWaiting)
 		},
 	)
 	handler, err := factory(
@@ -312,8 +400,8 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	ch := make(chan *PluginExecResponse)
 	client := &pluginExecClientStub{stream: &pluginExecStreamStub{ch: ch}}
 	conf := &PluginExecConfig{
-		PluginId:         "glados-core",
-		ControllerId:     "glados/workfront/runner/claude",
+		PluginId:         "example-core",
+		ControllerId:     "example/workfront/runner/claude",
 		ControllerConfig: []byte{1, 2, 3},
 	}
 	configData, err := conf.MarshalVT()
@@ -326,7 +414,7 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 		handle: handle,
 		conf:   conf,
 		inputs: forge_target.InputMap{},
-		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		load: func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
 			return client, nil, nil
 		},
 	}
@@ -341,13 +429,13 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	ch <- &PluginExecResponse{
 		Logs: []*PluginExecLog{{
 			Level:   "info",
-			Message: "transcript: /tmp/glados.log",
+			Message: "transcript: /tmp/example.log",
 		}},
 	}
-	if log := <-logCh; log.GetMessage() != "transcript: /tmp/glados.log" {
+	if log := <-logCh; log.GetMessage() != "transcript: /tmp/example.log" {
 		t.Fatalf("streamed log: %#v", log)
 	}
-	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "transcript: /tmp/glados.log" {
+	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "transcript: /tmp/example.log" {
 		t.Fatalf("streamed logs before completion: %#v", handle.logs)
 	}
 	select {
@@ -385,12 +473,12 @@ func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
 	handler := &pluginExecHandler{
 		handle: &pluginExecHandleStub{},
 		conf: &PluginExecConfig{
-			PluginId:         "glados-core",
-			ControllerId:     "glados/workfront/runner/claude",
+			PluginId:         "example-core",
+			ControllerId:     "example/workfront/runner/claude",
 			ControllerConfig: []byte{1, 2, 3},
 		},
 		inputs: forge_target.InputMap{},
-		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		load: func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
 			return client, nil, nil
 		},
 	}
@@ -417,12 +505,12 @@ func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
 	handler := &pluginExecHandler{
 		handle: &pluginExecHandleStub{},
 		conf: &PluginExecConfig{
-			PluginId:         "glados-core",
-			ControllerId:     "glados/workfront/runner/claude",
+			PluginId:         "example-core",
+			ControllerId:     "example/workfront/runner/claude",
 			ControllerConfig: []byte{1, 2, 3},
 		},
 		inputs: forge_target.InputMap{},
-		load: func(ctx context.Context, b bus.Bus, pluginID string) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		load: func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
 			return client, nil, nil
 		},
 	}

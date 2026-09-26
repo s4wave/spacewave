@@ -111,6 +111,10 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
 		t.Fatal(err)
 	}
+	owner1 := &forge_execution.Claim{ClaimId: "owner-1", Epoch: 1}
+	if err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1)); err != nil {
+		t.Fatal(err)
+	}
 	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1)); err != nil {
 		t.Fatal(err)
 	}
@@ -119,9 +123,16 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-2" || got.GetEpoch() != 2 {
 		t.Fatalf("claim = %q/%d, want owner-2/2", got.GetClaimId(), got.GetEpoch())
 	}
+	if got := execution.GetWaitingPluginId(); got != "" {
+		t.Fatalf("waiting plugin after reclaim = %q, want empty", got)
+	}
 
 	var staleErr *StaleClaimEpochError
-	err := f.apply(t, NewTxComplete(
+	err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1))
+	if !errors.As(err, &staleErr) {
+		t.Fatalf("stale waiting plugin error = %v, want StaleClaimEpochError", err)
+	}
+	err = f.apply(t, NewTxComplete(
 		forge_value.NewResultWithSuccess(),
 		&forge_execution.Claim{ClaimId: "owner-1", Epoch: 1},
 	))

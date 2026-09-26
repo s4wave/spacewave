@@ -267,6 +267,7 @@ func (c *Controller) processExecutionState(
 	execConfigState.Result = nil
 	execConfigState.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	execConfigState.LogEntries = nil
+	execConfigState.WaitingPluginId = ""
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}
 	} else {

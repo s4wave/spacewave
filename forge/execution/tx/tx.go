@@ -76,6 +76,8 @@ func (t TxType) Validate() error {
 		return nil
 	case TxType_TxType_RECLAIM:
 		return nil
+	case TxType_TxType_SET_WAITING_PLUGIN:
+		return nil
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -96,6 +98,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxCancel(), nil
 	case TxType_TxType_RECLAIM:
 		return t.GetTxReclaim(), nil
+	case TxType_TxType_SET_WAITING_PLUGIN:
+		return t.GetTxSetWaitingPlugin(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}

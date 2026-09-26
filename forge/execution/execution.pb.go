@@ -93,6 +93,9 @@ type Execution struct {
 	LogEntries []*LogEntry `protobuf:"bytes,7,rep,name=log_entries,json=logEntries,proto3" json:"logEntries,omitempty"`
 	// Claim identifies the controller instance authorized to run and write back.
 	Claim *Claim `protobuf:"bytes,8,opt,name=claim,proto3" json:"claim,omitempty"`
+	// WaitingPluginId names the plugin whose load currently blocks this
+	// Execution. It is empty once the plugin's client is available.
+	WaitingPluginId string `protobuf:"bytes,9,opt,name=waiting_plugin_id,json=waitingPluginId,proto3" json:"waitingPluginId,omitempty"`
 }
 
 func (x *Execution) Reset() {
@@ -155,6 +158,13 @@ func (x *Execution) GetClaim() *Claim {
 		return x.Claim
 	}
 	return nil
+}
+
+func (x *Execution) GetWaitingPluginId() string {
+	if x != nil {
+		return x.WaitingPluginId
+	}
+	return ""
 }
 
 // Claim fences side effects and write-back for one execution owner.
@@ -272,6 +282,7 @@ func (m *Execution) CloneVT() *Execution {
 	r := new(Execution)
 	r.ExecutionState = m.ExecutionState
 	r.PeerId = m.PeerId
+	r.WaitingPluginId = m.WaitingPluginId
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
 	r.ValueSet = protobuf_go_lite.CloneVTValue(m.ValueSet)
 	r.TargetRef = protobuf_go_lite.CloneVTValue(m.TargetRef)
@@ -369,6 +380,9 @@ func (this *Execution) EqualVT(that *Execution) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Claim, that.Claim) {
+		return false
+	}
+	if this.WaitingPluginId != that.WaitingPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -551,6 +565,11 @@ func (x *Execution) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("claim")
 		x.Claim.MarshalProtoJSON(s.WithField("claim"))
 	}
+	if x.WaitingPluginId != "" || s.HasField("waitingPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("waitingPluginId")
+		s.WriteString(x.WaitingPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -627,6 +646,9 @@ func (x *Execution) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Claim = &Claim{}
 			x.Claim.UnmarshalProtoJSON(s.WithField("claim", true))
+		case "waiting_plugin_id", "waitingPluginId":
+			s.AddField("waiting_plugin_id")
+			x.WaitingPluginId = s.ReadString()
 		}
 	})
 }
@@ -842,6 +864,11 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.WaitingPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.WaitingPluginId)
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.Claim != nil {
 		size, err := m.Claim.MarshalToSizedBufferVT(dAtA[:i])
@@ -1101,6 +1128,7 @@ func (m *Execution) SizeVT() (n int) {
 		l = m.Claim.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WaitingPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1198,6 +1226,10 @@ func (x *Execution) MarshalProtoText() string {
 	if x.Claim != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Claim)
+	}
+	if x.WaitingPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.WaitingPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1397,6 +1429,16 @@ func (m *Execution) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WaitingPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WaitingPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

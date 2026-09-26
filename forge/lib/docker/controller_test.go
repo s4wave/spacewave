@@ -231,3 +231,5 @@ func (noopExecHandle) SetOutputs(
 func (noopExecHandle) WriteLog(ctx context.Context, level, message string) error {
 	return nil
 }
+
+func (noopExecHandle) SetWaitingPlugin(context.Context, string) error { return nil }
