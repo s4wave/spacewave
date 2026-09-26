@@ -239,7 +239,7 @@ func (c *Client) writeFrame(data []byte) error {
 	c.writeMtx.Lock()
 	defer c.writeMtx.Unlock()
 
-	if len(data) > math.MaxUint32 {
+	if uint64(len(data)) > math.MaxUint32 {
 		return errors.New("message too large")
 	}
 

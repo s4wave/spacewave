@@ -38,7 +38,7 @@ func NewGraphPathQueryResource(
 		result = &world.GraphPathQueryResult{}
 	}
 	if pageSize == 0 {
-		if len(result.ObjectKeys) > math.MaxUint32 {
+		if uint64(len(result.ObjectKeys)) > math.MaxUint32 {
 			pageSize = math.MaxUint32
 		} else {
 			pageSize = uint32(len(result.ObjectKeys)) //nolint:gosec // the preceding length check bounds the uint32 page-size field.

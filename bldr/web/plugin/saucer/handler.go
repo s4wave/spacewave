@@ -289,7 +289,7 @@ func readFrame(r io.Reader) ([]byte, error) {
 
 // writeFrame writes a LittleEndian uint32 length-prefixed frame.
 func writeFrame(w io.Writer, data []byte) error {
-	if len(data) > math.MaxUint32 {
+	if uint64(len(data)) > math.MaxUint32 {
 		return io.ErrShortBuffer
 	}
 	lenBuf := make([]byte, 4)

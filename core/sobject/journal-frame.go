@@ -1385,7 +1385,7 @@ func (j *journal) checkpoint() error {
 	}
 	defer clear(data)
 	digest := sha256.Sum256(data)
-	if len(data) > math.MaxUint32 {
+	if uint64(len(data)) > math.MaxUint32 {
 		return errors.New("journal checkpoint snapshot exceeds uint32 marker range")
 	}
 	encrypted, err := j.writer.crypto.SealCheckpointGeneration(j.writer.identity, generation, nextSequence, data)
