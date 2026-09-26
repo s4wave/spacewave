@@ -822,25 +822,7 @@ func buildGitTreeCommand() *cli.Command {
 			}
 
 			// File: output raw contents.
-			var offset int64
-			for {
-				readResp, err := pathSvc.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
-					Offset: offset,
-					Length: readChunkSize,
-				})
-				if err != nil {
-					return errors.Wrap(err, "read file")
-				}
-				data := readResp.GetData()
-				if len(data) > 0 {
-					os.Stdout.Write(data)
-					offset += int64(len(data))
-				}
-				if readResp.GetEof() || len(data) == 0 {
-					break
-				}
-			}
-			return nil
+			return streamFile(ctx, pathSvc, 0, 0, os.Stdout)
 		},
 	}
 }

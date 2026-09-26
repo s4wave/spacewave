@@ -459,6 +459,52 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 	}, nil
 }
 
+// ReadStream streams a byte range in file order. The reads run in order on
+// one handle, so the file's chunk read-ahead overlaps block fetches with the
+// stream instead of each call seeking into the file afresh.
+func (r *FSHandleResource) ReadStream(
+	req *s4wave_unixfs.HandleReadStreamRequest,
+	strm s4wave_unixfs.SRPCFSHandleResourceService_ReadStreamStream,
+) error {
+	ctx := strm.Context()
+	offset, length := req.GetOffset(), req.GetLength()
+	if offset < 0 {
+		return errors.Errorf("negative read offset: %d", offset)
+	}
+
+	handle, releaseHandle, err := r.borrowHandle(ctx)
+	if err != nil {
+		return err
+	}
+	defer releaseHandle()
+
+	// A length <= 0 reads to the end of the file. Send encodes each frame
+	// before returning, so one buffer serves every frame.
+	bounded := length > 0
+	buf := make([]byte, fsHandleMaxReadSize)
+	for !bounded || length > 0 {
+		frame := buf
+		if bounded && length < int64(len(frame)) {
+			frame = frame[:length]
+		}
+		n, readErr := handle.ReadAt(ctx, offset, frame)
+		if readErr != nil && readErr != io.EOF {
+			return readErr
+		}
+		if n > 0 {
+			if err := strm.Send(&s4wave_unixfs.HandleReadStreamResponse{Data: frame[:n]}); err != nil {
+				return err
+			}
+			offset += n
+			length -= n
+		}
+		if readErr == io.EOF || n == 0 {
+			return nil
+		}
+	}
+	return nil
+}
+
 // WriteAt writes bytes at the given offset.
 func (r *FSHandleResource) WriteAt(ctx context.Context, req *s4wave_unixfs.HandleWriteAtRequest) (*s4wave_unixfs.HandleWriteAtResponse, error) {
 	offset := req.GetOffset()

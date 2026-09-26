@@ -9,14 +9,9 @@ import (
 	s4wave_unixfs "github.com/s4wave/spacewave/sdk/unixfs"
 )
 
-const (
-	// chunkSize is the payload of one upload frame or ReadAt call, the
-	// largest the UnixFS handle resource accepts.
-	chunkSize = 64 * 1024
-	// readWindow is the number of ReadAt calls a download keeps in flight,
-	// so throughput is not bound by one round trip per chunk.
-	readWindow = 16
-)
+// chunkSize is the payload of one upload frame, the largest the UnixFS
+// handle resource accepts.
+const chunkSize = 64 * 1024
 
 // UnixFSStore stores Git LFS objects as files in a UnixFS object at
 // ObjectPath, through the object's root handle resource.
@@ -108,8 +103,7 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 	return nil
 }
 
-// Get writes the file for oid to w in order, keeping readWindow ReadAt calls
-// in flight.
+// Get writes the file for oid to w through one ReadStream call.
 func (s *UnixFSStore) Get(ctx context.Context, oid string, size int64, w io.Writer) error {
 	// Open the object's file handle.
 	resp, err := s.root.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{Path: ObjectPath(oid)})
@@ -127,50 +121,28 @@ func (s *UnixFSStore) Get(ctx context.Context, oid string, size int64, w io.Writ
 	}
 	file := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(client)
 
-	// Issue reads ahead of the writer and consume them in offset order. The
-	// canceled context stops outstanding reads when Get returns early, and
-	// each result channel is buffered so no reader blocks after that.
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	type chunk struct {
-		data []byte
-		err  error
+	// Stream the file in order and confirm it ended at size.
+	strm, err := file.ReadStream(ctx, &s4wave_unixfs.HandleReadStreamRequest{Length: size})
+	if err != nil {
+		return errors.Wrap(err, "read object")
 	}
-	read := func(off int64) <-chan chunk {
-		ch := make(chan chunk, 1)
-		go func() {
-			resp, err := file.ReadAt(ctx, &s4wave_unixfs.HandleReadAtRequest{
-				Offset: off,
-				Length: chunkSize,
-			})
-			ch <- chunk{data: resp.GetData(), err: err}
-		}()
-		return ch
-	}
-	pending := make([]<-chan chunk, 0, readWindow)
-	var next int64
-	for off := int64(0); off < size; {
-		for len(pending) < readWindow && next < size {
-			pending = append(pending, read(next))
-			next += chunkSize
+	defer strm.Close()
+	var off int64
+	for {
+		frame, err := strm.Recv()
+		if err == io.EOF {
+			break
 		}
-		var c chunk
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case c = <-pending[0]:
+		if err != nil {
+			return errors.Wrapf(err, "read object at %d", off)
 		}
-		pending = pending[1:]
-		if c.err != nil {
-			return errors.Wrapf(c.err, "read object at %d", off)
-		}
-		if want := min(size-off, chunkSize); int64(len(c.data)) != want {
-			return errors.Errorf("read %d bytes at %d, want %d", len(c.data), off, want)
-		}
-		if _, err := w.Write(c.data); err != nil {
+		if _, err := w.Write(frame.GetData()); err != nil {
 			return err
 		}
-		off += int64(len(c.data))
+		off += int64(len(frame.GetData()))
+	}
+	if off != size {
+		return errors.Errorf("read %d bytes, want %d", off, size)
 	}
 	return nil
 }
