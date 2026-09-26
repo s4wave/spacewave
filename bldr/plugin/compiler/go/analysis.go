@@ -22,31 +22,31 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// Analysis contains the result of code analysis.
+// Analysis contains target-selected source paths and discovered declarations.
 type Analysis struct {
-	// fset is the file set
+	// fset locates parsed discovery roots.
 	fset *token.FileSet
 	// packagePaths are the resolved root package paths.
 	packagePaths []string
-	// packagePathMappings are mappings from the provided go pkg path to the resolved one.
+	// packagePathMappings resolve caller-relative package paths.
 	packagePathMappings map[string]string
-	// packages are the imported packages
-	// keyed by package path
-	packages map[string]*packages.Package
-	// imports contains the set of packages to import
-	// keyed by import path
-	imports map[string]*types.Package
-	// baseModFile contains the base module file from the workDir.
+	// packages contains same-module package records keyed by import path.
+	packages map[string]*Package
+	// codeFiles contains syntax only for discovery roots.
+	codeFiles map[string][]*ast.File
+	// imports maps generated import paths to their explicit aliases.
+	imports map[string]string
+	// baseModFile contains source module policy.
 	baseModFile *modfile.File
-	// module contains all factory modules
+	// module contains modules supplying discovered factories.
 	module map[string]*packages.Module
-	// workDir is the working directory
+	// workDir is the source module directory.
 	workDir string
-
-	// controllerFactories contains the set of packages containing controllers
-	controllerFactories map[string]*packages.Package
-
-	// webBundlerOutputType is the type of EsbuildOutput and WebBundlerOutput
+	// controllerFactories indexes factory packages by generated import alias.
+	controllerFactories map[string]*Package
+	// typedPackages contains only packages requiring declaration type resolution.
+	typedPackages map[string]*types.Package
+	// webBundlerOutputType belongs to the same universe as typedPackages.
 	webBundlerOutputType types.Type
 }
 
@@ -70,7 +70,7 @@ func AnalyzePackages(
 	goos, goarch string,
 	enableImportedFactoryDiscovery bool,
 ) (*Analysis, error) {
-	// expect go.mod go.sum in the work dir for base module
+	// Read the source module policy before resolving relative roots.
 	baseGoModPath := filepath.Join(workDir, "go.mod")
 	baseGoModData, err := os.ReadFile(baseGoModPath)
 	if err != nil {
@@ -80,6 +80,7 @@ func AnalyzePackages(
 	if err != nil {
 		return nil, err
 	}
+
 	budget, err := bldr_buildbudget.Default()
 	if err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func AnalyzePackages(
 	}
 	defer permit.Release()
 
-	// update relative module paths (./)
+	// Resolve relative roots while retaining their caller-facing mappings.
 	packagePaths, packagePathMappings := UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
 
 	res := &Analysis{
@@ -98,34 +99,33 @@ func AnalyzePackages(
 		packagePaths:        packagePaths,
 		packagePathMappings: packagePathMappings,
 		workDir:             workDir,
-		imports: map[string]*types.Package{
-			// "context": nil,
-			"embed":   nil,
-			"os":      nil,
-			"strings": nil,
+		imports: map[string]string{
+			"embed":   "",
+			"os":      "",
+			"strings": "",
 
-			"github.com/aperturerobotics/controllerbus/bus":        nil,
-			"github.com/aperturerobotics/controllerbus/controller": nil,
-			"github.com/s4wave/spacewave/bldr/values":              types.NewPackage("github.com/s4wave/spacewave/bldr/values", "bldr_values"),
-			"github.com/s4wave/spacewave/bldr/plugin/entrypoint":   types.NewPackage("github.com/s4wave/spacewave/bldr/plugin/entrypoint", "plugin_entrypoint"),
-			"github.com/sirupsen/logrus":                           nil,
+			"github.com/aperturerobotics/controllerbus/bus":        "",
+			"github.com/aperturerobotics/controllerbus/controller": "",
+			"github.com/s4wave/spacewave/bldr/values":              "bldr_values",
+			"github.com/s4wave/spacewave/bldr/plugin/entrypoint":   "plugin_entrypoint",
+			"github.com/sirupsen/logrus":                           "",
 		},
-		controllerFactories: make(map[string]*packages.Package),
-		packages:            make(map[string]*packages.Package),
+		controllerFactories: make(map[string]*Package),
+		packages:            make(map[string]*Package),
 		module:              make(map[string]*packages.Module),
+		codeFiles:           make(map[string][]*ast.File),
+		typedPackages:       make(map[string]*types.Package),
 	}
 
-	// build tags
+	// Normalize the target tags and enable analysis-only declarations.
 	buildTags = append(slices.Clone(buildTags), "bldr_analyze")
 	slices.Sort(buildTags)
 	buildTags = slices.Compact(buildTags)
 
+	// Load the target dependency graph without syntax or type checking.
 	var conf packages.Config
 	conf.Context = ctx
-
 	conf.Fset = token.NewFileSet()
-	// Discover the program before loading syntax. Dependencies outside its modules
-	// need export data, not complete syntax trees and expression type records.
 	conf.Mode = packages.NeedName | packages.NeedCompiledGoFiles |
 		packages.NeedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedModule
 	conf.ParseFile = func(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
@@ -154,24 +154,29 @@ func AnalyzePackages(
 	conf.Env = append(os.Environ(), gocompiler.GetDefaultEnv()...)
 	conf.Env = append(conf.Env, "GOOS="+goos, "GOARCH="+goarch)
 
-	// Add values packages to the packages to load for type comparison
 	packagesToLoad := append([]string{EsbuildOutputPkgPath}, packagePaths...)
 
-	// Load the packages
 	loadedPackages, err := packages.Load(&conf, packagesToLoad...)
 	if err != nil {
 		return nil, err
 	}
-	if err := packageLoadFailureError(loadedPackages, packagesToLoad, buildTags, goos, goarch, workDir); err != nil {
+	// Metadata diagnostics include unresolved imports anywhere in the dependency graph.
+	var metadataPackages []*packages.Package
+	packages.Visit(loadedPackages, nil, func(pkg *packages.Package) {
+		metadataPackages = append(metadataPackages, pkg)
+	})
+	if err := packageLoadFailureError(metadataPackages, packagesToLoad, buildTags, goos, goarch, workDir); err != nil {
 		return nil, err
 	}
 	res.fset = conf.Fset
 
+	// Bound imported discovery and watched inputs to the explicit roots' modules.
 	explicitFactoryPackagePaths := make(map[string]struct{}, len(packagePaths))
 	for _, packagePath := range packagePaths {
 		explicitFactoryPackagePaths[packagePath] = struct{}{}
 	}
 
+	// Identify the modules whose dependency paths belong to the program.
 	programModulePaths := make(map[string]struct{}, len(packagePaths))
 	for _, pkg := range loadedPackages {
 		if pkg.Module == nil {
@@ -182,6 +187,8 @@ func AnalyzePackages(
 		}
 	}
 
+	// Walk same-module imports without retaining their syntax trees.
+	programPackages := make(map[string]*packages.Package)
 	addPkgsStack := make([]*packages.Package, len(loadedPackages))
 	copy(addPkgsStack, loadedPackages)
 	for len(addPkgsStack) != 0 {
@@ -193,7 +200,8 @@ func AnalyzePackages(
 		if _, ok := programModulePaths[pkg.Module.Path]; !ok {
 			continue
 		}
-		res.packages[pkg.PkgPath] = pkg
+		res.packages[pkg.PkgPath] = &Package{Path: pkg.PkgPath, Name: pkg.Name, SourceFiles: pkg.CompiledGoFiles}
+		programPackages[pkg.PkgPath] = pkg
 
 		// add other packages from the same module as well
 		for _, lpkg := range pkg.Imports {
@@ -211,93 +219,90 @@ func AnalyzePackages(
 		return nil, errors.New("expected at least one package to be loaded")
 	}
 
-	// Load one coherent type universe for the program packages and the output
-	// type used by tagged variables. Imported dependencies use compiler exports.
-	typedPaths := []string{EsbuildOutputPkgPath}
-	for pkgPath := range res.packages {
-		typedPaths = append(typedPaths, pkgPath)
-	}
-	slices.Sort(typedPaths)
-	typedPaths = slices.Compact(typedPaths)
-	conf.Mode = (conf.Mode &^ packages.NeedDeps) | packages.NeedTypes |
-		packages.NeedSyntax | packages.NeedTypesSizes | packages.NeedExportFile
-	loadedPackages, err = packages.Load(&conf, typedPaths...)
-	if err != nil {
-		return nil, err
-	}
-	if err := packageLoadFailureError(loadedPackages, typedPaths, buildTags, goos, goarch, workDir); err != nil {
-		return nil, err
-	}
-	for _, pkg := range loadedPackages {
-		if _, ok := res.packages[pkg.PkgPath]; ok {
-			res.packages[pkg.PkgPath] = pkg
-		}
-	}
-
-	// Find and store the web bundler output type
-	for _, pkg := range loadedPackages {
-		if pkg.PkgPath == EsbuildOutputPkgPath {
-			if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
-				res.webBundlerOutputType = obj.Type()
-			}
-			break
-		}
-	}
-
-	// If we couldn't find the type, return an error since we need it for type comparison
-	if res.webBundlerOutputType == nil {
-		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
-	}
-
-	// Find NewFactory() constructors.
-	// Build a list of packages to import.
-	factoryModules := res.module
-	for _, pkg := range res.packages {
-		le := le.WithField("pkg", pkg.Types.Path())
-
-		if !enableImportedFactoryDiscovery {
-			if _, ok := explicitFactoryPackagePaths[pkg.Types.Path()]; !ok {
-				continue
-			}
-		}
-
-		factoryCtorObj := pkg.Types.Scope().Lookup("NewFactory")
-		if factoryCtorObj == nil {
-			// le.Debug("no controller factories found in package")
+	// Parse only discovery roots; dependency filenames already came from metadata.
+	typedPaths := make([]string, 0)
+	for pkgPath, pkg := range res.packages {
+		_, explicit := explicitFactoryPackagePaths[pkgPath]
+		if !explicit && !enableImportedFactoryDiscovery {
 			continue
 		}
-
-		le.Debugf("found factory ctor func: %s", factoryCtorObj.Type().String())
-		res.controllerFactories[BuildPackageName(pkg.Types)] = pkg
-
-		factoryPkgImportPath := pkg.Types.Path()
-		if _, ok := res.imports[factoryPkgImportPath]; !ok {
-			le.
-				WithField("import-path", factoryPkgImportPath).
-				WithField("import-type-name", pkg.Types.Name()).
-				Debug("added package to plugin-file imports list")
-			res.imports[factoryPkgImportPath] = pkg.Types
+		for _, filename := range pkg.SourceFiles {
+			file, err := parser.ParseFile(conf.Fset, filename, nil, parser.AllErrors|parser.ParseComments|parser.SkipObjectResolution)
+			if err != nil {
+				return nil, err
+			}
+			res.codeFiles[pkgPath] = append(res.codeFiles[pkgPath], file)
 		}
+		if pkg.discoverConstructors(res.codeFiles[pkgPath]) {
+			typedPaths = append(typedPaths, pkgPath)
+		}
+	}
 
-		if pkg.Module == nil {
-			le.Warn("no module was resolved for package")
+	// Resolve annotation candidates and ambiguous constructors in one type universe.
+	codeFiles := res.GetGoCodeFiles()
+	for _, tag := range []string{EsbuildTag, ViteTag} {
+		candidates, err := FindTagComments(tag, res.fset, codeFiles,
+			func(values []string, _ *ast.ValueSpec) (bool, bool, error) {
+				for _, value := range values {
+					if _, found := TrimCommentArgs(tag, value); found {
+						return true, true, nil
+					}
+				}
+				return false, false, nil
+			})
+		if err != nil {
+			return nil, err
+		}
+		for pkgPath := range candidates {
+			typedPaths = append(typedPaths, pkgPath)
+		}
+	}
+	// Load candidates together with the output reference for exact type identity.
+	if len(typedPaths) != 0 {
+		typedPaths = append(typedPaths, EsbuildOutputPkgPath)
+		slices.Sort(typedPaths)
+		typedPaths = slices.Compact(typedPaths)
+		conf.Mode = (conf.Mode &^ packages.NeedDeps) | packages.NeedTypes |
+			packages.NeedTypesSizes | packages.NeedExportFile
+		loaded, err := packages.Load(&conf, typedPaths...)
+		if err != nil {
+			return nil, err
+		}
+		if err := packageLoadFailureError(loaded, typedPaths, buildTags, goos, goarch, workDir); err != nil {
+			return nil, err
+		}
+		for _, pkg := range loaded {
+			res.typedPackages[pkg.PkgPath] = pkg.Types
+			if pkg.PkgPath == EsbuildOutputPkgPath {
+				if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
+					res.webBundlerOutputType = obj.Type()
+				}
+			}
+			if len(res.codeFiles[pkg.PkgPath]) != 0 {
+				res.packages[pkg.PkgPath].resolveConstructors(pkg.Types)
+			}
+		}
+		if res.webBundlerOutputType == nil {
+			return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
+		}
+	}
+
+	// Retain generated imports and source modules without retaining the package graph.
+	for pkgPath, pkg := range res.packages {
+		if pkg.Factory == nil {
 			continue
 		}
-
-		factoryMod := pkg.Module
-		if _, ok := factoryModules[factoryMod.Path]; !ok {
-			le.
-				WithField("import-path", factoryPkgImportPath).
-				WithField("module-path", factoryMod.Path).
-				WithField("module-version", factoryMod.Version).
-				Debug("added module to modules list")
-			factoryModules[factoryMod.Path] = factoryMod
+		res.controllerFactories[pkg.Name] = pkg
+		res.imports[pkgPath] = pkg.Name
+		if mod := programPackages[pkgPath].Module; mod != nil {
+			res.module[mod.Path] = mod
 		}
 	}
 
 	return res, nil
 }
 
+// packageLoadFailureError adds target and pattern context to package diagnostics.
 func packageLoadFailureError(loadedPackages []*packages.Package, patterns []string, buildTags []string, goos, goarch, workDir string) error {
 	var details strings.Builder
 	if len(loadedPackages) == 0 {
@@ -344,46 +349,28 @@ func (a *Analysis) GetPackagePathMappings() map[string]string {
 	return a.packagePathMappings
 }
 
-// GetLoadedPackages returns the loaded packages.
-func (a *Analysis) GetLoadedPackages() map[string]*packages.Package {
+// GetPackages returns the discovered package records keyed by import path.
+func (a *Analysis) GetPackages() map[string]*Package {
 	return a.packages
 }
 
-// GetGoCodeFiles returns file paths for explicitly configured packages.
+// GetGoCodeFiles returns syntax for explicitly configured annotation roots.
 func (a *Analysis) GetGoCodeFiles() map[string][]*ast.File {
-	packagePaths := make(map[string]struct{}, len(a.packagePaths))
-	for _, packagePath := range a.packagePaths {
-		packagePaths[packagePath] = struct{}{}
-	}
-	return a.getGoCodeFiles(packagePaths)
-}
-
-// GetProgramGoCodeFiles returns Go files for all same-module packages loaded into the program.
-func (a *Analysis) GetProgramGoCodeFiles() map[string][]*ast.File {
-	return a.getGoCodeFiles(nil)
-}
-
-// getGoCodeFiles collects AST files per package path; when packagePaths is
-// empty, all loaded program packages are included.
-func (a *Analysis) getGoCodeFiles(packagePaths map[string]struct{}) map[string][]*ast.File {
 	res := make(map[string][]*ast.File)
-	addFile := func(pakImportPath string, astFile *ast.File) {
-		res[pakImportPath] = append(res[pakImportPath], astFile)
-	}
-
-	// collect go files to watch
-	for _, pak := range a.packages {
-		for i := range pak.Syntax {
-			pakImportPath := pak.PkgPath
-			if len(packagePaths) != 0 {
-				if _, ok := packagePaths[pakImportPath]; !ok {
-					continue
-				}
-			}
-			addFile(pakImportPath, pak.Syntax[i])
+	for _, pkgPath := range a.packagePaths {
+		if files := a.codeFiles[pkgPath]; len(files) != 0 {
+			res[pkgPath] = files
 		}
 	}
+	return res
+}
 
+// GetProgramSourceFiles returns target-selected files for the same-module closure.
+func (a *Analysis) GetProgramSourceFiles() map[string][]string {
+	res := make(map[string][]string, len(a.packages))
+	for pkgPath, pkg := range a.packages {
+		res[pkgPath] = pkg.SourceFiles
+	}
 	return res
 }
 
@@ -407,44 +394,29 @@ func (a *Analysis) GetImportedModules() map[string]*packages.Module {
 	return a.module
 }
 
-// isTypeIdentical checks if a type is identical to a reference type
-func (a *Analysis) isTypeIdentical(t types.Type, refType types.Type) bool {
-	if refType == nil {
-		return false
-	}
-	return types.Identical(t, refType)
-}
-
-// determineVarTypeWithReference determines the variable type by comparing with a reference type
-// and handling common type patterns
+// determineVarTypeWithReference distinguishes string-underlying values from the identical output type.
 func determineVarTypeWithReference[V any](
-	a *Analysis,
 	obj types.Object,
 	refType types.Type,
 	stringTypeValue, // Value to return if the type is a string
 	refTypeValue V, // Value to return if the type matches the reference type
 	errTag string, // Tag to include in error messages for context
 ) (V, error) {
+	// Aliases share identity with their targets; unrelated named structs do not.
 	var empty V
-	// First check if it's directly the reference type
-	if a.isTypeIdentical(obj.Type(), refType) {
+	if types.Identical(obj.Type(), refType) {
 		return refTypeValue, nil
 	}
 
-	// Check the underlying type
+	// String-underlying declarations retain the existing entrypoint-path behavior.
 	switch t := obj.Type().Underlying().(type) {
 	case *types.Basic:
 		if t.Kind() == types.String {
-			return stringTypeValue, nil // Return string value for string types
+			return stringTypeValue, nil
 		}
 		return empty, errors.Wrapf(ErrUnexpectedVarType, "%s basic type: %v", errTag, t)
-	case *types.Named, *types.Struct:
-		// For named types and struct types, check if the original type matches reference
-		if a.isTypeIdentical(obj.Type(), refType) {
-			return refTypeValue, nil
-		}
-
-		// Get a descriptive name for error reporting
+	case *types.Struct:
+		// Keep named-type diagnostics distinct from anonymous struct diagnostics.
 		if named, ok := obj.Type().(*types.Named); ok && named.Obj().Pkg() != nil {
 			return empty, errors.Wrapf(ErrUnexpectedVarType, "%s named type: %v.%v",
 				errTag, named.Obj().Pkg().Path(), named.Obj().Name())
@@ -459,18 +431,19 @@ func determineVarTypeWithReference[V any](
 // AddVariableDefImports adds imports for the given variable defs.
 func (a *Analysis) AddVariableDefImports(le *logrus.Entry, varDefs []*vardef.PluginVar) {
 	for _, varDef := range varDefs {
-		if pkgPath := varDef.GetPkgImportPath(); pkgPath != "" {
-			_, ok := a.imports[pkgPath]
-			if !ok {
-				pkg := a.packages[pkgPath]
-				pkgPath := pkg.Types.Path()
-				pkgName := pkg.Types.Name()
-				a.imports[pkgPath] = types.NewPackage(pkgPath, pkgName)
-				le.
-					WithField("import-path", pkgPath).
-					WithField("import-type-name", pkgName).
-					Debug("added package to plugin-file imports list")
-			}
+		pkgPath := varDef.GetPkgImportPath()
+		if pkgPath == "" {
+			continue
 		}
+		if _, ok := a.imports[pkgPath]; ok {
+			continue
+		}
+
+		// Use the discovered package name without constructing a synthetic type package.
+		pkgName := a.packages[pkgPath].Name
+		a.imports[pkgPath] = pkgName
+		le.WithField("import-path", pkgPath).
+			WithField("import-type-name", pkgName).
+			Debug("added package to plugin-file imports list")
 	}
 }

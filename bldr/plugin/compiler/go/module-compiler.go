@@ -29,8 +29,8 @@ type ModuleCompiler struct {
 
 	// pluginCodegenPath contains the generated module and its source files.
 	pluginCodegenPath string
-	// pluginGoModule identifies the generated plugin module.
-	pluginGoModule string
+	// pluginModulePath is the generated main package import path.
+	pluginModulePath string
 }
 
 // NewModuleCompiler constructs a new module compiler.
@@ -48,12 +48,18 @@ func NewModuleCompiler(
 		return nil, err
 	}
 
+	// Derive the module identity once for module writing and GoScript's main package.
+	pluginModulePath, err := generatedPluginModulePath(pluginGoModule)
+	if err != nil {
+		return nil, err
+	}
+
 	// Retain the target and logging dependency without starting a build.
 	return &ModuleCompiler{
 		le: le,
 
 		pluginCodegenPath: pluginCodegenPath,
-		pluginGoModule:    pluginGoModule,
+		pluginModulePath:  pluginModulePath,
 	}, nil
 }
 
@@ -163,11 +169,7 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 
 	// Give the plugin its own module path while resolving the source tree locally.
 	sourceModulePath := modFile.Module.Mod.Path
-	pluginModulePath, err := generatedPluginModulePath(m.pluginGoModule)
-	if err != nil {
-		return err
-	}
-	if err := modFile.AddModuleStmt(pluginModulePath); err != nil {
+	if err := modFile.AddModuleStmt(m.pluginModulePath); err != nil {
 		return err
 	}
 	if err := modFile.AddRequire(sourceModulePath, "v0.0.0"); err != nil {
@@ -302,11 +304,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	overrideDirs []string,
 	deferredFunctions []string,
 ) (string, error) {
-	// Resolve the generated main package and its JavaScript binding roots.
-	mainPackagePath, err := gocompiler.GoListImportPath(ctx, m.pluginCodegenPath, buildFlags, "GOOS=js", "GOARCH=wasm")
-	if err != nil {
-		return "", err
-	}
+	// Resolve JavaScript binding roots using the existing module lookup.
 	bindingRoots, err := gocompiler.GoScriptBindingRoots(ctx, m.pluginCodegenPath, "GOOS=js", "GOARCH=wasm")
 	if err != nil {
 		return "", err
@@ -327,7 +325,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	}); err != nil {
 		return "", err
 	}
-	return mainPackagePath, nil
+	return m.pluginModulePath, nil
 }
 
 // CompilePluginDevWrapper compiles a development wrapper for the plugin.

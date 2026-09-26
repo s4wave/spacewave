@@ -3,12 +3,11 @@
 package bldr_plugin_compiler_go
 
 import (
-	"errors"
 	"go/ast"
 	"go/types"
 	"strings"
 
-	"golang.org/x/tools/go/packages"
+	"github.com/pkg/errors"
 )
 
 // ViteTag is the comment tag used for vite.
@@ -37,7 +36,7 @@ type ViteDirective struct {
 	// EntrypointPath is the entrypoint path for vite.
 	// This is the positional argument that doesn't start with a flag.
 	EntrypointPath string
-	// ViteVarType is the type of vite output variable we are using.
+	// ViteVarType is the type of vite output variable.
 	ViteVarType ViteVarType
 	// DisableProjectConfig indicates whether to disable automatic project config detection.
 	DisableProjectConfig bool
@@ -65,26 +64,29 @@ type ViteDirectiveArgs struct {
 // and whether to disable project config detection.
 // Only one positional argument is allowed as the entrypoint path.
 func ParseViteDirectiveArgs(args []string) (ViteDirectiveArgs, error) {
+	// Merge bundle flags while allowing only one entrypoint path.
 	result := ViteDirectiveArgs{
 		BundleID: DefaultViteBundleID,
 	}
 	var foundEntrypoint bool
 
+	// Classify recognized flags before treating remaining arguments as entrypoints.
 	for _, arg := range args {
-		if strings.HasPrefix(arg, ViteBundleIDFlag) {
+		switch {
+		case strings.HasPrefix(arg, ViteBundleIDFlag):
 			value := arg[len(ViteBundleIDFlag):]
 			if len(value) != 0 {
 				result.BundleID = value
 			}
-		} else if strings.HasPrefix(arg, ViteConfigFlag) {
+		case strings.HasPrefix(arg, ViteConfigFlag):
 			value := arg[len(ViteConfigFlag):]
 			if len(value) != 0 {
 				result.ViteConfigPaths = append(result.ViteConfigPaths, value)
 			}
-		} else if arg == ViteDisableProjectConfigFlag {
+		case arg == ViteDisableProjectConfigFlag:
 			result.DisableProjectConfig = true
-		} else {
-			// Any argument that doesn't start with a flag is considered an entrypoint path
+		default:
+			// Preserve the positional entrypoint rule for unrecognized flags too.
 			if foundEntrypoint {
 				return ViteDirectiveArgs{}, errors.New("only one entrypoint path is allowed")
 			}
@@ -96,10 +98,9 @@ func ParseViteDirectiveArgs(args []string) (ViteDirectiveArgs, error) {
 	return result, nil
 }
 
-// determineViteVarType determines the variable type for a vite variable
+// determineViteVarType determines the variable type for a vite variable.
 func (a *Analysis) determineViteVarType(obj types.Object) (ViteVarType, error) {
 	return determineVarTypeWithReference(
-		a,
 		obj,
 		a.webBundlerOutputType,
 		ViteVarType_ViteVarType_ENTRYPOINT_PATH,
@@ -114,20 +115,20 @@ func (a *Analysis) FindViteVariables(codeFiles map[string][]*ast.File) (map[stri
 		ViteTag,
 		a,
 		codeFiles,
-		func(values []string, varName string, pkg *packages.Package, obj types.Object) (*ViteDirective, bool, error) {
-			// Parse the comments for vite directives
+		func(values []string, obj types.Object) (*ViteDirective, bool, error) {
+			// Parse the comments for vite directives.
 			args, found, err := CombineShellComments(ViteTag, values)
 			if err != nil || !found {
 				return nil, found, err
 			}
 
-			// Parse the arguments into a structured result
+			// Parse the arguments into a structured result.
 			argsResult, err := ParseViteDirectiveArgs(args)
 			if err != nil {
 				return nil, true, err
 			}
 
-			// Determine the variable type using the type system
+			// Determine the variable type using the type system.
 			varType, err := a.determineViteVarType(obj)
 			if err != nil {
 				return nil, true, err

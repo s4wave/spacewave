@@ -5,7 +5,6 @@ package bldr_cli_compiler
 import (
 	"context"
 	"encoding/binary"
-	"go/types"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,7 +13,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -160,22 +158,17 @@ func (c *Controller) BuildManifest(
 
 	// build factory imports from analyzed packages
 	factoryImports := make(map[string]FactoryImport)
-	for _, pkg := range analysis.GetLoadedPackages() {
-		newFactoryObj := pkg.Types.Scope().Lookup("NewFactory")
-		if newFactoryObj == nil {
+	for _, pkg := range analysis.GetPackages() {
+		if pkg.Factory == nil {
 			continue
 		}
-		sig, ok := newFactoryObj.Type().(*types.Signature)
-		if !ok {
-			return nil, errors.Errorf("package %s NewFactory is not a function", pkg.PkgPath)
-		}
-		passBus, err := plugin_compiler_go.FactoryNeedsBus(pkg.PkgPath, sig)
+		passBus, err := pkg.Factory.NeedsBus(pkg.Path)
 		if err != nil {
 			return nil, err
 		}
-		factoryImports[pkg.PkgPath] = FactoryImport{
-			Path:    pkg.PkgPath,
-			Alias:   plugin_compiler_go.BuildPackageName(pkg.Types),
+		factoryImports[pkg.Path] = FactoryImport{
+			Path:    pkg.Path,
+			Alias:   pkg.Name,
 			PassBus: passBus,
 		}
 	}
