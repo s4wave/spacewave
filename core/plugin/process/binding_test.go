@@ -49,3 +49,41 @@ func TestProcessBindingWriteRetriesRealTransaction(t *testing.T) {
 		t.Fatalf("bindings = %v, want one %v", list, binding)
 	}
 }
+
+func TestDeleteProcessBindingKeepsNewerDecision(t *testing.T) {
+	ctx := context.Background()
+	store := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
+	stale := &s4wave_process.ProcessBinding{
+		State:     s4wave_process.ProcessBindingState_ProcessBindingState_APPROVED,
+		ObjectKey: "object-key",
+		TypeId:    "type-id",
+	}
+	newer := stale.CloneVT()
+	newer.State = s4wave_process.ProcessBindingState_ProcessBindingState_UNAPPROVED
+	if err := SetProcessBinding(ctx, store, "space-id", newer.GetObjectKey(), newer); err != nil {
+		t.Fatal(err)
+	}
+
+	// Deleting a binding the store no longer holds keeps the newer decision.
+	if err := DeleteProcessBinding(ctx, store, "space-id", stale); err != nil {
+		t.Fatal(err)
+	}
+	got, err := GetProcessBinding(ctx, store, "space-id", newer.GetObjectKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.EqualVT(newer) {
+		t.Fatalf("binding = %v, want %v", got, newer)
+	}
+
+	if err := DeleteProcessBinding(ctx, store, "space-id", newer); err != nil {
+		t.Fatal(err)
+	}
+	got, err = GetProcessBinding(ctx, store, "space-id", newer.GetObjectKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != nil {
+		t.Fatalf("binding = %v after delete, want none", got)
+	}
+}
