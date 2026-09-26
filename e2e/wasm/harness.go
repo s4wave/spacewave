@@ -36,6 +36,7 @@ import (
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
+	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -336,6 +337,13 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	addr := "127.0.0.1:" + strconv.Itoa(port)
 	h.baseURL = "http://" + addr
 
+	// The harness settles the startup manifests while the wasm lifecycle builds
+	// the entrypoint, so apply the lifecycle's native renderer skip before the
+	// first manifest build reads it.
+	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
+		return nil, err
+	}
+
 	// Run the wasm lifecycle in the background; it blocks on ListenAndServe.
 	h.wasmDone = make(chan struct{})
 	go func() {
@@ -355,12 +363,19 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		close(h.wasmDone)
 	}()
 
-	if err := h.waitForReady(hctx); err != nil {
-		return nil, errors.Wrap(err, "wait for wasm readiness")
-	}
-
-	if err := h.settleStartupManifests(hctx); err != nil {
-		return nil, errors.Wrap(err, "settle startup manifests")
+	// Tests need the settled manifests before they load the app, not the
+	// shell first, so settle them concurrently with the entrypoint build.
+	err = ccall.CallConcurrently(
+		hctx,
+		func(ctx context.Context) error {
+			return errors.Wrap(h.waitForReady(ctx), "wait for wasm readiness")
+		},
+		func(ctx context.Context) error {
+			return errors.Wrap(h.settleStartupManifests(ctx), "settle startup manifests")
+		},
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	return h, nil
