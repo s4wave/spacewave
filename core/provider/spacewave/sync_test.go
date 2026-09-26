@@ -1232,7 +1232,11 @@ func readPackPhysicalKeys(t *testing.T, body []byte) []string {
 	})
 	keys := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		keys = append(keys, string(entry.GetKey()))
+		h, err := packfile.ParseBlockKey(entry.GetKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys = append(keys, h.MarshalString())
 	}
 	return keys
 }

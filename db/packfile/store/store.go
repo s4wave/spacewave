@@ -234,7 +234,7 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	if trace.IsEnabled() {
 		trace.Log(ctx, "block-ref", ref.MarshalString())
 	}
-	key := []byte(h.MarshalString())
+	key := packfile.BlockKey(h)
 
 	var stored *block.StoredBlock
 	var lookup packLookup
@@ -264,7 +264,7 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 	if h == nil {
 		return false, nil
 	}
-	key := []byte(h.MarshalString())
+	key := packfile.BlockKey(h)
 
 	var lookup packLookup
 	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
@@ -284,7 +284,7 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 		if h == nil {
 			continue
 		}
-		key := h.MarshalString()
+		key := string(packfile.BlockKey(h))
 		if _, ok := indexes[key]; !ok {
 			keys = append(keys, key)
 		}
@@ -374,7 +374,7 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 	if h == nil {
 		return nil, nil
 	}
-	key := []byte(h.MarshalString())
+	key := packfile.BlockKey(h)
 
 	var stat *block.BlockStat
 	var lookup packLookup

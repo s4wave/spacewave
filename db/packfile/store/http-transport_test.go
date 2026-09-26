@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -569,7 +570,7 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key, ref := []byte(keyHash.MarshalString()), block.NewBlockRef(keyHash)
+	key, ref := packfile.BlockKey(keyHash), block.NewBlockRef(keyHash)
 	if _, err := eng.getBlock(ctx, key, ref); err == nil {
 		t.Fatal("expected first read to fail during index load")
 	}

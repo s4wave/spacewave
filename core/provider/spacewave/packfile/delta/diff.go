@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/packfile"
 	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/net/hash"
@@ -20,7 +21,7 @@ type ExistsChecker interface {
 
 // DiffBlockStores returns a =writer.BlockIterator= that yields every block
 // in the pack =src= whose hash is NOT already present in =mirror=. Keys that
-// fail to parse as a base58 =hash.Hash= are skipped silently (kvfile entries
+// fail to parse as a packfile.BlockKey are skipped silently (kvfile entries
 // that are not hydra blocks).
 //
 // =mirror= may be nil; in that case every src block is emitted (mirror-absent
@@ -50,8 +51,8 @@ func DiffBlockStoresWithRefGraph(
 
 	var entries []diffEntry
 	err := src.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(string(ie.GetKey())); err != nil {
+		h, err := packfile.ParseBlockKey(ie.GetKey())
+		if err != nil {
 			return nil
 		}
 		if mirror != nil {

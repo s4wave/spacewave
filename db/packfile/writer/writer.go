@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/bloom"
+	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -52,9 +53,9 @@ func PackBlocks(w io.Writer, iter BlockIterator) (*PackResult, error) {
 			break
 		}
 
-		key := []byte(h.MarshalString())
+		key := packfile.BlockKey(h)
 		if !blk.GetRefsKnown() {
-			return nil, errors.Wrapf(block.ErrRefsUnknown, "packing block %s", key)
+			return nil, errors.Wrapf(block.ErrRefsUnknown, "packing block %s", h.MarshalString())
 		}
 		value, err := block.EncodeBlockObject(blk.Data, blk.Refs)
 		if err != nil {

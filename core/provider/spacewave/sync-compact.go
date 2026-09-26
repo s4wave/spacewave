@@ -138,7 +138,7 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 			return nil, errors.Wrapf(err, "reading pack %s", input.GetId())
 		}
 		for _, b := range read {
-			key := b.Hash.MarshalString()
+			key := string(packfile.BlockKey(b.Hash))
 			if _, ok := seen[key]; ok {
 				continue
 			}
@@ -192,7 +192,7 @@ func checkPackKeys(packData []byte, want map[string]struct{}) error {
 	var count int
 	err = rd.ScanPrefixKeys(nil, func(key []byte) error {
 		if _, ok := want[string(key)]; !ok {
-			return errors.Errorf("merged pack holds unexpected key %s", key)
+			return errors.Errorf("merged pack holds unexpected key %x", key)
 		}
 		count++
 		return nil

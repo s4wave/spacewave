@@ -150,7 +150,11 @@ func packPhysicalKeys(t *testing.T, body []byte) []string {
 	})
 	keys := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		keys = append(keys, string(entry.GetKey()))
+		h, err := packfile.ParseBlockKey(entry.GetKey())
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys = append(keys, h.MarshalString())
 	}
 	return keys
 }
@@ -246,14 +250,15 @@ func TestDiffBlockStoresSingleChunk(t *testing.T) {
 		t.Fatalf("round-trip size=%d expected=%d", reader2.Size(), expectedCount)
 	}
 	for _, s := range specs[2:] {
-		value, found, err := reader2.Get([]byte(s.key))
+		key := packfile.BlockKey(blockRefFromKey(t, s.key).GetHash())
+		value, found, err := reader2.Get(key)
 		if err != nil {
 			t.Fatalf("Get %s: %v", s.key, err)
 		}
 		if !found {
 			t.Fatalf("block %s missing from chunk", s.key)
 		}
-		_, stored, err := packfile.DecodeBlockValue([]byte(s.key), value)
+		_, stored, err := packfile.DecodeBlockValue(key, value)
 		if err != nil {
 			t.Fatalf("decode %s: %v", s.key, err)
 		}
