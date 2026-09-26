@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
@@ -32,6 +33,8 @@ type compactTestCloud struct {
 	// reject, when set, answers pushes with this status and error body.
 	reject     int
 	rejectBody string
+	// pushed, when set, receives one value per accepted push.
+	pushed chan struct{}
 }
 
 // ServeHTTP accepts pushes into packs and answers pulls with an empty delta.
@@ -56,6 +59,9 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	c.packs[r.Header.Get("X-Pack-ID")] = body
 	w.WriteHeader(http.StatusOK)
+	if c.pushed != nil {
+		c.pushed <- struct{}{}
+	}
 }
 
 // open returns a reader over a stored pack.
@@ -181,6 +187,31 @@ func TestSyncControllerCompactMergesSmallPacks(t *testing.T) {
 	// The merged pack is not small enough to merge again with nothing else.
 	if err := s.CompactNow(ctx); err != nil || len(cloud.pushes) != 1 {
 		t.Fatalf("second compact pushed again: pushes=%d err=%v", len(cloud.pushes), err)
+	}
+}
+
+// TestSyncControllerCompactAfterOutsideFlush verifies the scheduler merges
+// after a flush it did not run, such as a caller waiting on its operation.
+func TestSyncControllerCompactAfterOutsideFlush(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	cloud := &compactTestCloud{packs: make(map[string][]byte), pushed: make(chan struct{}, 1)}
+	s := newCompactTestController(t, cloud, compactTestPacks(compactMinPacks+1))
+	s.conf = &SyncConfig{}
+
+	done := make(chan error, 1)
+	go func() { done <- s.Execute(ctx) }()
+	if err := s.FlushNowUnordered(ctx); err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+	select {
+	case <-cloud.pushed:
+	case <-ctx.Done():
+		t.Fatal("no merge after an outside flush drained the queue")
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("execute: %v", err)
 	}
 }
 
