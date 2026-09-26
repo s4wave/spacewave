@@ -134,7 +134,12 @@ func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []by
 func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
 	opts := bdb.DefaultIteratorOptions
 	opts.Reverse = reverse
-	opts.Prefix = prefix
+	// Badger does not bound reverse iteration by the prefix and reports an
+	// out-of-prefix item as invalid without a way to step off it, so the
+	// Iterator enforces the prefix itself when reversed.
+	if !reverse {
+		opts.Prefix = prefix
+	}
 	opts.AllVersions = false
 
 	t.mtx.Lock()

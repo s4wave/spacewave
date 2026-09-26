@@ -363,6 +363,11 @@ func (w *Writer) Truncate(size uint64) error {
 			w.root.Ranges = w.root.Ranges[:removeFrom]
 			w.bcs.MarkDirty()
 		}
+
+		// drop the root blob contents past the new end of file
+		if err := w.trimRootBlob(size); err != nil {
+			return err
+		}
 	} else {
 		// when adding size to the file:
 		// - lookup the last range in the file
@@ -373,17 +378,8 @@ func (w *Writer) Truncate(size uint64) error {
 		var zeroRange bool
 		if len(w.root.Ranges) == 0 {
 			// ensure that the root blob is shorter than total size
-			rootBlob := w.root.GetRootBlob()
-			rootBlobSize := rootBlob.GetTotalSize()
-			if rootBlobSize > oldSize {
-				rootBlobBcs := w.bcs.FollowSubBlock(2)
-				if oldSize > math.MaxInt64 {
-					return errors.New("total size exceeds maximum")
-				}
-				err := rootBlob.Truncate(w.ctx, rootBlobBcs, w.buildBlobOpts, int64(oldSize))
-				if err != nil {
-					return err
-				}
+			if err := w.trimRootBlob(oldSize); err != nil {
+				return err
 			}
 		} else {
 			lastRange := w.root.Ranges[len(w.root.Ranges)-1]
@@ -415,11 +411,35 @@ func (w *Writer) Truncate(size uint64) error {
 	return w.normalize()
 }
 
+// trimRootBlob truncates the root blob to at most size bytes.
+func (w *Writer) trimRootBlob(size uint64) error {
+	rootBlob := w.root.GetRootBlob()
+	if rootBlob.GetTotalSize() <= size {
+		return nil
+	}
+	if size > math.MaxInt64 {
+		return errors.New("total size exceeds maximum")
+	}
+	rootBlobBcs := w.bcs.FollowSubBlock(2)
+	if err := rootBlob.Truncate(w.ctx, rootBlobBcs, w.buildBlobOpts, int64(size)); err != nil {
+		return err
+	}
+	w.bcs.MarkDirty()
+	return nil
+}
+
 // moveRootBlobToRange moves the root blob if it is set to a range.
 func (w *Writer) moveRootBlobToRange() error {
+	if len(w.root.Ranges) != 0 {
+		return nil
+	}
+	// the root blob may extend past the end of the file: drop those bytes.
+	if err := w.trimRootBlob(w.root.GetTotalSize()); err != nil {
+		return err
+	}
 	rblob := w.root.GetRootBlob()
 	rblobSize := rblob.GetTotalSize()
-	if len(w.root.Ranges) != 0 || rblobSize == 0 {
+	if rblobSize == 0 {
 		return nil
 	}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/bucket"
-	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -32,16 +31,8 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 // Call Close when done with the iterator.
 // Any init errors will be available via the iterator's Err() method.
 func (t *Tx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
-	unlock, err := t.rmtx.Lock(ctx, false)
-	if err != nil {
-		return &txObjectIterator{err: err}
-	}
-	defer unlock()
-
-	if t.state.discarded.Load() {
-		return &txObjectIterator{err: tx.ErrDiscarded}
-	}
-
+	// newTxObjectIterator takes the read lock: taking it here too would
+	// recursively read lock and deadlock behind a queued writer.
 	return newTxObjectIterator(t, ctx, prefix, reversed)
 }
 

@@ -585,12 +585,16 @@ func (ss *session) handleClose(_ context.Context, tag uint32, req *V86FsCloseReq
 	}, nil
 }
 
+// maxReadSize is the largest number of bytes returned by one read request.
+const maxReadSize = 1 << 20
+
 func (ss *session) handleRead(ctx context.Context, tag uint32, req *V86FsReadRequest) (*V86FsMessage, error) {
 	entry := ss.getHandle(req.GetHandleId())
 	if entry == nil {
 		return nil, unixfs_errors.ErrNotExist
 	}
-	buf := make([]byte, req.GetSize())
+	// Bound the guest-controlled read size: larger requests return a short read.
+	buf := make([]byte, min(req.GetSize(), maxReadSize))
 	offset := req.GetOffset()
 	if offset > math.MaxInt64 {
 		return nil, errors.New("read offset exceeds int64")

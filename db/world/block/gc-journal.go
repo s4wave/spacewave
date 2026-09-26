@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	stderrors "errors"
+	"math"
 	"slices"
 
 	"github.com/pkg/errors"
@@ -107,6 +108,10 @@ func (j *gcJournal) Append(ctx context.Context, adds, removes []block_gc.RefEdge
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	// Reject unencodable edges before writing any journal entry.
+	if err := validateRefBatch(adds, removes); err != nil {
+		return err
+	}
 	for len(adds)+len(removes) != 0 {
 		nextAdds, nextRemoves, remainingAdds, remainingRemoves, _ := splitRefBatch(
 			adds,
@@ -126,7 +131,10 @@ func (j *gcJournal) appendBatch(ctx context.Context, adds, removes []block_gc.Re
 	nextSeq := j.seq + 1
 	var key [8]byte
 	binary.BigEndian.PutUint64(key[:], nextSeq)
-	val := encodeRefBatch(adds, removes)
+	val, err := encodeRefBatch(adds, removes)
+	if err != nil {
+		return err
+	}
 	if err := j.tree.Set(ctx, key[:], val); err != nil {
 		return err
 	}
@@ -248,7 +256,10 @@ func (j *gcJournal) DeleteApplied(ctx context.Context, entries []gcJournalEntry)
 	}
 	for _, entry := range entries {
 		if len(entry.remainingAdds) != 0 || len(entry.remainingRemoves) != 0 {
-			data := encodeRefBatch(entry.remainingAdds, entry.remainingRemoves)
+			data, err := encodeRefBatch(entry.remainingAdds, entry.remainingRemoves)
+			if err != nil {
+				return err
+			}
 			if err := j.tree.Set(ctx, entry.key, data); err != nil {
 				return err
 			}
@@ -341,10 +352,36 @@ type gcJournalEntry struct {
 	remainingRemoves []block_gc.RefEdge
 }
 
+// maxGCJournalIRILen is the longest edge subject or object the journal encodes.
+const maxGCJournalIRILen = 0xffff
+
+// validateRefBatch checks every edge in the batch fits the journal encoding.
+func validateRefBatch(adds, removes []block_gc.RefEdge) error {
+	if uint64(len(adds)) > math.MaxUint32 || uint64(len(removes)) > math.MaxUint32 {
+		return errors.New("gc journal batch has too many edges")
+	}
+	for _, edges := range [][]block_gc.RefEdge{adds, removes} {
+		for i := range edges {
+			if len(edges[i].Subject) > maxGCJournalIRILen || len(edges[i].Object) > maxGCJournalIRILen {
+				return errors.Errorf(
+					"gc journal edge exceeds %d bytes: subject %d bytes, object %d bytes",
+					maxGCJournalIRILen,
+					len(edges[i].Subject),
+					len(edges[i].Object),
+				)
+			}
+		}
+	}
+	return nil
+}
+
 // encodeRefBatch serializes adds and removes into a binary batch.
 // Format: [4B numAdds][4B numRemoves][edges...]
 // Each edge: [2B subjectLen][subject][2B objectLen][object]
-func encodeRefBatch(adds, removes []block_gc.RefEdge) []byte {
+func encodeRefBatch(adds, removes []block_gc.RefEdge) ([]byte, error) {
+	if err := validateRefBatch(adds, removes); err != nil {
+		return nil, err
+	}
 	size := 8
 	for i := range adds {
 		size += 4 + len(adds[i].Subject) + len(adds[i].Object)
@@ -354,8 +391,8 @@ func encodeRefBatch(adds, removes []block_gc.RefEdge) []byte {
 	}
 
 	buf := make([]byte, size)
-	binary.BigEndian.PutUint32(buf[0:4], mustGCJournalUint32Len(len(adds)))
-	binary.BigEndian.PutUint32(buf[4:8], mustGCJournalUint32Len(len(removes)))
+	binary.BigEndian.PutUint32(buf[0:4], uint32(len(adds)))    // #nosec G115 -- validated above.
+	binary.BigEndian.PutUint32(buf[4:8], uint32(len(removes))) // #nosec G115 -- validated above.
 	off := 8
 	for i := range adds {
 		off = encodeEdge(buf, off, &adds[i])
@@ -363,7 +400,7 @@ func encodeRefBatch(adds, removes []block_gc.RefEdge) []byte {
 	for i := range removes {
 		off = encodeEdge(buf, off, &removes[i])
 	}
-	return buf[:off]
+	return buf[:off], nil
 }
 
 func splitRefBatch(
@@ -392,30 +429,17 @@ func splitRefBatch(
 	return adds, removes[:removeLimit], nil, removes[removeLimit:], maxEdges
 }
 
+// encodeEdge writes one edge validated by validateRefBatch.
 func encodeEdge(buf []byte, off int, e *block_gc.RefEdge) int {
-	binary.BigEndian.PutUint16(buf[off:off+2], mustGCJournalUint16Len(len(e.Subject)))
+	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Subject))) // #nosec G115 -- validated by validateRefBatch.
 	off += 2
 	copy(buf[off:], e.Subject)
 	off += len(e.Subject)
-	binary.BigEndian.PutUint16(buf[off:off+2], mustGCJournalUint16Len(len(e.Object)))
+	binary.BigEndian.PutUint16(buf[off:off+2], uint16(len(e.Object))) // #nosec G115 -- validated by validateRefBatch.
 	off += 2
 	copy(buf[off:], e.Object)
 	off += len(e.Object)
 	return off
-}
-
-func mustGCJournalUint16Len(v int) uint16 {
-	if v < 0 || v > 0xffff {
-		panic("world-block: gc journal length overflows uint16")
-	}
-	return uint16(v)
-}
-
-func mustGCJournalUint32Len(v int) uint32 {
-	if v < 0 || uint64(v) > 0xffffffff {
-		panic("world-block: gc journal length overflows uint32")
-	}
-	return uint32(v) // #nosec G115 -- bounded above.
 }
 
 // decodeRefBatch deserializes a binary batch into adds and removes.

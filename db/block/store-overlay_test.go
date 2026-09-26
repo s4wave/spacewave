@@ -278,3 +278,52 @@ func mustBuildBlockRef(t *testing.T, data []byte) *block.BlockRef {
 	}
 	return ref
 }
+
+// overlayGatedPutStore records the data passed to PutBlock after a gate opens.
+type overlayGatedPutStore struct {
+	block.StoreOps
+
+	gate chan struct{}
+	got  chan []byte
+}
+
+func (s *overlayGatedPutStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	<-s.gate
+	s.got <- append([]byte(nil), data...)
+	return s.StoreOps.PutBlock(ctx, data, opts)
+}
+
+// TestStoreOverlayReadbackCopiesData checks the background writeback does not
+// share the data slice returned to the caller.
+func TestStoreOverlayReadbackCopiesData(t *testing.T) {
+	ctx := context.Background()
+	lower := newOverlayBatchTestStore()
+	lower.leaves = true
+	upper := &overlayGatedPutStore{
+		StoreOps: newOverlayMemoryStore(),
+		gate:     make(chan struct{}),
+		got:      make(chan []byte, 1),
+	}
+	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_READBACK_CACHE, 0, nil)
+	ref, _, err := lower.StoreOps.PutBlock(ctx, []byte("from-lower"), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	data, found, err := overlay.GetBlock(ctx, ref)
+	if err != nil || !found {
+		t.Fatalf("GetBlock: found=%v err=%v", found, err)
+	}
+	// The caller owns the returned slice and may reuse it.
+	copy(data, "XXXXXXXXXX")
+	close(upper.gate)
+
+	select {
+	case written := <-upper.got:
+		if string(written) != "from-lower" {
+			t.Fatalf("writeback wrote %q, want %q", written, "from-lower")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for writeback to upper")
+	}
+}

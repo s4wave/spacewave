@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -196,9 +197,11 @@ func (o *StoreOverlay) fill(target StoreOps, ref *BlockRef, stored *StoredBlock)
 	}
 	putOpts.ForceBlockRef = ref.Clone()
 	putOpts.Refs = CloneBlockRefs(stored.Refs)
+	// The caller receives stored.Data and may modify it during the writeback.
+	data := bytes.Clone(stored.Data)
 	go func() {
 		defer cancel()
-		if _, _, err := target.PutBlock(ctx, stored.Data, putOpts); err != nil {
+		if _, _, err := target.PutBlock(ctx, data, putOpts); err != nil {
 			o.le.WithError(err).Debug("block overlay writeback failed")
 		}
 	}()

@@ -809,3 +809,62 @@ func TestRelayMountManagement(t *testing.T) {
 		t.Fatalf("expected 0 mounts after RemoveMount, got %d", len(mounts))
 	}
 }
+
+// TestRelayReadCapsSize tests a read larger than maxReadSize returns a short
+// read instead of allocating the guest-requested size.
+func TestRelayReadCapsSize(t *testing.T) {
+	ctx := context.Background()
+	bfs := memfs.New()
+	data := bytes.Repeat([]byte("0123456789abcdef"), (maxReadSize*2)/16)
+	f, err := bfs.Create("big.bin")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := f.Write(data); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	h, err := unixfs.NewFSHandle(unixfs_billy.NewBillyFSCursor(bfs, ""))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(h.Release)
+	client := buildMultiMountServer(t, ctx, h, h)
+	strm, err := client.RelayV86Fs(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer strm.Close()
+
+	rootID := sendRecv(t, strm, &V86FsMessage{
+		Tag:  1,
+		Body: &V86FsMessage_MountRequest{MountRequest: &V86FsMountRequest{Name: "workspace"}},
+	}).GetMountReply().GetRootInodeId()
+	fileID := sendRecv(t, strm, &V86FsMessage{
+		Tag:  2,
+		Body: &V86FsMessage_LookupRequest{LookupRequest: &V86FsLookupRequest{ParentId: rootID, Name: "big.bin"}},
+	}).GetLookupReply().GetInodeId()
+	handleID := sendRecv(t, strm, &V86FsMessage{
+		Tag:  3,
+		Body: &V86FsMessage_OpenRequest{OpenRequest: &V86FsOpenRequest{InodeId: fileID}},
+	}).GetOpenReply().GetHandleId()
+
+	for i, size := range []uint32{maxReadSize + 1, ^uint32(0)} {
+		readReply := sendRecv(t, strm, &V86FsMessage{
+			Tag: uint32(4 + i), //nolint:gosec
+			Body: &V86FsMessage_ReadRequest{ReadRequest: &V86FsReadRequest{
+				HandleId: handleID,
+				Offset:   16,
+				Size:     size,
+			}},
+		}).GetReadReply()
+		if readReply == nil || readReply.GetStatus() != 0 {
+			t.Fatalf("size %d: read failed: %v", size, readReply)
+		}
+		if !bytes.Equal(readReply.GetData(), data[16:16+maxReadSize]) {
+			t.Fatalf("size %d: read %d bytes, want the first %d", size, len(readReply.GetData()), maxReadSize)
+		}
+	}
+}

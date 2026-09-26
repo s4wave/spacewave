@@ -143,7 +143,9 @@ func (t *txObjectIterator) Seek(k string) error {
 
 // Close releases the iterator.
 func (t *txObjectIterator) Close() {
-	t.it.Close()
+	if t.it != nil {
+		t.it.Close()
+	}
 	t.valid = false
 	t.err = context.Canceled
 }

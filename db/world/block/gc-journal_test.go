@@ -7,6 +7,7 @@ import (
 	stderrors "errors"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -150,13 +151,17 @@ func TestGCJournalPartialLegacyScanFailsClosed(t *testing.T) {
 	tree := newGCJournalTestTree()
 	var key [8]byte
 	binary.BigEndian.PutUint64(key[:], 1)
-	tree.values[string(key[:])] = encodeRefBatch(
+	batch, err := encodeRefBatch(
 		[]block_gc.RefEdge{{Subject: "a", Object: "b"}},
 		nil,
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree.values[string(key[:])] = batch
 	tree.scanPrefixKeysErr = block.ErrNotFound
 
-	_, err := newGCJournal(ctx, tree, true)
+	_, err = newGCJournal(ctx, tree, true)
 	if !stderrors.Is(err, block.ErrNotFound) {
 		t.Fatalf("error = %v, want block not found", err)
 	}
@@ -467,7 +472,10 @@ func storeGCJournalCountForTest(t *testing.T, tree *gcJournalTestTree, count uin
 var _ kvtx.BlockTx = (*gcJournalTestTree)(nil)
 
 func TestGCJournalRejectsMalformedBatch(t *testing.T) {
-	valid := encodeRefBatch([]block_gc.RefEdge{{Subject: "owner", Object: "block"}}, nil)
+	valid, err := encodeRefBatch([]block_gc.RefEdge{{Subject: "owner", Object: "block"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, _, err := decodeRefBatch(valid); err != nil {
 		t.Fatal(err)
 	}
@@ -477,5 +485,28 @@ func TestGCJournalRejectsMalformedBatch(t *testing.T) {
 		if _, _, err := decodeRefBatch(data); err == nil {
 			t.Fatal("accepted corrupt reference batch")
 		}
+	}
+}
+
+// TestGCJournalAppendRejectsOversizedEdge checks an edge too long for the
+// journal encoding returns an error and writes nothing.
+func TestGCJournalAppendRejectsOversizedEdge(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	journal, err := newGCJournal(ctx, tree, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := len(tree.values)
+	long := strings.Repeat("k", maxGCJournalIRILen+1)
+	err = journal.Append(ctx, []block_gc.RefEdge{
+		{Subject: "world", Object: "a"},
+		{Subject: "world", Object: long},
+	}, nil)
+	if err == nil {
+		t.Fatal("accepted edge longer than the journal encoding")
+	}
+	if len(tree.values) != before || journal.Entries() != 0 {
+		t.Fatal("rejected batch wrote journal entries")
 	}
 }

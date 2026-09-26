@@ -32,7 +32,10 @@ func (t *TXCache) scanPrefixSorted(ctx context.Context, prefix []byte, cb func(k
 	if err != nil {
 		return err
 	}
-	t.set.Ascend(nil, func(item *cacheItem) bool {
+	t.set.Ascend(&cacheItem{key: prefix}, func(item *cacheItem) bool {
+		if !bytes.HasPrefix(item.key, prefix) {
+			return false
+		}
 		searchItem := &cacheItem{key: item.key}
 		if _, removed := t.remove.Get(searchItem); removed {
 			return true
@@ -79,7 +82,10 @@ func (t *TXCache) scanPrefixUnsorted(ctx context.Context, prefix []byte, cb func
 		return err
 	}
 
-	snapSet.Ascend(nil, func(item *cacheItem) bool {
+	snapSet.Ascend(&cacheItem{key: prefix}, func(item *cacheItem) bool {
+		if !bytes.HasPrefix(item.key, prefix) {
+			return false
+		}
 		searchItem := &cacheItem{key: item.key}
 		if _, ok := snapRemove.Get(searchItem); ok {
 			return true
@@ -92,5 +98,5 @@ func (t *TXCache) scanPrefixUnsorted(ctx context.Context, prefix []byte, cb func
 		}
 		return true
 	})
-	return nil
+	return err
 }

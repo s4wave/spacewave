@@ -280,3 +280,67 @@ func TestWriteStoredRawBlobKeepsReference(t *testing.T) {
 		t.Fatalf("read %d bytes, want the %d written", len(got), len(data))
 	}
 }
+
+// TestTruncateRootBlobThenPartialWrite verifies that shrinking a file held in
+// its root blob drops the truncated bytes so later writes do not revive them.
+func TestTruncateRootBlobThenPartialWrite(t *testing.T) {
+	type op struct {
+		truncate bool
+		off      uint64
+		data     string
+	}
+	cases := []struct {
+		name string
+		ops  []op
+		want string
+	}{{
+		name: "write past end",
+		ops:  []op{{off: 0, data: "hello world"}, {truncate: true, off: 5}, {off: 7, data: "XY"}},
+		want: "hello\x00\x00XY",
+	}, {
+		name: "write inside then extend",
+		ops:  []op{{off: 0, data: "hello world"}, {truncate: true, off: 5}, {off: 2, data: "Z"}, {truncate: true, off: 11}},
+		want: "heZlo\x00\x00\x00\x00\x00\x00",
+	}}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			bkt := bucket_mock.NewMockBucket("test-truncate-root-blob", nil)
+			btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
+			rootFile := &File{}
+			bcs.SetBlock(rootFile, true)
+			fh := NewHandle(ctx, bcs, rootFile)
+			defer fh.Close()
+			fw := NewWriter(fh, btx, nil)
+			for _, o := range tc.ops {
+				var err error
+				if o.truncate {
+					err = fw.Truncate(o.off)
+				} else {
+					err = fw.WriteBytes(o.off, []byte(o.data))
+				}
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+			rootRef, _, err := btx.Write(ctx, true)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
+			fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			rdr := NewHandle(ctx, bcs, fi)
+			defer rdr.Close()
+			got, err := io.ReadAll(rdr)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if string(got) != tc.want {
+				t.Fatalf("read %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

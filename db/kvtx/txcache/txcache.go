@@ -153,17 +153,40 @@ func (t *TXCache) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool
 	return values, found, nil
 }
 
-// Size returns the number of keys in the store plus the added keys from the tx.
+// Size returns the number of keys in the store after applying the tx changes.
+//
+// Checks each pending set and delete against the underlying store, so the cost
+// scales with the number of pending changes.
 func (t *TXCache) Size(ctx context.Context) (uint64, error) {
 	t.mtx.RLock()
-	removeN := t.remove.Len()
-	setN := t.set.Len()
-	underlyingN, err := t.underlying.Size(ctx)
-	t.mtx.RUnlock()
+	defer t.mtx.RUnlock()
+	n, err := t.underlying.Size(ctx)
 	if err != nil {
 		return 0, err
 	}
-	return underlyingN + uint64(setN) - uint64(removeN), nil //nolint:gosec
+	t.set.Scan(func(item *cacheItem) bool {
+		var exists bool
+		exists, err = t.underlying.Exists(ctx, item.key)
+		if err == nil && !exists {
+			n++
+		}
+		return err == nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	t.remove.Scan(func(item *cacheItem) bool {
+		var exists bool
+		exists, err = t.underlying.Exists(ctx, item.key)
+		if err == nil && exists && n != 0 {
+			n--
+		}
+		return err == nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 // Set sets the value of a key.
@@ -193,7 +216,7 @@ func (t *TXCache) Delete(ctx context.Context, key []byte) error {
 	t.mtx.Lock()
 	searchItem := &cacheItem{key: key}
 	t.set.Delete(searchItem)
-	t.remove.Set(&cacheItem{key: key})
+	t.remove.Set(&cacheItem{key: bytes.Clone(key)})
 	t.mtx.Unlock()
 	return nil
 }

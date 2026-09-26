@@ -15,6 +15,8 @@ type Iterator struct {
 	rev    bool
 	prefix []byte
 	rel    func()
+	// positioned is set after the first Seek.
+	positioned bool
 
 	key, value []byte
 }
@@ -34,7 +36,7 @@ func (i *Iterator) Err() error {
 //
 // If err is set, returns false.
 func (i *Iterator) Valid() bool {
-	return i.err == nil && i.it.Valid()
+	return i.err == nil && i.it.ValidForPrefix(i.prefix)
 }
 
 // Key returns the current entry key, or nil if not valid.
@@ -88,61 +90,60 @@ func (i *Iterator) ValueCopy(bt []byte) ([]byte, error) {
 }
 
 // Next advances to the next entry and returns Valid.
+//
+// Calling Next before Seek positions the iterator at the first entry.
 func (i *Iterator) Next() bool {
 	if err := i.Err(); err != nil {
 		return false
 	}
+	if !i.positioned {
+		if err := i.Seek(nil); err != nil {
+			return false
+		}
+		return i.Valid()
+	}
+	if !i.Valid() {
+		return false
+	}
 	i.key, i.value = nil, nil
 	i.it.Next()
-	return i.it.Valid()
+	return i.Valid()
 }
 
-// Seek moves the iterator to the selected key, or the next key after the key.
+// Seek moves the iterator to the first key >= k, or <= k if reversed.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
 	if err := i.Err(); err != nil {
 		return err
 	}
 	i.key, i.value = nil, nil
+	i.positioned = true
 	if len(k) == 0 {
 		if !i.rev {
 			i.it.Rewind()
 		} else {
-			// Rewind does not work correctly with reverse=true when a finite
-			// prefix successor is available; seek to the end of the prefix.
 			i.seekPrefixEnd()
 		}
 		return nil
 	}
 
-	// Check if key has our prefix
-	if len(i.prefix) != 0 && !bytes.HasPrefix(k, i.prefix) {
-		// Key doesn't have our prefix - need special handling
-		if bytes.Compare(k, i.prefix) < 0 {
-			// Key is less than prefix
-			if i.rev {
-				i.seekPrefixEnd()
-			} else {
-				// For forward iteration, seek to start of prefix
-				i.it.Seek(i.prefix)
-			}
+	if len(i.prefix) != 0 && !bytes.HasPrefix(k, i.prefix) && bytes.Compare(k, i.prefix) > 0 {
+		// k is past the prefix range.
+		if i.rev {
+			i.seekPrefixEnd()
+		} else if incPrefix, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+			i.it.Seek(incPrefix)
 		} else {
-			// Key is greater than prefix
-			if i.rev {
-				// For reverse iteration, seek to the key
-				i.it.Seek(k)
-			} else {
-				// For forward iteration, we're past our prefix range
-				if incPrefix, ok := kvtx.PrefixSuccessor(i.prefix); ok {
-					i.it.Seek(incPrefix)
-				} else {
-					i.it.Seek(i.prefix)
-				}
-			}
+			i.it.Seek(i.prefix)
 		}
 		return nil
 	}
+	if len(i.prefix) != 0 && !i.rev && bytes.Compare(k, i.prefix) < 0 {
+		// k is before the prefix range: start at the first prefixed key.
+		k = i.prefix
+	}
 
+	// A reverse seek before the prefix range lands outside it and is invalid.
 	i.it.Seek(k)
 	return nil
 }
@@ -160,14 +161,16 @@ func (i *Iterator) Close() {
 	}
 }
 
+// seekPrefixEnd positions a reverse iterator at the last key with the prefix.
 func (i *Iterator) seekPrefixEnd() {
 	incPrefix, ok := kvtx.PrefixSuccessor(i.prefix)
 	if !ok {
 		i.it.Rewind()
 		return
 	}
+	// Reverse Seek lands on the last key <= incPrefix: step off incPrefix.
 	i.it.Seek(incPrefix)
-	if i.it.Valid() && bytes.Equal(incPrefix, i.it.Item().Key()) {
+	if i.it.ValidForPrefix(incPrefix) {
 		i.it.Next()
 	}
 }

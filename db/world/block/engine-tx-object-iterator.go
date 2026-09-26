@@ -65,33 +65,16 @@ func (e *engineTxObjectIterator) Next() bool {
 	}
 
 	var valid bool
-	var prevIter world.ObjectIterator
-	var prevTx *Tx
 	err := e.e.performOp(e.ctx, func(tx *Tx) error {
-		var iter world.ObjectIterator
-
-		// Reuse the prior iterator when the transaction snapshot is unchanged.
-		if prevTx == tx {
-			iter = prevIter
-			if !iter.Next() {
-				return iter.Err()
-			}
-			e.currKey = iter.Key()
-			valid = true
-			return nil
-		}
-
-		// Rebuild the iterator after the transaction snapshot changes.
-		iter = tx.IterateObjects(e.ctx, e.prefix, e.reversed)
+		// Build a fresh iterator on each attempt: a retry must not reuse the
+		// iterator closed by the previous attempt.
+		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		defer iter.Close()
 
 		// Reject an iterator that failed during initialization.
 		if err := iter.Err(); err != nil {
 			return err
 		}
-
-		// Retain the transaction and iterator for the next call.
-		prevTx, prevIter = tx, iter
 
 		if e.currKey != "" {
 			if err := iter.Seek(e.currKey); err != nil {
@@ -143,9 +126,6 @@ func (e *engineTxObjectIterator) Seek(k string) error {
 	var valid bool
 	err := e.e.performOp(e.ctx, func(tx *Tx) error {
 		iter := tx.IterateObjects(e.ctx, e.prefix, e.reversed)
-		if iter == nil {
-			return nil
-		}
 		defer iter.Close()
 
 		if err := iter.Seek(k); err != nil {
