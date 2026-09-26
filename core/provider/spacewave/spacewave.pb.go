@@ -140,9 +140,9 @@ type SyncConfig struct {
 	AutoSync bool `protobuf:"varint,3,opt,name=auto_sync,json=autoSync,proto3" json:"autoSync,omitempty"`
 	// SyncMode is the sync mode.
 	SyncMode SyncMode `protobuf:"varint,4,opt,name=sync_mode,json=syncMode,proto3" json:"syncMode,omitempty"`
-	// CompactSmallPacks merges small cloud packs into one replacement pack after
-	// the dirty queue drains. Default: false.
-	CompactSmallPacks bool `protobuf:"varint,5,opt,name=compact_small_packs,json=compactSmallPacks,proto3" json:"compactSmallPacks,omitempty"`
+	// DisableCompaction stops merging small cloud packs into one replacement
+	// pack after the dirty queue drains.
+	DisableCompaction bool `protobuf:"varint,5,opt,name=disable_compaction,json=disableCompaction,proto3" json:"disableCompaction,omitempty"`
 }
 
 func (x *SyncConfig) Reset() {
@@ -179,9 +179,9 @@ func (x *SyncConfig) GetSyncMode() SyncMode {
 	return SyncMode_SyncMode_CACHE
 }
 
-func (x *SyncConfig) GetCompactSmallPacks() bool {
+func (x *SyncConfig) GetDisableCompaction() bool {
 	if x != nil {
-		return x.CompactSmallPacks
+		return x.DisableCompaction
 	}
 	return false
 }
@@ -217,7 +217,7 @@ func (m *SyncConfig) CloneVT() *SyncConfig {
 	r.SizeThresholdBytes = m.SizeThresholdBytes
 	r.AutoSync = m.AutoSync
 	r.SyncMode = m.SyncMode
-	r.CompactSmallPacks = m.CompactSmallPacks
+	r.DisableCompaction = m.DisableCompaction
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -284,7 +284,7 @@ func (this *SyncConfig) EqualVT(that *SyncConfig) bool {
 	if this.SyncMode != that.SyncMode {
 		return false
 	}
-	if this.CompactSmallPacks != that.CompactSmallPacks {
+	if this.DisableCompaction != that.DisableCompaction {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -460,10 +460,10 @@ func (x *SyncConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("syncMode")
 		x.SyncMode.MarshalProtoJSON(s)
 	}
-	if x.CompactSmallPacks || s.HasField("compactSmallPacks") {
+	if x.DisableCompaction || s.HasField("disableCompaction") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("compactSmallPacks")
-		s.WriteBool(x.CompactSmallPacks)
+		s.WriteObjectField("disableCompaction")
+		s.WriteBool(x.DisableCompaction)
 	}
 	s.WriteObjectEnd()
 }
@@ -494,9 +494,9 @@ func (x *SyncConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "sync_mode", "syncMode":
 			s.AddField("sync_mode")
 			x.SyncMode.UnmarshalProtoJSON(s)
-		case "compact_small_packs", "compactSmallPacks":
-			s.AddField("compact_small_packs")
-			x.CompactSmallPacks = s.ReadBool()
+		case "disable_compaction", "disableCompaction":
+			s.AddField("disable_compaction")
+			x.DisableCompaction = s.ReadBool()
 		}
 	})
 }
@@ -607,8 +607,8 @@ func (m *SyncConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.CompactSmallPacks {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CompactSmallPacks)
+	if m.DisableCompaction {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableCompaction)
 		i--
 		dAtA[i] = 0x28
 	}
@@ -665,7 +665,7 @@ func (m *SyncConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeThresholdBytes)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AutoSync)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SyncMode)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.CompactSmallPacks)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableCompaction)
 	n += len(m.unknownFields)
 	return n
 }
@@ -731,9 +731,9 @@ func (x *SyncConfig) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sync_mode")
 		protobuf_go_lite.TextWriteStringer(&sb, SyncMode(x.SyncMode))
 	}
-	if x.CompactSmallPacks != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "compact_small_packs")
-		protobuf_go_lite.TextWriteBool(&sb, x.CompactSmallPacks)
+	if x.DisableCompaction != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_compaction")
+		protobuf_go_lite.TextWriteBool(&sb, x.DisableCompaction)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -921,14 +921,14 @@ func (m *SyncConfig) UnmarshalVT(dAtA []byte) error {
 			}
 		case 5:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CompactSmallPacks", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableCompaction", wireType)
 			}
 			var v bool
 			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.CompactSmallPacks = bool(v)
+			m.DisableCompaction = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

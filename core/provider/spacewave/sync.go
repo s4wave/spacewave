@@ -236,7 +236,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
 		next, _, changed := s.pendingSnapshot()
-		if next.IsZero() && s.conf.GetCompactSmallPacks() {
+		if next.IsZero() && !s.conf.GetDisableCompaction() {
 			if err := s.CompactNow(ctx); err != nil && ctx.Err() == nil {
 				s.le.WithError(err).Warn("small pack merge failed")
 			}

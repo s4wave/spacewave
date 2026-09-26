@@ -34,9 +34,9 @@ message SyncConfig {
   bool auto_sync = 3;
   // SyncMode is the sync mode.
   SyncMode sync_mode = 4;
-  // CompactSmallPacks merges small cloud packs into one replacement pack after
-  // the dirty queue drains. Default: false.
-  bool compact_small_packs = 5;
+  // DisableCompaction stops merging small cloud packs into one replacement
+  // pack after the dirty queue drains.
+  bool disable_compaction = 5;
 }
 
 // SyncMode is the sync mode for block stores.

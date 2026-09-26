@@ -73,12 +73,12 @@ export interface SyncConfig {
    */
   syncMode?: SyncMode
   /**
-   * CompactSmallPacks merges small cloud packs into one replacement pack after
-   * the dirty queue drains. Default: false.
+   * DisableCompaction stops merging small cloud packs into one replacement
+   * pack after the dirty queue drains.
    *
-   * @generated from field: bool compact_small_packs = 5;
+   * @generated from field: bool disable_compaction = 5;
    */
-  compactSmallPacks?: boolean
+  disableCompaction?: boolean
 }
 
 export const SyncConfig: MessageType<SyncConfig> =
@@ -99,12 +99,7 @@ export const SyncConfig: MessageType<SyncConfig> =
       },
       { no: 3, name: 'auto_sync', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'sync_mode', kind: 'enum', T: SyncMode_Enum },
-      {
-        no: 5,
-        name: 'compact_small_packs',
-        kind: 'scalar',
-        T: ScalarType.BOOL,
-      },
+      { no: 5, name: 'disable_compaction', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
