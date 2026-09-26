@@ -220,6 +220,10 @@ func (a *ProviderAccount) mountEnrolledSO(
 	if err := localSO.soHost.InstallInviteSnapshot(ctx, state); err != nil {
 		return errors.Wrap(err, "install owner shared object state")
 	}
+
+	// Denials answered the previous grant, not the checkpoint just installed.
+	localSO.tkr.healthCtr.SwapValue((*sobject.SharedObjectHealth).WithoutSyncDenials)
+
 	// Admission is complete only when body mounts can observe the accepted grant.
 	if err := localSO.lsoHost.waitPublishedConfig(ctx, state.GetConfig()); err != nil {
 		return errors.Wrap(err, "publish invited shared object state")

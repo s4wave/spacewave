@@ -35,6 +35,18 @@ func (h *SharedObjectHealth) WithSyncPeerAdmission(peerID string, accepted bool)
 	return next
 }
 
+// WithoutSyncDenials returns a snapshot that forgets every recorded admission
+// denial. A newly installed authenticated checkpoint replaces the authority those
+// denials answered; later sync rounds record fresh decisions.
+func (h *SharedObjectHealth) WithoutSyncDenials() *SharedObjectHealth {
+	if len(h.GetSyncDeniedPeerIds()) == 0 {
+		return h
+	}
+	next := h.CloneVT()
+	next.SyncDeniedPeerIds = nil
+	return next
+}
+
 // WithSyncPeerRecovery records a recovery requirement without closing local access.
 // The caller supplies an authenticated participant; only verified convergence clears it.
 func (h *SharedObjectHealth) WithSyncPeerRecovery(peerID string, required bool) *SharedObjectHealth {
