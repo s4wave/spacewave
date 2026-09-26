@@ -11,6 +11,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/net/peer"
 	signaling_rpc "github.com/s4wave/spacewave/net/signaling/rpc"
+	signaling_rpc_frame "github.com/s4wave/spacewave/net/signaling/rpc/frame"
 	signaling_server "github.com/s4wave/spacewave/net/signaling/rpc/server"
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +30,6 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 	if err := signaling_rpc.SRPCRegisterSignaling(rpcMux, signaling); err != nil {
 		return err
 	}
-	server := srpc.NewServer(rpcMux)
 
 	// Issue identities only for syntactically valid session peers.
 	mux.HandleFunc("/api/signal/ticket", func(w http.ResponseWriter, r *http.Request) {
@@ -74,12 +74,9 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 		defer conn.CloseNow()
 		streamCtx, cancel := context.WithCancel(context.WithValue(ctx, signalingPeerKey{}, pid))
 		defer cancel()
-		mc, err := srpc.NewWebSocketConn(streamCtx, conn, true, nil)
-		if err != nil {
-			return
-		}
-		// Socket closure and fixture cancellation terminate the accept loop.
-		_ = server.AcceptMuxedConn(streamCtx, mc)
+		// Socket closure and fixture cancellation terminate the read pump.
+		frames := signaling_rpc_frame.NewConn(streamCtx, conn)
+		_ = frames.ReadPump(signaling_rpc_frame.NewServerAccept(streamCtx, rpcMux))
 	})
 	return nil
 }

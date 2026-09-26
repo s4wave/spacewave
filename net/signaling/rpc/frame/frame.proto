@@ -1,0 +1,16 @@
+syntax = "proto3";
+package signaling.rpc.frame;
+
+// Frame is one WebSocket message carrying one srpc stream event.
+//
+// Streams share the socket without a stream multiplexer, so a server can
+// handle every message on its own and keep no transport state between
+// messages. The client allocates stream ids.
+message Frame {
+  // StreamId identifies the stream within the socket.
+  uint32 stream_id = 1;
+  // Packet is an encoded srpc.Packet for the stream, if any.
+  bytes packet = 2;
+  // Close ends the stream from the sender's side after any packet.
+  bool close = 3;
+}
