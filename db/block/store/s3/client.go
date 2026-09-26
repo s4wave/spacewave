@@ -52,14 +52,6 @@ func BuildClient(conf *ClientConfig) (*Client, error) {
 	}, nil
 }
 
-// Validate validates the client config.
-func (c *ClientConfig) Validate() error {
-	if c.GetEndpoint() == "" {
-		return errors.New("endpoint cannot be empty")
-	}
-	return nil
-}
-
 // PutObject uploads an object with the given content type.
 func (c *Client) PutObject(ctx context.Context, bucket, key string, data []byte, contentType string) error {
 	resp, err := c.do(ctx, http.MethodPut, bucket, key, nil, data, http.Header{"Content-Type": {contentType}})

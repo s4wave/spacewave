@@ -12,7 +12,7 @@ import (
 )
 
 // ControllerID identifies the s3 block store controller.
-const ControllerID = "hydra/block/store/s3"
+const ControllerID = ConfigID
 
 // Version is the version of the block store implementation.
 var Version = controller.MustParseVersion("0.0.1")

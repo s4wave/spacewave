@@ -7,7 +7,7 @@ import (
 )
 
 // ConfigID is the string used to identify this config object.
-const ConfigID = ControllerID
+const ConfigID = "hydra/block/store/s3"
 
 // NewConfig constructs a new config.
 func NewConfig(blockStoreId string, clientConfig *ClientConfig, bucketName, objectPrefix string, bucketIDs []string) *Config {
@@ -27,6 +27,14 @@ func (c *Config) Validate() error {
 	}
 	if err := c.GetClient().Validate(); err != nil {
 		return errors.Wrap(err, "client")
+	}
+	return nil
+}
+
+// Validate validates the client config.
+func (c *ClientConfig) Validate() error {
+	if c.GetEndpoint() == "" {
+		return errors.New("endpoint cannot be empty")
 	}
 	return nil
 }
