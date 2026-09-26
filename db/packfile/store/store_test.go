@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -186,6 +187,14 @@ func mustReadIndexTail(t *testing.T, data []byte) []byte {
 		t.Fatal(err)
 	}
 	return tail
+}
+
+// TransportFunc adapts a function to Transport for tests.
+type TransportFunc func(ctx context.Context, off int64, length int) ([]byte, error)
+
+// Fetch invokes the fixture's transport operation with the caller's lifetime.
+func (f TransportFunc) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
+	return f(ctx, off, length)
 }
 
 // openerFromBytes builds an opener that returns a fresh engine per call over
@@ -798,6 +807,63 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 			stats.RemoteIndexBytes,
 			stats.LastRemoteIndexBytes,
 		)
+	}
+}
+
+// TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently loads the
+// index of every candidate pack at once instead of one pack at a time.
+func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) {
+	ctx := t.Context()
+	packs := make(map[string][]byte, 2)
+	var manifest []*packfile.PackfileEntry
+	var refs []*block.BlockRef
+	for _, name := range []string{"one", "two"} {
+		packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{name, name + "-data"}})
+		packs[name] = packBytes
+		manifest = append(manifest, &packfile.PackfileEntry{
+			Id:          name,
+			BloomFilter: bloomBytes,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(packBytes)),
+		})
+		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(name+"-data"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs = append(refs, &block.BlockRef{Hash: h})
+	}
+
+	// Every fetch waits until both packs have started an index load, so
+	// loading one index after the other never completes.
+	var started atomic.Int32
+	bothStarted := make(chan struct{})
+	opener := func(packID string, size int64) (*PackReader, error) {
+		var first sync.Once
+		data := packs[packID]
+		transport := TransportFunc(func(_ context.Context, off int64, n int) ([]byte, error) {
+			first.Do(func() {
+				if started.Add(1) == 2 {
+					close(bothStarted)
+				}
+			})
+			select {
+			case <-bothStarted:
+			case <-time.After(5 * time.Second):
+				return nil, errors.New("index loads ran one at a time")
+			}
+			return bytes.Clone(data[off : off+int64(n)]), nil
+		})
+		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+	}
+	store := NewPackfileStore(opener, newMemIndexCache())
+	store.UpdateManifest(manifest)
+
+	found, err := store.GetBlockExistsBatch(ctx, refs)
+	if err != nil {
+		t.Fatalf("GetBlockExistsBatch: %v", err)
+	}
+	if !slices.Equal(found, []bool{true, true}) {
+		t.Fatalf("found = %v, want [true true]", found)
 	}
 }
 

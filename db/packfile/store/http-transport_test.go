@@ -657,11 +657,3 @@ func parseHTTPTestRangeHeader(h string, size int64) (start, end int64, ok bool) 
 	}
 	return reqStart, reqEnd + 1, true
 }
-
-// TransportFunc adapts a function to Transport for tests.
-type TransportFunc func(ctx context.Context, off int64, length int) ([]byte, error)
-
-// Fetch invokes the fixture's transport operation with the caller's lifetime.
-func (f TransportFunc) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
-	return f(ctx, off, length)
-}
