@@ -15,6 +15,9 @@ func NewTask(ctx context.Context, _ string) (context.Context, *Task) {
 // End ends the task; it is a no-op on the TinyGo build.
 func (t *Task) End() {}
 
+// IsEnabled reports false on the TinyGo build.
+func IsEnabled() bool { return false }
+
 // Log is a no-op on the TinyGo build.
 func Log(_ context.Context, _ string, _ string) {}
 

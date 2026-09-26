@@ -231,7 +231,9 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 		trace.Log(ctx, "result", "empty-hash")
 		return nil, nil
 	}
-	trace.Log(ctx, "block-ref", ref.MarshalString())
+	if trace.IsEnabled() {
+		trace.Log(ctx, "block-ref", ref.MarshalString())
+	}
 	key := []byte(h.MarshalString())
 
 	var stored *block.StoredBlock
@@ -239,7 +241,7 @@ func (s *PackfileStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	err := s.probePacks(key, &lookup, func(eng *PackReader) (bool, error) {
 		trace.Log(ctx, "pack-id", eng.packID)
 		var err error
-		stored, err = eng.getBlock(ctx, key)
+		stored, err = eng.getBlock(ctx, key, ref)
 		return stored != nil, err
 	})
 	s.recordLookupStats(lookup)
