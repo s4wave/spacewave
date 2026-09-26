@@ -581,7 +581,7 @@ export function useMemoEqualGetter<T, V = T>(
   const memoEquiv = useMemo(
     () =>
       value === memoValue ||
-      (value == null) === (memoValue == null) ||
+      (value == null && memoValue == null) ||
       (value != null && memoValue != null && checkEqual(value, memoValue)),
     [value, memoValue, checkEqual],
   )
@@ -719,6 +719,8 @@ export function useGetValueRpc<T, R = unknown>(
       }
 
       const resp = await getValueRpc(memoizedReq, signal)
+      // A superseded call must not overwrite a newer response.
+      if (signal.aborted) return
       setCurrValue(setIfChanged<T | null>(resp, checkRespEqual))
     },
     retryOpts,

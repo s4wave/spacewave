@@ -69,4 +69,49 @@ describe('useBackendStateAtomValue', () => {
       expect(setState).toHaveBeenCalledWith('{"json":"welcome.md"}'),
     )
   })
+
+  it('accepts remote changes after the backend confirms a pending write', async () => {
+    const responses: { stateJson: string }[] = []
+    let wake: (() => void) | null = null
+    const push = (stateJson: string) => {
+      responses.push({ stateJson })
+      wake?.()
+    }
+    async function* watchState(_req: unknown, signal: AbortSignal) {
+      while (!signal.aborted) {
+        const next = responses.shift()
+        if (next) {
+          yield next
+          continue
+        }
+        await new Promise<void>((resolve) => {
+          wake = resolve
+        })
+      }
+    }
+    const setState = vi.fn((stateJson: string) => {
+      push(stateJson)
+      return Promise.resolve()
+    })
+    const stateAtom = {
+      setState,
+      watchState,
+      release: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    }
+    const accessStateAtom = vi.fn(() => Promise.resolve(stateAtom as never))
+    push('{"json":""}')
+
+    render(<SelectedNoteButton accessor={buildAccessor(accessStateAtom)} />)
+    const button = screen.getByTestId('selected-note')
+    await waitFor(() => expect(button.textContent).toBe('empty'))
+
+    fireEvent.click(button)
+    await waitFor(() => expect(setState).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(button.textContent).toBe('welcome.md'))
+
+    push('{"json":"remote.md"}')
+    await waitFor(() => expect(button.textContent).toBe('remote.md'))
+    expect(setState).toHaveBeenCalledTimes(1)
+  })
 })

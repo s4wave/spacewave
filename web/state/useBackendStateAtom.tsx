@@ -86,6 +86,15 @@ export function useBackendStateAtomValue<T>(
       return defaultValue
     }
   }, [stateJson, defaultValue])
+  // Drop the pending write once the backend reflects it, so later remote
+  // changes are not reverted to the stale pending value.
+  if (
+    pendingState &&
+    pendingState.storeId === storeId &&
+    stateJson === pendingState.stateJson
+  ) {
+    setPendingState(null)
+  }
   const pendingForStore =
     pendingState?.storeId === storeId ? pendingState : null
   const activePendingState =

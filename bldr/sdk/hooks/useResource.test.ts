@@ -79,6 +79,23 @@ function TestChildResource(props: {
   })
 }
 
+function TestRetryChild(props: {
+  parent: Resource<string>
+  factory: (value: string) => Promise<string>
+}) {
+  const resource = useResource(
+    props.parent,
+    async (value) => props.factory(value),
+    [],
+  )
+
+  return React.createElement(
+    'button',
+    { type: 'button', onClick: resource.retry },
+    'retry',
+  )
+}
+
 function TestValue(props: {
   factory: (version: number) => Promise<string>
   version: number
@@ -331,6 +348,60 @@ describe('useResource', () => {
       '1',
     )
     expect(factory).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries only failed parents', async () => {
+    const parentRetry = vi.fn()
+    const factory = vi.fn(async (value: string) => `child:${value}`)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const click = async () => {
+      await act(async () => {
+        container
+          ?.querySelector('button')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+        await flush()
+      })
+    }
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestRetryChild, {
+          parent: {
+            value: 'ok',
+            loading: false,
+            error: null,
+            retry: parentRetry,
+          },
+          factory,
+        }),
+      )
+      await flush()
+    })
+    expect(factory).toHaveBeenCalledTimes(1)
+
+    await click()
+    expect(parentRetry).not.toHaveBeenCalled()
+    expect(factory).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      root?.render(
+        React.createElement(TestRetryChild, {
+          parent: {
+            value: null,
+            loading: false,
+            error: new Error('parent failed'),
+            retry: parentRetry,
+          },
+          factory,
+        }),
+      )
+      await flush()
+    })
+
+    await click()
+    expect(parentRetry).toHaveBeenCalledTimes(1)
   })
 
   it('aborts child work when its SDK parent is released', async () => {

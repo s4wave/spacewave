@@ -5,7 +5,7 @@
 // analyzers (e.g. CodeQL) recognize the sanitization.
 export function safeHref(url: string | undefined): string {
   if (!url) return '#'
-  const trimmed = url.trim()
+  const trimmed = normalizeUrlInput(url)
   if (!trimmed) return '#'
   // Relative URLs (no scheme) are safe.
   if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed
@@ -24,4 +24,23 @@ export function safeHref(url: string | undefined): string {
     default:
       return '#'
   }
+}
+
+// normalizeUrlInput mirrors the WHATWG URL parser's input preprocessing so
+// scheme detection sees what the browser sees: it strips leading and trailing
+// C0 control or space characters and removes all ASCII tab and newline
+// characters (e.g. "java\tscript:" is parsed as "javascript:"). String.trim
+// is applied as well to drop other leading and trailing whitespace.
+function normalizeUrlInput(url: string): string {
+  let start = 0
+  let end = url.length
+  while (start < end && url.charCodeAt(start) <= 0x20) start++
+  while (end > start && url.charCodeAt(end - 1) <= 0x20) end--
+  let out = ''
+  for (let i = start; i < end; i++) {
+    const c = url.charCodeAt(i)
+    if (c === 0x09 || c === 0x0a || c === 0x0d) continue
+    out += url[i]
+  }
+  return out.trim()
 }

@@ -209,8 +209,16 @@ export function AppSession() {
 
   // Wrap all session-level renders in SessionIndexContext so children
   // can access the session index without parsing the URL.
+  // useResource keeps the previous value while reloading, so a switch to a
+  // PIN-locked session shows as loading with the old session's value. The
+  // mount blocks until unlock, so treat any pending mount as locked, matching
+  // the initial mount where the value is still null.
   let content: React.ReactNode
-  if (isPinLocked && !sessionResource.value && metadata) {
+  if (
+    isPinLocked &&
+    metadata &&
+    (sessionResource.loading || !sessionResource.value)
+  ) {
     content = (
       <PinUnlockOverlay
         metadata={metadata}

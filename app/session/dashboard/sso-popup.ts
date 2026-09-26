@@ -41,14 +41,18 @@ export function startSSOPopupFlow(
     encodeURIComponent(opts.mode) +
     '&redirect_path=' +
     encodeURIComponent(redirectPath)
-  const popup = window.open(
-    url,
-    '_blank',
-    'popup=yes,width=560,height=720,noopener,noreferrer',
-  )
+  // noopener and noreferrer make window.open return null per spec, which is
+  // indistinguishable from a blocked popup. The result arrives over the
+  // BroadcastChannel, so detach the opener manually instead.
+  const popup = window.open(url, '_blank', 'popup=yes,width=560,height=720')
   if (!popup) {
     channel.close()
     throw new Error('Popup was blocked. Allow popups and try again.')
+  }
+  try {
+    popup.opener = null
+  } catch {
+    // Some browsers disallow assigning opener; the flow does not depend on it.
   }
 
   let settled = false

@@ -25,6 +25,11 @@ export interface RouterContextType {
   navigate: (to: To) => void
   /** Array of parent paths in the routing hierarchy */
   parentPaths: string[]
+  /**
+   * Raw (percent-encoded) remainder matched by the enclosing wildcard route.
+   * Nested Routes match against it so params are decoded exactly once.
+   */
+  wildcardPath?: string
 }
 
 /**
@@ -88,7 +93,7 @@ function decodeRoutePart(part: string): string {
 const matchRoute = (
   pattern: string,
   path: string,
-): Record<string, string> | null => {
+): { params: Record<string, string>; wildcardPath?: string } | null => {
   const trimSlashes = (p: string) => p.replace(/^\/+|\/+$/g, '')
   const parts = trimSlashes(pattern).split('/')
   const pathParts = trimSlashes(path).split('/')
@@ -102,8 +107,9 @@ const matchRoute = (
 
     if (patternPart === '*') {
       // Wildcard matches the rest of the path.
-      params['*'] = decodeRoutePart(pathParts.slice(i).join('/'))
-      return params
+      const wildcardPath = pathParts.slice(i).join('/')
+      params['*'] = decodeRoutePart(wildcardPath)
+      return { params, wildcardPath }
     }
 
     if (pathPart === undefined) {
@@ -125,7 +131,7 @@ const matchRoute = (
     return null
   }
 
-  return params
+  return { params }
 }
 
 /**
@@ -223,22 +229,24 @@ export const Routes: FC<{
   const router = useRouter()
   const effectivePath = fullPath
     ? (pathProp ?? router.path)
-    : (router.params['*'] ?? pathProp ?? router.path)
+    : (router.wildcardPath ?? pathProp ?? router.path)
 
   const childElements = collectRoutes(children)
   for (const child of childElements) {
     const { path: routePattern, children } = child.props
-    const params = matchRoute(routePattern, effectivePath)
-    if (params) {
-      // Calculate the basePath by removing the wildcard portion if it exists
-      // Calculate the current path segment
-      const currentPath = params['*']
-        ? effectivePath.slice(0, -params['*'].length - 1) // -1 for the trailing slash
+    const match = matchRoute(routePattern, effectivePath)
+    if (match) {
+      const { params, wildcardPath } = match
+      // Calculate the current path segment by removing the raw wildcard
+      // portion, which has the same encoding as effectivePath.
+      const currentPath = wildcardPath
+        ? effectivePath.slice(0, -wildcardPath.length - 1) // -1 for the trailing slash
         : effectivePath
 
       const value = {
         ...router,
         params,
+        wildcardPath,
         parentPaths: routePattern.endsWith('*')
           ? [...router.parentPaths, currentPath]
           : router.parentPaths,

@@ -20,9 +20,11 @@ export function useAccessTypedHandle<T extends SDKResource>(
       if (!objectKey) return null
       const access = await world.accessTypedObject(objectKey, signal)
       if (!access.resourceId) return null
-      if (typeId && access.typeId !== typeId) return null
-      const resourceRef = world.getResourceRef()
-      const ref = resourceRef.createRef(access.resourceId)
+      const ref = world.getResourceRef().createRef(access.resourceId)
+      if (typeId && access.typeId !== typeId) {
+        ref.release()
+        return null
+      }
       return cleanup(new HandleClass(ref))
     },
     [objectKey],

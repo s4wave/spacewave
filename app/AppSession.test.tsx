@@ -101,6 +101,28 @@ describe('AppSession', () => {
     expect(screen.queryByTestId('session-container')).toBeNull()
   })
 
+  it('renders the PIN unlock overlay while switching to a locked session', () => {
+    mockUseParams.mockReturnValue({ sessionIndex: '2' })
+    mockUsePath.mockReturnValue('/u/2')
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockUseSessionMetadata.mockReturnValue({
+      lockMode: SessionLockMode.PIN_ENCRYPTED,
+      displayName: 'Cloud Session',
+    })
+    // useResource retains the previous session's value while reloading.
+    mockUseResource.mockReturnValue({
+      value: {} as never,
+      loading: true,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    render(<AppSession />)
+
+    expect(screen.getByTestId('pin-unlock-overlay')).toBeTruthy()
+    expect(screen.queryByTestId('session-container')).toBeNull()
+  })
+
   it('renders the session container once the session is mounted', () => {
     mockUseParams.mockReturnValue({ sessionIndex: '1' })
     mockUseRootResource.mockReturnValue({ value: null })

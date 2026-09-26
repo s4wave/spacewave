@@ -267,6 +267,54 @@ describe('Router', () => {
       ).toBeTruthy()
     })
 
+    it('computes parent paths from encoded wildcard paths', () => {
+      const TestComponent = () => {
+        const { parentPaths } = useRouter()
+        return (
+          <div data-testid="parent-paths">{JSON.stringify(parentPaths)}</div>
+        )
+      }
+
+      const { getByTestId } = render(
+        <Router path="/u/2/dir%20a/file%20b" onNavigate={onNavigate}>
+          <Routes>
+            <Route path="/u/2/*">
+              <TestComponent />
+            </Route>
+          </Routes>
+        </Router>,
+      )
+      expect(JSON.parse(getByTestId('parent-paths').textContent ?? '')).toEqual(
+        ['/u/2'],
+      )
+    })
+
+    it('decodes nested route params exactly once', () => {
+      const TestComponent = () => {
+        const params = useParams()
+        return (
+          <div>
+            Name: {params.name} Rest: {params['*']}
+          </div>
+        )
+      }
+
+      const { getByText } = render(
+        <Router path="/so/x/100%2520/a%20b" onNavigate={onNavigate}>
+          <Routes>
+            <Route path="/so/*">
+              <Routes>
+                <Route path="x/:name/*">
+                  <TestComponent />
+                </Route>
+              </Routes>
+            </Route>
+          </Routes>
+        </Router>,
+      )
+      expect(getByText('Name: 100%20 Rest: a b')).toBeTruthy()
+    })
+
     it('uses provided path prop instead of router context path', () => {
       const { getByText } = render(
         <Router path="/users/123" onNavigate={onNavigate}>

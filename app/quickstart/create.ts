@@ -1058,6 +1058,9 @@ async function writeDriveStarterGuide(
     () => spaceWorld.accessTypedObject(UNIXFS_OBJECT_KEY, abortSignal),
   )
   if (!access.resourceId || access.typeId !== UnixFSTypeID) {
+    if (access.resourceId) {
+      spaceWorld.getResourceRef().createRef(access.resourceId).release()
+    }
     throw new Error(
       `Drive starter guide expected ${UnixFSTypeID}, got ${access.typeId || 'unknown'}`,
     )
@@ -1236,6 +1239,9 @@ async function openQuickstartHandle<T extends QuickstartResourceHandle>(
 ): Promise<T> {
   const access = await spaceWorld.accessTypedObject(objectKey, abortSignal)
   if (!access.resourceId || access.typeId !== typeId) {
+    if (access.resourceId) {
+      spaceWorld.getResourceRef().createRef(access.resourceId).release()
+    }
     throw new Error(
       `quickstart expected ${typeId} at ${objectKey}, got ${access.typeId || 'unknown'}`,
     )

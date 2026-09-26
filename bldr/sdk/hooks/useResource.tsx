@@ -170,13 +170,15 @@ function useParentState(parents: Resource<unknown>[]) {
   )
   const loading = parents.some((p) => p.loading)
   const error = parents.find((p) => p.error)?.error ?? null
-  const parentRetries = parents.map((p) => p.retry)
-  const retries = useMemo(
-    () => parentRetries,
+  // Only failed parents are retried: retrying a healthy parent would reload
+  // the whole chain up to the root.
+  const parentRetryDeps = parents.flatMap((p) => [p.retry, p.error != null])
+  const failedRetries = useMemo(
+    () => parents.filter((p) => p.error != null).map((p) => p.retry),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    parentRetries,
+    parentRetryDeps,
   )
-  return { values, loading, error, retries }
+  return { values, loading, error, failedRetries }
 }
 
 // callFactory invokes the factory function with appropriate arguments.
@@ -285,7 +287,7 @@ function getReleasedResourceRetryIds<T>(
  * // Parent state is inherited:
  * // - If parent is loading, child loading = true
  * // - If parent has error, child error = parent.error
- * // - Calling retry() retries both parent and child
+ * // - Calling retry() retries the child and any parent in an error state
  * ```
  */
 export function useResource<T>(
@@ -396,10 +398,10 @@ export function useResource<T>(
   })
 
   const retry = useCallback(() => {
-    parent.retries.forEach((r) => r())
+    parent.failedRetries.forEach((r) => r())
     resetForRetry()
     setRetryCount((c) => c + 1)
-  }, [parent.retries, resetForRetry])
+  }, [parent.failedRetries, resetForRetry])
 
   const releasedResourceRetryReasons = useMemo(
     () => getReleasedResourceRetryReasons(parsed.options),
@@ -446,7 +448,7 @@ export function useResource<T>(
   }, [parentResourceIds, resourcesClient])
 
   // DevTools: Extract parent tracking IDs from parent Resource objects.
-  // Use spread-deps pattern (like useParentState's retries) so the array
+  // Use spread-deps pattern (like useParentState's failedRetries) so the array
   // reference is stable when the actual IDs haven't changed, even if
   // parsed.parents is a new array (e.g. when factory changes reference).
   const parentTrackingIdValues = parsed.parents.flatMap((p) => {
