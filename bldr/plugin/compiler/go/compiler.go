@@ -970,7 +970,7 @@ func (c *Controller) BuildPlugin(
 		configSetObj := &configset_proto.ConfigSet{
 			Configs: embedConfigSet,
 		}
-		configSetBin, err = configSetObj.MarshalVT()
+		configSetBin, err = configSetObj.MarshalDeterministicVT()
 		if err != nil {
 			return nil, err
 		}

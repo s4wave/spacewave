@@ -133,7 +133,7 @@ func BuildDistBundle(
 			Configs: hostConfigSet,
 		}
 		var err error
-		hostConfigSetBin, err = configSetObj.MarshalVT()
+		hostConfigSetBin, err = configSetObj.MarshalDeterministicVT()
 		if err != nil {
 			return err
 		}
