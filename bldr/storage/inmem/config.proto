@@ -1,9 +1,14 @@
 syntax = "proto3";
 package storage.inmem;
 
-// Config configures ephemeral storage. Volumes survive only for the controller
-// lifetime; callers must retain durable identities and authoritative data elsewhere.
-message Config {
-  // StorageId is the storage identifier to use for LookupStorage.
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// VolumeConfig configures a volume backed by in-memory storage.
+message VolumeConfig {
+  // StorageId identifies the storage that owns the volume.
   string storage_id = 1;
+  // StorageVolumeId identifies the volume within the storage.
+  string storage_volume_id = 2;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 3;
 }

@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/bldr/storage/inmem/config.proto (package storage.inmem, syntax proto3)
 /* eslint-disable */
 
+import { Config } from '@go/github.com/s4wave/spacewave/db/volume/controller/controller.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -10,24 +11,43 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 'storage.inmem'
 
 /**
- * Config configures ephemeral storage. Volumes survive only for the controller
- * lifetime; callers must retain durable identities and authoritative data elsewhere.
+ * VolumeConfig configures a volume backed by in-memory storage.
  *
- * @generated from message storage.inmem.Config
+ * @generated from message storage.inmem.VolumeConfig
  */
-export interface Config {
+export interface VolumeConfig {
   /**
-   * StorageId is the storage identifier to use for LookupStorage.
+   * StorageId identifies the storage that owns the volume.
    *
    * @generated from field: string storage_id = 1;
    */
   storageId?: string
+  /**
+   * StorageVolumeId identifies the volume within the storage.
+   *
+   * @generated from field: string storage_volume_id = 2;
+   */
+  storageVolumeId?: string
+  /**
+   * VolumeConfig is the volume controller config.
+   *
+   * @generated from field: volume.controller.Config volume_config = 3;
+   */
+  volumeConfig?: Config
 }
 
-export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
-  typeName: 'storage.inmem.Config',
-  fields: [
-    { no: 1, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
-  ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
-})
+export const VolumeConfig: MessageType<VolumeConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'storage.inmem.VolumeConfig',
+    fields: [
+      { no: 1, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'storage_volume_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'volume_config', kind: 'message', T: () => Config },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
