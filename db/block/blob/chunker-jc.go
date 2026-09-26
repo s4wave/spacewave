@@ -24,7 +24,7 @@ func buildChunkIndexJC(
 	}
 	chunkerArgs.ChunkerType = ChunkerType_ChunkerType_JC
 
-	chkSet := ci.GetChunkSet(bcs)
+	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
 	jcArgs := chunkerArgs.GetJcArgs()
 	minChunkSize, targetChunkSize, maxChunkSize := jcArgs.GetChunkingMinSize(), jcArgs.GetChunkingTargetSize(), jcArgs.GetChunkingMaxSize()
 
@@ -72,8 +72,8 @@ func buildChunkIndexJC(
 			return 0, err
 		}
 
-		totalSize += uint64(nchk.Length)                                                                        //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
-		if err := appendChunkData(ctx, ci, chkSet, idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil { //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
+		totalSize += uint64(nchk.Length)                                                     //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
+		if err := chunks.append(idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil { //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
 			return 0, err
 		}
 		chkStart += uint64(nchk.Length) //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
@@ -84,6 +84,9 @@ func buildChunkIndexJC(
 		}
 	}
 
+	if err := chunks.flush(); err != nil {
+		return 0, err
+	}
 	bcs.SetBlock(ci, true)
 	return totalSize, nil
 }
