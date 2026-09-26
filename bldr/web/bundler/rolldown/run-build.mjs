@@ -42,6 +42,7 @@ var DIST_SOURCE_PREFIXES = [
 ];
 var LOCAL_MODULE_PREFIX = "github.com/s4wave/spacewave/";
 var NODE_EVENTS_ID = "\x00goscript-node-events";
+var CSS_EXTENSION_PATTERN = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b/i;
 var CSS_IMPORT_PATTERN = /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)(?:[?#].*)?$/i;
 var IMPORT_SPECIFIER_PATTERN = /(?:\b(?:import|export)\s+(?:[^'"]*?\sfrom\s*)?|\bimport\s*\(\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
 function sourceHasCssImport(code) {
@@ -379,32 +380,21 @@ async function runBuild(request, dependencyRoot) {
 `);
       return `${imports}
 ${original}`;
-    },
-    transform(code, id) {
-      if (request.routeCssImports && sourceHasCssImport(code)) {
-        hasCssImports = true;
-        trackInput(id);
-      }
-      return null;
     }
   };
-  const plugins = [
-    {
-      name: "virtual-modules",
-      resolveId(source) {
-        return virtualModules.has(source) ? `\x00virtual:${source}` : null;
-      },
-      load(id) {
-        return id.startsWith("\x00virtual:") ? virtualModules.get(id.slice(9)) ?? null : null;
-      }
-    },
-    internalResolver
-  ];
-  if (!request.sourcemap || request.sourcemap === "none") {
-    plugins.unshift({
-      name: "strip-code-regions",
-      renderChunk(code) {
-        return code.replace(/^\/\/#(?:end)?region.*(?:\r?\n|$)/gm, "");
+  const plugins = [internalResolver];
+  if (request.routeCssImports) {
+    plugins.push({
+      name: "css-import-detector",
+      transform: {
+        filter: { code: CSS_EXTENSION_PATTERN },
+        handler(code, id) {
+          if (sourceHasCssImport(code)) {
+            hasCssImports = true;
+            trackInput(id);
+          }
+          return null;
+        }
       }
     });
   }
@@ -493,6 +483,9 @@ ${original}`;
       comments: false,
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false
+    },
+    experimental: {
+      attachDebugInfo: sourcemap === "none" ? "none" : "simple"
     }
   };
   try {

@@ -67,8 +67,10 @@ type Plugin = {
     importer?: string,
   ) => string | { id: string; external?: boolean } | null
   load?: (id: string) => string | Uint8Array | PluginLoadResult | null
-  transform?: (code: string, id: string) => string | PluginLoadResult | null
-  renderChunk?: (code: string) => string
+  transform?: {
+    filter: { code: RegExp }
+    handler: (code: string, id: string) => null
+  }
   resolveFileUrl?: (args: { fileName: string }) => string
 }
 
@@ -112,6 +114,7 @@ type BuildOptions = {
     banner?: string
     cleanDir: boolean
   }
+  experimental: { attachDebugInfo: 'none' | 'simple' }
 }
 
 type RolldownModule = {
@@ -146,6 +149,10 @@ const DIST_SOURCE_PREFIXES = [
 const LOCAL_MODULE_PREFIX = 'github.com/s4wave/spacewave/'
 const NODE_EVENTS_ID = '\0goscript-node-events'
 
+// CSS_EXTENSION_PATTERN matches every source that CSS_IMPORT_PATTERN can match,
+// so Rolldown skips the JavaScript hook for the rest.
+const CSS_EXTENSION_PATTERN =
+  /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)\b/i
 const CSS_IMPORT_PATTERN =
   /\.(?:css|less|sass|scss|styl|stylus|pcss|postcss)(?:[?#].*)?$/i
 const IMPORT_SPECIFIER_PATTERN =
@@ -548,33 +555,22 @@ export async function runBuild(
         .join('\n')
       return `${imports}\n${original}`
     },
-    transform(code, id) {
-      if (request.routeCssImports && sourceHasCssImport(code)) {
-        hasCssImports = true
-        trackInput(id)
-      }
-      return null
-    },
   }
-  const plugins: Plugin[] = [
-    {
-      name: 'virtual-modules',
-      resolveId(source) {
-        return virtualModules.has(source) ? `\0virtual:${source}` : null
-      },
-      load(id) {
-        return id.startsWith('\0virtual:')
-          ? (virtualModules.get(id.slice(9)) ?? null)
-          : null
-      },
-    },
-    internalResolver,
-  ]
-  if (!request.sourcemap || request.sourcemap === 'none') {
-    plugins.unshift({
-      name: 'strip-code-regions',
-      renderChunk(code) {
-        return code.replace(/^\/\/#(?:end)?region.*(?:\r?\n|$)/gm, '')
+  // Every hook call crosses from Rolldown into JavaScript, so hooks are
+  // registered only when the request needs them.
+  const plugins: Plugin[] = [internalResolver]
+  if (request.routeCssImports) {
+    plugins.push({
+      name: 'css-import-detector',
+      transform: {
+        filter: { code: CSS_EXTENSION_PATTERN },
+        handler(code, id) {
+          if (sourceHasCssImport(code)) {
+            hasCssImports = true
+            trackInput(id)
+          }
+          return null
+        },
       },
     })
   }
@@ -684,6 +680,11 @@ export async function runBuild(
       comments: false,
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false,
+    },
+    // Region comments name each bundled source file. Without a sourcemap
+    // they only add bytes.
+    experimental: {
+      attachDebugInfo: sourcemap === 'none' ? 'none' : 'simple',
     },
   }
 
