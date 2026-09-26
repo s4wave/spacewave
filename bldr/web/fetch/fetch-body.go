@@ -21,52 +21,29 @@ func NewFetchBodyReader(strm SRPCFetchService_FetchStream) *FetchBodyReader {
 }
 
 // Read reads data from the reader.
-func (r *FetchBodyReader) Read(p []byte) (n int, err error) {
-	toRead := p
-	// while we can still read more data
-	for len(toRead) != 0 {
-		// if the buffer is empty and we have unbuffered none, read more.
-		if r.buf.Len() == 0 {
-			if n != 0 {
-				break
-			}
-			if r.done {
-				break
-			}
-			pkt, err := r.strm.Recv()
-			if err != nil {
-				return n, err
-			}
-			if pkt.GetRequestData().GetDone() {
-				r.done = true
-			}
-			data := pkt.GetRequestData().GetData()
-			if len(data) == 0 {
-				continue
-			}
-			// if len(toRead) <= len(data), read fully w/o buffering
-			if len(toRead) <= len(data) {
-				copy(toRead, data)
-				n += len(data)
-				toRead = toRead[len(data):]
-			} else {
-				// otherwise buffer it & continue
-				_, err = r.buf.Write(data)
-				if err != nil {
-					return n, err
-				}
-			}
-		}
-		// read from the buffer to toRead
-		rn, err := r.buf.Read(toRead)
-		if err != nil {
-			return n, err
-		}
-		// advance toRead by rn
-		n += rn
-		toRead = toRead[rn:]
+//
+// Returns io.EOF once the stream is done and all buffered data is consumed.
+func (r *FetchBodyReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
 	}
-	return n, nil
+	// wait for at least one byte of data or the end of the stream.
+	for r.buf.Len() == 0 {
+		if r.done {
+			return 0, io.EOF
+		}
+		pkt, err := r.strm.Recv()
+		if err != nil {
+			return 0, err
+		}
+		reqData := pkt.GetRequestData()
+		if reqData.GetDone() {
+			r.done = true
+		}
+		// buffer the full chunk so that data exceeding p is kept for later reads.
+		_, _ = r.buf.Write(reqData.GetData())
+	}
+	return r.buf.Read(p)
 }
 
 // _ is a type assertion

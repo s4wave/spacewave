@@ -31,6 +31,9 @@ func addCompilerStartupCacheInputs(
 		for _, key := range gocompiler.WindowsSignStartupCacheEnvKeys() {
 			inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(key, os.Getenv(key)))
 		}
+		for _, key := range gocompiler.MacOSSignStartupCacheEnvKeys() {
+			inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(key, os.Getenv(key)))
+		}
 		inputManifest.SortStartupInputs()
 	}
 	if goCompiler.IsGoScript() {

@@ -26,6 +26,16 @@ const MacOSSignOptionsEnv = "BLDR_MACOS_SIGN_OPTIONS"
 // MacOSSignOptionsEnv is unset. "runtime" enables hardened runtime.
 const defaultMacOSSignOptions = "runtime"
 
+// MacOSSignStartupCacheEnvKeys returns the configuration that changes signed
+// executable identity, including the explicit unsigned configuration.
+func MacOSSignStartupCacheEnvKeys() []string {
+	return []string{
+		MacOSSignIdentityEnv,
+		MacOSSignOptionsEnv,
+		MacOSSignEntitlementsEnv,
+	}
+}
+
 // CodesignMacOS signs a Mach-O binary using codesign(1).
 //
 // No-op when BLDR_MACOS_SIGN_IDENTITY is unset. Fails the caller when

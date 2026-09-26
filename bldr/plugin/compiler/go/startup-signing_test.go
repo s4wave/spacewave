@@ -14,6 +14,7 @@ func TestStartupSigningIdentity(t *testing.T) {
 	// Explicit Go selection must preserve the same signing identity as the default.
 	t.Setenv(gocompiler.WindowsSignCommandEnv, "/build/sign")
 	t.Setenv(gocompiler.WindowsSignIdentityEnv, "example-product/publisher")
+	t.Setenv(gocompiler.MacOSSignIdentityEnv, "Developer ID Application: Example")
 	for _, mode := range []GoCompiler{GoCompiler_GO_COMPILER_DEFAULT, GoCompiler_GO_COMPILER_GO} {
 		manifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 		addCompilerStartupCacheInputs(manifest, mode, gocompiler.GoCompilerGo)
@@ -29,6 +30,12 @@ func TestStartupSigningIdentity(t *testing.T) {
 		}
 		if _, present := values[gocompiler.WindowsSignProfileEnv]; !present {
 			t.Fatal("unset Azure profile was not recorded")
+		}
+		if values[gocompiler.MacOSSignIdentityEnv] != "Developer ID Application: Example" {
+			t.Fatal("macOS signing identity was not recorded")
+		}
+		if _, present := values[gocompiler.MacOSSignEntitlementsEnv]; !present {
+			t.Fatal("unset macOS entitlements were not recorded")
 		}
 	}
 }

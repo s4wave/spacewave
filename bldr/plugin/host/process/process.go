@@ -52,6 +52,10 @@ type ProcessHost struct {
 	packageStatus map[string]PluginPackageStatus
 	// packageStatusCtr publishes packageStatus snapshots.
 	packageStatusCtr *ccontainer.CContainer[*PluginPackageStatusSnapshot]
+	// distRefsMtx guards distRefs and pruning of unused dist checkouts.
+	distRefsMtx sync.Mutex
+	// distRefs counts executing instances by plugin artifact ID.
+	distRefs map[string]int
 }
 
 // PluginPackageStatus describes native dist materialization state for one
@@ -201,10 +205,15 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
+	// Mark the checkout in use before syncing so pruning cannot remove it.
+	releaseDist := h.acquirePluginDist(pluginID, manifestRoot)
+	defer releaseDist()
+
 	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, manifestRoot, entrypoint, pluginDist)
 	if err != nil {
 		return err
 	}
+	h.pruneUnusedPluginDists(pluginID)
 
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
 
@@ -390,6 +399,60 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 		return "", err
 	}
 	return pluginStateDir, nil
+}
+
+// acquirePluginDist marks the dist checkout for a manifest root as in use by
+// an executing instance. The returned func releases the reference.
+func (h *ProcessHost) acquirePluginDist(pluginID, manifestRoot string) func() {
+	artifactID := bldr_plugin.PluginArtifactID(pluginID, manifestRoot)
+	h.distRefsMtx.Lock()
+	if h.distRefs == nil {
+		h.distRefs = make(map[string]int)
+	}
+	h.distRefs[artifactID]++
+	h.distRefsMtx.Unlock()
+
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			h.distRefsMtx.Lock()
+			if h.distRefs[artifactID]--; h.distRefs[artifactID] <= 0 {
+				delete(h.distRefs, artifactID)
+			}
+			h.distRefsMtx.Unlock()
+		})
+	}
+}
+
+// pruneUnusedPluginDists removes per-manifest-root dist checkouts for a
+// plugin that no executing instance of this host is using.
+func (h *ProcessHost) pruneUnusedPluginDists(pluginID string) {
+	manifestsDir := filepath.Join(h.pluginDistDir(pluginID), "manifest")
+	h.distRefsMtx.Lock()
+	defer h.distRefsMtx.Unlock()
+	dirents, err := os.ReadDir(manifestsDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			h.le.WithError(err).WithField("plugin-id", pluginID).Warn("unable to list plugin dist checkouts")
+		}
+		return
+	}
+	for _, ent := range dirents {
+		if !ent.IsDir() {
+			continue
+		}
+		artifactID := bldr_plugin.PluginArtifactID(pluginID, ent.Name())
+		if _, _, err := bldr_plugin.ParsePluginArtifactID(artifactID, false); err != nil {
+			continue
+		}
+		if h.distRefs[artifactID] > 0 {
+			continue
+		}
+		dir := filepath.Join(manifestsDir, ent.Name())
+		if err := os.RemoveAll(dir); err != nil {
+			h.le.WithError(err).WithField("dist-dir", dir).Warn("unable to remove unused plugin dist checkout")
+		}
+	}
 }
 
 // syncPluginDist materializes or updates the plugin's dist checkout from

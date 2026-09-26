@@ -165,5 +165,13 @@ func (c *Controller) materializeManifest(
 	if copiedRef.GetRootRef().GetEmpty() {
 		return nil, stats, errors.New("materializer copied root has an empty root block ref")
 	}
+	// Copying preserves block encoding, so the copied root must match the source.
+	if !copiedRef.GetRootRef().EqualsRef(sourceRef.GetRootRef()) {
+		return nil, stats, errors.Errorf(
+			"materializer copied root %s does not match source root %s",
+			copiedRef.GetRootRef().MarshalString(),
+			sourceRef.GetRootRef().MarshalString(),
+		)
+	}
 	return copiedRef, stats, nil
 }

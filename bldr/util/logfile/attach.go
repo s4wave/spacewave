@@ -56,6 +56,9 @@ func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) 
 			return nil, err
 		}
 
+		// Mark the file in use so concurrent prunes keep it while open.
+		markLogInUse(f)
+
 		h := NewFileHook(f, spec.Level, spec.Format)
 		logger.AddHook(h)
 		hooks = append(hooks, h)

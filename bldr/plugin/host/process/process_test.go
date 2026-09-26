@@ -44,6 +44,34 @@ func TestProcessHostImmutableDist(t *testing.T) {
 	}
 }
 
+// TestProcessHostPrunesUnusedManifestDists removes only checkouts no
+// executing instance uses.
+func TestProcessHostPrunesUnusedManifestDists(t *testing.T) {
+	host := newTestProcessHost(t)
+	paths := make(map[string]string)
+	releases := make(map[string]func())
+	for _, version := range []string{"running", "stale", "new"} {
+		root, err := hash.Sum(hash.RecommendedHashType, []byte(version))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dist := newTestDistHandle(t, map[string][]byte{"entrypoint": []byte(version)})
+		defer dist.Release()
+		releases[version] = host.acquirePluginDist("colors", root.MarshalString())
+		paths[version], err = host.syncPluginDist(t.Context(), "colors", root.MarshalString(), "entrypoint", dist)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	releases["stale"]()
+	host.pruneUnusedPluginDists("colors")
+	assertPathMissing(t, paths["stale"])
+	assertFileContents(t, filepath.Join(paths["running"], "entrypoint"), "running")
+	assertFileContents(t, filepath.Join(paths["new"], "entrypoint"), "new")
+	releases["running"]()
+	releases["new"]()
+}
+
 func TestProcessHostSyncReplacesExecutableInode(t *testing.T) {
 	host := newTestProcessHost(t)
 	entrypoint := filepath.Join(host.pluginDistDir("sample"), "entrypoint")

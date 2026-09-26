@@ -39,8 +39,11 @@ export async function handleCrossTabMessage(
   msg: CrossTabClientMessage,
 ): Promise<void> {
   if (msg.crossTab === 'hello') {
+    // Only broker when the sender can receive its ends of the channels;
+    // otherwise peers would receive ports whose other end is dropped.
+    const sender = await clients.get(senderId)
+    if (!sender) return
     const allClients = await clients.matchAll({ type: 'window' })
-    const sender = allClients.find((c) => c.id === senderId)
 
     // Create a direct channel between the new tab and every existing tab.
     for (const client of allClients) {
@@ -53,15 +56,13 @@ export async function handleCrossTabMessage(
         } satisfies CrossTabBrokerMessage,
         [channel.port1],
       )
-      if (sender) {
-        sender.postMessage(
-          {
-            crossTab: 'direct-port',
-            peerId: client.id,
-          } satisfies CrossTabBrokerMessage,
-          [channel.port2],
-        )
-      }
+      sender.postMessage(
+        {
+          crossTab: 'direct-port',
+          peerId: client.id,
+        } satisfies CrossTabBrokerMessage,
+        [channel.port2],
+      )
     }
   } else if (msg.crossTab === 'goodbye') {
     const allClients = await clients.matchAll({ type: 'window' })

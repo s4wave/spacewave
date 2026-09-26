@@ -158,6 +158,34 @@ func TestFileHookCloseDrains(t *testing.T) {
 	}
 }
 
+// TestFileHookDropsAfterClose checks entries fired after Close are not buffered.
+func TestFileHookDropsAfterClose(t *testing.T) {
+	buf := &safeBuffer{}
+	hook := NewFileHook(buf, logrus.DebugLevel, "text")
+	hook.Close()
+
+	entry := &logrus.Entry{
+		Logger:  logrus.StandardLogger(),
+		Level:   logrus.InfoLevel,
+		Message: "after close",
+		Data:    logrus.Fields{},
+	}
+	for range 10 {
+		_ = hook.Fire(entry)
+	}
+	var buffered int
+	hook.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		buffered = len(hook.buf)
+	})
+	if buffered != 0 {
+		t.Fatalf("expected no buffered entries after close, got %d", buffered)
+	}
+	if strings.Contains(buf.String(), "after close") {
+		t.Fatal("entry written after close")
+	}
+	hook.Close()
+}
+
 func TestFileHookConcurrentFire(t *testing.T) {
 	buf := &safeBuffer{}
 	hook := NewFileHook(buf, logrus.DebugLevel, "text")

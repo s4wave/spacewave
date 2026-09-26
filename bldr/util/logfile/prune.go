@@ -15,7 +15,8 @@ const DefaultKeepLogs = 8
 
 // PruneOldLogs deletes regular .log files under dir whose mtime is older
 // than maxAge relative to now, and all but the keep newest of the rest.
-// A non-positive keep disables the count limit. Returns the number of files
+// A non-positive keep disables the count limit. Logs held open by a running
+// writer (see AttachLogFiles) are never removed. Returns the number of files
 // removed and the first error encountered (other failures are still
 // attempted).
 //
@@ -61,7 +62,12 @@ func PruneOldLogs(dir string, maxAge time.Duration, keep int, now time.Time) (in
 		if !info.ModTime().Before(cutoff) && (keep <= 0 || i < keep) {
 			continue
 		}
-		if err := os.Remove(filepath.Join(dir, info.Name())); err != nil {
+		// Skip logs still held open by a running writer (e.g. a daemon).
+		path := filepath.Join(dir, info.Name())
+		if logInUse(path) {
+			continue
+		}
+		if err := os.Remove(path); err != nil {
 			if firstErr == nil {
 				firstErr = err
 			}

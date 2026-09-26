@@ -162,6 +162,8 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 		}
 	}()
 
+	// localIDs maps remote value IDs to the IDs assigned by hnd.
+	localIDs := make(map[uint32]uint32)
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -174,10 +176,14 @@ func WatchDirectiveViaStream[T any, R WatchDirectiveResponse[T]](
 
 		valueID := msg.GetValueId()
 		if valueID != 0 {
-			if msg.GetRemoved() {
-				_, _ = hnd.RemoveValue(valueID)
-			} else {
-				_, _ = hnd.AddValue(msg.GetValue())
+			if localID, ok := localIDs[valueID]; ok {
+				delete(localIDs, valueID)
+				_, _ = hnd.RemoveValue(localID)
+			}
+			if !msg.GetRemoved() {
+				if localID, accepted := hnd.AddValue(msg.GetValue()); accepted {
+					localIDs[valueID] = localID
+				}
 			}
 		}
 

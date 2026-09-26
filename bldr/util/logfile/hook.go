@@ -2,6 +2,7 @@ package logfile
 
 import (
 	"io"
+	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/sirupsen/logrus"
@@ -14,6 +15,9 @@ type FileHook struct {
 	level     logrus.Level
 	bcast     broadcast.Broadcast
 	buf       []*logrus.Entry
+	// closed is set under bcast once Close starts; later entries are dropped.
+	closed    bool
+	closeOnce sync.Once
 	done      chan struct{}
 	drained   chan struct{}
 }
@@ -55,12 +59,17 @@ func (h *FileHook) Levels() []logrus.Level {
 
 // Fire is called by logrus when a log entry is fired.
 // It copies the entry to avoid races with logrus reusing the entry buffer.
+// Entries fired after Close are dropped: the hook stays attached to the
+// logger (logrus cannot detach a single hook) but nothing drains it.
 func (h *FileHook) Fire(entry *logrus.Entry) error {
 	cp := entry.Dup()
 	cp.Level = entry.Level
 	cp.Message = entry.Message
 
 	h.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if h.closed {
+			return
+		}
 		h.buf = append(h.buf, cp)
 		bcast()
 	})
@@ -107,10 +116,16 @@ func (h *FileHook) writeLoop() {
 
 // Close signals the writer goroutine to drain and stop, then waits
 // for completion. If the writer implements io.Closer, it is closed.
+// Close is idempotent.
 func (h *FileHook) Close() {
-	close(h.done)
-	<-h.drained
-	if c, ok := h.writer.(io.Closer); ok {
-		_ = c.Close()
-	}
+	h.closeOnce.Do(func() {
+		h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			h.closed = true
+		})
+		close(h.done)
+		<-h.drained
+		if c, ok := h.writer.(io.Closer); ok {
+			_ = c.Close()
+		}
+	})
 }
