@@ -5,14 +5,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	net_testbed "github.com/s4wave/spacewave/net/testbed"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 )
+
+// attachedEchoServiceID is the echo service ID behind the "attached/" prefix.
+const attachedEchoServiceID = "attached/" + echo.SRPCEchoerServiceID
 
 // attachedRpcServiceStream supplies a caller context and records readiness.
 type attachedRpcServiceStream struct {
@@ -28,7 +34,10 @@ type attachedRpcServiceStream struct {
 
 // newAttachedRpcServiceStream creates a bind stream with one readiness slot.
 func newAttachedRpcServiceStream(ctx context.Context) *attachedRpcServiceStream {
-	return &attachedRpcServiceStream{ctx: ctx, ready: make(chan *s4wave_space.BindAttachedRpcServiceResponse, 1)}
+	return &attachedRpcServiceStream{
+		ctx:   ctx,
+		ready: make(chan *s4wave_space.BindAttachedRpcServiceResponse, 1),
+	}
 }
 
 // Context returns the bind stream context.
@@ -75,31 +84,23 @@ func (*attachedRpcServiceStream) Close() error {
 func TestBindAttachedRpcService(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
-	attachedBus, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
+	tb, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	siblingBus, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	resource := NewSpaceContentsResource(le, attachedBus.Bus, nil, "space-a", "engine-a")
-	runtime := &spaceRuntime{bus: attachedBus.Bus, done: make(chan struct{})}
-	resource.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		resource.runtime = runtime
+	resource := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
+		SpaceId:  "space-a",
+		EngineId: "engine-a",
 	})
+	sibling := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
+		SpaceId:  "space-b",
+		EngineId: "engine-a",
+	})
+	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
+	siblingGen := waitSpaceRuntimeGeneration(t, sibling.runtime, nil)
 
 	attachedResources := newSpaceRecordingResourceClient(ctx)
-	attachedMux := srpc.NewMux()
-	if err := attachedMux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID)); err != nil {
-		t.Fatal(err)
-	}
-	attachedID, err := attachedResources.AddResource(attachedMux, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	attachedID := addAttachedEchoResource(t, attachedResources)
 	bindCtx := resource_server.WithResourceClientContext(ctx, attachedResources)
 	stream := newAttachedRpcServiceStream(bindCtx)
 	bindDone := make(chan error, 1)
@@ -111,24 +112,14 @@ func TestBindAttachedRpcService(t *testing.T) {
 	}()
 	<-stream.ready
 
-	invoker := bifrost_rpc.NewInvoker(attachedBus.Bus, "", false)
-	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
-	response, err := echo.NewSRPCEchoerClientWithServiceID(client, "attached/"+echo.SRPCEchoerServiceID).Echo(ctx, &echo.EchoMsg{Body: "attached"})
-	if err != nil {
+	// The route resolves only on the Space runtime bus.
+	if err := invokeAttachedEcho(ctx, gen.GetBus(), "attached"); err != nil {
 		t.Fatal(err)
 	}
-	if response.GetBody() != "attached" {
-		t.Fatalf("echo body = %q, want attached", response.GetBody())
+	if countAttachedEcho(t, ctx, tb.Bus) != 0 {
+		t.Fatal("daemon bus resolved attached service")
 	}
-
-	values, _, valuesRef, err := bifrost_rpc.ExLookupRpcService(ctx, siblingBus.Bus, "attached/"+echo.SRPCEchoerServiceID, "", false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if valuesRef != nil {
-		valuesRef.Release()
-	}
-	if len(values) != 0 {
+	if countAttachedEcho(t, ctx, siblingGen.GetBus()) != 0 {
 		t.Fatal("sibling Space resolved attached service")
 	}
 
@@ -169,14 +160,7 @@ func TestBindAttachedRpcService(t *testing.T) {
 	if err := <-bindDone; err != nil {
 		t.Fatalf("bind returned %v after attached resource release", err)
 	}
-	values, _, valuesRef, err = bifrost_rpc.ExLookupRpcService(ctx, attachedBus.Bus, "attached/"+echo.SRPCEchoerServiceID, "", false, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if valuesRef != nil {
-		valuesRef.Release()
-	}
-	if len(values) != 0 {
+	if countAttachedEcho(t, ctx, gen.GetBus()) != 0 {
 		t.Fatal("released attachment remained callable")
 	}
 }
@@ -184,31 +168,27 @@ func TestBindAttachedRpcService(t *testing.T) {
 func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
-	testbed, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
+	tb, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	resource := NewSpaceContentsResource(le, testbed.Bus, nil, "space-a", "engine-a")
-	runtime := &spaceRuntime{bus: testbed.Bus, done: make(chan struct{})}
-	resource.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		resource.runtime = runtime
+	resource := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
+		SpaceId:  "space-a",
+		EngineId: "engine-a",
 	})
+	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
 	ownerCtx, cancelOwner := context.WithCancel(ctx)
 	attachedResources := newSpaceRecordingResourceClient(ownerCtx)
-	attachedID, err := attachedResources.AddResource(srpc.NewMux(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	attachedID := addAttachedEchoResource(t, attachedResources)
 	cancelOwner()
 
 	stream := newAttachedRpcServiceStream(resource_server.WithResourceClientContext(ctx, attachedResources))
 	err = resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
 		AttachedResourceId: attachedID,
-		ServiceIdPrefix:    "ended/",
+		ServiceIdPrefix:    "attached/",
 	}, stream)
-	if err != context.Canceled {
+	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("BindAttachedRpcService error = %v, want %v", err, context.Canceled)
 	}
 	select {
@@ -216,15 +196,49 @@ func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
 		t.Fatal("pre-ended owner received readiness")
 	default:
 	}
+	if countAttachedEcho(t, ctx, gen.GetBus()) != 0 {
+		t.Fatal("pre-ended owner retained attached service route")
+	}
+}
 
-	values, _, valuesRef, err := bifrost_rpc.ExLookupRpcService(ctx, testbed.Bus, "ended/service", "", false, nil)
+// addAttachedEchoResource adds an attached resource serving the echo service.
+func addAttachedEchoResource(t *testing.T, resources *spaceRecordingResourceClient) uint32 {
+	t.Helper()
+	mux := srpc.NewMux()
+	if err := mux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID)); err != nil {
+		t.Fatal(err)
+	}
+	id, err := resources.AddResource(mux, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	return id
+}
+
+// invokeAttachedEcho calls the attached echo route on b.
+func invokeAttachedEcho(ctx context.Context, b bus.Bus, body string) error {
+	invoker := bifrost_rpc.NewInvoker(b, "", false)
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+	response, err := echo.NewSRPCEchoerClientWithServiceID(client, attachedEchoServiceID).
+		Echo(ctx, &echo.EchoMsg{Body: body})
+	if err != nil {
+		return err
+	}
+	if response.GetBody() != body {
+		return errors.Errorf("attached echo body = %q, want %q", response.GetBody(), body)
+	}
+	return nil
+}
+
+// countAttachedEcho returns the number of attached echo routes on b.
+func countAttachedEcho(t *testing.T, ctx context.Context, b bus.Bus) int {
+	t.Helper()
+	values, _, valuesRef, err := bifrost_rpc.ExLookupRpcService(ctx, b, attachedEchoServiceID, "", false, nil)
 	if valuesRef != nil {
 		valuesRef.Release()
 	}
-	if len(values) != 0 {
-		t.Fatal("pre-ended owner retained attached service route")
+	if err != nil {
+		t.Fatal(err)
 	}
+	return len(values)
 }

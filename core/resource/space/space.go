@@ -10,6 +10,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/bldr/storage"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/core/resource/space/hostplugin"
@@ -29,13 +30,12 @@ import (
 
 // SpaceResource wraps a Space for resource access.
 type SpaceResource struct {
-	le                   *logrus.Entry
-	b                    bus.Bus
-	mux                  srpc.Invoker
-	space                space.SpaceSharedObjectBody
-	sessionPeerID        string
-	hostPluginID         string
-	startContentsRuntime spaceRuntimeStarter
+	le            *logrus.Entry
+	b             bus.Bus
+	mux           srpc.Invoker
+	space         space.SpaceSharedObjectBody
+	sessionPeerID string
+	hostPluginID  string
 }
 
 // NewSpaceResource creates a new SpaceResource.
@@ -78,6 +78,8 @@ func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 	return spaceResource
 }
 
+// resolveHostPluginID returns the configured host plugin ID, or the plugin ID
+// of the host serving ctx when none is configured.
 func (r *SpaceResource) resolveHostPluginID(ctx context.Context) string {
 	return hostplugin.Resolve(ctx, r.hostPluginID)
 }
@@ -323,8 +325,9 @@ func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource
 	), nil
 }
 
-// MountSpaceContents activates plugins for the space and returns a sub-resource
-// for monitoring plugin status.
+// MountSpaceContents mounts the shared plugin runtime of the space and returns a
+// sub-resource for monitoring plugin status. Mounts of the same Space share one
+// runtime, which stops after the last mount is released.
 func (r *SpaceResource) MountSpaceContents(
 	ctx context.Context,
 	req *s4wave_space.MountSpaceContentsRequest,
@@ -335,60 +338,68 @@ func (r *SpaceResource) MountSpaceContents(
 		return nil, err
 	}
 
-	ref := r.space.GetSharedObjectRef()
-	spaceID := space.SpaceEngineId(ref)
-	engineID := r.space.GetWorldEngineID()
-
-	// Create the contents sub-resource.
-	contentsResource := NewSpaceContentsResource(r.le, r.b, r.space.GetWorldEngine(), spaceID, engineID)
-	if r.startContentsRuntime != nil {
-		contentsResource.startRuntime = r.startContentsRuntime
+	// Acquire the shared runtime. The runtime may need to acquire
+	// document-owned plugin-host locks while applying forwarded block-store
+	// config, so this returns before its startup completes.
+	conf := r.contentsRuntimeConfig(ctx)
+	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
+		ctx,
+		r.b,
+		&plugin_space_runtime.Config{Space: conf},
+	)
+	if err != nil {
+		r.le.WithError(err).Info("failed to mount space contents: could not start runtime")
+		return nil, err
 	}
 
-	// Resolve the host plugin id from the request context. The Space resource
-	// runs inside a plugin host; cloud block store forwarding registers under
-	// that host's plugin service prefix.
-	hostPluginID := r.resolveHostPluginID(ctx)
+	contentsResource := NewSpaceContentsResource(
+		r.le,
+		r.b,
+		r.space.GetWorldEngine(),
+		conf.GetSpaceId(),
+		conf.GetEngineId(),
+		runtime,
+		runtimeRef,
+	)
+	id, err := resourceCtx.AddResource(contentsResource.GetMux(), contentsResource.Release)
+	if err != nil {
+		contentsResource.Release()
+		r.le.WithError(err).Info("failed to mount space contents: could not add resource")
+		return nil, err
+	}
+	r.le.
+		WithField("space-id", conf.GetSpaceId()).
+		WithField("resource-id", id).
+		Debug("mounted space contents")
 
+	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
+}
+
+// contentsRuntimeConfig builds the plugin/space config shared by every contents
+// mount of the Space.
+func (r *SpaceResource) contentsRuntimeConfig(ctx context.Context) *plugin_space.Config {
+	// The Space resource runs inside a plugin host; cloud block store forwarding
+	// registers under that host's plugin service prefix. Without a host plugin
+	// ID, skip forwarding rather than registering under a guessed prefix.
+	hostPluginID := r.resolveHostPluginID(ctx)
 	worldBucketID := r.space.GetWorldEngineBucketID()
-	if worldBucketID != "" && hostPluginID == "" {
-		// Without a host plugin id we cannot route the forwarded block store.
-		// Skip forwarding rather than registering under a guessed prefix.
+	if hostPluginID == "" {
 		worldBucketID = ""
 	}
-
-	// Start the plugin/space controller through the contents resource. The
-	// controller may need to acquire document-owned plugin-host locks while
-	// applying forwarded block-store config, so MountSpaceContents must return
-	// before waiting for that startup path.
-	conf := &plugin_space.Config{
-		SpaceId:       spaceID,
+	return &plugin_space.Config{
+		SpaceId:       space.SpaceEngineId(r.space.GetSharedObjectRef()),
 		VolumeId:      bldr_plugin.PluginVolumeID,
 		ObjectStoreId: "platform-account",
-		EngineId:      engineID,
+		EngineId:      r.space.GetWorldEngineID(),
 		SessionPeerId: r.sessionPeerID,
 		WorldBucketId: worldBucketID,
 		HostPluginId:  hostPluginID,
 		HostStorageId: storage.GetHostStorageID(ctx),
 	}
-
-	id, err := resourceCtx.AddResource(contentsResource.GetMux(), contentsResource.Release)
-	if err != nil {
-		r.le.WithError(err).Info("failed to mount space contents: could not add resource")
-		return nil, err
-	}
-	contentsResource.StartController(conf)
-	r.le.
-		WithField("space-id", spaceID).
-		WithField("resource-id", id).
-		Debug("fast-forward space contents")
-
-	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
 }
 
-// _ is a type assertion
-var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)
-
+// bridgeSharingMailbox copies the pending mailbox entries of soID into state on
+// every account change until ctx ends.
 func bridgeSharingMailbox(
 	ctx context.Context,
 	state *sharingstate.State,
@@ -411,6 +422,7 @@ func bridgeSharingMailbox(
 	}
 }
 
+// sharingStateToProto converts the sharing state to its wire form.
 func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSharingState {
 	if state == nil {
 		return nil
@@ -428,6 +440,8 @@ func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSh
 	}
 }
 
+// sharingMailboxEntriesFromProto converts provider mailbox entries to sharing
+// state entries.
 func sharingMailboxEntriesFromProto(
 	entries []*s4wave_provider_spacewave.MailboxEntryInfo,
 ) []*sharingstate.MailboxEntry {
@@ -453,6 +467,8 @@ func sharingMailboxEntriesFromProto(
 	return out
 }
 
+// sharingMailboxEntriesToProto converts sharing state mailbox entries to their
+// provider wire form.
 func sharingMailboxEntriesToProto(
 	entries []*sharingstate.MailboxEntry,
 ) []*s4wave_provider_spacewave.MailboxEntryInfo {
@@ -478,6 +494,8 @@ func sharingMailboxEntriesToProto(
 	return out
 }
 
+// sharingParticipantInfoToProto converts sharing participants to their wire
+// form.
 func sharingParticipantInfoToProto(
 	info []*sharingstate.ParticipantInfo,
 ) []*s4wave_space.SpaceParticipantInfo {
@@ -501,6 +519,9 @@ func sharingParticipantInfoToProto(
 	return out
 }
 
+// loadSharingParticipantPresentationState loads the account and organization
+// identity used to present Space participants. It returns a partial state when
+// metadata is unavailable.
 func loadSharingParticipantPresentationState(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -554,3 +575,6 @@ func loadSharingParticipantPresentationState(
 	}
 	return state
 }
+
+// _ is a type assertion
+var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)

@@ -1,7 +1,6 @@
 package plugin_host_controller
 
 import (
-	"context"
 	"io"
 	"testing"
 
@@ -9,50 +8,17 @@ import (
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/starpc/srpc"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
-	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_logs "github.com/s4wave/spacewave/bldr/plugin/host/logs"
-	"github.com/s4wave/spacewave/db/unixfs"
+	plugin_host_mock "github.com/s4wave/spacewave/bldr/plugin/host/mock"
 	"github.com/sirupsen/logrus"
 )
-
-type testPluginHost struct{}
-
-func (h *testPluginHost) GetPlatformId() string {
-	return "test"
-}
-
-func (h *testPluginHost) Execute(ctx context.Context) error {
-	return nil
-}
-
-func (h *testPluginHost) ListPlugins(ctx context.Context) ([]string, error) {
-	return nil, nil
-}
-
-func (h *testPluginHost) ExecutePlugin(
-	ctx context.Context,
-	pluginID string,
-	instanceKey string,
-	manifestRoot string,
-	entrypoint string,
-	pluginDist *unixfs.FSHandle,
-	pluginAssets *unixfs.FSHandle,
-	hostRpcMux srpc.Mux,
-	rpcInit bldr_plugin_host.PluginRpcInitCb,
-) error {
-	return nil
-}
-
-func (h *testPluginHost) DeletePlugin(ctx context.Context, pluginID string) error {
-	return nil
-}
 
 func TestControllerOwnsProcessLifetimeHostRoot(t *testing.T) {
 	ctrl := NewController(
 		logrus.NewEntry(logrus.New()),
 		nil,
 		controller.NewInfo("test", controller.MustParseVersion("0.0.1"), "test"),
-		&testPluginHost{},
+		plugin_host_mock.NewHost("test"),
 	)
 	defer func() {
 		if err := ctrl.Close(); err != nil {
@@ -98,7 +64,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 		le,
 		b,
 		controller.NewInfo("test-a", controller.MustParseVersion("0.0.1"), "test"),
-		&testPluginHost{},
+		plugin_host_mock.NewHost("test"),
 	)
 	if got := len(log.Hooks[logrus.WarnLevel]); got != 1 {
 		t.Fatalf("host logrus hooks after first controller = %d, want 1", got)
@@ -108,7 +74,7 @@ func TestControllerAttachesOneHostLogrusHookPerBus(t *testing.T) {
 		le,
 		b,
 		controller.NewInfo("test-b", controller.MustParseVersion("0.0.1"), "test"),
-		&testPluginHost{},
+		plugin_host_mock.NewHost("test"),
 	)
 	if got := len(log.Hooks[logrus.WarnLevel]); got != 1 {
 		t.Fatalf("host logrus hooks after second controller = %d, want 1", got)
@@ -158,7 +124,7 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 		le,
 		b,
 		controller.NewInfo("test", controller.MustParseVersion("0.0.1"), "test"),
-		&testPluginHost{},
+		plugin_host_mock.NewHost("test"),
 	)
 	defer func() {
 		if err := ctrl.Close(); err != nil {
@@ -186,6 +152,8 @@ func TestControllerHostLogrusHookDoesNotRetainHistoryAfterViewRelease(t *testing
 	}
 }
 
+// assertCapturedHostLogEvent checks that state captured exactly the one host
+// log event the test emitted.
 func assertCapturedHostLogEvent(t *testing.T, state *plugin_host_logs.StructuredLogState) {
 	t.Helper()
 
@@ -213,6 +181,3 @@ func assertCapturedHostLogEvent(t *testing.T, state *plugin_host_logs.Structured
 		t.Fatalf("attempt field = %q, want 2", event.GetFields()["attempt"])
 	}
 }
-
-// _ is a type assertion
-var _ bldr_plugin_host.PluginHost = (*testPluginHost)(nil)

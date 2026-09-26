@@ -1137,6 +1137,16 @@
         "core/plugin/space/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/core/plugin/space/runtime": {
+      "hash": "311e3eacf4d472fe4aceea19c2941e1cd427cf443116dffc93cde28af26b1fff",
+      "generatedFiles": [
+        "core/plugin/space/runtime/runtime.pb.go",
+        "core/plugin/space/runtime/runtime.pb.ts"
+      ],
+      "protoFiles": [
+        "core/plugin/space/runtime/runtime.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/core/provider": {
       "hash": "a0cd5a89c6e9a3f96cd81bc112195fe441ce07785ff09f57be1833fb72fe803d",
       "generatedFiles": [

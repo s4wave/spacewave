@@ -9,6 +9,7 @@ import (
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
@@ -17,14 +18,18 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
-	"github.com/sirupsen/logrus"
 )
 
+// catalogCacheTestManifestSpec describes one seeded manifest object.
 type catalogCacheTestManifestSpec struct {
-	key         string
-	pluginID    string
+	// key is the manifest object key.
+	key string
+	// pluginID is the manifest plugin ID.
+	pluginID string
+	// description is the manifest description.
 	description string
-	revision    uint64
+	// revision is the manifest revision.
+	revision uint64
 }
 
 func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchangedManifestSet(t *testing.T) {
@@ -35,20 +40,21 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(tb.Release)
 
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
-	resource := NewSpaceContentsResource(
-		logrus.NewEntry(logrus.New()),
-		tb.Bus,
-		tb.Engine,
-		"space-test",
-		tb.EngineID,
-	)
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
+		SpaceId:  "space-test",
+		EngineId: tb.EngineID,
+	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	defer resource.Release()
+
+	// Start watching after the runtime starts so its first generation does not
+	// wake the watch.
+	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
 	var lookupCalls atomic.Int64
 	resource.lookupManifest = func(
@@ -123,20 +129,21 @@ func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenMan
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(tb.Release)
 
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
-	resource := NewSpaceContentsResource(
-		logrus.NewEntry(logrus.New()),
-		tb.Bus,
-		tb.Engine,
-		"space-test",
-		tb.EngineID,
-	)
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
+		SpaceId:  "space-test",
+		EngineId: tb.EngineID,
+	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	defer resource.Release()
+
+	// Start watching after the runtime starts so its first generation does not
+	// wake the watch.
+	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
 	var lookupCalls atomic.Int64
 	resource.lookupManifest = func(
@@ -208,6 +215,8 @@ func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenMan
 	}
 }
 
+// catalogCacheTestManifestSpecs returns the manifests seeded by the catalog
+// cache tests.
 func catalogCacheTestManifestSpecs() []catalogCacheTestManifestSpec {
 	return []catalogCacheTestManifestSpec{
 		{
@@ -231,6 +240,8 @@ func catalogCacheTestManifestSpecs() []catalogCacheTestManifestSpec {
 	}
 }
 
+// seedCatalogCacheTestManifests stores specs in engine in one transaction and
+// returns the manifests by object key.
 func seedCatalogCacheTestManifests(
 	t *testing.T,
 	ctx context.Context,
@@ -264,12 +275,14 @@ func seedCatalogCacheTestManifests(
 	return manifests
 }
 
+// catalogCacheTestManifest builds the manifest described by spec.
 func catalogCacheTestManifest(spec catalogCacheTestManifestSpec) *bldr_manifest.Manifest {
 	meta := bldr_manifest.NewManifestMeta(spec.pluginID, bldr_manifest.BuildType_DEV, "web/js", spec.revision)
 	meta.Description = spec.description
 	return bldr_manifest.NewManifest(meta, "entrypoint.js")
 }
 
+// catalogCacheTestObjectRef returns an object ref whose root hashes seed.
 func catalogCacheTestObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 	t.Helper()
 	rootRef, err := block.BuildBlockRef([]byte(seed), nil)
@@ -279,6 +292,7 @@ func catalogCacheTestObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 	return &bucket.ObjectRef{RootRef: rootRef}
 }
 
+// receiveTestSpaceContentsState receives the next state sent on stream.
 func receiveTestSpaceContentsState(
 	t *testing.T,
 	ctx context.Context,
@@ -294,6 +308,8 @@ func receiveTestSpaceContentsState(
 	}
 }
 
+// assertCatalogCacheTestAvailablePlugins checks the available plugin catalog
+// against the expected manifests.
 func assertCatalogCacheTestAvailablePlugins(
 	t *testing.T,
 	got []*s4wave_space.AvailablePlugin,

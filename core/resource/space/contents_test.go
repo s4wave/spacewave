@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -14,6 +15,7 @@ import (
 	forge_job_ops "github.com/s4wave/spacewave/core/forge/job"
 	forge_task_ops "github.com/s4wave/spacewave/core/forge/task"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	"github.com/s4wave/spacewave/db/world"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
@@ -30,14 +32,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// spaceContentsTestTimeout bounds each contents test.
 const spaceContentsTestTimeout = 2 * time.Minute
 
+// testWatchSpaceContentsStateStream records WatchState snapshots.
 type testWatchSpaceContentsStateStream struct {
+	// Stream supplies default stream methods for the test double.
 	srpc.Stream
-	ctx  context.Context
+	// ctx is returned to WatchState.
+	ctx context.Context
+	// msgs receives each sent snapshot.
 	msgs chan *s4wave_space.SpaceContentsState
 }
 
+// newTestWatchSpaceContentsStateStream creates a watch stream that ends with ctx.
 func newTestWatchSpaceContentsStateStream(ctx context.Context) *testWatchSpaceContentsStateStream {
 	return &testWatchSpaceContentsStateStream{
 		ctx:  ctx,
@@ -45,10 +53,12 @@ func newTestWatchSpaceContentsStateStream(ctx context.Context) *testWatchSpaceCo
 	}
 }
 
+// Context returns the watch stream context.
 func (m *testWatchSpaceContentsStateStream) Context() context.Context {
 	return m.ctx
 }
 
+// Send records one snapshot.
 func (m *testWatchSpaceContentsStateStream) Send(resp *s4wave_space.SpaceContentsState) error {
 	select {
 	case m.msgs <- resp:
@@ -58,27 +68,77 @@ func (m *testWatchSpaceContentsStateStream) Send(resp *s4wave_space.SpaceContent
 	}
 }
 
+// SendAndClose records one snapshot.
 func (m *testWatchSpaceContentsStateStream) SendAndClose(resp *s4wave_space.SpaceContentsState) error {
 	return m.Send(resp)
 }
 
+// MsgRecv implements srpc.Stream.
 func (m *testWatchSpaceContentsStateStream) MsgRecv(_ srpc.Message) error {
 	return nil
 }
 
+// MsgSend implements srpc.Stream.
 func (m *testWatchSpaceContentsStateStream) MsgSend(_ srpc.Message) error {
 	return nil
 }
 
+// CloseSend implements srpc.Stream.
 func (m *testWatchSpaceContentsStateStream) CloseSend() error {
 	return nil
 }
 
+// Close implements srpc.Stream.
 func (m *testWatchSpaceContentsStateStream) Close() error {
 	return nil
 }
 
-func TestWaitSpaceContentsSeqnoWaitsForEverySource(t *testing.T) {
+// newTestSpaceContentsResource mounts the contents of the Space in conf on b
+// with its shared plugin runtime. The mount is released when the test ends.
+func newTestSpaceContentsResource(
+	t *testing.T,
+	le *logrus.Entry,
+	b bus.Bus,
+	engine world.Engine,
+	conf *plugin_space.Config,
+) *SpaceContentsResource {
+	t.Helper()
+	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
+		t.Context(),
+		b,
+		&plugin_space_runtime.Config{Space: conf},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewSpaceContentsResource(le, b, engine, conf.GetSpaceId(), conf.GetEngineId(), runtime, runtimeRef)
+	t.Cleanup(r.Release)
+	return r
+}
+
+// waitSpaceRuntimeGeneration waits for runtime to run a generation other than
+// prev.
+func waitSpaceRuntimeGeneration(
+	t *testing.T,
+	runtime *plugin_space_runtime.Controller,
+	prev *plugin_space_runtime.Generation,
+) *plugin_space_runtime.Generation {
+	t.Helper()
+	timeout := time.After(10 * time.Second)
+	for {
+		gen, waitCh, err := runtime.GetGeneration()
+		if gen != nil && gen != prev {
+			return gen
+		}
+		select {
+		case <-waitCh:
+		case <-timeout:
+			t.Fatalf("timed out waiting for a Space runtime generation, last error: %v", err)
+		}
+	}
+}
+
+func TestWaitSpaceContentsSourcesWaitsForEverySource(t *testing.T) {
 	t.Parallel()
 
 	for sourceIdx := range 5 {
@@ -88,15 +148,15 @@ func TestWaitSpaceContentsSeqnoWaitsForEverySource(t *testing.T) {
 			waitChs, closeSource := testWaitChannels(5, sourceIdx)
 			done := make(chan error, 1)
 			go func() {
-				done <- waitSpaceContentsSeqno(t.Context(), func(ctx context.Context) error {
+				done <- waitSpaceContentsSources(t.Context(), func(ctx context.Context) error {
 					<-ctx.Done()
 					return ctx.Err()
-				}, waitChs...)
+				}, waitChs)
 			}()
 
 			select {
 			case err := <-done:
-				t.Fatalf("waitSpaceContentsSeqno returned before source %d woke: %v", sourceIdx, err)
+				t.Fatalf("waitSpaceContentsSources returned before source %d woke: %v", sourceIdx, err)
 			case <-time.After(10 * time.Millisecond):
 			}
 
@@ -105,30 +165,30 @@ func TestWaitSpaceContentsSeqnoWaitsForEverySource(t *testing.T) {
 			select {
 			case err := <-done:
 				if err != nil {
-					t.Fatalf("waitSpaceContentsSeqno returned %v after source %d woke", err, sourceIdx)
+					t.Fatalf("waitSpaceContentsSources returned %v after source %d woke", err, sourceIdx)
 				}
 			case <-time.After(time.Second):
-				t.Fatalf("waitSpaceContentsSeqno ignored source %d", sourceIdx)
+				t.Fatalf("waitSpaceContentsSources ignored source %d", sourceIdx)
 			}
 		})
 	}
 }
 
-func TestWaitSpaceContentsSeqnoContextCancellation(t *testing.T) {
+func TestWaitSpaceContentsSourcesContextCancellation(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- waitSpaceContentsSeqno(ctx, func(ctx context.Context) error {
+		done <- waitSpaceContentsSources(ctx, func(ctx context.Context) error {
 			<-ctx.Done()
 			return ctx.Err()
-		})
+		}, nil)
 	}()
 
 	select {
 	case err := <-done:
-		t.Fatalf("waitSpaceContentsSeqno returned before cancellation: %v", err)
+		t.Fatalf("waitSpaceContentsSources returned before cancellation: %v", err)
 	case <-time.After(10 * time.Millisecond):
 	}
 
@@ -140,16 +200,16 @@ func TestWaitSpaceContentsSeqnoContextCancellation(t *testing.T) {
 			t.Fatalf("expected context.Canceled, got %v", err)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("waitSpaceContentsSeqno did not return after cancellation")
+		t.Fatal("waitSpaceContentsSources did not return after cancellation")
 	}
 }
 
-func TestWaitSpaceContentsSeqnoWorldWake(t *testing.T) {
+func TestWaitSpaceContentsSourcesWorldWake(t *testing.T) {
 	t.Parallel()
 
-	if err := waitSpaceContentsSeqno(t.Context(), func(context.Context) error {
+	if err := waitSpaceContentsSources(t.Context(), func(context.Context) error {
 		return nil
-	}); err != nil {
+	}, nil); err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 }
@@ -238,6 +298,8 @@ func TestBuildSpacePluginStatusProjectsLifecycle(t *testing.T) {
 	}
 }
 
+// testWaitChannels returns count open channels framed by nil channels and a
+// func that closes the channel at sourceIdx.
 func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
 	chans := make([]chan struct{}, count)
 	waitChs := make([]<-chan struct{}, 0, count+2)
@@ -252,6 +314,7 @@ func testWaitChannels(count int, sourceIdx int) ([]<-chan struct{}, func()) {
 	}
 }
 
+// generateSpaceContentsTestPeerID returns a random Ed25519 peer ID.
 func generateSpaceContentsTestPeerID(t *testing.T) peer.ID {
 	t.Helper()
 
@@ -266,6 +329,8 @@ func generateSpaceContentsTestPeerID(t *testing.T) peer.ID {
 	return pid
 }
 
+// applyWizardFinalizeOp creates a wizard object, then applies op as sender and
+// deletes the wizard in a second transaction, as the wizard UI does.
 func applyWizardFinalizeOp(
 	ctx context.Context,
 	t testing.TB,
@@ -319,6 +384,8 @@ func applyWizardFinalizeOp(
 	}
 }
 
+// waitForForgeExecutionState waits for a completed Pass of jobKey with a
+// completed Execution that recorded log entries.
 func waitForForgeExecutionState(
 	ctx context.Context,
 	t testing.TB,
@@ -380,7 +447,6 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus))
 
 	pid := generateSpaceContentsTestPeerID(t)
 	sender := pid.String()
@@ -494,30 +560,15 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		}
 	}
 
-	conf := &plugin_space.Config{
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
 		SpaceId:       "space-test",
 		VolumeId:      tb.EngineVolumeID,
 		ObjectStoreId: "platform-account",
 		EngineId:      tb.EngineID,
 		SessionPeerId: sender,
-	}
-	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, tb.Bus, conf, func() {})
-	if err != nil {
-		t.Fatalf("StartControllerWithConfig: %v", err)
-	}
-
-	resource := NewSpaceContentsResource(
-		logrus.NewEntry(logrus.StandardLogger()),
-		tb.Bus,
-		tb.Engine,
-		"space-test",
-		tb.EngineID,
-	)
-	resource.ctrl = ctrl
-	resource.ctrlRef = ctrlRef
+	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	defer resource.Release()
 
 	for _, linkedTaskKey := range taskKeys {
 		passKeys, err := forge_task.ListTaskPasses(ctx, tb.WorldState, linkedTaskKey)
@@ -592,7 +643,6 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb.StaticResolver.AddFactory(plugin_space.NewFactory(tb.Bus))
 
 	pid := generateSpaceContentsTestPeerID(t)
 	op := &forge_dashboard.InitForgeQuickstartOp{
@@ -608,30 +658,15 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
-	conf := &plugin_space.Config{
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
 		SpaceId:       "space-test",
 		VolumeId:      tb.EngineVolumeID,
 		ObjectStoreId: "platform-account",
 		EngineId:      tb.EngineID,
 		SessionPeerId: pid.String(),
-	}
-	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, tb.Bus, conf, func() {})
-	if err != nil {
-		t.Fatalf("StartControllerWithConfig: %v", err)
-	}
-
-	resource := NewSpaceContentsResource(
-		logrus.NewEntry(logrus.StandardLogger()),
-		tb.Bus,
-		tb.Engine,
-		"space-test",
-		tb.EngineID,
-	)
-	resource.ctrl = ctrl
-	resource.ctrlRef = ctrlRef
+	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	defer resource.Release()
 
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
