@@ -140,7 +140,7 @@ func TestResolveDistGoCompiler(t *testing.T) {
 // TestNewDistGoScriptBuildFlags verifies opt-in startup trace propagation for GoScript.
 func TestNewDistGoScriptBuildFlags(t *testing.T) {
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "")
-	flags := strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE, false), " ")
+	flags := strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE), " ")
 	if !strings.Contains(flags, gocompiler.GoScriptBuildTag) {
 		t.Fatalf("flags = %q, want %s tag", flags, gocompiler.GoScriptBuildTag)
 	}
@@ -149,7 +149,7 @@ func TestNewDistGoScriptBuildFlags(t *testing.T) {
 	}
 
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "1")
-	flags = strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE, false), " ")
+	flags = strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE), " ")
 	if !strings.Contains(flags, gocompiler.RuntimeStartupTraceBuildTag) {
 		t.Fatalf("flags = %q, want %s tag", flags, gocompiler.RuntimeStartupTraceBuildTag)
 	}

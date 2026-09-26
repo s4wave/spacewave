@@ -449,7 +449,7 @@ func BuildDistBundle(
 		var wasmManifestPath string
 		if useGoScript {
 			le.Info("compiling dist TypeScript package tree")
-			goScriptBuildFlags := newDistGoScriptBuildFlags(buildType, enableCgo)
+			goScriptBuildFlags := newDistGoScriptBuildFlags(buildType)
 			goScriptEnv, err := newDistGoScriptEnv(buildPlatform)
 			if err != nil {
 				return err
@@ -617,9 +617,9 @@ func resolveDistGoCompiler(
 }
 
 // newDistGoScriptBuildFlags returns the Go build flags for GoScript dist builds.
-func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
-	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
+func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType) []string {
+	buildTags := gocompiler.NewBuildTags(buildType)
+	buildTags = append(buildTags, gocompiler.PureGoBuildTag, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
 	buildTags = append(buildTags, gocompiler.RuntimeStartupTraceBuildTags()...)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }

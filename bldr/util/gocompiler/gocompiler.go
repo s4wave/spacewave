@@ -28,6 +28,11 @@ const CloudflareBuildTag = "bldr_cloudflare"
 // integration, and other native-only SQL paths from the bundle.
 const SQLLiteBuildTag = "sql_lite"
 
+// PureGoBuildTag selects portable Go over assembly in the standard library and
+// dependencies. Only targets that cannot run Go assembly set it: TinyGo,
+// GoScript, and WebAssembly output. Native builds keep hardware hashing.
+const PureGoBuildTag = "purego"
+
 // GoScriptCompilerCacheRootEnv opts Bldr GoScript compiles into the compiler
 // package artifact cache.
 const GoScriptCompilerCacheRootEnv = "BLDR_GOSCRIPT_COMPILER_CACHE_ROOT"
@@ -91,12 +96,8 @@ func ExecGoCompiler(le *logrus.Entry, cmd *exec.Cmd) error {
 // NewBuildTags constructs build tags for a build type.
 //
 // NOTE: ExecBuildEntrypoint calls this automatically.
-func NewBuildTags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
-	buildTags := []string{"build_type_" + buildType.String()}
-	if !enableCgo {
-		buildTags = append(buildTags, "purego")
-	}
-	return buildTags
+func NewBuildTags(buildType bldr_manifest.BuildType) []string {
+	return []string{"build_type_" + buildType.String()}
 }
 
 // GetWasmExecPath gets the path to wasm_exec.js and ensures it exists.

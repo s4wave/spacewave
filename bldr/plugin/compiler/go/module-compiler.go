@@ -358,7 +358,7 @@ func (m *ModuleCompiler) CompilePluginDevWrapper(
 	// Carry compiler and target flags into the wrapper's runtime build command.
 	goArgs := gocompiler.GetDefaultArgs()
 
-	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
+	buildTags := gocompiler.NewBuildTags(buildType)
 	if len(buildTags) != 0 {
 		goArgs = append(goArgs, "-tags="+strings.Join(buildTags, ","))
 	}

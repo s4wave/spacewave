@@ -13,8 +13,8 @@ func TestNewBuildTagsDoNotDependOnReleaseEnv(t *testing.T) {
 	for _, env := range []string{"", "prod", "staging"} {
 		t.Run(env, func(t *testing.T) {
 			t.Setenv("SPACEWAVE_RELEASE_ENV", env)
-			tags := NewBuildTags(bldr_manifest.BuildType_RELEASE, false)
-			if !slices.Equal(tags, []string{"build_type_release", "purego"}) {
+			tags := NewBuildTags(bldr_manifest.BuildType_RELEASE)
+			if !slices.Equal(tags, []string{"build_type_release"}) {
 				t.Fatalf("build tags = %v, want release defaults only", tags)
 			}
 		})

@@ -121,7 +121,7 @@ func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *
 }
 
 func TestNewGoScriptBuildFlagsCloudflarePlatformAddsTag(t *testing.T) {
-	flags := newGoScriptBuildFlags(bldr_platform.NewCloudflarePlatform(), bldr_manifest.BuildType_DEV, false)
+	flags := newGoScriptBuildFlags(bldr_platform.NewCloudflarePlatform(), bldr_manifest.BuildType_DEV)
 	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
 		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
 	}
@@ -134,7 +134,7 @@ func TestNewGoScriptBuildFlagsCloudflarePlatformAddsTag(t *testing.T) {
 }
 
 func TestNewGoScriptBuildFlagsBrowserPlatformExcludesCloudflareTag(t *testing.T) {
-	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV, false)
+	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV)
 	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
 		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
 	}
@@ -145,7 +145,7 @@ func TestNewGoScriptBuildFlagsBrowserPlatformExcludesCloudflareTag(t *testing.T)
 }
 
 func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
-	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV, false)
+	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV)
 	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
 		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
 	}
@@ -317,7 +317,7 @@ func TestCloudflareAnalysisMatchesCompiledTarget(t *testing.T) {
 	if !compiler.IsGoScript() {
 		t.Fatalf("Workers default compiler = %q", compiler)
 	}
-	tags := newBuildTagsForAnalyze(platform, bldr_manifest.BuildType_RELEASE, false, compiler)
+	tags := newBuildTagsForAnalyze(platform, bldr_manifest.BuildType_RELEASE, compiler)
 	if !slices.Contains(tags, gocompiler.CloudflareBuildTag) {
 		t.Fatalf("analysis omitted Workers transport: %v", tags)
 	}

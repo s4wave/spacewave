@@ -697,7 +697,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := newBuildTagsForAnalyze(buildPlatform, buildType, enableCgo, goCompiler)
+	buildTagsForAnalyze := newBuildTagsForAnalyze(buildPlatform, buildType, goCompiler)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting browser
@@ -1016,7 +1016,7 @@ func (c *Controller) BuildPlugin(
 			defer goScriptWebPluginBuildMu.Unlock()
 
 			le.Info("compiling plugin TypeScript package tree")
-			goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType, enableCgo)
+			goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType)
 			goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
 			goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
 			if err != nil {
@@ -1293,9 +1293,9 @@ func (c *Controller) BuildPlugin(
 }
 
 // newGoScriptBuildFlags builds the GoScript target's build flags.
-func newGoScriptBuildFlags(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType, enableCgo bool) []string {
-	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
+func newGoScriptBuildFlags(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType) []string {
+	buildTags := gocompiler.NewBuildTags(buildType)
+	buildTags = append(buildTags, gocompiler.PureGoBuildTag, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
 	if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
 		buildTags = append(buildTags, gocompiler.CloudflareBuildTag)
 	}
@@ -1374,10 +1374,12 @@ nextInput:
 func newBuildTagsForAnalyze(
 	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
-	enableCgo bool,
 	goCompiler gocompiler.GoCompiler,
 ) []string {
-	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
+	buildTags := gocompiler.NewBuildTags(buildType)
+	if goCompiler.IsTinyGo() || goCompiler.IsGoScript() || (buildPlatform != nil && buildPlatform.GetBasePlatformID() != bldr_platform.PlatformID_DESKTOP) {
+		buildTags = append(buildTags, gocompiler.PureGoBuildTag)
+	}
 	if goCompiler.IsTinyGo() {
 		buildTags = append(buildTags, "tinygo")
 		buildTags = append(buildTags, gocompiler.BldrTinyGoJSImportBuildTag)

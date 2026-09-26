@@ -391,7 +391,7 @@ var Value = missing.Value
 }
 
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
-	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerTinyGo)
+	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerTinyGo)
 	for _, want := range []string{
 		"build_type_release",
 		"purego",
@@ -404,7 +404,11 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 		}
 	}
 
-	standardTags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGo)
+	// Native Go keeps its assembly, including hardware hashing.
+	standardTags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerGo)
+	if slices.Contains(standardTags, gocompiler.PureGoBuildTag) {
+		t.Fatalf("native Go analysis tags unexpectedly include purego: %v", standardTags)
+	}
 	if slices.Contains(standardTags, "tinygo") {
 		t.Fatalf("standard Go analysis tags unexpectedly include tinygo: %v", standardTags)
 	}
@@ -414,7 +418,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 }
 
 func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
-	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGoScript)
+	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerGoScript)
 	for _, want := range []string{
 		"build_type_release",
 		"purego",
