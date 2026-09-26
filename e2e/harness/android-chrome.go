@@ -23,13 +23,13 @@ type AndroidChrome struct {
 	// Browser is the connected browser. Closing it only disconnects.
 	Browser playwright.Browser
 
-	reverse string
+	reverse []string
 	forward string
 }
 
-// ConnectAndroidChrome makes serverPort on the device reach the same port on
-// this host and connects to the device's Chrome.
-func ConnectAndroidChrome(pw *playwright.Playwright, serverPort string) (*AndroidChrome, error) {
+// ConnectAndroidChrome makes each of ports on the device reach the same port
+// on this host and connects to the device's Chrome.
+func ConnectAndroidChrome(pw *playwright.Playwright, ports ...string) (*AndroidChrome, error) {
 	if _, err := exec.LookPath("adb"); err != nil {
 		return nil, ErrNoAndroidDevice
 	}
@@ -37,9 +37,14 @@ func ConnectAndroidChrome(pw *playwright.Playwright, serverPort string) (*Androi
 		return nil, errors.Wrap(ErrNoAndroidDevice, state)
 	}
 
-	a := &AndroidChrome{reverse: "tcp:" + serverPort}
-	if _, err := adb("reverse", a.reverse, a.reverse); err != nil {
-		return nil, errors.Wrap(err, "adb reverse")
+	a := &AndroidChrome{}
+	for _, port := range ports {
+		spec := "tcp:" + port
+		if _, err := adb("reverse", spec, spec); err != nil {
+			a.Close()
+			return nil, errors.Wrap(err, "adb reverse")
+		}
+		a.reverse = append(a.reverse, spec)
 	}
 	port, err := adb("forward", "tcp:0", "localabstract:chrome_devtools_remote")
 	if err != nil {
@@ -94,7 +99,9 @@ func (a *AndroidChrome) Close() {
 	if a.forward != "" {
 		_, _ = adb("forward", "--remove", a.forward)
 	}
-	_, _ = adb("reverse", "--remove", a.reverse)
+	for _, spec := range a.reverse {
+		_, _ = adb("reverse", "--remove", spec)
+	}
 }
 
 // adb runs one adb command and returns its trimmed output.

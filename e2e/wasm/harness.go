@@ -94,6 +94,9 @@ type Harness struct {
 	retainedStateResourcePeerMu sync.Mutex
 	retainedStateResourcePeer   peer.ID
 
+	// cloudEndpoint is the loopback cloud fixture serving auth discovery and
+	// signaling; cloudEndpointClose stops it.
+	cloudEndpoint      string
 	cloudEndpointClose func()
 
 	stateRoot                 string
@@ -262,6 +265,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if err != nil {
 		return nil, errors.Wrap(err, "start cloud auth config endpoint")
 	}
+	h.cloudEndpoint = cloudEndpoint
 	h.cloudEndpointClose = stopCloudEndpoint
 
 	projConfig, err := loadProjectConfig(repoRoot)
