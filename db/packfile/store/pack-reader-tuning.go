@@ -1,54 +1,6 @@
 package store
 
-import "time"
-
-// PackReaderTuning describes the active engine tuning values.
-type PackReaderTuning struct {
-	MinWindow              int
-	TransportQuantum       int
-	MaxWindow              int
-	TransportFetchMaxBytes int
-	CurrentWindow          int
-	TargetRequestHz        float64
-	Smoothing              float64
-	SparseReads            bool
-	SparseColdWindow       int
-	SparseLocalityDistance int64
-	ResidentBudget         int64
-	WritebackWindow        int64
-	IndexPromotion         bool
-}
-
-// SetTransportMinWindow sets the minimum transport fetch size.
-func (e *PackReader) SetTransportMinWindow(minWindow int) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if minWindow > 0 {
-			e.minWindow = minWindow
-			e.normalizeTransportLocked()
-		}
-	})
-}
-
-// SetTransportQuantum sets the transport alignment quantum.
-func (e *PackReader) SetTransportQuantum(quantum int) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if quantum > 0 {
-			e.transportQuantum = quantum
-			e.normalizeTransportLocked()
-		}
-	})
-}
-
-// SetTransportMaxWindow sets the maximum transport fetch size.
-func (e *PackReader) SetTransportMaxWindow(maxWindow int) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if maxWindow > 0 {
-			e.maxWindow = maxWindow
-			e.normalizeTransportLocked()
-		}
-	})
-}
-
+// setTransportFetchMaxBytes caps every transport fetch at the platform limit.
 func (e *PackReader) setTransportFetchMaxBytes(maxBytes int) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if maxBytes > 0 {
@@ -56,52 +8,6 @@ func (e *PackReader) setTransportFetchMaxBytes(maxBytes int) {
 			e.normalizeTransportLocked()
 		}
 	})
-}
-
-// SetTransportTargetRequestHz sets the steady-state request-rate target.
-func (e *PackReader) SetTransportTargetRequestHz(targetHz float64) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if targetHz > 0 {
-			e.targetInterval = time.Duration(float64(time.Second) / targetHz)
-		}
-	})
-}
-
-// SetTransportWindowSmoothing sets the upward window growth smoothing factor.
-func (e *PackReader) SetTransportWindowSmoothing(smoothing float64) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		e.smoothing = min(max(smoothing, 0), 1)
-	})
-}
-
-// SetIndexPromotionEnabled sets whether resident spans auto-promote covered blocks.
-func (e *PackReader) SetIndexPromotionEnabled(enabled bool) {
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		e.indexPromotion = enabled
-	})
-}
-
-// SnapshotTuning returns the active engine tuning values.
-func (e *PackReader) SnapshotTuning() PackReaderTuning {
-	var snap PackReaderTuning
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		snap = PackReaderTuning{
-			MinWindow:              e.minWindow,
-			TransportQuantum:       e.transportQuantum,
-			MaxWindow:              e.maxWindow,
-			TransportFetchMaxBytes: e.transportFetchMaxBytes,
-			CurrentWindow:          e.currentWindow,
-			TargetRequestHz:        e.targetRequestHzLocked(),
-			Smoothing:              e.smoothing,
-			SparseReads:            e.sparseReads,
-			SparseColdWindow:       e.sparseColdWindow,
-			SparseLocalityDistance: e.sparseLocalityDistance,
-			ResidentBudget:         e.budget.limit.Load(),
-			WritebackWindow:        e.writebackWindow,
-			IndexPromotion:         e.indexPromotion,
-		}
-	})
-	return snap
 }
 
 func (e *PackReader) normalizeTransportLocked() {
@@ -127,11 +33,4 @@ func (e *PackReader) normalizeTransportLocked() {
 		e.maxWindow = minMaxWindow
 	}
 	e.currentWindow = e.clampWindow(e.currentWindow)
-}
-
-func (e *PackReader) targetRequestHzLocked() float64 {
-	if e.targetInterval <= 0 {
-		return 0
-	}
-	return float64(time.Second) / float64(e.targetInterval)
 }

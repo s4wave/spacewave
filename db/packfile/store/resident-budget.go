@@ -11,12 +11,11 @@ import (
 //
 // PackfileStore owns one budget for all of its readers, so resident memory has
 // one limit however many packs are open. Readers charge span bytes as spans
-// are inserted and removed. reclaim evicts the least recently used unpinned
-// span across all readers until the total fits, and releases completed block
-// records only when every span is pinned. A hot pack keeps its bytes while cold
-// packs give theirs up.
+// are inserted and removed. reclaim evicts the least recently used span across
+// all readers until the total fits. A hot pack keeps its bytes while cold packs
+// give theirs up.
 type residentBudget struct {
-	// clock orders span and record use across every reader sharing the budget.
+	// clock orders span use across every reader sharing the budget.
 	clock atomic.Uint64
 	// limit is the byte limit. Zero or negative disables eviction.
 	limit atomic.Int64
@@ -77,22 +76,9 @@ func (b *residentBudget) reclaim() {
 				victim, victimSeq = e, seq
 			}
 		}
-		if victim != nil && victim.evictOldestSpan() {
-			continue
-		}
-		if !b.evictAnyRecord(readers) {
+		if victim == nil {
 			return
 		}
+		victim.evictOldestSpan()
 	}
-}
-
-// evictAnyRecord releases one completed block record from the first reader
-// holding one. Its spans become evictable on the next reclaim pass.
-func (b *residentBudget) evictAnyRecord(readers []*PackReader) bool {
-	for _, e := range readers {
-		if e.evictRecord(b.overage()) {
-			return true
-		}
-	}
-	return false
 }

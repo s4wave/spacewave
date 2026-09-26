@@ -7,7 +7,6 @@ import (
 	"math"
 	"slices"
 	"sort"
-	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
@@ -18,68 +17,13 @@ import (
 // defaultIndexTailInitialWindow is the first index-tail read size.
 const defaultIndexTailInitialWindow = 256 * 1024
 
-// blockState is the verification state of a block record.
-type blockState int
-
-const (
-	// blockStateVerifying indicates hash verification is scheduled or running.
-	blockStateVerifying blockState = iota
-	// blockStateVerified indicates hash verification succeeded.
-	blockStateVerified
-	// blockStatePublished indicates the writeback target holds the block.
-	// The record keeps no spans; it remains only so the block is not written
-	// back again.
-	blockStatePublished
-)
-
-// blockRecord is the publication state of one known block extent.
-//
-// Each record points at the subset of spans that cover its physical extent
-// and pins them so block bytes remain reachable across range evictions. A
-// record leaves the catalog when its verification fails or eviction releases
-// it. Publishing the block to the writeback target releases the spans and
-// keeps the record as a marker against a second writeback.
-type blockRecord struct {
-	// key is the kvfile index key (block hash as base58 string).
-	key string
-	// ref is the parsed block ref.
-	ref *block.BlockRef
-	// off is the absolute packfile offset of the encoded block value.
-	off int64
-	// size is the encoded block value size in bytes.
-	size int64
-	// spans is the subset of resident spans fully covering [off, off+size).
-	spans []*span
-	// state is the current verification state.
-	state blockState
-	// queued indicates verify work has been enqueued.
-	queued bool
-	// lastUseSeq is the LRU sequence.
-	lastUseSeq uint64
-	// enqueueAt is when publication work was first queued.
-	enqueueAt time.Time
-}
-
-// readBytes copies the encoded block value out of the backing spans.
-func (b *blockRecord) readBytes() ([]byte, error) {
-	out := make([]byte, b.size)
-	if copySpans(out, b.spans, b.off) != len(out) {
-		return nil, errors.Wrapf(
-			ErrIncompleteCachedPackRange,
-			"pack-block key=%s off=%d size=%d",
-			b.key, b.off, b.size,
-		)
-	}
-	return out, nil
-}
-
 // ensureIndexLoaded loads the kvfile index for this pack if not already loaded.
 //
 // The raw index-tail cache is consulted first. On a miss, the engine slices
 // the kvfile tail through its own ReaderAt so tail bytes land in the shared
 // span store. Parsed entries are runtime-only views rebuilt from the raw tail.
 // After a successful load any block already fully covered by resident spans is
-// promoted into the block catalog and enqueued for verification.
+// handed to writeback.
 func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -166,14 +110,15 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 			}
 		}
 
-		var verifyJobs []func()
+		var writeback func()
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			loadCh := e.indexLoadCh
 			if e.closed {
 				err = context.Canceled
 			}
 			if err == nil {
-				verifyJobs = e.setIndexEntriesLocked(entries)
+				e.setIndexEntriesLocked(entries)
+				writeback = e.prepareWritebackLocked(0, e.size)
 				e.indexLoaded = true
 			} else {
 				e.indexLoaded = false
@@ -185,7 +130,9 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 			}
 			broadcast()
 		})
-		e.enqueueVerifyJobs(verifyJobs)
+		if writeback != nil {
+			startOwnerWork(writeback)
+		}
 	})
 }
 
@@ -264,10 +211,9 @@ func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
 
 // readIndexTailEntries reads the raw kvfile index tail and returns parsed entries.
 //
-// This is the trailer-promotion path: kvfile tail reads go through the engine's
-// ReaderAt, which means bytes land in the shared span store. After this call
-// returns, any block fully contained within those spans can be promoted without
-// an extra network round trip.
+// Tail reads go through the engine's ReaderAt, so the bytes land in the shared
+// span store. Blocks fully contained in those spans can be written back
+// without another network round trip.
 func (e *PackReader) readIndexTailEntries(ctx context.Context) ([]byte, []*kvfile.IndexEntry, error) {
 	if e.size < 0 {
 		return nil, nil, errors.Errorf("negative pack size %d", e.size)
@@ -400,9 +346,8 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 	return nil
 }
 
-// setIndexEntriesLocked sorts and stores index entries. Must be called with
-// bcast held; the returned jobs must be enqueued after releasing bcast.
-func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) []func() {
+// setIndexEntriesLocked stores the index entries sorted by offset and by key.
+func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	byOff := slices.Clone(entries)
 	slices.SortFunc(byOff, func(a, b *kvfile.IndexEntry) int {
 		return cmp.Compare(a.GetOffset(), b.GetOffset())
@@ -413,156 +358,6 @@ func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) []func(
 	})
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
-
-	var jobs []func()
-	// Promote any blocks already fully covered by the spans we fetched
-	// during the trailer/index read (or from earlier block fetches).
-	for _, sp := range e.spans {
-		jobs = append(jobs, e.promoteBlocksInSpanLocked(sp)...)
-	}
-	return jobs
-}
-
-// promoteBlocksInSpanLocked registers loaded block records for every index
-// entry fully contained in the given span.
-//
-// Requires the span to already be inserted in the span store. Returns prepared
-// verify jobs that the caller must enqueue after releasing bcast, using the
-// same verify/writeback pipeline used by regular block fetches.
-func (e *PackReader) promoteBlocksInSpanLocked(sp *span) []func() {
-	if sp == nil || len(e.entriesByOff) == 0 || !e.indexPromotion {
-		return nil
-	}
-	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
-		return int64(e.entriesByOff[i].GetOffset()) >= sp.off //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
-	})
-	var jobs []func()
-	for ; pos < len(e.entriesByOff); pos++ {
-		entry := e.entriesByOff[pos]
-		eOff := int64(entry.GetOffset()) //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
-		if eOff >= sp.end() {
-			break
-		}
-		eEnd := eOff + int64(entry.GetSize()) //nolint:gosec // validated entries have non-overflowing extents within the int64 pack size.
-		if eEnd > sp.end() {
-			continue
-		}
-		job, ok := e.admitBlockLocked(entry, eOff, eEnd)
-		if ok && job != nil {
-			jobs = append(jobs, job)
-		}
-	}
-	if len(jobs) == 0 {
-		return nil
-	}
-	return e.prepareVerifyJobsLocked(jobs...)
-}
-
-// admitBlockLocked creates or touches a block record covering [off, end).
-//
-// Requires at least one resident span to cover that interval. Returns the
-// (possibly nil) verify job to enqueue. A job is returned only when a new
-// record was created; existing records are left alone to avoid duplicate
-// verification.
-func (e *PackReader) admitBlockLocked(entry *kvfile.IndexEntry, off, end int64) (func(), bool) {
-	key := string(entry.GetKey())
-	if existing, ok := e.blocks[key]; ok {
-		existing.lastUseSeq = e.nextUseSeqLocked()
-		return nil, true
-	}
-	spans, covered := e.collectSpansLocked(off, end)
-	if !covered {
-		return nil, false
-	}
-	ref, err := parseBlockRef(entry)
-	if err != nil {
-		return nil, false
-	}
-	rec := &blockRecord{
-		key:       key,
-		ref:       ref,
-		off:       off,
-		size:      end - off,
-		spans:     spans,
-		state:     blockStateVerifying,
-		queued:    true,
-		enqueueAt: time.Now(),
-	}
-	e.retainSpansLocked(spans)
-	rec.lastUseSeq = e.nextUseSeqLocked()
-	e.blocks[key] = rec
-	return func() { e.verifyBlock(rec) }, true
-}
-
-// lookupBlockLocked returns any existing block record by key.
-func (e *PackReader) lookupBlockLocked(key string) *blockRecord {
-	rec := e.blocks[key]
-	if rec != nil {
-		rec.lastUseSeq = e.nextUseSeqLocked()
-	}
-	return rec
-}
-
-// removeBlockLocked removes a block record and releases its span pins.
-func (e *PackReader) removeBlockLocked(rec *blockRecord) {
-	if _, ok := e.blocks[rec.key]; !ok {
-		return
-	}
-	delete(e.blocks, rec.key)
-	e.releaseSpansLocked(rec.spans)
-	rec.spans = nil
-}
-
-// releasableBytesLocked returns the bytes that would become unpinned if rec
-// were removed.
-func (e *PackReader) releasableBytesLocked(rec *blockRecord) int64 {
-	if rec == nil {
-		return 0
-	}
-	var releasable int64
-	for _, sp := range rec.spans {
-		if sp == nil {
-			continue
-		}
-		if sp.pins == 1 {
-			releasable += sp.size
-		}
-	}
-	return releasable
-}
-
-// pickEvictionRecordLocked chooses a completed block record to unpin under
-// overage bytes of budget pressure.
-func (e *PackReader) pickEvictionRecordLocked(overage int64) *blockRecord {
-	if overage <= 0 {
-		return nil
-	}
-
-	var best *blockRecord
-	var bestFree int64
-	for _, rec := range e.blocks {
-		if rec == nil || rec.queued {
-			continue
-		}
-		if rec.state != blockStateVerified {
-			continue
-		}
-		free := e.releasableBytesLocked(rec)
-		if free == 0 {
-			continue
-		}
-		bestSufficient := bestFree >= overage
-		freeSufficient := free >= overage
-		if best == nil ||
-			(!bestSufficient && freeSufficient) ||
-			(bestSufficient == freeSufficient && bestSufficient && free < bestFree) ||
-			(bestSufficient == freeSufficient && !bestSufficient && free > bestFree) ||
-			(bestSufficient == freeSufficient && free == bestFree && rec.lastUseSeq < best.lastUseSeq) {
-			best = rec
-			bestFree = free
-		}
-	}
-	return best
 }
 
 // findEntryByKeyLocked binary-searches the key-sorted index.
@@ -575,18 +370,13 @@ func (e *PackReader) findEntryByKeyLocked(key []byte) (*kvfile.IndexEntry, bool)
 // window on each side.
 //
 // When no writeback target is configured the window shrinks to just the
-// target bytes. The returned slice of contained entries always includes the
-// target.
-func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int64, []*kvfile.IndexEntry) {
-	targetOff := int64(target.GetOffset())           //nolint:gosec // validateIndexEntries bounds the target offset by the int64 pack size.
-	targetEnd := targetOff + int64(target.GetSize()) //nolint:gosec // validated target extents cannot overflow or exceed the pack.
-
+// target bytes.
+func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int64) {
+	targetOff, targetEnd := entryExtent(target)
 	start := targetOff
 	end := targetEnd
-	contained := []*kvfile.IndexEntry{target}
-
 	if e.writebackTarget == nil || e.writebackWindow <= 0 {
-		return start, end, contained
+		return start, end
 	}
 
 	half := e.writebackWindow / 2
@@ -600,24 +390,23 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 		return int64(e.entriesByOff[i].GetOffset()) >= intendedStart //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
 	})
 	for ; pos < len(e.entriesByOff); pos++ {
-		entry := e.entriesByOff[pos]
-		eOff := int64(entry.GetOffset())      //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
-		eEnd := eOff + int64(entry.GetSize()) //nolint:gosec // validated entries have non-overflowing extents within the int64 pack size.
+		eOff, eEnd := entryExtent(e.entriesByOff[pos])
 		if eOff >= intendedEnd {
 			break
 		}
-		if entry == target || eEnd > intendedEnd {
+		if eEnd > intendedEnd {
 			continue
 		}
-		if eOff < start {
-			start = eOff
-		}
-		if eEnd > end {
-			end = eEnd
-		}
-		contained = append(contained, entry)
+		start = min(start, eOff)
+		end = max(end, eEnd)
 	}
-	return start, end, contained
+	return start, end
+}
+
+// entryExtent returns the packfile byte interval of a validated index entry.
+func entryExtent(entry *kvfile.IndexEntry) (int64, int64) {
+	off := int64(entry.GetOffset())          //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
+	return off, off + int64(entry.GetSize()) //nolint:gosec // validated entries have non-overflowing extents within the int64 pack size.
 }
 
 // parseBlockRef builds a block ref from a kvfile index entry key.

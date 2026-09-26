@@ -141,7 +141,7 @@ func NewHTTPRangeReader(
 		signReq:     signReq,
 		observeResp: observeResp,
 	}
-	e := NewPackReader(url, size, t, 0)
+	e := NewPackReader(url, size, t)
 	if readAheadSize > 0 {
 		e.minWindow = readAheadSize
 		e.transportQuantum = readAheadSize

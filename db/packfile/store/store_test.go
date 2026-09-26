@@ -202,7 +202,7 @@ func (f TransportFunc) Fetch(ctx context.Context, off int64, length int) ([]byte
 func openerFromBytes(data []byte) (Opener, *bytesTransport) {
 	t := &bytesTransport{data: data}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, t, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, t), nil
 	}
 	return opener, t
 }
@@ -489,7 +489,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 			t.Fatalf("unexpected opener pack=%q size=%d", packID, size)
 		}
 		opened = append(opened, packID)
-		return NewPackReader(packID, size, &bytesTransport{data: data}, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{
@@ -671,7 +671,7 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	opener := func(packID string, size int64) (*PackReader, error) {
 		transport := &bytesTransport{data: packs[packID]}
 		transports[packID] = transport
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -718,7 +718,7 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	betaBytes, _ := buildTestPack(t, map[string][]byte{"beta": []byte("beta-data")})
 	packs := map[string][]byte{"alpha-pack": alphaBytes, "beta-pack": betaBytes}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, &bytesTransport{data: packs[packID]}, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, &bytesTransport{data: packs[packID]}), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -749,7 +749,7 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 	}
 	opener := func(packID string, size int64) (*PackReader, error) {
 		data := packs[packID]
-		return NewPackReader(packID, size, &bytesTransport{data: data}, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
@@ -853,7 +853,7 @@ func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) 
 			}
 			return bytes.Clone(data[off : off+int64(n)]), nil
 		})
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest(manifest)
@@ -911,7 +911,7 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 			return nil, errors.New("unknown pack")
 		}
 		openCount.Add(1)
-		return NewPackReader(packID, size, &bytesTransport{data: data}, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
 
 	store := NewPackfileStore(opener, newMemIndexCache())
@@ -1328,7 +1328,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 func TestPackReaderRejectsIndexTailSizeMismatch(t *testing.T) {
 	packBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	tail := mustReadIndexTail(t, packBytes)
-	eng := NewPackReader("size-mismatch-pack", int64(len(packBytes)+1), nil, hash.HashType_HashType_SHA256)
+	eng := NewPackReader("size-mismatch-pack", int64(len(packBytes)+1), nil)
 	eng.SetExpectedBlockCount(1)
 	if _, err := eng.parseIndexTail(tail); err == nil {
 		t.Fatal("expected size-mismatched tail to be rejected")
@@ -1526,7 +1526,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 	// pack (including all block bytes).
 	transport := &bytesTransport{data: packBytes}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		e := NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256)
+		e := NewPackReader(packID, size, transport)
 		e.minWindow = len(packBytes)
 		e.currentWindow = len(packBytes)
 		return e, nil
@@ -1572,7 +1572,7 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 	transport := &bytesTransport{data: packBytes}
 	opener := func(packID string, size int64) (*PackReader, error) {
 		openCount.Add(1)
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 
 	store := NewPackfileStore(opener, newMemIndexCache())
@@ -1620,26 +1620,6 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	firstCalls := transport.callCount()
 	if firstCalls == 0 {
 		t.Fatal("expected transport fetches on first GetBlock")
-	}
-	// Wait for the block to transition to Verified so the second
-	// read can hit the fast path.
-	eng, err := store.getOrOpenEngine("cache-pack", int64(len(packBytes)), 1)
-	if err != nil {
-		t.Fatalf("getOrOpenEngine: %v", err)
-	}
-	if !waitFor(t, func() (bool, <-chan struct{}) {
-		var ready bool
-		var waitCh <-chan struct{}
-		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			rec := eng.blocks[alphaHash.MarshalString()]
-			ready = rec != nil && rec.state == blockStateVerified
-			if !ready {
-				waitCh = getWaitCh()
-			}
-		})
-		return ready, waitCh
-	}) {
-		t.Fatalf("expected block verification to complete after %d fetches, got %d", firstCalls, transport.callCount())
 	}
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("second GetBlock: found=%v err=%v", found, err)
@@ -1695,7 +1675,7 @@ func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 		return bytes.ReplaceAll(data, []byte("alpha"), []byte("alphx"))
 	}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
@@ -1792,7 +1772,7 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 	release := make(chan struct{})
 	transport := &bytesTransport{data: packBytes, blockFn: func() { <-release }}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 
 	cache := newMemIndexCache()
@@ -1860,7 +1840,7 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 		return data
 	}
 	opener := func(packID string, size int64) (*PackReader, error) {
-		return NewPackReader(packID, size, transport, hash.HashType_HashType_SHA256), nil
+		return NewPackReader(packID, size, transport), nil
 	}
 
 	cache := newMemIndexCache()
@@ -1938,7 +1918,7 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 			return nil, errors.New("unknown pack")
 		}
 		t := &bytesTransport{data: data}
-		e := NewPackReader(packID, size, t, hash.HashType_HashType_SHA256)
+		e := NewPackReader(packID, size, t)
 		// Tiny window so the aligned fetch is minimal.
 		e.minWindow = 1
 		e.currentWindow = 1
@@ -2003,7 +1983,7 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 	close(blocked)
 }
 
-func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testing.T) {
+func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {
 	firstPut := make(chan struct{})
 	releasePut := make(chan struct{})
 	var putCalls atomic.Int32
@@ -2014,13 +1994,13 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 		}
 	})
 	cache := newMemIndexCache()
-	eng := NewPackReader("close-verify", 64, &bytesTransport{}, hash.HashType_HashType_SHA256)
+	eng := NewPackReader("close-writeback", 64, &bytesTransport{})
 	eng.SetIndexCache(cache)
 	eng.SetWriteback(t.Context(), writeback, 64)
-	eng.SetVerifyQueue(newDefaultVerifyExecutor(1))
 
-	var jobs []func()
+	var job func()
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		var entries []*kvfile.IndexEntry
 		for i, data := range [][]byte{[]byte("first"), []byte("second")} {
 			ref, err := block.BuildBlockRef(data, nil)
 			if err != nil {
@@ -2032,38 +2012,20 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 			}
 			sp := newSpan(int64(i*16), value)
 			eng.insertSpanLocked(sp)
-			eng.retainSpansLocked([]*span{sp})
-			rec := &blockRecord{
-				key:       ref.GetHash().MarshalString(),
-				ref:       ref,
-				off:       sp.off,
-				size:      int64(len(value)),
-				spans:     []*span{sp},
-				state:     blockStateVerifying,
-				queued:    true,
-				enqueueAt: time.Now(),
-			}
-			eng.blocks[rec.key] = rec
-			jobs = append(jobs, func() { eng.verifyBlock(rec) })
+			entries = append(entries, &kvfile.IndexEntry{
+				Key:    []byte(ref.GetHash().MarshalString()),
+				Offset: uint64(sp.off),
+				Size:   uint64(len(value)),
+			})
 		}
-		jobs = eng.prepareVerifyJobsLocked(jobs...)
+		eng.setIndexEntriesLocked(entries)
+		job = eng.prepareWritebackLocked(0, eng.size)
 	})
-	eng.enqueueVerifyJobs(jobs)
-	<-firstPut
-
-	if !waitFor(t, func() (bool, <-chan struct{}) {
-		var ready bool
-		var waitCh <-chan struct{}
-		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ready = eng.verifyRunning == 1 && eng.verifyQueued == 1
-			if !ready {
-				waitCh = getWaitCh()
-			}
-		})
-		return ready, waitCh
-	}) {
-		t.Fatal("verification jobs did not reach one running and one queued")
+	if job == nil {
+		t.Fatal("expected a writeback job for the resident blocks")
 	}
+	go job()
+	<-firstPut
 
 	store := NewPackfileStore(nil, cache)
 	store.SetWriteback(t.Context(), writeback, 64)
@@ -2079,30 +2041,30 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 	<-eng.ctx.Done()
 	select {
 	case <-closeDone:
-		t.Fatal("Close returned while PutBlock was running")
+		t.Fatal("Close returned while PutBlockBatch was running")
 	default:
 	}
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if eng.indexCache == nil || eng.writebackTarget == nil || eng.verifyQueue == nil {
-			t.Fatal("engine released references before verification drained")
+		if eng.indexCache == nil || eng.writebackTarget == nil {
+			t.Fatal("engine released references before writeback drained")
 		}
 	})
 
 	close(releasePut)
 	<-closeDone
-	if got := putCalls.Load(); got != 1 {
-		t.Fatalf("PutBlock calls = %d, want one running job and no queued write after Close", got)
+	if got := putCalls.Load(); got != 2 {
+		t.Fatalf("PutBlock calls = %d, want the whole running batch", got)
 	}
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if eng.verifyQueued != 0 || eng.verifyRunning != 0 || eng.indexCache != nil ||
-			eng.writebackTarget != nil || eng.verifyQueue != nil || eng.blocks != nil || eng.spans != nil {
-			t.Fatalf("engine retained work or references after Close: queued=%d running=%d", eng.verifyQueued, eng.verifyRunning)
+		if eng.writebackRunning != 0 || eng.indexCache != nil ||
+			eng.writebackTarget != nil || eng.published != nil || eng.spans != nil {
+			t.Fatalf("engine retained work or references after Close: running=%d", eng.writebackRunning)
 		}
 	})
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
-	if store.cache != nil || store.writebackTarget != nil || store.verifyQueue != nil || store.engines != nil {
-		t.Fatal("store retained cache, writeback, queue, or engine references after Close")
+	if store.cache != nil || store.writebackTarget != nil || store.engines != nil {
+		t.Fatal("store retained cache, writeback, or engine references after Close")
 	}
 }
 

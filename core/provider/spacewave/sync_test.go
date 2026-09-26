@@ -1119,7 +1119,6 @@ func newSyncTestLowerPackfileStore(t *testing.T, blocks map[string][]byte) *pack
 				packID,
 				size,
 				&syncPackTransport{data: packData},
-				hash.RecommendedHashType,
 			), nil
 		},
 		nil,
@@ -1142,7 +1141,6 @@ func newSyncTestErrorLowerPackfileStore() *packfile_store.PackfileStore {
 				packID,
 				size,
 				&syncErrorTransport{err: io.ErrUnexpectedEOF},
-				hash.RecommendedHashType,
 			), nil
 		},
 		nil,

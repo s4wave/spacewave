@@ -143,7 +143,7 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 		}
 
 		var notifyDone func()
-		var verifyJobs []func()
+		var writeback func()
 		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			budget = e.budget
@@ -158,14 +158,13 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 				} else {
 					notifyDone = e.recordFetchLocked(key, len(data))
 				}
-				verifyJobs = e.promoteBlocksInSpanLocked(sp)
+				writeback = e.prepareWritebackLocked(sp.off, sp.end())
 			}
 			if notifyDone == nil {
 				notifyDone = e.statsChanged
 			}
 			broadcast()
 		})
-		e.enqueueVerifyJobs(verifyJobs)
 		budget.reclaim()
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			load.sp = sp
@@ -178,6 +177,9 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 		})
 		if notifyDone != nil {
 			notifyDone()
+		}
+		if writeback != nil {
+			startOwnerWork(writeback)
 		}
 	})
 }
@@ -420,8 +422,8 @@ func (e *PackReader) findGapLocked(off int64) (int64, int64, bool) {
 
 // insertSpanLocked inserts a span in ascending order and charges the budget.
 //
-// The span enters the LRU list as the newest unpinned span. The caller runs
-// budget reclaim after releasing bcast.
+// The span enters the LRU list as the newest span. The caller runs budget
+// reclaim after releasing bcast.
 func (e *PackReader) insertSpanLocked(s *span) {
 	i := sort.Search(len(e.spans), func(i int) bool {
 		return e.spans[i].off >= s.off
@@ -442,10 +444,7 @@ func (e *PackReader) removeSpanLocked(s *span) {
 		return
 	}
 	e.spans = slices.Delete(e.spans, i, i+1)
-	if s.lru != nil {
-		e.lru.Remove(s.lru)
-		s.lru = nil
-	}
+	e.lru.Remove(s.lru)
 	if e.newest == s {
 		e.newest = nil
 	}
@@ -466,9 +465,7 @@ func (e *PackReader) nextUseSeqLocked() uint64 {
 // touchSpanLocked marks a span as the most recently used.
 func (e *PackReader) touchSpanLocked(s *span) {
 	s.lastUseSeq = e.nextUseSeqLocked()
-	if s.lru != nil {
-		e.lru.MoveToBack(s.lru)
-	}
+	e.lru.MoveToBack(s.lru)
 }
 
 // collectSpansLocked returns the disjoint spans covering [start, end).
@@ -490,42 +487,7 @@ func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
 	return nil, false
 }
 
-// retainSpansLocked pins each span, taking unpinned spans off the LRU list.
-func (e *PackReader) retainSpansLocked(spans []*span) {
-	for _, s := range spans {
-		if s.lru != nil {
-			e.lru.Remove(s.lru)
-			s.lru = nil
-		}
-		s.pins++
-		e.touchSpanLocked(s)
-	}
-}
-
-// releaseSpansLocked unpins each span. A span whose last pin drops returns to
-// the LRU list as the most recently used.
-func (e *PackReader) releaseSpansLocked(spans []*span) {
-	for _, s := range spans {
-		if s.pins == 0 {
-			continue
-		}
-		s.pins--
-		if s.pins == 0 {
-			s.lru = e.lru.PushBack(s)
-		}
-	}
-}
-
-// removeUnpinnedSpansLocked removes any of spans that are no longer pinned.
-func (e *PackReader) removeUnpinnedSpansLocked(spans []*span) {
-	for _, s := range spans {
-		if s.pins == 0 {
-			e.removeSpanLocked(s)
-		}
-	}
-}
-
-// oldestEvictableLocked returns the least recently used unpinned span.
+// oldestEvictableLocked returns the least recently used span.
 //
 // The span inserted last is never returned: a caller that fetched it may not
 // have read it yet.
@@ -558,31 +520,13 @@ func (e *PackReader) oldestEvictableSeq() (uint64, bool) {
 }
 
 // evictOldestSpan removes the reader's oldest evictable span.
-func (e *PackReader) evictOldestSpan() bool {
-	var evicted bool
+func (e *PackReader) evictOldestSpan() {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if e.closed {
 			return
 		}
 		if s := e.oldestEvictableLocked(); s != nil {
 			e.removeSpanLocked(s)
-			evicted = true
 		}
 	})
-	return evicted
-}
-
-// evictRecord releases the completed block record that best covers overage.
-func (e *PackReader) evictRecord(overage int64) bool {
-	var evicted bool
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if e.closed {
-			return
-		}
-		if rec := e.pickEvictionRecordLocked(overage); rec != nil {
-			e.removeBlockLocked(rec)
-			evicted = true
-		}
-	})
-	return evicted
 }

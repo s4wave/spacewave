@@ -32,10 +32,9 @@ func TestMaterializerReadAheadSharesForegroundCache(t *testing.T) {
 	data, bloom := packItems(t, items)
 	transport := &bytesTransport{data: data}
 	store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
-		return NewPackReader(id, size, transport, hash.RecommendedHashType), nil
+		return NewPackReader(id, size, transport), nil
 	}, newMemIndexCache())
 	t.Cleanup(store.Close)
-	store.SetIndexPromotionEnabled(false)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id: "bulk", BloomFilter: bloom, BlockCount: uint64(len(items)), SizeBytes: uint64(len(data)),
 	}})
@@ -83,7 +82,7 @@ func TestMaterializerReadAheadSharesForegroundCache(t *testing.T) {
 // refetches resident bytes or exceeds a constrained transport's payload cap.
 func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 	transport := &bytesTransport{data: make([]byte, 16<<20)}
-	reader := NewPackReader("bounded-bulk", int64(len(transport.data)), transport, hash.RecommendedHashType)
+	reader := NewPackReader("bounded-bulk", int64(len(transport.data)), transport)
 	t.Cleanup(reader.Close)
 	reader.setTransportFetchMaxBytes(2 << 20)
 	ctx := block.WithReadAhead(t.Context(), 10<<20)
@@ -121,7 +120,7 @@ func TestReadAheadDoesNotOverlapInflightNeighbor(t *testing.T) {
 		case <-release:
 			return make([]byte, length), nil
 		}
-	}), hash.RecommendedHashType)
+	}))
 	t.Cleanup(reader.Close)
 	done := make(chan error, 2)
 
@@ -153,7 +152,7 @@ func TestReadAheadDoesNotOverlapInflightNeighbor(t *testing.T) {
 // TestReadAheadRespectsResidentBudget bounds speculative bulk windows.
 func TestReadAheadRespectsResidentBudget(t *testing.T) {
 	transport := &bytesTransport{data: make([]byte, 16<<20)}
-	reader := NewPackReader("budgeted-bulk", int64(len(transport.data)), transport, hash.RecommendedHashType)
+	reader := NewPackReader("budgeted-bulk", int64(len(transport.data)), transport)
 	t.Cleanup(reader.Close)
 	reader.budget.limit.Store(2 << 20)
 	ctx := block.WithReadAhead(t.Context(), 10<<20)
@@ -200,13 +199,11 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 		data, bloom := packItems(t, orderedItems)
 		transport := &bytesTransport{data: data}
 		store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
-			return NewPackReader(id, size, transport, hash.RecommendedHashType), nil
+			reader := NewPackReader(id, size, transport)
+			reader.setTransportWindows(128<<10, 128<<10, 128<<10)
+			return reader, nil
 		}, newMemIndexCache())
 		defer store.Close()
-		store.SetTransportMinWindow(128 << 10)
-		store.SetTransportQuantum(128 << 10)
-		store.SetTransportMaxWindow(128 << 10)
-		store.SetIndexPromotionEnabled(false)
 		store.UpdateManifest([]*packfile.PackfileEntry{{
 			Id: "layout", BloomFilter: bloom, BlockCount: uint64(len(ordered)), SizeBytes: uint64(len(data)),
 		}})

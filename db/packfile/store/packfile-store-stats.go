@@ -12,7 +12,6 @@ import (
 type PackfileStoreStats struct {
 	EngineCount               int
 	ResidentBytes             int64
-	PinnedBytes               int64
 	SpanCount                 int
 	InFlightFetches           int
 	FetchCount                uint64
@@ -27,12 +26,8 @@ type PackfileStoreStats struct {
 	LastFullResponseFallback  int64
 	LastFetchAt               time.Time
 	LastFetchBytes            int
-	BlockCount                int
-	VerifyingBlocks           int
-	VerifiedBlocks            int
-	VerifyQueued              int
-	VerifyRunning             int
-	VerifyCompleted           uint64
+	PublishedBlocks           int
+	WritebackRunning          int
 	VerifyFailures            uint64
 	WritebackCount            uint64
 	WritebackErrors           uint64
@@ -51,8 +46,6 @@ type PackfileStoreStats struct {
 	BloomRiskPackCount        int
 	WritebackWindow           int64
 	ResidentByteBudget        int64
-	IndexPromotionSet         bool
-	IndexPromotionValue       bool
 	LookupCount               uint64
 	CandidatePacks            uint64
 	OpenedPacks               uint64
@@ -108,8 +101,6 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 	engines := s.snapshotEnginesLocked()
 	writebackWindow := s.writebackWindow
 	residentByteBudget := s.budget.limit.Load()
-	indexPromotionSet := s.tuningOverrides.indexPromotionSet
-	indexPromotionValue := s.tuningOverrides.indexPromotion
 	stats := s.stats
 	s.mtx.Unlock()
 
@@ -136,8 +127,6 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		BloomRiskPackCount:        manifestStats.BloomRiskPackCount,
 		WritebackWindow:           writebackWindow,
 		ResidentByteBudget:        residentByteBudget,
-		IndexPromotionSet:         indexPromotionSet,
-		IndexPromotionValue:       indexPromotionValue,
 		LookupCount:               stats.LookupCount,
 		CandidatePacks:            stats.CandidatePacks,
 		OpenedPacks:               stats.OpenedPacks,
@@ -151,7 +140,6 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 	for _, e := range engines {
 		es := e.SnapshotStats()
 		snap.ResidentBytes += es.ResidentBytes
-		snap.PinnedBytes += es.PinnedBytes
 		snap.SpanCount += es.SpanCount
 		snap.InFlightFetches += es.InFlightFetches
 		snap.FetchCount += es.FetchCount
@@ -170,12 +158,8 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 			snap.LastFetchAt = es.LastFetchAt
 			snap.LastFetchBytes = es.LastFetchBytes
 		}
-		snap.BlockCount += es.BlockCount
-		snap.VerifyingBlocks += es.VerifyingBlocks
-		snap.VerifiedBlocks += es.VerifiedBlocks
-		snap.VerifyQueued += es.VerifyQueued
-		snap.VerifyRunning += es.VerifyRunning
-		snap.VerifyCompleted += es.VerifyCompleted
+		snap.PublishedBlocks += es.PublishedBlocks
+		snap.WritebackRunning += es.WritebackRunning
 		snap.VerifyFailures += es.VerifyFailures
 		snap.WritebackCount += es.WritebackCount
 		snap.WritebackErrors += es.WritebackErrors

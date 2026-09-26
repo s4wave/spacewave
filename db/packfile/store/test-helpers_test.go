@@ -89,7 +89,7 @@ func testPackItem(t *testing.T, data string) packItem {
 	return packItem{h: h, data: []byte(data)}
 }
 
-func packItems(t *testing.T, items []packItem) ([]byte, []byte) {
+func packItems(t testing.TB, items []packItem) ([]byte, []byte) {
 	t.Helper()
 	var buf bytes.Buffer
 	idx := 0
@@ -105,4 +105,21 @@ func packItems(t *testing.T, items []packItem) ([]byte, []byte) {
 		t.Fatal(err)
 	}
 	return buf.Bytes(), result.BloomFilter
+}
+
+// setTransportWindows sets the minimum fetch size, the alignment quantum, and
+// the maximum fetch size. Zero keeps the current value.
+func (e *PackReader) setTransportWindows(minWindow, quantum, maxWindow int) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if minWindow > 0 {
+			e.minWindow = minWindow
+		}
+		if quantum > 0 {
+			e.transportQuantum = quantum
+		}
+		if maxWindow > 0 {
+			e.maxWindow = maxWindow
+		}
+		e.normalizeTransportLocked()
+	})
 }

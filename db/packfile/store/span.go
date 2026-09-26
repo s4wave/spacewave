@@ -15,11 +15,9 @@ type span struct {
 	size int64
 	// data holds the resident bytes.
 	data []byte
-	// pins is the number of block records retaining this span.
-	pins int
 	// lastUseSeq is the budget-wide LRU sequence of the last use.
 	lastUseSeq uint64
-	// lru is the element in the engine's unpinned LRU list, nil while pinned.
+	// lru is the element in the engine's LRU list.
 	lru *list.Element
 }
 
