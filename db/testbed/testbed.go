@@ -2,10 +2,12 @@ package testbed
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/aperturerobotics/controllerbus/controller"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -48,11 +50,12 @@ type Testbed struct {
 }
 
 // Verbose controls if we build verbose testbeds.
-var Verbose bool = false
+var Verbose bool
 
-// Option is a option passed to NewTestbed
+// Option is an option passed to NewTestbed.
 type Option any
 
+// withVolumeConfig selects the volume config to load.
 type withVolumeConfig struct{ conf config.Config }
 
 // WithVolumeConfig passes a custom volume config to load.
@@ -60,6 +63,7 @@ func WithVolumeConfig(conf config.Config) Option {
 	return &withVolumeConfig{conf: conf}
 }
 
+// withVerbose selects verbose volume logging.
 type withVerbose struct{ verbose bool }
 
 // WithVerbose sets if the verbose mode should be used.
@@ -67,16 +71,14 @@ func WithVerbose(verbose bool) Option {
 	return &withVerbose{verbose: verbose}
 }
 
-// NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
+// NewTestbed constructs a new core bus with an attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
 func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Testbed, tbErr error) {
 	// Release partially initialized controllers when setup fails.
 	var rels []func()
 	defer func() {
 		if tbErr != nil {
-			for _, rel := range rels {
-				rel()
-			}
+			release(rels)
 		}
 	}()
 
@@ -88,7 +90,6 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 
 	core.AddFactories(b, sr)
 
-	// ConfigSet controller
 	// Start the config-set controller.
 	_, _, csRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -106,14 +107,14 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	var volumeConfigEmpty bool
 	verbose := Verbose
 	for _, opt := range opts {
-		switch b := opt.(type) {
+		switch o := opt.(type) {
 		case *withVolumeConfig:
-			volumeConfig = b.conf
-			if b.conf == nil {
+			volumeConfig = o.conf
+			if o.conf == nil {
 				volumeConfigEmpty = true
 			}
 		case *withVerbose:
-			verbose = b.verbose
+			verbose = o.verbose
 		}
 	}
 	if volumeConfig == nil && !volumeConfigEmpty {
@@ -142,20 +143,13 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	var v volume.Volume
 	var bucketID string
 	if !volumeConfigEmpty {
-		dv, _, diRef, err := loader.WaitExecControllerRunning(
-			ctx,
-			b,
-			resolver.NewLoadControllerWithConfig(
-				volumeConfig,
-			),
-			nil,
-		)
+		var relVolume func()
+		vc, relVolume, err = startVolume(ctx, b, le, volumeConfig)
 		if err != nil {
 			return nil, err
 		}
-		rels = append(rels, diRef.Release)
+		rels = append(rels, relVolume)
 
-		vc = dv.(volume.Controller)
 		v, err = vc.GetVolume(ctx)
 		if err != nil {
 			return nil, err
@@ -222,6 +216,7 @@ func RunSubtest(t *testing.T, name string, cb func(t *testing.T, tb *Testbed)) b
 		if err != nil {
 			t.Fatal(err.Error())
 		}
+		defer tb.Release()
 		cb(t, tb)
 	})
 }
@@ -251,11 +246,54 @@ func (t *Testbed) AddReleaseFunc(cb func()) {
 	t.rels = append(t.rels, cb)
 }
 
-// Release calls all release functions.
+// Release calls all release functions, newest first. It returns after the
+// testbed volume controller has exited and closed its store, so a test may
+// remove the volume's files afterward.
 func (t *Testbed) Release() {
 	rs := t.rels
 	t.rels = nil
-	for _, r := range rs {
-		r()
+	release(rs)
+}
+
+// release calls rels newest first, so each runs before the releases of the
+// controllers it was built on.
+func release(rels []func()) {
+	for _, rel := range slices.Backward(rels) {
+		rel()
 	}
+}
+
+// startVolume constructs the volume controller for conf and attaches it to the
+// bus. The returned release waits for the controller to exit and close.
+func startVolume(
+	ctx context.Context,
+	b bus.Bus,
+	le *logrus.Entry,
+	conf config.Config,
+) (volume.Controller, func(), error) {
+	factory, factoryRef, err := resolver.ExLoadFactoryByConfig(ctx, b, conf)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "load volume factory")
+	}
+	defer factoryRef.Release()
+
+	ctrl, err := factory.Construct(ctx, conf, controller.ConstructOpts{
+		Logger: le.WithField("config", conf.GetConfigID()),
+	})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "construct volume controller")
+	}
+	vc, ok := ctrl.(volume.Controller)
+	if !ok {
+		// The controller never ran, so Close has nothing to report.
+		_ = ctrl.Close()
+		return nil, nil, errors.Errorf("config %s is not a volume controller", conf.GetConfigID())
+	}
+	rel, err := b.AddController(ctx, vc, nil)
+	if err != nil {
+		// The bus rejected the controller before running it.
+		_ = vc.Close()
+		return nil, nil, err
+	}
+	return vc, rel, nil
 }
