@@ -3,8 +3,6 @@
 package web_runtime_goscript_build
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"os"
 	"path"
@@ -42,25 +40,22 @@ type GoScriptSharedBundleOptions struct {
 }
 
 type goScriptBundleReport struct {
-	SchemaVersion        int                        `json:"schemaVersion"`
-	OutputPath           string                     `json:"outputPath"`
-	OutputBytes          int64                      `json:"outputBytes"`
-	OutputGzipBytes      int64                      `json:"outputGzipBytes"`
-	TotalOutputBytes     int64                      `json:"totalOutputBytes"`
-	TotalOutputGzipBytes int64                      `json:"totalOutputGzipBytes"`
-	OutputFileCount      int                        `json:"outputFileCount"`
-	OutputFiles          []goScriptBundleOutputFile `json:"outputFiles"`
-	Minify               bool                       `json:"minify"`
-	Sourcemaps           bool                       `json:"sourcemaps"`
-	CodeSplitting        bool                       `json:"codeSplitting"`
-	InputCount           int                        `json:"inputCount"`
-	InputPaths           []string                   `json:"inputPaths"`
+	SchemaVersion    int                        `json:"schemaVersion"`
+	OutputPath       string                     `json:"outputPath"`
+	OutputBytes      int64                      `json:"outputBytes"`
+	TotalOutputBytes int64                      `json:"totalOutputBytes"`
+	OutputFileCount  int                        `json:"outputFileCount"`
+	OutputFiles      []goScriptBundleOutputFile `json:"outputFiles"`
+	Minify           bool                       `json:"minify"`
+	Sourcemaps       bool                       `json:"sourcemaps"`
+	CodeSplitting    bool                       `json:"codeSplitting"`
+	InputCount       int                        `json:"inputCount"`
+	InputPaths       []string                   `json:"inputPaths"`
 }
 
 type goScriptBundleOutputFile struct {
-	Path      string `json:"path"`
-	Bytes     int64  `json:"bytes"`
-	GzipBytes int64  `json:"gzipBytes"`
+	Path  string `json:"path"`
+	Bytes int64  `json:"bytes"`
 }
 
 // BuildWebGoScriptPluginScript builds the web plugin runtime entrypoint script.
@@ -484,78 +479,70 @@ func relativeImportPath(fromDir, toPath string) (string, error) {
 }
 
 func writeGoScriptBundleReport(reportPath, outPath string, inputPaths []string, minify, sourcemaps, codeSplitting bool) error {
-	outputFiles, err := readGoScriptBundleOutputFiles(outPath, codeSplitting)
+	outputPaths := []string{outPath}
+	if codeSplitting {
+		var err error
+		outputPaths, err = scanGoScriptBundleOutputs(filepath.Dir(outPath))
+		if err != nil {
+			return err
+		}
+	}
+	outputFiles, totalBytes, err := statGoScriptBundleOutputs(outputPaths)
 	if err != nil {
 		return err
 	}
-	var totalBytes, totalGzipBytes int64
-	for _, outputFile := range outputFiles {
-		totalBytes += outputFile.Bytes
-		totalGzipBytes += outputFile.GzipBytes
-	}
-	var entryFile goScriptBundleOutputFile
-	for _, outputFile := range outputFiles {
-		if outputFile.Path == outPath {
-			entryFile = outputFile
-			break
-		}
-	}
-	if entryFile.Path == "" {
+	idx := slices.IndexFunc(outputFiles, func(outputFile goScriptBundleOutputFile) bool {
+		return outputFile.Path == outPath
+	})
+	if idx < 0 {
 		return errors.Errorf("goscript bundle entry output missing from report: %s", outPath)
 	}
-	reportBytes := marshalGoScriptBundleReport(goScriptBundleReport{
-		SchemaVersion:        1,
-		OutputPath:           outPath,
-		OutputBytes:          entryFile.Bytes,
-		OutputGzipBytes:      entryFile.GzipBytes,
-		TotalOutputBytes:     totalBytes,
-		TotalOutputGzipBytes: totalGzipBytes,
-		OutputFileCount:      len(outputFiles),
-		OutputFiles:          outputFiles,
-		Minify:               minify,
-		Sourcemaps:           sourcemaps,
-		CodeSplitting:        codeSplitting,
-		InputCount:           len(inputPaths),
-		InputPaths:           slices.Clone(inputPaths),
+	return writeGoScriptBundleReportFile(reportPath, goScriptBundleReport{
+		OutputPath:       outPath,
+		OutputBytes:      outputFiles[idx].Bytes,
+		TotalOutputBytes: totalBytes,
+		OutputFiles:      outputFiles,
+		Minify:           minify,
+		Sourcemaps:       sourcemaps,
+		CodeSplitting:    codeSplitting,
+		InputPaths:       inputPaths,
 	})
-	if err := os.WriteFile(reportPath, reportBytes, 0o644); err != nil {
-		return errors.Wrap(err, "write goscript bundle report")
-	}
-	return nil
 }
 
 func writeGoScriptBundleDirectoryReport(reportPath, outDir string, inputPaths []string, minify, sourcemaps, codeSplitting bool) error {
-	outputFiles, err := readGoScriptBundleDirectoryOutputFiles(outDir)
+	outputPaths, err := scanGoScriptBundleOutputs(outDir)
 	if err != nil {
 		return err
 	}
-	var totalBytes, totalGzipBytes int64
-	for _, outputFile := range outputFiles {
-		totalBytes += outputFile.Bytes
-		totalGzipBytes += outputFile.GzipBytes
+	outputFiles, totalBytes, err := statGoScriptBundleOutputs(outputPaths)
+	if err != nil {
+		return err
 	}
-	reportBytes := marshalGoScriptBundleReport(goScriptBundleReport{
-		SchemaVersion:        1,
-		OutputPath:           outDir,
-		OutputBytes:          totalBytes,
-		OutputGzipBytes:      totalGzipBytes,
-		TotalOutputBytes:     totalBytes,
-		TotalOutputGzipBytes: totalGzipBytes,
-		OutputFileCount:      len(outputFiles),
-		OutputFiles:          outputFiles,
-		Minify:               minify,
-		Sourcemaps:           sourcemaps,
-		CodeSplitting:        codeSplitting,
-		InputCount:           len(inputPaths),
-		InputPaths:           slices.Clone(inputPaths),
+	return writeGoScriptBundleReportFile(reportPath, goScriptBundleReport{
+		OutputPath:       outDir,
+		OutputBytes:      totalBytes,
+		TotalOutputBytes: totalBytes,
+		OutputFiles:      outputFiles,
+		Minify:           minify,
+		Sourcemaps:       sourcemaps,
+		CodeSplitting:    codeSplitting,
+		InputPaths:       inputPaths,
 	})
-	if err := os.WriteFile(reportPath, reportBytes, 0o644); err != nil {
+}
+
+func writeGoScriptBundleReportFile(reportPath string, report goScriptBundleReport) error {
+	report.SchemaVersion = 1
+	report.OutputFileCount = len(report.OutputFiles)
+	report.InputCount = len(report.InputPaths)
+	report.InputPaths = slices.Clone(report.InputPaths)
+	if err := os.WriteFile(reportPath, marshalGoScriptBundleReport(report), 0o644); err != nil {
 		return errors.Wrap(err, "write goscript bundle report")
 	}
 	return nil
 }
 
-func readGoScriptBundleDirectoryOutputFiles(outDir string) ([]goScriptBundleOutputFile, error) {
+// scanGoScriptBundleOutputs returns the sorted .mjs outputs under outDir.
+func scanGoScriptBundleOutputs(outDir string) ([]string, error) {
 	var outputPaths []string
 	if err := filepath.WalkDir(outDir, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -568,69 +555,29 @@ func readGoScriptBundleDirectoryOutputFiles(outDir string) ([]goScriptBundleOutp
 	}); err != nil {
 		return nil, errors.Wrap(err, "scan goscript bundle outputs")
 	}
-	slices.Sort(outputPaths)
 	if len(outputPaths) == 0 {
 		return nil, errors.Errorf("no goscript bundle outputs under %s", outDir)
 	}
-
-	outputFiles := make([]goScriptBundleOutputFile, 0, len(outputPaths))
-	for _, outputPath := range outputPaths {
-		outBytes, err := os.ReadFile(outputPath)
-		if err != nil {
-			return nil, errors.Wrap(err, "read goscript bundle for report")
-		}
-		gzipBytes, err := gzipBytesLen(outBytes)
-		if err != nil {
-			return nil, err
-		}
-		outputFiles = append(outputFiles, goScriptBundleOutputFile{
-			Path:      outputPath,
-			Bytes:     int64(len(outBytes)),
-			GzipBytes: gzipBytes,
-		})
-	}
-	return outputFiles, nil
+	slices.Sort(outputPaths)
+	return outputPaths, nil
 }
 
-func readGoScriptBundleOutputFiles(outPath string, codeSplitting bool) ([]goScriptBundleOutputFile, error) {
-	var outputPaths []string
-	if codeSplitting {
-		if err := filepath.WalkDir(filepath.Dir(outPath), func(path string, entry os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if entry.Type().IsRegular() && strings.HasSuffix(entry.Name(), ".mjs") {
-				outputPaths = append(outputPaths, path)
-			}
-			return nil
-		}); err != nil {
-			return nil, errors.Wrap(err, "scan goscript bundle outputs")
-		}
-	} else {
-		outputPaths = []string{outPath}
-	}
-	slices.Sort(outputPaths)
-	if len(outputPaths) == 0 {
-		return nil, errors.Errorf("no goscript bundle outputs under %s", filepath.Dir(outPath))
-	}
-
+// statGoScriptBundleOutputs returns the size of each output and their total.
+func statGoScriptBundleOutputs(outputPaths []string) ([]goScriptBundleOutputFile, int64, error) {
 	outputFiles := make([]goScriptBundleOutputFile, 0, len(outputPaths))
+	var totalBytes int64
 	for _, outputPath := range outputPaths {
-		outBytes, err := os.ReadFile(outputPath)
+		info, err := os.Stat(outputPath)
 		if err != nil {
-			return nil, errors.Wrap(err, "read goscript bundle for report")
-		}
-		gzipBytes, err := gzipBytesLen(outBytes)
-		if err != nil {
-			return nil, err
+			return nil, 0, errors.Wrap(err, "stat goscript bundle for report")
 		}
 		outputFiles = append(outputFiles, goScriptBundleOutputFile{
-			Path:      outputPath,
-			Bytes:     int64(len(outBytes)),
-			GzipBytes: gzipBytes,
+			Path:  outputPath,
+			Bytes: info.Size(),
 		})
+		totalBytes += info.Size()
 	}
-	return outputFiles, nil
+	return outputFiles, totalBytes, nil
 }
 
 func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
@@ -639,16 +586,13 @@ func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
 	root.Set("schemaVersion", arena.NewNumberInt(report.SchemaVersion))
 	root.Set("outputPath", arena.NewString(report.OutputPath))
 	root.Set("outputBytes", arena.NewNumberString(strconv.FormatInt(report.OutputBytes, 10)))
-	root.Set("outputGzipBytes", arena.NewNumberString(strconv.FormatInt(report.OutputGzipBytes, 10)))
 	root.Set("totalOutputBytes", arena.NewNumberString(strconv.FormatInt(report.TotalOutputBytes, 10)))
-	root.Set("totalOutputGzipBytes", arena.NewNumberString(strconv.FormatInt(report.TotalOutputGzipBytes, 10)))
 	root.Set("outputFileCount", arena.NewNumberInt(report.OutputFileCount))
 	outputFiles := arena.NewArray()
 	for idx, outputFile := range report.OutputFiles {
 		outputFileValue := arena.NewObject()
 		outputFileValue.Set("path", arena.NewString(outputFile.Path))
 		outputFileValue.Set("bytes", arena.NewNumberString(strconv.FormatInt(outputFile.Bytes, 10)))
-		outputFileValue.Set("gzipBytes", arena.NewNumberString(strconv.FormatInt(outputFile.GzipBytes, 10)))
 		outputFiles.SetArrayItem(idx, outputFileValue)
 	}
 	root.Set("outputFiles", outputFiles)
@@ -675,19 +619,4 @@ func marshalGoScriptBundleReport(report goScriptBundleReport) []byte {
 	root.Set("inputPaths", inputPaths)
 	reportBytes := root.MarshalTo(nil)
 	return append(reportBytes, '\n')
-}
-
-func gzipBytesLen(contents []byte) (int64, error) {
-	var buf bytes.Buffer
-	writer, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
-	if err != nil {
-		return 0, errors.Wrap(err, "create goscript bundle gzip reporter")
-	}
-	if _, err := writer.Write(contents); err != nil {
-		return 0, errors.Wrap(err, "gzip goscript bundle report contents")
-	}
-	if err := writer.Close(); err != nil {
-		return 0, errors.Wrap(err, "close goscript bundle gzip reporter")
-	}
-	return int64(buf.Len()), nil
 }

@@ -912,9 +912,8 @@ export const Unused = 2
 		t.Fatal(err)
 	}
 	t.Logf(
-		"GoScript Rolldown seed: raw=%d gzip=%d files=%d inputs=%d",
+		"GoScript Rolldown seed: raw=%d files=%d inputs=%d",
 		report.GetInt64("totalOutputBytes"),
-		report.GetInt64("totalOutputGzipBytes"),
 		report.GetInt("outputFileCount"),
 		report.GetInt("inputCount"),
 	)
@@ -995,9 +994,6 @@ func assertBundleReport(t *testing.T, reportPath, outPath string, minify, source
 	}
 	if got := report.GetInt64("outputBytes"); got != outInfo.Size() {
 		t.Fatalf("outputBytes = %d, want %d", got, outInfo.Size())
-	}
-	if got := report.GetInt64("outputGzipBytes"); got <= 0 {
-		t.Fatalf("outputGzipBytes = %d, want positive", got)
 	}
 	if got := report.GetBool("minify"); got != minify {
 		t.Fatalf("minify = %v, want %v", got, minify)
