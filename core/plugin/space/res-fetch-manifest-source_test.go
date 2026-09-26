@@ -164,6 +164,11 @@ func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer ctrlRef.Release()
+	parentRef, err := b.AddController(ctx, newSourceManifestController(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parentRef()
 
 	// waitRequested follows the controller's wait channel until the requested
 	// IDs match want.
@@ -186,6 +191,15 @@ func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	waitRequested("unlisted-plugin")
+
+	// Another controller on the bus answers sourceManifestID, so nothing waits
+	// on the Space for it.
+	_, suppliedRef, err := b.AddDirective(bldr_manifest.NewFetchManifest(sourceManifestID, nil, nil, 0), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer suppliedRef.Release()
 	waitRequested("unlisted-plugin")
 	ref.Release()
 	waitRequested()
