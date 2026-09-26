@@ -110,15 +110,13 @@ func buildSnapshot(
 		return nil, err
 	}
 	defer state.Discard()
-	if base != nil {
-		state.localBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
-	}
+	state.localBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
 
 	if err := populate(ctx, state); err != nil {
 		return nil, err
 	}
 	if base == nil {
-		if err := state.packSnapshotObjects(ctx, bucketCursor.GetRefWithOpArgs().GetBucketId()); err != nil {
+		if err := state.packSnapshotObjects(ctx); err != nil {
 			return nil, errors.Wrap(err, "build snapshot object index")
 		}
 	}
@@ -154,8 +152,9 @@ func (t *WorldState) externalObjectRef(ref *bucket.ObjectRef) *bucket.ObjectRef 
 
 // packSnapshotObjects replaces the temporary mutable index with one packed
 // tree. Only final object values are materialized; intermediate AVL nodes are
-// never written. Ordinary World mutations own object and revision semantics.
-func (t *WorldState) packSnapshotObjects(ctx context.Context, bucketID string) error {
+// never written. Ordinary World mutations own object and revision semantics,
+// including the local edges of same-bucket object bodies.
+func (t *WorldState) packSnapshotObjects(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/build-snapshot/pack-objects")
 	defer task.End()
 
@@ -177,21 +176,8 @@ func (t *WorldState) packSnapshotObjects(ctx context.Context, bucketID string) e
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		value := iterator.ValueCursor()
-		object, err := UnmarshalObject(ctx, value)
-		if err != nil {
-			return err
-		}
-		// A body in this bucket is a local edge in the self-contained DAG.
-		// Preserve its transformer and revision while making that edge
-		// visible to ordinary block traversal and reference accounting.
-		if ref := object.GetRootRef(); bucketID != "" && ref.GetBucketId() == bucketID {
-			object = object.Clone()
-			object.RootRef.BucketId = ""
-			value.SetBlock(object, true)
-		}
 		keys = append(keys, slices.Clone(iterator.Key()))
-		values = append(values, value)
+		values = append(values, iterator.ValueCursor())
 		iterator.Next()
 	}
 	if err := iterator.Err(); err != nil {
