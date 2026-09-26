@@ -46,15 +46,6 @@ export interface Config {
    */
   watch?: boolean
   /**
-   * WatchManifestIds is the list of manifest IDs to watch for changes.
-   * When any of these manifests are rebuilt (ref changes in the world),
-   * the builder controller triggers a rebuild of this manifest.
-   * Populated by the project controller from the webPkg dependency graph.
-   *
-   * @generated from field: repeated string watch_manifest_ids = 5;
-   */
-  watchManifestIds?: string[]
-  /**
    * StartupBuilderResult is the persisted startup build result to validate
    * before the first build attempt.
    *
@@ -75,13 +66,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 3, name: 'build_backoff', kind: 'message', T: () => Backoff },
     { no: 4, name: 'watch', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 5,
-      name: 'watch_manifest_ids',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
     {
       no: 6,
       name: 'startup_builder_result',

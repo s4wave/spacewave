@@ -32,7 +32,7 @@ func TestManifestBuilderDesktopAliasAdvancesCanonicalRevision(t *testing.T) {
 
 	// Reuse the test builder to inspect the metadata handed to compilation.
 	tb.GetStaticResolver().AddFactory(manifest_builder_controller.NewFactory(tb.GetBus()))
-	tb.GetStaticResolver().AddFactory(newOrderedFetchManifestBuilderFactory(tb.GetBus(), nil))
+	tb.GetStaticResolver().AddFactory(newRecordingFetchManifestBuilderFactory(tb.GetBus(), &recordingFetchManifestBuilderState{built: make(map[string][]string)}))
 	project := &bldr_project.ProjectConfig{
 		Id:        "canonical-platform",
 		Manifests: map[string]*bldr_project.ManifestConfig{"app": makeJSManifestConfig(t, nil)},

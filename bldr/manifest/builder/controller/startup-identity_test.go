@@ -31,7 +31,7 @@ func TestStartupCacheRejectsDifferentBuildIdentity(t *testing.T) {
 			cached.ManifestRef.Meta = meta.CloneVT()
 
 			// A mismatched cached result must run the compiler for the requested target.
-			result, builds := runStartupExecuteTest(t, directory, cached, true, nil)
+			result, builds := runStartupExecuteTest(t, directory, cached, true)
 			if builds != 1 {
 				t.Fatalf("compiler calls = %d, want 1", builds)
 			}

@@ -248,11 +248,6 @@ type InputManifest struct {
 	// Metadata is additional builder-specific metadata about the output.
 	// Optional.
 	Metadata []byte `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// ManifestDeps are manifests this build depends on.
-	// The builder controller watches these for changes and triggers
-	// a rebuild when any dependency's ref changes in the world.
-	// Optional.
-	ManifestDeps []*InputManifest_ManifestDep `protobuf:"bytes,3,rep,name=manifest_deps,json=manifestDeps,proto3" json:"manifestDeps,omitempty"`
 	// StartupInputs are typed non-file inputs used for startup validation.
 	// Optional.
 	StartupInputs []*InputManifest_StartupInput `protobuf:"bytes,4,rep,name=startup_inputs,json=startupInputs,proto3" json:"startupInputs,omitempty"`
@@ -274,13 +269,6 @@ func (x *InputManifest) GetFiles() []*InputManifest_File {
 func (x *InputManifest) GetMetadata() []byte {
 	if x != nil {
 		return x.Metadata
-	}
-	return nil
-}
-
-func (x *InputManifest) GetManifestDeps() []*InputManifest_ManifestDep {
-	if x != nil {
-		return x.ManifestDeps
 	}
 	return nil
 }
@@ -450,38 +438,6 @@ func (x *InputManifest_File) GetStartupOnly() bool {
 	return false
 }
 
-// ManifestDep declares a dependency on another manifest.
-// The builder controller watches for changes to the manifest's ref
-// in the world and triggers a rebuild when it changes.
-type InputManifest_ManifestDep struct {
-	unknownFields []byte
-	// ManifestId is the manifest ID to depend on.
-	ManifestId string `protobuf:"bytes,1,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
-	// ManifestRef is the ref of the manifest at the time of the build.
-	// When the world ref differs from this, a rebuild is triggered.
-	ManifestRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
-}
-
-func (x *InputManifest_ManifestDep) Reset() {
-	*x = InputManifest_ManifestDep{}
-}
-
-func (*InputManifest_ManifestDep) ProtoMessage() {}
-
-func (x *InputManifest_ManifestDep) GetManifestId() string {
-	if x != nil {
-		return x.ManifestId
-	}
-	return ""
-}
-
-func (x *InputManifest_ManifestDep) GetManifestRef() *bucket.ObjectRef {
-	if x != nil {
-		return x.ManifestRef
-	}
-	return nil
-}
-
 // StartupInput declares a typed non-file startup validation input.
 type InputManifest_StartupInput struct {
 	unknownFields []byte
@@ -612,23 +568,6 @@ func (m *InputManifest_File) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *InputManifest_ManifestDep) CloneVT() *InputManifest_ManifestDep {
-	if m == nil {
-		return (*InputManifest_ManifestDep)(nil)
-	}
-	r := new(InputManifest_ManifestDep)
-	r.ManifestId = m.ManifestId
-	r.ManifestRef = protobuf_go_lite.CloneVTValue(m.ManifestRef)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *InputManifest_ManifestDep) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *InputManifest_StartupInput) CloneVT() *InputManifest_StartupInput {
 	if m == nil {
 		return (*InputManifest_StartupInput)(nil)
@@ -655,7 +594,6 @@ func (m *InputManifest) CloneVT() *InputManifest {
 	r := new(InputManifest)
 	r.Files = protobuf_go_lite.CloneVTSlice(m.Files)
 	r.Metadata = protobuf_go_lite.CloneBytes(m.Metadata)
-	r.ManifestDeps = protobuf_go_lite.CloneVTSlice(m.ManifestDeps)
 	r.StartupInputs = protobuf_go_lite.CloneVTSlice(m.StartupInputs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -822,29 +760,6 @@ func (this *InputManifest_File) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *InputManifest_ManifestDep) EqualVT(that *InputManifest_ManifestDep) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.ManifestId != that.ManifestId {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.ManifestRef, that.ManifestRef) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *InputManifest_ManifestDep) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*InputManifest_ManifestDep)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *InputManifest_StartupInput) EqualVT(that *InputManifest_StartupInput) bool {
 	if this == that {
 		return true
@@ -884,9 +799,6 @@ func (this *InputManifest) EqualVT(that *InputManifest) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.Metadata, that.Metadata) {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.ManifestDeps, that.ManifestDeps, func() *InputManifest_ManifestDep { return &InputManifest_ManifestDep{} }) {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.StartupInputs, that.StartupInputs, func() *InputManifest_StartupInput { return &InputManifest_StartupInput{} }) {
@@ -1400,60 +1312,6 @@ func (x *InputManifest_File) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the InputManifest_ManifestDep message to JSON.
-func (x *InputManifest_ManifestDep) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.ManifestId != "" || s.HasField("manifestId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestId")
-		s.WriteString(x.ManifestId)
-	}
-	if x.ManifestRef != nil || s.HasField("manifestRef") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestRef")
-		x.ManifestRef.MarshalProtoJSON(s.WithField("manifestRef"))
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the InputManifest_ManifestDep to JSON.
-func (x *InputManifest_ManifestDep) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the InputManifest_ManifestDep message from JSON.
-func (x *InputManifest_ManifestDep) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "manifest_id", "manifestId":
-			s.AddField("manifest_id")
-			x.ManifestId = s.ReadString()
-		case "manifest_ref", "manifestRef":
-			if s.ReadNil() {
-				x.ManifestRef = nil
-				return
-			}
-			x.ManifestRef = &bucket.ObjectRef{}
-			x.ManifestRef.UnmarshalProtoJSON(s.WithField("manifest_ref", true))
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the InputManifest_ManifestDep from JSON.
-func (x *InputManifest_ManifestDep) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the InputManifest_StartupInput message to JSON.
 func (x *InputManifest_StartupInput) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1544,17 +1402,6 @@ func (x *InputManifest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("metadata")
 		s.WriteBytes(x.Metadata)
 	}
-	if len(x.ManifestDeps) > 0 || s.HasField("manifestDeps") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("manifestDeps")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.ManifestDeps {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("manifestDeps"))
-		}
-		s.WriteArrayEnd()
-	}
 	if len(x.StartupInputs) > 0 || s.HasField("startupInputs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("startupInputs")
@@ -1604,24 +1451,6 @@ func (x *InputManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "metadata":
 			s.AddField("metadata")
 			x.Metadata = s.ReadBytes()
-		case "manifest_deps", "manifestDeps":
-			s.AddField("manifest_deps")
-			if s.ReadNil() {
-				x.ManifestDeps = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.ManifestDeps = append(x.ManifestDeps, nil)
-					return
-				}
-				v := &InputManifest_ManifestDep{}
-				v.UnmarshalProtoJSON(s.WithField("manifest_deps", false))
-				if s.Err() != nil {
-					return
-				}
-				x.ManifestDeps = append(x.ManifestDeps, v)
-			})
 		case "startup_inputs", "startupInputs":
 			s.AddField("startup_inputs")
 			if s.ReadNil() {
@@ -2035,53 +1864,6 @@ func (m *InputManifest_File) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *InputManifest_ManifestDep) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *InputManifest_ManifestDep) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *InputManifest_ManifestDep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.ManifestRef != nil {
-		size, err := m.ManifestRef.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.ManifestId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ManifestId)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *InputManifest_StartupInput) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2173,18 +1955,6 @@ func (m *InputManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x22
-		}
-	}
-	if len(m.ManifestDeps) > 0 {
-		for iNdEx := len(m.ManifestDeps) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.ManifestDeps[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.Metadata) > 0 {
@@ -2364,21 +2134,6 @@ func (m *InputManifest_File) SizeVT() (n int) {
 	return n
 }
 
-func (m *InputManifest_ManifestDep) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestId)
-	if m.ManifestRef != nil {
-		l = m.ManifestRef.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *InputManifest_StartupInput) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2404,10 +2159,6 @@ func (m *InputManifest) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Metadata)
-	for _, e := range m.ManifestDeps {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	for _, e := range m.StartupInputs {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -2615,24 +2366,6 @@ func (x *InputManifest_File) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *InputManifest_ManifestDep) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ManifestDep")
-	if x.ManifestId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_id")
-		protobuf_go_lite.TextWriteString(&sb, x.ManifestId)
-	}
-	if x.ManifestRef != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "manifest_ref")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ManifestRef)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *InputManifest_ManifestDep) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *InputManifest_StartupInput) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "StartupInput")
@@ -2677,18 +2410,6 @@ func (x *InputManifest) MarshalProtoText() string {
 	if len(x.Metadata) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "metadata")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Metadata)
-	}
-	if len(x.ManifestDeps) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "manifest_deps")
-		for i, v := range x.ManifestDeps {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &InputManifest_ManifestDep{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	if len(x.StartupInputs) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "startup_inputs")
@@ -3207,74 +2928,6 @@ func (m *InputManifest_File) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *InputManifest_ManifestDep) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: InputManifest_ManifestDep: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: InputManifest_ManifestDep: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.ManifestId = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestRef", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.ManifestRef == nil {
-				m.ManifestRef = &bucket.ObjectRef{}
-			}
-			if err := m.ManifestRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
 func (m *InputManifest_StartupInput) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3398,19 +3051,6 @@ func (m *InputManifest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ManifestDeps", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.ManifestDeps = append(m.ManifestDeps, &InputManifest_ManifestDep{})
-			if err := m.ManifestDeps[len(m.ManifestDeps)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartupInputs", wireType)

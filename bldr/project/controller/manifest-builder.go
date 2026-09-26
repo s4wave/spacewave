@@ -342,8 +342,8 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 	}
 
 	// A plugin depends on the providers of the web packages it excludes. The
-	// built manifest records them for the plugin host, and a provider rebuild
-	// rebuilds its consumers.
+	// built manifest records them for the plugin host, which holds each
+	// provider while the consumer runs.
 	webPkgDeps := resolveWebPkgDeps(t.c.le, projectConfig.GetManifests())
 	if cycle := findDepCycle(webPkgDeps, manifestID); len(cycle) != 0 {
 		err := errors.Errorf("plugin dependency cycle: %s", strings.Join(cycle, " -> "))
@@ -374,7 +374,6 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 		ctrlConf.GetWatch(),
 		startupBuilderResult,
 	)
-	builderConf.WatchManifestIds = deps
 
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateRunning, "starting builder controller", nil)
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*manifest_builder_controller.Controller](

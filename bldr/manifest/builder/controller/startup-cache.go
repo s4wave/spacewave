@@ -40,8 +40,6 @@ const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V18"
 type startupValidationResult struct {
 	// builderResult is the validated startup builder result.
 	builderResult *bldr_manifest_builder.BuilderResult
-	// manifestDepSnapshot holds the current manifest dependency refs.
-	manifestDepSnapshot map[string]*bucket.ObjectRef
 	// subManifestIDs contains recursively validated child Manifest IDs.
 	subManifestIDs []string
 	// reason describes why startup reuse was rejected.
@@ -98,7 +96,7 @@ func (c *Controller) validateStartupBuilderResult(
 		return &startupValidationResult{reason: reason}, nil
 	}
 
-	// Nested builders and watched manifests remain part of the cached dependency set.
+	// Nested builders remain part of the cached dependency set.
 	subManifestIDs, reason, err := c.validateStartupSubManifestResults(ctx, le, startupBuilderResult)
 	if err != nil {
 		return nil, err
@@ -106,19 +104,11 @@ func (c *Controller) validateStartupBuilderResult(
 	if reason != "" {
 		return &startupValidationResult{reason: reason}, nil
 	}
-	manifestDepSnapshot, err := c.validateStartupManifestDeps(ctx, le, inputManifest)
-	if err != nil {
-		return nil, err
-	}
-	if manifestDepSnapshot == nil && len(inputManifest.GetManifestDeps()) != 0 {
-		return &startupValidationResult{reason: "manifest dependency configuration changed"}, nil
-	}
 
 	// Return an independent snapshot for the build controller's lifetime.
 	return &startupValidationResult{
-		builderResult:       startupBuilderResult.CloneVT(),
-		manifestDepSnapshot: manifestDepSnapshot,
-		subManifestIDs:      subManifestIDs,
+		builderResult:  startupBuilderResult.CloneVT(),
+		subManifestIDs: subManifestIDs,
 	}, nil
 }
 
@@ -261,30 +251,6 @@ func (c *Controller) validateStartupSubManifestResults(
 		manifestIDs = append(manifestIDs, subManifestResult.GetManifest().GetMeta().GetManifestId())
 	}
 	return manifestIDs, "", nil
-}
-
-// validateStartupManifestDeps validates the cached manifest dependency refs.
-func (c *Controller) validateStartupManifestDeps(
-	ctx context.Context,
-	le *logrus.Entry,
-	inputManifest *bldr_manifest_builder.InputManifest,
-) (map[string]*bucket.ObjectRef, error) {
-	// Absence of watched dependencies must agree with the cached dependency set.
-	watchManifestIDs := c.c.GetWatchManifestIds()
-	cachedDeps := inputManifest.GetManifestDeps()
-	if len(watchManifestIDs) == 0 {
-		if len(cachedDeps) != 0 {
-			return nil, nil
-		}
-		return map[string]*bucket.ObjectRef{}, nil
-	}
-
-	// Resolve current dependency references and require an exact snapshot match.
-	resolvedDeps, refs := c.resolveManifestDeps(ctx, le, watchManifestIDs)
-	if !manifestDepsEqual(cachedDeps, resolvedDeps) {
-		return nil, nil
-	}
-	return refs, nil
 }
 
 // enrichBuilderResultForStartupReuse adds generic startup validation inputs.
@@ -547,29 +513,4 @@ func marshalStartupConfigDigest(
 	policyDigest := sha256.Sum256(buildPolicyBin)
 	digest := sha256.Sum256(append(controllerConfigBin, policyDigest[:]...))
 	return digest[:], nil
-}
-
-// manifestDepsEqual compares cached and current manifest dependency snapshots.
-func manifestDepsEqual(
-	cachedDeps []*bldr_manifest_builder.InputManifest_ManifestDep,
-	currentDeps []*bldr_manifest_builder.InputManifest_ManifestDep,
-) bool {
-	// Compare dependency identities without depending on collection order.
-	if len(cachedDeps) != len(currentDeps) {
-		return false
-	}
-	cachedByID := make(map[string]*bldr_manifest_builder.InputManifest_ManifestDep, len(cachedDeps))
-	for _, dep := range cachedDeps {
-		cachedByID[dep.GetManifestId()] = dep
-	}
-	for _, dep := range currentDeps {
-		cachedDep, ok := cachedByID[dep.GetManifestId()]
-		if !ok {
-			return false
-		}
-		if !cachedDep.GetManifestRef().EqualVT(dep.GetManifestRef()) {
-			return false
-		}
-	}
-	return true
 }

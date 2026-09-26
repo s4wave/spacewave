@@ -383,35 +383,6 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		manifestMeta.BuildType = buildType
 	}
 
-	// Package providers must finish before the consuming compiler starts.
-	projectConfig := c.conf.Load().GetProjectConfig()
-	webPkgDeps := resolveWebPkgDeps(c.le, projectConfig.GetManifests())
-	dependencyRefs := make([]*ManifestBuilderRef, 0, len(webPkgDeps[manifestMeta.GetManifestId()]))
-	defer func() {
-		for _, dependencyRef := range dependencyRefs {
-			dependencyRef.Release()
-		}
-	}()
-	for _, dependencyID := range webPkgDeps[manifestMeta.GetManifestId()] {
-		dependencyRef, err := c.addFetchManifestBuildRef(NewManifestBuilderConfig(
-			dependencyID,
-			buildType,
-			manifestMeta.GetPlatformId(),
-			manifestRemoteID,
-		))
-		if err != nil {
-			remoteRef.Release()
-			return nil, nil, err
-		}
-		dependencyRefs = append(dependencyRefs, dependencyRef)
-	}
-	for i, dependencyID := range webPkgDeps[manifestMeta.GetManifestId()] {
-		if _, err := dependencyRefs[i].GetResultPromiseContainer().Await(ctx); err != nil {
-			remoteRef.Release()
-			return nil, nil, errors.Wrapf(err, "build fetch manifest dependency %q", dependencyID)
-		}
-	}
-
 	// Reuse the configured build selected by the enclosing target.
 	manifestBuilderRef, err := c.addFetchManifestBuildRef(NewManifestBuilderConfig(
 		manifestMeta.GetManifestId(),

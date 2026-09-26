@@ -24,10 +24,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
-	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_control "github.com/s4wave/spacewave/db/world/control"
 	"github.com/sirupsen/logrus"
 )
 
@@ -220,12 +217,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	var startupValidated bool
 	buildOwner := newManifestBuildOwner(c, builderConfig)
 
-	// manifestDepSnapshot holds the last-seen refs for watched manifest deps.
-	// Passed as an immutable snapshot to the watcher goroutine.
-	var manifestDepSnapshot map[string]*bucket.ObjectRef
-
-	watchManifestIDs := c.c.GetWatchManifestIds()
-
 	for {
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -237,8 +228,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		var err error
 		cacheHit := false
 		var buildStart time.Time
-		var buildManifestDeps []*bldr_manifest_builder.InputManifest_ManifestDep
-		var buildManifestDepRefs map[string]*bucket.ObjectRef
 
 		if !startupValidated {
 			startupValidated = true
@@ -254,7 +243,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 			if startupValidationResult.builderResult != nil {
 				result = startupValidationResult.builderResult
-				manifestDepSnapshot = startupValidationResult.manifestDepSnapshot
 				cacheHit = true
 				c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 					State:    ManifestBuilderLifecycleStateDone,
@@ -284,13 +272,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 				Summary:                 rebuildSummary(fullRebuild, hotRebuild),
 			})
 			args := buildOwner.buildArgs()
-
-			if len(watchManifestIDs) != 0 {
-				buildManifestDeps, buildManifestDepRefs = c.resolveManifestDeps(attempt.ctx, le, watchManifestIDs)
-				le.WithField("watch-manifest-ids", watchManifestIDs).
-					WithField("resolved-refs", len(buildManifestDepRefs)).
-					Debug("resolved manifest dep refs for watching")
-			}
 			// The restart callback binds every nested manifest tracker to this attempt.
 			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
 			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
@@ -321,17 +302,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 					continue
 				}
 			}
-		}
-
-		if err == nil && result != nil && len(watchManifestIDs) != 0 {
-			// A one-shot parent can start before its provider and finish after
-			// it. Persist the dependency state at parent completion, not the
-			// incomplete pre-build snapshot.
-			buildManifestDeps, buildManifestDepRefs = c.resolveManifestDeps(
-				attempt.ctx,
-				le,
-				watchManifestIDs,
-			)
 		}
 
 		// Delete sub-manifests that were not observed this run and persist the
@@ -370,15 +340,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
-		// Set the result promise
-		// Only watch manifest deps if the build produced a result.
-		// Compilers that skip a platform return nil result with nil error.
-		hasManifestDeps := len(watchManifestIDs) > 0 && result != nil
-		// Populate manifest_deps with current refs for watched manifests.
-		if err == nil && hasManifestDeps && result.GetInputManifest() != nil && buildManifestDeps != nil {
-			result.GetInputManifest().ManifestDeps = buildManifestDeps
-			manifestDepSnapshot = buildManifestDepRefs
-		}
 		if attempt.wasRestarted() {
 			attempt.release()
 			continue
@@ -400,7 +361,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			le.WithError(err).Warn("build failed")
 		}
-		if !c.c.GetWatch() || (len(inputFiles) == 0 && subManifestCount == 0 && !hasManifestDeps) {
+		if !c.c.GetWatch() || (len(inputFiles) == 0 && subManifestCount == 0) {
 			attempt.release()
 			return buildOwner.prevErr
 		}
@@ -438,18 +399,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 				Summary:                 "watching for rebuild triggers",
 			})
 
-			if subManifestCount == 0 && !hasManifestDeps {
+			if subManifestCount == 0 {
 				// nothing to wait for, return.
 				attempt.release()
 				return nil
 			}
 
-			// Start manifest dep watcher if we have deps.
-			if hasManifestDeps {
-				go c.watchManifestDeps(attempt.ctx, le, watchManifestIDs, manifestDepSnapshot, attempt.restart)
-			}
-
-			// wait for sub-manifests/manifest-deps to change or ctx to cancel
+			// wait for sub-manifests to change or ctx to cancel
 			select {
 			case <-attempt.ctx.Done():
 				attempt.release()
@@ -501,12 +457,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
-		// Start manifest dep watcher concurrently with file watcher.
-		if hasManifestDeps {
-			go c.watchManifestDeps(attempt.ctx, le, watchManifestIDs, manifestDepSnapshot, attempt.restart)
-		}
-
-		le.Debugf("watching for changes in %d files and %d directories and %d sub-manifests and %d manifest deps", len(watchedFiles), len(watchedSourceDirs), subManifestCount, len(watchManifestIDs))
+		le.Debugf("watching for changes in %d files and %d directories and %d sub-manifests", len(watchedFiles), len(watchedSourceDirs), subManifestCount)
 		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 			State:                   ManifestBuilderLifecycleStateDone,
 			CacheHit:                cacheHit,
@@ -536,7 +487,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		if attempt.ctx.Err() != nil {
 			attempt.release()
-			le.Info("re-building after sub-manifest or manifest dep changed")
+			le.Info("re-building after sub-manifest changed")
 			continue
 		}
 		if err != nil {
@@ -589,114 +540,6 @@ func (c *Controller) storeManifestBuildResult(
 		WithField("ref", ref).
 		Debug("stored manifest build result in world")
 	return nil
-}
-
-// collectManifestRefs collects current refs for the given manifest IDs from the world.
-func (c *Controller) collectManifestRefs(
-	ctx context.Context,
-	le *logrus.Entry,
-	ws world.WorldState,
-	manifestIDs []string,
-) map[string]*bucket.ObjectRef {
-	builderConfig := c.c.GetBuilderConfig()
-	linkObjKeys := builderConfig.GetLinkObjectKeys()
-	var platformIDs []string
-	if platformID := builderConfig.GetManifestMeta().GetPlatformId(); platformID != "" {
-		platformIDs = []string{platformID}
-	}
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(
-		ctx,
-		ws,
-		platformIDs,
-		linkObjKeys...,
-	)
-	if err != nil {
-		le.WithError(err).Warn("failed to collect manifest refs")
-		return nil
-	}
-	for _, manifestErr := range manifestErrs {
-		le.WithError(manifestErr).Warn("skipping invalid manifest")
-	}
-
-	refs := make(map[string]*bucket.ObjectRef, len(manifestIDs))
-	for _, id := range manifestIDs {
-		if collected := manifests[id]; len(collected) > 0 {
-			refs[id] = collected[0].ManifestRef
-		}
-	}
-	return refs
-}
-
-// resolveManifestDeps resolves current refs for watched manifest IDs
-// and returns InputManifest_ManifestDep entries.
-func (c *Controller) resolveManifestDeps(
-	ctx context.Context,
-	le *logrus.Entry,
-	watchManifestIDs []string,
-) ([]*bldr_manifest_builder.InputManifest_ManifestDep, map[string]*bucket.ObjectRef) {
-	engineID := c.c.GetBuilderConfig().GetEngineId()
-	busEngine := world.NewBusEngine(ctx, c.bus, engineID)
-	ws := world.NewEngineWorldState(busEngine, false)
-	refs := c.collectManifestRefs(ctx, le, ws, watchManifestIDs)
-
-	deps := make([]*bldr_manifest_builder.InputManifest_ManifestDep, 0, len(watchManifestIDs))
-	for _, id := range watchManifestIDs {
-		deps = append(deps, &bldr_manifest_builder.InputManifest_ManifestDep{
-			ManifestId:  id,
-			ManifestRef: refs[id],
-		})
-	}
-	return deps, refs
-}
-
-// watchManifestDeps watches the world for changes to manifest dependencies.
-// Calls restartFn when a watched manifest's ref changes from the snapshot.
-// The snapshot is an immutable copy; this function does not write to shared state.
-func (c *Controller) watchManifestDeps(
-	ctx context.Context,
-	le *logrus.Entry,
-	watchManifestIDs []string,
-	snapshot map[string]*bucket.ObjectRef,
-	restartFn func(string),
-) {
-	le.WithField("watch-manifest-ids", watchManifestIDs).
-		WithField("snapshot-size", len(snapshot)).
-		Debug("starting manifest dep watcher")
-	engineID := c.c.GetBuilderConfig().GetEngineId()
-	objLoop := world_control.NewWatchLoop(
-		le.WithField("watch", "manifest-deps"),
-		"",
-		func(
-			ctx context.Context,
-			le *logrus.Entry,
-			ws world.WorldState,
-			_ world.ObjectState,
-			_ *bucket.ObjectRef,
-			_ uint64,
-		) (bool, error) {
-			refs := c.collectManifestRefs(ctx, le, ws, watchManifestIDs)
-			for _, id := range watchManifestIDs {
-				prev := snapshot[id]
-				curr := refs[id]
-				if curr == nil {
-					continue
-				}
-				// Trigger rebuild if the ref changed or if the manifest
-				// appeared for the first time since the snapshot was taken.
-				if prev == nil || !curr.EqualVT(prev) {
-					le.WithField("changed-manifest", id).
-						Info("manifest dependency changed, triggering rebuild")
-					restartFn("manifest dependency changed: " + id)
-					return false, nil
-				}
-			}
-			return true, nil
-		},
-	)
-
-	if err := world_control.ExecuteBusWatchLoop(ctx, c.bus, engineID, false, objLoop); err != nil && err != context.Canceled && ctx.Err() == nil {
-		le.WithError(err).Warn("manifest dep watcher exited with error")
-	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.
