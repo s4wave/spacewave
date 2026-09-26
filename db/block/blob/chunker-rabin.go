@@ -51,7 +51,7 @@ func buildChunkIndexRabin(
 		poly = defRabinPol
 	}
 
-	chkSet := ci.GetChunkSet(bcs)
+	chunks := newChunkAppender(ctx, ci, ci.GetChunkSet(bcs))
 	minChunkSize, maxChunkSize := rabinArgs.GetChunkingMinSize(), rabinArgs.GetChunkingMaxSize()
 	if minChunkSize == 0 {
 		minChunkSize = DefChunkingMinSize
@@ -88,11 +88,14 @@ func buildChunkIndexRabin(
 		}
 
 		totalSize += uint64(nchk.Length)
-		if err := appendChunkData(ctx, ci, chkSet, idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil {
+		if err := chunks.append(idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil {
 			return 0, err
 		}
 		chkStart += uint64(nchk.Length)
 		idx++
+	}
+	if err := chunks.flush(); err != nil {
+		return 0, err
 	}
 	if len(ci.Chunks) <= 1 && rabinArgs.Pol == uint64(defRabinPol) {
 		rabinArgs.Pol = 0
