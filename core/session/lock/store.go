@@ -115,9 +115,11 @@ func WriteAutoUnlock(ctx context.Context, objStore object.ObjectStore, sessionID
 			if err := tx.Set(ctx, MakeKey(sessionID, SuffixPK), encPriv); err != nil {
 				return err
 			}
-			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLocked))
-			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLockKey))
-			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLockParams))
+			for _, suffix := range [][]byte{SuffixLocked, SuffixLockKey, SuffixLockParams} {
+				if err := tx.Delete(ctx, MakeKey(sessionID, suffix)); err != nil {
+					return err
+				}
+			}
 			return nil
 		},
 	)
@@ -144,8 +146,7 @@ func WritePINLock(ctx context.Context, objStore object.ObjectStore, sessionID st
 			if err := tx.Set(ctx, MakeKey(sessionID, SuffixLockParams), configBytes); err != nil {
 				return err
 			}
-			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixPK))
-			return nil
+			return tx.Delete(ctx, MakeKey(sessionID, SuffixPK))
 		},
 	)
 }

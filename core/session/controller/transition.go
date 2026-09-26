@@ -73,7 +73,11 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		ref := destination.GetProviderResourceRef()
 		metadata.ProviderId = ref.GetProviderId()
 		metadata.ProviderAccountId = ref.GetProviderAccountId()
-		metadata.ProviderDisplayName = ref.GetProviderId()
+		displayName, err := transitionProviderDisplayName(ctx, tx, next, ref.GetProviderId())
+		if err != nil {
+			return err
+		}
+		metadata.ProviderDisplayName = displayName
 		data, err = metadata.MarshalVT()
 		if err != nil {
 			return err
@@ -93,4 +97,28 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) { broadcast() })
 	}
 	return err
+}
+
+// transitionProviderDisplayName returns the destination provider's label,
+// preferring the label its provider registered for the destination Session.
+func transitionProviderDisplayName(ctx context.Context, tx kvtx.Tx, next *session.SessionListEntry, providerID string) (string, error) {
+	if next != nil {
+		data, found, err := tx.Get(ctx, sessionMetaKey(next.GetSessionIndex()))
+		if err != nil {
+			return "", err
+		}
+		if found {
+			metadata := &session.SessionMetadata{}
+			if err := metadata.UnmarshalVT(data); err != nil {
+				return "", err
+			}
+			if name := metadata.GetProviderDisplayName(); name != "" {
+				return name, nil
+			}
+		}
+	}
+	if providerID == "local" {
+		return "Local", nil
+	}
+	return "Cloud", nil
 }

@@ -146,3 +146,80 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 		t.Fatalf("expected 1 valid signature, got %d", validSigs)
 	}
 }
+
+// TestSOStateParticipantHandleProcessOperationsAllRejected verifies that a
+// batch whose operations all fail to decode advances the root so the
+// rejections commit and the queue drains.
+func TestSOStateParticipantHandleProcessOperationsAllRejected(t *testing.T) {
+	ctx := context.Background()
+	p := createMockPeers(t, 1)[0]
+	priv, err := p.GetPrivKey(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := p.GetPeerID().ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	transformConf := &block_transform.Config{
+		Steps: []*block_transform.StepConfig{{
+			Id: transform_blockenc.ConfigID,
+			Config: mustMarshalVT(t, &transform_blockenc.Config{
+				BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
+				Key:      []byte("0123456789abcdef0123456789abcdef"),
+			}),
+		}},
+	}
+	grant, err := EncryptSOGrant(priv, pub, mockSharedObjectID, &SOGrantInner{TransformConf: transformConf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
+	le := logrus.New().WithField("test", t.Name())
+
+	state := &SOState{
+		Config: &SharedObjectConfig{Participants: []*SOParticipantConfig{{
+			PeerId: p.GetPeerID().String(),
+			Role:   SOParticipantRole_SOParticipantRole_OWNER,
+		}}},
+		RootGrants: []*SOGrant{grant},
+	}
+	op, err := BuildSOOperation(mockSharedObjectID, priv, []byte("not encrypted"), 1, NewSOOperationLocalID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := state.QueueOperation(mockSharedObjectID, op); err != nil {
+		t.Fatal(err)
+	}
+
+	snap := NewSOStateParticipantHandle(le, sfs, mockSharedObjectID, state, priv, p.GetPeerID())
+	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
+		ctx,
+		state.GetOps(),
+		func(ctx context.Context, currentStateData []byte, ops []*SOOperationInner) (*[]byte, []*SOOperationResult, error) {
+			if len(ops) != 0 {
+				t.Fatalf("expected no decoded ops, got %d", len(ops))
+			}
+			return nil, nil, nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rejectedOps) != 1 || len(acceptedOps) != 0 {
+		t.Fatalf("expected 1 rejection and 0 accepted, got %d and %d", len(rejectedOps), len(acceptedOps))
+	}
+	if nextRoot.GetInnerSeqno() != 1 {
+		t.Fatalf("expected inner seqno 1, got %d", nextRoot.GetInnerSeqno())
+	}
+	if err := state.UpdateRootState(mockSharedObjectID, nextRoot, p.GetPeerID().String(), rejectedOps, acceptedOps); err != nil {
+		t.Fatalf("UpdateRootState: %v", err)
+	}
+	if len(state.GetOps()) != 0 {
+		t.Fatalf("expected drained queue, got %d ops", len(state.GetOps()))
+	}
+	if len(state.GetOpRejections()) != 1 {
+		t.Fatalf("expected committed rejection, got %d groups", len(state.GetOpRejections()))
+	}
+}

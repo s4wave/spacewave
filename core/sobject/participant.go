@@ -329,8 +329,9 @@ func (s *SOStateParticipantHandle) ProcessOperations(
 		return nil, nil, nil, err
 	}
 
-	// If nothing happened, return early
-	if rawNextStateData == nil && len(opResults) == 0 {
+	// If nothing happened, return early. Decode rejections still advance the
+	// root so the rejected operations leave the queue.
+	if rawNextStateData == nil && len(opResults) == 0 && len(rejectedOps) == 0 {
 		return currentRoot.CloneVT(), rejectedOps, nil, nil
 	}
 

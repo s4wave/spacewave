@@ -56,7 +56,7 @@ func TestTransitionSessionPreservesIndexAndMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if metadata.GetDisplayName() != "My laptop" || metadata.GetCreatedAt() != 1700000000000 || metadata.GetProviderAccountId() != "target" {
+	if metadata.GetDisplayName() != "My laptop" || metadata.GetCreatedAt() != 1700000000000 || metadata.GetProviderAccountId() != "target" || metadata.GetProviderDisplayName() != "Local" {
 		t.Fatalf("metadata changed unexpectedly: %v", metadata)
 	}
 }

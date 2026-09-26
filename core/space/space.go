@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -103,7 +104,7 @@ func ValidateSpaceName(name string) error {
 		return errors.Errorf("space name: must be between 1 and 64 characters")
 	}
 
-	if !unicode.IsLetter(rune(name[0])) {
+	if first, _ := utf8.DecodeRuneInString(name); !unicode.IsLetter(first) {
 		return errors.Errorf("space name: must start with a letter")
 	}
 

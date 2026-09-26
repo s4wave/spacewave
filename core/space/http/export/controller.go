@@ -100,6 +100,9 @@ func (c *Controller) serveProjectedExport(w http.ResponseWriter, r *http.Request
 	lookupPath, zipRoot := resolveProjectedExportTarget(req)
 	targetHandle, _, err := rootHandle.LookupPath(ctx, lookupPath)
 	if err != nil {
+		if targetHandle != nil {
+			targetHandle.Release()
+		}
 		http.Error(w, "export path not found", http.StatusNotFound)
 		return
 	}
@@ -142,6 +145,9 @@ func (c *Controller) serveBatchExport(w http.ResponseWriter, r *http.Request) {
 
 	baseHandle, _, err := rootHandle.LookupPath(ctx, req.basePath)
 	if err != nil {
+		if baseHandle != nil {
+			baseHandle.Release()
+		}
 		http.Error(w, "batch export base path not found", http.StatusNotFound)
 		return
 	}

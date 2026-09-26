@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"slices"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -36,6 +37,9 @@ type Server struct {
 	enrollFn EnrollFn
 	// leaveFn commits authenticated voluntary departure.
 	leaveFn LeaveFn
+	// acceptMtx serializes invite acceptance from lookup through the use
+	// increment, so a limited-use invite cannot enroll more peers than it admits.
+	acceptMtx csync.Mutex
 }
 
 // NewServer constructs a new SO invite server.
@@ -113,6 +117,14 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	if storageJoinResp.GetInviteId() != joinResp.GetInviteId() {
 		return nil, errors.New("storage join response invite ID mismatch")
 	}
+
+	// Hold the acceptance lock so the usability check below observes every
+	// prior acceptance's committed use.
+	relAccept, err := s.acceptMtx.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer relAccept()
 
 	// Look up the invite by token hash.
 	result, err := s.lookupFn(ctx, tokenHash)

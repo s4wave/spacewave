@@ -137,9 +137,12 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 		if err != nil {
 			return nil, err
 		}
+		targets := make(map[string]struct{}, len(peers))
+		for _, peerID := range peers {
+			targets[peerID] = struct{}{}
+		}
 		err = host.ApplyConfigChange(ctx, change, func(state *SOState) error {
-			state.RootGrants = slices.DeleteFunc(state.RootGrants, func(grant *SOGrant) bool { return slices.Contains(peers, grant.GetPeerId()) })
-			return nil
+			return pruneRemovedParticipants(host.GetSharedObjectID(), state, current, targets, owner)
 		})
 		if err == nil {
 			return &SOLeaveResponse{Changes: append(changes, change)}, nil

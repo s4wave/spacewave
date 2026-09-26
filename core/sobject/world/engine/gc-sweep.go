@@ -200,12 +200,16 @@ func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject
 	c.le.WithField("op-id", localOpID).Debug("queued gc sweep tx")
 
 	// Wait for the operation to be confirmed or rejected.
+	// A rejection is returned with its error; clear it so it does not remain
+	// in the shared object state.
 	_, rejected, err := so.WaitOperation(ctx, localOpID)
+	if rejected {
+		_ = so.ClearOperationResult(ctx, localOpID)
+		c.le.WithError(err).Warn("gc sweep tx was rejected")
+		return true, nil
+	}
 	if err != nil {
 		return false, err
-	}
-	if rejected {
-		c.le.Warn("gc sweep tx was rejected")
 	}
 
 	return true, nil

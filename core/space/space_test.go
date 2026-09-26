@@ -27,6 +27,7 @@ func TestValidateSpaceName(t *testing.T) {
 		{"ends with underscore", "space_", true},
 		{"special chars", "test@space", true},
 		{"valid mixed", "My-Cool_Space 123", false},
+		{"starts with multibyte letter", "שלום", false},
 	}
 
 	for _, tt := range tests {

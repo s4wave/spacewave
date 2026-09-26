@@ -92,8 +92,11 @@ func (c *Controller) loadOrInitHeadFromSharedObject(
 
 			le.Debugf("queued op to init world state: %s", opID)
 
-			_, _, err = so.WaitOperation(ctx, opID)
+			_, rejected, err := so.WaitOperation(ctx, opID)
 			if err != nil {
+				if rejected {
+					_ = so.ClearOperationResult(ctx, opID)
+				}
 				if ctx.Err() != nil {
 					return nil, context.Canceled
 				}

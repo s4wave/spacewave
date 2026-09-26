@@ -19,6 +19,9 @@ func exportBatchZip(ctx context.Context, w io.Writer, baseHandle *unixfs.FSHandl
 	for _, relPath := range normalizedPaths {
 		targetHandle, _, err := baseHandle.LookupPath(ctx, relPath)
 		if err != nil {
+			if targetHandle != nil {
+				targetHandle.Release()
+			}
 			zw.Close()
 			return errors.Wrap(err, "lookup batch path "+relPath)
 		}
