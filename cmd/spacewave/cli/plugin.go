@@ -405,11 +405,16 @@ func buildPluginListCommand() *cli.Command {
 					if err := writePluginListJSON(plugins, outputFormat); err != nil {
 						return err
 					}
-				} else if len(plugins) == 0 {
-					w.WriteString("no plugins\n")
 				} else {
+					requested := state.GetRequestedPluginIds()
+					if len(plugins) == 0 && len(requested) == 0 {
+						w.WriteString("no plugins\n")
+					}
 					for _, p := range plugins {
 						w.WriteString(formatPluginStatus(p))
+					}
+					for _, id := range requested {
+						w.WriteString(id + "  requested  not listed; a load is waiting for it\n")
 					}
 				}
 

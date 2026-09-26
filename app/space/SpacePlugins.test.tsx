@@ -247,4 +247,22 @@ describe('SpacePlugins', () => {
 
     expect(mocks.removeSpacePlugin).toHaveBeenCalledWith('spacewave-v86')
   })
+
+  it('adds a requested plugin whose manifest the Space stores', () => {
+    contentsState = {
+      requestedPluginIds: ['glados-core', 'glados-web'],
+      availablePlugins: [{ pluginId: 'glados-core' }],
+    }
+
+    render(<SpacePlugins />)
+
+    expect(screen.getAllByText('Requested')).toHaveLength(2)
+    expect(
+      screen.getByText('spacewave space deploy --manifest-id glados-web'),
+    ).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Add glados-web' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add glados-core' }))
+
+    expect(mocks.addSpacePlugin).toHaveBeenCalledWith('glados-core')
+  })
 })
