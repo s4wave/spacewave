@@ -11,12 +11,8 @@ func TestDefaultPolicy(t *testing.T) {
 	if policy.MaxPackBytes != 63*1024*1024 {
 		t.Fatalf("MaxPackBytes = %d, want 63 MiB", policy.MaxPackBytes)
 	}
-	if policy.MaxBlocksPerPack != 4096 || policy.BloomExpectedBlocks != 4096 {
-		t.Fatalf(
-			"block ceiling/expected bloom blocks = %d/%d, want 4096/4096",
-			policy.MaxBlocksPerPack,
-			policy.BloomExpectedBlocks,
-		)
+	if policy.MaxBlocksPerPack != 4096 {
+		t.Fatalf("MaxBlocksPerPack = %d, want 4096", policy.MaxBlocksPerPack)
 	}
 	if policy.BloomFalsePositive != 0.008 {
 		t.Fatalf("BloomFalsePositive = %f, want 0.008", policy.BloomFalsePositive)
@@ -24,17 +20,25 @@ func TestDefaultPolicy(t *testing.T) {
 	if !policy.RequireBloomFilter || !policy.RequireBlockCount || !policy.RequireCreatedAt {
 		t.Fatalf("metadata requirements not all enabled: %+v", policy)
 	}
+}
 
-	bf := policy.NewBloomFilter()
-	if bf.Cap() == 0 || bf.K() == 0 {
-		t.Fatalf("invalid bloom parameters m=%d k=%d", bf.Cap(), bf.K())
-	}
-	fp := bloom.EstimateFalsePositiveRate(
-		bf.Cap(),
-		bf.K(),
-		uint(policy.BloomExpectedBlocks),
-	)
-	if fp > policy.BloomFalsePositive*1.01 {
-		t.Fatalf("estimated FPR = %f, want near %f", fp, policy.BloomFalsePositive)
+// TestPolicyBloomFilterSizedToBlockCount checks that a pack's filter grows
+// with its block count and holds the policy false-positive rate at each size.
+func TestPolicyBloomFilterSizedToBlockCount(t *testing.T) {
+	policy := DefaultPolicy()
+	var prevCap uint
+	for _, n := range []uint64{1, 64, 1024, 4096, 20000} {
+		bf := policy.NewBloomFilter(n)
+		if bf.Cap() == 0 || bf.K() == 0 {
+			t.Fatalf("n=%d: invalid bloom parameters m=%d k=%d", n, bf.Cap(), bf.K())
+		}
+		if bf.Cap() <= prevCap {
+			t.Fatalf("n=%d: m=%d, want more than %d", n, bf.Cap(), prevCap)
+		}
+		prevCap = bf.Cap()
+		fp := bloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(n))
+		if fp > policy.BloomFalsePositive*1.01 {
+			t.Fatalf("n=%d: estimated FPR = %f, want near %f", n, fp, policy.BloomFalsePositive)
+		}
 	}
 }

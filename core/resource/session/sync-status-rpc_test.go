@@ -483,7 +483,6 @@ func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
 		PackSizeBytesMin:          1024,
 		PackSizeBytesMax:          3072,
 		BloomFilterCount:          2,
-		BloomParameterShapeCount:  1,
 		BloomMaxFalsePositiveRate: 0.02,
 		BloomRiskPackCount:        1,
 		LookupCount:               4,

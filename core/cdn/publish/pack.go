@@ -206,7 +206,6 @@ func (m KVFilePushMetadata) PackResult() *writer.PackResult {
 
 // BuildKVFilePushMetadata verifies a kvfile and builds sync/push metadata.
 func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetadata, error) {
-	// Size the membership filter for the complete indexed block set.
 	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data))) //nolint:gosec // len(data) is the actual in-memory byte slice length.
 	if err != nil {
 		return nil, err
@@ -215,11 +214,10 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 		return nil, errors.Errorf("kvfile block count exceeds local int range: %d", rdr.Size())
 	}
 	blockCount := int(rdr.Size()) //nolint:gosec // the preceding check bounds the reader count to int's range.
+
+	// Size the membership filter for the complete indexed block set.
 	policy := writer.DefaultPolicy()
-	if uint64(blockCount) > policy.BloomExpectedBlocks { //nolint:gosec // blockCount is a non-negative in-memory entry count.
-		policy.BloomExpectedBlocks = uint64(blockCount) //nolint:gosec // blockCount was checked against the platform int range and is non-negative.
-	}
-	bf := policy.NewBloomFilter()
+	bf := policy.NewBloomFilter(rdr.Size())
 	keys := make([][]byte, 0, blockCount)
 
 	// Reject corrupt content before publication can make the pack reachable.

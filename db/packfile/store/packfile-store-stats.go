@@ -41,7 +41,6 @@ type PackfileStoreStats struct {
 	BloomFilterCount          int
 	BloomMissingCount         int
 	BloomInvalidCount         int
-	BloomParameterShapeCount  int
 	BloomMaxFalsePositiveRate float64
 	BloomRiskPackCount        int
 	WritebackWindow           int64
@@ -88,11 +87,6 @@ type packLookupStats struct {
 	LastTargetHit      bool
 }
 
-type bloomParameterShape struct {
-	m uint
-	k uint
-}
-
 const bloomFalsePositiveRiskThreshold = 0.01
 
 // SnapshotStats returns aggregate store state across all open engines.
@@ -122,7 +116,6 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		BloomFilterCount:          manifestStats.BloomFilterCount,
 		BloomMissingCount:         manifestStats.BloomMissingCount,
 		BloomInvalidCount:         manifestStats.BloomInvalidCount,
-		BloomParameterShapeCount:  manifestStats.BloomParameterShapeCount,
 		BloomMaxFalsePositiveRate: manifestStats.BloomMaxFalsePositiveRate,
 		BloomRiskPackCount:        manifestStats.BloomRiskPackCount,
 		WritebackWindow:           writebackWindow,
@@ -181,7 +174,6 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 	if len(entries) == 0 {
 		return stats
 	}
-	shapes := make(map[bloomParameterShape]struct{})
 	for i, entry := range entries {
 		blockCount := entry.GetBlockCount()
 		sizeBytes := entry.GetSizeBytes()
@@ -209,7 +201,6 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 			continue
 		}
 		stats.BloomFilterCount++
-		shapes[bloomParameterShape{m: bf.Cap(), k: bf.K()}] = struct{}{}
 		fp := bloom.EstimateFalsePositiveRate(bf.Cap(), bf.K(), uint(blockCount))
 		if stats.BloomMaxFalsePositiveRate < fp {
 			stats.BloomMaxFalsePositiveRate = fp
@@ -218,7 +209,6 @@ func summarizeManifestDistribution(entries []*packfile.PackfileEntry) PackfileSt
 			stats.BloomRiskPackCount++
 		}
 	}
-	stats.BloomParameterShapeCount = len(shapes)
 	return stats
 }
 
