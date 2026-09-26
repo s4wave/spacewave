@@ -165,7 +165,7 @@ func bootSharedHarness() (*Harness, error) {
 		return nil, errors.Wrap(err, "launch browser")
 	}
 
-	if err := h.CompileScripts("."); err != nil {
+	if err := h.CompileScripts(ScriptDir()); err != nil {
 		h.Release()
 		return nil, errors.Wrap(err, "compile test scripts")
 	}

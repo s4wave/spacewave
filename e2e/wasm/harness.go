@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -363,6 +364,13 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	}
 
 	return h, nil
+}
+
+// ScriptDir returns the directory holding this package's browser test
+// scripts, independent of the working directory.
+func ScriptDir() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Dir(file)
 }
 
 // CompileScripts discovers and compiles *.ts files in the given directory
