@@ -342,6 +342,10 @@ message HandleUploadTreeRequest {
     // Data is a chunk for the current file payload.
     bytes data = 3;
   }
+  // OrderedCommit asks the tree to commit ordered when set on any message:
+  // the call returns once the change is applied, and the change becomes
+  // durable at the next world Sync or within a second.
+  bool ordered_commit = 4;
 }
 
 // HandleUploadTreeResponse is the response for UploadTree.

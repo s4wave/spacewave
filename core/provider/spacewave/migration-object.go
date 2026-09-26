@@ -42,6 +42,11 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, source prov
 	if err != nil {
 		return err
 	}
+	if durable, ok := object.(interface{ WaitDurable(context.Context) error }); ok {
+		if err := durable.WaitDurable(ctx); err != nil {
+			return err
+		}
+	}
 	epoch := &sobject.SOKeyEpoch{SeqnoStart: 1, Grants: state.GetRootGrants()}
 	envelopes, err := a.migrationRecoveryEnvelopes(ctx, client, object, state)
 	if err != nil {

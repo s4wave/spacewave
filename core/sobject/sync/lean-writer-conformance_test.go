@@ -49,7 +49,6 @@ func leanSyncWriterCases(t *testing.T, seed uint64) []leanSyncCase {
 	if err != nil {
 		t.Fatal(err)
 	}
-	local := &SOSync{localObjectPeerID: localID}
 	rng := rand.New(rand.NewPCG(seed, seed^0x738a))
 	var cases []leanSyncCase
 	for variant := range 12 {
@@ -57,6 +56,7 @@ func leanSyncWriterCases(t *testing.T, seed uint64) []leanSyncCase {
 		t.Cleanup(cancel)
 		host, ctr := newMemHost(soID, initial.CloneVT())
 		t.Cleanup(host.ClearContext)
+		local := &SOSync{localObjectPeerID: localID, soHost: host}
 		states, release, err := host.GetSOStateCtr(ctx, nil)
 		if err != nil {
 			t.Fatal(err)

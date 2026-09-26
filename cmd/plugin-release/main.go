@@ -90,7 +90,7 @@ func exportBoltToKVFile(ctx context.Context, boltPath, outPath string) error {
 	if err != nil {
 		return errors.Wrap(err, "open bolt db")
 	}
-	defer store.GetDB().Close()
+	defer store.Close()
 
 	f, err := os.Create(outPath)
 	if err != nil {

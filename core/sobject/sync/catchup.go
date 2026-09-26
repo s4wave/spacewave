@@ -418,6 +418,7 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 }
 
 // writeMessages serializes frames under freshly observed participant authority.
+// Each frame waits until the local state it carries is durable.
 // The caller owns state retention, outbound/result channels and transport closure.
 // Cancellation interrupts channel waits; closing transport releases a blocked write.
 // Failures are reported once unless cancellation wins the result-channel wait.
@@ -436,9 +437,13 @@ func (s *SOSync) writeMessages(
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+		// The frame captured its state before this wait, so the wait covers it.
 		err := s.authorizeParticipants(states.GetValue(), remoteID)
 		if err == nil {
-			err = sess.SendMsg(message)
+			err = s.soHost.WaitDurable(ctx)
+			if err == nil {
+				err = sess.SendMsg(message)
+			}
 		} else {
 			_ = sendAccessDenied(sess)
 		}

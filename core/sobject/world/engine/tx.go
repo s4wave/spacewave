@@ -83,8 +83,8 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Fence pending block writes before the candidate root can enter the
-	// SharedObject operation queue. A queue whose durable write orders the
-	// block writes before it needs them written, not flushed to the device.
+	// SharedObject operation queue. A queue write ordered after the block
+	// writes needs them written, not flushed to the device.
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
 		var err error
@@ -176,9 +176,13 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Wait for authority without allowing the watcher to replace the write base.
+	// An ordered world commit lets the provider accept its operation ordered.
 	var decision *SpaceWorldFinalizationDecision
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/finalize-candidate")
+		if world.OrderedCommit(taskCtx) {
+			taskCtx = sobject.WithOrderedOperation(taskCtx)
+		}
 		var err error
 		decision, err = t.eng.finalizeSpaceWorldCandidate(taskCtx, packet, opData)
 		task.End()

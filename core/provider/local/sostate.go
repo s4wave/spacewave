@@ -132,9 +132,16 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				}
 
 				// Retain signed changes and state under the same commit boundary.
+				// Only an ordinary local operation may commit ordered; imports
+				// and checkpoints always commit in full.
+				ordered := sobject.OrderedOperation(ctx) && !checkpoint && !peerImport
 				err = kvtx.RunTransaction(ctx, true,
 					func(ctx context.Context) (kvtx.Tx, error) {
-						return objStore.NewTransaction(ctx, true)
+						tx, err := objStore.NewTransaction(ctx, true)
+						if err != nil || !ordered {
+							return tx, err
+						}
+						return kvtx.WithOrderedCommit(tx), nil
 					},
 					func(ctx context.Context, tx kvtx.Tx) error {
 						if checkpoint || peerImport {

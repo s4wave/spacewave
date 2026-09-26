@@ -18,7 +18,9 @@ const chunkSize = 64 * 1024
 //
 // Each Put is one UploadTree call, so the blob is ingested outside the
 // object's write lock and the file and its shard directories land in one
-// commit. Concurrent Puts from several agents overlap their ingest.
+// commit. Concurrent Puts from several agents overlap their ingest. Puts
+// commit ordered; the pre-push hook's flush makes them durable before git
+// sends refs.
 type UnixFSStore struct {
 	// root is the root handle service of the UnixFS object.
 	root s4wave_unixfs.SRPCFSHandleResourceServiceClient
@@ -67,6 +69,7 @@ func (s *UnixFSStore) Put(ctx context.Context, oid string, size int64, rdr io.Re
 				Mode:      0o644,
 			},
 		},
+		OrderedCommit: true,
 	}); err != nil {
 		return err
 	}

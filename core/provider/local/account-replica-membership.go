@@ -165,6 +165,9 @@ func (a *ProviderAccount) enrollAccountMemberObject(ctx context.Context, entry *
 	if err != nil {
 		return nil, err
 	}
+	if err := local.soHost.WaitDurable(ctx); err != nil {
+		return nil, err
+	}
 	return &pairing.SharedObject{Entry: entry.CloneVT(), State: state.CloneVT(), HistoryBase: base, History: history, Genesis: genesis}, nil
 }
 

@@ -173,9 +173,11 @@ func (t orderedCommitTx) Commit(ctx context.Context) error {
 
 // OrderedCommitStore is a store whose write transactions implement
 // OrderedCommitTx. Sync makes every completed ordered commit durable.
+// WaitDurable waits for the same guarantee without forcing a flush.
 type OrderedCommitStore interface {
 	Store
 	Sync(ctx context.Context) error
+	WaitDurable(ctx context.Context) error
 }
 
 // AtomicCommitStore opts into using one physical transaction as a publication

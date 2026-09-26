@@ -93,20 +93,38 @@ type PublicationRetention interface {
 	AccessPublicationRetention(context.Context) (kvtx.Store, func(), error)
 }
 
-// OrderedQueue is implemented by a SharedObject whose durable operation queue
-// write also makes every earlier write to its block store durable. A writer
-// may then queue an operation after writing its blocks without a block store
-// Sync in between.
+// OrderedQueue is implemented by a SharedObject whose operation queue write
+// shares one ordered store with its block store: the queue write never becomes
+// durable before an earlier block write. A writer may then queue an operation
+// after writing its blocks without a block store Sync in between.
 type OrderedQueue interface {
 	// QueueOrdersBlockWrites reports whether queueing orders block writes.
 	QueueOrdersBlockWrites() bool
 }
 
-// QueueOrdersBlockWrites reports whether so's queue write makes its earlier
-// block writes durable.
+// QueueOrdersBlockWrites reports whether so's queue write is ordered after its
+// earlier block writes.
 func QueueOrdersBlockWrites(so SharedObject) bool {
 	ordered, ok := so.(OrderedQueue)
 	return ok && ordered.QueueOrdersBlockWrites()
+}
+
+// orderedOperationKey marks a context whose queued operation may be accepted
+// with an ordered commit.
+type orderedOperationKey struct{}
+
+// WithOrderedOperation marks operations queued with ctx as allowed to be
+// accepted with an ordered commit: applied when QueueOperation returns, and
+// durable at the provider's next durability point. Providers that do not
+// support this ignore the mark.
+func WithOrderedOperation(ctx context.Context) context.Context {
+	return context.WithValue(ctx, orderedOperationKey{}, true)
+}
+
+// OrderedOperation reports whether ctx carries WithOrderedOperation.
+func OrderedOperation(ctx context.Context) bool {
+	ordered, _ := ctx.Value(orderedOperationKey{}).(bool)
+	return ordered
 }
 
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.
