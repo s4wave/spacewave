@@ -9,14 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
-// NewFileWithBlob builds a file with a single root blob.
-func NewFileWithBlob(rootBlob *blob.Blob) *File {
-	return &File{
-		TotalSize: rootBlob.GetTotalSize(),
-		RootBlob:  rootBlob,
-	}
-}
-
 // BuildFileWithBytes builds a file with data, building the root blob.
 // The new root will be stored at bcs.
 func BuildFileWithBytes(
@@ -40,8 +32,11 @@ func BuildFileWithBytes(
 		rootBlobCs,
 		buildBlobOpts,
 	)
+	if err != nil {
+		return nil, err
+	}
 	fn.RootBlob = rootBlob
-	return fn, err
+	return fn, normalizeFile(ctx, bcs, fn, buildBlobOpts)
 }
 
 // BuildFileWithReader builds a file with a reader, building the root blob.
@@ -65,9 +60,21 @@ func BuildFileWithReader(
 		rootBlobCs,
 		buildBlobOpts,
 	)
-
+	if err != nil {
+		return nil, err
+	}
 	fn.RootBlob = rootBlob
 	fn.TotalSize = rootBlob.GetTotalSize()
+	return fn, normalizeFile(ctx, bcs, fn, buildBlobOpts)
+}
 
-	return fn, err
+// normalizeFile places the contents of fn stored at bcs in their canonical
+// shape, matching a file written through a Writer.
+func normalizeFile(
+	ctx context.Context,
+	bcs *block.Cursor,
+	fn *File,
+	buildBlobOpts *blob.BuildBlobOpts,
+) error {
+	return NewWriter(NewHandle(ctx, bcs, fn), nil, buildBlobOpts).normalize()
 }

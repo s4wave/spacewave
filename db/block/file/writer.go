@@ -103,7 +103,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		// set total size to new size
 		w.root.TotalSize = uint64(dataLen)
 		w.bcs.MarkDirty()
-		return nil
+		return w.normalize()
 	}
 
 	// Append directly to an un-ranged root blob when the write is contiguous.
@@ -120,7 +120,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 			w.root.TotalSize = rootBlobEnd
 			w.bcs.MarkDirty()
 		}
-		return nil
+		return w.normalize()
 	}
 
 	// Move the root blob into a range before handling partial writes.
@@ -195,10 +195,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 					w.compactOccludedRanges()
 					w.clearReadState()
 
-					if err := w.moveRangeToRootBlob(); err != nil {
-						return err
-					}
-					return nil
+					return w.normalize()
 				}
 			}
 		}
@@ -247,13 +244,8 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		w.bcs.MarkDirty()
 	}
 
-	// Move the new range back into the root blob when it can be folded.
-	// move range to root blob if possible
-	if err := w.moveRangeToRootBlob(); err != nil {
-		return err
-	}
-
-	return nil
+	// Fold the new range into the root blob when it can be embedded.
+	return w.normalize()
 }
 
 // WriteBytes writes bytes to a blob and then to an index.
@@ -290,12 +282,8 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 		w.bcs.MarkDirty()
 	}
 
-	// move the range to the root blob if possible
-	if err := w.moveRangeToRootBlob(); err != nil {
-		return err
-	}
-
-	return nil
+	// Fold the range into the root blob when it can be embedded.
+	return w.normalize()
 }
 
 // Reset completely clears the contents of the file.
@@ -423,11 +411,8 @@ func (w *Writer) Truncate(size uint64) error {
 	// set the filesize to the new size
 	w.root.TotalSize = size
 
-	// move range to root blob if applicable
-	if err := w.moveRangeToRootBlob(); err != nil {
-		return err
-	}
-	return nil
+	// Place the truncated contents in their canonical shape.
+	return w.normalize()
 }
 
 // moveRootBlobToRange moves the root blob if it is set to a range.
@@ -464,12 +449,43 @@ func (w *Writer) moveRootBlobToRange() error {
 	return nil
 }
 
-// moveRangeToRootBlob moves data to a root blob if there is only a single range
-// with start == 0 or containing zeros only. otherwise does nothing.
+// maxInlineRawBlobSize is the largest raw blob a file block embeds as its root
+// blob. A larger raw blob is stored as its own block and referenced by a range,
+// so a file written from an already stored blob does not copy its bytes.
+const maxInlineRawBlobSize = 4096
+
+// inlineBlob returns whether the file block embeds b as its root blob.
+// A chunked blob embeds its chunk index, which stays small.
+func inlineBlob(b *blob.Blob) bool {
+	return b.GetBlobType() != blob.BlobType_BlobType_RAW || b.GetTotalSize() <= maxInlineRawBlobSize
+}
+
+// normalize places the file contents in their canonical shape, which depends
+// only on the contents and not on the writes that produced them. A root blob
+// that inlineBlob rejects moves to a range, a single range at zero holding an
+// inline blob moves to the root blob, and a remaining single range gets the
+// first nonce.
+func (w *Writer) normalize() error {
+	if !inlineBlob(w.root.GetRootBlob()) {
+		if err := w.moveRootBlobToRange(); err != nil {
+			return err
+		}
+	}
+	if err := w.moveRangeToRootBlob(); err != nil {
+		return err
+	}
+	if len(w.root.GetRanges()) == 1 {
+		w.root.Ranges[0].Nonce = 0
+		w.root.RangeNonce = 1
+		w.bcs.MarkDirty()
+	}
+	return nil
+}
+
+// moveRangeToRootBlob embeds the blob of a single range starting at zero into
+// the file block when inlineBlob allows it. Otherwise it does nothing.
 func (w *Writer) moveRangeToRootBlob() error {
 	ranges := w.root.GetRanges()
-
-	// note: can probably remove the ranges[0].getstart check here.
 	if len(ranges) != 1 || ranges[0].GetStart() != 0 {
 		return nil
 	}
@@ -481,9 +497,7 @@ func (w *Writer) moveRangeToRootBlob() error {
 	if err != nil {
 		return err
 	}
-
-	// skip moving range if it is non-zeros and starts at an offset
-	if nrootBlob != nil && rootRange.GetStart() != 0 {
+	if !inlineBlob(nrootBlob) {
 		return nil
 	}
 
