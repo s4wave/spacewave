@@ -74,7 +74,7 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		}
 		peerIDString := peerID.String()
 		if peerIDString == kp.GetPeerId() || peerID.MatchesPublicKey(pubKey) {
-			return errors.Wrapf(err, "keypairs[%d] already contains peer %s", i, kp.GetPeerId())
+			return errors.Errorf("keypairs[%d] already contains peer %s", i, kp.GetPeerId())
 		}
 	}
 
@@ -123,6 +123,9 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 		pubKey, err := kpSig.ParsePubKey()
 		if err != nil {
 			return nil, errors.Wrapf(err, "keypair_signatures[%d]: pubkey:", i)
+		}
+		if pubKey == nil {
+			return nil, errors.Errorf("keypair_signatures[%d]: pubkey: missing", i)
 		}
 		kp := ekp.GetKeypair()
 		peerID, err := kp.ParsePeerID()

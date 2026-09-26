@@ -2,8 +2,8 @@ package identity_domain_service
 
 import (
 	"context"
-	"errors"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/crypto"
 	stream_srpc_client "github.com/s4wave/spacewave/net/stream/srpc/client"
@@ -44,5 +44,27 @@ func LookupEntity(
 	if len(lookupErr) != 0 {
 		return nil, errors.New(lookupErr)
 	}
-	return resp.GetLookupEntity(), nil
+	ent := resp.GetLookupEntity()
+	if err := ValidateLookupEntity(ent, domainID, entityID); err != nil {
+		return nil, err
+	}
+	return ent, nil
+}
+
+// ValidateLookupEntity checks that a looked-up entity is valid and matches the
+// requested domain and entity ID.
+func ValidateLookupEntity(ent *identity.Entity, domainID, entityID string) error {
+	if ent == nil {
+		return errors.New("lookup returned empty entity")
+	}
+	if got := ent.GetDomainId(); got != domainID {
+		return errors.Errorf("lookup returned domain id %q but expected %q", got, domainID)
+	}
+	if got := ent.GetEntityId(); got != entityID {
+		return errors.Errorf("lookup returned entity id %q but expected %q", got, entityID)
+	}
+	if err := ent.Validate(); err != nil {
+		return errors.Wrap(err, "lookup returned invalid entity")
+	}
+	return nil
 }

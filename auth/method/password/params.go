@@ -24,6 +24,17 @@ const DefaultScryptR = 8
 // DefaultScryptP is the default scrypt p parameter.
 const DefaultScryptP = 1
 
+// MaxScryptN is the maximum accepted scrypt N parameter (log2 cost).
+//
+// Bounds the memory and time of deriving keys from untrusted parameters.
+const MaxScryptN = DefaultScryptN
+
+// MaxScryptR is the maximum accepted scrypt r parameter.
+const MaxScryptR = DefaultScryptR
+
+// MaxScryptP is the maximum accepted scrypt p parameter.
+const MaxScryptP = 4
+
 // saltLen is the required salt length.
 const saltLen = 16
 
@@ -67,6 +78,11 @@ func buildParametersWithUsernamePassword(username string, password []byte, n, r,
 
 // deriveKey derives an Ed25519 private key from parameters and password.
 func deriveKey(params *Parameters, password []byte) (crypto.PrivKey, error) {
+	// Reject parameters outside the accepted KDF bounds.
+	if err := params.Validate(); err != nil {
+		return nil, err
+	}
+
 	// Resolve default KDF parameters when the record omits them.
 	n := params.GetScryptN()
 	if n == 0 {
@@ -103,6 +119,15 @@ func deriveKey(params *Parameters, password []byte) (crypto.PrivKey, error) {
 func (p *Parameters) Validate() error {
 	if len(p.GetSalt()) != saltLen {
 		return errors.Errorf("expected salt len %d but got %d", saltLen, len(p.GetSalt()))
+	}
+	if n := p.GetScryptN(); n > MaxScryptN {
+		return errors.Errorf("scrypt n %d exceeds maximum %d", n, MaxScryptN)
+	}
+	if r := p.GetScryptR(); r > MaxScryptR {
+		return errors.Errorf("scrypt r %d exceeds maximum %d", r, MaxScryptR)
+	}
+	if sp := p.GetScryptP(); sp > MaxScryptP {
+		return errors.Errorf("scrypt p %d exceeds maximum %d", sp, MaxScryptP)
 	}
 	return nil
 }

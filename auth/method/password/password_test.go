@@ -117,3 +117,39 @@ func TestAuthenticate(t *testing.T) {
 		t.Fatalf("authenticate should produce same key: %s != %s", pid1, pid2)
 	}
 }
+
+// TestValidateScryptBounds tests that oversized scrypt parameters are rejected.
+func TestValidateScryptBounds(t *testing.T) {
+	salt := make([]byte, saltLen)
+	valid := []*Parameters{
+		{Salt: salt},
+		{Salt: salt, ScryptN: DefaultScryptN, ScryptR: DefaultScryptR, ScryptP: DefaultScryptP},
+	}
+	for i, params := range valid {
+		if err := params.Validate(); err != nil {
+			t.Fatalf("valid[%d]: %v", i, err)
+		}
+	}
+	invalid := []*Parameters{
+		{Salt: salt, ScryptN: MaxScryptN + 1},
+		{Salt: salt, ScryptN: 63},
+		{Salt: salt, ScryptR: MaxScryptR + 1},
+		{Salt: salt, ScryptP: MaxScryptP + 1},
+	}
+	method := NewPasswordMethod()
+	for i, params := range invalid {
+		if err := params.Validate(); err == nil {
+			t.Fatalf("invalid[%d]: expected validate error", i)
+		}
+		data, err := params.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := method.UnmarshalParameters(data); err == nil {
+			t.Fatalf("invalid[%d]: expected unmarshal error", i)
+		}
+		if _, err := method.Authenticate(params, []byte("pw")); err == nil {
+			t.Fatalf("invalid[%d]: expected authenticate error", i)
+		}
+	}
+}
