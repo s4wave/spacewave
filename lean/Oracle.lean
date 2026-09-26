@@ -86,7 +86,7 @@ per line. A request names a model function in `op` and carries its inputs:
 - `buildSelfEnrollGrant`: grant inputs and primitive encrypted byte identities.
 - `buildLeave`: `request`, `signOK`; result `{"ok", "request"}`.
 - `verifyLeave`: `request`; result `{"ok", "peers"}`.
-- `leaveProofsRemainCurrent`: `peers`, `changes`; result `{"ok"}`.
+- `leaveProofsRemainCurrent`: `peers`, `signed`, `changes`; result `{"ok"}`.
 - `completedLeave`: `requestHash`, `changes`; result `{"ok", "changes"}`.
 - `leaveTrace`: `request`, `hostId`, `requestHash`, `attempts`; result `{"ok", "leave"}`.
 - `reencryptState`: `input`; result `{"ok", "reencrypted"}`.
@@ -433,7 +433,7 @@ def respond (req : Json) : Except String Json := do
     return json% {ok: $(result.isSome), peers: $result}
   | "leaveProofsRemainCurrent" =>
     return json% {ok: $(leaveProofsRemainCurrent (← req.getObjValAs? (List String) "peers")
-      (← req.getObjValAs? (List LeaveChange) "changes"))}
+      (← req.getObjValAs? Config "signed") (← req.getObjValAs? (List LeaveChange) "changes"))}
   | "completedLeave" =>
     let result := completedLeave (← req.getObjValAs? String "requestHash")
       (← req.getObjValAs? (List LeaveChange) "changes")

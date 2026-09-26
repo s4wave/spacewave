@@ -32,6 +32,9 @@ type SOHostSyncFuncs struct {
 	// History returns a bounded oldest-first suffix between two exact head hashes.
 	// It returns ErrConfigHistoryUnavailable for missing or divergent history.
 	History func(context.Context, string, []byte, []byte) ([]*SOConfigChange, error)
+	// Entry returns the retained configuration change addressed by its hash, or
+	// nil when it is not retained.
+	Entry func(context.Context, string, []byte) (*SOConfigChange, error)
 }
 
 // ReadConfigSuffix follows retained hash-addressed entries from target to base.

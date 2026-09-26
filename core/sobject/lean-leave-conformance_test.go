@@ -61,6 +61,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	base.Config.ConfigChainSeqno = seed%19 + 1
 	base.Config.Participants[1].Role = SOParticipantRole(seed%3 + 1)
 	base.Config.Participants[2].Role = SOParticipantRole(seed/3%3 + 1)
+	signed := leanLeaveSignedHead(t, base.Config)
 	base.Root = createMockSORoot(t, 1, peers[0])
 	_, grants, _, err := RotateTransformKey(keys[0], mockSharedObjectID, base.Config.Participants, 1, 1)
 	if err != nil {
@@ -218,8 +219,10 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		}
 		attempt.Set("latest", projectLeanConfig(snapshot.Config).json(a))
 		attempt.Set("history", a.NewNull())
+		attempt.Set("signed", a.NewNull())
 		if historyOK {
 			attempt.Set("history", projectLeanLeaveChanges(projection, history))
+			attempt.Set("signed", projectLeanConfig(base.Config).json(a))
 		}
 		attempt.Set("sig", projectedEntry.Get("sig"))
 		attempt.Set("hash", projectedEntry.Get("hash"))
@@ -229,6 +232,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		attempts := a.NewArray()
 		attempts.SetArrayItem(0, attempt)
 		store := &leanHostStore{state: previous.CloneVT(), lockOK: lockOK, writeOK: writeOK}
+		retained := map[string]*SOConfigChange{string(base.Config.ConfigChainHash): signed}
 		watch := ccontainer.NewCContainer[*SOState](snapshot)
 		host := NewSOHost(t.Context(), func(context.Context, string, func()) (ccontainer.Watchable[*SOState], func(), error) {
 			if !watchOK {
@@ -240,6 +244,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 				return nil, errors.New("injected history failure")
 			}
 			return history, nil
+		}, Entry: func(_ context.Context, _ string, hash []byte) (*SOConfigChange, error) {
+			return retained[string(hash)], nil
 		}})
 		response, callErr := LeaveSOParticipants(t.Context(), host, signer, request)
 		result := a.NewNull()
@@ -316,13 +322,14 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		req = a.NewObject()
 		req.Set("op", a.NewString("leaveProofsRemainCurrent"))
 		req.Set("peers", leanLeavePeers(a, rawPeers))
+		req.Set("signed", projectLeanConfig(base.Config).json(a))
 		req.Set("changes", projectLeanLeaveChanges(projection, history))
 		cases = append(cases, leanCase{
 			name: "leaveProofsRemainCurrent" + name, request: req.MarshalTo(nil),
-			ok: leaveProofsRemainCurrent(rawPeers, history),
+			ok: leaveProofsRemainCurrent(rawPeers, base.Config, history),
 		})
 	}
-	cases = append(cases, runLeanLeaveRetry(t, projection, base.Config, keys[0], keys[1], seed)...)
+	cases = append(cases, runLeanLeaveRetry(t, projection, base.Config, signed, keys[0], keys[1], seed)...)
 	return cases
 }
 
@@ -343,6 +350,24 @@ func projectLeanLeaveRequest(t *testing.T, a *fastjson.Arena, request *SOLeaveRe
 	result.Set("configHash", a.NewString(hex.EncodeToString(request.GetConfigHash())))
 	result.Set("signatures", signatures)
 	return result
+}
+
+// leanLeaveSignedHead addresses a seeded configuration by a retained entry, as
+// provider history does for every head a participant can sign.
+func leanLeaveSignedHead(t *testing.T, config *SharedObjectConfig) *SOConfigChange {
+	t.Helper()
+	entry := &SOConfigChange{
+		ConfigSeqno: config.GetConfigChainSeqno(),
+		Config:      config.CloneVT(),
+		ChangeType:  SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE,
+	}
+	entry.Config.ConfigChainHash = nil
+	hash, err := HashSOConfigChange(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.ConfigChainHash = hash
+	return entry
 }
 
 // projectLeanLeaveChanges retains each signed entry and the exact consent-request identity.
@@ -369,11 +394,11 @@ func leanLeavePeers(a *fastjson.Arena, peers []string) *fastjson.Value {
 
 // runLeanLeaveRetry forces one real optimistic conflict and retains both observed attempts.
 func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *SharedObjectConfig,
-	owner, departing crypto.PrivKey, seed uint64,
+	signed *SOConfigChange, owner, departing crypto.PrivKey, seed uint64,
 ) []leanCase {
 	t.Helper()
 	a := &projection.arena
-	host, state := newLeaveTestHost(t.Context(), config)
+	host, state := newLeaveTestHost(t, config, signed)
 	request, err := BuildSOLeaveRequest(mockSharedObjectID, config.GetConfigChainHash(), departing)
 	if err != nil {
 		t.Fatal(err)
@@ -426,6 +451,7 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		attempt.Set("snapshot", projectLeanConfig(snapshot).json(a))
 		attempt.Set("latest", projectLeanConfig(advanced.Config).json(a))
 		attempt.Set("history", projectLeanLeaveChanges(projection, []*SOConfigChange{advance}))
+		attempt.Set("signed", projectLeanConfig(config).json(a))
 		attempt.Set("sig", projected.Get("sig"))
 		attempt.Set("hash", projected.Get("hash"))
 		attempt.Set("buildOK", a.NewTrue())

@@ -3,11 +3,10 @@ import Spacewave.SObject.Host
 /-!
 # Voluntary SharedObject departure
 
-Mirrors `core/sobject/leave.go` at Spacewave `cde42d69c`, with the omitted-key
-rejection added in this unit. Each independently authenticated identity
+Mirrors `core/sobject/leave.go`. Each independently authenticated identity
 consents only to its own removal; publication still requires a current owner.
-Retained history, watched snapshots and primitive signature/hash outcomes are
-provider inputs. The model computes membership, rebasing and retry decisions.
+Retained history, the retained configuration at the signed head, watched
+snapshots and primitive signature/hash outcomes are provider inputs. The model computes membership, rebasing and retry decisions.
 
 One attempt distinguishes failure, completion and retry. Finite traces may
 remain pending: no eventual scheduling or quiescence guarantee is assumed.
@@ -53,15 +52,13 @@ def completedLeave (requestHash : String) : List LeaveChange → Option (List Le
     if change.requestHash = requestHash then some [change]
     else (completedLeave requestHash rest).map (change :: ·)
 
-/-- leaveProofsRemainCurrent rejects admission ambiguity and any interrupted membership. -/
-def leaveProofsRemainCurrent (peers : List String) (changes : List LeaveChange) : Bool :=
-  match changes with
-  | [] => false
-  | first :: _ =>
-    first.entry.kind ∈ [ChangeType.removeParticipant, ChangeType.addInvite,
-      ChangeType.revokeInvite, ChangeType.incrementInviteUses] &&
-      changes.all (fun change => peers.all fun peer =>
-        ((change.entry.config.map (·.participants)).getD []).any (·.peer == peer))
+/-- leaveProofsRemainCurrent requires admission at the signed head and no interrupted membership. -/
+def leaveProofsRemainCurrent (peers : List String) (signed : Config)
+    (changes : List LeaveChange) : Bool :=
+  !changes.isEmpty &&
+    peers.all (fun peer => signed.participants.any (·.peer == peer)) &&
+    changes.all (fun change => peers.all fun peer =>
+      ((change.entry.config.map (·.participants)).getD []).any (·.peer == peer))
 
 /-- leaveConfig filters exactly the identities authenticated by the request. -/
 def leaveConfig (config : Config) (peers : List String) : Config :=
@@ -89,6 +86,7 @@ structure LeaveAttempt where
   previous : State
   snapshot : Option Config
   history : Option (List LeaveChange)
+  signed : Option Config
   latest : Option Config
   sig : Sig
   hash : String
@@ -131,7 +129,8 @@ def leaveAttempt (request : LeaveRequest) (hostId requestHash : String)
       match completedLeave requestHash history with
       | some portion => some ⟨false, portion, ⟨attempt.previous, false, false⟩⟩
       | none =>
-        if leaveProofsRemainCurrent peers history then
+        let signed ← attempt.signed
+        if leaveProofsRemainCurrent peers signed history then
           publishLeave attempt snapshot peers requestHash history
         else none
 
@@ -199,18 +198,18 @@ theorem completedLeave_prefix {requestHash : String} {history portion : List Lea
         | nil => simp at ended
         | cons head tail => simpa using ended
 
-/-- Rebasing cannot pass an entry in which any consenting peer was absent. -/
-theorem leaveProofsRemainCurrent_members {peers : List String} {history : List LeaveChange}
-    (h : leaveProofsRemainCurrent peers history = true) :
-    ∀ change ∈ history, ∀ peer ∈ peers,
-      ∃ p ∈ ((change.entry.config.map (·.participants)).getD []), p.peer = peer := by
-  cases history with
-  | nil => simp [leaveProofsRemainCurrent] at h
-  | cons first rest =>
-    simp only [leaveProofsRemainCurrent, Bool.and_eq_true] at h
-    intro change member peer present
-    have audience := List.all_eq_true.mp (List.all_eq_true.mp h.2 change member) peer present
-    simpa using audience
+/-- Rebasing requires every consenting peer at the signed head and in every later entry. -/
+theorem leaveProofsRemainCurrent_members {peers : List String} {signed : Config}
+    {history : List LeaveChange}
+    (h : leaveProofsRemainCurrent peers signed history = true) :
+    (∀ peer ∈ peers, ∃ p ∈ signed.participants, p.peer = peer) ∧
+      ∀ change ∈ history, ∀ peer ∈ peers,
+        ∃ p ∈ ((change.entry.config.map (·.participants)).getD []), p.peer = peer := by
+  simp only [leaveProofsRemainCurrent, Bool.and_eq_true] at h
+  obtain ⟨⟨_, admitted⟩, retained⟩ := h
+  refine ⟨fun peer present => ?_, fun change member peer present => ?_⟩
+  · simpa using List.all_eq_true.mp admitted peer present
+  · simpa using List.all_eq_true.mp (List.all_eq_true.mp retained change member) peer present
 
 /-- A departure preserves every nonconsenting participant with all its fields unchanged. -/
 theorem leaveConfig_members {config : Config} {peers : List String} {p : Participant} :
@@ -292,9 +291,13 @@ theorem leaveAttempt_published {request : LeaveRequest} {hostId requestHash : St
             simp only [historyEq, Option.bind_some] at h
             split at h
             · cases h; contradiction
-            · split at h
-              · exact ⟨peers, snapshot, history, rfl, rfl, h⟩
-              · contradiction
+            · cases signedEq : attempt.signed with
+              | none => simp [signedEq] at h
+              | some signed =>
+                simp only [signedEq, Option.bind_some] at h
+                split at h
+                · exact ⟨peers, snapshot, history, rfl, rfl, h⟩
+                · contradiction
 
 /-- Published membership is filtered only by authenticated consenting peers and signed by an owner. -/
 theorem leaveAttempt_authorized {request : LeaveRequest} {hostId requestHash : String}

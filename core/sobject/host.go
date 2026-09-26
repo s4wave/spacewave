@@ -145,6 +145,28 @@ func (s *SOHost) ReadConfigHistory(ctx context.Context, base, target []byte) ([]
 	return s.syncFuncs.History(ctx, s.sharedObjectID, base, target)
 }
 
+// ReadConfigEntry returns the retained transition that produced an exact head.
+func (s *SOHost) ReadConfigEntry(ctx context.Context, head []byte) (*SOConfigChange, error) {
+	if s.syncFuncs.Entry == nil || len(head) == 0 {
+		return nil, ErrConfigHistoryUnavailable
+	}
+	entry, err := s.syncFuncs.Entry(ctx, s.sharedObjectID, head)
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, ErrConfigHistoryUnavailable
+	}
+	hash, err := HashSOConfigChange(entry)
+	if err != nil {
+		return nil, err
+	}
+	if !bytes.Equal(hash, head) {
+		return nil, ErrConfigHistoryUnavailable
+	}
+	return entry, nil
+}
+
 // ImportPeerSnapshot verifies a candidate against held authority and commits it
 // with its lineage. Access validation runs under the provider lock and must not
 // reacquire host state. A committed local removal returns ErrParticipantRevoked.

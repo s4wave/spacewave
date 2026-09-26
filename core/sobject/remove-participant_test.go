@@ -30,7 +30,7 @@ func TestRemoveSOParticipantsAtomicallyRemovesAudience(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host, state := newLeaveTestHost(ctx, checkpoint)
+	host, state := newLeaveTestHost(t, checkpoint)
 
 	removed, err := RemoveSOParticipants(ctx, host, []string{
 		peers[1].GetPeerID().String(), peers[2].GetPeerID().String(),
@@ -75,7 +75,7 @@ func TestRemoveSOParticipantPreservesCreatorContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host, state := newLeaveTestHost(ctx, checkpoint)
+	host, state := newLeaveTestHost(t, checkpoint)
 	transform, grants, _, err := RotateTransformKey(creator, mockSharedObjectID, initial.GetParticipants(), 1, 1)
 	if err != nil {
 		t.Fatal(err)
