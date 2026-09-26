@@ -1,0 +1,11 @@
+syntax = "proto3";
+package plugin.space.runtime;
+
+import "github.com/s4wave/spacewave/core/plugin/space/config.proto";
+
+// Config configures the shared plugin runtime of one Space.
+// Contents mounts with equal configs share one runtime.
+message Config {
+  // Space configures the plugin/space controller inside the runtime.
+  .plugin.space.Config space = 1;
+}

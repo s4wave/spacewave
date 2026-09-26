@@ -11,6 +11,9 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
+// settingsPluginID is the plugin the settings tests install.
+const settingsPluginID = "test-settings-plugin"
+
 // TestInstallSpacePluginArtifact exercises persistence and identity validation
 // through the public RPC, including reopening the Resource and uninstalling.
 func TestInstallSpacePluginArtifact(t *testing.T) {
@@ -20,7 +23,7 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-	ref := createPluginReadinessManifest(t, ctx, tb)
+	ref := createSpacePluginManifest(t, ctx, tb, settingsPluginID, "test/platform", 1)
 	key := manifest.NewManifestArtifactKey(ref.GetManifestRef())
 	if _, _, err := manifest_world.SetManifest(ctx, tb.WorldState, "", key, ref.GetManifestRef()); err != nil {
 		t.Fatal(err)
@@ -28,7 +31,7 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 	body := &spaceResourceChatBody{engine: tb.BusEngine, engineID: tb.EngineID, bucketID: tb.EngineBucketID}
 	resource := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, tb.Volume.GetPeerID().String())
 	client := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, resource.GetMux()))
-	request := &s4wave_space.AddSpacePluginRequest{PluginId: pluginReadinessPluginID, ManifestKey: key}
+	request := &s4wave_space.AddSpacePluginRequest{PluginId: settingsPluginID, ManifestKey: key}
 	if _, err := client.AddSpacePlugin(ctx, request); err != nil {
 		t.Fatal(err)
 	}
@@ -36,14 +39,14 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 	// Reopening and a repeated name-only install preserve the selected artifact.
 	reopened := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, tb.Volume.GetPeerID().String())
 	reopenedClient := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceResourceClient(t, reopened.GetMux()))
-	if _, err := reopenedClient.AddSpacePlugin(ctx, &s4wave_space.AddSpacePluginRequest{PluginId: pluginReadinessPluginID}); err != nil {
+	if _, err := reopenedClient.AddSpacePlugin(ctx, &s4wave_space.AddSpacePluginRequest{PluginId: settingsPluginID}); err != nil {
 		t.Fatal(err)
 	}
 	settings, err := space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
-	if err != nil || !slices.Equal(settings.GetPluginInstallations()[pluginReadinessPluginID].GetManifestKeys(), []string{key}) {
+	if err != nil || !slices.Equal(settings.GetPluginInstallations()[settingsPluginID].GetManifestKeys(), []string{key}) {
 		t.Fatalf("installed artifact did not survive Resource reopen: %v", err)
 	}
-	selected, err := space_world.LookupSpacePluginManifest(ctx, tb.WorldState, pluginReadinessPluginID, key)
+	selected, err := space_world.LookupSpacePluginManifest(ctx, tb.WorldState, settingsPluginID, key)
 	if err != nil || !selected.GetManifestRef().GetRootRef().EqualVT(ref.GetManifestRef().GetRootRef()) {
 		t.Fatalf("installed artifact changed identity: %v", err)
 	}
@@ -51,18 +54,18 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 	// reopen. Explicitly selecting an earlier version moves it to the front once.
 	expected := []string{key}
 	for _, revision := range []uint64{8, 9} {
-		ref := createSpacePluginManifest(t, ctx, tb, pluginReadinessPluginID, "js", revision)
+		ref := createSpacePluginManifest(t, ctx, tb, settingsPluginID, "js", revision)
 		nextKey := manifest.NewManifestArtifactKey(ref.GetManifestRef())
 		if _, _, err := manifest_world.SetManifest(ctx, tb.WorldState, "", nextKey, ref.GetManifestRef()); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := reopenedClient.AddSpacePlugin(ctx, &s4wave_space.AddSpacePluginRequest{PluginId: pluginReadinessPluginID, ManifestKey: nextKey}); err != nil {
+		if _, err := reopenedClient.AddSpacePlugin(ctx, &s4wave_space.AddSpacePluginRequest{PluginId: settingsPluginID, ManifestKey: nextKey}); err != nil {
 			t.Fatal(err)
 		}
 		expected = append([]string{nextKey}, expected...)
 	}
 	settings, err = space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
-	if err != nil || !slices.Equal(settings.GetPluginInstallations()[pluginReadinessPluginID].GetManifestKeys(), expected) {
+	if err != nil || !slices.Equal(settings.GetPluginInstallations()[settingsPluginID].GetManifestKeys(), expected) {
 		t.Fatalf("installation lost its recovery artifacts: %v", err)
 	}
 	if _, err := reopenedClient.AddSpacePlugin(ctx, request); err != nil {
@@ -70,18 +73,18 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 	}
 	settings, err = space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
 	expected = append([]string{key}, expected[:2]...)
-	if err != nil || !slices.Equal(settings.GetPluginInstallations()[pluginReadinessPluginID].GetManifestKeys(), expected) {
+	if err != nil || !slices.Equal(settings.GetPluginInstallations()[settingsPluginID].GetManifestKeys(), expected) {
 		t.Fatalf("explicit earlier install duplicated or lost an artifact: %v", err)
 	}
 	request.PluginId = "different-plugin"
 	if _, err := client.AddSpacePlugin(ctx, request); err == nil {
 		t.Fatal("installed another plugin's artifact")
 	}
-	request.PluginId, request.ManifestKey = pluginReadinessPluginID, "missing-artifact"
+	request.PluginId, request.ManifestKey = settingsPluginID, "missing-artifact"
 	if _, err := client.AddSpacePlugin(ctx, request); err == nil {
 		t.Fatal("installed a missing artifact")
 	}
-	if _, err := reopenedClient.RemoveSpacePlugin(ctx, &s4wave_space.RemoveSpacePluginRequest{PluginId: pluginReadinessPluginID}); err != nil {
+	if _, err := reopenedClient.RemoveSpacePlugin(ctx, &s4wave_space.RemoveSpacePluginRequest{PluginId: settingsPluginID}); err != nil {
 		t.Fatal(err)
 	}
 	settings, err = space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
