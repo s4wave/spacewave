@@ -54,3 +54,21 @@ func TestSyncRecoveryRequiresConvergence(t *testing.T) {
 		t.Fatal("recovery update mutated an earlier health snapshot")
 	}
 }
+
+// TestWithoutSyncDenialsKeepsRecovery forgets admission denials for a replaced
+// grant while keeping recovery requirements and earlier snapshots.
+func TestWithoutSyncDenialsKeepsRecovery(t *testing.T) {
+	denied := NewSharedObjectReadyHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT).
+		WithSyncPeerAdmission("owner", false).
+		WithSyncPeerRecovery("peer-a", true)
+	cleared := denied.WithoutSyncDenials()
+	if len(cleared.GetSyncDeniedPeerIds()) != 0 || len(cleared.GetSyncRecoveryPeerIds()) != 1 {
+		t.Fatalf("denied = %v, recovery = %v", cleared.GetSyncDeniedPeerIds(), cleared.GetSyncRecoveryPeerIds())
+	}
+	if len(denied.GetSyncDeniedPeerIds()) != 1 {
+		t.Fatal("clearing denials mutated the earlier snapshot")
+	}
+	if unchanged := cleared.WithoutSyncDenials(); unchanged != cleared {
+		t.Fatal("clearing no denials produced another watch update")
+	}
+}
