@@ -36,11 +36,19 @@ type httpTransport struct {
 // A 200 OK (non-partial) response is accepted as a best-effort fallback for
 // servers that ignore Range; prefix bytes are skipped. Short reads at the
 // end of the pack return the partial slice without error so the caller can
-// detect EOF by comparing lengths.
+// detect EOF by comparing lengths. A network error or 5xx response is
+// retried once.
 func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
 	if length <= 0 {
 		return nil, nil
 	}
+	return fetchWithRetry(ctx, func() ([]byte, error) {
+		return t.fetchOnce(ctx, off, length)
+	})
+}
+
+// fetchOnce issues one HTTP range request.
+func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "build range request")
@@ -55,13 +63,16 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 
 	resp, err := t.cli.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "range request")
+		return nil, &transientError{err: errors.Wrap(err, "range request")}
 	}
 	if t.observeResp != nil {
 		t.observeResp(resp)
 	}
 	defer httpclient.DrainAndCloseResponseBody(resp)
 
+	if resp.StatusCode >= http.StatusInternalServerError {
+		return nil, &transientError{err: errors.Errorf("range request returned status %d", resp.StatusCode)}
+	}
 	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("range request returned status %d", resp.StatusCode)
 	}
@@ -70,7 +81,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 			if err == io.EOF {
 				return nil, nil
 			}
-			return nil, errors.Wrap(err, "skipping prefix from full-body response")
+			return nil, &transientError{err: errors.Wrap(err, "skipping prefix from full-body response")}
 		}
 		t.recordFullResponseFallback(off)
 	}
@@ -81,7 +92,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 		return buf[:n], nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "reading range response")
+		return nil, &transientError{err: errors.Wrap(err, "reading range response")}
 	}
 	return buf[:n], nil
 }
@@ -110,15 +121,13 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 // NewHTTPRangeReader builds a per-pack engine backed by HTTP range requests.
 //
 // readAheadSize sets the engine's minimum transport window (and alignment
-// quantum). pageSize sets the span store's page size. Either may be zero to
-// accept the defaults. signReq optionally mutates the outgoing request
-// (for signed CDN access).
+// quantum); zero accepts the default. signReq optionally mutates the
+// outgoing request (for signed CDN access).
 func NewHTTPRangeReader(
 	cli *http.Client,
 	url string,
 	size int64,
 	readAheadSize int,
-	pageSize int,
 	signReq func(*http.Request) error,
 	observeResp func(*http.Response),
 ) *PackReader {
@@ -137,9 +146,6 @@ func NewHTTPRangeReader(
 		e.minWindow = readAheadSize
 		e.transportQuantum = readAheadSize
 		e.currentWindow = readAheadSize
-	}
-	if pageSize > 0 {
-		e.pageSize = pageSize
 	}
 	e.normalizeTransportLocked()
 	return e

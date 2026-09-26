@@ -1,8 +1,6 @@
 package store
 
 type engineTuningOverrides struct {
-	pageSizeSet         bool
-	pageSize            int
 	minWindowSet        bool
 	minWindow           int
 	transportQuantumSet bool
@@ -18,9 +16,6 @@ type engineTuningOverrides struct {
 }
 
 func (o engineTuningOverrides) apply(e *PackReader) {
-	if o.pageSizeSet {
-		e.SetTransportPageSize(o.pageSize)
-	}
 	if o.minWindowSet {
 		e.SetTransportMinWindow(o.minWindow)
 	}
@@ -38,21 +33,6 @@ func (o engineTuningOverrides) apply(e *PackReader) {
 	}
 	if o.indexPromotionSet {
 		e.SetIndexPromotionEnabled(o.indexPromotion)
-	}
-}
-
-// SetTransportPageSize sets the resident span page size on all engines.
-func (s *PackfileStore) SetTransportPageSize(pageSize int) {
-	if pageSize <= 0 {
-		return
-	}
-	s.mtx.Lock()
-	s.tuningOverrides.pageSizeSet = true
-	s.tuningOverrides.pageSize = pageSize
-	engines := s.snapshotEnginesLocked()
-	s.mtx.Unlock()
-	for _, e := range engines {
-		e.SetTransportPageSize(pageSize)
 	}
 }
 

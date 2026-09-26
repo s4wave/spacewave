@@ -1555,7 +1555,7 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	if firstCalls == 0 {
 		t.Fatal("expected transport fetches on first GetBlock")
 	}
-	// Wait for the block to transition to Verified/Published so the second
+	// Wait for the block to transition to Verified so the second
 	// read can hit the fast path.
 	eng, err := store.getOrOpenEngine("cache-pack", int64(len(packBytes)), 1)
 	if err != nil {
@@ -1566,7 +1566,7 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 		var waitCh <-chan struct{}
 		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			rec := eng.blocks[alphaHash.MarshalString()]
-			ready = rec != nil && (rec.state == blockStateVerified || rec.state == blockStatePublished)
+			ready = rec != nil && rec.state == blockStateVerified
 			if !ready {
 				waitCh = getWaitCh()
 			}
@@ -1811,9 +1811,11 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	store.SetWriteback(ctx, nil, 0)
 
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
-	// The first read fails on the corrupted value.
-	if _, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err == nil {
-		t.Fatal("expected corrupted read to fail")
+	// The first read never serves the corrupted value. It fails, or it
+	// returns the refetched value when background verification rejected the
+	// corrupted span before the read covered it.
+	if got, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err == nil && string(got) != "alpha" {
+		t.Fatalf("corrupted read returned %q", got)
 	}
 
 	// Observe rejection rather than transient catalog absence: a valid retry
@@ -1962,7 +1964,7 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 			if err != nil {
 				t.Fatal(err)
 			}
-			sp := newSpan(int64(i*16), defaultTransportPageBytes, value)
+			sp := newSpan(int64(i*16), value)
 			eng.insertSpanLocked(sp)
 			eng.retainSpansLocked([]*span{sp})
 			rec := &blockRecord{
@@ -1972,7 +1974,6 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 				size:      int64(len(value)),
 				spans:     []*span{sp},
 				state:     blockStateVerifying,
-				readyCh:   make(chan struct{}),
 				queued:    true,
 				enqueueAt: time.Now(),
 			}

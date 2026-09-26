@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"io"
 	"math"
@@ -22,8 +23,6 @@ const (
 	defaultTransportMinWindow = 1 * 1024 * 1024
 	// defaultTransportMaxWindow caps any single transport window.
 	defaultTransportMaxWindow = 128 * 1024 * 1024
-	// defaultTransportPageBytes is the internal page size for resident spans.
-	defaultTransportPageBytes = 4 * 1024
 	// defaultTransportTargetHz is the steady-state request-rate target.
 	defaultTransportTargetHz = 4.0
 	// defaultTransportWindowSmoothing is the weight for upward window growth.
@@ -33,7 +32,8 @@ const (
 	// defaultSparseLocalityDistance is the distance that promotes sparse
 	// reads into the normal adaptive window path.
 	defaultSparseLocalityDistance = 512 * 1024
-	// defaultResidentBudget is the default resident-byte budget per engine.
+	// defaultResidentBudget is the default resident-byte budget of a store,
+	// or of a reader opened outside a store.
 	defaultResidentBudget = 256 * 1024 * 1024
 	// defaultWritebackWindow is the default semantic co-block window.
 	defaultWritebackWindow = 128 * 1024
@@ -79,7 +79,6 @@ type PackReader struct {
 	workCount int
 
 	// Tuning (mutable via setters, guarded by bcast).
-	pageSize               int
 	minWindow              int
 	transportQuantum       int
 	maxWindow              int
@@ -90,14 +89,17 @@ type PackReader struct {
 	sparseReads            bool
 	sparseColdWindow       int
 	sparseLocalityDistance int64
-	maxBytes               int64
 	writebackWindow        int64
 	indexPromotion         bool
 
-	// Span store.
+	// Span store. spans are sorted by offset and disjoint. lru orders the
+	// unpinned spans from least to most recently used. newest is the span
+	// inserted last, which eviction skips until a reader can consume it.
 	spans         []*span
+	lru           list.List
+	newest        *span
 	residentBytes int64
-	useSeq        uint64
+	budget        *residentBudget
 	loading       map[fetchKey]*fetchLoad
 
 	// Adaptive window tracking.
@@ -147,14 +149,13 @@ type PackReader struct {
 // NewPackReader builds a per-pack access engine wrapping a transport.
 func NewPackReader(packID string, size int64, transport Transport, hashType hash.HashType) *PackReader {
 	ctx, cancel := newPackReaderContext()
-	return &PackReader{
+	e := &PackReader{
 		ctx:                    ctx,
 		cancel:                 cancel,
 		packID:                 packID,
 		size:                   size,
 		transport:              transport,
 		hashType:               hashType,
-		pageSize:               defaultTransportPageBytes,
 		minWindow:              defaultTransportMinWindow,
 		transportQuantum:       defaultTransportMinWindow,
 		maxWindow:              defaultTransportMaxWindow,
@@ -164,11 +165,13 @@ func NewPackReader(packID string, size int64, transport Transport, hashType hash
 		sparseReads:            true,
 		sparseColdWindow:       defaultSparseColdWindow,
 		sparseLocalityDistance: defaultSparseLocalityDistance,
-		maxBytes:               defaultResidentBudget,
 		writebackWindow:        defaultWritebackWindow,
 		indexPromotion:         true,
+		budget:                 newResidentBudget(defaultResidentBudget),
 		blocks:                 make(map[string]*blockRecord),
 	}
+	e.budget.attach(e)
+	return e
 }
 
 // Close cancels and drains every job admitted by the engine.
@@ -206,9 +209,12 @@ func (e *PackReader) Close() {
 			e.entriesByKey = nil
 			e.blocks = nil
 			e.spans = nil
+			e.lru.Init()
+			e.newest = nil
+			e.chargeLocked(-e.residentBytes)
+			e.budget.detach(e)
 			e.loading = nil
 			e.statsChanged = nil
-			e.residentBytes = 0
 			e.closeComplete = true
 			broadcast()
 		})
@@ -243,13 +249,19 @@ func (e *PackReader) finishOwnerWork() {
 	})
 }
 
-// SetMaxBytes sets the resident byte budget.
-func (e *PackReader) SetMaxBytes(maxBytes int64) {
-	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		e.maxBytes = maxBytes
-		e.evictLocked()
-		broadcast()
+// setBudget moves the reader's resident bytes onto a shared budget.
+func (e *PackReader) setBudget(budget *residentBudget) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed || e.budget == budget {
+			return
+		}
+		e.budget.detach(e)
+		e.budget.used.Add(-e.residentBytes)
+		e.budget = budget
+		e.budget.used.Add(e.residentBytes)
+		e.budget.attach(e)
 	})
+	budget.reclaim()
 }
 
 // SetWriteback configures co-block publication to a target store.
@@ -402,7 +414,7 @@ func (r *engineReaderAt) ReadAt(p []byte, off int64) (int, error) {
 			cur += int64(nread)
 			continue
 		}
-		if err := r.e.fetchMiss(r.ctx, cur, end); err != nil {
+		if err := r.e.fetchRange(r.ctx, cur, end, false); err != nil {
 			if n != 0 {
 				return n, err
 			}

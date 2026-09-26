@@ -1,34 +1,31 @@
 package store
 
+import "container/list"
+
 // span is one immutable resident byte interval in the shared span store.
 //
-// Spans are paged so large ranges do not require contiguous allocations and
-// so overlapping logical views never need to copy data to share it. A span is
-// inserted exactly once, never resized, and only removed via eviction. Spans
-// are guarded by the owning engine's bcast.
+// A span keeps the transport response slice as fetched, so admitting bytes
+// never copies them. A span is inserted exactly once, never resized, and only
+// removed by eviction or failed verification. Spans are guarded by the owning
+// engine's bcast.
 type span struct {
 	// off is the inclusive packfile offset of the span.
 	off int64
 	// size is the span length in bytes.
 	size int64
-	// pageSize is the in-memory page size backing pages.
-	pageSize int
-	// pages holds the cached bytes.
-	pages [][]byte
+	// data holds the resident bytes.
+	data []byte
 	// pins is the number of block records retaining this span.
 	pins int
-	// lastUseSeq is the engine LRU sequence.
+	// lastUseSeq is the budget-wide LRU sequence of the last use.
 	lastUseSeq uint64
+	// lru is the element in the engine's unpinned LRU list, nil while pinned.
+	lru *list.Element
 }
 
-// newSpan builds a paged span from contiguous bytes.
-func newSpan(off int64, pageSize int, data []byte) *span {
-	return &span{
-		off:      off,
-		size:     int64(len(data)),
-		pageSize: pageSize,
-		pages:    buildPagedBytes(pageSize, data),
-	}
+// newSpan builds a span that takes ownership of data.
+func newSpan(off int64, data []byte) *span {
+	return &span{off: off, size: int64(len(data)), data: data}
 }
 
 // end returns the exclusive end offset of the span.
@@ -43,11 +40,7 @@ func (s *span) readAt(p []byte, off int64) int {
 	if len(p) == 0 || off < s.off || off >= s.end() {
 		return 0
 	}
-	available := int(s.end() - off)
-	if available < len(p) {
-		p = p[:available]
-	}
-	return copyPagedBytes(p, s.pages, s.pageSize, uint64(off-s.off)) //nolint:gosec // the preceding range checks make the span-relative offset non-negative and bounded.
+	return copy(p, s.data[off-s.off:])
 }
 
 // copySpans copies bytes starting at off from a list of disjoint spans.

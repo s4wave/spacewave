@@ -22,9 +22,9 @@ import (
 
 // TestHTTPRangeReaderDefaults verifies default and explicit transport sizing.
 func TestHTTPRangeReaderDefaults(t *testing.T) {
-	rd := NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 0, 0, nil, nil)
-	if rd.maxBytes != defaultResidentBudget {
-		t.Fatalf("maxBytes = %d, want %d", rd.maxBytes, defaultResidentBudget)
+	rd := NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 0, nil, nil)
+	if limit := rd.budget.limit.Load(); limit != defaultResidentBudget {
+		t.Fatalf("budget limit = %d, want %d", limit, defaultResidentBudget)
 	}
 	if rd.maxWindow != defaultTransportMaxWindow {
 		t.Fatalf("maxWindow = %d, want %d", rd.maxWindow, defaultTransportMaxWindow)
@@ -39,7 +39,7 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 		t.Fatalf("transportQuantum = %d, want %d", rd.transportQuantum, defaultTransportMinWindow)
 	}
 
-	rd = NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 16, 4, nil, nil)
+	rd = NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 16, nil, nil)
 	if rd.minWindow != 16 {
 		t.Fatalf("minWindow = %d, want 16", rd.minWindow)
 	}
@@ -48,9 +48,6 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 	}
 	if rd.currentWindow != 16 {
 		t.Fatalf("currentWindow = %d, want 16", rd.currentWindow)
-	}
-	if rd.pageSize != 4 {
-		t.Fatalf("pageSize = %d, want 4", rd.pageSize)
 	}
 }
 
@@ -152,7 +149,7 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 		eng.residentBytes = 16
 		eng.blocks = map[string]*blockRecord{
 			"verifying": {state: blockStateVerifying},
-			"published": {state: blockStatePublished},
+			"verified":  {state: blockStateVerified},
 		}
 		eng.verifyQueued = 2
 		eng.verifyRunning = 1
@@ -174,7 +171,7 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 	if stats.RangeRequestCount != 1 || stats.RangeResponseBytes != 48 {
 		t.Fatalf("unexpected range response stats: %+v", stats)
 	}
-	if stats.BlockCount != 2 || stats.VerifyingBlocks != 1 || stats.PublishedBlocks != 1 {
+	if stats.BlockCount != 2 || stats.VerifyingBlocks != 1 || stats.VerifiedBlocks != 1 {
 		t.Fatalf("unexpected block stats: %+v", stats)
 	}
 	if stats.VerifyQueued != 2 || stats.VerifyRunning != 1 || stats.VerifyCompleted != 3 {
@@ -192,7 +189,6 @@ func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
 			return nil, nil
 		}), 0), nil
 	}, newMemIndexCache())
-	store.SetTransportPageSize(8)
 	store.SetTransportMinWindow(32)
 	store.SetTransportQuantum(64)
 	store.SetTransportMaxWindow(256)
@@ -205,8 +201,8 @@ func TestPackfileStoreAppliesTuningOverrides(t *testing.T) {
 		t.Fatalf("getOrOpenEngine: %v", err)
 	}
 	tuning := eng.SnapshotTuning()
-	if tuning.PageSize != 8 || tuning.MinWindow != 32 || tuning.TransportQuantum != 64 {
-		t.Fatalf("unexpected page/min/quantum tuning: %+v", tuning)
+	if tuning.MinWindow != 32 || tuning.TransportQuantum != 64 {
+		t.Fatalf("unexpected min/quantum tuning: %+v", tuning)
 	}
 	if tuning.MaxWindow != 256 || tuning.TargetRequestHz != 2 || tuning.Smoothing != 0.5 {
 		t.Fatalf("unexpected transport tuning: %+v", tuning)
@@ -270,7 +266,7 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 8, 4, nil, nil)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 8, nil, nil)
 
 	var wg sync.WaitGroup
 	results := make([][]byte, 2)
@@ -442,7 +438,6 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 		srv.URL,
 		int64(len(data)),
 		16,
-		defaultTransportPageBytes,
 		nil,
 		nil,
 	)
@@ -463,6 +458,90 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	}
 }
 
+// TestHTTPRangeReaderRetriesTransientFailure retries one 5xx response and
+// never retries a client error.
+func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
+	data := []byte("abcdefghijklmnopqrstuvwxyz")
+	var reqs atomic.Int32
+	var status atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if reqs.Add(1) == 1 {
+			w.WriteHeader(int(status.Load()))
+			return
+		}
+		start, end, ok := parseHTTPTestRangeHeader(r.Header.Get("Range"), int64(len(data)))
+		if !ok {
+			t.Errorf("missing or invalid Range header: %q", r.Header.Get("Range"))
+			return
+		}
+		w.Header().Set("Content-Length", strconv.FormatInt(end-start, 10))
+		w.WriteHeader(http.StatusPartialContent)
+		_, _ = w.Write(data[start:end])
+	}))
+	defer srv.Close()
+
+	status.Store(http.StatusServiceUnavailable)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	buf := make([]byte, 4)
+	n, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0)
+	if err != nil && err != io.EOF {
+		t.Fatalf("ReadAt after 503 returned error: %v", err)
+	}
+	if n != 4 || !bytes.Equal(buf, data[:4]) {
+		t.Fatalf("ReadAt returned n=%d data=%q, want %q", n, buf, data[:4])
+	}
+	if got := reqs.Load(); got != 2 {
+		t.Fatalf("requests = %d, want 2", got)
+	}
+
+	reqs.Store(0)
+	status.Store(http.StatusNotFound)
+	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	if _, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0); err == nil {
+		t.Fatal("ReadAt after 404 succeeded, want error")
+	}
+	if got := reqs.Load(); got != 1 {
+		t.Fatalf("requests after 404 = %d, want 1", got)
+	}
+}
+
+// TestResidentBudgetEvictsAcrossReaders evicts the globally oldest span when
+// readers share one budget.
+func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
+	ctx := context.Background()
+	transport := TransportFunc(func(_ context.Context, _ int64, size int) ([]byte, error) {
+		return make([]byte, size), nil
+	})
+	budget := newResidentBudget(300)
+	a := NewPackReader("a", 1000, transport, 0)
+	b := NewPackReader("b", 1000, transport, 0)
+	a.setBudget(budget)
+	b.setBudget(budget)
+
+	for _, r := range [][2]int64{{0, 100}, {500, 600}} {
+		if err := a.ensureResident(ctx, r[0], r[1], true); err != nil {
+			t.Fatalf("a.ensureResident(%d, %d): %v", r[0], r[1], err)
+		}
+	}
+	if err := b.ensureResident(ctx, 0, 200, true); err != nil {
+		t.Fatalf("b.ensureResident: %v", err)
+	}
+
+	if used := budget.used.Load(); used != 300 {
+		t.Fatalf("budget used = %d, want 300", used)
+	}
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(a.spans) != 1 || a.spans[0].off != 500 {
+			t.Errorf("a spans = %d, want only the span at 500", len(a.spans))
+		}
+	})
+	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(b.spans) != 1 {
+			t.Errorf("b spans = %d, want 1", len(b.spans))
+		}
+	})
+}
+
 // TestHTTPRangeReaderFullResponseFallbackStats accounts for servers that ignore Range.
 func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
@@ -473,7 +552,7 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, 4, nil, nil)
+	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
 	reader := rd.ReaderAt(context.Background())
 	n, err := reader.ReadAt(buf, 0)

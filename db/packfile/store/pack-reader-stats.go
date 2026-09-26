@@ -24,8 +24,6 @@ type PackReaderStats struct {
 	BlockCount                int
 	VerifyingBlocks           int
 	VerifiedBlocks            int
-	PublishedBlocks           int
-	FailedBlocks              int
 	VerifyQueued              int
 	VerifyRunning             int
 	VerifyCompleted           uint64
@@ -103,10 +101,6 @@ func (e *PackReader) SnapshotStats() PackReaderStats {
 				snap.VerifyingBlocks++
 			case blockStateVerified:
 				snap.VerifiedBlocks++
-			case blockStatePublished:
-				snap.PublishedBlocks++
-			case blockStateFailed:
-				snap.FailedBlocks++
 			}
 		}
 	})

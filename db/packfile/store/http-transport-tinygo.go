@@ -21,6 +21,8 @@ type httpTransport struct {
 	constructErr error
 }
 
+// Fetch reads length bytes starting at off via a browser fetch range request.
+// A network error or 5xx response is retried once.
 func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
 	if length <= 0 {
 		return nil, nil
@@ -31,6 +33,13 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 	if length > tinyGoPackRangeMaxBytes {
 		return nil, errors.Errorf("pack range request length %d exceeds TinyGo browser limit %d", length, tinyGoPackRangeMaxBytes)
 	}
+	return fetchWithRetry(ctx, func() ([]byte, error) {
+		return t.fetchOnce(ctx, off, length)
+	})
+}
+
+// fetchOnce issues one browser fetch range request.
+func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([]byte, error) {
 
 	req := &fetch.Opts{
 		Signal: ctx,
@@ -43,7 +52,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 
 	resp, err := fetch.Fetch(t.url, req)
 	if err != nil {
-		return nil, err
+		return nil, &transientError{err: err}
 	}
 	defer resp.Body.Close()
 
@@ -56,7 +65,7 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 				if err == io.EOF {
 					return nil, nil
 				}
-				return nil, errors.Wrap(err, "skipping prefix from full pack response")
+				return nil, &transientError{err: errors.Wrap(err, "skipping prefix from full pack response")}
 			}
 		}
 		return readTinyGoPackRangeBody(resp.Body, length)
@@ -66,9 +75,12 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 		return nil, errors.New("forbidden")
 	case http.StatusNotFound:
 		return nil, errors.New("not found")
-	default:
-		return nil, errors.Errorf("unexpected response status: %d", resp.StatusCode)
 	}
+	err = errors.Errorf("unexpected response status: %d", resp.StatusCode)
+	if resp.StatusCode >= http.StatusInternalServerError {
+		return nil, &transientError{err: err}
+	}
+	return nil, err
 }
 
 func readTinyGoPackRangeBody(r io.Reader, length int) ([]byte, error) {
@@ -78,7 +90,7 @@ func readTinyGoPackRangeBody(r io.Reader, length int) ([]byte, error) {
 		return buf[:n], nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, &transientError{err: err}
 	}
 	return buf[:n], nil
 }
@@ -105,7 +117,6 @@ func NewHTTPRangeReader(
 	url string,
 	size int64,
 	readAheadSize int,
-	pageSize int,
 	signReq func(*http.Request) error,
 	observeResp func(*http.Response),
 ) *PackReader {
@@ -121,11 +132,8 @@ func NewHTTPRangeReader(
 		e.transportQuantum = readAheadSize
 		e.currentWindow = readAheadSize
 	}
-	if pageSize > 0 {
-		e.pageSize = pageSize
-	}
 	e.setTransportFetchMaxBytes(tinyGoPackRangeMaxBytes)
-	e.maxBytes = 16 * 1024 * 1024
+	e.budget.limit.Store(16 * 1024 * 1024)
 	e.normalizeTransportLocked()
 	return e
 }

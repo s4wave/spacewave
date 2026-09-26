@@ -30,8 +30,6 @@ type PackfileStoreStats struct {
 	BlockCount                int
 	VerifyingBlocks           int
 	VerifiedBlocks            int
-	PublishedBlocks           int
-	FailedBlocks              int
 	VerifyQueued              int
 	VerifyRunning             int
 	VerifyCompleted           uint64
@@ -109,7 +107,7 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 	s.mtx.Lock()
 	engines := s.snapshotEnginesLocked()
 	writebackWindow := s.writebackWindow
-	residentByteBudget := s.maxBytes
+	residentByteBudget := s.budget.limit.Load()
 	indexPromotionSet := s.tuningOverrides.indexPromotionSet
 	indexPromotionValue := s.tuningOverrides.indexPromotion
 	stats := s.stats
@@ -175,8 +173,6 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		snap.BlockCount += es.BlockCount
 		snap.VerifyingBlocks += es.VerifyingBlocks
 		snap.VerifiedBlocks += es.VerifiedBlocks
-		snap.PublishedBlocks += es.PublishedBlocks
-		snap.FailedBlocks += es.FailedBlocks
 		snap.VerifyQueued += es.VerifyQueued
 		snap.VerifyRunning += es.VerifyRunning
 		snap.VerifyCompleted += es.VerifyCompleted

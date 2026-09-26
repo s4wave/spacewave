@@ -96,7 +96,7 @@ func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 	}
 
 	// Prefill the far side, then request the uncovered interval between them.
-	if err := reader.ensureExactRangeResident(context.Background(), 3<<20, 4<<20); err != nil {
+	if err := reader.ensureResident(context.Background(), 3<<20, 4<<20, true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := reader.ReaderAt(ctx).ReadAt(buf, 2<<20); err != nil {
@@ -155,7 +155,7 @@ func TestReadAheadRespectsResidentBudget(t *testing.T) {
 	transport := &bytesTransport{data: make([]byte, 16<<20)}
 	reader := NewPackReader("budgeted-bulk", int64(len(transport.data)), transport, hash.RecommendedHashType)
 	t.Cleanup(reader.Close)
-	reader.maxBytes = 2 << 20
+	reader.budget.limit.Store(2 << 20)
 	ctx := block.WithReadAhead(t.Context(), 10<<20)
 	if _, err := reader.ReaderAt(ctx).ReadAt(make([]byte, 1), 0); err != nil {
 		t.Fatal(err)
