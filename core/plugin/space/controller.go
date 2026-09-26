@@ -22,6 +22,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
@@ -41,26 +42,34 @@ var Version = controller.MustParseVersion("0.0.1")
 // controllerDescrip is the controller description.
 var controllerDescrip = "loads Space plugins and resolves FetchManifest for a Space"
 
+// processConfig is the process an approved binding runs for one object key.
 type processConfig struct {
+	// typeID is the ObjectType whose factory runs the process.
 	typeID string
-	ws     world.WorldState
+	// ws is the Space World the process reads.
+	ws world.WorldState
 }
 
+// pluginReference holds one LoadPlugin directive the Space keeps loaded.
 type pluginReference struct {
-	ref             directive.Reference
-	releaseState    func()
-	manifestKeys    []string
+	// ref is the LoadPlugin directive reference.
+	ref directive.Reference
+	// releaseState stops watching the plugin state.
+	releaseState func()
+	// manifestKeys are the installed manifest keys the load selected.
+	manifestKeys []string
+	// releasePrevious releases the load this one replaced, once.
 	releasePrevious func()
 }
 
+// release releases the load and any load it replaced.
 func (r pluginReference) release() {
 	r.releaseState()
 	r.ref.Release()
-	if r.releasePrevious != nil {
-		r.releasePrevious()
-	}
+	r.releasePrevious()
 }
 
+// processRetryBackoff paces restarts of a failed process.
 var processRetryBackoff = &backoff.Backoff{
 	BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 	Exponential: &backoff.Exponential{
@@ -82,8 +91,9 @@ var processRetryBackoff = &backoff.Backoff{
 // loop with broadcast to handle resolver set changes. With a manifest source,
 // approved requests also resolve from the parent bus.
 //
-// Also reconciles process bindings: starts enabled persistent processes and
-// stops processes that are removed or disabled.
+// Also reconciles process bindings: starts enabled persistent processes, stops
+// processes that are removed or disabled, and deletes the bindings of deleted
+// World objects.
 type Controller struct {
 	*bus.BusController[*Config]
 
@@ -95,6 +105,8 @@ type Controller struct {
 	manifestSource bus.Bus
 	// loadTarget receives approved LoadPlugin directives when Space runs in a plugin.
 	loadTarget bus.Bus
+	// bindingsChanged is called after the controller deletes a process binding.
+	bindingsChanged func()
 	// resolvers is the set of active FetchManifest resolvers.
 	resolvers map[*resolverEntry]struct{}
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
@@ -148,9 +160,11 @@ func (c *Controller) GetRequestedPluginIDsAndWaitCh() ([]string, <-chan struct{}
 // FactoryOption configures a Space plugin controller factory.
 type FactoryOption func(*factoryConfig)
 
+// factoryConfig holds the options applied by FactoryOption.
 type factoryConfig struct {
-	manifestSource bus.Bus
-	loadTarget     bus.Bus
+	manifestSource  bus.Bus
+	loadTarget      bus.Bus
+	bindingsChanged func()
 }
 
 // WithManifestSource permits approved Space plugins to fetch manifests from
@@ -162,6 +176,12 @@ func WithManifestSource(source bus.Bus) FactoryOption {
 // WithLoadTarget sends approved Space plugin load directives to target.
 func WithLoadTarget(target bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.loadTarget = target }
+}
+
+// WithProcessBindingsChanged calls notify after the controller deletes the
+// process binding of a deleted World object, so binding views can refresh.
+func WithProcessBindingsChanged(notify func()) FactoryOption {
+	return func(conf *factoryConfig) { conf.bindingsChanged = notify }
 }
 
 // NewFactory constructs the component factory.
@@ -181,11 +201,12 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			c := &Controller{
-				BusController:  base,
-				manifestSource: factoryConf.manifestSource,
-				loadTarget:     factoryConf.loadTarget,
-				resolvers:      make(map[*resolverEntry]struct{}),
-				processConfigs: make(map[string]processConfig),
+				BusController:   base,
+				manifestSource:  factoryConf.manifestSource,
+				loadTarget:      factoryConf.loadTarget,
+				bindingsChanged: factoryConf.bindingsChanged,
+				resolvers:       make(map[*resolverEntry]struct{}),
+				processConfigs:  make(map[string]processConfig),
 			}
 			c.processes = keyed.NewKeyedWithLogger(
 				c.buildProcessRoutine,
@@ -274,6 +295,8 @@ func (c *Controller) resolveListAvailablePlugins(
 	)
 }
 
+// resolveLookupObjectType holds LookupObjectType for this Space's engine
+// non-idle while a desired plugin is still registering its object types.
 func (c *Controller) resolveLookupObjectType(
 	dir objecttype.LookupObjectType,
 ) ([]directive.Resolver, error) {
@@ -523,7 +546,9 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 }
 
 // reconcileProcesses reads process bindings from the platform-account
-// ObjectStore and starts/stops processes based on their binding state.
+// ObjectStore and starts/stops processes based on their binding state. A
+// binding whose World object no longer exists is deleted, and its process
+// stops.
 func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState) {
 	le := c.GetLogger()
 	conf := c.GetConfig()
@@ -560,9 +585,15 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	defer ref.Release()
 
 	spaceID := conf.GetSpaceId()
-	bindings, err := process_binding.ListProcessBindings(ctx, handle.GetObjectStore(), spaceID)
+	store := handle.GetObjectStore()
+	bindings, err := process_binding.ListProcessBindings(ctx, store, spaceID)
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to list process bindings")
+		return
+	}
+	bindings, err = c.deleteOrphanedBindings(ctx, le, ws, store, spaceID, bindings)
+	if err != nil {
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to delete process bindings of deleted objects")
 		return
 	}
 
@@ -579,6 +610,46 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	c.reconcileProcessConfigs(le, desired)
 }
 
+// deleteOrphanedBindings deletes the bindings whose World object no longer
+// exists and returns the others. An approval covers one object, so a later
+// object at the same key needs a new decision.
+func (c *Controller) deleteOrphanedBindings(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	store kvtx.Store,
+	spaceID string,
+	bindings []*s4wave_process.ProcessBinding,
+) ([]*s4wave_process.ProcessBinding, error) {
+	keys := make([]string, len(bindings))
+	for i, binding := range bindings {
+		keys[i] = binding.GetObjectKey()
+	}
+	refs, err := world.GetObjectRootRefsBatch(ctx, ws, keys)
+	if err != nil {
+		return nil, err
+	}
+
+	kept := make([]*s4wave_process.ProcessBinding, 0, len(bindings))
+	var deleted bool
+	for i, binding := range bindings {
+		if refs[i].Exists {
+			kept = append(kept, binding)
+			continue
+		}
+		if err := process_binding.DeleteProcessBinding(ctx, store, spaceID, binding); err != nil {
+			return nil, err
+		}
+		le.WithField("object-key", binding.GetObjectKey()).Info("deleted process binding of deleted object")
+		deleted = true
+	}
+	if deleted && c.bindingsChanged != nil {
+		c.bindingsChanged()
+	}
+	return kept, nil
+}
+
+// reconcileProcessConfigs starts and stops process routines to match desired.
 func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[string]processConfig) {
 	active := c.processes.GetKeysWithData()
 	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconciling space processes")

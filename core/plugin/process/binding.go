@@ -58,7 +58,6 @@ func GetProcessBinding(ctx context.Context, store kvtx.Store, spaceID, objectKey
 				return err
 			}
 			if !found {
-				binding = nil
 				return nil
 			}
 			next := &s4wave_process.ProcessBinding{}
@@ -70,6 +69,31 @@ func GetProcessBinding(ctx context.Context, store kvtx.Store, spaceID, objectKey
 		},
 	)
 	return binding, err
+}
+
+// DeleteProcessBinding deletes the stored binding of binding's object key if it
+// still equals binding, so a newer decision for the key is kept.
+func DeleteProcessBinding(ctx context.Context, store kvtx.Store, spaceID string, binding *s4wave_process.ProcessBinding) error {
+	key := ProcessBindingKey(spaceID, binding.GetObjectKey())
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, key)
+			if err != nil || !found {
+				return err
+			}
+			current := &s4wave_process.ProcessBinding{}
+			if err := current.UnmarshalVT(data); err != nil {
+				return err
+			}
+			if !current.EqualVT(binding) {
+				return nil
+			}
+			return tx.Delete(ctx, key)
+		},
+	)
 }
 
 // ListProcessBindings lists all process bindings for a given space.

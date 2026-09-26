@@ -175,7 +175,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 // runGeneration starts one generation, publishes it, and returns the reason it
 // ended. A generation that starts resets retry.
 func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) error {
-	gen, err := startGeneration(ctx, c.GetBus(), c.GetLogger(), c.GetConfig().GetSpace())
+	gen, err := startGeneration(ctx, c.GetBus(), c.GetLogger(), c.GetConfig().GetSpace(), c.NotifyProcessBindingsChanged)
 	if err != nil {
 		c.publish(nil, err)
 		return err

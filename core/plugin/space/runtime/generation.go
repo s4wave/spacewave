@@ -45,12 +45,14 @@ type Generation struct {
 }
 
 // startGeneration starts one generation of the Space plugin runtime on a child
-// bus of parent.
+// bus of parent. bindingsChanged is called after plugin/space deletes a process
+// binding.
 func startGeneration(
 	ctx context.Context,
 	parent bus.Bus,
 	le *logrus.Entry,
 	conf *plugin_space.Config,
+	bindingsChanged func(),
 ) (*Generation, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	g := &Generation{
@@ -58,7 +60,7 @@ func startGeneration(
 		done:     make(chan struct{}),
 		cancel:   cancel,
 	}
-	if err := g.start(ctx, parent, le, conf); err != nil {
+	if err := g.start(ctx, parent, le, conf, bindingsChanged); err != nil {
 		g.release()
 		return nil, err
 	}
@@ -92,6 +94,7 @@ func (g *Generation) start(
 	parent bus.Bus,
 	le *logrus.Entry,
 	conf *plugin_space.Config,
+	bindingsChanged func(),
 ) error {
 	child, resolver, err := bldr_core.NewCoreBus(ctx, le)
 	if err != nil {
@@ -103,7 +106,10 @@ func (g *Generation) start(
 	// host plugin, loads its plugins through the parent.
 	resolver.AddFactory(plugin_host_scheduler.NewFactory(child))
 	resolver.AddFactory(volume_rpc_server.NewFactory(child))
-	factoryOpts := []plugin_space.FactoryOption{plugin_space.WithManifestSource(parent)}
+	factoryOpts := []plugin_space.FactoryOption{
+		plugin_space.WithManifestSource(parent),
+		plugin_space.WithProcessBindingsChanged(bindingsChanged),
+	}
 	if conf.GetHostPluginId() != "" {
 		factoryOpts = append(factoryOpts, plugin_space.WithLoadTarget(parent))
 	}

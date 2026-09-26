@@ -25,6 +25,7 @@ import (
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
@@ -287,6 +288,7 @@ func TestSpaceContentsMountsShareRuntime(t *testing.T) {
 	gen := waitSpaceRuntimeGeneration(t, first.runtime, nil)
 
 	// A process binding decided through one mount reaches the other.
+	createSpaceRuntimeObject(t, ctx, tb, "object")
 	if _, err := first.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: "object",
 		TypeId:    "test/type",
@@ -332,6 +334,40 @@ func TestSpaceContentsMountsShareRuntime(t *testing.T) {
 	case <-gen.Done():
 	case <-ctx.Done():
 		t.Fatal("releasing the last mount did not stop the runtime")
+	}
+}
+
+func TestSpaceRuntimeDeletesBindingOfDeletedObject(t *testing.T) {
+	ctx, tb := newSpaceRuntimeTestbed(t)
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
+	resource.volumeID = tb.EngineVolumeID
+	resource.storeID = tb.EngineObjectStoreID
+	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
+
+	stream, stop := startSpaceRuntimeWatch(t, ctx, resource)
+	defer stop()
+	for _, key := range []string{"kept", "deleted"} {
+		createSpaceRuntimeObject(t, ctx, tb, key)
+		if _, err := resource.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
+			ObjectKey: key,
+			TypeId:    "test/type",
+			Approved:  true,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for len(recvSpaceRuntimeWatchState(t, stream).GetProcessBindings()) != 2 {
+	}
+
+	// Deleting a bound object deletes its binding and keeps the others.
+	if _, err := tb.WorldState.DeleteObject(ctx, "deleted"); err != nil {
+		t.Fatal(err)
+	}
+	for {
+		bindings := recvSpaceRuntimeWatchState(t, stream).GetProcessBindings()
+		if len(bindings) == 1 && bindings[0].GetObjectKey() == "kept" {
+			break
+		}
 	}
 }
 
@@ -433,6 +469,16 @@ func newSpaceRuntimeConfig(tb *testbed.Testbed) *plugin_space.Config {
 		EngineId:      tb.EngineID,
 		SessionPeerId: tb.Volume.GetPeerID().String(),
 	}
+}
+
+// createSpaceRuntimeObject creates an empty World object at key.
+func createSpaceRuntimeObject(t *testing.T, ctx context.Context, tb *testbed.Testbed, key string) {
+	t.Helper()
+	obj, err := tb.WorldState.CreateObject(ctx, key, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(obj)
 }
 
 // approveSpaceRuntimePlugin approves the cold test plugin in the Space settings.
