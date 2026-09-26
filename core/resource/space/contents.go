@@ -373,7 +373,8 @@ func (r *SpaceContentsResource) WatchState(
 		// Build plugin statuses from the running runtime generation.
 		gen, runtimeCh, runtimeErr := r.runtime.GetGeneration()
 		loadedIDs := map[string]struct{}{}
-		var loadedCh <-chan struct{}
+		var loadedCh, requestedCh <-chan struct{}
+		var requestedIDs []string
 		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
 		var waitStatusChange func(context.Context) error
 		if gen != nil {
@@ -381,6 +382,13 @@ func (r *SpaceContentsResource) WatchState(
 			ids, loadedCh = gen.GetSpaceController().GetLoadedPluginIDsAndWaitCh()
 			for _, pid := range ids {
 				loadedIDs[pid] = struct{}{}
+			}
+			var requested []string
+			requested, requestedCh = gen.GetSpaceController().GetRequestedPluginIDsAndWaitCh()
+			for _, pid := range requested {
+				if !slices.Contains(pluginIDs, pid) {
+					requestedIDs = append(requestedIDs, pid)
+				}
 			}
 
 			statusCtr := gen.GetScheduler().GetPluginStatusCtr()
@@ -413,19 +421,21 @@ func (r *SpaceContentsResource) WatchState(
 		}
 
 		if err := strm.Send(&s4wave_space.SpaceContentsState{
-			Ready:            true,
-			Plugins:          plugins,
-			ProcessBindings:  processBindings,
-			AvailablePlugins: availablePlugins,
+			Ready:              true,
+			Plugins:            plugins,
+			ProcessBindings:    processBindings,
+			AvailablePlugins:   availablePlugins,
+			RequestedPluginIds: requestedIDs,
 		}); err != nil {
 			return err
 		}
 
-		// Wait for a world seqno, runtime, process binding, or loaded state change.
+		// Wait for a world seqno, runtime, process binding, loaded, or
+		// requested state change.
 		err = waitSpaceContentsSources(ctx, func(waitCtx context.Context) error {
 			_, err := r.engine.WaitSeqno(waitCtx, prevSeqno+1)
 			return err
-		}, []<-chan struct{}{runtimeCh, loadedCh}, waitStatusChange)
+		}, []<-chan struct{}{runtimeCh, loadedCh, requestedCh}, waitStatusChange)
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package plugin_space
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -148,4 +149,44 @@ func setSourcePluginIDs(c *Controller, ids []string) {
 		c.pluginIDs = ids
 		broadcast()
 	})
+}
+
+func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	b, resolver, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver.AddFactory(NewFactory(b))
+	ctrl, _, ctrlRef, err := StartControllerWithConfig(ctx, b, &Config{EngineId: "test-engine"}, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctrlRef.Release()
+
+	// waitRequested follows the controller's wait channel until the requested
+	// IDs match want.
+	waitRequested := func(want ...string) {
+		t.Helper()
+		for {
+			ids, waitCh := ctrl.GetRequestedPluginIDsAndWaitCh()
+			if slices.Equal(ids, want) {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("requested plugin IDs = %v, want %v", ids, want)
+			case <-waitCh:
+			}
+		}
+	}
+
+	_, ref, err := b.AddDirective(bldr_manifest.NewFetchManifest("unlisted-plugin", nil, nil, 0), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitRequested("unlisted-plugin")
+	ref.Release()
+	waitRequested()
 }

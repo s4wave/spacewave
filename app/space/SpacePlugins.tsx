@@ -33,6 +33,43 @@ interface CatalogEntry {
   revision: string
 }
 
+// catalogSuggestions merges the backend plugin catalog with known-plugin
+// presentation metadata, keyed by manifest ID, and returns the entries not yet
+// installed sorted by name. The streamed availablePlugins list is the source
+// of truth for what is installable; known-plugins supplies name/icon and a
+// fallback description, and stands in as the browsable set until the catalog
+// syncs.
+function catalogSuggestions(
+  available: NonNullable<SpaceContentsState['availablePlugins']>,
+  installedIds: Set<string>,
+): CatalogEntry[] {
+  const catalogById = new Map<string, CatalogEntry>()
+  for (const known of KNOWN_SPACE_PLUGINS) {
+    catalogById.set(known.id, {
+      id: known.id,
+      name: known.name,
+      description: known.description,
+      icon: known.icon,
+      revision: '',
+    })
+  }
+  for (const plugin of available) {
+    const id = plugin.pluginId ?? ''
+    if (!id) continue
+    const meta = knownSpacePlugin(id)
+    catalogById.set(id, {
+      id,
+      name: meta.name,
+      description: plugin.description || meta.description,
+      icon: meta.icon,
+      revision: plugin.revision ?? '',
+    })
+  }
+  return Array.from(catalogById.values())
+    .filter((entry) => !installedIds.has(entry.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 interface SpacePluginAddPanelProps {
   draftId: string
   draftError: string | null
@@ -148,6 +185,75 @@ function SpacePluginAddPanel({
         </div>
       )}
     </div>
+  )
+}
+
+interface RequestedPluginListProps {
+  requestedIds: string[]
+  availableIds: Set<string>
+  pending: string
+  onAdd: (pluginId: string) => void
+}
+
+// RequestedPluginList renders plugins something in the Space is waiting to
+// load but the Space does not list. A plugin whose manifest is stored in the
+// Space can be added in place; otherwise the row names the deploy step.
+function RequestedPluginList({
+  requestedIds,
+  availableIds,
+  pending,
+  onAdd,
+}: RequestedPluginListProps) {
+  return (
+    <>
+      {requestedIds.map((id) => {
+        const stored = availableIds.has(id)
+        const isPending = pending === id
+        return (
+          <div
+            key={id}
+            className="border-warning/20 bg-warning/5 flex flex-col gap-1.5 rounded-lg border px-3 py-2"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-col">
+                <span className="text-foreground truncate text-sm">{id}</span>
+                <span className="text-foreground-alt truncate text-xs">
+                  {stored
+                    ? 'Waiting to load. Add it to this Space to continue.'
+                    : 'Waiting to load. Deploy it to this Space, then add it.'}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="bg-warning/15 text-warning rounded-full px-2 py-0.5 text-xs">
+                  Requested
+                </span>
+                {stored && (
+                  <Button
+                    type="button"
+                    variant="brandOutline"
+                    size="sm"
+                    onClick={() => onAdd(id)}
+                    disabled={!!pending}
+                    aria-label={`Add ${id}`}
+                  >
+                    {isPending ? (
+                      <LuLoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      'Add'
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+            {!stored && (
+              <code className="text-foreground-alt/80 micro-text truncate font-mono select-all">
+                spacewave space deploy --manifest-id {id}
+              </code>
+            )}
+          </div>
+        )
+      })}
+    </>
   )
 }
 
@@ -286,6 +392,7 @@ export function SpacePlugins() {
 
   const plugins = contentsState?.plugins ?? []
   const installedIds = new Set(plugins.map((plugin) => plugin.pluginId ?? ''))
+  const requestedIds = contentsState?.requestedPluginIds ?? []
 
   const [adding, setAdding] = useState(false)
   const [draftId, setDraftId] = useState('')
@@ -342,37 +449,8 @@ export function SpacePlugins() {
           : null
   const canSubmitDraft = draftValid && !draftDuplicate && !pending
 
-  // Merge the backend plugin catalog with known-plugin presentation metadata,
-  // keyed by manifest ID. The streamed availablePlugins list is the source of
-  // truth for what is installable; known-plugins supplies name/icon and a
-  // fallback description, and stands in as the browsable set until the catalog
-  // syncs.
   const available = contentsState?.availablePlugins ?? []
-  const catalogById = new Map<string, CatalogEntry>()
-  for (const known of KNOWN_SPACE_PLUGINS) {
-    catalogById.set(known.id, {
-      id: known.id,
-      name: known.name,
-      description: known.description,
-      icon: known.icon,
-      revision: '',
-    })
-  }
-  for (const plugin of available) {
-    const id = plugin.pluginId ?? ''
-    if (!id) continue
-    const meta = knownSpacePlugin(id)
-    catalogById.set(id, {
-      id,
-      name: meta.name,
-      description: plugin.description || meta.description,
-      icon: meta.icon,
-      revision: plugin.revision ?? '',
-    })
-  }
-  const suggestions = Array.from(catalogById.values())
-    .filter((entry) => !installedIds.has(entry.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const suggestions = catalogSuggestions(available, installedIds)
 
   return (
     <div className="flex flex-col gap-2">
@@ -412,6 +490,13 @@ export function SpacePlugins() {
       )}
 
       <SpacePluginBuild space={space} />
+
+      <RequestedPluginList
+        requestedIds={requestedIds}
+        availableIds={new Set(available.map((plugin) => plugin.pluginId ?? ''))}
+        pending={pending}
+        onAdd={(pluginId) => void handleAdd(pluginId)}
+      />
 
       <InstalledPluginList
         plugins={plugins}

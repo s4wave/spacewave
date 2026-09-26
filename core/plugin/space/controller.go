@@ -126,6 +126,25 @@ func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
 	return c.loadedPlugins.GetAndWaitCh()
 }
 
+// GetRequestedPluginIDsAndWaitCh returns the sorted manifest IDs with a live
+// FetchManifest in the Space, and a channel closed when the resolver set
+// changes. A requested plugin that SpaceSettings does not list waits until it
+// is listed.
+func (c *Controller) GetRequestedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
+	var ids []string
+	var waitCh <-chan struct{}
+	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		for entry := range c.resolvers {
+			if mid := entry.dir.GetManifestId(); !slices.Contains(ids, mid) {
+				ids = append(ids, mid)
+			}
+		}
+		waitCh = getWaitCh()
+	})
+	slices.Sort(ids)
+	return ids, waitCh
+}
+
 // FactoryOption configures a Space plugin controller factory.
 type FactoryOption func(*factoryConfig)
 

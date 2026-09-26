@@ -1026,12 +1026,20 @@ export interface SpaceContentsState {
   processBindings?: ProcessBindingInfo[]
   /**
    * AvailablePlugins is the catalog of plugins installable into the space,
-   * enumerated from the Release World manifests visible to the space. The app
-   * derives installed state by intersecting these with the plugins list.
+   * enumerated from the manifests stored in the Space World. The app derives
+   * installed state by intersecting these with the plugins list.
    *
    * @generated from field: repeated s4wave.space.AvailablePlugin available_plugins = 4;
    */
   availablePlugins?: AvailablePlugin[]
+  /**
+   * RequestedPluginIds lists, in sorted order, the plugins something in the
+   * space is waiting to load that the space does not list. A load such as a
+   * Forge Execution for one of them waits until the plugin is added.
+   *
+   * @generated from field: repeated string requested_plugin_ids = 5;
+   */
+  requestedPluginIds?: string[]
 }
 
 export const SpaceContentsState: MessageType<SpaceContentsState> =
@@ -1058,6 +1066,13 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         name: 'available_plugins',
         kind: 'message',
         T: () => AvailablePlugin,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'requested_plugin_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
