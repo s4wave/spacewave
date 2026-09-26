@@ -3083,6 +3083,16 @@
         "net/signaling/rpc/client/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/net/signaling/rpc/frame": {
+      "hash": "638e3b379b02d80503dbf7c7927e31705dfd06769d47d280e4113f046d4f2b47",
+      "generatedFiles": [
+        "net/signaling/rpc/frame/frame.pb.go",
+        "net/signaling/rpc/frame/frame.pb.ts"
+      ],
+      "protoFiles": [
+        "net/signaling/rpc/frame/frame.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/net/signaling/rpc/server": {
       "hash": "c1faee12801d403d7c1c661e52727965998c398229b62ac9310cf11c779add6c",
       "generatedFiles": [

@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/net/signaling"
 	signaling_rpc "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
+	signaling_rpc_frame "github.com/s4wave/spacewave/net/signaling/rpc/frame"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,39 +31,27 @@ const (
 type signalingURLFunc func(context.Context) (string, error)
 
 // dialSignalingClient dials a SignalingDO via WebSocket and returns a
-// signaling client using direct SRPC over yamux (no bifrost transport).
+// signaling client using SRPC frames, one per WebSocket message, so the
+// server can hibernate between messages. The caller runs frames.ReadPump.
 func dialSignalingClient(
 	ctx context.Context,
 	le *logrus.Entry,
 	url string,
 	priv bifrost_crypto.PrivKey,
-) (*signaling_rpc_client.Client, *ws.Conn, func(), error) {
+) (*signaling_rpc_client.Client, *ws.Conn, *signaling_rpc_frame.Conn, error) {
 	conn, _, err := ws.Dial(ctx, url, nil)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "dial signaling websocket")
 	}
 
-	mux, err := srpc.NewWebSocketConn(ctx, conn, false, nil)
-	if err != nil {
-		conn.CloseNow()
-		return nil, nil, nil, errors.Wrap(err, "create yamux muxed conn")
-	}
-
-	client := srpc.NewClientWithMuxedConn(mux)
-	sig := signaling_rpc.NewSRPCSignalingClient(client)
-
+	frames := signaling_rpc_frame.NewConn(ctx, conn)
+	sig := signaling_rpc.NewSRPCSignalingClient(srpc.NewClient(frames.OpenStream))
 	sc, err := signaling_rpc_client.NewClient(le, sig, priv, nil)
 	if err != nil {
 		conn.CloseNow()
 		return nil, nil, nil, errors.Wrap(err, "create signaling client")
 	}
-
-	cleanup := func() {
-		sc.ClearContext()
-		conn.CloseNow()
-	}
-
-	return sc, conn, cleanup, nil
+	return sc, conn, frames, nil
 }
 
 // wsSignalingCtrl integrates a direct-WS signaling client with the bus.
@@ -154,11 +143,12 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	client, conn, cleanup, err := dialSignalingClient(ctx, c.le, url, c.priv)
+	client, conn, frames, err := dialSignalingClient(ctx, c.le, url, c.priv)
 	if err != nil {
 		return err
 	}
-	defer cleanup()
+	defer conn.CloseNow()
+	defer client.ClearContext()
 
 	// Publish readiness until this generation releases its signaling references.
 	c.mtx.Lock()
@@ -209,18 +199,20 @@ func (c *wsSignalingCtrl) executeGeneration(ctx context.Context) error {
 	client.SetContext(ctx)
 
 	// Detect a broken socket and return it to the controller retry loop.
-	pingErr := make(chan error, 1)
+	// Protocol pings do not wake a hibernated server.
+	connErr := make(chan error, 2)
 	go func() {
-		pingErr <- runWebSocketPing(ctx, conn, signalingWebSocketPingInterval)
+		connErr <- frames.ReadPump(nil)
+	}()
+	go func() {
+		connErr <- runWebSocketPing(ctx, conn, signalingWebSocketPingInterval)
 	}()
 	select {
 	case <-ctx.Done():
-		client.ClearContext()
 		return ctx.Err()
-	case err := <-pingErr:
-		client.ClearContext()
+	case err := <-connErr:
 		if err == nil {
-			err = errors.New("signaling websocket ping stopped")
+			err = errors.New("signaling websocket stopped")
 		}
 		return err
 	}

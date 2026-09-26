@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	signaling_rpc "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
+	signaling_rpc_frame "github.com/s4wave/spacewave/net/signaling/rpc/frame"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,7 +46,7 @@ func TestE2ESignalingReconnect(t *testing.T) {
 		}
 	}
 
-	// Each generation reopens the actual WebSocket, yamux, and signaling RPC path.
+	// Each generation reopens the actual WebSocket, frame, and signaling RPC path.
 	for range 2 {
 		func() {
 			clients := make([]*signaling_client.Client, 2)
@@ -78,11 +79,9 @@ func TestE2ESignalingReconnect(t *testing.T) {
 					t.Fatal(err)
 				}
 				defer conn.CloseNow()
-				mc, err := srpc.NewWebSocketConn(ctx, conn, false, nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				clients[i], err = signaling_client.NewClient(logrus.NewEntry(logrus.New()), signaling_rpc.NewSRPCSignalingClient(srpc.NewClientWithMuxedConn(mc)), keys[i], nil)
+				frames := signaling_rpc_frame.NewConn(ctx, conn)
+				go func() { _ = frames.ReadPump(nil) }()
+				clients[i], err = signaling_client.NewClient(logrus.NewEntry(logrus.New()), signaling_rpc.NewSRPCSignalingClient(srpc.NewClient(frames.OpenStream)), keys[i], nil)
 				if err != nil {
 					t.Fatal(err)
 				}
