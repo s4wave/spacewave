@@ -69,6 +69,79 @@ func TestStoragePackfileWriter(t *testing.T) {
 	}
 }
 
+// TestStoragePackedLookupOnlyOpensMatchingPack keeps index probes independent
+// of pack data readers and checks the shared object cache and reader bound.
+func TestStoragePackedLookupOnlyOpensMatchingPack(t *testing.T) {
+	_, _, store := newPackfileTestStore(t)
+	defer store.Close()
+
+	var hashes []plumbing.Hash
+	for i := range openPackReaderLimit + 2 {
+		data := []byte{byte(i), 'p', 'a', 'c', 'k'}
+		packData, hash := buildTestPackfile(t, data)
+		writer, err := store.PackfileWriter()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.Write(packData); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.Close(); err != nil {
+			t.Fatal(err)
+		}
+		hashes = append(hashes, hash)
+	}
+
+	first, err := store.EncodedObject(plumbing.BlobObject, hashes[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.EncodedObject(plumbing.BlobObject, plumbing.NewHash("ffffffffffffffffffffffffffffffffffffffff")); err != plumbing.ErrObjectNotFound {
+		t.Fatalf("missing object lookup returned %v", err)
+	}
+	if len(store.packCache) != len(hashes) {
+		t.Fatalf("decoded %d indexes, want %d", len(store.packCache), len(hashes))
+	}
+	var open int
+	for _, entry := range store.packCache {
+		if entry.idx == nil {
+			t.Fatal("missing decoded index")
+		}
+		if entry.pack != nil {
+			open++
+			if entry.pack.Index != entry.idx {
+				t.Fatal("pack uses another index")
+			}
+		}
+	}
+	if open != 1 {
+		t.Fatalf("opened %d pack data readers for one lookup, want 1", open)
+	}
+
+	for _, hash := range hashes[1:] {
+		if _, err := store.EncodedObject(plumbing.BlobObject, hash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, hash := range hashes {
+		if _, ok := store.objectCache.Get(hash); !ok {
+			t.Fatalf("shared object cache is missing %s", hash)
+		}
+	}
+	if store.packLRU.Len() != openPackReaderLimit {
+		t.Fatalf("open pack readers = %d, want %d", store.packLRU.Len(), openPackReaderLimit)
+	}
+	assertObjectData(t, first, []byte{0, 'p', 'a', 'c', 'k'})
+	for _, entry := range store.packCache {
+		if entry.pack == nil {
+			continue
+		}
+		if entry.pack.Index != entry.idx {
+			t.Fatal("pack uses another index")
+		}
+	}
+}
+
 func TestStoragePackfileWriterReadsCommitTreeAndBlob(t *testing.T) {
 	_, _, store := newPackfileTestStore(t)
 	defer store.Close()

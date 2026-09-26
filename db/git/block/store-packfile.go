@@ -2,6 +2,7 @@ package git_block
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"crypto"
 	"io"
@@ -17,6 +18,10 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 )
+
+// openPackReaderLimit caps retained chunk data near 32 MiB (four readers at
+// packfileChunkCacheLimit) while decoded indexes stay cached.
+const openPackReaderLimit = 4
 
 // PackfileWriter returns a writer for preserving an incoming Git packfile.
 func (r *Store) PackfileWriter() (io.WriteCloser, error) {
@@ -55,8 +60,11 @@ func (r *Store) DeleteOldObjectPackAndIndex(ph plumbing.Hash, t time.Time) error
 	}
 	// Release the cached reader before dropping its metadata.
 	if entry := r.packCache[ph]; entry != nil {
-		if err := entry.pack.Close(); err != nil {
-			return err
+		if entry.pack != nil {
+			if err := entry.pack.Close(); err != nil {
+				return err
+			}
+			r.packLRU.Remove(entry.recent)
 		}
 		delete(r.packCache, ph)
 	}
@@ -83,7 +91,12 @@ func (r *Store) setPackfile(packData []byte, idxData []byte, idx *idxfile.Memory
 
 	key := slices.Clone(packHash.Bytes())
 	if entry := r.packCache[packHash]; entry != nil {
-		_ = entry.pack.Close()
+		if entry.pack != nil {
+			if err := entry.pack.Close(); err != nil {
+				return err
+			}
+			r.packLRU.Remove(entry.recent)
+		}
 		delete(r.packCache, packHash)
 	}
 	packCs := r.packTree.GetCursor().Detach(false)
@@ -192,15 +205,78 @@ func (r *Store) iterPackedObjects(ot plumbing.ObjectType, seen map[plumbing.Hash
 	return out, nil
 }
 
+// lookupPackedObjectInCursor checks a pack's index before opening its data reader.
 func (r *Store) lookupPackedObjectInCursor(cs *block.Cursor, h plumbing.Hash) (plumbing.EncodedObject, error) {
-	pack, err := r.buildPackfileReader(cs)
+	// Decode or reuse the pack index to test membership without reading pack data.
+	entry, err := r.packCacheEntry(cs)
+	if err != nil {
+		return nil, err
+	}
+	contains, err := entry.idx.Contains(h)
+	if err != nil {
+		return nil, err
+	}
+	if !contains {
+		return nil, plumbing.ErrObjectNotFound
+	}
+
+	// Open only the pack that contains the object.
+	pack, err := r.openPackfileReader(entry, cs)
 	if err != nil {
 		return nil, err
 	}
 	return pack.Get(h)
 }
 
+// buildPackfileReader returns a reader for a pack selected by its cursor.
 func (r *Store) buildPackfileReader(cs *block.Cursor) (*go_git_packfile.Packfile, error) {
+	entry, err := r.packCacheEntry(cs)
+	if err != nil {
+		return nil, err
+	}
+	return r.openPackfileReader(entry, cs)
+}
+
+// openPackfileReader retains a bounded set of open pack data readers.
+func (r *Store) openPackfileReader(entry *storePackCacheEntry, cs *block.Cursor) (*go_git_packfile.Packfile, error) {
+	// Reuse an open reader and mark it as recently used.
+	if entry.pack != nil {
+		r.packLRU.MoveToFront(entry.recent)
+		return entry.pack, nil
+	}
+
+	// Attach the shared object cache and the pack's decoded index to a new reader.
+	file, err := NewPackfileFile(r.ctx, "pack-"+entry.hash.String()+".pack", cs.FollowSubBlock(1))
+	if err != nil {
+		return nil, err
+	}
+	packReader := go_git_packfile.NewPackfile(
+		file,
+		go_git_packfile.WithIdx(entry.idx),
+		go_git_packfile.WithCache(r.objectCache),
+		go_git_packfile.WithObjectIDSize(entry.hash.Size()),
+	)
+	entry.pack = packReader
+	entry.recent = r.packLRU.PushFront(entry)
+
+	// Close the least recently used data reader when the retained set is full.
+	if r.packLRU.Len() > openPackReaderLimit {
+		oldest := r.packLRU.Back()
+		old := oldest.Value.(*storePackCacheEntry)
+		closeErr := old.pack.Close()
+		old.pack = nil
+		r.packLRU.Remove(oldest)
+		old.recent = nil
+		if closeErr != nil {
+			return nil, closeErr
+		}
+	}
+	return packReader, nil
+}
+
+// packCacheEntry decodes a pack index once for the Store lifetime.
+func (r *Store) packCacheEntry(cs *block.Cursor) (*storePackCacheEntry, error) {
+	// Read the pack identity and reuse its cached index when available.
 	pack, err := unmarshalPackfileCursor(r.ctx, cs)
 	if err != nil {
 		return nil, err
@@ -210,7 +286,7 @@ func (r *Store) buildPackfileReader(cs *block.Cursor) (*go_git_packfile.Packfile
 		return nil, err
 	}
 	if entry := r.packCache[packHash]; entry != nil {
-		return entry.pack, nil
+		return entry, nil
 	}
 
 	// Decode the index without materializing its backing blob.
@@ -224,18 +300,9 @@ func (r *Store) buildPackfileReader(cs *block.Cursor) (*go_git_packfile.Packfile
 		return nil, err
 	}
 
-	// The pack owns a bounded reader, not a copy of the entire Git archive.
-	file, err := NewPackfileFile(r.ctx, "pack-"+packHash.String()+".pack", cs.FollowSubBlock(1))
-	if err != nil {
-		return nil, err
-	}
-	packReader := go_git_packfile.NewPackfile(
-		file,
-		go_git_packfile.WithIdx(idx),
-		go_git_packfile.WithObjectIDSize(packHash.Size()),
-	)
-	r.packCache[packHash] = &storePackCacheEntry{pack: packReader}
-	return packReader, nil
+	entry := &storePackCacheEntry{hash: packHash, idx: idx}
+	r.packCache[packHash] = entry
+	return entry, nil
 }
 
 func (r *Store) packBlobBuildOpts() (*blob.BuildBlobOpts, error) {
@@ -273,8 +340,16 @@ type storePackfileWriter struct {
 	buf   bytes.Buffer
 }
 
+// storePackCacheEntry keeps an index while its data reader enters and leaves the LRU.
 type storePackCacheEntry struct {
+	// hash names the pack and its blobs.
+	hash plumbing.Hash
+	// idx remains available after the data reader is evicted.
+	idx *idxfile.MemoryIndex
+	// pack is the open data reader, when retained.
 	pack *go_git_packfile.Packfile
+	// recent locates pack in the open reader LRU.
+	recent *list.Element
 }
 
 func (w *storePackfileWriter) Write(p []byte) (int, error) {
