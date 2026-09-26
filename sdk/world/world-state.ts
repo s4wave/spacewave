@@ -9,6 +9,7 @@ import {
   WorldStateResourceService,
   WorldStateResourceServiceClient,
   TypedObjectResourceServiceClient,
+  TxResourceServiceClient,
 } from './world_srpc.pb.js'
 import { throwOperationError } from './errors.js'
 import { ObjectState, type IObjectState } from './object-state.js'
@@ -643,6 +644,43 @@ export class WorldStateResource extends Resource implements IWorldState {
   // getDebugInfo returns debug information for devtools.
   public getDebugInfo(): ResourceDebugInfo {
     return { label: this.readOnly ? '(read-only)' : undefined }
+  }
+}
+
+// Tx represents a transaction against the world state.
+// Tx implements the world state transaction interfaces.
+// Provides:
+// - WorldState: full state read/write interface (inherited from WorldStateResource)
+// - tx.Tx: Commit, Discard operations
+//
+// A Tx maintains state across multiple RPC calls, enabling complex multi-step
+// operations within a single transaction. Always call discard() when done.
+//
+// Concurrent calls to WorldState functions should be supported.
+//
+// Tx lives beside WorldStateResource because engine.ts and engine-state.ts
+// import this module: a subclass in another module of that cycle could be
+// evaluated before its base class exists.
+export class Tx extends WorldStateResource {
+  private txService: TxResourceServiceClient
+
+  constructor(resourceRef: ClientResourceRef, meta?: { readOnly?: boolean }) {
+    super(resourceRef, meta)
+    this.txService = new TxResourceServiceClient(resourceRef.client)
+  }
+
+  // Transaction operations (tx.Tx interface)
+
+  // Commit commits the transaction.
+  // After commit, the transaction should be discarded.
+  public async commit(abortSignal?: AbortSignal): Promise<void> {
+    await this.txService.Commit({}, abortSignal)
+  }
+
+  // Discard discards the transaction without committing changes.
+  // Always call this when done with the transaction.
+  public async discard(abortSignal?: AbortSignal): Promise<void> {
+    await this.txService.Discard({}, abortSignal)
   }
 }
 

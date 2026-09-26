@@ -2,10 +2,10 @@ import type { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 
 import { Engine } from './engine.js'
-import { Tx } from './tx.js'
 import { type IObjectState } from './object-state.js'
 import {
   normalizeRenameObjectOptions,
+  Tx,
   type IWorldState,
   type ListGraphEdgeBucketsOptions,
   type RenameObjectOptions,
