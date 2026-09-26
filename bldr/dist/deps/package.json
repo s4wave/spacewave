@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@aptre/it-ws": "^1.1.2",
-    "@aptre/protobuf-es-lite": "1.1.1",
+    "@aptre/protobuf-es-lite": "1.1.2",
     "@noble/ciphers": "2.4.0",
     "@noble/hashes": "2.4.0",
     "@radix-ui/react-slot": "^1.3.3",
@@ -35,16 +35,16 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "rolldown": "1.2.10",
+    "rolldown": "1.2.11",
     "sonner": "^2.0.7",
     "starpc": "0.52.1",
     "ulid": "^3.0.2",
-    "vite": "8.3.0",
+    "vite": "8.3.1",
     "workbox-window": "^7.4.1",
     "ws": "^8.20.0",
     "zod": "4.6.5"
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "1.1.1"
+    "@aptre/protobuf-es-lite": "1.1.2"
   }
 }
