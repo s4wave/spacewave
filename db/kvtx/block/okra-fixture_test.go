@@ -20,7 +20,7 @@ func TestOkraFixtureThroughSelector(t *testing.T) {
 	store := newSelectorOkraStore()
 	fixture := newSelectorOkraFixture(t, ctx, store, 48)
 
-	treeTx, okraRootCursor, err := okra.BuildTree(store, nil, nil, fixture.seq())
+	treeTx, okraRootCursor, err := okra.BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}

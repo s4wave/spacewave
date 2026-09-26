@@ -58,9 +58,9 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 			}
 		}
 	}
-	rootCursor := t.bcs.Detach(false)
-	defer discardPages(rootCursor)
-	root, err := buildTreeAtCursor(rootCursor, entries)
+	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
+		return writeStagedPage(ctx, t.bcs, page)
+	})
 	if valueErr != nil {
 		return valueErr
 	}
@@ -70,6 +70,7 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 	if root.GetSize() == 0 {
 		return t.setEmptyRoot(ctx)
 	}
-	t.replaceRoot(root, rootCursor.FollowRef(rootPageRefID, root.GetRootPageRef()))
+	// The root references its staged top page; reads follow it on demand.
+	t.replaceRoot(root, nil)
 	return ctx.Err()
 }

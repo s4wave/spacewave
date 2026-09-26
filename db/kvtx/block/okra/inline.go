@@ -2,7 +2,6 @@ package kvtx_block_okra
 
 import (
 	"context"
-	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
@@ -29,11 +28,12 @@ func NewTxWithInlineValues(
 	return t, nil
 }
 
-// buildValueEntry owns the value bytes before choosing their storage layout.
+// buildValueEntry chooses the value's storage layout. An inline value borrows
+// the caller's bytes; the tree builder copies them before the next entry.
 func (t *Tx) buildValueEntry(ctx context.Context, key, value []byte) (BuildEntry, error) {
 	entry := BuildEntry{Key: key, ValueIsBlob: true}
 	if t.inlineValues && len(value) <= inlineValueLimit {
-		entry.ValueBlob = blob.NewRawBlob(slices.Clone(value))
+		entry.ValueBlob = blob.NewRawBlob(value)
 		return entry, ctx.Err()
 	}
 	ref, err := t.buildBlobValue(ctx, value)
