@@ -228,3 +228,55 @@ func TestMoveRangeToRootBlob(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// TestWriteStoredRawBlobKeepsReference verifies a file written from a stored raw
+// blob over maxInlineRawBlobSize references it instead of copying its bytes
+// into the file block.
+func TestWriteStoredRawBlobKeepsReference(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("test-stored-raw-blob", nil)
+	data := bytes.Repeat([]byte("stored raw blob "), 4096)
+
+	btx, bcs := block.NewTransaction(bkt, nil, nil, nil)
+	if _, err := blob.BuildBlobWithBytes(ctx, data, bcs); err != nil {
+		t.Fatal(err.Error())
+	}
+	blobRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	btx, bcs = block.NewTransaction(bkt, nil, nil, nil)
+	rootFile := &File{}
+	bcs.SetBlock(rootFile, true)
+	fh := NewHandle(ctx, bcs, rootFile)
+	if err := NewWriter(fh, btx, nil).WriteBlob(0, uint64(len(data)), blobRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	fh.Close()
+	if rootFile.GetRootBlob() != nil || len(rootFile.GetRanges()) != 1 {
+		t.Fatalf("root blob = %v, ranges = %d, want one range and no root blob", rootFile.GetRootBlob() != nil, len(rootFile.GetRanges()))
+	}
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, bcs = block.NewTransaction(bkt, nil, rootRef, nil)
+	fi, err := block.UnmarshalBlock[*File](ctx, bcs, NewFileBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !fi.GetRanges()[0].GetRef().EqualsRef(blobRef) {
+		t.Fatal("range does not reference the stored blob")
+	}
+	rdr := NewHandle(ctx, bcs, fi)
+	defer rdr.Close()
+	got, err := io.ReadAll(rdr)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatalf("read %d bytes, want the %d written", len(got), len(data))
+	}
+}

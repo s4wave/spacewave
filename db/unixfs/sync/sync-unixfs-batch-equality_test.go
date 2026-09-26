@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,10 +26,10 @@ import (
 var rootfsFixtureTime = time.Date(2026, 4, 18, 12, 0, 0, 0, time.UTC)
 
 // buildRootfsFixture writes a compact rootfs-shaped tar archive exercising
-// regular files, a nested directory, and a symlink. The layout matches the
-// OQ-5 contract: every file and symlink sits under a parent that is either
-// the root (assumed to exist) or explicitly declared via a TypeDir entry
-// earlier in the stream.
+// regular files, a nested directory, and a symlink. bin/busybox exceeds the
+// file block's inline raw blob bound, so its blob stays a range reference.
+// Every file and symlink sits under a parent that is either the root (assumed
+// to exist) or explicitly declared via a TypeDir entry earlier in the stream.
 func buildRootfsFixture() []byte {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -66,6 +67,7 @@ func buildRootfsFixture() []byte {
 	writeDir("bin/", 0o755)
 	writeFile("bin/sh", "#!sh\n", 0o755)
 	writeFile("README", "rootfs fixture\n", 0o644)
+	writeFile("bin/busybox", strings.Repeat("busybox image ", 4096), 0o755)
 	writeSymlink("link-readme", "README")
 
 	_ = tw.Close()
