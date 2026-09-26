@@ -1,13 +1,13 @@
 
-õ
+Ï
 0.57.12
 2026-09-26¦Spacewave 0.57.12 improves Drive storage efficiency, Space recovery, plugin loading, and large-Space performance while strengthening network and web asset safeguards."¦Spacewave 0.57.12 improves Drive storage efficiency, Space recovery, plugin loading, and large-Space performance while strengthening network and web asset safeguards.2¨
 RRejoining a Space through a new invite now clears stale access errors immediately.RRejoining a Space through a new invite now clears stale access errors immediately.2n
 5Native Spaces now load required app plugins reliably.5Native Spaces now load required app plugins reliably.2æ
 qDevices connect to each other again through Spacewave Cloud, which now relays each connection message on its own.qDevices connect to each other again through Spacewave Cloud, which now relays each connection message on its own.2Ð
 fFile changes are saved in a durable order, reducing the risk of incomplete data after an interruption.fFile changes are saved in a durable order, reducing the risk of incomplete data after an interruption.2–
-ILocal file storage shuts down safely if its database becomes unavailable.ILocal file storage shuts down safely if its database becomes unavailable.2 
-NThe desktop app's tray and status now show when an update is ready to install.NThe desktop app's tray and status now show when an update is ready to install.:ä
+ILocal file storage shuts down safely if its database becomes unavailable.ILocal file storage shuts down safely if its database becomes unavailable.2ú
+{The desktop app's tray, status and update notice now show when an update is ready to install, and "Restart now" applies it.{The desktop app's tray, status and update notice now show when an update is ready to install, and "Restart now" applies it.:ä
 pDrive uploads no longer store and synchronize a duplicate copy of larger files, reducing upload and storage use.pDrive uploads no longer store and synchronize a duplicate copy of larger files, reducing upload and storage use.:|
 <Large Spaces use less memory when importing fresh snapshots.<Large Spaces use less memory when importing fresh snapshots.:¢
 OGit Spaces read large files and packfiles faster by reusing recently read data.OGit Spaces read large files and packfiles faster by reusing recently read data.:Æ

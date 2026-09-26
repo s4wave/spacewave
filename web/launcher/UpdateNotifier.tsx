@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useEffectEvent, useState } from 'react'
-import { useWatchStateRpc } from '@aptre/bldr-react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from 'react'
+import { useBldrContext, useWatchStateRpc } from '@aptre/bldr-react'
 import { isDesktop } from '@aptre/bldr'
-import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import type { Root } from '@s4wave/sdk/root'
+import { Client as SRPCClient } from 'starpc'
+
 import {
   LauncherClient,
-  type Launcher,
+  LauncherServiceName,
 } from '@s4wave/core/provider/spacewave/launcher/launcher_srpc.pb.js'
 import {
   UpdatePhase,
@@ -14,42 +20,40 @@ import {
 } from '@s4wave/core/provider/spacewave/launcher/launcher.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-// UpdateNotifier watches the launcher update state and shows toast
-// notifications when an update is staged and ready to install.
-// Only active on desktop (Saucer/Electron) where the Launcher service exists.
-export function UpdateNotifier({
-  rootResource,
-}: {
-  rootResource: Resource<Root>
-}) {
-  if (!isDesktop) {
-    return null
-  }
-  return <UpdateNotifierInner rootResource={rootResource} />
+const launcherServiceId = 'plugin/spacewave-launcher/' + LauncherServiceName
+
+/** UpdateNotifier announces staged launcher updates on desktop. */
+export function UpdateNotifier() {
+  return isDesktop ? <UpdateNotifierInner /> : null
 }
 
-function UpdateNotifierInner({
-  rootResource,
-}: {
-  rootResource: Resource<Root>
-}) {
-  const root = rootResource.value
-  const [watchDisabled, setWatchDisabled] = useState(false)
+function UpdateNotifierInner() {
+  // Launcher runs in its own plugin, reached through the WebView host.
+  const bldrContext = useBldrContext()
+  const webDocument = bldrContext?.webDocument ?? null
+  const webViewUuid = bldrContext?.webView?.getUuid() ?? null
+  const launcher = useMemo(() => {
+    if (!webDocument || !webViewUuid) {
+      return null
+    }
+    const rpcClient = new SRPCClient(
+      webDocument.buildWebViewHostOpenStream(webViewUuid),
+    )
+    return new LauncherClient(rpcClient, { service: launcherServiceId })
+  }, [webDocument, webViewUuid])
 
+  // Stop watching when the desktop host cannot provide launcher state.
+  const [watchDisabled, setWatchDisabled] = useState(false)
   const handleWatchError = useCallback(() => {
     setWatchDisabled(true)
   }, [])
-
   const watchFn = useCallback(
-    (_: WatchLauncherInfoRequest, signal: AbortSignal) => {
-      if (!root || watchDisabled) return null
-      const svc: Launcher = new LauncherClient(root.client)
-      return svc.WatchLauncherInfo({}, signal)
-    },
-    [root, watchDisabled],
+    (req: WatchLauncherInfoRequest, signal: AbortSignal) =>
+      !watchDisabled && launcher
+        ? launcher.WatchLauncherInfo(req, signal)
+        : null,
+    [launcher, watchDisabled],
   )
-
-  // useWatchStateRpc returns T | null directly.
   const info: LauncherInfo | null = useWatchStateRpc(
     watchFn,
     {},
@@ -58,9 +62,7 @@ function UpdateNotifierInner({
     { errorCb: handleWatchError },
   )
 
-  const phase = info?.updateState?.phase
-
-  // announcePhase shows the toast for an update phase the launcher entered.
+  // Restart actions use the same launcher connection as the update watch.
   const announcePhase = useEffectEvent((phase: UpdatePhase | undefined) => {
     if (phase === UpdatePhase.STAGED) {
       const version = info?.updateState?.version || 'new version'
@@ -70,9 +72,10 @@ function UpdateNotifierInner({
         action: {
           label: 'Restart now',
           onClick: () => {
-            if (!root) return
-            const svc: Launcher = new LauncherClient(root.client)
-            svc.ApplyUpdate({}).catch((err) => {
+            if (!launcher) {
+              return
+            }
+            launcher.ApplyUpdate({}).catch((err) => {
               toast.error('Update failed', {
                 description: String(err),
               })
@@ -87,6 +90,7 @@ function UpdateNotifierInner({
   })
 
   // Announce each phase transition once.
+  const phase = info?.updateState?.phase
   useEffect(() => {
     announcePhase(phase)
   }, [phase])

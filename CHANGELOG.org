@@ -16,8 +16,8 @@ safeguards.
 - File changes are saved in a durable order, reducing the risk of incomplete
   data after an interruption.
 - Local file storage shuts down safely if its database becomes unavailable.
-- The desktop app's tray and status now show when an update is ready to
-  install.
+- The desktop app's tray, status and update notice now show when an update
+  is ready to install, and "Restart now" applies it.
 
 ** Improvements
 - Drive uploads no longer store and synchronize a duplicate copy of larger
