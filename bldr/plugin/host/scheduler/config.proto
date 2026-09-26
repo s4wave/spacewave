@@ -72,6 +72,9 @@ message Config {
   // Top-level plugins leave this unset; instance-scoped runtimes set it to
   // route the instance's volumes through host-owned storage.
   string host_storage_id = 18;
+  // ExternalPluginIds lists plugins another controller on the bus supplies.
+  // The scheduler leaves their LoadPlugin directives to that controller.
+  repeated string external_plugin_ids = 19;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

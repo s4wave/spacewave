@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestBridgeFilterForwardsOnlyInfrastructure(t *testing.T) {
+func TestBridgeFilterForwardsInfrastructureAndAppPlugins(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	parent, _, err := controllerbus_core.NewCoreBus(ctx, le)
@@ -40,13 +40,15 @@ func TestBridgeFilterForwardsOnlyInfrastructure(t *testing.T) {
 		volume.NewLookupVolume("volume", ""),
 		volume.NewBuildObjectStoreAPI("store", "volume"),
 		plugin_host_root.NewLookupRoot([]string{"desktop/darwin/arm64"}),
+		bldr_plugin.NewLoadPluginInstanced("spacewave-core", "space-a"),
+		bldr_plugin.NewLoadPlugin("web"),
 	}
 	for _, dir := range forwarded {
 		addTestDirective(t, child, dir)
 		recorder.waitFor(t, dir)
 	}
 
-	// Plugin loads, manifests, hosts, and RPC services stay inside the
+	// Space plugin loads, manifests, hosts, and RPC services stay inside the
 	// generation.
 	kept := []directive.Directive{
 		plugin_host.NewLookupPluginHost(nil),

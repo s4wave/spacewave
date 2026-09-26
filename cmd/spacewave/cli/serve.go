@@ -154,12 +154,12 @@ func runServeCommand(
 		}
 		defer invokerRef.Release()
 		// Native core owns the same Resource authority as the core plugin.
-		// Publish its qualified route before starting plugins that register types.
-		releaseCoreRoute, err := registerNativeCoreResource(serveCtx, cliBus.GetBus(), invoker)
+		// Present it as that plugin before starting plugins that register types.
+		releaseCorePlugin, err := cliBus.GetBus().AddController(serveCtx, newNativeCorePlugin(invoker), nil)
 		if err != nil {
 			return err
 		}
-		defer releaseCoreRoute()
+		defer releaseCorePlugin()
 	} else {
 		// Each Dist Resource RPC waits for the current spacewave-core generation
 		// after its stream is opened.
