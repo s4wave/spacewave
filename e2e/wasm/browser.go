@@ -66,11 +66,16 @@ func (h *Harness) launchBrowser(pw *playwright.Playwright) (playwright.Browser, 
 		}
 		return browser, nil
 	case "android":
+		// The device reaches both loopback servers through adb reverse.
 		server, err := url.Parse(h.baseURL)
 		if err != nil {
 			return nil, err
 		}
-		device, err := e2eharness.ConnectAndroidChrome(pw, server.Port())
+		cloud, err := url.Parse(h.cloudEndpoint)
+		if err != nil {
+			return nil, err
+		}
+		device, err := e2eharness.ConnectAndroidChrome(pw, server.Port(), cloud.Port())
 		if err != nil {
 			return nil, err
 		}
