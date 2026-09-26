@@ -195,6 +195,13 @@ export interface Execution {
    * @generated from field: forge.execution.Claim claim = 8;
    */
   claim?: Claim
+  /**
+   * WaitingPluginId names the plugin whose load currently blocks this
+   * Execution. It is empty once the plugin's client is available.
+   *
+   * @generated from field: string waiting_plugin_id = 9;
+   */
+  waitingPluginId?: string
 }
 
 export const Execution: MessageType<Execution> =
@@ -215,6 +222,12 @@ export const Execution: MessageType<Execution> =
         repeated: true,
       },
       { no: 8, name: 'claim', kind: 'message', T: () => Claim },
+      {
+        no: 9,
+        name: 'waiting_plugin_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

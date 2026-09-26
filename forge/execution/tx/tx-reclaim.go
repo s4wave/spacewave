@@ -94,6 +94,7 @@ func (t *TxReclaim) ExecuteTx(
 		ClaimId: t.GetClaimId(),
 		Epoch:   claimEpoch,
 	}
+	root.WaitingPluginId = ""
 	exCursor.SetBlock(root, true)
 	return root.Validate()
 }

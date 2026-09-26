@@ -94,6 +94,7 @@ func (t *TxComplete) ExecuteTx(
 	// promote to COMPLETE
 	root.ExecutionState = forge_execution.State_ExecutionState_COMPLETE
 	root.Result = result
+	root.WaitingPluginId = ""
 	exCursor.SetBlock(root, true)
 
 	if err := root.Validate(); err != nil {

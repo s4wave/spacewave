@@ -67,6 +67,13 @@ export enum TxType {
    * @generated from enum value: TxType_RECLAIM = 6;
    */
   TxType_RECLAIM = 6,
+
+  /**
+   * TxType_SET_WAITING_PLUGIN changes the plugin load wait.
+   *
+   * @generated from enum value: TxType_SET_WAITING_PLUGIN = 7;
+   */
+  TxType_SET_WAITING_PLUGIN = 7,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
@@ -79,6 +86,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType(
     [4, 'TxType_APPEND_LOG'],
     [5, 'TxType_CANCEL'],
     [6, 'TxType_RECLAIM'],
+    [7, 'TxType_SET_WAITING_PLUGIN'],
   ],
 )
 
@@ -314,6 +322,43 @@ export const TxReclaim: MessageType<TxReclaim> =
   })
 
 /**
+ * TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
+ *
+ * @generated from message execution.tx.TxSetWaitingPlugin
+ */
+export interface TxSetWaitingPlugin {
+  /**
+   * PluginId is the plugin being awaited, or empty after its client is available.
+   *
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId?: string
+  /**
+   * ClaimEpoch fences this update to the current claim.
+   *
+   * @generated from field: uint64 claim_epoch = 2;
+   */
+  claimEpoch?: bigint
+  /**
+   * ClaimId identifies the controller carrying the claim.
+   *
+   * @generated from field: string claim_id = 3;
+   */
+  claimId?: string
+}
+
+export const TxSetWaitingPlugin: MessageType<TxSetWaitingPlugin> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxSetWaitingPlugin',
+    fields: [
+      { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * Tx is the on-the-wire representation of a transaction.
  *
  * @generated from message execution.tx.Tx
@@ -367,6 +412,12 @@ export interface Tx {
    * @generated from field: execution.tx.TxReclaim tx_reclaim = 7;
    */
   txReclaim?: TxReclaim
+  /**
+   * TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
+   *
+   * @generated from field: execution.tx.TxSetWaitingPlugin tx_set_waiting_plugin = 8;
+   */
+  txSetWaitingPlugin?: TxSetWaitingPlugin
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -379,6 +430,12 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
     { no: 6, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
     { no: 7, name: 'tx_reclaim', kind: 'message', T: () => TxReclaim },
+    {
+      no: 8,
+      name: 'tx_set_waiting_plugin',
+      kind: 'message',
+      T: () => TxSetWaitingPlugin,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

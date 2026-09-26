@@ -30,6 +30,9 @@ message Execution {
   repeated LogEntry log_entries = 7;
   // Claim identifies the controller instance authorized to run and write back.
   Claim claim = 8;
+  // WaitingPluginId names the plugin whose load currently blocks this
+  // Execution. It is empty once the plugin's client is available.
+  string waiting_plugin_id = 9;
 }
 
 // Claim fences side effects and write-back for one execution owner.

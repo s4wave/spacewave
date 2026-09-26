@@ -61,6 +61,8 @@ func (h *captureHandle) WriteLog(ctx context.Context, level, message string) err
 	return nil
 }
 
+func (h *captureHandle) SetWaitingPlugin(context.Context, string) error { return nil }
+
 func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()

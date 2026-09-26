@@ -33,6 +33,8 @@ const (
 	TxType_TxType_CANCEL TxType = 5
 	// TxType_RECLAIM transfers a running execution to a new claim owner.
 	TxType_TxType_RECLAIM TxType = 6
+	// TxType_SET_WAITING_PLUGIN changes the plugin load wait.
+	TxType_TxType_SET_WAITING_PLUGIN TxType = 7
 )
 
 // Enum value maps for TxType.
@@ -45,15 +47,17 @@ var (
 		4: "TxType_APPEND_LOG",
 		5: "TxType_CANCEL",
 		6: "TxType_RECLAIM",
+		7: "TxType_SET_WAITING_PLUGIN",
 	}
 	TxType_value = map[string]int32{
-		"TxType_INVALID":     0,
-		"TxType_START":       1,
-		"TxType_SET_OUTPUTS": 2,
-		"TxType_COMPLETE":    3,
-		"TxType_APPEND_LOG":  4,
-		"TxType_CANCEL":      5,
-		"TxType_RECLAIM":     6,
+		"TxType_INVALID":            0,
+		"TxType_START":              1,
+		"TxType_SET_OUTPUTS":        2,
+		"TxType_COMPLETE":           3,
+		"TxType_APPEND_LOG":         4,
+		"TxType_CANCEL":             5,
+		"TxType_RECLAIM":            6,
+		"TxType_SET_WAITING_PLUGIN": 7,
 	}
 )
 
@@ -94,6 +98,8 @@ type Tx struct {
 	// TxReclaim transfers a running execution after owner liveness is resolved.
 	// TxType_RECLAIM
 	TxReclaim *TxReclaim `protobuf:"bytes,7,opt,name=tx_reclaim,json=txReclaim,proto3" json:"txReclaim,omitempty"`
+	// TxSetWaitingPlugin updates the plugin load wait reported by the Execution.
+	TxSetWaitingPlugin *TxSetWaitingPlugin `protobuf:"bytes,8,opt,name=tx_set_waiting_plugin,json=txSetWaitingPlugin,proto3" json:"txSetWaitingPlugin,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -149,6 +155,51 @@ func (x *Tx) GetTxReclaim() *TxReclaim {
 		return x.TxReclaim
 	}
 	return nil
+}
+
+func (x *Tx) GetTxSetWaitingPlugin() *TxSetWaitingPlugin {
+	if x != nil {
+		return x.TxSetWaitingPlugin
+	}
+	return nil
+}
+
+// TxSetWaitingPlugin records or clears the plugin load wait under the current claim.
+type TxSetWaitingPlugin struct {
+	unknownFields []byte
+	// PluginId is the plugin being awaited, or empty after its client is available.
+	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// ClaimEpoch fences this update to the current claim.
+	ClaimEpoch uint64 `protobuf:"varint,2,opt,name=claim_epoch,json=claimEpoch,proto3" json:"claimEpoch,omitempty"`
+	// ClaimId identifies the controller carrying the claim.
+	ClaimId string `protobuf:"bytes,3,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+}
+
+func (x *TxSetWaitingPlugin) Reset() {
+	*x = TxSetWaitingPlugin{}
+}
+
+func (*TxSetWaitingPlugin) ProtoMessage() {}
+
+func (x *TxSetWaitingPlugin) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *TxSetWaitingPlugin) GetClaimEpoch() uint64 {
+	if x != nil {
+		return x.ClaimEpoch
+	}
+	return 0
+}
+
+func (x *TxSetWaitingPlugin) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
 }
 
 // TxStart starts the execution with a peer id.
@@ -381,6 +432,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxAppendLog = protobuf_go_lite.CloneVTValue(m.TxAppendLog)
 	r.TxCancel = protobuf_go_lite.CloneVTValue(m.TxCancel)
 	r.TxReclaim = protobuf_go_lite.CloneVTValue(m.TxReclaim)
+	r.TxSetWaitingPlugin = protobuf_go_lite.CloneVTValue(m.TxSetWaitingPlugin)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -388,6 +440,24 @@ func (m *Tx) CloneVT() *Tx {
 }
 
 func (m *Tx) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxSetWaitingPlugin) CloneVT() *TxSetWaitingPlugin {
+	if m == nil {
+		return (*TxSetWaitingPlugin)(nil)
+	}
+	r := new(TxSetWaitingPlugin)
+	r.PluginId = m.PluginId
+	r.ClaimEpoch = m.ClaimEpoch
+	r.ClaimId = m.ClaimId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxSetWaitingPlugin) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -523,11 +593,40 @@ func (this *Tx) EqualVT(that *Tx) bool {
 	if !protobuf_go_lite.IsEqualVT(this.TxReclaim, that.TxReclaim) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.TxSetWaitingPlugin, that.TxSetWaitingPlugin) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Tx) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Tx)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TxSetWaitingPlugin) EqualVT(that *TxSetWaitingPlugin) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.ClaimEpoch != that.ClaimEpoch {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxSetWaitingPlugin) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxSetWaitingPlugin)
 	if !ok {
 		return false
 	}
@@ -764,6 +863,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txReclaim")
 		x.TxReclaim.MarshalProtoJSON(s.WithField("txReclaim"))
 	}
+	if x.TxSetWaitingPlugin != nil || s.HasField("txSetWaitingPlugin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txSetWaitingPlugin")
+		x.TxSetWaitingPlugin.MarshalProtoJSON(s.WithField("txSetWaitingPlugin"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -826,12 +930,77 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxReclaim = &TxReclaim{}
 			x.TxReclaim.UnmarshalProtoJSON(s.WithField("tx_reclaim", true))
+		case "tx_set_waiting_plugin", "txSetWaitingPlugin":
+			if s.ReadNil() {
+				x.TxSetWaitingPlugin = nil
+				return
+			}
+			x.TxSetWaitingPlugin = &TxSetWaitingPlugin{}
+			x.TxSetWaitingPlugin.UnmarshalProtoJSON(s.WithField("tx_set_waiting_plugin", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Tx from JSON.
 func (x *Tx) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TxSetWaitingPlugin message to JSON.
+func (x *TxSetWaitingPlugin) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PluginId != "" || s.HasField("pluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginId")
+		s.WriteString(x.PluginId)
+	}
+	if x.ClaimEpoch != 0 || s.HasField("claimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimEpoch")
+		s.WriteUint64(x.ClaimEpoch)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxSetWaitingPlugin to JSON.
+func (x *TxSetWaitingPlugin) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxSetWaitingPlugin message from JSON.
+func (x *TxSetWaitingPlugin) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "plugin_id", "pluginId":
+			s.AddField("plugin_id")
+			x.PluginId = s.ReadString()
+		case "claim_epoch", "claimEpoch":
+			s.AddField("claim_epoch")
+			x.ClaimEpoch = s.ReadUint64()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxSetWaitingPlugin from JSON.
+func (x *TxSetWaitingPlugin) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1230,6 +1399,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TxSetWaitingPlugin != nil {
+		size, err := m.TxSetWaitingPlugin.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.TxReclaim != nil {
 		size, err := m.TxReclaim.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1294,6 +1473,53 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TxType))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TxSetWaitingPlugin) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxSetWaitingPlugin) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxSetWaitingPlugin) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClaimEpoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.PluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1615,6 +1841,23 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxReclaim.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.TxSetWaitingPlugin != nil {
+		l = m.TxSetWaitingPlugin.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TxSetWaitingPlugin) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClaimEpoch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1738,10 +1981,36 @@ func (x *Tx) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_reclaim")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxReclaim)
 	}
+	if x.TxSetWaitingPlugin != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_set_waiting_plugin")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxSetWaitingPlugin)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Tx) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxSetWaitingPlugin) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxSetWaitingPlugin")
+	if x.PluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.ClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ClaimEpoch)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxSetWaitingPlugin) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2002,6 +2271,93 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxSetWaitingPlugin", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxSetWaitingPlugin == nil {
+				m.TxSetWaitingPlugin = &TxSetWaitingPlugin{}
+			}
+			if err := m.TxSetWaitingPlugin.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxSetWaitingPlugin) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxSetWaitingPlugin: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxSetWaitingPlugin: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimEpoch", wireType)
+			}
+			m.ClaimEpoch = 0
+			m.ClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
