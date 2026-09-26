@@ -88,8 +88,8 @@ type Lookup interface {
 }
 
 // Handle looks up data from a bucket independent of block store.
-// Calls are bounded by the handle and request contexts.
-// Will be terminated when bucket config value changes.
+// Calls are bounded by the request context and by the handle, which is
+// disposed when the bucket it was published for is released.
 type Handle interface {
 	// GetDisposed returns if this bucket handle is disposed.
 	GetDisposed() bool
@@ -98,6 +98,7 @@ type Handle interface {
 	GetBucketConfig() *bucket.Config
 	// GetLookup returns the lookup handle.
 	// Will return nil if the bucket config is not yet known.
+	// Fails with bucket.ErrBucketNotFound once the handle is disposed.
 	GetLookup(ctx context.Context) (Lookup, error)
 }
 
