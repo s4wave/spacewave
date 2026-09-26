@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
@@ -13,6 +14,10 @@ import (
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 )
+
+// graphImportBatchSize is the number of deltas a fresh graph index import
+// applies per Cayley call.
+const graphImportBatchSize = 8192
 
 // InsertGraphQuads inserts new, unique relationships in one graph index update.
 // It validates all endpoints before writing and records the same endpoint
@@ -113,8 +118,12 @@ func (t *WorldState) insertGraphDeltas(ctx context.Context, deltas []graph.Delta
 		return errors.Wrap(err, "create graph import index")
 	}
 	defer staged.Close()
-	if err := staged.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
-		return errors.Wrap(err, "build graph import index")
+	// Bounded batches keep Cayley's per-call delta indexes small. Each batch
+	// resolves the nodes written by the batches before it.
+	for batch := range slices.Chunk(deltas, graphImportBatchSize) {
+		if err := staged.ApplyDeltas(ctx, batch, graph.IgnoreOpts{}); err != nil {
+			return errors.Wrap(err, "build graph import index")
+		}
 	}
 	if err := t.packSnapshotGraph(ctx, index); err != nil {
 		return errors.Wrap(err, "write graph import index")
