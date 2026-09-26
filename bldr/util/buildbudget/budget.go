@@ -20,6 +20,10 @@ const (
 	// GoScriptCompileWeight is the estimated memory cost of one GoScript compile.
 	GoScriptCompileWeight int64 = 4
 
+	// GoScriptBundleWeight is the estimated memory cost of one Rolldown bundle
+	// of a GoScript plugin package tree.
+	GoScriptBundleWeight int64 = 4
+
 	// GoAnalysisWeight is the estimated memory cost of one plugin package analysis.
 	GoAnalysisWeight int64 = 2
 

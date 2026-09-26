@@ -261,6 +261,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 	if err != nil {
 		return err
 	}
+	waitStart := time.Now()
 	permit, err := budget.Acquire(ctx, bldr_buildbudget.GoScriptCompileWeight)
 	if err != nil {
 		return err
@@ -278,6 +279,7 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 	le.
 		WithField("compiler", "goscript").
 		WithField("dur", time.Since(timeStart).String()).
+		WithField("budget-wait", timeStart.Sub(waitStart).String()).
 		Info("compiled plugin TypeScript package tree")
 	return nil
 }

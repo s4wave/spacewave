@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr"
+	bldr_buildbudget "github.com/s4wave/spacewave/bldr/util/buildbudget"
 	bldr_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
@@ -293,6 +294,16 @@ func runRolldownGoScriptBundle(
 			SharedImportUrlPrefix: sharedImportURLPrefix(sharedWebPkgID(sharedOptions.WebPkgID)),
 		},
 	}
+	budget, err := bldr_buildbudget.Default()
+	if err != nil {
+		return nil, err
+	}
+	permit, err := budget.Acquire(ctx, bldr_buildbudget.GoScriptBundleWeight)
+	if err != nil {
+		return nil, err
+	}
+	defer permit.Release()
+
 	stateDir := filepath.Join(workDir, "..", "..", "bun")
 	result, err := bldr_rolldown.Build(ctx, le, stateDir, bldrDistRoot, request)
 	if err != nil {
