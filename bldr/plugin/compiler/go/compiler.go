@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -58,9 +57,6 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "go plugin compiler controller"
-
-// goScriptWebPluginBuildMu serializes GoScript web plugin builds.
-var goScriptWebPluginBuildMu sync.Mutex
 
 // goScriptSharedWebPkgConfig checks the web pkg list for the GoScript shared
 // web pkg and reports whether this plugin provides or consumes it.
@@ -1011,90 +1007,82 @@ func (c *Controller) BuildPlugin(
 	compileDevWrapper := !useGoScript && !compilePluginBinary
 
 	if useGoScript {
-		if err := func() error {
-			goScriptWebPluginBuildMu.Lock()
-			defer goScriptWebPluginBuildMu.Unlock()
-
-			le.Info("compiling plugin TypeScript package tree")
-			goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType)
-			goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
-			goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
-			if err != nil {
-				return err
-			}
-			mainPackagePath, err := mc.CompilePluginGoScript(
-				ctx,
-				le,
-				outDistPath,
-				goScriptCacheRoot,
-				goScriptBuildFlags,
-				goScriptOverrideDirs,
-				conf.GetGoscriptDeferredFunctions(),
-			)
-			if err != nil {
-				return err
-			}
-			outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
-			timeStart := time.Now()
-			// Raw GoScript browser plugin bundles can be hundreds of megabytes
-			// before Oxc compaction. Keep dev FetchManifest output runnable by
-			// always serving the minified entrypoint; the generated package tree
-			// remains in dist/@goscript for source-level inspection.
-			goScriptJSMinification := true
-			goScriptJSSourcemaps := false
-			sharedOptions := web_runtime_goscript_build.GoScriptSharedBundleOptions{
-				WebPkgID: goScriptSharedWebPkgID,
-				Enabled:  consumeGoScriptSharedProvider,
-			}
-			buildBundleFn := web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions
-			if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
-				buildBundleFn = web_runtime_goscript_build.BuildWebGoScriptCloudflarePluginScript
-			}
-			webRuntimeSrcFiles, err = buildBundleFn(
+		le.Info("compiling plugin TypeScript package tree")
+		goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType)
+		goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
+		goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
+		if err != nil {
+			return nil, err
+		}
+		mainPackagePath, err := mc.CompilePluginGoScript(
+			ctx,
+			le,
+			outDistPath,
+			goScriptCacheRoot,
+			goScriptBuildFlags,
+			goScriptOverrideDirs,
+			conf.GetGoscriptDeferredFunctions(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		outScriptPath := filepath.Join(outDistPath, pluginID+".mjs")
+		timeStart := time.Now()
+		// Raw GoScript browser plugin bundles can be hundreds of megabytes
+		// before Oxc compaction. Keep dev FetchManifest output runnable by
+		// always serving the minified entrypoint; the generated package tree
+		// remains in dist/@goscript for source-level inspection.
+		goScriptJSMinification := true
+		goScriptJSSourcemaps := false
+		sharedOptions := web_runtime_goscript_build.GoScriptSharedBundleOptions{
+			WebPkgID: goScriptSharedWebPkgID,
+			Enabled:  consumeGoScriptSharedProvider,
+		}
+		buildBundleFn := web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions
+		if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
+			buildBundleFn = web_runtime_goscript_build.BuildWebGoScriptCloudflarePluginScript
+		}
+		webRuntimeSrcFiles, err = buildBundleFn(
+			ctx,
+			le,
+			distSourcePath,
+			mc.pluginCodegenPath,
+			outDistPath,
+			outScriptPath,
+			mainPackagePath,
+			goScriptJSMinification,
+			goScriptJSSourcemaps,
+			opts.GoScriptCodeSplitting,
+			sharedOptions,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if buildGoScriptSharedProvider {
+			sharedOutPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID)
+			_, sharedInputs, err := web_runtime_goscript_build.BuildWebGoScriptSharedProviderScript(
 				ctx,
 				le,
 				distSourcePath,
-				mc.pluginCodegenPath,
+				filepath.Join(mc.pluginCodegenPath, "goscript-shared-provider"),
 				outDistPath,
-				outScriptPath,
-				mainPackagePath,
+				sharedOutPath,
+				goScriptSharedWebPkgID,
 				goScriptJSMinification,
 				goScriptJSSourcemaps,
-				opts.GoScriptCodeSplitting,
-				sharedOptions,
 			)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if buildGoScriptSharedProvider {
-				sharedOutPath := filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID)
-				_, sharedInputs, err := web_runtime_goscript_build.BuildWebGoScriptSharedProviderScript(
-					ctx,
-					le,
-					distSourcePath,
-					filepath.Join(mc.pluginCodegenPath, "goscript-shared-provider"),
-					outDistPath,
-					sharedOutPath,
-					goScriptSharedWebPkgID,
-					goScriptJSMinification,
-					goScriptJSSourcemaps,
-				)
-				if err != nil {
-					return err
-				}
-				webRuntimeSrcFiles = append(webRuntimeSrcFiles, sharedInputs...)
-				webPkgRefs = append(webPkgRefs, &web_pkg.WebPkgRef{
-					WebPkgId:   goScriptSharedWebPkgID,
-					WebPkgRoot: filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID),
-				})
-			}
-			le.
-				WithField("dur", time.Since(timeStart).String()).
-				Info("compiled GoScript web plugin entrypoint")
-			return nil
-		}(); err != nil {
-			return nil, err
+			webRuntimeSrcFiles = append(webRuntimeSrcFiles, sharedInputs...)
+			webPkgRefs = append(webPkgRefs, &web_pkg.WebPkgRef{
+				WebPkgId:   goScriptSharedWebPkgID,
+				WebPkgRoot: filepath.Join(outAssetsPath, bldr_plugin.PluginAssetsWebPkgsDir, goScriptSharedWebPkgID),
+			})
 		}
+		le.
+			WithField("dur", time.Since(timeStart).String()).
+			Info("compiled GoScript web plugin entrypoint")
 	}
 	if compilePluginBinary {
 		le.Info("compiling plugin binary")
