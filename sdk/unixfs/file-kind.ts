@@ -13,13 +13,8 @@ export function getUnixFSFileInfoKind(
   if (((info.mode ?? 0) & UnixFSModeSymlink) !== 0) {
     return 'symlink'
   }
-  if (info.isDir === true) {
-    return 'directory'
-  }
-  if (info.isDir === false) {
-    return 'file'
-  }
-  return 'unknown'
+  // Decoded proto3 bools omit false values, so an unset isDir is a file.
+  return info.isDir ? 'directory' : 'file'
 }
 
 export function getUnixFSDirEntryKind(
@@ -31,13 +26,8 @@ export function getUnixFSDirEntryKind(
   if (entry.isSymlink === true) {
     return 'symlink'
   }
-  if (entry.isDir === true) {
-    return 'directory'
-  }
-  if (entry.isDir === false) {
-    return 'file'
-  }
-  return 'unknown'
+  // Decoded proto3 bools omit false values, so an unset isDir is a file.
+  return entry.isDir ? 'directory' : 'file'
 }
 
 export function getUnixFSNodeTypeKind(

@@ -105,14 +105,16 @@ func (r *CommandsManager) RegisterCommand(
 	}
 
 	reg.resourceID = resourceID
+	var wasReleased bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if released {
+		wasReleased = released
+		if wasReleased {
 			return
 		}
 		r.registrations[resourceID] = reg
 		broadcast()
 	})
-	if released {
+	if wasReleased {
 		return nil, resource.ErrClientReleased
 	}
 

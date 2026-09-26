@@ -5,6 +5,7 @@ import {
   getUnixFSNodeTypeKind,
   UnixFSModeSymlink,
 } from './file-kind.js'
+import { DirEntry, FileInfo } from './handle.pb.js'
 
 describe('UnixFS file kind', () => {
   it('projects file info into file, directory, symlink, and unknown kinds', () => {
@@ -13,7 +14,13 @@ describe('UnixFS file kind', () => {
     expect(
       getUnixFSFileInfoKind({ isDir: false, mode: UnixFSModeSymlink }),
     ).toBe('symlink')
-    expect(getUnixFSFileInfoKind({})).toBe('unknown')
+    // Decoded protos omit false bools.
+    expect(
+      getUnixFSFileInfoKind(
+        FileInfo.fromBinary(FileInfo.toBinary({ isDir: false })),
+      ),
+    ).toBe('file')
+    expect(getUnixFSFileInfoKind(null)).toBe('unknown')
   })
 
   it('projects directory entries without changing generic row shape', () => {
@@ -22,7 +29,13 @@ describe('UnixFS file kind', () => {
     expect(getUnixFSDirEntryKind({ isDir: false, isSymlink: true })).toBe(
       'symlink',
     )
-    expect(getUnixFSDirEntryKind({})).toBe('unknown')
+    // Decoded protos omit false bools.
+    expect(
+      getUnixFSDirEntryKind(
+        DirEntry.fromBinary(DirEntry.toBinary({ name: 'a.txt' })),
+      ),
+    ).toBe('file')
+    expect(getUnixFSDirEntryKind(null)).toBe('unknown')
   })
 
   it('projects node type responses with symlink taking precedence', () => {

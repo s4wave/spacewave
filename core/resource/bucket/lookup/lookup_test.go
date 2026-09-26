@@ -616,3 +616,56 @@ func assertExampleResponse(t *testing.T, data []byte, want string) {
 		t.Fatalf("message = %q, want %q", example.GetMsg(), want)
 	}
 }
+
+// failingSecondAddResourceClient fails the second AddResource call.
+type failingSecondAddResourceClient struct {
+	*recordingResourceClient
+	adds int
+}
+
+func (c *failingSecondAddResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	c.adds++
+	if c.adds == 2 {
+		return 0, errors.New("add resource failed")
+	}
+	return c.recordingResourceClient.AddResource(mux, releaseFn)
+}
+
+func TestBuildTransactionReleasesTransactionWhenCursorAddFails(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(cursor.Release)
+	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
+
+	for name, build := range map[string]func(context.Context) error{
+		"BuildTransaction": func(ctx context.Context) error {
+			_, err := resource.BuildTransaction(ctx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+			return err
+		},
+		"BuildTransactionAtRef": func(ctx context.Context) error {
+			_, err := resource.BuildTransactionAtRef(ctx, &s4wave_bucket_lookup.BuildTransactionAtRefRequest{})
+			return err
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			resourceClient := &failingSecondAddResourceClient{recordingResourceClient: newRecordingResourceClient(ctx)}
+			if err := build(resource_server.WithResourceClientContext(ctx, resourceClient)); err == nil {
+				t.Fatal("expected cursor registration failure")
+			}
+			if len(resourceClient.muxes) != 0 {
+				t.Fatalf("registered resources after failure = %d, want 0", len(resourceClient.muxes))
+			}
+		})
+	}
+}

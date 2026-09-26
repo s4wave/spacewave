@@ -237,17 +237,10 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 		return nil, err
 	}
 
-	var cursorResource *resource_bucket_lookup.BucketLookupCursorResource
-	err = r.engine.AccessWorldState(ctx, req.GetRef(), func(c *bucket_lookup.Cursor) error {
-		cursorResource = resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, c)
-		return nil
+	// Register the cursor while its AccessWorldState callback stays open.
+	id, err := addAccessWorldStateResource(ctx, resourceCtx, r.le, r.b, func(ctx context.Context, cb func(*bucket_lookup.Cursor) error) error {
+		return r.engine.AccessWorldState(ctx, req.GetRef(), cb)
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Register the world-state cursor resource.
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
 	}
@@ -319,13 +312,18 @@ func (r *EngineResource) WatchWorldState(
 		// Build a tracked WorldState for client reads.
 		trackedWs := NewTrackedWorldState(wtx, world.NewEngineWorldState(r.engine, false), seqno, ctx)
 
-		// Register the tracked resource.
+		// Register the tracked resource. Adopted child resources read through
+		// the snapshot transaction, so it is discarded after the tracked
+		// resource and all of its descendants are released.
 		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
-		resourceId, err := resourceCtx.AddResource(trackedResource.GetMux(), func() {
+		txLease := newResourceLease(wtx.Discard)
+		resourceId, err := resourceCtx.AddResource(txLease.wrapInvoker(trackedResource.GetMux()), func() {
 			trackedWs.Close()
+			txLease.releaseRef()
 		})
 		if err != nil {
 			trackedWs.Close()
+			txLease.releaseRef()
 			return err
 		}
 

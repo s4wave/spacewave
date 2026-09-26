@@ -147,6 +147,7 @@ func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
 	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
+		resourceCtx.ReleaseResource(txID)
 		return nil, err
 	}
 
@@ -174,6 +175,7 @@ func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, 
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
 	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
+		resourceCtx.ReleaseResource(txID)
 		return nil, err
 	}
 

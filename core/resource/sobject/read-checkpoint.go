@@ -44,9 +44,13 @@ func (r *SharedObjectResource) OpenReadCheckpoint(
 		return nil, err
 	}
 	resource := resource_world.NewEngineResource(r.le, r.b, engine, nil, &s4wave_world.EngineInfo{}, resource_world.WithSessionPeerID(sessionPeerID))
-	id, err := resourceCtx.AddResource(resource.GetMux(), release)
-	if err != nil {
+	releaseResource := func() {
+		resource.Close()
 		release()
+	}
+	id, err := resourceCtx.AddResource(resource.GetMux(), releaseResource)
+	if err != nil {
+		releaseResource()
 		return nil, err
 	}
 	return &s4wave_sobject.OpenReadCheckpointResponse{ResourceId: id, Config: snapshot.Config}, nil

@@ -185,9 +185,13 @@ function createWatchWorldState<T = void>(
   // Create abort controller for entire watch
   const watchAbortController = new AbortController()
 
+  // Abort controller for the current callback execution
+  let execAbortController: AbortController | undefined
+
   const stopWatch = () => {
     cancelled = true
     watchAbortController.abort()
+    execAbortController?.abort()
     cleanupResources.forEach((r) => r[Symbol.dispose]())
     cleanupResources.length = 0
   }
@@ -204,12 +208,16 @@ function createWatchWorldState<T = void>(
       for await (const response of stream) {
         if (cancelled) break
 
+        // Abort the previous execution now that changes were detected.
+        execAbortController?.abort()
+
         // Clean up previous execution's resources
         cleanupResources.forEach((r) => r[Symbol.dispose]())
         cleanupResources.length = 0
 
         // Create abort controller for this execution
-        const execAbortController = new AbortController()
+        execAbortController = new AbortController()
+        const execSignal = execAbortController.signal
 
         // Create WorldState resource from resource_id
         const trackedWorldState = resourceRef.createResource(
@@ -231,7 +239,7 @@ function createWatchWorldState<T = void>(
           // Execute callback
           // As the callback accesses resources, server-side tracking starts immediately
           // Change detection begins as soon as first access is recorded
-          await callback(trackedWorldState, execAbortController.signal, cleanup)
+          await callback(trackedWorldState, execSignal, cleanup)
         } catch (err) {
           // Handle errors in callback (could be abort errors, which are expected)
           if (err instanceof Error && err.name !== 'AbortError') {

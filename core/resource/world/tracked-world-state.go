@@ -3,6 +3,7 @@ package resource_world
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/aperturerobotics/util/routine"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -21,7 +22,10 @@ type TrackedWorldState struct {
 	// stateRoutine manages change detection with current snapshot
 	stateRoutine *routine.StateRoutineContainer[*s4wave_world.TrackedWorldStateSnapshot]
 
-	// currentSnapshot is the current tracking snapshot
+	// mtx guards currentSnapshot and orders snapshot publication.
+	mtx sync.Mutex
+	// currentSnapshot is the current tracking snapshot.
+	// Published snapshots are immutable; updates replace them with a deep copy.
 	currentSnapshot *s4wave_world.TrackedWorldStateSnapshot
 
 	// changeResultCh receives error (or nil) when changes are detected
@@ -76,26 +80,24 @@ func (t *TrackedWorldState) WaitForChanges(ctx context.Context) error {
 	}
 }
 
-// cloneAndUpdateSnapshot creates a new snapshot with updated tracking data.
-func (t *TrackedWorldState) cloneAndUpdateSnapshot(updateFn func(*s4wave_world.TrackedWorldStateSnapshot)) *s4wave_world.TrackedWorldStateSnapshot {
-	// Clone the current tracking state.
-	newSnapshot := &s4wave_world.TrackedWorldStateSnapshot{
-		ObjectAccesses: make([]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, len(t.currentSnapshot.ObjectAccesses)),
-		HasQuadAccess:  t.currentSnapshot.HasQuadAccess,
-		InitialSeqno:   t.currentSnapshot.InitialSeqno,
-	}
-	copy(newSnapshot.ObjectAccesses, t.currentSnapshot.ObjectAccesses)
+// updateSnapshot publishes a deep copy of the current snapshot with updateFn applied.
+// The previously published snapshot is never mutated.
+func (t *TrackedWorldState) updateSnapshot(updateFn func(*s4wave_world.TrackedWorldStateSnapshot)) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 
-	// Apply the requested tracking update.
+	// Deep copy the current tracking state and apply the update.
+	newSnapshot := t.currentSnapshot.CloneVT()
 	updateFn(newSnapshot)
 
-	return newSnapshot
+	// Publish the updated snapshot.
+	t.currentSnapshot = newSnapshot
+	t.stateRoutine.SetState(newSnapshot)
 }
 
 // trackObjectAccess records an object access.
 func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
-	// Clone the current tracking state.
-	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
+	t.updateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
 		// Update an existing access or append a new entry.
 		found := false
 		for _, objAccess := range snap.ObjectAccesses {
@@ -112,10 +114,6 @@ func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
 			})
 		}
 	})
-
-	// Publish the updated snapshot.
-	t.currentSnapshot = newSnapshot
-	t.stateRoutine.SetState(newSnapshot)
 }
 
 // trackObjectBodyAccesses records the accesses from one batched body read in a
@@ -127,7 +125,7 @@ func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) 
 	}
 
 	// Merge batched body accesses into one tracking snapshot.
-	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
+	t.updateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
 		existing := make(map[string]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, len(snap.ObjectAccesses))
 		for _, objAccess := range snap.ObjectAccesses {
 			existing[objAccess.Key] = objAccess
@@ -145,22 +143,14 @@ func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) 
 			existing[body.ObjectKey] = objAccess
 		}
 	})
-
-	// Publish the batched snapshot.
-	t.currentSnapshot = newSnapshot
-	t.stateRoutine.SetState(newSnapshot)
 }
 
 // trackQuadQuery records a quad query access.
 func (t *TrackedWorldState) trackQuadQuery() {
 	// Mark quad access in a cloned snapshot.
-	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
+	t.updateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
 		snap.HasQuadAccess = true
 	})
-
-	// Publish the updated quad-access snapshot.
-	t.currentSnapshot = newSnapshot
-	t.stateRoutine.SetState(newSnapshot)
 }
 
 // Close stops the change detection routine.

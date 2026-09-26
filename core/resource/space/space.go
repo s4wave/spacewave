@@ -290,8 +290,9 @@ func (r *SpaceResource) AccessWorld(
 	if err != nil {
 		return nil, err
 	}
-	id, err := resourceCtx.AddResourceValue(worldResource.GetMux(), worldResource, func() {})
+	id, err := resourceCtx.AddResourceValue(worldResource.GetMux(), worldResource, worldResource.Close)
 	if err != nil {
+		worldResource.Close()
 		return nil, err
 	}
 
