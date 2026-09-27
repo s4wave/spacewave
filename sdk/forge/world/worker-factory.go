@@ -4,7 +4,6 @@ package s4wave_forge_world
 
 import (
 	"context"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -103,12 +102,18 @@ func resolveWorkerPeerID(ctx context.Context, ws world.WorldState, objectKey str
 
 // forgeWorkerResource implements PersistentExecutionService for a Forge Worker.
 type forgeWorkerResource struct {
+	// objectKey identifies the persistent worker object.
 	objectKey string
-	ws        world.WorldState
-	b         bus.Bus
-	le        *logrus.Entry
-	peerID    peer.ID
-	engineID  string
+	// ws is the borrowed worker world state.
+	ws world.WorldState
+	// b owns the execution's controllers.
+	b bus.Bus
+	// le reports worker failures.
+	le *logrus.Entry
+	// peerID supplies the local worker authority.
+	peerID peer.ID
+	// engineID identifies the worker's World engine.
+	engineID string
 }
 
 // Execute implements SRPCPersistentExecutionServiceServer.
@@ -177,29 +182,17 @@ func (r *forgeWorkerResource) Execute(
 	}
 	defer workerRelease()
 
-	// Periodically send heartbeat status on the stream.
-	// The process binding controller observes these to detect worker liveness.
-	heartbeatInterval := 30 * time.Second
-	ticker := time.NewTicker(heartbeatInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case exitErr := <-workerExited:
-			if exitErr == nil {
-				return errors.New("forge worker controller exited")
-			}
-			return errors.Wrap(exitErr, "forge worker controller")
-		case <-ticker.C:
-			if err := stream.Send(&s4wave_process.ExecuteStatus{
-				State: s4wave_process.ExecutionState_ExecutionState_RUNNING,
-			}); err != nil {
-				le.WithError(err).Debug("heartbeat send failed")
-				return err
-			}
+	// Stream cancellation and actual controller exit delimit this execution.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case exitErr := <-workerExited:
+		if exitErr == nil {
+			return errors.New("forge worker controller exited")
 		}
+		return errors.Wrap(exitErr, "forge worker controller")
 	}
 }
 
+// _ is a type assertion.
 var _ s4wave_process.SRPCPersistentExecutionServiceServer = (*forgeWorkerResource)(nil)
