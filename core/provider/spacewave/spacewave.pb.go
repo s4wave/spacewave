@@ -50,6 +50,93 @@ func (x SyncMode) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// PendingUploadState accounts for the durable upload queue in one transaction.
+type PendingUploadState struct {
+	unknownFields []byte
+	// Count is the number of pending block records.
+	Count uint64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	// SizeBytes is the total stored size of pending blocks.
+	SizeBytes int64 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"sizeBytes,omitempty"`
+	// LastSequence is the highest assigned queue position, retained while empty.
+	LastSequence uint64 `protobuf:"varint,3,opt,name=last_sequence,json=lastSequence,proto3" json:"lastSequence,omitempty"`
+	// PendingSinceNanos is the first pending change's Unix time in nanoseconds.
+	// Zero indicates an empty queue. Later writes never extend this deadline.
+	PendingSinceNanos int64 `protobuf:"varint,4,opt,name=pending_since_nanos,json=pendingSinceNanos,proto3" json:"pendingSinceNanos,omitempty"`
+}
+
+func (x *PendingUploadState) Reset() {
+	*x = PendingUploadState{}
+}
+
+func (*PendingUploadState) ProtoMessage() {}
+
+func (x *PendingUploadState) GetCount() uint64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *PendingUploadState) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *PendingUploadState) GetLastSequence() uint64 {
+	if x != nil {
+		return x.LastSequence
+	}
+	return 0
+}
+
+func (x *PendingUploadState) GetPendingSinceNanos() int64 {
+	if x != nil {
+		return x.PendingSinceNanos
+	}
+	return 0
+}
+
+// PendingUploadBlock is stored under dirty-order/<big-endian uint64 sequence>.
+// The empty dirty/<base58 block hash> key enforces duplicate marking.
+type PendingUploadBlock struct {
+	unknownFields []byte
+	// Sequence is this insertion's immutable queue position.
+	Sequence uint64 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// SizeBytes is the block's stored size, used for pack selection and accounting.
+	SizeBytes int64 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"sizeBytes,omitempty"`
+	// Hash is the block's base58 identity, also indexed for duplicate marking.
+	Hash string `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (x *PendingUploadBlock) Reset() {
+	*x = PendingUploadBlock{}
+}
+
+func (*PendingUploadBlock) ProtoMessage() {}
+
+func (x *PendingUploadBlock) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *PendingUploadBlock) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *PendingUploadBlock) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
 // Config configures the Spacewave cloud provider controller.
 type Config struct {
 	unknownFields []byte
@@ -186,6 +273,43 @@ func (x *SyncConfig) GetDisableCompaction() bool {
 	return false
 }
 
+func (m *PendingUploadState) CloneVT() *PendingUploadState {
+	if m == nil {
+		return (*PendingUploadState)(nil)
+	}
+	r := new(PendingUploadState)
+	r.Count = m.Count
+	r.SizeBytes = m.SizeBytes
+	r.LastSequence = m.LastSequence
+	r.PendingSinceNanos = m.PendingSinceNanos
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PendingUploadState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PendingUploadBlock) CloneVT() *PendingUploadBlock {
+	if m == nil {
+		return (*PendingUploadBlock)(nil)
+	}
+	r := new(PendingUploadBlock)
+	r.Sequence = m.Sequence
+	r.SizeBytes = m.SizeBytes
+	r.Hash = m.Hash
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PendingUploadBlock) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -226,6 +350,61 @@ func (m *SyncConfig) CloneVT() *SyncConfig {
 
 func (m *SyncConfig) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *PendingUploadState) EqualVT(that *PendingUploadState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Count != that.Count {
+		return false
+	}
+	if this.SizeBytes != that.SizeBytes {
+		return false
+	}
+	if this.LastSequence != that.LastSequence {
+		return false
+	}
+	if this.PendingSinceNanos != that.PendingSinceNanos {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PendingUploadState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PendingUploadState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PendingUploadBlock) EqualVT(that *PendingUploadBlock) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Sequence != that.Sequence {
+		return false
+	}
+	if this.SizeBytes != that.SizeBytes {
+		return false
+	}
+	if this.Hash != that.Hash {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PendingUploadBlock) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PendingUploadBlock)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *Config) EqualVT(that *Config) bool {
@@ -335,6 +514,130 @@ func (x *SyncMode) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SyncMode from JSON.
 func (x *SyncMode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PendingUploadState message to JSON.
+func (x *PendingUploadState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Count != 0 || s.HasField("count") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("count")
+		s.WriteUint64(x.Count)
+	}
+	if x.SizeBytes != 0 || s.HasField("sizeBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sizeBytes")
+		s.WriteInt64(x.SizeBytes)
+	}
+	if x.LastSequence != 0 || s.HasField("lastSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastSequence")
+		s.WriteUint64(x.LastSequence)
+	}
+	if x.PendingSinceNanos != 0 || s.HasField("pendingSinceNanos") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pendingSinceNanos")
+		s.WriteInt64(x.PendingSinceNanos)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PendingUploadState to JSON.
+func (x *PendingUploadState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PendingUploadState message from JSON.
+func (x *PendingUploadState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "count":
+			s.AddField("count")
+			x.Count = s.ReadUint64()
+		case "size_bytes", "sizeBytes":
+			s.AddField("size_bytes")
+			x.SizeBytes = s.ReadInt64()
+		case "last_sequence", "lastSequence":
+			s.AddField("last_sequence")
+			x.LastSequence = s.ReadUint64()
+		case "pending_since_nanos", "pendingSinceNanos":
+			s.AddField("pending_since_nanos")
+			x.PendingSinceNanos = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PendingUploadState from JSON.
+func (x *PendingUploadState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PendingUploadBlock message to JSON.
+func (x *PendingUploadBlock) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Sequence != 0 || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		s.WriteUint64(x.Sequence)
+	}
+	if x.SizeBytes != 0 || s.HasField("sizeBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sizeBytes")
+		s.WriteInt64(x.SizeBytes)
+	}
+	if x.Hash != "" || s.HasField("hash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hash")
+		s.WriteString(x.Hash)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PendingUploadBlock to JSON.
+func (x *PendingUploadBlock) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PendingUploadBlock message from JSON.
+func (x *PendingUploadBlock) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "sequence":
+			s.AddField("sequence")
+			x.Sequence = s.ReadUint64()
+		case "size_bytes", "sizeBytes":
+			s.AddField("size_bytes")
+			x.SizeBytes = s.ReadInt64()
+		case "hash":
+			s.AddField("hash")
+			x.Hash = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PendingUploadBlock from JSON.
+func (x *PendingUploadBlock) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -506,6 +809,105 @@ func (x *SyncConfig) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *PendingUploadState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PendingUploadState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PendingUploadState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PendingSinceNanos != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PendingSinceNanos))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.LastSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LastSequence))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.SizeBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SizeBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Count != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PendingUploadBlock) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PendingUploadBlock) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PendingUploadBlock) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Hash) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Hash)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.SizeBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SizeBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Sequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequence))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -635,6 +1037,33 @@ func (m *SyncConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PendingUploadState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Count)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LastSequence)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PendingSinceNanos)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PendingUploadBlock) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequence)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Hash)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -672,6 +1101,54 @@ func (m *SyncConfig) SizeVT() (n int) {
 
 func (x SyncMode) MarshalProtoText() string {
 	return x.String()
+}
+
+func (x *PendingUploadState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PendingUploadState")
+	if x.Count != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "count")
+		protobuf_go_lite.TextWriteUint(&sb, x.Count)
+	}
+	if x.SizeBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size_bytes")
+		protobuf_go_lite.TextWriteInt(&sb, x.SizeBytes)
+	}
+	if x.LastSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.LastSequence)
+	}
+	if x.PendingSinceNanos != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pending_since_nanos")
+		protobuf_go_lite.TextWriteInt(&sb, x.PendingSinceNanos)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PendingUploadState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PendingUploadBlock) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PendingUploadBlock")
+	if x.Sequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.Sequence)
+	}
+	if x.SizeBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size_bytes")
+		protobuf_go_lite.TextWriteInt(&sb, x.SizeBytes)
+	}
+	if x.Hash != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash")
+		protobuf_go_lite.TextWriteString(&sb, x.Hash)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PendingUploadBlock) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *Config) MarshalProtoText() string {
@@ -740,6 +1217,156 @@ func (x *SyncConfig) MarshalProtoText() string {
 
 func (x *SyncConfig) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *PendingUploadState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PendingUploadState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PendingUploadState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
+			}
+			m.Count = 0
+			m.Count, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeBytes", wireType)
+			}
+			m.SizeBytes = 0
+			m.SizeBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastSequence", wireType)
+			}
+			m.LastSequence = 0
+			m.LastSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingSinceNanos", wireType)
+			}
+			m.PendingSinceNanos = 0
+			m.PendingSinceNanos, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PendingUploadBlock) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PendingUploadBlock: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PendingUploadBlock: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			m.Sequence = 0
+			m.Sequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeBytes", wireType)
+			}
+			m.SizeBytes = 0
+			m.SizeBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Hash = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *Config) UnmarshalVT(dAtA []byte) error {

@@ -121,7 +121,7 @@ func TestSnapshotTransitions(t *testing.T) {
 		t.Fatalf("unexpected index counters: %+v", snap)
 	}
 
-	store.AddDirty("bstore-1", 512)
+	store.SetPending("bstore-1", 512, 1)
 	snap = store.Snapshot()
 	if snap.UploadPhase != UploadPhaseDirtyPending {
 		t.Fatalf("upload phase = %v, want dirty pending", snap.UploadPhase)

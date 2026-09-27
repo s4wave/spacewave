@@ -114,8 +114,8 @@ func (s *snapshot) get(ctx context.Context, key []byte) ([]byte, bool, error) {
 			return nil, false, nil
 		}
 		runs := page.Partitions[i].Runs
-		for _, run := range slices.Backward(runs) {
-			run, err := s.engine.readRun(ctx, run)
+		for _, file := range slices.Backward(runs) {
+			run, err := s.engine.readRun(ctx, file.GetName())
 			if err != nil {
 				return nil, false, err
 			}

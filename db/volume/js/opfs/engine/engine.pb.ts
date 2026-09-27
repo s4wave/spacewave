@@ -120,6 +120,48 @@ export const Child: MessageType<Child> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * RunFile names one immutable run and its encoded size.
+ *
+ * @generated from message volume.opfs.engine.RunFile
+ */
+export interface RunFile {
+  /**
+   * Name is the immutable run file name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name?: string
+  /**
+   * Bytes is the encoded run length, choosing which runs to merge.
+   *
+   * @generated from field: uint32 bytes = 2;
+   */
+  bytes?: number
+  /**
+   * Records counts every record in the run, including deletions.
+   *
+   * @generated from field: uint32 records = 3;
+   */
+  records?: number
+  /**
+   * Deleted counts deletion records that may hide older values.
+   *
+   * @generated from field: uint32 deleted = 4;
+   */
+  deleted?: number
+}
+
+export const RunFile: MessageType<RunFile> = /* @__PURE__ */ createMessageType({
+  typeName: 'volume.opfs.engine.RunFile',
+  fields: [
+    { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'bytes', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 3, name: 'records', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 4, name: 'deleted', kind: 'scalar', T: ScalarType.UINT32 },
+  ] satisfies readonly PartialFieldInfo[],
+})
+
+/**
  * Partition covers keys up to the next partition and bounds overlapping runs.
  *
  * @generated from message volume.opfs.engine.Partition
@@ -132,11 +174,11 @@ export interface Partition {
    */
   lower?: Uint8Array
   /**
-   * Runs names at most four immutable runs, oldest first.
+   * Runs lists at most four immutable runs, oldest first.
    *
-   * @generated from field: repeated string runs = 2;
+   * @generated from field: repeated volume.opfs.engine.RunFile runs = 2;
    */
-  runs?: string[]
+  runs?: RunFile[]
 }
 
 export const Partition: MessageType<Partition> =
@@ -144,13 +186,7 @@ export const Partition: MessageType<Partition> =
     typeName: 'volume.opfs.engine.Partition',
     fields: [
       { no: 1, name: 'lower', kind: 'scalar', T: ScalarType.BYTES },
-      {
-        no: 2,
-        name: 'runs',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
+      { no: 2, name: 'runs', kind: 'message', T: RunFile, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
   })
 

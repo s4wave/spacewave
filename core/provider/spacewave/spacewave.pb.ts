@@ -35,6 +35,92 @@ export const SyncMode_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * PendingUploadState accounts for the durable upload queue in one transaction.
+ *
+ * @generated from message provider.spacewave.PendingUploadState
+ */
+export interface PendingUploadState {
+  /**
+   * Count is the number of pending block records.
+   *
+   * @generated from field: uint64 count = 1;
+   */
+  count?: bigint
+  /**
+   * SizeBytes is the total stored size of pending blocks.
+   *
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes?: bigint
+  /**
+   * LastSequence is the highest assigned queue position, retained while empty.
+   *
+   * @generated from field: uint64 last_sequence = 3;
+   */
+  lastSequence?: bigint
+  /**
+   * PendingSinceNanos is the first pending change's Unix time in nanoseconds.
+   * Zero indicates an empty queue. Later writes never extend this deadline.
+   *
+   * @generated from field: int64 pending_since_nanos = 4;
+   */
+  pendingSinceNanos?: bigint
+}
+
+export const PendingUploadState: MessageType<PendingUploadState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.PendingUploadState',
+    fields: [
+      { no: 1, name: 'count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'size_bytes', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 3, name: 'last_sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'pending_since_nanos',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * PendingUploadBlock is stored under dirty-order/<big-endian uint64 sequence>.
+ * The empty dirty/<base58 block hash> key enforces duplicate marking.
+ *
+ * @generated from message provider.spacewave.PendingUploadBlock
+ */
+export interface PendingUploadBlock {
+  /**
+   * Sequence is this insertion's immutable queue position.
+   *
+   * @generated from field: uint64 sequence = 1;
+   */
+  sequence?: bigint
+  /**
+   * SizeBytes is the block's stored size, used for pack selection and accounting.
+   *
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes?: bigint
+  /**
+   * Hash is the block's base58 identity, also indexed for duplicate marking.
+   *
+   * @generated from field: string hash = 3;
+   */
+  hash?: string
+}
+
+export const PendingUploadBlock: MessageType<PendingUploadBlock> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.PendingUploadBlock',
+    fields: [
+      { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'size_bytes', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 3, name: 'hash', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SyncConfig configures block store synchronization behavior.
  *
  * @generated from message provider.spacewave.SyncConfig

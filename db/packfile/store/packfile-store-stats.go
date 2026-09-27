@@ -98,10 +98,7 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 	stats := s.stats
 	s.mtx.Unlock()
 
-	var entries []*packfile.PackfileEntry
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries = s.manifest
-	})
+	entries := s.SnapshotManifest().GetEntries()
 	manifestStats := summarizeManifestDistribution(entries)
 
 	snap := PackfileStoreStats{

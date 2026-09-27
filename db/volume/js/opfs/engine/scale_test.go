@@ -4,7 +4,9 @@ package engine
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
+	"slices"
 	"testing"
 )
 
@@ -147,5 +149,53 @@ func TestDurableIndexScale(t *testing.T) {
 	}
 	if reads > 8 {
 		t.Fatalf("empty reopened lookup and scan visited %d files", reads)
+	}
+}
+
+// TestScatteredKeyWriteAmplification proves batches spread across every
+// partition, like a queue keyed by block hash, rewrite each record a bounded
+// number of times while filling and draining.
+func TestScatteredKeyWriteAmplification(t *testing.T) {
+	ctx := t.Context()
+	d := newDiskBackend(t)
+	e, err := Open(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = e.Close() }()
+
+	const count, batch = 32768, 512
+	key := func(index int) []byte {
+		sum := sha256.Sum256(binary.BigEndian.AppendUint64(nil, uint64(index)))
+		return sum[:]
+	}
+	value := bytes.Repeat([]byte("v"), 48)
+	apply := func(deleted bool) {
+		t.Helper()
+		for start := 0; start < count; start += batch {
+			records := make([]*Record, 0, batch)
+			for index := start; index < start+batch; index++ {
+				record := &Record{Key: key(index), Deleted: deleted}
+				if !deleted {
+					record.Value = value
+				}
+				records = append(records, record)
+			}
+			slices.SortFunc(records, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
+			if err := e.Apply(ctx, records); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	apply(false)
+	apply(true)
+
+	d.mtx.Lock()
+	written := d.kindBytes["run"]
+	d.mtx.Unlock()
+	logical := int64(count * (len(key(0)) + len(value)))
+	t.Logf("%d scattered keys wrote %d run bytes for %d logical bytes", count, written, logical)
+	if written > 12*logical {
+		t.Fatalf("scattered keys wrote %d run bytes, over 12x the %d logical bytes", written, logical)
 	}
 }

@@ -1256,11 +1256,7 @@ func addSyncDirtyBlock(
 	if err != nil {
 		t.Fatalf("put upper block: %v", err)
 	}
-	if err := wtx.Set(
-		ctx,
-		[]byte("dirty/"+ref.GetHash().MarshalString()),
-		[]byte(strconv.Itoa(len(data))),
-	); err != nil {
+	if _, err := markPendingUploads(ctx, wtx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
 		t.Fatalf("set dirty key: %v", err)
 	}
 	return ref
@@ -1303,7 +1299,7 @@ func newDirtySyncExecuteTestController(
 		conf:       &SyncConfig{SizeThresholdBytes: 1, CheckpointIntervalSecs: 1},
 		gateBcast:  gate,
 	}
-	s.recalcDirtySize(ctx)
+	s.updateDirtyState(ctx)
 	return s
 }
 
@@ -1388,11 +1384,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
 		}
-		if err := wtx.Set(
-			ctx,
-			[]byte("dirty/"+ref.GetHash().MarshalString()),
-			[]byte(strconv.Itoa(len(data))),
-		); err != nil {
+		if _, err := markPendingUploads(ctx, wtx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
 			t.Fatalf("set dirty key: %v", err)
 		}
 	}
@@ -1506,11 +1498,7 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
 		}
-		if err := wtx.Set(
-			ctx,
-			[]byte("dirty/"+ref.GetHash().MarshalString()),
-			[]byte(strconv.Itoa(len(data))),
-		); err != nil {
+		if _, err := markPendingUploads(ctx, wtx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
 			t.Fatalf("set dirty key: %v", err)
 		}
 	}
@@ -1961,11 +1949,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("put upper block: %v", err)
 		}
-		if err := wtx.Set(
-			ctx,
-			[]byte("dirty/"+ref.GetHash().MarshalString()),
-			[]byte(strconv.Itoa(len(data))),
-		); err != nil {
+		if _, err := markPendingUploads(ctx, wtx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
 			t.Fatalf("set dirty key: %v", err)
 		}
 	}

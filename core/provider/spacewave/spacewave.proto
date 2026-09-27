@@ -1,6 +1,30 @@
 syntax = "proto3";
 package provider.spacewave;
 
+// PendingUploadState accounts for the durable upload queue in one transaction.
+message PendingUploadState {
+  // Count is the number of pending block records.
+  uint64 count = 1;
+  // SizeBytes is the total stored size of pending blocks.
+  int64 size_bytes = 2;
+  // LastSequence is the highest assigned queue position, retained while empty.
+  uint64 last_sequence = 3;
+  // PendingSinceNanos is the first pending change's Unix time in nanoseconds.
+  // Zero indicates an empty queue. Later writes never extend this deadline.
+  int64 pending_since_nanos = 4;
+}
+
+// PendingUploadBlock is stored under dirty-order/<big-endian uint64 sequence>.
+// The empty dirty/<base58 block hash> key enforces duplicate marking.
+message PendingUploadBlock {
+  // Sequence is this insertion's immutable queue position.
+  uint64 sequence = 1;
+  // SizeBytes is the block's stored size, used for pack selection and accounting.
+  int64 size_bytes = 2;
+  // Hash is the block's base58 identity, also indexed for duplicate marking.
+  string hash = 3;
+}
+
 // Config configures the Spacewave cloud provider controller.
 message Config {
   // ProviderId is the provider identifier.

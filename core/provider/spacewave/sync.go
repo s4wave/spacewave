@@ -3,7 +3,9 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,12 +34,13 @@ const syncPushRetryTimeout = 30 * time.Second
 
 const syncNoProgressBackoff = time.Second
 
-// syncPendingSinceKey retains the first dirty-block deadline across restart.
-const syncPendingSinceKey = "sync/pending-since"
-
 const defaultSyncSizeThresholdBytes = 48 * 1024 * 1024
 
+// syncOrderDirtyBlocksLimit bounds optional locality ordering.
 const syncOrderDirtyBlocksLimit = 1024
+
+// syncDirtyPageLimit bounds pending metadata acquired in one transaction.
+const syncDirtyPageLimit = 4096
 
 // syncController manages packfile push/pull synchronization.
 type syncController struct {
@@ -56,8 +59,9 @@ type syncController struct {
 	skipPull          bool
 	remotePullRoutine *coalescedTriggerRoutine
 
-	// dirtySize and dirtyPendingAt project durable dirty records under bcast.
-	dirtySize      int64
+	// dirtySize projects pending bytes under bcast.
+	dirtySize int64
+	// dirtyPendingAt projects the durable first-pending deadline under bcast.
 	dirtyPendingAt time.Time
 	// publications tracks mounted hosts with durable pending cloud work.
 	publications map[*cloudSOHost]time.Time
@@ -76,16 +80,23 @@ type syncController struct {
 	// manifestMtx orders each manifest change with its publication to the lower
 	// store, so a pull and a push commit never publish a stale entry set.
 	manifestMtx sync.Mutex
+	// manifestPublished records the one startup snapshot under manifestMtx.
+	manifestPublished bool
+	// remoteEntries retains remote snapshot precedence under manifestMtx.
+	remoteEntries map[string]*packfile.PackfileEntry
 	// compactWaitPull holds merges after a failed merge until a pull refreshes
 	// the manifest, so a stale plan is never retried.
 	compactWaitPull atomic.Bool
 }
 
-// Init recalculates the dirty size and runs the initial pull. Access-gated pull
+// Init reads persisted queue accounting and runs the initial pull. Access-gated pull
 // failures are returned so callers can wait for account/resource invalidation
 // instead of retrying. Must be called before Execute.
 func (s *syncController) Init(ctx context.Context) error {
-	if err := s.recalcDirtySize(ctx); err != nil {
+	if err := s.adoptLegacyPendingUploads(ctx); err != nil {
+		return err
+	}
+	if err := s.updateDirtyState(ctx); err != nil {
 		return err
 	}
 
@@ -116,7 +127,35 @@ func (s *syncController) applyManifestDelta(
 	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
 		return err
 	}
-	s.lower.UpdateManifest(s.mergedManifestEntries())
+	if !s.manifestPublished {
+		s.publishManifestLocked()
+		return nil
+	}
+
+	// Resolve only changed IDs against the accepted local and remote catalogs.
+	ids := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		ids[entry.GetId()] = true
+	}
+	for _, event := range events {
+		for _, id := range event.GetReplacedPackIds() {
+			ids[id] = true
+		}
+	}
+	var changed []*packfile.PackfileEntry
+	var removed []string
+	for id := range ids {
+		entry := s.remoteEntries[id]
+		if entry == nil {
+			entry = s.mfst.GetEntry(id)
+		}
+		if entry == nil {
+			removed = append(removed, id)
+			continue
+		}
+		changed = append(changed, entry)
+	}
+	s.lower.ApplyManifestDelta(changed, removed)
 	return nil
 }
 
@@ -124,13 +163,21 @@ func (s *syncController) applyManifestDelta(
 func (s *syncController) publishManifest() {
 	s.manifestMtx.Lock()
 	defer s.manifestMtx.Unlock()
+	s.publishManifestLocked()
+}
+
+// publishManifestLocked replaces the catalog after startup or a remote snapshot change.
+// The caller holds manifestMtx.
+func (s *syncController) publishManifestLocked() {
 	s.lower.UpdateManifest(s.mergedManifestEntries())
+	s.manifestPublished = true
 }
 
 // mergedManifestEntries joins the remote entries with the local manifest,
 // remote first. The caller holds manifestMtx.
 func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 	local := s.mfst.GetEntries()
+	s.remoteEntries = make(map[string]*packfile.PackfileEntry)
 	if s.remote == nil {
 		return local
 	}
@@ -146,6 +193,7 @@ func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 			continue
 		}
 		seen[id] = true
+		s.remoteEntries[id] = entry
 		out = append(out, entry)
 	}
 	for _, entry := range local {
@@ -391,122 +439,122 @@ func (s *syncController) pushPackfile(
 // acknowledge the writes. Repeating a write repairs a failed marker without
 // double-counting pending bytes.
 func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writeback.Mark) error {
+	// Serialize the committed summary with its scheduler projection.
 	release, err := s.dirtyMtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-
-	// The markers and first-pending timestamp share the metadata transaction.
-	var addedBytes int64
-	var first time.Time
-	err = kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
-		func(ctx context.Context, tx kvtx.Tx) error {
-			addedBytes = 0
-			for _, mark := range marks {
-				key := []byte("dirty/" + mark.Hash.MarshalString())
-				_, found, err := tx.Get(ctx, key)
-				if err != nil {
-					return err
-				}
-				if found {
-					continue
-				}
-				if err := tx.Set(ctx, key, []byte(strconv.FormatInt(mark.Size, 10))); err != nil {
-					return err
-				}
-				addedBytes += mark.Size
-			}
-			first, err = readDirtyPendingTime(ctx, tx)
-			return err
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "retain pending block")
-	}
-
-	// Publish only the committed projection, ordered with startup and cleanup scans.
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.dirtySize += addedBytes
-		s.dirtyPendingAt = first
-		broadcast()
-	})
-	if addedBytes != 0 {
-		s.telemetrySafeCall(func(t *ProviderAccount, id string) { t.addSyncTelemetryDirty(id, addedBytes) })
-	}
-	return nil
-}
-
-// readDirtyPendingTime retains the first dirty time for current and preexisting work.
-// The caller holds a writable metadata transaction containing at least one marker.
-func readDirtyPendingTime(ctx context.Context, tx kvtx.Tx) (time.Time, error) {
-	value, found, err := tx.Get(ctx, []byte(syncPendingSinceKey))
-	if err != nil {
-		return time.Time{}, err
-	}
-	if found {
-		return time.Parse(time.RFC3339Nano, string(value))
-	}
-	first := time.Now().UTC()
-	return first, tx.Set(ctx, []byte(syncPendingSinceKey), []byte(first.Format(time.RFC3339Nano)))
-}
-
-// recalcDirtySize reconciles the durable queue and clears its deadline only when empty.
-func (s *syncController) recalcDirtySize(ctx context.Context, flushed ...dirtyCandidate) error {
-	release, err := s.dirtyMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Startup and successful cleanup use one transaction for count and deadline.
-	var total int64
-	var count int
-	var first time.Time
-	err = kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
-		func(ctx context.Context, tx kvtx.Tx) error {
-			total, count, first = 0, 0, time.Time{}
-			for _, candidate := range flushed {
-				if err := tx.Delete(ctx, candidate.key); err != nil {
-					return err
-				}
-			}
-			if err := tx.ScanPrefix(ctx, []byte("dirty/"), func(_, value []byte) error {
-				total += parseDirtySize(value)
-				count++
-				return nil
-			}); err != nil {
+	for batch := range slices.Chunk(marks, pendingUploadMutationLimit) {
+		var state *PendingUploadState
+		err = kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
+			func(ctx context.Context, tx kvtx.Tx) error {
+				var err error
+				state, err = markPendingUploads(ctx, tx, batch)
 				return err
-			}
-			if count == 0 {
-				return tx.Delete(ctx, []byte(syncPendingSinceKey))
-			}
-			var err error
-			first, err = readDirtyPendingTime(ctx, tx)
-			return err
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "read pending blocks")
-	}
+			},
+		)
+		if err != nil {
+			return errors.Wrap(err, "retain pending block")
+		}
 
-	// Readers observe counts and their matching timer together.
+		// Publish each committed batch; retrying a partial mark is idempotent.
+		s.publishDirtyState(state)
+	}
+	return nil
+}
+
+// adoptLegacyPendingUploads indexes a queue stored before the summary existed,
+// one bounded transaction at a time, before any flush reads the queue.
+func (s *syncController) adoptLegacyPendingUploads(ctx context.Context) error {
+	release, err := s.dirtyMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	for done := false; !done; {
+		err := kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
+			func(ctx context.Context, tx kvtx.Tx) error {
+				var err error
+				done, err = adoptLegacyPendingUploads(ctx, tx)
+				return err
+			},
+		)
+		if err != nil {
+			return errors.Wrap(err, "adopt pending blocks")
+		}
+	}
+	return nil
+}
+
+// updateDirtyState reads the durable summary and acknowledges acquired records.
+// The summary is published only after the marker transaction commits.
+func (s *syncController) updateDirtyState(ctx context.Context, flushed ...dirtyCandidate) error {
+	// Order acknowledgement and initialization with concurrent marking.
+	release, err := s.dirtyMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	for {
+		var state *PendingUploadState
+		write := len(flushed) != 0
+		count := min(len(flushed), pendingUploadMutationLimit)
+		err = kvtx.RunTransaction(ctx, write,
+			func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, write) },
+			func(ctx context.Context, tx kvtx.Tx) error {
+				var err error
+				if write {
+					state, err = acknowledgePendingUploads(ctx, tx, flushed[:count])
+					return err
+				}
+				state, err = readPendingUploadState(ctx, tx)
+				return err
+			},
+		)
+		if err != nil {
+			return errors.Wrap(err, "read pending blocks")
+		}
+
+		// Keep each mutation within the browser backend's transaction limit.
+		s.publishDirtyState(state)
+		flushed = flushed[count:]
+		if len(flushed) == 0 {
+			break
+		}
+	}
+	return nil
+}
+
+// publishDirtyState updates the scheduler and telemetry from committed accounting.
+// The caller holds dirtyMtx until the projection has been published.
+func (s *syncController) publishDirtyState(state *PendingUploadState) {
+	var first time.Time
+	if state.GetPendingSinceNanos() != 0 {
+		first = time.Unix(0, state.GetPendingSinceNanos())
+	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.dirtySize, s.dirtyPendingAt = total, first
+		s.dirtySize, s.dirtyPendingAt = state.GetSizeBytes(), first
 		broadcast()
 	})
-	s.telemetrySafeCall(func(t *ProviderAccount, id string) { t.setSyncTelemetryPending(id, total, count) })
-	return nil
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryPending(id, state.GetSizeBytes(), int(state.GetCount())) //nolint:gosec // the count is bounded by stored queue records, far below MaxInt.
+	})
 }
 
 // dirtyCandidate is the metadata needed to decide which dirty blocks belong in
 // a flush chunk without loading block data into memory.
 type dirtyCandidate struct {
-	key  []byte
+	// key identifies the pending block's primary record.
+	key []byte
+	// hash identifies immutable block contents.
 	hash *hash.Hash
+	// size is the stored block size used for pack selection.
 	size int64
+	// sequence identifies this insertion, so stale acknowledgements are harmless.
+	sequence uint64
 }
 
 // dirtyBlock holds one loaded block with its refs for the currently packed
@@ -551,7 +599,7 @@ func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.P
 
 // cleanupDirtyCandidates removes acknowledged markers and resets an empty queue's deadline atomically.
 func (s *syncController) cleanupDirtyCandidates(ctx context.Context, blocks []dirtyCandidate) error {
-	return s.recalcDirtySize(ctx, blocks...)
+	return s.updateDirtyState(ctx, blocks...)
 }
 
 // orderDirtyBlocks orders dirty block metadata for pack locality before
@@ -579,12 +627,13 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCan
 	return ordered, nil
 }
 
-func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks []dirtyCandidate) ([]dirtyCandidate, []dirtyCandidate, error) {
+// filterDuplicateDirtyBlocks probes a stable catalog with the shared index cache.
+func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *packfile_store.ManifestSnapshot, blocks []dirtyCandidate) ([]dirtyCandidate, []dirtyCandidate, error) {
 	refs := make([]*block.BlockRef, 0, len(blocks))
 	for _, b := range blocks {
 		refs = append(refs, block.NewBlockRef(b.hash))
 	}
-	exists, err := s.lower.GetBlockExistsBatch(ctx, refs)
+	exists, err := view.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -614,49 +663,62 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks 
 	return pack, deduped, nil
 }
 
-func (s *syncController) scanDirtyCandidates(ctx context.Context) ([]dirtyCandidate, error) {
+// scanDirtyPage acquires bounded metadata through a captured insertion cutoff.
+// Its iterator and transaction are released before callers read payloads or upload.
+func (s *syncController) scanDirtyPage(ctx context.Context, after, through uint64) ([]dirtyCandidate, error) {
+	if after >= through {
+		return nil, nil
+	}
 	var candidates []dirtyCandidate
 	err := kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return s.store.NewTransaction(ctx, false)
-		},
+		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, false) },
 		func(ctx context.Context, tx kvtx.Tx) error {
-			attemptCandidates := make([]dirtyCandidate, 0)
-			err := tx.ScanPrefix(ctx, []byte("dirty/"), func(k, v []byte) error {
-				keyCopy := make([]byte, len(k))
-				copy(keyCopy, k)
-				hashStr := string(k[len("dirty/"):])
-				h := &hash.Hash{}
-				if err := h.ParseFromB58(hashStr); err != nil {
-					return errors.Wrap(err, "parsing dirty hash key")
-				}
-				attemptCandidates = append(attemptCandidates, dirtyCandidate{
-					key:  keyCopy,
-					hash: h,
-					size: parseDirtySize(v),
-				})
-				return nil
-			})
-			if err == nil {
-				candidates = attemptCandidates
+			// Seek directly to the next queue position without retaining earlier keys.
+			iter := tx.Iterate(ctx, []byte(pendingUploadOrderPrefix), true, false)
+			defer iter.Close()
+			if err := iter.Seek(pendingUploadOrderKey(after + 1)); err != nil {
+				return err
 			}
-			return err
+			page := make([]dirtyCandidate, 0, syncDirtyPageLimit)
+			for iter.Valid() && len(page) < syncDirtyPageLimit {
+				keyBytes := iter.Key()
+				if len(keyBytes) != len(pendingUploadOrderPrefix)+8 {
+					return errors.New("invalid pending upload sequence key")
+				}
+				sequence := binary.BigEndian.Uint64(keyBytes[len(pendingUploadOrderPrefix):])
+				if sequence > through {
+					break
+				}
+				data, err := iter.Value()
+				if err != nil {
+					return err
+				}
+				entry := &PendingUploadBlock{}
+				if err := entry.UnmarshalVT(data); err != nil {
+					return err
+				}
+				if entry.GetSequence() != sequence {
+					return errors.New("pending upload record has a different insertion sequence")
+				}
+				h := &hash.Hash{}
+				if err := h.ParseFromB58(entry.GetHash()); err != nil {
+					return err
+				}
+				key := []byte("dirty/" + entry.GetHash())
+				page = append(page, dirtyCandidate{key: key, hash: h, size: entry.GetSizeBytes(), sequence: sequence})
+				iter.Next()
+			}
+			if err := iter.Err(); err != nil {
+				return err
+			}
+			candidates = page
+			return nil
 		},
 	)
-	if err != nil {
-		return nil, errors.Wrap(err, "scanning dirty keys")
-	}
-	return candidates, nil
+	return candidates, err
 }
 
-func parseDirtySize(v []byte) int64 {
-	size, err := strconv.ParseInt(string(v), 10, 64)
-	if err != nil || size < 0 {
-		return 0
-	}
-	return size
-}
-
+// dirtyCandidateChunkSize treats an unknown size as a full pack candidate.
 func dirtyCandidateChunkSize(size int64) int64 {
 	if size <= 0 {
 		return syncFlushMaxPackBytes
@@ -664,35 +726,7 @@ func dirtyCandidateChunkSize(size int64) int64 {
 	return size
 }
 
-func nextDirtyCandidateChunk(blocks []dirtyCandidate, start int, maxChunkBytes int64, maxChunkBlocks int) (int, error) {
-	if maxChunkBytes <= 0 {
-		maxChunkBytes = syncFlushMaxPackBytes
-	}
-	var chunkBytes int64
-	end := start
-	for end < len(blocks) {
-		size := dirtyCandidateChunkSize(blocks[end].size)
-		if size > writer.DefaultMaxPackBytes {
-			return 0, errors.Errorf(
-				"dirty block %s exceeds max pack chunk size",
-				blocks[end].hash.MarshalString(),
-			)
-		}
-		if maxChunkBlocks > 0 && end-start >= maxChunkBlocks {
-			break
-		}
-		if chunkBytes > 0 && chunkBytes+size > maxChunkBytes {
-			break
-		}
-		chunkBytes += size
-		end++
-	}
-	if end == start {
-		end++
-	}
-	return end, nil
-}
-
+// loadDirtyBlocks loads only the payloads for one bounded pack candidate.
 func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirtyCandidate) ([]dirtyBlock, error) {
 	blocks := make([]dirtyBlock, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -721,14 +755,14 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 // flushChunks packs the dirty blocks into chunks on a second goroutine while
 // this one pushes and commits the previous chunk, so packing overlaps the
 // upload with at most two chunks in memory. Chunks commit in order.
-func (s *syncController) flushChunks(ctx context.Context, blocks []dirtyCandidate) error {
+func (s *syncController) flushChunks(ctx context.Context, through uint64, orderBlocks bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	chunks := make(chan *preparedSyncChunk)
 	prepared := make(chan error, 1)
 	go func() {
 		defer close(chunks)
-		prepared <- s.prepareChunks(ctx, blocks, func(chunk *preparedSyncChunk) error {
+		prepared <- s.prepareChunks(ctx, through, orderBlocks, func(chunk *preparedSyncChunk) error {
 			select {
 			case chunks <- chunk:
 				return nil
@@ -754,29 +788,83 @@ func (s *syncController) flushChunks(ctx context.Context, blocks []dirtyCandidat
 	return <-prepared
 }
 
-// prepareChunks loads and packs each bounded chunk of blocks in order and
-// passes each pack to emit.
+// prepareChunks fills payload chunks across metadata pages before emitting them.
+// Later insertions fall beyond through and belong to the next flush.
 func (s *syncController) prepareChunks(
 	ctx context.Context,
-	blocks []dirtyCandidate,
+	through uint64,
+	orderBlocks bool,
 	emit func(*preparedSyncChunk) error,
 ) error {
-	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
-	for start := 0; start < len(blocks); {
-		end, err := nextDirtyCandidateChunk(blocks, start, syncFlushMaxPackBytes, maxChunkBlocks)
-		if err != nil {
-			return err
-		}
-		loaded, err := s.loadDirtyBlocks(ctx, blocks[start:end])
+	// Keep only one partial chunk alongside the current candidate page.
+	maxBlocks := int(writer.DefaultMaxBlocksPerPack)
+	pending := make([]dirtyCandidate, 0, maxBlocks)
+	var pendingBytes int64
+	flushPending := func() error {
+		loaded, err := s.loadDirtyBlocks(ctx, pending)
 		if err != nil {
 			return err
 		}
 		if err := s.prepareLoadedBlocks(loaded, emit); err != nil {
 			return err
 		}
-		start = end
+		pending, pendingBytes = pending[:0], 0
+		return nil
 	}
-	return nil
+
+	// Hold catalog membership fixed while sharing resident indexes across pages.
+	view := s.lower.SnapshotManifest()
+
+	// Batch duplicate checks after releasing each metadata transaction.
+	for after := uint64(0); after < through; {
+		page, err := s.scanDirtyPage(ctx, after, through)
+		if err != nil {
+			return err
+		}
+		if len(page) == 0 {
+			break
+		}
+		after = page[len(page)-1].sequence
+		blocks, duplicates, err := s.filterDuplicateDirtyBlocks(ctx, view, page)
+		if err != nil {
+			return errors.Wrap(err, "filtering duplicate dirty blocks")
+		}
+		if len(duplicates) != 0 {
+			if err := s.cleanupDirtyCandidates(ctx, duplicates); err != nil {
+				return err
+			}
+		}
+		if orderBlocks {
+			blocks, err = s.orderDirtyBlocks(ctx, blocks)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Page boundaries never force an extra undersized upload.
+		for _, candidate := range blocks {
+			size := dirtyCandidateChunkSize(candidate.size)
+			if size > writer.DefaultMaxPackBytes {
+				return errors.Errorf("dirty block %s exceeds max pack chunk size", candidate.hash.MarshalString())
+			}
+			if len(pending) != 0 && pendingBytes+size > syncFlushMaxPackBytes {
+				if err := flushPending(); err != nil {
+					return err
+				}
+			}
+			pending = append(pending, candidate)
+			pendingBytes += size
+			if len(pending) == maxBlocks {
+				if err := flushPending(); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+	return flushPending()
 }
 
 // prepareLoadedBlocks packs loaded dirty blocks, halving a set whose pack
@@ -910,53 +998,30 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 
 // flush collects dirty blocks, packs them, pushes to the server, and updates the manifest.
 func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
-	blocks, err := s.scanDirtyCandidates(ctx)
+	// Capture every insertion that must precede the caller's publication.
+	var state *PendingUploadState
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, false) },
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			state, err = readPendingUploadState(ctx, tx)
+			return err
+		},
+	)
 	if err != nil {
 		return err
 	}
-	if len(blocks) == 0 {
-		return s.recalcDirtySize(ctx)
+	if state.GetCount() == 0 {
+		return nil
 	}
 
-	s.le.WithField("dirty-blocks", len(blocks)).
+	// Preserve the existing locality-ordering limit and payload pipeline.
+	orderBlocks = orderBlocks && state.GetCount() <= syncOrderDirtyBlocksLimit
+	s.le.WithField("dirty-blocks", state.GetCount()).
 		WithField("order-blocks", orderBlocks).
 		WithField("max-chunk-bytes", syncFlushMaxPackBytes).
 		Debug("starting dirty block flush")
-
-	blocks, dedupedBlocks, err := s.filterDuplicateDirtyBlocks(ctx, blocks)
-	if err != nil {
-		return errors.Wrap(err, "filtering duplicate dirty blocks")
-	}
-	if len(blocks) == 0 {
-		return s.cleanupDirtyCandidates(ctx, dedupedBlocks)
-	}
-
-	if orderBlocks && len(blocks) > syncOrderDirtyBlocksLimit {
-		s.le.WithField("dirty-blocks", len(blocks)).
-			WithField("limit", syncOrderDirtyBlocksLimit).
-			Debug("skipping dirty block ordering")
-		orderBlocks = false
-	}
-
-	if orderBlocks {
-		started := time.Now()
-		blocks, err = s.orderDirtyBlocks(ctx, blocks)
-		s.le.WithField("dirty-blocks", len(blocks)).
-			WithField("duration", time.Since(started)).
-			Debug("ordered dirty blocks")
-		if err != nil {
-			return errors.Wrap(err, "ordering dirty blocks")
-		}
-	}
-
-	// Clear blocks the cloud already holds before pushing the rest.
-	if len(dedupedBlocks) != 0 {
-		if err := s.cleanupDirtyCandidates(ctx, dedupedBlocks); err != nil {
-			return err
-		}
-	}
-
-	return s.flushChunks(ctx, blocks)
+	return s.flushChunks(ctx, state.GetLastSequence(), orderBlocks)
 }
 
 // pull fetches new packfile entries from the server since the last pull. The
