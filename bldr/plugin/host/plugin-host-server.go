@@ -127,10 +127,7 @@ func (s *PluginHostServer) LoadPlugin(
 	}
 
 	pluginID := req.GetPluginId()
-	instanceKey, err := s.resolveInstanceKey(req.GetInstanceKey())
-	if err != nil {
-		return err
-	}
+	instanceKey := s.resolveInstanceKey(req.GetInstanceKey())
 	if instanceKey != req.GetInstanceKey() {
 		req = req.CloneVT()
 		req.InstanceKey = instanceKey
@@ -139,17 +136,13 @@ func (s *PluginHostServer) LoadPlugin(
 	return HandleLoadPluginRpc(s.b, req, strm)
 }
 
-// resolveInstanceKey resolves the effective instance key for a request,
-// rejecting requests from a plugin instance that address a foreign
-// instance.
-func (s *PluginHostServer) resolveInstanceKey(instanceKey string) (string, error) {
+// resolveInstanceKey returns the instance key a request addresses, defaulting
+// an empty key to the scheduler's instance.
+func (s *PluginHostServer) resolveInstanceKey(instanceKey string) string {
 	if instanceKey == "" {
-		return s.instanceKey, nil
+		return s.instanceKey
 	}
-	if s.instanceKey != "" && instanceKey != s.instanceKey {
-		return "", errors.Errorf("plugin instance %q cannot access foreign instance %q", s.instanceKey, instanceKey)
-	}
-	return instanceKey, nil
+	return instanceKey
 }
 
 // PluginRpc forwards an RPC call to a remote plugin.
@@ -169,10 +162,7 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 			if pluginID == s.pluginID && instanceKey == "" {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
 			}
-			instanceKey, err = s.resolveInstanceKey(instanceKey)
-			if err != nil {
-				return nil, "", nil, err
-			}
+			instanceKey = s.resolveInstanceKey(instanceKey)
 			dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
 			if manifestRoot != "" {
 				dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)

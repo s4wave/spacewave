@@ -412,15 +412,17 @@ func TestResolveLoadPluginScopesUnqualifiedDirectiveToScheduler(t *testing.T) {
 	}
 }
 
-func TestResolveLoadPluginRejectsForeignSchedulerInstance(t *testing.T) {
+// TestResolveLoadPluginResolvesOtherInstances keeps per-object plugin
+// instances, such as one V86 runtime per VM, loadable on a Space scheduler.
+func TestResolveLoadPluginResolvesOtherInstances(t *testing.T) {
 	conf := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, conf)
 
-	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPluginInstanced("notes", "space-b"))
+	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPluginInstanced("spacewave-v86", "vm-1"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolver != nil {
-		t.Fatalf("foreign instance resolver = %T, want nil", resolver)
+	if resolver == nil {
+		t.Fatal("instanced directive did not resolve")
 	}
 }

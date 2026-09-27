@@ -17,12 +17,11 @@ import (
 
 func TestPluginHostServerResolvesCallerInstance(t *testing.T) {
 	s := &PluginHostServer{instanceKey: "space-a"}
-	got, err := s.resolveInstanceKey("")
-	if err != nil || got != "space-a" {
-		t.Fatalf("unqualified instance = %q, %v", got, err)
+	if got := s.resolveInstanceKey(""); got != "space-a" {
+		t.Fatalf("unqualified instance = %q, want space-a", got)
 	}
-	if _, err := s.resolveInstanceKey("space-b"); err == nil {
-		t.Fatal("foreign instance was accepted")
+	if got := s.resolveInstanceKey("vm-1"); got != "vm-1" {
+		t.Fatalf("qualified instance = %q, want vm-1", got)
 	}
 }
 
