@@ -25,6 +25,7 @@ import (
 func composeNative(composition *compose.Composition) {
 	yield := yield_policy.NewBroker()
 	status := resource_listener.NewStatusBroker()
+	composition.NativeAction = openDesktop
 
 	// Share the brokers with the controllers that serve and project the
 	// resource listener.
