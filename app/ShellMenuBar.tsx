@@ -1,5 +1,6 @@
 import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useMemo, useCallback } from 'react'
+import { LuMenu } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
@@ -158,7 +159,7 @@ function MenuItemRenderer({
     return (
       <MenubarSub>
         <MenubarSubTrigger>{node.label}</MenubarSubTrigger>
-        <MenubarSubContent>
+        <MenubarSubContent data-phone-menu>
           {items.map((child) => {
             if (isMenuSeparator(child)) {
               return <MenubarSeparator key={child.separatorKey} />
@@ -201,9 +202,7 @@ function EmptyMenuItem() {
   )
 }
 
-// ShellMenuBar renders the application menu bar with logo and menu items.
-// This is displayed to the left of the FlexLayout tabs.
-// On narrow screens, the menu items collapse and only the logo dropdown remains.
+/** ShellMenuBar renders command access beside the shell tabs, with a touch menu on phones. */
 export function ShellMenuBar() {
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
@@ -234,15 +233,61 @@ export function ShellMenuBar() {
   }, [openCommand])
 
   return (
-    <div className="flex h-full shrink-0 items-center gap-px pr-1 pl-1.5">
+    <div className="shell-menu-bar flex h-full shrink-0 items-center gap-px pr-1 pl-1.5">
       <button
+        type="button"
         aria-label="Open command palette"
-        className="-mt-px flex cursor-pointer items-center justify-center"
+        className="shell-menu-palette -mt-px flex size-7 cursor-pointer items-center justify-center"
         onClick={handleLogoClick}
         title="Open command palette"
       >
         <AppLogo className="size-7" />
       </button>
+      <div className="shell-menu-mobile hidden h-full items-center">
+        <Menubar variant="shell" className="h-full">
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open app menu"
+                className="text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover rounded-menu-button flex size-11 items-center justify-center"
+              >
+                <LuMenu className="size-5" />
+              </button>
+            </MenubarTrigger>
+            <MenubarContent align="start" data-phone-menu>
+              {topLevelMenus.map((name) => {
+                const node = menuTree.get(name)
+                const items = node ? sortedGroupedChildren(node.children) : []
+                return (
+                  <MenubarSub key={name}>
+                    <MenubarSubTrigger className="min-h-11">
+                      {name}
+                    </MenubarSubTrigger>
+                    <MenubarSubContent data-phone-menu>
+                      {items.length ? (
+                        items.map((item) =>
+                          isMenuSeparator(item) ? (
+                            <MenubarSeparator key={item.separatorKey} />
+                          ) : (
+                            <MenuItemRenderer
+                              key={item.commandId ?? item.label}
+                              node={item}
+                              onSelectCommand={handleSelectCommand}
+                            />
+                          ),
+                        )
+                      ) : (
+                        <EmptyMenuItem />
+                      )}
+                    </MenubarSubContent>
+                  </MenubarSub>
+                )
+              })}
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
+      </div>
       <div
         className={cn(
           'shell-menu-collapsible flex h-full items-center gap-px overflow-hidden transition-all duration-200 select-none',
@@ -256,7 +301,10 @@ export function ShellMenuBar() {
             return (
               <MenubarMenu key={name}>
                 <MenubarTrigger asChild>
-                  <button className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover data-[state=open]:text-topbar-button-text-hi data-[state=open]:bg-pulldown-hover text-topbar-menu ui-text-shadow flex h-5 items-center justify-center px-1.75 whitespace-nowrap transition-colors">
+                  <button
+                    type="button"
+                    className="rounded-menu-button text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover data-[state=open]:text-topbar-button-text-hi data-[state=open]:bg-pulldown-hover text-topbar-menu ui-text-shadow flex h-5 items-center justify-center px-1.75 whitespace-nowrap transition-colors"
+                  >
                     {name}
                   </button>
                 </MenubarTrigger>

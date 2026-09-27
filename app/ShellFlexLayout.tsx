@@ -86,6 +86,23 @@ function isTabNode(node: { getType(): string } | undefined): node is TabNode {
 // re-based onto the overlay's container instead of the viewport.
 const MENU_COLLAPSE_WIDTH = 640
 
+// Keep this query aligned with the phone shell rules in web/style/app.css.
+const PHONE_SHELL_QUERY =
+  '(max-width: 640px), (max-height: 470px) and (hover: none) and (pointer: coarse)'
+
+function subscribePhoneShell(listener: () => void) {
+  const media = window.matchMedia(PHONE_SHELL_QUERY)
+  media.addEventListener('change', listener)
+  return () => media.removeEventListener('change', listener)
+}
+
+function getPhoneShell() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia(PHONE_SHELL_QUERY).matches
+  )
+}
+
 // findTopLeftStrip returns the top-left tab strip element in the shell layout,
 // which is the container the menu-bar overlay sits over. Nested FlexLayouts
 // inside tab content are excluded. Returns null when no strip is present yet.
@@ -263,14 +280,13 @@ function syncTabsStateToModel(
   }
 }
 
+/** ShellTabStripProps supplies shell content and an optional document entry. */
 export interface ShellTabStripProps {
   children?: React.ReactNode
   entry?: ShellDocumentEntry
 }
 
-// ShellTabStrip provides draggable tabs using FlexLayout.
-// The FlexLayout spans the entire content area, enabling drag-to-split anywhere.
-// When tabs are dragged to create splits, it transitions to grid mode via URL.
+/** ShellTabStrip provides draggable tabs and transitions to grid mode when a tab is split. */
 export function ShellTabStrip({ children, entry }: ShellTabStripProps) {
   return (
     <ShellTabsProvider entry={entry}>
@@ -314,6 +330,11 @@ function ShellTabStripInner({
     return getAppPath().startsWith('/g/')
   }, [getAppPath])
   const routePath = useSyncExternalStore(subscribe, getAppPath, getAppPath)
+  const isPhoneShell = useSyncExternalStore(
+    subscribePhoneShell,
+    getPhoneShell,
+    () => false,
+  )
 
   // Initialize model from storage or default, and perform URL sync during
   // initialization. This avoids calling setState in the sync effect. A grid
@@ -878,9 +899,14 @@ function ShellTabStripInner({
   const onRenderTabSet = useCallback(
     (node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
       if (node.getType() !== 'tabset') return
-      renderValues.stickyButtons.push(
+      // Keep phone actions in the fixed toolbar as the tab strip grows.
+      const buttons = isPhoneShell
+        ? renderValues.buttons
+        : renderValues.stickyButtons
+      buttons.push(
         <button
           key="close-tab"
+          type="button"
           className="flexlayout__tab_toolbar_button"
           onClick={handleCloseTab}
           title="Close tab"
@@ -890,6 +916,7 @@ function ShellTabStripInner({
         </button>,
         <button
           key="add-tab"
+          type="button"
           className="flexlayout__tab_toolbar_button"
           onClick={handleNewTab}
           title="New tab"
@@ -898,6 +925,7 @@ function ShellTabStripInner({
         </button>,
         <button
           key="popout-tab"
+          type="button"
           className="flexlayout__tab_toolbar_button"
           onClick={handlePopoutTab}
           title="Open in new tab"
@@ -906,7 +934,7 @@ function ShellTabStripInner({
         </button>,
       )
     },
-    [handleCloseTab, handleNewTab, handlePopoutTab, tabs.length],
+    [handleCloseTab, handleNewTab, handlePopoutTab, isPhoneShell, tabs.length],
   )
 
   // Ref for measuring menu bar width
