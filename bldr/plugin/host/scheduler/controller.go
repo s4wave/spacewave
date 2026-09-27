@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -53,6 +54,8 @@ type Controller struct {
 	le *logrus.Entry
 	// bus is the controller bus
 	bus bus.Bus
+	// hostBus supplies live hosts; it is bound before Execute.
+	hostBus bus.Bus
 	// conf is the config
 	conf *Config
 	// hostClient is a srpc client for the host mux for serving rpcs originating from the plugins.
@@ -107,7 +110,10 @@ type hostVol struct {
 
 // pluginHostSet is the set of plugin hosts snapshot.
 type pluginHostSet struct {
+	// pluginHosts retains the actual host identities reported by the bus.
 	pluginHosts []bldr_plugin_host.PluginHost
+	// err reports lookup failures without withdrawing unrelated live hosts.
+	err error
 }
 
 // toPlatformIDs converts the host set to a list of platform ids.
@@ -156,7 +162,20 @@ func pluginHostSetEqual(a, b *pluginHostSet) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	return slices.Equal(a.pluginHosts, b.pluginHosts)
+	if a.err != b.err || len(a.pluginHosts) != len(b.pluginHosts) {
+		return false
+	}
+	counts := make(map[bldr_plugin_host.PluginHost]int, len(a.pluginHosts))
+	for _, host := range a.pluginHosts {
+		counts[host]++
+	}
+	for _, host := range b.pluginHosts {
+		counts[host]--
+		if counts[host] < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // NewController constructs a new controller.
@@ -171,6 +190,7 @@ func NewController(
 	c := &Controller{
 		le:                  le,
 		bus:                 bus,
+		hostBus:             bus,
 		conf:                conf,
 		objKey:              conf.GetObjectKey(),
 		peerID:              peerID,
@@ -309,7 +329,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	errCh := make(chan error, 1)
 	_, hostsRel, err := bus.ExecCollectValuesWatch(
 		ctx,
-		c.bus,
+		c.hostBus,
 		bldr_plugin_host.NewLookupPluginHost(nil),
 		// true: wait for directive to be idle before emitting initial set of values.
 		true,
@@ -329,7 +349,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 			// update the host set
 			c.le.WithField("plugin-hosts", ids).Infof("scheduling with %d plugin host(s)", len(ids))
-			hostSet := &pluginHostSet{pluginHosts: vals}
+			hostSet := &pluginHostSet{pluginHosts: slices.Clone(vals), err: errors.Join(resErr...)}
 			c.pluginHostsCtr.SetValue(hostSet)
 
 			// Warn if we have multiple plugin hosts with the same platform ID
@@ -339,7 +359,12 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 			return nil
 		},
-		func(err error) { errCh <- err },
+		func(err error) {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+		},
 	)
 	if err != nil {
 		return err
@@ -557,3 +582,9 @@ var (
 	_ bldr_plugin_host.PluginHostScheduler = (*Controller)(nil)
 	_ bldr_plugin.PluginScheduler          = (*Controller)(nil)
 )
+
+// SetPluginHostBus binds host discovery before Execute. Hosts remain owned by
+// their publishing bus; the scheduler owns their watch and selection lifetime.
+func (c *Controller) SetPluginHostBus(hostBus bus.Bus) {
+	c.hostBus = hostBus
+}

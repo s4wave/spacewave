@@ -20,6 +20,8 @@ type Config struct {
 	// Defaults to s4wave.resource.ResourceService
 	// Can be empty.
 	ServiceId string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"serviceId,omitempty"`
+	// AppPluginIds declares the plugins this application supplies to mounted Spaces.
+	AppPluginIds []string `protobuf:"bytes,2,rep,name=app_plugin_ids,json=appPluginIds,proto3" json:"appPluginIds,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -35,12 +37,20 @@ func (x *Config) GetServiceId() string {
 	return ""
 }
 
+func (x *Config) GetAppPluginIds() []string {
+	if x != nil {
+		return x.AppPluginIds
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
 	}
 	r := new(Config)
 	r.ServiceId = m.ServiceId
+	r.AppPluginIds = protobuf_go_lite.CloneSlice(m.AppPluginIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -58,6 +68,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ServiceId != that.ServiceId {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.AppPluginIds, that.AppPluginIds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -84,6 +97,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("serviceId")
 		s.WriteString(x.ServiceId)
 	}
+	if len(x.AppPluginIds) > 0 || s.HasField("appPluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("appPluginIds")
+		s.WriteStringArray(x.AppPluginIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -104,6 +122,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "service_id", "serviceId":
 			s.AddField("service_id")
 			x.ServiceId = s.ReadString()
+		case "app_plugin_ids", "appPluginIds":
+			s.AddField("app_plugin_ids")
+			if s.ReadNil() {
+				x.AppPluginIds = nil
+				return
+			}
+			x.AppPluginIds = s.ReadStringArray()
 		}
 	})
 }
@@ -142,6 +167,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.AppPluginIds) > 0 {
+		for iNdEx := len(m.AppPluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.AppPluginIds[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
 	if len(m.ServiceId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ServiceId)
 		i--
@@ -157,6 +189,7 @@ func (m *Config) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ServiceId)
+	n += protobuf_go_lite.SizeStringSlice(1, m.AppPluginIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -167,6 +200,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.ServiceId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "service_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ServiceId)
+	}
+	if len(x.AppPluginIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "app_plugin_ids")
+		for i, v := range x.AppPluginIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -205,6 +246,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ServiceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppPluginIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AppPluginIds = append(m.AppPluginIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -65,6 +65,9 @@ BROWSER_RELEASE_CLOUD_API_ENDPOINT = "/"
 E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAQYB2t0Nx0lOx8KM1VoPCAjKShHamY9cXwMfVVQbjskPBo7R3FIMg0pPws1EkRcQlQImHAm4evJX816W1ZueiWpxzExZyZWv1gerVT0-gbD34GuNied4VzXsHGfTa6sG61t8q9C0PgfEylbZYCUALSnTFVsClHn7sqR2OZPikT405ESAbYmf7rjOJ8kw5554IZXVFPXU83lSBXRaZI9DgLim3kd90GNr2qcznKz-FKKOxfcHf-kjy-pUnR7qBQ0ZF4sCZ2zJUqe6BJL-EZIGczDuXKnli5WfY8V32P9jF2D--5UwB2ZNPU"
 E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJzHesD5"
 
+# APP_PLUGIN_IDS declares plugins supplied by the Spacewave application.
+APP_PLUGIN_IDS = ["spacewave-core", "spacewave-web", "spacewave-app", "web"]
+
 # Core configSet shared between Go plugin and CLI manifests.
 # Native listeners derive their socket from the project storage root so data,
 # logs, and the runtime socket honor SPACEWAVE_DATA_DIR as one owner.
@@ -78,7 +81,7 @@ def core_config_set(
             "objectStoreId": "s4wave-peer",
             "volumeId": "plugin-host",
         }),
-        "root-resource": config_entry("resource/root", 1),
+        "root-resource": config_entry("resource/root", 1, {"appPluginIds": APP_PLUGIN_IDS}),
         "session-list": config_entry("session", 1),
         "provider-local": config_entry("provider/local", 2, {
             "signalingUrl": cloud_api_endpoint,

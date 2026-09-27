@@ -17,9 +17,9 @@ o
 L
 resource-listener7
 resource/listener {"storageProjectId":"spacewave"}
-"
-root-resource
-resource/root
+m
+root-resource\
+resource/rootI{"appPluginIds":["spacewave-core","spacewave-web","spacewave-app","web"]}
 
 session-list
 session

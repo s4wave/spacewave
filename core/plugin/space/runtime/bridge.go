@@ -10,20 +10,17 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// appPluginIDs are the plugins the running app ships. Space plugins load them
-// from the app: a generation forwards their loads to the parent bus and its
-// scheduler leaves them alone, so a Space neither lists nor requests them.
-var appPluginIDs = []string{"spacewave-core", "spacewave-web", "spacewave-app", "web"}
-
 // bridgeFilter forwards the parent infrastructure lookups into a generation.
-func bridgeFilter(inst directive.Instance) (bool, error) {
-	return bridgeDirective(inst.GetDirective()), nil
+func bridgeFilter(appPluginIDs []string) func(directive.Instance) (bool, error) {
+	return func(inst directive.Instance) (bool, error) {
+		return bridgeDirective(inst.GetDirective(), appPluginIDs), nil
+	}
 }
 
 // bridgeDirective reports whether dir resolves on the parent bus: app plugin
-// loads and infrastructure lookups. Space plugin loads, manifests, hosts, and
+// loads and live infrastructure lookups. Space plugin loads, manifests, and
 // RPC services stay inside the generation.
-func bridgeDirective(dir directive.Directive) bool {
+func bridgeDirective(dir directive.Directive, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LoadPlugin:
 		return slices.Contains(appPluginIDs, d.LoadPluginID())

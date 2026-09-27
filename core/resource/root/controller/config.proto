@@ -7,4 +7,6 @@ message Config {
   // Defaults to s4wave.resource.ResourceService
   // Can be empty.
   string service_id = 1;
+  // AppPluginIds declares the plugins this application supplies to mounted Spaces.
+  repeated string app_plugin_ids = 2;
 }

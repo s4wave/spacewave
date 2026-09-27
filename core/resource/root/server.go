@@ -2,6 +2,7 @@ package resource_root
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -27,6 +28,8 @@ type CoreRootServer struct {
 	b bus.Bus
 	// hostPluginID is the plugin id that owns this resource root.
 	hostPluginID string
+	// appPluginIDs is the immutable application declaration supplied before publication.
+	appPluginIDs []string
 	// mountApp attaches a child installation through the composition root.
 	mountApp MountAppFunc
 	// stateAtomMgr manages state atom stores
@@ -148,3 +151,8 @@ func (s *CoreRootServer) GetDebugDb(
 
 // _ is a type assertion
 var _ s4wave_root.SRPCRootResourceServiceServer = (*CoreRootServer)(nil)
+
+// SetAppPluginIDs supplies application composition before the resource is published.
+func (s *CoreRootServer) SetAppPluginIDs(ids []string) {
+	s.appPluginIDs = slices.Clone(ids)
+}

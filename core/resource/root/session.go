@@ -41,6 +41,7 @@ func (s *CoreRootServer) MountSession(
 		s.hostPluginID,
 		s.recoveryStatusRegistry,
 	)
+	sessResource.SetAppPluginIDs(s.appPluginIDs)
 	sessResource.SetCdnRootChangedHook(func(spaceID string) {
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})
@@ -95,6 +96,7 @@ func (s *CoreRootServer) MountSessionByIdx(
 		s.hostPluginID,
 		s.recoveryStatusRegistry,
 	)
+	sessResource.SetAppPluginIDs(s.appPluginIDs)
 	sessResource.SetCdnRootChangedHook(func(spaceID string) {
 		s.cdnRegistry.NotifyRootChanged(spaceID)
 	})

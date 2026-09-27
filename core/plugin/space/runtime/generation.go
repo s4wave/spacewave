@@ -11,10 +11,8 @@ import (
 	"github.com/pkg/errors"
 	bldr_core "github.com/s4wave/spacewave/bldr/core"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
-	plugin_host_static "github.com/s4wave/spacewave/bldr/plugin/host/static"
 	"github.com/s4wave/spacewave/bldr/storage"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -25,8 +23,8 @@ import (
 // Generation is one running instance of the Space plugin runtime: an isolated
 // child bus with the Space plugin scheduler and plugin/space controller.
 //
-// A generation ends when the daemon plugin host set changes, the host watch
-// fails, or the runtime stops.
+// A generation ends when its composition fails or its last mount is released.
+// The scheduler reconciles host changes within the running generation.
 type Generation struct {
 	// bus is the isolated child bus.
 	bus bus.Bus
@@ -51,7 +49,7 @@ func startGeneration(
 	ctx context.Context,
 	parent bus.Bus,
 	le *logrus.Entry,
-	conf *plugin_space.Config,
+	conf *Config,
 	bindingsChanged func(),
 ) (*Generation, error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -60,7 +58,7 @@ func startGeneration(
 		done:     make(chan struct{}),
 		cancel:   cancel,
 	}
-	if err := g.start(ctx, parent, le, conf, bindingsChanged); err != nil {
+	if err := g.start(ctx, parent, le, conf.GetSpace(), canonicalAppPluginIDs(conf.GetAppPluginIds()), bindingsChanged); err != nil {
 		g.release()
 		return nil, err
 	}
@@ -94,6 +92,7 @@ func (g *Generation) start(
 	parent bus.Bus,
 	le *logrus.Entry,
 	conf *plugin_space.Config,
+	appPluginIDs []string,
 	bindingsChanged func(),
 ) error {
 	child, resolver, err := bldr_core.NewCoreBus(ctx, le)
@@ -105,7 +104,6 @@ func (g *Generation) start(
 	// plugin/space fetches manifests from the parent and, when the Space names a
 	// host plugin, loads its plugins through the parent. App plugins always load
 	// from the parent through the bridge.
-	resolver.AddFactory(plugin_host_scheduler.NewFactory(child))
 	resolver.AddFactory(volume_rpc_server.NewFactory(child))
 	factoryOpts := []plugin_space.FactoryOption{
 		plugin_space.WithManifestSource(parent),
@@ -115,7 +113,7 @@ func (g *Generation) start(
 		factoryOpts = append(factoryOpts, plugin_space.WithLoadTarget(parent))
 	}
 	resolver.AddFactory(plugin_space.NewFactory(child, factoryOpts...))
-	if err := g.addController(ctx, child, bus_bridge.NewBusBridge(parent, bridgeFilter)); err != nil {
+	if err := g.addController(ctx, child, bus_bridge.NewBusBridge(parent, bridgeFilter(appPluginIDs))); err != nil {
 		return err
 	}
 
@@ -124,15 +122,6 @@ func (g *Generation) start(
 		if err := g.addStorage(ctx, parent, child, resolver, storageID); err != nil {
 			return err
 		}
-	}
-
-	// Schedule plugins against the daemon plugin hosts present at startup.
-	hosts, err := g.watchHosts(ctx, parent)
-	if err != nil {
-		return err
-	}
-	if err := g.addController(ctx, child, plugin_host_static.NewController(hosts)); err != nil {
-		return err
 	}
 
 	// Start the scheduler and expose it to LookupPluginScheduler on the parent so
@@ -149,11 +138,14 @@ func (g *Generation) start(
 	)
 	schedulerConf.HostStorageId = conf.GetHostStorageId()
 	schedulerConf.ExternalPluginIds = appPluginIDs
-	scheduler, schedulerRelease, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, child, schedulerConf)
-	if err != nil {
+	if err := schedulerConf.Validate(); err != nil {
 		return err
 	}
-	g.releases = append(g.releases, schedulerRelease)
+	scheduler := plugin_host_scheduler.NewController(le, child, schedulerConf)
+	scheduler.SetPluginHostBus(parent)
+	if err := g.addController(ctx, child, scheduler); err != nil {
+		return err
+	}
 	g.scheduler = scheduler
 	if err := g.addController(ctx, parent, bus_bridge.NewBusBridge(child, schedulerLookupFilter)); err != nil {
 		return err
@@ -171,7 +163,11 @@ func (g *Generation) start(
 
 // addController adds ctrl to b for the generation lifetime.
 func (g *Generation) addController(ctx context.Context, b bus.Bus, ctrl controller.Controller) error {
-	release, err := b.AddController(ctx, ctrl, nil)
+	release, err := b.AddController(ctx, ctrl, func(err error) {
+		if err != nil && ctx.Err() == nil {
+			g.reportTerminal(errors.Wrap(err, "Space runtime controller failed"))
+		}
+	})
 	if err != nil {
 		return err
 	}
@@ -209,36 +205,6 @@ func (g *Generation) addStorage(
 		[]storage.Storage{selected},
 		controller.NewInfo("space/storage", controller.MustParseVersion("0.0.1"), "Space plugin storage"),
 	))
-}
-
-// watchHosts watches the daemon plugin host set for the generation lifetime
-// and returns its first snapshot. A later change or watch failure ends the
-// generation.
-func (g *Generation) watchHosts(ctx context.Context, parent bus.Bus) ([]plugin_host.PluginHost, error) {
-	hostReady := make(chan error, 1)
-	watch := &hostWatch{hostReady: hostReady, reportTerminal: g.reportTerminal}
-	_, release, err := bus.ExecCollectValuesWatch(
-		ctx,
-		parent,
-		plugin_host.NewLookupPluginHost(nil),
-		true,
-		watch.deliver,
-		watch.fail,
-	)
-	if err != nil {
-		return nil, err
-	}
-	g.releases = append(g.releases, release)
-
-	select {
-	case err = <-hostReady:
-	case <-ctx.Done():
-		return nil, context.Canceled
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "watch daemon plugin hosts")
-	}
-	return watch.hosts, nil
 }
 
 // reportTerminal ends the generation with err. Only the first error is kept.

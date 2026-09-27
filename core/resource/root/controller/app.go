@@ -268,7 +268,7 @@ func (c *Controller) buildApp(ctx context.Context, binding resource_root.AppStor
 			return nil, err
 		}
 	}
-	root, err := start(&Config{})
+	root, err := start(&Config{AppPluginIds: c.GetConfig().GetAppPluginIds()})
 	if err != nil {
 		return nil, err
 	}

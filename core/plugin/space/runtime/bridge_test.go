@@ -19,6 +19,17 @@ import (
 )
 
 func TestBridgeFilterForwardsInfrastructureAndAppPlugins(t *testing.T) {
+	for name, plugins := range map[string][]string{
+		"spacewave":  {"spacewave-core", "spacewave-web", "spacewave-app", "web"},
+		"first-app":  {"first-shell", "first-storage"},
+		"second-app": {"second-host", "second-view"},
+	} {
+		t.Run(name, func(t *testing.T) { testAppBridge(t, plugins) })
+	}
+}
+
+// testAppBridge checks the parent boundary for one application declaration.
+func testAppBridge(t *testing.T, plugins []string) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	parent, _, err := controllerbus_core.NewCoreBus(ctx, le)
@@ -32,7 +43,7 @@ func TestBridgeFilterForwardsInfrastructureAndAppPlugins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter))
+	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(plugins)))
 
 	forwarded := []directive.Directive{
 		world.NewLookupWorldEngine("engine"),
@@ -40,15 +51,16 @@ func TestBridgeFilterForwardsInfrastructureAndAppPlugins(t *testing.T) {
 		volume.NewLookupVolume("volume", ""),
 		volume.NewBuildObjectStoreAPI("store", "volume"),
 		plugin_host_root.NewLookupRoot([]string{"desktop/darwin/arm64"}),
-		bldr_plugin.NewLoadPluginInstanced("spacewave-core", "space-a"),
-		bldr_plugin.NewLoadPlugin("web"),
+	}
+	for _, id := range plugins {
+		forwarded = append(forwarded, bldr_plugin.NewLoadPlugin(id), bldr_plugin.NewLoadPluginInstanced(id, "space-a"))
 	}
 	for _, dir := range forwarded {
 		addTestDirective(t, child, dir)
 		recorder.waitFor(t, dir)
 	}
 
-	// Space plugin loads, manifests, hosts, and RPC services stay inside the
+	// Space plugin loads, manifests, and RPC services stay inside the
 	// generation.
 	kept := []directive.Directive{
 		plugin_host.NewLookupPluginHost(nil),
