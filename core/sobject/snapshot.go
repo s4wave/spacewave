@@ -25,6 +25,8 @@ type TransformInfo struct {
 
 // SharedObjectStateSnapshot is the state snapshot interface for the SharedObject.
 type SharedObjectStateSnapshot interface {
+	// GetParticipantConfigForPeer returns a participant in the accepted config.
+	GetParticipantConfigForPeer(ctx context.Context, peerID string) (*SOParticipantConfig, error)
 	// GetParticipantConfig returns the participant record for our participant.
 	// uses the peer identity from the SharedObject.
 	// returns ErrNotParticipant if the local peer is not a participant.

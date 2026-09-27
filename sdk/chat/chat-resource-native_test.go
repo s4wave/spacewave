@@ -27,7 +27,7 @@ func TestChatResourceListMessagesReadsOnlyRequestedPage(t *testing.T) {
 	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/1", "second", "peer-local")
 	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/2", "third", "peer-local")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	listResp, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{
 		BeforeKey: GeneralChannelKey + "/message/2",
 		Limit:     1,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -21,9 +22,9 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	t.Cleanup(tb.Release)
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	first := NewChatResource(ws, tb.Engine, GeneralChannelKey, "alice")
+	first := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
 	request := &spacewave_chat_rpc.SendMessageRequest{Text: "retained", TransactionId: "device-a/send-1"}
-	messageKey, err := TransactionMessageKey(GeneralChannelKey, "alice", request.GetTransactionId())
+	messageKey, err := TransactionMessageKey(GeneralChannelKey, peer.ID("alice").String(), request.GetTransactionId())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +42,7 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	first.Close()
 
 	// Reattach and retry without publishing another World revision.
-	resumed := NewChatResource(ws, tb.Engine, GeneralChannelKey, "alice")
+	resumed := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
 	replayed, err := resumed.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
@@ -83,13 +84,13 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if after != seqno {
 		t.Fatal("opt-in replay published a World revision")
 	}
-	otherPerson := NewChatResourceForPerson(ws, tb.Engine, GeneralChannelKey, "alice", "another-person")
+	otherPerson := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice", "another-person")
 	if _, err := otherPerson.SendMessage(ctx, conflict); err == nil {
 		t.Fatal("opt-in replay accepted a different person under the same device identity")
 	}
 
 	// A second authenticated sender has an independent transaction namespace.
-	bob := NewChatResource(ws, tb.Engine, GeneralChannelKey, "bob")
+	bob := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "bob")
 	second, err := bob.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +109,7 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	requireChatMessages(t, page.GetMessages(), accepted.GetMessageKey(), "retained", "alice")
+	requireChatMessages(t, page.GetMessages(), accepted.GetMessageKey(), "retained", peer.ID("alice").String())
 }
 
 // parseMessageIndex decodes the numeric keys used by historical message fixtures.

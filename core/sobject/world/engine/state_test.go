@@ -296,9 +296,10 @@ func (s *testSharedObject) ProcessOperations(ctx context.Context, watch bool, cb
 }
 
 type testSharedObjectSnapshot struct {
-	rootInner   *sobject.SORootInner
-	participant *sobject.SOParticipantConfig
-	inspected   chan<- struct{}
+	rootInner    *sobject.SORootInner
+	participant  *sobject.SOParticipantConfig
+	participants map[string]*sobject.SOParticipantConfig
+	inspected    chan<- struct{}
 }
 
 func (s *testSharedObjectSnapshot) GetParticipantConfig(ctx context.Context) (*sobject.SOParticipantConfig, error) {
@@ -306,6 +307,17 @@ func (s *testSharedObjectSnapshot) GetParticipantConfig(ctx context.Context) (*s
 		s.inspected <- struct{}{}
 	}
 	return s.participant, nil
+}
+
+func (s *testSharedObjectSnapshot) GetParticipantConfigForPeer(ctx context.Context, peerID string) (*sobject.SOParticipantConfig, error) {
+	if s.participants != nil {
+		participant, ok := s.participants[peerID]
+		if !ok {
+			return nil, sobject.ErrNotParticipant
+		}
+		return participant, nil
+	}
+	return s.GetParticipantConfig(ctx)
 }
 
 func (s *testSharedObjectSnapshot) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {

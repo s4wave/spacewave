@@ -7,12 +7,25 @@ import (
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // RefCountEngine is an engine backed by a reference counter.
 type RefCountEngine struct {
 	// rc retains the resolved engine while an operation or transaction uses it.
 	rc *refcount.RefCount[*Engine]
+}
+
+// OperationAuthor resolves the current engine's signing device and person.
+func (e *RefCountEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
+	var device peer.ID
+	var person string
+	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+		var err error
+		device, person, err = (*val).OperationAuthor(ctx)
+		return err
+	})
+	return device, person, err
 }
 
 // NewRefCountEngine constructs a new refcount engine.

@@ -147,6 +147,16 @@ func (s *SOStateParticipantHandle) GetParticipantConfig(ctx context.Context) (*S
 	return nil, ErrNotParticipant
 }
 
+// GetParticipantConfigForPeer returns a participant from this accepted config.
+func (s *SOStateParticipantHandle) GetParticipantConfigForPeer(_ context.Context, peerID string) (*SOParticipantConfig, error) {
+	for _, participant := range s.state.GetConfig().GetParticipants() {
+		if participant.GetPeerId() == peerID {
+			return participant, nil
+		}
+	}
+	return nil, ErrNotParticipant
+}
+
 // GetOpQueue returns the operation queue for our participant.
 // uses the peer identity from the SharedObject.
 func (s *SOStateParticipantHandle) GetOpQueue(ctx context.Context) ([]*SOOperation, []*QueuedSOOperation, error) {

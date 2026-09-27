@@ -695,6 +695,10 @@ func (s *testGCSweepSnapshot) GetParticipantConfig(ctx context.Context) (*sobjec
 	return &sobject.SOParticipantConfig{Role: s.role}, nil
 }
 
+func (s *testGCSweepSnapshot) GetParticipantConfigForPeer(ctx context.Context, _ string) (*sobject.SOParticipantConfig, error) {
+	return s.GetParticipantConfig(ctx)
+}
+
 func (s *testGCSweepSnapshot) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {
 	return nil, nil
 }

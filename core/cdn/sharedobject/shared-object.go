@@ -283,6 +283,11 @@ func (s *cdnStateSnapshot) GetParticipantConfig(_ context.Context) (*sobject.SOP
 	return nil, sobject.ErrNotParticipant
 }
 
+// GetParticipantConfigForPeer rejects signers on anonymous CDN mounts.
+func (s *cdnStateSnapshot) GetParticipantConfigForPeer(_ context.Context, _ string) (*sobject.SOParticipantConfig, error) {
+	return nil, sobject.ErrNotParticipant
+}
+
 // GetTransformer is not available on a CDN mount because the mount has no
 // grants to decrypt a transform config from. CDN Spaces publish their state
 // as plain SORootInner, so callers should use GetRootInner directly instead.

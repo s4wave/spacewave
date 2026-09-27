@@ -66,8 +66,8 @@ type ChatMessageInfo struct {
 	Index uint64 `protobuf:"varint,6,opt,name=index,proto3" json:"index,omitempty"`
 	// Content is the full typed message content, including ciphertext envelopes.
 	Content *content.ChatMessageContent `protobuf:"bytes,7,opt,name=content,proto3" json:"content,omitempty"`
-	// PersonPeerId is the verified person identity associated with the sending device.
-	PersonPeerId string `protobuf:"bytes,8,opt,name=person_peer_id,json=personPeerId,proto3" json:"personPeerId,omitempty"`
+	// PersonId is the accepted entity ID or local-only device ID.
+	PersonId string `protobuf:"bytes,8,opt,name=person_id,json=personId,proto3" json:"personId,omitempty"`
 }
 
 func (x *ChatMessageInfo) Reset() {
@@ -125,9 +125,9 @@ func (x *ChatMessageInfo) GetContent() *content.ChatMessageContent {
 	return nil
 }
 
-func (x *ChatMessageInfo) GetPersonPeerId() string {
+func (x *ChatMessageInfo) GetPersonId() string {
 	if x != nil {
-		return x.PersonPeerId
+		return x.PersonId
 	}
 	return ""
 }
@@ -576,7 +576,7 @@ func (*GetReadPositionsRequest) ProtoMessage() {}
 // GetReadPositionsResponse reports the canonical read positions for this channel.
 type GetReadPositionsResponse struct {
 	unknownFields []byte
-	// Positions maps external person peer identities to their monotonic read positions.
+	// Positions maps accepted person identities to their monotonic read positions.
 	Positions map[string]*state.ChatReadPosition `protobuf:"bytes,1,rep,name=positions,proto3" json:"positions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -700,7 +700,7 @@ func (m *ChatMessageInfo) CloneVT() *ChatMessageInfo {
 	r.Text = m.Text
 	r.ReplyToKey = m.ReplyToKey
 	r.Index = m.Index
-	r.PersonPeerId = m.PersonPeerId
+	r.PersonId = m.PersonId
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.Content = protobuf_go_lite.CloneVTValue(m.Content)
 	if len(m.unknownFields) > 0 {
@@ -1066,7 +1066,7 @@ func (this *ChatMessageInfo) EqualVT(that *ChatMessageInfo) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Content, that.Content) {
 		return false
 	}
-	if this.PersonPeerId != that.PersonPeerId {
+	if this.PersonId != that.PersonId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1607,10 +1607,10 @@ func (x *ChatMessageInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("content")
 		x.Content.MarshalProtoJSON(s.WithField("content"))
 	}
-	if x.PersonPeerId != "" || s.HasField("personPeerId") {
+	if x.PersonId != "" || s.HasField("personId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("personPeerId")
-		s.WriteString(x.PersonPeerId)
+		s.WriteObjectField("personId")
+		s.WriteString(x.PersonId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1658,9 +1658,9 @@ func (x *ChatMessageInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Content = &content.ChatMessageContent{}
 			x.Content.UnmarshalProtoJSON(s.WithField("content", true))
-		case "person_peer_id", "personPeerId":
-			s.AddField("person_peer_id")
-			x.PersonPeerId = s.ReadString()
+		case "person_id", "personId":
+			s.AddField("person_id")
+			x.PersonId = s.ReadString()
 		}
 	})
 }
@@ -2796,8 +2796,8 @@ func (m *ChatMessageInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.PersonPeerId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonPeerId)
+	if len(m.PersonId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonId)
 		i--
 		dAtA[i] = 0x42
 	}
@@ -3672,7 +3672,7 @@ func (m *ChatMessageInfo) SizeVT() (n int) {
 		l = m.Content.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3980,9 +3980,9 @@ func (x *ChatMessageInfo) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "content")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Content)
 	}
-	if x.PersonPeerId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_peer_id")
-		protobuf_go_lite.TextWriteString(&sb, x.PersonPeerId)
+	if x.PersonId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PersonId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4550,14 +4550,14 @@ func (m *ChatMessageInfo) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PersonPeerId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PersonId", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.PersonPeerId = v
+			m.PersonId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

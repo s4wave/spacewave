@@ -34,7 +34,7 @@ func TestEncryptedChannelRequiresConfiguredAlgorithm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
-	resource := NewChatResource(ws, tb.Engine, channelKey, "alice")
+	resource := newChatResource(t, ws, tb.Engine, channelKey, "alice")
 	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
 		t.Fatalf("GetChannelInfo: %v", err)
@@ -104,7 +104,7 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 		Algorithm: "m.megolm.v1.aes-sha2", Ciphertext: "opaque-envelope", SenderKey: "sender-public-key", SessionId: "session-id",
 	}}}
 	request := &spacewave_chat_rpc.SendMessageRequest{TransactionId: "encrypted-send", Content: content}
-	resource := NewChatResource(ws, tb.Engine, GeneralChannelKey, "alice")
+	resource := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
 	accepted, err := resource.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 	resource.Close()
 
 	// Reattach, preserve send identity, and reject conflicting ciphertext or plaintext.
-	resource = NewChatResource(ws, tb.Engine, GeneralChannelKey, "alice")
+	resource = newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
 	retry, err := resource.SendMessage(ctx, request)
 	if err != nil || retry.GetMessageKey() != accepted.GetMessageKey() {
 		t.Fatalf("encrypted retry changed identity: %v", err)

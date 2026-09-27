@@ -19,9 +19,9 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	t.Cleanup(tb.Release)
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	alice := NewChatResourceForPerson(ws, tb.Engine, GeneralChannelKey, "alice-device-a", "alice")
-	otherAlice := NewChatResourceForPerson(ws, tb.Engine, GeneralChannelKey, "alice-device-b", "alice")
-	bob := NewChatResourceForPerson(ws, tb.Engine, GeneralChannelKey, "bob-device", "bob")
+	alice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-a", "alice")
+	otherAlice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-b", "alice")
+	bob := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "bob-device", "bob")
 	for _, device := range []*ChatResource{alice, otherAlice, bob} {
 		if _, err := device.SendMessage(ctx, &chat_rpc.SendMessageRequest{Text: "A shared message"}); err != nil {
 			t.Fatal(err)
@@ -31,7 +31,7 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(page.GetMessages()) != 3 || page.GetMessages()[0].GetPersonPeerId() != "alice" || page.GetMessages()[1].GetPersonPeerId() != "alice" || page.GetMessages()[2].GetPersonPeerId() != "bob" {
+	if len(page.GetMessages()) != 3 || page.GetMessages()[0].GetPersonId() != "alice" || page.GetMessages()[1].GetPersonId() != "alice" || page.GetMessages()[2].GetPersonId() != "bob" {
 		t.Fatal("message attribution did not preserve shared person identity")
 	}
 	if page.GetMessages()[0].GetSenderPeerId() == page.GetMessages()[1].GetSenderPeerId() {
@@ -51,7 +51,7 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	if err := updates.Wait(); err != nil {
 		t.Fatal(err)
 	}
-	resumed := NewChatResourceForPerson(ws, tb.Engine, GeneralChannelKey, "alice-device-c", "alice")
+	resumed := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-c", "alice")
 	positions, err := resumed.GetReadPositions(ctx, &chat_rpc.GetReadPositionsRequest{})
 	if err != nil {
 		t.Fatal(err)

@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -77,7 +78,7 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 
 	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
@@ -116,7 +117,7 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListMessages: %v", err)
 	}
-	requireChatMessages(t, listResp.GetMessages(), sendResp.GetMessageKey(), "hello goscript chat", "peer-local")
+	requireChatMessages(t, listResp.GetMessages(), sendResp.GetMessageKey(), "hello goscript chat", peer.ID("peer-local").String())
 
 	if err := world_types.CheckObjectType(ctx, ws, sendResp.GetMessageKey(), ChatMessageTypeID); err != nil {
 		t.Fatalf("message object type: %v", err)
@@ -142,7 +143,7 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	}()
 
 	watchResp := recvChatWatchValue(t, stream.sent)
-	requireChatMessages(t, watchResp.GetMessages(), sendResp.GetMessageKey(), "hello goscript chat", "peer-local")
+	requireChatMessages(t, watchResp.GetMessages(), sendResp.GetMessageKey(), "hello goscript chat", peer.ID("peer-local").String())
 
 	cancel()
 	select {
@@ -166,7 +167,7 @@ func TestChatResourceGetMessageValidatesChannelKey(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	sendResp, err := resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "accepted"})
 	if err != nil {
 		t.Fatalf("SendMessage: %v", err)
@@ -202,7 +203,7 @@ func TestChatResourceWatchMessagesSettlesEmptyChannel(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 
 	watchCtx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
@@ -242,7 +243,7 @@ func TestChatResourceListMessagesBeforeKeyUsesSortedMessageSet(t *testing.T) {
 	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/1", "second", "peer-local")
 	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/2", "third", "peer-local")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	listResp, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{
 		BeforeKey: GeneralChannelKey + "/message/2",
 		Limit:     1,
@@ -267,7 +268,7 @@ func TestChatResourceListMessagesClampsLimitAcrossPages(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	for idx := range 70 {
 		createChatMessage(
 			t,
@@ -321,7 +322,7 @@ func TestChatResourceListMessagesSupportsIndexCursors(t *testing.T) {
 		)
 	}
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	checkPage := func(name string, req *spacewave_chat_rpc.ListMessagesRequest, first, last uint64, wantHasMore bool) {
 		t.Helper()
 		resp, err := resource.ListMessages(ctx, req)
@@ -394,7 +395,7 @@ func TestChatResourceAllowsAnonymousConstructionAndRead(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, nil, GeneralChannelKey, "")
+	resource := newChatResource(t, ws, nil, GeneralChannelKey, "")
 	if resource == nil {
 		t.Fatal("NewChatResource returned nil")
 	}
@@ -437,7 +438,7 @@ func TestChatResourceReportsChannelCreator(t *testing.T) {
 	}
 
 	// Verify the resource projects the persisted creator identity.
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "peer-local")
 	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
 		t.Fatalf("GetChannelInfo: %v", err)
@@ -458,7 +459,7 @@ func TestChatResourceRejectsAnonymousSender(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "")
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, "")
 	_, err = resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"})
 	if err != ErrChatAuthorIdentityRequired {
 		t.Fatalf("SendMessage error = %v, want %v", err, ErrChatAuthorIdentityRequired)

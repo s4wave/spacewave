@@ -4,10 +4,14 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/refcount"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // Engine implements a transactional world state container.
 type Engine interface {
+	// OperationAuthor returns this engine's signing device and its accepted person.
+	// Unsigned engines return an empty device; callers requiring authorship reject it.
+	OperationAuthor(ctx context.Context) (peer.ID, string, error)
 	// NewTransaction returns a new transaction against the store.
 	// A read transaction retains one immutable revision until Discard. Use
 	// NewEngineWorldState for live reads and object revision watches.

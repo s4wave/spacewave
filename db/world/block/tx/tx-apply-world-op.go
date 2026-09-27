@@ -19,6 +19,9 @@ func NewTxApplyWorldOp(op world.Operation, opSender peer.ID) (*Tx, error) {
 	if err != nil {
 		return nil, err
 	}
+	if _, authenticated := op.(world.AuthenticatedOperation); authenticated {
+		opSender = ""
+	}
 	return &Tx{
 		TxType: TxType_TxType_APPLY_WORLD_OP,
 		TxApplyWorldOp: &TxApplyWorldOp{
@@ -97,14 +100,6 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	if err := t.Validate(); err != nil {
 		return false, err
 	}
-	if opSender := t.GetOpSender(); opSender != "" {
-		var err error
-		sender, err = confparse.ParsePeerID(opSender)
-		if err != nil {
-			return false, err
-		}
-	}
-
 	// resolve + construct the operation type
 	opTypeID := t.GetOperationTypeId()
 	op, err := lookupOp(ctx, opTypeID)
@@ -113,6 +108,14 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	}
 	if err != nil {
 		return false, err
+	}
+	if _, authenticated := op.(world.AuthenticatedOperation); !authenticated {
+		if opSender := t.GetOpSender(); opSender != "" {
+			sender, err = confparse.ParsePeerID(opSender)
+			if err != nil {
+				return false, err
+			}
+		}
 	}
 
 	// unmarshal the block

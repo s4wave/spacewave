@@ -53,6 +53,11 @@ func (l *lsoStateSnapshot) GetParticipantConfig(ctx context.Context) (*sobject.S
 	return l.h.GetParticipantConfig(ctx)
 }
 
+// GetParticipantConfigForPeer reads one participant from the accepted config.
+func (l *lsoStateSnapshot) GetParticipantConfigForPeer(ctx context.Context, peerID string) (*sobject.SOParticipantConfig, error) {
+	return l.h.GetParticipantConfigForPeer(ctx, peerID)
+}
+
 // GetTransformer returns the transformer used for the root state and operations.
 func (l *lsoStateSnapshot) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {
 	return l.h.GetTransformer(ctx)

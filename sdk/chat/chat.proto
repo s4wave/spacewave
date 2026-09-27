@@ -19,8 +19,8 @@ message ChatChannel {
   .google.protobuf.Timestamp created_at = 3;
   // MessageCount is the number of messages appended to the channel.
   uint64 message_count = 4;
-  // ReadPositions maps verified person peer identities to their shared read positions.
-  // Keys are external cryptographic identities, not World object references.
+  // ReadPositions maps verified person identities to their shared read positions.
+  // Keys are accepted entity IDs or local-only device IDs.
   map<string, ChatReadPosition> read_positions = 5;
   // CreatorPeerId is the peer identity that created the channel.
   string creator_peer_id = 6;
@@ -46,9 +46,8 @@ message ChatMessage {
   string reply_to_key = 4;
   // Index is the zero-based message index within the channel.
   uint64 index = 5;
-  // PersonPeerId is the verified person identity supplied by the authenticated host.
-  // Empty historical values identify the person by SenderPeerId.
-  string person_peer_id = 6;
+  // PersonId is the accepted entity ID, or the signing device for local-only participants.
+  string person_id = 6;
 }
 
 // ChatMessagePage stores a bounded page of channel message keys.
@@ -106,8 +105,14 @@ message SendChatMessageOp {
   .spacewave.chat.rpc.SendMessageRequest request = 2;
   // Timestamp is chosen when the send is submitted.
   .google.protobuf.Timestamp timestamp = 3;
-  // SenderPeerId is the authenticated device bound to the Chat Resource.
-  string sender_peer_id = 4;
-  // PersonPeerId is the verified person bound to the Chat Resource.
-  string person_peer_id = 5;
+}
+
+// UpdateChatReadPositionOp advances a receipt on accepted World replay.
+message UpdateChatReadPositionOp {
+  // ObjectKey selects the channel whose receipt advances.
+  string object_key = 1;
+  // NextIndex is the first unread message index.
+  uint64 next_index = 2;
+  // Timestamp is chosen when the receipt is submitted.
+  .google.protobuf.Timestamp timestamp = 3;
 }

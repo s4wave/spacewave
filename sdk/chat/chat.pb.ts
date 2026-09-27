@@ -43,8 +43,8 @@ export interface ChatChannel {
    */
   messageCount?: bigint
   /**
-   * ReadPositions maps verified person peer identities to their shared read positions.
-   * Keys are external cryptographic identities, not World object references.
+   * ReadPositions maps verified person identities to their shared read positions.
+   * Keys are accepted entity IDs or local-only device IDs.
    *
    * @generated from field: map<string, spacewave.chat.ChatReadPosition> read_positions = 5;
    */
@@ -147,12 +147,11 @@ export interface ChatMessage {
    */
   index?: bigint
   /**
-   * PersonPeerId is the verified person identity supplied by the authenticated host.
-   * Empty historical values identify the person by SenderPeerId.
+   * PersonId is the accepted entity ID, or the signing device for local-only participants.
    *
-   * @generated from field: string person_peer_id = 6;
+   * @generated from field: string person_id = 6;
    */
-  personPeerId?: string
+  personId?: string
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -164,7 +163,7 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 6, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -390,18 +389,6 @@ export interface SendChatMessageOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
-  /**
-   * SenderPeerId is the authenticated device bound to the Chat Resource.
-   *
-   * @generated from field: string sender_peer_id = 4;
-   */
-  senderPeerId?: string
-  /**
-   * PersonPeerId is the verified person bound to the Chat Resource.
-   *
-   * @generated from field: string person_peer_id = 5;
-   */
-  personPeerId?: string
 }
 
 export const SendChatMessageOp: MessageType<SendChatMessageOp> =
@@ -411,7 +398,41 @@ export const SendChatMessageOp: MessageType<SendChatMessageOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'request', kind: 'message', T: () => SendMessageRequest },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
-      { no: 4, name: 'sender_peer_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * UpdateChatReadPositionOp advances a receipt on accepted World replay.
+ *
+ * @generated from message spacewave.chat.UpdateChatReadPositionOp
+ */
+export interface UpdateChatReadPositionOp {
+  /**
+   * ObjectKey selects the channel whose receipt advances.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * NextIndex is the first unread message index.
+   *
+   * @generated from field: uint64 next_index = 2;
+   */
+  nextIndex?: bigint
+  /**
+   * Timestamp is chosen when the receipt is submitted.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 3;
+   */
+  timestamp?: Date
+}
+
+export const UpdateChatReadPositionOp: MessageType<UpdateChatReadPositionOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.UpdateChatReadPositionOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
   })

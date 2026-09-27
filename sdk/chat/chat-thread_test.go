@@ -12,6 +12,27 @@ import (
 	chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
+// TestThreadParticipationFollowsPersonAcrossDevices shares one participant
+// label between two signing devices of the same accepted person.
+func TestThreadParticipationFollowsPersonAcrossDevices(t *testing.T) {
+	ctx := t.Context()
+	tb := db_world_testbed.MustDefault(t, ctx)
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	bob := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "bob-device", "bob")
+	aliceA := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-a", "alice")
+	aliceB := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-b", "alice")
+	root := sendThreadTestEvent(t, ctx, bob, "root", nil)
+	sendThreadTestEvent(t, ctx, aliceA, "reply", &ChatRelation{Type: "m.thread", TargetKey: root})
+	page, err := aliceB.ListThreads(ctx, &chat_rpc.ListThreadsRequest{ParticipatedOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.GetThreads()) != 1 || page.GetThreads()[0].GetRoot().GetObjectKey() != root || !page.GetThreads()[0].GetCurrentUserParticipated() {
+		t.Fatalf("second device did not share thread participation: %v", page)
+	}
+}
+
 // TestChatResourceListThreadsRetainsOrderCountsAndReplyParticipation exercises the native index contract.
 func TestChatResourceListThreadsRetainsOrderCountsAndReplyParticipation(t *testing.T) {
 	ctx := t.Context()
@@ -29,8 +50,8 @@ func TestChatResourceListThreadsRetainsOrderCountsAndReplyParticipation(t *testi
 	}, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
-	alice := NewChatResourceForPerson(ws, tb.Engine, channelKey, "alice-device", "alice")
-	bob := NewChatResourceForPerson(ws, tb.Engine, channelKey, "bob-device", "bob")
+	alice := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "alice-device", "alice")
+	bob := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "bob-device", "bob")
 	t.Cleanup(alice.Close)
 	t.Cleanup(bob.Close)
 
@@ -118,7 +139,7 @@ func TestChatResourceListThreadsMigratesLegacyHistoryOnce(t *testing.T) {
 	replyKey := channelKey + "/message/1"
 	createLegacyThreadReply(t, ctx, ws, channelKey, replyKey, rootKey)
 
-	resource := NewChatResourceForPerson(ws, tb.Engine, channelKey, "bob-device", "bob")
+	resource := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "bob-device", "bob")
 	t.Cleanup(resource.Close)
 	tx, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -212,7 +233,7 @@ func createLegacyThreadReply(
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, messageKey, func(cursor *block.Cursor) error {
 		cursor.SetBlock(&ChatMessage{
 			SenderPeerId: "bob-device",
-			PersonPeerId: "bob",
+			PersonId:     "bob",
 			Content: &ChatMessageContent{Content: &ChatMessageContent_Event{Event: &ChatEvent{
 				Type:        "m.room.message",
 				ContentJson: `{"body":"legacy","msgtype":"m.text"}`,

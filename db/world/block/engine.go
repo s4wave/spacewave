@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -130,6 +131,11 @@ type Engine struct {
 	headWatchErr error
 	// closed rejects new operations while Close drains resources.
 	closed bool
+}
+
+// OperationAuthor returns no signer for a standalone block World.
+func (e *Engine) OperationAuthor(context.Context) (peer.ID, string, error) {
+	return "", "", nil
 }
 
 // CommitFn is a function to call with the updated root before confirming it.

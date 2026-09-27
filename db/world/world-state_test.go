@@ -534,6 +534,10 @@ type staleRetryEngine struct {
 	objects     map[string]*bucket.ObjectRef
 }
 
+func (e *staleRetryEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
+	return "", "", nil
+}
+
 func (e *staleRetryEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	if e.staleNewTx > 0 {
 		e.staleNewTx--
