@@ -188,12 +188,12 @@ export function SessionDashboard({
       </div>
 
       <div className="relative z-10 pb-3 text-center">
-        <p className="text-foreground-alt/60 text-xs">
+        <p className="text-foreground-alt/60 text-xs [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:items-center">
           local-first · encrypted ·{' '}
           <button
             type="button"
             onClick={goToCommunity}
-            className="hover:text-foreground cursor-pointer transition-colors"
+            className="hover:text-foreground cursor-pointer transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-2"
           >
             community
           </button>
@@ -215,11 +215,13 @@ function DashboardNav() {
   ]
 
   return (
-    <nav className="flex flex-wrap items-center">
+    <nav className="flex flex-wrap items-center [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:gap-x-1">
       {links.map((link, i) => (
         <span key={link.text} className="flex items-center">
           {i > 0 && (
-            <span className="text-foreground-alt/30 text-metadata px-1">·</span>
+            <span className="text-foreground-alt/30 text-metadata px-1 [@media(pointer:coarse)]:hidden">
+              ·
+            </span>
           )}
           <NavLink text={link.text} onClick={link.onClick} />
         </span>
@@ -235,7 +237,7 @@ function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
     <button
       type="button"
       onClick={handleNavSelect}
-      className="text-foreground-alt/40 hover:text-foreground-alt bg-transparent px-2 py-1 text-xs font-medium tracking-wide uppercase transition-colors"
+      className="text-foreground-alt/40 hover:text-foreground-alt [@media(pointer:coarse)]:text-foreground-alt/70 bg-transparent px-2 py-1 text-xs font-medium tracking-wide whitespace-nowrap uppercase transition-colors [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
     >
       {text}
     </button>
