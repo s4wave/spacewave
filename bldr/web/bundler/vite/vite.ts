@@ -1,7 +1,9 @@
 import path, { resolve } from 'path'
 import fs from 'fs'
 import net from 'net'
+import tailwindcss from '@tailwindcss/vite'
 import { Server, StreamConn, createHandler, createMux } from 'starpc'
+
 import {
   buildPipeName,
   createSocketConnection,
@@ -331,9 +333,14 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     if (!mergedConfig.plugins) {
       mergedConfig.plugins = []
     }
+
+    // Config-free renderers still compile injected startup stylesheets.
     if (configPaths.length === 0) {
       mergedConfig.build.emptyOutDir = false
-      mergedConfig.plugins.push(goTsResolver(projectRoot, distDir))
+      mergedConfig.plugins.push(
+        tailwindcss(),
+        goTsResolver(projectRoot, distDir),
+      )
       mergedConfig.resolve = {
         ...mergedConfig.resolve,
         alias: buildGoAliases(projectRoot, distDir),

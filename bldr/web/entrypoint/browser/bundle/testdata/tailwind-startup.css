@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@source './tailwind-startup.tsx';
+
+@theme {
+  --color-background-landing: #171717;
+  --radius-landing-launcher: 14px;
+}
