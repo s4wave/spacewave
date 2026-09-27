@@ -13,8 +13,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 import { BlockRef, PutOpts } from '../../../db/block/block.pb.js'
 
-export const protobufPackage = 's4wave.bucket_lookup'
-
 /**
  * MountBucketLookupRequest is the request type for mounting a bucket lookup cursor.
  *
@@ -51,7 +49,6 @@ export const MountBucketLookupRequest: MessageType<MountBucketLookupRequest> =
       { no: 2, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'transform_conf', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -89,7 +86,6 @@ export const MountBucketLookupResponse: MessageType<MountBucketLookupResponse> =
       { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -138,7 +134,6 @@ export const GetRefResponse: MessageType<GetRefResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -161,7 +156,6 @@ export const FollowRefRequest: MessageType<FollowRefRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -184,7 +178,6 @@ export const FollowRefResponse: MessageType<FollowRefResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -207,7 +200,6 @@ export const GetBlockRequest: MessageType<GetBlockRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -237,7 +229,6 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -267,7 +258,6 @@ export const PutBlockRequest: MessageType<PutBlockRequest> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'opts', kind: 'message', T: () => PutOpts },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -297,7 +287,6 @@ export const PutBlockResponse: MessageType<PutBlockResponse> =
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'existed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -347,7 +336,6 @@ export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
       },
       { no: 4, name: 'tombstone', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -372,11 +360,10 @@ export const PutBlockBatchRequest: MessageType<PutBlockBatchRequest> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => PutBlockBatchEntry,
+        T: PutBlockBatchEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -418,7 +405,6 @@ export const GetBlockExistsBatchRequest: MessageType<GetBlockExistsBatchRequest>
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -447,7 +433,6 @@ export const GetBlockExistsBatchResponse: MessageType<GetBlockExistsBatchRespons
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,7 +455,6 @@ export const BuildTransactionRequest: MessageType<BuildTransactionRequest> =
     fields: [
       { no: 1, name: 'put_opts', kind: 'message', T: () => PutOpts },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -510,7 +494,6 @@ export const BuildTransactionResponse: MessageType<BuildTransactionResponse> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -540,7 +523,6 @@ export const BuildTransactionAtRefRequest: MessageType<BuildTransactionAtRefRequ
       { no: 1, name: 'put_opts', kind: 'message', T: () => PutOpts },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -580,7 +562,6 @@ export const BuildTransactionAtRefResponse: MessageType<BuildTransactionAtRefRes
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -616,7 +597,6 @@ export const CloneResponse: MessageType<CloneResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -681,7 +661,6 @@ export const UnmarshalRequest: MessageType<UnmarshalRequest> =
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -711,5 +690,4 @@ export const UnmarshalResponse: MessageType<UnmarshalResponse> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

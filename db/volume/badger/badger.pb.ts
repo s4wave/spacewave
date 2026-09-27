@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.badger'
-
 /**
  * Config is the badger volume controller config.
  * Flag Dir is the only mandatory flag.
@@ -242,5 +240,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 18, name: 'num_compactors', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 20, name: 'no_sync_writes', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

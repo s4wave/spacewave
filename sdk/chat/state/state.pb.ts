@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'spacewave.chat'
-
 /**
  * ChatReadPosition is a person's monotonic position in a channel's retained history.
  *
@@ -37,5 +35,4 @@ export const ChatReadPosition: MessageType<ChatReadPosition> =
       { no: 1, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'updated_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'manifest.fetch.plugin'
-
 /**
  * Config configures a controller to fetch via the ManifestFetch service.
  * Loads a plugin with LoadPlugin and uses its RPC client.
@@ -43,5 +41,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Session } from '../../../frontend/frontend.pb.js'
 import { WebPkgRefConfig } from '../bundler.pb.js'
 
-export const protobufPackage = 'bldr.web.bundler.vite'
-
 /**
  * DevelopmentConfig configures a dedicated process's frontend environment.
  *
@@ -124,7 +122,6 @@ export const DevelopmentConfig: MessageType<DevelopmentConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -162,7 +159,6 @@ export const DevelopmentResult: MessageType<DevelopmentResult> =
       { no: 2, name: 'private_url', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'refresh_runtime', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -205,7 +201,6 @@ export const WebPkgRef: MessageType<WebPkgRef> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,7 +230,6 @@ export const ViteBuildRequestEntrypoint: MessageType<ViteBuildRequestEntrypoint>
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -363,7 +357,7 @@ export const BuildRequest: MessageType<BuildRequest> =
         no: 8,
         name: 'entrypoints',
         kind: 'message',
-        T: () => ViteBuildRequestEntrypoint,
+        T: ViteBuildRequestEntrypoint,
         repeated: true,
       },
       {
@@ -393,7 +387,6 @@ export const BuildRequest: MessageType<BuildRequest> =
       { no: 15, name: 'sourcemap_mode', kind: 'scalar', T: ScalarType.STRING },
       { no: 16, name: 'project_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -449,7 +442,6 @@ export const EntrypointOutput: MessageType<EntrypointOutput> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -514,7 +506,7 @@ export const BuildResponse: MessageType<BuildResponse> =
         no: 3,
         name: 'entrypoint_outputs',
         kind: 'message',
-        T: () => EntrypointOutput,
+        T: EntrypointOutput,
         repeated: true,
       },
       {
@@ -535,7 +527,7 @@ export const BuildResponse: MessageType<BuildResponse> =
         no: 6,
         name: 'web_pkg_refs',
         kind: 'message',
-        T: () => WebPkgRef,
+        T: WebPkgRef,
         repeated: true,
       },
       {
@@ -546,7 +538,6 @@ export const BuildResponse: MessageType<BuildResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -577,7 +568,6 @@ export const ViteOutputMeta: MessageType<ViteOutputMeta> =
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -693,7 +683,6 @@ export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
       { no: 10, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
       { no: 11, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -723,7 +712,6 @@ export const ImportMapEntry: MessageType<ImportMapEntry> =
       { no: 1, name: 'specifier', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -777,9 +765,8 @@ export const BuildWebPkgResponse: MessageType<BuildWebPkgResponse> =
         no: 4,
         name: 'import_map_entries',
         kind: 'message',
-        T: () => ImportMapEntry,
+        T: ImportMapEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

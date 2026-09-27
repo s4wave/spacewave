@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { PluginManifestRecoveryStatus } from '../../bldr/plugin/plugin.pb.js'
 
-export const protobufPackage = 's4wave.status'
-
 /**
  * ControllerInfo describes a running controller.
  *
@@ -47,7 +45,6 @@ export const ControllerInfo: MessageType<ControllerInfo> =
       { no: 2, name: 'version', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -77,7 +74,6 @@ export const DirectiveInfo: MessageType<DirectiveInfo> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ident', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -123,7 +119,6 @@ export const PluginInfo: MessageType<PluginInfo> =
       { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -179,7 +174,6 @@ export const NetworkLinkInfo: MessageType<NetworkLinkInfo> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -218,11 +212,10 @@ export const NetworkPeerInfo: MessageType<NetworkPeerInfo> =
         no: 3,
         name: 'links',
         kind: 'message',
-        T: () => NetworkLinkInfo,
+        T: NetworkLinkInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -368,7 +361,6 @@ export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
       { no: 14, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 15, name: 'update_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -419,7 +411,6 @@ export const NativePackageRecoveryStatus: MessageType<NativePackageRecoveryStatu
       { no: 6, name: 'last_error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'updated_at', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -461,7 +452,6 @@ export const BrowserBootRecoveryStatus: MessageType<BrowserBootRecoveryStatus> =
       },
       { no: 3, name: 'status', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -533,7 +523,6 @@ export const RuntimeAssetRecoveryStatus: MessageType<RuntimeAssetRecoveryStatus>
       { no: 9, name: 'body_prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'status', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -570,12 +559,7 @@ export const RecoveryStatus: MessageType<RecoveryStatus> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.RecoveryStatus',
     fields: [
-      {
-        no: 1,
-        name: 'launcher',
-        kind: 'message',
-        T: () => LauncherRecoveryStatus,
-      },
+      { no: 1, name: 'launcher', kind: 'message', T: LauncherRecoveryStatus },
       {
         no: 2,
         name: 'plugins',
@@ -587,23 +571,17 @@ export const RecoveryStatus: MessageType<RecoveryStatus> =
         no: 3,
         name: 'native_packages',
         kind: 'message',
-        T: () => NativePackageRecoveryStatus,
+        T: NativePackageRecoveryStatus,
         repeated: true,
       },
-      {
-        no: 4,
-        name: 'boot',
-        kind: 'message',
-        T: () => BrowserBootRecoveryStatus,
-      },
+      { no: 4, name: 'boot', kind: 'message', T: BrowserBootRecoveryStatus },
       {
         no: 5,
         name: 'runtime_asset',
         kind: 'message',
-        T: () => RuntimeAssetRecoveryStatus,
+        T: RuntimeAssetRecoveryStatus,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -647,12 +625,11 @@ export const WatchControllersResponse: MessageType<WatchControllersResponse> =
         no: 1,
         name: 'controllers',
         kind: 'message',
-        T: () => ControllerInfo,
+        T: ControllerInfo,
         repeated: true,
       },
       { no: 2, name: 'controller_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -696,12 +673,11 @@ export const WatchDirectivesResponse: MessageType<WatchDirectivesResponse> =
         no: 1,
         name: 'directives',
         kind: 'message',
-        T: () => DirectiveInfo,
+        T: DirectiveInfo,
         repeated: true,
       },
       { no: 2, name: 'directive_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -746,12 +722,11 @@ export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
         no: 1,
         name: 'plugins',
         kind: 'message',
-        T: () => PluginInfo,
+        T: PluginInfo,
         repeated: true,
       },
       { no: 2, name: 'plugin_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -815,13 +790,12 @@ export const WatchNetworkStatsResponse: MessageType<WatchNetworkStatsResponse> =
         no: 3,
         name: 'peers',
         kind: 'message',
-        T: () => NetworkPeerInfo,
+        T: NetworkPeerInfo,
         repeated: true,
       },
       { no: 4, name: 'peer_count', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'link_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -857,20 +831,14 @@ export const ReportRecoveryStatusRequest: MessageType<ReportRecoveryStatusReques
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.ReportRecoveryStatusRequest',
     fields: [
-      {
-        no: 1,
-        name: 'boot',
-        kind: 'message',
-        T: () => BrowserBootRecoveryStatus,
-      },
+      { no: 1, name: 'boot', kind: 'message', T: BrowserBootRecoveryStatus },
       {
         no: 2,
         name: 'runtime_asset',
         kind: 'message',
-        T: () => RuntimeAssetRecoveryStatus,
+        T: RuntimeAssetRecoveryStatus,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -902,7 +870,6 @@ export const WatchRecoveryStatusResponse: MessageType<WatchRecoveryStatusRespons
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.status.WatchRecoveryStatusResponse',
     fields: [
-      { no: 1, name: 'status', kind: 'message', T: () => RecoveryStatus },
+      { no: 1, name: 'status', kind: 'message', T: RecoveryStatus },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

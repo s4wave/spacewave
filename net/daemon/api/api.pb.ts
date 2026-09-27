@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bifrost.api'
-
 /**
  * Config configures the API.
  *
@@ -28,5 +26,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'bus_config', kind: 'message', T: () => Config$1 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

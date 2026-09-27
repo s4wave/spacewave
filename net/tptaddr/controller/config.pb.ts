@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'tptaddr.controller'
-
 /**
  * Config configures the tptaddr dialer controller.
  *
@@ -32,5 +30,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'dial_backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

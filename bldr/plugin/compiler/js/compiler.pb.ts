@@ -20,8 +20,6 @@ import { WebPkgRef } from '../../../web/pkg/pkg.pb.js'
 import { EsbuildOutputMeta } from '../../../web/bundler/esbuild/esbuild.pb.js'
 import { ViteOutputMeta } from '../../../web/bundler/vite/vite.pb.js'
 
-export const protobufPackage = 'bldr.plugin.compiler.js'
-
 /**
  * JsModuleKind specifies the kind of the JS module.
  *
@@ -54,11 +52,7 @@ export enum JsModuleKind {
 
 export const JsModuleKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.js.JsModuleKind',
-  [
-    [0, 'JS_MODULE_KIND_INVALID'],
-    [1, 'JS_MODULE_KIND_BACKEND'],
-    [2, 'JS_MODULE_KIND_FRONTEND'],
-  ],
+  JsModuleKind,
 )
 
 /**
@@ -150,7 +144,6 @@ export const JsModule: MessageType<JsModule> =
         T: () => StringFilter,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -184,7 +177,6 @@ export const BackendEntrypoint: MessageType<BackendEntrypoint> =
       { no: 1, name: 'import_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'import_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -247,7 +239,6 @@ export const FrontendEntrypoint: MessageType<FrontendEntrypoint> =
         T: () => StringFilter,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -410,13 +401,7 @@ export interface Config {
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.plugin.compiler.js.Config',
   fields: [
-    {
-      no: 1,
-      name: 'modules',
-      kind: 'message',
-      T: () => JsModule,
-      repeated: true,
-    },
+    { no: 1, name: 'modules', kind: 'message', T: JsModule, repeated: true },
     {
       no: 2,
       name: 'esbuild_bundles',
@@ -455,14 +440,14 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 7,
       name: 'backend_entrypoints',
       kind: 'message',
-      T: () => BackendEntrypoint,
+      T: BackendEntrypoint,
       repeated: true,
     },
     {
       no: 8,
       name: 'frontend_entrypoints',
       kind: 'message',
-      T: () => FrontendEntrypoint,
+      T: FrontendEntrypoint,
       repeated: true,
     },
     {
@@ -496,7 +481,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => Config },
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -518,9 +502,8 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.js.PreBuildHookResult',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -666,5 +649,4 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

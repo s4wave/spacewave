@@ -12,8 +12,6 @@ import {
 } from '../../sobject/sobject.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
-export const protobufPackage = 'provider.local'
-
 /**
  * AccountReplicaObjectRequest selects an object within a known canonical account.
  *
@@ -41,7 +39,6 @@ export const AccountReplicaObjectRequest: MessageType<AccountReplicaObjectReques
       { no: 1, name: 'settings_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -105,7 +102,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -134,7 +130,6 @@ export const LocalSOState: MessageType<LocalSOState> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -171,7 +166,6 @@ export const LocalSOOperationResult: MessageType<LocalSOOperationResult> =
       { no: 2, name: 'result', kind: 'message', T: () => SOOperationResult },
       { no: 3, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -229,5 +223,4 @@ export const AccountReplicaCopyState: MessageType<AccountReplicaCopyState> =
       { no: 5, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

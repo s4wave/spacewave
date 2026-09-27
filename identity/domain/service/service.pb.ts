@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Entity } from '../../identity.pb.js'
 
-export const protobufPackage = 'identity.domain.service'
-
 /**
  * EntityLookupIdentifier is the identifier to search.
  *
@@ -38,7 +36,6 @@ export const EntityLookupIdentifier: MessageType<EntityLookupIdentifier> =
       { no: 1, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -71,16 +68,10 @@ export const LookupEntityReq: MessageType<LookupEntityReq> =
   /* @__PURE__ */ createMessageType({
     typeName: 'identity.domain.service.LookupEntityReq',
     fields: [
-      {
-        no: 1,
-        name: 'identifier',
-        kind: 'message',
-        T: () => EntityLookupIdentifier,
-      },
+      { no: 1, name: 'identifier', kind: 'message', T: EntityLookupIdentifier },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -119,15 +110,9 @@ export const LookupEntityResp: MessageType<LookupEntityResp> =
   /* @__PURE__ */ createMessageType({
     typeName: 'identity.domain.service.LookupEntityResp',
     fields: [
-      {
-        no: 1,
-        name: 'identifier',
-        kind: 'message',
-        T: () => EntityLookupIdentifier,
-      },
+      { no: 1, name: 'identifier', kind: 'message', T: EntityLookupIdentifier },
       { no: 2, name: 'lookup_error', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'lookup_entity', kind: 'message', T: () => Entity },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

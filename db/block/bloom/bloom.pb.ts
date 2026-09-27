@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bloom'
-
 /**
  * BloomFilter contains a bloom filter in a Block.
  * uses FNV64 hash function
@@ -48,5 +46,4 @@ export const BloomFilter: MessageType<BloomFilter> =
       { no: 2, name: 'm', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'bit_set', kind: 'message', T: () => BitSet },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

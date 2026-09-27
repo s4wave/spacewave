@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'changelog'
-
 /**
  * ChangeEntry is a single changelog entry.
  *
@@ -41,7 +39,6 @@ export const ChangeEntry: MessageType<ChangeEntry> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -117,33 +114,26 @@ export const Release: MessageType<Release> = /* @__PURE__ */ createMessageType({
       no: 5,
       name: 'features',
       kind: 'message',
-      T: () => ChangeEntry,
+      T: ChangeEntry,
       repeated: true,
     },
-    {
-      no: 6,
-      name: 'fixes',
-      kind: 'message',
-      T: () => ChangeEntry,
-      repeated: true,
-    },
+    { no: 6, name: 'fixes', kind: 'message', T: ChangeEntry, repeated: true },
     {
       no: 7,
       name: 'improvements',
       kind: 'message',
-      T: () => ChangeEntry,
+      T: ChangeEntry,
       repeated: true,
     },
     {
       no: 8,
       name: 'security',
       kind: 'message',
-      T: () => ChangeEntry,
+      T: ChangeEntry,
       repeated: true,
     },
     { no: 9, name: 'release_url', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -164,13 +154,6 @@ export const Changelog: MessageType<Changelog> =
   /* @__PURE__ */ createMessageType({
     typeName: 'changelog.Changelog',
     fields: [
-      {
-        no: 1,
-        name: 'releases',
-        kind: 'message',
-        T: () => Release,
-        repeated: true,
-      },
+      { no: 1, name: 'releases', kind: 'message', T: Release, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

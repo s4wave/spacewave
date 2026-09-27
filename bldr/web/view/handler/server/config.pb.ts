@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 'web.view.handler.server'
-
 /**
  * Config configures the handle web view server controller.
  * Handles incoming HandleWebView requests.

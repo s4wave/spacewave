@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'auth.method.password'
-
 /**
  * Parameters are stored with the user record.
  *
@@ -57,7 +55,6 @@ export const Parameters: MessageType<Parameters> =
       { no: 3, name: 'scrypt_r', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'scrypt_p', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

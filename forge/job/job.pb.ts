@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.job'
-
 /**
  * State contains the possible Job states.
  *
@@ -51,12 +49,10 @@ export enum State {
   JobState_COMPLETE = 3,
 }
 
-export const State_Enum = /* @__PURE__ */ createEnumType('forge.job.State', [
-  [0, 'JobState_UNKNOWN'],
-  [1, 'JobState_PENDING'],
-  [2, 'JobState_RUNNING'],
-  [3, 'JobState_COMPLETE'],
-])
+export const State_Enum = /* @__PURE__ */ createEnumType(
+  'forge.job.State',
+  State,
+)
 
 /**
  * Job contains state for running a set of Tasks.
@@ -103,5 +99,4 @@ export const Job: MessageType<Job> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'result', kind: 'message', T: () => Result },
     { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'bstore.world'
-
 /**
  * BlockStoreState contains a BlockStore reference.
  *
@@ -30,7 +28,6 @@ export const BlockStoreState: MessageType<BlockStoreState> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockStoreRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -58,13 +55,7 @@ export const UpdateBlockStoreStateOp: MessageType<UpdateBlockStoreStateOp> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bstore.world.UpdateBlockStoreStateOp',
     fields: [
-      {
-        no: 1,
-        name: 'updated_state',
-        kind: 'message',
-        T: () => BlockStoreState,
-      },
+      { no: 1, name: 'updated_state', kind: 'message', T: BlockStoreState },
       { no: 2, name: 'if_not_exists', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

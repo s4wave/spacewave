@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SignedMsg } from '../../peer/peer.pb.js'
 
-export const protobufPackage = 'signaling.rpc'
-
 /**
  * ListenRequest is the body of the Listen request.
  *
@@ -83,7 +81,6 @@ export const ListenResponse: MessageType<ListenResponse> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -106,7 +103,6 @@ export const SessionInit: MessageType<SessionInit> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -136,7 +132,6 @@ export const SessionMsg: MessageType<SessionMsg> =
       { no: 1, name: 'signed_msg', kind: 'message', T: () => SignedMsg },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -213,18 +208,12 @@ export const SessionRequest: MessageType<SessionRequest> =
     typeName: 'signaling.rpc.SessionRequest',
     fields: [
       { no: 1, name: 'session_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      {
-        no: 2,
-        name: 'init',
-        kind: 'message',
-        T: () => SessionInit,
-        oneof: 'body',
-      },
+      { no: 2, name: 'init', kind: 'message', T: SessionInit, oneof: 'body' },
       {
         no: 3,
         name: 'send_msg',
         kind: 'message',
-        T: () => SessionMsg,
+        T: SessionMsg,
         oneof: 'body',
       },
       {
@@ -242,7 +231,6 @@ export const SessionRequest: MessageType<SessionRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -335,7 +323,7 @@ export const SessionResponse: MessageType<SessionResponse> =
         no: 3,
         name: 'recv_msg',
         kind: 'message',
-        T: () => SessionMsg,
+        T: SessionMsg,
         oneof: 'body',
       },
       {
@@ -353,5 +341,4 @@ export const SessionResponse: MessageType<SessionResponse> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

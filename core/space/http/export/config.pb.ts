@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'space.http.export'
-
 /**
  * Config configures the export controller.
  *
@@ -49,5 +47,4 @@ export const ExportBatchRequest: MessageType<ExportBatchRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

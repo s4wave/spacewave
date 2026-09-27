@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'spacewave.loader.controller'
-
 /**
  * Config configures the loader controller.
  *
@@ -69,5 +67,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 4, name: 'icon_path', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'filters'
-
 /**
  * KeyFilters contains fields used to determine if a key might be in a set.
  * False-negative rate 0%, false-positive rate variable.
@@ -52,5 +50,4 @@ export const KeyFilters: MessageType<KeyFilters> =
       { no: 2, name: 'quad_prefix', kind: 'message', T: () => Quad },
       { no: 3, name: 'key_bloom', kind: 'message', T: () => BloomFilter },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

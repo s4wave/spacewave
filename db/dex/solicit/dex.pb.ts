@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'dex.solicit'
-
 /**
  * DexMessage is a message sent over a DEX stream.
  * Each message is either a request or a response, distinguished by the
@@ -101,5 +99,4 @@ export const DexMessage: MessageType<DexMessage> =
       },
       { no: 9, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

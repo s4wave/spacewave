@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.session'
-
 /**
  * SharedObjectSelfEnrollmentErrorCategory classifies per-object failures.
  *
@@ -51,12 +49,7 @@ export enum SharedObjectSelfEnrollmentErrorCategory {
 export const SharedObjectSelfEnrollmentErrorCategory_Enum =
   /* @__PURE__ */ createEnumType(
     's4wave.session.SharedObjectSelfEnrollmentErrorCategory',
-    [
-      [0, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_UNKNOWN'],
-      [1, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_RETRY'],
-      [2, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_OPEN_OBJECT'],
-      [3, 'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_REPORT'],
-    ],
+    SharedObjectSelfEnrollmentErrorCategory,
   )
 
 /**
@@ -111,7 +104,6 @@ export const SharedObjectSelfEnrollmentFailure: MessageType<SharedObjectSelfEnro
       },
       { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -228,11 +220,10 @@ export const WatchSharedObjectSelfEnrollmentStateResponse: MessageType<WatchShar
         no: 10,
         name: 'failures',
         kind: 'message',
-        T: () => SharedObjectSelfEnrollmentFailure,
+        T: SharedObjectSelfEnrollmentFailure,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -281,7 +272,6 @@ export const SkipSharedObjectSelfEnrollmentRequest: MessageType<SkipSharedObject
     fields: [
       { no: 1, name: 'generation_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 'forge.lib.util.wait'
-
 /**
  * Config configures the controller to wait for Inputs & execute.
  *

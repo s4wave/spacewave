@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import { PackfileEntry } from '@go/github.com/s4wave/spacewave/db/packfile/packfile.pb.js'
 
-export const protobufPackage = 'bldr.manifest.pack'
-
 /**
  * ManifestTuple names one bldr manifest tuple in a manifest-pack handoff.
  *
@@ -65,7 +63,6 @@ export const ManifestTuple: MessageType<ManifestTuple> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -148,7 +145,7 @@ export const ManifestPackMetadata: MessageType<ManifestPackMetadata> =
         no: 5,
         name: 'manifests',
         kind: 'message',
-        T: () => ManifestTuple,
+        T: ManifestTuple,
         repeated: true,
       },
       {
@@ -162,5 +159,4 @@ export const ManifestPackMetadata: MessageType<ManifestPackMetadata> =
       { no: 9, name: 'react_dev', kind: 'scalar', T: ScalarType.BOOL },
       { no: 10, name: 'cache_schema', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

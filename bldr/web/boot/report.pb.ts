@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.boot'
-
 /**
  * BootReportState describes the browser boot lifecycle.
  *
@@ -54,13 +52,7 @@ export enum BootReportState {
 
 export const BootReportState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootReportState',
-  [
-    [0, 'BOOT_REPORT_STATE_UNKNOWN'],
-    [1, 'BOOT_REPORT_STATE_RECORDING'],
-    [2, 'BOOT_REPORT_STATE_READY'],
-    [3, 'BOOT_REPORT_STATE_FAILED'],
-    [4, 'BOOT_REPORT_STATE_ABORTED'],
-  ],
+  BootReportState,
 )
 
 /**
@@ -114,14 +106,7 @@ export enum BootPhase {
 
 export const BootPhase_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootPhase',
-  [
-    [0, 'BOOT_PHASE_UNKNOWN'],
-    [1, 'BOOT_PHASE_PREPARE'],
-    [2, 'BOOT_PHASE_CONNECT'],
-    [3, 'BOOT_PHASE_RUNTIME'],
-    [4, 'BOOT_PHASE_FRAME'],
-    [5, 'BOOT_PHASE_DONE'],
-  ],
+  BootPhase,
 )
 
 /**
@@ -182,15 +167,7 @@ export enum BootWorkClass {
 
 export const BootWorkClass_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootWorkClass',
-  [
-    [0, 'BOOT_WORK_CLASS_UNKNOWN'],
-    [1, 'BOOT_WORK_CLASS_COMPUTE'],
-    [2, 'BOOT_WORK_CLASS_STORAGE_IO'],
-    [3, 'BOOT_WORK_CLASS_NETWORK_IO'],
-    [4, 'BOOT_WORK_CLASS_LOCK_WAIT'],
-    [5, 'BOOT_WORK_CLASS_DEPENDENCY_WAIT'],
-    [6, 'BOOT_WORK_CLASS_SCHEDULER'],
-  ],
+  BootWorkClass,
 )
 
 /**
@@ -230,12 +207,7 @@ export enum BootSpanResult {
 
 export const BootSpanResult_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootSpanResult',
-  [
-    [0, 'BOOT_SPAN_RESULT_UNKNOWN'],
-    [1, 'BOOT_SPAN_RESULT_SUCCEEDED'],
-    [2, 'BOOT_SPAN_RESULT_FAILED'],
-    [3, 'BOOT_SPAN_RESULT_CANCELED'],
-  ],
+  BootSpanResult,
 )
 
 /**
@@ -275,12 +247,7 @@ export enum BootRuntimeKind {
 
 export const BootRuntimeKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootRuntimeKind',
-  [
-    [0, 'BOOT_RUNTIME_KIND_UNKNOWN'],
-    [1, 'BOOT_RUNTIME_KIND_GOSCRIPT'],
-    [2, 'BOOT_RUNTIME_KIND_WASM'],
-    [3, 'BOOT_RUNTIME_KIND_NATIVE'],
-  ],
+  BootRuntimeKind,
 )
 
 /**
@@ -320,12 +287,7 @@ export enum BootWorkerMode {
 
 export const BootWorkerMode_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootWorkerMode',
-  [
-    [0, 'BOOT_WORKER_MODE_UNKNOWN'],
-    [1, 'BOOT_WORKER_MODE_SHARED'],
-    [2, 'BOOT_WORKER_MODE_DEDICATED'],
-    [3, 'BOOT_WORKER_MODE_INLINE'],
-  ],
+  BootWorkerMode,
 )
 
 /**
@@ -372,13 +334,7 @@ export enum BootEnvironmentClass {
 
 export const BootEnvironmentClass_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootEnvironmentClass',
-  [
-    [0, 'BOOT_ENVIRONMENT_CLASS_UNKNOWN'],
-    [1, 'BOOT_ENVIRONMENT_CLASS_LOCAL'],
-    [2, 'BOOT_ENVIRONMENT_CLASS_DEV'],
-    [3, 'BOOT_ENVIRONMENT_CLASS_STAGING'],
-    [4, 'BOOT_ENVIRONMENT_CLASS_PRODUCTION'],
-  ],
+  BootEnvironmentClass,
 )
 
 /**
@@ -418,12 +374,7 @@ export enum BootCacheState {
 
 export const BootCacheState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootCacheState',
-  [
-    [0, 'BOOT_CACHE_STATE_UNKNOWN'],
-    [1, 'BOOT_CACHE_STATE_COLD'],
-    [2, 'BOOT_CACHE_STATE_WARM'],
-    [3, 'BOOT_CACHE_STATE_HOT'],
-  ],
+  BootCacheState,
 )
 
 /**
@@ -463,12 +414,7 @@ export enum BootCounterUnit {
 
 export const BootCounterUnit_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootCounterUnit',
-  [
-    [0, 'BOOT_COUNTER_UNIT_UNKNOWN'],
-    [1, 'BOOT_COUNTER_UNIT_COUNT'],
-    [2, 'BOOT_COUNTER_UNIT_BYTES'],
-    [3, 'BOOT_COUNTER_UNIT_MICROSECONDS'],
-  ],
+  BootCounterUnit,
 )
 
 /**
@@ -501,11 +447,7 @@ export enum BootBuildType {
 
 export const BootBuildType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootBuildType',
-  [
-    [0, 'BOOT_BUILD_TYPE_UNKNOWN'],
-    [1, 'BOOT_BUILD_TYPE_DEBUG'],
-    [2, 'BOOT_BUILD_TYPE_RELEASE'],
-  ],
+  BootBuildType,
 )
 
 /**
@@ -559,14 +501,7 @@ export enum BootServiceWorkerState {
 
 export const BootServiceWorkerState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootServiceWorkerState',
-  [
-    [0, 'BOOT_SERVICE_WORKER_STATE_UNKNOWN'],
-    [1, 'BOOT_SERVICE_WORKER_STATE_UNAVAILABLE'],
-    [2, 'BOOT_SERVICE_WORKER_STATE_INSTALLING'],
-    [3, 'BOOT_SERVICE_WORKER_STATE_WAITING'],
-    [4, 'BOOT_SERVICE_WORKER_STATE_ACTIVE'],
-    [5, 'BOOT_SERVICE_WORKER_STATE_REDUNDANT'],
-  ],
+  BootServiceWorkerState,
 )
 
 /**
@@ -606,12 +541,7 @@ export enum BootRecoveryDecision {
 
 export const BootRecoveryDecision_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootRecoveryDecision',
-  [
-    [0, 'BOOT_RECOVERY_DECISION_UNKNOWN'],
-    [1, 'BOOT_RECOVERY_DECISION_NONE'],
-    [2, 'BOOT_RECOVERY_DECISION_RELOAD'],
-    [3, 'BOOT_RECOVERY_DECISION_ABORT_STALE'],
-  ],
+  BootRecoveryDecision,
 )
 
 /**
@@ -658,13 +588,7 @@ export enum BootAttachmentKind {
 
 export const BootAttachmentKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootAttachmentKind',
-  [
-    [0, 'BOOT_ATTACHMENT_KIND_UNKNOWN'],
-    [1, 'BOOT_ATTACHMENT_KIND_SOURCE_MAP'],
-    [2, 'BOOT_ATTACHMENT_KIND_RUNTIME_TRACE'],
-    [3, 'BOOT_ATTACHMENT_KIND_CPU_PROFILE'],
-    [4, 'BOOT_ATTACHMENT_KIND_NETWORK_PROFILE'],
-  ],
+  BootAttachmentKind,
 )
 
 /**
@@ -704,12 +628,7 @@ export enum BootShareDestination {
 
 export const BootShareDestination_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootShareDestination',
-  [
-    [0, 'BOOT_SHARE_DESTINATION_UNKNOWN'],
-    [1, 'BOOT_SHARE_DESTINATION_CLIPBOARD'],
-    [2, 'BOOT_SHARE_DESTINATION_DOWNLOAD'],
-    [3, 'BOOT_SHARE_DESTINATION_SPACE'],
-  ],
+  BootShareDestination,
 )
 
 /**
@@ -777,16 +696,7 @@ export enum BootValidationViolationKind {
 
 export const BootValidationViolationKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.boot.BootValidationViolationKind',
-  [
-    [0, 'BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN'],
-    [1, 'BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT'],
-    [2, 'BOOT_VALIDATION_VIOLATION_KIND_TERMINAL_CONTRACT'],
-    [3, 'BOOT_VALIDATION_VIOLATION_KIND_MARK_ORDER'],
-    [4, 'BOOT_VALIDATION_VIOLATION_KIND_SPAN_CONTRACT'],
-    [5, 'BOOT_VALIDATION_VIOLATION_KIND_GAP_COVERAGE'],
-    [6, 'BOOT_VALIDATION_VIOLATION_KIND_GENERIC_LEAF'],
-    [7, 'BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN_SHARE'],
-  ],
+  BootValidationViolationKind,
 )
 
 /**
@@ -849,7 +759,6 @@ export const BootBuild: MessageType<BootBuild> =
       { no: 5, name: 'runtime_kind', kind: 'enum', T: BootRuntimeKind_Enum },
       { no: 6, name: 'worker_mode', kind: 'enum', T: BootWorkerMode_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -931,7 +840,6 @@ export const BootEnvironment: MessageType<BootEnvironment> =
         T: BootRecoveryDecision_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1037,7 +945,6 @@ export const BootValue: MessageType<BootValue> =
         oneof: 'value',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1065,9 +972,8 @@ export const BootDetailField: MessageType<BootDetailField> =
     typeName: 'bldr.web.boot.BootDetailField',
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'value', kind: 'message', T: () => BootValue },
+      { no: 2, name: 'value', kind: 'message', T: BootValue },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1127,11 +1033,10 @@ export const BootMark: MessageType<BootMark> =
         no: 6,
         name: 'detail',
         kind: 'message',
-        T: () => BootDetailField,
+        T: BootDetailField,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1232,7 +1137,6 @@ export const BootSpan: MessageType<BootSpan> =
       },
       { no: 10, name: 'source_task', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1297,7 +1201,6 @@ export const BootCounterSample: MessageType<BootCounterSample> =
       { no: 6, name: 'unit', kind: 'enum', T: BootCounterUnit_Enum },
       { no: 7, name: 'monotonic_micros', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1322,11 +1225,10 @@ export const BootAccounting: MessageType<BootAccounting> =
         no: 1,
         name: 'samples',
         kind: 'message',
-        T: () => BootCounterSample,
+        T: BootCounterSample,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1356,7 +1258,6 @@ export const BootPhaseDuration: MessageType<BootPhaseDuration> =
       { no: 1, name: 'phase', kind: 'enum', T: BootPhase_Enum },
       { no: 2, name: 'duration_micros', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1428,7 +1329,6 @@ export const BootGap: MessageType<BootGap> = /* @__PURE__ */ createMessageType({
       T: ScalarType.UINT64,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -1494,7 +1394,6 @@ export const BootValidationViolation: MessageType<BootValidationViolation> =
       { no: 4, name: 'mark_sequence', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'span_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1574,25 +1473,24 @@ export const BootValidation: MessageType<BootValidation> =
         no: 5,
         name: 'phase_durations',
         kind: 'message',
-        T: () => BootPhaseDuration,
+        T: BootPhaseDuration,
         repeated: true,
       },
       {
         no: 6,
         name: 'longest_gaps',
         kind: 'message',
-        T: () => BootGap,
+        T: BootGap,
         repeated: true,
       },
       {
         no: 7,
         name: 'violations',
         kind: 'message',
-        T: () => BootValidationViolation,
+        T: BootValidationViolation,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1648,7 +1546,6 @@ export const BootAttachment: MessageType<BootAttachment> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1726,7 +1623,6 @@ export const BootPrivacy: MessageType<BootPrivacy> =
         T: BootShareDestination_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1886,37 +1782,19 @@ export const BootReport: MessageType<BootReport> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
-      { no: 12, name: 'build', kind: 'message', T: () => BootBuild },
-      {
-        no: 13,
-        name: 'environment',
-        kind: 'message',
-        T: () => BootEnvironment,
-      },
-      {
-        no: 14,
-        name: 'marks',
-        kind: 'message',
-        T: () => BootMark,
-        repeated: true,
-      },
-      {
-        no: 15,
-        name: 'spans',
-        kind: 'message',
-        T: () => BootSpan,
-        repeated: true,
-      },
-      { no: 16, name: 'accounting', kind: 'message', T: () => BootAccounting },
-      { no: 17, name: 'validation', kind: 'message', T: () => BootValidation },
+      { no: 12, name: 'build', kind: 'message', T: BootBuild },
+      { no: 13, name: 'environment', kind: 'message', T: BootEnvironment },
+      { no: 14, name: 'marks', kind: 'message', T: BootMark, repeated: true },
+      { no: 15, name: 'spans', kind: 'message', T: BootSpan, repeated: true },
+      { no: 16, name: 'accounting', kind: 'message', T: BootAccounting },
+      { no: 17, name: 'validation', kind: 'message', T: BootValidation },
       {
         no: 18,
         name: 'attachments',
         kind: 'message',
-        T: () => BootAttachment,
+        T: BootAttachment,
         repeated: true,
       },
-      { no: 19, name: 'privacy', kind: 'message', T: () => BootPrivacy },
+      { no: 19, name: 'privacy', kind: 'message', T: BootPrivacy },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

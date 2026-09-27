@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'crypto'
-
 /**
  * KeyType defines the list of supported crypto key types.
  * This is intended to be drop-in compatible with go-libp2p KeyType.
@@ -28,10 +26,10 @@ export enum KeyType {
   Ed25519 = 1,
 }
 
-export const KeyType_Enum = /* @__PURE__ */ createEnumType('crypto.KeyType', [
-  [0, 'RSA'],
-  [1, 'Ed25519'],
-])
+export const KeyType_Enum = /* @__PURE__ */ createEnumType(
+  'crypto.KeyType',
+  KeyType,
+)
 
 /**
  * PrivateKey is the protobuf message for private keys.
@@ -62,7 +60,6 @@ export const PrivateKey: MessageType<PrivateKey> =
       { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -94,5 +91,4 @@ export const PublicKey: MessageType<PublicKey> =
       { no: 1, name: 'key_type', kind: 'enum', T: KeyType_Enum },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

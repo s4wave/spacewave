@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.runtime'
-
 /**
  * WebRuntimeClientType is the set of client types for a WebRuntime.
  *
@@ -50,12 +48,7 @@ export enum WebRuntimeClientType {
 
 export const WebRuntimeClientType_Enum = /* @__PURE__ */ createEnumType(
   'web.runtime.WebRuntimeClientType',
-  [
-    [0, 'WebRuntimeClientType_UNKNOWN'],
-    [1, 'WebRuntimeClientType_WEB_DOCUMENT'],
-    [2, 'WebRuntimeClientType_SERVICE_WORKER'],
-    [3, 'WebRuntimeClientType_WEB_WORKER'],
-  ],
+  WebRuntimeClientType,
 )
 
 /**
@@ -88,11 +81,7 @@ export enum WebRenderer {
 
 export const WebRenderer_Enum = /* @__PURE__ */ createEnumType(
   'web.runtime.WebRenderer',
-  [
-    [0, 'WEB_RENDERER_DEFAULT'],
-    [1, 'WEB_RENDERER_ELECTRON'],
-    [2, 'WEB_RENDERER_SAUCER'],
-  ],
+  WebRenderer,
 )
 
 /**
@@ -119,7 +108,6 @@ export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
     fields: [
       { no: 1, name: 'web_runtime_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -196,7 +184,6 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
       { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -234,12 +221,11 @@ export const WebRuntimeStatus: MessageType<WebRuntimeStatus> =
         no: 2,
         name: 'web_documents',
         kind: 'message',
-        T: () => WebDocumentStatus,
+        T: WebDocumentStatus,
         repeated: true,
       },
       { no: 3, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -262,7 +248,6 @@ export const CreateWebDocumentRequest: MessageType<CreateWebDocumentRequest> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -286,7 +271,6 @@ export const CreateWebDocumentResponse: MessageType<CreateWebDocumentResponse> =
     fields: [
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -309,7 +293,6 @@ export const RemoveWebDocumentRequest: MessageType<RemoveWebDocumentRequest> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -333,7 +316,6 @@ export const RemoveWebDocumentResponse: MessageType<RemoveWebDocumentResponse> =
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -426,5 +408,4 @@ export const WebRuntimeClientInit: MessageType<WebRuntimeClientInit> =
       },
       { no: 4, name: 'disable_web_locks', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

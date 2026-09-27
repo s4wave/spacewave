@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.lib.kvtx'
-
 /**
  * OpType is the list of operation codes for kvtx.
  *
@@ -97,18 +95,7 @@ export enum OpType {
 
 export const OpType_Enum = /* @__PURE__ */ createEnumType(
   'forge.lib.kvtx.OpType',
-  [
-    [0, 'OpType_NONE'],
-    [1, 'OpType_GET'],
-    [2, 'OpType_GET_EXISTS'],
-    [3, 'OpType_CHECK'],
-    [4, 'OpType_CHECK_BLOB'],
-    [5, 'OpType_CHECK_EXISTS'],
-    [6, 'OpType_CHECK_NOT_EXISTS'],
-    [7, 'OpType_SET'],
-    [8, 'OpType_SET_BLOB'],
-    [9, 'OpType_DELETE'],
-  ],
+  OpType,
 )
 
 /**
@@ -203,7 +190,6 @@ export const Op: MessageType<Op> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'output', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'ops', kind: 'message', T: () => Op, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -246,11 +232,10 @@ export interface Config {
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'forge.lib.kvtx.Config',
   fields: [
-    { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
+    { no: 1, name: 'ops', kind: 'message', T: Op, repeated: true },
     { no: 2, name: 'config_input', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'ignore_errors', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -271,7 +256,6 @@ export const ConfigInput: MessageType<ConfigInput> =
   /* @__PURE__ */ createMessageType({
     typeName: 'forge.lib.kvtx.ConfigInput',
     fields: [
-      { no: 1, name: 'ops', kind: 'message', T: () => Op, repeated: true },
+      { no: 1, name: 'ops', kind: 'message', T: Op, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

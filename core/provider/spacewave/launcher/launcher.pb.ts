@@ -13,8 +13,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'spacewave.launcher'
-
 /**
  * DistConfigSource is where the launcher found its selected DistConfig.
  *
@@ -67,14 +65,7 @@ export enum DistConfigSource {
 
 export const DistConfigSource_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.DistConfigSource',
-  [
-    [0, 'DIST_CONFIG_SOURCE_UNKNOWN'],
-    [1, 'DIST_CONFIG_SOURCE_NONE'],
-    [2, 'DIST_CONFIG_SOURCE_STORED'],
-    [3, 'DIST_CONFIG_SOURCE_PACKAGE'],
-    [4, 'DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT'],
-    [5, 'DIST_CONFIG_SOURCE_ENDPOINT'],
-  ],
+  DistConfigSource,
 )
 
 /**
@@ -156,17 +147,7 @@ export enum ReleaseMetadataOutcome {
 
 export const ReleaseMetadataOutcome_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.ReleaseMetadataOutcome',
-  [
-    [0, 'RELEASE_METADATA_OUTCOME_UNKNOWN'],
-    [1, 'RELEASE_METADATA_OUTCOME_PENDING'],
-    [2, 'RELEASE_METADATA_OUTCOME_IDLE'],
-    [3, 'RELEASE_METADATA_OUTCOME_RESOLVING'],
-    [4, 'RELEASE_METADATA_OUTCOME_REFRESHING'],
-    [5, 'RELEASE_METADATA_OUTCOME_CURRENT'],
-    [6, 'RELEASE_METADATA_OUTCOME_DOWNLOADING'],
-    [7, 'RELEASE_METADATA_OUTCOME_STAGED'],
-    [8, 'RELEASE_METADATA_OUTCOME_ERROR'],
-  ],
+  ReleaseMetadataOutcome,
 )
 
 /**
@@ -213,13 +194,7 @@ export enum UpdatePhase {
 
 export const UpdatePhase_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.UpdatePhase',
-  [
-    [0, 'UPDATE_PHASE_UNKNOWN'],
-    [1, 'UPDATE_PHASE_DOWNLOADING'],
-    [2, 'UPDATE_PHASE_STAGED'],
-    [3, 'UPDATE_PHASE_APPLYING'],
-    [4, 'UPDATE_PHASE_ERROR'],
-  ],
+  UpdatePhase,
 )
 
 /**
@@ -277,7 +252,6 @@ export const DistConfig: MessageType<DistConfig> =
       },
       { no: 8, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -333,7 +307,6 @@ export const UpdateState: MessageType<UpdateState> =
       { no: 4, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -579,7 +552,6 @@ export const FetchStatus: MessageType<FetchStatus> =
       { no: 19, name: 'attempts', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 20, name: 'next_retry_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -613,11 +585,10 @@ export const LauncherInfo: MessageType<LauncherInfo> =
   /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.launcher.LauncherInfo',
     fields: [
-      { no: 1, name: 'dist_config', kind: 'message', T: () => DistConfig },
-      { no: 2, name: 'update_state', kind: 'message', T: () => UpdateState },
-      { no: 3, name: 'fetch_status', kind: 'message', T: () => FetchStatus },
+      { no: 1, name: 'dist_config', kind: 'message', T: DistConfig },
+      { no: 2, name: 'update_state', kind: 'message', T: UpdateState },
+      { no: 3, name: 'fetch_status', kind: 'message', T: FetchStatus },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -680,7 +651,6 @@ export const PushDistConfigRequest: MessageType<PushDistConfigRequest> =
     fields: [
       { no: 1, name: 'body', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -725,7 +695,6 @@ export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =
       { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'prev_rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'dex.session'
-
 /**
  * BlockTransfer is a message on a block transfer stream.
  * Embedded as a submessage in backend-specific wire protocols.
@@ -74,5 +72,4 @@ export const BlockTransfer: MessageType<BlockTransfer> =
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'cancel', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

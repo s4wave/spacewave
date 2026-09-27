@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.canvas'
-
 /**
  * NodeType is the type of a canvas node.
  *
@@ -57,13 +55,7 @@ export enum NodeType {
 
 export const NodeType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.NodeType',
-  [
-    [0, 'NODE_TYPE_UNKNOWN'],
-    [1, 'NODE_TYPE_TEXT'],
-    [2, 'NODE_TYPE_SHAPE'],
-    [3, 'NODE_TYPE_WORLD_OBJECT'],
-    [4, 'NODE_TYPE_DRAWING'],
-  ],
+  NodeType,
 )
 
 /**
@@ -89,10 +81,7 @@ export enum EdgeStyle {
 
 export const EdgeStyle_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.EdgeStyle',
-  [
-    [0, 'EDGE_STYLE_BEZIER'],
-    [1, 'EDGE_STYLE_STRAIGHT'],
-  ],
+  EdgeStyle,
 )
 
 /**
@@ -192,7 +181,6 @@ export const CanvasNode: MessageType<CanvasNode> =
       { no: 11, name: 'pinned', kind: 'scalar', T: ScalarType.BOOL },
       { no: 12, name: 'view_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -243,7 +231,6 @@ export const CanvasEdge: MessageType<CanvasEdge> =
       { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'style', kind: 'enum', T: EdgeStyle_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -287,7 +274,6 @@ export const HiddenGraphLink: MessageType<HiddenGraphLink> =
       { no: 3, name: 'object', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -338,7 +324,6 @@ export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
       { no: 4, name: 'group', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'projection_owner', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -388,21 +373,15 @@ export const CanvasState: MessageType<CanvasState> =
         name: 'nodes',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => CanvasNode },
+        V: { kind: 'message', T: CanvasNode },
       },
-      {
-        no: 2,
-        name: 'edges',
-        kind: 'message',
-        T: () => CanvasEdge,
-        repeated: true,
-      },
+      { no: 2, name: 'edges', kind: 'message', T: CanvasEdge, repeated: true },
       { no: 3, name: 'stroke_tree_ref', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 4,
         name: 'hidden_graph_links',
         kind: 'message',
-        T: () => HiddenGraphLink,
+        T: HiddenGraphLink,
         repeated: true,
       },
       {
@@ -410,10 +389,9 @@ export const CanvasState: MessageType<CanvasState> =
         name: 'layout_metadata',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => CanvasLayoutMetadata },
+        V: { kind: 'message', T: CanvasLayoutMetadata },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -447,9 +425,8 @@ export const GetCanvasStateResponse: MessageType<GetCanvasStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.GetCanvasStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
+      { no: 1, name: 'state', kind: 'message', T: CanvasState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -517,7 +494,7 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         name: 'set_nodes',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => CanvasNode },
+        V: { kind: 'message', T: CanvasNode },
       },
       {
         no: 2,
@@ -530,7 +507,7 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         no: 3,
         name: 'add_edges',
         kind: 'message',
-        T: () => CanvasEdge,
+        T: CanvasEdge,
         repeated: true,
       },
       {
@@ -544,14 +521,14 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         no: 5,
         name: 'add_hidden_graph_links',
         kind: 'message',
-        T: () => HiddenGraphLink,
+        T: HiddenGraphLink,
         repeated: true,
       },
       {
         no: 6,
         name: 'remove_hidden_graph_links',
         kind: 'message',
-        T: () => HiddenGraphLink,
+        T: HiddenGraphLink,
         repeated: true,
       },
       {
@@ -559,7 +536,7 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         name: 'set_layout_metadata',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => CanvasLayoutMetadata },
+        V: { kind: 'message', T: CanvasLayoutMetadata },
       },
       {
         no: 8,
@@ -569,7 +546,6 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -590,9 +566,8 @@ export const UpdateCanvasResponse: MessageType<UpdateCanvasResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.UpdateCanvasResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
+      { no: 1, name: 'state', kind: 'message', T: CanvasState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -626,7 +601,6 @@ export const WatchCanvasStateResponse: MessageType<WatchCanvasStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.WatchCanvasStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => CanvasState },
+      { no: 1, name: 'state', kind: 'message', T: CanvasState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

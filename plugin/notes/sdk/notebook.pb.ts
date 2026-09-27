@@ -11,8 +11,6 @@ import { Notebook, NotebookSource } from '../proto/notebook.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'notes'
-
 /**
  * WatchNotebookRequest is the request for WatchNotebook.
  *
@@ -46,7 +44,6 @@ export const WatchNotebookResponse: MessageType<WatchNotebookResponse> =
     fields: [
       { no: 1, name: 'notebook', kind: 'message', T: () => Notebook },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -69,7 +66,6 @@ export const AddSourceRequest: MessageType<AddSourceRequest> =
     fields: [
       { no: 1, name: 'source', kind: 'message', T: () => NotebookSource },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -105,7 +101,6 @@ export const RemoveSourceRequest: MessageType<RemoveSourceRequest> =
     fields: [
       { no: 1, name: 'index', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -147,7 +142,6 @@ export const ReorderSourcesRequest: MessageType<ReorderSourcesRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -211,5 +205,4 @@ export const GetSavedViewsAppResponse: MessageType<GetSavedViewsAppResponse> =
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

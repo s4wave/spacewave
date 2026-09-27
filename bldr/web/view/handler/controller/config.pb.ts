@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.view.handler.controller'
-
 /**
  * Config configures the web view handler controller.
  *
@@ -33,5 +31,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => WebViewHandlersConfig,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

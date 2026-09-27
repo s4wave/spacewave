@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'object.rpc'
-
 /**
  * DeleteObjectStoreRequest requests to remove an object store and all contents.
  *
@@ -29,7 +27,6 @@ export const DeleteObjectStoreRequest: MessageType<DeleteObjectStoreRequest> =
     fields: [
       { no: 1, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -53,5 +50,4 @@ export const DeleteObjectStoreResponse: MessageType<DeleteObjectStoreResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

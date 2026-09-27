@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'space.sobject'
-
 /**
  * Config configures the space shared object controller.
  * Handles MountSharedObjectBody directives by starting the sobject/world controller.
@@ -38,5 +36,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 2, name: 'process_ops_backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

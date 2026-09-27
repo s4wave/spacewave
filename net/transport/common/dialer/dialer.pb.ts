@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'dialer'
-
 /**
  * DialerOpts contains options relating to dialing a statically configured peer.
  *
@@ -38,5 +36,4 @@ export const DialerOpts: MessageType<DialerOpts> =
       { no: 1, name: 'address', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'backoff', kind: 'message', T: () => Backoff },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.viewer.registry'
-
 /**
  * ViewerSurface identifies the host surface that can render a viewer.
  *
@@ -40,11 +38,7 @@ export enum ViewerSurface {
 
 export const ViewerSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.registry.ViewerSurface',
-  [
-    [0, 'VIEWER_SURFACE_UNKNOWN'],
-    [1, 'VIEWER_SURFACE_WEB'],
-    [2, 'VIEWER_SURFACE_TUI'],
-  ],
+  ViewerSurface,
 )
 
 /**
@@ -109,7 +103,6 @@ export const ViewerRegistration: MessageType<ViewerRegistration> =
       { no: 6, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -130,14 +123,8 @@ export const RegisterViewerRequest: MessageType<RegisterViewerRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.viewer.registry.RegisterViewerRequest',
     fields: [
-      {
-        no: 1,
-        name: 'registration',
-        kind: 'message',
-        T: () => ViewerRegistration,
-      },
+      { no: 1, name: 'registration', kind: 'message', T: ViewerRegistration },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,7 +147,6 @@ export const RegisterViewerResponse: MessageType<RegisterViewerResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -190,7 +176,6 @@ export const ListViewersRequest: MessageType<ListViewersRequest> =
       { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
       { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -215,11 +200,10 @@ export const ListViewersResponse: MessageType<ListViewersResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => ViewerRegistration,
+        T: ViewerRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -249,7 +233,6 @@ export const WatchViewersRequest: MessageType<WatchViewersRequest> =
       { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
       { no: 2, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -274,9 +257,8 @@ export const WatchViewersResponse: MessageType<WatchViewersResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => ViewerRegistration,
+        T: ViewerRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

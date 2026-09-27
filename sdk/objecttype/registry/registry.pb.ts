@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.objecttype.registry'
-
 /**
  * ObjectTypeVisibility controls where an ObjectType should appear.
  *
@@ -47,12 +45,7 @@ export enum ObjectTypeVisibility {
 
 export const ObjectTypeVisibility_Enum = /* @__PURE__ */ createEnumType(
   's4wave.objecttype.registry.ObjectTypeVisibility',
-  [
-    [0, 'OBJECT_TYPE_VISIBILITY_UNSPECIFIED'],
-    [1, 'OBJECT_TYPE_VISIBILITY_VISIBLE'],
-    [2, 'OBJECT_TYPE_VISIBILITY_HIDDEN'],
-    [3, 'OBJECT_TYPE_VISIBILITY_INTERNAL'],
-  ],
+  ObjectTypeVisibility,
 )
 
 /**
@@ -96,7 +89,6 @@ export const ObjectTypeMetadata: MessageType<ObjectTypeMetadata> =
       { no: 3, name: 'visibility', kind: 'enum', T: ObjectTypeVisibility_Enum },
       { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -138,9 +130,8 @@ export const ObjectTypeRegistration: MessageType<ObjectTypeRegistration> =
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
+      { no: 4, name: 'metadata', kind: 'message', T: ObjectTypeMetadata },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,7 +174,7 @@ export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
+      { no: 3, name: 'metadata', kind: 'message', T: ObjectTypeMetadata },
       {
         no: 4,
         name: 'attached_handler_resource_id',
@@ -191,7 +182,6 @@ export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -214,7 +204,6 @@ export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -237,7 +226,6 @@ export const WatchObjectTypesRequest: MessageType<WatchObjectTypesRequest> =
     fields: [
       { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -262,11 +250,10 @@ export const WatchObjectTypesResponse: MessageType<WatchObjectTypesResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => ObjectTypeRegistration,
+        T: ObjectTypeRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -308,7 +295,6 @@ export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -331,5 +317,4 @@ export const InvokeObjectTypeResponse: MessageType<InvokeObjectTypeResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

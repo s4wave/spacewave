@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'dex.solicit'
-
 /**
  * Config configures the solicitation-based DEX controller.
  *
@@ -60,5 +58,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'max_forward_hops', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 5, name: 'protocol_context', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

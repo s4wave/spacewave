@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.plugin.forward_lookup_block'
-
 /**
  * Config configures forwarding block lookups to plugins.
  * Loads a plugin with LoadPlugin and uses its RPC client.
@@ -56,5 +54,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'server_id_regex', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

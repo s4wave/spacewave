@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.plugin.registration'
-
 /**
  * PrepareRequest identifies the immutable implementation being registered.
  *
@@ -47,7 +45,6 @@ export const PrepareRequest: MessageType<PrepareRequest> =
       { no: 2, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -71,7 +68,6 @@ export const PrepareResponse: MessageType<PrepareResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

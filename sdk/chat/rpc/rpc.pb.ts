@@ -13,8 +13,6 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ChatReadPosition } from '../state/state.pb.js'
 
-export const protobufPackage = 'spacewave.chat.rpc'
-
 /**
  * GetStateRequest selects current state for the mounted channel.
  *
@@ -98,7 +96,6 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 7, name: 'content', kind: 'message', T: () => ChatMessageContent },
       { no: 8, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -123,11 +120,10 @@ export const GetStateResponse: MessageType<GetStateResponse> =
         no: 1,
         name: 'messages',
         kind: 'message',
-        T: () => ChatMessageInfo,
+        T: ChatMessageInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -204,7 +200,6 @@ export const GetChannelInfoResponse: MessageType<GetChannelInfoResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -227,7 +222,6 @@ export const GetMessageRequest: MessageType<GetMessageRequest> =
     fields: [
       { no: 1, name: 'message_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -248,9 +242,8 @@ export const GetMessageResponse: MessageType<GetMessageResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.GetMessageResponse',
     fields: [
-      { no: 1, name: 'message', kind: 'message', T: () => ChatMessageInfo },
+      { no: 1, name: 'message', kind: 'message', T: ChatMessageInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -306,7 +299,6 @@ export const ListMessagesRequest: MessageType<ListMessagesRequest> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -337,12 +329,11 @@ export const ListMessagesResponse: MessageType<ListMessagesResponse> =
         no: 1,
         name: 'messages',
         kind: 'message',
-        T: () => ChatMessageInfo,
+        T: ChatMessageInfo,
         repeated: true,
       },
       { no: 2, name: 'has_more', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -385,7 +376,6 @@ export const ListThreadsRequest: MessageType<ListThreadsRequest> =
       { no: 2, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'participated_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -424,13 +414,8 @@ export const ChatThreadInfo: MessageType<ChatThreadInfo> =
   /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.chat.rpc.ChatThreadInfo',
     fields: [
-      { no: 1, name: 'root', kind: 'message', T: () => ChatMessageInfo },
-      {
-        no: 2,
-        name: 'latest_reply',
-        kind: 'message',
-        T: () => ChatMessageInfo,
-      },
+      { no: 1, name: 'root', kind: 'message', T: ChatMessageInfo },
+      { no: 2, name: 'latest_reply', kind: 'message', T: ChatMessageInfo },
       { no: 3, name: 'reply_count', kind: 'scalar', T: ScalarType.UINT64 },
       {
         no: 4,
@@ -439,7 +424,6 @@ export const ChatThreadInfo: MessageType<ChatThreadInfo> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,7 +454,7 @@ export const ListThreadsResponse: MessageType<ListThreadsResponse> =
         no: 1,
         name: 'threads',
         kind: 'message',
-        T: () => ChatThreadInfo,
+        T: ChatThreadInfo,
         repeated: true,
       },
       {
@@ -481,7 +465,6 @@ export const ListThreadsResponse: MessageType<ListThreadsResponse> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -519,11 +502,10 @@ export const WatchMessagesResponse: MessageType<WatchMessagesResponse> =
         no: 1,
         name: 'messages',
         kind: 'message',
-        T: () => ChatMessageInfo,
+        T: ChatMessageInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -599,7 +581,6 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -622,7 +603,6 @@ export const SendMessageResponse: MessageType<SendMessageResponse> =
     fields: [
       { no: 1, name: 'message_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -664,7 +644,6 @@ export const GetReadPositionsResponse: MessageType<GetReadPositionsResponse> =
         V: { kind: 'message', T: () => ChatReadPosition },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -687,7 +666,6 @@ export const UpdateReadPositionRequest: MessageType<UpdateReadPositionRequest> =
     fields: [
       { no: 1, name: 'next_index', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -710,5 +688,4 @@ export const UpdateReadPositionResponse: MessageType<UpdateReadPositionResponse>
     fields: [
       { no: 1, name: 'position', kind: 'message', T: () => ChatReadPosition },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

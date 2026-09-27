@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'sobject.invite'
-
 /**
  * AcceptInviteRequest is sent by the invitee to the owner.
  *
@@ -58,7 +56,6 @@ export const AcceptInviteRequest: MessageType<AcceptInviteRequest> =
         T: () => SOJoinResponse,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -104,5 +101,4 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
       { no: 3, name: 'owner_grant', kind: 'message', T: () => SOGrant },
       { no: 4, name: 'shared_object_state', kind: 'message', T: () => SOState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

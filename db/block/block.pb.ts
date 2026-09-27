@@ -13,8 +13,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'block'
-
 /**
  * StoreFeature is a bitmask of native block store capabilities.
  * Each non-zero enum value is a single bit and values are combined with
@@ -57,12 +55,7 @@ export enum StoreFeature {
 
 export const StoreFeature_Enum = /* @__PURE__ */ createEnumType(
   'block.StoreFeature',
-  [
-    [0, 'STORE_FEATURE_UNKNOWN'],
-    [1, 'STORE_FEATURE_NATIVE_BATCH_PUT'],
-    [2, 'STORE_FEATURE_NATIVE_BATCH_EXISTS'],
-    [32, 'STORE_FEATURE_SELF_BUFFERED'],
-  ],
+  StoreFeature,
 )
 
 /**
@@ -175,17 +168,7 @@ export enum OverlayMode {
 
 export const OverlayMode_Enum = /* @__PURE__ */ createEnumType(
   'block.OverlayMode',
-  [
-    [0, 'UPPER_ONLY'],
-    [1, 'LOWER_ONLY'],
-    [2, 'UPPER_CACHE'],
-    [3, 'LOWER_CACHE'],
-    [4, 'UPPER_READ_CACHE'],
-    [5, 'LOWER_READ_CACHE'],
-    [6, 'UPPER_WRITE_CACHE'],
-    [7, 'LOWER_WRITE_CACHE'],
-    [8, 'UPPER_READBACK_CACHE'],
-  ],
+  OverlayMode,
 )
 
 /**
@@ -210,7 +193,6 @@ export const BlockRef: MessageType<BlockRef> =
     fields: [
       { no: 1, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -239,15 +221,8 @@ export const BlockObject: MessageType<BlockObject> =
     typeName: 'block.BlockObject',
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-      {
-        no: 2,
-        name: 'refs',
-        kind: 'message',
-        T: () => BlockRef,
-        repeated: true,
-      },
+      { no: 2, name: 'refs', kind: 'message', T: BlockRef, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -297,9 +272,8 @@ export const PutOpts: MessageType<PutOpts> = /* @__PURE__ */ createMessageType({
   typeName: 'block.PutOpts',
   fields: [
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
-    { no: 2, name: 'force_block_ref', kind: 'message', T: () => BlockRef },
-    { no: 3, name: 'refs', kind: 'message', T: () => BlockRef, repeated: true },
+    { no: 2, name: 'force_block_ref', kind: 'message', T: BlockRef },
+    { no: 3, name: 'refs', kind: 'message', T: BlockRef, repeated: true },
     { no: 4, name: 'sync', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

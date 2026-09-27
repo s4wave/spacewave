@@ -15,8 +15,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.sobject'
-
 /**
  * WatchSharedObjectParticipationRequest selects the already mounted SharedObject.
  *
@@ -83,7 +81,6 @@ export const SharedObjectParticipation: MessageType<SharedObjectParticipation> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -119,7 +116,6 @@ export const WatchSharedObjectHealthResponse: MessageType<WatchSharedObjectHealt
     fields: [
       { no: 1, name: 'health', kind: 'message', T: () => SharedObjectHealth },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -190,7 +186,6 @@ export const MountSharedObjectBodyResponse: MessageType<MountSharedObjectBodyRes
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -233,5 +228,4 @@ export const OpenReadCheckpointResponse: MessageType<OpenReadCheckpointResponse>
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'config', kind: 'message', T: () => SharedObjectConfig },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

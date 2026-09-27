@@ -10,8 +10,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { SignedMsg } from '../../peer/peer.pb.js'
 
-export const protobufPackage = 'floodsub'
-
 /**
  * Config configures the floodsub router.
  *
@@ -32,7 +30,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'publish_hash_type', kind: 'enum', T: HashType_Enum },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -62,7 +59,6 @@ export const SubscriptionOpts: MessageType<SubscriptionOpts> =
       { no: 1, name: 'subscribe', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'channel_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -92,7 +88,7 @@ export const Packet: MessageType<Packet> = /* @__PURE__ */ createMessageType({
       no: 1,
       name: 'subscriptions',
       kind: 'message',
-      T: () => SubscriptionOpts,
+      T: SubscriptionOpts,
       repeated: true,
     },
     {
@@ -103,5 +99,4 @@ export const Packet: MessageType<Packet> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

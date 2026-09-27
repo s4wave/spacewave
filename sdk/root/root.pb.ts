@@ -26,8 +26,6 @@ import { Hash, HashType_Enum } from '../../net/hash/hash.pb.js'
 import { SpaceSoListEntry } from '../../core/space/space.pb.js'
 import { Changelog } from '../../core/changelog/changelog.pb.js'
 
-export const protobufPackage = 's4wave.root'
-
 /**
  * SpaceRootKind is the storage shape selected for a configured root.
  *
@@ -58,11 +56,7 @@ export enum SpaceRootKind {
 
 export const SpaceRootKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.root.SpaceRootKind',
-  [
-    [0, 'SpaceRootKind_UNSPECIFIED'],
-    [1, 'SpaceRootKind_NATIVE_DIRECTORY'],
-    [2, 'SpaceRootKind_S4WAVE_FILE'],
-  ],
+  SpaceRootKind,
 )
 
 /**
@@ -95,11 +89,7 @@ export enum SpaceRootOpenMode {
 
 export const SpaceRootOpenMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.root.SpaceRootOpenMode',
-  [
-    [0, 'SpaceRootOpenMode_UNSPECIFIED'],
-    [1, 'SpaceRootOpenMode_OPEN_EXISTING'],
-    [2, 'SpaceRootOpenMode_CREATE'],
-  ],
+  SpaceRootOpenMode,
 )
 
 /**
@@ -146,13 +136,7 @@ export enum SpaceRootStatus {
 
 export const SpaceRootStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.root.SpaceRootStatus',
-  [
-    [0, 'SpaceRootStatus_UNKNOWN'],
-    [1, 'SpaceRootStatus_READY'],
-    [2, 'SpaceRootStatus_MISSING'],
-    [3, 'SpaceRootStatus_UNSUPPORTED'],
-    [4, 'SpaceRootStatus_INVALID'],
-  ],
+  SpaceRootStatus,
 )
 
 /**
@@ -199,13 +183,7 @@ export enum SpaceRootRuntimeStatus {
 
 export const SpaceRootRuntimeStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.root.SpaceRootRuntimeStatus',
-  [
-    [0, 'SpaceRootRuntimeStatus_IDLE'],
-    [1, 'SpaceRootRuntimeStatus_CONNECTING'],
-    [2, 'SpaceRootRuntimeStatus_STARTING'],
-    [3, 'SpaceRootRuntimeStatus_READY'],
-    [4, 'SpaceRootRuntimeStatus_ERROR'],
-  ],
+  SpaceRootRuntimeStatus,
 )
 
 /**
@@ -256,7 +234,6 @@ export const MountAppRequest: MessageType<MountAppRequest> =
       { no: 3, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'ephemeral', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -286,7 +263,6 @@ export const MountAppResponse: MessageType<MountAppResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'http_path_prefix', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -309,7 +285,6 @@ export const LookupProviderRequest: MessageType<LookupProviderRequest> =
     fields: [
       { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -332,7 +307,6 @@ export const LookupProviderResponse: MessageType<LookupProviderResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -355,7 +329,6 @@ export const MountSessionRequest: MessageType<MountSessionRequest> =
     fields: [
       { no: 1, name: 'session_ref', kind: 'message', T: () => SessionRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -378,7 +351,6 @@ export const MountSessionResponse: MessageType<MountSessionResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -401,7 +373,6 @@ export const MountSessionByIdxRequest: MessageType<MountSessionByIdxRequest> =
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -438,7 +409,6 @@ export const MountSessionByIdxResponse: MessageType<MountSessionByIdxResponse> =
       { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
       { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -480,7 +450,6 @@ export const ListProvidersResponse: MessageType<ListProvidersResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -522,7 +491,6 @@ export const ListSessionsResponse: MessageType<ListSessionsResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -564,7 +532,6 @@ export const WatchSessionsResponse: MessageType<WatchSessionsResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -612,7 +579,6 @@ export const SessionAccountStatus: MessageType<SessionAccountStatus> =
         T: ProviderAccountStatus_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -637,11 +603,10 @@ export const WatchAllAccountStatusesResponse: MessageType<WatchAllAccountStatuse
         no: 1,
         name: 'statuses',
         kind: 'message',
-        T: () => SessionAccountStatus,
+        T: SessionAccountStatus,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -664,7 +629,6 @@ export const GetSessionMetadataRequest: MessageType<GetSessionMetadataRequest> =
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -694,7 +658,6 @@ export const GetSessionMetadataResponse: MessageType<GetSessionMetadataResponse>
       { no: 1, name: 'metadata', kind: 'message', T: () => SessionMetadata },
       { no: 2, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -717,7 +680,6 @@ export const WatchSessionMetadataRequest: MessageType<WatchSessionMetadataReques
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -747,7 +709,6 @@ export const WatchSessionMetadataResponse: MessageType<WatchSessionMetadataRespo
       { no: 1, name: 'metadata', kind: 'message', T: () => SessionMetadata },
       { no: 2, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -777,7 +738,6 @@ export const UnlockSessionByIdxRequest: MessageType<UnlockSessionByIdxRequest> =
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -813,7 +773,6 @@ export const DeleteSessionRequest: MessageType<DeleteSessionRequest> =
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -856,7 +815,6 @@ export const ResetSessionByIdxRequest: MessageType<ResetSessionByIdxRequest> =
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -892,7 +850,6 @@ export const MarshalHashRequest: MessageType<MarshalHashRequest> =
     fields: [
       { no: 1, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -915,7 +872,6 @@ export const MarshalHashResponse: MessageType<MarshalHashResponse> =
     fields: [
       { no: 1, name: 'hash_str', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -938,7 +894,6 @@ export const ParseHashRequest: MessageType<ParseHashRequest> =
     fields: [
       { no: 1, name: 'hash_str', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -961,7 +916,6 @@ export const ParseHashResponse: MessageType<ParseHashResponse> =
     fields: [
       { no: 1, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -991,7 +945,6 @@ export const HashSumRequest: MessageType<HashSumRequest> =
       { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1014,7 +967,6 @@ export const HashSumResponse: MessageType<HashSumResponse> =
     fields: [
       { no: 1, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1037,7 +989,6 @@ export const HashValidateRequest: MessageType<HashValidateRequest> =
     fields: [
       { no: 1, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1067,7 +1018,6 @@ export const HashValidateResponse: MessageType<HashValidateResponse> =
       { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1091,7 +1041,6 @@ export const AccessStateAtomRequest: MessageType<AccessStateAtomRequest> =
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1114,7 +1063,6 @@ export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1163,7 +1111,6 @@ export const WatchStateAtomsResponse: MessageType<WatchStateAtomsResponse> =
       },
       { no: 2, name: 'store_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1186,7 +1133,6 @@ export const NativeSpaceRootMetadata: MessageType<NativeSpaceRootMetadata> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1278,20 +1224,10 @@ export const SpaceRootAliasRecord: MessageType<SpaceRootAliasRecord> =
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'kind', kind: 'enum', T: SpaceRootKind_Enum },
       { no: 4, name: 'open_mode', kind: 'enum', T: SpaceRootOpenMode_Enum },
-      {
-        no: 5,
-        name: 'native',
-        kind: 'message',
-        T: () => NativeSpaceRootMetadata,
-      },
+      { no: 5, name: 'native', kind: 'message', T: NativeSpaceRootMetadata },
       { no: 6, name: 'status', kind: 'enum', T: SpaceRootStatus_Enum },
       { no: 7, name: 'status_message', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 8,
-        name: 'browser',
-        kind: 'message',
-        T: () => BrowserSpaceRootMetadata,
-      },
+      { no: 8, name: 'browser', kind: 'message', T: BrowserSpaceRootMetadata },
       {
         no: 9,
         name: 'created_at_unix_ms',
@@ -1305,7 +1241,6 @@ export const SpaceRootAliasRecord: MessageType<SpaceRootAliasRecord> =
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1343,11 +1278,10 @@ export const ListSpaceRootAliasesResponse: MessageType<ListSpaceRootAliasesRespo
         no: 1,
         name: 'records',
         kind: 'message',
-        T: () => SpaceRootAliasRecord,
+        T: SpaceRootAliasRecord,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1385,11 +1319,10 @@ export const WatchSpaceRootAliasesResponse: MessageType<WatchSpaceRootAliasesRes
         no: 1,
         name: 'records',
         kind: 'message',
-        T: () => SpaceRootAliasRecord,
+        T: SpaceRootAliasRecord,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1410,9 +1343,8 @@ export const UpsertSpaceRootAliasRequest: MessageType<UpsertSpaceRootAliasReques
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.root.UpsertSpaceRootAliasRequest',
     fields: [
-      { no: 1, name: 'record', kind: 'message', T: () => SpaceRootAliasRecord },
+      { no: 1, name: 'record', kind: 'message', T: SpaceRootAliasRecord },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1433,9 +1365,8 @@ export const UpsertSpaceRootAliasResponse: MessageType<UpsertSpaceRootAliasRespo
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.root.UpsertSpaceRootAliasResponse',
     fields: [
-      { no: 1, name: 'record', kind: 'message', T: () => SpaceRootAliasRecord },
+      { no: 1, name: 'record', kind: 'message', T: SpaceRootAliasRecord },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1458,7 +1389,6 @@ export const RemoveSpaceRootAliasRequest: MessageType<RemoveSpaceRootAliasReques
     fields: [
       { no: 1, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1481,7 +1411,6 @@ export const RemoveSpaceRootAliasResponse: MessageType<RemoveSpaceRootAliasRespo
     fields: [
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1511,7 +1440,6 @@ export const WatchSpaceRootRuntimeRequest: MessageType<WatchSpaceRootRuntimeRequ
       { no: 1, name: 'alias_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'autostart', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1561,7 +1489,6 @@ export const SpaceRootRuntimeSession: MessageType<SpaceRootRuntimeSession> =
       },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1634,11 +1561,10 @@ export const WatchSpaceRootRuntimeResponse: MessageType<WatchSpaceRootRuntimeRes
         no: 7,
         name: 'runtime_sessions',
         kind: 'message',
-        T: () => SpaceRootRuntimeSession,
+        T: SpaceRootRuntimeSession,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1674,7 +1600,6 @@ export const GetChangelogResponse: MessageType<GetChangelogResponse> =
     fields: [
       { no: 1, name: 'changelog', kind: 'message', T: () => Changelog },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1710,7 +1635,6 @@ export const GetDebugDbResponse: MessageType<GetDebugDbResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1735,7 +1659,6 @@ export const GetCdnRequest: MessageType<GetCdnRequest> =
     fields: [
       { no: 1, name: 'cdn_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1766,7 +1689,6 @@ export const GetCdnResponse: MessageType<GetCdnResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'cdn_space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1797,7 +1719,6 @@ export const AccessWebListenerRequest: MessageType<AccessWebListenerRequest> =
       { no: 1, name: 'listen_multiaddr', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1855,7 +1776,6 @@ export const AccessWebListenerResponse: MessageType<AccessWebListenerResponse> =
       { no: 5, name: 'bootstrap_secret', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'reused', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1912,7 +1832,6 @@ export const WebListenerInfo: MessageType<WebListenerInfo> =
       { no: 3, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1937,11 +1856,10 @@ export const WatchWebListenersResponse: MessageType<WatchWebListenersResponse> =
         no: 1,
         name: 'listeners',
         kind: 'message',
-        T: () => WebListenerInfo,
+        T: WebListenerInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1964,7 +1882,6 @@ export const StopWebListenerRequest: MessageType<StopWebListenerRequest> =
     fields: [
       { no: 1, name: 'listener_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1987,7 +1904,6 @@ export const StopWebListenerResponse: MessageType<StopWebListenerResponse> =
     fields: [
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2035,7 +1951,6 @@ export const ListenerYieldPrompt: MessageType<ListenerYieldPrompt> =
       { no: 3, name: 'socket_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'deadline_unix_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2076,11 +1991,10 @@ export const WatchListenerYieldPromptsResponse: MessageType<WatchListenerYieldPr
         no: 1,
         name: 'prompts',
         kind: 'message',
-        T: () => ListenerYieldPrompt,
+        T: ListenerYieldPrompt,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2110,7 +2024,6 @@ export const RespondToListenerYieldPromptRequest: MessageType<RespondToListenerY
       { no: 1, name: 'prompt_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'allow', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2135,7 +2048,6 @@ export const RespondToListenerYieldPromptResponse: MessageType<RespondToListener
     fields: [
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2180,7 +2092,6 @@ export const RuntimeHandoffState: MessageType<RuntimeHandoffState> =
       { no: 3, name: 'socket_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'since_unix_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2216,9 +2127,8 @@ export const WatchRuntimeHandoffResponse: MessageType<WatchRuntimeHandoffRespons
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.root.WatchRuntimeHandoffResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => RuntimeHandoffState },
+      { no: 1, name: 'state', kind: 'message', T: RuntimeHandoffState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2255,7 +2165,6 @@ export const ReclaimRuntimeResponse: MessageType<ReclaimRuntimeResponse> =
     fields: [
       { no: 1, name: 'reclaimed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2320,5 +2229,4 @@ export const WatchListenerStatusResponse: MessageType<WatchListenerStatusRespons
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

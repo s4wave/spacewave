@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'identity.world'
-
 /**
  * EntityUpdateOp updates an entity and links to other objects.
  * Operation verifies signatures on/for the Entity.
@@ -33,7 +31,6 @@ export const EntityUpdateOp: MessageType<EntityUpdateOp> =
     fields: [
       { no: 1, name: 'entity_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -56,7 +53,6 @@ export const KeypairUpdateOp: MessageType<KeypairUpdateOp> =
     fields: [
       { no: 1, name: 'keypair_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -79,5 +75,4 @@ export const DomainInfoUpdateOp: MessageType<DomainInfoUpdateOp> =
     fields: [
       { no: 1, name: 'domain_info_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

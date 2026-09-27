@@ -10,8 +10,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../block/block.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'packfile.order'
-
 /**
  * AccessOrderFilesystem identifies which manifest filesystem a path came from.
  *
@@ -42,11 +40,7 @@ export enum AccessOrderFilesystem {
 
 export const AccessOrderFilesystem_Enum = /* @__PURE__ */ createEnumType(
   'packfile.order.AccessOrderFilesystem',
-  [
-    [0, 'ACCESS_ORDER_FILESYSTEM_UNKNOWN'],
-    [1, 'ACCESS_ORDER_FILESYSTEM_DIST'],
-    [2, 'ACCESS_ORDER_FILESYSTEM_ASSETS'],
-  ],
+  AccessOrderFilesystem,
 )
 
 /**
@@ -86,12 +80,7 @@ export enum AccessOrderReason {
 
 export const AccessOrderReason_Enum = /* @__PURE__ */ createEnumType(
   'packfile.order.AccessOrderReason',
-  [
-    [0, 'ACCESS_ORDER_REASON_UNKNOWN'],
-    [1, 'ACCESS_ORDER_REASON_ENTRYPOINT'],
-    [2, 'ACCESS_ORDER_REASON_DYNAMIC_IMPORT'],
-    [3, 'ACCESS_ORDER_REASON_ASSET'],
-  ],
+  AccessOrderReason,
 )
 
 /**
@@ -121,7 +110,6 @@ export const AccessOrderMetadata: MessageType<AccessOrderMetadata> =
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'value', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -197,7 +185,6 @@ export const AccessOrderEntry: MessageType<AccessOrderEntry> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -277,16 +264,15 @@ export const AccessOrderRecord: MessageType<AccessOrderRecord> =
         no: 8,
         name: 'entries',
         kind: 'message',
-        T: () => AccessOrderEntry,
+        T: AccessOrderEntry,
         repeated: true,
       },
       {
         no: 9,
         name: 'build_metadata',
         kind: 'message',
-        T: () => AccessOrderMetadata,
+        T: AccessOrderMetadata,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

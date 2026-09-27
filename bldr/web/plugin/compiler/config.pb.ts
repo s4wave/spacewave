@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.plugin.compiler'
-
 /**
  * QuitPolicy configures how native desktop runtimes should behave on user quit.
  *
@@ -40,11 +38,7 @@ export enum QuitPolicy {
 
 export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.QuitPolicy',
-  [
-    [0, 'QUIT_POLICY_UNSPECIFIED'],
-    [1, 'QUIT_POLICY_RESTART'],
-    [2, 'QUIT_POLICY_EXIT'],
-  ],
+  QuitPolicy,
 )
 
 /**
@@ -79,11 +73,7 @@ export enum DesktopPresencePolicy {
 
 export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.compiler.DesktopPresencePolicy',
-  [
-    [0, 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED'],
-    [1, 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME'],
-    [2, 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND'],
-  ],
+  DesktopPresencePolicy,
 )
 
 /**
@@ -188,7 +178,6 @@ export const NativeAppConfig: MessageType<NativeAppConfig> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,7 +224,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'electron_pkg', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'native_app', kind: 'message', T: () => NativeAppConfig },
+    { no: 4, name: 'native_app', kind: 'message', T: NativeAppConfig },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

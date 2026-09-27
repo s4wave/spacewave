@@ -11,8 +11,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { WebPkgRefConfig } from '../../bundler.pb.js'
 import { WebPkgRef } from '../../../pkg/pkg.pb.js'
 
-export const protobufPackage = 'bldr.web.bundler.esbuild.compiler'
-
 /**
  * InputFileKind is the kind of file this is.
  *
@@ -43,11 +41,7 @@ export enum InputFileKind {
 
 export const InputFileKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.bundler.esbuild.compiler.InputFileKind',
-  [
-    [0, 'InputFileKind_UNKNOWN'],
-    [1, 'InputFileKind_ESBUILD'],
-    [2, 'InputFileKind_WEB_PKG'],
-  ],
+  InputFileKind,
 )
 
 /**
@@ -104,7 +98,6 @@ export const EsbuildBundleMeta: MessageType<EsbuildBundleMeta> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -170,7 +163,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 1,
       name: 'bundles',
       kind: 'message',
-      T: () => EsbuildBundleMeta,
+      T: EsbuildBundleMeta,
       repeated: true,
     },
     {
@@ -202,7 +195,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => Config },
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -224,9 +216,8 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.esbuild.compiler.PreBuildHookResult',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -249,7 +240,6 @@ export const InputFileMeta: MessageType<InputFileMeta> =
     fields: [
       { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -319,7 +309,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 4,
         name: 'esbuild_bundles',
         kind: 'message',
-        T: () => EsbuildBundleMeta,
+        T: EsbuildBundleMeta,
         repeated: true,
       },
       {
@@ -330,5 +320,4 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

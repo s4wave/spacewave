@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'udp'
-
 /**
  * Config is the configuration for the udp transport.
  *
@@ -66,5 +64,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

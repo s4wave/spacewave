@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
-export const protobufPackage = 'plugin.host.scheduler'
-
 /**
  * PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
  *
@@ -59,7 +57,6 @@ export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -169,8 +166,8 @@ export interface Config {
    */
   noCopyBucketIds?: string[]
   /**
-   * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
-   * Empty retains the unscoped Dist behavior.
+   * InstanceKey is the plugin instance that loads without an instance key
+   * resolve to. Empty retains the unscoped Dist behavior.
    *
    * @generated from field: string instance_key = 14;
    */
@@ -244,7 +241,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 12,
       name: 'platform_selection_policies',
       kind: 'message',
-      T: () => PlatformSelectionPolicy,
+      T: PlatformSelectionPolicy,
       repeated: true,
     },
     {
@@ -283,5 +280,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

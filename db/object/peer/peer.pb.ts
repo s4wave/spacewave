@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'object.peer'
-
 /**
  * Config configures the object store peer controller.
  * The controller stores a peer private key in an ObjectStore.
@@ -57,7 +55,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'object_store_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'transform_conf', kind: 'message', T: () => Config$1 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -80,5 +77,4 @@ export const StoredValue: MessageType<StoredValue> =
     fields: [
       { no: 1, name: 'priv_key_pem', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

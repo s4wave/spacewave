@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.git'
-
 /**
  * CreateGitRepoWizardOp creates a git repository from wizard configuration.
  * Dispatches to GitInitOp (new repo) or GitCloneOp (clone) based on mode.
@@ -61,5 +59,4 @@ export const CreateGitRepoWizardOp: MessageType<CreateGitRepoWizardOp> =
       { no: 4, name: 'clone_opts', kind: 'message', T: () => CloneOpts },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

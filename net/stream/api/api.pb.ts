@@ -13,8 +13,6 @@ import { Config as Config$2 } from './accept/accept.pb.js'
 import { Data } from './rpc/rpc.pb.js'
 import { Config as Config$3 } from './dial/dial.pb.js'
 
-export const protobufPackage = 'stream.api'
-
 /**
  * ForwardStreamsRequest is the request type for ForwardStreams.
  *
@@ -33,7 +31,6 @@ export const ForwardStreamsRequest: MessageType<ForwardStreamsRequest> =
     fields: [
       { no: 1, name: 'forwarding_config', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -61,7 +58,6 @@ export const ForwardStreamsResponse: MessageType<ForwardStreamsResponse> =
         T: ControllerStatus_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -82,7 +78,6 @@ export const ListenStreamsRequest: MessageType<ListenStreamsRequest> =
     fields: [
       { no: 1, name: 'listening_config', kind: 'message', T: () => Config$1 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -110,7 +105,6 @@ export const ListenStreamsResponse: MessageType<ListenStreamsResponse> =
         T: ControllerStatus_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -141,7 +135,6 @@ export const AcceptStreamRequest: MessageType<AcceptStreamRequest> =
       { no: 1, name: 'config', kind: 'message', T: () => Config$2 },
       { no: 2, name: 'data', kind: 'message', T: () => Data },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -164,7 +157,6 @@ export const AcceptStreamResponse: MessageType<AcceptStreamResponse> =
     fields: [
       { no: 1, name: 'data', kind: 'message', T: () => Data },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -195,7 +187,6 @@ export const DialStreamRequest: MessageType<DialStreamRequest> =
       { no: 1, name: 'config', kind: 'message', T: () => Config$3 },
       { no: 2, name: 'data', kind: 'message', T: () => Data },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -218,5 +209,4 @@ export const DialStreamResponse: MessageType<DialStreamResponse> =
     fields: [
       { no: 1, name: 'data', kind: 'message', T: () => Data },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

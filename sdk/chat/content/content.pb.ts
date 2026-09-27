@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'spacewave.chat'
-
 /**
  * ChatRelation links a message to earlier messages in the same channel.
  *
@@ -57,7 +55,6 @@ export const ChatRelation: MessageType<ChatRelation> =
       { no: 4, name: 'is_falling_back', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,9 +110,8 @@ export const ChatCiphertext: MessageType<ChatCiphertext> =
       { no: 3, name: 'sender_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'session_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'device_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'relation', kind: 'message', T: () => ChatRelation },
+      { no: 6, name: 'relation', kind: 'message', T: ChatRelation },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -145,7 +141,6 @@ export const ChatAnnotation: MessageType<ChatAnnotation> =
       { no: 1, name: 'target_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,7 +178,6 @@ export const ChatStateChange: MessageType<ChatStateChange> =
       { no: 2, name: 'state_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'content_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -219,9 +213,8 @@ export const ChatEvent: MessageType<ChatEvent> =
     fields: [
       { no: 1, name: 'type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'content_json', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'relation', kind: 'message', T: () => ChatRelation },
+      { no: 3, name: 'relation', kind: 'message', T: ChatRelation },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -300,30 +293,23 @@ export const ChatMessageContent: MessageType<ChatMessageContent> =
         no: 2,
         name: 'ciphertext',
         kind: 'message',
-        T: () => ChatCiphertext,
+        T: ChatCiphertext,
         oneof: 'content',
       },
       {
         no: 3,
         name: 'annotation',
         kind: 'message',
-        T: () => ChatAnnotation,
+        T: ChatAnnotation,
         oneof: 'content',
       },
       {
         no: 4,
         name: 'state_change',
         kind: 'message',
-        T: () => ChatStateChange,
+        T: ChatStateChange,
         oneof: 'content',
       },
-      {
-        no: 5,
-        name: 'event',
-        kind: 'message',
-        T: () => ChatEvent,
-        oneof: 'content',
-      },
+      { no: 5, name: 'event', kind: 'message', T: ChatEvent, oneof: 'content' },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'node.controller'
-
 /**
  * Config is the node controller config.
  *
@@ -57,5 +55,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => ControllerConfig,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

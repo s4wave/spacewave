@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.quickstart.registry'
-
 /**
  * QuickstartRegistration is a plugin-registered Quickstart.
  *
@@ -113,7 +111,6 @@ export const QuickstartRegistration: MessageType<QuickstartRegistration> =
       },
       { no: 12, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -138,10 +135,9 @@ export const RegisterQuickstartRequest: MessageType<RegisterQuickstartRequest> =
         no: 1,
         name: 'registration',
         kind: 'message',
-        T: () => QuickstartRegistration,
+        T: QuickstartRegistration,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -164,7 +160,6 @@ export const RegisterQuickstartResponse: MessageType<RegisterQuickstartResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -187,7 +182,6 @@ export const ListQuickstartsRequest: MessageType<ListQuickstartsRequest> =
     fields: [
       { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -212,11 +206,10 @@ export const ListQuickstartsResponse: MessageType<ListQuickstartsResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => QuickstartRegistration,
+        T: QuickstartRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -239,7 +232,6 @@ export const WatchQuickstartsRequest: MessageType<WatchQuickstartsRequest> =
     fields: [
       { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -264,11 +256,10 @@ export const WatchQuickstartsResponse: MessageType<WatchQuickstartsResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => QuickstartRegistration,
+        T: QuickstartRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -303,7 +294,6 @@ export const ExecuteQuickstartRequest: MessageType<ExecuteQuickstartRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -339,7 +329,6 @@ export const ExecuteQuickstartResponse: MessageType<ExecuteQuickstartResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -374,7 +363,6 @@ export const SeedQuickstartRequest: MessageType<SeedQuickstartRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -410,5 +398,4 @@ export const SeedQuickstartResponse: MessageType<SeedQuickstartResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

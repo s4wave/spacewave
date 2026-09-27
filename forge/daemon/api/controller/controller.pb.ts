@@ -11,8 +11,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.api.controller'
-
 /**
  * Config configures the GRPC API.
  *
@@ -88,5 +86,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'disable_forge_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 9, name: 'forge_api_config', kind: 'message', T: () => Config$4 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

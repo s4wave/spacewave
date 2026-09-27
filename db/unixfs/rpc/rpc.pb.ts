@@ -14,8 +14,6 @@ import type { NodeType } from '../block/fstree.pb.js'
 import { FSSymlink, NodeType_Enum } from '../block/fstree.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'unixfs.rpc'
-
 /**
  * GetProxyCursorRequest is the request body for GetProxyCursor.
  *
@@ -44,7 +42,6 @@ export const GetProxyCursorRequest: MessageType<GetProxyCursorRequest> =
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -75,7 +72,6 @@ export const GetProxyCursorResponse: MessageType<GetProxyCursorResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -119,7 +115,6 @@ export const FSCursorChange: MessageType<FSCursorChange> =
       { no: 3, name: 'offset', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -149,7 +144,6 @@ export const FSCursorDirent: MessageType<FSCursorDirent> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'node_type', kind: 'enum', T: NodeType_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -194,7 +188,6 @@ export const FSClientInit: MessageType<FSClientInit> =
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -247,18 +240,12 @@ export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.rpc.FSCursorClientResponse',
     fields: [
-      {
-        no: 1,
-        name: 'init',
-        kind: 'message',
-        T: () => FSClientInit,
-        oneof: 'body',
-      },
+      { no: 1, name: 'init', kind: 'message', T: FSClientInit, oneof: 'body' },
       {
         no: 2,
         name: 'cursor_change',
         kind: 'message',
-        T: () => FSCursorChange,
+        T: FSCursorChange,
         oneof: 'body',
       },
       {
@@ -269,7 +256,6 @@ export const FSCursorClientResponse: MessageType<FSCursorClientResponse> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -292,7 +278,6 @@ export const GetCursorOpsRequest: MessageType<GetCursorOpsRequest> =
     fields: [
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -338,7 +323,6 @@ export const GetCursorOpsResponse: MessageType<GetCursorOpsResponse> =
       { no: 3, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'node_type', kind: 'enum', T: NodeType_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -369,7 +353,6 @@ export const ReleaseFSCursorRequest: MessageType<ReleaseFSCursorRequest> =
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -405,7 +388,6 @@ export const OpsGetPermissionsRequest: MessageType<OpsGetPermissionsRequest> =
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -435,7 +417,6 @@ export const OpsGetPermissionsResponse: MessageType<OpsGetPermissionsResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'file_mode', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -472,7 +453,6 @@ export const OpsSetPermissionsRequest: MessageType<OpsSetPermissionsRequest> =
       { no: 2, name: 'file_mode', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -495,7 +475,6 @@ export const OpsSetPermissionsResponse: MessageType<OpsSetPermissionsResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -518,7 +497,6 @@ export const OpsGetSizeRequest: MessageType<OpsGetSizeRequest> =
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -548,7 +526,6 @@ export const OpsGetSizeResponse: MessageType<OpsGetSizeResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -571,7 +548,6 @@ export const OpsGetModTimestampRequest: MessageType<OpsGetModTimestampRequest> =
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -601,7 +577,6 @@ export const OpsGetModTimestampResponse: MessageType<OpsGetModTimestampResponse>
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -631,7 +606,6 @@ export const OpsSetModTimestampRequest: MessageType<OpsSetModTimestampRequest> =
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'mod_timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -654,7 +628,6 @@ export const OpsSetModTimestampResponse: MessageType<OpsSetModTimestampResponse>
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -692,7 +665,6 @@ export const OpsReadAtRequest: MessageType<OpsReadAtRequest> =
       { no: 2, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'size', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -722,7 +694,6 @@ export const OpsReadAtResponse: MessageType<OpsReadAtResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -745,7 +716,6 @@ export const OpsGetOptimalWriteSizeRequest: MessageType<OpsGetOptimalWriteSizeRe
     fields: [
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -780,7 +750,6 @@ export const OpsGetOptimalWriteSizeResponse: MessageType<OpsGetOptimalWriteSizeR
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -824,7 +793,6 @@ export const OpsWriteAtRequest: MessageType<OpsWriteAtRequest> =
       { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -847,7 +815,6 @@ export const OpsWriteAtResponse: MessageType<OpsWriteAtResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -884,7 +851,6 @@ export const OpsTruncateRequest: MessageType<OpsTruncateRequest> =
       { no: 2, name: 'nsize', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -907,7 +873,6 @@ export const OpsTruncateResponse: MessageType<OpsTruncateResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -953,7 +918,6 @@ export const OpsLookupRequest: MessageType<OpsLookupRequest> =
       { no: 3, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -983,7 +947,6 @@ export const OpsLookupResponse: MessageType<OpsLookupResponse> =
       { no: 1, name: 'cursor_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1013,7 +976,6 @@ export const OpsReaddirAllRequest: MessageType<OpsReaddirAllRequest> =
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'skip', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1081,11 +1043,10 @@ export const OpsReaddirAllResponse: MessageType<OpsReaddirAllResponse> =
         no: 3,
         name: 'dirent',
         kind: 'message',
-        T: () => FSCursorDirent,
+        T: FSCursorDirent,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1149,7 +1110,6 @@ export const OpsMknodRequest: MessageType<OpsMknodRequest> =
       { no: 5, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1172,7 +1132,6 @@ export const OpsMknodResponse: MessageType<OpsMknodResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1223,7 +1182,6 @@ export const OpsSymlinkRequest: MessageType<OpsSymlinkRequest> =
       { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1246,7 +1204,6 @@ export const OpsSymlinkResponse: MessageType<OpsSymlinkResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1276,7 +1233,6 @@ export const OpsReadlinkRequest: MessageType<OpsReadlinkRequest> =
       { no: 1, name: 'ops_handle_id', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1306,7 +1262,6 @@ export const OpsReadlinkResponse: MessageType<OpsReadlinkResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'symlink', kind: 'message', T: () => FSSymlink },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1355,7 +1310,6 @@ export const OpsCopyToRequest: MessageType<OpsCopyToRequest> =
       { no: 3, name: 'target_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1385,7 +1339,6 @@ export const OpsCopyToResponse: MessageType<OpsCopyToResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1434,7 +1387,6 @@ export const OpsCopyFromRequest: MessageType<OpsCopyFromRequest> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1464,7 +1416,6 @@ export const OpsCopyFromResponse: MessageType<OpsCopyFromResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1513,7 +1464,6 @@ export const OpsMoveToRequest: MessageType<OpsMoveToRequest> =
       { no: 3, name: 'target_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1543,7 +1493,6 @@ export const OpsMoveToResponse: MessageType<OpsMoveToResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1592,7 +1541,6 @@ export const OpsMoveFromRequest: MessageType<OpsMoveFromRequest> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1622,7 +1570,6 @@ export const OpsMoveFromResponse: MessageType<OpsMoveFromResponse> =
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1665,7 +1612,6 @@ export const OpsRemoveRequest: MessageType<OpsRemoveRequest> =
       },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1688,5 +1634,4 @@ export const OpsRemoveResponse: MessageType<OpsRemoveResponse> =
     fields: [
       { no: 1, name: 'unixfs_error', kind: 'message', T: () => UnixFSError },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

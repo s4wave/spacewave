@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'stream.api.rpc'
-
 /**
  * StreamState is state for the stream related calls.
  *
@@ -40,11 +38,7 @@ export enum StreamState {
 
 export const StreamState_Enum = /* @__PURE__ */ createEnumType(
   'stream.api.rpc.StreamState',
-  [
-    [0, 'StreamState_NONE'],
-    [1, 'StreamState_ESTABLISHING'],
-    [2, 'StreamState_ESTABLISHED'],
-  ],
+  StreamState,
 )
 
 /**
@@ -74,5 +68,4 @@ export const Data: MessageType<Data> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'state', kind: 'enum', T: StreamState_Enum },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

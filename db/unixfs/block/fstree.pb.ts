@@ -11,8 +11,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { File } from '../../block/file/file.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'unixfs.block'
-
 /**
  * NodeType indicates the type of node.
  *
@@ -50,12 +48,7 @@ export enum NodeType {
 
 export const NodeType_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.block.NodeType',
-  [
-    [0, 'NodeType_UNKNOWN'],
-    [1, 'NodeType_DIRECTORY'],
-    [2, 'NodeType_FILE'],
-    [3, 'NodeType_SYMLINK'],
-  ],
+  NodeType,
 )
 
 /**
@@ -93,12 +86,7 @@ export enum FSChangeType {
 
 export const FSChangeType_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.block.FSChangeType',
-  [
-    [0, 'FSChangeType_INVALID'],
-    [1, 'FSChangeType_MKNOD'],
-    [2, 'FSChangeType_FILE_WRITE'],
-    [3, 'FSChangeType_FILE_REMOVE'],
-  ],
+  FSChangeType,
 )
 
 /**
@@ -137,7 +125,6 @@ export const Dirent: MessageType<Dirent> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'node_ref', kind: 'message', T: () => BlockRef },
     { no: 3, name: 'node_type', kind: 'enum', T: NodeType_Enum },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -172,7 +159,6 @@ export const FSPath: MessageType<FSPath> = /* @__PURE__ */ createMessageType({
     },
     { no: 2, name: 'absolute', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -193,9 +179,8 @@ export const FSSymlink: MessageType<FSSymlink> =
   /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.block.FSSymlink',
     fields: [
-      { no: 1, name: 'target_path', kind: 'message', T: () => FSPath },
+      { no: 1, name: 'target_path', kind: 'message', T: FSPath },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -224,7 +209,6 @@ export const FSXattr: MessageType<FSXattr> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -296,19 +280,12 @@ export const FSNode: MessageType<FSNode> = /* @__PURE__ */ createMessageType({
       no: 5,
       name: 'directory_entry',
       kind: 'message',
-      T: () => Dirent,
+      T: Dirent,
       repeated: true,
     },
-    { no: 6, name: 'symlink', kind: 'message', T: () => FSSymlink },
-    {
-      no: 7,
-      name: 'xattrs',
-      kind: 'message',
-      T: () => FSXattr,
-      repeated: true,
-    },
+    { no: 6, name: 'symlink', kind: 'message', T: FSSymlink },
+    { no: 7, name: 'xattrs', kind: 'message', T: FSXattr, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -332,7 +309,6 @@ export const FSConfig: MessageType<FSConfig> =
     fields: [
       { no: 1, name: 'disable_changelog', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -401,13 +377,7 @@ export const FSChange: MessageType<FSChange> =
       { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
       { no: 3, name: 'change_type', kind: 'enum', T: FSChangeType_Enum },
       { no: 4, name: 'transaction_ref', kind: 'message', T: () => BlockRef },
-      {
-        no: 5,
-        name: 'paths',
-        kind: 'message',
-        T: () => FSPath,
-        repeated: true,
-      },
+      { no: 5, name: 'paths', kind: 'message', T: FSPath, repeated: true },
       { no: 6, name: 'node_type', kind: 'enum', T: NodeType_Enum },
       {
         no: 8,
@@ -417,7 +387,6 @@ export const FSChange: MessageType<FSChange> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -452,11 +421,10 @@ export const FSObject: MessageType<FSObject> =
   /* @__PURE__ */ createMessageType({
     typeName: 'unixfs.block.FSObject',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => FSConfig },
-      { no: 2, name: 'fs_node', kind: 'message', T: () => FSNode },
-      { no: 3, name: 'last_change', kind: 'message', T: () => FSChange },
+      { no: 1, name: 'config', kind: 'message', T: FSConfig },
+      { no: 2, name: 'fs_node', kind: 'message', T: FSNode },
+      { no: 3, name: 'last_change', kind: 'message', T: FSChange },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -480,5 +448,4 @@ export const FSHostVolume: MessageType<FSHostVolume> =
     fields: [
       { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

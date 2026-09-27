@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 
-export const protobufPackage = 'bldr.manifest.world'
-
 /**
  * StoreManifestOp stores a Manifest to an object key.
  *
@@ -51,7 +49,6 @@ export const StoreManifestOp: MessageType<StoreManifestOp> =
       },
       { no: 3, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -95,5 +92,4 @@ export const ExtractManifestBundleOp: MessageType<ExtractManifestBundleOp> =
       },
       { no: 3, name: 'manifest_bundle', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

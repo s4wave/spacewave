@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'fibheap'
-
 /**
  * Entry is an entry in the heap.
  *
@@ -70,7 +68,6 @@ export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'parent', kind: 'scalar', T: ScalarType.BYTES },
     { no: 7, name: 'priority', kind: 'scalar', T: ScalarType.DOUBLE },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -106,5 +103,4 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'min_priority', kind: 'scalar', T: ScalarType.DOUBLE },
     { no: 3, name: 'size', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -12,8 +12,6 @@ import { Enabled_Enum } from '@go/github.com/aperturerobotics/util/enabled/enabl
 import type { GoCompiler } from '../../plugin/compiler/go/compiler.pb.js'
 import { GoCompiler_Enum } from '../../plugin/compiler/go/compiler.pb.js'
 
-export const protobufPackage = 'bldr.dist.compiler'
-
 /**
  * EmbedManifest selects one manifest build to embed in the dist binary.
  *
@@ -51,7 +49,6 @@ export const EmbedManifest: MessageType<EmbedManifest> =
       { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -94,7 +91,6 @@ export const IceServer: MessageType<IceServer> =
       { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'credential', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -258,7 +254,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 1,
       name: 'embed_manifests',
       kind: 'message',
-      T: () => EmbedManifest,
+      T: EmbedManifest,
       repeated: true,
     },
     {
@@ -293,7 +289,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 12,
       name: 'browser_ice_servers',
       kind: 'message',
-      T: () => IceServer,
+      T: IceServer,
       repeated: true,
     },
     {
@@ -325,7 +321,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 18, name: 'compose_package', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -347,7 +342,6 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.dist.compiler.PreBuildHookResult',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

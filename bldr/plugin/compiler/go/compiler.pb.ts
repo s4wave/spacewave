@@ -16,8 +16,6 @@ import { WebPkgRef } from '../../../web/pkg/pkg.pb.js'
 import { EsbuildOutputMeta } from '../../../web/bundler/esbuild/esbuild.pb.js'
 import { ViteOutputMeta } from '../../../web/bundler/vite/vite.pb.js'
 
-export const protobufPackage = 'bldr.plugin.compiler.go'
-
 /**
  * GoCompiler selects the compiler used for the Go plugin artifact.
  *
@@ -55,12 +53,7 @@ export enum GoCompiler {
 
 export const GoCompiler_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.GoCompiler',
-  [
-    [0, 'GO_COMPILER_DEFAULT'],
-    [1, 'GO_COMPILER_GO'],
-    [2, 'GO_COMPILER_TINYGO'],
-    [3, 'GO_COMPILER_GOSCRIPT'],
-  ],
+  GoCompiler,
 )
 
 /**
@@ -100,12 +93,7 @@ export enum InputFileKind {
 
 export const InputFileKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.InputFileKind',
-  [
-    [0, 'InputFileKind_UNKNOWN'],
-    [1, 'InputFileKind_ASSET'],
-    [2, 'InputFileKind_GO'],
-    [3, 'InputFileKind_GOSCRIPT_OVERRIDE'],
-  ],
+  InputFileKind,
 )
 
 /**
@@ -133,10 +121,7 @@ export enum EsbuildVarType {
 
 export const EsbuildVarType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.EsbuildVarType',
-  [
-    [0, 'EsbuildVarType_ENTRYPOINT_PATH'],
-    [1, 'EsbuildVarType_WEB_BUNDLER_OUTPUT'],
-  ],
+  EsbuildVarType,
 )
 
 /**
@@ -164,10 +149,7 @@ export enum ViteVarType {
 
 export const ViteVarType_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.compiler.go.ViteVarType',
-  [
-    [0, 'ViteVarType_ENTRYPOINT_PATH'],
-    [1, 'ViteVarType_WEB_BUNDLER_OUTPUT'],
-  ],
+  ViteVarType,
 )
 
 /**
@@ -432,7 +414,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: Enabled_Enum,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -454,9 +435,8 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.compiler.go.PreBuildHookResult',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -479,7 +459,6 @@ export const InputFileMeta: MessageType<InputFileMeta> =
     fields: [
       { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -536,7 +515,6 @@ export const EsbuildEntrypointVar: MessageType<EsbuildEntrypointVar> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -568,11 +546,10 @@ export const EsbuildBundleVarMeta: MessageType<EsbuildBundleVarMeta> =
         no: 2,
         name: 'entrypoint_vars',
         kind: 'message',
-        T: () => EsbuildEntrypointVar,
+        T: EsbuildEntrypointVar,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -649,7 +626,6 @@ export const ViteEntrypointVar: MessageType<ViteEntrypointVar> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -681,11 +657,10 @@ export const ViteBundleVarMeta: MessageType<ViteBundleVarMeta> =
         no: 2,
         name: 'entrypoint_vars',
         kind: 'message',
-        T: () => ViteEntrypointVar,
+        T: ViteEntrypointVar,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -811,7 +786,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 5,
         name: 'esbuild_bundles',
         kind: 'message',
-        T: () => EsbuildBundleVarMeta,
+        T: EsbuildBundleVarMeta,
         repeated: true,
       },
       {
@@ -832,7 +807,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 8,
         name: 'vite_bundles',
         kind: 'message',
-        T: () => ViteBundleVarMeta,
+        T: ViteBundleVarMeta,
         repeated: true,
       },
       {
@@ -870,5 +845,4 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

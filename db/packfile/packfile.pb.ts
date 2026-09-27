@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'packfile'
-
 /**
  * PackfileEntry describes a single packfile in the manifest.
  *
@@ -99,7 +97,6 @@ export const PackfileEntry: MessageType<PackfileEntry> =
       { no: 8, name: 'superseded_by', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'superseded_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -148,7 +145,6 @@ export const PackReplacementEvent: MessageType<PackReplacementEvent> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -186,19 +182,18 @@ export const PullResponse: MessageType<PullResponse> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => PackfileEntry,
+        T: PackfileEntry,
         repeated: true,
       },
       {
         no: 2,
         name: 'replacement_events',
         kind: 'message',
-        T: () => PackReplacementEvent,
+        T: PackReplacementEvent,
         repeated: true,
       },
       { no: 3, name: 'latest_sequence', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,5 +230,4 @@ export const PushResponse: MessageType<PushResponse> =
       { no: 2, name: 'already_exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

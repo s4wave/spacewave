@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.sql.workbench.world'
-
 /**
  * SqlWorkbenchSetRootOp advances a sql/workbench world object's root.
  *
@@ -44,5 +42,4 @@ export const SqlWorkbenchSetRootOp: MessageType<SqlWorkbenchSetRootOp> =
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
       { no: 3, name: 'initialize_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

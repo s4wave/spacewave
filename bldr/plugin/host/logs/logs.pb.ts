@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'plugin.host.logs'
-
 /**
  * StructuredLogLevel is the severity of a structured plugin log event.
  *
@@ -69,15 +67,7 @@ export enum StructuredLogLevel {
 
 export const StructuredLogLevel_Enum = /* @__PURE__ */ createEnumType(
   'plugin.host.logs.StructuredLogLevel',
-  [
-    [0, 'STRUCTURED_LOG_LEVEL_UNSPECIFIED'],
-    [1, 'STRUCTURED_LOG_LEVEL_TRACE'],
-    [2, 'STRUCTURED_LOG_LEVEL_DEBUG'],
-    [3, 'STRUCTURED_LOG_LEVEL_INFO'],
-    [4, 'STRUCTURED_LOG_LEVEL_WARN'],
-    [5, 'STRUCTURED_LOG_LEVEL_ERROR'],
-    [6, 'STRUCTURED_LOG_LEVEL_FATAL'],
-  ],
+  StructuredLogLevel,
 )
 
 /**
@@ -117,12 +107,7 @@ export enum StructuredLogStream {
 
 export const StructuredLogStream_Enum = /* @__PURE__ */ createEnumType(
   'plugin.host.logs.StructuredLogStream',
-  [
-    [0, 'STRUCTURED_LOG_STREAM_UNSPECIFIED'],
-    [1, 'STRUCTURED_LOG_STREAM_LOGGER'],
-    [2, 'STRUCTURED_LOG_STREAM_STDOUT'],
-    [3, 'STRUCTURED_LOG_STREAM_STDERR'],
-  ],
+  StructuredLogStream,
 )
 
 /**
@@ -201,7 +186,6 @@ export const StructuredLogEvent: MessageType<StructuredLogEvent> =
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -283,7 +267,6 @@ export const StructuredLogFilter: MessageType<StructuredLogFilter> =
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -328,7 +311,6 @@ export const StructuredLogRange: MessageType<StructuredLogRange> =
       { no: 3, name: 'tail', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'follow', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -373,13 +355,13 @@ export const StructuredLogState: MessageType<StructuredLogState> =
   /* @__PURE__ */ createMessageType({
     typeName: 'plugin.host.logs.StructuredLogState',
     fields: [
-      { no: 1, name: 'filter', kind: 'message', T: () => StructuredLogFilter },
-      { no: 2, name: 'range', kind: 'message', T: () => StructuredLogRange },
+      { no: 1, name: 'filter', kind: 'message', T: StructuredLogFilter },
+      { no: 2, name: 'range', kind: 'message', T: StructuredLogRange },
       {
         no: 3,
         name: 'events',
         kind: 'message',
-        T: () => StructuredLogEvent,
+        T: StructuredLogEvent,
         repeated: true,
       },
       {
@@ -390,7 +372,6 @@ export const StructuredLogState: MessageType<StructuredLogState> =
       },
       { no: 5, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -417,10 +398,9 @@ export const OpenStructuredLogsRequest: MessageType<OpenStructuredLogsRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'plugin.host.logs.OpenStructuredLogsRequest',
     fields: [
-      { no: 1, name: 'filter', kind: 'message', T: () => StructuredLogFilter },
-      { no: 2, name: 'range', kind: 'message', T: () => StructuredLogRange },
+      { no: 1, name: 'filter', kind: 'message', T: StructuredLogFilter },
+      { no: 2, name: 'range', kind: 'message', T: StructuredLogRange },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -448,9 +428,8 @@ export const OpenStructuredLogsResponse: MessageType<OpenStructuredLogsResponse>
     typeName: 'plugin.host.logs.OpenStructuredLogsResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'state', kind: 'message', T: () => StructuredLogState },
+      { no: 2, name: 'state', kind: 'message', T: StructuredLogState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -477,10 +456,9 @@ export const SetStructuredLogViewRequest: MessageType<SetStructuredLogViewReques
   /* @__PURE__ */ createMessageType({
     typeName: 'plugin.host.logs.SetStructuredLogViewRequest',
     fields: [
-      { no: 1, name: 'filter', kind: 'message', T: () => StructuredLogFilter },
-      { no: 2, name: 'range', kind: 'message', T: () => StructuredLogRange },
+      { no: 1, name: 'filter', kind: 'message', T: StructuredLogFilter },
+      { no: 2, name: 'range', kind: 'message', T: StructuredLogRange },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -501,9 +479,8 @@ export const SetStructuredLogViewResponse: MessageType<SetStructuredLogViewRespo
   /* @__PURE__ */ createMessageType({
     typeName: 'plugin.host.logs.SetStructuredLogViewResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => StructuredLogState },
+      { no: 1, name: 'state', kind: 'message', T: StructuredLogState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -524,9 +501,8 @@ export const EmitStructuredLogRequest: MessageType<EmitStructuredLogRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'plugin.host.logs.EmitStructuredLogRequest',
     fields: [
-      { no: 1, name: 'event', kind: 'message', T: () => StructuredLogEvent },
+      { no: 1, name: 'event', kind: 'message', T: StructuredLogEvent },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -556,5 +532,4 @@ export const EmitStructuredLogResponse: MessageType<EmitStructuredLogResponse> =
       { no: 1, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SqlValue } from '../../sql.pb.js'
 
-export const protobufPackage = 'sql.sqlite_wasm.rpc'
-
 /**
  * OpenDbRequest is the request to open a database.
  *
@@ -33,7 +31,6 @@ export const OpenDbRequest: MessageType<OpenDbRequest> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -56,7 +53,6 @@ export const OpenDbResponse: MessageType<OpenDbResponse> =
     fields: [
       { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -79,7 +75,6 @@ export const CloseDbRequest: MessageType<CloseDbRequest> =
     fields: [
       { no: 1, name: 'db_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -135,7 +130,6 @@ export const ExecRequest: MessageType<ExecRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -170,7 +164,6 @@ export const ExecResponse: MessageType<ExecResponse> =
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -213,7 +206,6 @@ export const QueryRequest: MessageType<QueryRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -256,7 +248,6 @@ export const QueryResponse: MessageType<QueryResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -279,7 +270,6 @@ export const DeleteDbRequest: MessageType<DeleteDbRequest> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

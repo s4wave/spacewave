@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.lib.docker'
-
 /**
  * Mount configures one docker bind mount.
  *
@@ -42,7 +40,6 @@ export const Mount: MessageType<Mount> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'container_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -127,7 +124,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       K: ScalarType.STRING,
       V: { kind: 'scalar', T: ScalarType.STRING },
     },
-    { no: 6, name: 'mounts', kind: 'message', T: () => Mount, repeated: true },
+    { no: 6, name: 'mounts', kind: 'message', T: Mount, repeated: true },
     {
       no: 7,
       name: 'command',
@@ -142,5 +139,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.UINT32,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

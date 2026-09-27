@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
-export const protobufPackage = 's4wave.kv.world'
-
 /**
  * KvMutationKind identifies a replayable KVTX write mutation.
  *
@@ -41,11 +39,7 @@ export enum KvMutationKind {
 
 export const KvMutationKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.kv.world.KvMutationKind',
-  [
-    [0, 'KV_MUTATION_KIND_UNSPECIFIED'],
-    [1, 'KV_MUTATION_KIND_SET'],
-    [2, 'KV_MUTATION_KIND_DELETE'],
-  ],
+  KvMutationKind,
 )
 
 /**
@@ -82,7 +76,6 @@ export const KvMutation: MessageType<KvMutation> =
       { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -128,9 +121,8 @@ export const KvSetRootOp: MessageType<KvSetRootOp> =
         no: 4,
         name: 'mutations',
         kind: 'message',
-        T: () => KvMutation,
+        T: KvMutation,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

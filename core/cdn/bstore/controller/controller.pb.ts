@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'cdn.bstore.controller'
-
 /**
  * Config configures an anonymous CDN block store controller.
  *
@@ -114,5 +112,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 10, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

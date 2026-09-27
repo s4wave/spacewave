@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 
-export const protobufPackage = 'space.world'
-
 /**
  * WorldContentsObject is an entry in the WorldContents.
  *
@@ -50,7 +48,6 @@ export const WorldContentsObject: MessageType<WorldContentsObject> =
       },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -73,7 +70,6 @@ export const WorldContentsObjectType: MessageType<WorldContentsObjectType> =
     fields: [
       { no: 1, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -104,18 +100,17 @@ export const WorldContents: MessageType<WorldContents> =
         no: 1,
         name: 'objects',
         kind: 'message',
-        T: () => WorldContentsObject,
+        T: WorldContentsObject,
         repeated: true,
       },
       {
         no: 2,
         name: 'object_types',
         kind: 'message',
-        T: () => WorldContentsObjectType,
+        T: WorldContentsObjectType,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -145,7 +140,6 @@ export const SpacePluginInstallation: MessageType<SpacePluginInstallation> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -207,8 +201,7 @@ export const SpaceSettings: MessageType<SpaceSettings> =
         name: 'plugin_installations',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => SpacePluginInstallation },
+        V: { kind: 'message', T: SpacePluginInstallation },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

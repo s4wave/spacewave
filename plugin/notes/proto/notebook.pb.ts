@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'notes'
-
 /**
  * NotebookSource is a reference to a UnixFS path.
  *
@@ -37,7 +35,6 @@ export const NotebookSource: MessageType<NotebookSource> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -70,11 +67,10 @@ export const Notebook: MessageType<Notebook> =
         no: 2,
         name: 'sources',
         kind: 'message',
-        T: () => NotebookSource,
+        T: NotebookSource,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -121,5 +117,4 @@ export const InitNotebookOp: MessageType<InitNotebookOp> =
       },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

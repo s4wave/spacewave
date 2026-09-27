@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'kvtx.rpc'
-
 /**
  * KvtxRetryClass identifies a typed transaction retry signal.
  *
@@ -33,10 +31,7 @@ export enum KvtxRetryClass {
 
 export const KvtxRetryClass_Enum = /* @__PURE__ */ createEnumType(
   'kvtx.rpc.KvtxRetryClass',
-  [
-    [0, 'KVTX_RETRY_CLASS_UNSPECIFIED'],
-    [1, 'KVTX_RETRY_CLASS_INVALID_SNAPSHOT'],
-  ],
+  KvtxRetryClass,
 )
 
 /**
@@ -60,7 +55,6 @@ export const KvtxTransactionInit: MessageType<KvtxTransactionInit> =
     fields: [
       { no: 1, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -118,7 +112,7 @@ export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => KvtxTransactionInit,
+        T: KvtxTransactionInit,
         oneof: 'body',
       },
       {
@@ -136,7 +130,6 @@ export const KvtxTransactionRequest: MessageType<KvtxTransactionRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -174,7 +167,6 @@ export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
       { no: 2, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -221,7 +213,6 @@ export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
       { no: 3, name: 'discarded', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -270,18 +261,17 @@ export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
         no: 1,
         name: 'ack',
         kind: 'message',
-        T: () => KvtxTransactionAck,
+        T: KvtxTransactionAck,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'complete',
         kind: 'message',
-        T: () => KvtxTransactionComplete,
+        T: KvtxTransactionComplete,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -305,7 +295,6 @@ export const KeyCountRequest: MessageType<KeyCountRequest> =
     fields: [
       { no: 1, name: 'accept_retry_class', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -342,7 +331,6 @@ export const KeyCountResponse: MessageType<KeyCountResponse> =
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -365,7 +353,6 @@ export const KvtxKeyRequest: MessageType<KvtxKeyRequest> =
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -410,7 +397,6 @@ export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
       { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -448,7 +434,6 @@ export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -478,7 +463,6 @@ export const KvtxSetKeyRequest: MessageType<KvtxSetKeyRequest> =
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -509,7 +493,6 @@ export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -532,7 +515,6 @@ export const KvtxDeleteKeyRequest: MessageType<KvtxDeleteKeyRequest> =
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -563,7 +545,6 @@ export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -594,7 +575,6 @@ export const KvtxScanPrefixRequest: MessageType<KvtxScanPrefixRequest> =
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'only_keys', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -639,7 +619,6 @@ export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -683,7 +662,6 @@ export const KvtxWatchRequest: MessageType<KvtxWatchRequest> =
       { no: 3, name: 'max_records', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'max_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -713,7 +691,6 @@ export const KvtxWatchEntry: MessageType<KvtxWatchEntry> =
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -752,12 +729,11 @@ export const KvtxWatchResponse: MessageType<KvtxWatchResponse> =
         no: 2,
         name: 'entries',
         kind: 'message',
-        T: () => KvtxWatchEntry,
+        T: KvtxWatchEntry,
         repeated: true,
       },
       { no: 3, name: 'limit_exceeded', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -794,7 +770,6 @@ export const KvtxIterateInit: MessageType<KvtxIterateInit> =
       { no: 2, name: 'sort', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'reverse', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -878,7 +853,7 @@ export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => KvtxIterateInit,
+        T: KvtxIterateInit,
         oneof: 'body',
       },
       {
@@ -917,7 +892,6 @@ export const KvtxIterateRequest: MessageType<KvtxIterateRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -962,7 +936,6 @@ export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
       { no: 3, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1052,7 +1025,7 @@ export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =
         no: 3,
         name: 'status',
         kind: 'message',
-        T: () => KvtxIterateStatus,
+        T: KvtxIterateStatus,
         oneof: 'body',
       },
       {
@@ -1071,5 +1044,4 @@ export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =
       },
       { no: 6, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

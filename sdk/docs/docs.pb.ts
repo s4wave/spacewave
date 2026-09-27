@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.docs'
-
 /**
  * Documentation is a world object representing a documentation site.
  * Content is sourced from a UnixFS directory (markdown files) linked via
@@ -50,7 +48,6 @@ export const Documentation: MessageType<Documentation> =
       { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -94,5 +91,4 @@ export const CreateDocumentationOp: MessageType<CreateDocumentationOp> =
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

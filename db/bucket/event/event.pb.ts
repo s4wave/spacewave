@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bucket.event'
-
 /**
  * EventType is the type of bucket operation event.
  *
@@ -41,11 +39,7 @@ export enum EventType {
 
 export const EventType_Enum = /* @__PURE__ */ createEnumType(
   'bucket.event.EventType',
-  [
-    [0, 'EventType_UNKNOWN'],
-    [1, 'EventType_PUT_BLOCK'],
-    [3, 'EventType_RM_BLOCK'],
-  ],
+  EventType,
 )
 
 /**
@@ -96,7 +90,6 @@ export const BlockCommon: MessageType<BlockCommon> =
       { no: 3, name: 'bucket_conf_rev', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'block_ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -117,9 +110,8 @@ export const PutBlock: MessageType<PutBlock> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bucket.event.PutBlock',
     fields: [
-      { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
+      { no: 1, name: 'block_common', kind: 'message', T: BlockCommon },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -139,9 +131,8 @@ export interface RmBlock {
 export const RmBlock: MessageType<RmBlock> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.event.RmBlock',
   fields: [
-    { no: 1, name: 'block_common', kind: 'message', T: () => BlockCommon },
+    { no: 1, name: 'block_common', kind: 'message', T: BlockCommon },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -174,8 +165,7 @@ export const Event: MessageType<Event> = /* @__PURE__ */ createMessageType({
   typeName: 'bucket.event.Event',
   fields: [
     { no: 1, name: 'event_type', kind: 'enum', T: EventType_Enum },
-    { no: 2, name: 'put_block', kind: 'message', T: () => PutBlock },
-    { no: 4, name: 'rm_block', kind: 'message', T: () => RmBlock },
+    { no: 2, name: 'put_block', kind: 'message', T: PutBlock },
+    { no: 4, name: 'rm_block', kind: 'message', T: RmBlock },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

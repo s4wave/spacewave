@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'pconn'
-
 /**
  * Opts are extra options for the packet conn.
  *
@@ -36,5 +34,4 @@ export const Opts: MessageType<Opts> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'quic', kind: 'message', T: () => Opts$1 },
     { no: 2, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

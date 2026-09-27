@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.cdn'
-
 /**
  * CopyV86ImageToSpaceStage is the server-owned CDN image-copy stage.
  *
@@ -37,11 +35,7 @@ export enum CopyV86ImageToSpaceStage {
 
 export const CopyV86ImageToSpaceStage_Enum = /* @__PURE__ */ createEnumType(
   's4wave.cdn.CopyV86ImageToSpaceStage',
-  [
-    [0, 'CopyV86ImageToSpaceStage_FETCHING'],
-    [1, 'CopyV86ImageToSpaceStage_COPYING'],
-    [2, 'CopyV86ImageToSpaceStage_DONE'],
-  ],
+  CopyV86ImageToSpaceStage,
 )
 
 /**
@@ -77,7 +71,6 @@ export const GetCdnSpaceIdResponse: MessageType<GetCdnSpaceIdResponse> =
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,7 +106,6 @@ export const MountCdnSpaceResponse: MessageType<MountCdnSpaceResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -158,7 +150,6 @@ export const CopyV86ImageToSpaceRequest: MessageType<CopyV86ImageToSpaceRequest>
       { no: 3, name: 'src_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'dst_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -214,5 +205,4 @@ export const CopyV86ImageToSpaceProgress: MessageType<CopyV86ImageToSpaceProgres
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

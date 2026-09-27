@@ -12,8 +12,6 @@ import { ValueSet } from '../target/target.pb.js'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { Result } from '../value/value.pb.js'
 
-export const protobufPackage = 'forge.execution'
-
 /**
  * State contains the possible execution states.
  *
@@ -60,13 +58,7 @@ export enum State {
 
 export const State_Enum = /* @__PURE__ */ createEnumType(
   'forge.execution.State',
-  [
-    [0, 'ExecutionState_UNKNOWN'],
-    [1, 'ExecutionState_PENDING'],
-    [2, 'ExecutionState_RUNNING'],
-    [3, 'ExecutionState_COMPLETE'],
-    [4, 'ExecutionState_CANCELING'],
-  ],
+  State,
 )
 
 /**
@@ -103,7 +95,6 @@ export const LogEntry: MessageType<LogEntry> =
       { no: 2, name: 'level', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -132,7 +123,6 @@ export const Claim: MessageType<Claim> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -218,10 +208,10 @@ export const Execution: MessageType<Execution> =
         no: 7,
         name: 'log_entries',
         kind: 'message',
-        T: () => LogEntry,
+        T: LogEntry,
         repeated: true,
       },
-      { no: 8, name: 'claim', kind: 'message', T: () => Claim },
+      { no: 8, name: 'claim', kind: 'message', T: Claim },
       {
         no: 9,
         name: 'waiting_plugin_id',
@@ -229,7 +219,6 @@ export const Execution: MessageType<Execution> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -268,5 +257,4 @@ export const Spec: MessageType<Spec> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 3, name: 'target_ref', kind: 'message', T: () => BlockRef },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

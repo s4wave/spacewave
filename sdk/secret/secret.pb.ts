@@ -18,8 +18,6 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Signature } from '../../net/peer/peer.pb.js'
 
-export const protobufPackage = 's4wave.secret'
-
 /**
  * Secret is the parent World object for redacted secret metadata.
  *
@@ -79,7 +77,6 @@ export const Secret: MessageType<Secret> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -123,7 +120,6 @@ export const SecretPayload: MessageType<SecretPayload> =
       { no: 3, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'updated_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -174,7 +170,6 @@ export const SecretGrantStatus: MessageType<SecretGrantStatus> =
       { no: 4, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 5, name: 'grant_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -207,16 +202,10 @@ export const SecretState: MessageType<SecretState> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.SecretState',
     fields: [
-      { no: 1, name: 'secret', kind: 'message', T: () => Secret },
-      {
-        no: 2,
-        name: 'grant_status',
-        kind: 'message',
-        T: () => SecretGrantStatus,
-      },
+      { no: 1, name: 'secret', kind: 'message', T: Secret },
+      { no: 2, name: 'grant_status', kind: 'message', T: SecretGrantStatus },
       { no: 3, name: 'health', kind: 'message', T: () => SharedObjectHealth },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -250,9 +239,8 @@ export const WatchStateResponse: MessageType<WatchStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.WatchStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => SecretState },
+      { no: 1, name: 'state', kind: 'message', T: SecretState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -282,7 +270,6 @@ export const BeginReadPayloadRequest: MessageType<BeginReadPayloadRequest> =
       { no: 1, name: 'reader_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -324,9 +311,8 @@ export const BeginReadPayloadResponse: MessageType<BeginReadPayloadResponse> =
       { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'challenge', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
-      { no: 4, name: 'secret', kind: 'message', T: () => Secret },
+      { no: 4, name: 'secret', kind: 'message', T: Secret },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -403,7 +389,6 @@ export const ReadPayloadChallenge: MessageType<ReadPayloadChallenge> =
       { no: 7, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -433,7 +418,6 @@ export const ReadPayloadRequest: MessageType<ReadPayloadRequest> =
       { no: 1, name: 'challenge_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -454,7 +438,6 @@ export const ReadPayloadResponse: MessageType<ReadPayloadResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.secret.ReadPayloadResponse',
     fields: [
-      { no: 1, name: 'payload', kind: 'message', T: () => SecretPayload },
+      { no: 1, name: 'payload', kind: 'message', T: SecretPayload },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

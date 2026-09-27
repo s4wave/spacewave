@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.session'
-
 /**
  * MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.
  *
@@ -45,5 +43,4 @@ export const MountSharedObjectSelfEnrollmentResponse: MessageType<MountSharedObj
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

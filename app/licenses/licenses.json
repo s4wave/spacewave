@@ -25,7 +25,7 @@
     },
     {
       "name": "@aptre/protobuf-es-lite",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "spdx": "Apache-2.0",
       "source": "js",
       "repo": "https://github.com/aperturerobotics/protobuf-es-lite",
@@ -569,35 +569,35 @@
     },
     {
       "name": "@videojs/core",
-      "version": "10.0.0-rc.2",
+      "version": "10.0.0-rc.4",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/media",
-      "version": "10.0.0-rc.2",
+      "version": "10.0.0-rc.4",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/react",
-      "version": "10.0.0-rc.2",
+      "version": "10.0.0-rc.4",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/store",
-      "version": "10.0.0-rc.2",
+      "version": "10.0.0-rc.4",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/utils",
-      "version": "10.0.0-rc.2",
+      "version": "10.0.0-rc.4",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
@@ -1137,7 +1137,7 @@
     },
     {
       "name": "github.com/goccy/go-json",
-      "version": "v0.10.6",
+      "version": "v0.11.1-0.20260927094459-17294910d0d3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/goccy/go-json",
@@ -1214,7 +1214,7 @@
     },
     {
       "name": "github.com/klauspost/compress",
-      "version": "v1.20.0",
+      "version": "v1.20.2-0.20260925084326-e4086c1ba492",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/klauspost/compress",
@@ -1589,7 +1589,7 @@
     },
     {
       "name": "github.com/tetratelabs/wazero",
-      "version": "v1.12.1-0.20260923121951-cfd684ff2e83",
+      "version": "v1.12.1-0.20260926205855-1d1c0a136714",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/tetratelabs/wazero",
@@ -1963,6 +1963,12 @@
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) Meta Platforms, Inc. and affiliates."
+    },
+    {
+      "name": "react-compiler-runtime",
+      "version": "1.0.0",
+      "spdx": "MIT",
+      "source": "js"
     },
     {
       "name": "react-dom",

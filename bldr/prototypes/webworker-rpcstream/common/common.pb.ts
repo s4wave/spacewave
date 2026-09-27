@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'prototype.webworker_rpcstream.common'
-
 /**
  * PrototypeRequest is the request message for the Prototype RPC.
  *
@@ -27,7 +25,6 @@ export const PrototypeRequest: MessageType<PrototypeRequest> =
     fields: [
       { no: 1, name: 'body', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -53,5 +50,4 @@ export const PrototypeResponse: MessageType<PrototypeResponse> =
       { no: 1, name: 'body', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'sequence_number', kind: 'scalar', T: ScalarType.INT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

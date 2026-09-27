@@ -11,8 +11,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.sqlite'
-
 /**
  * TempStore selects the SQLite temp_store pragma value.
  *
@@ -43,11 +41,7 @@ export enum TempStore {
 
 export const TempStore_Enum = /* @__PURE__ */ createEnumType(
   'volume.sqlite.TempStore',
-  [
-    [0, 'TempStore_DEFAULT'],
-    [1, 'TempStore_FILE'],
-    [2, 'TempStore_MEMORY'],
-  ],
+  TempStore,
 )
 
 /**
@@ -157,5 +151,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 11, name: 'temp_store', kind: 'enum', T: TempStore_Enum },
     { no: 12, name: 'page_size', kind: 'scalar', T: ScalarType.INT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.manifest.builder.controller'
-
 /**
  * Config is the manifest builder controller configuration.
  *
@@ -73,5 +71,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => BuilderResult,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

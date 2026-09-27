@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'saucer'
-
 /**
  * ExternalLinks configures how external links are handled.
  *
@@ -33,10 +31,7 @@ export enum ExternalLinks {
 
 export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
   'saucer.ExternalLinks',
-  [
-    [0, 'EXTERNAL_LINKS_OS_BROWSER'],
-    [1, 'EXTERNAL_LINKS_DENY'],
-  ],
+  ExternalLinks,
 )
 
 /**
@@ -138,7 +133,6 @@ export const SaucerInit: MessageType<SaucerInit> =
       { no: 9, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 10, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -161,7 +155,6 @@ export const EvalJSRequest: MessageType<EvalJSRequest> =
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -191,7 +184,6 @@ export const EvalJSResponse: MessageType<EvalJSResponse> =
       { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -301,5 +293,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 11, name: 'window_width', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 12, name: 'window_height', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

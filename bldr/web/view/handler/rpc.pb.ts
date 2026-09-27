@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.view.handler'
-
 /**
  * HandleWebViewRequest is a request to handle a web view.
  *
@@ -52,7 +50,6 @@ export const HandleWebViewRequest: MessageType<HandleWebViewRequest> =
       { no: 3, name: 'document_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -76,5 +73,4 @@ export const HandleWebViewResponse: MessageType<HandleWebViewResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

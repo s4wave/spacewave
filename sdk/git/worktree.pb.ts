@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.git'
-
 /**
  * FileStatusCode maps directly to go-git's StatusCode.
  *
@@ -78,16 +76,7 @@ export enum FileStatusCode {
 
 export const FileStatusCode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.git.FileStatusCode',
-  [
-    [0, 'FILE_STATUS_CODE_UNMODIFIED'],
-    [1, 'FILE_STATUS_CODE_UNTRACKED'],
-    [2, 'FILE_STATUS_CODE_MODIFIED'],
-    [3, 'FILE_STATUS_CODE_ADDED'],
-    [4, 'FILE_STATUS_CODE_DELETED'],
-    [5, 'FILE_STATUS_CODE_RENAMED'],
-    [6, 'FILE_STATUS_CODE_COPIED'],
-    [7, 'FILE_STATUS_CODE_UPDATED_BUT_UNMERGED'],
-  ],
+  FileStatusCode,
 )
 
 /**
@@ -157,7 +146,6 @@ export const GetWorktreeInfoResponse: MessageType<GetWorktreeInfoResponse> =
       { no: 4, name: 'head_commit_hash', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'has_workdir', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -193,7 +181,6 @@ export const GetRepoResourceResponse: MessageType<GetRepoResourceResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -229,7 +216,6 @@ export const GetWorkdirResourceResponse: MessageType<GetWorkdirResourceResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -266,7 +252,6 @@ export const StatusEntry: MessageType<StatusEntry> =
       { no: 2, name: 'staging_status', kind: 'enum', T: FileStatusCode_Enum },
       { no: 3, name: 'worktree_status', kind: 'enum', T: FileStatusCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -304,11 +289,10 @@ export const WatchStatusResponse: MessageType<WatchStatusResponse> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => StatusEntry,
+        T: StatusEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -337,7 +321,6 @@ export const StageFilesRequest: MessageType<StageFilesRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -379,7 +362,6 @@ export const UnstageFilesRequest: MessageType<UnstageFilesRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -450,7 +432,6 @@ export const CommitFilesRequest: MessageType<CommitFilesRequest> =
       { no: 4, name: 'author_email', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'author_timestamp', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -500,5 +481,4 @@ export const CommitFilesResponse: MessageType<CommitFilesResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

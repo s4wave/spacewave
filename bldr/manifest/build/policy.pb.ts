@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.manifest.build'
-
 /**
  * BuildPolicy configures build-scoped behavior shared by Manifest builders.
  *
@@ -68,5 +66,4 @@ export const BuildPolicy: MessageType<BuildPolicy> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

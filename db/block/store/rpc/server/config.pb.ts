@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.store.rpc.server'
-
 /**
  * Config configures the block store rpc server.
  *
@@ -61,5 +59,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'force_hash_type', kind: 'enum', T: HashType_Enum },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

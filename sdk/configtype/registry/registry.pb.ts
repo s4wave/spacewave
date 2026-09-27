@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.configtype.registry'
-
 /**
  * ConfigTypeRegistration is a registered config type editor.
  * Dynamic registrations carry metadata only; the editor component loaded via
@@ -72,7 +70,6 @@ export const ConfigTypeRegistration: MessageType<ConfigTypeRegistration> =
       { no: 5, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -123,7 +120,6 @@ export const RegisterConfigTypeRequest: MessageType<RegisterConfigTypeRequest> =
       { no: 4, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'script_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -146,7 +142,6 @@ export const RegisterConfigTypeResponse: MessageType<RegisterConfigTypeResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -184,9 +179,8 @@ export const WatchConfigTypesResponse: MessageType<WatchConfigTypesResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => ConfigTypeRegistration,
+        T: ConfigTypeRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

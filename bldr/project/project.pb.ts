@@ -12,8 +12,6 @@ import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.j
 import { Config } from '@go/github.com/s4wave/spacewave/db/block/transform/transform.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'bldr.project'
-
 /**
  * StartConfig configures starting the program.
  *
@@ -58,7 +56,6 @@ export const StartConfig: MessageType<StartConfig> =
       { no: 2, name: 'disable_build', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'load_web_startup', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -103,7 +100,6 @@ export const ManifestConfig: MessageType<ManifestConfig> =
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -194,7 +190,6 @@ export const BuildConfig: MessageType<BuildConfig> =
       },
       { no: 5, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -260,7 +255,6 @@ export const RemoteConfig: MessageType<RemoteConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -317,7 +311,6 @@ export const PublishStorageConfig: MessageType<PublishStorageConfig> =
       { no: 2, name: 'transform_conf', kind: 'message', T: () => Config },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -420,21 +413,15 @@ export const PublishConfig: MessageType<PublishConfig> =
         repeated: true,
       },
       { no: 6, name: 'dest_object_key', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 7,
-        name: 'storage',
-        kind: 'message',
-        T: () => PublishStorageConfig,
-      },
+      { no: 7, name: 'storage', kind: 'message', T: PublishStorageConfig },
       {
         no: 8,
         name: 'manifest_storage',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => PublishStorageConfig },
+        V: { kind: 'message', T: PublishStorageConfig },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -502,34 +489,34 @@ export const ProjectConfig: MessageType<ProjectConfig> =
     typeName: 'bldr.project.ProjectConfig',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'start', kind: 'message', T: () => StartConfig },
+      { no: 2, name: 'start', kind: 'message', T: StartConfig },
       {
         no: 3,
         name: 'manifests',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => ManifestConfig },
+        V: { kind: 'message', T: ManifestConfig },
       },
       {
         no: 4,
         name: 'build',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => BuildConfig },
+        V: { kind: 'message', T: BuildConfig },
       },
       {
         no: 5,
         name: 'remotes',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => RemoteConfig },
+        V: { kind: 'message', T: RemoteConfig },
       },
       {
         no: 6,
         name: 'publish',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => PublishConfig },
+        V: { kind: 'message', T: PublishConfig },
       },
       {
         no: 7,
@@ -539,5 +526,4 @@ export const ProjectConfig: MessageType<ProjectConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

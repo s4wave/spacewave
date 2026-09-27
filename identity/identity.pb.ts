@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'identity'
-
 /**
  * EntityChangeType is an entity change transaction type.
  *
@@ -35,11 +33,7 @@ export enum EntityChangeType {
 
 export const EntityChangeType_Enum = /* @__PURE__ */ createEnumType(
   'identity.EntityChangeType',
-  [
-    [0, 'EntityChangeType_UNKNOWN'],
-    [1, 'EntityChangeType_REGISTER_KEYPAIR'],
-    [2, 'EntityChangeType_REMOVE_KEYPAIR'],
-  ],
+  EntityChangeType,
 )
 
 /**
@@ -83,7 +77,6 @@ export const EntityKeypairSet: MessageType<EntityKeypairSet> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -143,14 +136,8 @@ export const Entity: MessageType<Entity> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
-    {
-      no: 5,
-      name: 'entity_keypair_set',
-      kind: 'message',
-      T: () => EntityKeypairSet,
-    },
+    { no: 5, name: 'entity_keypair_set', kind: 'message', T: EntityKeypairSet },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -198,7 +185,6 @@ export const Keypair: MessageType<Keypair> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'auth_method_params', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -236,9 +222,8 @@ export const EntityKeypair: MessageType<EntityKeypair> =
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'keypair', kind: 'message', T: () => Keypair },
+      { no: 3, name: 'keypair', kind: 'message', T: Keypair },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -270,7 +255,6 @@ export const EntityRef: MessageType<EntityRef> =
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -347,7 +331,6 @@ export const PendingEntityChange: MessageType<PendingEntityChange> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -389,7 +372,6 @@ export const RegisterKeypair: MessageType<RegisterKeypair> =
       { no: 2, name: 'auth_method_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'auth_method_state', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -414,5 +396,4 @@ export const RemoveKeypair: MessageType<RemoveKeypair> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

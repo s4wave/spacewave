@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.document'
-
 /**
  * WebWorkerGenerationState is the browser plugin worker generation lifecycle.
  *
@@ -116,20 +114,7 @@ export enum WebWorkerGenerationState {
 
 export const WebWorkerGenerationState_Enum = /* @__PURE__ */ createEnumType(
   'web.document.WebWorkerGenerationState',
-  [
-    [0, 'WEB_WORKER_GENERATION_STATE_UNKNOWN'],
-    [1, 'WEB_WORKER_GENERATION_STATE_WORKER_REQUESTED'],
-    [2, 'WEB_WORKER_GENERATION_STATE_WORKER_CREATED'],
-    [3, 'WEB_WORKER_GENERATION_STATE_STARTUP_RUNNING'],
-    [4, 'WEB_WORKER_GENERATION_STATE_FRONTEND_READY'],
-    [5, 'WEB_WORKER_GENERATION_STATE_CAPABILITY_READY'],
-    [6, 'WEB_WORKER_GENERATION_STATE_RUNNING'],
-    [7, 'WEB_WORKER_GENERATION_STATE_NORMAL_STOP'],
-    [8, 'WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT'],
-    [9, 'WEB_WORKER_GENERATION_STATE_TERMINAL_FAILURE'],
-    [10, 'WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN'],
-    [11, 'WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET'],
-  ],
+  WebWorkerGenerationState,
 )
 
 /**
@@ -163,11 +148,7 @@ export enum WebWorkerMode {
 
 export const WebWorkerMode_Enum = /* @__PURE__ */ createEnumType(
   'web.document.WebWorkerMode',
-  [
-    [0, 'WORKER_MODE_DEFAULT'],
-    [1, 'WORKER_MODE_SHARED'],
-    [2, 'WORKER_MODE_DEDICATED'],
-  ],
+  WebWorkerMode,
 )
 
 /**
@@ -226,7 +207,6 @@ export const WebViewStatus: MessageType<WebViewStatus> =
       { no: 3, name: 'parent_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'permanent', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -305,7 +285,6 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> =
       },
       { no: 8, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -365,14 +344,14 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
         no: 3,
         name: 'web_views',
         kind: 'message',
-        T: () => WebViewStatus,
+        T: WebViewStatus,
         repeated: true,
       },
       {
         no: 4,
         name: 'web_workers',
         kind: 'message',
-        T: () => WebWorkerStatus,
+        T: WebWorkerStatus,
         repeated: true,
       },
       { no: 5, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
@@ -383,7 +362,6 @@ export const WebDocumentStatus: MessageType<WebDocumentStatus> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -406,7 +384,6 @@ export const CreateWebViewRequest: MessageType<CreateWebViewRequest> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -430,7 +407,6 @@ export const CreateWebViewResponse: MessageType<CreateWebViewResponse> =
     fields: [
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -486,7 +462,6 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 6, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -518,7 +493,6 @@ export const CreateWebWorkerResponse: MessageType<CreateWebWorkerResponse> =
       { no: 1, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'shared', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -548,7 +522,6 @@ export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -572,5 +545,4 @@ export const RemoveWebWorkerResponse: MessageType<RemoveWebWorkerResponse> =
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

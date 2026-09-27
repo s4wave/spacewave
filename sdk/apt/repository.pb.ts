@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.apt'
-
 /**
  * AptRepositoryState is the index lifecycle state of an AptRepository.
  *
@@ -49,12 +47,7 @@ export enum AptRepositoryState {
 
 export const AptRepositoryState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.apt.AptRepositoryState',
-  [
-    [0, 'AptRepositoryState_EMPTY'],
-    [1, 'AptRepositoryState_INDEXING'],
-    [2, 'AptRepositoryState_READY'],
-    [3, 'AptRepositoryState_ERROR'],
-  ],
+  AptRepositoryState,
 )
 
 /**
@@ -94,12 +87,7 @@ export enum AptPackageState {
 
 export const AptPackageState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.apt.AptPackageState',
-  [
-    [0, 'AptPackageState_IMPORTING'],
-    [1, 'AptPackageState_BUILT'],
-    [2, 'AptPackageState_PUBLISHED'],
-    [3, 'AptPackageState_SUPERSEDED'],
-  ],
+  AptPackageState,
 )
 
 /**
@@ -169,7 +157,6 @@ export const AptRepository: MessageType<AptRepository> =
       { no: 5, name: 'signing_key_ref', kind: 'message', T: () => BlockRef },
       { no: 6, name: 'index_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -199,7 +186,6 @@ export const AptPackageChecksum: MessageType<AptPackageChecksum> =
       { no: 1, name: 'algorithm', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'hex', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -311,12 +297,11 @@ export const AptPackage: MessageType<AptPackage> =
         no: 10,
         name: 'checksums',
         kind: 'message',
-        T: () => AptPackageChecksum,
+        T: AptPackageChecksum,
         repeated: true,
       },
       { no: 11, name: 'deb_ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -357,7 +342,6 @@ export const AptBuildConfig: MessageType<AptBuildConfig> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -404,7 +388,7 @@ export const AptBuildSpec: MessageType<AptBuildSpec> =
     fields: [
       { no: 1, name: 'source_package', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'source_ref', kind: 'message', T: () => ObjectRef },
-      { no: 3, name: 'build_config', kind: 'message', T: () => AptBuildConfig },
+      { no: 3, name: 'build_config', kind: 'message', T: AptBuildConfig },
       {
         no: 4,
         name: 'architectures',
@@ -420,7 +404,6 @@ export const AptBuildSpec: MessageType<AptBuildSpec> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -448,9 +431,8 @@ export const CreateAptRepositoryOp: MessageType<CreateAptRepositoryOp> =
     typeName: 's4wave.apt.CreateAptRepositoryOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'repository', kind: 'message', T: () => AptRepository },
+      { no: 2, name: 'repository', kind: 'message', T: AptRepository },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -485,9 +467,8 @@ export const AddAptPackageOp: MessageType<AddAptPackageOp> =
     fields: [
       { no: 1, name: 'repository_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'apt_package', kind: 'message', T: () => AptPackage },
+      { no: 3, name: 'apt_package', kind: 'message', T: AptPackage },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -510,7 +491,6 @@ export const AptPublishPackageOp: MessageType<AptPublishPackageOp> =
     fields: [
       { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -533,7 +513,6 @@ export const AptSupersedePackageOp: MessageType<AptSupersedePackageOp> =
     fields: [
       { no: 1, name: 'package_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -568,7 +547,6 @@ export const AddAptBuildSpecOp: MessageType<AddAptBuildSpecOp> =
     fields: [
       { no: 1, name: 'repository_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'build_spec_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'build_spec', kind: 'message', T: () => AptBuildSpec },
+      { no: 3, name: 'build_spec', kind: 'message', T: AptBuildSpec },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

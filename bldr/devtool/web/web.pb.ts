@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'devtool.web'
-
 /**
  * DevtoolInitBrowser is the message initializing the browser from the devtool.
  *
@@ -92,5 +90,4 @@ export const DevtoolInitBrowser: MessageType<DevtoolInitBrowser> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

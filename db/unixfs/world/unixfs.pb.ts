@@ -13,8 +13,6 @@ import { ObjectRef } from '../../bucket/bucket.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { BlockRef } from '../../block/block.pb.js'
 
-export const protobufPackage = 'unixfs.world'
-
 /**
  * FSType indicates the type of unixfs reference.
  *
@@ -53,12 +51,7 @@ export enum FSType {
 
 export const FSType_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.world.FSType',
-  [
-    [0, 'FSType_UNKNOWN'],
-    [1, 'FSType_FS_NODE'],
-    [2, 'FSType_FS_OBJECT'],
-    [3, 'FSType_FS_HOST_VOLUME'],
-  ],
+  FSType,
 )
 
 /**
@@ -98,7 +91,6 @@ export const UnixfsRef: MessageType<UnixfsRef> =
       { no: 2, name: 'fs_type', kind: 'enum', T: FSType_Enum },
       { no: 3, name: 'path', kind: 'message', T: () => FSPath },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -152,7 +144,6 @@ export const FsInitOp: MessageType<FsInitOp> =
       { no: 5, name: 'fs_overwrite', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -220,7 +211,6 @@ export const FsMknodOp: MessageType<FsMknodOp> =
       { no: 5, name: 'node_type', kind: 'enum', T: NodeType_Enum },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -274,7 +264,6 @@ export const FsSymlinkOp: MessageType<FsSymlinkOp> =
       { no: 4, name: 'symlink', kind: 'message', T: () => FSSymlink },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -335,7 +324,6 @@ export const FsSetPermissionsOp: MessageType<FsSetPermissionsOp> =
       { no: 4, name: 'permissions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -388,7 +376,6 @@ export const FsSetModTimestampOp: MessageType<FsSetModTimestampOp> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -449,7 +436,6 @@ export const FsWriteAtOp: MessageType<FsWriteAtOp> =
       { no: 5, name: 'blob_ref', kind: 'message', T: () => BlockRef },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -504,7 +490,6 @@ export const FsTruncateOp: MessageType<FsTruncateOp> =
       { no: 4, name: 'file_size', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -559,7 +544,6 @@ export const FsCopyOp: MessageType<FsCopyOp> =
       { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -615,7 +599,6 @@ export const FsRenameOp: MessageType<FsRenameOp> =
       { no: 4, name: 'dest_path', kind: 'message', T: () => FSPath },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -686,7 +669,6 @@ export const FsMknodWithContentOp: MessageType<FsMknodWithContentOp> =
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 7, name: 'blob_ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -739,7 +721,6 @@ export const FsRemoveOp: MessageType<FsRemoveOp> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -772,7 +753,6 @@ export const MountValue: MessageType<MountValue> =
       { no: 1, name: 'mountpoint', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -806,5 +786,4 @@ export const RefValue: MessageType<RefValue> =
       { no: 1, name: 'fs_type', kind: 'enum', T: FSType_Enum },
       { no: 2, name: 'path', kind: 'message', T: () => FSPath },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

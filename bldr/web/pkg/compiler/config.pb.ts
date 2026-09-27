@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.pkg.compiler'
-
 /**
  * Config configures the web package builder.
  *
@@ -108,5 +106,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 8, name: 'delve_addr', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

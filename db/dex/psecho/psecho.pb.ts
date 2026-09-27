@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'psecho'
-
 /**
  * PubSubMessage is gossipped on the pub-sub channel.
  *
@@ -68,5 +66,4 @@ export const PubSubMessage: MessageType<PubSubMessage> =
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

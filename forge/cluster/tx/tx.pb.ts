@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'cluster.tx'
-
 /**
  * TxType indicates the kind of transaction.
  *
@@ -22,9 +20,10 @@ export enum TxType {
   TxType_INVALID = 0,
 }
 
-export const TxType_Enum = /* @__PURE__ */ createEnumType('cluster.tx.TxType', [
-  [0, 'TxType_INVALID'],
-])
+export const TxType_Enum = /* @__PURE__ */ createEnumType(
+  'cluster.tx.TxType',
+  TxType,
+)
 
 /**
  * Tx is the on-the-wire representation of a transaction.
@@ -53,5 +52,4 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
     { no: 2, name: 'cluster_object_key', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

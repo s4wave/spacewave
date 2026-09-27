@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.plugin.host'
-
 /**
  * CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
  *
@@ -75,7 +73,6 @@ export const AccessAssetsFSResponse: MessageType<AccessAssetsFSResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -111,7 +108,6 @@ export const AccessDistFSResponse: MessageType<AccessDistFSResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -147,7 +143,6 @@ export const AccessVolumeResponse: MessageType<AccessVolumeResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -170,7 +165,6 @@ export const AccessStateAtomRequest: MessageType<AccessStateAtomRequest> =
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -193,7 +187,6 @@ export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -229,7 +222,6 @@ export const AccessDesktopTrayResponse: MessageType<AccessDesktopTrayResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -272,5 +264,4 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

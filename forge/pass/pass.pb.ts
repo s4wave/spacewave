@@ -14,8 +14,6 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 
-export const protobufPackage = 'forge.pass'
-
 /**
  * State contains the possible Pass states.
  *
@@ -70,14 +68,10 @@ export enum State {
   PassState_CANCELING = 5,
 }
 
-export const State_Enum = /* @__PURE__ */ createEnumType('forge.pass.State', [
-  [0, 'PassState_UNKNOWN'],
-  [1, 'PassState_PENDING'],
-  [2, 'PassState_RUNNING'],
-  [3, 'PassState_CHECKING'],
-  [4, 'PassState_COMPLETE'],
-  [5, 'PassState_CANCELING'],
-])
+export const State_Enum = /* @__PURE__ */ createEnumType(
+  'forge.pass.State',
+  State,
+)
 
 /**
  * ExecState contains the previous snapshot of an execution state.
@@ -138,7 +132,6 @@ export const ExecState: MessageType<ExecState> =
       { no: 5, name: 'value_set', kind: 'message', T: () => ValueSet },
       { no: 6, name: 'result', kind: 'message', T: () => Result },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -248,10 +241,9 @@ export const Pass: MessageType<Pass> = /* @__PURE__ */ createMessageType({
       no: 8,
       name: 'exec_states',
       kind: 'message',
-      T: () => ExecState,
+      T: ExecState,
       repeated: true,
     },
     { no: 9, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

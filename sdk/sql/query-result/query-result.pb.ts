@@ -12,8 +12,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ColumnSchema, RowBatch } from '../../../db/sql/sql.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.sql.query_result'
-
 /**
  * QueryResultError captures a SQL execution error.
  *
@@ -34,7 +32,6 @@ export const QueryResultError: MessageType<QueryResultError> =
     fields: [
       { no: 1, name: 'message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,7 +110,7 @@ export const QueryResult: MessageType<QueryResult> =
       },
       { no: 3, name: 'executed_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 5, name: 'error', kind: 'message', T: () => QueryResultError },
+      { no: 5, name: 'error', kind: 'message', T: QueryResultError },
       {
         no: 6,
         name: 'source_query_object_key',
@@ -128,7 +125,6 @@ export const QueryResult: MessageType<QueryResult> =
       },
       { no: 8, name: 'row_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -220,7 +216,7 @@ export const GetResultGridResponse: MessageType<GetResultGridResponse> =
       },
       { no: 3, name: 'executed_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 5, name: 'error', kind: 'message', T: () => QueryResultError },
+      { no: 5, name: 'error', kind: 'message', T: QueryResultError },
       {
         no: 6,
         name: 'source_query_object_key',
@@ -235,5 +231,4 @@ export const GetResultGridResponse: MessageType<GetResultGridResponse> =
       },
       { no: 8, name: 'row_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

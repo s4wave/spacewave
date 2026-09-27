@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'rbac'
-
 /**
  * RbacScope defines the scope level for role bindings.
  *
@@ -37,12 +35,10 @@ export enum RbacScope {
   RESOURCE = 3,
 }
 
-export const RbacScope_Enum = /* @__PURE__ */ createEnumType('rbac.RbacScope', [
-  [0, 'RBAC_SCOPE_UNKNOWN'],
-  [1, 'RBAC_SCOPE_PLATFORM'],
-  [2, 'RBAC_SCOPE_ORGANIZATION'],
-  [3, 'RBAC_SCOPE_RESOURCE'],
-])
+export const RbacScope_Enum = /* @__PURE__ */ createEnumType(
+  'rbac.RbacScope',
+  RbacScope,
+)
 
 /**
  * RbacRule defines a permission rule granting verbs on a resource type.
@@ -77,7 +73,6 @@ export const RbacRule: MessageType<RbacRule> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -118,16 +113,9 @@ export const RbacRole: MessageType<RbacRole> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 3,
-        name: 'rules',
-        kind: 'message',
-        T: () => RbacRule,
-        repeated: true,
-      },
+      { no: 3, name: 'rules', kind: 'message', T: RbacRule, repeated: true },
       { no: 4, name: 'builtin', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -185,7 +173,6 @@ export const RbacRoleBinding: MessageType<RbacRoleBinding> =
       { no: 5, name: 'scope_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -212,20 +199,13 @@ export const RbacConfig: MessageType<RbacConfig> =
   /* @__PURE__ */ createMessageType({
     typeName: 'rbac.RbacConfig',
     fields: [
-      {
-        no: 1,
-        name: 'roles',
-        kind: 'message',
-        T: () => RbacRole,
-        repeated: true,
-      },
+      { no: 1, name: 'roles', kind: 'message', T: RbacRole, repeated: true },
       {
         no: 2,
         name: 'bindings',
         kind: 'message',
-        T: () => RbacRoleBinding,
+        T: RbacRoleBinding,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

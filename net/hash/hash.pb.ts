@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'hash'
-
 /**
  * HashType identifies the hash type in use.
  *
@@ -47,12 +45,10 @@ export enum HashType {
   HashType_BLAKE3 = 3,
 }
 
-export const HashType_Enum = /* @__PURE__ */ createEnumType('hash.HashType', [
-  [0, 'HashType_UNKNOWN'],
-  [1, 'HashType_SHA256'],
-  [2, 'HashType_SHA1'],
-  [3, 'HashType_BLAKE3'],
-])
+export const HashType_Enum = /* @__PURE__ */ createEnumType(
+  'hash.HashType',
+  HashType,
+)
 
 /**
  * Hash is a hash of a binary blob.
@@ -80,5 +76,4 @@ export const Hash: MessageType<Hash> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 2, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

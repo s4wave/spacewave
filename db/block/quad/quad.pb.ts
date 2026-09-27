@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'quad'
-
 /**
  * Quad implements a graph quad backed by a protobuf.
  *
@@ -49,5 +47,4 @@ export const Quad: MessageType<Quad> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'obj', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

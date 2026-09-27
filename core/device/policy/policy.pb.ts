@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { DeviceCheckoutRootAccess } from '../../../sdk/device/device.pb.js'
 import { DeviceCheckoutRootAccess_Enum } from '../../../sdk/device/device.pb.js'
 
-export const protobufPackage = 's4wave.device.policy'
-
 /**
  * RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
  *
@@ -38,7 +36,6 @@ export const RemoteShellPolicy: MessageType<RemoteShellPolicy> =
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -75,7 +72,6 @@ export const CheckoutRootPolicy: MessageType<CheckoutRootPolicy> =
       { no: 2, name: 'local_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'access', kind: 'enum', T: DeviceCheckoutRootAccess_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -130,7 +126,6 @@ export const ForgeWorkerPolicy: MessageType<ForgeWorkerPolicy> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -171,25 +166,14 @@ export const DevicePolicy: MessageType<DevicePolicy> =
     typeName: 's4wave.device.policy.DevicePolicy',
     fields: [
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
-      {
-        no: 2,
-        name: 'remote_shell',
-        kind: 'message',
-        T: () => RemoteShellPolicy,
-      },
+      { no: 2, name: 'remote_shell', kind: 'message', T: RemoteShellPolicy },
       {
         no: 3,
         name: 'checkout_root',
         kind: 'message',
-        T: () => CheckoutRootPolicy,
+        T: CheckoutRootPolicy,
         repeated: true,
       },
-      {
-        no: 4,
-        name: 'forge_worker',
-        kind: 'message',
-        T: () => ForgeWorkerPolicy,
-      },
+      { no: 4, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

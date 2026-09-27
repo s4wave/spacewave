@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.git'
-
 /**
  * RefInfo contains information about a git reference.
  *
@@ -45,7 +43,6 @@ export const RefInfo: MessageType<RefInfo> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'commit_hash', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'is_head', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -109,7 +106,6 @@ export const CommitInfo: MessageType<CommitInfo> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -155,23 +151,10 @@ export const ListRefsResponse: MessageType<ListRefsResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.ListRefsResponse',
     fields: [
-      {
-        no: 1,
-        name: 'branches',
-        kind: 'message',
-        T: () => RefInfo,
-        repeated: true,
-      },
-      {
-        no: 2,
-        name: 'tags',
-        kind: 'message',
-        T: () => RefInfo,
-        repeated: true,
-      },
+      { no: 1, name: 'branches', kind: 'message', T: RefInfo, repeated: true },
+      { no: 2, name: 'tags', kind: 'message', T: RefInfo, repeated: true },
       { no: 3, name: 'head_ref', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -194,7 +177,6 @@ export const ResolveRefRequest: MessageType<ResolveRefRequest> =
     fields: [
       { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -224,7 +206,6 @@ export const ResolveRefResponse: MessageType<ResolveRefResponse> =
       { no: 1, name: 'commit_hash', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'tree_hash', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -285,10 +266,9 @@ export const GetRepoInfoResponse: MessageType<GetRepoInfoResponse> =
       { no: 1, name: 'head_ref', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'head_commit_hash', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'readme_path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'last_commit', kind: 'message', T: () => CommitInfo },
+      { no: 4, name: 'last_commit', kind: 'message', T: CommitInfo },
       { no: 5, name: 'is_empty', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -312,7 +292,6 @@ export const GetTreeResourceRequest: MessageType<GetTreeResourceRequest> =
     fields: [
       { no: 1, name: 'ref_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -335,7 +314,6 @@ export const GetTreeResourceResponse: MessageType<GetTreeResourceResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -358,7 +336,6 @@ export const GetRepoFilesystemResourceRequest: MessageType<GetRepoFilesystemReso
     fields: [
       { no: 1, name: 'writable', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -381,7 +358,6 @@ export const GetRepoFilesystemResourceResponse: MessageType<GetRepoFilesystemRes
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -425,7 +401,6 @@ export const LogRequest: MessageType<LogRequest> =
       { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'since_ref', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -456,12 +431,11 @@ export const LogResponse: MessageType<LogResponse> =
         no: 1,
         name: 'commits',
         kind: 'message',
-        T: () => CommitInfo,
+        T: CommitInfo,
         repeated: true,
       },
       { no: 2, name: 'has_more', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -484,7 +458,6 @@ export const GetCommitRequest: MessageType<GetCommitRequest> =
     fields: [
       { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -505,9 +478,8 @@ export const GetCommitResponse: MessageType<GetCommitResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.git.GetCommitResponse',
     fields: [
-      { no: 1, name: 'commit', kind: 'message', T: () => CommitInfo },
+      { no: 1, name: 'commit', kind: 'message', T: CommitInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -537,7 +509,6 @@ export const GetDiffStatRequest: MessageType<GetDiffStatRequest> =
       { no: 1, name: 'ref_a', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref_b', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -574,7 +545,6 @@ export const DiffFileStat: MessageType<DiffFileStat> =
       { no: 2, name: 'additions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'deletions', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -611,13 +581,12 @@ export const GetDiffStatResponse: MessageType<GetDiffStatResponse> =
         no: 1,
         name: 'files',
         kind: 'message',
-        T: () => DiffFileStat,
+        T: DiffFileStat,
         repeated: true,
       },
       { no: 2, name: 'total_additions', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'total_deletions', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -647,7 +616,6 @@ export const GetDiffPatchRequest: MessageType<GetDiffPatchRequest> =
       { no: 1, name: 'ref_a', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref_b', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -691,5 +659,4 @@ export const GetDiffPatchResponse: MessageType<GetDiffPatchResponse> =
       { no: 3, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'limit_bytes', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

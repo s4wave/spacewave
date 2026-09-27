@@ -8,8 +8,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bstore'
-
 /**
  * BlockStoreParticipantRole defines the general role of a shared object participant.
  * In order of least permissive to most permissive.
@@ -48,12 +46,7 @@ export enum BlockStoreParticipantRole {
 
 export const BlockStoreParticipantRole_Enum = /* @__PURE__ */ createEnumType(
   'bstore.BlockStoreParticipantRole',
-  [
-    [0, 'BlockStoreParticipantRole_UNKNOWN'],
-    [1, 'BlockStoreParticipantRole_READER'],
-    [2, 'BlockStoreParticipantRole_WRITER'],
-    [3, 'BlockStoreParticipantRole_OWNER'],
-  ],
+  BlockStoreParticipantRole,
 )
 
 /**
@@ -81,5 +74,4 @@ export const BlockStoreRef: MessageType<BlockStoreRef> =
         T: () => ProviderResourceRef,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

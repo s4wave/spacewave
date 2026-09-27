@@ -13,8 +13,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result, Value } from '../../value/value.pb.js'
 import { LogEntry } from '../execution.pb.js'
 
-export const protobufPackage = 'execution.tx'
-
 /**
  * TxType indicates the kind of transaction.
  *
@@ -78,16 +76,7 @@ export enum TxType {
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
   'execution.tx.TxType',
-  [
-    [0, 'TxType_INVALID'],
-    [1, 'TxType_START'],
-    [2, 'TxType_SET_OUTPUTS'],
-    [3, 'TxType_COMPLETE'],
-    [4, 'TxType_APPEND_LOG'],
-    [5, 'TxType_CANCEL'],
-    [6, 'TxType_RECLAIM'],
-    [7, 'TxType_SET_WAITING_PLUGIN'],
-  ],
+  TxType,
 )
 
 /**
@@ -120,7 +109,6 @@ export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -173,7 +161,6 @@ export const TxSetOutputs: MessageType<TxSetOutputs> =
       { no: 3, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -214,7 +201,6 @@ export const TxComplete: MessageType<TxComplete> =
       { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -260,7 +246,6 @@ export const TxAppendLog: MessageType<TxAppendLog> =
       { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -318,7 +303,6 @@ export const TxReclaim: MessageType<TxReclaim> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -355,7 +339,6 @@ export const TxSetWaitingPlugin: MessageType<TxSetWaitingPlugin> =
       { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -424,18 +407,17 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'execution.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
-    { no: 2, name: 'tx_start', kind: 'message', T: () => TxStart },
-    { no: 3, name: 'tx_set_outputs', kind: 'message', T: () => TxSetOutputs },
-    { no: 4, name: 'tx_complete', kind: 'message', T: () => TxComplete },
-    { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
-    { no: 6, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
-    { no: 7, name: 'tx_reclaim', kind: 'message', T: () => TxReclaim },
+    { no: 2, name: 'tx_start', kind: 'message', T: TxStart },
+    { no: 3, name: 'tx_set_outputs', kind: 'message', T: TxSetOutputs },
+    { no: 4, name: 'tx_complete', kind: 'message', T: TxComplete },
+    { no: 5, name: 'tx_append_log', kind: 'message', T: TxAppendLog },
+    { no: 6, name: 'tx_cancel', kind: 'message', T: TxCancel },
+    { no: 7, name: 'tx_reclaim', kind: 'message', T: TxReclaim },
     {
       no: 8,
       name: 'tx_set_waiting_plugin',
       kind: 'message',
-      T: () => TxSetWaitingPlugin,
+      T: TxSetWaitingPlugin,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

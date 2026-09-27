@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'resource.state'
-
 /**
  * GetStateRequest is the request for GetState.
  *
@@ -52,7 +50,6 @@ export const GetStateResponse: MessageType<GetStateResponse> =
       { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -75,7 +72,6 @@ export const SetStateRequest: MessageType<SetStateRequest> =
     fields: [
       { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -98,7 +94,6 @@ export const SetStateResponse: MessageType<SetStateResponse> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -141,5 +136,4 @@ export const WatchStateResponse: MessageType<WatchStateResponse> =
       { no: 1, name: 'state_json', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

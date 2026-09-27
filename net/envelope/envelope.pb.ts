@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'envelope'
-
 /**
  * EnvelopeGrant is an encrypted bundle of shares.
  * The grant ciphertext contains a marshaled EnvelopeGrantInner.
@@ -53,7 +51,6 @@ export const EnvelopeGrant: MessageType<EnvelopeGrant> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -96,7 +93,6 @@ export const EnvelopeKeypair: MessageType<EnvelopeKeypair> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -171,19 +167,18 @@ export const Envelope: MessageType<Envelope> =
         no: 5,
         name: 'grants',
         kind: 'message',
-        T: () => EnvelopeGrant,
+        T: EnvelopeGrant,
         repeated: true,
       },
       {
         no: 6,
         name: 'keypairs',
         kind: 'message',
-        T: () => EnvelopeKeypair,
+        T: EnvelopeKeypair,
         repeated: true,
       },
       { no: 7, name: 'contents', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -213,7 +208,6 @@ export const EnvelopeShare: MessageType<EnvelopeShare> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -238,11 +232,10 @@ export const EnvelopeGrantInner: MessageType<EnvelopeGrantInner> =
         no: 1,
         name: 'shares',
         kind: 'message',
-        T: () => EnvelopeShare,
+        T: EnvelopeShare,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -280,7 +273,6 @@ export const EnvelopeGrantConfig: MessageType<EnvelopeGrantConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -328,11 +320,10 @@ export const EnvelopeConfig: MessageType<EnvelopeConfig> =
         no: 4,
         name: 'grant_configs',
         kind: 'message',
-        T: () => EnvelopeGrantConfig,
+        T: EnvelopeGrantConfig,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -382,5 +373,4 @@ export const EnvelopeUnlockResult: MessageType<EnvelopeUnlockResult> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

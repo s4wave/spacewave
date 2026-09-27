@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'store.kvtx.redis'
-
 /**
  * ClientConfig configures a redis client.
  *
@@ -29,5 +27,4 @@ export const ClientConfig: MessageType<ClientConfig> =
     fields: [
       { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

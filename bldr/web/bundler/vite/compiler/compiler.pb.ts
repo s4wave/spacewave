@@ -11,8 +11,6 @@ import { WebPkgRefConfig } from '../../bundler.pb.js'
 import { WebPkgRef } from '../../../pkg/pkg.pb.js'
 import { ViteOutputMeta } from '../vite.pb.js'
 
-export const protobufPackage = 'bldr.web.bundler.vite.compiler'
-
 /**
  * InputFileKind is the kind of file this is.
  *
@@ -43,11 +41,7 @@ export enum InputFileKind {
 
 export const InputFileKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.bundler.vite.compiler.InputFileKind',
-  [
-    [0, 'InputFileKind_UNKNOWN'],
-    [1, 'InputFileKind_VITE'],
-    [2, 'InputFileKind_WEB_PKG'],
-  ],
+  InputFileKind,
 )
 
 /**
@@ -70,7 +64,6 @@ export const ViteBundleEntrypoint: MessageType<ViteBundleEntrypoint> =
     fields: [
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -136,7 +129,7 @@ export const ViteBundleMeta: MessageType<ViteBundleMeta> =
         no: 2,
         name: 'entrypoints',
         kind: 'message',
-        T: () => ViteBundleEntrypoint,
+        T: ViteBundleEntrypoint,
         repeated: true,
       },
       { no: 3, name: 'public_path', kind: 'scalar', T: ScalarType.STRING },
@@ -162,7 +155,6 @@ export const ViteBundleMeta: MessageType<ViteBundleMeta> =
       },
       { no: 7, name: 'bundle_web_pkgs', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -233,7 +225,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 1,
       name: 'bundles',
       kind: 'message',
-      T: () => ViteBundleMeta,
+      T: ViteBundleMeta,
       repeated: true,
     },
     {
@@ -271,7 +263,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => Config },
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -293,9 +284,8 @@ export const PreBuildHookResult: MessageType<PreBuildHookResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.web.bundler.vite.compiler.PreBuildHookResult',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => Config },
+      { no: 1, name: 'config', kind: 'message', T: Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -318,7 +308,6 @@ export const InputFileMeta: MessageType<InputFileMeta> =
     fields: [
       { no: 1, name: 'kind', kind: 'enum', T: InputFileKind_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -400,7 +389,7 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         no: 5,
         name: 'vite_bundles',
         kind: 'message',
-        T: () => ViteBundleMeta,
+        T: ViteBundleMeta,
         repeated: true,
       },
       {
@@ -411,5 +400,4 @@ export const InputManifestMeta: MessageType<InputManifestMeta> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

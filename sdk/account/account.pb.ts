@@ -22,8 +22,6 @@ import {
   EntityKeypair,
 } from '../../core/session/session.pb.js'
 
-export const protobufPackage = 's4wave.account'
-
 /**
  * AccountSessionKind identifies the provider-side session model for a row.
  *
@@ -56,11 +54,7 @@ export enum AccountSessionKind {
 
 export const AccountSessionKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.account.AccountSessionKind',
-  [
-    [0, 'AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED'],
-    [1, 'AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION'],
-    [2, 'AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION'],
-  ],
+  AccountSessionKind,
 )
 
 /**
@@ -128,33 +122,7 @@ export enum AccountEscalationIntentKind {
 
 export const AccountEscalationIntentKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.account.AccountEscalationIntentKind',
-  [
-    [
-      0,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED',
-    ],
-    [
-      1,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION',
-    ],
-    [
-      2,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD',
-    ],
-    [
-      3,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY',
-    ],
-    [4, 'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_LINK_SSO'],
-    [
-      5,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_SET_SECURITY_LEVEL',
-    ],
-    [
-      6,
-      'AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_CHANGE_PASSWORD',
-    ],
-  ],
+  AccountEscalationIntentKind,
 )
 
 /**
@@ -218,7 +186,6 @@ export const WatchAccountInfoResponse: MessageType<WatchAccountInfoResponse> =
       { no: 4, name: 'auth_threshold', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'keypair_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -266,7 +233,6 @@ export const WatchKeybindingOverridesResponse: MessageType<WatchKeybindingOverri
       },
       { no: 2, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -308,7 +274,6 @@ export const WatchAuthMethodsResponse: MessageType<WatchAuthMethodsResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -395,7 +360,6 @@ export const AccountSession: MessageType<AccountSession> =
       { no: 9, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 10, name: 'last_seen_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -433,11 +397,10 @@ export const WatchSessionsResponse: MessageType<WatchSessionsResponse> =
         no: 1,
         name: 'sessions',
         kind: 'message',
-        T: () => AccountSession,
+        T: AccountSession,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -468,7 +431,6 @@ export const AddAuthMethodRequest: MessageType<AddAuthMethodRequest> =
       { no: 1, name: 'keypair', kind: 'message', T: () => EntityKeypair },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -512,7 +474,6 @@ export const RemoveAuthMethodRequest: MessageType<RemoveAuthMethodRequest> =
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -556,7 +517,6 @@ export const SetSecurityLevelRequest: MessageType<SetSecurityLevelRequest> =
       { no: 1, name: 'threshold', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -602,7 +562,6 @@ export const RevokeSessionRequest: MessageType<RevokeSessionRequest> =
       { no: 1, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -638,7 +597,6 @@ export const GenerateBackupKeyRequest: MessageType<GenerateBackupKeyRequest> =
     fields: [
       { no: 1, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -668,7 +626,6 @@ export const GenerateBackupKeyResponse: MessageType<GenerateBackupKeyResponse> =
       { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -698,7 +655,6 @@ export const ChangePasswordRequest: MessageType<ChangePasswordRequest> =
       { no: 1, name: 'old_password', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'new_password', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -741,7 +697,6 @@ export const EntityKeypairState: MessageType<EntityKeypairState> =
       { no: 1, name: 'keypair', kind: 'message', T: () => EntityKeypair },
       { no: 2, name: 'unlocked', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -785,12 +740,11 @@ export const WatchEntityKeypairsResponse: MessageType<WatchEntityKeypairsRespons
         no: 1,
         name: 'keypairs',
         kind: 'message',
-        T: () => EntityKeypairState,
+        T: EntityKeypairState,
         repeated: true,
       },
       { no: 2, name: 'unlocked_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -854,7 +808,6 @@ export const AccountEscalationIntent: MessageType<AccountEscalationIntent> =
       { no: 5, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -912,7 +865,6 @@ export const AccountEscalationMethod: MessageType<AccountEscalationMethod> =
       { no: 5, name: 'provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'unlocked', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -956,7 +908,6 @@ export const AccountEscalationRequirement: MessageType<AccountEscalationRequirem
       { no: 3, name: 'unlocked_signers', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'total_methods', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -989,27 +940,21 @@ export const AccountEscalationState: MessageType<AccountEscalationState> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.AccountEscalationState',
     fields: [
-      {
-        no: 1,
-        name: 'intent',
-        kind: 'message',
-        T: () => AccountEscalationIntent,
-      },
+      { no: 1, name: 'intent', kind: 'message', T: AccountEscalationIntent },
       {
         no: 2,
         name: 'requirement',
         kind: 'message',
-        T: () => AccountEscalationRequirement,
+        T: AccountEscalationRequirement,
       },
       {
         no: 3,
         name: 'methods',
         kind: 'message',
-        T: () => AccountEscalationMethod,
+        T: AccountEscalationMethod,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1039,7 +984,6 @@ export const UnlockEntityKeypairRequest: MessageType<UnlockEntityKeypairRequest>
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1082,7 +1026,6 @@ export const SignWithEntityKeypairRequest: MessageType<SignWithEntityKeypairRequ
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1105,7 +1048,6 @@ export const SignWithEntityKeypairResponse: MessageType<SignWithEntityKeypairRes
     fields: [
       { no: 1, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1128,7 +1070,6 @@ export const LockEntityKeypairRequest: MessageType<LockEntityKeypairRequest> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1204,7 +1145,6 @@ export const SSOCodeExchangeRequest: MessageType<SSOCodeExchangeRequest> =
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1276,7 +1216,6 @@ export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
       { no: 7, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1330,7 +1269,6 @@ export const LinkSSORequest: MessageType<LinkSSORequest> =
       { no: 4, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1395,7 +1333,6 @@ export const StartDesktopPasskeyRegisterResponse: MessageType<StartDesktopPasske
       { no: 2, name: 'ws_ticket', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'open_url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1461,7 +1398,6 @@ export const StartDesktopPasskeyRegisterHandoffResponse: MessageType<StartDeskto
       { no: 4, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1497,7 +1433,6 @@ export const PasskeyRegisterOptionsResponse: MessageType<PasskeyRegisterOptionsR
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1560,7 +1495,6 @@ export const PasskeyRegisterVerifyRequest: MessageType<PasskeyRegisterVerifyRequ
       { no: 6, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1583,7 +1517,6 @@ export const PasskeyRegisterVerifyResponse: MessageType<PasskeyRegisterVerifyRes
     fields: [
       { no: 1, name: 'credential_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1623,7 +1556,6 @@ export const ReplaceKeybindingOverrideSetRequest: MessageType<ReplaceKeybindingO
         T: () => KeybindingOverrideSet,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

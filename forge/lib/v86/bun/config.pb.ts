@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.lib.v86.bun'
-
 /**
  * Config configures the v86 bun subprocess controller.
  * Boots a v86 VM via a bun subprocess with v86fs mounts and runs commands.
@@ -118,5 +116,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'script_dir', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'rootfs_tar_path', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

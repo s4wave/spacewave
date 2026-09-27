@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'unixfs.mount.fuse'
-
 /**
  * Config configures the FUSE mount controller.
  * The FUSE mount controller mounts directly with immediate writeback mode.
@@ -59,5 +57,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'allow_dev', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'allow_suid', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

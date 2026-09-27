@@ -12,8 +12,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.block'
-
 /**
  * Config is the block graph backed hydra volume config.
  *
@@ -147,7 +145,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => Config$4,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -172,5 +169,4 @@ export const HeadState: MessageType<HeadState> =
     fields: [
       { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

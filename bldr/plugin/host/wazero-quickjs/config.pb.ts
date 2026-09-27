@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 'plugin.host.wazero_quickjs'
-
 /**
  * Config is the Wazero QuickJS PluginHost controller configuration.
  * Uses QuickJS running as WASI in Wazero to execute JavaScript plugins.

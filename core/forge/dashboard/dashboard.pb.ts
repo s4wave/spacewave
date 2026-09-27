@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.forge.dashboard'
-
 /**
  * ForgeDashboard is a unified control panel linking to Forge entities in a
  * Space. Links to Forge entities via dashboard/forge-ref graph edges.
@@ -38,7 +36,6 @@ export const ForgeDashboard: MessageType<ForgeDashboard> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -75,7 +72,6 @@ export const CreateForgeDashboardOp: MessageType<CreateForgeDashboardOp> =
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -105,7 +101,6 @@ export const LinkForgeDashboardOp: MessageType<LinkForgeDashboardOp> =
       { no: 1, name: 'dashboard_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entity_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -174,5 +169,4 @@ export const InitForgeQuickstartOp: MessageType<InitForgeQuickstartOp> =
       { no: 6, name: 'worker_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

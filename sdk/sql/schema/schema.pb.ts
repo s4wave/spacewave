@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.sql.schema'
-
 /**
  * Schema is a standalone SQL schema world object.
  *
@@ -57,7 +55,6 @@ export const Schema: MessageType<Schema> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'description', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -91,9 +88,8 @@ export const GetSchemaResponse: MessageType<GetSchemaResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sql.schema.GetSchemaResponse',
     fields: [
-      { no: 1, name: 'schema', kind: 'message', T: () => Schema },
+      { no: 1, name: 'schema', kind: 'message', T: Schema },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -129,7 +125,6 @@ export const TableInfo: MessageType<TableInfo> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -150,13 +145,6 @@ export const ListTablesResponse: MessageType<ListTablesResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sql.schema.ListTablesResponse',
     fields: [
-      {
-        no: 1,
-        name: 'tables',
-        kind: 'message',
-        T: () => TableInfo,
-        repeated: true,
-      },
+      { no: 1, name: 'tables', kind: 'message', T: TableInfo, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

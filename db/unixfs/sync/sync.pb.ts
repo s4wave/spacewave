@@ -4,8 +4,6 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 
-export const protobufPackage = 'unixfs.sync'
-
 /**
  * DeleteMode is the set of available delete modes for Sync.
  *
@@ -51,11 +49,5 @@ export enum DeleteMode {
 
 export const DeleteMode_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.sync.DeleteMode',
-  [
-    [0, 'DeleteMode_NONE'],
-    [1, 'DeleteMode_BEFORE'],
-    [2, 'DeleteMode_DURING'],
-    [3, 'DeleteMode_AFTER'],
-    [4, 'DeleteMode_ONLY'],
-  ],
+  DeleteMode,
 )

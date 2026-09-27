@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.cluster'
-
 /**
  * Cluster associates a set of Worker with a list of Jobs.
  * The name is used for API calls and command-line / UI tools.
@@ -50,7 +48,6 @@ export const Cluster: MessageType<Cluster> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -89,7 +86,6 @@ export const ClusterCreateOp: MessageType<ClusterCreateOp> =
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -121,7 +117,6 @@ export const ClusterAssignPeerOp: MessageType<ClusterAssignPeerOp> =
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -151,7 +146,6 @@ export const ClusterAssignJobOp: MessageType<ClusterAssignJobOp> =
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -181,7 +175,6 @@ export const ClusterAssignWorkerOp: MessageType<ClusterAssignWorkerOp> =
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'worker_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -211,7 +204,6 @@ export const ClusterStartJobOp: MessageType<ClusterStartJobOp> =
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -249,7 +241,6 @@ export const ClusterAssignTaskOp: MessageType<ClusterAssignTaskOp> =
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -283,5 +274,4 @@ export const ClusterCompleteJobOp: MessageType<ClusterCompleteJobOp> =
       { no: 1, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

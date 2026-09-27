@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave.api'
-
 /**
  * ApplicationState controls all Sessions and provisioning within an application.
  *
@@ -47,12 +45,7 @@ export enum ApplicationState {
 
 export const ApplicationState_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.ApplicationState',
-  [
-    [0, 'APPLICATION_STATE_UNKNOWN'],
-    [1, 'APPLICATION_STATE_ACTIVE'],
-    [2, 'APPLICATION_STATE_PAUSED'],
-    [3, 'APPLICATION_STATE_DISABLED'],
-  ],
+  ApplicationState,
 )
 
 /**
@@ -85,11 +78,7 @@ export enum ApplicationFunding {
 
 export const ApplicationFunding_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.ApplicationFunding',
-  [
-    [0, 'APPLICATION_FUNDING_UNKNOWN'],
-    [1, 'APPLICATION_FUNDING_OPERATOR'],
-    [2, 'APPLICATION_FUNDING_APERTURE'],
-  ],
+  ApplicationFunding,
 )
 
 /**
@@ -178,7 +167,6 @@ export const Application: MessageType<Application> =
       { no: 8, name: 'updated_at_ms', kind: 'scalar', T: ScalarType.INT64 },
       { no: 9, name: 'funding', kind: 'enum', T: ApplicationFunding_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -221,7 +209,6 @@ export const RegisterApplicationRequest: MessageType<RegisterApplicationRequest>
       },
       { no: 3, name: 'request_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -242,9 +229,8 @@ export const RegisterApplicationResponse: MessageType<RegisterApplicationRespons
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.api.RegisterApplicationResponse',
     fields: [
-      { no: 1, name: 'application', kind: 'message', T: () => Application },
+      { no: 1, name: 'application', kind: 'message', T: Application },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -267,7 +253,6 @@ export const GetApplicationRequest: MessageType<GetApplicationRequest> =
     fields: [
       { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -288,9 +273,8 @@ export const GetApplicationResponse: MessageType<GetApplicationResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.api.GetApplicationResponse',
     fields: [
-      { no: 1, name: 'application', kind: 'message', T: () => Application },
+      { no: 1, name: 'application', kind: 'message', T: Application },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -345,7 +329,6 @@ export const SetApplicationFundingRequest: MessageType<SetApplicationFundingRequ
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -413,7 +396,6 @@ export const ApplicationFundingAssignment: MessageType<ApplicationFundingAssignm
       },
       { no: 6, name: 'started_at_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -438,10 +420,9 @@ export const SetApplicationFundingResponse: MessageType<SetApplicationFundingRes
         no: 1,
         name: 'assignment',
         kind: 'message',
-        T: () => ApplicationFundingAssignment,
+        T: ApplicationFundingAssignment,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -478,7 +459,6 @@ export const ListApplicationFundingRequest: MessageType<ListApplicationFundingRe
       { no: 2, name: 'after_revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -509,7 +489,7 @@ export const ListApplicationFundingResponse: MessageType<ListApplicationFundingR
         no: 1,
         name: 'assignments',
         kind: 'message',
-        T: () => ApplicationFundingAssignment,
+        T: ApplicationFundingAssignment,
         repeated: true,
       },
       {
@@ -519,7 +499,6 @@ export const ListApplicationFundingResponse: MessageType<ListApplicationFundingR
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -577,7 +556,6 @@ export const ManagedAccountEnrollment: MessageType<ManagedAccountEnrollment> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -609,11 +587,10 @@ export const EnrollManagedAccountRequest: MessageType<EnrollManagedAccountReques
         no: 1,
         name: 'enrollment',
         kind: 'message',
-        T: () => ManagedAccountEnrollment,
+        T: ManagedAccountEnrollment,
       },
       { no: 2, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -664,7 +641,6 @@ export const EnrollManagedAccountResponse: MessageType<EnrollManagedAccountRespo
       { no: 4, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'keypair_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -706,7 +682,6 @@ export const SetApplicationStateRequest: MessageType<SetApplicationStateRequest>
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -727,9 +702,8 @@ export const SetApplicationStateResponse: MessageType<SetApplicationStateRespons
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.api.SetApplicationStateResponse',
     fields: [
-      { no: 1, name: 'application', kind: 'message', T: () => Application },
+      { no: 1, name: 'application', kind: 'message', T: Application },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -767,7 +741,6 @@ export const GetApplicationAccountAccessRequest: MessageType<GetApplicationAccou
       { no: 2, name: 'issuer', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -791,5 +764,4 @@ export const GetApplicationAccountAccessResponse: MessageType<GetApplicationAcco
     fields: [
       { no: 1, name: 'developer', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

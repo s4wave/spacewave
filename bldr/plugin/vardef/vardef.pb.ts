@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.plugin.vardef'
-
 /**
  * PluginVar contains a definition of a variable set by the development plugin entrypoint.
  *
@@ -80,7 +78,6 @@ export const PluginVar: MessageType<PluginVar> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -105,9 +102,8 @@ export const PluginDevInfo: MessageType<PluginDevInfo> =
         no: 1,
         name: 'plugin_vars',
         kind: 'message',
-        T: () => PluginVar,
+        T: PluginVar,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

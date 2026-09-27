@@ -15,8 +15,6 @@ import { Signature } from '../../net/peer/peer.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { Config } from '../../db/block/transform/transform.pb.js'
 
-export const protobufPackage = 'sobject'
-
 /**
  * SharedObjectHealthStatus describes the lifecycle status of a SharedObject mount.
  *
@@ -61,13 +59,7 @@ export enum SharedObjectHealthStatus {
 
 export const SharedObjectHealthStatus_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthStatus',
-  [
-    [0, 'SHARED_OBJECT_HEALTH_STATUS_UNKNOWN'],
-    [1, 'SHARED_OBJECT_HEALTH_STATUS_LOADING'],
-    [2, 'SHARED_OBJECT_HEALTH_STATUS_READY'],
-    [3, 'SHARED_OBJECT_HEALTH_STATUS_DEGRADED'],
-    [4, 'SHARED_OBJECT_HEALTH_STATUS_CLOSED'],
-  ],
+  SharedObjectHealthStatus,
 )
 
 /**
@@ -100,11 +92,7 @@ export enum SharedObjectHealthLayer {
 
 export const SharedObjectHealthLayer_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SharedObjectHealthLayer',
-  [
-    [0, 'SHARED_OBJECT_HEALTH_LAYER_UNKNOWN'],
-    [1, 'SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT'],
-    [2, 'SHARED_OBJECT_HEALTH_LAYER_BODY'],
-  ],
+  SharedObjectHealthLayer,
 )
 
 /**
@@ -164,15 +152,10 @@ export enum SharedObjectHealthCommonReason {
 }
 
 export const SharedObjectHealthCommonReason_Enum =
-  /* @__PURE__ */ createEnumType('sobject.SharedObjectHealthCommonReason', [
-    [0, 'SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN'],
-    [1, 'SHARED_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND'],
-    [2, 'SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED'],
-    [3, 'SHARED_OBJECT_HEALTH_COMMON_REASON_INITIAL_STATE_REJECTED'],
-    [4, 'SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND'],
-    [5, 'SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED'],
-    [6, 'SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED'],
-  ])
+  /* @__PURE__ */ createEnumType(
+    'sobject.SharedObjectHealthCommonReason',
+    SharedObjectHealthCommonReason,
+  )
 
 /**
  * SharedObjectHealthRemediationHint suggests a next step for the caller or UI.
@@ -224,14 +207,10 @@ export enum SharedObjectHealthRemediationHint {
 }
 
 export const SharedObjectHealthRemediationHint_Enum =
-  /* @__PURE__ */ createEnumType('sobject.SharedObjectHealthRemediationHint', [
-    [0, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_UNKNOWN'],
-    [1, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE'],
-    [2, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY'],
-    [3, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS'],
-    [4, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_CONTACT_OWNER'],
-    [5, 'SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA'],
-  ])
+  /* @__PURE__ */ createEnumType(
+    'sobject.SharedObjectHealthRemediationHint',
+    SharedObjectHealthRemediationHint,
+  )
 
 /**
  * SOParticipantRole defines the general role of a shared object participant.
@@ -278,13 +257,7 @@ export enum SOParticipantRole {
 
 export const SOParticipantRole_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOParticipantRole',
-  [
-    [0, 'SOParticipantRole_UNKNOWN'],
-    [1, 'SOParticipantRole_READER'],
-    [2, 'SOParticipantRole_WRITER'],
-    [3, 'SOParticipantRole_VALIDATOR'],
-    [4, 'SOParticipantRole_OWNER'],
-  ],
+  SOParticipantRole,
 )
 
 /**
@@ -308,7 +281,7 @@ export enum SOConsensusMode {
 
 export const SOConsensusMode_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOConsensusMode',
-  [[0, 'SO_CONSENSUS_MODE_SINGLE_VALIDATOR']],
+  SOConsensusMode,
 )
 
 /**
@@ -376,16 +349,7 @@ export enum SOConfigChangeType {
 
 export const SOConfigChangeType_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOConfigChangeType',
-  [
-    [0, 'SO_CONFIG_CHANGE_TYPE_UNKNOWN'],
-    [1, 'SO_CONFIG_CHANGE_TYPE_GENESIS'],
-    [2, 'SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT'],
-    [3, 'SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT'],
-    [4, 'SO_CONFIG_CHANGE_TYPE_ADD_INVITE'],
-    [5, 'SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE'],
-    [6, 'SO_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_USES'],
-    [7, 'SO_CONFIG_CHANGE_TYPE_SELF_ENROLL_PEER'],
-  ],
+  SOConfigChangeType,
 )
 
 /**
@@ -432,13 +396,7 @@ export enum SORevocationReason {
 
 export const SORevocationReason_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SORevocationReason',
-  [
-    [0, 'SO_REVOCATION_REASON_UNKNOWN'],
-    [1, 'SO_REVOCATION_REASON_SESSION_REVOKED'],
-    [2, 'SO_REVOCATION_REASON_ORG_REMOVED'],
-    [3, 'SO_REVOCATION_REASON_OWNER_REMOVED'],
-    [4, 'SO_REVOCATION_REASON_INVITE_REVOKED'],
-  ],
+  SORevocationReason,
 )
 
 /**
@@ -510,20 +468,7 @@ export enum SOJournalRecordKind {
 
 export const SOJournalRecordKind_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOJournalRecordKind',
-  [
-    [0, 'SO_JOURNAL_RECORD_KIND_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_RECORD_KIND_INTENT'],
-    [2, 'SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE'],
-    [3, 'SO_JOURNAL_RECORD_KIND_SENT'],
-    [4, 'SO_JOURNAL_RECORD_KIND_RECEIPT'],
-    [5, 'SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT'],
-    [6, 'SO_JOURNAL_RECORD_KIND_BODY_PROJECTION'],
-    [7, 'SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH'],
-    [8, 'SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED'],
-    [9, 'SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED'],
-    [10, 'SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP'],
-    [11, 'SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED'],
-  ],
+  SOJournalRecordKind,
 )
 
 /**
@@ -570,15 +515,7 @@ export enum SOJournalAttemptState {
 
 export const SOJournalAttemptState_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOJournalAttemptState',
-  [
-    [0, 'SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE'],
-    [2, 'SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE'],
-    [3, 'SO_JOURNAL_ATTEMPT_STATE_SENT'],
-    [4, 'SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE'],
-    [5, 'SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH'],
-    [6, 'SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED'],
-  ],
+  SOJournalAttemptState,
 )
 
 /**
@@ -605,11 +542,7 @@ export enum SOJournalOutcome {
 
 export const SOJournalOutcome_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOJournalOutcome',
-  [
-    [0, 'SO_JOURNAL_OUTCOME_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_OUTCOME_ACCEPTED'],
-    [2, 'SO_JOURNAL_OUTCOME_REJECTED'],
-  ],
+  SOJournalOutcome,
 )
 
 /**
@@ -646,13 +579,7 @@ export enum SOJournalReadiness {
 
 export const SOJournalReadiness_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOJournalReadiness',
-  [
-    [0, 'SO_JOURNAL_READINESS_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_READINESS_READY'],
-    [2, 'SO_JOURNAL_READINESS_MISSING'],
-    [3, 'SO_JOURNAL_READINESS_CORRUPT'],
-    [4, 'SO_JOURNAL_READINESS_OBSOLETE'],
-  ],
+  SOJournalReadiness,
 )
 
 /**
@@ -699,15 +626,7 @@ export enum SOJournalRecoveryReason {
 
 export const SOJournalRecoveryReason_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOJournalRecoveryReason',
-  [
-    [0, 'SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH'],
-    [2, 'SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE'],
-    [3, 'SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE'],
-    [4, 'SO_JOURNAL_RECOVERY_REASON_BODY_MISSING'],
-    [5, 'SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT'],
-    [6, 'SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE'],
-  ],
+  SOJournalRecoveryReason,
 )
 
 /**
@@ -754,13 +673,7 @@ export enum SOReceiptState {
 
 export const SOReceiptState_Enum = /* @__PURE__ */ createEnumType(
   'sobject.SOReceiptState',
-  [
-    [0, 'SO_RECEIPT_STATE_UNSPECIFIED'],
-    [1, 'SO_RECEIPT_STATE_NO_RECORD'],
-    [2, 'SO_RECEIPT_STATE_PENDING'],
-    [3, 'SO_RECEIPT_STATE_ACCEPTED'],
-    [4, 'SO_RECEIPT_STATE_REJECTED'],
-  ],
+  SOReceiptState,
 )
 
 /**
@@ -796,7 +709,6 @@ export const SharedObjectRef: MessageType<SharedObjectRef> =
       },
       { no: 2, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -835,7 +747,6 @@ export const SharedObjectMeta: MessageType<SharedObjectMeta> =
       { no: 2, name: 'body_meta', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -876,8 +787,8 @@ export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SharedObjectListEntry',
     fields: [
-      { no: 1, name: 'ref', kind: 'message', T: () => SharedObjectRef },
-      { no: 2, name: 'meta', kind: 'message', T: () => SharedObjectMeta },
+      { no: 1, name: 'ref', kind: 'message', T: SharedObjectRef },
+      { no: 2, name: 'meta', kind: 'message', T: SharedObjectMeta },
       { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 4,
@@ -886,7 +797,6 @@ export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -911,11 +821,10 @@ export const SharedObjectList: MessageType<SharedObjectList> =
         no: 1,
         name: 'shared_objects',
         kind: 'message',
-        T: () => SharedObjectListEntry,
+        T: SharedObjectListEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1015,7 +924,6 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1058,7 +966,6 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1105,7 +1012,7 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         no: 1,
         name: 'participants',
         kind: 'message',
-        T: () => SOParticipantConfig,
+        T: SOParticipantConfig,
         repeated: true,
       },
       { no: 2, name: 'consensus_mode', kind: 'enum', T: SOConsensusMode_Enum },
@@ -1122,7 +1029,6 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1165,7 +1071,6 @@ export const SOLeaveRequest: MessageType<SOLeaveRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1214,7 +1119,6 @@ export const SORevocationInfo: MessageType<SORevocationInfo> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1273,19 +1177,13 @@ export const SOConfigChange: MessageType<SOConfigChange> =
     typeName: 'sobject.SOConfigChange',
     fields: [
       { no: 1, name: 'config_seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'config', kind: 'message', T: () => SharedObjectConfig },
+      { no: 2, name: 'config', kind: 'message', T: SharedObjectConfig },
       { no: 4, name: 'signed_by', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'signature', kind: 'message', T: () => Signature },
       { no: 6, name: 'previous_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 7, name: 'change_type', kind: 'enum', T: SOConfigChangeType_Enum },
-      {
-        no: 8,
-        name: 'revocation_info',
-        kind: 'message',
-        T: () => SORevocationInfo,
-      },
+      { no: 8, name: 'revocation_info', kind: 'message', T: SORevocationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1310,11 +1208,10 @@ export const SOLeaveResponse: MessageType<SOLeaveResponse> =
         no: 1,
         name: 'changes',
         kind: 'message',
-        T: () => SOConfigChange,
+        T: SOConfigChange,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1345,7 +1242,6 @@ export const SOAccountNonce: MessageType<SOAccountNonce> =
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1392,7 +1288,7 @@ export const SORoot: MessageType<SORoot> = /* @__PURE__ */ createMessageType({
       no: 3,
       name: 'account_nonces',
       kind: 'message',
-      T: () => SOAccountNonce,
+      T: SOAccountNonce,
       repeated: true,
     },
     {
@@ -1403,7 +1299,6 @@ export const SORoot: MessageType<SORoot> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -1433,7 +1328,6 @@ export const SORootInner: MessageType<SORootInner> =
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'state_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1464,7 +1358,6 @@ export const SOOperation: MessageType<SOOperation> =
       { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1510,7 +1403,6 @@ export const SOOperationInner: MessageType<SOOperationInner> =
       { no: 3, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1540,7 +1432,6 @@ export const SOOperationRef: MessageType<SOOperationRef> =
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1563,7 +1454,6 @@ export const SOOperationRejectionErrorDetails: MessageType<SOOperationRejectionE
     fields: [
       { no: 1, name: 'error_msg', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1613,7 +1503,7 @@ export const SOOperationResult: MessageType<SOOperationResult> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOOperationResult',
     fields: [
-      { no: 1, name: 'op_ref', kind: 'message', T: () => SOOperationRef },
+      { no: 1, name: 'op_ref', kind: 'message', T: SOOperationRef },
       {
         no: 2,
         name: 'success',
@@ -1625,11 +1515,10 @@ export const SOOperationResult: MessageType<SOOperationResult> =
         no: 3,
         name: 'error_details',
         kind: 'message',
-        T: () => SOOperationRejectionErrorDetails,
+        T: SOOperationRejectionErrorDetails,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1661,7 +1550,6 @@ export const SOOperationRejection: MessageType<SOOperationRejection> =
       { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1708,7 +1596,6 @@ export const SOOperationRejectionInner: MessageType<SOOperationRejectionInner> =
       { no: 3, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'error_details', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1745,7 +1632,6 @@ export const SOGrant: MessageType<SOGrant> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'inner_data', kind: 'scalar', T: ScalarType.BYTES },
     { no: 3, name: 'signature', kind: 'message', T: () => Signature },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -1769,7 +1655,6 @@ export const SOGrantInner: MessageType<SOGrantInner> =
     fields: [
       { no: 1, name: 'transform_conf', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1825,7 +1710,6 @@ export const SOEntityRecoveryEnvelope: MessageType<SOEntityRecoveryEnvelope> =
       { no: 4, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'envelope_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1860,9 +1744,8 @@ export const SOEntityRecoveryMaterial: MessageType<SOEntityRecoveryMaterial> =
     fields: [
       { no: 1, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
-      { no: 3, name: 'grant_inner', kind: 'message', T: () => SOGrantInner },
+      { no: 3, name: 'grant_inner', kind: 'message', T: SOGrantInner },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1952,7 +1835,6 @@ export const SOInvite: MessageType<SOInvite> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1984,11 +1866,10 @@ export const SOPeerOpRejections: MessageType<SOPeerOpRejections> =
         no: 2,
         name: 'rejections',
         kind: 'message',
-        T: () => SOOperationRejection,
+        T: SOOperationRejection,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2055,45 +1936,26 @@ export interface SOState {
 export const SOState: MessageType<SOState> = /* @__PURE__ */ createMessageType({
   typeName: 'sobject.SOState',
   fields: [
-    { no: 1, name: 'config', kind: 'message', T: () => SharedObjectConfig },
-    { no: 2, name: 'root', kind: 'message', T: () => SORoot },
-    {
-      no: 3,
-      name: 'root_grants',
-      kind: 'message',
-      T: () => SOGrant,
-      repeated: true,
-    },
-    {
-      no: 4,
-      name: 'ops',
-      kind: 'message',
-      T: () => SOOperation,
-      repeated: true,
-    },
+    { no: 1, name: 'config', kind: 'message', T: SharedObjectConfig },
+    { no: 2, name: 'root', kind: 'message', T: SORoot },
+    { no: 3, name: 'root_grants', kind: 'message', T: SOGrant, repeated: true },
+    { no: 4, name: 'ops', kind: 'message', T: SOOperation, repeated: true },
     {
       no: 5,
       name: 'op_rejections',
       kind: 'message',
-      T: () => SOPeerOpRejections,
+      T: SOPeerOpRejections,
       repeated: true,
     },
     {
       no: 6,
       name: 'queued_account_nonces',
       kind: 'message',
-      T: () => SOAccountNonce,
+      T: SOAccountNonce,
       repeated: true,
     },
-    {
-      no: 7,
-      name: 'invites',
-      kind: 'message',
-      T: () => SOInvite,
-      repeated: true,
-    },
+    { no: 7, name: 'invites', kind: 'message', T: SOInvite, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -2124,7 +1986,6 @@ export const SOClearOperationResult: MessageType<SOClearOperationResult> =
       { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2156,7 +2017,6 @@ export const SOClearOperationResultInner: MessageType<SOClearOperationResultInne
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2198,15 +2058,8 @@ export const SOKeyEpoch: MessageType<SOKeyEpoch> =
       { no: 1, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'seqno_start', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'seqno_end', kind: 'scalar', T: ScalarType.UINT64 },
-      {
-        no: 4,
-        name: 'grants',
-        kind: 'message',
-        T: () => SOGrant,
-        repeated: true,
-      },
+      { no: 4, name: 'grants', kind: 'message', T: SOGrant, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2237,18 +2090,17 @@ export const SOConfigChainResponse: MessageType<SOConfigChainResponse> =
         no: 1,
         name: 'config_changes',
         kind: 'message',
-        T: () => SOConfigChange,
+        T: SOConfigChange,
         repeated: true,
       },
       {
         no: 2,
         name: 'key_epochs',
         kind: 'message',
-        T: () => SOKeyEpoch,
+        T: SOKeyEpoch,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2278,7 +2130,6 @@ export const QueuedSOOperation: MessageType<QueuedSOOperation> =
       { no: 1, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2382,7 +2233,6 @@ export const SOInviteMessage: MessageType<SOInviteMessage> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2431,7 +2281,6 @@ export const SOJoinResponse: MessageType<SOJoinResponse> =
       { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'signature', kind: 'message', T: () => Signature },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2480,7 +2329,6 @@ export const SOMutationKey: MessageType<SOMutationKey> =
       },
       { no: 4, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2507,10 +2355,9 @@ export const SOJournalLineage: MessageType<SOJournalLineage> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalLineage',
     fields: [
-      { no: 1, name: 'root_key', kind: 'message', T: () => SOMutationKey },
-      { no: 2, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'root_key', kind: 'message', T: SOMutationKey },
+      { no: 2, name: 'supersedes', kind: 'message', T: SOMutationKey },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2559,7 +2406,6 @@ export const SOJournalVersionTuple: MessageType<SOJournalVersionTuple> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2598,14 +2444,9 @@ export const SOJournalIntent: MessageType<SOJournalIntent> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalIntent',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
-      { no: 2, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
-      {
-        no: 3,
-        name: 'version',
-        kind: 'message',
-        T: () => SOJournalVersionTuple,
-      },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
+      { no: 2, name: 'lineage', kind: 'message', T: SOJournalLineage },
+      { no: 3, name: 'version', kind: 'message', T: SOJournalVersionTuple },
       {
         no: 4,
         name: 'canonical_operation',
@@ -2613,7 +2454,6 @@ export const SOJournalIntent: MessageType<SOJournalIntent> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2643,7 +2483,6 @@ export const SOJournalEncryptedPayload: MessageType<SOJournalEncryptedPayload> =
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'ciphertext', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2718,7 +2557,7 @@ export const SOJournalReceipt: MessageType<SOJournalReceipt> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalReceipt',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
       { no: 2, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'outcome', kind: 'enum', T: SOJournalOutcome_Enum },
       { no: 4, name: 'terminal_receipt', kind: 'scalar', T: ScalarType.BYTES },
@@ -2752,9 +2591,8 @@ export const SOJournalReceipt: MessageType<SOJournalReceipt> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
-      { no: 10, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+      { no: 10, name: 'supersedes', kind: 'message', T: SOMutationKey },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2805,9 +2643,9 @@ export const SOJournalLookup: MessageType<SOJournalLookup> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalLookup',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
       { no: 2, name: 'state', kind: 'enum', T: SOReceiptState_Enum },
-      { no: 3, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      { no: 3, name: 'receipt', kind: 'message', T: SOJournalReceipt },
       { no: 4, name: 'response', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'response_digest', kind: 'scalar', T: ScalarType.BYTES },
       {
@@ -2817,7 +2655,6 @@ export const SOJournalLookup: MessageType<SOJournalLookup> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2850,7 +2687,7 @@ export const SOJournalAcknowledgement: MessageType<SOJournalAcknowledgement> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalAcknowledgement',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
       { no: 2, name: 'receipt_digest', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 3,
@@ -2859,7 +2696,6 @@ export const SOJournalAcknowledgement: MessageType<SOJournalAcknowledgement> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2898,7 +2734,7 @@ export const SOJournalProjection: MessageType<SOJournalProjection> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalProjection',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
       { no: 2, name: 'receipt_digest', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 3,
@@ -2913,7 +2749,6 @@ export const SOJournalProjection: MessageType<SOJournalProjection> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3027,39 +2862,24 @@ export const SOJournalRecord: MessageType<SOJournalRecord> =
       { no: 1, name: 'format_version', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'kind', kind: 'enum', T: SOJournalRecordKind_Enum },
-      { no: 4, name: 'key', kind: 'message', T: () => SOMutationKey },
-      { no: 5, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
-      {
-        no: 6,
-        name: 'version',
-        kind: 'message',
-        T: () => SOJournalVersionTuple,
-      },
-      {
-        no: 7,
-        name: 'intent',
-        kind: 'message',
-        T: () => SOJournalEncryptedPayload,
-      },
+      { no: 4, name: 'key', kind: 'message', T: SOMutationKey },
+      { no: 5, name: 'lineage', kind: 'message', T: SOJournalLineage },
+      { no: 6, name: 'version', kind: 'message', T: SOJournalVersionTuple },
+      { no: 7, name: 'intent', kind: 'message', T: SOJournalEncryptedPayload },
       {
         no: 8,
         name: 'envelope',
         kind: 'message',
-        T: () => SOJournalEncryptedPayload,
+        T: SOJournalEncryptedPayload,
       },
-      { no: 9, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      { no: 9, name: 'receipt', kind: 'message', T: SOJournalReceipt },
       {
         no: 10,
         name: 'acknowledgement',
         kind: 'message',
-        T: () => SOJournalAcknowledgement,
+        T: SOJournalAcknowledgement,
       },
-      {
-        no: 11,
-        name: 'projection',
-        kind: 'message',
-        T: () => SOJournalProjection,
-      },
+      { no: 11, name: 'projection', kind: 'message', T: SOJournalProjection },
       { no: 12, name: 'readiness', kind: 'enum', T: SOJournalReadiness_Enum },
       {
         no: 13,
@@ -3074,9 +2894,8 @@ export const SOJournalRecord: MessageType<SOJournalRecord> =
         T: SOJournalAttemptState_Enum,
       },
       { no: 15, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 16, name: 'lookup', kind: 'message', T: () => SOJournalLookup },
+      { no: 16, name: 'lookup', kind: 'message', T: SOJournalLookup },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3199,43 +3018,28 @@ export const SOJournalCheckpointAttempt: MessageType<SOJournalCheckpointAttempt>
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOJournalCheckpointAttempt',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
-      { no: 2, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
-      {
-        no: 3,
-        name: 'version',
-        kind: 'message',
-        T: () => SOJournalVersionTuple,
-      },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
+      { no: 2, name: 'lineage', kind: 'message', T: SOJournalLineage },
+      { no: 3, name: 'version', kind: 'message', T: SOJournalVersionTuple },
       { no: 4, name: 'state', kind: 'enum', T: SOJournalAttemptState_Enum },
       { no: 5, name: 'readiness', kind: 'enum', T: SOJournalReadiness_Enum },
-      {
-        no: 6,
-        name: 'intent',
-        kind: 'message',
-        T: () => SOJournalEncryptedPayload,
-      },
+      { no: 6, name: 'intent', kind: 'message', T: SOJournalEncryptedPayload },
       {
         no: 7,
         name: 'envelope',
         kind: 'message',
-        T: () => SOJournalEncryptedPayload,
+        T: SOJournalEncryptedPayload,
       },
       { no: 8, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 9, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      { no: 9, name: 'receipt', kind: 'message', T: SOJournalReceipt },
       {
         no: 10,
         name: 'acknowledgement',
         kind: 'message',
-        T: () => SOJournalAcknowledgement,
+        T: SOJournalAcknowledgement,
       },
-      {
-        no: 11,
-        name: 'projection',
-        kind: 'message',
-        T: () => SOJournalProjection,
-      },
-      { no: 12, name: 'lookup', kind: 'message', T: () => SOJournalLookup },
+      { no: 11, name: 'projection', kind: 'message', T: SOJournalProjection },
+      { no: 12, name: 'lookup', kind: 'message', T: SOJournalLookup },
       { no: 13, name: 'send_attempted', kind: 'scalar', T: ScalarType.BOOL },
       { no: 14, name: 'resend_authorized', kind: 'scalar', T: ScalarType.BOOL },
       {
@@ -3258,7 +3062,6 @@ export const SOJournalCheckpointAttempt: MessageType<SOJournalCheckpointAttempt>
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3304,11 +3107,10 @@ export const SOJournalCheckpoint: MessageType<SOJournalCheckpoint> =
         no: 4,
         name: 'attempts',
         kind: 'message',
-        T: () => SOJournalCheckpointAttempt,
+        T: SOJournalCheckpointAttempt,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3423,20 +3225,20 @@ export const SOTerminalReceiptInner: MessageType<SOTerminalReceiptInner> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sobject.SOTerminalReceiptInner',
     fields: [
-      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 1, name: 'key', kind: 'message', T: SOMutationKey },
       { no: 2, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 3,
         name: 'accepted',
         kind: 'message',
-        T: () => SOTerminalReceiptAccepted,
+        T: SOTerminalReceiptAccepted,
         oneof: 'outcome',
       },
       {
         no: 4,
         name: 'signed_rejection',
         kind: 'message',
-        T: () => SOOperationRejection,
+        T: SOOperationRejection,
         oneof: 'outcome',
       },
       {
@@ -3470,9 +3272,8 @@ export const SOTerminalReceiptInner: MessageType<SOTerminalReceiptInner> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
-      { no: 11, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+      { no: 11, name: 'supersedes', kind: 'message', T: SOMutationKey },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3514,5 +3315,4 @@ export const SOTerminalReceipt: MessageType<SOTerminalReceipt> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

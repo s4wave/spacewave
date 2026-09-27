@@ -14,8 +14,6 @@ import type { StoreFeature } from '../block.pb.js'
 import { BlockRef, PutOpts, StoreFeature_Enum } from '../block.pb.js'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'block.rpc'
-
 /**
  * GetHashTypeRequest requests the preferred hash type for the store.
  *
@@ -49,7 +47,6 @@ export const GetHashTypeResponse: MessageType<GetHashTypeResponse> =
     fields: [
       { no: 1, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -85,7 +82,6 @@ export const GetSupportedFeaturesResponse: MessageType<GetSupportedFeaturesRespo
     fields: [
       { no: 1, name: 'features', kind: 'enum', T: StoreFeature_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -115,7 +111,6 @@ export const PutBlockRequest: MessageType<PutBlockRequest> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -152,7 +147,6 @@ export const PutBlockResponse: MessageType<PutBlockResponse> =
       { no: 2, name: 'existed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -202,7 +196,6 @@ export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
       },
       { no: 4, name: 'tombstone', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -227,11 +220,10 @@ export const PutBlockBatchRequest: MessageType<PutBlockBatchRequest> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => PutBlockBatchEntry,
+        T: PutBlockBatchEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -254,7 +246,6 @@ export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -284,7 +275,6 @@ export const GetBlockRequest: MessageType<GetBlockRequest> =
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'with_refs', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -342,7 +332,6 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
       },
       { no: 5, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -365,7 +354,6 @@ export const GetBlockExistsRequest: MessageType<GetBlockExistsRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -395,7 +383,6 @@ export const GetBlockExistsResponse: MessageType<GetBlockExistsResponse> =
       { no: 1, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -424,7 +411,6 @@ export const GetBlockExistsBatchRequest: MessageType<GetBlockExistsBatchRequest>
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -460,7 +446,6 @@ export const GetBlockExistsBatchResponse: MessageType<GetBlockExistsBatchRespons
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -483,7 +468,6 @@ export const RmBlockRequest: MessageType<RmBlockRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -507,7 +491,6 @@ export const RmBlockResponse: MessageType<RmBlockResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -530,7 +513,6 @@ export const StatBlockRequest: MessageType<StatBlockRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -574,7 +556,6 @@ export const StatBlockResponse: MessageType<StatBlockResponse> =
       { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -617,5 +598,4 @@ export const SyncResponse: MessageType<SyncResponse> =
       { no: 1, name: 'fenced', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

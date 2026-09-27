@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectListEntry } from '../sobject/sobject.pb.js'
 
-export const protobufPackage = 'space'
-
 /**
  * SpaceSoMeta is metadata about a space stored in SharedObjectMeta.
  *
@@ -30,7 +28,6 @@ export const SpaceSoMeta: MessageType<SpaceSoMeta> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -64,7 +61,7 @@ export const SpaceSoListEntry: MessageType<SpaceSoListEntry> =
     typeName: 'space.SpaceSoListEntry',
     fields: [
       { no: 1, name: 'entry', kind: 'message', T: () => SharedObjectListEntry },
-      { no: 2, name: 'space_meta', kind: 'message', T: () => SpaceSoMeta },
+      { no: 2, name: 'space_meta', kind: 'message', T: SpaceSoMeta },
       {
         no: 3,
         name: 'index_object_type',
@@ -72,5 +69,4 @@ export const SpaceSoListEntry: MessageType<SpaceSoListEntry> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

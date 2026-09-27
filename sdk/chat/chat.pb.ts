@@ -10,8 +10,6 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ChatMessageContent, ChatStateChange } from './content/content.pb.js'
 
-export const protobufPackage = 'spacewave.chat'
-
 /**
  * ChatChannel is a chat channel world object.
  * All channels are visible to Space participants (no visibility field).
@@ -109,7 +107,6 @@ export const ChatChannel: MessageType<ChatChannel> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -168,7 +165,6 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -197,7 +193,6 @@ export const ChatMessagePage: MessageType<ChatMessagePage> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -265,7 +260,6 @@ export const ChatThread: MessageType<ChatThread> =
       { no: 5, name: 'newer_thread_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'older_thread_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -300,7 +294,6 @@ export const InitChatDemoOp: MessageType<InitChatDemoOp> =
       },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -370,5 +363,4 @@ export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'sdk.sync'
-
 /**
  * ErrorCode identifies stable application failure classes.
  *
@@ -103,20 +101,7 @@ export enum ErrorCode {
 
 export const ErrorCode_Enum = /* @__PURE__ */ createEnumType(
   'sdk.sync.ErrorCode',
-  [
-    [0, 'ERROR_CODE_UNSPECIFIED'],
-    [1, 'VALIDATION'],
-    [2, 'AUTHENTICATION'],
-    [3, 'DENIED'],
-    [4, 'MISSING_COLLECTION'],
-    [5, 'SCHEMA_MISMATCH'],
-    [6, 'QUERY_LIMIT'],
-    [7, 'CONFLICT'],
-    [8, 'UNAVAILABLE'],
-    [9, 'UNCERTAIN'],
-    [10, 'STORAGE'],
-    [11, 'CLOSED'],
-  ],
+  ErrorCode,
 )
 
 /**
@@ -152,7 +137,6 @@ export const Failure: MessageType<Failure> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'request_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -201,7 +185,6 @@ export const HandshakeRequest: MessageType<HandshakeRequest> =
       },
       { no: 4, name: 'token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -222,9 +205,8 @@ export const HandshakeResponse: MessageType<HandshakeResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sdk.sync.HandshakeResponse',
     fields: [
-      { no: 1, name: 'error', kind: 'message', T: () => Failure },
+      { no: 1, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -247,7 +229,6 @@ export const OpenCollectionRequest: MessageType<OpenCollectionRequest> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -275,9 +256,8 @@ export const OpenCollectionResponse: MessageType<OpenCollectionResponse> =
     typeName: 'sdk.sync.OpenCollectionResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'error', kind: 'message', T: () => Failure },
+      { no: 2, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -300,7 +280,6 @@ export const GetRequest: MessageType<GetRequest> =
     fields: [
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -335,9 +314,8 @@ export const GetResponse: MessageType<GetResponse> =
     fields: [
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 3, name: 'error', kind: 'message', T: () => Failure },
+      { no: 3, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -360,7 +338,6 @@ export const QueryRequest: MessageType<QueryRequest> =
     fields: [
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -390,7 +367,6 @@ export const RecordEntry: MessageType<RecordEntry> =
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -421,12 +397,11 @@ export const Snapshot: MessageType<Snapshot> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => RecordEntry,
+        T: RecordEntry,
         repeated: true,
       },
-      { no: 2, name: 'error', kind: 'message', T: () => Failure },
+      { no: 2, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -463,7 +438,6 @@ export const PutRequest: MessageType<PutRequest> =
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'request_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -493,7 +467,6 @@ export const DeleteRequest: MessageType<DeleteRequest> =
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'request_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -514,9 +487,8 @@ export const Acceptance: MessageType<Acceptance> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sdk.sync.Acceptance',
     fields: [
-      { no: 1, name: 'error', kind: 'message', T: () => Failure },
+      { no: 1, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -553,7 +525,6 @@ export const MutationRequest: MessageType<MutationRequest> =
       { no: 2, name: 'input', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'request_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -581,7 +552,6 @@ export const MutationResponse: MessageType<MutationResponse> =
     typeName: 'sdk.sync.MutationResponse',
     fields: [
       { no: 1, name: 'result', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'error', kind: 'message', T: () => Failure },
+      { no: 2, name: 'error', kind: 'message', T: Failure },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

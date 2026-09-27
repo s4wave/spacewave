@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'notes'
-
 /**
  * Documentation is a world object that presents markdown files from UnixFS
  * sources as a documentation site with sidebar navigation and page viewer.
@@ -59,7 +57,6 @@ export const Documentation: MessageType<Documentation> =
       },
       { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -103,5 +100,4 @@ export const CreateDocumentationOp: MessageType<CreateDocumentationOp> =
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

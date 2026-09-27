@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../db/block/block.pb.js'
 
-export const protobufPackage = 's4wave.deploy'
-
 /**
  * DeployManifestsRequest identifies one plugin-host manifest set.
  *
@@ -44,7 +42,6 @@ export const DeployManifestsRequest: MessageType<DeployManifestsRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -67,7 +64,6 @@ export const BlockRequest: MessageType<BlockRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -104,7 +100,6 @@ export const BlockResponse: MessageType<BlockResponse> =
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -127,7 +122,6 @@ export const DeployManifestsResult: MessageType<DeployManifestsResult> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -190,30 +184,29 @@ export const DeployManifestsMessage: MessageType<DeployManifestsMessage> =
         no: 1,
         name: 'request',
         kind: 'message',
-        T: () => DeployManifestsRequest,
+        T: DeployManifestsRequest,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'block_request',
         kind: 'message',
-        T: () => BlockRequest,
+        T: BlockRequest,
         oneof: 'body',
       },
       {
         no: 3,
         name: 'block_response',
         kind: 'message',
-        T: () => BlockResponse,
+        T: BlockResponse,
         oneof: 'body',
       },
       {
         no: 4,
         name: 'result',
         kind: 'message',
-        T: () => DeployManifestsResult,
+        T: DeployManifestsResult,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

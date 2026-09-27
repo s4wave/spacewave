@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.unixfs'
-
 /**
  * MknodType specifies the type of node to create.
  *
@@ -43,11 +41,7 @@ export enum MknodType {
 
 export const MknodType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.unixfs.MknodType',
-  [
-    [0, 'MKNOD_TYPE_UNSPECIFIED'],
-    [1, 'MKNOD_TYPE_FILE'],
-    [2, 'MKNOD_TYPE_DIR'],
-  ],
+  MknodType,
 )
 
 /**
@@ -105,7 +99,6 @@ export const DirEntry: MessageType<DirEntry> =
       { no: 5, name: 'mod_time', kind: 'scalar', T: ScalarType.INT64 },
       { no: 6, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -156,7 +149,6 @@ export const FileInfo: MessageType<FileInfo> =
       { no: 4, name: 'mod_time', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'is_dir', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -193,7 +185,6 @@ export const NodeType: MessageType<NodeType> =
       { no: 2, name: 'is_dir', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'is_symlink', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -216,7 +207,6 @@ export const HandleLookupRequest: MessageType<HandleLookupRequest> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -244,9 +234,8 @@ export const HandleLookupResponse: MessageType<HandleLookupResponse> =
     typeName: 's4wave.unixfs.HandleLookupResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'info', kind: 'message', T: () => FileInfo },
+      { no: 2, name: 'info', kind: 'message', T: FileInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -269,7 +258,6 @@ export const HandleLookupPathRequest: MessageType<HandleLookupPathRequest> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -310,9 +298,8 @@ export const HandleLookupPathResponse: MessageType<HandleLookupPathResponse> =
         T: ScalarType.STRING,
         repeated: true,
       },
-      { no: 3, name: 'info', kind: 'message', T: () => FileInfo },
+      { no: 3, name: 'info', kind: 'message', T: FileInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -345,7 +332,6 @@ export const HandleReadAtRequest: MessageType<HandleReadAtRequest> =
       { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 2, name: 'length', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -382,7 +368,6 @@ export const HandleReadAtResponse: MessageType<HandleReadAtResponse> =
       { no: 2, name: 'bytes_read', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'eof', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -413,7 +398,6 @@ export const HandleReadStreamRequest: MessageType<HandleReadStreamRequest> =
       { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 2, name: 'length', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -438,7 +422,6 @@ export const HandleReadStreamResponse: MessageType<HandleReadStreamResponse> =
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -468,7 +451,6 @@ export const HandleWriteAtRequest: MessageType<HandleWriteAtRequest> =
       { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.INT64 },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -491,7 +473,6 @@ export const HandleWriteAtResponse: MessageType<HandleWriteAtResponse> =
     fields: [
       { no: 1, name: 'bytes_written', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -514,7 +495,6 @@ export const HandleTruncateRequest: MessageType<HandleTruncateRequest> =
     fields: [
       { no: 1, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -563,7 +543,6 @@ export const HandleGetSizeResponse: MessageType<HandleGetSizeResponse> =
     fields: [
       { no: 1, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -597,9 +576,8 @@ export const HandleGetFileInfoResponse: MessageType<HandleGetFileInfoResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.unixfs.HandleGetFileInfoResponse',
     fields: [
-      { no: 1, name: 'info', kind: 'message', T: () => FileInfo },
+      { no: 1, name: 'info', kind: 'message', T: FileInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -633,9 +611,8 @@ export const HandleGetNodeTypeResponse: MessageType<HandleGetNodeTypeResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.unixfs.HandleGetNodeTypeResponse',
     fields: [
-      { no: 1, name: 'node_type', kind: 'message', T: () => NodeType },
+      { no: 1, name: 'node_type', kind: 'message', T: NodeType },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -658,7 +635,6 @@ export const HandleReaddirRequest: MessageType<HandleReaddirRequest> =
     fields: [
       { no: 1, name: 'skip', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -685,10 +661,9 @@ export const HandleReaddirResponse: MessageType<HandleReaddirResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.unixfs.HandleReaddirResponse',
     fields: [
-      { no: 1, name: 'entry', kind: 'message', T: () => DirEntry },
+      { no: 1, name: 'entry', kind: 'message', T: DirEntry },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -738,7 +713,6 @@ export const HandleMknodRequest: MessageType<HandleMknodRequest> =
       { no: 3, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'check_exist', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -780,7 +754,6 @@ export const HandleRemoveRequest: MessageType<HandleRemoveRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -829,7 +802,6 @@ export const HandleMkdirAllRequest: MessageType<HandleMkdirAllRequest> =
       },
       { no: 2, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -887,7 +859,6 @@ export const HandleRenameRequest: MessageType<HandleRenameRequest> =
       { no: 2, name: 'dest_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'source_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -936,7 +907,6 @@ export const HandleCloneResponse: MessageType<HandleCloneResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -972,7 +942,6 @@ export const HandleReadlinkResponse: MessageType<HandleReadlinkResponse> =
     fields: [
       { no: 1, name: 'target', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1018,7 +987,6 @@ export const HandleUploadFileRequest: MessageType<HandleUploadFileRequest> =
       { no: 3, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1041,7 +1009,6 @@ export const HandleUploadFileResponse: MessageType<HandleUploadFileResponse> =
     fields: [
       { no: 1, name: 'bytes_written', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1071,7 +1038,6 @@ export const HandleUploadTreeDirectory: MessageType<HandleUploadTreeDirectory> =
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1108,7 +1074,6 @@ export const HandleUploadTreeFileStart: MessageType<HandleUploadTreeFileStart> =
       { no: 2, name: 'total_size', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'mode', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1171,14 +1136,14 @@ export const HandleUploadTreeRequest: MessageType<HandleUploadTreeRequest> =
         no: 1,
         name: 'directory',
         kind: 'message',
-        T: () => HandleUploadTreeDirectory,
+        T: HandleUploadTreeDirectory,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'file_start',
         kind: 'message',
-        T: () => HandleUploadTreeFileStart,
+        T: HandleUploadTreeFileStart,
         oneof: 'body',
       },
       {
@@ -1190,7 +1155,6 @@ export const HandleUploadTreeRequest: MessageType<HandleUploadTreeRequest> =
       },
       { no: 4, name: 'ordered_commit', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1232,7 +1196,6 @@ export const HandleUploadTreeResponse: MessageType<HandleUploadTreeResponse> =
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1266,13 +1229,6 @@ export const HandleWatchReaddirResponse: MessageType<HandleWatchReaddirResponse>
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.unixfs.HandleWatchReaddirResponse',
     fields: [
-      {
-        no: 1,
-        name: 'entries',
-        kind: 'message',
-        T: () => DirEntry,
-        repeated: true,
-      },
+      { no: 1, name: 'entries', kind: 'message', T: DirEntry, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

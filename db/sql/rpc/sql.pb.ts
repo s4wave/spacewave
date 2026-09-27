@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ColumnSchema, RowBatch, SqlValue } from '../sql.pb.js'
 
-export const protobufPackage = 'sql.rpc'
-
 /**
  * SqlTransactionInit initializes a SQL transaction.
  *
@@ -37,7 +35,6 @@ export const SqlTransactionInit: MessageType<SqlTransactionInit> =
       { no: 1, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'dsn', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -93,7 +90,7 @@ export const SqlTransactionRequest: MessageType<SqlTransactionRequest> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => SqlTransactionInit,
+        T: SqlTransactionInit,
         oneof: 'body',
       },
       {
@@ -111,7 +108,6 @@ export const SqlTransactionRequest: MessageType<SqlTransactionRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -141,7 +137,6 @@ export const SqlTransactionAck: MessageType<SqlTransactionAck> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -178,7 +173,6 @@ export const SqlTransactionComplete: MessageType<SqlTransactionComplete> =
       { no: 2, name: 'committed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'discarded', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -225,18 +219,17 @@ export const SqlTransactionResponse: MessageType<SqlTransactionResponse> =
         no: 1,
         name: 'ack',
         kind: 'message',
-        T: () => SqlTransactionAck,
+        T: SqlTransactionAck,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'complete',
         kind: 'message',
-        T: () => SqlTransactionComplete,
+        T: SqlTransactionComplete,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -272,7 +265,6 @@ export const SqlExecRequest: MessageType<SqlExecRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -309,7 +301,6 @@ export const SqlExecResponse: MessageType<SqlExecResponse> =
       { no: 2, name: 'last_insert_id', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'rows_affected', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -345,7 +336,6 @@ export const SqlQueryInit: MessageType<SqlQueryInit> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -397,13 +387,7 @@ export const SqlQueryRequest: MessageType<SqlQueryRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sql.rpc.SqlQueryRequest',
     fields: [
-      {
-        no: 1,
-        name: 'init',
-        kind: 'message',
-        T: () => SqlQueryInit,
-        oneof: 'body',
-      },
+      { no: 1, name: 'init', kind: 'message', T: SqlQueryInit, oneof: 'body' },
       {
         no: 2,
         name: 'next',
@@ -419,7 +403,6 @@ export const SqlQueryRequest: MessageType<SqlQueryRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -448,7 +431,6 @@ export const SqlQueryAck: MessageType<SqlQueryAck> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -509,13 +491,7 @@ export const SqlQueryResponse: MessageType<SqlQueryResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sql.rpc.SqlQueryResponse',
     fields: [
-      {
-        no: 1,
-        name: 'ack',
-        kind: 'message',
-        T: () => SqlQueryAck,
-        oneof: 'body',
-      },
+      { no: 1, name: 'ack', kind: 'message', T: SqlQueryAck, oneof: 'body' },
       {
         no: 2,
         name: 'batch',
@@ -538,5 +514,4 @@ export const SqlQueryResponse: MessageType<SqlQueryResponse> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

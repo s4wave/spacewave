@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.bundler.rolldown'
-
 /**
  * Entrypoint names one source file to bundle.
  *
@@ -34,7 +32,6 @@ export const Entrypoint: MessageType<Entrypoint> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -79,7 +76,6 @@ export const GoScriptPolicy: MessageType<GoScriptPolicy> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -254,7 +250,7 @@ export const BuildRequest: MessageType<BuildRequest> =
         no: 4,
         name: 'entrypoints',
         kind: 'message',
-        T: () => Entrypoint,
+        T: Entrypoint,
         repeated: true,
       },
       { no: 5, name: 'format', kind: 'scalar', T: ScalarType.STRING },
@@ -315,7 +311,7 @@ export const BuildRequest: MessageType<BuildRequest> =
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
-      { no: 22, name: 'goscript', kind: 'message', T: () => GoScriptPolicy },
+      { no: 22, name: 'goscript', kind: 'message', T: GoScriptPolicy },
       {
         no: 23,
         name: 'inject',
@@ -343,7 +339,6 @@ export const BuildRequest: MessageType<BuildRequest> =
       { no: 29, name: 'global_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 30, name: 'route_css_imports', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -406,7 +401,6 @@ export const Diagnostic: MessageType<Diagnostic> =
       { no: 6, name: 'column', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 7, name: 'line_text', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -451,7 +445,6 @@ export const BuildOutput: MessageType<BuildOutput> =
       { no: 4, name: 'bytes', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'sha256', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -487,7 +480,6 @@ export const ToolIdentity: MessageType<ToolIdentity> =
       { no: 3, name: 'platform', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'arch', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -541,7 +533,7 @@ export const BuildResult: MessageType<BuildResult> =
         no: 2,
         name: 'outputs',
         kind: 'message',
-        T: () => BuildOutput,
+        T: BuildOutput,
         repeated: true,
       },
       {
@@ -551,15 +543,14 @@ export const BuildResult: MessageType<BuildResult> =
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
-      { no: 4, name: 'tool', kind: 'message', T: () => ToolIdentity },
+      { no: 4, name: 'tool', kind: 'message', T: ToolIdentity },
       {
         no: 5,
         name: 'diagnostics',
         kind: 'message',
-        T: () => Diagnostic,
+        T: Diagnostic,
         repeated: true,
       },
       { no: 6, name: 'has_css_imports', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

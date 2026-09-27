@@ -12,8 +12,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.process'
-
 /**
  * ExecutionState is the state of a persistent process.
  *
@@ -58,13 +56,7 @@ export enum ExecutionState {
 
 export const ExecutionState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.process.ExecutionState',
-  [
-    [0, 'ExecutionState_STARTING'],
-    [1, 'ExecutionState_RUNNING'],
-    [2, 'ExecutionState_STOPPING'],
-    [3, 'ExecutionState_STOPPED'],
-    [4, 'ExecutionState_ERROR'],
-  ],
+  ExecutionState,
 )
 
 /**
@@ -114,5 +106,4 @@ export const ExecuteStatus: MessageType<ExecuteStatus> =
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

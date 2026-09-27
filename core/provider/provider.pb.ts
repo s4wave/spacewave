@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider'
-
 /**
  * ProviderFeature is a list of available provider features.
  *
@@ -54,13 +52,7 @@ export enum ProviderFeature {
 
 export const ProviderFeature_Enum = /* @__PURE__ */ createEnumType(
   'provider.ProviderFeature',
-  [
-    [0, 'ProviderFeature_NONE'],
-    [1, 'ProviderFeature_SESSION'],
-    [2, 'ProviderFeature_SHARED_OBJECT'],
-    [3, 'ProviderFeature_BLOCK_STORE'],
-    [4, 'ProviderFeature_SHARED_OBJECT_RECOVERY'],
-  ],
+  ProviderFeature,
 )
 
 /**
@@ -124,15 +116,7 @@ export enum ProviderAccountStatus {
 
 export const ProviderAccountStatus_Enum = /* @__PURE__ */ createEnumType(
   'provider.ProviderAccountStatus',
-  [
-    [0, 'ProviderAccountStatus_NONE'],
-    [1, 'ProviderAccountStatus_PENDING'],
-    [2, 'ProviderAccountStatus_READY'],
-    [3, 'ProviderAccountStatus_DELETED'],
-    [4, 'ProviderAccountStatus_FAILED'],
-    [5, 'ProviderAccountStatus_UNAUTHENTICATED'],
-    [6, 'ProviderAccountStatus_DORMANT'],
-  ],
+  ProviderAccountStatus,
 )
 
 /**
@@ -168,7 +152,6 @@ export const ProviderInfo: MessageType<ProviderInfo> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -216,7 +199,6 @@ export const ProviderFeatureMapItem: MessageType<ProviderFeatureMapItem> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -244,11 +226,10 @@ export const ProviderFeatureMap: MessageType<ProviderFeatureMap> =
         no: 1,
         name: 'map_items',
         kind: 'message',
-        T: () => ProviderFeatureMapItem,
+        T: ProviderFeatureMapItem,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -321,7 +302,6 @@ export const ProviderAccountInfo: MessageType<ProviderAccountInfo> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -364,7 +344,6 @@ export const ProviderResourceRef: MessageType<ProviderResourceRef> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -402,7 +381,7 @@ export const ProviderFeatureResourceRef: MessageType<ProviderFeatureResourceRef>
         no: 1,
         name: 'provider_resource_ref',
         kind: 'message',
-        T: () => ProviderResourceRef,
+        T: ProviderResourceRef,
       },
       {
         no: 2,
@@ -417,7 +396,6 @@ export const ProviderFeatureResourceRef: MessageType<ProviderFeatureResourceRef>
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -476,13 +454,8 @@ export const AccountTransition: MessageType<AccountTransition> =
     typeName: 'provider.AccountTransition',
     fields: [
       { no: 1, name: 'operation_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'source', kind: 'message', T: () => ProviderResourceRef },
-      {
-        no: 3,
-        name: 'destination',
-        kind: 'message',
-        T: () => ProviderResourceRef,
-      },
+      { no: 2, name: 'source', kind: 'message', T: ProviderResourceRef },
+      { no: 3, name: 'destination', kind: 'message', T: ProviderResourceRef },
       {
         no: 4,
         name: 'destination_endpoint',
@@ -505,5 +478,4 @@ export const AccountTransition: MessageType<AccountTransition> =
       },
       { no: 7, name: 'source_endpoint', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

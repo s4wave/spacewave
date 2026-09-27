@@ -11,8 +11,6 @@ import { AccountTransition } from '../provider.pb.js'
 import { Identity, SharedObject } from '../../pairing/pairing.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.migration'
-
 /**
  * AccountTransitionReceipt acknowledges a verified source-account redirect.
  *
@@ -58,7 +56,6 @@ export const MigratedSessionRequest: MessageType<MigratedSessionRequest> =
       },
       { no: 2, name: 'identity', kind: 'message', T: () => Identity },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -87,5 +84,4 @@ export const MigratedSessionResponse: MessageType<MigratedSessionResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

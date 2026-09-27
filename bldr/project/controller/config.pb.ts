@@ -15,8 +15,6 @@ import {
   BuilderResult,
 } from '../../manifest/builder/builder.pb.js'
 
-export const protobufPackage = 'bldr.project.controller'
-
 /**
  * Config is the Project controller configuration.
  *
@@ -108,7 +106,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -194,7 +191,6 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
       },
       { no: 7, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -234,5 +230,4 @@ export const ManifestBuilderResult: MessageType<ManifestBuilderResult> =
         T: () => BuilderResult,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
