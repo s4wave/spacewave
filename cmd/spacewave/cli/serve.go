@@ -4,8 +4,10 @@ package spacewave_cli
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -128,6 +130,13 @@ func runServeCommand(
 			}
 		}
 	}()
+
+	// Bound the daemon's retained Go heap after busy periods while allowing
+	// an explicit GOMEMLIMIT to select a different budget.
+	_, hasMemoryLimit := os.LookupEnv("GOMEMLIMIT")
+	if !hasMemoryLimit && debug.SetMemoryLimit(-1) == math.MaxInt64 {
+		defer debug.SetMemoryLimit(debug.SetMemoryLimit(1 << 30))
+	}
 
 	cliBus := getBus()
 	if cliBus == nil {
