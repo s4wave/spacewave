@@ -11,7 +11,7 @@ import (
 
 // ClearBuildState removes Bldr-owned transient entries from root. When
 // preserveStartupBuildCache is false it also removes the durable startup build
-// cache. Unrecognized entries and state-root lock anchors are always preserved.
+// cache and the synced dist sources with their vendor tree. Unrecognized entries and state-root lock anchors are always preserved.
 func ClearBuildState(root string, preserveStartupBuildCache bool) error {
 	entries, err := os.ReadDir(root)
 	if os.IsNotExist(err) {
@@ -24,11 +24,11 @@ func ClearBuildState(root string, preserveStartupBuildCache bool) error {
 		name := entry.Name()
 		remove := false
 		switch name {
-		case "logs", "src", "plugin", "cli":
+		case "logs", "plugin", "cli":
 			remove = true
 		}
 		if !preserveStartupBuildCache &&
-			(name == "build" || strings.HasPrefix(name, "devtool.db") || strings.HasPrefix(name, "devtool.s4wave")) {
+			(name == "build" || name == "src" || strings.HasPrefix(name, "devtool.db") || strings.HasPrefix(name, "devtool.s4wave")) {
 			remove = true
 		}
 		if !remove {

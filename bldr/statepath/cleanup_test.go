@@ -13,11 +13,12 @@ func TestClearBuildStatePartition(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		for _, name := range []string{"logs", "src", "plugin", "cli"} {
+		for _, name := range []string{"logs", "plugin", "cli"} {
 			assertStatePathMissing(t, root, name)
 		}
 		for _, name := range []string{
 			"build",
+			"src",
 			"devtool.db",
 			"devtool.db-shm",
 			"devtool.s4wave",
