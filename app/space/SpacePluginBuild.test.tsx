@@ -79,9 +79,14 @@ it('installs only a successful build and releases observation after completion',
   const space = { buildSpacePlugin, addSpacePlugin } as unknown as Space
   const rendered = render(<SpacePluginBuild space={space} />)
   fireEvent.click(screen.getByText('Build a TypeScript plugin'))
+  expect(
+    screen.getByRole('button', { name: 'Build' }).hasAttribute('disabled'),
+  ).toBe(true)
   fireEvent.change(screen.getByLabelText('Source folder'), {
     target: { value: 'projects/colors' },
   })
+  fireEvent.click(screen.getByRole('button', { name: 'Edit source' }))
+  expect(navigateToObjects).toHaveBeenCalledWith(['projects/colors'])
   fireEvent.change(screen.getByLabelText('Build device'), {
     target: { value: 'devices/local' },
   })
