@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, inject, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
@@ -6,13 +6,14 @@ const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
+const mockDocs = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/app/nav-links.js', () => ({
   useNavLinks: () => ({
     blog: vi.fn(),
     changelog: vi.fn(),
     community: vi.fn(),
-    docs: vi.fn(),
+    docs: mockDocs,
     download: vi.fn(),
     legal: vi.fn(),
     support: vi.fn(),
@@ -56,6 +57,12 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
 }))
 
 import { SessionDashboard, type DashboardSpace } from './SessionDashboard.js'
+
+declare module 'vitest' {
+  export interface ProvidedContext {
+    touchBrowser: boolean
+  }
+}
 
 function QuickstartIcon({ className }: { className?: string }) {
   return <svg className={className} aria-hidden="true" />
@@ -139,7 +146,39 @@ async function capture(name: string) {
   })
 }
 
+function browserName(): string {
+  return navigator.userAgent.includes('Chrome') ? 'chromium' : 'webkit'
+}
+
+function navMeasurements() {
+  const buttons = [
+    ...document.querySelectorAll<HTMLButtonElement>('nav button'),
+    ...[...document.querySelectorAll<HTMLButtonElement>('button')].filter(
+      (button) => button.textContent?.trim() === 'community',
+    ),
+  ]
+
+  return buttons.map((button) => {
+    const rect = button.getBoundingClientRect()
+    return {
+      label: button.textContent?.trim(),
+      width: rect.width,
+      height: rect.height,
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      clipped: button.scrollWidth > button.clientWidth,
+    }
+  })
+}
+
 describe('session dashboard browser render', () => {
+  // Pointer-specific checks run only in the context whose CSS media query applies.
+  const touchBrowser = inject('touchBrowser')
+  const touchTest = touchBrowser ? it : it.skip
+  const desktopTest = touchBrowser ? it.skip : it
+
   beforeEach(() => {
     mockUseVisibleQuickstartOptions.mockReturnValue(quickstartOptions)
   })
@@ -240,6 +279,86 @@ describe('session dashboard browser render', () => {
 
     expect(onSpaceClick).not.toHaveBeenCalled()
     await capture('space-drive-copy-landscape')
+    await cleanup()
+  })
+
+  touchTest('keeps touch navigation reachable across phone sizes', async () => {
+    await render(<SessionDashboardSurface />)
+    expect(matchMedia('(pointer: coarse)').matches).toBe(true)
+
+    const failures: string[] = []
+    for (const [width, height] of [
+      [390, 844],
+      [360, 780],
+      [844, 390],
+    ]) {
+      await page.viewport(width, height)
+
+      const measurements = navMeasurements()
+      expect(measurements.map((action) => action.label)).toEqual([
+        'Download',
+        'Docs',
+        'Blog',
+        'Release Notes',
+        'Support',
+        'Legal',
+        'community',
+      ])
+      console.log(
+        `${browserName()} touch ${width}x${height}: ${JSON.stringify(measurements)}`,
+      )
+      await capture(`${browserName()}-touch-${width}x${height}`)
+
+      if (height === 390) {
+        const scrollRegion = document.querySelector<HTMLElement>(
+          '[data-testid="dashboard-surface"] > div > .overflow-y-auto',
+        )
+        expect(scrollRegion).not.toBeNull()
+        expect(scrollRegion!.scrollHeight).toBeGreaterThan(
+          scrollRegion!.clientHeight,
+        )
+        scrollRegion!.scrollTop = scrollRegion!.scrollHeight
+        expect(scrollRegion!.scrollTop).toBeGreaterThan(0)
+        await capture(`${browserName()}-touch-${width}x${height}-scrolled`)
+      }
+
+      if (document.documentElement.scrollWidth > width) {
+        failures.push(`${width}x${height}: horizontal overflow`)
+      }
+      for (const action of measurements) {
+        if (
+          action.width < 44 ||
+          action.height < 44 ||
+          action.left < 0 ||
+          action.right > width ||
+          action.top < 0 ||
+          action.bottom > height ||
+          action.clipped
+        ) {
+          failures.push(`${width}x${height}: ${action.label} is not reachable`)
+        }
+      }
+    }
+
+    await page.getByRole('button', { name: 'Docs' }).click()
+    expect(mockDocs).toHaveBeenCalledOnce()
+    expect(failures).toEqual([])
+    await cleanup()
+  })
+
+  desktopTest('keeps desktop navigation compact', async () => {
+    await page.viewport(1280, 800)
+    await render(<SessionDashboardSurface />)
+    expect(matchMedia('(pointer: fine)').matches).toBe(true)
+
+    const measurements = navMeasurements()
+    console.log(
+      `${browserName()} desktop 1280x800: ${JSON.stringify(measurements)}`,
+    )
+    await capture(`${browserName()}-desktop-1280x800`)
+
+    expect(measurements.every((action) => action.height < 44)).toBe(true)
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(1280)
     await cleanup()
   })
 })

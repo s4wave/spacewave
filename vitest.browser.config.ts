@@ -1,4 +1,3 @@
-
 import { defineConfig, mergeConfig } from 'vitest/config'
 import { playwright } from '@vitest/browser-playwright'
 import { resolve, dirname } from 'path'
@@ -65,7 +64,24 @@ export default mergeConfig(
           },
         }),
         // https://vitest.dev/guide/browser/playwright
-        instances: [{ browser: 'chromium' }],
+        instances: [
+          { browser: 'chromium', provide: { touchBrowser: false } },
+          {
+            browser: 'chromium',
+            name: 'chromium-touch',
+            include: ['app/session/dashboard/SessionDashboard.e2e.test.tsx'],
+            provide: { touchBrowser: true },
+            provider: playwright({
+              launchOptions: {
+                headless: !showUI,
+              },
+              contextOptions: {
+                colorScheme: 'dark',
+                hasTouch: true,
+              },
+            }),
+          },
+        ],
         // Disable automatic screenshots - they just capture loading states
         screenshotFailures: false,
         // Force dark mode for Vitest UI
