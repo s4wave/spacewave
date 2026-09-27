@@ -475,6 +475,49 @@ describe('BldrElectronApp', () => {
     expect(mockElectronApp.quit).toHaveBeenCalledOnce()
   })
 
+  it('closes the shell when the daemon claims stop but its Quit reply is lost', async () => {
+    vi.stubEnv('SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH', '/tmp/desktop.sock')
+    daemonQuitMocks.connect.mockResolvedValue({
+      rpc: {},
+      [Symbol.dispose]: daemonQuitMocks.dispose,
+    })
+    let loseReply!: (error: Error) => void
+    daemonQuitMocks.quit.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        loseReply = reject
+      }),
+    )
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const { BldrElectronApp } = await import('./app.js')
+      const app = Reflect.construct(BldrElectronApp, [
+        mockElectronApp,
+        'runtime-1',
+        {},
+      ])
+
+      const quitting = Reflect.apply(
+        Reflect.get(app, 'quitDesktopRuntime'),
+        app,
+        [],
+      )
+      expect(mockElectronApp.quit).not.toHaveBeenCalled()
+      loseReply(new Error('Quit reply lost after stop claim'))
+      await quitting
+
+      expect(daemonQuitMocks.dispose).toHaveBeenCalledOnce()
+      expect(mockElectronApp.quit).toHaveBeenCalledOnce()
+      expect(logError).toHaveBeenCalledWith(
+        'desktop Quit could not confirm daemon demand',
+        expect.objectContaining({
+          message: 'Quit reply lost after stop claim',
+        }),
+      )
+    } finally {
+      logError.mockRestore()
+    }
+  })
+
   it('opens routed requests in new hash-routed windows', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [

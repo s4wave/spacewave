@@ -104,17 +104,13 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     return {}
   }
 
+  /** QuitDesktopRuntime retains explicit Quit intent while the shell exits. */
   public async QuitDesktopRuntime(
     _request: QuitDesktopRuntimeRequest,
     _abortSignal?: AbortSignal,
   ): Promise<QuitDesktopRuntimeResponse> {
     this.setQuitting(true)
-    try {
-      await this.opts.quitDesktopRuntime()
-    } catch (error) {
-      this.setQuitting(false)
-      throw error
-    }
+    await this.opts.quitDesktopRuntime()
     return {}
   }
 
