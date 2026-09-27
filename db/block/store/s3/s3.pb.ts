@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.store.s3'
-
 /**
  * CheckOutcome classifies a bucket connectivity check.
  *
@@ -79,16 +77,7 @@ export enum CheckOutcome {
 
 export const CheckOutcome_Enum = /* @__PURE__ */ createEnumType(
   'block.store.s3.CheckOutcome',
-  [
-    [0, 'CHECK_OUTCOME_UNKNOWN'],
-    [1, 'CHECK_OUTCOME_OK'],
-    [2, 'CHECK_OUTCOME_UNREACHABLE'],
-    [3, 'CHECK_OUTCOME_CREDENTIALS_REJECTED'],
-    [4, 'CHECK_OUTCOME_ACCESS_DENIED'],
-    [5, 'CHECK_OUTCOME_BUCKET_NOT_FOUND'],
-    [6, 'CHECK_OUTCOME_WRONG_REGION'],
-    [7, 'CHECK_OUTCOME_FAILED'],
-  ],
+  CheckOutcome,
 )
 
 /**
@@ -131,7 +120,6 @@ export const Credentials: MessageType<Credentials> =
       },
       { no: 3, name: 'token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -174,11 +162,10 @@ export const ClientConfig: MessageType<ClientConfig> =
     typeName: 'block.store.s3.ClientConfig',
     fields: [
       { no: 1, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'credentials', kind: 'message', T: () => Credentials },
+      { no: 2, name: 'credentials', kind: 'message', T: Credentials },
       { no: 3, name: 'disable_ssl', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'region', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -237,7 +224,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'block.store.s3.Config',
   fields: [
     { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'client', kind: 'message', T: () => ClientConfig },
+    { no: 2, name: 'client', kind: 'message', T: ClientConfig },
     { no: 3, name: 'bucket_name', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
     {
@@ -250,7 +237,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 9, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -280,7 +266,6 @@ export const ObjectUsage: MessageType<ObjectUsage> =
       { no: 1, name: 'objects', kind: 'scalar', T: ScalarType.INT64 },
       { no: 2, name: 'bytes', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -317,7 +302,6 @@ export const CheckResult: MessageType<CheckResult> =
     fields: [
       { no: 1, name: 'outcome', kind: 'enum', T: CheckOutcome_Enum },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'usage', kind: 'message', T: () => ObjectUsage },
+      { no: 3, name: 'usage', kind: 'message', T: ObjectUsage },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

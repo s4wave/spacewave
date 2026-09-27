@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'unixfs.world.e2e'
-
 /**
  * InitUnixFSDemoOp initializes a UnixFS filesystem with demo content.
  *
@@ -37,5 +35,4 @@ export const InitUnixFSDemoOp: MessageType<InitUnixFSDemoOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

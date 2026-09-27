@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'notes'
-
 /**
  * Blog is a world object that presents markdown files from UnixFS
  * sources as a blog with reading view and frontmatter-based filtering.
@@ -63,7 +61,6 @@ export const Blog: MessageType<Blog> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -119,5 +116,4 @@ export const CreateBlogOp: MessageType<CreateBlogOp> =
       },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

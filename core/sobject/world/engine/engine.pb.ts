@@ -13,8 +13,6 @@ import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb
 import { ObjectRef } from '../../../../db/bucket/bucket.pb.js'
 import { Tx } from '../../../../db/world/block/tx/tx.pb.js'
 
-export const protobufPackage = 'sobject.world.engine'
-
 /**
  * SpaceWorldFinalizationStatus is the authority owner's decision for a packet.
  *
@@ -66,14 +64,7 @@ export enum SpaceWorldFinalizationStatus {
 
 export const SpaceWorldFinalizationStatus_Enum = /* @__PURE__ */ createEnumType(
   'sobject.world.engine.SpaceWorldFinalizationStatus',
-  [
-    [0, 'SPACE_WORLD_FINALIZATION_STATUS_UNKNOWN'],
-    [1, 'SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED'],
-    [2, 'SPACE_WORLD_FINALIZATION_STATUS_REJECTED'],
-    [3, 'SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE'],
-    [4, 'SPACE_WORLD_FINALIZATION_STATUS_MISSING_BLOCK'],
-    [5, 'SPACE_WORLD_FINALIZATION_STATUS_LOST_AUTHORITY'],
-  ],
+  SpaceWorldFinalizationStatus,
 )
 
 /**
@@ -111,7 +102,6 @@ export const InitWorldOp: MessageType<InitWorldOp> =
       },
       { no: 2, name: 'transform_conf', kind: 'message', T: () => Config$1 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -197,7 +187,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'ref', kind: 'message', T: () => SharedObjectRef },
-    { no: 3, name: 'init_world_op', kind: 'message', T: () => InitWorldOp },
+    { no: 3, name: 'init_world_op', kind: 'message', T: InitWorldOp },
     { no: 4, name: 'disable_lookup', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 5,
@@ -226,7 +216,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.UINT64,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -254,7 +243,6 @@ export const InnerState: MessageType<InnerState> =
     fields: [
       { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -277,7 +265,6 @@ export const ApplyTxOp: MessageType<ApplyTxOp> =
     fields: [
       { no: 1, name: 'tx', kind: 'message', T: () => Tx },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -324,18 +311,17 @@ export const SOWorldOp: MessageType<SOWorldOp> =
         no: 1,
         name: 'init_world',
         kind: 'message',
-        T: () => InitWorldOp,
+        T: InitWorldOp,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'apply_tx_op',
         kind: 'message',
-        T: () => ApplyTxOp,
+        T: ApplyTxOp,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -438,7 +424,7 @@ export const SpaceWorldFinalizationPacket: MessageType<SpaceWorldFinalizationPac
       },
       { no: 6, name: 'authority_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'blocks_available', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 8, name: 'op', kind: 'message', T: () => SOWorldOp },
+      { no: 8, name: 'op', kind: 'message', T: SOWorldOp },
       {
         no: 9,
         name: 'follower_participant_id',
@@ -452,7 +438,6 @@ export const SpaceWorldFinalizationPacket: MessageType<SpaceWorldFinalizationPac
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -530,7 +515,6 @@ export const SpaceWorldFinalizationDecision: MessageType<SpaceWorldFinalizationD
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -569,13 +553,13 @@ export const SpaceWorldRejectedCandidate: MessageType<SpaceWorldRejectedCandidat
         no: 1,
         name: 'packet',
         kind: 'message',
-        T: () => SpaceWorldFinalizationPacket,
+        T: SpaceWorldFinalizationPacket,
       },
       {
         no: 2,
         name: 'decision',
         kind: 'message',
-        T: () => SpaceWorldFinalizationDecision,
+        T: SpaceWorldFinalizationDecision,
       },
       {
         no: 3,
@@ -584,5 +568,4 @@ export const SpaceWorldRejectedCandidate: MessageType<SpaceWorldRejectedCandidat
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'resource'
-
 /**
  * ResourceClientInitRequest is sent first on every ResourceClient stream.
  *
@@ -45,7 +43,6 @@ export const ResourceClientAdopt: MessageType<ResourceClientAdopt> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -68,7 +65,6 @@ export const ResourceClientRelease: MessageType<ResourceClientRelease> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -131,25 +127,24 @@ export const ResourceClientRequest: MessageType<ResourceClientRequest> =
         no: 2,
         name: 'init',
         kind: 'message',
-        T: () => ResourceClientInitRequest,
+        T: ResourceClientInitRequest,
         oneof: 'body',
       },
       {
         no: 3,
         name: 'adopt',
         kind: 'message',
-        T: () => ResourceClientAdopt,
+        T: ResourceClientAdopt,
         oneof: 'body',
       },
       {
         no: 4,
         name: 'release',
         kind: 'message',
-        T: () => ResourceClientRelease,
+        T: ResourceClientRelease,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -179,7 +174,6 @@ export const ResourceClientInit: MessageType<ResourceClientInit> =
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'root_resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -202,7 +196,6 @@ export const ResourceReleasedResponse: MessageType<ResourceReleasedResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -225,7 +218,6 @@ export const ResourceClientControlAck: MessageType<ResourceClientControlAck> =
     fields: [
       { no: 1, name: 'control_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -282,25 +274,24 @@ export const ResourceClientResponse: MessageType<ResourceClientResponse> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => ResourceClientInit,
+        T: ResourceClientInit,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'resource_released',
         kind: 'message',
-        T: () => ResourceReleasedResponse,
+        T: ResourceReleasedResponse,
         oneof: 'body',
       },
       {
         no: 4,
         name: 'control_ack',
         kind: 'message',
-        T: () => ResourceClientControlAck,
+        T: ResourceClientControlAck,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -323,7 +314,6 @@ export const ResourceAttachInit: MessageType<ResourceAttachInit> =
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -353,7 +343,6 @@ export const ResourceAttachAdd: MessageType<ResourceAttachAdd> =
       { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -376,7 +365,6 @@ export const ResourceAttachDetach: MessageType<ResourceAttachDetach> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -441,21 +429,21 @@ export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => ResourceAttachInit,
+        T: ResourceAttachInit,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'add',
         kind: 'message',
-        T: () => ResourceAttachAdd,
+        T: ResourceAttachAdd,
         oneof: 'body',
       },
       {
         no: 3,
         name: 'detach',
         kind: 'message',
-        T: () => ResourceAttachDetach,
+        T: ResourceAttachDetach,
         oneof: 'body',
       },
       {
@@ -466,7 +454,6 @@ export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -489,7 +476,6 @@ export const ResourceAttachAck: MessageType<ResourceAttachAck> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -526,7 +512,6 @@ export const ResourceAttachAddAck: MessageType<ResourceAttachAddAck> =
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -549,7 +534,6 @@ export const ResourceAttachDetachAck: MessageType<ResourceAttachDetachAck> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -614,21 +598,21 @@ export const ResourceAttachResponse: MessageType<ResourceAttachResponse> =
         no: 1,
         name: 'ack',
         kind: 'message',
-        T: () => ResourceAttachAck,
+        T: ResourceAttachAck,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'add_ack',
         kind: 'message',
-        T: () => ResourceAttachAddAck,
+        T: ResourceAttachAddAck,
         oneof: 'body',
       },
       {
         no: 3,
         name: 'detach_ack',
         kind: 'message',
-        T: () => ResourceAttachDetachAck,
+        T: ResourceAttachDetachAck,
         oneof: 'body',
       },
       {
@@ -639,5 +623,4 @@ export const ResourceAttachResponse: MessageType<ResourceAttachResponse> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

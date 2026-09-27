@@ -13,8 +13,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result } from '../../value/value.pb.js'
 import { ValueSet } from '../../target/target.pb.js'
 
-export const protobufPackage = 'pass.tx'
-
 /**
  * TxType indicates the kind of transaction.
  *
@@ -71,14 +69,10 @@ export enum TxType {
   TxType_CANCEL = 5,
 }
 
-export const TxType_Enum = /* @__PURE__ */ createEnumType('pass.tx.TxType', [
-  [0, 'TxType_INVALID'],
-  [1, 'TxType_START'],
-  [2, 'TxType_CREATE_EXEC_SPECS'],
-  [3, 'TxType_UPDATE_EXEC_STATES'],
-  [4, 'TxType_COMPLETE'],
-  [5, 'TxType_CANCEL'],
-])
+export const TxType_Enum = /* @__PURE__ */ createEnumType(
+  'pass.tx.TxType',
+  TxType,
+)
 
 /**
  * ExecSpec contains a specification for creating an Execution.
@@ -101,7 +95,6 @@ export const ExecSpec: MessageType<ExecSpec> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -135,12 +128,11 @@ export const TxCreateExecSpecs: MessageType<TxCreateExecSpecs> =
         no: 1,
         name: 'exec_specs',
         kind: 'message',
-        T: () => ExecSpec,
+        T: ExecSpec,
         repeated: true,
       },
       { no: 2, name: 'clear_existing', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -164,14 +156,8 @@ export interface TxStart {
 export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   typeName: 'pass.tx.TxStart',
   fields: [
-    {
-      no: 1,
-      name: 'create_exec_specs',
-      kind: 'message',
-      T: () => TxCreateExecSpecs,
-    },
+    { no: 1, name: 'create_exec_specs', kind: 'message', T: TxCreateExecSpecs },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -224,7 +210,6 @@ export const TxComplete: MessageType<TxComplete> =
       { no: 1, name: 'result', kind: 'message', T: () => Result },
       { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -248,7 +233,6 @@ export const TxCancel: MessageType<TxCancel> =
     fields: [
       { no: 1, name: 'result', kind: 'message', T: () => Result },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -312,21 +296,20 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
     { no: 2, name: 'pass_object_key', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'tx_start', kind: 'message', T: () => TxStart },
+    { no: 3, name: 'tx_start', kind: 'message', T: TxStart },
     {
       no: 4,
       name: 'tx_create_exec_specs',
       kind: 'message',
-      T: () => TxCreateExecSpecs,
+      T: TxCreateExecSpecs,
     },
     {
       no: 5,
       name: 'tx_update_exec_states',
       kind: 'message',
-      T: () => TxUpdateExecStates,
+      T: TxUpdateExecStates,
     },
-    { no: 6, name: 'tx_complete', kind: 'message', T: () => TxComplete },
-    { no: 7, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
+    { no: 6, name: 'tx_complete', kind: 'message', T: TxComplete },
+    { no: 7, name: 'tx_cancel', kind: 'message', T: TxCancel },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

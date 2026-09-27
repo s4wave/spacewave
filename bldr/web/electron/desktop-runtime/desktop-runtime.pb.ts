@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'electron.desktop_runtime'
-
 /**
  * DesktopCLIInstallStatus describes managed CLI install/update state.
  *
@@ -85,17 +83,7 @@ export enum DesktopCLIInstallStatus {
 
 export const DesktopCLIInstallStatus_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopCLIInstallStatus',
-  [
-    [0, 'DESKTOP_CLI_INSTALL_STATUS_UNSPECIFIED'],
-    [1, 'DESKTOP_CLI_INSTALL_STATUS_UNKNOWN'],
-    [2, 'DESKTOP_CLI_INSTALL_STATUS_MISSING'],
-    [3, 'DESKTOP_CLI_INSTALL_STATUS_INSTALLED'],
-    [4, 'DESKTOP_CLI_INSTALL_STATUS_UPDATE_AVAILABLE'],
-    [5, 'DESKTOP_CLI_INSTALL_STATUS_CONFLICT'],
-    [6, 'DESKTOP_CLI_INSTALL_STATUS_ERROR'],
-    [7, 'DESKTOP_CLI_INSTALL_STATUS_INSTALLING'],
-    [8, 'DESKTOP_CLI_INSTALL_STATUS_UPDATING'],
-  ],
+  DesktopCLIInstallStatus,
 )
 
 /**
@@ -149,14 +137,7 @@ export enum DesktopCLIInstallActionKind {
 
 export const DesktopCLIInstallActionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopCLIInstallActionKind',
-  [
-    [0, 'DESKTOP_CLI_INSTALL_ACTION_KIND_UNSPECIFIED'],
-    [1, 'DESKTOP_CLI_INSTALL_ACTION_KIND_RECHECK'],
-    [2, 'DESKTOP_CLI_INSTALL_ACTION_KIND_OPEN_SETTINGS'],
-    [3, 'DESKTOP_CLI_INSTALL_ACTION_KIND_INSTALL'],
-    [4, 'DESKTOP_CLI_INSTALL_ACTION_KIND_UPDATE'],
-    [5, 'DESKTOP_CLI_INSTALL_ACTION_KIND_SELECT_TARGET'],
-  ],
+  DesktopCLIInstallActionKind,
 )
 
 /**
@@ -204,13 +185,7 @@ export enum DesktopCLIInstallTargetPathState {
 export const DesktopCLIInstallTargetPathState_Enum =
   /* @__PURE__ */ createEnumType(
     'electron.desktop_runtime.DesktopCLIInstallTargetPathState',
-    [
-      [0, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNSPECIFIED'],
-      [1, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_UNKNOWN'],
-      [2, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_ON_PATH'],
-      [3, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_OFF_PATH'],
-      [4, 'DESKTOP_CLI_INSTALL_TARGET_PATH_STATE_BLOCKED'],
-    ],
+    DesktopCLIInstallTargetPathState,
   )
 
 /**
@@ -271,15 +246,7 @@ export enum DesktopRuntimeHealth {
 
 export const DesktopRuntimeHealth_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeHealth',
-  [
-    [0, 'DESKTOP_RUNTIME_HEALTH_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_HEALTH_STARTING'],
-    [2, 'DESKTOP_RUNTIME_HEALTH_HEALTHY'],
-    [3, 'DESKTOP_RUNTIME_HEALTH_ACTIVE'],
-    [4, 'DESKTOP_RUNTIME_HEALTH_NEEDS_ATTENTION'],
-    [5, 'DESKTOP_RUNTIME_HEALTH_DISCONNECTED'],
-    [6, 'DESKTOP_RUNTIME_HEALTH_QUITTING'],
-  ],
+  DesktopRuntimeHealth,
 )
 
 /**
@@ -326,13 +293,7 @@ export enum DesktopRuntimeLifecycle {
 
 export const DesktopRuntimeLifecycle_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeLifecycle',
-  [
-    [0, 'DESKTOP_RUNTIME_LIFECYCLE_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_LIFECYCLE_STARTING'],
-    [2, 'DESKTOP_RUNTIME_LIFECYCLE_RUNNING'],
-    [3, 'DESKTOP_RUNTIME_LIFECYCLE_DISCONNECTED'],
-    [4, 'DESKTOP_RUNTIME_LIFECYCLE_QUITTING'],
-  ],
+  DesktopRuntimeLifecycle,
 )
 
 /**
@@ -372,12 +333,7 @@ export enum DesktopRuntimeReachability {
 
 export const DesktopRuntimeReachability_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeReachability',
-  [
-    [0, 'DESKTOP_RUNTIME_REACHABILITY_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_REACHABILITY_STARTING'],
-    [2, 'DESKTOP_RUNTIME_REACHABILITY_REACHABLE'],
-    [3, 'DESKTOP_RUNTIME_REACHABILITY_UNREACHABLE'],
-  ],
+  DesktopRuntimeReachability,
 )
 
 /**
@@ -431,14 +387,7 @@ export enum DesktopRuntimeActivityState {
 
 export const DesktopRuntimeActivityState_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActivityState',
-  [
-    [0, 'DESKTOP_RUNTIME_ACTIVITY_STATE_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE'],
-    [2, 'DESKTOP_RUNTIME_ACTIVITY_STATE_RUNNING'],
-    [3, 'DESKTOP_RUNTIME_ACTIVITY_STATE_DONE'],
-    [4, 'DESKTOP_RUNTIME_ACTIVITY_STATE_ATTENTION'],
-    [5, 'DESKTOP_RUNTIME_ACTIVITY_STATE_ERROR'],
-  ],
+  DesktopRuntimeActivityState,
 )
 
 /**
@@ -520,18 +469,7 @@ export enum DesktopRuntimeAttentionKind {
 
 export const DesktopRuntimeAttentionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeAttentionKind',
-  [
-    [0, 'DESKTOP_RUNTIME_ATTENTION_KIND_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_STARTING'],
-    [2, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_DISCONNECTED'],
-    [3, 'DESKTOP_RUNTIME_ATTENTION_KIND_LISTENER_UNAVAILABLE'],
-    [4, 'DESKTOP_RUNTIME_ATTENTION_KIND_AUTH_REQUIRED'],
-    [5, 'DESKTOP_RUNTIME_ATTENTION_KIND_STEP_UP_REQUIRED'],
-    [6, 'DESKTOP_RUNTIME_ATTENTION_KIND_SYNC_ERROR'],
-    [7, 'DESKTOP_RUNTIME_ATTENTION_KIND_UPDATE_READY'],
-    [8, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_RESTARTING'],
-    [9, 'DESKTOP_RUNTIME_ATTENTION_KIND_RUNTIME_QUITTING'],
-  ],
+  DesktopRuntimeAttentionKind,
 )
 
 /**
@@ -571,12 +509,7 @@ export enum DesktopRuntimeSeverity {
 
 export const DesktopRuntimeSeverity_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeSeverity',
-  [
-    [0, 'DESKTOP_RUNTIME_SEVERITY_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_SEVERITY_INFO'],
-    [2, 'DESKTOP_RUNTIME_SEVERITY_WARNING'],
-    [3, 'DESKTOP_RUNTIME_SEVERITY_CRITICAL'],
-  ],
+  DesktopRuntimeSeverity,
 )
 
 /**
@@ -630,14 +563,7 @@ export enum DesktopRuntimeActionKind {
 
 export const DesktopRuntimeActionKind_Enum = /* @__PURE__ */ createEnumType(
   'electron.desktop_runtime.DesktopRuntimeActionKind',
-  [
-    [0, 'DESKTOP_RUNTIME_ACTION_KIND_UNSPECIFIED'],
-    [1, 'DESKTOP_RUNTIME_ACTION_KIND_OPEN_ROUTE'],
-    [2, 'DESKTOP_RUNTIME_ACTION_KIND_NEW_WINDOW'],
-    [3, 'DESKTOP_RUNTIME_ACTION_KIND_COPY_TEXT'],
-    [4, 'DESKTOP_RUNTIME_ACTION_KIND_REVEAL_PATH'],
-    [5, 'DESKTOP_RUNTIME_ACTION_KIND_QUIT'],
-  ],
+  DesktopRuntimeActionKind,
 )
 
 /**
@@ -698,7 +624,6 @@ export const DesktopRuntimeListenerStatus: MessageType<DesktopRuntimeListenerSta
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -756,7 +681,6 @@ export const DesktopRuntimeNavigationItem: MessageType<DesktopRuntimeNavigationI
       { no: 5, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -817,7 +741,6 @@ export const DesktopRuntimeActivityItem: MessageType<DesktopRuntimeActivityItem>
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -861,7 +784,6 @@ export const DesktopRuntimeUpdateStatus: MessageType<DesktopRuntimeUpdateStatus>
       { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -917,7 +839,6 @@ export const DesktopRuntimeAttentionItem: MessageType<DesktopRuntimeAttentionIte
       { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'route', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -982,7 +903,6 @@ export const DesktopRuntimeActionItem: MessageType<DesktopRuntimeActionItem> =
       { no: 6, name: 'value', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1026,7 +946,6 @@ export const DesktopRuntimeCLIInstallSummary: MessageType<DesktopRuntimeCLIInsta
       { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'route', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1133,57 +1052,56 @@ export const DesktopRuntimeState: MessageType<DesktopRuntimeState> =
         no: 6,
         name: 'listener',
         kind: 'message',
-        T: () => DesktopRuntimeListenerStatus,
+        T: DesktopRuntimeListenerStatus,
       },
       {
         no: 7,
         name: 'sessions',
         kind: 'message',
-        T: () => DesktopRuntimeNavigationItem,
+        T: DesktopRuntimeNavigationItem,
         repeated: true,
       },
       {
         no: 8,
         name: 'spaces',
         kind: 'message',
-        T: () => DesktopRuntimeNavigationItem,
+        T: DesktopRuntimeNavigationItem,
         repeated: true,
       },
       {
         no: 9,
         name: 'activity',
         kind: 'message',
-        T: () => DesktopRuntimeActivityItem,
+        T: DesktopRuntimeActivityItem,
         repeated: true,
       },
       {
         no: 10,
         name: 'update',
         kind: 'message',
-        T: () => DesktopRuntimeUpdateStatus,
+        T: DesktopRuntimeUpdateStatus,
       },
       {
         no: 11,
         name: 'attention_items',
         kind: 'message',
-        T: () => DesktopRuntimeAttentionItem,
+        T: DesktopRuntimeAttentionItem,
         repeated: true,
       },
       {
         no: 12,
         name: 'actions',
         kind: 'message',
-        T: () => DesktopRuntimeActionItem,
+        T: DesktopRuntimeActionItem,
         repeated: true,
       },
       {
         no: 13,
         name: 'cli_install',
         kind: 'message',
-        T: () => DesktopRuntimeCLIInstallSummary,
+        T: DesktopRuntimeCLIInstallSummary,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1248,7 +1166,6 @@ export const DesktopCLIEntrypointIdentity: MessageType<DesktopCLIEntrypointIdent
       { no: 6, name: 'manifest_rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1332,7 +1249,6 @@ export const DesktopCLIInstallTarget: MessageType<DesktopCLIInstallTarget> =
       },
       { no: 9, name: 'blocked_reason', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1402,7 +1318,6 @@ export const DesktopCLIInstallActionItem: MessageType<DesktopCLIInstallActionIte
       { no: 6, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1490,19 +1405,19 @@ export const DesktopCLIInstallState: MessageType<DesktopCLIInstallState> =
         no: 4,
         name: 'installed',
         kind: 'message',
-        T: () => DesktopCLIEntrypointIdentity,
+        T: DesktopCLIEntrypointIdentity,
       },
       {
         no: 5,
         name: 'available',
         kind: 'message',
-        T: () => DesktopCLIEntrypointIdentity,
+        T: DesktopCLIEntrypointIdentity,
       },
       {
         no: 6,
         name: 'targets',
         kind: 'message',
-        T: () => DesktopCLIInstallTarget,
+        T: DesktopCLIInstallTarget,
         repeated: true,
       },
       { no: 7, name: 'conflict_path', kind: 'scalar', T: ScalarType.STRING },
@@ -1518,11 +1433,10 @@ export const DesktopCLIInstallState: MessageType<DesktopCLIInstallState> =
         no: 11,
         name: 'actions',
         kind: 'message',
-        T: () => DesktopCLIInstallActionItem,
+        T: DesktopCLIInstallActionItem,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1556,9 +1470,8 @@ export const WatchDesktopStateResponse: MessageType<WatchDesktopStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.WatchDesktopStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => DesktopRuntimeState },
+      { no: 1, name: 'state', kind: 'message', T: DesktopRuntimeState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1579,9 +1492,8 @@ export const SetDesktopStateRequest: MessageType<SetDesktopStateRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.SetDesktopStateRequest',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => DesktopRuntimeState },
+      { no: 1, name: 'state', kind: 'message', T: DesktopRuntimeState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1617,7 +1529,6 @@ export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequ
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1690,14 +1601,8 @@ export const WatchCLIInstallStateResponse: MessageType<WatchCLIInstallStateRespo
   /* @__PURE__ */ createMessageType({
     typeName: 'electron.desktop_runtime.WatchCLIInstallStateResponse',
     fields: [
-      {
-        no: 1,
-        name: 'state',
-        kind: 'message',
-        T: () => DesktopCLIInstallState,
-      },
+      { no: 1, name: 'state', kind: 'message', T: DesktopCLIInstallState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1721,7 +1626,6 @@ export const InvokeCLIInstallActionRequest: MessageType<InvokeCLIInstallActionRe
       { no: 1, name: 'action_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

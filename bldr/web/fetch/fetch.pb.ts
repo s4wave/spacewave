@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.fetch'
-
 /**
  * FetchRequestInfo contains all information about the request excluding the body.
  *
@@ -122,7 +120,6 @@ export const FetchRequestInfo: MessageType<FetchRequestInfo> =
       { no: 10, name: 'referrer', kind: 'scalar', T: ScalarType.STRING },
       { no: 11, name: 'referrer_policy', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -152,7 +149,6 @@ export const FetchRequestData: MessageType<FetchRequestData> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -199,18 +195,17 @@ export const FetchRequest: MessageType<FetchRequest> =
         no: 1,
         name: 'request_info',
         kind: 'message',
-        T: () => FetchRequestInfo,
+        T: FetchRequestInfo,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'request_data',
         kind: 'message',
-        T: () => FetchRequestData,
+        T: FetchRequestData,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -275,7 +270,6 @@ export const ResponseInfo: MessageType<ResponseInfo> =
       { no: 5, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'response_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -305,7 +299,6 @@ export const ResponseData: MessageType<ResponseData> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -353,16 +346,15 @@ export const FetchResponse: MessageType<FetchResponse> =
         no: 1,
         name: 'response_info',
         kind: 'message',
-        T: () => ResponseInfo,
+        T: ResponseInfo,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'response_data',
         kind: 'message',
-        T: () => ResponseData,
+        T: ResponseData,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'plugin.space.runtime'
-
 /**
  * Config configures the shared plugin runtime of one Space.
  * Contents mounts with equal configs share one runtime.
@@ -29,5 +27,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'space', kind: 'message', T: () => Config$1 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

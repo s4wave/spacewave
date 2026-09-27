@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.trace'
-
 /**
  * StartTraceRequest is the request for StartTrace.
  *
@@ -32,7 +30,6 @@ export const StartTraceRequest: MessageType<StartTraceRequest> =
     fields: [
       { no: 1, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -81,7 +78,6 @@ export const StopTraceResponse: MessageType<StopTraceResponse> =
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -111,7 +107,6 @@ export const CaptureCPUProfileRequest: MessageType<CaptureCPUProfileRequest> =
       { no: 1, name: 'duration_millis', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -134,7 +129,6 @@ export const CaptureCPUProfileResponse: MessageType<CaptureCPUProfileResponse> =
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -171,7 +165,6 @@ export const CaptureMemoryProfileRequest: MessageType<CaptureMemoryProfileReques
       { no: 2, name: 'gc', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'debug', kind: 'scalar', T: ScalarType.INT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -194,5 +187,4 @@ export const CaptureMemoryProfileResponse: MessageType<CaptureMemoryProfileRespo
     fields: [
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

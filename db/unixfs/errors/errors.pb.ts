@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'unixfs.errors'
-
 /**
  * UnixFSErrorType contains all potential UnixFS errors.
  *
@@ -173,30 +171,7 @@ export enum UnixFSErrorType {
 
 export const UnixFSErrorType_Enum = /* @__PURE__ */ createEnumType(
   'unixfs.errors.UnixFSErrorType',
-  [
-    [0, 'NONE'],
-    [1, 'OTHER'],
-    [2, 'FS_NOT_FOUND'],
-    [3, 'EXIST'],
-    [4, 'NOT_EXIST'],
-    [5, 'CLOSED'],
-    [6, 'READ_ONLY'],
-    [7, 'RELEASED'],
-    [8, 'NOT_DIRECTORY'],
-    [9, 'NOT_FILE'],
-    [10, 'OUT_OF_BOUNDS'],
-    [11, 'EMPTY_PATH'],
-    [12, 'ABSOLUTE_PATH'],
-    [13, 'INODE_UNRESOLVABLE'],
-    [14, 'NOT_SYMLINK'],
-    [15, 'EMPTY_TIMESTAMP'],
-    [16, 'MOVE_TO_SELF'],
-    [17, 'INVALID_WRITE'],
-    [18, 'EMPTY_UNIXFS_ID'],
-    [21, 'CROSS_FS_RENAME'],
-    [19, 'CONTEXT_CANCELED'],
-    [20, 'EOF'],
-  ],
+  UnixFSErrorType,
 )
 
 /**
@@ -229,5 +204,4 @@ export const UnixFSError: MessageType<UnixFSError> =
       { no: 1, name: 'error_type', kind: 'enum', T: UnixFSErrorType_Enum },
       { no: 2, name: 'error_body', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

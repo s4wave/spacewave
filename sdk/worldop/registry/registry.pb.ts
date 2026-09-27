@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.worldop.registry'
-
 /**
  * WorldOpRegistration is a registered world op.
  *
@@ -48,7 +46,6 @@ export const WorldOpRegistration: MessageType<WorldOpRegistration> =
       { no: 2, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -83,7 +80,6 @@ export const RegisterWorldOpRequest: MessageType<RegisterWorldOpRequest> =
       },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -106,7 +102,6 @@ export const RegisterWorldOpResponse: MessageType<RegisterWorldOpResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -129,7 +124,6 @@ export const WatchWorldOpsRequest: MessageType<WatchWorldOpsRequest> =
     fields: [
       { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -154,11 +148,10 @@ export const WatchWorldOpsResponse: MessageType<WatchWorldOpsResponse> =
         no: 1,
         name: 'registrations',
         kind: 'message',
-        T: () => WorldOpRegistration,
+        T: WorldOpRegistration,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -213,7 +206,6 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
       },
       { no: 4, name: 'sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -255,7 +247,6 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -317,7 +308,6 @@ export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
       },
       { no: 5, name: 'sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -359,7 +349,6 @@ export const ApplyWorldObjectOpResponse: MessageType<ApplyWorldObjectOpResponse>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -394,7 +383,6 @@ export const ValidateOpRequest: MessageType<ValidateOpRequest> =
       },
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -417,5 +405,4 @@ export const ValidateOpResponse: MessageType<ValidateOpResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

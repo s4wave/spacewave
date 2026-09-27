@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 
-export const protobufPackage = 'bldr.manifest.builder'
-
 /**
  * StartupInputKind describes a reusable startup validation input type.
  *
@@ -45,11 +43,7 @@ export enum InputManifest_StartupInputKind {
 export const InputManifest_StartupInputKind_Enum =
   /* @__PURE__ */ createEnumType(
     'bldr.manifest.builder.InputManifest.StartupInputKind',
-    [
-      [0, 'StartupInputKind_UNKNOWN'],
-      [1, 'StartupInputKind_ENV_VAR'],
-      [2, 'StartupInputKind_CONTROLLER_CONFIG_DIGEST'],
-    ],
+    InputManifest_StartupInputKind,
   )
 
 /**
@@ -167,7 +161,6 @@ export const BuilderConfig: MessageType<BuilderConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -209,7 +202,6 @@ export const InputManifest_FileIdentity: MessageType<InputManifest_FileIdentity>
       },
       { no: 3, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -257,11 +249,10 @@ export const InputManifest_File: MessageType<InputManifest_File> =
         no: 3,
         name: 'identity',
         kind: 'message',
-        T: () => InputManifest_FileIdentity,
+        T: InputManifest_FileIdentity,
       },
       { no: 4, name: 'startup_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -310,7 +301,6 @@ export const InputManifest_StartupInput: MessageType<InputManifest_StartupInput>
       { no: 3, name: 'string_value', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'bytes_value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -350,7 +340,7 @@ export const InputManifest: MessageType<InputManifest> =
         no: 1,
         name: 'files',
         kind: 'message',
-        T: () => InputManifest_File,
+        T: InputManifest_File,
         repeated: true,
       },
       { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
@@ -358,11 +348,10 @@ export const InputManifest: MessageType<InputManifest> =
         no: 4,
         name: 'startup_inputs',
         kind: 'message',
-        T: () => InputManifest_StartupInput,
+        T: InputManifest_StartupInput,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -416,12 +405,7 @@ export const BuilderResult: MessageType<BuilderResult> =
     fields: [
       { no: 1, name: 'manifest', kind: 'message', T: () => Manifest },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
-      {
-        no: 3,
-        name: 'input_manifest',
-        kind: 'message',
-        T: () => InputManifest,
-      },
+      { no: 3, name: 'input_manifest', kind: 'message', T: InputManifest },
       {
         no: 4,
         name: 'sub_manifest_results',
@@ -431,7 +415,6 @@ export const BuilderResult: MessageType<BuilderResult> =
       },
       { no: 5, name: 'source_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,25 +453,14 @@ export const BuildManifestArgs: MessageType<BuildManifestArgs> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.builder.BuildManifestArgs',
     fields: [
-      {
-        no: 1,
-        name: 'builder_config',
-        kind: 'message',
-        T: () => BuilderConfig,
-      },
-      {
-        no: 2,
-        name: 'prev_builder_result',
-        kind: 'message',
-        T: () => BuilderResult,
-      },
+      { no: 1, name: 'builder_config', kind: 'message', T: BuilderConfig },
+      { no: 2, name: 'prev_builder_result', kind: 'message', T: BuilderResult },
       {
         no: 3,
         name: 'changed_files',
         kind: 'message',
-        T: () => InputManifest_File,
+        T: InputManifest_File,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

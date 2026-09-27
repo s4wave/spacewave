@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'store.kvkey'
-
 /**
  * Config is key/value key configuration.
  *
@@ -66,5 +64,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'block_prefix', kind: 'scalar', T: ScalarType.BYTES },
     { no: 6, name: 'object_store_prefix', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

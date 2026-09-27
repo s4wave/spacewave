@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'plugin.space'
-
 /**
  * Config configures the Space Plugin Controller.
  * Loads plugins and resolves FetchManifest directives by watching the Space
@@ -115,5 +113,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'host_plugin_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'host_storage_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

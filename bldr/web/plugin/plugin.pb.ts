@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { WebViewHandlersConfig } from '../view/handler/handler.pb.js'
 
-export const protobufPackage = 'bldr.web.plugin'
-
 /**
  * HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
  *
@@ -39,7 +37,6 @@ export const HandleWebViewViaPluginRequest: MessageType<HandleWebViewViaPluginRe
       { no: 1, name: 'handle_plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'web_view_id_re', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -79,7 +76,6 @@ export const HandleWebViewViaPluginResponse: MessageType<HandleWebViewViaPluginR
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -140,7 +136,6 @@ export const HandleWebPkgViaPluginRequest: MessageType<HandleWebPkgViaPluginRequ
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -180,7 +175,6 @@ export const HandleWebPkgViaPluginResponse: MessageType<HandleWebPkgViaPluginRes
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -227,7 +221,6 @@ export const HandleRpcViaPluginRequest: MessageType<HandleRpcViaPluginRequest> =
       { no: 3, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'backoff', kind: 'message', T: () => Backoff },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -267,7 +260,6 @@ export const HandleRpcViaPluginResponse: MessageType<HandleRpcViaPluginResponse>
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -295,7 +287,6 @@ export const HandleWebViewViaHandlersRequest: MessageType<HandleWebViewViaHandle
         T: () => WebViewHandlersConfig,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -335,7 +326,6 @@ export const HandleWebViewViaHandlersResponse: MessageType<HandleWebViewViaHandl
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -379,7 +369,6 @@ export const HandleWebPkgsViaPluginAssetsRequest: MessageType<HandleWebPkgsViaPl
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -419,5 +408,4 @@ export const HandleWebPkgsViaPluginAssetsResponse: MessageType<HandleWebPkgsViaP
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

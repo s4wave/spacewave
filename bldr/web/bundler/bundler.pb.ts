@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.bundler'
-
 /**
  * WebEntrypoint is an entrypoint passed to a web bundler.
  *
@@ -36,7 +34,6 @@ export const WebEntrypoint: MessageType<WebEntrypoint> =
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -74,7 +71,6 @@ export const WebBundlerOutput: MessageType<WebBundlerOutput> =
       { no: 1, name: 'entrypoint_href', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'css_href', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -104,7 +100,6 @@ export const WebPkgEntrypoint: MessageType<WebPkgEntrypoint> =
     fields: [
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -170,9 +165,8 @@ export const WebPkgRefConfig: MessageType<WebPkgRefConfig> =
         no: 4,
         name: 'entrypoints',
         kind: 'message',
-        T: () => WebPkgEntrypoint,
+        T: WebPkgEntrypoint,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

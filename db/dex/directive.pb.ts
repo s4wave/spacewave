@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'dex'
-
 /**
  * LookupBlockFromNetworkRequest requests that Data-Exchange (DEX) find data.
  *
@@ -37,5 +35,4 @@ export const LookupBlockFromNetworkRequest: MessageType<LookupBlockFromNetworkRe
       { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'stream.api.accept'
-
 /**
  * Config configures the accept controller.
  *
@@ -58,5 +56,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

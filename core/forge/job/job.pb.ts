@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.forge.job'
-
 /**
  * ForgeJobTaskDef defines a task to create as part of a ForgeJobCreateOp.
  *
@@ -30,7 +28,6 @@ export const ForgeJobTaskDef: MessageType<ForgeJobTaskDef> =
     fields: [
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -76,10 +73,9 @@ export const ForgeJobCreateOp: MessageType<ForgeJobCreateOp> =
         no: 3,
         name: 'task_defs',
         kind: 'message',
-        T: () => ForgeJobTaskDef,
+        T: ForgeJobTaskDef,
         repeated: true,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

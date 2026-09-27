@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.transform'
-
 /**
  * StepConfig configures a transformation step.
  *
@@ -39,7 +37,6 @@ export const StepConfig: MessageType<StepConfig> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'config', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -60,13 +57,6 @@ export interface Config {
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'block.transform.Config',
   fields: [
-    {
-      no: 1,
-      name: 'steps',
-      kind: 'message',
-      T: () => StepConfig,
-      repeated: true,
-    },
+    { no: 1, name: 'steps', kind: 'message', T: StepConfig, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

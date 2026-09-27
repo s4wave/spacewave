@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave'
-
 /**
  * RbacGrantMutationAction identifies the RBAC grant mutation represented by
  * typed audit metadata.
@@ -62,14 +60,7 @@ export enum RbacGrantMutationAction {
 
 export const RbacGrantMutationAction_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.RbacGrantMutationAction',
-  [
-    [0, 'RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED'],
-    [1, 'RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED'],
-    [2, 'RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED'],
-    [3, 'RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED'],
-    [4, 'RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE'],
-    [5, 'RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED'],
-  ],
+  RbacGrantMutationAction,
 )
 
 /**
@@ -109,12 +100,7 @@ export enum RbacGrantMutationOutcome {
 
 export const RbacGrantMutationOutcome_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.RbacGrantMutationOutcome',
-  [
-    [0, 'RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED'],
-    [1, 'RBAC_GRANT_MUTATION_OUTCOME_SUCCESS'],
-    [2, 'RBAC_GRANT_MUTATION_OUTCOME_DENIED'],
-    [3, 'RBAC_GRANT_MUTATION_OUTCOME_FAILED'],
-  ],
+  RbacGrantMutationOutcome,
 )
 
 /**
@@ -163,7 +149,6 @@ export const UserCreatedAuditMetadata: MessageType<UserCreatedAuditMetadata> =
       },
       { no: 4, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -214,7 +199,6 @@ export const EntityKeypairsChangedAuditMetadata: MessageType<EntityKeypairsChang
       { no: 4, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'auth_threshold', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -272,7 +256,6 @@ export const ResourceCreatedAuditMetadata: MessageType<ResourceCreatedAuditMetad
       { no: 5, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -326,7 +309,6 @@ export const ResourceOwnershipTransferredAuditMetadata: MessageType<ResourceOwne
       { no: 3, name: 'new_owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'new_owner_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -370,7 +352,6 @@ export const SharedObjectChangedAuditMetadata: MessageType<SharedObjectChangedAu
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'public_read', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -426,7 +407,6 @@ export const OrganizationChangedAuditMetadata: MessageType<OrganizationChangedAu
       },
       { no: 5, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -492,7 +472,6 @@ export const BillingStatusChangedAuditMetadata: MessageType<BillingStatusChanged
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -541,7 +520,6 @@ export const BillingAdminActionAuditMetadata: MessageType<BillingAdminActionAudi
       { no: 3, name: 'dispute_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'disputer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -564,7 +542,6 @@ export const GenericAuditMetadata: MessageType<GenericAuditMetadata> =
     fields: [
       { no: 1, name: 'summary', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -594,7 +571,6 @@ export const RbacPrincipal: MessageType<RbacPrincipal> =
       { no: 1, name: 'type', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -617,7 +593,6 @@ export const RbacGrantRevocation: MessageType<RbacGrantRevocation> =
     fields: [
       { no: 1, name: 'revoked_at_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -694,7 +669,7 @@ export const RbacGrantMutationAuditMetadata: MessageType<RbacGrantMutationAuditM
     fields: [
       { no: 1, name: 'action', kind: 'enum', T: RbacGrantMutationAction_Enum },
       { no: 2, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'principal', kind: 'message', T: () => RbacPrincipal },
+      { no: 3, name: 'principal', kind: 'message', T: RbacPrincipal },
       { no: 4, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'scope', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
@@ -705,12 +680,7 @@ export const RbacGrantMutationAuditMetadata: MessageType<RbacGrantMutationAuditM
         T: ScalarType.UINT64,
       },
       { no: 8, name: 'expires_at_ms', kind: 'scalar', T: ScalarType.INT64 },
-      {
-        no: 9,
-        name: 'revocation',
-        kind: 'message',
-        T: () => RbacGrantRevocation,
-      },
+      { no: 9, name: 'revocation', kind: 'message', T: RbacGrantRevocation },
       {
         no: 10,
         name: 'outcome',
@@ -718,7 +688,6 @@ export const RbacGrantMutationAuditMetadata: MessageType<RbacGrantMutationAuditM
         T: RbacGrantMutationOutcome_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -868,74 +837,73 @@ export const AuditEventMetadata: MessageType<AuditEventMetadata> =
         no: 10,
         name: 'user_created',
         kind: 'message',
-        T: () => UserCreatedAuditMetadata,
+        T: UserCreatedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 11,
         name: 'entity_keypairs_changed',
         kind: 'message',
-        T: () => EntityKeypairsChangedAuditMetadata,
+        T: EntityKeypairsChangedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 12,
         name: 'resource_created',
         kind: 'message',
-        T: () => ResourceCreatedAuditMetadata,
+        T: ResourceCreatedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 13,
         name: 'resource_ownership_transferred',
         kind: 'message',
-        T: () => ResourceOwnershipTransferredAuditMetadata,
+        T: ResourceOwnershipTransferredAuditMetadata,
         oneof: 'body',
       },
       {
         no: 14,
         name: 'shared_object_changed',
         kind: 'message',
-        T: () => SharedObjectChangedAuditMetadata,
+        T: SharedObjectChangedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 15,
         name: 'organization_changed',
         kind: 'message',
-        T: () => OrganizationChangedAuditMetadata,
+        T: OrganizationChangedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 16,
         name: 'billing_status_changed',
         kind: 'message',
-        T: () => BillingStatusChangedAuditMetadata,
+        T: BillingStatusChangedAuditMetadata,
         oneof: 'body',
       },
       {
         no: 17,
         name: 'billing_admin_action',
         kind: 'message',
-        T: () => BillingAdminActionAuditMetadata,
+        T: BillingAdminActionAuditMetadata,
         oneof: 'body',
       },
       {
         no: 18,
         name: 'generic',
         kind: 'message',
-        T: () => GenericAuditMetadata,
+        T: GenericAuditMetadata,
         oneof: 'body',
       },
       {
         no: 19,
         name: 'rbac_grant_mutation',
         kind: 'message',
-        T: () => RbacGrantMutationAuditMetadata,
+        T: RbacGrantMutationAuditMetadata,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1032,15 +1000,9 @@ export const AuditEvent: MessageType<AuditEvent> =
       { no: 8, name: 'outcome', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'http_status', kind: 'scalar', T: ScalarType.INT32 },
       { no: 10, name: 'error_code', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 11,
-        name: 'metadata',
-        kind: 'message',
-        T: () => AuditEventMetadata,
-      },
+      { no: 11, name: 'metadata', kind: 'message', T: AuditEventMetadata },
       { no: 12, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1061,13 +1023,6 @@ export const ListAuditEventsResponse: MessageType<ListAuditEventsResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.spacewave.ListAuditEventsResponse',
     fields: [
-      {
-        no: 1,
-        name: 'events',
-        kind: 'message',
-        T: () => AuditEvent,
-        repeated: true,
-      },
+      { no: 1, name: 'events', kind: 'message', T: AuditEvent, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

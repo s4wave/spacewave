@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.bundler.esbuild'
-
 /**
  * EsbuildBundleEntrypoint configures a entrypoint to build into the bundle with esbuild.
  *
@@ -46,7 +44,6 @@ export const EsbuildBundleEntrypoint: MessageType<EsbuildBundleEntrypoint> =
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -101,5 +98,4 @@ export const EsbuildOutputMeta: MessageType<EsbuildOutputMeta> =
       { no: 4, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'entrypoint_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

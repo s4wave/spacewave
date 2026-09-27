@@ -13,8 +13,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Hash } from '@go/github.com/s4wave/spacewave/net/hash/hash.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'git.block'
-
 /**
  * ReferenceType are the types of reference objects.
  * Note: the values match the Git reference type values.
@@ -40,11 +38,7 @@ export enum ReferenceType {
 
 export const ReferenceType_Enum = /* @__PURE__ */ createEnumType(
   'git.block.ReferenceType',
-  [
-    [0, 'ReferenceType_INVALID'],
-    [1, 'ReferenceType_HASH'],
-    [2, 'ReferenceType_SYMBOLIC'],
-  ],
+  ReferenceType,
 )
 
 /**
@@ -94,15 +88,7 @@ export enum EncodedObjectType {
 
 export const EncodedObjectType_Enum = /* @__PURE__ */ createEnumType(
   'git.block.EncodedObjectType',
-  [
-    [0, 'EncodedObjectType_INVALID'],
-    [1, 'EncodedObjectType_COMMIT'],
-    [2, 'EncodedObjectType_TREE'],
-    [3, 'EncodedObjectType_BLOB'],
-    [4, 'EncodedObjectType_TAG'],
-    [6, 'EncodedObjectType_OFS_DELTA'],
-    [7, 'EncodedObjectType_REF_DELTA'],
-  ],
+  EncodedObjectType,
 )
 
 /**
@@ -143,12 +129,7 @@ export enum TagMode {
 
 export const TagMode_Enum = /* @__PURE__ */ createEnumType(
   'git.block.TagMode',
-  [
-    [0, 'TagMode_DEFAULT'],
-    [1, 'TagMode_NONE'],
-    [2, 'TagMode_ALL'],
-    [3, 'TagMode_FOLLOWING'],
-  ],
+  TagMode,
 )
 
 /**
@@ -172,7 +153,6 @@ export const ReferencesStore: MessageType<ReferencesStore> =
     fields: [
       { no: 1, name: 'kvtx_root', kind: 'message', T: () => KeyValueStore },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -196,7 +176,6 @@ export const ModuleReferencesStore: MessageType<ModuleReferencesStore> =
     fields: [
       { no: 1, name: 'kvtx_root', kind: 'message', T: () => KeyValueStore },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -238,7 +217,6 @@ export const EncodedObjectStore: MessageType<EncodedObjectStore> =
         T: () => KeyValueStore,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -284,23 +262,18 @@ export interface Repo {
 export const Repo: MessageType<Repo> = /* @__PURE__ */ createMessageType({
   typeName: 'git.block.Repo',
   fields: [
-    {
-      no: 1,
-      name: 'references_store',
-      kind: 'message',
-      T: () => ReferencesStore,
-    },
+    { no: 1, name: 'references_store', kind: 'message', T: ReferencesStore },
     {
       no: 2,
       name: 'module_references_store',
       kind: 'message',
-      T: () => ModuleReferencesStore,
+      T: ModuleReferencesStore,
     },
     {
       no: 3,
       name: 'encoded_object_store',
       kind: 'message',
-      T: () => EncodedObjectStore,
+      T: EncodedObjectStore,
     },
     {
       no: 4,
@@ -310,7 +283,6 @@ export const Repo: MessageType<Repo> = /* @__PURE__ */ createMessageType({
     },
     { no: 5, name: 'git_config', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -369,7 +341,6 @@ export const Packfile: MessageType<Packfile> =
       { no: 5, name: 'pack_size', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'idx_size', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -398,7 +369,6 @@ export const ShallowRefsStore: MessageType<ShallowRefsStore> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -428,7 +398,6 @@ export const Submodule: MessageType<Submodule> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'repo_ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -481,7 +450,6 @@ export const Reference: MessageType<Reference> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -524,7 +492,6 @@ export const EncodedObject: MessageType<EncodedObject> =
         T: EncodedObjectType_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -635,7 +602,6 @@ export const IndexEntry: MessageType<IndexEntry> =
       { no: 12, name: 'skip_worktree', kind: 'scalar', T: ScalarType.BOOL },
       { no: 13, name: 'intent_to_add', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -681,7 +647,6 @@ export const TreeEntry: MessageType<TreeEntry> =
       { no: 3, name: 'trees', kind: 'scalar', T: ScalarType.INT32 },
       { no: 4, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -702,15 +667,8 @@ export interface Tree {
 export const Tree: MessageType<Tree> = /* @__PURE__ */ createMessageType({
   typeName: 'git.block.Tree',
   fields: [
-    {
-      no: 1,
-      name: 'entries',
-      kind: 'message',
-      T: () => TreeEntry,
-      repeated: true,
-    },
+    { no: 1, name: 'entries', kind: 'message', T: TreeEntry, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -746,7 +704,6 @@ export const ResolveUndoEntry: MessageType<ResolveUndoEntry> =
         V: { kind: 'message', T: () => Hash },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -774,11 +731,10 @@ export const ResolveUndo: MessageType<ResolveUndo> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => ResolveUndoEntry,
+        T: ResolveUndoEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -809,7 +765,6 @@ export const EndOfIndexEntry: MessageType<EndOfIndexEntry> =
       { no: 1, name: 'offset', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'hash', kind: 'message', T: () => Hash },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -854,23 +809,11 @@ export const Index: MessageType<Index> = /* @__PURE__ */ createMessageType({
   typeName: 'git.block.Index',
   fields: [
     { no: 1, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
-    {
-      no: 2,
-      name: 'entries',
-      kind: 'message',
-      T: () => IndexEntry,
-      repeated: true,
-    },
-    { no: 3, name: 'cache', kind: 'message', T: () => Tree },
-    { no: 4, name: 'resolve_undo', kind: 'message', T: () => ResolveUndo },
-    {
-      no: 5,
-      name: 'end_of_index_entry',
-      kind: 'message',
-      T: () => EndOfIndexEntry,
-    },
+    { no: 2, name: 'entries', kind: 'message', T: IndexEntry, repeated: true },
+    { no: 3, name: 'cache', kind: 'message', T: Tree },
+    { no: 4, name: 'resolve_undo', kind: 'message', T: ResolveUndo },
+    { no: 5, name: 'end_of_index_entry', kind: 'message', T: EndOfIndexEntry },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -900,7 +843,6 @@ export const AuthOpts: MessageType<AuthOpts> =
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -995,7 +937,6 @@ export const CloneOpts: MessageType<CloneOpts> =
       { no: 9, name: 'insecure', kind: 'scalar', T: ScalarType.BOOL },
       { no: 10, name: 'ca_bundle', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1084,7 +1025,6 @@ export const FetchOpts: MessageType<FetchOpts> =
       { no: 8, name: 'ca_bundle', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'prune', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1139,5 +1079,4 @@ export const CheckoutOpts: MessageType<CheckoutOpts> =
       { no: 4, name: 'force', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'keep', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

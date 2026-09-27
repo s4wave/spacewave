@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bucket.mock'
-
 /**
  * Root is the root of the mock structure.
  *
@@ -28,5 +26,4 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'example_ptr', kind: 'message', T: () => ObjectRef },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

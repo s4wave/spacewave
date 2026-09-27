@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.web.object'
-
 /**
  * ObjectInfoType contains the set of object info types.
  *
@@ -42,11 +40,7 @@ export enum ObjectInfoType {
 
 export const ObjectInfoType_Enum = /* @__PURE__ */ createEnumType(
   's4wave.web.object.ObjectInfoType',
-  [
-    [0, 'ObjectInfoType_UNKNOWN'],
-    [1, 'ObjectInfoType_WORLD'],
-    [2, 'ObjectInfoType_UNIXFS'],
-  ],
+  ObjectInfoType,
 )
 
 /**
@@ -85,7 +79,6 @@ export const WorldObjectInfo: MessageType<WorldObjectInfo> =
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -127,7 +120,6 @@ export const UnixfsObjectInfo: MessageType<UnixfsObjectInfo> =
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'mime_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -176,16 +168,15 @@ export const ObjectInfo: MessageType<ObjectInfo> =
         no: 1,
         name: 'world_object_info',
         kind: 'message',
-        T: () => WorldObjectInfo,
+        T: WorldObjectInfo,
         oneof: 'info',
       },
       {
         no: 2,
         name: 'unixfs_object_info',
         kind: 'message',
-        T: () => UnixfsObjectInfo,
+        T: UnixfsObjectInfo,
         oneof: 'info',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

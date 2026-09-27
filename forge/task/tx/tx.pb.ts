@@ -13,8 +13,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result } from '../../value/value.pb.js'
 
-export const protobufPackage = 'task.tx'
-
 /**
  * TxType indicates the kind of transaction.
  *
@@ -71,14 +69,10 @@ export enum TxType {
   TxType_RETRY = 5,
 }
 
-export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
-  [0, 'TxType_INVALID'],
-  [1, 'TxType_UPDATE_INPUTS'],
-  [2, 'TxType_START'],
-  [3, 'TxType_UPDATE_WITH_PASS_STATE'],
-  [4, 'TxType_COMPLETE'],
-  [5, 'TxType_RETRY'],
-])
+export const TxType_Enum = /* @__PURE__ */ createEnumType(
+  'task.tx.TxType',
+  TxType,
+)
 
 /**
  * TxUpdateInputs updates the Task with the latest Target and Inputs.
@@ -120,7 +114,6 @@ export const TxUpdateInputs: MessageType<TxUpdateInputs> =
       { no: 2, name: 'reset_inputs', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'value_set', kind: 'message', T: () => ValueSet },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -146,7 +139,6 @@ export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'assign_self', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -199,7 +191,6 @@ export const TxComplete: MessageType<TxComplete> =
       { no: 1, name: 'result', kind: 'message', T: () => Result },
       { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,7 +226,6 @@ export const TxRetry: MessageType<TxRetry> = /* @__PURE__ */ createMessageType({
     },
     { no: 2, name: 'next_inputs', kind: 'message', T: () => ValueSet },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -299,21 +289,15 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
     { no: 2, name: 'task_object_key', kind: 'scalar', T: ScalarType.STRING },
-    {
-      no: 3,
-      name: 'tx_update_inputs',
-      kind: 'message',
-      T: () => TxUpdateInputs,
-    },
-    { no: 4, name: 'tx_start', kind: 'message', T: () => TxStart },
+    { no: 3, name: 'tx_update_inputs', kind: 'message', T: TxUpdateInputs },
+    { no: 4, name: 'tx_start', kind: 'message', T: TxStart },
     {
       no: 5,
       name: 'tx_update_with_pass_state',
       kind: 'message',
-      T: () => TxUpdateWithPassState,
+      T: TxUpdateWithPassState,
     },
-    { no: 6, name: 'tx_complete', kind: 'message', T: () => TxComplete },
-    { no: 7, name: 'tx_retry', kind: 'message', T: () => TxRetry },
+    { no: 6, name: 'tx_complete', kind: 'message', T: TxComplete },
+    { no: 7, name: 'tx_retry', kind: 'message', T: TxRetry },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

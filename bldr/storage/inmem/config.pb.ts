@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'storage.inmem'
-
 /**
  * VolumeConfig configures a volume backed by in-memory storage.
  *
@@ -49,5 +47,4 @@ export const VolumeConfig: MessageType<VolumeConfig> =
       },
       { no: 3, name: 'volume_config', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

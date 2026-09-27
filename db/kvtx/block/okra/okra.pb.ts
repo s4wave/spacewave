@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Blob } from '../../../block/blob/blob.pb.js'
 
-export const protobufPackage = 'kvtx.block.okra'
-
 /**
  * Root is the root sub-block for an Okra-backed key/value store.
  *
@@ -65,7 +63,6 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'hash_size', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 6, name: 'fanout_degree', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -138,7 +135,6 @@ export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
     { no: 7, name: 'value_is_blob', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'value_blob', kind: 'message', T: () => Blob },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -200,7 +196,6 @@ export const Page: MessageType<Page> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'starts_at_anchor', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'size', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 6, name: 'page_hash', kind: 'scalar', T: ScalarType.BYTES },
-    { no: 7, name: 'entries', kind: 'message', T: () => Entry, repeated: true },
+    { no: 7, name: 'entries', kind: 'message', T: Entry, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

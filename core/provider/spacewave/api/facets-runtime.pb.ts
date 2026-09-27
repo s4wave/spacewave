@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave.api'
-
 /**
  * @generated from enum provider.spacewave.api.FacetsRuntimeRequest.Action
  */
@@ -38,11 +36,7 @@ export enum FacetsRuntimeRequest_Action {
 
 export const FacetsRuntimeRequest_Action_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.api.FacetsRuntimeRequest.Action',
-  [
-    [0, 'EXECUTE'],
-    [1, 'RESTART'],
-    [2, 'DELETE'],
-  ],
+  FacetsRuntimeRequest_Action,
 )
 
 /**
@@ -90,7 +84,6 @@ export const FacetsRuntimeRequest: MessageType<FacetsRuntimeRequest> =
       { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'input', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -125,7 +118,6 @@ export const FacetsRuntimeResponse: MessageType<FacetsRuntimeResponse> =
       { no: 2, name: 'module_digest', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -147,7 +139,6 @@ export const FacetsRuntimeFlagRequest: MessageType<FacetsRuntimeFlagRequest> =
     fields: [
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -168,5 +159,4 @@ export const FacetsRuntimeFlagResponse: MessageType<FacetsRuntimeFlagResponse> =
     fields: [
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

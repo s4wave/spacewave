@@ -10,8 +10,6 @@ import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 'bldr.manifest'
-
 /**
  * ManifestMeta is basic metadata about a manifest.
  *
@@ -63,7 +61,6 @@ export const ManifestMeta: MessageType<ManifestMeta> =
       { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,7 +110,7 @@ export const Manifest: MessageType<Manifest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.Manifest',
     fields: [
-      { no: 1, name: 'meta', kind: 'message', T: () => ManifestMeta },
+      { no: 1, name: 'meta', kind: 'message', T: ManifestMeta },
       { no: 2, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'dist_fs_ref', kind: 'message', T: () => BlockRef },
       { no: 4, name: 'assets_fs_ref', kind: 'message', T: () => BlockRef },
@@ -125,7 +122,6 @@ export const Manifest: MessageType<Manifest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -153,10 +149,9 @@ export const ManifestRef: MessageType<ManifestRef> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.ManifestRef',
     fields: [
-      { no: 1, name: 'meta', kind: 'message', T: () => ManifestMeta },
+      { no: 1, name: 'meta', kind: 'message', T: ManifestMeta },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -187,12 +182,11 @@ export const ManifestBundle: MessageType<ManifestBundle> =
         no: 1,
         name: 'manifest_refs',
         kind: 'message',
-        T: () => ManifestRef,
+        T: ManifestRef,
         repeated: true,
       },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -221,9 +215,8 @@ export const ManifestSnapshot: MessageType<ManifestSnapshot> =
     typeName: 'bldr.manifest.ManifestSnapshot',
     fields: [
       { no: 1, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
-      { no: 2, name: 'manifest', kind: 'message', T: () => Manifest },
+      { no: 2, name: 'manifest', kind: 'message', T: Manifest },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -280,7 +273,6 @@ export const FetchManifestRequest: MessageType<FetchManifestRequest> =
       },
       { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -306,11 +298,10 @@ export const FetchManifestValue: MessageType<FetchManifestValue> =
         no: 1,
         name: 'manifest_refs',
         kind: 'message',
-        T: () => ManifestRef,
+        T: ManifestRef,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -353,9 +344,8 @@ export const FetchManifestResponse: MessageType<FetchManifestResponse> =
     typeName: 'bldr.manifest.FetchManifestResponse',
     fields: [
       { no: 1, name: 'value_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'value', kind: 'message', T: () => FetchManifestValue },
+      { no: 2, name: 'value', kind: 'message', T: FetchManifestValue },
       { no: 3, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'idle', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

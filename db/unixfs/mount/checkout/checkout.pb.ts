@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'unixfs.mount.checkout'
-
 /**
  * Config configures the disk checkout controller.
  * Copies the contents of the UnixFS to the disk.
@@ -50,5 +48,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

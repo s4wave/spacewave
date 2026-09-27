@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transport.controller'
-
 /**
  * StreamEstablish is the first message sent by the initiator of a stream.
  * Prefixed by a uint32 length.
@@ -39,5 +37,4 @@ export const StreamEstablish: MessageType<StreamEstablish> =
       { no: 1, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'unreliable', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

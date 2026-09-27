@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.dist'
-
 /**
  * DistMeta is metadata embedded in a distribution entrypoint.
  *
@@ -109,5 +107,4 @@ export const DistMeta: MessageType<DistMeta> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

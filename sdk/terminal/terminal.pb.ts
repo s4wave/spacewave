@@ -12,8 +12,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.terminal'
-
 /**
  * TerminalSessionState is the user-visible lifecycle for a Terminal object.
  *
@@ -65,14 +63,7 @@ export enum TerminalSessionState {
 
 export const TerminalSessionState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalSessionState',
-  [
-    [0, 'TERMINAL_SESSION_STATE_UNKNOWN'],
-    [1, 'TERMINAL_SESSION_STATE_CONNECTING'],
-    [2, 'TERMINAL_SESSION_STATE_ACTIVE'],
-    [3, 'TERMINAL_SESSION_STATE_DISCONNECTED'],
-    [4, 'TERMINAL_SESSION_STATE_FAILED'],
-    [5, 'TERMINAL_SESSION_STATE_CLOSED'],
-  ],
+  TerminalSessionState,
 )
 
 /**
@@ -161,19 +152,7 @@ export enum TerminalFrameKind {
 
 export const TerminalFrameKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalFrameKind',
-  [
-    [0, 'TERMINAL_FRAME_KIND_UNKNOWN'],
-    [1, 'TERMINAL_FRAME_KIND_OPEN'],
-    [2, 'TERMINAL_FRAME_KIND_READY'],
-    [3, 'TERMINAL_FRAME_KIND_INPUT'],
-    [4, 'TERMINAL_FRAME_KIND_OUTPUT'],
-    [5, 'TERMINAL_FRAME_KIND_RESIZE'],
-    [6, 'TERMINAL_FRAME_KIND_CLOSE'],
-    [7, 'TERMINAL_FRAME_KIND_EXIT'],
-    [8, 'TERMINAL_FRAME_KIND_ERROR'],
-    [9, 'TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE'],
-    [10, 'TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_RESPONSE'],
-  ],
+  TerminalFrameKind,
 )
 
 /**
@@ -206,11 +185,7 @@ export enum TerminalTargetKind {
 
 export const TerminalTargetKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.terminal.TerminalTargetKind',
-  [
-    [0, 'TERMINAL_TARGET_KIND_UNKNOWN'],
-    [1, 'TERMINAL_TARGET_KIND_DEVICE'],
-    [2, 'TERMINAL_TARGET_KIND_SSH_HOST'],
-  ],
+  TerminalTargetKind,
 )
 
 /**
@@ -340,7 +315,6 @@ export const Terminal: MessageType<Terminal> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -473,7 +447,6 @@ export const TerminalFrame: MessageType<TerminalFrame> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -582,7 +555,6 @@ export const CreateTerminalOp: MessageType<CreateTerminalOp> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -616,7 +588,6 @@ export const WatchTerminalStateResponse: MessageType<WatchTerminalStateResponse>
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.terminal.WatchTerminalStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => Terminal },
+      { no: 1, name: 'state', kind: 'message', T: Terminal },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

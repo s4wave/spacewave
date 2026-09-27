@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 'bldr.web.view.observer'
-
 /**
  * Config configures the web view observer controller.
  * Resolves LookupWebView with values from HandleWebView.

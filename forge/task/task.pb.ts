@@ -12,8 +12,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.task'
-
 /**
  * State contains the possible Task states.
  *
@@ -76,14 +74,10 @@ export enum State {
   TaskState_RETRY = 5,
 }
 
-export const State_Enum = /* @__PURE__ */ createEnumType('forge.task.State', [
-  [0, 'TaskState_UNKNOWN'],
-  [1, 'TaskState_PENDING'],
-  [2, 'TaskState_RUNNING'],
-  [3, 'TaskState_CHECKING'],
-  [4, 'TaskState_COMPLETE'],
-  [5, 'TaskState_RETRY'],
-])
+export const State_Enum = /* @__PURE__ */ createEnumType(
+  'forge.task.State',
+  State,
+)
 
 /**
  * Task contains state for running a Target.
@@ -185,5 +179,4 @@ export const Task: MessageType<Task> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'result', kind: 'message', T: () => Result },
     { no: 10, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

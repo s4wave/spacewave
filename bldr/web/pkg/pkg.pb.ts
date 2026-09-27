@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.pkg'
-
 /**
  * WebPkgInfo is information about a WebPkg.
  *
@@ -30,7 +28,6 @@ export const WebPkgInfo: MessageType<WebPkgInfo> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -87,5 +84,4 @@ export const WebPkgRef: MessageType<WebPkgRef> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

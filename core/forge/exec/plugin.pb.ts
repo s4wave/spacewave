@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Value } from '../../../forge/value/value.pb.js'
 
-export const protobufPackage = 'space.exec'
-
 /**
  * PluginBuildConfig builds an immutable artifact or retains a frontend compiler.
  *
@@ -65,7 +63,6 @@ export const PluginBuildConfig: MessageType<PluginBuildConfig> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -110,7 +107,6 @@ export const PluginExecConfig: MessageType<PluginExecConfig> =
       { no: 3, name: 'controller_config', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'attach_world', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -166,7 +162,6 @@ export const PluginExecRequest: MessageType<PluginExecRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -196,7 +191,6 @@ export const PluginExecLog: MessageType<PluginExecLog> =
       { no: 1, name: 'level', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -226,7 +220,6 @@ export const PluginExecOutputFile: MessageType<PluginExecOutputFile> =
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -269,7 +262,7 @@ export const PluginExecResponse: MessageType<PluginExecResponse> =
         no: 1,
         name: 'logs',
         kind: 'message',
-        T: () => PluginExecLog,
+        T: PluginExecLog,
         repeated: true,
       },
       {
@@ -284,9 +277,8 @@ export const PluginExecResponse: MessageType<PluginExecResponse> =
         no: 4,
         name: 'output_files',
         kind: 'message',
-        T: () => PluginExecOutputFile,
+        T: PluginExecOutputFile,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

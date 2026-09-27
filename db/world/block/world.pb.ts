@@ -13,8 +13,6 @@ import { KeyFilters } from '../../block/filters/filters.pb.js'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
-export const protobufPackage = 'world.block'
-
 /**
  * WorldChangeType is the list of possible change types for the world.
  *
@@ -63,15 +61,7 @@ export enum WorldChangeType {
 
 export const WorldChangeType_Enum = /* @__PURE__ */ createEnumType(
   'world.block.WorldChangeType',
-  [
-    [0, 'WorldChange_INVALID'],
-    [1, 'WorldChange_OBJECT_SET'],
-    [2, 'WorldChange_OBJECT_INC_REV'],
-    [3, 'WorldChange_OBJECT_DELETE'],
-    [4, 'WorldChange_OBJECT_RENAME'],
-    [5, 'WorldChange_GRAPH_SET'],
-    [6, 'WorldChange_GRAPH_DELETE'],
-  ],
+  WorldChangeType,
 )
 
 /**
@@ -154,7 +144,6 @@ export const WorldChange: MessageType<WorldChange> =
       { no: 7, name: 'object_rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 8, name: 'new_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -203,11 +192,10 @@ export const WorldChangeLL: MessageType<WorldChangeLL> =
         no: 4,
         name: 'changes',
         kind: 'message',
-        T: () => WorldChange,
+        T: WorldChange,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -266,11 +254,10 @@ export const ChangeLogLL: MessageType<ChangeLogLL> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'prev_ref', kind: 'message', T: () => BlockRef },
-      { no: 3, name: 'change_batch', kind: 'message', T: () => WorldChangeLL },
+      { no: 3, name: 'change_batch', kind: 'message', T: WorldChangeLL },
       { no: 4, name: 'change_type', kind: 'enum', T: WorldChangeType_Enum },
       { no: 5, name: 'key_filters', kind: 'message', T: () => KeyFilters },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -338,12 +325,11 @@ export const World: MessageType<World> = /* @__PURE__ */ createMessageType({
       T: () => KeyValueStore,
     },
     { no: 2, name: 'graph_key_value', kind: 'message', T: () => KeyValueStore },
-    { no: 3, name: 'last_change', kind: 'message', T: () => ChangeLogLL },
+    { no: 3, name: 'last_change', kind: 'message', T: ChangeLogLL },
     { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'gc_graph', kind: 'message', T: () => KeyValueStore },
     { no: 6, name: 'gc_journal', kind: 'message', T: () => KeyValueStore },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -383,5 +369,4 @@ export const Object$: MessageType<Object$> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

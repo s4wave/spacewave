@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'psecho'
-
 /**
  * Config configures the pub-sub DEX controller.
  *
@@ -99,5 +97,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'chunk_size', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 9, name: 'sync_backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

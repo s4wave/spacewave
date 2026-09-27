@@ -12,8 +12,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.manifest.materializer'
-
 /**
  * MaterializeManifestRequest requests the materialization of one manifest.
  *
@@ -79,7 +77,6 @@ export const MaterializeManifestRequest: MessageType<MaterializeManifestRequest>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -149,7 +146,6 @@ export const CopyStats: MessageType<CopyStats> =
         T: ScalarType.INT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -177,8 +173,7 @@ export const MaterializeManifestResponse: MessageType<MaterializeManifestRespons
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.manifest.materializer.MaterializeManifestResponse',
     fields: [
-      { no: 1, name: 'stats', kind: 'message', T: () => CopyStats },
+      { no: 1, name: 'stats', kind: 'message', T: CopyStats },
       { no: 2, name: 'copied_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

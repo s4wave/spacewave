@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.debug'
-
 /**
  * EvalJSRequest is a request to evaluate JavaScript code.
  *
@@ -48,7 +46,6 @@ export const EvalJSRequest: MessageType<EvalJSRequest> =
       { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'is_module', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -78,7 +75,6 @@ export const EvalJSResponse: MessageType<EvalJSResponse> =
       { no: 1, name: 'result', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -135,5 +131,4 @@ export const GetPageInfoResponse: MessageType<GetPageInfoResponse> =
       { no: 3, name: 'web_view_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'document_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

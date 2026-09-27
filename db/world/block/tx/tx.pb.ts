@@ -10,8 +10,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../../bucket/bucket.pb.js'
 import { Quad } from '../../../block/quad/quad.pb.js'
 
-export const protobufPackage = 'world.block.tx'
-
 /**
  * TxType indicates the kind of transaction.
  *
@@ -103,20 +101,7 @@ export enum TxType {
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
   'world.block.tx.TxType',
-  [
-    [0, 'TxType_INVALID'],
-    [1, 'TxType_APPLY_WORLD_OP'],
-    [2, 'TxType_APPLY_OBJECT_OP'],
-    [3, 'TxType_CREATE_OBJECT'],
-    [4, 'TxType_OBJECT_SET'],
-    [5, 'TxType_OBJECT_INC_REV'],
-    [6, 'TxType_DELETE_OBJECT'],
-    [11, 'TxType_RENAME_OBJECT'],
-    [7, 'TxType_SET_GRAPH_QUAD'],
-    [8, 'TxType_DELETE_GRAPH_QUAD'],
-    [9, 'TxType_BATCH'],
-    [10, 'TxType_GC_SWEEP'],
-  ],
+  TxType,
 )
 
 /**
@@ -149,11 +134,7 @@ export enum TxGCSweepIntent {
 
 export const TxGCSweepIntent_Enum = /* @__PURE__ */ createEnumType(
   'world.block.tx.TxGCSweepIntent',
-  [
-    [0, 'TxGCSweepIntent_LEGACY_MAINTENANCE'],
-    [1, 'TxGCSweepIntent_MAINTENANCE'],
-    [2, 'TxGCSweepIntent_EXPLICIT'],
-  ],
+  TxGCSweepIntent,
 )
 
 /**
@@ -196,7 +177,6 @@ export const TxApplyWorldOp: MessageType<TxApplyWorldOp> =
       { no: 2, name: 'operation_body', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -246,7 +226,6 @@ export const TxApplyObjectOp: MessageType<TxApplyObjectOp> =
       { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -277,7 +256,6 @@ export const TxCreateObject: MessageType<TxCreateObject> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -308,7 +286,6 @@ export const TxObjectSet: MessageType<TxObjectSet> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -332,7 +309,6 @@ export const TxObjectIncRev: MessageType<TxObjectIncRev> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -363,7 +339,6 @@ export const TxDeleteObject: MessageType<TxDeleteObject> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'fail_if_not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -394,7 +369,6 @@ export const TxRenameObject: MessageType<TxRenameObject> =
       { no: 1, name: 'old_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -418,7 +392,6 @@ export const TxSetGraphQuad: MessageType<TxSetGraphQuad> =
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -442,7 +415,6 @@ export const TxDeleteGraphQuad: MessageType<TxDeleteGraphQuad> =
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -464,7 +436,6 @@ export const TxBatch: MessageType<TxBatch> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'txs', kind: 'message', T: () => Tx, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -488,7 +459,6 @@ export const TxGCSweep: MessageType<TxGCSweep> =
     fields: [
       { no: 1, name: 'intent', kind: 'enum', T: TxGCSweepIntent_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -583,57 +553,21 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
   typeName: 'world.block.tx.Tx',
   fields: [
     { no: 1, name: 'tx_type', kind: 'enum', T: TxType_Enum },
-    {
-      no: 2,
-      name: 'tx_apply_world_op',
-      kind: 'message',
-      T: () => TxApplyWorldOp,
-    },
-    {
-      no: 3,
-      name: 'tx_apply_object_op',
-      kind: 'message',
-      T: () => TxApplyObjectOp,
-    },
-    {
-      no: 4,
-      name: 'tx_create_object',
-      kind: 'message',
-      T: () => TxCreateObject,
-    },
-    { no: 5, name: 'tx_object_set', kind: 'message', T: () => TxObjectSet },
-    {
-      no: 6,
-      name: 'tx_object_inc_rev',
-      kind: 'message',
-      T: () => TxObjectIncRev,
-    },
-    {
-      no: 7,
-      name: 'tx_delete_object',
-      kind: 'message',
-      T: () => TxDeleteObject,
-    },
-    {
-      no: 12,
-      name: 'tx_rename_object',
-      kind: 'message',
-      T: () => TxRenameObject,
-    },
-    {
-      no: 8,
-      name: 'tx_set_graph_quad',
-      kind: 'message',
-      T: () => TxSetGraphQuad,
-    },
+    { no: 2, name: 'tx_apply_world_op', kind: 'message', T: TxApplyWorldOp },
+    { no: 3, name: 'tx_apply_object_op', kind: 'message', T: TxApplyObjectOp },
+    { no: 4, name: 'tx_create_object', kind: 'message', T: TxCreateObject },
+    { no: 5, name: 'tx_object_set', kind: 'message', T: TxObjectSet },
+    { no: 6, name: 'tx_object_inc_rev', kind: 'message', T: TxObjectIncRev },
+    { no: 7, name: 'tx_delete_object', kind: 'message', T: TxDeleteObject },
+    { no: 12, name: 'tx_rename_object', kind: 'message', T: TxRenameObject },
+    { no: 8, name: 'tx_set_graph_quad', kind: 'message', T: TxSetGraphQuad },
     {
       no: 9,
       name: 'tx_delete_graph_quad',
       kind: 'message',
-      T: () => TxDeleteGraphQuad,
+      T: TxDeleteGraphQuad,
     },
-    { no: 10, name: 'tx_batch', kind: 'message', T: () => TxBatch },
-    { no: 11, name: 'tx_gc_sweep', kind: 'message', T: () => TxGCSweep },
+    { no: 10, name: 'tx_batch', kind: 'message', T: TxBatch },
+    { no: 11, name: 'tx_gc_sweep', kind: 'message', T: TxGCSweep },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

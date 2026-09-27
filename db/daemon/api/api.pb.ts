@@ -19,8 +19,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { BlockRef, PutOpts } from '../../block/block.pb.js'
 import { Event } from '../../bucket/event/event.pb.js'
 
-export const protobufPackage = 'hydra.api'
-
 /**
  * BucketOp is a bucket operation.
  *
@@ -50,12 +48,7 @@ export enum BucketOp {
 
 export const BucketOp_Enum = /* @__PURE__ */ createEnumType(
   'hydra.api.BucketOp',
-  [
-    [0, 'BucketOp_UNKNOWN'],
-    [1, 'BucketOp_BLOCK_GET'],
-    [2, 'BucketOp_BLOCK_PUT'],
-    [3, 'BucketOp_BLOCK_RM'],
-  ],
+  BucketOp,
 )
 
 /**
@@ -100,13 +93,7 @@ export enum ObjectStoreOp {
 
 export const ObjectStoreOp_Enum = /* @__PURE__ */ createEnumType(
   'hydra.api.ObjectStoreOp',
-  [
-    [0, 'ObjectStoreOp_UNKNOWN'],
-    [1, 'ObjectStoreOp_GET_KEY'],
-    [2, 'ObjectStoreOp_PUT_KEY'],
-    [3, 'ObjectStoreOp_LIST_KEYS'],
-    [4, 'ObjectStoreOp_DELETE_KEY'],
-  ],
+  ObjectStoreOp,
 )
 
 /**
@@ -158,7 +145,6 @@ export const ListVolumesResponse: MessageType<ListVolumesResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -187,7 +173,6 @@ export const ListBucketsResponse: MessageType<ListBucketsResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,7 +220,6 @@ export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -263,7 +247,6 @@ export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
         T: () => ApplyBucketConfigResult,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -317,7 +300,6 @@ export const BucketOpRequest: MessageType<BucketOpRequest> =
       { no: 4, name: 'put_opts', kind: 'message', T: () => PutOpts },
       { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -357,7 +339,6 @@ export const BucketOpResponse: MessageType<BucketOpResponse> =
       { no: 2, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -411,7 +392,6 @@ export const ObjectStoreOpRequest: MessageType<ObjectStoreOpRequest> =
       { no: 4, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -456,5 +436,4 @@ export const ObjectStoreOpResponse: MessageType<ObjectStoreOpResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

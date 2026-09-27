@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'psecho'
-
 /**
  * SyncMessage wraps a BlockTransfer for psecho sync streams.
  *
@@ -29,5 +27,4 @@ export const SyncMessage: MessageType<SyncMessage> =
     fields: [
       { no: 1, name: 'transfer', kind: 'message', T: () => BlockTransfer },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

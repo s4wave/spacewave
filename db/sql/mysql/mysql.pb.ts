@@ -10,8 +10,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { KeyValueStore } from '../../kvtx/block/kvtx.pb.js'
 import { Blob } from '../../block/blob/blob.pb.js'
 
-export const protobufPackage = 'mysql'
-
 /**
  * RootDb contains the root definition of a database.
  *
@@ -40,7 +38,6 @@ export const RootDb: MessageType<RootDb> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -60,15 +57,8 @@ export interface Root {
 export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'mysql.Root',
   fields: [
-    {
-      no: 1,
-      name: 'databases',
-      kind: 'message',
-      T: () => RootDb,
-      repeated: true,
-    },
+    { no: 1, name: 'databases', kind: 'message', T: RootDb, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -99,7 +89,6 @@ export const DatabaseRootTable: MessageType<DatabaseRootTable> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -124,11 +113,10 @@ export const DatabaseRoot: MessageType<DatabaseRoot> =
         no: 1,
         name: 'tables',
         kind: 'message',
-        T: () => DatabaseRootTable,
+        T: DatabaseRootTable,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -212,7 +200,6 @@ export const TableSchemaColumn: MessageType<TableSchemaColumn> =
       { no: 8, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'extra', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -237,11 +224,10 @@ export const TableSchema: MessageType<TableSchema> =
         no: 1,
         name: 'columns',
         kind: 'message',
-        T: () => TableSchemaColumn,
+        T: TableSchemaColumn,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -266,7 +252,6 @@ export const TablePartitionRoot: MessageType<TablePartitionRoot> =
     fields: [
       { no: 1, name: 'row_key_value', kind: 'message', T: () => KeyValueStore },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -296,7 +281,6 @@ export const TableTimestamp: MessageType<TableTimestamp> =
       { no: 1, name: 'unix_seconds', kind: 'scalar', T: ScalarType.INT64 },
       { no: 2, name: 'nanos', kind: 'scalar', T: ScalarType.INT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -455,7 +439,7 @@ export const TableColumn: MessageType<TableColumn> =
         no: 9,
         name: 'timestamp_value',
         kind: 'message',
-        T: () => TableTimestamp,
+        T: TableTimestamp,
         oneof: 'value',
       },
       {
@@ -466,7 +450,6 @@ export const TableColumn: MessageType<TableColumn> =
         oneof: 'value',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -496,7 +479,6 @@ export const TableIndexColumn: MessageType<TableIndexColumn> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'length', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -540,13 +522,12 @@ export const TableIndex: MessageType<TableIndex> =
         no: 2,
         name: 'columns',
         kind: 'message',
-        T: () => TableIndexColumn,
+        T: TableIndexColumn,
         repeated: true,
       },
       { no: 3, name: 'unique', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -611,7 +592,7 @@ export const TableRoot: MessageType<TableRoot> =
   /* @__PURE__ */ createMessageType({
     typeName: 'mysql.TableRoot',
     fields: [
-      { no: 1, name: 'table_schema', kind: 'message', T: () => TableSchema },
+      { no: 1, name: 'table_schema', kind: 'message', T: TableSchema },
       {
         no: 5,
         name: 'primary_key_ordinals',
@@ -623,22 +604,21 @@ export const TableRoot: MessageType<TableRoot> =
         no: 2,
         name: 'table_partitions',
         kind: 'message',
-        T: () => TablePartitionRoot,
+        T: TablePartitionRoot,
         repeated: true,
       },
       { no: 3, name: 'row_nonce', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'auto_incr_val', kind: 'message', T: () => TableColumn },
+      { no: 4, name: 'auto_incr_val', kind: 'message', T: TableColumn },
       { no: 6, name: 'collation_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 7, name: 'comment', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 8,
         name: 'indexes',
         kind: 'message',
-        T: () => TableIndex,
+        T: TableIndex,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -663,9 +643,8 @@ export const TableRow: MessageType<TableRow> =
         no: 1,
         name: 'columns',
         kind: 'message',
-        T: () => TableColumn,
+        T: TableColumn,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -11,8 +11,6 @@ import { KeybindingOverrideSet } from '../../../../sdk/command/command.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { CanvasEdge, CanvasNode } from '../../../../sdk/canvas/canvas.pb.js'
 
-export const protobufPackage = 'space.world.ops'
-
 /**
  * Config configures the LookupWorldOp controller for common space world ops.
  *
@@ -33,7 +31,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -91,7 +88,6 @@ export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
         T: () => KeybindingOverrideSet,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -135,7 +131,6 @@ export const SetSpaceIndexPathOp: MessageType<SetSpaceIndexPathOp> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -166,7 +161,6 @@ export const InitUnixFSOp: MessageType<InitUnixFSOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -197,7 +191,6 @@ export const InitObjectLayoutOp: MessageType<InitObjectLayoutOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -229,7 +222,6 @@ export const InitCanvasDemoOp: MessageType<InitCanvasDemoOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -260,7 +252,6 @@ export const CanvasInitOp: MessageType<CanvasInitOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -290,7 +281,6 @@ export const CanvasAddNodeOp: MessageType<CanvasAddNodeOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -326,7 +316,6 @@ export const CanvasRemoveNodeOp: MessageType<CanvasRemoveNodeOp> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -357,7 +346,6 @@ export const CanvasSetNodeOp: MessageType<CanvasSetNodeOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'node', kind: 'message', T: () => CanvasNode },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -387,7 +375,6 @@ export const CanvasAddEdgeOp: MessageType<CanvasAddEdgeOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'edge', kind: 'message', T: () => CanvasEdge },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -423,5 +410,4 @@ export const CanvasRemoveEdgeOp: MessageType<CanvasRemoveEdgeOp> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

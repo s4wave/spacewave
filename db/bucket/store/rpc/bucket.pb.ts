@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'bucket.store.rpc'
-
 /**
  * ApplyBucketConfigRequest requests running volumes ingest a bucket config.
  *
@@ -30,7 +28,6 @@ export const ApplyBucketConfigRequest: MessageType<ApplyBucketConfigRequest> =
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -67,7 +64,6 @@ export const ApplyBucketConfigResponse: MessageType<ApplyBucketConfigResponse> =
       { no: 2, name: 'prev', kind: 'message', T: () => Config },
       { no: 3, name: 'curr', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -90,7 +86,6 @@ export const GetBucketConfigRequest: MessageType<GetBucketConfigRequest> =
     fields: [
       { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,7 +108,6 @@ export const GetBucketConfigResponse: MessageType<GetBucketConfigResponse> =
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -136,7 +130,6 @@ export const GetBucketInfoRequest: MessageType<GetBucketInfoRequest> =
     fields: [
       { no: 1, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,7 +153,6 @@ export const GetBucketInfoResponse: MessageType<GetBucketInfoResponse> =
     fields: [
       { no: 1, name: 'bucket_info', kind: 'message', T: () => BucketInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,7 +175,6 @@ export const ListBucketInfoRequest: MessageType<ListBucketInfoRequest> =
     fields: [
       { no: 1, name: 'bucket_id_re', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -212,5 +203,4 @@ export const ListBucketInfoResponse: MessageType<ListBucketInfoResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

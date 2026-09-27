@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'identity.domain.client'
-
 /**
  * Config configures the identity client domain controller.
  *
@@ -58,5 +56,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.BOOL,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -12,8 +12,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'forge.lib.git.clone'
-
 /**
  * Config is the configuration for cloning Git repositories to a world.
  * If the target object already exists, skips the step.
@@ -66,5 +64,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => GitCreateWorktreeOp,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

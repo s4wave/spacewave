@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'cdn'
-
 /**
  * CdnRootPointer is the top-level CDN artifact for a public_read Space.
  * The Worker writes it at cdn.spacewave.app/{spaceId}/root.packedmsg as a
@@ -87,5 +85,4 @@ export const CdnRootPointer: MessageType<CdnRootPointer> =
       },
       { no: 6, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BucketInfo } from '../bucket/bucket.pb.js'
 
-export const protobufPackage = 'volume'
-
 /**
  * VolumeInfo contains basic information about a volume.
  *
@@ -63,7 +61,6 @@ export const VolumeInfo: MessageType<VolumeInfo> =
       { no: 4, name: 'controller_info', kind: 'message', T: () => Info },
       { no: 5, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -93,7 +90,6 @@ export const StorageStats: MessageType<StorageStats> =
       { no: 1, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -121,9 +117,8 @@ export const VolumeBucketInfo: MessageType<VolumeBucketInfo> =
     typeName: 'volume.VolumeBucketInfo',
     fields: [
       { no: 1, name: 'bucket_info', kind: 'message', T: () => BucketInfo },
-      { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
+      { no: 2, name: 'volume_info', kind: 'message', T: VolumeInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -171,5 +166,4 @@ export const ListBucketsRequest: MessageType<ListBucketsRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

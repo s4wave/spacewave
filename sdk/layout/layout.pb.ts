@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.layout'
-
 /**
  * BorderLocation is the list of possible border locations.
  *
@@ -50,12 +48,7 @@ export enum BorderLocation {
 
 export const BorderLocation_Enum = /* @__PURE__ */ createEnumType(
   's4wave.layout.BorderLocation',
-  [
-    [0, 'BorderLocation_TOP'],
-    [1, 'BorderLocation_BOTTOM'],
-    [2, 'BorderLocation_LEFT'],
-    [3, 'BorderLocation_RIGHT'],
-  ],
+  BorderLocation,
 )
 
 /**
@@ -85,7 +78,6 @@ export const NavigateTabRequest: MessageType<NavigateTabRequest> =
       { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -148,7 +140,6 @@ export const TabDef: MessageType<TabDef> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'enable_close', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -178,9 +169,8 @@ export const ReplaceTabRequest: MessageType<ReplaceTabRequest> =
     typeName: 's4wave.layout.ReplaceTabRequest',
     fields: [
       { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'tab', kind: 'message', T: () => TabDef },
+      { no: 2, name: 'tab', kind: 'message', T: TabDef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -235,11 +225,10 @@ export const AddTabRequest: MessageType<AddTabRequest> =
     typeName: 's4wave.layout.AddTabRequest',
     fields: [
       { no: 1, name: 'tab_set_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'tab', kind: 'message', T: () => TabDef },
+      { no: 2, name: 'tab', kind: 'message', T: TabDef },
       { no: 3, name: 'after_tab_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'select', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -262,7 +251,6 @@ export const AddTabResponse: MessageType<AddTabResponse> =
     fields: [
       { no: 1, name: 'tab_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -302,17 +290,10 @@ export const BorderDef: MessageType<BorderDef> =
     typeName: 's4wave.layout.BorderDef',
     fields: [
       { no: 1, name: 'border_location', kind: 'enum', T: BorderLocation_Enum },
-      {
-        no: 2,
-        name: 'children',
-        kind: 'message',
-        T: () => TabDef,
-        repeated: true,
-      },
+      { no: 2, name: 'children', kind: 'message', T: TabDef, repeated: true },
       { no: 3, name: 'selected', kind: 'scalar', T: ScalarType.INT32 },
       { no: 4, name: 'hide', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -354,15 +335,8 @@ export const TabSetDef: MessageType<TabSetDef> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'weight', kind: 'scalar', T: ScalarType.FLOAT },
-      {
-        no: 4,
-        name: 'children',
-        kind: 'message',
-        T: () => TabDef,
-        repeated: true,
-      },
+      { no: 4, name: 'children', kind: 'message', T: TabDef, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -400,15 +374,8 @@ export const RowOrTabSetDef: MessageType<RowOrTabSetDef> =
     typeName: 's4wave.layout.RowOrTabSetDef',
     fields: [
       { no: 1, name: 'row', kind: 'message', T: () => RowDef, oneof: 'node' },
-      {
-        no: 2,
-        name: 'tab_set',
-        kind: 'message',
-        T: () => TabSetDef,
-        oneof: 'node',
-      },
+      { no: 2, name: 'tab_set', kind: 'message', T: TabSetDef, oneof: 'node' },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -445,12 +412,11 @@ export const RowDef: MessageType<RowDef> = /* @__PURE__ */ createMessageType({
       no: 2,
       name: 'children',
       kind: 'message',
-      T: () => RowOrTabSetDef,
+      T: RowOrTabSetDef,
       repeated: true,
     },
     { no: 3, name: 'weight', kind: 'scalar', T: ScalarType.FLOAT },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -478,16 +444,9 @@ export const LayoutModel: MessageType<LayoutModel> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.LayoutModel',
     fields: [
-      {
-        no: 1,
-        name: 'borders',
-        kind: 'message',
-        T: () => BorderDef,
-        repeated: true,
-      },
-      { no: 2, name: 'layout', kind: 'message', T: () => RowDef },
+      { no: 1, name: 'borders', kind: 'message', T: BorderDef, repeated: true },
+      { no: 2, name: 'layout', kind: 'message', T: RowDef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -525,11 +484,10 @@ export const WatchLayoutModelRequest: MessageType<WatchLayoutModelRequest> =
         no: 1,
         name: 'set_model',
         kind: 'message',
-        T: () => LayoutModel,
+        T: LayoutModel,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -583,7 +541,6 @@ export const LayoutLocalState: MessageType<LayoutLocalState> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -611,13 +568,7 @@ export const LayoutSnapshot: MessageType<LayoutSnapshot> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.layout.LayoutSnapshot',
     fields: [
-      { no: 1, name: 'model', kind: 'message', T: () => LayoutModel },
-      {
-        no: 2,
-        name: 'local_state',
-        kind: 'message',
-        T: () => LayoutLocalState,
-      },
+      { no: 1, name: 'model', kind: 'message', T: LayoutModel },
+      { no: 2, name: 'local_state', kind: 'message', T: LayoutLocalState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

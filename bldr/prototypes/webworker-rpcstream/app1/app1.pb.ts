@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 'app1'
-
 /**
  * Config configures the app1 controller.
  *

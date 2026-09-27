@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave.api'
-
 /**
  * SpaceLinkNonceRequest checks or consumes consent in the authenticated account.
  * The caller verifies the agent signature before requesting consumption.
@@ -38,7 +36,6 @@ export const SpaceLinkNonceRequest: MessageType<SpaceLinkNonceRequest> =
       { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'consume', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -62,5 +59,4 @@ export const SpaceLinkNonceResponse: MessageType<SpaceLinkNonceResponse> =
     fields: [
       { no: 1, name: 'consumed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

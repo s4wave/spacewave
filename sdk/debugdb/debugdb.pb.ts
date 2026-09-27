@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.debugdb'
-
 /**
  * GetStorageInfoRequest is the request type for GetStorageInfo.
  *
@@ -66,7 +64,6 @@ export const StorageInfo: MessageType<StorageInfo> =
       { no: 8, name: 'goarch', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'user_agent', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -87,9 +84,8 @@ export const GetStorageInfoResponse: MessageType<GetStorageInfoResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.GetStorageInfoResponse',
     fields: [
-      { no: 1, name: 'info', kind: 'message', T: () => StorageInfo },
+      { no: 1, name: 'info', kind: 'message', T: StorageInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -139,7 +135,6 @@ export const BenchmarkConfig: MessageType<BenchmarkConfig> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,9 +155,8 @@ export const StartBenchmarkRequest: MessageType<StartBenchmarkRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.StartBenchmarkRequest',
     fields: [
-      { no: 1, name: 'config', kind: 'message', T: () => BenchmarkConfig },
+      { no: 1, name: 'config', kind: 'message', T: BenchmarkConfig },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -185,7 +179,6 @@ export const StartBenchmarkResponse: MessageType<StartBenchmarkResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -256,7 +249,6 @@ export const WatchProgressResponse: MessageType<WatchProgressResponse> =
       { no: 5, name: 'metric_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -355,7 +347,6 @@ export const BenchmarkMetric: MessageType<BenchmarkMetric> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -387,11 +378,10 @@ export const BenchmarkSuite: MessageType<BenchmarkSuite> =
         no: 2,
         name: 'metrics',
         kind: 'message',
-        T: () => BenchmarkMetric,
+        T: BenchmarkMetric,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -436,13 +426,13 @@ export const BenchmarkResults: MessageType<BenchmarkResults> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.BenchmarkResults',
     fields: [
-      { no: 1, name: 'info', kind: 'message', T: () => StorageInfo },
-      { no: 2, name: 'config', kind: 'message', T: () => BenchmarkConfig },
+      { no: 1, name: 'info', kind: 'message', T: StorageInfo },
+      { no: 2, name: 'config', kind: 'message', T: BenchmarkConfig },
       {
         no: 3,
         name: 'suites',
         kind: 'message',
-        T: () => BenchmarkSuite,
+        T: BenchmarkSuite,
         repeated: true,
       },
       {
@@ -458,7 +448,6 @@ export const BenchmarkResults: MessageType<BenchmarkResults> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -479,7 +468,6 @@ export const GetResultsResponse: MessageType<GetResultsResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.debugdb.GetResultsResponse',
     fields: [
-      { no: 1, name: 'results', kind: 'message', T: () => BenchmarkResults },
+      { no: 1, name: 'results', kind: 'message', T: BenchmarkResults },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -17,8 +17,6 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
-export const protobufPackage = 'git.world'
-
 /**
  * GitCreateWorktreeOp creates a Git worktree attached to a Repo.
  * Note: cannot be run as a Object-specific op.
@@ -82,7 +80,6 @@ export const GitCreateWorktreeOp: MessageType<GitCreateWorktreeOp> =
       { no: 6, name: 'disable_checkout', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -140,11 +137,10 @@ export const GitInitOp: MessageType<GitInitOp> =
         no: 4,
         name: 'create_worktree',
         kind: 'message',
-        T: () => GitCreateWorktreeOp,
+        T: GitCreateWorktreeOp,
       },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -189,7 +185,6 @@ export const HeadRefStore: MessageType<HeadRefStore> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -218,9 +213,8 @@ export const Worktree: MessageType<Worktree> =
     typeName: 'git.world.Worktree',
     fields: [
       { no: 1, name: 'git_index', kind: 'message', T: () => Index },
-      { no: 2, name: 'head_ref_store', kind: 'message', T: () => HeadRefStore },
+      { no: 2, name: 'head_ref_store', kind: 'message', T: HeadRefStore },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -250,7 +244,6 @@ export const GitFetchOp: MessageType<GitFetchOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'fetch_opts', kind: 'message', T: () => FetchOpts },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -306,11 +299,10 @@ export const GitCloneOp: MessageType<GitCloneOp> =
         no: 4,
         name: 'create_worktree',
         kind: 'message',
-        T: () => GitCreateWorktreeOp,
+        T: GitCreateWorktreeOp,
       },
       { no: 5, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -355,7 +347,6 @@ export const GitWorktreeCheckoutOp: MessageType<GitWorktreeCheckoutOp> =
       { no: 3, name: 'checkout_opts', kind: 'message', T: () => CheckoutOpts },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -405,7 +396,6 @@ export const GitStageOp: MessageType<GitStageOp> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -455,5 +445,4 @@ export const GitUnstageOp: MessageType<GitUnstageOp> =
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

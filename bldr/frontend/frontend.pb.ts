@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.frontend'
-
 /**
  * Binding attaches a manifest-loaded view to a configured project entrypoint.
  * It is stable across compiler sessions and is absent from snapshot builds.
@@ -32,7 +30,6 @@ export const Binding: MessageType<Binding> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'entrypoint', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -81,7 +78,6 @@ export const Session: MessageType<Session> = /* @__PURE__ */ createMessageType({
     },
     { no: 4, name: 'vite_version', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -128,11 +124,10 @@ export interface Event {
 export const Event: MessageType<Event> = /* @__PURE__ */ createMessageType({
   typeName: 'bldr.frontend.Event',
   fields: [
-    { no: 1, name: 'session', kind: 'message', T: () => Session },
+    { no: 1, name: 'session', kind: 'message', T: Session },
     { no: 2, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 3, name: 'payload', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -162,7 +157,6 @@ export const SendRequest: MessageType<SendRequest> =
       { no: 1, name: 'session_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'payload', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

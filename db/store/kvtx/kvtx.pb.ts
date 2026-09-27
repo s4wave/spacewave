@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'store.kvtx'
-
 /**
  * Config is the configuration for the kvtx store.
  *
@@ -42,5 +40,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'hash_type', kind: 'enum', T: HashType_Enum },
     { no: 3, name: 'disable_hash_get', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

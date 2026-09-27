@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bucket.setup'
-
 /**
  * ApplyBucketConfig is the configuration for applying a bucket config.
  *
@@ -56,7 +54,6 @@ export const ApplyBucketConfig: MessageType<ApplyBucketConfig> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -82,9 +79,8 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 1,
       name: 'apply_bucket_configs',
       kind: 'message',
-      T: () => ApplyBucketConfig,
+      T: ApplyBucketConfig,
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

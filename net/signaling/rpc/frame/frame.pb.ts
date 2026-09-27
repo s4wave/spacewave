@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'signaling.rpc.frame'
-
 /**
  * Frame is one WebSocket message carrying one srpc stream event.
  *
@@ -46,5 +44,4 @@ export const Frame: MessageType<Frame> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'packet', kind: 'scalar', T: ScalarType.BYTES },
     { no: 3, name: 'close', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

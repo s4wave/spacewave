@@ -25,8 +25,6 @@ import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
 import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.space'
-
 /**
  * SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
  *
@@ -92,16 +90,7 @@ export enum SpacePluginLifecycleState {
 
 export const SpacePluginLifecycleState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.space.SpacePluginLifecycleState',
-  [
-    [0, 'SpacePluginLifecycleState_UNKNOWN'],
-    [1, 'SpacePluginLifecycleState_CONFIGURED'],
-    [2, 'SpacePluginLifecycleState_LOADING'],
-    [3, 'SpacePluginLifecycleState_LOADED'],
-    [4, 'SpacePluginLifecycleState_FAILED'],
-    [5, 'SpacePluginLifecycleState_RETRYING'],
-    [6, 'SpacePluginLifecycleState_REMOVED'],
-    [7, 'SpacePluginLifecycleState_UPGRADED'],
-  ],
+  SpacePluginLifecycleState,
 )
 
 /**
@@ -145,7 +134,6 @@ export const BuildSpacePluginRequest: MessageType<BuildSpacePluginRequest> =
       { no: 3, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'config_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -168,7 +156,6 @@ export const BuildSpacePluginResponse: MessageType<BuildSpacePluginResponse> =
     fields: [
       { no: 1, name: 'execution_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -198,7 +185,6 @@ export const OpenPluginFrontendResponse: MessageType<OpenPluginFrontendResponse>
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'execution_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -255,7 +241,6 @@ export const TransformInfo: MessageType<TransformInfo> =
       { no: 2, name: 'grant_count', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'storage_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -309,15 +294,9 @@ export const SpaceState: MessageType<SpaceState> =
         T: () => WorldContents,
       },
       { no: 3, name: 'settings', kind: 'message', T: () => SpaceSettings },
-      {
-        no: 4,
-        name: 'transform_info',
-        kind: 'message',
-        T: () => TransformInfo,
-      },
+      { no: 4, name: 'transform_info', kind: 'message', T: TransformInfo },
       { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -387,7 +366,6 @@ export const SpaceParticipantInfo: MessageType<SpaceParticipantInfo> =
       { no: 4, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
       { no: 5, name: 'is_self', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -483,7 +461,7 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
         no: 6,
         name: 'participant_info',
         kind: 'message',
-        T: () => SpaceParticipantInfo,
+        T: SpaceParticipantInfo,
         repeated: true,
       },
       { no: 7, name: 'config_chain_hash', kind: 'scalar', T: ScalarType.BYTES },
@@ -495,7 +473,6 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
       },
       { no: 9, name: 'viewer_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -531,7 +508,6 @@ export const AccessWorldResponse: MessageType<AccessWorldResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -567,7 +543,6 @@ export const MountSpaceContentsResponse: MessageType<MountSpaceContentsResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -642,7 +617,6 @@ export const CreateSecretRequest: MessageType<CreateSecretRequest> =
         T: SOParticipantRole_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -665,7 +639,6 @@ export const CreateSecretResponse: MessageType<CreateSecretResponse> =
     fields: [
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -709,7 +682,6 @@ export const WriteSecretPayloadRequest: MessageType<WriteSecretPayloadRequest> =
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -752,7 +724,6 @@ export const ReadSecretPayloadRequest: MessageType<ReadSecretPayloadRequest> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -782,7 +753,6 @@ export const ReadSecretPayloadResponse: MessageType<ReadSecretPayloadResponse> =
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
       { no: 2, name: 'payload', kind: 'message', T: () => SecretPayload },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -837,7 +807,6 @@ export const BindAttachedRpcServiceRequest: MessageType<BindAttachedRpcServiceRe
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -916,7 +885,6 @@ export const SpacePluginStatus: MessageType<SpacePluginStatus> =
       { no: 7, name: 'retry_count', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 8, name: 'revision', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -960,7 +928,6 @@ export const ProcessBindingInfo: MessageType<ProcessBindingInfo> =
       { no: 3, name: 'approved', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'decided_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -997,7 +964,6 @@ export const AvailablePlugin: MessageType<AvailablePlugin> =
       { no: 2, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1051,21 +1017,21 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         no: 2,
         name: 'plugins',
         kind: 'message',
-        T: () => SpacePluginStatus,
+        T: SpacePluginStatus,
         repeated: true,
       },
       {
         no: 3,
         name: 'process_bindings',
         kind: 'message',
-        T: () => ProcessBindingInfo,
+        T: ProcessBindingInfo,
         repeated: true,
       },
       {
         no: 4,
         name: 'available_plugins',
         kind: 'message',
-        T: () => AvailablePlugin,
+        T: AvailablePlugin,
         repeated: true,
       },
       {
@@ -1076,7 +1042,6 @@ export const SpaceContentsState: MessageType<SpaceContentsState> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1107,7 +1072,6 @@ export const AddSpacePluginRequest: MessageType<AddSpacePluginRequest> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1143,7 +1107,6 @@ export const RemoveSpacePluginRequest: MessageType<RemoveSpacePluginRequest> =
     fields: [
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1193,7 +1156,6 @@ export const SetProcessBindingRequest: MessageType<SetProcessBindingRequest> =
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'approved', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

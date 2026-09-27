@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'e2e.wasm.session'
-
 /**
  * EstablishLinkState represents the state of link establishment.
  *
@@ -50,12 +48,7 @@ export enum EstablishLinkState {
 
 export const EstablishLinkState_Enum = /* @__PURE__ */ createEnumType(
   'e2e.wasm.session.EstablishLinkState',
-  [
-    [0, 'EstablishLinkState_UNKNOWN'],
-    [1, 'EstablishLinkState_PENDING'],
-    [2, 'EstablishLinkState_CONNECTED'],
-    [3, 'EstablishLinkState_FAILED'],
-  ],
+  EstablishLinkState,
 )
 
 /**
@@ -91,7 +84,6 @@ export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -114,7 +106,6 @@ export const RunQuicRwcFixtureRequest: MessageType<RunQuicRwcFixtureRequest> =
     fields: [
       { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -137,7 +128,6 @@ export const RunQuicRwcFixtureResponse: MessageType<RunQuicRwcFixtureResponse> =
     fields: [
       { no: 1, name: 'echoed_payload', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,7 +150,6 @@ export const WatchStateRequest: MessageType<WatchStateRequest> =
     fields: [
       { no: 1, name: 'target_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,7 +172,6 @@ export const WatchStateResponse: MessageType<WatchStateResponse> =
     fields: [
       { no: 1, name: 'state', kind: 'enum', T: EstablishLinkState_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -206,7 +194,6 @@ export const SignalRelayInit: MessageType<SignalRelayInit> =
     fields: [
       { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -252,7 +239,7 @@ export const SignalRelayMessage: MessageType<SignalRelayMessage> =
         no: 1,
         name: 'init',
         kind: 'message',
-        T: () => SignalRelayInit,
+        T: SignalRelayInit,
         oneof: 'body',
       },
       {
@@ -263,5 +250,4 @@ export const SignalRelayMessage: MessageType<SignalRelayMessage> =
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.vm'
-
 /**
  * Source identifies how the wizard resolves the V86Image input.
  *
@@ -40,11 +38,7 @@ export enum V86WizardConfig_Source {
 
 export const V86WizardConfig_Source_Enum = /* @__PURE__ */ createEnumType(
   's4wave.vm.V86WizardConfig.Source',
-  [
-    [0, 'SOURCE_UNSPECIFIED'],
-    [1, 'EXISTING_IN_SPACE'],
-    [2, 'COPY_FROM_CDN'],
-  ],
+  V86WizardConfig_Source,
 )
 
 /**
@@ -121,5 +115,4 @@ export const V86WizardConfig: MessageType<V86WizardConfig> =
       },
       { no: 8, name: 'cdn_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

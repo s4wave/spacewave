@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SOConfigChange } from '../sobject.pb.js'
 import { Signature } from '../../../net/peer/peer.pb.js'
 
-export const protobufPackage = 'sobject.sync'
-
 /**
  * SOSyncSnapshot is a full SOState snapshot exchanged after mutual authentication.
  *
@@ -52,7 +50,6 @@ export const SOSyncSnapshot: MessageType<SOSyncSnapshot> =
       { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'base_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -89,7 +86,6 @@ export const SOSyncOp: MessageType<SOSyncOp> =
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -119,7 +115,6 @@ export const SOSyncAck: MessageType<SOSyncAck> =
       { no: 1, name: 'acked_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -142,7 +137,6 @@ export const SOSyncChallenge: MessageType<SOSyncChallenge> =
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -165,7 +159,6 @@ export const SOSyncAuthorization: MessageType<SOSyncAuthorization> =
     fields: [
       { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -216,7 +209,6 @@ export const SOSyncHead: MessageType<SOSyncHead> =
       { no: 4, name: 'root_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'state_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -246,7 +238,6 @@ export const SOSyncHistoryRequest: MessageType<SOSyncHistoryRequest> =
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'base_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -289,7 +280,6 @@ export const SOSyncHistoryPage: MessageType<SOSyncHistoryPage> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -312,7 +302,6 @@ export const SOSyncRecoveryRequired: MessageType<SOSyncRecoveryRequired> =
     fields: [
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -431,22 +420,16 @@ export const SOSyncMessage: MessageType<SOSyncMessage> =
         no: 1,
         name: 'snapshot',
         kind: 'message',
-        T: () => SOSyncSnapshot,
+        T: SOSyncSnapshot,
         oneof: 'body',
       },
-      { no: 2, name: 'op', kind: 'message', T: () => SOSyncOp, oneof: 'body' },
-      {
-        no: 3,
-        name: 'ack',
-        kind: 'message',
-        T: () => SOSyncAck,
-        oneof: 'body',
-      },
+      { no: 2, name: 'op', kind: 'message', T: SOSyncOp, oneof: 'body' },
+      { no: 3, name: 'ack', kind: 'message', T: SOSyncAck, oneof: 'body' },
       {
         no: 4,
         name: 'challenge',
         kind: 'message',
-        T: () => SOSyncChallenge,
+        T: SOSyncChallenge,
         oneof: 'body',
       },
       {
@@ -460,39 +443,32 @@ export const SOSyncMessage: MessageType<SOSyncMessage> =
         no: 6,
         name: 'authorization',
         kind: 'message',
-        T: () => SOSyncAuthorization,
+        T: SOSyncAuthorization,
         oneof: 'body',
       },
-      {
-        no: 7,
-        name: 'head',
-        kind: 'message',
-        T: () => SOSyncHead,
-        oneof: 'body',
-      },
+      { no: 7, name: 'head', kind: 'message', T: SOSyncHead, oneof: 'body' },
       {
         no: 8,
         name: 'history_request',
         kind: 'message',
-        T: () => SOSyncHistoryRequest,
+        T: SOSyncHistoryRequest,
         oneof: 'body',
       },
       {
         no: 9,
         name: 'history_page',
         kind: 'message',
-        T: () => SOSyncHistoryPage,
+        T: SOSyncHistoryPage,
         oneof: 'body',
       },
       {
         no: 10,
         name: 'recovery_required',
         kind: 'message',
-        T: () => SOSyncRecoveryRequired,
+        T: SOSyncRecoveryRequired,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -548,5 +524,4 @@ export const SOSyncAuthTranscript: MessageType<SOSyncAuthTranscript> =
       { no: 4, name: 'sender_nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'receiver_nonce', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.pkg.rpc.server'
-
 /**
  * Config configures the web pkg rpc server.
  * Provides the AccessWebPkg RPC service.
@@ -89,5 +87,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'release_delay', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

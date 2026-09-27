@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.rpc.server'
-
 /**
  * Config configures the rpc volume server.
  * Provides the AccessVolumes RPC service.
@@ -72,5 +70,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'expose_private_key', kind: 'scalar', T: ScalarType.BOOL },
     { no: 5, name: 'release_delay', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

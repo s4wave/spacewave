@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'electron'
-
 /**
  * ExternalLinks configures how external links are handled.
  *
@@ -33,10 +31,7 @@ export enum ExternalLinks {
 
 export const ExternalLinks_Enum = /* @__PURE__ */ createEnumType(
   'electron.ExternalLinks',
-  [
-    [0, 'EXTERNAL_LINKS_OS_BROWSER'],
-    [1, 'EXTERNAL_LINKS_DENY'],
-  ],
+  ExternalLinks,
 )
 
 /**
@@ -69,11 +64,7 @@ export enum QuitPolicy {
 
 export const QuitPolicy_Enum = /* @__PURE__ */ createEnumType(
   'electron.QuitPolicy',
-  [
-    [0, 'QUIT_POLICY_UNSPECIFIED'],
-    [1, 'QUIT_POLICY_RESTART'],
-    [2, 'QUIT_POLICY_EXIT'],
-  ],
+  QuitPolicy,
 )
 
 /**
@@ -107,11 +98,7 @@ export enum DesktopPresencePolicy {
 
 export const DesktopPresencePolicy_Enum = /* @__PURE__ */ createEnumType(
   'electron.DesktopPresencePolicy',
-  [
-    [0, 'DESKTOP_PRESENCE_POLICY_UNSPECIFIED'],
-    [1, 'DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME'],
-    [2, 'DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND'],
-  ],
+  DesktopPresencePolicy,
 )
 
 /**
@@ -176,7 +163,6 @@ export const ManagedCLIRelease: MessageType<ManagedCLIRelease> =
       { no: 6, name: 'manifest_rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -288,10 +274,9 @@ export const ElectronInit: MessageType<ElectronInit> =
         no: 12,
         name: 'managed_cli_release',
         kind: 'message',
-        T: () => ManagedCLIRelease,
+        T: ManagedCLIRelease,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -449,8 +434,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 17,
       name: 'managed_cli_release',
       kind: 'message',
-      T: () => ManagedCLIRelease,
+      T: ManagedCLIRelease,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

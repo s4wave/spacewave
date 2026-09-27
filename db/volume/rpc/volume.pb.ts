@@ -12,8 +12,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { StorageStats, VolumeInfo } from '../volume.pb.js'
 import { ObjectRef } from '../../bucket/bucket.pb.js'
 
-export const protobufPackage = 'volume.rpc'
-
 /**
  * WatchVolumeInfoRequest is a request to watch volume information.
  *
@@ -34,7 +32,6 @@ export const WatchVolumeInfoRequest: MessageType<WatchVolumeInfoRequest> =
     fields: [
       { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -64,7 +61,6 @@ export const WatchVolumeInfoResponse: MessageType<WatchVolumeInfoResponse> =
       { no: 1, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -100,7 +96,6 @@ export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
     fields: [
       { no: 1, name: 'volume_info', kind: 'message', T: () => VolumeInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -144,7 +139,6 @@ export const CoordinatorScope: MessageType<CoordinatorScope> =
       { no: 3, name: 'participant_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -216,7 +210,6 @@ export const CoordinatorCapability: MessageType<CoordinatorCapability> =
       { no: 7, name: 'generations', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'detects_loss', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -300,7 +293,6 @@ export const CoordinatorEvent: MessageType<CoordinatorEvent> =
       },
       { no: 9, name: 'fallback_reason', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -344,7 +336,6 @@ export const CoordinatorSnapshot: MessageType<CoordinatorSnapshot> =
       { no: 3, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'root', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -365,9 +356,8 @@ export const GetCoordinatorCapabilityRequest: MessageType<GetCoordinatorCapabili
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetCoordinatorCapabilityRequest',
     fields: [
-      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 1, name: 'scope', kind: 'message', T: CoordinatorScope },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -388,14 +378,8 @@ export const GetCoordinatorCapabilityResponse: MessageType<GetCoordinatorCapabil
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetCoordinatorCapabilityResponse',
     fields: [
-      {
-        no: 1,
-        name: 'capability',
-        kind: 'message',
-        T: () => CoordinatorCapability,
-      },
+      { no: 1, name: 'capability', kind: 'message', T: CoordinatorCapability },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -422,10 +406,9 @@ export const WatchCoordinatorEventsRequest: MessageType<WatchCoordinatorEventsRe
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.WatchCoordinatorEventsRequest',
     fields: [
-      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 1, name: 'scope', kind: 'message', T: CoordinatorScope },
       { no: 2, name: 'after_generation', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -446,9 +429,8 @@ export const WatchCoordinatorEventsResponse: MessageType<WatchCoordinatorEventsR
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.WatchCoordinatorEventsResponse',
     fields: [
-      { no: 1, name: 'event', kind: 'message', T: () => CoordinatorEvent },
+      { no: 1, name: 'event', kind: 'message', T: CoordinatorEvent },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -469,9 +451,8 @@ export const GetCoordinatorSnapshotRequest: MessageType<GetCoordinatorSnapshotRe
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetCoordinatorSnapshotRequest',
     fields: [
-      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 1, name: 'scope', kind: 'message', T: CoordinatorScope },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -492,14 +473,8 @@ export const GetCoordinatorSnapshotResponse: MessageType<GetCoordinatorSnapshotR
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.GetCoordinatorSnapshotResponse',
     fields: [
-      {
-        no: 1,
-        name: 'snapshot',
-        kind: 'message',
-        T: () => CoordinatorSnapshot,
-      },
+      { no: 1, name: 'snapshot', kind: 'message', T: CoordinatorSnapshot },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -520,9 +495,8 @@ export const TryAcquireCoordinatorWriteLeaseRequest: MessageType<TryAcquireCoord
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.TryAcquireCoordinatorWriteLeaseRequest',
     fields: [
-      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 1, name: 'scope', kind: 'message', T: CoordinatorScope },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -543,9 +517,8 @@ export const WaitAcquireCoordinatorWriteLeaseRequest: MessageType<WaitAcquireCoo
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.WaitAcquireCoordinatorWriteLeaseRequest',
     fields: [
-      { no: 1, name: 'scope', kind: 'message', T: () => CoordinatorScope },
+      { no: 1, name: 'scope', kind: 'message', T: CoordinatorScope },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -575,7 +548,6 @@ export const AcquireCoordinatorWriteLeaseResponse: MessageType<AcquireCoordinato
       { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'acquired', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -598,7 +570,6 @@ export const CoordinatorWriteLeaseRequest: MessageType<CoordinatorWriteLeaseRequ
     fields: [
       { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -619,14 +590,8 @@ export const CoordinatorWriteLeaseSnapshotResponse: MessageType<CoordinatorWrite
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.rpc.CoordinatorWriteLeaseSnapshotResponse',
     fields: [
-      {
-        no: 1,
-        name: 'snapshot',
-        kind: 'message',
-        T: () => CoordinatorSnapshot,
-      },
+      { no: 1, name: 'snapshot', kind: 'message', T: CoordinatorSnapshot },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -654,9 +619,8 @@ export const PublishCoordinatorWriteLeaseRequest: MessageType<PublishCoordinator
     typeName: 'volume.rpc.PublishCoordinatorWriteLeaseRequest',
     fields: [
       { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'event', kind: 'message', T: () => CoordinatorEvent },
+      { no: 2, name: 'event', kind: 'message', T: CoordinatorEvent },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -705,7 +669,6 @@ export const GetPeerPrivResponse: MessageType<GetPeerPrivResponse> =
     fields: [
       { no: 1, name: 'priv_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -741,5 +704,4 @@ export const GetStorageStatsResponse: MessageType<GetStorageStatsResponse> =
     fields: [
       { no: 1, name: 'storage_stats', kind: 'message', T: () => StorageStats },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

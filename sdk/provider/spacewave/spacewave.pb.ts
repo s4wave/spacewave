@@ -25,8 +25,6 @@ import {
   SOParticipantRole_Enum,
 } from '../../../core/sobject/sobject.pb.js'
 
-export const protobufPackage = 's4wave.provider.spacewave'
-
 /**
  * PasskeyPrfWrapAlgorithm identifies the passkey PRF wrapping algorithm.
  *
@@ -51,10 +49,7 @@ export enum PasskeyPrfWrapAlgorithm {
 
 export const PasskeyPrfWrapAlgorithm_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.PasskeyPrfWrapAlgorithm',
-  [
-    [0, 'PASSKEY_PRF_WRAP_ALGORITHM_UNSPECIFIED'],
-    [1, 'PASSKEY_PRF_WRAP_ALGORITHM_AES_256_GCM_V1'],
-  ],
+  PasskeyPrfWrapAlgorithm,
 )
 
 /**
@@ -130,17 +125,7 @@ export enum BillingStatus {
 
 export const BillingStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.BillingStatus',
-  [
-    [0, 'BillingStatus_UNKNOWN'],
-    [1, 'BillingStatus_NONE'],
-    [2, 'BillingStatus_ACTIVE'],
-    [3, 'BillingStatus_PAST_DUE'],
-    [4, 'BillingStatus_PAST_DUE_READONLY'],
-    [5, 'BillingStatus_CANCELED'],
-    [6, 'BillingStatus_DELETED'],
-    [7, 'BillingStatus_TRIALING'],
-    [8, 'BillingStatus_LAPSED'],
-  ],
+  BillingStatus,
 )
 
 /**
@@ -221,17 +206,7 @@ export enum AccountLifecycleState {
 
 export const AccountLifecycleState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.AccountLifecycleState',
-  [
-    [0, 'AccountLifecycleState_UNKNOWN'],
-    [1, 'AccountLifecycleState_ACTIVE'],
-    [2, 'AccountLifecycleState_ACTIVE_WITH_CANCEL_AT_PERIOD_END'],
-    [3, 'AccountLifecycleState_CANCELED_GRACE_READONLY'],
-    [4, 'AccountLifecycleState_PENDING_DELETE_READONLY'],
-    [5, 'AccountLifecycleState_LAPSED_READONLY'],
-    [6, 'AccountLifecycleState_DELETED_PENDING_PURGE'],
-    [7, 'AccountLifecycleState_DELETED'],
-    [8, 'AccountLifecycleState_DISPUTED_HARD_SUSPEND'],
-  ],
+  AccountLifecycleState,
 )
 
 /**
@@ -264,11 +239,7 @@ export enum BillingInterval {
 
 export const BillingInterval_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.BillingInterval',
-  [
-    [0, 'BillingInterval_UNKNOWN'],
-    [1, 'BillingInterval_MONTH'],
-    [2, 'BillingInterval_YEAR'],
-  ],
+  BillingInterval,
 )
 
 /**
@@ -305,13 +276,7 @@ export enum CheckoutStatus {
 
 export const CheckoutStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.CheckoutStatus',
-  [
-    [0, 'CheckoutStatus_UNKNOWN'],
-    [1, 'CheckoutStatus_PENDING'],
-    [2, 'CheckoutStatus_COMPLETED'],
-    [3, 'CheckoutStatus_EXPIRED'],
-    [4, 'CheckoutStatus_CANCELED'],
-  ],
+  CheckoutStatus,
 )
 
 /**
@@ -361,13 +326,7 @@ export enum SelfEnrollmentGateState {
 
 export const SelfEnrollmentGateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SelfEnrollmentGateState',
-  [
-    [0, 'SELF_ENROLLMENT_GATE_STATE_UNKNOWN'],
-    [1, 'SELF_ENROLLMENT_GATE_STATE_CHECKING'],
-    [2, 'SELF_ENROLLMENT_GATE_STATE_AUTO_CONNECTING'],
-    [3, 'SELF_ENROLLMENT_GATE_STATE_ACTION_REQUIRED'],
-    [4, 'SELF_ENROLLMENT_GATE_STATE_READY'],
-  ],
+  SelfEnrollmentGateState,
 )
 
 /**
@@ -401,11 +360,7 @@ export enum TargetedInvitePurpose {
 
 export const TargetedInvitePurpose_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.TargetedInvitePurpose',
-  [
-    [0, 'TARGETED_INVITE_PURPOSE_UNSPECIFIED'],
-    [1, 'TARGETED_INVITE_PURPOSE_SPACE'],
-    [2, 'TARGETED_INVITE_PURPOSE_ORGANIZATION'],
-  ],
+  TargetedInvitePurpose,
 )
 
 /**
@@ -440,11 +395,7 @@ export enum SpaceLinkCompletionMode {
 
 export const SpaceLinkCompletionMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SpaceLinkCompletionMode',
-  [
-    [0, 'SpaceLinkCompletionMode_UNKNOWN'],
-    [1, 'SpaceLinkCompletionMode_BROWSER_CALLBACK'],
-    [2, 'SpaceLinkCompletionMode_CLI'],
-  ],
+  SpaceLinkCompletionMode,
 )
 
 /**
@@ -492,13 +443,7 @@ export enum SpaceLinkCallbackStatus {
 
 export const SpaceLinkCallbackStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.provider.spacewave.SpaceLinkCallbackStatus',
-  [
-    [0, 'SpaceLinkCallbackStatus_UNKNOWN'],
-    [1, 'SpaceLinkCallbackStatus_OK'],
-    [2, 'SpaceLinkCallbackStatus_DENIED'],
-    [3, 'SpaceLinkCallbackStatus_EXPIRED'],
-    [4, 'SpaceLinkCallbackStatus_ERROR'],
-  ],
+  SpaceLinkCallbackStatus,
 )
 
 /**
@@ -521,7 +466,6 @@ export const PasswordCredential: MessageType<PasswordCredential> =
     fields: [
       { no: 1, name: 'password', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -544,7 +488,6 @@ export const PemCredential: MessageType<PemCredential> =
     fields: [
       { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -567,7 +510,6 @@ export const PasskeyCredential: MessageType<PasskeyCredential> =
     fields: [
       { no: 1, name: 'attestation_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -632,25 +574,24 @@ export const CreateAccountRequest: MessageType<CreateAccountRequest> =
         no: 3,
         name: 'password',
         kind: 'message',
-        T: () => PasswordCredential,
+        T: PasswordCredential,
         oneof: 'credential',
       },
       {
         no: 4,
         name: 'pem',
         kind: 'message',
-        T: () => PemCredential,
+        T: PemCredential,
         oneof: 'credential',
       },
       {
         no: 5,
         name: 'passkey',
         kind: 'message',
-        T: () => PasskeyCredential,
+        T: PasskeyCredential,
         oneof: 'credential',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -678,7 +619,6 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -743,25 +683,24 @@ export const LoginAccountRequest: MessageType<LoginAccountRequest> =
         no: 3,
         name: 'password',
         kind: 'message',
-        T: () => PasswordCredential,
+        T: PasswordCredential,
         oneof: 'credential',
       },
       {
         no: 4,
         name: 'pem',
         kind: 'message',
-        T: () => PemCredential,
+        T: PemCredential,
         oneof: 'credential',
       },
       {
         no: 5,
         name: 'passkey',
         kind: 'message',
-        T: () => PasskeyCredential,
+        T: PasskeyCredential,
         oneof: 'credential',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -836,7 +775,6 @@ export const LoginAccountResponse: MessageType<LoginAccountResponse> =
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -866,7 +804,6 @@ export const LoginOrCreateAccountRequest: MessageType<LoginOrCreateAccountReques
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'password', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -901,7 +838,6 @@ export const LoginOrCreateAccountResponse: MessageType<LoginOrCreateAccountRespo
       },
       { no: 2, name: 'is_new_account', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -924,7 +860,6 @@ export const LoginWithEntityKeyRequest: MessageType<LoginWithEntityKeyRequest> =
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -952,7 +887,6 @@ export const LoginWithEntityKeyResponse: MessageType<LoginWithEntityKeyResponse>
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1008,7 +942,6 @@ export const MountLinkedDeviceSessionRequest: MessageType<MountLinkedDeviceSessi
       },
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1036,7 +969,6 @@ export const MountLinkedDeviceSessionResponse: MessageType<MountLinkedDeviceSess
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1091,7 +1023,6 @@ export const GeneratedEntityKeypair: MessageType<GeneratedEntityKeypair> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1114,7 +1045,6 @@ export const GeneratedSessionKeypair: MessageType<GeneratedSessionKeypair> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1141,20 +1071,9 @@ export const GenerateAuthKeypairsResponse: MessageType<GenerateAuthKeypairsRespo
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GenerateAuthKeypairsResponse',
     fields: [
-      {
-        no: 1,
-        name: 'entity',
-        kind: 'message',
-        T: () => GeneratedEntityKeypair,
-      },
-      {
-        no: 2,
-        name: 'session',
-        kind: 'message',
-        T: () => GeneratedSessionKeypair,
-      },
+      { no: 1, name: 'entity', kind: 'message', T: GeneratedEntityKeypair },
+      { no: 2, name: 'session', kind: 'message', T: GeneratedSessionKeypair },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1184,7 +1103,6 @@ export const WrapPemWithPinRequest: MessageType<WrapPemWithPinRequest> =
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1212,7 +1130,6 @@ export const WrapPemWithPinResponse: MessageType<WrapPemWithPinResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1247,7 +1164,6 @@ export const UnwrapPemWithPinRequest: MessageType<UnwrapPemWithPinRequest> =
       },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1270,7 +1186,6 @@ export const UnwrapPemWithPinResponse: MessageType<UnwrapPemWithPinResponse> =
     fields: [
       { no: 1, name: 'pem_private_key', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1306,7 +1221,6 @@ export const GeneratePasskeyPrfSaltResponse: MessageType<GeneratePasskeyPrfSaltR
     fields: [
       { no: 1, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1343,7 +1257,6 @@ export const WrapWithPasskeyPrfRequest: MessageType<WrapWithPasskeyPrfRequest> =
       { no: 2, name: 'prf_output', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1383,7 +1296,6 @@ export const WrapWithPasskeyPrfResponse: MessageType<WrapWithPasskeyPrfResponse>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1430,7 +1342,6 @@ export const UnwrapWithPasskeyPrfRequest: MessageType<UnwrapWithPasskeyPrfReques
       },
       { no: 3, name: 'prf_output', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1460,7 +1371,6 @@ export const UnwrapWithPasskeyPrfResponse: MessageType<UnwrapWithPasskeyPrfRespo
       { no: 1, name: 'plaintext', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1483,7 +1393,6 @@ export const PasskeyAuthOptionsRequest: MessageType<PasskeyAuthOptionsRequest> =
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1506,7 +1415,6 @@ export const PasskeyAuthOptionsResponse: MessageType<PasskeyAuthOptionsResponse>
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1529,7 +1437,6 @@ export const PasskeyAuthVerifyRequest: MessageType<PasskeyAuthVerifyRequest> =
     fields: [
       { no: 1, name: 'credential_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1594,7 +1501,6 @@ export const PasskeyAuthVerifyResponse: MessageType<PasskeyAuthVerifyResponse> =
       { no: 6, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1637,7 +1543,6 @@ export const PasskeyPrfAuthParams: MessageType<PasskeyPrfAuthParams> =
       { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1660,7 +1565,6 @@ export const PasskeyCheckUsernameRequest: MessageType<PasskeyCheckUsernameReques
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1683,7 +1587,6 @@ export const PasskeyCheckUsernameResponse: MessageType<PasskeyCheckUsernameRespo
     fields: [
       { no: 1, name: 'ok', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1706,7 +1609,6 @@ export const PasskeyRegisterChallengeRequest: MessageType<PasskeyRegisterChallen
     fields: [
       { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1729,7 +1631,6 @@ export const PasskeyRegisterChallengeResponse: MessageType<PasskeyRegisterChalle
     fields: [
       { no: 1, name: 'options_json', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1807,7 +1708,6 @@ export const DesktopPasskeyLinkedResult: MessageType<DesktopPasskeyLinkedResult>
       { no: 6, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1865,7 +1765,6 @@ export const DesktopPasskeyNewAccountResult: MessageType<DesktopPasskeyNewAccoun
       { no: 5, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1912,18 +1811,17 @@ export const StartDesktopPasskeyResponse: MessageType<StartDesktopPasskeyRespons
         no: 1,
         name: 'linked',
         kind: 'message',
-        T: () => DesktopPasskeyLinkedResult,
+        T: DesktopPasskeyLinkedResult,
         oneof: 'result',
       },
       {
         no: 2,
         name: 'new_account',
         kind: 'message',
-        T: () => DesktopPasskeyNewAccountResult,
+        T: DesktopPasskeyNewAccountResult,
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2014,7 +1912,6 @@ export const ConfirmDesktopPasskeyRequest: MessageType<ConfirmDesktopPasskeyRequ
       { no: 9, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2044,7 +1941,6 @@ export const ConfirmDesktopPasskeyResponse: MessageType<ConfirmDesktopPasskeyRes
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2128,7 +2024,6 @@ export const PasskeyConfirmSignupRequest: MessageType<PasskeyConfirmSignupReques
       { no: 8, name: 'prf_salt', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'auth_params', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2158,7 +2053,6 @@ export const PasskeyConfirmSignupResponse: MessageType<PasskeyConfirmSignupRespo
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2213,18 +2107,17 @@ export const RelayDesktopPasskeyRequest: MessageType<RelayDesktopPasskeyRequest>
         no: 2,
         name: 'linked',
         kind: 'message',
-        T: () => DesktopPasskeyLinkedResult,
+        T: DesktopPasskeyLinkedResult,
         oneof: 'result',
       },
       {
         no: 3,
         name: 'new_account',
         kind: 'message',
-        T: () => DesktopPasskeyNewAccountResult,
+        T: DesktopPasskeyNewAccountResult,
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2275,7 +2168,6 @@ export const SSOCodeExchangeRequest: MessageType<SSOCodeExchangeRequest> =
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'redirect_uri', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2337,7 +2229,6 @@ export const PrepareBrowserSSOResponse: MessageType<PrepareBrowserSSOResponse> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2380,7 +2271,6 @@ export const SSONonceExchangeRequest: MessageType<SSONonceExchangeRequest> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2459,7 +2349,6 @@ export const SSOCodeExchangeResponse: MessageType<SSOCodeExchangeResponse> =
       { no: 8, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2510,7 +2399,6 @@ export const StartBrowserHandoffRequest: MessageType<StartBrowserHandoffRequest>
       { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'auth_intent', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2538,7 +2426,6 @@ export const StartBrowserHandoffResponse: MessageType<StartBrowserHandoffRespons
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2561,7 +2448,6 @@ export const StartDesktopSSORequest: MessageType<StartDesktopSSORequest> =
     fields: [
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2619,7 +2505,6 @@ export const DesktopSSOLinkedResult: MessageType<DesktopSSOLinkedResult> =
       { no: 5, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2656,7 +2541,6 @@ export const DesktopSSONewAccountResult: MessageType<DesktopSSONewAccountResult>
       { no: 2, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2703,18 +2587,17 @@ export const StartDesktopSSOResponse: MessageType<StartDesktopSSOResponse> =
         no: 1,
         name: 'linked',
         kind: 'message',
-        T: () => DesktopSSOLinkedResult,
+        T: DesktopSSOLinkedResult,
         oneof: 'result',
       },
       {
         no: 2,
         name: 'new_account',
         kind: 'message',
-        T: () => DesktopSSONewAccountResult,
+        T: DesktopSSONewAccountResult,
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2738,7 +2621,6 @@ export const StartDesktopSSOLinkRequest: MessageType<StartDesktopSSOLinkRequest>
     fields: [
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2771,7 +2653,6 @@ export const StartDesktopSSOLinkResponse: MessageType<StartDesktopSSOLinkRespons
       { no: 1, name: 'sso_provider', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2795,7 +2676,6 @@ export const StartDesktopPasskeyReauthRequest: MessageType<StartDesktopPasskeyRe
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2854,7 +2734,6 @@ export const StartDesktopPasskeyReauthResponse: MessageType<StartDesktopPasskeyR
       { no: 5, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'prf_output', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2917,7 +2796,6 @@ export const ConfirmDesktopSSORequest: MessageType<ConfirmDesktopSSORequest> =
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'pin_wrapped', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2947,7 +2825,6 @@ export const ConfirmDesktopSSOResponse: MessageType<ConfirmDesktopSSOResponse> =
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3027,7 +2904,6 @@ export const CloudProviderConfig: MessageType<CloudProviderConfig> =
       { no: 7, name: 'google_sso_enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'github_sso_enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3057,7 +2933,6 @@ export const RequestRecoveryEmailRequest: MessageType<RequestRecoveryEmailReques
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'turnstile_token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3080,7 +2955,6 @@ export const RequestRecoveryEmailResponse: MessageType<RequestRecoveryEmailRespo
     fields: [
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3103,7 +2977,6 @@ export const RecoverVerifyRequest: MessageType<RecoverVerifyRequest> =
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3133,7 +3006,6 @@ export const RecoverVerifyResponse: MessageType<RecoverVerifyResponse> =
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3186,7 +3058,6 @@ export const RecoverExecuteRequest: MessageType<RecoverExecuteRequest> =
       { no: 4, name: 'remove_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3209,7 +3080,6 @@ export const RecoverExecuteResponse: MessageType<RecoverExecuteResponse> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3273,20 +3143,19 @@ export const ReauthenticateSessionRequest: MessageType<ReauthenticateSessionRequ
         no: 2,
         name: 'password',
         kind: 'message',
-        T: () => PasswordCredential,
+        T: PasswordCredential,
         oneof: 'credential',
       },
       {
         no: 3,
         name: 'pem',
         kind: 'message',
-        T: () => PemCredential,
+        T: PemCredential,
         oneof: 'credential',
       },
       { no: 4, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'turnstile_token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3314,7 +3183,6 @@ export const ReauthenticateSessionResponse: MessageType<ReauthenticateSessionRes
         T: ProviderAccountStatus_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3344,7 +3212,6 @@ export const ResetSessionRequest: MessageType<ResetSessionRequest> =
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3398,7 +3265,6 @@ export const CreateLinkedLocalSessionResponse: MessageType<CreateLinkedLocalSess
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3441,7 +3307,6 @@ export const GetLinkedLocalSessionResponse: MessageType<GetLinkedLocalSessionRes
       { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3498,7 +3363,6 @@ export const GetLinkedCloudSessionResponse: MessageType<GetLinkedCloudSessionRes
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3535,7 +3399,6 @@ export const EnrollForHandoffRequest: MessageType<EnrollForHandoffRequest> =
       { no: 2, name: 'session_nonce', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'device_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3572,7 +3435,6 @@ export const EnrollForHandoffResponse: MessageType<EnrollForHandoffResponse> =
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3685,7 +3547,6 @@ export const BillingAccountInfo: MessageType<BillingAccountInfo> =
       { no: 10, name: 'deleted_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 11, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3876,7 +3737,6 @@ export const BillingUsageInfo: MessageType<BillingUsageInfo> =
       },
       { no: 23, name: 'policy_version', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3932,7 +3792,6 @@ export const BillingConsent: MessageType<BillingConsent> =
       },
       { no: 5, name: 'overage_accepted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3990,9 +3849,8 @@ export const CreateCheckoutSessionRequest: MessageType<CreateCheckoutSessionRequ
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-      { no: 6, name: 'consent', kind: 'message', T: () => BillingConsent },
+      { no: 6, name: 'consent', kind: 'message', T: BillingConsent },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4030,7 +3888,6 @@ export const CreateCheckoutSessionResponse: MessageType<CreateCheckoutSessionRes
       { no: 2, name: 'ws_ticket', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4068,7 +3925,6 @@ export const CancelCheckoutSessionResponse: MessageType<CancelCheckoutSessionRes
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4116,7 +3972,6 @@ export const GetSubscriptionStatusResponse: MessageType<GetSubscriptionStatusRes
       },
       { no: 2, name: 'cancel_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4155,10 +4010,9 @@ export const WatchSubscriptionStatusResponse: MessageType<WatchSubscriptionStatu
         no: 1,
         name: 'billing_account',
         kind: 'message',
-        T: () => BillingAccountInfo,
+        T: BillingAccountInfo,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4186,7 +4040,6 @@ export const WatchBillingStateRequest: MessageType<WatchBillingStateRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4217,11 +4070,10 @@ export const WatchBillingStateResponse: MessageType<WatchBillingStateResponse> =
         no: 1,
         name: 'billing_account',
         kind: 'message',
-        T: () => BillingAccountInfo,
+        T: BillingAccountInfo,
       },
-      { no: 2, name: 'usage', kind: 'message', T: () => BillingUsageInfo },
+      { no: 2, name: 'usage', kind: 'message', T: BillingUsageInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4258,7 +4110,6 @@ export const WatchCheckoutStatusResponse: MessageType<WatchCheckoutStatusRespons
     fields: [
       { no: 1, name: 'status', kind: 'enum', T: CheckoutStatus_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4523,7 +4374,6 @@ export const WatchOnboardingStatusResponse: MessageType<WatchOnboardingStatusRes
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4611,7 +4461,6 @@ export const OrganizationInfo: MessageType<OrganizationInfo> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4649,11 +4498,10 @@ export const WatchOrganizationsResponse: MessageType<WatchOrganizationsResponse>
         no: 1,
         name: 'organizations',
         kind: 'message',
-        T: () => OrganizationInfo,
+        T: OrganizationInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4691,11 +4539,10 @@ export const ListOrganizationsResponse: MessageType<ListOrganizationsResponse> =
         no: 1,
         name: 'organizations',
         kind: 'message',
-        T: () => OrganizationInfo,
+        T: OrganizationInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4718,7 +4565,6 @@ export const GetSpaceMetadataRequest: MessageType<GetSpaceMetadataRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4762,7 +4608,6 @@ export const GetSpaceMetadataResponse: MessageType<GetSpaceMetadataResponse> =
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4785,7 +4630,6 @@ export const CreateOrganizationRequest: MessageType<CreateOrganizationRequest> =
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4806,14 +4650,8 @@ export const CreateOrganizationResponse: MessageType<CreateOrganizationResponse>
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrganizationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'organization',
-        kind: 'message',
-        T: () => OrganizationInfo,
-      },
+      { no: 1, name: 'organization', kind: 'message', T: OrganizationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4871,7 +4709,6 @@ export const OrgInviteInfo: MessageType<OrgInviteInfo> =
       { no: 5, name: 'max_uses', kind: 'scalar', T: ScalarType.INT32 },
       { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4931,7 +4768,6 @@ export const CreateTargetedInviteDraftByUsernameRequest: MessageType<CreateTarge
       { no: 5, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4957,7 +4793,6 @@ export const CreateTargetedInviteDraftByUsernameResponse: MessageType<CreateTarg
     fields: [
       { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5001,7 +4836,6 @@ export const ResolveUsernameRequest: MessageType<ResolveUsernameRequest> =
       { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5073,7 +4907,6 @@ export const ResolveUsernameResponse: MessageType<ResolveUsernameResponse> =
       { no: 7, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'account_epoch', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5227,7 +5060,6 @@ export const TargetedInvitationEnvelope: MessageType<TargetedInvitationEnvelope>
       { no: 14, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
       { no: 15, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5368,14 +5200,13 @@ export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
         no: 12,
         name: 'envelope',
         kind: 'message',
-        T: () => TargetedInvitationEnvelope,
+        T: TargetedInvitationEnvelope,
       },
       { no: 13, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 14, name: 'updated_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 15, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 16, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5453,11 +5284,10 @@ export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitati
         no: 7,
         name: 'envelope',
         kind: 'message',
-        T: () => TargetedInvitationEnvelope,
+        T: TargetedInvitationEnvelope,
       },
       { no: 8, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5479,14 +5309,8 @@ export const CreateTargetedInvitationResponse: MessageType<CreateTargetedInvitat
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5532,7 +5356,6 @@ export const CreateSpaceTargetedInvitationByUsernameRequest: MessageType<CreateS
       { no: 3, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5555,14 +5378,8 @@ export const CreateSpaceTargetedInvitationByUsernameResponse: MessageType<Create
     typeName:
       's4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5586,7 +5403,6 @@ export const AcceptSpaceTargetedInvitationRequest: MessageType<AcceptSpaceTarget
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5621,16 +5437,10 @@ export const AcceptSpaceTargetedInvitationResponse: MessageType<AcceptSpaceTarge
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'join_result', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5676,7 +5486,6 @@ export const CreateOrganizationTargetedInvitationByUsernameRequest: MessageType<
       { no: 3, name: 'role', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5699,14 +5508,8 @@ export const CreateOrganizationTargetedInvitationByUsernameResponse: MessageType
     typeName:
       's4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5731,7 +5534,6 @@ export const AcceptOrganizationTargetedInvitationRequest: MessageType<AcceptOrga
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5760,20 +5562,9 @@ export const AcceptOrganizationTargetedInvitationResponse: MessageType<AcceptOrg
     typeName:
       's4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
-      {
-        no: 2,
-        name: 'organization',
-        kind: 'message',
-        T: () => OrganizationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
+      { no: 2, name: 'organization', kind: 'message', T: OrganizationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5812,11 +5603,10 @@ export const ListTargetedInvitationsResponse: MessageType<ListTargetedInvitation
         no: 1,
         name: 'invitations',
         kind: 'message',
-        T: () => TargetedInvitationInfo,
+        T: TargetedInvitationInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5839,7 +5629,6 @@ export const GetTargetedInvitationRequest: MessageType<GetTargetedInvitationRequ
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5860,14 +5649,8 @@ export const GetTargetedInvitationResponse: MessageType<GetTargetedInvitationRes
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5890,7 +5673,6 @@ export const RevokeTargetedInvitationRequest: MessageType<RevokeTargetedInvitati
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5912,14 +5694,8 @@ export const RevokeTargetedInvitationResponse: MessageType<RevokeTargetedInvitat
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.RevokeTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5949,7 +5725,6 @@ export const ProcessTargetedInvitationRequest: MessageType<ProcessTargetedInvita
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -5971,14 +5746,8 @@ export const ProcessTargetedInvitationResponse: MessageType<ProcessTargetedInvit
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ProcessTargetedInvitationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'invitation',
-        kind: 'message',
-        T: () => TargetedInvitationInfo,
-      },
+      { no: 1, name: 'invitation', kind: 'message', T: TargetedInvitationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6029,7 +5798,6 @@ export const CreateOrgInviteRequest: MessageType<CreateOrgInviteRequest> =
       { no: 4, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6050,9 +5818,8 @@ export const CreateOrgInviteResponse: MessageType<CreateOrgInviteResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.CreateOrgInviteResponse',
     fields: [
-      { no: 1, name: 'invite', kind: 'message', T: () => OrgInviteInfo },
+      { no: 1, name: 'invite', kind: 'message', T: OrgInviteInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6075,7 +5842,6 @@ export const JoinOrganizationRequest: MessageType<JoinOrganizationRequest> =
     fields: [
       { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6096,14 +5862,8 @@ export const JoinOrganizationResponse: MessageType<JoinOrganizationResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.JoinOrganizationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'organization',
-        kind: 'message',
-        T: () => OrganizationInfo,
-      },
+      { no: 1, name: 'organization', kind: 'message', T: OrganizationInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6133,7 +5893,6 @@ export const UpdateOrganizationRequest: MessageType<UpdateOrganizationRequest> =
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6169,7 +5928,6 @@ export const DeleteOrganizationRequest: MessageType<DeleteOrganizationRequest> =
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6205,7 +5963,6 @@ export const GetOrganizationRequest: MessageType<GetOrganizationRequest> =
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6228,7 +5985,6 @@ export const WatchOrganizationStateRequest: MessageType<WatchOrganizationStateRe
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6279,7 +6035,6 @@ export const OrgMemberInfo: MessageType<OrgMemberInfo> =
       { no: 4, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6316,7 +6071,6 @@ export const OrgSpaceInfo: MessageType<OrgSpaceInfo> =
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6354,7 +6108,6 @@ export const SharedObjectMutationPermission: MessageType<SharedObjectMutationPer
       { no: 2, name: 'can_reinitialize', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'disabled_reason', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6394,10 +6147,9 @@ export const OrganizationRootStateInfo: MessageType<OrganizationRootStateInfo> =
         no: 3,
         name: 'mutation_permission',
         kind: 'message',
-        T: () => SharedObjectMutationPermission,
+        T: SharedObjectMutationPermission,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6436,34 +6188,28 @@ export const GetOrganizationResponse: MessageType<GetOrganizationResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetOrganizationResponse',
     fields: [
-      {
-        no: 1,
-        name: 'organization',
-        kind: 'message',
-        T: () => OrganizationInfo,
-      },
+      { no: 1, name: 'organization', kind: 'message', T: OrganizationInfo },
       {
         no: 2,
         name: 'members',
         kind: 'message',
-        T: () => OrgMemberInfo,
+        T: OrgMemberInfo,
         repeated: true,
       },
       {
         no: 3,
         name: 'spaces',
         kind: 'message',
-        T: () => OrgSpaceInfo,
+        T: OrgSpaceInfo,
         repeated: true,
       },
       {
         no: 4,
         name: 'root_state',
         kind: 'message',
-        T: () => OrganizationRootStateInfo,
+        T: OrganizationRootStateInfo,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6508,41 +6254,35 @@ export const WatchOrganizationStateResponse: MessageType<WatchOrganizationStateR
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchOrganizationStateResponse',
     fields: [
-      {
-        no: 1,
-        name: 'organization',
-        kind: 'message',
-        T: () => OrganizationInfo,
-      },
+      { no: 1, name: 'organization', kind: 'message', T: OrganizationInfo },
       {
         no: 2,
         name: 'members',
         kind: 'message',
-        T: () => OrgMemberInfo,
+        T: OrgMemberInfo,
         repeated: true,
       },
       {
         no: 3,
         name: 'spaces',
         kind: 'message',
-        T: () => OrgSpaceInfo,
+        T: OrgSpaceInfo,
         repeated: true,
       },
       {
         no: 4,
         name: 'invites',
         kind: 'message',
-        T: () => OrgInviteInfo,
+        T: OrgInviteInfo,
         repeated: true,
       },
       {
         no: 5,
         name: 'root_state',
         kind: 'message',
-        T: () => OrganizationRootStateInfo,
+        T: OrganizationRootStateInfo,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6565,7 +6305,6 @@ export const RepairSharedObjectRequest: MessageType<RepairSharedObjectRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6601,7 +6340,6 @@ export const ReinitializeSharedObjectRequest: MessageType<ReinitializeSharedObje
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6637,7 +6375,6 @@ export const ListOrgInvitesRequest: MessageType<ListOrgInvitesRequest> =
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6662,11 +6399,10 @@ export const ListOrgInvitesResponse: MessageType<ListOrgInvitesResponse> =
         no: 1,
         name: 'invites',
         kind: 'message',
-        T: () => OrgInviteInfo,
+        T: OrgInviteInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6696,7 +6432,6 @@ export const RevokeOrgInviteRequest: MessageType<RevokeOrgInviteRequest> =
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6732,7 +6467,6 @@ export const LeaveOrganizationRequest: MessageType<LeaveOrganizationRequest> =
     fields: [
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6775,7 +6509,6 @@ export const RemoveOrgMemberRequest: MessageType<RemoveOrgMemberRequest> =
       { no: 1, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'member_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6825,7 +6558,6 @@ export const TransferResourceRequest: MessageType<TransferResourceRequest> =
       { no: 2, name: 'new_owner_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'new_owner_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6889,7 +6621,6 @@ export const AssignBillingAccountRequest: MessageType<AssignBillingAccountReques
       },
       { no: 3, name: 'target_owner_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6939,7 +6670,6 @@ export const DetachBillingAccountRequest: MessageType<DetachBillingAccountReques
       },
       { no: 2, name: 'target_owner_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -6991,7 +6721,6 @@ export const PrincipalAssignment: MessageType<PrincipalAssignment> =
       { no: 2, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7081,12 +6810,11 @@ export const ManagedBillingAccount: MessageType<ManagedBillingAccount> =
         no: 7,
         name: 'assignees',
         kind: 'message',
-        T: () => PrincipalAssignment,
+        T: PrincipalAssignment,
         repeated: true,
       },
       { no: 8, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7111,7 +6839,6 @@ export const CreateBillingAccountRequest: MessageType<CreateBillingAccountReques
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7146,7 +6873,6 @@ export const RenameBillingAccountRequest: MessageType<RenameBillingAccountReques
       },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7189,7 +6915,6 @@ export const DeleteBillingAccountRequest: MessageType<DeleteBillingAccountReques
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7230,7 +6955,6 @@ export const CreateBillingAccountResponse: MessageType<CreateBillingAccountRespo
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7268,11 +6992,10 @@ export const ListManagedBillingAccountsResponse: MessageType<ListManagedBillingA
         no: 1,
         name: 'accounts',
         kind: 'message',
-        T: () => ManagedBillingAccount,
+        T: ManagedBillingAccount,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7300,7 +7023,6 @@ export const GetBillingAccountRequest: MessageType<GetBillingAccountRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7321,9 +7043,8 @@ export const GetBillingAccountResponse: MessageType<GetBillingAccountResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingAccountResponse',
     fields: [
-      { no: 1, name: 'account', kind: 'message', T: () => BillingAccountInfo },
+      { no: 1, name: 'account', kind: 'message', T: BillingAccountInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7351,7 +7072,6 @@ export const GetBillingUsageRequest: MessageType<GetBillingUsageRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7372,9 +7092,8 @@ export const GetBillingUsageResponse: MessageType<GetBillingUsageResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.GetBillingUsageResponse',
     fields: [
-      { no: 1, name: 'usage', kind: 'message', T: () => BillingUsageInfo },
+      { no: 1, name: 'usage', kind: 'message', T: BillingUsageInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7402,7 +7121,6 @@ export const RefreshBillingStateRequest: MessageType<RefreshBillingStateRequest>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7443,7 +7161,6 @@ export const CancelSubscriptionRequest: MessageType<CancelSubscriptionRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7484,7 +7201,6 @@ export const ReactivateSubscriptionRequest: MessageType<ReactivateSubscriptionRe
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7508,7 +7224,6 @@ export const ReactivateSubscriptionResponse: MessageType<ReactivateSubscriptionR
     fields: [
       { no: 1, name: 'needs_checkout', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7541,9 +7256,8 @@ export const SetBillingSpendingLimitRequest: MessageType<SetBillingSpendingLimit
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-      { no: 2, name: 'consent', kind: 'message', T: () => BillingConsent },
+      { no: 2, name: 'consent', kind: 'message', T: BillingConsent },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7584,7 +7298,6 @@ export const CreateBillingPortalRequest: MessageType<CreateBillingPortalRequest>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7607,7 +7320,6 @@ export const CreateBillingPortalResponse: MessageType<CreateBillingPortalRespons
     fields: [
       { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7657,7 +7369,6 @@ export const RequestDeleteNowEmailResponse: MessageType<RequestDeleteNowEmailRes
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7680,7 +7391,6 @@ export const ConfirmDeleteNowCodeRequest: MessageType<ConfirmDeleteNowCodeReques
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7757,7 +7467,6 @@ export const ConfirmDeleteNowCodeResponse: MessageType<ConfirmDeleteNowCodeRespo
       { no: 7, name: 'refund_amount', kind: 'scalar', T: ScalarType.INT64 },
       { no: 8, name: 'refund_currency', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7827,7 +7536,6 @@ export const EmailInfo: MessageType<EmailInfo> =
       { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'primary', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7861,15 +7569,8 @@ export const ListEmailsResponse: MessageType<ListEmailsResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.ListEmailsResponse',
     fields: [
-      {
-        no: 1,
-        name: 'emails',
-        kind: 'message',
-        T: () => EmailInfo,
-        repeated: true,
-      },
+      { no: 1, name: 'emails', kind: 'message', T: EmailInfo, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7903,15 +7604,8 @@ export const WatchEmailsResponse: MessageType<WatchEmailsResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.provider.spacewave.WatchEmailsResponse',
     fields: [
-      {
-        no: 1,
-        name: 'emails',
-        kind: 'message',
-        T: () => EmailInfo,
-        repeated: true,
-      },
+      { no: 1, name: 'emails', kind: 'message', T: EmailInfo, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7934,7 +7628,6 @@ export const SendVerificationEmailRequest: MessageType<SendVerificationEmailRequ
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7964,7 +7657,6 @@ export const SendVerificationEmailResponse: MessageType<SendVerificationEmailRes
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -7994,7 +7686,6 @@ export const VerifyEmailCodeRequest: MessageType<VerifyEmailCodeRequest> =
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8017,7 +7708,6 @@ export const VerifyEmailCodeResponse: MessageType<VerifyEmailCodeResponse> =
     fields: [
       { no: 1, name: 'verified', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8040,7 +7730,6 @@ export const AddEmailRequest: MessageType<AddEmailRequest> =
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8070,7 +7759,6 @@ export const AddEmailResponse: MessageType<AddEmailResponse> =
       { no: 1, name: 'sent', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'retry_after', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8093,7 +7781,6 @@ export const RemoveEmailRequest: MessageType<RemoveEmailRequest> =
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8129,7 +7816,6 @@ export const SetPrimaryEmailRequest: MessageType<SetPrimaryEmailRequest> =
     fields: [
       { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8152,7 +7838,6 @@ export const SetPrimaryEmailResponse: MessageType<SetPrimaryEmailResponse> =
     fields: [
       { no: 1, name: 'primary', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8189,7 +7874,6 @@ export const EnrollSpaceMemberRequest: MessageType<EnrollSpaceMemberRequest> =
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'role', kind: 'enum', T: SOParticipantRole_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8238,7 +7922,6 @@ export const EnrollSpaceMemberResult: MessageType<EnrollSpaceMemberResult> =
       },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8263,11 +7946,10 @@ export const EnrollSpaceMemberResponse: MessageType<EnrollSpaceMemberResponse> =
         no: 1,
         name: 'results',
         kind: 'message',
-        T: () => EnrollSpaceMemberResult,
+        T: EnrollSpaceMemberResult,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8297,7 +7979,6 @@ export const RemoveSpaceMemberRequest: MessageType<RemoveSpaceMemberRequest> =
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8341,7 +8022,6 @@ export const RemoveSpaceMemberResult: MessageType<RemoveSpaceMemberResult> =
       { no: 3, name: 'not_participant', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8366,11 +8046,10 @@ export const RemoveSpaceMemberResponse: MessageType<RemoveSpaceMemberResponse> =
         no: 1,
         name: 'results',
         kind: 'message',
-        T: () => RemoveSpaceMemberResult,
+        T: RemoveSpaceMemberResult,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8393,7 +8072,6 @@ export const LookupInviteCodeRequest: MessageType<LookupInviteCodeRequest> =
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8428,7 +8106,6 @@ export const LookupInviteCodeResponse: MessageType<LookupInviteCodeResponse> =
         T: () => SOInviteMessage,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8451,7 +8128,6 @@ export const GetMailboxEntriesRequest: MessageType<GetMailboxEntriesRequest> =
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8516,7 +8192,6 @@ export const MailboxEntryInfo: MessageType<MailboxEntryInfo> =
       { no: 6, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8541,11 +8216,10 @@ export const GetMailboxEntriesResponse: MessageType<GetMailboxEntriesResponse> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => MailboxEntryInfo,
+        T: MailboxEntryInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8582,7 +8256,6 @@ export const ProcessMailboxEntryRequest: MessageType<ProcessMailboxEntryRequest>
       { no: 2, name: 'entry_id', kind: 'scalar', T: ScalarType.INT64 },
       { no: 3, name: 'accept', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8691,7 +8364,6 @@ export const SpaceLinkAuthRequest: MessageType<SpaceLinkAuthRequest> =
         T: SpaceLinkCompletionMode_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8721,7 +8393,6 @@ export const SpaceLinkAuthTicket: MessageType<SpaceLinkAuthTicket> =
       { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'agent_signature', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8744,7 +8415,6 @@ export const PreviewSpaceLinkRequest: MessageType<PreviewSpaceLinkRequest> =
     fields: [
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8833,7 +8503,6 @@ export const PreviewSpaceLinkResponse: MessageType<PreviewSpaceLinkResponse> =
         T: SpaceLinkCompletionMode_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8863,7 +8532,6 @@ export const ApproveSpaceLinkRequest: MessageType<ApproveSpaceLinkRequest> =
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8926,7 +8594,6 @@ export const SpaceLinkCallback: MessageType<SpaceLinkCallback> =
       { no: 5, name: 'session_peer_id', kind: 'scalar', T: ScalarType.BYTES },
       { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -8994,12 +8661,6 @@ export const ApproveSpaceLinkResponse: MessageType<ApproveSpaceLinkResponse> =
         kind: 'enum',
         T: SpaceLinkCompletionMode_Enum,
       },
-      {
-        no: 7,
-        name: 'completion',
-        kind: 'message',
-        T: () => SpaceLinkCallback,
-      },
+      { no: 7, name: 'completion', kind: 'message', T: SpaceLinkCallback },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

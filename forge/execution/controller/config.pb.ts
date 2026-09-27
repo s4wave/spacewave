@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Execution } from '../execution.pb.js'
 
-export const protobufPackage = 'execution.controller'
-
 /**
  * Config is the execution controller configuration.
  *
@@ -85,7 +83,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'input_world', kind: 'message', T: () => InputWorld },
     { no: 7, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -117,5 +114,4 @@ export const ExecConfig: MessageType<ExecConfig> =
       { no: 1, name: 'execution', kind: 'message', T: () => Execution },
       { no: 2, name: 'target', kind: 'message', T: () => Target },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

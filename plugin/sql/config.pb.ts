@@ -5,8 +5,6 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createEmptyMessageType } from '@aptre/protobuf-es-lite/message'
 
-export const protobufPackage = 's4wave.plugin.sql'
-
 /**
  * Config carries the SQL plugin controller configuration.
  *

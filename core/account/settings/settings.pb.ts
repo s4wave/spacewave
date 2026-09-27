@@ -12,8 +12,6 @@ import { EntityKeypair } from '../../session/session.pb.js'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 import { AccountTransition } from '../../provider/provider.pb.js'
 
-export const protobufPackage = 'account.settings'
-
 /**
  * PairedDevice is a device that has been paired with this account via P2P.
  *
@@ -48,7 +46,6 @@ export const PairedDevice: MessageType<PairedDevice> =
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'paired_at', kind: 'scalar', T: ScalarType.INT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -106,7 +103,6 @@ export const SessionPresentation: MessageType<SessionPresentation> =
       { no: 5, name: 'os', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'location', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -156,7 +152,6 @@ export const AccountSession: MessageType<AccountSession> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -186,7 +181,6 @@ export const AccountCatalogEntry: MessageType<AccountCatalogEntry> =
       { no: 1, name: 'entry', kind: 'message', T: () => SharedObjectListEntry },
       { no: 2, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -238,7 +232,6 @@ export const S3Location: MessageType<S3Location> =
       { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'disable_ssl', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -280,10 +273,9 @@ export const StorageBackend: MessageType<StorageBackend> =
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 's3', kind: 'message', T: () => S3Location },
+      { no: 3, name: 's3', kind: 'message', T: S3Location },
       { no: 4, name: 'credential', kind: 'message', T: () => Secret },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -318,7 +310,6 @@ export const BlockStorePlacement: MessageType<BlockStorePlacement> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -422,7 +413,7 @@ export const AccountSettings: MessageType<AccountSettings> =
         no: 2,
         name: 'paired_devices',
         kind: 'message',
-        T: () => PairedDevice,
+        T: PairedDevice,
         repeated: true,
       },
       {
@@ -436,7 +427,7 @@ export const AccountSettings: MessageType<AccountSettings> =
         no: 4,
         name: 'session_presentations',
         kind: 'message',
-        T: () => SessionPresentation,
+        T: SessionPresentation,
         repeated: true,
       },
       {
@@ -449,14 +440,14 @@ export const AccountSettings: MessageType<AccountSettings> =
         no: 6,
         name: 'sessions',
         kind: 'message',
-        T: () => AccountSession,
+        T: AccountSession,
         repeated: true,
       },
       {
         no: 7,
         name: 'catalog',
         kind: 'message',
-        T: () => AccountCatalogEntry,
+        T: AccountCatalogEntry,
         repeated: true,
       },
       {
@@ -476,7 +467,7 @@ export const AccountSettings: MessageType<AccountSettings> =
         no: 10,
         name: 'storage_backends',
         kind: 'message',
-        T: () => StorageBackend,
+        T: StorageBackend,
         repeated: true,
       },
       {
@@ -489,18 +480,17 @@ export const AccountSettings: MessageType<AccountSettings> =
         no: 12,
         name: 'block_store_placements',
         kind: 'message',
-        T: () => BlockStorePlacement,
+        T: BlockStorePlacement,
         repeated: true,
       },
       {
         no: 13,
         name: 'storage_releases',
         kind: 'message',
-        T: () => BlockStorePlacement,
+        T: BlockStorePlacement,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -523,7 +513,6 @@ export const UpdateDisplayNameOp: MessageType<UpdateDisplayNameOp> =
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -546,7 +535,6 @@ export const RemovePairedDeviceOp: MessageType<RemovePairedDeviceOp> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -569,7 +557,6 @@ export const RemoveEntityKeypairOp: MessageType<RemoveEntityKeypairOp> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -592,7 +579,6 @@ export const RemoveSessionPresentationOp: MessageType<RemoveSessionPresentationO
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -632,7 +618,6 @@ export const ReplaceKeybindingOverrideSetOp: MessageType<ReplaceKeybindingOverri
         T: () => KeybindingOverrideSet,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -660,7 +645,6 @@ export const RemoveStorageBackendOp: MessageType<RemoveStorageBackendOp> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -689,7 +673,6 @@ export const SetDefaultStorageBackendOp: MessageType<SetDefaultStorageBackendOp>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -872,21 +855,21 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         no: 1,
         name: 'update_display_name',
         kind: 'message',
-        T: () => UpdateDisplayNameOp,
+        T: UpdateDisplayNameOp,
         oneof: 'op',
       },
       {
         no: 2,
         name: 'add_paired_device',
         kind: 'message',
-        T: () => PairedDevice,
+        T: PairedDevice,
         oneof: 'op',
       },
       {
         no: 3,
         name: 'remove_paired_device',
         kind: 'message',
-        T: () => RemovePairedDeviceOp,
+        T: RemovePairedDeviceOp,
         oneof: 'op',
       },
       {
@@ -900,42 +883,42 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         no: 5,
         name: 'remove_entity_keypair',
         kind: 'message',
-        T: () => RemoveEntityKeypairOp,
+        T: RemoveEntityKeypairOp,
         oneof: 'op',
       },
       {
         no: 6,
         name: 'upsert_session_presentation',
         kind: 'message',
-        T: () => SessionPresentation,
+        T: SessionPresentation,
         oneof: 'op',
       },
       {
         no: 7,
         name: 'remove_session_presentation',
         kind: 'message',
-        T: () => RemoveSessionPresentationOp,
+        T: RemoveSessionPresentationOp,
         oneof: 'op',
       },
       {
         no: 8,
         name: 'replace_keybinding_override_set',
         kind: 'message',
-        T: () => ReplaceKeybindingOverrideSetOp,
+        T: ReplaceKeybindingOverrideSetOp,
         oneof: 'op',
       },
       {
         no: 9,
         name: 'upsert_account_session',
         kind: 'message',
-        T: () => AccountSession,
+        T: AccountSession,
         oneof: 'op',
       },
       {
         no: 10,
         name: 'upsert_catalog_entry',
         kind: 'message',
-        T: () => AccountCatalogEntry,
+        T: AccountCatalogEntry,
         oneof: 'op',
       },
       {
@@ -956,37 +939,36 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         no: 13,
         name: 'upsert_storage_backend',
         kind: 'message',
-        T: () => StorageBackend,
+        T: StorageBackend,
         oneof: 'op',
       },
       {
         no: 14,
         name: 'remove_storage_backend',
         kind: 'message',
-        T: () => RemoveStorageBackendOp,
+        T: RemoveStorageBackendOp,
         oneof: 'op',
       },
       {
         no: 15,
         name: 'set_default_storage_backend',
         kind: 'message',
-        T: () => SetDefaultStorageBackendOp,
+        T: SetDefaultStorageBackendOp,
         oneof: 'op',
       },
       {
         no: 16,
         name: 'set_block_store_placement',
         kind: 'message',
-        T: () => BlockStorePlacement,
+        T: BlockStorePlacement,
         oneof: 'op',
       },
       {
         no: 17,
         name: 'complete_storage_release',
         kind: 'message',
-        T: () => BlockStorePlacement,
+        T: BlockStorePlacement,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

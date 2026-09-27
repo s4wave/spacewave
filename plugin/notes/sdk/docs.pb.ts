@@ -10,8 +10,6 @@ import {
 import { Documentation } from '../proto/docs.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'notes'
-
 /**
  * WatchDocsRequest is the request for WatchDocs.
  *
@@ -45,5 +43,4 @@ export const WatchDocsResponse: MessageType<WatchDocsResponse> =
     fields: [
       { no: 1, name: 'documentation', kind: 'message', T: () => Documentation },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

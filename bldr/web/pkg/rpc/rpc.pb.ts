@@ -10,8 +10,6 @@ import {
 import { WebPkgInfo } from '../pkg.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.pkg.rpc'
-
 /**
  * GetInfoRequest is a request to get the web pkg info.
  *
@@ -45,5 +43,4 @@ export const GetInfoResponse: MessageType<GetInfoResponse> =
     fields: [
       { no: 1, name: 'info', kind: 'message', T: () => WebPkgInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

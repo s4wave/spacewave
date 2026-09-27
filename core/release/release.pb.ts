@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ManifestRef } from '../../bldr/manifest/manifest.pb.js'
 
-export const protobufPackage = 'release'
-
 /**
  * ChannelEntry points one channel key at release metadata.
  *
@@ -43,7 +41,6 @@ export const ChannelEntry: MessageType<ChannelEntry> =
         T: () => BlockRef,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -68,11 +65,10 @@ export const ChannelDirectory: MessageType<ChannelDirectory> =
         no: 1,
         name: 'channels',
         kind: 'message',
-        T: () => ChannelEntry,
+        T: ChannelEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -130,7 +126,6 @@ export const BrowserAsset: MessageType<BrowserAsset> =
       { no: 5, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'cache_control', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -207,11 +202,10 @@ export const BrowserShellMetadata: MessageType<BrowserShellMetadata> =
         no: 7,
         name: 'assets',
         kind: 'message',
-        T: () => BrowserAsset,
+        T: BrowserAsset,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -284,7 +278,7 @@ export const ReleaseMetadata: MessageType<ReleaseMetadata> =
         no: 6,
         name: 'browser_shell',
         kind: 'message',
-        T: () => BrowserShellMetadata,
+        T: BrowserShellMetadata,
       },
       {
         no: 7,
@@ -293,7 +287,6 @@ export const ReleaseMetadata: MessageType<ReleaseMetadata> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -331,5 +324,4 @@ export const UpdateNotification: MessageType<UpdateNotification> =
       { no: 2, name: 'inner_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'root_pointer_url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

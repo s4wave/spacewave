@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transform.blockenc'
-
 /**
  * Config configures the block encrypt transform.
  *
@@ -37,5 +35,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'block_enc', kind: 'enum', T: BlockEnc_Enum },
     { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

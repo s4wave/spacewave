@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'storage.volume'
-
 /**
  * Config configures a volume attached to a Storage.
  *
@@ -45,5 +43,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'storage_volume_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'volume_config', kind: 'message', T: () => Config$1 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

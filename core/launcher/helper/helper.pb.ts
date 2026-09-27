@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'launcher.helper'
-
 /**
  * ProgressUpdate reports download/processing progress.
  *
@@ -40,7 +38,6 @@ export const ProgressUpdate: MessageType<ProgressUpdate> =
       { no: 1, name: 'fraction', kind: 'scalar', T: ScalarType.FLOAT },
       { no: 2, name: 'text', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -63,7 +60,6 @@ export const StatusUpdate: MessageType<StatusUpdate> =
     fields: [
       { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -106,7 +102,6 @@ export const ErrorReport: MessageType<ErrorReport> =
       { no: 1, name: 'message', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'retryable', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -161,32 +156,25 @@ export const HelperMessage: MessageType<HelperMessage> =
         no: 1,
         name: 'progress',
         kind: 'message',
-        T: () => ProgressUpdate,
+        T: ProgressUpdate,
         oneof: 'body',
       },
       {
         no: 2,
         name: 'status',
         kind: 'message',
-        T: () => StatusUpdate,
+        T: StatusUpdate,
         oneof: 'body',
       },
       {
         no: 3,
         name: 'dismiss',
         kind: 'message',
-        T: () => DismissCommand,
+        T: DismissCommand,
         oneof: 'body',
       },
-      {
-        no: 4,
-        name: 'error',
-        kind: 'message',
-        T: () => ErrorReport,
-        oneof: 'body',
-      },
+      { no: 4, name: 'error', kind: 'message', T: ErrorReport, oneof: 'body' },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -269,27 +257,14 @@ export const HelperEvent: MessageType<HelperEvent> =
   /* @__PURE__ */ createMessageType({
     typeName: 'launcher.helper.HelperEvent',
     fields: [
-      {
-        no: 1,
-        name: 'retry',
-        kind: 'message',
-        T: () => RetryRequest,
-        oneof: 'body',
-      },
+      { no: 1, name: 'retry', kind: 'message', T: RetryRequest, oneof: 'body' },
       {
         no: 2,
         name: 'cancel',
         kind: 'message',
-        T: () => CancelRequest,
+        T: CancelRequest,
         oneof: 'body',
       },
-      {
-        no: 3,
-        name: 'ready',
-        kind: 'message',
-        T: () => HelperReady,
-        oneof: 'body',
-      },
+      { no: 3, name: 'ready', kind: 'message', T: HelperReady, oneof: 'body' },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

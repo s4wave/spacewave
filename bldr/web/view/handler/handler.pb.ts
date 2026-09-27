@@ -8,8 +8,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.view.handler'
-
 /**
  * WebViewHandlerConfig configures a web view handler.
  *
@@ -85,7 +83,6 @@ export const WebViewHandlerConfig: MessageType<WebViewHandlerConfig> =
         oneof: 'handler',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -122,7 +119,7 @@ export const WebViewHandlersConfig: MessageType<WebViewHandlersConfig> =
         no: 1,
         name: 'handlers',
         kind: 'message',
-        T: () => WebViewHandlerConfig,
+        T: WebViewHandlerConfig,
         repeated: true,
       },
       { no: 2, name: 'web_view_id', kind: 'message', T: () => StringFilter },
@@ -133,5 +130,4 @@ export const WebViewHandlersConfig: MessageType<WebViewHandlersConfig> =
         T: () => StringFilter,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

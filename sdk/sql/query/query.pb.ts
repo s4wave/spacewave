@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.sql.query'
-
 /**
  * Query is a standalone SQL query world object.
  *
@@ -64,7 +62,6 @@ export const Query: MessageType<Query> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -106,7 +103,6 @@ export const InitializeQueryRequest: MessageType<InitializeQueryRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -187,7 +183,6 @@ export const GetQueryTextResponse: MessageType<GetQueryTextResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -229,7 +224,6 @@ export const SetQueryTextRequest: MessageType<SetQueryTextRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -271,7 +265,6 @@ export const SetParametersRequest: MessageType<SetParametersRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -307,7 +300,6 @@ export const RunQueryRequest: MessageType<RunQueryRequest> =
     fields: [
       { no: 1, name: 'max_rows', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -342,5 +334,4 @@ export const RunQueryResponse: MessageType<RunQueryResponse> =
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

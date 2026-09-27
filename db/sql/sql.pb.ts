@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'sql'
-
 /**
  * SqlValue represents a SQL value. If no field in the oneof is set, the value is NULL.
  *
@@ -94,7 +92,6 @@ export const SqlValue: MessageType<SqlValue> =
         oneof: 'value',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -114,15 +111,8 @@ export interface Row {
 export const Row: MessageType<Row> = /* @__PURE__ */ createMessageType({
   typeName: 'sql.Row',
   fields: [
-    {
-      no: 1,
-      name: 'values',
-      kind: 'message',
-      T: () => SqlValue,
-      repeated: true,
-    },
+    { no: 1, name: 'values', kind: 'message', T: SqlValue, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -157,7 +147,6 @@ export const ColumnSchema: MessageType<ColumnSchema> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -178,7 +167,6 @@ export const RowBatch: MessageType<RowBatch> =
   /* @__PURE__ */ createMessageType({
     typeName: 'sql.RowBatch',
     fields: [
-      { no: 1, name: 'rows', kind: 'message', T: () => Row, repeated: true },
+      { no: 1, name: 'rows', kind: 'message', T: Row, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

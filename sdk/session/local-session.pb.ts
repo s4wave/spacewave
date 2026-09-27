@@ -16,8 +16,6 @@ import {
 } from '../../core/session/session.pb.js'
 import { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
 
-export const protobufPackage = 's4wave.session'
-
 /**
  * ApproveLocalSpaceLinkRequest is the request for ApproveSpaceLink on a local
  * mounted session.
@@ -46,7 +44,6 @@ export const ApproveLocalSpaceLinkRequest: MessageType<ApproveLocalSpaceLinkRequ
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -108,7 +105,6 @@ export const LocalSpaceLinkCompletion: MessageType<LocalSpaceLinkCompletion> =
       { no: 5, name: 'invite', kind: 'message', T: () => SOInviteMessage },
       { no: 6, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -134,10 +130,9 @@ export const ApproveLocalSpaceLinkResponse: MessageType<ApproveLocalSpaceLinkRes
         no: 1,
         name: 'completion',
         kind: 'message',
-        T: () => LocalSpaceLinkCompletion,
+        T: LocalSpaceLinkCompletion,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,7 +155,6 @@ export const AddLocalEntityKeypairRequest: MessageType<AddLocalEntityKeypairRequ
     fields: [
       { no: 1, name: 'credential', kind: 'message', T: () => EntityCredential },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,7 +177,6 @@ export const AddLocalEntityKeypairResponse: MessageType<AddLocalEntityKeypairRes
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -206,7 +199,6 @@ export const RemoveLocalEntityKeypairRequest: MessageType<RemoveLocalEntityKeypa
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -242,7 +234,6 @@ export const SetLocalDisplayNameRequest: MessageType<SetLocalDisplayNameRequest>
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -291,5 +282,4 @@ export const WatchLocalDisplayNameResponse: MessageType<WatchLocalDisplayNameRes
     fields: [
       { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

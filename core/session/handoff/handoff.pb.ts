@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'session.handoff'
-
 /**
  * HandoffRequest is sent by the device (desktop/CLI) to initiate
  * browser-delegated auth. Encoded as base64url in URL fragment.
@@ -61,7 +59,6 @@ export const HandoffRequest: MessageType<HandoffRequest> =
       { no: 4, name: 'client_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'protocol_version', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -99,7 +96,6 @@ export const HandoffCompletion: MessageType<HandoffCompletion> =
       { no: 3, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

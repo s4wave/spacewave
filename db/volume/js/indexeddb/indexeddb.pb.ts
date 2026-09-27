@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.indexeddb'
-
 /**
  * Config is the JavaScript IndexedDB volume controller config.
  * Flag Dir is the only mandatory flag.
@@ -92,5 +90,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 7, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 8, name: 'store_config', kind: 'message', T: () => Config$3 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

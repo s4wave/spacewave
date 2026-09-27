@@ -12,8 +12,6 @@ import {
   SessionRef,
 } from '../../../core/session/session.pb.js'
 
-export const protobufPackage = 's4wave.provider.local'
-
 /**
  * CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
  * its durable key and joins via a targeted invite.
@@ -57,7 +55,6 @@ export const CompleteSpaceLinkEnrollmentRequest: MessageType<CompleteSpaceLinkEn
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'invite', kind: 'message', T: () => SOInviteMessage },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -85,7 +82,6 @@ export const CompleteSpaceLinkEnrollmentResponse: MessageType<CompleteSpaceLinkE
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -109,7 +105,6 @@ export const CreateAccountRequest: MessageType<CreateAccountRequest> =
     fields: [
       { no: 1, name: 'defer_registration', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -144,5 +139,4 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
       },
       { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

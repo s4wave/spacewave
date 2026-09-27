@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.plugin.handle_rpc'
-
 /**
  * Config configures the web plugin to forward RPC services to another plugin.
  * Loads webPluginId with LoadPlugin and uses the RPC client.
@@ -63,5 +61,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'server_id_re', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

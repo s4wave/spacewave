@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transport.quic'
-
 /**
  * @generated from message transport.quic.Opts
  */
@@ -94,5 +92,4 @@ export const Opts: MessageType<Opts> = /* @__PURE__ */ createMessageType({
     },
     { no: 6, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

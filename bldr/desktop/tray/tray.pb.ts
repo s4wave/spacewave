@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.desktop.tray'
-
 /**
  * DesktopTrayEntryKind describes native menu mapping semantics.
  *
@@ -64,14 +62,7 @@ export enum DesktopTrayEntryKind {
 
 export const DesktopTrayEntryKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayEntryKind',
-  [
-    [0, 'DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED'],
-    [1, 'DESKTOP_TRAY_ENTRY_KIND_SECTION'],
-    [2, 'DESKTOP_TRAY_ENTRY_KIND_SEPARATOR'],
-    [3, 'DESKTOP_TRAY_ENTRY_KIND_STATUS'],
-    [4, 'DESKTOP_TRAY_ENTRY_KIND_ACTION'],
-    [5, 'DESKTOP_TRAY_ENTRY_KIND_SUBMENU'],
-  ],
+  DesktopTrayEntryKind,
 )
 
 /**
@@ -132,15 +123,7 @@ export enum DesktopTrayActionKind {
 
 export const DesktopTrayActionKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayActionKind',
-  [
-    [0, 'DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED'],
-    [1, 'DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE'],
-    [2, 'DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW'],
-    [3, 'DESKTOP_TRAY_ACTION_KIND_COPY_TEXT'],
-    [4, 'DESKTOP_TRAY_ACTION_KIND_REVEAL_PATH'],
-    [5, 'DESKTOP_TRAY_ACTION_KIND_QUIT'],
-    [6, 'DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER'],
-  ],
+  DesktopTrayActionKind,
 )
 
 /**
@@ -194,14 +177,7 @@ export enum DesktopTrayIconState {
 
 export const DesktopTrayIconState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayIconState',
-  [
-    [0, 'DESKTOP_TRAY_ICON_STATE_UNSPECIFIED'],
-    [1, 'DESKTOP_TRAY_ICON_STATE_NORMAL'],
-    [2, 'DESKTOP_TRAY_ICON_STATE_ACTIVE'],
-    [3, 'DESKTOP_TRAY_ICON_STATE_ATTENTION'],
-    [4, 'DESKTOP_TRAY_ICON_STATE_DISCONNECTED'],
-    [5, 'DESKTOP_TRAY_ICON_STATE_QUITTING'],
-  ],
+  DesktopTrayIconState,
 )
 
 /**
@@ -241,12 +217,7 @@ export enum DesktopTraySeverity {
 
 export const DesktopTraySeverity_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTraySeverity',
-  [
-    [0, 'DESKTOP_TRAY_SEVERITY_UNSPECIFIED'],
-    [1, 'DESKTOP_TRAY_SEVERITY_INFO'],
-    [2, 'DESKTOP_TRAY_SEVERITY_WARNING'],
-    [3, 'DESKTOP_TRAY_SEVERITY_CRITICAL'],
-  ],
+  DesktopTraySeverity,
 )
 
 /**
@@ -283,7 +254,6 @@ export const DesktopTrayAction: MessageType<DesktopTrayAction> =
       { no: 2, name: 'route', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -406,9 +376,8 @@ export const DesktopTrayEntry: MessageType<DesktopTrayEntry> =
       { no: 11, name: 'severity', kind: 'enum', T: DesktopTraySeverity_Enum },
       { no: 12, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
       { no: 13, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 14, name: 'action', kind: 'message', T: () => DesktopTrayAction },
+      { no: 14, name: 'action', kind: 'message', T: DesktopTrayAction },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -445,13 +414,12 @@ export const DesktopTrayState: MessageType<DesktopTrayState> =
         no: 1,
         name: 'entries',
         kind: 'message',
-        T: () => DesktopTrayEntry,
+        T: DesktopTrayEntry,
         repeated: true,
       },
       { no: 2, name: 'icon_state', kind: 'enum', T: DesktopTrayIconState_Enum },
       { no: 3, name: 'status_text', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -478,7 +446,7 @@ export const RegisterDesktopTrayEntryRequest: MessageType<RegisterDesktopTrayEnt
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.desktop.tray.RegisterDesktopTrayEntryRequest',
     fields: [
-      { no: 1, name: 'entry', kind: 'message', T: () => DesktopTrayEntry },
+      { no: 1, name: 'entry', kind: 'message', T: DesktopTrayEntry },
       {
         no: 2,
         name: 'attached_action_resource_id',
@@ -486,7 +454,6 @@ export const RegisterDesktopTrayEntryRequest: MessageType<RegisterDesktopTrayEnt
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -509,7 +476,6 @@ export const RegisterDesktopTrayEntryResponse: MessageType<RegisterDesktopTrayEn
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -543,9 +509,8 @@ export const WatchDesktopTrayResponse: MessageType<WatchDesktopTrayResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.desktop.tray.WatchDesktopTrayResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => DesktopTrayState },
+      { no: 1, name: 'state', kind: 'message', T: DesktopTrayState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -568,7 +533,6 @@ export const InvokeDesktopTrayEntryRequest: MessageType<InvokeDesktopTrayEntryRe
     fields: [
       { no: 1, name: 'entry_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -602,9 +566,8 @@ export const SetDesktopTrayEntryRequest: MessageType<SetDesktopTrayEntryRequest>
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.desktop.tray.SetDesktopTrayEntryRequest',
     fields: [
-      { no: 1, name: 'entry', kind: 'message', T: () => DesktopTrayEntry },
+      { no: 1, name: 'entry', kind: 'message', T: DesktopTrayEntry },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -640,7 +603,6 @@ export const SetDesktopTrayEntryActiveRequest: MessageType<SetDesktopTrayEntryAc
     fields: [
       { no: 1, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -676,7 +638,6 @@ export const SetDesktopTrayEntryEnabledRequest: MessageType<SetDesktopTrayEntryE
     fields: [
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -717,9 +678,8 @@ export const HandleDesktopTrayActionRequest: MessageType<HandleDesktopTrayAction
     typeName: 'bldr.desktop.tray.HandleDesktopTrayActionRequest',
     fields: [
       { no: 1, name: 'entry_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'action', kind: 'message', T: () => DesktopTrayAction },
+      { no: 2, name: 'action', kind: 'message', T: DesktopTrayAction },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Blob } from '../blob/blob.pb.js'
 
-export const protobufPackage = 'file'
-
 /**
  * Range contains a chunk of a file.
  * Ranges are sorted by start, then nonce (ascending).
@@ -55,7 +53,6 @@ export const Range: MessageType<Range> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'length', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'ref', kind: 'message', T: () => BlockRef },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -107,7 +104,6 @@ export const File: MessageType<File> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'total_size', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 2, name: 'root_blob', kind: 'message', T: () => Blob },
     { no: 3, name: 'range_nonce', kind: 'scalar', T: ScalarType.UINT64 },
-    { no: 4, name: 'ranges', kind: 'message', T: () => Range, repeated: true },
+    { no: 4, name: 'ranges', kind: 'message', T: Range, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

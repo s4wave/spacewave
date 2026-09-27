@@ -13,8 +13,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.canvas'
-
 /**
  * CanvasStorage is the root block of a Canvas state DAG.
  *
@@ -81,5 +79,4 @@ export const CanvasStorage: MessageType<CanvasStorage> =
         V: { kind: 'message', T: () => CanvasLayoutMetadata },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

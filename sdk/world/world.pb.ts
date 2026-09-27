@@ -13,8 +13,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
-export const protobufPackage = 's4wave.world'
-
 /**
  * GraphEdgeBucketDirection indicates which edge directions to list.
  *
@@ -52,12 +50,7 @@ export enum GraphEdgeBucketDirection {
 
 export const GraphEdgeBucketDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphEdgeBucketDirection',
-  [
-    [0, 'GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED'],
-    [1, 'GRAPH_EDGE_BUCKET_DIRECTION_OUT'],
-    [2, 'GRAPH_EDGE_BUCKET_DIRECTION_IN'],
-    [3, 'GRAPH_EDGE_BUCKET_DIRECTION_BOTH'],
-  ],
+  GraphEdgeBucketDirection,
 )
 
 /**
@@ -97,12 +90,7 @@ export enum GraphPathDirection {
 
 export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphPathDirection',
-  [
-    [0, 'GRAPH_PATH_DIRECTION_UNSPECIFIED'],
-    [1, 'GRAPH_PATH_DIRECTION_OUT'],
-    [2, 'GRAPH_PATH_DIRECTION_IN'],
-    [3, 'GRAPH_PATH_DIRECTION_BOTH'],
-  ],
+  GraphPathDirection,
 )
 
 /**
@@ -124,10 +112,7 @@ export enum WorldErrorCode {
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.WorldErrorCode',
-  [
-    [0, 'WORLD_ERROR_CODE_UNSPECIFIED'],
-    [1, 'WORLD_ERROR_CODE_UNHANDLED_OP'],
-  ],
+  WorldErrorCode,
 )
 
 /**
@@ -163,7 +148,6 @@ export const SyncResponse: MessageType<SyncResponse> =
     fields: [
       { no: 1, name: 'fenced', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -193,7 +177,6 @@ export const EngineInfo: MessageType<EngineInfo> =
       { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -233,10 +216,9 @@ export const GetEngineInfoResponse: MessageType<GetEngineInfoResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetEngineInfoResponse',
     fields: [
-      { no: 1, name: 'engine_info', kind: 'message', T: () => EngineInfo },
+      { no: 1, name: 'engine_info', kind: 'message', T: EngineInfo },
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -277,7 +259,7 @@ export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
     fields: [
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
       { no: 2, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'engine_info', kind: 'message', T: () => EngineInfo },
+      { no: 3, name: 'engine_info', kind: 'message', T: EngineInfo },
       {
         no: 4,
         name: 'storage_volume_id',
@@ -285,7 +267,6 @@ export const WorldRootSnapshot: MessageType<WorldRootSnapshot> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -334,7 +315,6 @@ export const NewTransactionRequest: MessageType<NewTransactionRequest> =
     fields: [
       { no: 1, name: 'write', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -364,7 +344,6 @@ export const NewTransactionResponse: MessageType<NewTransactionResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -400,7 +379,6 @@ export const GetSeqnoResponse: MessageType<GetSeqnoResponse> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -423,7 +401,6 @@ export const WaitSeqnoRequest: MessageType<WaitSeqnoRequest> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -446,7 +423,6 @@ export const WaitSeqnoResponse: MessageType<WaitSeqnoResponse> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,7 +446,6 @@ export const AccessWorldStateRequest: MessageType<AccessWorldStateRequest> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -493,7 +468,6 @@ export const OpenNestedWorldRequest: MessageType<OpenNestedWorldRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -516,7 +490,6 @@ export const OpenNestedWorldResponse: MessageType<OpenNestedWorldResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -552,7 +525,6 @@ export const OpenOuterWorldResponse: MessageType<OpenOuterWorldResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -575,7 +547,6 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -605,7 +576,6 @@ export const CreateObjectRequest: MessageType<CreateObjectRequest> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -635,7 +605,6 @@ export const SetObjectRootMutation: MessageType<SetObjectRootMutation> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -658,7 +627,6 @@ export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -712,25 +680,24 @@ export const TransactionMutation: MessageType<TransactionMutation> =
         no: 1,
         name: 'create_object',
         kind: 'message',
-        T: () => CreateObjectRequest,
+        T: CreateObjectRequest,
         oneof: 'mutation',
       },
       {
         no: 2,
         name: 'set_object_root',
         kind: 'message',
-        T: () => SetObjectRootMutation,
+        T: SetObjectRootMutation,
         oneof: 'mutation',
       },
       {
         no: 3,
         name: 'set_graph_quad',
         kind: 'message',
-        T: () => SetGraphQuadRequest,
+        T: SetGraphQuadRequest,
         oneof: 'mutation',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -755,11 +722,10 @@ export const CommitMutationsRequest: MessageType<CommitMutationsRequest> =
         no: 1,
         name: 'mutations',
         kind: 'message',
-        T: () => TransactionMutation,
+        T: TransactionMutation,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -789,7 +755,6 @@ export const CreateObjectMutationResult: MessageType<CreateObjectMutationResult>
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -812,7 +777,6 @@ export const SetObjectRootMutationResult: MessageType<SetObjectRootMutationResul
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -879,25 +843,24 @@ export const TransactionMutationResult: MessageType<TransactionMutationResult> =
         no: 1,
         name: 'create_object',
         kind: 'message',
-        T: () => CreateObjectMutationResult,
+        T: CreateObjectMutationResult,
         oneof: 'result',
       },
       {
         no: 2,
         name: 'set_object_root',
         kind: 'message',
-        T: () => SetObjectRootMutationResult,
+        T: SetObjectRootMutationResult,
         oneof: 'result',
       },
       {
         no: 3,
         name: 'set_graph_quad',
         kind: 'message',
-        T: () => SetGraphQuadResponse,
+        T: SetGraphQuadResponse,
         oneof: 'result',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -922,11 +885,10 @@ export const CommitMutationsResponse: MessageType<CommitMutationsResponse> =
         no: 1,
         name: 'results',
         kind: 'message',
-        T: () => TransactionMutationResult,
+        T: TransactionMutationResult,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1014,7 +976,6 @@ export const GetReadOnlyResponse: MessageType<GetReadOnlyResponse> =
     fields: [
       { no: 1, name: 'read_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1050,7 +1011,6 @@ export const BuildStorageCursorResponse: MessageType<BuildStorageCursorResponse>
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1080,7 +1040,6 @@ export const CreateObjectResponse: MessageType<CreateObjectResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1103,7 +1062,6 @@ export const GetObjectRequest: MessageType<GetObjectRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1140,7 +1098,6 @@ export const GetObjectResponse: MessageType<GetObjectResponse> =
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1177,7 +1134,6 @@ export const RenameObjectRequest: MessageType<RenameObjectRequest> =
       { no: 2, name: 'new_object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'descendants', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1207,7 +1163,6 @@ export const RenameObjectResponse: MessageType<RenameObjectResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1230,7 +1185,6 @@ export const DeleteObjectRequest: MessageType<DeleteObjectRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1253,7 +1207,6 @@ export const DeleteObjectResponse: MessageType<DeleteObjectResponse> =
     fields: [
       { no: 1, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1284,7 +1237,6 @@ export const IterateObjectsRequest: MessageType<IterateObjectsRequest> =
       { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reversed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1307,7 +1259,6 @@ export const IterateObjectsResponse: MessageType<IterateObjectsResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1330,7 +1281,6 @@ export const DeleteGraphQuadRequest: MessageType<DeleteGraphQuadRequest> =
     fields: [
       { no: 1, name: 'quad', kind: 'message', T: () => Quad },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1375,7 +1325,6 @@ export const LookupGraphQuadsRequest: MessageType<LookupGraphQuadsRequest> =
       { no: 1, name: 'filter', kind: 'message', T: () => Quad },
       { no: 2, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1398,7 +1347,6 @@ export const LookupGraphQuadsResponse: MessageType<LookupGraphQuadsResponse> =
     fields: [
       { no: 1, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1436,7 +1384,6 @@ export const LookupGraphQuadsBatchRequest: MessageType<LookupGraphQuadsBatchRequ
       },
       { no: 2, name: 'limit_per_filter', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1459,7 +1406,6 @@ export const LookupGraphQuadsBatchResult: MessageType<LookupGraphQuadsBatchResul
     fields: [
       { no: 1, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1485,11 +1431,10 @@ export const LookupGraphQuadsBatchResponse: MessageType<LookupGraphQuadsBatchRes
         no: 1,
         name: 'results',
         kind: 'message',
-        T: () => LookupGraphQuadsBatchResult,
+        T: LookupGraphQuadsBatchResult,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1548,7 +1493,6 @@ export const ListGraphEdgeBucketsRequest: MessageType<ListGraphEdgeBucketsReques
         T: GraphEdgeBucketDirection_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1616,7 +1560,6 @@ export const GraphEdgeBucket: MessageType<GraphEdgeBucket> =
       { no: 4, name: 'outgoing_truncated', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'incoming_truncated', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1641,11 +1584,10 @@ export const ListGraphEdgeBucketsResponse: MessageType<ListGraphEdgeBucketsRespo
         no: 1,
         name: 'buckets',
         kind: 'message',
-        T: () => GraphEdgeBucket,
+        T: GraphEdgeBucket,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1668,7 +1610,6 @@ export const ListObjectsWithTypeRequest: MessageType<ListObjectsWithTypeRequest>
     fields: [
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1697,7 +1638,6 @@ export const ListObjectsWithTypeResponse: MessageType<ListObjectsWithTypeRespons
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1741,7 +1681,6 @@ export const ObjectRootRef: MessageType<ObjectRootRef> =
       { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1771,7 +1710,6 @@ export const GetObjectRootRefsBatchRequest: MessageType<GetObjectRootRefsBatchRe
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1797,11 +1735,10 @@ export const GetObjectRootRefsBatchResponse: MessageType<GetObjectRootRefsBatchR
         no: 1,
         name: 'root_refs',
         kind: 'message',
-        T: () => ObjectRootRef,
+        T: ObjectRootRef,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1843,7 +1780,6 @@ export const ObjectMetadata: MessageType<ObjectMetadata> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1873,7 +1809,6 @@ export const GetObjectMetadataBatchRequest: MessageType<GetObjectMetadataBatchRe
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1899,11 +1834,10 @@ export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchR
         no: 1,
         name: 'metadata',
         kind: 'message',
-        T: () => ObjectMetadata,
+        T: ObjectMetadata,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1947,7 +1881,6 @@ export const ObjectBody: MessageType<ObjectBody> =
       { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1977,7 +1910,6 @@ export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchReques
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2008,16 +1940,9 @@ export const GetObjectBodiesBatchResponse: MessageType<GetObjectBodiesBatchRespo
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.GetObjectBodiesBatchResponse',
     fields: [
-      {
-        no: 1,
-        name: 'bodies',
-        kind: 'message',
-        T: () => ObjectBody,
-        repeated: true,
-      },
+      { no: 1, name: 'bodies', kind: 'message', T: ObjectBody, repeated: true },
       { no: 2, name: 'world_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2054,7 +1979,6 @@ export const GraphPathStep: MessageType<GraphPathStep> =
       { no: 2, name: 'predicate', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2112,14 +2036,13 @@ export const QueryGraphPathRequest: MessageType<QueryGraphPathRequest> =
         no: 2,
         name: 'steps',
         kind: 'message',
-        T: () => GraphPathStep,
+        T: GraphPathStep,
         repeated: true,
       },
       { no: 3, name: 'result_limit', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 4, name: 'include_quads', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'page_size', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2142,7 +2065,6 @@ export const QueryGraphPathResponse: MessageType<QueryGraphPathResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2165,7 +2087,6 @@ export const DeleteGraphObjectRequest: MessageType<DeleteGraphObjectRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2215,7 +2136,6 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2271,7 +2191,6 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2308,7 +2227,6 @@ export const WatchWorldStateResponse: MessageType<WatchWorldStateResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2338,7 +2256,6 @@ export const TrackedWorldStateSnapshot_ObjectAccess: MessageType<TrackedWorldSta
       { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2376,13 +2293,12 @@ export const TrackedWorldStateSnapshot: MessageType<TrackedWorldStateSnapshot> =
         no: 1,
         name: 'object_accesses',
         kind: 'message',
-        T: () => TrackedWorldStateSnapshot_ObjectAccess,
+        T: TrackedWorldStateSnapshot_ObjectAccess,
         repeated: true,
       },
       { no: 2, name: 'has_quad_access', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'initial_seqno', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2418,7 +2334,6 @@ export const ErrResponse: MessageType<ErrResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2454,7 +2369,6 @@ export const ValidResponse: MessageType<ValidResponse> =
     fields: [
       { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2490,7 +2404,6 @@ export const KeyResponse: MessageType<KeyResponse> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2526,7 +2439,6 @@ export const NextResponse: MessageType<NextResponse> =
     fields: [
       { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2549,7 +2461,6 @@ export const SeekRequest: MessageType<SeekRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2644,7 +2555,6 @@ export const NextGraphPathQueryResponse: MessageType<NextGraphPathQueryResponse>
       { no: 2, name: 'quads', kind: 'message', T: () => Quad, repeated: true },
       { no: 3, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2706,7 +2616,6 @@ export const GetKeyResponse: MessageType<GetKeyResponse> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2749,7 +2658,6 @@ export const GetRootRefResponse: MessageType<GetRootRefResponse> =
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
       { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2772,7 +2680,6 @@ export const SetRootRefRequest: MessageType<SetRootRefRequest> =
     fields: [
       { no: 1, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2795,7 +2702,6 @@ export const SetRootRefResponse: MessageType<SetRootRefResponse> =
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2832,7 +2738,6 @@ export const ApplyObjectOpRequest: MessageType<ApplyObjectOpRequest> =
       { no: 2, name: 'op_data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'op_sender', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2888,7 +2793,6 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2924,7 +2828,6 @@ export const IncrementRevResponse: MessageType<IncrementRevResponse> =
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2954,7 +2857,6 @@ export const WaitRevRequest: MessageType<WaitRevRequest> =
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'ignore_not_found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2977,7 +2879,6 @@ export const WaitRevResponse: MessageType<WaitRevResponse> =
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3000,7 +2901,6 @@ export const AccessTypedObjectRequest: MessageType<AccessTypedObjectRequest> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3031,7 +2931,6 @@ export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3061,7 +2960,6 @@ export const ObjectRecordBase: MessageType<ObjectRecordBase> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3086,11 +2984,10 @@ export const CompareObjectRecordsRequest: MessageType<CompareObjectRecordsReques
         no: 1,
         name: 'bases',
         kind: 'message',
-        T: () => ObjectRecordBase,
+        T: ObjectRecordBase,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3133,7 +3030,6 @@ export const ObjectRecordChanges: MessageType<ObjectRecordChanges> =
       },
       { no: 3, name: 'unknown', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3158,9 +3054,8 @@ export const CompareObjectRecordsResponse: MessageType<CompareObjectRecordsRespo
         no: 1,
         name: 'changes',
         kind: 'message',
-        T: () => ObjectRecordChanges,
+        T: ObjectRecordChanges,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'session.lock'
-
 /**
  * LockConfig is the persisted PIN-lock key-derivation configuration stored
  * at {sessionID}/lock-params in the session ObjectStore.
@@ -37,5 +35,4 @@ export const LockConfig: MessageType<LockConfig> =
       { no: 1, name: 'scrypt_n', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'salt', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'hydra.api.controller'
-
 /**
  * Config configures the RPC API.
  *
@@ -66,5 +64,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'bus_api_config', kind: 'message', T: () => Config$2 },
     { no: 6, name: 'hydra_api_config', kind: 'message', T: () => Config$3 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

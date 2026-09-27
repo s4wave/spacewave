@@ -9,8 +9,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectInfo } from '../../../web/object/object.pb.js'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 's4wave.layout.world'
-
 /**
  * ObjectLayout contains information about a layout of objects.
  * This is the body of a world object with type "alpha/object-layout".
@@ -33,7 +31,6 @@ export const ObjectLayout: MessageType<ObjectLayout> =
     fields: [
       { no: 1, name: 'layout_model', kind: 'message', T: () => LayoutModel },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -72,7 +69,6 @@ export const ObjectLayoutTab: MessageType<ObjectLayoutTab> =
       { no: 2, name: 'object_info', kind: 'message', T: () => ObjectInfo },
       { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -102,7 +98,6 @@ export const CreateObjectLayoutOp: MessageType<CreateObjectLayoutOp> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -138,5 +133,4 @@ export const UpdateObjectLayoutOp: MessageType<UpdateObjectLayoutOp> =
       },
       { no: 2, name: 'layout_model', kind: 'message', T: () => LayoutModel },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

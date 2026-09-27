@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.store.kvfile.http'
-
 /**
  * Config configures the block store kvfile via http controller.
  *
@@ -102,5 +100,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'kv_key_opts', kind: 'message', T: () => Config$1 },
     { no: 9, name: 'min_request_size', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'tptaddr.static'
-
 /**
  * Config configures the static controller.
  *
@@ -39,5 +37,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

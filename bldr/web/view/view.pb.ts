@@ -12,8 +12,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.view'
-
 /**
  * RenderMode is the list of available WebView rendering modes.
  *
@@ -60,12 +58,7 @@ export enum RenderMode {
 
 export const RenderMode_Enum = /* @__PURE__ */ createEnumType(
   'web.view.RenderMode',
-  [
-    [0, 'RenderMode_NONE'],
-    [1, 'RenderMode_REACT_COMPONENT'],
-    [2, 'RenderMode_FUNCTION'],
-    [3, 'RenderMode_REACT_CHILDREN'],
-  ],
+  RenderMode,
 )
 
 /**
@@ -119,7 +112,6 @@ export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
       { no: 4, name: 'refresh', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'frontend_binding', kind: 'message', T: () => Binding },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -163,7 +155,6 @@ export const HtmlLink: MessageType<HtmlLink> =
       { no: 1, name: 'href', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'rel', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -209,10 +200,9 @@ export const SetHtmlLinksRequest: MessageType<SetHtmlLinksRequest> =
         name: 'set_links',
         kind: 'map',
         K: ScalarType.STRING,
-        V: { kind: 'message', T: () => HtmlLink },
+        V: { kind: 'message', T: HtmlLink },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -287,5 +277,4 @@ export const RemoveWebViewResponse: MessageType<RemoveWebViewResponse> =
     fields: [
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

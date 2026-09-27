@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'block.mock'
-
 /**
  * SubBlock is a example sub-block of Root.
  *
@@ -30,7 +28,6 @@ export const SubBlock: MessageType<SubBlock> =
     fields: [
       { no: 1, name: 'example_ptr', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -50,9 +47,8 @@ export interface Root {
 export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
   typeName: 'block.mock.Root',
   fields: [
-    { no: 1, name: 'example_sub_block', kind: 'message', T: () => SubBlock },
+    { no: 1, name: 'example_sub_block', kind: 'message', T: SubBlock },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -74,5 +70,4 @@ export const Example: MessageType<Example> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'msg', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

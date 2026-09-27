@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.web.plugin.handle_web_pkg_assets'
-
 /**
  * Config configures a controller to serve LookupWebPkg from a plugin assets fs.
  * webPluginId should correspond to a bldr/web/plugin plugin.
@@ -57,5 +55,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

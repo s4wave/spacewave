@@ -14,8 +14,6 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ManifestRef } from '../manifest/manifest.pb.js'
 import { VolumeInfo } from '@go/github.com/s4wave/spacewave/db/volume/volume.pb.js'
 
-export const protobufPackage = 'bldr.plugin'
-
 /**
  * PluginState is the scheduler state for a plugin instance.
  *
@@ -46,11 +44,7 @@ export enum PluginState {
 
 export const PluginState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.plugin.PluginState',
-  [
-    [0, 'PluginState_UNKNOWN'],
-    [1, 'PluginState_REQUESTED'],
-    [2, 'PluginState_RUNNING'],
-  ],
+  PluginState,
 )
 
 /**
@@ -113,7 +107,6 @@ export const PluginStatus: MessageType<PluginStatus> =
       },
       { no: 6, name: 'last_error_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -240,7 +233,6 @@ export const PluginManifestRecoveryStatus: MessageType<PluginManifestRecoverySta
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -272,18 +264,17 @@ export const PluginStatusSnapshot: MessageType<PluginStatusSnapshot> =
         no: 1,
         name: 'plugins',
         kind: 'message',
-        T: () => PluginStatus,
+        T: PluginStatus,
         repeated: true,
       },
       {
         no: 2,
         name: 'manifest_recovery',
         kind: 'message',
-        T: () => PluginManifestRecoveryStatus,
+        T: PluginManifestRecoveryStatus,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -402,9 +393,8 @@ export const WatchPluginStatusResponse: MessageType<WatchPluginStatusResponse> =
     typeName: 'bldr.plugin.WatchPluginStatusResponse',
     fields: [
       { no: 1, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'status', kind: 'message', T: () => PluginStatusSnapshot },
+      { no: 2, name: 'status', kind: 'message', T: PluginStatusSnapshot },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -494,7 +484,6 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
       { no: 7, name: 'prepared', kind: 'scalar', T: ScalarType.BOOL },
       { no: 8, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -548,7 +537,6 @@ export const LoadPluginRequest: MessageType<LoadPluginRequest> =
       },
       { no: 4, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -569,9 +557,8 @@ export const LoadPluginResponse: MessageType<LoadPluginResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.LoadPluginResponse',
     fields: [
-      { no: 1, name: 'plugin_status', kind: 'message', T: () => PluginStatus },
+      { no: 1, name: 'plugin_status', kind: 'message', T: PluginStatus },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -617,7 +604,6 @@ export const PluginMeta: MessageType<PluginMeta> =
       { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'build_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -664,7 +650,6 @@ export const PluginStartInfo: MessageType<PluginStartInfo> =
       { no: 3, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'manifest_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -686,7 +671,6 @@ export const PluginContextInfo: MessageType<PluginContextInfo> =
   /* @__PURE__ */ createMessageType({
     typeName: 'bldr.plugin.PluginContextInfo',
     fields: [
-      { no: 1, name: 'plugin_meta', kind: 'message', T: () => PluginMeta },
+      { no: 1, name: 'plugin_meta', kind: 'message', T: PluginMeta },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

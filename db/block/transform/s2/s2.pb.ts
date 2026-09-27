@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transform.s2'
-
 /**
  * Config configures the s2 transform.
  *
@@ -37,5 +35,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'better', kind: 'scalar', T: ScalarType.BOOL },
     { no: 2, name: 'best', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

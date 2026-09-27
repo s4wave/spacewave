@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.store.rpc'
-
 /**
  * Config configures the block store rpc controller.
  * Executes a LookupRpcClient directive to build the rpc client.
@@ -113,5 +111,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 10, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bifrost.api.controller'
-
 /**
  * Config configures the API.
  *
@@ -52,5 +50,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'disable_bus_api', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'bus_api_config', kind: 'message', T: () => Config$2 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

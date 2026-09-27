@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'kvtx.block.iavl'
-
 /**
  * Node is a node in the tree.
  *
@@ -79,5 +77,4 @@ export const Node: MessageType<Node> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'left_child_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'right_child_ref', kind: 'message', T: () => BlockRef },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

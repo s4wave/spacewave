@@ -47,8 +47,6 @@ import {
 } from '../../core/account/settings/settings.pb.js'
 import { CheckResult, Credentials } from '../../db/block/store/s3/s3.pb.js'
 
-export const protobufPackage = 's4wave.session'
-
 /**
  * SyncStatusState describes the aggregate session sync state.
  *
@@ -79,11 +77,7 @@ export enum SyncStatusState {
 
 export const SyncStatusState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncStatusState',
-  [
-    [0, 'SyncStatusState_SYNCED'],
-    [1, 'SyncStatusState_ACTIVE'],
-    [2, 'SyncStatusState_ERROR'],
-  ],
+  SyncStatusState,
 )
 
 /**
@@ -123,12 +117,7 @@ export enum SyncActivityDirection {
 
 export const SyncActivityDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncActivityDirection',
-  [
-    [0, 'SyncActivityDirection_NONE'],
-    [1, 'SyncActivityDirection_UPLOAD'],
-    [2, 'SyncActivityDirection_DOWNLOAD'],
-    [3, 'SyncActivityDirection_UPLOAD_DOWNLOAD'],
-  ],
+  SyncActivityDirection,
 )
 
 /**
@@ -175,13 +164,7 @@ export enum SyncTransportState {
 
 export const SyncTransportState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncTransportState',
-  [
-    [0, 'SyncTransportState_UNKNOWN'],
-    [1, 'SyncTransportState_UNAVAILABLE'],
-    [2, 'SyncTransportState_CONNECTING'],
-    [3, 'SyncTransportState_ONLINE'],
-    [4, 'SyncTransportState_ERROR'],
-  ],
+  SyncTransportState,
 )
 
 /**
@@ -249,16 +232,7 @@ export enum SyncP2PState {
 
 export const SyncP2PState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncP2PState',
-  [
-    [0, 'SyncP2PState_UNKNOWN'],
-    [1, 'SyncP2PState_NO_PEERS'],
-    [2, 'SyncP2PState_IDLE'],
-    [3, 'SyncP2PState_ACTIVE'],
-    [4, 'SyncP2PState_ERROR'],
-    [5, 'SyncP2PState_DISABLED'],
-    [6, 'SyncP2PState_STARTING'],
-    [7, 'SyncP2PState_FALLBACK_NO_PEER'],
-  ],
+  SyncP2PState,
 )
 
 /**
@@ -298,12 +272,7 @@ export enum SyncBlockSource {
 
 export const SyncBlockSource_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.SyncBlockSource',
-  [
-    [0, 'SyncBlockSource_UNKNOWN'],
-    [1, 'SyncBlockSource_CACHE'],
-    [2, 'SyncBlockSource_DIRECT'],
-    [3, 'SyncBlockSource_CLOUD'],
-  ],
+  SyncBlockSource,
 )
 
 /**
@@ -422,23 +391,7 @@ export enum PairingStatus {
 
 export const PairingStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.PairingStatus',
-  [
-    [0, 'PairingStatus_IDLE'],
-    [1, 'PairingStatus_CODE_GENERATED'],
-    [2, 'PairingStatus_WAITING_FOR_PEER'],
-    [3, 'PairingStatus_PEER_CONNECTED'],
-    [4, 'PairingStatus_VERIFYING_EMOJI'],
-    [5, 'PairingStatus_VERIFIED'],
-    [6, 'PairingStatus_FAILED'],
-    [7, 'PairingStatus_SIGNALING_FAILED'],
-    [8, 'PairingStatus_CONNECTION_TIMEOUT'],
-    [9, 'PairingStatus_WAITING_FOR_REMOTE_CONFIRM'],
-    [10, 'PairingStatus_BOTH_CONFIRMED'],
-    [11, 'PairingStatus_PAIRING_REJECTED'],
-    [12, 'PairingStatus_CONFIRMATION_TIMEOUT'],
-    [13, 'PairingStatus_ENROLLING'],
-    [14, 'PairingStatus_SELECTING_ACCOUNT'],
-  ],
+  PairingStatus,
 )
 
 /**
@@ -489,13 +442,7 @@ export enum JoinSpaceViaInviteResult {
 
 export const JoinSpaceViaInviteResult_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.JoinSpaceViaInviteResult',
-  [
-    [0, 'JoinSpaceViaInviteResult_UNSPECIFIED'],
-    [1, 'JoinSpaceViaInviteResult_ACCEPTED'],
-    [2, 'JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL'],
-    [3, 'JoinSpaceViaInviteResult_REJECTED'],
-    [4, 'JoinSpaceViaInviteResult_OWNER_MUST_BE_ONLINE'],
-  ],
+  JoinSpaceViaInviteResult,
 )
 
 /**
@@ -536,12 +483,7 @@ export enum MoveSpaceStoragePhase {
 
 export const MoveSpaceStoragePhase_Enum = /* @__PURE__ */ createEnumType(
   's4wave.session.MoveSpaceStoragePhase',
-  [
-    [0, 'MoveSpaceStoragePhase_UNKNOWN'],
-    [1, 'MoveSpaceStoragePhase_FETCH'],
-    [2, 'MoveSpaceStoragePhase_UPLOAD'],
-    [3, 'MoveSpaceStoragePhase_DONE'],
-  ],
+  MoveSpaceStoragePhase,
 )
 
 /**
@@ -615,7 +557,6 @@ export const SessionCryptoInfo: MessageType<SessionCryptoInfo> =
       },
       { no: 5, name: 'public_key_pem', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -650,14 +591,8 @@ export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
     fields: [
       { no: 1, name: 'session_ref', kind: 'message', T: () => SessionRef },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 3,
-        name: 'crypto_info',
-        kind: 'message',
-        T: () => SessionCryptoInfo,
-      },
+      { no: 3, name: 'crypto_info', kind: 'message', T: SessionCryptoInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -685,7 +620,6 @@ export const WatchResourcesListRequest: MessageType<WatchResourcesListRequest> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -714,7 +648,6 @@ export const WatchResourcesListResponse: MessageType<WatchResourcesListResponse>
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -772,7 +705,6 @@ export const CreateSpaceRequest: MessageType<CreateSpaceRequest> =
       },
       { no: 5, name: 'account_storage', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -850,7 +782,6 @@ export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -913,7 +844,7 @@ export const CreateSpaceResponse: MessageType<CreateSpaceResponse> =
         no: 3,
         name: 'mounted_shared_object',
         kind: 'message',
-        T: () => MountSharedObjectResponse,
+        T: MountSharedObjectResponse,
       },
       {
         no: 4,
@@ -928,7 +859,6 @@ export const CreateSpaceResponse: MessageType<CreateSpaceResponse> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -951,7 +881,6 @@ export const DeleteSpaceRequest: MessageType<DeleteSpaceRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -987,7 +916,6 @@ export const LeaveSpaceRequest: MessageType<LeaveSpaceRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1030,7 +958,6 @@ export const RenameSpaceRequest: MessageType<RenameSpaceRequest> =
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1066,7 +993,6 @@ export const MountSharedObjectRequest: MessageType<MountSharedObjectRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1089,7 +1015,6 @@ export const WatchSharedObjectHealthRequest: MessageType<WatchSharedObjectHealth
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1112,7 +1037,6 @@ export const WatchSharedObjectHealthResponse: MessageType<WatchSharedObjectHealt
     fields: [
       { no: 1, name: 'health', kind: 'message', T: () => SharedObjectHealth },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1220,7 +1144,6 @@ export const SyncBlockStoreStatus: MessageType<SyncBlockStoreStatus> =
       },
       { no: 8, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1267,7 +1190,6 @@ export const SyncLocalCopyStatus: MessageType<SyncLocalCopyStatus> =
       { no: 5, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1303,7 +1225,6 @@ export const SyncPeerTransferStatus: MessageType<SyncPeerTransferStatus> =
       { no: 3, name: 'downloaded_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'connected', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1980,7 +1901,7 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         no: 56,
         name: 'block_stores',
         kind: 'message',
-        T: () => SyncBlockStoreStatus,
+        T: SyncBlockStoreStatus,
         repeated: true,
       },
       { no: 57, name: 'local_account', kind: 'scalar', T: ScalarType.BOOL },
@@ -1988,7 +1909,7 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         no: 58,
         name: 'local_copies',
         kind: 'message',
-        T: () => SyncLocalCopyStatus,
+        T: SyncLocalCopyStatus,
         repeated: true,
       },
       {
@@ -2007,11 +1928,10 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         no: 61,
         name: 'peers',
         kind: 'message',
-        T: () => SyncPeerTransferStatus,
+        T: SyncPeerTransferStatus,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2048,7 +1968,6 @@ export const WatchStorageStatsResponse: MessageType<WatchStorageStatsResponse> =
       { no: 2, name: 'total_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2091,7 +2010,6 @@ export const WatchLockStateResponse: MessageType<WatchLockStateResponse> =
       { no: 1, name: 'mode', kind: 'enum', T: SessionLockMode_Enum },
       { no: 2, name: 'locked', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2121,7 +2039,6 @@ export const SetLockModeRequest: MessageType<SetLockModeRequest> =
       { no: 1, name: 'mode', kind: 'enum', T: SessionLockMode_Enum },
       { no: 2, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2157,7 +2074,6 @@ export const SetDirectP2PEnabledRequest: MessageType<SetDirectP2PEnabledRequest>
     fields: [
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2193,7 +2109,6 @@ export const UnlockSessionRequest: MessageType<UnlockSessionRequest> =
     fields: [
       { no: 1, name: 'pin', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2268,7 +2183,6 @@ export const GeneratePairingCodeResponse: MessageType<GeneratePairingCodeRespons
     fields: [
       { no: 1, name: 'code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2321,7 +2235,6 @@ export const CompletePairingRequest: MessageType<CompletePairingRequest> =
       { no: 3, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2344,7 +2257,6 @@ export const SelectPairingAccountRequest: MessageType<SelectPairingAccountReques
     fields: [
       { no: 1, name: 'outcome', kind: 'enum', T: AccountOutcome_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2380,7 +2292,6 @@ export const CompletePairingResponse: MessageType<CompletePairingResponse> =
     fields: [
       { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2403,7 +2314,6 @@ export const GetSASEmojiRequest: MessageType<GetSASEmojiRequest> =
     fields: [
       { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2432,7 +2342,6 @@ export const GetSASEmojiResponse: MessageType<GetSASEmojiResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2455,7 +2364,6 @@ export const ConfirmSASMatchRequest: MessageType<ConfirmSASMatchRequest> =
     fields: [
       { no: 1, name: 'confirmed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2498,7 +2406,6 @@ export const ConfirmPairingRequest: MessageType<ConfirmPairingRequest> =
       { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2526,7 +2433,6 @@ export const ConfirmPairingResponse: MessageType<ConfirmPairingResponse> =
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2549,7 +2455,6 @@ export const DeleteAccountRequest: MessageType<DeleteAccountRequest> =
     fields: [
       { no: 1, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2586,7 +2491,6 @@ export const AccessSessionStateAtomRequest: MessageType<AccessSessionStateAtomRe
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2609,7 +2513,6 @@ export const AccessSessionStateAtomResponse: MessageType<AccessSessionStateAtomR
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2652,7 +2555,6 @@ export const AccessPeerTransportResponse: MessageType<AccessPeerTransportRespons
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2701,7 +2603,6 @@ export const WatchSessionStateAtomsResponse: MessageType<WatchSessionStateAtomsR
       },
       { no: 2, name: 'store_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2724,7 +2625,6 @@ export const GetTransferInventoryRequest: MessageType<GetTransferInventoryReques
     fields: [
       { no: 1, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2753,7 +2653,6 @@ export const GetTransferInventoryResponse: MessageType<GetTransferInventoryRespo
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2814,7 +2713,6 @@ export const StartTransferRequest: MessageType<StartTransferRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2863,7 +2761,6 @@ export const WatchTransferProgressResponse: MessageType<WatchTransferProgressRes
     fields: [
       { no: 1, name: 'state', kind: 'message', T: () => TransferState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2945,7 +2842,6 @@ export const WatchPairedDevicesResponse: MessageType<WatchPairedDevicesResponse>
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -2968,7 +2864,6 @@ export const UnlinkDeviceRequest: MessageType<UnlinkDeviceRequest> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3087,7 +2982,6 @@ export const WatchPairingStatusResponse: MessageType<WatchPairingStatusResponse>
       { no: 9, name: 'choice', kind: 'message', T: () => AccountChoice },
       { no: 10, name: 'remote_label', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3141,7 +3035,6 @@ export const CreateSpaceInviteRequest: MessageType<CreateSpaceInviteRequest> =
       { no: 4, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'expires_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3178,7 +3071,6 @@ export const CreateSpaceInviteResponse: MessageType<CreateSpaceInviteResponse> =
       },
       { no: 2, name: 'short_code', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3201,7 +3093,6 @@ export const ListSpaceInvitesRequest: MessageType<ListSpaceInvitesRequest> =
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3230,7 +3121,6 @@ export const ListSpaceInvitesResponse: MessageType<ListSpaceInvitesResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3253,7 +3143,6 @@ export const ListSpaceParticipantsRequest: MessageType<ListSpaceParticipantsRequ
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3282,7 +3171,6 @@ export const ListSpaceParticipantsResponse: MessageType<ListSpaceParticipantsRes
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3318,7 +3206,6 @@ export const RemoveSpaceParticipantsRequest: MessageType<RemoveSpaceParticipants
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3347,7 +3234,6 @@ export const RemoveSpaceParticipantsResponse: MessageType<RemoveSpaceParticipant
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3377,7 +3263,6 @@ export const RevokeSpaceInviteRequest: MessageType<RevokeSpaceInviteRequest> =
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'invite_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3432,7 +3317,6 @@ export const JoinSpaceViaInviteRequest: MessageType<JoinSpaceViaInviteRequest> =
         T: ScalarType.BYTES,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3462,7 +3346,6 @@ export const JoinSpaceViaInviteResponse: MessageType<JoinSpaceViaInviteResponse>
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'result', kind: 'enum', T: JoinSpaceViaInviteResult_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3512,7 +3395,6 @@ export const GetTransferStatusResponse: MessageType<GetTransferStatusResponse> =
       { no: 2, name: 'has_checkpoint', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'state', kind: 'message', T: () => TransferState },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3545,7 +3427,6 @@ export const LocalPairingOffer: MessageType<LocalPairingOffer> =
       { no: 1, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3576,7 +3457,6 @@ export const LocalPairingAnswer: MessageType<LocalPairingAnswer> =
       { no: 1, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3612,7 +3492,6 @@ export const CreateLocalPairingOfferResponse: MessageType<CreateLocalPairingOffe
     fields: [
       { no: 1, name: 'offer_payload', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3647,7 +3526,6 @@ export const AcceptLocalPairingOfferRequest: MessageType<AcceptLocalPairingOffer
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3670,7 +3548,6 @@ export const AcceptLocalPairingOfferResponse: MessageType<AcceptLocalPairingOffe
     fields: [
       { no: 1, name: 'answer_payload', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3693,7 +3570,6 @@ export const AcceptLocalPairingAnswerRequest: MessageType<AcceptLocalPairingAnsw
     fields: [
       { no: 1, name: 'answer_payload', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3716,7 +3592,6 @@ export const AcceptLocalPairingAnswerResponse: MessageType<AcceptLocalPairingAns
     fields: [
       { no: 1, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3759,7 +3634,6 @@ export const PlacedSpace: MessageType<PlacedSpace> =
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3791,11 +3665,10 @@ export const StorageBackendInfo: MessageType<StorageBackendInfo> =
         no: 2,
         name: 'placed_spaces',
         kind: 'message',
-        T: () => PlacedSpace,
+        T: PlacedSpace,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3827,7 +3700,7 @@ export const WatchStorageBackendsResponse: MessageType<WatchStorageBackendsRespo
         no: 1,
         name: 'storage_backends',
         kind: 'message',
-        T: () => StorageBackendInfo,
+        T: StorageBackendInfo,
         repeated: true,
       },
       {
@@ -3837,7 +3710,6 @@ export const WatchStorageBackendsResponse: MessageType<WatchStorageBackendsRespo
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3879,7 +3751,6 @@ export const CheckStorageBackendRequest: MessageType<CheckStorageBackendRequest>
       { no: 2, name: 's3', kind: 'message', T: () => S3Location },
       { no: 3, name: 'credentials', kind: 'message', T: () => Credentials },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3902,7 +3773,6 @@ export const CheckStorageBackendResponse: MessageType<CheckStorageBackendRespons
     fields: [
       { no: 1, name: 'result', kind: 'message', T: () => CheckResult },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3946,7 +3816,6 @@ export const AddStorageBackendRequest: MessageType<AddStorageBackendRequest> =
       { no: 3, name: 'credentials', kind: 'message', T: () => Credentials },
       { no: 4, name: 'set_default', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -3982,7 +3851,6 @@ export const AddStorageBackendResponse: MessageType<AddStorageBackendResponse> =
       },
       { no: 2, name: 'check', kind: 'message', T: () => CheckResult },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4010,7 +3878,6 @@ export const RemoveStorageBackendRequest: MessageType<RemoveStorageBackendReques
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4052,7 +3919,6 @@ export const SetDefaultStorageBackendRequest: MessageType<SetDefaultStorageBacke
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4088,7 +3954,6 @@ export const WatchSpaceStorageRequest: MessageType<WatchSpaceStorageRequest> =
     fields: [
       { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4151,7 +4016,6 @@ export const WatchSpaceStorageResponse: MessageType<WatchSpaceStorageResponse> =
       { no: 4, name: 'pending_bytes', kind: 'scalar', T: ScalarType.INT64 },
       { no: 5, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4187,7 +4051,6 @@ export const MoveSpaceStorageRequest: MessageType<MoveSpaceStorageRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -4246,5 +4109,4 @@ export const MoveSpaceStorageResponse: MessageType<MoveSpaceStorageResponse> =
       { no: 5, name: 'pending_bytes', kind: 'scalar', T: ScalarType.INT64 },
       { no: 6, name: 'upload_error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

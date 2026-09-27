@@ -10,8 +10,6 @@ import type { ControllerStatus } from '@go/github.com/aperturerobotics/controlle
 import { ControllerStatus_Enum } from '@go/github.com/aperturerobotics/controllerbus/controller/exec/exec.pb.js'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'peer.api'
-
 /**
  * IdentifyRequest is a request to load an identity.
  *
@@ -32,7 +30,6 @@ export const IdentifyRequest: MessageType<IdentifyRequest> =
     fields: [
       { no: 1, name: 'config', kind: 'message', T: () => Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -60,7 +57,6 @@ export const IdentifyResponse: MessageType<IdentifyResponse> =
         T: ControllerStatus_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -83,7 +79,6 @@ export const GetPeerInfoRequest: MessageType<GetPeerInfoRequest> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -106,7 +101,6 @@ export const PeerInfo: MessageType<PeerInfo> =
     fields: [
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -131,9 +125,8 @@ export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
         no: 1,
         name: 'local_peers',
         kind: 'message',
-        T: () => PeerInfo,
+        T: PeerInfo,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

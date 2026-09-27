@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'lookup.concurrent'
-
 /**
  * NotFoundBehavior controls what happens when a block was not found locally.
  *
@@ -43,11 +41,7 @@ export enum NotFoundBehavior {
 
 export const NotFoundBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.NotFoundBehavior',
-  [
-    [0, 'NotFoundBehavior_NONE'],
-    [1, 'NotFoundBehavior_LOOKUP_DIRECTIVE'],
-    [2, 'NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT'],
-  ],
+  NotFoundBehavior,
 )
 
 /**
@@ -73,10 +67,7 @@ export enum PutBlockBehavior {
 
 export const PutBlockBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.PutBlockBehavior',
-  [
-    [0, 'PutBlockBehavior_NONE'],
-    [1, 'PutBlockBehavior_ALL'],
-  ],
+  PutBlockBehavior,
 )
 
 /**
@@ -102,10 +93,7 @@ export enum WritebackBehavior {
 
 export const WritebackBehavior_Enum = /* @__PURE__ */ createEnumType(
   'lookup.concurrent.WritebackBehavior',
-  [
-    [0, 'WritebackBehavior_NONE'],
-    [1, 'WritebackBehavior_ALL'],
-  ],
+  WritebackBehavior,
 )
 
 /**
@@ -197,5 +185,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

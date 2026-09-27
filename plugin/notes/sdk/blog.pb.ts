@@ -10,8 +10,6 @@ import {
 import { Blog } from '../proto/blog.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'notes'
-
 /**
  * WatchBlogRequest is the request for WatchBlog.
  *
@@ -45,5 +43,4 @@ export const WatchBlogResponse: MessageType<WatchBlogResponse> =
     fields: [
       { no: 1, name: 'blog', kind: 'message', T: () => Blog },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

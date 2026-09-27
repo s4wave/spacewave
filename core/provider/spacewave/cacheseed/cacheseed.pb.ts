@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave.cacheseed'
-
 /**
  * GetCacheSeedReasonsRequest is the request for GetCacheSeedReasons.
  *
@@ -61,5 +59,4 @@ export const CacheSeedEntry: MessageType<CacheSeedEntry> =
       { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -10,8 +10,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.kvfile'
-
 /**
  * Config is the kvfile read-only volume controller config.
  *
@@ -71,5 +69,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'store_config', kind: 'message', T: () => Config$3 },
     { no: 5, name: 'no_generate_key', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

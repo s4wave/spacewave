@@ -12,8 +12,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.command.registry'
-
 /**
  * RegisterCommandRequest is the request for RegisterCommand.
  *
@@ -54,7 +52,6 @@ export const RegisterCommandRequest: MessageType<RegisterCommandRequest> =
       },
       { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -77,7 +74,6 @@ export const RegisterCommandResponse: MessageType<RegisterCommandResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -107,7 +103,6 @@ export const SetActiveRequest: MessageType<SetActiveRequest> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -150,7 +145,6 @@ export const SetEnabledRequest: MessageType<SetEnabledRequest> =
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -186,7 +180,6 @@ export const WatchCommandsRequest: MessageType<WatchCommandsRequest> =
     fields: [
       { no: 1, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -237,7 +230,6 @@ export const CommandState: MessageType<CommandState> =
       { no: 4, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -262,11 +254,10 @@ export const WatchCommandsResponse: MessageType<WatchCommandsResponse> =
         no: 1,
         name: 'commands',
         kind: 'message',
-        T: () => CommandState,
+        T: CommandState,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -317,7 +308,6 @@ export const CommandSubItem: MessageType<CommandSubItem> =
       { no: 4, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -354,7 +344,6 @@ export const GetSubItemsRequest: MessageType<GetSubItemsRequest> =
       { no: 2, name: 'query', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -379,11 +368,10 @@ export const GetSubItemsResponse: MessageType<GetSubItemsResponse> =
         no: 1,
         name: 'items',
         kind: 'message',
-        T: () => CommandSubItem,
+        T: CommandSubItem,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -426,7 +414,6 @@ export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
       },
       { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -475,7 +462,6 @@ export const HandleCommandRequest: MessageType<HandleCommandRequest> =
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

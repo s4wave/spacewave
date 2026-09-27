@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { RbacRole } from '../../../rbac/rbac.pb.js'
 
-export const protobufPackage = 'provider.spacewave.api'
-
 /**
  * RbacListRolesRequest lists platform roles, ordered by ID.
  *
@@ -35,7 +33,6 @@ export const RbacListRolesRequest: MessageType<RbacListRolesRequest> =
       { no: 1, name: 'after_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -65,7 +62,6 @@ export const RbacListRolesResponse: MessageType<RbacListRolesResponse> =
       },
       { no: 2, name: 'next_after_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -86,7 +82,6 @@ export const RbacPutRoleRequest: MessageType<RbacPutRoleRequest> =
     fields: [
       { no: 1, name: 'role', kind: 'message', T: () => RbacRole },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -105,7 +100,6 @@ export const RbacPutRoleResponse: MessageType<RbacPutRoleResponse> =
     fields: [
       { no: 1, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -126,7 +120,6 @@ export const RbacDeleteRoleRequest: MessageType<RbacDeleteRoleRequest> =
     fields: [
       { no: 1, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -145,7 +138,6 @@ export const RbacDeleteRoleResponse: MessageType<RbacDeleteRoleResponse> =
     fields: [
       { no: 1, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -218,7 +210,6 @@ export const RbacGrantRecord: MessageType<RbacGrantRecord> =
       { no: 8, name: 'issuer_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'issuer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -261,7 +252,6 @@ export const RbacListGrantsRequest: MessageType<RbacListGrantsRequest> =
       { no: 4, name: 'after_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -286,12 +276,11 @@ export const RbacListGrantsResponse: MessageType<RbacListGrantsResponse> =
         no: 1,
         name: 'grants',
         kind: 'message',
-        T: () => RbacGrantRecord,
+        T: RbacGrantRecord,
         repeated: true,
       },
       { no: 2, name: 'next_after_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -328,7 +317,6 @@ export const RbacIssueGrantRequest: MessageType<RbacIssueGrantRequest> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -347,7 +335,6 @@ export const RbacIssueGrantResponse: MessageType<RbacIssueGrantResponse> =
     fields: [
       { no: 1, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -368,7 +355,6 @@ export const RbacRevokeGrantRequest: MessageType<RbacRevokeGrantRequest> =
     fields: [
       { no: 1, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -387,5 +373,4 @@ export const RbacRevokeGrantResponse: MessageType<RbacRevokeGrantResponse> =
     fields: [
       { no: 1, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

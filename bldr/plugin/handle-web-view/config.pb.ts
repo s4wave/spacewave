@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bldr.plugin.handle_web_view'
-
 /**
  * Config configures a controller to forward HandleWebView to a plugin.
  * Loads a plugin with LoadPlugin and uses its RPC client.
@@ -38,5 +36,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'web_view_id_re', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.forge.task'
-
 /**
  * ForgeTaskCreateOp creates a Forge Task and optionally links it to a Job.
  * Wraps CreateTaskWithTarget + graph linking in a single world op.
@@ -53,5 +51,4 @@ export const ForgeTaskCreateOp: MessageType<ForgeTaskCreateOp> =
       { no: 3, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

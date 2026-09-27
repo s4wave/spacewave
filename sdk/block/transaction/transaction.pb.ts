@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../../db/block/block.pb.js'
 
-export const protobufPackage = 's4wave.block.transaction'
-
 /**
  * WriteRequest is the request type for Write.
  *
@@ -33,7 +31,6 @@ export const WriteRequest: MessageType<WriteRequest> =
     fields: [
       { no: 1, name: 'clear_tree', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -64,7 +61,6 @@ export const WriteResponse: MessageType<WriteResponse> =
       { no: 1, name: 'root_ref', kind: 'message', T: () => BlockRef },
       { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -100,5 +96,4 @@ export const GetRootCursorResponse: MessageType<GetRootCursorResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

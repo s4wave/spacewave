@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'world.block'
-
 /**
  * NestedWorld holds an immutable World snapshot beneath a typed World object.
  * Replacing the enclosing object's root publishes a new snapshot atomically.
@@ -38,5 +36,4 @@ export const NestedWorld: MessageType<NestedWorld> =
       { no: 1, name: 'world_ref', kind: 'message', T: () => ObjectRef },
       { no: 2, name: 'payload_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

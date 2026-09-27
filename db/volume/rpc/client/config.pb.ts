@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
-export const protobufPackage = 'volume.rpc.client'
-
 /**
  * VolumeAliases is a list of volume aliases.
  *
@@ -36,7 +34,6 @@ export const VolumeAliases: MessageType<VolumeAliases> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -129,9 +126,8 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'volume_aliases',
       kind: 'map',
       K: ScalarType.STRING,
-      V: { kind: 'message', T: () => VolumeAliases },
+      V: { kind: 'message', T: VolumeAliases },
     },
     { no: 7, name: 'backoff', kind: 'message', T: () => Backoff },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

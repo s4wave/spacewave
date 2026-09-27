@@ -10,8 +10,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef, PutOpts } from '../../block.pb.js'
 
-export const protobufPackage = 'block.store.http'
-
 /**
  * Config configures the block store http controller.
  *
@@ -80,7 +78,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'skip_not_found', kind: 'scalar', T: ScalarType.BOOL },
     { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -110,7 +107,6 @@ export const PutRequest: MessageType<PutRequest> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'put_opts', kind: 'message', T: () => PutOpts },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -149,7 +145,6 @@ export const PutResponse: MessageType<PutResponse> =
       { no: 2, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -208,7 +203,6 @@ export const GetResponse: MessageType<GetResponse> =
       },
       { no: 5, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -247,7 +241,6 @@ export const ExistsResponse: MessageType<ExistsResponse> =
       { no: 2, name: 'not_found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'err', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -278,5 +271,4 @@ export const RmResponse: MessageType<RmResponse> =
       { no: 1, name: 'removed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'err', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

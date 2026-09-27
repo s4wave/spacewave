@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 'session'
-
 /**
  * SessionType identifies the type of session.
  *
@@ -48,12 +46,7 @@ export enum SessionType {
 
 export const SessionType_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionType',
-  [
-    [0, 'SESSION_TYPE_UNKNOWN'],
-    [1, 'SESSION_TYPE_USER'],
-    [2, 'SESSION_TYPE_APP'],
-    [3, 'SESSION_TYPE_DEVICE'],
-  ],
+  SessionType,
 )
 
 /**
@@ -79,10 +72,7 @@ export enum SessionLockMode {
 
 export const SessionLockMode_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionLockMode',
-  [
-    [0, 'SESSION_LOCK_MODE_AUTO_UNLOCK'],
-    [1, 'SESSION_LOCK_MODE_PIN_ENCRYPTED'],
-  ],
+  SessionLockMode,
 )
 
 /**
@@ -115,11 +105,7 @@ export enum SessionRecoveryState {
 
 export const SessionRecoveryState_Enum = /* @__PURE__ */ createEnumType(
   'session.SessionRecoveryState',
-  [
-    [0, 'SESSION_RECOVERY_STATE_UNKNOWN'],
-    [1, 'SESSION_RECOVERY_STATE_AVAILABLE'],
-    [2, 'SESSION_RECOVERY_STATE_UNAVAILABLE'],
-  ],
+  SessionRecoveryState,
 )
 
 /**
@@ -150,7 +136,6 @@ export const SessionRef: MessageType<SessionRef> =
         T: () => ProviderResourceRef,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -179,9 +164,8 @@ export const SessionListEntry: MessageType<SessionListEntry> =
     typeName: 'session.SessionListEntry',
     fields: [
       { no: 1, name: 'session_index', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
+      { no: 2, name: 'session_ref', kind: 'message', T: SessionRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -292,7 +276,6 @@ export const SessionMetadata: MessageType<SessionMetadata> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -329,7 +312,6 @@ export const EntityKeypair: MessageType<EntityKeypair> =
       { no: 2, name: 'auth_method', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'auth_params', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -387,5 +369,4 @@ export const EntityCredential: MessageType<EntityCredential> =
         oneof: 'credential',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

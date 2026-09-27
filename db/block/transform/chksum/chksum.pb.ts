@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transform.chksum'
-
 /**
  * ChksumType is the checksum type enum.
  *
@@ -32,10 +30,7 @@ export enum ChksumType {
 
 export const ChksumType_Enum = /* @__PURE__ */ createEnumType(
   'transform.chksum.ChksumType',
-  [
-    [0, 'ChksumType_UNKNOWN'],
-    [1, 'ChksumType_CRC32'],
-  ],
+  ChksumType,
 )
 
 /**
@@ -57,5 +52,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'chksum_type', kind: 'enum', T: ChksumType_Enum },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

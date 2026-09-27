@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.process'
-
 /**
  * ProcessBindingState is the approval state of a process binding.
  *
@@ -34,10 +32,7 @@ export enum ProcessBindingState {
 
 export const ProcessBindingState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.process.ProcessBindingState',
-  [
-    [0, 'ProcessBindingState_UNAPPROVED'],
-    [1, 'ProcessBindingState_APPROVED'],
-  ],
+  ProcessBindingState,
 )
 
 /**
@@ -82,5 +77,4 @@ export const ProcessBinding: MessageType<ProcessBinding> =
       { no: 3, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'decided_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'core.sync.node'
-
 /**
  * Kind identifies the required Worker lifecycle operation or response.
  *
@@ -61,14 +59,7 @@ export enum RuntimeMessage_Kind {
 
 export const RuntimeMessage_Kind_Enum = /* @__PURE__ */ createEnumType(
   'core.sync.node.RuntimeMessage.Kind',
-  [
-    [0, 'KIND_UNKNOWN'],
-    [1, 'READY'],
-    [2, 'OPEN_STREAM'],
-    [3, 'CLOSE'],
-    [4, 'CLOSED'],
-    [5, 'FAILED'],
-  ],
+  RuntimeMessage_Kind,
 )
 
 /**
@@ -91,7 +82,6 @@ export const RuntimeInit: MessageType<RuntimeInit> =
     fields: [
       { no: 1, name: 'directory', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -122,5 +112,4 @@ export const RuntimeMessage: MessageType<RuntimeMessage> =
       { no: 1, name: 'kind', kind: 'enum', T: RuntimeMessage_Kind_Enum },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

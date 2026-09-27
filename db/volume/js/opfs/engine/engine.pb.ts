@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.opfs.engine'
-
 /**
  * Root selects one complete immutable catalogue.
  *
@@ -91,7 +89,6 @@ export const Root: MessageType<Root> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'journal_sequence', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 10, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -120,7 +117,6 @@ export const Child: MessageType<Child> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'lower', kind: 'scalar', T: ScalarType.BYTES },
     { no: 2, name: 'file', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -156,7 +152,6 @@ export const Partition: MessageType<Partition> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -183,22 +178,15 @@ export const Catalogue: MessageType<Catalogue> =
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.opfs.engine.Catalogue',
     fields: [
-      {
-        no: 1,
-        name: 'children',
-        kind: 'message',
-        T: () => Child,
-        repeated: true,
-      },
+      { no: 1, name: 'children', kind: 'message', T: Child, repeated: true },
       {
         no: 2,
         name: 'partitions',
         kind: 'message',
-        T: () => Partition,
+        T: Partition,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -234,7 +222,6 @@ export const Record: MessageType<Record> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
     { no: 3, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -254,15 +241,8 @@ export interface Run {
 export const Run: MessageType<Run> = /* @__PURE__ */ createMessageType({
   typeName: 'volume.opfs.engine.Run',
   fields: [
-    {
-      no: 1,
-      name: 'records',
-      kind: 'message',
-      T: () => Record,
-      repeated: true,
-    },
+    { no: 1, name: 'records', kind: 'message', T: Record, repeated: true },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -297,7 +277,6 @@ export const Files: MessageType<Files> = /* @__PURE__ */ createMessageType({
     },
     { no: 2, name: 'publication', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -348,7 +327,6 @@ export const Location: MessageType<Location> =
       { no: 4, name: 'checksum', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 5, name: 'pack_bytes', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -380,17 +358,10 @@ export interface Pack {
 export const Pack: MessageType<Pack> = /* @__PURE__ */ createMessageType({
   typeName: 'volume.opfs.engine.Pack',
   fields: [
-    {
-      no: 1,
-      name: 'records',
-      kind: 'message',
-      T: () => Record,
-      repeated: true,
-    },
+    { no: 1, name: 'records', kind: 'message', T: Record, repeated: true },
     { no: 2, name: 'live_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 3, name: 'cleanup_key', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -419,7 +390,6 @@ export const Edge: MessageType<Edge> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -446,14 +416,7 @@ export const JournalEntry: MessageType<JournalEntry> =
   /* @__PURE__ */ createMessageType({
     typeName: 'volume.opfs.engine.JournalEntry',
     fields: [
-      { no: 1, name: 'adds', kind: 'message', T: () => Edge, repeated: true },
-      {
-        no: 2,
-        name: 'removes',
-        kind: 'message',
-        T: () => Edge,
-        repeated: true,
-      },
+      { no: 1, name: 'adds', kind: 'message', T: Edge, repeated: true },
+      { no: 2, name: 'removes', kind: 'message', T: Edge, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

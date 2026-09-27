@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'cdn.world.controller'
-
 /**
  * RefreshRequest optionally limits an invalidation to its published Space.
  *
@@ -29,7 +27,6 @@ export const RefreshRequest: MessageType<RefreshRequest> =
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -52,7 +49,6 @@ export const RefreshResponse: MessageType<RefreshResponse> =
     fields: [
       { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -139,5 +135,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '../../../db/block/block.pb.js'
 
-export const protobufPackage = 's4wave.block.cursor'
-
 /**
  * FetchRequest is the request type for Fetch.
  *
@@ -53,7 +51,6 @@ export const FetchResponse: MessageType<FetchResponse> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -91,7 +88,6 @@ export const SetBlockRequest: MessageType<SetBlockRequest> =
       { no: 2, name: 'mark_dirty', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -135,7 +131,6 @@ export const FollowRefRequest: MessageType<FollowRefRequest> =
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'blk_ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -158,7 +153,6 @@ export const FollowRefResponse: MessageType<FollowRefResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -194,7 +188,6 @@ export const GetRefResponse: MessageType<GetRefResponse> =
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -230,7 +223,6 @@ export const IsDirtyResponse: MessageType<IsDirtyResponse> =
     fields: [
       { no: 1, name: 'dirty', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -299,7 +291,6 @@ export const GetBlockResponse: MessageType<GetBlockResponse> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'is_sub_block', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -323,7 +314,6 @@ export const UnmarshalRequest: MessageType<UnmarshalRequest> =
     fields: [
       { no: 1, name: 'block_type', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -353,7 +343,6 @@ export const UnmarshalResponse: MessageType<UnmarshalResponse> =
       { no: 1, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -389,7 +378,6 @@ export const IsSubBlockResponse: MessageType<IsSubBlockResponse> =
     fields: [
       { no: 1, name: 'is_sub_block', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -412,7 +400,6 @@ export const FollowSubBlockRequest: MessageType<FollowSubBlockRequest> =
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -435,7 +422,6 @@ export const FollowSubBlockResponse: MessageType<FollowSubBlockResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,7 +456,6 @@ export const SetAsSubBlockRequest: MessageType<SetAsSubBlockRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -506,7 +491,6 @@ export const ClearRefRequest: MessageType<ClearRefRequest> =
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -580,7 +564,6 @@ export const SetRefRequest: MessageType<SetRefRequest> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -616,7 +599,6 @@ export const GetExistingRefRequest: MessageType<GetExistingRefRequest> =
     fields: [
       { no: 1, name: 'ref_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -640,7 +622,6 @@ export const GetExistingRefResponse: MessageType<GetExistingRefResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -663,7 +644,6 @@ export const GetAllRefsRequest: MessageType<GetAllRefsRequest> =
     fields: [
       { no: 1, name: 'existing_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -692,7 +672,6 @@ export const GetAllRefsResponse: MessageType<GetAllRefsResponse> =
         V: { kind: 'scalar', T: ScalarType.UINT32 },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -715,7 +694,6 @@ export const DetachRequest: MessageType<DetachRequest> =
     fields: [
       { no: 1, name: 'keep_refs', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -738,7 +716,6 @@ export const DetachResponse: MessageType<DetachResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -774,7 +751,6 @@ export const DetachTransactionResponse: MessageType<DetachTransactionResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -811,7 +787,6 @@ export const DetachRecursiveRequest: MessageType<DetachRecursiveRequest> =
       { no: 2, name: 'clone_blocks', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'mark_dirty', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -834,7 +809,6 @@ export const DetachRecursiveResponse: MessageType<DetachRecursiveResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -876,5 +850,4 @@ export const ParentsResponse: MessageType<ParentsResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

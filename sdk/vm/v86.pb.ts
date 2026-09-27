@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.vm'
-
 /**
  * VmState is the desired state of a virtual machine instance.
  *
@@ -55,13 +53,7 @@ export enum VmState {
 
 export const VmState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.vm.VmState',
-  [
-    [0, 'VmState_STOPPED'],
-    [1, 'VmState_STARTING'],
-    [2, 'VmState_RUNNING'],
-    [3, 'VmState_STOPPING'],
-    [4, 'VmState_ERROR'],
-  ],
+  VmState,
 )
 
 /**
@@ -108,13 +100,7 @@ export enum V86RuntimeStatus {
 
 export const V86RuntimeStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.vm.V86RuntimeStatus',
-  [
-    [0, 'V86RuntimeStatus_UNKNOWN'],
-    [1, 'V86RuntimeStatus_BOOTING'],
-    [2, 'V86RuntimeStatus_READY'],
-    [3, 'V86RuntimeStatus_STOPPED'],
-    [4, 'V86RuntimeStatus_ERROR'],
-  ],
+  V86RuntimeStatus,
 )
 
 /**
@@ -150,7 +136,6 @@ export const VmMount: MessageType<VmMount> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'writable', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -213,13 +198,7 @@ export const V86Config: MessageType<V86Config> =
       { no: 3, name: 'networking', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'serial_enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'boot_args', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 6,
-        name: 'mounts',
-        kind: 'message',
-        T: () => VmMount,
-        repeated: true,
-      },
+      { no: 6, name: 'mounts', kind: 'message', T: VmMount, repeated: true },
       {
         no: 7,
         name: 'runtime_plugin_id',
@@ -227,7 +206,6 @@ export const V86Config: MessageType<V86Config> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -296,13 +274,12 @@ export const VmV86: MessageType<VmV86> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'state', kind: 'enum', T: VmState_Enum },
     { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'config', kind: 'message', T: () => V86Config },
+    { no: 3, name: 'config', kind: 'message', T: V86Config },
     { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'observed_state', kind: 'enum', T: VmState_Enum },
     { no: 7, name: 'run_generation', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -380,7 +357,7 @@ export const CreateVmV86Op: MessageType<CreateVmV86Op> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'config', kind: 'message', T: () => V86Config },
+      { no: 3, name: 'config', kind: 'message', T: V86Config },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
       { no: 5, name: 'image_object_key', kind: 'scalar', T: ScalarType.STRING },
       {
@@ -408,7 +385,6 @@ export const CreateVmV86Op: MessageType<CreateVmV86Op> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -437,9 +413,8 @@ export const SetV86ConfigOp: MessageType<SetV86ConfigOp> =
     typeName: 's4wave.vm.SetV86ConfigOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'config', kind: 'message', T: () => V86Config },
+      { no: 2, name: 'config', kind: 'message', T: V86Config },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -479,7 +454,6 @@ export const SetV86StateOp: MessageType<SetV86StateOp> =
       { no: 2, name: 'state', kind: 'enum', T: VmState_Enum },
       { no: 3, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -524,7 +498,6 @@ export const ReportV86RuntimeStatusRequest: MessageType<ReportV86RuntimeStatusRe
       { no: 3, name: 'status', kind: 'enum', T: V86RuntimeStatus_Enum },
       { no: 4, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -561,7 +534,6 @@ export const ReportV86RuntimeStatusResponse: MessageType<ReportV86RuntimeStatusR
       { no: 2, name: 'run_generation', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'rejection', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -649,7 +621,6 @@ export const V86Image: MessageType<V86Image> =
       },
       { no: 8, name: 'created_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -685,10 +656,9 @@ export const CreateV86ImageOp: MessageType<CreateV86ImageOp> =
     typeName: 's4wave.vm.CreateV86ImageOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'image', kind: 'message', T: () => V86Image },
+      { no: 2, name: 'image', kind: 'message', T: V86Image },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -719,7 +689,6 @@ export const SetV86ImageMetadataOp: MessageType<SetV86ImageMetadataOp> =
     typeName: 's4wave.vm.SetV86ImageMetadataOp',
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'image', kind: 'message', T: () => V86Image },
+      { no: 2, name: 'image', kind: 'message', T: V86Image },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.command'
-
 /**
  * CommandFocusContext identifies where a command binding applies.
  *
@@ -75,16 +73,7 @@ export enum CommandFocusContext {
 
 export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.CommandFocusContext',
-  [
-    [0, 'COMMAND_FOCUS_CONTEXT_UNSPECIFIED'],
-    [1, 'COMMAND_FOCUS_CONTEXT_GLOBAL'],
-    [2, 'COMMAND_FOCUS_CONTEXT_SHELL_TAB'],
-    [3, 'COMMAND_FOCUS_CONTEXT_EDITOR'],
-    [4, 'COMMAND_FOCUS_CONTEXT_LIST'],
-    [5, 'COMMAND_FOCUS_CONTEXT_CANVAS'],
-    [6, 'COMMAND_FOCUS_CONTEXT_MODAL'],
-    [7, 'COMMAND_FOCUS_CONTEXT_TEXT_INPUT'],
-  ],
+  CommandFocusContext,
 )
 
 /**
@@ -117,11 +106,7 @@ export enum CommandSurface {
 
 export const CommandSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.CommandSurface',
-  [
-    [0, 'COMMAND_SURFACE_UNKNOWN'],
-    [1, 'COMMAND_SURFACE_WEB'],
-    [2, 'COMMAND_SURFACE_TUI'],
-  ],
+  CommandSurface,
 )
 
 /**
@@ -154,11 +139,7 @@ export enum KeybindingDisplayMode {
 
 export const KeybindingDisplayMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.KeybindingDisplayMode',
-  [
-    [0, 'KEYBINDING_DISPLAY_MODE_UNSPECIFIED'],
-    [1, 'KEYBINDING_DISPLAY_MODE_SYMBOLS'],
-    [2, 'KEYBINDING_DISPLAY_MODE_TEXT'],
-  ],
+  KeybindingDisplayMode,
 )
 
 /**
@@ -181,7 +162,6 @@ export const KeyCombo: MessageType<KeyCombo> =
     fields: [
       { no: 1, name: 'combo', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -210,7 +190,6 @@ export const KeySequence: MessageType<KeySequence> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -277,25 +256,18 @@ export const CommandBinding: MessageType<CommandBinding> =
     typeName: 's4wave.command.CommandBinding',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'combo',
-        kind: 'message',
-        T: () => KeyCombo,
-        oneof: 'binding',
-      },
+      { no: 2, name: 'combo', kind: 'message', T: KeyCombo, oneof: 'binding' },
       {
         no: 3,
         name: 'sequence',
         kind: 'message',
-        T: () => KeySequence,
+        T: KeySequence,
         oneof: 'binding',
       },
       { no: 4, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
       { no: 5, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -318,7 +290,6 @@ export const KeybindingDisplaySettings: MessageType<KeybindingDisplaySettings> =
     fields: [
       { no: 1, name: 'mode', kind: 'enum', T: KeybindingDisplayMode_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -358,14 +329,8 @@ export const KeybindingOverrideSettings: MessageType<KeybindingOverrideSettings>
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
-      {
-        no: 3,
-        name: 'display',
-        kind: 'message',
-        T: () => KeybindingDisplaySettings,
-      },
+      { no: 3, name: 'display', kind: 'message', T: KeybindingDisplaySettings },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -424,11 +389,10 @@ export const KeybindingCommandOverride: MessageType<KeybindingCommandOverride> =
         no: 5,
         name: 'bindings',
         kind: 'message',
-        T: () => CommandBinding,
+        T: CommandBinding,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -471,30 +435,29 @@ export const KeybindingOverrideSet: MessageType<KeybindingOverrideSet> =
         no: 4,
         name: 'web_overrides',
         kind: 'message',
-        T: () => KeybindingCommandOverride,
+        T: KeybindingCommandOverride,
         repeated: true,
       },
       {
         no: 5,
         name: 'tui_overrides',
         kind: 'message',
-        T: () => KeybindingCommandOverride,
+        T: KeybindingCommandOverride,
         repeated: true,
       },
       {
         no: 6,
         name: 'web_settings',
         kind: 'message',
-        T: () => KeybindingOverrideSettings,
+        T: KeybindingOverrideSettings,
       },
       {
         no: 7,
         name: 'tui_settings',
         kind: 'message',
-        T: () => KeybindingOverrideSettings,
+        T: KeybindingOverrideSettings,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -585,7 +548,7 @@ export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
       no: 10,
       name: 'default_bindings',
       kind: 'message',
-      T: () => CommandBinding,
+      T: CommandBinding,
       repeated: true,
     },
     {
@@ -596,5 +559,4 @@ export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

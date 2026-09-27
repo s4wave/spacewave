@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'plugin.host.configset'
-
 /**
  * Config configures a controller to apply a configset to the plugin host.
  *
@@ -35,5 +33,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       V: { kind: 'message', T: () => ControllerConfig },
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

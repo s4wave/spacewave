@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'pubsub.relay'
-
 /**
  * Config is the pubsub relay configuration.
  * The relay controller subscribes to a pubsub topic to ensure the peer relays messages.
@@ -42,5 +40,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

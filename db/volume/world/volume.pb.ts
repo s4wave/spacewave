@@ -11,8 +11,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.world'
-
 /**
  * Config is the World Object block-graph backed hydra volume config.
  *
@@ -114,7 +112,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 9, name: 'bucket_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 10, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -137,5 +134,4 @@ export const Backing: MessageType<Backing> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'kv_object_key', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

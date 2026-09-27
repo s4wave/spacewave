@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'manifest.fetch.world'
-
 /**
  * Config configures a controller to fetch manifests via a world engine.
  * Searches for <manifest> linked manifests to the object key.
@@ -77,5 +75,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.UINT64,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

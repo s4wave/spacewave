@@ -16,8 +16,6 @@ import {
   SOState,
 } from '../sobject/sobject.pb.js'
 
-export const protobufPackage = 'pairing'
-
 /**
  * AccountOutcome selects the account relationship created by bilateral approval.
  *
@@ -62,13 +60,7 @@ export enum AccountOutcome {
 
 export const AccountOutcome_Enum = /* @__PURE__ */ createEnumType(
   'pairing.AccountOutcome',
-  [
-    [0, 'AccountOutcome_UNSPECIFIED'],
-    [1, 'AccountOutcome_SIGN_IN_OFFERED'],
-    [2, 'AccountOutcome_SIGN_IN_RECEIVING'],
-    [3, 'AccountOutcome_MERGE_INTO_OFFERED'],
-    [4, 'AccountOutcome_MERGE_INTO_RECEIVING'],
-  ],
+  AccountOutcome,
 )
 
 /**
@@ -112,7 +104,6 @@ export const Approval: MessageType<Approval> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -240,7 +231,6 @@ export const AccountOffer: MessageType<AccountOffer> =
       { no: 12, name: 'space_count', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 13, name: 'session_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -273,21 +263,10 @@ export const AccountChoice: MessageType<AccountChoice> =
   /* @__PURE__ */ createMessageType({
     typeName: 'pairing.AccountChoice',
     fields: [
-      {
-        no: 1,
-        name: 'offered_account',
-        kind: 'message',
-        T: () => AccountOffer,
-      },
-      {
-        no: 2,
-        name: 'receiving_account',
-        kind: 'message',
-        T: () => AccountOffer,
-      },
+      { no: 1, name: 'offered_account', kind: 'message', T: AccountOffer },
+      { no: 2, name: 'receiving_account', kind: 'message', T: AccountOffer },
       { no: 3, name: 'outcome', kind: 'enum', T: AccountOutcome_Enum },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -334,7 +313,6 @@ export const Identity: MessageType<Identity> =
         T: () => SOJoinResponse,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -394,7 +372,6 @@ export const SharedObject: MessageType<SharedObject> =
       },
       { no: 5, name: 'genesis', kind: 'message', T: () => SOConfigChange },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -470,27 +447,9 @@ export interface Frame {
 export const Frame: MessageType<Frame> = /* @__PURE__ */ createMessageType({
   typeName: 'pairing.Frame',
   fields: [
-    {
-      no: 1,
-      name: 'account',
-      kind: 'message',
-      T: () => AccountOffer,
-      oneof: 'body',
-    },
-    {
-      no: 2,
-      name: 'identity',
-      kind: 'message',
-      T: () => Identity,
-      oneof: 'body',
-    },
-    {
-      no: 3,
-      name: 'object',
-      kind: 'message',
-      T: () => SharedObject,
-      oneof: 'body',
-    },
+    { no: 1, name: 'account', kind: 'message', T: AccountOffer, oneof: 'body' },
+    { no: 2, name: 'identity', kind: 'message', T: Identity, oneof: 'body' },
+    { no: 3, name: 'object', kind: 'message', T: SharedObject, oneof: 'body' },
     {
       no: 4,
       name: 'complete',
@@ -505,13 +464,6 @@ export const Frame: MessageType<Frame> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
       oneof: 'body',
     },
-    {
-      no: 6,
-      name: 'choice',
-      kind: 'message',
-      T: () => AccountChoice,
-      oneof: 'body',
-    },
+    { no: 6, name: 'choice', kind: 'message', T: AccountChoice, oneof: 'body' },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

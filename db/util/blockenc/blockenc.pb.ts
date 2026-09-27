@@ -4,8 +4,6 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 
-export const protobufPackage = 'blockenc'
-
 /**
  * BlockEnc is the block encryption method to use.
  * Most methods use 32 byte keys.
@@ -60,11 +58,5 @@ export enum BlockEnc {
 
 export const BlockEnc_Enum = /* @__PURE__ */ createEnumType(
   'blockenc.BlockEnc',
-  [
-    [0, 'BlockEnc_UNKNOWN'],
-    [1, 'BlockEnc_NONE'],
-    [2, 'BlockEnc_XCHACHA20_POLY1305'],
-    [3, 'BlockEnc_SECRET_BOX'],
-    [4, 'BlockEnc_AES_256_GCM'],
-  ],
+  BlockEnc,
 )

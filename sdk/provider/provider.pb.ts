@@ -11,8 +11,6 @@ import { ProviderInfo } from '../../core/provider/provider.pb.js'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 
-export const protobufPackage = 's4wave.provider'
-
 /**
  * GetProviderInfoRequest is the request type for GetProviderInfo.
  *
@@ -46,7 +44,6 @@ export const GetProviderInfoResponse: MessageType<GetProviderInfoResponse> =
     fields: [
       { no: 1, name: 'provider_info', kind: 'message', T: () => ProviderInfo },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -69,7 +66,6 @@ export const AccessProviderAccountRequest: MessageType<AccessProviderAccountRequ
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -92,5 +88,4 @@ export const AccessProviderAccountResponse: MessageType<AccessProviderAccountRes
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

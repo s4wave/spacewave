@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'web.runtime.wasm'
-
 /**
  * WebWorkerWasmPluginInit is a message passed to initialize a web worker with a wasm plugin.
  *
@@ -56,5 +54,4 @@ export const WebWorkerWasmPluginInit: MessageType<WebWorkerWasmPluginInit> =
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

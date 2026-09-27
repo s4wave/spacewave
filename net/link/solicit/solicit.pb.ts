@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'link.solicit'
-
 /**
  * SolicitProtocolRequest is the directive request for protocol solicitation.
  *
@@ -53,7 +51,6 @@ export const SolicitProtocolRequest: MessageType<SolicitProtocolRequest> =
       { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -83,7 +80,6 @@ export const SolicitationOffer: MessageType<SolicitationOffer> =
       { no: 1, name: 'protocol_hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'incarnation', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -142,7 +138,7 @@ export const SolicitationExchange: MessageType<SolicitationExchange> =
         no: 2,
         name: 'offers',
         kind: 'message',
-        T: () => SolicitationOffer,
+        T: SolicitationOffer,
         repeated: true,
       },
       {
@@ -159,5 +155,4 @@ export const SolicitationExchange: MessageType<SolicitationExchange> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

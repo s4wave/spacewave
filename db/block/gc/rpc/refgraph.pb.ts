@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'block.gc.rpc'
-
 /**
  * RefEdge is a subject-to-object ownership edge.
  *
@@ -38,7 +36,6 @@ export const RefEdge: MessageType<RefEdge> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -65,22 +62,9 @@ export const ApplyRefBatchRequest: MessageType<ApplyRefBatchRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'block.gc.rpc.ApplyRefBatchRequest',
     fields: [
-      {
-        no: 1,
-        name: 'adds',
-        kind: 'message',
-        T: () => RefEdge,
-        repeated: true,
-      },
-      {
-        no: 2,
-        name: 'removes',
-        kind: 'message',
-        T: () => RefEdge,
-        repeated: true,
-      },
+      { no: 1, name: 'adds', kind: 'message', T: RefEdge, repeated: true },
+      { no: 2, name: 'removes', kind: 'message', T: RefEdge, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -125,18 +109,17 @@ export const ApplyRefBatchResponse: MessageType<ApplyRefBatchResponse> =
         no: 3,
         name: 'remainder_adds',
         kind: 'message',
-        T: () => RefEdge,
+        T: RefEdge,
         repeated: true,
       },
       {
         no: 4,
         name: 'remainder_removes',
         kind: 'message',
-        T: () => RefEdge,
+        T: RefEdge,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -166,7 +149,6 @@ export const AddRefRequest: MessageType<AddRefRequest> =
       { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -189,7 +171,6 @@ export const AddRefResponse: MessageType<AddRefResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -219,7 +200,6 @@ export const RemoveRefRequest: MessageType<RemoveRefRequest> =
       { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -242,7 +222,6 @@ export const RemoveRefResponse: MessageType<RemoveRefResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -273,7 +252,6 @@ export const RemoveNodeRefsRequest: MessageType<RemoveNodeRefsRequest> =
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'mark_orphaned', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -309,7 +287,6 @@ export const RemoveNodeRefsResponse: MessageType<RemoveNodeRefsResponse> =
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -332,7 +309,6 @@ export const HasIncomingRefsRequest: MessageType<HasIncomingRefsRequest> =
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -362,7 +338,6 @@ export const HasIncomingRefsResponse: MessageType<HasIncomingRefsResponse> =
       { no: 1, name: 'has_refs', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -385,7 +360,6 @@ export const GetOutgoingRefsRequest: MessageType<GetOutgoingRefsRequest> =
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -421,7 +395,6 @@ export const GetOutgoingRefsResponse: MessageType<GetOutgoingRefsResponse> =
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -444,7 +417,6 @@ export const GetIncomingRefsRequest: MessageType<GetIncomingRefsRequest> =
     fields: [
       { no: 1, name: 'node', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -480,7 +452,6 @@ export const GetIncomingRefsResponse: MessageType<GetIncomingRefsResponse> =
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -529,5 +500,4 @@ export const GetUnreferencedNodesResponse: MessageType<GetUnreferencedNodesRespo
       },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

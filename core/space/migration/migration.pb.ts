@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'space.migration'
-
 /**
  * MigrationOperation identifies a read-only migration plan operation.
  *
@@ -61,14 +59,7 @@ export enum MigrationOperation {
 
 export const MigrationOperation_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationOperation',
-  [
-    [0, 'MIGRATION_OPERATION_UNSPECIFIED'],
-    [1, 'MIGRATION_OPERATION_COPY'],
-    [2, 'MIGRATION_OPERATION_MERGE'],
-    [3, 'MIGRATION_OPERATION_COPY_OBJECTS'],
-    [4, 'MIGRATION_OPERATION_MOVE_OBJECTS'],
-    [5, 'MIGRATION_OPERATION_SPLIT'],
-  ],
+  MigrationOperation,
 )
 
 /**
@@ -115,13 +106,7 @@ export enum MigrationClassification {
 
 export const MigrationClassification_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationClassification',
-  [
-    [0, 'MIGRATION_CLASSIFICATION_UNCLASSIFIED'],
-    [1, 'MIGRATION_CLASSIFICATION_SPACE_LOCAL_OPAQUE'],
-    [2, 'MIGRATION_CLASSIFICATION_REWRITE'],
-    [3, 'MIGRATION_CLASSIFICATION_EXTERNAL_REF'],
-    [4, 'MIGRATION_CLASSIFICATION_NON_MIGRATABLE'],
-  ],
+  MigrationClassification,
 )
 
 /**
@@ -182,15 +167,7 @@ export enum MigrationReferenceKind {
 
 export const MigrationReferenceKind_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationReferenceKind',
-  [
-    [0, 'MIGRATION_REFERENCE_KIND_UNSPECIFIED'],
-    [1, 'MIGRATION_REFERENCE_KIND_OBJECT_KEY'],
-    [2, 'MIGRATION_REFERENCE_KIND_NESTED_SHARED_OBJECT'],
-    [3, 'MIGRATION_REFERENCE_KIND_CANVAS_NODE'],
-    [4, 'MIGRATION_REFERENCE_KIND_GRAPH_IRI'],
-    [5, 'MIGRATION_REFERENCE_KIND_EXTERNAL'],
-    [6, 'MIGRATION_REFERENCE_KIND_BLOCK_STORE'],
-  ],
+  MigrationReferenceKind,
 )
 
 /**
@@ -230,12 +207,7 @@ export enum MigrationConflictKind {
 
 export const MigrationConflictKind_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationConflictKind',
-  [
-    [0, 'MIGRATION_CONFLICT_KIND_UNSPECIFIED'],
-    [1, 'MIGRATION_CONFLICT_KIND_OBJECT_KEY'],
-    [2, 'MIGRATION_CONFLICT_KIND_EXTERNAL_REFERENCE'],
-    [3, 'MIGRATION_CONFLICT_KIND_NON_MIGRATABLE'],
-  ],
+  MigrationConflictKind,
 )
 
 /**
@@ -277,14 +249,7 @@ export enum MigrationConflictResolution {
 
 export const MigrationConflictResolution_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationConflictResolution',
-  [
-    [0, 'MIGRATION_CONFLICT_RESOLUTION_UNSPECIFIED'],
-    [1, 'MIGRATION_CONFLICT_RESOLUTION_DEDUPLICATE'],
-    [2, 'MIGRATION_CONFLICT_RESOLUTION_RENAME'],
-    [3, 'MIGRATION_CONFLICT_RESOLUTION_KEEP_DESTINATION'],
-    [4, 'MIGRATION_CONFLICT_RESOLUTION_REPLACE'],
-    [5, 'MIGRATION_CONFLICT_RESOLUTION_COMBINE'],
-  ],
+  MigrationConflictResolution,
 )
 
 /**
@@ -331,13 +296,7 @@ export enum MigrationTerminalState {
 
 export const MigrationTerminalState_Enum = /* @__PURE__ */ createEnumType(
   'space.migration.MigrationTerminalState',
-  [
-    [0, 'MIGRATION_TERMINAL_STATE_UNSPECIFIED'],
-    [1, 'MIGRATION_TERMINAL_STATE_PREVIEW_READY'],
-    [2, 'MIGRATION_TERMINAL_STATE_BLOCKED'],
-    [3, 'MIGRATION_TERMINAL_STATE_STALE'],
-    [4, 'MIGRATION_TERMINAL_STATE_FAILED'],
-  ],
+  MigrationTerminalState,
 )
 
 /**
@@ -374,7 +333,6 @@ export const MigrationIdentityMapping: MessageType<MigrationIdentityMapping> =
       { no: 2, name: 'source', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'destination', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -425,7 +383,6 @@ export const MigrationObject: MessageType<MigrationObject> =
       { no: 4, name: 'root_digest', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'logical_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -500,7 +457,6 @@ export const MigrationConflict: MessageType<MigrationConflict> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -550,7 +506,6 @@ export const MigrationBlocker: MessageType<MigrationBlocker> =
       },
       { no: 4, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -670,7 +625,6 @@ export const MigrationProgress: MessageType<MigrationProgress> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -707,7 +661,6 @@ export const MigrationTerminalResult: MessageType<MigrationTerminalResult> =
       { no: 2, name: 'code', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -825,37 +778,32 @@ export const MigrationPreview: MessageType<MigrationPreview> =
         no: 6,
         name: 'objects',
         kind: 'message',
-        T: () => MigrationObject,
+        T: MigrationObject,
         repeated: true,
       },
       {
         no: 7,
         name: 'identity_mappings',
         kind: 'message',
-        T: () => MigrationIdentityMapping,
+        T: MigrationIdentityMapping,
         repeated: true,
       },
       {
         no: 8,
         name: 'conflicts',
         kind: 'message',
-        T: () => MigrationConflict,
+        T: MigrationConflict,
         repeated: true,
       },
       {
         no: 9,
         name: 'blockers',
         kind: 'message',
-        T: () => MigrationBlocker,
+        T: MigrationBlocker,
         repeated: true,
       },
-      { no: 10, name: 'progress', kind: 'message', T: () => MigrationProgress },
-      {
-        no: 11,
-        name: 'result',
-        kind: 'message',
-        T: () => MigrationTerminalResult,
-      },
+      { no: 10, name: 'progress', kind: 'message', T: MigrationProgress },
+      { no: 11, name: 'result', kind: 'message', T: MigrationTerminalResult },
       { no: 12, name: 'digest', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 13,
@@ -865,7 +813,6 @@ export const MigrationPreview: MessageType<MigrationPreview> =
       },
       { no: 14, name: 'capacity_known', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -906,7 +853,6 @@ export const MigrationStagingUnit: MessageType<MigrationStagingUnit> =
       { no: 4, name: 'logical_bytes', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'completed', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -937,7 +883,6 @@ export const MigrationCleanupEntry: MessageType<MigrationCleanupEntry> =
       { no: 2, name: 'source_revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 3, name: 'state', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1049,13 +994,8 @@ export const MigrationJournal: MessageType<MigrationJournal> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
-      { no: 5, name: 'progress', kind: 'message', T: () => MigrationProgress },
-      {
-        no: 6,
-        name: 'terminal',
-        kind: 'message',
-        T: () => MigrationTerminalResult,
-      },
+      { no: 5, name: 'progress', kind: 'message', T: MigrationProgress },
+      { no: 6, name: 'terminal', kind: 'message', T: MigrationTerminalResult },
       { no: 7, name: 'source_revision', kind: 'scalar', T: ScalarType.UINT64 },
       {
         no: 8,
@@ -1079,14 +1019,14 @@ export const MigrationJournal: MessageType<MigrationJournal> =
         no: 11,
         name: 'identity_mappings',
         kind: 'message',
-        T: () => MigrationIdentityMapping,
+        T: MigrationIdentityMapping,
         repeated: true,
       },
       {
         no: 12,
         name: 'completed_staging_units',
         kind: 'message',
-        T: () => MigrationStagingUnit,
+        T: MigrationStagingUnit,
         repeated: true,
       },
       {
@@ -1105,11 +1045,11 @@ export const MigrationJournal: MessageType<MigrationJournal> =
         no: 15,
         name: 'source_cleanup_ledger',
         kind: 'message',
-        T: () => MigrationCleanupEntry,
+        T: MigrationCleanupEntry,
         repeated: true,
       },
       { no: 16, name: 'phase', kind: 'scalar', T: ScalarType.STRING },
-      { no: 18, name: 'preview', kind: 'message', T: () => MigrationPreview },
+      { no: 18, name: 'preview', kind: 'message', T: MigrationPreview },
       {
         no: 17,
         name: 'retention_until_unix_seconds',
@@ -1117,5 +1057,4 @@ export const MigrationJournal: MessageType<MigrationJournal> =
         T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

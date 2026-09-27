@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'msgpack'
-
 /**
  * MsgpackBlob is a block containing data packed with msgpack.
  *
@@ -34,5 +32,4 @@ export const MsgpackBlob: MessageType<MsgpackBlob> =
     fields: [
       { no: 1, name: 'blob', kind: 'message', T: () => Blob },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

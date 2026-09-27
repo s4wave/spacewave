@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Keypair } from '@go/github.com/s4wave/spacewave/identity/identity.pb.js'
 
-export const protobufPackage = 'forge.worker'
-
 /**
  * Worker associates a set of keypairs with a worker name.
  * The name is used for API calls and command-line / UI tools.
@@ -39,7 +37,6 @@ export const Worker: MessageType<Worker> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -84,5 +81,4 @@ export const WorkerCreateOp: MessageType<WorkerCreateOp> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

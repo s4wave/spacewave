@@ -11,8 +11,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.sql.workbench'
-
 /**
  * WorkbenchTabKind identifies the kind of object opened in a workbench tab.
  *
@@ -37,11 +35,7 @@ export enum WorkbenchTabKind {
 
 export const WorkbenchTabKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sql.workbench.WorkbenchTabKind',
-  [
-    [0, 'WORKBENCH_TAB_KIND_UNSPECIFIED'],
-    [1, 'WORKBENCH_TAB_KIND_QUERY'],
-    [2, 'WORKBENCH_TAB_KIND_QUERY_RESULT'],
-  ],
+  WorkbenchTabKind,
 )
 
 /**
@@ -92,7 +86,6 @@ export const WorkbenchTab: MessageType<WorkbenchTab> =
       { no: 4, name: 'title', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'pinned', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -141,7 +134,6 @@ export const WorkbenchLayout: MessageType<WorkbenchLayout> =
       },
       { no: 4, name: 'active_tab_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -209,14 +201,13 @@ export const Workbench: MessageType<Workbench> =
         no: 3,
         name: 'open_tabs',
         kind: 'message',
-        T: () => WorkbenchTab,
+        T: WorkbenchTab,
         repeated: true,
       },
-      { no: 4, name: 'layout', kind: 'message', T: () => WorkbenchLayout },
+      { no: 4, name: 'layout', kind: 'message', T: WorkbenchLayout },
       { no: 5, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -251,7 +242,6 @@ export const InitializeWorkbenchRequest: MessageType<InitializeWorkbenchRequest>
       },
       { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -298,9 +288,8 @@ export const GetWorkbenchResponse: MessageType<GetWorkbenchResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sql.workbench.GetWorkbenchResponse',
     fields: [
-      { no: 1, name: 'workbench', kind: 'message', T: () => Workbench },
+      { no: 1, name: 'workbench', kind: 'message', T: Workbench },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -323,7 +312,6 @@ export const AddPinRequest: MessageType<AddPinRequest> =
     fields: [
       { no: 1, name: 'query_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -359,7 +347,6 @@ export const RemovePinRequest: MessageType<RemovePinRequest> =
     fields: [
       { no: 1, name: 'query_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -403,12 +390,11 @@ export const SetLayoutRequest: MessageType<SetLayoutRequest> =
         no: 1,
         name: 'open_tabs',
         kind: 'message',
-        T: () => WorkbenchTab,
+        T: WorkbenchTab,
         repeated: true,
       },
-      { no: 2, name: 'layout', kind: 'message', T: () => WorkbenchLayout },
+      { no: 2, name: 'layout', kind: 'message', T: WorkbenchLayout },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**

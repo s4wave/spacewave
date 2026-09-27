@@ -12,8 +12,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.sshhost'
-
 /**
  * SshHostProbeState is the last observed SSH reachability state.
  *
@@ -44,11 +42,7 @@ export enum SshHostProbeState {
 
 export const SshHostProbeState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sshhost.SshHostProbeState',
-  [
-    [0, 'SSH_HOST_PROBE_STATE_UNKNOWN'],
-    [1, 'SSH_HOST_PROBE_STATE_READY'],
-    [2, 'SSH_HOST_PROBE_STATE_FAILED'],
-  ],
+  SshHostProbeState,
 )
 
 /**
@@ -85,7 +79,6 @@ export const SshHostEndpoint: MessageType<SshHostEndpoint> =
       { no: 2, name: 'port', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 3, name: 'username', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -137,7 +130,6 @@ export const SshHostCredentialRefs: MessageType<SshHostCredentialRefs> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -198,7 +190,6 @@ export const SshHostKeyPin: MessageType<SshHostKeyPin> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -242,7 +233,6 @@ export const SshHostStatus: MessageType<SshHostStatus> =
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -299,25 +289,19 @@ export const SshHost: MessageType<SshHost> = /* @__PURE__ */ createMessageType({
   typeName: 's4wave.sshhost.SshHost',
   fields: [
     { no: 1, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 2, name: 'endpoint', kind: 'message', T: () => SshHostEndpoint },
-    {
-      no: 3,
-      name: 'credentials',
-      kind: 'message',
-      T: () => SshHostCredentialRefs,
-    },
+    { no: 2, name: 'endpoint', kind: 'message', T: SshHostEndpoint },
+    { no: 3, name: 'credentials', kind: 'message', T: SshHostCredentialRefs },
     {
       no: 4,
       name: 'host_key_pins',
       kind: 'message',
-      T: () => SshHostKeyPin,
+      T: SshHostKeyPin,
       repeated: true,
     },
-    { no: 5, name: 'last_status', kind: 'message', T: () => SshHostStatus },
+    { no: 5, name: 'last_status', kind: 'message', T: SshHostStatus },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -370,23 +354,17 @@ export const CreateSshHostOp: MessageType<CreateSshHostOp> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'endpoint', kind: 'message', T: () => SshHostEndpoint },
-      {
-        no: 4,
-        name: 'credentials',
-        kind: 'message',
-        T: () => SshHostCredentialRefs,
-      },
+      { no: 3, name: 'endpoint', kind: 'message', T: SshHostEndpoint },
+      { no: 4, name: 'credentials', kind: 'message', T: SshHostCredentialRefs },
       {
         no: 5,
         name: 'host_key_pins',
         kind: 'message',
-        T: () => SshHostKeyPin,
+        T: SshHostKeyPin,
         repeated: true,
       },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -420,7 +398,6 @@ export const WatchSshHostStateResponse: MessageType<WatchSshHostStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sshhost.WatchSshHostStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => SshHost },
+      { no: 1, name: 'state', kind: 'message', T: SshHost },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

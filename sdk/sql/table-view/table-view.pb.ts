@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ColumnSchema, RowBatch, SqlValue } from '../../../db/sql/sql.pb.js'
 
-export const protobufPackage = 's4wave.sql.table_view'
-
 /**
  * SortOrder describes one ORDER BY term.
  *
@@ -40,7 +38,6 @@ export const SortOrder: MessageType<SortOrder> =
       { no: 1, name: 'column_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'descending', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -133,7 +130,7 @@ export const TableView: MessageType<TableView> =
         no: 5,
         name: 'sort_order',
         kind: 'message',
-        T: () => SortOrder,
+        T: SortOrder,
         repeated: true,
       },
       { no: 6, name: 'row_limit', kind: 'scalar', T: ScalarType.UINT32 },
@@ -147,7 +144,6 @@ export const TableView: MessageType<TableView> =
       { no: 8, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -181,9 +177,8 @@ export const GetTableViewResponse: MessageType<GetTableViewResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sql.table_view.GetTableViewResponse',
     fields: [
-      { no: 1, name: 'table_view', kind: 'message', T: () => TableView },
+      { no: 1, name: 'table_view', kind: 'message', T: TableView },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -231,7 +226,6 @@ export const DriverCapability: MessageType<DriverCapability> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -252,9 +246,8 @@ export const GetDriverCapabilityResponse: MessageType<GetDriverCapabilityRespons
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.sql.table_view.GetDriverCapabilityResponse',
     fields: [
-      { no: 1, name: 'capability', kind: 'message', T: () => DriverCapability },
+      { no: 1, name: 'capability', kind: 'message', T: DriverCapability },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -323,7 +316,6 @@ export const FetchRowsResponse: MessageType<FetchRowsResponse> =
       { no: 3, name: 'row_count', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'truncated', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -391,7 +383,6 @@ export const UpdateRowRequest: MessageType<UpdateRowRequest> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -414,5 +405,4 @@ export const UpdateRowResponse: MessageType<UpdateRowResponse> =
     fields: [
       { no: 1, name: 'rows_affected', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

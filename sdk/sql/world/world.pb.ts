@@ -10,8 +10,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
-export const protobufPackage = 's4wave.sql.world'
-
 /**
  * SqlStatementKind identifies a replayable SQL transaction statement.
  *
@@ -42,11 +40,7 @@ export enum SqlStatementKind {
 
 export const SqlStatementKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.sql.world.SqlStatementKind',
-  [
-    [0, 'SQL_STATEMENT_KIND_UNSPECIFIED'],
-    [1, 'SQL_STATEMENT_KIND_EXEC'],
-    [2, 'SQL_STATEMENT_KIND_QUERY'],
-  ],
+  SqlStatementKind,
 )
 
 /**
@@ -83,7 +77,6 @@ export const SqlArgument: MessageType<SqlArgument> =
       { no: 2, name: 'ordinal', kind: 'scalar', T: ScalarType.INT32 },
       { no: 3, name: 'value', kind: 'message', T: () => SqlValue },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -125,15 +118,8 @@ export const SqlStatement: MessageType<SqlStatement> =
       { no: 1, name: 'kind', kind: 'enum', T: SqlStatementKind_Enum },
       { no: 2, name: 'dsn', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'query', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 4,
-        name: 'args',
-        kind: 'message',
-        T: () => SqlArgument,
-        repeated: true,
-      },
+      { no: 4, name: 'args', kind: 'message', T: SqlArgument, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -179,9 +165,8 @@ export const SqlSetRootOp: MessageType<SqlSetRootOp> =
         no: 4,
         name: 'statements',
         kind: 'message',
-        T: () => SqlStatement,
+        T: SqlStatement,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

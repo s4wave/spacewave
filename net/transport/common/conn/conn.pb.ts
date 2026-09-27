@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'conn'
-
 /**
  * Opts are extra options for the conn.
  *
@@ -54,5 +52,4 @@ export const Opts: MessageType<Opts> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'mtu', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 4, name: 'buf_size', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

@@ -10,8 +10,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 
-export const protobufPackage = 'forge.value'
-
 /**
  * ValueType is the set of possible value types.
  *
@@ -49,12 +47,7 @@ export enum ValueType {
 
 export const ValueType_Enum = /* @__PURE__ */ createEnumType(
   'forge.value.ValueType',
-  [
-    [0, 'ValueType_UNKNOWN'],
-    [1, 'ValueType_BLOCK_REF'],
-    [2, 'ValueType_BUCKET_REF'],
-    [3, 'ValueType_WORLD_OBJECT_SNAPSHOT'],
-  ],
+  ValueType,
 )
 
 /**
@@ -111,7 +104,6 @@ export const WorldObjectSnapshot: MessageType<WorldObjectSnapshot> =
       { no: 4, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'object_parent', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -169,10 +161,9 @@ export const Value: MessageType<Value> = /* @__PURE__ */ createMessageType({
       no: 5,
       name: 'world_object_snapshot',
       kind: 'message',
-      T: () => WorldObjectSnapshot,
+      T: WorldObjectSnapshot,
     },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -208,5 +199,4 @@ export const Result: MessageType<Result> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'fail_error', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'canceled', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

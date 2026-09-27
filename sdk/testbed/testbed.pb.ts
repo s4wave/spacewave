@@ -10,8 +10,6 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 's4wave.testbed'
-
 /**
  * CreateWorldRequest is the request type for CreateWorld.
  *
@@ -32,7 +30,6 @@ export const CreateWorldRequest: MessageType<CreateWorldRequest> =
     fields: [
       { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -55,7 +52,6 @@ export const CreateWorldResponse: MessageType<CreateWorldResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -85,7 +81,6 @@ export const MarkTestResultRequest: MessageType<MarkTestResultRequest> =
       { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -122,7 +117,6 @@ export const AccessStateAtomRequest: MessageType<AccessStateAtomRequest> =
     fields: [
       { no: 1, name: 'store_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -145,5 +139,4 @@ export const AccessStateAtomResponse: MessageType<AccessStateAtomResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

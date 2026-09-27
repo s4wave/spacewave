@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'pubmessage'
-
 /**
  * PubMessageInner is the signed inner portion of the message.
  *
@@ -44,5 +42,4 @@ export const PubMessageInner: MessageType<PubMessageInner> =
       { no: 2, name: 'channel', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

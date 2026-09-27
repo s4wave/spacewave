@@ -9,8 +9,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.transfer'
-
 /**
  * TransferMode defines the type of transfer operation.
  *
@@ -48,12 +46,7 @@ export enum TransferMode {
 
 export const TransferMode_Enum = /* @__PURE__ */ createEnumType(
   'provider.transfer.TransferMode',
-  [
-    [0, 'TransferMode_UNKNOWN'],
-    [1, 'TransferMode_MERGE'],
-    [2, 'TransferMode_MIGRATE'],
-    [3, 'TransferMode_MIRROR'],
-  ],
+  TransferMode,
 )
 
 /**
@@ -114,15 +107,7 @@ export enum TransferPhase {
 
 export const TransferPhase_Enum = /* @__PURE__ */ createEnumType(
   'provider.transfer.TransferPhase',
-  [
-    [0, 'TransferPhase_IDLE'],
-    [1, 'TransferPhase_SCANNING'],
-    [2, 'TransferPhase_COPYING_BLOCKS'],
-    [3, 'TransferPhase_COPYING_SO'],
-    [4, 'TransferPhase_CLEANUP'],
-    [5, 'TransferPhase_COMPLETE'],
-    [6, 'TransferPhase_FAILED'],
-  ],
+  TransferPhase,
 )
 
 /**
@@ -180,7 +165,6 @@ export const SpaceTransferState: MessageType<SpaceTransferState> =
       { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'meta', kind: 'message', T: () => SharedObjectMeta },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -249,12 +233,11 @@ export const TransferState: MessageType<TransferState> =
         no: 5,
         name: 'spaces',
         kind: 'message',
-        T: () => SpaceTransferState,
+        T: SpaceTransferState,
         repeated: true,
       },
       { no: 6, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -287,7 +270,7 @@ export const TransferCheckpoint: MessageType<TransferCheckpoint> =
   /* @__PURE__ */ createMessageType({
     typeName: 'provider.transfer.TransferCheckpoint',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => TransferState },
+      { no: 1, name: 'state', kind: 'message', T: TransferState },
       {
         no: 2,
         name: 'space_ids',
@@ -302,5 +285,4 @@ export const TransferCheckpoint: MessageType<TransferCheckpoint> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

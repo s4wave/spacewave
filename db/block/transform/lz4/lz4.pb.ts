@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'transform.lz4'
-
 /**
  * BlockSize is the list of available block sizes.
  *
@@ -47,12 +45,7 @@ export enum BlockSize {
 
 export const BlockSize_Enum = /* @__PURE__ */ createEnumType(
   'transform.lz4.BlockSize',
-  [
-    [0, 'BlockSize_4MB'],
-    [1, 'BlockSize_64KB'],
-    [2, 'BlockSize_256KB'],
-    [3, 'BlockSize_1MB'],
-  ],
+  BlockSize,
 )
 
 /**
@@ -98,5 +91,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'disable_checksum', kind: 'scalar', T: ScalarType.BOOL },
     { no: 4, name: 'compression_level', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

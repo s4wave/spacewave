@@ -9,8 +9,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'kvtx.block'
-
 /**
  * KVImplType is the key/value store implementation enum.
  *
@@ -49,12 +47,7 @@ export enum KVImplType {
 
 export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
   'kvtx.block.KVImplType',
-  [
-    [0, 'KV_IMPL_TYPE_UNKNOWN'],
-    [1, 'KV_IMPL_TYPE_IAVL'],
-    [2, 'KV_IMPL_TYPE_OKRA'],
-    [3, 'KV_IMPL_TYPE_OKRA_INLINE'],
-  ],
+  KVImplType,
 )
 
 /**
@@ -94,5 +87,4 @@ export const KeyValueStore: MessageType<KeyValueStore> =
       { no: 2, name: 'iavl_root', kind: 'message', T: () => Node },
       { no: 3, name: 'okra_root', kind: 'message', T: () => Root },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

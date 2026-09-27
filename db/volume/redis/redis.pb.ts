@@ -11,8 +11,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'volume.redis'
-
 /**
  * Config is the redis volume controller config.
  * Url is the only mandatory flag.
@@ -82,5 +80,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'volume_config', kind: 'message', T: () => Config$2 },
     { no: 6, name: 'store_config', kind: 'message', T: () => Config$3 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

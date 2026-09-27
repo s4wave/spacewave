@@ -8,8 +8,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'provider.spacewave'
-
 /**
  * SyncMode is the sync mode for block stores.
  *
@@ -33,10 +31,7 @@ export enum SyncMode {
 
 export const SyncMode_Enum = /* @__PURE__ */ createEnumType(
   'provider.spacewave.SyncMode',
-  [
-    [0, 'SyncMode_CACHE'],
-    [1, 'SyncMode_MIRROR'],
-  ],
+  SyncMode,
 )
 
 /**
@@ -101,7 +96,6 @@ export const SyncConfig: MessageType<SyncConfig> =
       { no: 4, name: 'sync_mode', kind: 'enum', T: SyncMode_Enum },
       { no: 5, name: 'disable_compaction', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -162,10 +156,9 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    { no: 4, name: 'sync', kind: 'message', T: () => SyncConfig },
+    { no: 4, name: 'sync', kind: 'message', T: SyncConfig },
     { no: 7, name: 'account_endpoint', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
     { no: 9, name: 'signing_env_prefix', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

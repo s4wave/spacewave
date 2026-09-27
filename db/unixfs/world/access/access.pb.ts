@@ -9,8 +9,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'unixfs.world.access'
-
 /**
  * Config configures the world-backed UnixFS access controller.
  * Resolves AccessUnixFS requests with a Hydra World UnixFS.
@@ -80,5 +78,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 7, name: 'timestamp', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

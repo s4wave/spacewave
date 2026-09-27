@@ -12,8 +12,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
-export const protobufPackage = 's4wave.device'
-
 /**
  * DeviceSetupState is the Space-visible setup lifecycle for a managed Device.
  *
@@ -58,13 +56,7 @@ export enum DeviceSetupState {
 
 export const DeviceSetupState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceSetupState',
-  [
-    [0, 'DEVICE_SETUP_STATE_UNKNOWN'],
-    [1, 'DEVICE_SETUP_STATE_WAITING_FOR_COMPLETION'],
-    [2, 'DEVICE_SETUP_STATE_COMPLETION_IMPORTED'],
-    [3, 'DEVICE_SETUP_STATE_DEVICE_SESSION_READY'],
-    [4, 'DEVICE_SETUP_STATE_FAILED'],
-  ],
+  DeviceSetupState,
 )
 
 /**
@@ -125,15 +117,7 @@ export enum DeviceUpdateState {
 
 export const DeviceUpdateState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceUpdateState',
-  [
-    [0, 'DEVICE_UPDATE_STATE_UNKNOWN'],
-    [1, 'DEVICE_UPDATE_STATE_IDLE'],
-    [2, 'DEVICE_UPDATE_STATE_READY'],
-    [3, 'DEVICE_UPDATE_STATE_STAGING'],
-    [4, 'DEVICE_UPDATE_STATE_APPLYING'],
-    [5, 'DEVICE_UPDATE_STATE_UPDATED'],
-    [6, 'DEVICE_UPDATE_STATE_FAILED'],
-  ],
+  DeviceUpdateState,
 )
 
 /**
@@ -173,12 +157,7 @@ export enum DeviceLiveness {
 
 export const DeviceLiveness_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceLiveness',
-  [
-    [0, 'DEVICE_LIVENESS_UNKNOWN'],
-    [1, 'DEVICE_LIVENESS_ONLINE'],
-    [2, 'DEVICE_LIVENESS_DEGRADED'],
-    [3, 'DEVICE_LIVENESS_OFFLINE'],
-  ],
+  DeviceLiveness,
 )
 
 /**
@@ -232,14 +211,7 @@ export enum DeviceCapabilityState {
 
 export const DeviceCapabilityState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityState',
-  [
-    [0, 'DEVICE_CAPABILITY_STATE_UNKNOWN'],
-    [1, 'DEVICE_CAPABILITY_STATE_DECLARED'],
-    [2, 'DEVICE_CAPABILITY_STATE_DISABLED'],
-    [3, 'DEVICE_CAPABILITY_STATE_GRANT_BLOCKED'],
-    [4, 'DEVICE_CAPABILITY_STATE_AVAILABLE'],
-    [5, 'DEVICE_CAPABILITY_STATE_ACTIVE'],
-  ],
+  DeviceCapabilityState,
 )
 
 /**
@@ -272,11 +244,7 @@ export enum DeviceCapabilityLocalState {
 
 export const DeviceCapabilityLocalState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityLocalState',
-  [
-    [0, 'DEVICE_CAPABILITY_LOCAL_STATE_UNKNOWN'],
-    [1, 'DEVICE_CAPABILITY_LOCAL_STATE_ENABLED'],
-    [2, 'DEVICE_CAPABILITY_LOCAL_STATE_DISABLED'],
-  ],
+  DeviceCapabilityLocalState,
 )
 
 /**
@@ -309,11 +277,7 @@ export enum DeviceCapabilityGrantState {
 
 export const DeviceCapabilityGrantState_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCapabilityGrantState',
-  [
-    [0, 'DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN'],
-    [1, 'DEVICE_CAPABILITY_GRANT_STATE_ALLOWED'],
-    [2, 'DEVICE_CAPABILITY_GRANT_STATE_BLOCKED'],
-  ],
+  DeviceCapabilityGrantState,
 )
 
 /**
@@ -346,11 +310,7 @@ export enum DeviceCheckoutRootAccess {
 
 export const DeviceCheckoutRootAccess_Enum = /* @__PURE__ */ createEnumType(
   's4wave.device.DeviceCheckoutRootAccess',
-  [
-    [0, 'DEVICE_CHECKOUT_ROOT_ACCESS_UNKNOWN'],
-    [1, 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY'],
-    [2, 'DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE'],
-  ],
+  DeviceCheckoutRootAccess,
 )
 
 /**
@@ -380,7 +340,6 @@ export const DevicePlatform: MessageType<DevicePlatform> =
       { no: 1, name: 'os', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'arch', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -424,7 +383,6 @@ export const DeviceStatus: MessageType<DeviceStatus> =
       { no: 3, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -461,7 +419,6 @@ export const DeviceCapabilityLink: MessageType<DeviceCapabilityLink> =
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'protocol_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -515,7 +472,6 @@ export const DeviceCapabilityPolicy: MessageType<DeviceCapabilityPolicy> =
         T: DeviceCapabilityGrantState_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -573,7 +529,6 @@ export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapabil
       { no: 5, name: 'read_available', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'write_available', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -641,21 +596,15 @@ export const DeviceCapability: MessageType<DeviceCapability> =
       { no: 3, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'state', kind: 'enum', T: DeviceCapabilityState_Enum },
       { no: 5, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'link', kind: 'message', T: () => DeviceCapabilityLink },
-      {
-        no: 7,
-        name: 'policy',
-        kind: 'message',
-        T: () => DeviceCapabilityPolicy,
-      },
+      { no: 6, name: 'link', kind: 'message', T: DeviceCapabilityLink },
+      { no: 7, name: 'policy', kind: 'message', T: DeviceCapabilityPolicy },
       {
         no: 8,
         name: 'checkout_root',
         kind: 'message',
-        T: () => DeviceCheckoutRootCapability,
+        T: DeviceCheckoutRootCapability,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -731,22 +680,21 @@ export const Device: MessageType<Device> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'platform', kind: 'message', T: () => DevicePlatform },
+    { no: 3, name: 'platform', kind: 'message', T: DevicePlatform },
     { no: 4, name: 'daemon_version', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'setup_state', kind: 'enum', T: DeviceSetupState_Enum },
     { no: 6, name: 'update_state', kind: 'enum', T: DeviceUpdateState_Enum },
-    { no: 7, name: 'last_status', kind: 'message', T: () => DeviceStatus },
+    { no: 7, name: 'last_status', kind: 'message', T: DeviceStatus },
     {
       no: 8,
       name: 'capabilities',
       kind: 'message',
-      T: () => DeviceCapability,
+      T: DeviceCapability,
       repeated: true,
     },
     { no: 9, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 10, name: 'updated_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -777,7 +725,6 @@ export const ComputersDashboard: MessageType<ComputersDashboard> =
       { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'created_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -814,7 +761,6 @@ export const CreateComputersDashboardOp: MessageType<CreateComputersDashboardOp>
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -848,9 +794,8 @@ export const WatchDeviceStateResponse: MessageType<WatchDeviceStateResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.WatchDeviceStateResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => Device },
+      { no: 1, name: 'state', kind: 'message', T: Device },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -904,12 +849,12 @@ export const ReportDeviceStatusRequest: MessageType<ReportDeviceStatusRequest> =
       { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'setup_state', kind: 'enum', T: DeviceSetupState_Enum },
       { no: 3, name: 'update_state', kind: 'enum', T: DeviceUpdateState_Enum },
-      { no: 4, name: 'last_status', kind: 'message', T: () => DeviceStatus },
+      { no: 4, name: 'last_status', kind: 'message', T: DeviceStatus },
       {
         no: 5,
         name: 'capabilities',
         kind: 'message',
-        T: () => DeviceCapability,
+        T: DeviceCapability,
         repeated: true,
       },
       {
@@ -919,7 +864,6 @@ export const ReportDeviceStatusRequest: MessageType<ReportDeviceStatusRequest> =
         T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -940,9 +884,8 @@ export const ReportDeviceStatusResponse: MessageType<ReportDeviceStatusResponse>
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.device.ReportDeviceStatusResponse',
     fields: [
-      { no: 1, name: 'state', kind: 'message', T: () => Device },
+      { no: 1, name: 'state', kind: 'message', T: Device },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -984,7 +927,6 @@ export const AccessCheckoutRootRequest: MessageType<AccessCheckoutRootRequest> =
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -1055,7 +997,7 @@ export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse>
         no: 5,
         name: 'checkout_root',
         kind: 'message',
-        T: () => DeviceCheckoutRootCapability,
+        T: DeviceCheckoutRootCapability,
       },
       { no: 6, name: 'write_available', kind: 'scalar', T: ScalarType.BOOL },
       { no: 7, name: 'write_enabled', kind: 'scalar', T: ScalarType.BOOL },
@@ -1066,5 +1008,4 @@ export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse>
         T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

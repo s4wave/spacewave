@@ -7,8 +7,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'signaling.rpc.server'
-
 /**
  * Config is the configuration for the Signaling RPC server.
  *
@@ -28,5 +26,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'server', kind: 'message', T: () => Config$1 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

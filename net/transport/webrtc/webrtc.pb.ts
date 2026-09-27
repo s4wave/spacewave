@@ -11,8 +11,6 @@ import { Opts } from '../common/quic/quic.pb.js'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { DialerOpts } from '../common/dialer/dialer.pb.js'
 
-export const protobufPackage = 'webrtc'
-
 /**
  * IceTransportPolicy contains the set of allowed ICE transport policies.
  *
@@ -36,10 +34,7 @@ export enum IceTransportPolicy {
 
 export const IceTransportPolicy_Enum = /* @__PURE__ */ createEnumType(
   'webrtc.IceTransportPolicy',
-  [
-    [0, 'IceTransportPolicy_ALL'],
-    [1, 'IceTransportPolicy_RELAY'],
-  ],
+  IceTransportPolicy,
 )
 
 /**
@@ -69,7 +64,6 @@ export const IceServerConfig_OauthCredential: MessageType<IceServerConfig_OauthC
       { no: 1, name: 'mac_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'access_token', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -150,11 +144,10 @@ export const IceServerConfig: MessageType<IceServerConfig> =
         no: 4,
         name: 'oauth',
         kind: 'message',
-        T: () => IceServerConfig_OauthCredential,
+        T: IceServerConfig_OauthCredential,
         oneof: 'credential',
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -193,7 +186,7 @@ export const WebRtcConfig: MessageType<WebRtcConfig> =
         no: 1,
         name: 'ice_servers',
         kind: 'message',
-        T: () => IceServerConfig,
+        T: IceServerConfig,
         repeated: true,
       },
       {
@@ -209,7 +202,6 @@ export const WebRtcConfig: MessageType<WebRtcConfig> =
         T: ScalarType.UINT32,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -306,7 +298,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'transport_peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'transport_type', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'quic', kind: 'message', T: () => Opts },
-    { no: 5, name: 'web_rtc', kind: 'message', T: () => WebRtcConfig },
+    { no: 5, name: 'web_rtc', kind: 'message', T: WebRtcConfig },
     { no: 6, name: 'backoff', kind: 'message', T: () => Backoff },
     {
       no: 7,
@@ -326,7 +318,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
 
 /**
@@ -375,7 +366,6 @@ export const WebRtcSdp: MessageType<WebRtcSdp> =
       { no: 3, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -407,7 +397,6 @@ export const WebRtcIce: MessageType<WebRtcIce> =
       { no: 1, name: 'candidate', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -467,20 +456,7 @@ export const WebRtcSignal: MessageType<WebRtcSignal> =
         T: ScalarType.UINT64,
         oneof: 'body',
       },
-      {
-        no: 2,
-        name: 'sdp',
-        kind: 'message',
-        T: () => WebRtcSdp,
-        oneof: 'body',
-      },
-      {
-        no: 3,
-        name: 'ice',
-        kind: 'message',
-        T: () => WebRtcIce,
-        oneof: 'body',
-      },
+      { no: 2, name: 'sdp', kind: 'message', T: WebRtcSdp, oneof: 'body' },
+      { no: 3, name: 'ice', kind: 'message', T: WebRtcIce, oneof: 'body' },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

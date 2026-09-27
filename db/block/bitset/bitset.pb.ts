@@ -7,8 +7,6 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
-export const protobufPackage = 'bitset'
-
 /**
  * BitSet is a block-backed BitSet representation.
  *
@@ -41,5 +39,4 @@ export const BitSet: MessageType<BitSet> = /* @__PURE__ */ createMessageType({
     },
     { no: 2, name: 'len', kind: 'scalar', T: ScalarType.UINT32 },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })
