@@ -42,7 +42,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
-	github.com/aperturerobotics/starpc v0.52.2-0.20260927183858-4d0f9be5aa9d // master
+	github.com/aperturerobotics/starpc v0.52.2-0.20260927191206-60aebb7f3a14 // master
 	github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
@@ -78,7 +78,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.3.3-0.20260927093239-9d5d69656462
+	github.com/s4wave/goscript v0.3.3-0.20260927222904-cc73f91141d0
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
