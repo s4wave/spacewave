@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	plugin_handle_web_view "github.com/s4wave/spacewave/bldr/plugin/handle-web-view"
@@ -31,11 +32,11 @@ var Version = controller.MustParseVersion("0.0.1")
 // Controller manages running the web plugin.
 // Serves the WebPlugin RPC service.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
 	// mux is the rpc mux for the WebPlugin RPC service.
 	mux srpc.Mux
@@ -47,14 +48,16 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Construct the plugin-local service registry.
 	mux := srpc.NewMux()
-	// mux = srpc.NewVMux(mux, le, true) // TODO
 	ctrl := &Controller{
 		le:   le,
 		bus:  bus,
 		conf: conf,
 		mux:  mux,
 	}
+
+	// Register the plugin routing and desktop services on the same RPC boundary.
 	_ = mux.Register(bldr_web_plugin.NewSRPCWebPluginHandler(ctrl, ctrl.GetServiceID()))
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(le, bus))
 	return ctrl
@@ -104,6 +107,74 @@ func (c *Controller) HandleDirective(
 // If service string is empty, ignore it.
 func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	return c.mux.InvokeMethod(serviceID, methodID, strm)
+}
+
+// OpenOrFocusDesktop forwards one desktop request to the plugin's Electron
+// controller and returns only after its main process acknowledges the operation.
+func (c *Controller) OpenOrFocusDesktop(
+	ctx context.Context,
+	req *bldr_web_plugin.OpenOrFocusDesktopRequest,
+) (*bldr_web_plugin.OpenOrFocusDesktopResponse, error) {
+	// Resolve Electron capability without starting a second plugin or runtime.
+	desktop, _, ref, err := bldr_web_plugin.ExLookupDesktop(ctx, c.bus)
+	if err != nil {
+		return nil, err
+	}
+	if desktop == nil {
+		return nil, errors.New("desktop Electron capability unavailable; install a native desktop web plugin artifact")
+	}
+	defer ref.Release()
+
+	// Return the Electron owner's acknowledgement and shell identity.
+	generation, err := desktop.OpenOrFocusMainWindow(ctx, req.GetRoute())
+	if err != nil {
+		return nil, err
+	}
+	return &bldr_web_plugin.OpenOrFocusDesktopResponse{Generation: generation}, nil
+}
+
+// WatchDesktopPresence reports one Electron shell generation's current state
+// and completes after that generation ends, even if a newer shell opens.
+func (c *Controller) WatchDesktopPresence(
+	req *bldr_web_plugin.WatchDesktopPresenceRequest,
+	strm bldr_web_plugin.SRPCWebPlugin_WatchDesktopPresenceStream,
+) error {
+	// Require the generation returned by a successful open request.
+	if req.GetGeneration() == 0 {
+		return errors.New("desktop generation is required")
+	}
+
+	// Resolve the Electron owner and snapshot that exact shell lifetime.
+	desktop, _, ref, err := bldr_web_plugin.ExLookupDesktop(strm.Context(), c.bus)
+	if err != nil {
+		return err
+	}
+	if desktop == nil {
+		return errors.New("desktop Electron capability unavailable; install a native desktop web plugin artifact")
+	}
+	defer ref.Release()
+	presence := desktop.DesktopPresence(req.GetGeneration())
+	if presence == nil {
+		return strm.Send(&bldr_web_plugin.WatchDesktopPresenceResponse{
+			State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED,
+		})
+	}
+
+	// Forward the owner's current state and completion without inferring an exit.
+	var previous *bldr_web_plugin.WatchDesktopPresenceResponse
+	for {
+		state, err := presence.WaitValueChange(strm.Context(), previous, nil)
+		if err != nil {
+			return err
+		}
+		if err := strm.Send(state); err != nil {
+			return err
+		}
+		if state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
+			return nil
+		}
+		previous = state
+	}
 }
 
 // HandleWebViewViaPlugin starts a controller to forward web views to a plugin RPC.

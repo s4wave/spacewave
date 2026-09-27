@@ -2,61 +2,67 @@ package electron
 
 import (
 	"context"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
+	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	runtime_controller "github.com/s4wave/spacewave/bldr/web/runtime/controller"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/semaphore"
 )
 
-// ControllerID is the browser runtime controller ID.
+// ControllerID is the Electron runtime controller ID.
 const ControllerID = "bldr/web/plugin/electron"
 
 // Version is the API version.
 var Version = controller.MustParseVersion("0.0.1")
 
-const quitWaitTimeout = 2 * time.Second
-
-// RuntimeID is the runtime identifier
+// RuntimeID is the runtime identifier.
 const RuntimeID = "electron"
 
-type electronExitDisposition int
-
-const (
-	electronExitRestart electronExitDisposition = iota
-	electronExitHost
-	electronExitStayResident
-)
-
-// Controller is the electron runtime controller.
-//
-// Communicates with the electron Renderer via IPC.
+// Controller owns one Electron process at a time and starts it only on desktop demand.
 type Controller struct {
-	le  *logrus.Entry
+	// le is the controller logger.
+	le *logrus.Entry
+	// bus is the plugin controller bus.
 	bus bus.Bus
 
+	// electronPath is the executable path.
 	electronPath string
-	workdirPath  string
+	// workdirPath holds the private runtime pipe.
+	workdirPath string
+	// rendererPath is the Electron entrypoint.
 	rendererPath string
-	runtimeUuid  string
-
+	// runtimeUuid identifies the private runtime pipe.
+	runtimeUuid string
+	// extraElectronArgs are passed to the process.
 	extraElectronArgs []string
-	electronInit      *ElectronInit
+	// electronInit configures the desktop shell.
+	electronInit *ElectronInit
 
-	execSema    *semaphore.Weighted
-	electronCtr *ccontainer.CContainer[*Electron]
+	// bcast guards demand, runtime, presence, generation, and launchErr.
+	bcast broadcast.Broadcast
+	// demand is true while one shell is requested or running.
+	demand bool
+	// runtime is the current Electron remote runtime, if constructed.
+	runtime web_runtime.WebRuntime
+	// presence retains the current shell result for existing and late subscribers.
+	presence *ccontainer.CContainer[*bldr_web_plugin.WatchDesktopPresenceResponse]
+	// generation identifies the current launch attempt.
+	generation uint64
+	// launchErr is the result of the most recent ended launch.
+	launchErr error
+	// run starts one shell and publishes its runtime; tests replace it with a fixture.
+	run func(context.Context) error
 }
 
-// NewController constructs a new browser runtime which starts Electron.
-// sessionUuid is used to make the unix pipe path unique.
+// NewController constructs an idle Electron controller. The plugin can serve
+// routes before OpenOrFocusMainWindow starts the process.
 func NewController(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -65,29 +71,23 @@ func NewController(
 	extraElectronArgs []string,
 	electronInit *ElectronInit,
 ) (*Controller, error) {
-	return &Controller{
-		le:  le,
-		bus: b,
-
+	r := &Controller{
+		le:                le,
+		bus:               b,
 		electronPath:      electronPath,
 		workdirPath:       workdirPath,
 		rendererPath:      rendererPath,
 		runtimeUuid:       runtimeUuid,
 		extraElectronArgs: extraElectronArgs,
 		electronInit:      electronInit,
-
-		execSema:    semaphore.NewWeighted(1),
-		electronCtr: ccontainer.NewCContainer[*Electron](nil),
-	}, nil
+	}
+	r.run = r.runElectron
+	return r, nil
 }
 
 // GetControllerInfo returns information about the controller.
 func (r *Controller) GetControllerInfo() *controller.Info {
-	return controller.NewInfo(
-		ControllerID,
-		Version,
-		"Electron "+r.runtimeUuid,
-	)
+	return controller.NewInfo(ControllerID, Version, "Electron "+r.runtimeUuid)
 }
 
 // GetLogger returns the root log entry.
@@ -95,168 +95,250 @@ func (r *Controller) GetLogger() *logrus.Entry {
 	return r.le
 }
 
-// GetBus returns the root controller bus to use in this process.
+// GetBus returns the plugin controller bus.
 func (r *Controller) GetBus() bus.Bus {
 	return r.bus
 }
 
-// Execute executes the runtime.
-// Returns any errors, nil if Execute is not required.
+// Execute waits for desktop demand, runs one shell, and returns to an idle
+// state after its exit. A failed launch is reported to its callers.
 func (r *Controller) Execute(ctx context.Context) error {
-	err := r.execSema.Acquire(ctx, 1)
-	if err != nil {
-		return err
-	}
-	defer r.execSema.Release(1)
+	for {
+		// Wait for an open request without starting Electron on plugin load.
+		var wait <-chan struct{}
+		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if !r.demand {
+				wait = getWaitCh()
+			}
+		})
+		if wait != nil {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-wait:
+			}
+			continue
+		}
 
-	e, err := RunElectron(
-		ctx,
-		r.le,
-		r.electronPath,
-		r.workdirPath,
-		r.rendererPath,
-		r.runtimeUuid,
-		r.extraElectronArgs,
-		r.electronInit,
-	)
+		// Run this demand to process exit, then release only desktop presence.
+		presence := ccontainer.NewCContainerVT(&bldr_web_plugin.WatchDesktopPresenceResponse{
+			State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE,
+		})
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			r.presence = presence
+		})
+		err := r.run(ctx)
+		ended := &bldr_web_plugin.WatchDesktopPresenceResponse{
+			State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED,
+		}
+		if err != nil {
+			ended.Error = err.Error()
+		}
+
+		// Publish the terminal result only after the shell and private runtime are joined.
+		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			r.runtime = nil
+			r.demand = false
+			r.launchErr = err
+			if err == nil {
+				r.launchErr = errDesktopClosed
+			}
+			broadcast()
+		})
+		presence.SetValue(ended)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+	}
+}
+
+// OpenOrFocusMainWindow starts one Electron process on cold or warm demand and
+// returns its generation after Electron main acknowledges the operation.
+func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, route string) (uint64, error) {
+	// Join the current launch or signal the idle controller to start one.
+	var generation uint64
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !r.demand {
+			r.demand = true
+			r.generation++
+			r.launchErr = nil
+			broadcast()
+		}
+		generation = r.generation
+	})
+
+	// Wait for its remote runtime or the launch result.
+	var rt web_runtime.WebRuntime
+	var presence *ccontainer.CContainer[*bldr_web_plugin.WatchDesktopPresenceResponse]
+	for {
+		var wait <-chan struct{}
+		var launchErr error
+		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			launchErr = r.launchErr
+			if r.generation != generation {
+				launchErr = errDesktopClosed
+				return
+			}
+			rt = r.runtime
+			presence = r.presence
+			if rt == nil && r.demand {
+				wait = getWaitCh()
+			}
+		})
+		if rt != nil {
+			break
+		}
+		if wait == nil {
+			return 0, launchErr
+		}
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case <-wait:
+		}
+	}
+
+	// Cancel the open operation when this shell's private pipe ends.
+	opCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		_, err := presence.WaitValueWithValidator(opCtx, func(state *bldr_web_plugin.WatchDesktopPresenceResponse) (bool, error) {
+			return state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED, nil
+		}, nil)
+		if err == nil {
+			cancel()
+		}
+	}()
+
+	// Wait for Electron main to publish the desktop Resource service.
+	if err := rt.WaitReady(opCtx); err != nil {
+		if ctx.Err() != nil {
+			return 0, ctx.Err()
+		}
+		if presence.GetValue().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
+			return 0, errDesktopClosed
+		}
+		return 0, err
+	}
+
+	// Open a Resource client on the existing private runtime pipe.
+	resources, err := rt.ConnectDesktopRuntimeResourceClient(opCtx)
+	if err != nil {
+		return 0, err
+	}
+	defer resources.Release()
+
+	// Resolve the Electron main Resource service from its root reference.
+	rootRef := resources.AccessRootResource()
+	defer rootRef.Release()
+	client, err := rootRef.GetClient()
+	if err != nil {
+		return 0, err
+	}
+
+	// Acknowledge only after Electron main has opened or focused the shell.
+	service := desktop_runtime.NewSRPCDesktopRuntimeResourceServiceClient(client)
+	_, err = service.OpenOrFocusMainWindow(opCtx, &desktop_runtime.OpenOrFocusMainWindowRequest{Route: route})
+	if err != nil {
+		return 0, err
+	}
+	return generation, nil
+}
+
+// DesktopPresence returns the owner's observation of one shell generation.
+// A captured container keeps that generation's terminal result across warm reopen.
+func (r *Controller) DesktopPresence(generation uint64) *ccontainer.CContainer[*bldr_web_plugin.WatchDesktopPresenceResponse] {
+	var presence *ccontainer.CContainer[*bldr_web_plugin.WatchDesktopPresenceResponse]
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if r.generation == generation {
+			presence = r.presence
+		}
+	})
+	return presence
+}
+
+// runElectron runs one Electron process and its existing private pipe runtime.
+func (r *Controller) runElectron(ctx context.Context) error {
+	// Retain the process until its private runtime has stopped and the process is joined.
+	e, err := RunElectron(ctx, r.le, r.electronPath, r.workdirPath, r.rendererPath,
+		r.runtimeUuid, r.extraElectronArgs, r.electronInit)
 	if err != nil {
 		return err
 	}
 	defer e.Close()
-	defer r.electronCtr.SetValue(nil)
 
-	// construct the runtime controller and execute it on the bus.
-	rc := runtime_controller.NewController(
-		r.le,
-		r.bus,
-		func(
-			ctx context.Context,
-			le *logrus.Entry,
-			handler web_runtime.WebRuntimeHandler,
-		) (web_runtime.WebRuntime, error) {
+	// Construct the established runtime controller on the plugin bus.
+	rc := runtime_controller.NewController(r.le, r.bus,
+		func(ctx context.Context, le *logrus.Entry, handler web_runtime.WebRuntimeHandler) (web_runtime.WebRuntime, error) {
+			// Connect the runtime through Electron's private muxed pipe.
 			mc := e.GetMuxedConn()
-			srpcClient := srpc.NewClientWithMuxedConn(mc)
-			remote, err := web_runtime.NewRemote(
-				r.le,
-				r.bus,
-				handler,
-				r.runtimeUuid,
-				srpcClient,
-				func(ctx context.Context, r *web_runtime.Remote) error {
-					return r.GetRpcServer().AcceptMuxedConn(ctx, mc)
-				},
-			)
+			client := srpc.NewClientWithMuxedConn(mc)
+			remote, err := web_runtime.NewRemote(r.le, r.bus, handler, r.runtimeUuid, client,
+				func(ctx context.Context, remote *web_runtime.Remote) error {
+					return remote.GetRpcServer().AcceptMuxedConn(ctx, mc)
+				})
 			if err != nil {
 				return nil, err
 			}
-			var webController web_runtime.WebRuntime = remote
+
+			// Mirror the desktop tray only for the configured background policy.
+			var rt web_runtime.WebRuntime = remote
 			if r.hasTrayBackgroundPresence() {
-				webController = &desktopTrayMirroredRuntime{
-					WebRuntime: remote,
-					controller: r,
-				}
+				rt = &desktopTrayMirroredRuntime{WebRuntime: remote, controller: r}
 			}
-			r.electronCtr.SetValue(e)
-			return webController, nil
-		},
-		ControllerID,
-		Version,
-	)
 
-	err = r.bus.ExecuteController(ctx, rc)
-	waitCtx, waitCancel := context.WithTimeout(context.Background(), quitWaitTimeout)
-	processErr := e.Wait(waitCtx)
-	waitCancel()
+			// Publish this process's runtime to all waiting open requests.
+			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				r.runtime = rt
+				broadcast()
+			})
+			return rt, nil
+		}, ControllerID, Version)
 
-	switch computeElectronExitDisposition(
-		err,
-		processErr,
-		r.electronInit.GetQuitPolicy(),
-		r.electronInit.GetDesktopPresencePolicy(),
-	) {
-	case electronExitHost:
-		r.le.Info("electron exited cleanly; requesting host exit")
-		requestHostExit(r.le)
-		return nil
-	case electronExitStayResident:
-		r.le.Info("electron exited; daemon staying resident under window-lifetime")
-		return nil
-	case electronExitRestart:
+	// Run the private runtime until it, Electron, or the owning controller ends.
+	return r.executeRuntimeController(ctx, e, rc)
+}
+
+// executeRuntimeController detaches the private runtime after canceling its
+// execution context, including when the bus has not attached it yet.
+func (r *Controller) executeRuntimeController(ctx context.Context, e *Electron, rc controller.Controller) error {
+	// Give runtime removal an explicit cancellation and completion fence.
+	runCtx, cancel := context.WithCancel(ctx)
+	result := make(chan error, 1)
+	go func() { result <- r.bus.ExecuteController(runCtx, rc) }()
+
+	// Select the first lifetime to end, then stop and join runtime execution.
+	var err error
+	var joined bool
+	select {
+	case err = <-result:
+		joined = true
+	case <-e.waitDone:
+		err = e.waitErr
+	case <-ctx.Done():
+		err = ctx.Err()
 	}
-	if err != nil && err != context.Canceled && err.Error() != "stream reset" {
-		r.le.WithError(err).Error("electron remote runtime exited with error")
-	} else {
-		r.le.Info("exiting")
+	cancel()
+	r.bus.RemoveController(rc)
+	if !joined {
+		<-result
 	}
-
 	return err
 }
 
-// computeElectronExitDisposition decides what to do after the Electron runtime exits.
-func computeElectronExitDisposition(
-	runtimeErr error,
-	processErr error,
-	quitPolicy QuitPolicy,
-	presence DesktopPresencePolicy,
-) electronExitDisposition {
-	clean := processErr == nil || isExpectedRuntimeDisconnect(runtimeErr)
-	if !clean {
-		return electronExitRestart
-	}
-	if presence == DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME {
-		return electronExitStayResident
-	}
-	if quitPolicy == QuitPolicy_QUIT_POLICY_EXIT {
-		return electronExitHost
-	}
-	return electronExitRestart
-}
-
-func isExpectedRuntimeDisconnect(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return msg == "stream reset" || strings.Contains(msg, "use of closed network connection")
-}
-
-func requestHostExit(le *logrus.Entry) {
-	ppid := os.Getppid()
-	if ppid <= 1 {
-		return
-	}
-	proc, err := os.FindProcess(ppid)
-	if err != nil {
-		le.WithError(err).Warn("failed to find host process")
-		return
-	}
-	if err := proc.Signal(os.Interrupt); err == nil {
-		return
-	}
-	if err := proc.Signal(os.Kill); err != nil {
-		le.WithError(err).Warn("failed to terminate host process")
-	}
-}
-
-// WaitElectron waits for the Electron object to be ready and returns it.
-// if errCh is set, checks it for errors to return early.
-func (r *Controller) WaitElectron(ctx context.Context, errCh <-chan error) (*Electron, error) {
-	electronCtr, err := r.electronCtr.WaitValue(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	return electronCtr, nil
-}
-
-// HandleDirective asks if the handler can resolve the directive.
+// HandleDirective resolves the plugin's desktop control without starting Electron.
 func (r *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	if _, ok := di.GetDirective().(bldr_web_plugin.LookupDesktop); ok {
+		return directive.R(directive.NewValueResolver([]bldr_web_plugin.Desktop{r}), nil)
+	}
 	return nil, nil
 }
 
-// Close closes the runtime.
+// Close closes the controller after its Execute context is canceled.
 func (r *Controller) Close() error {
 	return nil
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ controller.Controller = (*Controller)(nil)
+var _ bldr_web_plugin.Desktop = (*Controller)(nil)

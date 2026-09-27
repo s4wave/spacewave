@@ -169,8 +169,8 @@ export interface Config {
    */
   noCopyBucketIds?: string[]
   /**
-   * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
-   * Empty retains the unscoped Dist behavior.
+   * InstanceKey is the plugin instance that loads without an instance key
+   * resolve to. Empty retains the unscoped Dist behavior.
    *
    * @generated from field: string instance_key = 14;
    */

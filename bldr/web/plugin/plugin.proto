@@ -7,6 +7,10 @@ import "github.com/s4wave/spacewave/bldr/web/view/handler/handler.proto";
 // WebPlugin implements the bldr web plugin service.
 // The service is used to tell the Web plugin where to forward requests.
 service WebPlugin {
+  // OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+  rpc OpenOrFocusDesktop(OpenOrFocusDesktopRequest) returns (OpenOrFocusDesktopResponse) {}
+  // WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+  rpc WatchDesktopPresence(WatchDesktopPresenceRequest) returns (stream WatchDesktopPresenceResponse) {}
   // HandleWebViewViaPlugin configures handling web views via a plugin.
   rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}
   // HandleWebPkgViaPlugin configures handling web packages via a plugin.
@@ -17,6 +21,42 @@ service WebPlugin {
   rpc HandleWebViewViaHandlers(HandleWebViewViaHandlersRequest) returns (stream HandleWebViewViaHandlersResponse) {}
   // HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
   rpc HandleWebPkgsViaPluginAssets(HandleWebPkgsViaPluginAssetsRequest) returns (stream HandleWebPkgsViaPluginAssetsResponse) {}
+}
+
+// OpenOrFocusDesktopRequest identifies the route to open in the desktop shell.
+message OpenOrFocusDesktopRequest {
+  // Route is an optional in-app route; empty opens or focuses the main window.
+  string route = 1;
+}
+
+// OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.
+message OpenOrFocusDesktopResponse {
+  // Generation identifies the acknowledged shell lifetime within this plugin controller.
+  uint64 generation = 1;
+}
+
+// WatchDesktopPresenceRequest identifies the shell lifetime to observe.
+message WatchDesktopPresenceRequest {
+  // Generation is the value returned by OpenOrFocusDesktop.
+  uint64 generation = 1;
+}
+
+// DesktopPresenceState describes one shell generation, not the latest desktop.
+enum DesktopPresenceState {
+  // DESKTOP_PRESENCE_STATE_UNKNOWN is not a valid watch result.
+  DESKTOP_PRESENCE_STATE_UNKNOWN = 0;
+  // DESKTOP_PRESENCE_STATE_ACTIVE means the selected shell generation is running.
+  DESKTOP_PRESENCE_STATE_ACTIVE = 1;
+  // DESKTOP_PRESENCE_STATE_ENDED means the selected shell generation has ended.
+  DESKTOP_PRESENCE_STATE_ENDED = 2;
+}
+
+// WatchDesktopPresenceResponse reports the selected generation's current state.
+message WatchDesktopPresenceResponse {
+  // State first reports active or ended, then reports ended when an active shell exits.
+  DesktopPresenceState state = 1;
+  // Error describes a failed shell exit; empty on a normal end or while active.
+  string error = 2;
 }
 
 // HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.

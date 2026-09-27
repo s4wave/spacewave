@@ -123,32 +123,6 @@ export const WebRuntimeHostInit: MessageType<WebRuntimeHostInit> =
   })
 
 /**
- * RequestRuntimeQuitRequest requests a clean host runtime quit.
- *
- * @generated from message web.runtime.RequestRuntimeQuitRequest
- */
-export interface RequestRuntimeQuitRequest {}
-
-export const RequestRuntimeQuitRequest: MessageType<RequestRuntimeQuitRequest> =
-  /* @__PURE__ */ createEmptyMessageType<RequestRuntimeQuitRequest>(
-    'web.runtime.RequestRuntimeQuitRequest',
-    true,
-  )
-
-/**
- * RequestRuntimeQuitResponse is the response to RequestRuntimeQuit.
- *
- * @generated from message web.runtime.RequestRuntimeQuitResponse
- */
-export interface RequestRuntimeQuitResponse {}
-
-export const RequestRuntimeQuitResponse: MessageType<RequestRuntimeQuitResponse> =
-  /* @__PURE__ */ createEmptyMessageType<RequestRuntimeQuitResponse>(
-    'web.runtime.RequestRuntimeQuitResponse',
-    true,
-  )
-
-/**
  * WatchWebRuntimeStatusRequest is the body of the WatchWebRuntimeStatus request.
  *
  * @generated from message web.runtime.WatchWebRuntimeStatusRequest

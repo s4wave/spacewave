@@ -329,7 +329,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "14837ef7b334065e40a8d2d929ab183bb5aaac0e8bb8331b04817417e9ed6e79",
+      "hash": "32a300189a12d3a360a6348922a252317a24851c3a679e5f8b879caea04879de",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"
@@ -727,7 +727,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin": {
-      "hash": "3672aedc3b745a567350c232cebf04856906dea5a2e113500879ce295d194b94",
+      "hash": "59d9db565ec397bd5ea5333f0a33d4722bd3f16f9f0cd605e6c699ff9dec4192",
       "generatedFiles": [
         "bldr/web/plugin/plugin.pb.go",
         "bldr/web/plugin/plugin.pb.ts",
@@ -843,7 +843,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/runtime": {
-      "hash": "82c1f498c9d02df52d2aaf8cc4983c387a4f43401b925dc74cf8c9e8d1dd3a11",
+      "hash": "28b5e8bfc86e69a0e52b8a4b15ba04b34cdc2bf87edef285d51cc94fed8e7846",
       "generatedFiles": [
         "bldr/web/runtime/runtime.pb.go",
         "bldr/web/runtime/runtime.pb.ts",
@@ -1003,6 +1003,18 @@
       ],
       "protoFiles": [
         "core/changelog/changelog.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/core/daemon/desktopcontrol": {
+      "hash": "6ced696642ebe96f4a000596485d1fca91ab9794824949a4dc5c8943ff0a4e08",
+      "generatedFiles": [
+        "core/daemon/desktopcontrol/desktop-control.pb.go",
+        "core/daemon/desktopcontrol/desktop-control.pb.ts",
+        "core/daemon/desktopcontrol/desktop-control_srpc.pb.go",
+        "core/daemon/desktopcontrol/desktop-control_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "core/daemon/desktopcontrol/desktop-control.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/debug/bridge": {

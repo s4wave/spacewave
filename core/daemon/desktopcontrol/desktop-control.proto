@@ -1,0 +1,48 @@
+syntax = "proto3";
+package spacewave.daemon.desktopcontrol;
+
+import "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto";
+
+option go_package = "github.com/s4wave/spacewave/core/daemon/desktopcontrol;desktopcontrol";
+
+// DesktopControlService opens the desktop owned by the daemon serving the Resource socket.
+service DesktopControlService {
+  // OpenOrFocusDesktop opens or focuses the daemon's selected desktop.
+  rpc OpenOrFocusDesktop(OpenOrFocusDesktopRequest) returns (OpenOrFocusDesktopResponse);
+  // WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
+  rpc WatchDesktopStatus(WatchDesktopStatusRequest) returns (stream WatchDesktopStatusResponse);
+}
+
+// OpenOrFocusDesktopRequest selects the initial route in the desktop.
+message OpenOrFocusDesktopRequest {
+  // Route is the optional application route to open.
+  string route = 1;
+}
+
+// OpenOrFocusDesktopResponse identifies the daemon and UI artifact that opened.
+message OpenOrFocusDesktopResponse {
+  // DaemonPid identifies the running daemon process.
+  int64 daemon_pid = 1;
+  // DaemonExecutable is the running daemon's executable path.
+  string daemon_executable = 2;
+  // DaemonRelease is the application release embedded in the running executable.
+  string daemon_release = 3;
+  // UiManifestRef identifies the selected web plugin artifact.
+  string ui_manifest_ref = 4;
+}
+
+// WatchDesktopStatusRequest subscribes to the daemon's desktop observation.
+message WatchDesktopStatusRequest {
+}
+
+// WatchDesktopStatusResponse survives launcher disconnection and is replayed to new subscribers.
+message WatchDesktopStatusResponse {
+  // Generation identifies the shell in the selected web plugin; zero means none has opened.
+  uint64 generation = 1;
+  // Presence is the Electron owner's last observation, absent until confirmed.
+  // ACTIVE confirms open readiness; ENDED confirms exit, with Error distinguishing failure.
+  .bldr.web.plugin.WatchDesktopPresenceResponse presence = 2;
+  // Failure reports a desktop operation or observation failure, not proof of shell exit.
+  // An observation failure preserves Presence and the daemon's service demand.
+  string failure = 3;
+}
