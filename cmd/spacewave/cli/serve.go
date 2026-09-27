@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -20,6 +19,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
+	"github.com/s4wave/spacewave/core/daemon"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -38,6 +38,7 @@ func serveSocketPath(c *cli.Context, statePath string) string {
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener.
 func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) *cli.Command {
+	// Keep serve flags scoped to this command's startup and idle policy.
 	var startupPipeID string
 	var runtimeTracePath string
 	var takeover bool
@@ -66,7 +67,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 			&cli.StringFlag{
 				Name:        "trace",
 				Usage:       "write a Go runtime trace for the daemon process",
-				EnvVars:     []string{daemonTracePathEnvVar},
+				EnvVars:     []string{daemon.TracePathEnvVar},
 				Destination: &runtimeTracePath,
 			},
 		},
@@ -78,6 +79,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 	}
 }
 
+// runServeCommand owns the state lease, Resource readiness and common daemon lifetime.
 func runServeCommand(
 	c *cli.Context,
 	getBus func() cli_entrypoint.CliBus,
@@ -86,25 +88,22 @@ func runServeCommand(
 	takeover bool,
 	idleTimeout time.Duration,
 ) (retErr error) {
+	// Resolve the command target before any writable bus is requested.
 	ctx := c.Context
-
 	resolved, err := resolveStatePathFromContext(c, "")
 	if err != nil {
 		return err
 	}
-	startupNotifier, err := newDaemonStartupNotifier(ctx, resolved, startupPipeID)
+	startupNotifier, err := daemon.NewStartupNotifier(ctx, resolved, startupPipeID)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if startupNotifier == nil {
-			return
-		}
 		if retErr != nil {
-			startupNotifier.reportError(retErr)
+			startupNotifier.Error(retErr)
 			return
 		}
-		startupNotifier.close()
+		startupNotifier.Close()
 	}()
 	if !c.IsSet("idle-timeout") {
 		idleTimeout, err = getDaemonIdleTimeout()
@@ -113,11 +112,13 @@ func runServeCommand(
 		}
 	}
 
+	// Suppress the bus-hosted listener while serve owns the public socket.
 	sockPath := serveSocketPath(c, resolved)
 	handoffBroker := yieldBroker
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)
 	defer handoffBroker.Reclaim()
 
+	// Hold exclusion through bus teardown, including initialization failures.
 	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, sockPath, takeover)
 	if err != nil {
 		return err
@@ -138,6 +139,7 @@ func runServeCommand(
 		defer debug.SetMemoryLimit(debug.SetMemoryLimit(1 << 30))
 	}
 
+	// Transfer lease cleanup to the bus only after writable construction succeeds.
 	cliBus := getBus()
 	if cliBus == nil {
 		return errors.New("bus not initialized")
@@ -151,10 +153,11 @@ func runServeCommand(
 	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
+
 	// Native core runs on the CLI bus; Dist core runs in the spacewave-core
 	// plugin process.
 	nativeCore := cliBus.GetPluginHostObjectKey() == ""
-	var invoker srpc.Invoker
+	invoker := newDaemonResourceInvoker(cliBus.GetBus())
 	if nativeCore {
 		var invokerRef directive.Reference
 		invoker, invokerRef, err = lookupLocalResourceInvoker(serveCtx, cliBus.GetBus())
@@ -162,6 +165,7 @@ func runServeCommand(
 			return err
 		}
 		defer invokerRef.Release()
+
 		// Native core owns the same Resource authority as the core plugin.
 		// Present it as that plugin before starting plugins that register types.
 		releaseCorePlugin, err := cliBus.GetBus().AddController(serveCtx, newNativeCorePlugin(invoker), nil)
@@ -169,11 +173,9 @@ func runServeCommand(
 			return err
 		}
 		defer releaseCorePlugin()
-	} else {
-		// Each Dist Resource RPC waits for the current spacewave-core generation
-		// after its stream is opened.
-		invoker = newDaemonResourceInvoker(cliBus.GetBus())
 	}
+
+	// Native hosts supply the same plugin-host services as a distribution bus.
 	var releasePluginHost func()
 	if nativeCore {
 		pluginRoot := filepath.Join(resolved, "plugin")
@@ -196,6 +198,8 @@ func runServeCommand(
 		}
 		defer releasePluginHost()
 	}
+
+	// Tie background projections and remote services to the serving lifetime.
 	devicePolicy, err := device_policy.NewPolicyStore(resolved)
 	if err != nil {
 		return err
@@ -206,14 +210,15 @@ func runServeCommand(
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 
-	_, explicitSocket := lineageFlagSet(c, "socket-path")
 	// Protect and bind the Resource socket before publishing daemon readiness.
+	explicitSocket := effectiveSocketPath(c, "") != ""
 	lis, err := resource_listener.ListenProtectedUnix(sockPath, !explicitSocket)
 	if err != nil {
 		return errors.Wrapf(err, "listen on daemon socket %s", sockPath)
 	}
 	defer lis.Close()
 
+	// Retain startup demand until readiness; then every daemon uses idle expiry.
 	le.Infof("listening on %s", sockPath)
 	idleTracker := newDaemonIdleTracker(idleTimeout, func() {
 		le.Info("daemon idle timeout reached, shutting down")
@@ -221,14 +226,19 @@ func runServeCommand(
 		lis.Close()
 	})
 	defer idleTracker.close()
+	releaseStartupDemand := idleTracker.serviceAttached()
+	defer releaseStartupDemand()
 
+	// Persistent services participate in the same idle count as public clients.
 	startWebListenerKeepalive(serveCtx, le, invoker, idleTracker)
 
+	// Register local controls before allowing clients onto the listener.
 	mux := srpc.NewMux(invoker)
-	shutdownCh := make(chan struct{})
-	var shutdownOnce sync.Once
+	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
+	defer shutdownCancel()
+	shutdownCh := shutdownCtx.Done()
 	controlHandler := newDaemonControlHandler(func() {
-		shutdownOnce.Do(func() { close(shutdownCh) })
+		shutdownCancel()
 		lis.Close()
 	})
 	if err := mux.Register(controlHandler); err != nil {
@@ -241,11 +251,27 @@ func runServeCommand(
 		return err
 	}
 
-	srv := srpc.NewServer(mux)
-	startDeviceCapacityObserver(serveCtx, le, resolved, sockPath, devicePolicy)
-	if err := startupNotifier.reportReady(); err != nil {
+	// Verify the actual native or forwarded Resource service before handing
+	// custody to the launcher. Public accepts begin only after acknowledgement.
+	readyClient, err := buildSDKClientFromInvoker(serveCtx, mux)
+	if err != nil {
+		return errors.Wrap(err, "initialize daemon Resource service")
+	}
+	defer readyClient.close()
+	if err := startupNotifier.Ready(serveCtx); err != nil {
 		return err
 	}
+
+	// Wake lease losers even when they consumed the socket's bind event before
+	// listen completed. Both core shapes publish the same post-custody event.
+	if err := daemon.PublishReady(sockPath); err != nil {
+		return errors.Wrap(err, "publish daemon readiness")
+	}
+
+	// Public service starts only after the launcher relinquishes custody.
+	srv := srpc.NewServer(mux)
+	startDeviceCapacityObserver(serveCtx, le, resolved, sockPath, devicePolicy)
+	releaseStartupDemand()
 	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }
 
@@ -255,6 +281,7 @@ func lookupLocalResourceInvoker(
 	ctx context.Context,
 	b bus.Bus,
 ) (srpc.Invoker, directive.Reference, error) {
+	// Retain the local Resource service directive for the daemon's lifetime.
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
 		b,
@@ -275,7 +302,9 @@ func lookupLocalResourceInvoker(
 // daemonPluginClientLoader waits for the current spacewave-core generation.
 type daemonPluginClientLoader func(context.Context) (srpc.Client, directive.Reference, error)
 
+// daemonResourceInvoker forwards each stream to the current core plugin.
 type daemonResourceInvoker struct {
+	// loadClient acquires the plugin client and its stream-scoped reference.
 	loadClient daemonPluginClientLoader
 }
 
@@ -289,13 +318,17 @@ func newDaemonResourceInvoker(b bus.Bus) srpc.Invoker {
 	}
 }
 
+// InvokeMethod retains the selected core generation until the stream ends.
 func (i *daemonResourceInvoker) InvokeMethod(
 	serviceID, methodID string,
 	strm srpc.Stream,
 ) (bool, error) {
+	// Leave non-Resource services to the daemon's local control handlers.
 	if serviceID != resource.SRPCResourceServiceServiceID {
 		return false, nil
 	}
+
+	// Keep the selected plugin alive until this forwarded stream completes.
 	client, clientRef, err := i.loadClient(strm.Context())
 	if err != nil || clientRef == nil {
 		return false, err
@@ -303,3 +336,6 @@ func (i *daemonResourceInvoker) InvokeMethod(
 	defer clientRef.Release()
 	return srpc.NewClientInvoker(client).InvokeMethod(serviceID, methodID, strm)
 }
+
+// _ is a type assertion.
+var _ srpc.Invoker = (*daemonResourceInvoker)(nil)

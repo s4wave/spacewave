@@ -130,15 +130,8 @@ func MainWithRunner(
 	run := func(ctx context.Context, preBuildHooks, postStartHooks []DistBusHook) error {
 		return Run(ctx, le, distMeta, assetsFS, "", composition, preBuildHooks, postStartHooks)
 	}
-	if runner == nil {
-		runner = func(ctx context.Context, _ *logrus.Entry, run NativeRun) error {
-			return run(ctx, nil, nil)
-		}
-	}
-	if err := runner(ctx, le, run); err != nil && err != context.Canceled {
+	if err := runNativeAction(ctx, le, composition.NativeAction, runner, run); err != nil && err != context.Canceled {
 		le.WithError(err).Error("exiting with fatal error")
-		ctxCancel()
-		<-time.After(time.Millisecond * 100)
 		os.Exit(1)
 	}
 }

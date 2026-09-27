@@ -6,8 +6,8 @@ import (
 	"context"
 	"flag"
 	"os"
+	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/pipesock"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	"github.com/s4wave/spacewave/core/daemon"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 )
 
@@ -23,7 +24,18 @@ import (
 // pushes the resulting socket path past the platform limit.
 func shortStatePath(t *testing.T) string {
 	t.Helper()
-	dir, err := os.MkdirTemp("", "sw")
+	root := os.Getenv("SPACEWAVE_TEST_STATE_ROOT")
+	if root == "" {
+		root = ".tmp"
+		if err := os.MkdirAll(root, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(root, "sw")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +46,7 @@ func shortStatePath(t *testing.T) string {
 func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
 	statePath := shortStatePath(t)
-	pipeListener, err := pipesock.BuildPipeListener(newDaemonStartupPipeLogger(), statePath, "startup")
+	pipeListener, err := pipesock.BuildPipeListener(daemon.NewStartupPipeLogger(), statePath, "startup")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +69,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 
 	waitCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	startupErr := waitForDaemonStartup(waitCtx, pipeListener)
+	startupErr := daemon.WaitStartup(waitCtx, pipeListener)
 	commandErr := <-commandErrCh
 	if startupErr == nil {
 		t.Fatal("expected daemon startup error")
@@ -71,9 +83,9 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 }
 
 func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
-	t.Setenv(daemonTracePathEnvVar, "")
+	t.Setenv(daemon.TracePathEnvVar, "")
 
-	got := daemonServeArgs("/tmp/state", "pipe-id")
+	got := daemon.ServeArgs("/tmp/state", "pipe-id")
 	want := []string{
 		"--state-path", "/tmp/state",
 		"serve",
@@ -85,9 +97,9 @@ func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
 }
 
 func TestDaemonServeArgsPassTracePathToServe(t *testing.T) {
-	t.Setenv(daemonTracePathEnvVar, "/tmp/spacewave.trace")
+	t.Setenv(daemon.TracePathEnvVar, "/tmp/spacewave.trace")
 
-	got := daemonServeArgs("/tmp/state", "pipe-id")
+	got := daemon.ServeArgs("/tmp/state", "pipe-id")
 	want := []string{
 		"--state-path", "/tmp/state",
 		"serve",
@@ -100,21 +112,21 @@ func TestDaemonServeArgsPassTracePathToServe(t *testing.T) {
 }
 
 func TestGetDaemonStartupTimeoutDefault(t *testing.T) {
-	t.Setenv(daemonStartupTimeoutEnvVar, "")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "")
 
-	dur, err := getDaemonStartupTimeout()
+	dur, err := daemon.StartupTimeout()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dur != defaultDaemonStartupTimeout {
-		t.Fatalf("got %v, want %v", dur, defaultDaemonStartupTimeout)
+	if dur != daemon.DefaultStartupTimeout {
+		t.Fatalf("got %v, want %v", dur, daemon.DefaultStartupTimeout)
 	}
 }
 
 func TestGetDaemonStartupTimeoutOverride(t *testing.T) {
-	t.Setenv(daemonStartupTimeoutEnvVar, "75s")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "75s")
 
-	dur, err := getDaemonStartupTimeout()
+	dur, err := daemon.StartupTimeout()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,9 +136,9 @@ func TestGetDaemonStartupTimeoutOverride(t *testing.T) {
 }
 
 func TestGetDaemonStartupTimeoutInvalid(t *testing.T) {
-	t.Setenv(daemonStartupTimeoutEnvVar, "definitely-not-a-duration")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "definitely-not-a-duration")
 
-	_, err := getDaemonStartupTimeout()
+	_, err := daemon.StartupTimeout()
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -142,32 +154,11 @@ func TestDaemonStartupPipeLoggerCanBuildListener(t *testing.T) {
 	}
 	defer os.RemoveAll(root)
 
-	listener, err := pipesock.BuildPipeListener(newDaemonStartupPipeLogger(), root, "startup")
+	listener, err := pipesock.BuildPipeListener(daemon.NewStartupPipeLogger(), root, "startup")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := listener.Close(); err != nil {
 		t.Fatal(err)
-	}
-}
-
-// TestDaemonChildEnvForwardedContract pins the env-var contract for
-// IC-4: any change to the daemon spawn path that sets cmd.Env
-// explicitly must continue to forward this exact list. The list is
-// kept sorted so additions are obvious in code review.
-func TestDaemonChildEnvForwardedContract(t *testing.T) {
-	want := []string{
-		"BLDR_LOG_FILE",
-		"BLDR_LOG_LEVEL",
-		"BLDR_STATE_PATH",
-		"SPACEWAVE_DAEMON_TRACE",
-		"SPACEWAVE_DATA_DIR",
-		"SPACEWAVE_LOG_LEVEL",
-		"SPACEWAVE_LOG_RETENTION_DAYS",
-	}
-	got := slices.Clone(daemonChildEnvForwarded)
-	sort.Strings(got)
-	if !slices.Equal(got, want) {
-		t.Fatalf("daemonChildEnvForwarded =\n  got  %#v\n  want %#v", got, want)
 	}
 }

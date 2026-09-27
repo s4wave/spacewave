@@ -1,6 +1,6 @@
 //go:build !js && (darwin || linux)
 
-package spacewave_cli
+package daemon
 
 import (
 	"os/exec"

@@ -6,7 +6,6 @@ import (
 	"context"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -110,9 +109,9 @@ func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("autostart must not run in connect-only mode")
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("build client must not run after dial failure")
@@ -160,9 +159,9 @@ func TestConnectDaemonFromContextUsesSocketPath(t *testing.T) {
 		dialedSocket = sockPath
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("autostart must not run when --socket-path is set")
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -221,9 +220,9 @@ func TestConnectDaemonFromContextFallsBackToStatePath(t *testing.T) {
 		dialedSocket = sockPath
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("daemon start must not run when dial succeeds")
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -285,13 +284,13 @@ func TestConnectDaemonFromContextStartsStatePathDaemon(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialCalls++
 		if dialCalls == 1 {
-			return nil, context.DeadlineExceeded
+			return nil, os.ErrNotExist
 		}
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		startStatePath = statePath
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil

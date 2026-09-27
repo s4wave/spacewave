@@ -4,14 +4,10 @@ package spacewave_cli
 
 import (
 	"context"
-	stderrors "errors"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
-	"syscall"
-	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -20,6 +16,7 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/core/daemon"
 	s4wave_space_core "github.com/s4wave/spacewave/core/space"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
@@ -48,105 +45,65 @@ var statePathEnvVars = cli_entrypoint.StatePathEnvVars(projectID)
 var socketPathEnvVars = []string{"SPACEWAVE_SOCKET_PATH"}
 
 // socketName is the name of the Unix socket within the state path.
-const socketName = "spacewave.sock"
+const socketName = daemon.SocketName
 
 // sdkClient wraps the Resource SDK connection to a running daemon. A
 // successfully connected client does not retain the daemon process handle.
 type sdkClient struct {
-	conn         net.Conn
-	srpc         srpc.Client
-	resClient    *resource_client.Client
-	root         *s4wave_root.Root
-	clientCancel context.CancelFunc
+	// conn carries connection-scoped daemon control operations.
+	conn net.Conn
+	// srpc exposes daemon services to command adapters.
+	srpc srpc.Client
+	// resClient retains the initialized Resource stream.
+	resClient *resource_client.Client
+	// root is the adopted root resource reference.
+	root *s4wave_root.Root
+	// shared owns native transport cleanup; nil for in-process clients.
+	shared *daemon.Client
 }
 
+// nativeClientFactory connects command runners to the shared native daemon.
 type nativeClientFactory struct{}
 
+// nativeClient adapts the daemon client to the shared command runner.
 type nativeClient struct {
+	// client retains the CLI resource facade.
 	client *sdkClient
 }
 
+// nativeSession adapts Session watches to command runner streams.
 type nativeSession struct {
 	*s4wave_session.Session
 }
 
 var (
+	// connectDaemonDial selects the socket transport for command wiring tests.
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		var d net.Dialer
 		return d.DialContext(ctx, "unix", sockPath)
 	}
+	// connectDaemonBuildClient constructs command SDK facades.
 	connectDaemonBuildClient = buildSDKClient
-	connectDaemonStart       = startDaemonProcess
+	// connectDaemonStart transfers startup custody through the shared launcher.
+	connectDaemonStart = daemon.StartProcess
 )
 
 // connectDaemon connects to the running daemon via Unix socket.
 // It joins statePath with the canonical socket name and never starts or
 // takes over a daemon implicitly.
 func connectDaemon(ctx context.Context, statePath string) (*sdkClient, error) {
-	sockPath := filepath.Join(statePath, socketName)
-	conn, err := connectDaemonDial(ctx, sockPath)
-	if err != nil {
-		return nil, connectDaemonNotListeningError(sockPath)
-	}
-	client, err := connectDaemonBuildClient(ctx, conn)
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	return client, nil
+	return connectDaemonAtSocket(ctx, filepath.Join(statePath, socketName))
 }
 
-// connectDaemonWithAutostart connects to a running daemon or starts one in
-// statePath when no daemon is reachable. The parent keeps the child process
-// handle until Resource Init succeeds so startup failure can stop and wait for
-// the child. A successful connection releases the handle before returning.
+// connectDaemonWithAutostart uses the shared native startup contract. Once
+// readiness transfers custody, a client failure cannot stop the daemon.
 func connectDaemonWithAutostart(ctx context.Context, statePath string) (*sdkClient, error) {
-	sockPath := filepath.Join(statePath, socketName)
-	_, statErr := os.Stat(sockPath)
-	conn, err := connectDaemonDial(ctx, sockPath)
+	// Reuse daemon arbitration before constructing the CLI's SDK facade.
+	conn, err := daemon.NewConnector(connectDaemonDial, connectDaemonStart).Dial(ctx, statePath, "")
 	if err != nil {
-		if statErr == nil && !stderrors.Is(err, syscall.ECONNREFUSED) {
-			return nil, errors.Wrapf(err, "connect to existing daemon socket %s", sockPath)
-		}
-		if statErr == nil {
-			if err := os.Remove(sockPath); err != nil && !os.IsNotExist(err) {
-				return nil, errors.Wrap(err, "remove stale daemon socket")
-			}
-		}
-		daemonCmd, startErr := connectDaemonStart(ctx, statePath)
-		if startErr != nil {
-			return nil, errors.Wrap(startErr, "start daemon")
-		}
-		conn, err = connectDaemonDial(ctx, sockPath)
-		if err != nil {
-			stopErr := terminateDaemonCmd(daemonCmd, statePath)
-			if stopErr != nil {
-				return nil, errors.Wrapf(err, "connect to %s; stop started daemon: %v", sockPath, stopErr)
-			}
-			return nil, errors.Wrapf(err, "connect to %s", sockPath)
-		}
-		client, buildErr := connectDaemonBuildClient(ctx, conn)
-		if buildErr != nil {
-			conn.Close()
-			stopErr := terminateDaemonCmd(daemonCmd, statePath)
-			if stopErr != nil {
-				return nil, errors.Wrapf(buildErr, "stop started daemon: %v", stopErr)
-			}
-			return nil, buildErr
-		}
-		// The daemon is self-sustaining after the client handshake succeeds.
-		// Release the process handle so the daemon persists for subsequent
-		// commands; do not store it on the client, since close must not kill
-		// a healthy daemon.
-		releaseDaemonCmd(daemonCmd)
-		return client, nil
-	}
-	client, err := connectDaemonBuildClient(ctx, conn)
-	if err != nil {
-		conn.Close()
 		return nil, err
 	}
-	return client, nil
+	return connectDaemonBuildClient(ctx, conn)
 }
 
 // connectDaemonAtSocket dials an existing daemon socket at the exact given
@@ -156,16 +113,12 @@ func connectDaemonWithAutostart(ctx context.Context, statePath string) (*sdkClie
 // caller asked for connect-only semantics, so silently spawning a new
 // daemon would violate intent.
 func connectDaemonAtSocket(ctx context.Context, sockPath string) (*sdkClient, error) {
-	conn, err := connectDaemonDial(ctx, sockPath)
+	// Share explicit target semantics with the native application connector.
+	conn, err := daemon.NewConnector(connectDaemonDial, connectDaemonStart).Dial(ctx, "", sockPath)
 	if err != nil {
-		return nil, connectDaemonNotListeningError(sockPath)
-	}
-	client, err := connectDaemonBuildClient(ctx, conn)
-	if err != nil {
-		conn.Close()
 		return nil, err
 	}
-	return client, nil
+	return connectDaemonBuildClient(ctx, conn)
 }
 
 // connectDaemonFromContext picks the right connection path based on CLI flags
@@ -192,97 +145,20 @@ func connectDaemonWithResolvedFallback(ctx context.Context, c *cli.Context, reso
 	return connectDaemonWithAutostart(ctx, resolved)
 }
 
-// connectDaemonNotListeningError returns the connect-only daemon error.
-func connectDaemonNotListeningError(sockPath string) error {
-	return errors.Errorf(
-		"no daemon listening at %s: start the Spacewave desktop app or run "+
-			"`spacewave serve` with a matching --state-path; see the Command Line "+
-			"settings page in the app for guidance",
-		sockPath,
-	)
-}
-
-// buildSDKClient constructs the Resource SDK client over an accepted daemon
-// connection. The initial ResourceClient Init handshake is bounded by the
-// daemon startup timeout so it cannot block forever when the core plugin
-// has not loaded yet. On success the client's stream lifetime is tied to
-// the caller's context via a cancel stored on sdkClient, so subsequent RPCs
-// remain valid after the handshake bound expires.
+// buildSDKClient adopts the shared initialized Resource connection.
 func buildSDKClient(ctx context.Context, conn net.Conn) (*sdkClient, error) {
-	srpcClient, err := srpc.NewClientWithConn(conn, true, nil)
+	// The shared client owns cleanup on initialization failure and success.
+	client, err := daemon.NewClient(ctx, conn)
 	if err != nil {
-		conn.Close()
-		return nil, errors.Wrap(err, "create srpc client")
-	}
-
-	// Bound the initial ResourceClient handshake without canceling the
-	// client's lifetime on success. NewClient derives its stream context
-	// from the passed context; a timeout context would cancel the stream
-	// after the deadline even on success. Instead, use a manual cancel
-	// context and a select: on timeout, cancel and fail; on success, keep
-	// the context alive and store the cancel for close.
-	handshakeTimeout, err := getDaemonStartupTimeout()
-	if err != nil {
-		conn.Close()
 		return nil, err
 	}
-	clientCtx, clientCancel := context.WithCancel(ctx)
-
-	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
-	type buildResult struct {
-		client *resource_client.Client
-		root   *s4wave_root.Root
-		err    error
-	}
-	resultCh := make(chan buildResult, 1)
-	go func() {
-		resClient, err := resource_client.NewClient(clientCtx, resourceSvc)
-		if err != nil {
-			resultCh <- buildResult{err: err}
-			return
-		}
-		rootRef := resClient.AccessRootResource()
-		root, err := s4wave_root.NewRoot(resClient, rootRef)
-		if err != nil {
-			rootRef.Release()
-			resClient.Release()
-			resultCh <- buildResult{err: err}
-			return
-		}
-		resultCh <- buildResult{client: resClient, root: root}
-	}()
-
-	select {
-	case <-time.After(handshakeTimeout):
-		clientCancel()
-		conn.Close()
-		// Join the NewClient goroutine. After canceling the context
-		// and closing the conn, NewClient must return promptly. If it
-		// produces a client despite the cancel, release root before
-		// client to drop the root reference first.
-		if res := <-resultCh; res.client != nil {
-			if res.root != nil {
-				res.root.Release()
-			}
-			res.client.Release()
-		}
-		return nil, errors.New("resource client: init handshake timed out")
-	case res := <-resultCh:
-		if res.err != nil {
-			clientCancel()
-			conn.Close()
-			return nil, errors.Wrap(res.err, "resource client")
-		}
-		return &sdkClient{
-			conn:         conn,
-			srpc:         srpcClient,
-			resClient:    res.client,
-			root:         res.root,
-			clientCancel: clientCancel,
-		}, nil
-	}
+	return &sdkClient{
+		conn: client.Conn(), srpc: client.RPC(), resClient: client.Resources(),
+		root: client.Root(), shared: client,
+	}, nil
 }
 
+// buildSDKClientFromInvoker initializes an in-process Resource connection.
 func buildSDKClientFromInvoker(ctx context.Context, invoker srpc.Invoker) (*sdkClient, error) {
 	srpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
 	resourceSvc := resource.NewSRPCResourceServiceClient(srpcClient)
@@ -306,6 +182,7 @@ func buildSDKClientFromInvoker(ctx context.Context, invoker srpc.Invoker) (*sdkC
 	}, nil
 }
 
+// NewClient connects the command runner to its selected daemon.
 func (nativeClientFactory) NewClient(ctx context.Context, c *cli.Context) (runner.Client, error) {
 	client, err := connectDaemonFromContext(ctx, c, defaultStatePath)
 	if err != nil {
@@ -314,14 +191,17 @@ func (nativeClientFactory) NewClient(ctx context.Context, c *cli.Context) (runne
 	return &nativeClient{client: client}, nil
 }
 
+// StatusEndpoint resolves the command runner's exact socket target.
 func (nativeClientFactory) StatusEndpoint(ctx context.Context, c *cli.Context) (string, error) {
 	return daemonSocketPath(c, defaultStatePath)
 }
 
+// Close releases this runner's connection without stopping shared work.
 func (c *nativeClient) Close() {
 	c.client.close()
 }
 
+// MountSession adopts a Session for the command runner.
 func (c *nativeClient) MountSession(ctx context.Context, idx uint32) (runner.Session, error) {
 	sess, err := c.client.mountSession(ctx, idx)
 	if err != nil {
@@ -330,10 +210,12 @@ func (c *nativeClient) MountSession(ctx context.Context, idx uint32) (runner.Ses
 	return &nativeSession{Session: sess}, nil
 }
 
+// WatchResourcesList forwards the retained Session resource watch.
 func (s *nativeSession) WatchResourcesList(ctx context.Context) (runner.ResourcesListStream, error) {
 	return s.Session.WatchResourcesList(ctx)
 }
 
+// WatchLockState forwards Session lock changes.
 func (s *nativeSession) WatchLockState(ctx context.Context) (runner.LockStateStream, error) {
 	return s.Session.WatchLockState(ctx)
 }
@@ -410,6 +292,7 @@ func (c *sdkClient) resolveSpaceID(ctx context.Context, sess *s4wave_session.Ses
 	return resolveSpaceIDFromList(spaceID, resp.GetSpacesList())
 }
 
+// resolveSpaceIDFromList selects an exact ID, display name, or sole Space.
 func resolveSpaceIDFromList(spaceID string, spaces []*s4wave_space_core.SpaceSoListEntry) (string, error) {
 	if len(spaces) == 0 {
 		return "", errors.New("no spaces found; specify --space")
@@ -494,97 +377,22 @@ func (c *sdkClient) accessWorldEngineWithRef(ctx context.Context, spaceSvc s4wav
 // close releases all resources, closes the connection, and cancels the
 // Resource client context.
 func (c *sdkClient) close() {
+	// Delegate socket lifetimes to the shared daemon client.
+	if c.shared != nil {
+		c.shared.Close()
+		return
+	}
+
+	// In-process clients retain only Resource references.
 	if c.root != nil {
 		c.root.Release()
 	}
 	if c.resClient != nil {
 		c.resClient.Release()
 	}
-	if c.clientCancel != nil {
-		c.clientCancel()
-	}
 	if c.conn != nil {
 		c.conn.Close()
 	}
-}
-
-var daemonShutdownGracePeriod = 2 * time.Second
-
-var daemonForcedShutdownTimeout = 2 * time.Second
-
-// terminateDaemonCmd asks the daemon control service to stop, then falls back
-// to the platform interrupt. It waits for normal cleanup and kills any process
-// left in the started tree only after the grace period. cmd.Wait reaps the
-// leader exactly once.
-func terminateDaemonCmd(cmd *exec.Cmd, statePath string) error {
-	if cmd == nil || cmd.Process == nil {
-		return nil
-	}
-	pid := cmd.Process.Pid
-	waitCh := make(chan error, 1)
-	go func() { waitCh <- cmd.Wait() }()
-
-	shutdownErr := requestStartedDaemonShutdown(statePath)
-	if shutdownErr != nil {
-		shutdownErr = stderrors.Join(shutdownErr, interruptDaemon(pid))
-	}
-	graceTimer := time.NewTimer(daemonShutdownGracePeriod)
-	select {
-	case <-waitCh:
-		graceTimer.Stop()
-		return killDaemonTree(pid)
-	case <-graceTimer.C:
-	}
-
-	killErr := killDaemonTree(pid)
-	var cleanupErr error
-	if killErr != nil {
-		select {
-		case <-waitCh:
-			return nil
-		default:
-		}
-		leaderKillErr := cmd.Process.Kill()
-		cleanupErr = stderrors.Join(killErr, leaderKillErr)
-	}
-
-	forceTimer := time.NewTimer(daemonForcedShutdownTimeout)
-	defer forceTimer.Stop()
-	select {
-	case <-waitCh:
-		return cleanupErr
-	case <-forceTimer.C:
-		return stderrors.Join(
-			shutdownErr,
-			cleanupErr,
-			errors.New("timed out waiting for started daemon to stop"),
-		)
-	}
-}
-
-func requestStartedDaemonShutdown(statePath string) error {
-	if statePath == "" {
-		return errors.New("daemon state path is empty")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), daemonShutdownGracePeriod)
-	defer cancel()
-	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", filepath.Join(statePath, socketName))
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	return requestDaemonShutdown(ctx, conn)
-}
-
-// releaseDaemonCmd releases the process handle and any platform process-tree
-// handle without killing the child. It is called after Resource Init succeeds
-// so later commands can reuse the daemon.
-func releaseDaemonCmd(cmd *exec.Cmd) {
-	if cmd == nil || cmd.Process == nil {
-		return
-	}
-	_ = releaseDaemonTree(cmd.Process.Pid)
-	_ = cmd.Process.Release()
 }
 
 // resolveStatePath resolves the state path, making it absolute if needed.
@@ -700,6 +508,7 @@ func resolveStatePathFromContext(c *cli.Context, fallback string) (string, error
 	return resolveStatePath(effectiveStatePath(c, fallback))
 }
 
+// effectiveStatePath selects the nearest state flag or caller fallback.
 func effectiveStatePath(c *cli.Context, fallback string) string {
 	if value, _ := lineageFlagValue(c, "state-path"); value != "" {
 		return value
@@ -737,6 +546,7 @@ func daemonSocketPath(c *cli.Context, statePath string) (string, error) {
 	return filepath.Join(resolved, socketName), nil
 }
 
+// hasLocalFlag reports a flag defined in this command context.
 func hasLocalFlag(c *cli.Context, name string) bool {
 	return slices.Contains(c.LocalFlagNames(), name)
 }
