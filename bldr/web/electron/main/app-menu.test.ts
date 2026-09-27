@@ -9,6 +9,7 @@ describe('buildApplicationMenuTemplate', () => {
       appName: 'Spacewave',
       isDebug: true,
       isMac: true,
+      quitDesktopRuntime: () => {},
     })
 
     const shortcutItems = collectShortcutMenuItems(template)
@@ -17,7 +18,7 @@ describe('buildApplicationMenuTemplate', () => {
       expect.arrayContaining([
         '0 label:Spacewave',
         '0.0 role:about',
-        '0.8 role:quit',
+        '0.8 label:Quit Spacewave',
         '1 label:Edit',
         '1.0 role:undo',
         '1.9 role:selectAll',

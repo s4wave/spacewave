@@ -1,27 +1,32 @@
 import type { MenuItemConstructorOptions } from 'electron'
 
+/** ApplicationMenuOptions provides the native menu's display and Quit action. */
 export interface ApplicationMenuOptions {
   appName: string
   isDebug: boolean
   isMac: boolean
+  quitDesktopRuntime: () => void
 }
 
-// buildApplicationMenuTemplate keeps native menu clicks while leaving every
-// in-app shortcut to the renderer-owned keybinding dispatcher.
+/** buildApplicationMenuTemplate keeps native clicks while the renderer owns in-app shortcuts. */
 export function buildApplicationMenuTemplate({
   appName,
   isDebug,
   isMac,
+  quitDesktopRuntime,
 }: ApplicationMenuOptions): MenuItemConstructorOptions[] {
   return withoutRegisteredAccelerators([
-    ...(isMac ? [buildMacAppMenu(appName)] : []),
+    ...(isMac ? [buildMacAppMenu(appName, quitDesktopRuntime)] : []),
     buildEditMenu(),
     buildViewMenu(isDebug),
     buildWindowMenu(isMac),
   ])
 }
 
-function buildMacAppMenu(appName: string): MenuItemConstructorOptions {
+function buildMacAppMenu(
+  appName: string,
+  quitDesktopRuntime: () => void,
+): MenuItemConstructorOptions {
   return {
     label: appName,
     submenu: [
@@ -33,7 +38,11 @@ function buildMacAppMenu(appName: string): MenuItemConstructorOptions {
       { role: 'hideOthers' },
       { role: 'unhide' },
       { type: 'separator' },
-      { role: 'quit' },
+      {
+        label: `Quit ${appName}`,
+        accelerator: 'Command+Q',
+        click: quitDesktopRuntime,
+      },
     ],
   }
 }
@@ -61,10 +70,7 @@ function buildViewMenu(isDebug: boolean): MenuItemConstructorOptions {
     label: 'View',
     submenu: [
       ...(isDebug
-        ? [
-            { role: 'toggleDevTools' as const },
-            { type: 'separator' as const },
-          ]
+        ? [{ role: 'toggleDevTools' as const }, { type: 'separator' as const }]
         : []),
       { role: 'resetZoom' },
       { role: 'zoomIn' },
@@ -83,10 +89,7 @@ function buildWindowMenu(isMac: boolean): MenuItemConstructorOptions {
       { role: 'zoom' },
       { role: 'close' },
       ...(isMac
-        ? [
-            { type: 'separator' as const },
-            { role: 'front' as const },
-          ]
+        ? [{ type: 'separator' as const }, { role: 'front' as const }]
         : []),
     ],
   }

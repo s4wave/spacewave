@@ -258,6 +258,9 @@ export class BldrElectronApp {
           appName: this.app.getName(),
           isDebug,
           isMac,
+          quitDesktopRuntime: () => {
+            void this.desktopRuntimeResource.QuitDesktopRuntime({})
+          },
         }),
       ),
     )

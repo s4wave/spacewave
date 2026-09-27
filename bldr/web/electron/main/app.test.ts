@@ -219,6 +219,7 @@ describe('BldrElectronApp', () => {
     browserWindows.length = 0
     webRuntimeInstances.length = 0
     vi.clearAllMocks()
+    mockElectronApp.quit.mockReset()
     mockElectronApp.requestSingleInstanceLock.mockReturnValue(true)
     vi.resetModules()
   })
@@ -427,6 +428,126 @@ describe('BldrElectronApp', () => {
     await Reflect.apply(quitDesktopRuntime, app, [])
 
     expect(mockElectronApp.quit).toHaveBeenCalledOnce()
+  })
+
+  it('routes the macOS application-menu Quit through the daemon decision before shell exit', async () => {
+    vi.stubEnv('SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH', '/tmp/desktop.sock')
+    daemonQuitMocks.connect.mockResolvedValue({
+      rpc: {},
+      [Symbol.dispose]: daemonQuitMocks.dispose,
+    })
+    let requestStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      requestStarted = resolve
+    })
+    let decide!: (value: {
+      otherClients: bigint
+      otherServices: bigint
+    }) => void
+    daemonQuitMocks.quit.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          decide = resolve
+          requestStarted()
+        }),
+    )
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    let requested!: Promise<void>
+    resource.QuitDesktopRuntime.mockImplementation(() => {
+      requested = Reflect.apply(Reflect.get(app, 'quitDesktopRuntime'), app, [])
+      return requested
+    })
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+    mockElectronApp.quit.mockImplementation(() => {
+      getAppHandler('before-quit')()
+    })
+    getAppHandler('ready')()
+
+    const template = vi.mocked(electron.Menu.buildFromTemplate).mock
+      .calls[0]?.[0]
+    const appMenu = template?.[0]
+    const quitItem = Array.isArray(appMenu?.submenu)
+      ? appMenu.submenu[8]
+      : undefined
+    if (!quitItem?.click)
+      throw new Error('macOS Quit menu action not registered')
+    expect(quitItem.role).toBeUndefined()
+    expect(quitItem.accelerator).toBe('Command+Q')
+
+    Reflect.apply(quitItem.click, null, [{}, undefined, {}])
+    await started
+    expect(resource.QuitDesktopRuntime).toHaveBeenCalledOnce()
+    expect(daemonQuitMocks.quit).toHaveBeenCalledOnce()
+    expect(mockElectronApp.quit).not.toHaveBeenCalled()
+
+    decide({ otherClients: 1n, otherServices: 0n })
+    await requested
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: '1 other client(s) and 0 other service(s) are using it.',
+      }),
+    )
+    expect(mockElectronApp.quit).toHaveBeenCalledOnce()
+    expect(resource.QuitDesktopRuntime).toHaveBeenCalledOnce()
+  })
+
+  it('closes the macOS shell after the menu Quit claims an unused daemon', async () => {
+    vi.stubEnv('SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH', '/tmp/desktop.sock')
+    daemonQuitMocks.connect.mockResolvedValue({
+      rpc: {},
+      [Symbol.dispose]: daemonQuitMocks.dispose,
+    })
+    daemonQuitMocks.quit.mockResolvedValue({
+      otherClients: 0n,
+      otherServices: 0n,
+    })
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const resource = Reflect.get(app, 'desktopRuntimeResource')
+    let requested!: Promise<void>
+    resource.QuitDesktopRuntime.mockImplementation(() => {
+      requested = Reflect.apply(Reflect.get(app, 'quitDesktopRuntime'), app, [])
+      return requested
+    })
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+    mockElectronApp.quit.mockImplementation(() => {
+      getAppHandler('before-quit')()
+    })
+    getAppHandler('ready')()
+
+    const template = vi.mocked(electron.Menu.buildFromTemplate).mock
+      .calls[0]?.[0]
+    const appMenu = template?.[0]
+    const quitItem = Array.isArray(appMenu?.submenu)
+      ? appMenu.submenu[8]
+      : undefined
+    if (!quitItem?.click)
+      throw new Error('macOS Quit menu action not registered')
+    Reflect.apply(quitItem.click, null, [{}, undefined, {}])
+    await requested
+
+    expect(daemonQuitMocks.quit).toHaveBeenCalledOnce()
+    expect(daemonQuitMocks.dispose).toHaveBeenCalledOnce()
+    expect(electron.dialog.showMessageBox).not.toHaveBeenCalled()
+    expect(mockElectronApp.quit).toHaveBeenCalledOnce()
+    expect(resource.QuitDesktopRuntime).toHaveBeenCalledOnce()
+    expect(resource.setQuitting).toHaveBeenCalledWith(true)
   })
 
   it('reports the final busy decision before closing its desktop shell', async () => {
