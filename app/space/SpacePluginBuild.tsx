@@ -133,10 +133,11 @@ function BuildPanel({
 
   // Use the existing settings layout and a retained source-and-preview dialog.
   const selectClass =
-    'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs'
+    'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs [@media(pointer:coarse)]:h-11'
+  const touchTargetClass = '[@media(pointer:coarse)]:min-h-11'
   return (
     <details className="border-foreground/10 rounded-lg border p-3">
-      <summary className="cursor-pointer text-xs font-medium">
+      <summary className="cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
         Build a TypeScript plugin
       </summary>
       <div className="mt-3 space-y-3">
@@ -170,6 +171,7 @@ function BuildPanel({
             <Button
               size="sm"
               variant="ghost"
+              className={touchTargetClass}
               onClick={() => navigateToObjects([sourceKey])}
             >
               Edit source
@@ -209,6 +211,7 @@ function BuildPanel({
             onChange={(event) => setManifestId(event.target.value)}
             placeholder="my-colors"
             variant="plugin"
+            className={touchTargetClass}
             disabled={pending || building}
           />
         </div>
@@ -216,6 +219,7 @@ function BuildPanel({
           <Button
             size="sm"
             variant="brandOutline"
+            className={touchTargetClass}
             disabled={!canBuild}
             onClick={() => void build()}
           >
@@ -224,6 +228,7 @@ function BuildPanel({
           <Button
             size="sm"
             variant="ghost"
+            className={touchTargetClass}
             disabled={!canBuild}
             onClick={() => setAuthoring(true)}
           >
@@ -233,13 +238,19 @@ function BuildPanel({
             <Button
               size="sm"
               variant="ghost"
+              className={touchTargetClass}
               onClick={() => navigateToObjects([submitted.key])}
             >
               Build logs
             </Button>
           )}
           {ready && !installed && (
-            <Button size="sm" disabled={pending} onClick={() => void install()}>
+            <Button
+              size="sm"
+              className={touchTargetClass}
+              disabled={pending}
+              onClick={() => void install()}
+            >
               Install in this Space
             </Button>
           )}
@@ -269,7 +280,12 @@ function BuildPanel({
         {status.error && (
           <div role="alert" className="text-destructive text-xs">
             {status.error.message}
-            <Button size="sm" variant="ghost" onClick={status.retry}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={touchTargetClass}
+              onClick={status.retry}
+            >
               Reconnect to build
             </Button>
           </div>
