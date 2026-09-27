@@ -56,8 +56,8 @@ message ChatMessageInfo {
   uint64 index = 6;
   // Content is the full typed message content, including ciphertext envelopes.
   .spacewave.chat.ChatMessageContent content = 7;
-  // PersonPeerId is the verified person identity associated with the sending device.
-  string person_peer_id = 8;
+  // PersonId is the accepted entity ID or local-only device ID.
+  string person_id = 8;
 }
 
 // GetChannelInfoRequest is a request for channel info.
@@ -188,7 +188,7 @@ message GetReadPositionsRequest {
 
 // GetReadPositionsResponse reports the canonical read positions for this channel.
 message GetReadPositionsResponse {
-  // Positions maps external person peer identities to their monotonic read positions.
+  // Positions maps accepted person identities to their monotonic read positions.
   map<string, .spacewave.chat.ChatReadPosition> positions = 1;
 }
 

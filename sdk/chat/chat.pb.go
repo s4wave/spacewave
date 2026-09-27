@@ -30,8 +30,8 @@ type ChatChannel struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// MessageCount is the number of messages appended to the channel.
 	MessageCount uint64 `protobuf:"varint,4,opt,name=message_count,json=messageCount,proto3" json:"messageCount,omitempty"`
-	// ReadPositions maps verified person peer identities to their shared read positions.
-	// Keys are external cryptographic identities, not World object references.
+	// ReadPositions maps verified person identities to their shared read positions.
+	// Keys are accepted entity IDs or local-only device IDs.
 	ReadPositions map[string]*state.ChatReadPosition `protobuf:"bytes,5,rep,name=read_positions,json=readPositions,proto3" json:"readPositions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// CreatorPeerId is the peer identity that created the channel.
 	CreatorPeerId string `protobuf:"bytes,6,opt,name=creator_peer_id,json=creatorPeerId,proto3" json:"creatorPeerId,omitempty"`
@@ -127,9 +127,8 @@ type ChatMessage struct {
 	ReplyToKey string `protobuf:"bytes,4,opt,name=reply_to_key,json=replyToKey,proto3" json:"replyToKey,omitempty"`
 	// Index is the zero-based message index within the channel.
 	Index uint64 `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
-	// PersonPeerId is the verified person identity supplied by the authenticated host.
-	// Empty historical values identify the person by SenderPeerId.
-	PersonPeerId string `protobuf:"bytes,6,opt,name=person_peer_id,json=personPeerId,proto3" json:"personPeerId,omitempty"`
+	// PersonId is the accepted entity ID, or the signing device for local-only participants.
+	PersonId string `protobuf:"bytes,6,opt,name=person_id,json=personId,proto3" json:"personId,omitempty"`
 }
 
 func (x *ChatMessage) Reset() {
@@ -173,9 +172,9 @@ func (x *ChatMessage) GetIndex() uint64 {
 	return 0
 }
 
-func (x *ChatMessage) GetPersonPeerId() string {
+func (x *ChatMessage) GetPersonId() string {
 	if x != nil {
-		return x.PersonPeerId
+		return x.PersonId
 	}
 	return ""
 }
@@ -369,10 +368,6 @@ type SendChatMessageOp struct {
 	Request *rpc.SendMessageRequest `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
 	// Timestamp is chosen when the send is submitted.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// SenderPeerId is the authenticated device bound to the Chat Resource.
-	SenderPeerId string `protobuf:"bytes,4,opt,name=sender_peer_id,json=senderPeerId,proto3" json:"senderPeerId,omitempty"`
-	// PersonPeerId is the verified person bound to the Chat Resource.
-	PersonPeerId string `protobuf:"bytes,5,opt,name=person_peer_id,json=personPeerId,proto3" json:"personPeerId,omitempty"`
 }
 
 func (x *SendChatMessageOp) Reset() {
@@ -402,18 +397,42 @@ func (x *SendChatMessageOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *SendChatMessageOp) GetSenderPeerId() string {
+// UpdateChatReadPositionOp advances a receipt on accepted World replay.
+type UpdateChatReadPositionOp struct {
+	unknownFields []byte
+	// ObjectKey selects the channel whose receipt advances.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// NextIndex is the first unread message index.
+	NextIndex uint64 `protobuf:"varint,2,opt,name=next_index,json=nextIndex,proto3" json:"nextIndex,omitempty"`
+	// Timestamp is chosen when the receipt is submitted.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+}
+
+func (x *UpdateChatReadPositionOp) Reset() {
+	*x = UpdateChatReadPositionOp{}
+}
+
+func (*UpdateChatReadPositionOp) ProtoMessage() {}
+
+func (x *UpdateChatReadPositionOp) GetObjectKey() string {
 	if x != nil {
-		return x.SenderPeerId
+		return x.ObjectKey
 	}
 	return ""
 }
 
-func (x *SendChatMessageOp) GetPersonPeerId() string {
+func (x *UpdateChatReadPositionOp) GetNextIndex() uint64 {
 	if x != nil {
-		return x.PersonPeerId
+		return x.NextIndex
 	}
-	return ""
+	return 0
+}
+
+func (x *UpdateChatReadPositionOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
 }
 
 type ChatChannel_ReadPositionsEntry struct {
@@ -474,7 +493,7 @@ func (m *ChatMessage) CloneVT() *ChatMessage {
 	r.SenderPeerId = m.SenderPeerId
 	r.ReplyToKey = m.ReplyToKey
 	r.Index = m.Index
-	r.PersonPeerId = m.PersonPeerId
+	r.PersonId = m.PersonId
 	r.Content = protobuf_go_lite.CloneVTValue(m.Content)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	if len(m.unknownFields) > 0 {
@@ -568,8 +587,6 @@ func (m *SendChatMessageOp) CloneVT() *SendChatMessageOp {
 	}
 	r := new(SendChatMessageOp)
 	r.ObjectKey = m.ObjectKey
-	r.SenderPeerId = m.SenderPeerId
-	r.PersonPeerId = m.PersonPeerId
 	r.Request = protobuf_go_lite.CloneVTValue(m.Request)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
 	if len(m.unknownFields) > 0 {
@@ -579,6 +596,24 @@ func (m *SendChatMessageOp) CloneVT() *SendChatMessageOp {
 }
 
 func (m *SendChatMessageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *UpdateChatReadPositionOp) CloneVT() *UpdateChatReadPositionOp {
+	if m == nil {
+		return (*UpdateChatReadPositionOp)(nil)
+	}
+	r := new(UpdateChatReadPositionOp)
+	r.ObjectKey = m.ObjectKey
+	r.NextIndex = m.NextIndex
+	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpdateChatReadPositionOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -647,7 +682,7 @@ func (this *ChatMessage) EqualVT(that *ChatMessage) bool {
 	if this.Index != that.Index {
 		return false
 	}
-	if this.PersonPeerId != that.PersonPeerId {
+	if this.PersonId != that.PersonId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -789,17 +824,37 @@ func (this *SendChatMessageOp) EqualVT(that *SendChatMessageOp) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
 		return false
 	}
-	if this.SenderPeerId != that.SenderPeerId {
-		return false
-	}
-	if this.PersonPeerId != that.PersonPeerId {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SendChatMessageOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SendChatMessageOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *UpdateChatReadPositionOp) EqualVT(that *UpdateChatReadPositionOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.NextIndex != that.NextIndex {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UpdateChatReadPositionOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*UpdateChatReadPositionOp)
 	if !ok {
 		return false
 	}
@@ -1025,10 +1080,10 @@ func (x *ChatMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("index")
 		s.WriteUint64(x.Index)
 	}
-	if x.PersonPeerId != "" || s.HasField("personPeerId") {
+	if x.PersonId != "" || s.HasField("personId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("personPeerId")
-		s.WriteString(x.PersonPeerId)
+		s.WriteObjectField("personId")
+		s.WriteString(x.PersonId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1070,9 +1125,9 @@ func (x *ChatMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index":
 			s.AddField("index")
 			x.Index = s.ReadUint64()
-		case "person_peer_id", "personPeerId":
-			s.AddField("person_peer_id")
-			x.PersonPeerId = s.ReadString()
+		case "person_id", "personId":
+			s.AddField("person_id")
+			x.PersonId = s.ReadString()
 		}
 	})
 }
@@ -1394,16 +1449,6 @@ func (x *SendChatMessageOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
-	if x.SenderPeerId != "" || s.HasField("senderPeerId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("senderPeerId")
-		s.WriteString(x.SenderPeerId)
-	}
-	if x.PersonPeerId != "" || s.HasField("personPeerId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("personPeerId")
-		s.WriteString(x.PersonPeerId)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -1438,18 +1483,74 @@ func (x *SendChatMessageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
-		case "sender_peer_id", "senderPeerId":
-			s.AddField("sender_peer_id")
-			x.SenderPeerId = s.ReadString()
-		case "person_peer_id", "personPeerId":
-			s.AddField("person_peer_id")
-			x.PersonPeerId = s.ReadString()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SendChatMessageOp from JSON.
 func (x *SendChatMessageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the UpdateChatReadPositionOp message to JSON.
+func (x *UpdateChatReadPositionOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.NextIndex != 0 || s.HasField("nextIndex") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextIndex")
+		s.WriteUint64(x.NextIndex)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the UpdateChatReadPositionOp to JSON.
+func (x *UpdateChatReadPositionOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the UpdateChatReadPositionOp message from JSON.
+func (x *UpdateChatReadPositionOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "next_index", "nextIndex":
+			s.AddField("next_index")
+			x.NextIndex = s.ReadUint64()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the UpdateChatReadPositionOp from JSON.
+func (x *UpdateChatReadPositionOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1579,8 +1680,8 @@ func (m *ChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.PersonPeerId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonPeerId)
+	if len(m.PersonId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonId)
 		i--
 		dAtA[i] = 0x32
 	}
@@ -1873,16 +1974,6 @@ func (m *SendChatMessageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.PersonPeerId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonPeerId)
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.SenderPeerId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SenderPeerId)
-		i--
-		dAtA[i] = 0x22
-	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1902,6 +1993,58 @@ func (m *SendChatMessageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UpdateChatReadPositionOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpdateChatReadPositionOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UpdateChatReadPositionOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.NextIndex != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextIndex))
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.ObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
@@ -1959,7 +2102,7 @@ func (m *ChatMessage) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ReplyToKey)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Index)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2043,8 +2186,22 @@ func (m *SendChatMessageOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SenderPeerId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonPeerId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UpdateChatReadPositionOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextIndex)
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2147,9 +2304,9 @@ func (x *ChatMessage) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index")
 		protobuf_go_lite.TextWriteUint(&sb, x.Index)
 	}
-	if x.PersonPeerId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_peer_id")
-		protobuf_go_lite.TextWriteString(&sb, x.PersonPeerId)
+	if x.PersonId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PersonId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2285,18 +2442,32 @@ func (x *SendChatMessageOp) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
 	}
-	if x.SenderPeerId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sender_peer_id")
-		protobuf_go_lite.TextWriteString(&sb, x.SenderPeerId)
-	}
-	if x.PersonPeerId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_peer_id")
-		protobuf_go_lite.TextWriteString(&sb, x.PersonPeerId)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SendChatMessageOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *UpdateChatReadPositionOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "UpdateChatReadPositionOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.NextIndex != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_index")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextIndex)
+	}
+	if x.Timestamp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *UpdateChatReadPositionOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2555,14 +2726,14 @@ func (m *ChatMessage) UnmarshalVT(dAtA []byte) error {
 			}
 		case 6:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PersonPeerId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PersonId", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.PersonPeerId = v
+			m.PersonId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2979,26 +3150,83 @@ func (m *SendChatMessageOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *UpdateChatReadPositionOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpdateChatReadPositionOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpdateChatReadPositionOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SenderPeerId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SenderPeerId = v
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PersonPeerId", wireType)
+			m.ObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextIndex", wireType)
 			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			m.NextIndex = 0
+			m.NextIndex, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.PersonPeerId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

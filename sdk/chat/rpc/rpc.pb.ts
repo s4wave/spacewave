@@ -76,11 +76,11 @@ export interface ChatMessageInfo {
    */
   content?: ChatMessageContent
   /**
-   * PersonPeerId is the verified person identity associated with the sending device.
+   * PersonId is the accepted entity ID or local-only device ID.
    *
-   * @generated from field: string person_peer_id = 8;
+   * @generated from field: string person_id = 8;
    */
-  personPeerId?: string
+  personId?: string
 }
 
 export const ChatMessageInfo: MessageType<ChatMessageInfo> =
@@ -94,7 +94,7 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'content', kind: 'message', T: () => ChatMessageContent },
-      { no: 8, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -625,7 +625,7 @@ export const GetReadPositionsRequest: MessageType<GetReadPositionsRequest> =
  */
 export interface GetReadPositionsResponse {
   /**
-   * Positions maps external person peer identities to their monotonic read positions.
+   * Positions maps accepted person identities to their monotonic read positions.
    *
    * @generated from field: map<string, spacewave.chat.ChatReadPosition> positions = 1;
    */

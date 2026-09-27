@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
@@ -17,6 +18,11 @@ type SDKEngine struct {
 	client  ResourceClient
 	ref     resource_client.ResourceRef
 	service s4wave_world.SRPCEngineResourceServiceClient
+}
+
+// OperationAuthor returns no local signer for a remote SDK World handle.
+func (e *SDKEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
+	return "", "", nil
 }
 
 // NewSDKEngine creates a new SDKEngine wrapping a resource reference.

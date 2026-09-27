@@ -15,16 +15,16 @@ const SendChatMessageOpID = "spacewave-chat/message/send"
 // GetOperationTypeId identifies the operation for World transaction replay.
 func (o *SendChatMessageOp) GetOperationTypeId() string { return SendChatMessageOpID }
 
-// Validate requires stable send identity, attribution, and timestamp.
+// AuthenticatedOperation selects the verified transaction signer on replay.
+func (o *SendChatMessageOp) AuthenticatedOperation() {}
+
+// Validate requires a stable send identity and timestamp.
 func (o *SendChatMessageOp) Validate() error {
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
 	if o.GetRequest().GetTransactionId() == "" {
 		return errors.New("chat append operation requires a transaction ID")
-	}
-	if o.GetSenderPeerId() == "" || o.GetPersonPeerId() == "" {
-		return ErrChatAuthorIdentityRequired
 	}
 	return o.GetTimestamp().Validate(false)
 }
@@ -36,12 +36,15 @@ func (o *SendChatMessageOp) MarshalBlock() ([]byte, error) { return o.MarshalVT(
 func (o *SendChatMessageOp) UnmarshalBlock(data []byte) error { return o.UnmarshalVT(data) }
 
 // ApplyWorldOp appends against the World history accepted before this operation.
-func (o *SendChatMessageOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, _ peer.ID) (bool, error) {
+func (o *SendChatMessageOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, sender peer.ID) (bool, error) {
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
-	resource := &ChatResource{objectKey: o.GetObjectKey(), localPeerID: o.GetSenderPeerId(), personPeerID: o.GetPersonPeerId()}
-	_, err := resource.appendMessage(ctx, ws, o.GetRequest(), o.GetTimestamp())
+	resource, err := newReplayResource(ctx, o.GetObjectKey(), sender)
+	if err != nil {
+		return false, err
+	}
+	_, err = resource.appendMessage(ctx, ws, o.GetRequest(), o.GetTimestamp())
 	return false, err
 }
 
@@ -58,5 +61,15 @@ func LookupSendChatMessageOp(_ context.Context, operationTypeID string) (world.O
 	return nil, nil
 }
 
+// newReplayResource binds a replayed operation to its verified signing device
+// and the person the replay authority resolved from the accepted config.
+func newReplayResource(ctx context.Context, objectKey string, sender peer.ID) (*ChatResource, error) {
+	person := world.OperationPersonFromContext(ctx)
+	if sender == "" || person == "" {
+		return nil, ErrChatAuthorIdentityRequired
+	}
+	return &ChatResource{objectKey: objectKey, localPeerID: sender.String(), device: sender, personID: person}, nil
+}
+
 // _ is a type assertion
-var _ world.Operation = (*SendChatMessageOp)(nil)
+var _ world.AuthenticatedOperation = (*SendChatMessageOp)(nil)

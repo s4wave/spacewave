@@ -24,7 +24,7 @@ func TestChannelRelationsRetainReplayAndAuthority(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, &CreateChatChannelOp{ObjectKey: channelKey, Name: "Relations", Timestamp: timestamppb.Now(), EncryptionAlgorithm: algorithm}, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
-	channel := NewChatResourceForPerson(ws, tb.Engine, channelKey, "alice-device", "alice")
+	channel := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "alice-device", "alice")
 	t.Cleanup(channel.Close)
 	rootContent := &ChatMessageContent{Content: &ChatMessageContent_Ciphertext{Ciphertext: &ChatCiphertext{Algorithm: algorithm, Ciphertext: "opaque", SenderKey: "sender", SessionId: "session"}}}
 	root, err := channel.SendMessage(ctx, &chat_rpc.SendMessageRequest{TransactionId: "root", Content: rootContent})
@@ -51,7 +51,7 @@ func TestChannelRelationsRetainReplayAndAuthority(t *testing.T) {
 				t.Fatalf("retry changed event: %v %v", retry, err)
 			}
 			read, err := channel.GetMessage(ctx, &chat_rpc.GetMessageRequest{MessageKey: sent.GetMessageKey()})
-			if err != nil || !read.GetMessage().GetContent().EqualVT(item.content) || read.GetMessage().GetPersonPeerId() != "alice" || read.GetMessage().GetText() != "" {
+			if err != nil || !read.GetMessage().GetContent().EqualVT(item.content) || read.GetMessage().GetPersonId() != "alice" || read.GetMessage().GetText() != "" {
 				t.Fatalf("retained content or attribution changed: %v %v", read, err)
 			}
 			conflict := request.CloneVT()

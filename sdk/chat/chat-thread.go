@@ -26,6 +26,11 @@ func (r *ChatResource) ListThreads(
 	ctx context.Context,
 	req *spacewave_chat_rpc.ListThreadsRequest,
 ) (*spacewave_chat_rpc.ListThreadsResponse, error) {
+	bound, err := r.operationResource(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r = bound
 	if err := r.ensureThreadIndex(ctx); err != nil {
 		return nil, err
 	}
@@ -315,19 +320,16 @@ func (r *ChatResource) indexThreadReply(
 		return err
 	}
 
-	personPeerID := message.GetPersonPeerId()
-	if personPeerID == "" {
-		personPeerID = message.GetSenderPeerId()
-	}
-	if personPeerID == "" {
+	personID := message.GetPersonId()
+	if personID == "" {
 		return errors.New("thread reply has no attributed person")
 	}
-	return ws.SetGraphQuad(ctx, NewChatThreadParticipantQuad(threadKey, personPeerID))
+	return ws.SetGraphQuad(ctx, NewChatThreadParticipantQuad(threadKey, personID))
 }
 
 // threadParticipated checks the authenticated person without enumerating participants.
 func (r *ChatResource) threadParticipated(ctx context.Context, thread *ChatThread) (bool, error) {
-	if r.personPeerID == "" {
+	if r.personID == "" {
 		return false, nil
 	}
 	threadKey, err := r.chatThreadKey(thread.GetRootMessageKey())
@@ -336,7 +338,7 @@ func (r *ChatResource) threadParticipated(ctx context.Context, thread *ChatThrea
 	}
 	quads, err := r.ws.LookupGraphQuads(
 		ctx,
-		NewChatThreadParticipantQuad(threadKey, r.personPeerID),
+		NewChatThreadParticipantQuad(threadKey, r.personID),
 		1,
 	)
 	return len(quads) != 0, err

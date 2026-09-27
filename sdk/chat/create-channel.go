@@ -24,6 +24,9 @@ func (o *CreateChatChannelOp) GetOperationTypeId() string {
 	return CreateChatChannelOpId
 }
 
+// AuthenticatedOperation selects the verified transaction signer on replay.
+func (o *CreateChatChannelOp) AuthenticatedOperation() {}
+
 // Validate performs cursory checks on the op.
 func (o *CreateChatChannelOp) Validate() error {
 	if len(o.GetObjectKey()) == 0 {
@@ -61,7 +64,16 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Initial events share the operation's author, timestamp, and transaction.
 	objKey := o.GetObjectKey()
+	var author *ChatResource
+	if len(o.GetInitialState()) != 0 {
+		author, err = newReplayResource(ctx, objKey, sender)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	channel := &ChatChannel{
 		Name:                      o.GetName(),
 		Topic:                     o.GetTopic(),
@@ -86,13 +98,11 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Initial events share the operation's author, timestamp, and transaction.
-	resource := NewChatResource(ws, nil, objKey, sender.String())
 	for _, state := range o.GetInitialState() {
 		request := &spacewave_chat_rpc.SendMessageRequest{
 			Content: &ChatMessageContent{Content: &ChatMessageContent_StateChange{StateChange: state}},
 		}
-		if _, err := resource.appendMessage(ctx, ws, request, o.GetTimestamp()); err != nil {
+		if _, err := author.appendMessage(ctx, ws, request, o.GetTimestamp()); err != nil {
 			return false, err
 		}
 	}
@@ -118,4 +128,4 @@ func LookupCreateChatChannelOp(ctx context.Context, operationTypeID string) (wor
 	return nil, nil
 }
 
-var _ world.Operation = (*CreateChatChannelOp)(nil)
+var _ world.AuthenticatedOperation = (*CreateChatChannelOp)(nil)

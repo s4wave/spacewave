@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -184,6 +185,21 @@ func newSoEngine(c *Controller, so sobject.SharedObject, engine *world_block.Eng
 		so:      so,
 		bengine: engine,
 	}
+}
+
+// OperationAuthor returns the participant signing device and accepted entity.
+// A participant without an entity uses its device as the person.
+func (e *soEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
+	snapshot, err := e.so.GetSharedObjectState(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	device := e.so.GetPeerID()
+	person, err := operationPerson(ctx, snapshot, device)
+	if err != nil {
+		return "", "", err
+	}
+	return device, person, nil
 }
 
 // wrapReleaseWithTask ends task when release is called.

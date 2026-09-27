@@ -29,9 +29,10 @@ func ChatChannelFactory(
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
-	peerID := objecttype.SessionPeerIDFromContext(ctx)
-
-	resource := spacewave_chat.NewChatResource(ws, engine, objectKey, peerID.String())
+	resource, err := spacewave_chat.NewChatResource(ctx, ws, engine, objectKey)
+	if err != nil {
+		return nil, nil, err
+	}
 	return resource.GetMux(), resource.Close, nil
 }
 

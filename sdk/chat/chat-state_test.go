@@ -21,8 +21,8 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	sender := wtb.Volume.GetPeerID().String()
-	cleaner := NewChatResource(ws, wtb.Engine, GeneralChannelKey, sender)
-	writer := NewChatResource(ws, wtb.Engine, GeneralChannelKey, sender)
+	cleaner := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, sender)
+	writer := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, sender)
 
 	// An absent-state condition creates the first event exactly once.
 	empty := ""
@@ -113,6 +113,7 @@ func TestChatStateHistory(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	timestamp := timestamppb.Now()
 	sender := wtb.Volume.GetPeerID()
+	ctx = world.WithOperationPerson(ctx, sender.String())
 	_, _, err = ws.ApplyWorldOp(ctx, &CreateChatChannelOp{
 		ObjectKey: GeneralChannelKey,
 		Name:      "General",
@@ -125,7 +126,7 @@ func TestChatStateHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, sender.String())
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, sender.String())
 	history, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +180,7 @@ func TestChatStateHistory(t *testing.T) {
 	}
 
 	// A fresh attachment sees the latest state with the exact history event identity.
-	reader := NewChatResource(ws, nil, GeneralChannelKey, "")
+	reader := newChatResource(t, ws, nil, GeneralChannelKey, "")
 	current, err := reader.GetState(ctx, &spacewave_chat_rpc.GetStateRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +232,7 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(wtb.Release)
+	ctx = world.WithOperationPerson(ctx, wtb.Volume.GetPeerID().String())
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	operation := &CreateChatChannelOp{
 		ObjectKey: GeneralChannelKey,
@@ -257,7 +259,7 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, operation, wtb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, wtb.Volume.GetPeerID().String())
+	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, wtb.Volume.GetPeerID().String())
 	plaintext := &spacewave_chat_rpc.SendMessageRequest{Text: "accepted before encryption", TransactionId: "plaintext"}
 	accepted, err := resource.SendMessage(ctx, plaintext)
 	if err != nil {

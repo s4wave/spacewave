@@ -38,7 +38,7 @@ func TestChannelRetriesAfterInterruptedFence(t *testing.T) {
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	engine := &interruptedFenceEngine{Engine: tb.Engine, failNext: true}
-	resource := NewChatResource(ws, engine, GeneralChannelKey, "alice")
+	resource := newChatResource(t, ws, engine, GeneralChannelKey, "alice")
 	request := &chat_rpc.SendMessageRequest{Text: "Retain this send", TransactionId: "one-send"}
 	if _, err := resource.SendMessage(ctx, request); err == nil {
 		t.Fatal("acknowledged a send before its durability fence succeeded")

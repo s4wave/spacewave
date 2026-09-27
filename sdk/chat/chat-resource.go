@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 	chat_state "github.com/s4wave/spacewave/sdk/chat/state"
 )
@@ -42,48 +43,46 @@ type ChatResource struct {
 	engine world.Engine
 	// objectKey identifies the channel.
 	objectKey string
-	// localPeerID is the authenticated author bound at Resource construction.
+	// localPeerID is the operation signing device bound by the World engine.
 	localPeerID string
-	// personPeerID is the verified person associated with the authenticated device.
-	personPeerID string
+	// device retains the parsed signer for local World operations.
+	device peer.ID
+	// personID is the accepted entity or local-only signing device.
+	personID string
 	// mux exposes channel operations for this attachment.
 	mux srpc.Mux
 }
 
-// NewChatResource constructs a ChatResource.
+// NewChatResource binds a channel to the World engine's accepted author.
 func NewChatResource(
+	ctx context.Context,
 	ws world.WorldState,
 	engine world.Engine,
 	objectKey string,
-	localPeerID string,
-) *ChatResource {
-	return NewChatResourceForPerson(ws, engine, objectKey, localPeerID, localPeerID)
-}
-
-// NewChatResourceForPerson binds a verified person and signing device to a channel.
-// The embedding Session host verifies this association; RPC requests cannot select it.
-// World access remains constrained by the supplied authorized state and engine.
-func NewChatResourceForPerson(
-	ws world.WorldState,
-	engine world.Engine,
-	objectKey string,
-	localPeerID string,
-	personPeerID string,
-) *ChatResource {
-	// Bind all operations to the mounted channel and authenticated author.
+) (*ChatResource, error) {
+	var device peer.ID
+	var person string
+	if engine != nil {
+		var err error
+		device, person, err = engine.OperationAuthor(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
 	r := &ChatResource{
-		ws:           ws,
-		engine:       engine,
-		objectKey:    objectKey,
-		localPeerID:  localPeerID,
-		personPeerID: personPeerID,
+		ws:          ws,
+		engine:      engine,
+		objectKey:   objectKey,
+		localPeerID: device.String(),
+		device:      device,
+		personID:    person,
 	}
 
 	// Expose the generated service through the Resource lifecycle.
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return spacewave_chat_rpc.SRPCRegisterChatResourceService(mux, r)
 	})
-	return r
+	return r, nil
 }
 
 // GetMux returns the SRPC mux for this resource.
@@ -93,6 +92,22 @@ func (r *ChatResource) GetMux() srpc.Mux {
 
 // Close releases the chat resource lifecycle.
 func (r *ChatResource) Close() {}
+
+// operationResource binds this call to the engine's current accepted author.
+func (r *ChatResource) operationResource(ctx context.Context) (*ChatResource, error) {
+	if r.engine == nil {
+		return r, nil
+	}
+	device, person, err := r.engine.OperationAuthor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	bound := *r
+	bound.device = device
+	bound.localPeerID = device.String()
+	bound.personID = person
+	return &bound, nil
+}
 
 // GetChannelInfo reads the channel block and returns metadata.
 func (r *ChatResource) GetChannelInfo(
@@ -319,8 +334,13 @@ func (r *ChatResource) SendMessage(
 	ctx context.Context,
 	req *spacewave_chat_rpc.SendMessageRequest,
 ) (*spacewave_chat_rpc.SendMessageResponse, error) {
+	bound, err := r.operationResource(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r = bound
 	// Advance legacy indexing in bounded work before entering the append transaction.
-	if r.engine != nil && r.localPeerID != "" && r.personPeerID != "" {
+	if r.engine != nil && r.localPeerID != "" && r.personID != "" {
 		if err := r.ensureThreadIndex(ctx); err != nil {
 			return nil, err
 		}
@@ -341,7 +361,7 @@ func (r *ChatResource) commitMessage(ctx context.Context, req *spacewave_chat_rp
 	if r.engine == nil {
 		return nil, errors.New("chat resource is read-only")
 	}
-	if r.localPeerID == "" || r.personPeerID == "" {
+	if r.localPeerID == "" || r.personID == "" {
 		return nil, ErrChatAuthorIdentityRequired
 	}
 
@@ -379,13 +399,12 @@ func (r *ChatResource) commitMessage(ctx context.Context, req *spacewave_chat_rp
 
 	// Replay allocates the accepted position from current World history.
 	op := &SendChatMessageOp{
-		ObjectKey:    r.objectKey,
-		Request:      request,
-		Timestamp:    timestamppb.Now(),
-		SenderPeerId: r.localPeerID,
-		PersonPeerId: r.personPeerID,
+		ObjectKey: r.objectKey,
+		Request:   request,
+		Timestamp: timestamppb.Now(),
 	}
-	nextSeqno, _, err := wtx.ApplyWorldOp(ctx, op, "")
+	ctx = world.WithOperationPerson(ctx, r.personID)
+	nextSeqno, _, err := wtx.ApplyWorldOp(ctx, op, r.device)
 	if err != nil {
 		return nil, err
 	}
@@ -434,11 +453,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 			return nil, err
 		}
 		if prior != nil {
-			personPeerID := prior.GetPersonPeerId()
-			if personPeerID == "" {
-				personPeerID = prior.GetSenderPeerId()
-			}
-			if prior.GetSenderPeerId() != r.localPeerID || personPeerID != r.personPeerID || !req.GetReuseAcceptedTransaction() && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
+			personID := prior.GetPersonId()
+			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || !req.GetReuseAcceptedTransaction() && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
 				return nil, errors.New("chat send transaction conflicts with its accepted message")
 			}
 			return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
@@ -489,7 +505,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	}
 	msg := &ChatMessage{
 		SenderPeerId: r.localPeerID,
-		PersonPeerId: r.personPeerID,
+		PersonId:     r.personID,
 		Content:      content,
 		CreatedAt:    timestamp.CloneVT(),
 		ReplyToKey:   req.GetReplyToKey(),
@@ -605,6 +621,11 @@ func (r *ChatResource) GetReadPositions(ctx context.Context, _ *spacewave_chat_r
 // UpdateReadPosition advances the authenticated person's position durably across devices.
 // Repeated or older positions return the current value without a World mutation.
 func (r *ChatResource) UpdateReadPosition(ctx context.Context, req *spacewave_chat_rpc.UpdateReadPositionRequest) (*spacewave_chat_rpc.UpdateReadPositionResponse, error) {
+	bound, err := r.operationResource(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r = bound
 	response, err := r.commitReadPosition(ctx, req)
 	if err != nil {
 		return nil, err
@@ -617,7 +638,7 @@ func (r *ChatResource) UpdateReadPosition(ctx context.Context, req *spacewave_ch
 
 // commitReadPosition serializes receipt advancement and releases the transaction before Sync.
 func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_chat_rpc.UpdateReadPositionRequest) (*spacewave_chat_rpc.UpdateReadPositionResponse, error) {
-	if r.engine == nil || r.localPeerID == "" || r.personPeerID == "" {
+	if r.engine == nil || r.localPeerID == "" || r.personID == "" {
 		return nil, ErrChatAuthorIdentityRequired
 	}
 	tx, err := r.engine.NewTransaction(ctx, true)
@@ -632,7 +653,7 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	if req.GetNextIndex() > channel.GetMessageCount() {
 		return nil, errors.New("read position exceeds channel message count")
 	}
-	prior := channel.GetReadPositions()[r.personPeerID]
+	prior := channel.GetReadPositions()[r.personID]
 	if req.GetNextIndex() <= prior.GetNextIndex() {
 		position := prior.CloneVT()
 		if position == nil {
@@ -640,29 +661,54 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 		}
 		return &spacewave_chat_rpc.UpdateReadPositionResponse{Position: position}, nil
 	}
-	position := &chat_state.ChatReadPosition{NextIndex: req.GetNextIndex(), UpdatedAt: timestamppb.Now()}
-	if channel.ReadPositions == nil {
-		channel.ReadPositions = make(map[string]*chat_state.ChatReadPosition)
+	op := &UpdateChatReadPositionOp{ObjectKey: r.objectKey, NextIndex: req.GetNextIndex(), Timestamp: timestamppb.Now()}
+	ctx = world.WithOperationPerson(ctx, r.personID)
+	if _, _, err := tx.ApplyWorldOp(ctx, op, r.device); err != nil {
+		return nil, err
 	}
-	channel.ReadPositions[r.personPeerID] = position
-	object, found, err := tx.GetObject(ctx, r.objectKey)
-	defer world.ReleaseObjectState(object)
+	channel, err = world.LookupObjectBody[*ChatChannel](ctx, tx, r.objectKey, NewChatChannelBlock)
 	if err != nil {
 		return nil, err
 	}
+	position := channel.GetReadPositions()[r.personID].CloneVT()
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &spacewave_chat_rpc.UpdateReadPositionResponse{Position: position}, nil
+}
+
+// applyReadPosition advances one accepted person's receipt in the replay transaction.
+func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, nextIndex uint64, timestamp *timestamppb.Timestamp) error {
+	channel, err := world.LookupObjectBody[*ChatChannel](ctx, tx, r.objectKey, NewChatChannelBlock)
+	if err != nil {
+		return err
+	}
+	if nextIndex > channel.GetMessageCount() {
+		return errors.New("read position exceeds channel message count")
+	}
+	if nextIndex <= channel.GetReadPositions()[r.personID].GetNextIndex() {
+		return nil
+	}
+	position := &chat_state.ChatReadPosition{NextIndex: nextIndex, UpdatedAt: timestamp}
+	if channel.ReadPositions == nil {
+		channel.ReadPositions = make(map[string]*chat_state.ChatReadPosition)
+	}
+	channel.ReadPositions[r.personID] = position
+	object, found, err := tx.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(object)
+	if err != nil {
+		return err
+	}
 	if !found {
-		return nil, world.ErrObjectNotFound
+		return world.ErrObjectNotFound
 	}
 	if _, _, err := world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
 		cursor.SetBlock(channel, true)
 		return nil
 	}); err != nil {
-		return nil, err
+		return err
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-	return &spacewave_chat_rpc.UpdateReadPositionResponse{Position: position.CloneVT()}, nil
+	return nil
 }
 
 // appendChannelMessageKey reserves one channel position and its stable message key.
@@ -825,10 +871,7 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 	}
 
 	// Return the shared client projection.
-	personPeerID := msg.GetPersonPeerId()
-	if personPeerID == "" {
-		personPeerID = msg.GetSenderPeerId()
-	}
+	personID := msg.GetPersonId()
 	text := msg.GetContent().GetText()
 	if msg.GetContent().GetEvent() != nil {
 		text = "Unsupported message"
@@ -851,7 +894,7 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 	return &spacewave_chat_rpc.ChatMessageInfo{
 		ObjectKey:    key,
 		SenderPeerId: msg.GetSenderPeerId(),
-		PersonPeerId: personPeerID,
+		PersonId:     personID,
 		Text:         text,
 		Content:      msg.GetContent().CloneVT(),
 		CreatedAt:    msg.GetCreatedAt().CloneVT(),

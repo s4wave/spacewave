@@ -111,7 +111,11 @@ type commitCacheValidatorSharedObject struct {
 // ProcessOperations runs one controlled validator batch.
 func (s *commitCacheValidatorSharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
 	var err error
-	s.nextStateData, s.opResults, err = cb(ctx, nil, s.currentStateData, s.ops)
+	snapshot := &testSharedObjectSnapshot{participants: make(map[string]*sobject.SOParticipantConfig)}
+	for _, op := range s.ops {
+		snapshot.participants[op.GetPeerId()] = &sobject.SOParticipantConfig{PeerId: op.GetPeerId()}
+	}
+	s.nextStateData, s.opResults, err = cb(ctx, snapshot, s.currentStateData, s.ops)
 	return err
 }
 

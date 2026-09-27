@@ -80,7 +80,10 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	}, ownerSession.GetPeerId()); err != nil {
 		t.Fatal(err)
 	}
-	first := chat.NewChatResource(ownerWorld, ownerEngine, chat.GeneralChannelKey, ownerSession.GetPeerId().String())
+	first, err := chat.NewChatResource(ctx, ownerWorld, ownerEngine, chat.GeneralChannelKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(first.Close)
 
 	seed, err := first.SendMessage(ctx, &chat_rpc.SendMessageRequest{Text: "shared history", TransactionId: "seed"})
@@ -107,7 +110,10 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 	t.Cleanup(releaseWriterObject)
 	writerEngine := mountChatEngine(t, ctx, tb, writerRef, "chat-writer")
 	writerWorld := world.NewEngineWorldState(writerEngine, true)
-	second := chat.NewChatResource(writerWorld, writerEngine, chat.GeneralChannelKey, writerSession.GetPeerId().String())
+	second, err := chat.NewChatResource(ctx, writerWorld, writerEngine, chat.GeneralChannelKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(second.Close)
 	initial, err := second.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
 	if err != nil {
@@ -209,14 +215,18 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 			if page.GetMessages()[i].GetText() != text {
 				t.Fatalf("message %d content changed during replay", i)
 			}
-			author := ownerSession.GetPeerId().String()
+			engine := ownerEngine
 			if i == 2 {
-				author = writerSession.GetPeerId().String()
+				engine = writerEngine
 			}
-			if page.GetMessages()[i].GetSenderPeerId() != author {
+			device, person, err := engine.OperationAuthor(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if page.GetMessages()[i].GetSenderPeerId() != device.String() {
 				t.Fatalf("message %d lost its authenticated author during replay", i)
 			}
-			if page.GetMessages()[i].GetPersonPeerId() != author {
+			if page.GetMessages()[i].GetPersonId() != person {
 				t.Fatalf("message %d lost its person attribution during replay", i)
 			}
 		}

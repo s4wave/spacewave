@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // executeProcessOpsWhenValidator waits until this participant can validate and
@@ -92,8 +93,14 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 					return nil, nil, err
 				}
 
+				// Authenticated World operations attribute the signer's accepted person.
+				person, err := operationPerson(ctx, snap, opPeerID)
+				if err != nil {
+					return nil, nil, err
+				}
+
 				nhs, res, err := c.processOp(
-					ctx,
+					world.WithOperationPerson(ctx, person),
 					le,
 					so,
 					opInner.GetOpData(),

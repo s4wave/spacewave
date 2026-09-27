@@ -37,12 +37,12 @@ func NewChatStateQuad(channelKey, messageKey, stateType, stateKey string) world.
 }
 
 // NewChatThreadParticipantQuad records a verified person who authored a canonical thread reply.
-func NewChatThreadParticipantQuad(threadKey, personPeerID string) world.GraphQuad {
+func NewChatThreadParticipantQuad(threadKey, personID string) world.GraphQuad {
 	return world.NewGraphQuadWithKeys(
 		threadKey,
 		PredThreadParticipant.String(),
 		threadKey,
-		quad.String(personPeerID).String(),
+		quad.String(personID).String(),
 	)
 }
 

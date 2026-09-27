@@ -6,6 +6,7 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/net/peer"
 	chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -22,7 +23,7 @@ func TestProtocolEventHistory(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, &CreateChatChannelOp{ObjectKey: key, Name: "Events", Timestamp: timestamppb.Now()}, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
-	channel := NewChatResourceForPerson(ws, tb.Engine, key, "device", "person")
+	channel := newChatResourceForPerson(t, ws, tb.Engine, key, "device", "person")
 	t.Cleanup(channel.Close)
 	request := &chat_rpc.SendMessageRequest{TransactionId: "event", Content: &ChatMessageContent{Content: &ChatMessageContent_Event{Event: &ChatEvent{Type: "m.room.test", ContentJson: `{"nested":{"values":[1,true,null,"text"]}}`}}}}
 	sent, err := channel.SendMessage(ctx, request)
@@ -35,14 +36,14 @@ func TestProtocolEventHistory(t *testing.T) {
 	}
 
 	// A new Resource reads the stored body and attribution through ordinary history.
-	reader := NewChatResourceForPerson(ws, tb.Engine, key, "other-device", "other-person")
+	reader := newChatResourceForPerson(t, ws, tb.Engine, key, "other-device", "other-person")
 	t.Cleanup(reader.Close)
 	history, err := reader.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
 	if err != nil || len(history.GetMessages()) != 1 {
 		t.Fatalf("history: %v %v", history, err)
 	}
 	message := history.GetMessages()[0]
-	if !message.GetContent().EqualVT(request.GetContent()) || message.GetPersonPeerId() != "person" || message.GetSenderPeerId() != "device" || message.GetText() != "Unsupported message" {
+	if !message.GetContent().EqualVT(request.GetContent()) || message.GetPersonId() != "person" || message.GetSenderPeerId() != peer.ID("device").String() || message.GetText() != "Unsupported message" {
 		t.Fatalf("stored event changed: %v", message)
 	}
 	state, err := reader.GetState(ctx, &chat_rpc.GetStateRequest{})
@@ -95,7 +96,7 @@ func TestProtocolEventHistory(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, &CreateChatChannelOp{ObjectKey: encryptedKey, Name: "Encrypted", Timestamp: timestamppb.Now(), EncryptionAlgorithm: "m.megolm.v1.aes-sha2"}, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
-	encrypted := NewChatResourceForPerson(ws, tb.Engine, encryptedKey, "device", "person")
+	encrypted := newChatResourceForPerson(t, ws, tb.Engine, encryptedKey, "device", "person")
 	t.Cleanup(encrypted.Close)
 	if _, err := encrypted.SendMessage(ctx, request); err == nil {
 		t.Fatal("accepted a plaintext extension body in an encrypted channel")
