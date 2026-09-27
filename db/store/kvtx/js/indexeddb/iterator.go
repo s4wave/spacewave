@@ -50,9 +50,10 @@ type kvtxIterator struct {
 
 // BuildKvtxIterator builds an iterator for the given object store and arguments.
 func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, prefix []byte, reverse bool) kvtx.Iterator {
-	dir := idb.CursorNextUnique
+	// Object-store primary keys are unique; WebKit rejects unique directions on key-only cursors.
+	dir := idb.CursorNext
 	if reverse {
-		dir = idb.CursorPreviousUnique
+		dir = idb.CursorPrevious
 	}
 
 	it := &kvtxIterator{
@@ -113,7 +114,7 @@ func (it *kvtxIterator) performOp(
 		if req == nil {
 			var keyRng *idb.KeyRange
 			if len(it.prefix) != 0 {
-				rng := buildPrefixRange(it.prefix, it.upper, it.hasUpper, it.key, it.dir == idb.CursorPreviousUnique)
+				rng := buildPrefixRange(it.prefix, it.upper, it.hasUpper, it.key, it.dir == idb.CursorPrevious)
 				if rng.done {
 					// The resume position lies past the prefix range in the
 					// direction of travel, so there is nothing left to read.
@@ -130,7 +131,7 @@ func (it *kvtxIterator) performOp(
 				}
 			} else if len(it.key) != 0 {
 				// if we are iterating, resume where we left off
-				if it.dir == idb.CursorPreviousUnique {
+				if it.dir == idb.CursorPrevious {
 					// Upper bound is closed to include current key
 					keyRng, err = idb.NewKeyRangeUpperBound(it.keyVal, false)
 				} else {
