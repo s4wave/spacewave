@@ -26,6 +26,8 @@ import (
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_terminal_world "github.com/s4wave/spacewave/sdk/terminal/world"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
+	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
+	s4wave_vm_world "github.com/s4wave/spacewave/sdk/vm/world"
 	s4wave_volume_world "github.com/s4wave/spacewave/sdk/volume/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
@@ -53,4 +55,6 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_device.ComputersDashboardTypeID: s4wave_device_world.ComputersDashboardType,
 	s4wave_terminal.TerminalTypeID:         s4wave_terminal_world.TerminalType,
 	s4wave_sshhost.SshHostTypeID:           s4wave_sshhost_world.SshHostType,
+	s4wave_vm.VmV86TypeID:                  s4wave_vm_world.VmV86Type,
+	s4wave_vm.V86ImageTypeID:               s4wave_vm_world.V86ImageType,
 }

@@ -6,10 +6,16 @@ import (
 	"testing"
 
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
 func TestLookupDeviceObjectTypeUnderGoScript(t *testing.T) {
 	requireObjectType(t, s4wave_device.DeviceTypeID)
+}
+
+func TestLookupVmObjectTypesUnderGoScript(t *testing.T) {
+	requireObjectType(t, s4wave_vm.VmV86TypeID)
+	requireObjectType(t, s4wave_vm.V86ImageTypeID)
 }
 
 func TestLookupSqlObjectTypesExcludedFromCoreUnderGoScript(t *testing.T) {

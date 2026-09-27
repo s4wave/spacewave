@@ -28,6 +28,15 @@ var v86ImageEdgePreds = []string{
 
 const legacySpacewaveV86ImageTypeID = "spacewave/vm/image/v86"
 
+// CDN packs store blocks in hash order, so a graph traversal reads each pack
+// at scattered offsets. Concurrent traversal overlaps the remote range reads,
+// and a 4 MiB minimum per range-cache miss turns hundreds of small reads into
+// a few dozen large ones.
+const (
+	copyConcurrency = 8
+	copyReadAhead   = 4 << 20
+)
+
 // CopyV86ImageFromCdn copies a V86Image (metadata block plus the five asset
 // edges) from the CDN WorldState into a user-owned destination WorldState.
 // The caller is responsible for providing WorldState handles already scoped
@@ -174,11 +183,11 @@ func ensureCopiedWorldObject(
 		return srcObj.AccessWorldState(ctx, srcRef, func(srcCursor *bucket_lookup.Cursor) error {
 			var copyErr error
 			dstRef, stats, copyErr = bucket_lookup.CopyObjectToBucketWithProgress(
-				ctx,
+				block.WithReadAhead(ctx, copyReadAhead),
 				dstCursor,
 				srcCursor,
 				rootCtor,
-				1,
+				copyConcurrency,
 				false,
 				nil,
 				progress,
