@@ -79,8 +79,6 @@ if [ -n "$go_files" ]; then
 
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
 
-	# Keep explicit embedded literals: the retained Staticcheck IR predates Go
-	# 1.27's promoted keyed-field syntax.
 	# A package whose files the host platform excludes, such as a js-only one,
 	# cannot be listed or compiled here; the wasm build in CI covers it. Drop it
 	# and treat every other listing error as a failure. Read one directory per
@@ -102,8 +100,12 @@ if [ -n "$go_files" ]; then
 			fi
 			continue
 		fi
-		if GOFLAGS="-mod=mod -tags=purego" go list "$go_pkg_dir" >/dev/null 2>>"$list_err"; then
+		# Keep stderr only from a failed listing; a successful one may still
+		# report module downloads there.
+		if pkg_err=$(GOFLAGS="-mod=mod -tags=purego" go list "$go_pkg_dir" 2>&1 >/dev/null); then
 			set -- "$@" "$go_pkg_dir"
+		else
+			printf '%s\n' "$pkg_err" >>"$list_err"
 		fi
 	done <<GO_PKG_DIRS
 $go_pkg_dirs
@@ -117,6 +119,8 @@ GO_PKG_DIRS
 fi
 
 if [ "$#" -gt 0 ]; then
+	# Keep explicit embedded literals: the retained Staticcheck IR predates Go
+	# 1.27's promoted keyed-field syntax.
 	go_fix_before=$(git diff -- "$@")
 	GOFLAGS="-mod=mod -tags=purego" go fix -embedlit=false "$@"
 	go_fix_after=$(git diff -- "$@")
