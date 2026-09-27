@@ -48,7 +48,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20260921130653-5688f1406ced
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.1-0.20260923235447-81c9cce95915
+	github.com/dolthub/go-mysql-server v0.20.1-0.20260925233942-d8e4c765db15
 	github.com/dolthub/vitess v0.0.0-20260916192104-15c5c4158b37
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
@@ -69,12 +69,12 @@ require (
 	github.com/mr-tron/base58 v1.3.0
 	github.com/mxschmitt/playwright-go v0.6201.1
 	github.com/ncruces/go-sqlite3 v0.35.6
-	github.com/pierrec/lz4/v4 v4.1.30
+	github.com/pierrec/lz4/v4 v4.1.31
 	github.com/pion/datachannel v1.6.3
 	github.com/pion/logging v0.2.4
 	github.com/pion/sdp/v3 v3.0.20
 	github.com/pion/transport/v5 v5.1.1
-	github.com/pion/webrtc/v4 v4.2.20
+	github.com/pion/webrtc/v4 v4.2.22
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
