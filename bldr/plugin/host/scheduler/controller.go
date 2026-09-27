@@ -356,17 +356,17 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 }
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
+//
+// A directive without an instance key loads the configured instance. Other
+// keys start further instances on this scheduler; the bus the scheduler runs
+// on bounds which callers can reach them.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
 	if slices.Contains(c.conf.GetExternalPluginIds(), dir.LoadPluginID()) {
 		return nil, nil
 	}
 	instanceKey := dir.LoadPluginInstanceKey()
-	configuredInstanceKey := c.conf.GetInstanceKey()
-	if instanceKey != "" && configuredInstanceKey != "" && instanceKey != configuredInstanceKey {
-		return nil, nil
-	}
 	if instanceKey == "" {
-		instanceKey = configuredInstanceKey
+		instanceKey = c.conf.GetInstanceKey()
 	}
 	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), instanceKey, dir.LoadPluginManifestRoot(), dir.LoadPluginManifests()), nil
 }

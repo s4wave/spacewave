@@ -53,8 +53,8 @@ message Config {
   // NoCopyBucketIds lists source buckets that remain authoritative without a
   // full-DAG copy.
   repeated string no_copy_bucket_ids = 13;
-  // InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
-  // Empty retains the unscoped Dist behavior.
+  // InstanceKey is the plugin instance that loads without an instance key
+  // resolve to. Empty retains the unscoped Dist behavior.
   string instance_key = 14;
   // StartupWaitBudgetDur is the maximum wall-clock duration a plugin instance
   // may take to complete initial capability registration before its startup
