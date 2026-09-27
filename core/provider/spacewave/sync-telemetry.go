@@ -68,10 +68,6 @@ func (a *ProviderAccount) setSyncTelemetryPending(bstoreID string, bytes int64, 
 	a.syncTelemetry.SetPending(bstoreID, bytes, count)
 }
 
-func (a *ProviderAccount) addSyncTelemetryDirty(bstoreID string, bytes int64) {
-	a.syncTelemetry.AddDirty(bstoreID, bytes)
-}
-
 func (a *ProviderAccount) startSyncTelemetryPush(bstoreID string, bytes int64) {
 	a.syncTelemetry.StartPush(bstoreID, bytes)
 }

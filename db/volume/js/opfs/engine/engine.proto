@@ -46,8 +46,20 @@ message Child {
 message Partition {
   // Lower is the inclusive lower key bound of this range.
   bytes lower = 1;
-  // Runs names at most four immutable runs, oldest first.
-  repeated string runs = 2;
+  // Runs lists at most four immutable runs, oldest first.
+  repeated RunFile runs = 2;
+}
+
+// RunFile names one immutable run and its encoded size.
+message RunFile {
+  // Name is the immutable run file name.
+  string name = 1;
+  // Bytes is the encoded run length, choosing which runs to merge.
+  uint32 bytes = 2;
+  // Records counts every record in the run, including deletions.
+  uint32 records = 3;
+  // Deleted counts deletion records that may hide older values.
+  uint32 deleted = 4;
 }
 
 // Run stores sorted small records, newest runs taking precedence.

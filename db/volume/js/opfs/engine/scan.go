@@ -61,8 +61,8 @@ func (s *snapshot) seekPage(ctx context.Context, name string, key []byte, exclus
 // partitionEntries resolves newest values before returning bounded live entries.
 func (s *snapshot) partitionEntries(ctx context.Context, partition *Partition, key []byte, exclusive, reverse bool) ([]*Record, error) {
 	latest := make(map[string]*Record)
-	for _, name := range partition.Runs {
-		run, err := s.engine.readRun(ctx, name)
+	for _, file := range partition.Runs {
+		run, err := s.engine.readRun(ctx, file.GetName())
 		if err != nil {
 			return nil, err
 		}

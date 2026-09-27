@@ -8,7 +8,7 @@ import (
 
 const (
 	// formatVersion identifies the clean immutable volume format.
-	formatVersion = 3
+	formatVersion = 4
 	// maxKeyBytes bounds comparison, routing, and catalogue page sizes.
 	maxKeyBytes = 4096
 	// MaxValueBytes preserves the supported maximum block and metadata value.

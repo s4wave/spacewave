@@ -442,14 +442,14 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 		{Id: "pack-b"},
 	})
 
-	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if len(store.manifest) != 1 {
-			t.Fatalf("manifest len=%d want 1", len(store.manifest))
+	{
+		if store.manifest.Len() != 1 {
+			t.Fatalf("manifest len=%d want 1", store.manifest.Len())
 		}
-		if store.manifest[0].GetId() != "pack-b" {
-			t.Fatalf("active manifest id=%q want pack-b", store.manifest[0].GetId())
+		if store.SnapshotManifest().GetEntries()[0].GetId() != "pack-b" {
+			t.Fatalf("active manifest id=%q want pack-b", store.SnapshotManifest().GetEntries()[0].GetId())
 		}
-	})
+	}
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 	if _, ok := store.engines["pack-b"]; !ok {
@@ -516,18 +516,18 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		},
 	})
 
-	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if len(store.manifest) != 2 {
-			t.Fatalf("active manifest entries=%d, want 2", len(store.manifest))
+	{
+		if store.manifest.Len() != 2 {
+			t.Fatalf("active manifest entries=%d, want 2", store.manifest.Len())
 		}
-		if store.manifest[0].GetId() != "compact" || store.manifest[1].GetId() != "historical" {
+		if store.SnapshotManifest().GetEntries()[0].GetId() != "compact" || store.SnapshotManifest().GetEntries()[1].GetId() != "historical" {
 			t.Fatalf(
 				"active manifest order=%q,%q, want compact,historical",
-				store.manifest[0].GetId(),
-				store.manifest[1].GetId(),
+				store.SnapshotManifest().GetEntries()[0].GetId(),
+				store.SnapshotManifest().GetEntries()[1].GetId(),
 			)
 		}
-	})
+	}
 
 	target, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
@@ -568,16 +568,16 @@ func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 	})
 
 	want := []string{"cloud-new", "cloud-a", "cloud-z", "cloud-old", "local-a", "local-z"}
-	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if len(store.manifest) != len(want) {
-			t.Fatalf("active manifest entries=%d, want %d", len(store.manifest), len(want))
+	{
+		if store.manifest.Len() != len(want) {
+			t.Fatalf("active manifest entries=%d, want %d", store.manifest.Len(), len(want))
 		}
-		for i, entry := range store.manifest {
+		for i, entry := range store.SnapshotManifest().GetEntries() {
 			if entry.GetId() != want[i] {
 				t.Fatalf("active manifest[%d]=%q, want %q", i, entry.GetId(), want[i])
 			}
 		}
-	})
+	}
 }
 
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
@@ -1863,10 +1863,11 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 
 	// Observe rejection rather than transient catalog absence: a valid retry
 	// may already have installed its replacement record.
-	eng, err := store.getOrOpenEngine("retry-pack", int64(len(packBytes)), 1)
+	eng, release, err := store.getOrOpenEngine("retry-pack", int64(len(packBytes)), 1)
 	if err != nil {
 		t.Fatalf("getOrOpenEngine: %v", err)
 	}
+	t.Cleanup(release)
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		var rejected bool
 		var waitCh <-chan struct{}
@@ -1970,7 +1971,8 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 
 	// The block is still verifying (writeback blocked). Its backing span
 	// must remain pinned despite the 1-byte budget.
-	eng, _ := store.getOrOpenEngine("pin-pack", int64(len(packBytes)), 1)
+	eng, release, _ := store.getOrOpenEngine("pin-pack", int64(len(packBytes)), 1)
+	t.Cleanup(release)
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if eng.residentBytes == 0 {
 			t.Fatal("expected resident bytes to stay pinned during verify")

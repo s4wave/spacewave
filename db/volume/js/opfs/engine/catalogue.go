@@ -38,13 +38,18 @@ func (e *Engine) readCatalogue(ctx context.Context, name string) (*Catalogue, er
 		previous = child.Lower
 	}
 	for i, partition := range page.Partitions {
-		if partition == nil || len(partition.Lower) > maxKeyBytes || len(partition.Runs) > partitionRunLimit || (i > 0 && bytes.Compare(previous, partition.Lower) >= 0) {
+		if partition == nil || len(partition.Lower) > maxKeyBytes || len(partition.Runs) > partitionRunLimit || slices.ContainsFunc(partition.Runs, invalidRunFile) || (i > 0 && bytes.Compare(previous, partition.Lower) >= 0) {
 			return nil, ErrCorrupt
 		}
 		previous = partition.Lower
 	}
 	e.cacheMessage(name, page, len(data)*2+(len(page.Children)+len(page.Partitions))*192)
 	return page, nil
+}
+
+// invalidRunFile reports a run reference without a name or beyond the run size bound.
+func invalidRunFile(file *RunFile) bool {
+	return file == nil || file.Name == "" || file.Bytes > maxRunBytes || file.Deleted > file.Records
 }
 
 // readRun decodes a sorted run with bounded records and encoded size.
@@ -138,51 +143,63 @@ func (p *publication) updateCatalogue(ctx context.Context, name string, records 
 	return children, nil
 }
 
-// updatePartition appends a bounded delta or merges its complete overlap set.
+// updatePartition appends the batch as a run and merges runs at the run limit.
+//
+// Merges are size-tiered: the newest runs combine until the next older run
+// outweighs them, so random keys spread across many partitions rewrite each
+// record a logarithmic number of times rather than once per few batches. Only a
+// merge reaching the oldest run discards deletion records and splits the output,
+// so one also runs once pending deletions could hide half the oldest run.
 func (p *publication) updatePartition(ctx context.Context, partition *Partition, records []*Record) ([]*Partition, error) {
 	lower := partition.Lower
 	if bytes.Compare(records[0].Key, lower) < 0 {
 		lower = records[0].Key
 	}
-	var encodedSize int
-	var hasDeletion bool
+	var encodedSize, deleted int
 	for _, record := range records {
-		hasDeletion = hasDeletion || record.Deleted
 		encodedSize += record.SizeVT() + 8
+		if record.Deleted {
+			deleted++
+		}
 	}
-	if !hasDeletion && len(partition.Runs) < partitionRunLimit && len(records) <= maxBatchRecords && encodedSize <= runTargetBytes {
-		name, err := p.add("run", &Run{Records: records})
+	runs := partition.Runs
+	if len(runs) != 0 {
+		for _, run := range runs[1:] {
+			deleted += int(run.GetDeleted())
+		}
+	}
+
+	// Choose the oldest run the batch merges with; len(runs) appends a run.
+	start := len(runs)
+	if len(records) > maxBatchRecords || encodedSize > runTargetBytes || (len(runs) != 0 && deleted*2 >= int(runs[0].GetRecords())) {
+		start = 0
+	} else if len(runs) == partitionRunLimit {
+		start = len(runs) - 1
+		merged := int(runs[start].GetBytes()) + encodedSize
+		for start > 0 && int(runs[start-1].GetBytes()) <= merged {
+			start--
+			merged += int(runs[start].GetBytes())
+		}
+	}
+	if start != 0 {
+		if start != len(runs) {
+			var err error
+			records, err = p.mergeRuns(ctx, runs[start:], records, true)
+			if err != nil {
+				return nil, err
+			}
+		}
+		run, err := p.addRun(records)
 		if err != nil {
 			return nil, err
 		}
-		runs := append(slices.Clone(partition.Runs), name)
+		runs = append(slices.Clone(runs[:start]), run)
 		return []*Partition{{Lower: lower, Runs: runs}}, nil
 	}
 
-	// Incorporate every older version before discarding deletion records.
-	merged := make(map[string]*Record)
-	for _, name := range partition.Runs {
-		run, err := p.engine.readRun(ctx, name)
-		if err != nil {
-			return nil, err
-		}
-		for _, record := range run.Records {
-			merged[string(record.Key)] = record
-		}
-		p.retire(name)
-	}
-	for _, record := range records {
-		merged[string(record.Key)] = record
-	}
-	all := make([]*Record, 0, len(merged))
-	for _, record := range merged {
-		if !record.Deleted {
-			all = append(all, record)
-		}
-	}
-	sort.Slice(all, func(i, j int) bool { return bytes.Compare(all[i].Key, all[j].Key) < 0 })
-	if len(all) == 0 {
-		return nil, nil
+	all, err := p.mergeRuns(ctx, runs, records, false)
+	if err != nil || len(all) == 0 {
+		return nil, err
 	}
 
 	// Split complete sorted output so no future merge inherits an unbounded range.
@@ -197,7 +214,7 @@ func (p *publication) updatePartition(ctx context.Context, partition *Partition,
 			size += next
 			count++
 		}
-		name, err := p.add("run", &Run{Records: all[:count]})
+		run, err := p.addRun(all[:count])
 		if err != nil {
 			return nil, err
 		}
@@ -205,10 +222,58 @@ func (p *publication) updatePartition(ctx context.Context, partition *Partition,
 		if len(partitions) == 0 {
 			boundary = lower
 		}
-		partitions = append(partitions, &Partition{Lower: boundary, Runs: []string{name}})
+		partitions = append(partitions, &Partition{Lower: boundary, Runs: []*RunFile{run}})
 		all = all[count:]
 	}
 	return partitions, nil
+}
+
+// mergeRuns retires runs and returns their newest records overlaid by the batch.
+//
+// Deletion records survive only when keepDeleted is set, because a merge that
+// excludes the oldest run must keep hiding the older values it holds.
+func (p *publication) mergeRuns(ctx context.Context, runs []*RunFile, records []*Record, keepDeleted bool) ([]*Record, error) {
+	merged := make(map[string]*Record)
+	for _, file := range runs {
+		run, err := p.engine.readRun(ctx, file.GetName())
+		if err != nil {
+			return nil, err
+		}
+		for _, record := range run.Records {
+			merged[string(record.Key)] = record
+		}
+		p.retire(file.GetName())
+	}
+	for _, record := range records {
+		merged[string(record.Key)] = record
+	}
+	all := make([]*Record, 0, len(merged))
+	for _, record := range merged {
+		if keepDeleted || !record.Deleted {
+			all = append(all, record)
+		}
+	}
+	sort.Slice(all, func(i, j int) bool { return bytes.Compare(all[i].Key, all[j].Key) < 0 })
+	return all, nil
+}
+
+// addRun retains one sorted run and records its encoded size.
+func (p *publication) addRun(records []*Record) (*RunFile, error) {
+	data, err := encode(&Run{Records: records})
+	if err != nil {
+		return nil, err
+	}
+	name, err := p.addBytes("run", data)
+	if err != nil {
+		return nil, err
+	}
+	file := &RunFile{Name: name, Bytes: uint32(len(data)), Records: uint32(len(records))} //nolint:gosec // addBytes bounds data by maxPublicationBytes.
+	for _, record := range records {
+		if record.Deleted {
+			file.Deleted++
+		}
+	}
+	return file, nil
 }
 
 // writeBranches splits routing output into bounded immutable parent pages.

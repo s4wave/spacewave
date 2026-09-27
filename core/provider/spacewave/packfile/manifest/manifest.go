@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
-
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
@@ -20,6 +19,7 @@ import (
 // no key seeds at 0 and receives the full pack list.
 var metaLastPullSequenceKey = []byte("meta/lastPullSequence")
 
+// manifestPackKey addresses the durable entry by ID.
 func manifestPackKey(packID string) []byte {
 	shard := packID
 	if len(shard) > 2 {
@@ -28,6 +28,7 @@ func manifestPackKey(packID string) []byte {
 	return []byte("packs/" + shard + "/" + packID)
 }
 
+// manifestBloomKey addresses the separately stored bloom bytes.
 func manifestBloomKey(packID string) []byte {
 	shard := packID
 	if len(shard) > 2 {
@@ -55,10 +56,12 @@ func deletePack(ctx context.Context, tx kvtx.Tx, packID string) error {
 // Manifest is a kvtx-backed persistent manifest of packfile entries. It is safe
 // for concurrent use; deltas apply one at a time.
 type Manifest struct {
+	// store persists entries, bloom filters, and the pull cursor.
 	store kvtx.Store
 	// mtx guards entries and serializes ApplyDelta.
-	mtx     sync.RWMutex
-	entries []*packfile.PackfileEntry
+	mtx sync.RWMutex
+	// entries owns accepted immutable entries by pack ID.
+	entries map[string]*packfile.PackfileEntry
 }
 
 // New creates a new Manifest, loading existing entries from the store.
@@ -99,9 +102,6 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			slices.SortFunc(attemptEntries, func(a, b *packfile.PackfileEntry) int {
-				return strings.Compare(a.GetId(), b.GetId())
-			})
 			entries = attemptEntries
 			return nil
 		},
@@ -109,7 +109,10 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "loading manifest entries")
 	}
-	m.entries = entries
+	m.entries = make(map[string]*packfile.PackfileEntry, len(entries))
+	for _, entry := range entries {
+		m.entries[entry.GetId()] = entry
+	}
 	return nil
 }
 
@@ -117,7 +120,7 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 func (m *Manifest) GetEntries() []*packfile.PackfileEntry {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
-	return slices.Clone(m.entries)
+	return sortedEntries(m.entries)
 }
 
 // GetLastPullSequence returns the last-seen monotonic pull sequence cursor
@@ -154,29 +157,33 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 
 // SetLastPullSequence advances the last-seen monotonic pull sequence cursor.
 func (m *Manifest) SetLastPullSequence(ctx context.Context, sequence uint64) error {
-	current, err := m.GetLastPullSequence(ctx)
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) { return m.store.NewTransaction(ctx, true) },
+		func(ctx context.Context, tx kvtx.Tx) error { return advancePullSequence(ctx, tx, sequence) },
+	)
+}
+
+// advancePullSequence atomically preserves the greatest accepted server cursor.
+func advancePullSequence(ctx context.Context, tx kvtx.Tx, sequence uint64) error {
+	if sequence == 0 {
+		return nil
+	}
+	data, found, err := tx.Get(ctx, metaLastPullSequenceKey)
 	if err != nil {
 		return err
 	}
-	if sequence <= current {
-		return nil
-	}
-
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return m.store.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := tx.Set(
-				ctx,
-				metaLastPullSequenceKey,
-				[]byte(strconv.FormatUint(sequence, 10)),
-			); err != nil {
-				return errors.Wrap(err, "setting last pull sequence")
-			}
+	if found {
+		previous, err := strconv.ParseUint(string(data), 10, 64)
+		if err != nil {
+			return err
+		}
+		if previous >= sequence {
 			return nil
-		},
-	)
+		}
+	}
+	return tx.Set(ctx, metaLastPullSequenceKey, []byte(strconv.FormatUint(sequence, 10)))
 }
 
 // ApplyDelta applies entries and replacement events to the manifest and
@@ -193,22 +200,17 @@ func (m *Manifest) ApplyDelta(
 
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	var nextEntries []*packfile.PackfileEntry
+	var changed map[string]*packfile.PackfileEntry
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return m.store.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			next := make(map[string]*packfile.PackfileEntry, len(m.entries)+len(entries))
-			for _, entry := range m.entries {
-				if entry.GetId() == "" || entry.GetSupersededBy() != "" {
-					continue
-				}
-				next[entry.GetId()] = entry.CloneVT()
-			}
+			// Stage only changed IDs. Nil represents a committed deletion.
+			changed = make(map[string]*packfile.PackfileEntry, len(entries))
 			for _, event := range events {
 				for _, id := range event.GetReplacedPackIds() {
-					delete(next, id)
+					changed[id] = nil
 					if err := deletePack(ctx, tx, id); err != nil {
 						return err
 					}
@@ -216,13 +218,17 @@ func (m *Manifest) ApplyDelta(
 			}
 			for _, entry := range entries {
 				if entry.GetSupersededBy() != "" {
-					delete(next, entry.GetId())
+					changed[entry.GetId()] = nil
 					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
 						return err
 					}
 					continue
 				}
-				if entry.GetSequence() == 0 && next[entry.GetId()].GetSequence() != 0 {
+				previous, touched := changed[entry.GetId()]
+				if !touched {
+					previous = m.entries[entry.GetId()]
+				}
+				if entry.GetSequence() < previous.GetSequence() {
 					continue
 				}
 				storedEntry := entry.CloneVT()
@@ -244,7 +250,12 @@ func (m *Manifest) ApplyDelta(
 						return errors.Wrap(err, "putting bloom filter")
 					}
 				}
-				next[entry.GetId()] = entry.CloneVT()
+				if len(entry.GetBloomFilter()) == 0 {
+					if err := tx.Delete(ctx, manifestBloomKey(entry.GetId())); err != nil {
+						return err
+					}
+				}
+				changed[entry.GetId()] = entry.CloneVT()
 			}
 
 			// Persist the maximum sequence across entries and replacement events as the
@@ -261,27 +272,35 @@ func (m *Manifest) ApplyDelta(
 					maxSequence = seq
 				}
 			}
-			if maxSequence != 0 {
-				if err := tx.Set(
-					ctx,
-					metaLastPullSequenceKey,
-					[]byte(strconv.FormatUint(maxSequence, 10)),
-				); err != nil {
-					return errors.Wrap(err, "setting last pull sequence")
-				}
+			if err := advancePullSequence(ctx, tx, maxSequence); err != nil {
+				return errors.Wrap(err, "advance pull sequence")
 			}
 
-			nextEntries = sortedEntries(next)
 			return nil
 		},
 	)
 	if err != nil {
 		return errors.Wrap(err, "applying manifest delta")
 	}
-	m.entries = nextEntries
+	// Publish only after the durable transaction succeeds.
+	for id, entry := range changed {
+		if entry == nil {
+			delete(m.entries, id)
+			continue
+		}
+		m.entries[id] = entry
+	}
 	return nil
 }
 
+// GetEntry returns the accepted immutable entry, or nil after removal.
+func (m *Manifest) GetEntry(id string) *packfile.PackfileEntry {
+	m.mtx.RLock()
+	defer m.mtx.RUnlock()
+	return m.entries[id]
+}
+
+// sortedEntries materializes an explicitly requested complete snapshot.
 func sortedEntries(entries map[string]*packfile.PackfileEntry) []*packfile.PackfileEntry {
 	out := make([]*packfile.PackfileEntry, 0, len(entries))
 	for _, entry := range entries {

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/kvtx"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/sirupsen/logrus"
 )
@@ -70,7 +71,7 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 				}
 			}
 			reopened := &syncController{store: metadata}
-			if err := reopened.recalcDirtySize(ctx); err != nil {
+			if err := reopened.updateDirtyState(ctx); err != nil {
 				t.Fatal(err)
 			}
 			gotFirst, gotSize, _ := reopened.pendingSnapshot()
@@ -174,4 +175,33 @@ func TestSyncMissingDirtyBlockPreservesPending(t *testing.T) {
 	if err != nil || len(pending) != 1 {
 		t.Fatalf("failed upload lost its marker: %v (%d blocks)", err, len(pending))
 	}
+}
+
+// scanDirtyCandidates collects small fixture queues through the production page API.
+func (s *syncController) scanDirtyCandidates(ctx context.Context) ([]dirtyCandidate, error) {
+	var state *PendingUploadState
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, false) },
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			state, err = readPendingUploadState(ctx, tx)
+			return err
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	var candidates []dirtyCandidate
+	for after := uint64(0); after < state.GetLastSequence(); {
+		page, err := s.scanDirtyPage(ctx, after, state.GetLastSequence())
+		if err != nil {
+			return nil, err
+		}
+		if len(page) == 0 {
+			break
+		}
+		after = page[len(page)-1].sequence
+		candidates = append(candidates, page...)
+	}
+	return candidates, nil
 }

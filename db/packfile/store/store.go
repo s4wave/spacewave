@@ -1,7 +1,6 @@
 package store
 
 import (
-	"cmp"
 	"context"
 	"maps"
 	"math"
@@ -16,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/tidwall/btree"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -75,11 +75,10 @@ type PackfileStore struct {
 	// budget bounds the resident span bytes of every engine.
 	budget *residentBudget
 
-	// manifest is the active manifest in lookup order, guarded by bcast.
-	manifest []*packfile.PackfileEntry
-	// filters holds the parsed bloom filter of each manifest entry at the same
-	// index, guarded by bcast. A nil filter matches every key.
-	filters []*bloom.Filter
+	// manifest orders immutable descriptors for lookup, guarded by bcast.
+	manifest *btree.BTreeG[*manifestEntry]
+	// manifestByID permits point replacement and removal, guarded by bcast.
+	manifestByID map[string]*manifestEntry
 }
 
 // NewPackfileStore creates a new packfile store.
@@ -88,6 +87,8 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		opener:          opener,
 		cache:           cache,
 		engines:         make(map[string]*PackReader),
+		manifest:        newManifestTree(),
+		manifestByID:    make(map[string]*manifestEntry),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
 		budget:          newResidentBudget(defaultResidentBudget),
@@ -125,8 +126,8 @@ func (s *PackfileStore) Close() {
 	s.notify = nil
 	s.mtx.Unlock()
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.manifest = nil
-		s.filters = nil
+		s.manifest = newManifestTree()
+		s.manifestByID = nil
 		s.closeComplete = true
 		broadcast()
 	})
@@ -276,6 +277,11 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 
 // GetBlockExistsBatch checks whether each block exists.
 func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	return s.SnapshotManifest().GetBlockExistsBatch(ctx, refs)
+}
+
+// getBlockExistsBatch shares one catalog snapshot across prefetch and all probes.
+func (s *PackfileStore) getBlockExistsBatch(ctx context.Context, view *ManifestSnapshot, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	indexes := make(map[string][]int, len(refs))
 	var keys []string
@@ -295,7 +301,7 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 		return out, nil
 	}
 
-	if err := s.loadCandidateIndexes(ctx, keys); err != nil {
+	if err := s.loadCandidateIndexes(ctx, view, keys); err != nil {
 		return nil, err
 	}
 
@@ -305,7 +311,7 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	}()
 	for _, key := range keys {
 		var found bool
-		err := s.probePacks([]byte(key), &lookup, func(eng *PackReader) (bool, error) {
+		err := s.probeCatalog(view, []byte(key), &lookup, func(eng *PackReader) (bool, error) {
 			var err error
 			found, err = eng.getBlockExists(ctx, []byte(key))
 			return found, err
@@ -325,23 +331,19 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 // loadCandidateIndexes loads the index of every pack whose bloom filter may
 // hold one of keys, indexLoadConcurrency at a time, so the probes that follow
 // search resident indexes instead of loading them one after another.
-func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, keys []string) error {
-	var entries []*packfile.PackfileEntry
-	var filters []*bloom.Filter
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries, filters = s.manifest, s.filters
-	})
+func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *ManifestSnapshot, keys []string) error {
 
 	bloomKeys := make([]bloom.Key, len(keys))
 	for i, key := range keys {
 		bloomKeys[i] = bloom.NewKey([]byte(key))
 	}
 	var candidates []*packfile.PackfileEntry
-	for i, entry := range entries {
-		if filters[i] == nil || slices.ContainsFunc(bloomKeys, filters[i].TestKey) {
-			candidates = append(candidates, entry)
+	view.entries.Scan(func(item *manifestEntry) bool {
+		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
+			candidates = append(candidates, item.entry)
 		}
-	}
+		return true
+	})
 	if len(candidates) < 2 {
 		return nil
 	}
@@ -357,10 +359,11 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, keys []string)
 			continue
 		}
 		eg.Go(func() error {
-			eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+			eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 			if err != nil {
 				return errors.Wrap(err, "opening packfile")
 			}
+			defer release()
 			return eng.ensureIndexLoaded(ctx)
 		})
 	}
@@ -398,19 +401,25 @@ func (s *PackfileStore) probePacks(
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
 ) error {
-	var entries []*packfile.PackfileEntry
-	var filters []*bloom.Filter
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		entries, filters = s.manifest, s.filters
-	})
 
+	return s.probeCatalog(s.SnapshotManifest(), key, lookup, visit)
+}
+
+// probeCatalog visits a stable catalog without holding a store lock during I/O.
+func (s *PackfileStore) probeCatalog(
+	view *ManifestSnapshot,
+	key []byte,
+	lookup *packLookup,
+	visit func(eng *PackReader) (bool, error),
+) error {
 	bloomKey := bloom.NewKey(key)
 	var candidates []*packfile.PackfileEntry
-	for i, entry := range entries {
-		if filters[i] == nil || filters[i].TestKey(bloomKey) {
-			candidates = append(candidates, entry)
+	view.entries.Scan(func(item *manifestEntry) bool {
+		if item.filter == nil || item.filter.TestKey(bloomKey) {
+			candidates = append(candidates, item.entry)
 		}
-	}
+		return true
+	})
 	lookup.candidates += len(candidates)
 
 	for _, entry := range candidates {
@@ -421,12 +430,13 @@ func (s *PackfileStore) probePacks(
 		if size <= 0 {
 			continue
 		}
-		eng, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
+		eng, release, err := s.getOrOpenEngine(entry.GetId(), size, entry.GetBlockCount())
 		if err != nil {
 			return errors.Wrap(err, "opening packfile")
 		}
 		lookup.opened++
 		found, err := visit(eng)
+		release()
 		if err != nil {
 			return err
 		}
@@ -495,73 +505,94 @@ func (s *PackfileStore) Sync(_ context.Context) (bool, error) {
 	return true, nil
 }
 
-// UpdateManifest filters superseded entries, orders cloud entries by descending
-// sequence with an ascending pack-ID tie-break, then places zero-sequence local
-// entries after them.
+// UpdateManifest replaces a complete catalog, for startup and remote snapshots.
+// Incremental changes use ApplyManifestDelta instead.
 func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
-	active := make([]*packfile.PackfileEntry, 0, len(entries))
-	for _, entry := range entries {
-		if entry.GetId() == "" || entry.GetSupersededBy() != "" {
-			continue
-		}
-		active = append(active, entry)
-	}
-	slices.SortStableFunc(active, func(a, b *packfile.PackfileEntry) int {
-		aSequence := a.GetSequence()
-		bSequence := b.GetSequence()
-		if aSequence == 0 {
-			if bSequence == 0 {
-				return cmp.Compare(a.GetId(), b.GetId())
-			}
-			return 1
-		}
-		if bSequence == 0 {
-			return -1
-		}
-		if result := cmp.Compare(bSequence, aSequence); result != 0 {
-			return result
-		}
-		return cmp.Compare(a.GetId(), b.GetId())
-	})
+	s.updateManifest(entries, nil, true)
+}
 
-	// mtx fences manifest publication before Close clears the bloom state.
+// ApplyManifestDelta publishes accepted entries and removes only named packs.
+func (s *PackfileStore) ApplyManifestDelta(entries []*packfile.PackfileEntry, removed []string) {
+	s.updateManifest(entries, removed, false)
+}
+
+// updateManifest serializes publication and detaches affected readers atomically.
+func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, removed []string, replace bool) {
+	// Fence publication against shutdown and reader construction.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
 		return
 	}
+	var evicted []*PackReader
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		s.filters = parseManifestFilters(active, s.manifest, s.filters)
-		s.manifest = active
+		// A full snapshot alone computes the missing IDs.
+		if replace {
+			present := make(map[string]bool, len(entries))
+			for _, entry := range entries {
+				present[entry.GetId()] = entry.GetSupersededBy() == ""
+			}
+			for id := range s.manifestByID {
+				if !present[id] {
+					removed = append(removed, id)
+				}
+			}
+			for id := range s.engines {
+				if !present[id] {
+					removed = append(removed, id)
+				}
+			}
+		}
+		remove := func(id string) {
+			if old := s.manifestByID[id]; old != nil {
+				s.manifest.Delete(old)
+				delete(s.manifestByID, id)
+			}
+			engine := s.engines[id]
+			delete(s.engines, id)
+			if engine != nil {
+				evicted = append(evicted, engine)
+			}
+		}
+		for _, id := range removed {
+			remove(id)
+		}
+		for _, entry := range entries {
+			id := entry.GetId()
+			if id == "" {
+				continue
+			}
+			if entry.GetSupersededBy() != "" {
+				remove(id)
+				continue
+			}
+			old := s.manifestByID[id]
+			if old != nil {
+				if old.entry.EqualVT(entry) {
+					continue
+				}
+				// Sequencing and bloom changes retain an immutable pack reader.
+				if old.entry.GetSizeBytes() != entry.GetSizeBytes() || old.entry.GetBlockCount() != entry.GetBlockCount() {
+					remove(id)
+				}
+				s.manifest.Delete(old)
+			}
+			item := parseManifestEntry(entry)
+			s.manifestByID[id] = item
+			s.manifest.Set(item)
+		}
 		broadcast()
 	})
 	s.mtx.Unlock()
 
-	s.evictInactiveEngines(active)
+	// Readers drain outside both catalog locks.
+	for _, engine := range evicted {
+		engine.Close()
+	}
 	s.notifyStatsChanged()
 }
 
-func (s *PackfileStore) evictInactiveEngines(entries []*packfile.PackfileEntry) {
-	active := make(map[string]bool, len(entries))
-	for _, entry := range entries {
-		active[entry.GetId()] = true
-	}
-	var removed []*PackReader
-	s.mtx.Lock()
-	for id, engine := range s.engines {
-		if !active[id] {
-			delete(s.engines, id)
-			removed = append(removed, engine)
-		}
-	}
-	s.mtx.Unlock()
-	for _, engine := range removed {
-		if engine != nil {
-			engine.Close()
-		}
-	}
-}
-
+// notifyStatsChanged wakes observers after a committed store change.
 func (s *PackfileStore) notifyStatsChanged() {
 	s.mtx.Lock()
 	notify := s.notify
@@ -571,32 +602,33 @@ func (s *PackfileStore) notifyStatsChanged() {
 	}
 }
 
-// getOrOpenEngine returns the engine for a pack, opening and configuring
-// it via the opener on the first request.
-func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount uint64) (*PackReader, error) {
+// getOrOpenEngine acquires a reader for the requested immutable pack metadata.
+// Readers from an older snapshot are closed by the caller instead of being
+// reinserted into the current catalog's cache after removal or replacement.
+func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount uint64) (*PackReader, func(), error) {
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
-		return nil, ErrPackfileStoreClosed
+		return nil, nil, ErrPackfileStoreClosed
 	}
-	if eng, ok := s.engines[packID]; ok {
+	currentMatches := func() bool {
+		entry := s.manifestByID[packID]
+		return entry != nil && entry.entry.GetSizeBytes() == uint64(size) && entry.entry.GetBlockCount() == blockCount //nolint:gosec // callers skip non-positive sizes.
+	}
+	if eng := s.engines[packID]; eng != nil && currentMatches() {
 		s.mtx.Unlock()
-		return eng, nil
+		return eng, func() {}, nil
 	}
-	opener := s.opener
-	cache := s.cache
-	wbCtx := s.writebackCtx
-	wbTarget := s.writebackTarget
-	wbWindow := s.writebackWindow
+	opener, cache := s.opener, s.cache
+	wbCtx, wbTarget, wbWindow := s.writebackCtx, s.writebackTarget, s.writebackWindow
 	notify := s.notify
 	s.mtx.Unlock()
 
+	// Open outside the catalog lock, using the requested snapshot's metadata.
 	eng, err := opener(packID, size)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	// Rebind packID so the engine uses the manifest id rather than whatever
-	// the opener chose (HTTP openers commonly use the URL).
 	eng.packID = packID
 	eng.SetExpectedBlockCount(blockCount)
 	eng.SetIndexCache(cache)
@@ -604,53 +636,31 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.setBudget(s.budget)
 	eng.SetStatsChangedCallback(notify)
 
+	// Publish only into the matching current catalog; old snapshots borrow
+	// a private reader and release it when their operation finishes.
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
 		eng.Close()
-		return nil, ErrPackfileStoreClosed
+		return nil, nil, ErrPackfileStoreClosed
 	}
-	if existing, ok := s.engines[packID]; ok {
-		// Raced with another opener; discard ours.
+	if !currentMatches() {
+		s.mtx.Unlock()
+		return eng, func() { eng.Close() }, nil
+	}
+	if existing := s.engines[packID]; existing != nil {
 		s.mtx.Unlock()
 		eng.Close()
-		return existing, nil
+		return existing, func() {}, nil
 	}
 	s.engines[packID] = eng
 	s.mtx.Unlock()
-	return eng, nil
+	return eng, func() {}, nil
 }
 
 // snapshotEnginesLocked returns the open engines. Caller holds mtx.
 func (s *PackfileStore) snapshotEnginesLocked() []*PackReader {
 	return slices.Collect(maps.Values(s.engines))
-}
-
-// parseManifestFilters returns the bloom filter of each entry, reusing filters
-// already parsed for the previous manifest. Entries without a usable filter get
-// nil, which matches every key.
-func parseManifestFilters(
-	entries []*packfile.PackfileEntry,
-	prevEntries []*packfile.PackfileEntry,
-	prevFilters []*bloom.Filter,
-) []*bloom.Filter {
-	prev := make(map[string]*bloom.Filter, len(prevEntries))
-	for i, entry := range prevEntries {
-		prev[entry.GetId()] = prevFilters[i]
-	}
-
-	filters := make([]*bloom.Filter, len(entries))
-	for i, entry := range entries {
-		if bf, ok := prev[entry.GetId()]; ok {
-			filters[i] = bf
-			continue
-		}
-		var pbf bloom.BloomFilter
-		if err := pbf.UnmarshalBlock(entry.GetBloomFilter()); err == nil {
-			filters[i] = pbf.ToBloomFilter()
-		}
-	}
-	return filters
 }
 
 // _ is a type assertion

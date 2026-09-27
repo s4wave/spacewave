@@ -310,21 +310,6 @@ func (s *Store) SetPendingPublications(bstoreID string, count int) {
 	})
 }
 
-// AddDirty records newly dirty upload bytes.
-func (s *Store) AddDirty(bstoreID string, bytes int64) {
-	if bytes < 0 {
-		bytes = 0
-	}
-	now := time.Now()
-	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		state := s.getOrCreateStateLocked(bstoreID)
-		state.pendingUploadBytes += bytes
-		state.pendingUploadCount++
-		state.lastActivityAt = now
-		broadcast()
-	})
-}
-
 // StartPush records a started packfile push.
 func (s *Store) StartPush(bstoreID string, bytes int64) {
 	if bytes < 0 {

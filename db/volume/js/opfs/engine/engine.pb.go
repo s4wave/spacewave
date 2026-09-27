@@ -177,8 +177,8 @@ type Partition struct {
 	unknownFields []byte
 	// Lower is the inclusive lower key bound of this range.
 	Lower []byte `protobuf:"bytes,1,opt,name=lower,proto3" json:"lower,omitempty"`
-	// Runs names at most four immutable runs, oldest first.
-	Runs []string `protobuf:"bytes,2,rep,name=runs,proto3" json:"runs,omitempty"`
+	// Runs lists at most four immutable runs, oldest first.
+	Runs []*RunFile `protobuf:"bytes,2,rep,name=runs,proto3" json:"runs,omitempty"`
 }
 
 func (x *Partition) Reset() {
@@ -194,11 +194,58 @@ func (x *Partition) GetLower() []byte {
 	return nil
 }
 
-func (x *Partition) GetRuns() []string {
+func (x *Partition) GetRuns() []*RunFile {
 	if x != nil {
 		return x.Runs
 	}
 	return nil
+}
+
+// RunFile names one immutable run and its encoded size.
+type RunFile struct {
+	unknownFields []byte
+	// Name is the immutable run file name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Bytes is the encoded run length, choosing which runs to merge.
+	Bytes uint32 `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	// Records counts every record in the run, including deletions.
+	Records uint32 `protobuf:"varint,3,opt,name=records,proto3" json:"records,omitempty"`
+	// Deleted counts deletion records that may hide older values.
+	Deleted uint32 `protobuf:"varint,4,opt,name=deleted,proto3" json:"deleted,omitempty"`
+}
+
+func (x *RunFile) Reset() {
+	*x = RunFile{}
+}
+
+func (*RunFile) ProtoMessage() {}
+
+func (x *RunFile) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RunFile) GetBytes() uint32 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *RunFile) GetRecords() uint32 {
+	if x != nil {
+		return x.Records
+	}
+	return 0
+}
+
+func (x *RunFile) GetDeleted() uint32 {
+	if x != nil {
+		return x.Deleted
+	}
+	return 0
 }
 
 // Run stores sorted small records, newest runs taking precedence.
@@ -505,7 +552,7 @@ func (m *Partition) CloneVT() *Partition {
 	}
 	r := new(Partition)
 	r.Lower = protobuf_go_lite.CloneBytes(m.Lower)
-	r.Runs = protobuf_go_lite.CloneSlice(m.Runs)
+	r.Runs = protobuf_go_lite.CloneVTSlice(m.Runs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -513,6 +560,25 @@ func (m *Partition) CloneVT() *Partition {
 }
 
 func (m *Partition) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RunFile) CloneVT() *RunFile {
+	if m == nil {
+		return (*RunFile)(nil)
+	}
+	r := new(RunFile)
+	r.Name = m.Name
+	r.Bytes = m.Bytes
+	r.Records = m.Records
+	r.Deleted = m.Deleted
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RunFile) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -741,7 +807,7 @@ func (this *Partition) EqualVT(that *Partition) bool {
 	if !protobuf_go_lite.EqualBytes(this.Lower, that.Lower) {
 		return false
 	}
-	if !protobuf_go_lite.EqualSlice(this.Runs, that.Runs) {
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Runs, that.Runs, func() *RunFile { return &RunFile{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -749,6 +815,35 @@ func (this *Partition) EqualVT(that *Partition) bool {
 
 func (this *Partition) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Partition)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RunFile) EqualVT(that *RunFile) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Name != that.Name {
+		return false
+	}
+	if this.Bytes != that.Bytes {
+		return false
+	}
+	if this.Records != that.Records {
+		return false
+	}
+	if this.Deleted != that.Deleted {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RunFile) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RunFile)
 	if !ok {
 		return false
 	}
@@ -1200,7 +1295,13 @@ func (x *Partition) MarshalProtoJSON(s *json.MarshalState) {
 	if len(x.Runs) > 0 || s.HasField("runs") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("runs")
-		s.WriteStringArray(x.Runs)
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Runs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("runs"))
+		}
+		s.WriteArrayEnd()
 	}
 	s.WriteObjectEnd()
 }
@@ -1228,13 +1329,90 @@ func (x *Partition) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Runs = nil
 				return
 			}
-			x.Runs = s.ReadStringArray()
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Runs = append(x.Runs, nil)
+					return
+				}
+				v := &RunFile{}
+				v.UnmarshalProtoJSON(s.WithField("runs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Runs = append(x.Runs, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Partition from JSON.
 func (x *Partition) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RunFile message to JSON.
+func (x *RunFile) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Name != "" || s.HasField("name") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("name")
+		s.WriteString(x.Name)
+	}
+	if x.Bytes != 0 || s.HasField("bytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bytes")
+		s.WriteUint32(x.Bytes)
+	}
+	if x.Records != 0 || s.HasField("records") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("records")
+		s.WriteUint32(x.Records)
+	}
+	if x.Deleted != 0 || s.HasField("deleted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deleted")
+		s.WriteUint32(x.Deleted)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RunFile to JSON.
+func (x *RunFile) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RunFile message from JSON.
+func (x *RunFile) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "name":
+			s.AddField("name")
+			x.Name = s.ReadString()
+		case "bytes":
+			s.AddField("bytes")
+			x.Bytes = s.ReadUint32()
+		case "records":
+			s.AddField("records")
+			x.Records = s.ReadUint32()
+		case "deleted":
+			s.AddField("deleted")
+			x.Deleted = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RunFile from JSON.
+func (x *RunFile) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1919,13 +2097,70 @@ func (m *Partition) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Runs) > 0 {
 		for iNdEx := len(m.Runs) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeString(dAtA, i, m.Runs[iNdEx])
+			size, err := m.Runs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
 			dAtA[i] = 0x12
 		}
 	}
 	if len(m.Lower) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Lower)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RunFile) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RunFile) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunFile) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Deleted != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Deleted))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Records != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Records))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Bytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Name) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -2333,7 +2568,24 @@ func (m *Partition) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Lower)
-	n += protobuf_go_lite.SizeStringSlice(1, m.Runs)
+	for _, e := range m.Runs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RunFile) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Records)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Deleted)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2551,7 +2803,11 @@ func (x *Partition) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "runs")
 		for i, v := range x.Runs {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			protobuf_go_lite.TextWriteString(&sb, v)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &RunFile{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -2559,6 +2815,32 @@ func (x *Partition) MarshalProtoText() string {
 }
 
 func (x *Partition) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RunFile) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RunFile")
+	if x.Name != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
+		protobuf_go_lite.TextWriteString(&sb, x.Name)
+	}
+	if x.Bytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.Bytes)
+	}
+	if x.Records != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "records")
+		protobuf_go_lite.TextWriteUint(&sb, x.Records)
+	}
+	if x.Deleted != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deleted")
+		protobuf_go_lite.TextWriteUint(&sb, x.Deleted)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RunFile) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3037,12 +3319,95 @@ func (m *Partition) UnmarshalVT(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Runs", wireType)
 			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Runs = append(m.Runs, &RunFile{})
+			if err := m.Runs[len(m.Runs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RunFile) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RunFile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RunFile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Runs = append(m.Runs, v)
+			m.Name = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bytes", wireType)
+			}
+			m.Bytes = 0
+			m.Bytes, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Records", wireType)
+			}
+			m.Records = 0
+			m.Records, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deleted", wireType)
+			}
+			m.Deleted = 0
+			m.Deleted, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
