@@ -6,7 +6,6 @@ import (
 	"context"
 	stderrors "errors"
 	"net"
-	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -30,11 +29,7 @@ func startDaemonListenerWithPolicy(
 ) (sock string, wait func() error) {
 	t.Helper()
 
-	dir, err := os.MkdirTemp("/tmp", "sw-serve-*")
-	if err != nil {
-		t.Fatalf("temp dir: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	dir := shortSocketDir(t)
 	sock = filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
@@ -100,11 +95,7 @@ func TestServeDaemonListenerShutdownAckCompletesBeforeDrain(t *testing.T) {
 // TestServeDaemonListenerWaitsForGrantedRequester proves a stream that reaches
 // the handler but withholds its request body cannot strand the actual winner.
 func TestServeDaemonListenerWaitsForGrantedRequester(t *testing.T) {
-	dir, err := os.MkdirTemp("/tmp", "sw-serve-*")
-	if err != nil {
-		t.Fatalf("temp dir: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
@@ -209,11 +200,7 @@ func TestServeDaemonListenerExternalCancelExitsPromptly(t *testing.T) {
 	serveCtx, serveCancel := context.WithCancel(t.Context())
 	defer serveCancel()
 
-	dir, err := os.MkdirTemp("/tmp", "sw-serve-*")
-	if err != nil {
-		t.Fatalf("temp dir: %v", err)
-	}
-	defer os.RemoveAll(dir)
+	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {

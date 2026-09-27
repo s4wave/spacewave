@@ -22,7 +22,7 @@ func TestSharedDaemonStarters(t *testing.T) {
 	for _, mode := range []string{"native", "distribution"} {
 		t.Run(mode, func(t *testing.T) {
 			// Subscribe before launch and constrain every child to a private root.
-			statePath := shortStatePath(t)
+			statePath := shortSocketDir(t)
 			if err := os.Chmod(statePath, 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -191,7 +191,7 @@ func TestSharedDaemonSurvivesStarterCancellation(t *testing.T) {
 	for _, mode := range []string{"native", "distribution"} {
 		t.Run(mode, func(t *testing.T) {
 			// Bound the fixture independently of the launcher's canceled context.
-			statePath := shortStatePath(t)
+			statePath := shortSocketDir(t)
 			t.Setenv(sharedDaemonFixtureMode, mode)
 			t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 			t.Setenv("SPACEWAVE_SOCKET_PATH", "")

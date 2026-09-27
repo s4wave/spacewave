@@ -361,20 +361,7 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 	clearStatePathEnv(t)
 	clearSocketPathEnv(t)
 
-	tmpRoot, err := filepath.Abs(".tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	statePath, err := os.MkdirTemp(tmpRoot, "web-state-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.RemoveAll(statePath)
-	})
+	statePath := shortSocketDir(t)
 
 	le := logrus.NewEntry(logrus.New())
 	rootMux := srpc.NewMux()

@@ -91,7 +91,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
-	client, err := connectDaemonWithAutostart(context.Background(), shortStatePath(t))
+	client, err := connectDaemonWithAutostart(context.Background(), shortSocketDir(t))
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := connectDaemonWithAutostart(context.Background(), shortStatePath(t))
+	_, err := connectDaemonWithAutostart(context.Background(), shortSocketDir(t))
 	if err == nil {
 		t.Fatal("expected error")
 	}
