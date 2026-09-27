@@ -2868,6 +2868,154 @@ body,
 
 /* end of shell flexlayout styles */
 
+/* Phone workbench chrome keeps the familiar compact icons inside full touch targets. */
+@media (max-width: 640px),
+  (max-height: 470px) and (hover: none) and (pointer: coarse) {
+  .shell-menu-bar {
+    padding-left: 0;
+  }
+
+  .shell-menu-palette {
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+  }
+
+  .shell-menu-mobile,
+  .shell-menu-bar-overlay[data-menu-collapsed='true'] .shell-menu-mobile {
+    display: flex;
+  }
+
+  .shell-menu-collapsible {
+    display: none;
+  }
+
+  [data-phone-menu] {
+    max-width: calc(100vw - 1rem);
+  }
+
+  [data-phone-menu] [data-slot='menubar-item'],
+  [data-phone-menu] [data-slot='menubar-sub-trigger'] {
+    min-height: 44px;
+  }
+
+  .shell-flexlayout .shell-menu-bar-overlay {
+    height: 44px;
+  }
+
+  @scope (.shell-flexlayout) to (.flexlayout__tab > *) {
+    :scope.shell-flexlayout--with-menu
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tabset_tabbar_outer_top {
+      height: 45px;
+      min-height: 45px;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tabset_tabbar_inner {
+      height: 44px;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      touch-action: pan-x;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_button {
+      height: 44px;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tabset_tabbar_inner::-webkit-scrollbar {
+      display: none;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tabset_tabbar_inner_tab_container {
+      width: max-content !important;
+      flex-shrink: 0;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_button {
+      min-width: 44px;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_toolbar {
+      height: 44px;
+      margin-left: 0;
+      gap: 0;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_toolbar_button,
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_button_overflow {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      opacity: 1;
+    }
+
+    :scope
+      > .flexlayout__optimized_layout
+      > .flexlayout__layout
+      .flexlayout__tab_toolbar_button
+      svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .viewer-bottom-bar {
+    height: calc(44px + env(safe-area-inset-bottom));
+    min-height: calc(44px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .viewer-bottom-bar > div {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .viewer-bottom-bar > div::-webkit-scrollbar {
+    display: none;
+  }
+
+  .viewer-bottom-bar > div:last-of-type {
+    max-width: 55%;
+  }
+
+  .viewer-bottom-bar [role='button'],
+  .viewer-bottom-bar button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .viewer-bottom-bar [role='button'] > svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
  * Debug page variant overrides for LayoutDebug (#/debug/ui/layout).
  *

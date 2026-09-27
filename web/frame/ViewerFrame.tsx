@@ -416,7 +416,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
       <Frame
         className={props.className}
         bottomBar={{
-          className: 'px-1',
+          className: 'viewer-bottom-bar px-1',
           left,
           right,
         }}

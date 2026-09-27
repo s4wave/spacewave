@@ -128,7 +128,7 @@ describe('ShellMenuBar', () => {
 
     const view = render(<ShellMenuBar />)
 
-    fireEvent.click(view.getByRole('button', { name: 'Go to Space' }))
+    fireEvent.click(view.getAllByRole('button', { name: 'Go to Space' })[0])
 
     expect(mockOpenCommand).toHaveBeenCalledWith('spacewave.nav.go-to-space')
     expect(mockInvokeCommand).not.toHaveBeenCalled()
@@ -160,7 +160,7 @@ describe('ShellMenuBar', () => {
 
     const view = render(<ShellMenuBar />)
 
-    fireEvent.click(view.getByRole('button', { name: 'Go Home' }))
+    fireEvent.click(view.getAllByRole('button', { name: 'Go Home' })[0])
 
     expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.nav.home')
     expect(mockOpenCommand).not.toHaveBeenCalled()
@@ -209,7 +209,7 @@ describe('ShellMenuBar', () => {
 
     const view = render(<ShellMenuBar />)
 
-    expect(view.getByText('Ctrl+H')).toBeTruthy()
+    expect(view.getAllByText('Ctrl+H')).toHaveLength(2)
     expect(view.queryByText(/Leader/)).toBeNull()
   })
   it('keeps File and Go menus grouped by command subject', () => {
