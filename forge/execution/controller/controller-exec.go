@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
@@ -37,11 +38,27 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return context.Canceled
 	}
 
-	canceling := false
-	select {
-	case <-c.CancelWaitCh():
-		canceling = true
-	default:
+	completeTx, err := c.busEngine.NewTransaction(rctx, true)
+	if err != nil {
+		return err
+	}
+	defer completeTx.Discard()
+
+	exec, execObjState, err := forge_execution.LookupExecution(rctx, completeTx, c.conf.GetObjectKey())
+	defer world.ReleaseObjectState(execObjState)
+	if err != nil {
+		return err
+	}
+
+	// The durable state decides cancellation: a cancel committed while the
+	// target finished may not have reached CancelWaitCh yet.
+	canceling := exec.GetExecutionState() == forge_execution.State_ExecutionState_CANCELING
+	if !canceling {
+		select {
+		case <-c.CancelWaitCh():
+			canceling = true
+		default:
+		}
 	}
 
 	var res *forge_value.Result
@@ -59,24 +76,11 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		res = forge_value.NewResultWithSuccess()
 	}
 
-	completeTx, err := c.busEngine.NewTransaction(rctx, true)
-	if err != nil {
-		return err
-	}
-	defer completeTx.Discard()
-
-	execObjState, err := world.MustGetObject(rctx, completeTx, c.conf.GetObjectKey())
-	defer world.ReleaseObjectState(execObjState)
-	if err != nil {
-		return err
-	}
-
 	txd := execution_transaction.NewTxComplete(
 		res,
 		execConf.GetExecution().GetClaim(),
 	)
-	_, _, err = execObjState.ApplyObjectOp(rctx, txd, c.peerID)
-	if err != nil {
+	if _, _, err := execObjState.ApplyObjectOp(rctx, txd, c.peerID); err != nil {
 		return err
 	}
 

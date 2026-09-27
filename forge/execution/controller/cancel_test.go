@@ -3,6 +3,7 @@ package execution_controller
 import (
 	"context"
 	"testing"
+	"time"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -124,6 +125,91 @@ func TestCancellationInterruptsSetupAndDrainsTarget(t *testing.T) {
 	}
 }
 
+// TestCancellationCommittedAsTargetFinishes settles an execution whose target
+// returns success after a durable cancel the controller has not yet observed.
+func TestCancellationCommittedAsTargetFinishes(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	handler := &finishHandler{started: make(chan struct{}), finish: make(chan struct{})}
+	const configID = "test/finish-target"
+	registry := space_exec.NewRegistry()
+	registry.Register(configID, func(context.Context, *logrus.Entry, world.WorldState, forge_target.ExecControllerHandle, forge_target.InputMap, []byte) (space_exec.Handler, error) {
+		return handler, nil
+	})
+	for _, factory := range space_exec.BridgeFactories(registry) {
+		tb.StaticResolver.AddFactory(factory)
+	}
+	release, err := tb.Bus.AddController(ctx, world.NewLookupOpController("cancel-test-ops", tb.EngineID, execution_tx.LookupWorldOp), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+
+	// Start the execution under a claim and wait for the target to run.
+	peerID := tb.Volume.GetPeerID()
+	const key = "test/finish-execution"
+	_, err = forge_execution.CreateExecutionWithTarget(ctx, tb.WorldState, peerID, key, peerID, forge_target.NewValueSet(), &forge_target.Target{
+		Exec: &forge_target.Exec{Controller: &configset_proto.ControllerConfig{Id: configID, Rev: 1}},
+	}, timestamp.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := world.MustGetObject(ctx, tb.WorldState, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { world.ReleaseObjectState(obj) })
+	conf := NewConfig(tb.EngineID, key, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
+	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, conf.GetClaimId()), peerID); err != nil {
+		t.Fatal(err)
+	}
+	ctrl := NewController(tb.Logger, tb.Bus, conf)
+	t.Cleanup(func() { _ = ctrl.Close() })
+	ctrl.busEngine.SetContext(ctx)
+	ctrl.execRoutine.SetContext(ctx, true)
+	ref, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ctrl.ProcessState(ctx, tb.Logger, tb.WorldState, obj, ref, rev); err != nil {
+		t.Fatal(err)
+	}
+	<-handler.started
+
+	// Commit the cancel without delivering it to the controller, then finish.
+	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxCancel(), peerID); err != nil {
+		t.Fatal(err)
+	}
+	close(handler.finish)
+
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	state, err := forge_execution.WaitExecutionComplete(waitCtx, tb.Logger, tb.WorldState, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !state.GetResult().GetCanceled() {
+		t.Fatalf("expected canceled result: %v", state.GetResult())
+	}
+}
+
+// finishHandler returns success once released.
+type finishHandler struct {
+	started chan struct{}
+	finish  chan struct{}
+}
+
+// Execute signals start and returns success when released.
+func (h *finishHandler) Execute(context.Context) error {
+	close(h.started)
+	<-h.finish
+	return nil
+}
+
 // cancelDrainHandler separates observing cancellation from draining work.
 type cancelDrainHandler struct {
 	started  chan struct{}
@@ -141,4 +227,7 @@ func (h *cancelDrainHandler) Execute(ctx context.Context) error {
 }
 
 // _ is a type assertion.
-var _ space_exec.Handler = (*cancelDrainHandler)(nil)
+var (
+	_ space_exec.Handler = (*cancelDrainHandler)(nil)
+	_ space_exec.Handler = (*finishHandler)(nil)
+)
