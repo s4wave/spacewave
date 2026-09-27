@@ -289,7 +289,7 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 	}
 
 	soSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(soClient)
-	bodyResp, err := soSvc.MountSharedObjectBody(ctx, &s4wave_sobject.MountSharedObjectBodyRequest{})
+	bodyResp, err := s4wave_sobject.MountSharedObjectBody(ctx, soSvc)
 	if err != nil {
 		soRef.Release()
 		sess.Release()

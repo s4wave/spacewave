@@ -52,7 +52,7 @@ func mountForgeSpace(
 	}
 
 	sharedObjectSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(sharedObjectSrpcClient)
-	bodyResp, err := sharedObjectSvc.MountSharedObjectBody(ctx, &s4wave_sobject.MountSharedObjectBodyRequest{})
+	bodyResp, err := s4wave_sobject.MountSharedObjectBody(ctx, sharedObjectSvc)
 	if err != nil {
 		sharedObjectRef.Release()
 		t.Fatalf("MountSharedObjectBody: %v", err)

@@ -3,8 +3,6 @@ package resource;
 
 option go_package = "github.com/s4wave/spacewave/bldr/resource";
 
-import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
-
 // ResourceService provides a set of stateful resources via an RPC service.
 service ResourceService {
   // ResourceClient starts an instance of a client for the ResourceService,
@@ -16,8 +14,8 @@ service ResourceService {
 
   // ResourceRpc is a rpc request for an open resource handle.
   // Exposes service(s) depending on the resource type.
-  // Component ID: resource_id from ResourceClient call.
-  rpc ResourceRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+  // The first request selects a resource; one typed acknowledgement precedes data.
+  rpc ResourceRpc(stream ResourceRpcPacket) returns (stream ResourceRpcPacket);
 
   // ResourceAttach allows a client to provide resources that server-side
   // RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
@@ -25,6 +23,41 @@ service ResourceService {
   // carries yamux frames for all attached resources.
   rpc ResourceAttach(stream ResourceAttachRequest)
     returns (stream ResourceAttachResponse);
+}
+
+// ResourceFailureCode controls lifecycle recovery independently of diagnostics.
+enum ResourceFailureCode {
+  RESOURCE_FAILURE_CODE_UNKNOWN = 0;
+  RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND = 1;
+  RESOURCE_FAILURE_CODE_CLIENT_RELEASED = 2;
+  RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID = 3;
+  RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID = 4;
+  RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED = 5;
+}
+
+// ResourceFailure carries a stable recovery code and a diagnostic message.
+message ResourceFailure {
+  ResourceFailureCode code = 1;
+  string message = 2;
+}
+
+// ResourceRpcPacket negotiates a resource and carries existing SRPC data frames.
+message ResourceRpcPacket {
+  oneof body {
+    ResourceRpcInit init = 1;
+    ResourceRpcAck ack = 2;
+    bytes data = 3;
+  }
+}
+
+// ResourceRpcInit selects a resource opened by ResourceClient or ResourceAttach.
+message ResourceRpcInit {
+  uint32 resource_id = 1;
+}
+
+// ResourceRpcAck accepts the route when failure is absent.
+message ResourceRpcAck {
+  ResourceFailure failure = 1;
 }
 
 // ResourceClientRequest is a control packet for ResourceClient.
@@ -137,8 +170,8 @@ message ResourceAttachInit {
 
 // ResourceAttachAck is sent by the server to confirm the session.
 message ResourceAttachAck {
-  // Error is set if the session was rejected.
-  string error = 1;
+  // Failure is set if the session was rejected.
+  ResourceFailure failure = 1;
 }
 
 // ResourceAttachAdd is sent by the client to register a resource.
@@ -153,8 +186,8 @@ message ResourceAttachAdd {
 message ResourceAttachAddAck {
   // AttachId echoes the client-chosen correlation ID.
   uint32 attach_id = 1;
-  // Error is set if the add was rejected.
-  string error = 2;
+  // Failure is set if the add was rejected.
+  ResourceFailure failure = 2;
   // ResourceId is the server-assigned ID for the attached resource.
   uint32 resource_id = 3;
 }

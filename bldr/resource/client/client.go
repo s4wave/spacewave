@@ -386,8 +386,8 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 	if ack == nil {
 		return nil, errors.New("expected ack packet")
 	}
-	if ack.GetError() != "" {
-		return nil, errors.New(ack.GetError())
+	if ack.GetFailure() != nil {
+		return nil, ack.GetFailure()
 	}
 
 	owner := &attachedResourceOwner{client: c}

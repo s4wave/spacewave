@@ -13,12 +13,13 @@ import {
   Server,
   StreamConn,
   combineUint8ArrayListTransform,
-  openRpcStream,
 } from 'starpc'
 import type { LookupMethod, OpenStreamFunc } from 'starpc'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
+import { ResourceFailureCode } from './resource.pb.js'
+import { openResourceRpcStream, ResourceFailureError } from './rpc-stream.js'
 
 // ReleasedResourceClient is returned from the client getter when a resource has been released.
 // It allows DevTools serialization to work without throwing, but throws on actual usage.
@@ -63,7 +64,6 @@ const releasedResourceClient: ReleasedResourceClient = new Proxy(
   },
 )
 
-const resourceAttachClientNotFound = 'client not found'
 const resourceClientInitTimeoutMS = 30000
 const resourceClientInitTimeoutMessage =
   'ResourceClient stream did not initialize before timeout'
@@ -99,12 +99,12 @@ function withResourceClientInitTimeout<T>(promise: Promise<T>): Promise<T> {
 }
 
 function isServerMissingResourceError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? '')
-  return (
-    message.includes('resource not found') ||
-    message.includes('invalid resource id') ||
-    message.includes('resource or client was released')
-  )
+  if (!(error instanceof ResourceFailureError)) return false
+  return [
+    ResourceFailureCode.RESOURCE_NOT_FOUND,
+    ResourceFailureCode.INVALID_RESOURCE_ID,
+    ResourceFailureCode.RESOURCE_OR_CLIENT_RELEASED,
+  ].includes(error.failure.code ?? ResourceFailureCode.UNKNOWN)
 }
 
 /**
@@ -305,10 +305,9 @@ function createResourceRef(
     if (!srpcClient) {
       srpcClient = new OrderedSRPCClient(client, async () => {
         return withResourceClientInitTimeout(
-          openRpcStream(
-            id.toString(),
+          openResourceRpcStream(
+            id,
             client.service.ResourceRpc.bind(client.service),
-            true,
           ),
         ).catch((error) => {
           if (isServerMissingResourceError(error)) {
@@ -636,11 +635,11 @@ export class Client {
       controller.abort()
       throw new Error('expected ack packet')
     }
-    if (ackBody.value.error) {
+    if (ackBody.value.failure) {
       outgoing.end()
       controller.abort()
-      const err = new Error(ackBody.value.error)
-      if (ackBody.value.error === resourceAttachClientNotFound) {
+      const err = new ResourceFailureError(ackBody.value.failure)
+      if (ackBody.value.failure.code === ResourceFailureCode.CLIENT_RELEASED) {
         this.resetConnection()
         throw new ResourceClientError(
           'Resource attach client was released',
@@ -703,7 +702,7 @@ export class Client {
             continue
           }
           if (pending.canceled) {
-            if (!addAck.error) {
+            if (!addAck.failure) {
               outgoing.push({
                 body: {
                   case: 'detach' as const,
@@ -713,10 +712,10 @@ export class Client {
             }
             continue
           }
-          if (!addAck.error) {
+          if (!addAck.failure) {
             pending.resolve(addAck.resourceId ?? 0)
           } else {
-            pending.reject(new Error(addAck.error))
+            pending.reject(new ResourceFailureError(addAck.failure))
           }
         }
         if (body?.case === 'detachAck') {

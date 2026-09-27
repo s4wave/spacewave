@@ -245,7 +245,8 @@ class MountSharedObjectRequest(_message.Message):
     def __init__(self, shared_object_id: _Optional[str] = ...) -> None: ...
 
 class MountSharedObjectResponse(_message.Message):
-    __slots__ = ("resource_id", "shared_object_meta", "peer_id", "shared_object_id", "block_store_id", "hash_type", "transport_peer_id")
+    __slots__ = ("health", "resource_id", "shared_object_meta", "peer_id", "shared_object_id", "block_store_id", "hash_type", "transport_peer_id")
+    HEALTH_FIELD_NUMBER: _ClassVar[int]
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_META_FIELD_NUMBER: _ClassVar[int]
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -253,6 +254,7 @@ class MountSharedObjectResponse(_message.Message):
     BLOCK_STORE_ID_FIELD_NUMBER: _ClassVar[int]
     HASH_TYPE_FIELD_NUMBER: _ClassVar[int]
     TRANSPORT_PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    health: _sobject_pb2.SharedObjectHealth
     resource_id: int
     shared_object_meta: _sobject_pb2.SharedObjectMeta
     peer_id: str
@@ -260,7 +262,7 @@ class MountSharedObjectResponse(_message.Message):
     block_store_id: str
     hash_type: _hash_pb2.HashType
     transport_peer_id: str
-    def __init__(self, resource_id: _Optional[int] = ..., shared_object_meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ..., peer_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., block_store_id: _Optional[str] = ..., hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ..., transport_peer_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, health: _Optional[_Union[_sobject_pb2.SharedObjectHealth, _Mapping]] = ..., resource_id: _Optional[int] = ..., shared_object_meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ..., peer_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., block_store_id: _Optional[str] = ..., hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ..., transport_peer_id: _Optional[str] = ...) -> None: ...
 
 class WatchSharedObjectHealthRequest(_message.Message):
     __slots__ = ("shared_object_id",)

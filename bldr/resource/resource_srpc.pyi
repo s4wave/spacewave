@@ -1,9 +1,6 @@
 from collections.abc import AsyncIterable, AsyncIterator
 from typing import Protocol
 
-from rpcstream import (
-    rpcstream_pb2 as _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2,
-)
 from bldr.resource import (
     resource_pb2 as _github_com_s4wave_spacewave_bldr_resource_resource_pb2,
 )
@@ -26,10 +23,10 @@ class ResourceServiceClient:
     def resource_rpc(
         self,
         requests: AsyncIterable[
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
         ],
     ) -> AsyncIterator[
-        _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+        _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
     ]: ...
     def resource_attach(
         self,
@@ -52,10 +49,10 @@ class ResourceServiceServer(Protocol):
     def resource_rpc(
         self,
         requests: AsyncIterator[
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
         ],
     ) -> AsyncIterator[
-        _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+        _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
     ]: ...
     def resource_attach(
         self,

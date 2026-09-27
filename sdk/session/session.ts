@@ -52,7 +52,7 @@ import {
 import { SessionLockMode, SessionRef } from '../../core/session/session.pb.js'
 import type { AccountOutcome } from '../../core/pairing/pairing.pb.js'
 import type { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
-import { SharedObject } from '../sobject/sobject.js'
+import { SharedObject, SharedObjectHealthError } from '../sobject/sobject.js'
 import { SystemStatus } from '../status/status.js'
 import { LocalSession } from './local-session.js'
 import { SpacewaveSession } from './spacewave-session.js'
@@ -221,6 +221,7 @@ export class Session extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<SharedObject> {
     const resp = await this.service.MountSharedObject(req, abortSignal)
+    if (resp.health) throw new SharedObjectHealthError(resp.health)
     const { resourceId, ...meta } = resp
     return this.resourceRef.createResource(resourceId ?? 0, SharedObject, meta)
   }

@@ -1,10 +1,55 @@
-from rpcstream import rpcstream_pb2 as _rpcstream_pb2
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class ResourceFailureCode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    RESOURCE_FAILURE_CODE_UNKNOWN: _ClassVar[ResourceFailureCode]
+    RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND: _ClassVar[ResourceFailureCode]
+    RESOURCE_FAILURE_CODE_CLIENT_RELEASED: _ClassVar[ResourceFailureCode]
+    RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID: _ClassVar[ResourceFailureCode]
+    RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID: _ClassVar[ResourceFailureCode]
+    RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED: _ClassVar[ResourceFailureCode]
+RESOURCE_FAILURE_CODE_UNKNOWN: ResourceFailureCode
+RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND: ResourceFailureCode
+RESOURCE_FAILURE_CODE_CLIENT_RELEASED: ResourceFailureCode
+RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID: ResourceFailureCode
+RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID: ResourceFailureCode
+RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED: ResourceFailureCode
+
+class ResourceFailure(_message.Message):
+    __slots__ = ("code", "message")
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    code: ResourceFailureCode
+    message: str
+    def __init__(self, code: _Optional[_Union[ResourceFailureCode, str]] = ..., message: _Optional[str] = ...) -> None: ...
+
+class ResourceRpcPacket(_message.Message):
+    __slots__ = ("init", "ack", "data")
+    INIT_FIELD_NUMBER: _ClassVar[int]
+    ACK_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    init: ResourceRpcInit
+    ack: ResourceRpcAck
+    data: bytes
+    def __init__(self, init: _Optional[_Union[ResourceRpcInit, _Mapping]] = ..., ack: _Optional[_Union[ResourceRpcAck, _Mapping]] = ..., data: _Optional[bytes] = ...) -> None: ...
+
+class ResourceRpcInit(_message.Message):
+    __slots__ = ("resource_id",)
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    resource_id: int
+    def __init__(self, resource_id: _Optional[int] = ...) -> None: ...
+
+class ResourceRpcAck(_message.Message):
+    __slots__ = ("failure",)
+    FAILURE_FIELD_NUMBER: _ClassVar[int]
+    failure: ResourceFailure
+    def __init__(self, failure: _Optional[_Union[ResourceFailure, _Mapping]] = ...) -> None: ...
 
 class ResourceClientRequest(_message.Message):
     __slots__ = ("control_id", "init", "adopt", "release")
@@ -95,10 +140,10 @@ class ResourceAttachInit(_message.Message):
     def __init__(self, client_handle_id: _Optional[int] = ...) -> None: ...
 
 class ResourceAttachAck(_message.Message):
-    __slots__ = ("error",)
-    ERROR_FIELD_NUMBER: _ClassVar[int]
-    error: str
-    def __init__(self, error: _Optional[str] = ...) -> None: ...
+    __slots__ = ("failure",)
+    FAILURE_FIELD_NUMBER: _ClassVar[int]
+    failure: ResourceFailure
+    def __init__(self, failure: _Optional[_Union[ResourceFailure, _Mapping]] = ...) -> None: ...
 
 class ResourceAttachAdd(_message.Message):
     __slots__ = ("attach_id", "label")
@@ -109,14 +154,14 @@ class ResourceAttachAdd(_message.Message):
     def __init__(self, attach_id: _Optional[int] = ..., label: _Optional[str] = ...) -> None: ...
 
 class ResourceAttachAddAck(_message.Message):
-    __slots__ = ("attach_id", "error", "resource_id")
+    __slots__ = ("attach_id", "failure", "resource_id")
     ATTACH_ID_FIELD_NUMBER: _ClassVar[int]
-    ERROR_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_FIELD_NUMBER: _ClassVar[int]
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
     attach_id: int
-    error: str
+    failure: ResourceFailure
     resource_id: int
-    def __init__(self, attach_id: _Optional[int] = ..., error: _Optional[str] = ..., resource_id: _Optional[int] = ...) -> None: ...
+    def __init__(self, attach_id: _Optional[int] = ..., failure: _Optional[_Union[ResourceFailure, _Mapping]] = ..., resource_id: _Optional[int] = ...) -> None: ...
 
 class ResourceAttachDetach(_message.Message):
     __slots__ = ("resource_id",)

@@ -9,6 +9,7 @@ import {
   ResourceClientResponse,
   ResourceClientRequest,
 } from '../resource.pb.js'
+import { ResourceFailureCode } from '../resource.pb.js'
 import type {
   ResourceAttachRequest,
   ResourceAttachResponse,
@@ -942,7 +943,9 @@ describe('ResourceAttach handler', () => {
 
       expect(ackPkt.body?.case).toBe('ack')
       if (ackPkt.body?.case === 'ack') {
-        expect(ackPkt.body.value.error).toBe('client not found')
+        expect(ackPkt.body.value.failure?.code).toBe(
+          ResourceFailureCode.CLIENT_RELEASED,
+        )
       }
 
       const { done } = await attachIter.next()
@@ -973,7 +976,9 @@ describe('ResourceAttach handler', () => {
 
       expect(ackPkt.body?.case).toBe('ack')
       if (ackPkt.body?.case === 'ack') {
-        expect(ackPkt.body.value.error).toBe('client not found')
+        expect(ackPkt.body.value.failure?.code).toBe(
+          ResourceFailureCode.CLIENT_RELEASED,
+        )
       }
 
       const { done } = await attachIter.next()

@@ -3,11 +3,9 @@ package resource_server
 import (
 	"context"
 	"slices"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -202,12 +200,10 @@ func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 
 // ResourceRpc routes one ResourceRpc stream to its generation-owned resource.
 func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceRpcStream) error {
-	return rpcstream.HandleRpcStream(strm, func(ctx context.Context, componentID string, _ func()) (srpc.Invoker, func(), error) {
-		resourceIDU64, err := strconv.ParseUint(componentID, 10, 32)
-		if err != nil {
-			return nil, nil, resource.ErrInvalidComponentIDFormat
+	return resource.HandleResourceRpc(strm, func(ctx context.Context, resourceID uint32) (srpc.Invoker, error) {
+		if resourceID == 0 {
+			return nil, resource.ErrInvalidResourceID
 		}
-		resourceID := uint32(resourceIDU64)
 		var mux srpc.Invoker
 		var client *RemoteResourceClient
 		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -226,9 +222,9 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 			}
 		})
 		if mux == nil {
-			return nil, nil, resource.ErrResourceOrClientReleased
+			return nil, resource.ErrResourceOrClientReleased
 		}
-		return &resourceServerClientInvoker{mux: mux, client: client, parentResourceID: resourceID}, nil, nil
+		return &resourceServerClientInvoker{mux: mux, client: client, parentResourceID: resourceID}, nil
 	})
 }
 
@@ -281,7 +277,7 @@ func (s *ResourceServer) ResourceAttach(
 	if client == nil {
 		_ = send(&resource.ResourceAttachResponse{
 			Body: &resource.ResourceAttachResponse_Ack{
-				Ack: &resource.ResourceAttachAck{Error: "client not found"},
+				Ack: &resource.ResourceAttachAck{Failure: resource.FailureFromError(resource.ErrClientReleased)},
 			},
 		})
 		return resource.ErrResourceOrClientReleased
@@ -373,7 +369,7 @@ func (s *ResourceServer) ResourceAttach(
 					Body: &resource.ResourceAttachResponse_AddAck{
 						AddAck: &resource.ResourceAttachAddAck{
 							AttachId: attachID,
-							Error:    addErr.Error(),
+							Failure:  resource.FailureFromError(addErr),
 						},
 					},
 				})

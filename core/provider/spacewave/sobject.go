@@ -490,7 +490,7 @@ func (t *sobjectTracker) holdTerminalMountError(
 			err.Error(),
 		),
 	)
-	t.sobjectProm.SetResult(nil, err)
+	t.sobjectProm.SetResult(nil, sobject.NewSharedObjectHealthError(t.healthCtr.GetValue(), err))
 	<-ctx.Done()
 	return context.Canceled
 }

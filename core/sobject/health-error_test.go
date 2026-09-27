@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 func TestBuildSharedObjectHealthFromErrorNil(t *testing.T) {
@@ -74,17 +75,17 @@ func TestBuildSharedObjectHealthFromErrorKnownReasons(t *testing.T) {
 		},
 		{
 			name:   "block missing",
-			err:    errors.New("build cdn world engine: block not found"),
+			err:    errors.Wrap(block.ErrNotFound, "build cdn world engine"),
 			reason: SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND,
 			hint:   SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA,
 			detail: "build cdn world engine: block not found",
 		},
 		{
 			name:   "unsupported type",
-			err:    errors.New("unsupported shared object type: weird.body"),
+			err:    errors.Wrap(ErrUnsupportedBodyType, "weird.body"),
 			reason: SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED,
 			hint:   SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA,
-			detail: "unsupported shared object type: weird.body",
+			detail: "weird.body: unsupported shared object type",
 		},
 		{
 			name:   "unknown preserved",
@@ -123,7 +124,7 @@ func TestBuildSharedObjectHealthFromErrorKnownReasons(t *testing.T) {
 func TestWrapSharedObjectHealthErrorPreservesHealth(t *testing.T) {
 	t.Parallel()
 
-	cause := errors.New("build cdn world engine: block not found")
+	cause := errors.Wrap(block.ErrNotFound, "build cdn world engine")
 	err := WrapSharedObjectHealthError(
 		SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
 		cause,

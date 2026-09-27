@@ -440,7 +440,12 @@ func (s *SOStateParticipantHandle) GetTransformer(ctx context.Context) (*block_t
 
 	transformConf := innerDataObj.GetTransformConf()
 	if err := transformConf.Validate(); err != nil {
-		return nil, errors.Wrap(err, "so grant: validate transform config")
+		return nil, NewSharedObjectHealthError(NewSharedObjectClosedHealth(
+			SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
+			SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED,
+			SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA,
+			err.Error(),
+		), err)
 	}
 
 	return block_transform.NewTransformer(controller.ConstructOpts{Logger: s.le}, s.sfs, transformConf)

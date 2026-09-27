@@ -5,9 +5,7 @@ import contextlib
 from collections.abc import AsyncGenerator, AsyncIterator
 from typing import Final, cast
 
-from rpcstream import rpcstream_pb2
 from starpc.client import Client
-from starpc.rpcstream import build_rpc_stream_open_stream
 from starpc.server import Server, ServiceRegistry
 from starpc.stream import ByteStream, StreamClosedError, memory_stream_pair
 
@@ -18,6 +16,7 @@ from bldr.resource.resource_srpc import (
     register_resource_service,
 )
 from spacewave_resource import ResourceFactory, ResourceServer
+from spacewave_resource.rpc_stream import build_resource_rpc_open_stream
 
 _END: Final = object()
 
@@ -30,7 +29,7 @@ class ResourceFixture(ResourceServiceServer):
 
     def __init__(self) -> None:
         self.controls: list[resource_pb2.ResourceClientRequest] = []
-        self.routes: list[rpcstream_pb2.RpcStreamPacket] = []
+        self.routes: list[resource_pb2.ResourceRpcPacket] = []
         self._control_seen: asyncio.Queue[resource_pb2.ResourceClientRequest] = (
             asyncio.Queue()
         )
@@ -135,14 +134,14 @@ class ResourceFixture(ResourceServiceServer):
 
     async def resource_rpc(
         self,
-        requests: AsyncIterator[rpcstream_pb2.RpcStreamPacket],
-    ) -> AsyncIterator[rpcstream_pb2.RpcStreamPacket]:
+        requests: AsyncIterator[resource_pb2.ResourceRpcPacket],
+    ) -> AsyncIterator[resource_pb2.ResourceRpcPacket]:
         try:
             first = await anext(requests)
             self.routes.append(first)
             self.route_started.set()
             await self._route_ack.wait()
-            yield rpcstream_pb2.RpcStreamPacket(ack=rpcstream_pb2.RpcAck())
+            yield resource_pb2.ResourceRpcPacket(ack=resource_pb2.ResourceRpcAck())
             async for request in requests:
                 self.routes.append(request)
                 self.route_data.set()
@@ -198,7 +197,7 @@ class ResourceServerHarness:
     def open_route_client(self, resource_id: int) -> Client:
         """Create a StarPC client whose calls route to one resource ID."""
         return Client(
-            build_rpc_stream_open_stream(str(resource_id), self.service.resource_rpc)
+            build_resource_rpc_open_stream(resource_id, self.service.resource_rpc)
         )
 
     async def aclose(self) -> None:

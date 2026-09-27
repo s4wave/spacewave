@@ -15,66 +15,23 @@ import {
 
 describe('buildSharedObjectFallbackHealth', () => {
   it.each([
-    {
-      name: 'shared object not found',
-      error: 'shared object not found',
-      reason: SharedObjectHealthCommonReason.NOT_FOUND,
-      hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-    },
-    {
-      name: 'initial state rejected',
-      error: 'initial state pull: shared object initial state rejected',
-      reason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
-      hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-    },
-    {
-      name: 'current key epoch missing',
-      error: 'rejoin: current key epoch missing for self-enroll recovery',
-      reason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
-      hint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-    },
-    {
-      name: 'not a participant',
-      error: 'access denied: peer is not a participant',
-      reason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
-      hint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
-    },
-    {
-      name: 'no valid grant',
-      error: 'access denied: no valid grant for our peer',
-      reason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
-      hint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
-    },
-    {
-      name: 'block missing',
-      error: 'build cdn world engine: block not found',
-      reason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      hint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    },
-    {
-      name: 'transform config',
-      error: 'decode transform config: invalid field',
-      reason: SharedObjectHealthCommonReason.TRANSFORM_CONFIG_DECODE_FAILED,
-      hint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    },
-    {
-      name: 'unknown',
-      error: 'local mount failed: disk offline',
-      reason: SharedObjectHealthCommonReason.UNKNOWN,
-      hint: SharedObjectHealthRemediationHint.NONE,
-    },
-  ])('matches backend health vocabulary for $name', (tc) => {
-    const health = buildSharedObjectFallbackHealth(
-      new Error(tc.error),
-      SharedObjectHealthLayer.SHARED_OBJECT,
-    )
-
-    expect(health).toMatchObject({
-      status: SharedObjectHealthStatus.CLOSED,
-      layer: SharedObjectHealthLayer.SHARED_OBJECT,
-      commonReason: tc.reason,
-      remediationHint: tc.hint,
-      error: tc.error,
+    'shared object not found',
+    'initial state pull: shared object initial state rejected',
+    'current key epoch missing',
+    'access denied: peer is not a participant',
+    'access denied: no valid grant for our peer',
+    'build cdn world engine: block not found',
+    'decode transform config: invalid field',
+  ])('does not assign remediation from untyped text: %s', (message) => {
+    expect(
+      buildSharedObjectFallbackHealth(
+        new Error(message),
+        SharedObjectHealthLayer.SHARED_OBJECT,
+      ),
+    ).toMatchObject({
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
+      error: message,
     })
   })
 
@@ -87,8 +44,8 @@ describe('buildSharedObjectFallbackHealth', () => {
     expect(health).toMatchObject({
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.BODY,
-      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
     })
   })
 
@@ -172,8 +129,8 @@ describe('getSharedObjectRouteHealth', () => {
     expect(health).toMatchObject({
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.BODY,
-      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
     })
   })
 
@@ -189,8 +146,8 @@ describe('getSharedObjectRouteHealth', () => {
     expect(health).toMatchObject({
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.BODY,
-      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
     })
   })
 
@@ -261,8 +218,8 @@ describe('getSharedObjectRouteHealth', () => {
     expect(health).toMatchObject({
       status: SharedObjectHealthStatus.CLOSED,
       layer: SharedObjectHealthLayer.SHARED_OBJECT,
-      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+      commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+      remediationHint: SharedObjectHealthRemediationHint.NONE,
     })
   })
 })

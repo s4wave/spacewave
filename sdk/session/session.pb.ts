@@ -714,6 +714,12 @@ export const CreateSpaceRequest: MessageType<CreateSpaceRequest> =
  */
 export interface MountSharedObjectResponse {
   /**
+   * Health explains a failed mount; no resource is allocated when set.
+   *
+   * @generated from field: sobject.SharedObjectHealth health = 8;
+   */
+  health?: SharedObjectHealth
+  /**
    * ResourceId is the ID of the mounted shared object resource.
    *
    * @generated from field: uint32 resource_id = 1;
@@ -764,6 +770,7 @@ export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.session.MountSharedObjectResponse',
     fields: [
+      { no: 8, name: 'health', kind: 'message', T: () => SharedObjectHealth },
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       {
         no: 2,

@@ -53,13 +53,12 @@ export function buildSharedObjectFallbackHealth(
   }
 
   const msg = err.message || 'unknown shared object error'
-  const classification = classifySharedObjectFallbackError(msg)
 
   return {
     status: SharedObjectHealthStatus.CLOSED,
     layer,
-    commonReason: classification.commonReason,
-    remediationHint: classification.remediationHint,
+    commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+    remediationHint: SharedObjectHealthRemediationHint.NONE,
     error: msg,
   }
 }
@@ -73,53 +72,5 @@ export function buildSharedObjectLoadingHealth(
     commonReason: SharedObjectHealthCommonReason.UNKNOWN,
     remediationHint: SharedObjectHealthRemediationHint.NONE,
     error: '',
-  }
-}
-
-function classifySharedObjectFallbackError(message: string): {
-  commonReason: SharedObjectHealthCommonReason
-  remediationHint: SharedObjectHealthRemediationHint
-} {
-  const lower = message.toLowerCase()
-  if (
-    lower.includes('shared object initial state rejected') ||
-    lower.includes('current key epoch missing')
-  ) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
-      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-    }
-  }
-  if (lower.includes('shared object not found')) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-    }
-  }
-  if (
-    lower.includes('not a participant') ||
-    lower.includes('no valid grant for our peer')
-  ) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.ACCESS_REVOKED,
-      remediationHint: SharedObjectHealthRemediationHint.REQUEST_ACCESS,
-    }
-  }
-  if (lower.includes('block not found')) {
-    return {
-      commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  if (lower.includes('transform config')) {
-    return {
-      commonReason:
-        SharedObjectHealthCommonReason.TRANSFORM_CONFIG_DECODE_FAILED,
-      remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
-    }
-  }
-  return {
-    commonReason: SharedObjectHealthCommonReason.UNKNOWN,
-    remediationHint: SharedObjectHealthRemediationHint.NONE,
   }
 }

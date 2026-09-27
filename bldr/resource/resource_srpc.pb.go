@@ -7,7 +7,6 @@ package resource
 import (
 	context "context"
 
-	rpcstream "github.com/aperturerobotics/starpc/rpcstream"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -22,7 +21,7 @@ type SRPCResourceServiceClient interface {
 	ResourceClient(ctx context.Context) (SRPCResourceService_ResourceClientClient, error)
 	// ResourceRpc is a rpc request for an open resource handle.
 	// Exposes service(s) depending on the resource type.
-	// Component ID: resource_id from ResourceClient call.
+	// The first request selects a resource; one typed acknowledgement precedes data.
 	ResourceRpc(ctx context.Context) (SRPCResourceService_ResourceRpcClient, error)
 	// ResourceAttach allows a client to provide resources that server-side
 	// RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
@@ -99,31 +98,31 @@ func (c *srpcResourceServiceClient) ResourceRpc(ctx context.Context) (SRPCResour
 
 type SRPCResourceService_ResourceRpcClient interface {
 	srpc.Stream
-	Send(*rpcstream.RpcStreamPacket) error
-	Recv() (*rpcstream.RpcStreamPacket, error)
-	RecvTo(*rpcstream.RpcStreamPacket) error
+	Send(*ResourceRpcPacket) error
+	Recv() (*ResourceRpcPacket, error)
+	RecvTo(*ResourceRpcPacket) error
 }
 
 type srpcResourceService_ResourceRpcClient struct {
 	srpc.Stream
 }
 
-func (x *srpcResourceService_ResourceRpcClient) Send(m *rpcstream.RpcStreamPacket) error {
+func (x *srpcResourceService_ResourceRpcClient) Send(m *ResourceRpcPacket) error {
 	if m == nil {
 		return nil
 	}
 	return x.MsgSend(m)
 }
 
-func (x *srpcResourceService_ResourceRpcClient) Recv() (*rpcstream.RpcStreamPacket, error) {
-	m := new(rpcstream.RpcStreamPacket)
+func (x *srpcResourceService_ResourceRpcClient) Recv() (*ResourceRpcPacket, error) {
+	m := new(ResourceRpcPacket)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcResourceService_ResourceRpcClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+func (x *srpcResourceService_ResourceRpcClient) RecvTo(m *ResourceRpcPacket) error {
 	return x.MsgRecv(m)
 }
 
@@ -174,7 +173,7 @@ type SRPCResourceServiceServer interface {
 	ResourceClient(SRPCResourceService_ResourceClientStream) error
 	// ResourceRpc is a rpc request for an open resource handle.
 	// Exposes service(s) depending on the resource type.
-	// Component ID: resource_id from ResourceClient call.
+	// The first request selects a resource; one typed acknowledgement precedes data.
 	ResourceRpc(SRPCResourceService_ResourceRpcStream) error
 	// ResourceAttach allows a client to provide resources that server-side
 	// RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
@@ -289,21 +288,21 @@ func (x *srpcResourceService_ResourceClientStream) RecvTo(m *ResourceClientReque
 
 type SRPCResourceService_ResourceRpcStream interface {
 	srpc.Stream
-	Send(*rpcstream.RpcStreamPacket) error
-	SendAndClose(*rpcstream.RpcStreamPacket) error
-	Recv() (*rpcstream.RpcStreamPacket, error)
-	RecvTo(*rpcstream.RpcStreamPacket) error
+	Send(*ResourceRpcPacket) error
+	SendAndClose(*ResourceRpcPacket) error
+	Recv() (*ResourceRpcPacket, error)
+	RecvTo(*ResourceRpcPacket) error
 }
 
 type srpcResourceService_ResourceRpcStream struct {
 	srpc.Stream
 }
 
-func (x *srpcResourceService_ResourceRpcStream) Send(m *rpcstream.RpcStreamPacket) error {
+func (x *srpcResourceService_ResourceRpcStream) Send(m *ResourceRpcPacket) error {
 	return x.MsgSend(m)
 }
 
-func (x *srpcResourceService_ResourceRpcStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+func (x *srpcResourceService_ResourceRpcStream) SendAndClose(m *ResourceRpcPacket) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err
@@ -312,15 +311,15 @@ func (x *srpcResourceService_ResourceRpcStream) SendAndClose(m *rpcstream.RpcStr
 	return x.CloseSend()
 }
 
-func (x *srpcResourceService_ResourceRpcStream) Recv() (*rpcstream.RpcStreamPacket, error) {
-	m := new(rpcstream.RpcStreamPacket)
+func (x *srpcResourceService_ResourceRpcStream) Recv() (*ResourceRpcPacket, error) {
+	m := new(ResourceRpcPacket)
 	if err := x.MsgRecv(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (x *srpcResourceService_ResourceRpcStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+func (x *srpcResourceService_ResourceRpcStream) RecvTo(m *ResourceRpcPacket) error {
 	return x.MsgRecv(m)
 }
 

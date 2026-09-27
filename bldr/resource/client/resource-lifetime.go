@@ -3,10 +3,8 @@ package resource_client
 import (
 	"context"
 	"slices"
-	"strconv"
 	"sync"
 
-	"github.com/aperturerobotics/starpc/rpcstream"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -180,8 +178,7 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 	}
 	resourceCtx, cancel := context.WithCancel(l.ctx)
 	l.resourceContexts[resourceID] = cancel
-	resourceIDStr := strconv.FormatUint(uint64(resourceID), 10)
-	client := rpcstream.NewRpcStreamClient(func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+	client := resource.NewResourceRpcClient(func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
 		callCtx, releaseCallCtx := resourceRPCCallContext(resourceCtx, ctx)
 		strm, err := l.service.ResourceRpc(callCtx)
 		if err != nil {
@@ -193,7 +190,7 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 			ctx:                                   callCtx,
 			release:                               releaseCallCtx,
 		}, nil
-	}, resourceIDStr, true)
+	}, resourceID)
 	client = &orderedResourceClient{lifetime: l, client: client}
 	l.srpcClients[resourceID] = client
 	return client, nil

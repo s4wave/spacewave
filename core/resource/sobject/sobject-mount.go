@@ -2,10 +2,10 @@ package resource_sobject
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -14,7 +14,15 @@ import (
 )
 
 // MountSharedObjectBody mounts the body of a shared object.
-func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s4wave_sobject.MountSharedObjectBodyRequest) (*s4wave_sobject.MountSharedObjectBodyResponse, error) {
+func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s4wave_sobject.MountSharedObjectBodyRequest) (response *s4wave_sobject.MountSharedObjectBodyResponse, mountErr error) {
+	// Preserve health from all body providers, including failures before mounting.
+	defer func() {
+		if mountErr != nil && ctx.Err() == nil {
+			response = mountSharedObjectBodyHealthResponse(mountErr)
+			mountErr = nil
+		}
+	}()
+
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -33,7 +41,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 	if r.sharedObject == nil || r.sharedObject.GetBus() == nil {
 		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
-			errors.Errorf("unsupported shared object type: %v", bodyType),
+			fmt.Errorf("%w: %s", sobject.ErrUnsupportedBodyType, bodyType),
 		)), nil
 	}
 
@@ -81,7 +89,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 	if mountedSpace == nil {
 		return mountSharedObjectBodyHealthResponse(sobject.WrapSharedObjectHealthError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_BODY,
-			errors.Errorf("unsupported shared object type: %v", bodyType),
+			fmt.Errorf("%w: %s", sobject.ErrUnsupportedBodyType, bodyType),
 		)), nil
 	}
 

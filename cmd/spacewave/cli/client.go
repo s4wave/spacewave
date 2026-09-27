@@ -254,7 +254,7 @@ func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session
 	}
 
 	soSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(soClient)
-	bodyResp, err := soSvc.MountSharedObjectBody(ctx, &s4wave_sobject.MountSharedObjectBodyRequest{})
+	bodyResp, err := s4wave_sobject.MountSharedObjectBody(ctx, soSvc)
 	if err != nil {
 		soRef.Release()
 		return nil, nil, errors.Wrap(err, "mount shared object body")

@@ -30,6 +30,8 @@ type crossRuntimeProcess struct {
 	cmd   *exec.Cmd
 	input io.WriteCloser
 
+	// outputMtx guards output and stderr, which os/exec and the stdout
+	// scanner write while failure reporting reads them.
 	outputMtx sync.Mutex
 	output    []string
 	stderr    bytes.Buffer
@@ -66,7 +68,7 @@ func startCrossRuntimeProcess(
 		lines: make(chan string, 64),
 		done:  make(chan struct{}),
 	}
-	command.Stderr = &process.stderr
+	command.Stderr = crossRuntimeStderr{process: process}
 	if err := command.Start(); err != nil {
 		t.Fatalf("start %s: %v", name, err)
 	}
@@ -88,6 +90,18 @@ func startCrossRuntimeProcess(
 		close(process.done)
 	}()
 	return process
+}
+
+// crossRuntimeStderr appends subprocess stderr under the output lock.
+type crossRuntimeStderr struct {
+	process *crossRuntimeProcess
+}
+
+// Write appends one stderr chunk.
+func (w crossRuntimeStderr) Write(data []byte) (int, error) {
+	w.process.outputMtx.Lock()
+	defer w.process.outputMtx.Unlock()
+	return w.process.stderr.Write(data)
 }
 
 func (p *crossRuntimeProcess) send(t *testing.T, command string) {

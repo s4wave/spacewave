@@ -10,13 +10,13 @@ from typing import Self, cast
 from google.protobuf.message import DecodeError
 from starpc.call import CallError
 from starpc.client import Client
-from starpc.rpcstream import build_rpc_stream_open_stream
 from starpc.stream import ByteStream
 
 from bldr.resource import resource_pb2
 from bldr.resource.resource_srpc import ResourceServiceClient
 
 from .errors import ResourceProtocolError, ResourceReleasedError, ResourceTerminalError
+from .rpc_stream import build_resource_rpc_open_stream
 
 _QUEUE_END = object()
 _MAX_CONTROL_ID = (1 << 32) - 1
@@ -330,8 +330,8 @@ class ResourceClient:
             await waiter
         self._require_state_live(state)
 
-        opener = build_rpc_stream_open_stream(
-            str(state.resource_id), self._service.resource_rpc
+        opener = build_resource_rpc_open_stream(
+            state.resource_id, self._service.resource_rpc
         )
         task = asyncio.current_task()
         assert task is not None
