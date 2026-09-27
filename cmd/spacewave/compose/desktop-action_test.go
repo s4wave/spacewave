@@ -4,6 +4,7 @@ package spacewave_compose
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -108,6 +109,11 @@ func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktopcont
 	c.opens++
 	c.mtx.Unlock()
 	return &desktopcontrol.OpenOrFocusDesktopResponse{DaemonPid: int64(os.Getpid()), UiManifestRef: "fixture/web"}, nil
+}
+
+// QuitDesktop is outside this launcher-only fixture.
+func (c *fixtureDesktopControl) QuitDesktop(context.Context, *desktopcontrol.QuitDesktopRequest) (*desktopcontrol.QuitDesktopResponse, error) {
+	return nil, errors.New("desktop Quit is outside the launcher fixture")
 }
 
 // WatchDesktopStatus is unused by the launcher's one-shot operation.
