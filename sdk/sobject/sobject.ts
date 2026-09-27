@@ -15,9 +15,21 @@ import {
 } from './sobject.pb.js'
 import { MountSharedObjectResponse } from '../session/session.pb.js'
 
+const healthErrorBrand = Symbol.for('spacewave.SharedObjectHealthError')
+
 // SharedObjectHealthError carries backend-owned SharedObject health through SDK
 // call sites that already model failed resource mounts as thrown errors.
 export class SharedObjectHealthError extends Error {
+  readonly [healthErrorBrand] = true
+
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      healthErrorBrand in value &&
+      value[healthErrorBrand] === true
+    )
+  }
+
   public readonly health: SharedObjectHealth
 
   constructor(health: SharedObjectHealth) {

@@ -3,9 +3,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterable, AsyncIterator
 from typing import Protocol
 
-from rpcstream import (
-    rpcstream_pb2 as _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2,
-)
 from bldr.resource import (
     resource_pb2 as _github_com_s4wave_spacewave_bldr_resource_resource_pb2,
 )
@@ -26,8 +23,8 @@ RESOURCESERVICE_SERVICE = ServiceDescriptor(
         ),
         MethodDescriptor(
             "ResourceRpc",
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket,
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket,
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket,
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket,
             True,
             True,
         ),
@@ -69,10 +66,10 @@ class ResourceServiceClient:
     async def resource_rpc(
         self,
         requests: AsyncIterable[
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
         ],
     ) -> AsyncIterator[
-        _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+        _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
     ]:
         call = await self._client.open_call(self._service, "ResourceRpc")
 
@@ -81,7 +78,7 @@ class ResourceServiceClient:
                 yield request.SerializeToString(deterministic=True)
 
         async for data in bidirectional_bytes(call, encoded()):
-            response = _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket()
+            response = _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket()
             response.ParseFromString(data)
             yield response
 
@@ -117,10 +114,10 @@ class ResourceServiceServer(Protocol):
     def resource_rpc(
         self,
         requests: AsyncIterator[
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
         ],
     ) -> AsyncIterator[
-        _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+        _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
     ]: ...
     def resource_attach(
         self,
@@ -156,13 +153,13 @@ def register_resource_service(
 
     async def resource_rpc_handler(call: Call) -> None:
         async def requests() -> AsyncIterator[
-            _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket
+            _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket
         ]:
             while True:
                 data = await call.receive()
                 if data is None:
                     return
-                request = _github_com_aperturerobotics_starpc_rpcstream_rpcstream_pb2.RpcStreamPacket()
+                request = _github_com_s4wave_spacewave_bldr_resource_resource_pb2.ResourceRpcPacket()
                 request.ParseFromString(data)
                 yield request
 

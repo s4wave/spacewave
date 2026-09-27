@@ -9,12 +9,15 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from _resource_fixture import ResourceControlStream, ResourceServerHarness
 from starpc.call import Call, CallError
 from starpc.client import Client
-from starpc.rpcstream import RpcStreamRemoteError, build_rpc_stream_open_stream
 from starpc.server import Handler, ServiceRegistry
 from starpc.stream import StreamClosedError
 
 from bldr.resource import resource_pb2
 from spacewave_resource import ResourceCall, ResourceUnsupportedError
+from spacewave_resource.rpc_stream import (
+    ResourceFailureError,
+    build_resource_rpc_open_stream,
+)
 
 _ALPHA = "test.Alpha"
 _BETA = "test.Beta"
@@ -330,10 +333,10 @@ class ResourceServerTest(unittest.IsolatedAsyncioTestCase):
         )
         generation = self.harness.server._generations[control.client_handle_id]
         self.assertNotIn(child, generation.resources)
-        opener = build_rpc_stream_open_stream(
-            str(child), self.harness.service.resource_rpc
+        opener = build_resource_rpc_open_stream(
+            child, self.harness.service.resource_rpc
         )
-        with self.assertRaises(RpcStreamRemoteError):
+        with self.assertRaises(ResourceFailureError):
             await opener()
 
     async def test_concurrent_routes_bind_exact_provenance(self) -> None:
@@ -460,10 +463,10 @@ class ResourceServerTest(unittest.IsolatedAsyncioTestCase):
             await self_call.receive()
         await self_call.aclose()
 
-        opener = build_rpc_stream_open_stream(
-            str(child), self.harness.service.resource_rpc
+        opener = build_resource_rpc_open_stream(
+            child, self.harness.service.resource_rpc
         )
-        with self.assertRaises(RpcStreamRemoteError):
+        with self.assertRaises(ResourceFailureError):
             await opener()
         self.assertNotIn(f"self-continued:{child}", self.probe.order)
         self.assertFalse(self.harness.server._handler_routes)
@@ -609,17 +612,19 @@ class ResourceServerTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_invalid_component_id_fails_only_that_route(self) -> None:
         control = await self.open_control()
-        for component_id in ("0", "root"):
-            opener = build_rpc_stream_open_stream(
-                component_id, self.harness.service.resource_rpc
-            )
-            with self.assertRaises(CallError):
-                await opener()
 
-        unknown = build_rpc_stream_open_stream(
-            str(control.root_resource_id + 4242), self.harness.service.resource_rpc
+        async def invalid_requests() -> AsyncIterator[resource_pb2.ResourceRpcPacket]:
+            yield resource_pb2.ResourceRpcPacket(init=resource_pb2.ResourceRpcInit())
+
+        response = await anext(self.harness.service.resource_rpc(invalid_requests()))
+        self.assertEqual(
+            response.ack.failure.code,
+            resource_pb2.RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID,
         )
-        with self.assertRaises(RpcStreamRemoteError):
+        unknown = build_resource_rpc_open_stream(
+            control.root_resource_id + 4242, self.harness.service.resource_rpc
+        )
+        with self.assertRaises(ResourceFailureError):
             await unknown()
 
         routed = self.harness.open_route_client(control.root_resource_id)

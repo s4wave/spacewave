@@ -22,10 +22,9 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from rpcstream import rpcstream_pb2 as github_dot_com_dot_aperturerobotics_dot_starpc_dot_rpcstream_dot_rpcstream__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n8github.com/s4wave/spacewave/bldr/resource/resource.proto\x12\x08resource\x1a<github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto\"\xf2\x01\n\x15ResourceClientRequest\x12\x12\n\ncontrol_id\x18\x05 \x01(\r\x12\x33\n\x04init\x18\x02 \x01(\x0b\x32#.resource.ResourceClientInitRequestH\x00\x12.\n\x05\x61\x64opt\x18\x03 \x01(\x0b\x32\x1d.resource.ResourceClientAdoptH\x00\x12\x32\n\x07release\x18\x04 \x01(\x0b\x32\x1f.resource.ResourceClientReleaseH\x00\x42\x06\n\x04\x62odyJ\x04\x08\x01\x10\x02R\x1esupports_resource_adoption_ack\"\x1b\n\x19ResourceClientInitRequest\"*\n\x13ResourceClientAdopt\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\",\n\x15ResourceClientRelease\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\"\xde\x01\n\x16ResourceClientResponse\x12,\n\x04init\x18\x01 \x01(\x0b\x32\x1c.resource.ResourceClientInitH\x00\x12?\n\x11resource_released\x18\x02 \x01(\x0b\x32\".resource.ResourceReleasedResponseH\x00\x12\x39\n\x0b\x63ontrol_ack\x18\x04 \x01(\x0b\x32\".resource.ResourceClientControlAckH\x00\x42\x06\n\x04\x62odyJ\x04\x08\x03\x10\x04R\x0c\x63lient_error\".\n\x18ResourceClientControlAck\x12\x12\n\ncontrol_id\x18\x01 \x01(\r\"/\n\x18ResourceReleasedResponse\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\"H\n\x12ResourceClientInit\x12\x18\n\x10\x63lient_handle_id\x18\x01 \x01(\r\x12\x18\n\x10root_resource_id\x18\x02 \x01(\r\"\xbf\x01\n\x15ResourceAttachRequest\x12,\n\x04init\x18\x01 \x01(\x0b\x32\x1c.resource.ResourceAttachInitH\x00\x12*\n\x03\x61\x64\x64\x18\x02 \x01(\x0b\x32\x1b.resource.ResourceAttachAddH\x00\x12\x30\n\x06\x64\x65tach\x18\x03 \x01(\x0b\x32\x1e.resource.ResourceAttachDetachH\x00\x12\x12\n\x08mux_data\x18\x04 \x01(\x0cH\x00\x42\x06\n\x04\x62ody\"\xcc\x01\n\x16ResourceAttachResponse\x12*\n\x03\x61\x63k\x18\x01 \x01(\x0b\x32\x1b.resource.ResourceAttachAckH\x00\x12\x31\n\x07\x61\x64\x64_ack\x18\x02 \x01(\x0b\x32\x1e.resource.ResourceAttachAddAckH\x00\x12\x37\n\ndetach_ack\x18\x03 \x01(\x0b\x32!.resource.ResourceAttachDetachAckH\x00\x12\x12\n\x08mux_data\x18\x04 \x01(\x0cH\x00\x42\x06\n\x04\x62ody\".\n\x12ResourceAttachInit\x12\x18\n\x10\x63lient_handle_id\x18\x01 \x01(\r\"\"\n\x11ResourceAttachAck\x12\r\n\x05\x65rror\x18\x01 \x01(\t\"5\n\x11ResourceAttachAdd\x12\x11\n\tattach_id\x18\x01 \x01(\r\x12\r\n\x05label\x18\x02 \x01(\t\"M\n\x14ResourceAttachAddAck\x12\x11\n\tattach_id\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x13\n\x0bresource_id\x18\x03 \x01(\r\"+\n\x14ResourceAttachDetach\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\".\n\x17ResourceAttachDetachAck\x12\x13\n\x0bresource_id\x18\x01 \x01(\r2\x90\x02\n\x0fResourceService\x12Y\n\x0eResourceClient\x12\x1f.resource.ResourceClientRequest\x1a .resource.ResourceClientResponse\"\x00(\x01\x30\x01\x12I\n\x0bResourceRpc\x12\x1a.rpcstream.RpcStreamPacket\x1a\x1a.rpcstream.RpcStreamPacket(\x01\x30\x01\x12W\n\x0eResourceAttach\x12\x1f.resource.ResourceAttachRequest\x1a .resource.ResourceAttachResponse(\x01\x30\x01\x42+Z)github.com/s4wave/spacewave/bldr/resourceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n8github.com/s4wave/spacewave/bldr/resource/resource.proto\x12\x08resource\"O\n\x0fResourceFailure\x12+\n\x04\x63ode\x18\x01 \x01(\x0e\x32\x1d.resource.ResourceFailureCode\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x7f\n\x11ResourceRpcPacket\x12)\n\x04init\x18\x01 \x01(\x0b\x32\x19.resource.ResourceRpcInitH\x00\x12\'\n\x03\x61\x63k\x18\x02 \x01(\x0b\x32\x18.resource.ResourceRpcAckH\x00\x12\x0e\n\x04\x64\x61ta\x18\x03 \x01(\x0cH\x00\x42\x06\n\x04\x62ody\"&\n\x0fResourceRpcInit\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\"<\n\x0eResourceRpcAck\x12*\n\x07\x66\x61ilure\x18\x01 \x01(\x0b\x32\x19.resource.ResourceFailure\"\xf2\x01\n\x15ResourceClientRequest\x12\x12\n\ncontrol_id\x18\x05 \x01(\r\x12\x33\n\x04init\x18\x02 \x01(\x0b\x32#.resource.ResourceClientInitRequestH\x00\x12.\n\x05\x61\x64opt\x18\x03 \x01(\x0b\x32\x1d.resource.ResourceClientAdoptH\x00\x12\x32\n\x07release\x18\x04 \x01(\x0b\x32\x1f.resource.ResourceClientReleaseH\x00\x42\x06\n\x04\x62odyJ\x04\x08\x01\x10\x02R\x1esupports_resource_adoption_ack\"\x1b\n\x19ResourceClientInitRequest\"*\n\x13ResourceClientAdopt\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\",\n\x15ResourceClientRelease\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\"\xde\x01\n\x16ResourceClientResponse\x12,\n\x04init\x18\x01 \x01(\x0b\x32\x1c.resource.ResourceClientInitH\x00\x12?\n\x11resource_released\x18\x02 \x01(\x0b\x32\".resource.ResourceReleasedResponseH\x00\x12\x39\n\x0b\x63ontrol_ack\x18\x04 \x01(\x0b\x32\".resource.ResourceClientControlAckH\x00\x42\x06\n\x04\x62odyJ\x04\x08\x03\x10\x04R\x0c\x63lient_error\".\n\x18ResourceClientControlAck\x12\x12\n\ncontrol_id\x18\x01 \x01(\r\"/\n\x18ResourceReleasedResponse\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\"H\n\x12ResourceClientInit\x12\x18\n\x10\x63lient_handle_id\x18\x01 \x01(\r\x12\x18\n\x10root_resource_id\x18\x02 \x01(\r\"\xbf\x01\n\x15ResourceAttachRequest\x12,\n\x04init\x18\x01 \x01(\x0b\x32\x1c.resource.ResourceAttachInitH\x00\x12*\n\x03\x61\x64\x64\x18\x02 \x01(\x0b\x32\x1b.resource.ResourceAttachAddH\x00\x12\x30\n\x06\x64\x65tach\x18\x03 \x01(\x0b\x32\x1e.resource.ResourceAttachDetachH\x00\x12\x12\n\x08mux_data\x18\x04 \x01(\x0cH\x00\x42\x06\n\x04\x62ody\"\xcc\x01\n\x16ResourceAttachResponse\x12*\n\x03\x61\x63k\x18\x01 \x01(\x0b\x32\x1b.resource.ResourceAttachAckH\x00\x12\x31\n\x07\x61\x64\x64_ack\x18\x02 \x01(\x0b\x32\x1e.resource.ResourceAttachAddAckH\x00\x12\x37\n\ndetach_ack\x18\x03 \x01(\x0b\x32!.resource.ResourceAttachDetachAckH\x00\x12\x12\n\x08mux_data\x18\x04 \x01(\x0cH\x00\x42\x06\n\x04\x62ody\".\n\x12ResourceAttachInit\x12\x18\n\x10\x63lient_handle_id\x18\x01 \x01(\r\"?\n\x11ResourceAttachAck\x12*\n\x07\x66\x61ilure\x18\x01 \x01(\x0b\x32\x19.resource.ResourceFailure\"5\n\x11ResourceAttachAdd\x12\x11\n\tattach_id\x18\x01 \x01(\r\x12\r\n\x05label\x18\x02 \x01(\t\"j\n\x14ResourceAttachAddAck\x12\x11\n\tattach_id\x18\x01 \x01(\r\x12*\n\x07\x66\x61ilure\x18\x02 \x01(\x0b\x32\x19.resource.ResourceFailure\x12\x13\n\x0bresource_id\x18\x03 \x01(\r\"+\n\x14ResourceAttachDetach\x12\x13\n\x0bresource_id\x18\x01 \x01(\r\".\n\x17ResourceAttachDetachAck\x12\x13\n\x0bresource_id\x18\x01 \x01(\r*\xa4\x02\n\x13ResourceFailureCode\x12!\n\x1dRESOURCE_FAILURE_CODE_UNKNOWN\x10\x00\x12,\n(RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND\x10\x01\x12)\n%RESOURCE_FAILURE_CODE_CLIENT_RELEASED\x10\x02\x12-\n)RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID\x10\x03\x12+\n\'RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID\x10\x04\x12\x35\n1RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED\x10\x05\x32\x92\x02\n\x0fResourceService\x12Y\n\x0eResourceClient\x12\x1f.resource.ResourceClientRequest\x1a .resource.ResourceClientResponse\"\x00(\x01\x30\x01\x12K\n\x0bResourceRpc\x12\x1b.resource.ResourceRpcPacket\x1a\x1b.resource.ResourceRpcPacket(\x01\x30\x01\x12W\n\x0eResourceAttach\x12\x1f.resource.ResourceAttachRequest\x1a .resource.ResourceAttachResponse(\x01\x30\x01\x42+Z)github.com/s4wave/spacewave/bldr/resourceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,38 +32,48 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'github.com.s4wave.spacewave
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z)github.com/s4wave/spacewave/bldr/resource'
-  _globals['_RESOURCECLIENTREQUEST']._serialized_start=133
-  _globals['_RESOURCECLIENTREQUEST']._serialized_end=375
-  _globals['_RESOURCECLIENTINITREQUEST']._serialized_start=377
-  _globals['_RESOURCECLIENTINITREQUEST']._serialized_end=404
-  _globals['_RESOURCECLIENTADOPT']._serialized_start=406
-  _globals['_RESOURCECLIENTADOPT']._serialized_end=448
-  _globals['_RESOURCECLIENTRELEASE']._serialized_start=450
-  _globals['_RESOURCECLIENTRELEASE']._serialized_end=494
-  _globals['_RESOURCECLIENTRESPONSE']._serialized_start=497
-  _globals['_RESOURCECLIENTRESPONSE']._serialized_end=719
-  _globals['_RESOURCECLIENTCONTROLACK']._serialized_start=721
-  _globals['_RESOURCECLIENTCONTROLACK']._serialized_end=767
-  _globals['_RESOURCERELEASEDRESPONSE']._serialized_start=769
-  _globals['_RESOURCERELEASEDRESPONSE']._serialized_end=816
-  _globals['_RESOURCECLIENTINIT']._serialized_start=818
-  _globals['_RESOURCECLIENTINIT']._serialized_end=890
-  _globals['_RESOURCEATTACHREQUEST']._serialized_start=893
-  _globals['_RESOURCEATTACHREQUEST']._serialized_end=1084
-  _globals['_RESOURCEATTACHRESPONSE']._serialized_start=1087
-  _globals['_RESOURCEATTACHRESPONSE']._serialized_end=1291
-  _globals['_RESOURCEATTACHINIT']._serialized_start=1293
-  _globals['_RESOURCEATTACHINIT']._serialized_end=1339
-  _globals['_RESOURCEATTACHACK']._serialized_start=1341
-  _globals['_RESOURCEATTACHACK']._serialized_end=1375
-  _globals['_RESOURCEATTACHADD']._serialized_start=1377
-  _globals['_RESOURCEATTACHADD']._serialized_end=1430
-  _globals['_RESOURCEATTACHADDACK']._serialized_start=1432
-  _globals['_RESOURCEATTACHADDACK']._serialized_end=1509
-  _globals['_RESOURCEATTACHDETACH']._serialized_start=1511
-  _globals['_RESOURCEATTACHDETACH']._serialized_end=1554
-  _globals['_RESOURCEATTACHDETACHACK']._serialized_start=1556
-  _globals['_RESOURCEATTACHDETACHACK']._serialized_end=1602
-  _globals['_RESOURCESERVICE']._serialized_start=1605
-  _globals['_RESOURCESERVICE']._serialized_end=1877
+  _globals['_RESOURCEFAILURECODE']._serialized_start=1913
+  _globals['_RESOURCEFAILURECODE']._serialized_end=2205
+  _globals['_RESOURCEFAILURE']._serialized_start=70
+  _globals['_RESOURCEFAILURE']._serialized_end=149
+  _globals['_RESOURCERPCPACKET']._serialized_start=151
+  _globals['_RESOURCERPCPACKET']._serialized_end=278
+  _globals['_RESOURCERPCINIT']._serialized_start=280
+  _globals['_RESOURCERPCINIT']._serialized_end=318
+  _globals['_RESOURCERPCACK']._serialized_start=320
+  _globals['_RESOURCERPCACK']._serialized_end=380
+  _globals['_RESOURCECLIENTREQUEST']._serialized_start=383
+  _globals['_RESOURCECLIENTREQUEST']._serialized_end=625
+  _globals['_RESOURCECLIENTINITREQUEST']._serialized_start=627
+  _globals['_RESOURCECLIENTINITREQUEST']._serialized_end=654
+  _globals['_RESOURCECLIENTADOPT']._serialized_start=656
+  _globals['_RESOURCECLIENTADOPT']._serialized_end=698
+  _globals['_RESOURCECLIENTRELEASE']._serialized_start=700
+  _globals['_RESOURCECLIENTRELEASE']._serialized_end=744
+  _globals['_RESOURCECLIENTRESPONSE']._serialized_start=747
+  _globals['_RESOURCECLIENTRESPONSE']._serialized_end=969
+  _globals['_RESOURCECLIENTCONTROLACK']._serialized_start=971
+  _globals['_RESOURCECLIENTCONTROLACK']._serialized_end=1017
+  _globals['_RESOURCERELEASEDRESPONSE']._serialized_start=1019
+  _globals['_RESOURCERELEASEDRESPONSE']._serialized_end=1066
+  _globals['_RESOURCECLIENTINIT']._serialized_start=1068
+  _globals['_RESOURCECLIENTINIT']._serialized_end=1140
+  _globals['_RESOURCEATTACHREQUEST']._serialized_start=1143
+  _globals['_RESOURCEATTACHREQUEST']._serialized_end=1334
+  _globals['_RESOURCEATTACHRESPONSE']._serialized_start=1337
+  _globals['_RESOURCEATTACHRESPONSE']._serialized_end=1541
+  _globals['_RESOURCEATTACHINIT']._serialized_start=1543
+  _globals['_RESOURCEATTACHINIT']._serialized_end=1589
+  _globals['_RESOURCEATTACHACK']._serialized_start=1591
+  _globals['_RESOURCEATTACHACK']._serialized_end=1654
+  _globals['_RESOURCEATTACHADD']._serialized_start=1656
+  _globals['_RESOURCEATTACHADD']._serialized_end=1709
+  _globals['_RESOURCEATTACHADDACK']._serialized_start=1711
+  _globals['_RESOURCEATTACHADDACK']._serialized_end=1817
+  _globals['_RESOURCEATTACHDETACH']._serialized_start=1819
+  _globals['_RESOURCEATTACHDETACH']._serialized_end=1862
+  _globals['_RESOURCEATTACHDETACHACK']._serialized_start=1864
+  _globals['_RESOURCEATTACHDETACHACK']._serialized_end=1910
+  _globals['_RESOURCESERVICE']._serialized_start=2208
+  _globals['_RESOURCESERVICE']._serialized_end=2482
 # @@protoc_insertion_point(module_scope)

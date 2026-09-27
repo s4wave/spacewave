@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ERR_RPC_ABORT, Packet } from 'starpc'
-import type { RpcStreamPacket } from 'starpc'
+import { ResourceFailureCode, type ResourceRpcPacket } from './resource.pb.js'
 
 import type {
   ResourceAttachResponse,
@@ -309,7 +309,12 @@ describe('ResourceClient', () => {
       yield {
         body: {
           case: 'ack' as const,
-          value: { error: 'client not found' },
+          value: {
+            failure: {
+              code: ResourceFailureCode.CLIENT_RELEASED,
+              message: 'generation gone',
+            },
+          },
         },
       }
     }
@@ -327,7 +332,11 @@ describe('ResourceClient', () => {
     ).rejects.toEqual(
       expect.objectContaining({
         code: 'CONNECTION_FAILED',
-        cause: expect.objectContaining({ message: 'client not found' }),
+        cause: expect.objectContaining({
+          failure: expect.objectContaining({
+            code: ResourceFailureCode.CLIENT_RELEASED,
+          }),
+        }),
       }),
     )
 
@@ -413,7 +422,7 @@ describe('ResourceClient', () => {
 
       expect(initPacket.body).toEqual({
         case: 'init',
-        value: { componentId: '51' },
+        value: { resourceId: 51 },
       })
 
       yield {
@@ -474,21 +483,24 @@ describe('ResourceClient', () => {
 
   it('marks stale ResourceRpc refs server-released before ack error rejects the request', async () => {
     const service = buildUnusedService()
-    const staleMessage = 'resource or client was released'
+    const staleMessage = 'selected handle is no longer available'
     service.ResourceRpc = async function* (request) {
       const incoming = request[Symbol.asyncIterator]()
       const initPacket = await readResourceRpcPacket(incoming)
 
       expect(initPacket.body).toEqual({
         case: 'init',
-        value: { componentId: '51' },
+        value: { resourceId: 51 },
       })
 
       yield {
         body: {
           case: 'ack' as const,
           value: {
-            error: staleMessage,
+            failure: {
+              code: ResourceFailureCode.RESOURCE_OR_CLIENT_RELEASED,
+              message: staleMessage,
+            },
           },
         },
       }
@@ -518,7 +530,7 @@ describe('ResourceClient', () => {
           })
           throw error
         }),
-    ).rejects.toThrow(`rpcstream: remote: ${staleMessage}`)
+    ).rejects.toThrow(staleMessage)
 
     expect(onResourceReleased).toHaveBeenCalledOnce()
   })
@@ -533,7 +545,7 @@ describe('ResourceClient', () => {
       message: 'invalid resource id: 51',
     },
   ])(
-    'marks stale ResourceRpc refs server-released on $name open failure',
+    'keeps valid ResourceRpc refs alive on untyped $name errors',
     async ({ message }) => {
       const service = buildUnusedService()
       const openError = new Error(message)
@@ -555,12 +567,8 @@ describe('ResourceClient', () => {
         ),
       ).rejects.toBe(openError)
 
-      expect(ref.released).toBe(true)
-      expect(onResourceReleased).toHaveBeenCalledOnce()
-      expect(onResourceReleased).toHaveBeenCalledWith({
-        resourceId: 51,
-        reason: 'server-released',
-      })
+      expect(ref.released).toBe(false)
+      expect(onResourceReleased).not.toHaveBeenCalled()
     },
   )
 
@@ -894,11 +902,11 @@ function buildResourceClientInit(resourceId: number): ResourceClientResponse {
 }
 
 async function readResourceRpcPacket(
-  incoming: AsyncIterator<RpcStreamPacket>,
-): Promise<RpcStreamPacket> {
+  incoming: AsyncIterator<ResourceRpcPacket>,
+): Promise<ResourceRpcPacket> {
   const next = await Promise.race([
     incoming.next(),
-    new Promise<IteratorResult<RpcStreamPacket>>((_, reject) => {
+    new Promise<IteratorResult<ResourceRpcPacket>>((_, reject) => {
       setTimeout(() => reject(new Error('timed out waiting for packet')), 1000)
     }),
   ])

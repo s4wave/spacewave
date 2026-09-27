@@ -188,6 +188,8 @@ message MountSharedObjectRequest {
 
 // MountSharedObjectResponse is the response type for MountSharedObject.
 message MountSharedObjectResponse {
+  // Health explains a failed mount; no resource is allocated when set.
+  .sobject.SharedObjectHealth health = 8;
   // ResourceId is the ID of the mounted shared object resource.
   uint32 resource_id = 1;
   // SharedObjectMeta is the metadata for the SharedObject.

@@ -1,9 +1,8 @@
 package sobject
 
 import (
-	"strings"
-
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // SharedObjectHealthError exposes a SharedObjectHealth snapshot through an error wrapper.
@@ -49,10 +48,13 @@ func BuildSharedObjectHealthFromError(
 		return NewSharedObjectLoadingHealth(layer)
 	}
 
+	if health, ok := GetSharedObjectHealthFromError(err); ok {
+		return health
+	}
+
 	hint := SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE
 	reason := SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN
 	msg := err.Error()
-	lmsg := strings.ToLower(msg)
 
 	switch {
 	case errors.Is(err, ErrSharedObjectNotFound):
@@ -61,13 +63,13 @@ func BuildSharedObjectHealthFromError(
 	case errors.Is(err, ErrNotParticipant) || errors.Is(err, ErrCannotDecode):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS
-	case errors.Is(err, ErrEmptyTransformConfig) || strings.Contains(lmsg, "transform config"):
+	case errors.Is(err, ErrEmptyTransformConfig):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_TRANSFORM_CONFIG_DECODE_FAILED
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA
-	case errors.Is(err, ErrEmptyBodyType) || strings.Contains(lmsg, "unsupported shared object type"):
+	case errors.Is(err, ErrEmptyBodyType) || errors.Is(err, ErrUnsupportedBodyType):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA
-	case strings.Contains(lmsg, "block not found"):
+	case errors.Is(err, block.ErrNotFound):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REPAIR_SOURCE_DATA
 	}

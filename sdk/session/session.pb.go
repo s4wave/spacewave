@@ -833,6 +833,8 @@ func (x *MountSharedObjectRequest) GetSharedObjectId() string {
 // MountSharedObjectResponse is the response type for MountSharedObject.
 type MountSharedObjectResponse struct {
 	unknownFields []byte
+	// Health explains a failed mount; no resource is allocated when set.
+	Health *sobject.SharedObjectHealth `protobuf:"bytes,8,opt,name=health,proto3" json:"health,omitempty"`
 	// ResourceId is the ID of the mounted shared object resource.
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// SharedObjectMeta is the metadata for the SharedObject.
@@ -857,6 +859,13 @@ func (x *MountSharedObjectResponse) Reset() {
 }
 
 func (*MountSharedObjectResponse) ProtoMessage() {}
+
+func (x *MountSharedObjectResponse) GetHealth() *sobject.SharedObjectHealth {
+	if x != nil {
+		return x.Health
+	}
+	return nil
+}
 
 func (x *MountSharedObjectResponse) GetResourceId() uint32 {
 	if x != nil {
@@ -3917,6 +3926,7 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
 	r.TransportPeerId = m.TransportPeerId
+	r.Health = protobuf_go_lite.CloneVTValue(m.Health)
 	r.SharedObjectMeta = protobuf_go_lite.CloneVTValue(m.SharedObjectMeta)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5825,6 +5835,9 @@ func (this *MountSharedObjectResponse) EqualVT(that *MountSharedObjectResponse) 
 		return false
 	}
 	if this.TransportPeerId != that.TransportPeerId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Health, that.Health) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -9031,6 +9044,11 @@ func (x *MountSharedObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("transportPeerId")
 		s.WriteString(x.TransportPeerId)
 	}
+	if x.Health != nil || s.HasField("health") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("health")
+		x.Health.MarshalProtoJSON(s.WithField("health"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -9073,6 +9091,13 @@ func (x *MountSharedObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "transport_peer_id", "transportPeerId":
 			s.AddField("transport_peer_id")
 			x.TransportPeerId = s.ReadString()
+		case "health":
+			if s.ReadNil() {
+				x.Health = nil
+				return
+			}
+			x.Health = &sobject.SharedObjectHealth{}
+			x.Health.UnmarshalProtoJSON(s.WithField("health", true))
 		}
 	})
 }
@@ -14535,6 +14560,16 @@ func (m *MountSharedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Health != nil {
+		size, err := m.Health.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
 	if len(m.TransportPeerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TransportPeerId)
 		i--
@@ -18906,6 +18941,10 @@ func (m *MountSharedObjectResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BlockStoreId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HashType)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TransportPeerId)
+	if m.Health != nil {
+		l = m.Health.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20399,6 +20438,10 @@ func (x *MountSharedObjectResponse) MarshalProtoText() string {
 	if x.TransportPeerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transport_peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.TransportPeerId)
+	}
+	if x.Health != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "health")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Health)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -23164,6 +23207,21 @@ func (m *MountSharedObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TransportPeerId = v
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Health", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Health == nil {
+				m.Health = &sobject.SharedObjectHealth{}
+			}
+			if err := m.Health.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

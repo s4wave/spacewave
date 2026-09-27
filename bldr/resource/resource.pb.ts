@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/bldr/resource/resource.proto (package resource, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -9,6 +10,172 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+
+/**
+ * ResourceFailureCode controls lifecycle recovery independently of diagnostics.
+ *
+ * @generated from enum resource.ResourceFailureCode
+ */
+export enum ResourceFailureCode {
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND = 1;
+   */
+  RESOURCE_NOT_FOUND = 1,
+
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_CLIENT_RELEASED = 2;
+   */
+  CLIENT_RELEASED = 2,
+
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID = 3;
+   */
+  INVALID_RESOURCE_ID = 3,
+
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID = 4;
+   */
+  INVALID_CLIENT_ID = 4,
+
+  /**
+   * @generated from enum value: RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED = 5;
+   */
+  RESOURCE_OR_CLIENT_RELEASED = 5,
+}
+
+export const ResourceFailureCode_Enum = /* @__PURE__ */ createEnumType(
+  'resource.ResourceFailureCode',
+  ResourceFailureCode,
+)
+
+/**
+ * ResourceFailure carries a stable recovery code and a diagnostic message.
+ *
+ * @generated from message resource.ResourceFailure
+ */
+export interface ResourceFailure {
+  /**
+   * @generated from field: resource.ResourceFailureCode code = 1;
+   */
+  code?: ResourceFailureCode
+  /**
+   * @generated from field: string message = 2;
+   */
+  message?: string
+}
+
+export const ResourceFailure: MessageType<ResourceFailure> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceFailure',
+    fields: [
+      { no: 1, name: 'code', kind: 'enum', T: ResourceFailureCode_Enum },
+      { no: 2, name: 'message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ResourceRpcInit selects a resource opened by ResourceClient or ResourceAttach.
+ *
+ * @generated from message resource.ResourceRpcInit
+ */
+export interface ResourceRpcInit {
+  /**
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const ResourceRpcInit: MessageType<ResourceRpcInit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceRpcInit',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ResourceRpcAck accepts the route when failure is absent.
+ *
+ * @generated from message resource.ResourceRpcAck
+ */
+export interface ResourceRpcAck {
+  /**
+   * @generated from field: resource.ResourceFailure failure = 1;
+   */
+  failure?: ResourceFailure
+}
+
+export const ResourceRpcAck: MessageType<ResourceRpcAck> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceRpcAck',
+    fields: [
+      { no: 1, name: 'failure', kind: 'message', T: ResourceFailure },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ResourceRpcPacket negotiates a resource and carries existing SRPC data frames.
+ *
+ * @generated from message resource.ResourceRpcPacket
+ */
+export interface ResourceRpcPacket {
+  /**
+   * @generated from oneof resource.ResourceRpcPacket.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * @generated from field: resource.ResourceRpcInit init = 1;
+         */
+        value: ResourceRpcInit
+        case: 'init'
+      }
+    | {
+        /**
+         * @generated from field: resource.ResourceRpcAck ack = 2;
+         */
+        value: ResourceRpcAck
+        case: 'ack'
+      }
+    | {
+        /**
+         * @generated from field: bytes data = 3;
+         */
+        value: Uint8Array
+        case: 'data'
+      }
+}
+
+export const ResourceRpcPacket: MessageType<ResourceRpcPacket> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceRpcPacket',
+    fields: [
+      {
+        no: 1,
+        name: 'init',
+        kind: 'message',
+        T: ResourceRpcInit,
+        oneof: 'body',
+      },
+      { no: 2, name: 'ack', kind: 'message', T: ResourceRpcAck, oneof: 'body' },
+      {
+        no: 3,
+        name: 'data',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+        oneof: 'body',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * ResourceClientInitRequest is sent first on every ResourceClient stream.
@@ -463,18 +630,18 @@ export const ResourceAttachRequest: MessageType<ResourceAttachRequest> =
  */
 export interface ResourceAttachAck {
   /**
-   * Error is set if the session was rejected.
+   * Failure is set if the session was rejected.
    *
-   * @generated from field: string error = 1;
+   * @generated from field: resource.ResourceFailure failure = 1;
    */
-  error?: string
+  failure?: ResourceFailure
 }
 
 export const ResourceAttachAck: MessageType<ResourceAttachAck> =
   /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceAttachAck',
     fields: [
-      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 1, name: 'failure', kind: 'message', T: ResourceFailure },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -491,11 +658,11 @@ export interface ResourceAttachAddAck {
    */
   attachId?: number
   /**
-   * Error is set if the add was rejected.
+   * Failure is set if the add was rejected.
    *
-   * @generated from field: string error = 2;
+   * @generated from field: resource.ResourceFailure failure = 2;
    */
-  error?: string
+  failure?: ResourceFailure
   /**
    * ResourceId is the server-assigned ID for the attached resource.
    *
@@ -509,7 +676,7 @@ export const ResourceAttachAddAck: MessageType<ResourceAttachAddAck> =
     typeName: 'resource.ResourceAttachAddAck',
     fields: [
       { no: 1, name: 'attach_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'failure', kind: 'message', T: ResourceFailure },
       { no: 3, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
   })

@@ -278,8 +278,8 @@ class ResourceServer:
 
     async def resource_rpc(
         self,
-        requests: AsyncIterator[rpcstream_pb2.RpcStreamPacket],
-    ) -> AsyncGenerator[rpcstream_pb2.RpcStreamPacket, None]:
+        requests: AsyncIterator[resource_pb2.ResourceRpcPacket],
+    ) -> AsyncGenerator[resource_pb2.ResourceRpcPacket, None]:
         try:
             first = await anext(requests)
         except StopAsyncIteration as exc:
@@ -288,28 +288,46 @@ class ResourceServer:
             ) from exc
         if first.WhichOneof("body") != "init":
             raise ResourceProtocolError("expected nested stream initialization")
-        component = first.init.component_id
-        if not component.isascii() or not component.isdecimal():
-            raise ResourceProtocolError("invalid Resource component ID")
-        resource_id = int(component)
-        if resource_id == 0 or resource_id > 0xFFFFFFFF:
-            raise ResourceProtocolError("invalid Resource component ID")
+        resource_id = first.init.resource_id
+        if resource_id == 0:
+            yield resource_pb2.ResourceRpcPacket(
+                ack=resource_pb2.ResourceRpcAck(
+                    failure=resource_pb2.ResourceFailure(
+                        code=resource_pb2.RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID,
+                        message="invalid Resource ID",
+                    )
+                )
+            )
+            return
+        component = str(resource_id)
 
         task = asyncio.current_task()
         assert task is not None
         async with self._lock:
             generation, resource = self._find_resource_locked(resource_id)
-            if generation is None or resource is None:
-                # Let the Resource-owned ComponentRegistry produce the standard
-                # nested unknown-component acknowledgement.
-                generation = None
-            else:
+            if generation is not None and resource is not None:
                 resource.routes.add(task)
 
+        if generation is None or resource is None:
+            yield resource_pb2.ResourceRpcPacket(
+                ack=resource_pb2.ResourceRpcAck(
+                    failure=resource_pb2.ResourceFailure(
+                        code=resource_pb2.RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED,
+                        message="resource or client was released",
+                    )
+                )
+            )
+            return
+
         async def restored() -> AsyncIterator[rpcstream_pb2.RpcStreamPacket]:
-            yield first
+            """Reuse StarPC data framing after selecting the Resource locally."""
+            yield rpcstream_pb2.RpcStreamPacket(
+                init=rpcstream_pb2.RpcStreamInit(component_id=component)
+            )
             async for request in requests:
-                yield request
+                if request.WhichOneof("body") != "data":
+                    raise ResourceProtocolError("expected ResourceRpc data")
+                yield rpcstream_pb2.RpcStreamPacket(data=request.data)
 
         try:
             components = ComponentRegistry()
@@ -319,7 +337,13 @@ class ResourceServer:
                 resource.factory(registry, resource_call)
                 await components.register(component, Server(registry))
             async for response in handle_rpc_stream(restored(), components):
-                yield response
+                if response.WhichOneof("body") == "ack":
+                    ack = resource_pb2.ResourceRpcAck()
+                    if response.ack.error:
+                        ack.failure.message = response.ack.error
+                    yield resource_pb2.ResourceRpcPacket(ack=ack)
+                else:
+                    yield resource_pb2.ResourceRpcPacket(data=response.data)
         finally:
             if generation is not None and resource is not None:
                 async with self._lock:

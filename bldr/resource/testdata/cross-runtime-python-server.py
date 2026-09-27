@@ -9,7 +9,6 @@ import struct
 import sys
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 
-from rpcstream import rpcstream_pb2
 from starpc.call import Call, CallError
 from starpc.server import Server, ServiceRegistry
 from starpc.stream import ByteStream
@@ -89,8 +88,8 @@ class CoreResourceServer(ResourceServer):
 
     async def resource_rpc(
         self,
-        requests: AsyncIterator[rpcstream_pb2.RpcStreamPacket],
-    ) -> AsyncGenerator[rpcstream_pb2.RpcStreamPacket, None]:
+        requests: AsyncIterator[resource_pb2.ResourceRpcPacket],
+    ) -> AsyncGenerator[resource_pb2.ResourceRpcPacket, None]:
         if not self.adopt_ack_gate.is_set():
             self.route_before_adopt_ack = True
         async for response in super().resource_rpc(requests):

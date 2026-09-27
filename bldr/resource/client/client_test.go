@@ -357,7 +357,7 @@ func TestAttachResourceAddAckErrorReturnsError(t *testing.T) {
 					Body: &resource.ResourceAttachResponse_AddAck{
 						AddAck: &resource.ResourceAttachAddAck{
 							AttachId: add.GetAttachId(),
-							Error:    "attach rejected",
+							Failure:  &resource.ResourceFailure{Message: "attach rejected"},
 						},
 					},
 				}

@@ -7,9 +7,9 @@ import {
   ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
+  ResourceRpcPacket,
 } from './resource.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -43,14 +43,14 @@ export const ResourceServiceDefinition = {
     /**
      * ResourceRpc is a rpc request for an open resource handle.
      * Exposes service(s) depending on the resource type.
-     * Component ID: resource_id from ResourceClient call.
+     * The first request selects a resource; one typed acknowledgement precedes data.
      *
      * @generated from rpc resource.ResourceService.ResourceRpc
      */
     ResourceRpc: {
       name: 'ResourceRpc',
-      I: RpcStreamPacket,
-      O: RpcStreamPacket,
+      I: ResourceRpcPacket,
+      O: ResourceRpcPacket,
       kind: MethodKind.BiDiStreaming,
     },
     /**
@@ -92,14 +92,14 @@ export interface ResourceService {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * Component ID: resource_id from ResourceClient call.
+   * The first request selects a resource; one typed acknowledgement precedes data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */
   ResourceRpc(
-    request: MessageStream<RpcStreamPacket>,
+    request: MessageStream<ResourceRpcPacket>,
     abortSignal?: AbortSignal,
-  ): MessageStream<RpcStreamPacket>
+  ): MessageStream<ResourceRpcPacket>
 
   /**
    * ResourceAttach allows a client to provide resources that server-side
@@ -138,15 +138,15 @@ export interface ResourceServiceHandler {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * Component ID: resource_id from ResourceClient call.
+   * The first request selects a resource; one typed acknowledgement precedes data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */
   ResourceRpc(
-    request: MessageStream<RpcStreamPacket>,
+    request: MessageStream<ResourceRpcPacket>,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): MessageStream<RpcStreamPacket>
+  ): MessageStream<ResourceRpcPacket>
 
   /**
    * ResourceAttach allows a client to provide resources that server-side
@@ -199,21 +199,21 @@ export class ResourceServiceClient implements ResourceService {
   /**
    * ResourceRpc is a rpc request for an open resource handle.
    * Exposes service(s) depending on the resource type.
-   * Component ID: resource_id from ResourceClient call.
+   * The first request selects a resource; one typed acknowledgement precedes data.
    *
    * @generated from rpc resource.ResourceService.ResourceRpc
    */
   ResourceRpc(
-    request: MessageStream<RpcStreamPacket>,
+    request: MessageStream<ResourceRpcPacket>,
     abortSignal?: AbortSignal,
-  ): MessageStream<RpcStreamPacket> {
+  ): MessageStream<ResourceRpcPacket> {
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       ResourceServiceDefinition.methods.ResourceRpc.name,
-      buildEncodeMessageTransform(RpcStreamPacket)(request),
+      buildEncodeMessageTransform(ResourceRpcPacket)(request),
       abortSignal || undefined,
     )
-    return buildDecodeMessageTransform(RpcStreamPacket)(result)
+    return buildDecodeMessageTransform(ResourceRpcPacket)(result)
   }
 
   /**

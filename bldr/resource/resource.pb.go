@@ -8,11 +8,188 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	_ "github.com/aperturerobotics/starpc/rpcstream"
 )
+
+// ResourceFailureCode controls lifecycle recovery independently of diagnostics.
+type ResourceFailureCode int32
+
+const (
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_UNKNOWN                     ResourceFailureCode = 0
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND          ResourceFailureCode = 1
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_CLIENT_RELEASED             ResourceFailureCode = 2
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID         ResourceFailureCode = 3
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID           ResourceFailureCode = 4
+	ResourceFailureCode_RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED ResourceFailureCode = 5
+)
+
+// Enum value maps for ResourceFailureCode.
+var (
+	ResourceFailureCode_name = map[int32]string{
+		0: "RESOURCE_FAILURE_CODE_UNKNOWN",
+		1: "RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND",
+		2: "RESOURCE_FAILURE_CODE_CLIENT_RELEASED",
+		3: "RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID",
+		4: "RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID",
+		5: "RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED",
+	}
+	ResourceFailureCode_value = map[string]int32{
+		"RESOURCE_FAILURE_CODE_UNKNOWN":                     0,
+		"RESOURCE_FAILURE_CODE_RESOURCE_NOT_FOUND":          1,
+		"RESOURCE_FAILURE_CODE_CLIENT_RELEASED":             2,
+		"RESOURCE_FAILURE_CODE_INVALID_RESOURCE_ID":         3,
+		"RESOURCE_FAILURE_CODE_INVALID_CLIENT_ID":           4,
+		"RESOURCE_FAILURE_CODE_RESOURCE_OR_CLIENT_RELEASED": 5,
+	}
+)
+
+func (x ResourceFailureCode) Enum() *ResourceFailureCode {
+	p := new(ResourceFailureCode)
+	*p = x
+	return p
+}
+
+func (x ResourceFailureCode) String() string {
+	name, valid := ResourceFailureCode_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// ResourceFailure carries a stable recovery code and a diagnostic message.
+type ResourceFailure struct {
+	unknownFields []byte
+	Code          ResourceFailureCode `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string              `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+}
+
+func (x *ResourceFailure) Reset() {
+	*x = ResourceFailure{}
+}
+
+func (*ResourceFailure) ProtoMessage() {}
+
+func (x *ResourceFailure) GetCode() ResourceFailureCode {
+	if x != nil {
+		return x.Code
+	}
+	return ResourceFailureCode_RESOURCE_FAILURE_CODE_UNKNOWN
+}
+
+func (x *ResourceFailure) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// ResourceRpcPacket negotiates a resource and carries existing SRPC data frames.
+type ResourceRpcPacket struct {
+	unknownFields []byte
+	// Types that are assignable to Body:
+	//	*ResourceRpcPacket_Init
+	//	*ResourceRpcPacket_Ack
+	//	*ResourceRpcPacket_Data
+	Body isResourceRpcPacket_Body `protobuf_oneof:"body"`
+}
+
+func (x *ResourceRpcPacket) Reset() {
+	*x = ResourceRpcPacket{}
+}
+
+func (*ResourceRpcPacket) ProtoMessage() {}
+
+func (m *ResourceRpcPacket) GetBody() isResourceRpcPacket_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *ResourceRpcPacket) GetInit() *ResourceRpcInit {
+	if x, ok := x.GetBody().(*ResourceRpcPacket_Init); ok {
+		return x.Init
+	}
+	return nil
+}
+
+func (x *ResourceRpcPacket) GetAck() *ResourceRpcAck {
+	if x, ok := x.GetBody().(*ResourceRpcPacket_Ack); ok {
+		return x.Ack
+	}
+	return nil
+}
+
+func (x *ResourceRpcPacket) GetData() []byte {
+	if x, ok := x.GetBody().(*ResourceRpcPacket_Data); ok {
+		return x.Data
+	}
+	return nil
+}
+
+type isResourceRpcPacket_Body interface {
+	isResourceRpcPacket_Body()
+}
+
+type ResourceRpcPacket_Init struct {
+	Init *ResourceRpcInit `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
+}
+
+type ResourceRpcPacket_Ack struct {
+	Ack *ResourceRpcAck `protobuf:"bytes,2,opt,name=ack,proto3,oneof"`
+}
+
+type ResourceRpcPacket_Data struct {
+	Data []byte `protobuf:"bytes,3,opt,name=data,proto3,oneof"`
+}
+
+func (*ResourceRpcPacket_Init) isResourceRpcPacket_Body() {}
+
+func (*ResourceRpcPacket_Ack) isResourceRpcPacket_Body() {}
+
+func (*ResourceRpcPacket_Data) isResourceRpcPacket_Body() {}
+
+// ResourceRpcInit selects a resource opened by ResourceClient or ResourceAttach.
+type ResourceRpcInit struct {
+	unknownFields []byte
+	ResourceId    uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *ResourceRpcInit) Reset() {
+	*x = ResourceRpcInit{}
+}
+
+func (*ResourceRpcInit) ProtoMessage() {}
+
+func (x *ResourceRpcInit) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
+// ResourceRpcAck accepts the route when failure is absent.
+type ResourceRpcAck struct {
+	unknownFields []byte
+	Failure       *ResourceFailure `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
+}
+
+func (x *ResourceRpcAck) Reset() {
+	*x = ResourceRpcAck{}
+}
+
+func (*ResourceRpcAck) ProtoMessage() {}
+
+func (x *ResourceRpcAck) GetFailure() *ResourceFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return nil
+}
 
 // ResourceClientRequest is a control packet for ResourceClient.
 type ResourceClientRequest struct {
@@ -480,8 +657,8 @@ func (x *ResourceAttachInit) GetClientHandleId() uint32 {
 // ResourceAttachAck is sent by the server to confirm the session.
 type ResourceAttachAck struct {
 	unknownFields []byte
-	// Error is set if the session was rejected.
-	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// Failure is set if the session was rejected.
+	Failure *ResourceFailure `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
 }
 
 func (x *ResourceAttachAck) Reset() {
@@ -490,11 +667,11 @@ func (x *ResourceAttachAck) Reset() {
 
 func (*ResourceAttachAck) ProtoMessage() {}
 
-func (x *ResourceAttachAck) GetError() string {
+func (x *ResourceAttachAck) GetFailure() *ResourceFailure {
 	if x != nil {
-		return x.Error
+		return x.Failure
 	}
-	return ""
+	return nil
 }
 
 // ResourceAttachAdd is sent by the client to register a resource.
@@ -531,8 +708,8 @@ type ResourceAttachAddAck struct {
 	unknownFields []byte
 	// AttachId echoes the client-chosen correlation ID.
 	AttachId uint32 `protobuf:"varint,1,opt,name=attach_id,json=attachId,proto3" json:"attachId,omitempty"`
-	// Error is set if the add was rejected.
-	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// Failure is set if the add was rejected.
+	Failure *ResourceFailure `protobuf:"bytes,2,opt,name=failure,proto3" json:"failure,omitempty"`
 	// ResourceId is the server-assigned ID for the attached resource.
 	ResourceId uint32 `protobuf:"varint,3,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 }
@@ -550,11 +727,11 @@ func (x *ResourceAttachAddAck) GetAttachId() uint32 {
 	return 0
 }
 
-func (x *ResourceAttachAddAck) GetError() string {
+func (x *ResourceAttachAddAck) GetFailure() *ResourceFailure {
 	if x != nil {
-		return x.Error
+		return x.Failure
 	}
-	return ""
+	return nil
 }
 
 func (x *ResourceAttachAddAck) GetResourceId() uint32 {
@@ -602,6 +779,114 @@ func (x *ResourceAttachDetachAck) GetResourceId() uint32 {
 		return x.ResourceId
 	}
 	return 0
+}
+
+func (m *ResourceFailure) CloneVT() *ResourceFailure {
+	if m == nil {
+		return (*ResourceFailure)(nil)
+	}
+	r := new(ResourceFailure)
+	r.Code = m.Code
+	r.Message = m.Message
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceFailure) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcPacket) CloneVT() *ResourceRpcPacket {
+	if m == nil {
+		return (*ResourceRpcPacket)(nil)
+	}
+	r := new(ResourceRpcPacket)
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneOneofVT() isResourceRpcPacket_Body
+		}).CloneOneofVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceRpcPacket) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcPacket_Init) CloneVT() *ResourceRpcPacket_Init {
+	if m == nil {
+		return (*ResourceRpcPacket_Init)(nil)
+	}
+	r := new(ResourceRpcPacket_Init)
+	r.Init = protobuf_go_lite.CloneVTValue(m.Init)
+	return r
+}
+
+func (m *ResourceRpcPacket_Init) CloneOneofVT() isResourceRpcPacket_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcPacket_Ack) CloneVT() *ResourceRpcPacket_Ack {
+	if m == nil {
+		return (*ResourceRpcPacket_Ack)(nil)
+	}
+	r := new(ResourceRpcPacket_Ack)
+	r.Ack = protobuf_go_lite.CloneVTValue(m.Ack)
+	return r
+}
+
+func (m *ResourceRpcPacket_Ack) CloneOneofVT() isResourceRpcPacket_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcPacket_Data) CloneVT() *ResourceRpcPacket_Data {
+	if m == nil {
+		return (*ResourceRpcPacket_Data)(nil)
+	}
+	r := new(ResourceRpcPacket_Data)
+	r.Data = protobuf_go_lite.CloneBytes(m.Data)
+	return r
+}
+
+func (m *ResourceRpcPacket_Data) CloneOneofVT() isResourceRpcPacket_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcInit) CloneVT() *ResourceRpcInit {
+	if m == nil {
+		return (*ResourceRpcInit)(nil)
+	}
+	r := new(ResourceRpcInit)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceRpcInit) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcAck) CloneVT() *ResourceRpcAck {
+	if m == nil {
+		return (*ResourceRpcAck)(nil)
+	}
+	r := new(ResourceRpcAck)
+	r.Failure = protobuf_go_lite.CloneVTValue(m.Failure)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceRpcAck) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
 }
 
 func (m *ResourceClientRequest) CloneVT() *ResourceClientRequest {
@@ -984,7 +1269,7 @@ func (m *ResourceAttachAck) CloneVT() *ResourceAttachAck {
 		return (*ResourceAttachAck)(nil)
 	}
 	r := new(ResourceAttachAck)
-	r.Error = m.Error
+	r.Failure = protobuf_go_lite.CloneVTValue(m.Failure)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1018,8 +1303,8 @@ func (m *ResourceAttachAddAck) CloneVT() *ResourceAttachAddAck {
 	}
 	r := new(ResourceAttachAddAck)
 	r.AttachId = m.AttachId
-	r.Error = m.Error
 	r.ResourceId = m.ResourceId
+	r.Failure = protobuf_go_lite.CloneVTValue(m.Failure)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1060,6 +1345,149 @@ func (m *ResourceAttachDetachAck) CloneVT() *ResourceAttachDetachAck {
 
 func (m *ResourceAttachDetachAck) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *ResourceFailure) EqualVT(that *ResourceFailure) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Code != that.Code {
+		return false
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceFailure) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceFailure)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceRpcPacket) EqualVT(that *ResourceRpcPacket) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isResourceRpcPacket_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceRpcPacket) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceRpcPacket)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceRpcPacket_Init) EqualVT(thatIface isResourceRpcPacket_Body) bool {
+	that, ok := thatIface.(*ResourceRpcPacket_Init)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Init, that.Init, func() *ResourceRpcInit { return &ResourceRpcInit{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceRpcPacket_Ack) EqualVT(thatIface isResourceRpcPacket_Body) bool {
+	that, ok := thatIface.(*ResourceRpcPacket_Ack)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Ack, that.Ack, func() *ResourceRpcAck { return &ResourceRpcAck{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceRpcPacket_Data) EqualVT(thatIface isResourceRpcPacket_Body) bool {
+	that, ok := thatIface.(*ResourceRpcPacket_Data)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Data, that.Data) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceRpcInit) EqualVT(that *ResourceRpcInit) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceRpcInit) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceRpcInit)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceRpcAck) EqualVT(that *ResourceRpcAck) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Failure, that.Failure) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceRpcAck) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceRpcAck)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *ResourceClientRequest) EqualVT(that *ResourceClientRequest) bool {
@@ -1565,7 +1993,7 @@ func (this *ResourceAttachAck) EqualVT(that *ResourceAttachAck) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Error != that.Error {
+	if !protobuf_go_lite.IsEqualVT(this.Failure, that.Failure) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1611,7 +2039,7 @@ func (this *ResourceAttachAddAck) EqualVT(that *ResourceAttachAddAck) bool {
 	if this.AttachId != that.AttachId {
 		return false
 	}
-	if this.Error != that.Error {
+	if !protobuf_go_lite.IsEqualVT(this.Failure, that.Failure) {
 		return false
 	}
 	if this.ResourceId != that.ResourceId {
@@ -1666,6 +2094,257 @@ func (this *ResourceAttachDetachAck) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the ResourceFailureCode to JSON.
+func (x ResourceFailureCode) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), ResourceFailureCode_name)
+}
+
+// MarshalText marshals the ResourceFailureCode to text.
+func (x ResourceFailureCode) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ResourceFailureCode_name)), nil
+}
+
+// MarshalJSON marshals the ResourceFailureCode to JSON.
+func (x ResourceFailureCode) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceFailureCode from JSON.
+func (x *ResourceFailureCode) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ResourceFailureCode_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ResourceFailureCode enum: %v", err)
+		return
+	}
+	*x = ResourceFailureCode(v)
+}
+
+// UnmarshalText unmarshals the ResourceFailureCode from text.
+func (x *ResourceFailureCode) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ResourceFailureCode_value)
+	if err != nil {
+		return err
+	}
+	*x = ResourceFailureCode(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ResourceFailureCode from JSON.
+func (x *ResourceFailureCode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceFailure message to JSON.
+func (x *ResourceFailure) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Code != 0 || s.HasField("code") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("code")
+		x.Code.MarshalProtoJSON(s)
+	}
+	if x.Message != "" || s.HasField("message") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("message")
+		s.WriteString(x.Message)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceFailure to JSON.
+func (x *ResourceFailure) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceFailure message from JSON.
+func (x *ResourceFailure) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "code":
+			s.AddField("code")
+			x.Code.UnmarshalProtoJSON(s)
+		case "message":
+			s.AddField("message")
+			x.Message = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceFailure from JSON.
+func (x *ResourceFailure) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceRpcPacket message to JSON.
+func (x *ResourceRpcPacket) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *ResourceRpcPacket_Init:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("init")
+			ov.Init.MarshalProtoJSON(s.WithField("init"))
+		case *ResourceRpcPacket_Ack:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("ack")
+			ov.Ack.MarshalProtoJSON(s.WithField("ack"))
+		case *ResourceRpcPacket_Data:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("data")
+			s.WriteBytes(ov.Data)
+		}
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceRpcPacket to JSON.
+func (x *ResourceRpcPacket) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceRpcPacket message from JSON.
+func (x *ResourceRpcPacket) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "init":
+			ov := &ResourceRpcPacket_Init{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Init = nil
+				return
+			}
+			ov.Init = &ResourceRpcInit{}
+			ov.Init.UnmarshalProtoJSON(s.WithField("init", true))
+		case "ack":
+			ov := &ResourceRpcPacket_Ack{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Ack = nil
+				return
+			}
+			ov.Ack = &ResourceRpcAck{}
+			ov.Ack.UnmarshalProtoJSON(s.WithField("ack", true))
+		case "data":
+			s.AddField("data")
+			ov := &ResourceRpcPacket_Data{}
+			x.Body = ov
+			ov.Data = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceRpcPacket from JSON.
+func (x *ResourceRpcPacket) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceRpcInit message to JSON.
+func (x *ResourceRpcInit) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceRpcInit to JSON.
+func (x *ResourceRpcInit) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceRpcInit message from JSON.
+func (x *ResourceRpcInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceRpcInit from JSON.
+func (x *ResourceRpcInit) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceRpcAck message to JSON.
+func (x *ResourceRpcAck) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Failure != nil || s.HasField("failure") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s.WithField("failure"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceRpcAck to JSON.
+func (x *ResourceRpcAck) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceRpcAck message from JSON.
+func (x *ResourceRpcAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "failure":
+			if s.ReadNil() {
+				x.Failure = nil
+				return
+			}
+			x.Failure = &ResourceFailure{}
+			x.Failure.UnmarshalProtoJSON(s.WithField("failure", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceRpcAck from JSON.
+func (x *ResourceRpcAck) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the ResourceClientRequest message to JSON.
@@ -2300,10 +2979,10 @@ func (x *ResourceAttachAck) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Error != "" || s.HasField("error") {
+	if x.Failure != nil || s.HasField("failure") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("error")
-		s.WriteString(x.Error)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s.WithField("failure"))
 	}
 	s.WriteObjectEnd()
 }
@@ -2322,9 +3001,13 @@ func (x *ResourceAttachAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "error":
-			s.AddField("error")
-			x.Error = s.ReadString()
+		case "failure":
+			if s.ReadNil() {
+				x.Failure = nil
+				return
+			}
+			x.Failure = &ResourceFailure{}
+			x.Failure.UnmarshalProtoJSON(s.WithField("failure", true))
 		}
 	})
 }
@@ -2397,10 +3080,10 @@ func (x *ResourceAttachAddAck) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("attachId")
 		s.WriteUint32(x.AttachId)
 	}
-	if x.Error != "" || s.HasField("error") {
+	if x.Failure != nil || s.HasField("failure") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("error")
-		s.WriteString(x.Error)
+		s.WriteObjectField("failure")
+		x.Failure.MarshalProtoJSON(s.WithField("failure"))
 	}
 	if x.ResourceId != 0 || s.HasField("resourceId") {
 		s.WriteMoreIf(&wroteField)
@@ -2427,9 +3110,13 @@ func (x *ResourceAttachAddAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "attach_id", "attachId":
 			s.AddField("attach_id")
 			x.AttachId = s.ReadUint32()
-		case "error":
-			s.AddField("error")
-			x.Error = s.ReadString()
+		case "failure":
+			if s.ReadNil() {
+				x.Failure = nil
+				return
+			}
+			x.Failure = &ResourceFailure{}
+			x.Failure.UnmarshalProtoJSON(s.WithField("failure", true))
 		case "resource_id", "resourceId":
 			s.AddField("resource_id")
 			x.ResourceId = s.ReadUint32()
@@ -2524,6 +3211,229 @@ func (x *ResourceAttachDetachAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
 // UnmarshalJSON unmarshals the ResourceAttachDetachAck from JSON.
 func (x *ResourceAttachDetachAck) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+func (m *ResourceFailure) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceFailure) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceFailure) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Message) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Message)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Code != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Code))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcPacket) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceRpcPacket) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcPacket) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcPacket_Init) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcPacket_Init) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Init != nil {
+		size, err := m.Init.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcPacket_Ack) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcPacket_Ack) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Ack != nil {
+		size, err := m.Ack.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcPacket_Data) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcPacket_Data) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Data)
+	i--
+	dAtA[i] = 0x1a
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcInit) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceRpcInit) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcAck) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceRpcAck) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Failure != nil {
+		size, err := m.Failure.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ResourceClientRequest) MarshalVT() (dAtA []byte, err error) {
@@ -3297,8 +4207,13 @@ func (m *ResourceAttachAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.Error) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
+	if m.Failure != nil {
+		size, err := m.Failure.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -3381,8 +4296,13 @@ func (m *ResourceAttachAddAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i--
 		dAtA[i] = 0x18
 	}
-	if len(m.Error) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
+	if m.Failure != nil {
+		size, err := m.Failure.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -3466,6 +4386,96 @@ func (m *ResourceAttachDetachAck) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
+}
+
+func (m *ResourceFailure) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Code)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Message)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceRpcPacket) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceRpcPacket_Init) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Init != nil {
+		l = m.Init.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceRpcPacket_Ack) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ack != nil {
+		l = m.Ack.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceRpcPacket_Data) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesValue(1, len(m.Data))
+	return n
+}
+
+func (m *ResourceRpcInit) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceRpcAck) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Failure != nil {
+		l = m.Failure.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
 }
 
 func (m *ResourceClientRequest) SizeVT() (n int) {
@@ -3804,7 +4814,10 @@ func (m *ResourceAttachAck) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	if m.Failure != nil {
+		l = m.Failure.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3828,7 +4841,10 @@ func (m *ResourceAttachAddAck) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.AttachId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	if m.Failure != nil {
+		l = m.Failure.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += len(m.unknownFields)
 	return n
@@ -3854,6 +4870,85 @@ func (m *ResourceAttachDetachAck) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x ResourceFailureCode) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *ResourceFailure) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceFailure")
+	if x.Code != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "code")
+		protobuf_go_lite.TextWriteStringer(&sb, ResourceFailureCode(x.Code))
+	}
+	if x.Message != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "message")
+		protobuf_go_lite.TextWriteString(&sb, x.Message)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceFailure) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceRpcPacket) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceRpcPacket")
+	switch body := x.Body.(type) {
+	case *ResourceRpcPacket_Init:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "init")
+		if body.Init == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceRpcInit{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Init)
+		}
+	case *ResourceRpcPacket_Ack:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ack")
+		if body.Ack == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceRpcAck{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Ack)
+		}
+	case *ResourceRpcPacket_Data:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
+		protobuf_go_lite.TextWriteBytes(&sb, body.Data)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceRpcPacket) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceRpcInit) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceRpcInit")
+	if x.ResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceRpcInit) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceRpcAck) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceRpcAck")
+	if x.Failure != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Failure)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceRpcAck) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *ResourceClientRequest) MarshalProtoText() string {
@@ -4099,9 +5194,9 @@ func (x *ResourceAttachInit) String() string {
 func (x *ResourceAttachAck) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceAttachAck")
-	if x.Error != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
-		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	if x.Failure != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Failure)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4135,9 +5230,9 @@ func (x *ResourceAttachAddAck) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "attach_id")
 		protobuf_go_lite.TextWriteUint(&sb, x.AttachId)
 	}
-	if x.Error != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
-		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	if x.Failure != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "failure")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Failure)
 	}
 	if x.ResourceId != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
@@ -4176,6 +5271,273 @@ func (x *ResourceAttachDetachAck) MarshalProtoText() string {
 
 func (x *ResourceAttachDetachAck) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *ResourceFailure) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceFailure: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceFailure: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Code", wireType)
+			}
+			m.Code = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Code = ResourceFailureCode(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Message = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceRpcPacket) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceRpcPacket: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceRpcPacket: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Init", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceRpcPacket_Init); ok {
+				if err := oneof.Init.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceRpcInit{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceRpcPacket_Init{Init: v}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ack", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceRpcPacket_Ack); ok {
+				if err := oneof.Ack.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceRpcAck{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceRpcPacket_Ack{Ack: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var v []byte
+			v, iNdEx, err = protobuf_go_lite.DecodeBytes(dAtA, iNdEx, true)
+			if err != nil {
+				return err
+			}
+			m.Body = &ResourceRpcPacket_Data{Data: v}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceRpcInit) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceRpcInit: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceRpcInit: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceRpcAck) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceRpcAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceRpcAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Failure == nil {
+				m.Failure = &ResourceFailure{}
+			}
+			if err := m.Failure.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *ResourceClientRequest) UnmarshalVT(dAtA []byte) error {
@@ -5005,14 +6367,19 @@ func (m *ResourceAttachAck) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
 			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Error = v
+			if m.Failure == nil {
+				m.Failure = &ResourceFailure{}
+			}
+			if err := m.Failure.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5129,14 +6496,19 @@ func (m *ResourceAttachAddAck) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
 			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Error = v
+			if m.Failure == nil {
+				m.Failure = &ResourceFailure{}
+			}
+			if err := m.Failure.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)

@@ -6,6 +6,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/core/pairing"
 	session "github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/sobject"
 )
 
 // Session is a session resource that provides access to session functionality.
@@ -101,7 +102,14 @@ func (s *Session) WatchStorageStats(ctx context.Context) (SRPCSessionResourceSer
 // MountSharedObject mounts a shared object within the session by ID.
 // Returns the response containing the resource ID and shared object metadata.
 func (s *Session) MountSharedObject(ctx context.Context, sharedObjectID string) (*MountSharedObjectResponse, error) {
-	return s.service.MountSharedObject(ctx, &MountSharedObjectRequest{SharedObjectId: sharedObjectID})
+	response, err := s.service.MountSharedObject(ctx, &MountSharedObjectRequest{SharedObjectId: sharedObjectID})
+	if err != nil {
+		return nil, err
+	}
+	if health := response.GetHealth(); health != nil {
+		return nil, sobject.NewSharedObjectHealthError(health, nil)
+	}
+	return response, nil
 }
 
 // WatchLockState returns a stream of the current lock state and updates on changes.

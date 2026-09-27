@@ -819,7 +819,17 @@ func sendResourcesList(
 func (r *SessionResource) MountSharedObject(
 	ctx context.Context,
 	req *s4wave_session.MountSharedObjectRequest,
-) (*s4wave_session.MountSharedObjectResponse, error) {
+) (response *s4wave_session.MountSharedObjectResponse, mountErr error) {
+	// Carry domain health through the RPC response without interpreting its text.
+	defer func() {
+		if mountErr != nil && ctx.Err() == nil {
+			response = &s4wave_session.MountSharedObjectResponse{
+				Health: sobject.BuildSharedObjectHealthFromError(sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT, mountErr),
+			}
+			mountErr = nil
+		}
+	}()
+
 	sessionProviderResourceRef := r.session.GetSessionRef().GetProviderResourceRef()
 	if err := sessionProviderResourceRef.Validate(); err != nil {
 		return nil, err

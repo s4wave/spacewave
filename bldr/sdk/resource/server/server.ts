@@ -2,16 +2,15 @@ import {
   createMux,
   createHandler,
   Server,
-  handleRpcStream,
   StreamConn,
   combineUint8ArrayListTransform,
 } from 'starpc'
 import type { Mux, LookupMethod, MessageStream } from 'starpc'
-import type { RpcStreamPacket } from 'starpc'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import type {
+  ResourceRpcPacket,
   ResourceAttachRequest,
   ResourceAttachResponse,
   ResourceClientRequest,
@@ -22,6 +21,8 @@ import type { ResourceServiceHandler } from '../resource_srpc.pb.js'
 import { RemoteResourceClient } from './tracked-client.js'
 
 import { withResourceCall } from './context.js'
+import { ResourceFailureCode } from '../resource.pb.js'
+import { handleResourceRpcStream, ResourceFailureError } from '../rpc-stream.js'
 async function nextResourceClientControl(
   packetRx: AsyncIterator<ResourceClientRequest>,
   signal?: AbortSignal,
@@ -175,20 +176,26 @@ class ResourceServer implements ResourceServiceHandler {
   }
 
   // ResourceRpc implements the bidi-streaming RPC.
-  // Routes sub-RPCs to resources by componentId (decimal resource ID).
+  // Routes sub-RPCs after one typed acknowledgement of the resource ID.
   ResourceRpc(
-    request: MessageStream<RpcStreamPacket>,
+    request: MessageStream<ResourceRpcPacket>,
     _abortSignal?: AbortSignal,
-  ): MessageStream<RpcStreamPacket> {
-    return handleRpcStream(
+  ): MessageStream<ResourceRpcPacket> {
+    return handleResourceRpcStream(
       request[Symbol.asyncIterator](),
-      async (componentId: string) => {
-        const resourceID = parseInt(componentId, 10)
-        if (isNaN(resourceID) || resourceID <= 0) {
-          throw new Error('invalid component id format')
+      async (resourceID: number) => {
+        if (!Number.isInteger(resourceID) || resourceID <= 0) {
+          throw new ResourceFailureError({
+            code: ResourceFailureCode.INVALID_RESOURCE_ID,
+            message: 'invalid resource id',
+          })
         }
         const found = this.findResource(resourceID)
-        if (!found) throw new Error('resource or client was released')
+        if (!found)
+          throw new ResourceFailureError({
+            code: ResourceFailureCode.RESOURCE_OR_CLIENT_RELEASED,
+            message: 'resource or client was released',
+          })
         const { mux, client } = found
         const wrappedLookup: LookupMethod = async (serviceID, methodID) => {
           const invokeFn = await mux.lookupMethod(serviceID, methodID)
@@ -267,7 +274,12 @@ class ResourceServer implements ResourceServiceHandler {
       outgoing.push({
         body: {
           case: 'ack' as const,
-          value: { error: 'client not found' },
+          value: {
+            failure: {
+              code: ResourceFailureCode.CLIENT_RELEASED,
+              message: 'client not found',
+            },
+          },
         },
       })
       return

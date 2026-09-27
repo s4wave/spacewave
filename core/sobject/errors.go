@@ -31,6 +31,9 @@ var (
 	// ErrEmptyBodyType is returned if the sobject body type was empty.
 	ErrEmptyBodyType = errors.New("empty shared object body type")
 
+	// ErrUnsupportedBodyType identifies a body the mounted resource cannot serve.
+	ErrUnsupportedBodyType = errors.New("unsupported shared object type")
+
 	// ErrEmptyInnerData is returned if the inner data was empty.
 	ErrEmptyInnerData = errors.New("empty inner data")
 

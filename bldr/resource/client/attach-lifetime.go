@@ -1,7 +1,6 @@
 package resource_client
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/s4wave/spacewave/bldr/resource"
@@ -175,7 +174,7 @@ func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint
 
 	if pending.canceled {
 		delete(p.pending, attachID)
-		if addAck.GetError() == "" {
+		if addAck.GetFailure() == nil {
 			p.mtx.Unlock()
 			return addAck.GetResourceId(), true
 		}
@@ -185,8 +184,8 @@ func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint
 
 	pending.resolved = true
 	pending.result = attachResult{resourceID: addAck.GetResourceId()}
-	if addAck.GetError() != "" {
-		pending.result = attachResult{err: errors.New(addAck.GetError())}
+	if addAck.GetFailure() != nil {
+		pending.result = attachResult{err: addAck.GetFailure()}
 	}
 
 	ch := pending.ch

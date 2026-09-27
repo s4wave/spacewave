@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.1,protobuf-es-lite=1.1.2,uv.lock=b79ba268c897b01ea3419b2627675f5f1cdd58e89702db7fae4e308c3ba57904",
   "packages": {
     "github.com/s4wave/spacewave/bldr/resource": {
-      "hash": "ab5f53e288f96f011c2ffe36c784eb353ad2ecd3d893b5cd34d167a725915104",
+      "hash": "e93d7e9baa5349ee00e22b862f9a4d65bc56945dcf861fe9d0110f69f2d3d86a",
       "generatedFiles": [
         "bldr/resource/resource_pb2.py",
         "bldr/resource/resource_pb2.pyi",
