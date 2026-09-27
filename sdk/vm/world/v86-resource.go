@@ -31,9 +31,10 @@ const (
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
-	le          *logrus.Entry
-	objectKey   string
-	ws          world.WorldState
+	le        *logrus.Entry
+	objectKey string
+	ws        world.WorldState
+	// b receives the runtime plugin load and serves the services it calls.
 	b           bus.Bus
 	v86fsServer *unixfs_v86fs.Server
 

@@ -238,10 +238,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		// The host connection and mounted bucket belong to the same bus that
 		// receives plugin loads. Keep their RPC service on that bus as well.
-		forwardBus := c.GetBus()
-		if c.loadTarget != nil {
-			forwardBus = c.loadTarget
-		}
+		forwardBus := c.pluginBus()
 		engine := world.NewBusEngine(ctx, c.GetBus(), engineID)
 		defer engine.ClearContext()
 		forwarder := NewCloudBlockStoreForwarder(
@@ -495,11 +492,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), selected...)
 		}
 
-		loadTarget := c.loadTarget
-		if loadTarget == nil {
-			loadTarget = c.GetBus()
-		}
-		di, ref, err := loadTarget.AddDirective(
+		di, ref, err := c.pluginBus().AddDirective(
 			demand,
 			nil,
 		)
@@ -700,6 +693,16 @@ func (c *Controller) buildProcessRoutine(objectKey string) (keyed.Routine, proce
 	}, cfg
 }
 
+// pluginBus returns the bus that receives plugin loads and serves the RPC
+// services loaded plugins call: the load target when Space runs in a plugin,
+// otherwise the Space's own bus.
+func (c *Controller) pluginBus() bus.Bus {
+	if c.loadTarget != nil {
+		return c.loadTarget
+	}
+	return c.GetBus()
+}
+
 // getProcessConfig returns the current enabled process configuration.
 func (c *Controller) getProcessConfig(objectKey string) processConfig {
 	var cfg processConfig
@@ -714,7 +717,8 @@ func (c *Controller) getProcessConfig(objectKey string) processConfig {
 func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, objectKey, typeID string) error {
 	b := c.GetBus()
 
-	// Inject session peer ID and engine ID into context for factories.
+	// Inject session peer ID, engine ID and plugin bus into context for factories.
+	ctx = objecttype.WithPluginBus(ctx, c.pluginBus())
 	conf := c.GetConfig()
 	if spid := conf.GetSessionPeerId(); spid != "" {
 		pid, err := peer.IDB58Decode(spid)
