@@ -42,6 +42,7 @@ func (h *Host) ExecutePlugin(
 	string,
 	string,
 	string,
+	string,
 	*unixfs.FSHandle,
 	*unixfs.FSHandle,
 	srpc.Mux,

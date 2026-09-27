@@ -192,7 +192,7 @@ func (h *WazeroQuickJsHost) ListPlugins(ctx context.Context) ([]string, error) {
 // pluginDist contains the plugin distribution files (binaries and assets).
 func (h *WazeroQuickJsHost) ExecutePlugin(
 	rctx context.Context,
-	pluginID, instanceKey, manifestRoot, entrypoint string,
+	pluginID, instanceKey, _, manifestRoot, entrypoint string,
 	pluginDist, pluginAssets *unixfs.FSHandle,
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,

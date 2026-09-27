@@ -24,9 +24,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestExecPluginHoldsDeclaredDeps runs a consumer whose manifest declares a
-// dependency and proves the dependency is loaded while the consumer runs and
-// released when the consumer stops.
+// TestExecPluginHoldsDeclaredDeps runs an instanced consumer whose manifest
+// declares a dependency and proves the dependency is loaded while the consumer
+// runs and released when the consumer stops. The host receives the logical
+// instance key for the plugin and the execution key for its worker.
 func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -106,6 +107,8 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		},
 		le:               le,
 		pluginID:         "consumer",
+		instanceKey:      "vm-1/generation/root",
+		bindingKey:       "vm-1",
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 		pluginLoadStateCtr: ccontainer.NewCContainer(
 			bldr_plugin.NewPluginLoadState(nil, bldr_plugin.InitialCapabilityRegistrationPending),
@@ -139,6 +142,10 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		case <-ctx.Done():
 			t.Fatalf("waiting for %s: %v", step.name, ctx.Err())
 		}
+	}
+
+	if host.instanceKey != "vm-1" || host.executionKey != "vm-1/generation/root" {
+		t.Fatalf("host keys = (%q, %q), want (\"vm-1\", \"vm-1/generation/root\")", host.instanceKey, host.executionKey)
 	}
 
 	cancelExec()
@@ -187,12 +194,17 @@ func (p *testDepProvider) Close() error {
 type blockingPluginHost struct {
 	testPluginHost
 	started chan struct{}
+
+	// instanceKey and executionKey are the keys of the last execution.
+	// Written before started closes.
+	instanceKey, executionKey string
 }
 
 func (h *blockingPluginHost) ExecutePlugin(
 	ctx context.Context,
 	pluginID,
 	instanceKey,
+	executionKey,
 	manifestRoot,
 	entrypoint string,
 	pluginDist *unixfs.FSHandle,
@@ -200,6 +212,7 @@ func (h *blockingPluginHost) ExecutePlugin(
 	hostRpcMux srpc.Mux,
 	rpcInit bldr_plugin_host.PluginRpcInitCb,
 ) error {
+	h.instanceKey, h.executionKey = instanceKey, executionKey
 	close(h.started)
 	<-ctx.Done()
 	return context.Canceled
