@@ -71,7 +71,6 @@ func NewModuleCompiler(
 // If devInfoFile is empty, variable values are embedded in init(). Otherwise,
 // the generated development information is written below the codegen directory.
 func (m *ModuleCompiler) GenerateModule(
-	ctx context.Context,
 	analysis *Analysis,
 	pluginMeta *bldr_plugin.PluginMeta,
 	configSetBinary []byte,
@@ -140,11 +139,6 @@ func (m *ModuleCompiler) GenerateModule(
 		return nil, err
 	}
 	if err := root.WriteFile("plugin.go", pluginCodeData, 0o644); err != nil {
-		return nil, err
-	}
-
-	// Resolve the generated module's dependencies before compilation.
-	if err := gocompiler.RunGoModTidy(ctx, m.le, m.pluginCodegenPath); err != nil {
 		return nil, err
 	}
 
