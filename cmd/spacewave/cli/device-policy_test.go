@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -261,9 +260,9 @@ func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		dialed = sockPath
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) (*exec.Cmd, error) {
+	}, func(_ context.Context, path string) error {
 		t.Fatal("autostart must not run after successful dial")
-		return nil, nil
+		return nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++
@@ -307,9 +306,9 @@ func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T
 	var reloads int
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) (*exec.Cmd, error) {
+	}, func(_ context.Context, path string) error {
 		t.Fatal("autostart must not run after successful dial")
-		return nil, nil
+		return nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++
@@ -348,9 +347,9 @@ func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testin
 	var reloads int
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) (*exec.Cmd, error) {
+	}, func(_ context.Context, path string) error {
 		t.Fatal("autostart must not run after successful dial")
-		return nil, nil
+		return nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++
@@ -436,9 +435,9 @@ func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
 	}
 	withDeviceDaemonStub(t, func(string, int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(context.Context, string) (*exec.Cmd, error) {
+	}, func(context.Context, string) error {
 		t.Fatal("autostart must not run after successful dial")
-		return nil, nil
+		return nil
 	})
 	var reloads int
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {

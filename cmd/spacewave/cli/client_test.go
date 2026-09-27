@@ -6,7 +6,6 @@ import (
 	"context"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -32,9 +31,9 @@ func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
 		dialCalls++
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("connectDaemon must not autostart")
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")
@@ -74,16 +73,16 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		dialCalls++
 		if dialCalls == 1 {
-			return nil, context.DeadlineExceeded
+			return nil, os.ErrNotExist
 		}
-		if want := "/tmp/state/" + socketName; sockPath != want {
+		if filepath.Base(sockPath) != socketName {
 			t.Fatalf("unexpected socket path: %s", sockPath)
 		}
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		startStatePath = statePath
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		if conn != connA {
@@ -92,7 +91,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		return &sdkClient{conn: conn}, nil
 	}
 
-	client, err := connectDaemonWithAutostart(context.Background(), "/tmp/state")
+	client, err := connectDaemonWithAutostart(context.Background(), shortStatePath(t))
 	if err != nil {
 		t.Fatalf("connect daemon: %v", err)
 	}
@@ -102,7 +101,7 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 	if dialCalls != 2 {
 		t.Fatalf("expected 2 dial attempts, got %d", dialCalls)
 	}
-	if startStatePath != "/tmp/state" {
+	if startStatePath == "" {
 		t.Fatalf("unexpected start state path: %s", startStatePath)
 	}
 }
@@ -126,9 +125,9 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("must not autostart while an existing daemon socket may still be live")
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")
@@ -144,7 +143,7 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 	}
 }
 
-func TestConnectDaemonWithAutostartRemovesStaleSocket(t *testing.T) {
+func TestConnectDaemonWithAutostartLeavesSocketCleanupToLeaseHolder(t *testing.T) {
 	oldDial := connectDaemonDial
 	oldBuildClient := connectDaemonBuildClient
 	oldStart := connectDaemonStart
@@ -175,9 +174,9 @@ func TestConnectDaemonWithAutostartRemovesStaleSocket(t *testing.T) {
 		}
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		startCalled = true
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -193,8 +192,8 @@ func TestConnectDaemonWithAutostartRemovesStaleSocket(t *testing.T) {
 	if !startCalled {
 		t.Fatal("expected daemon autostart")
 	}
-	if _, err := os.Stat(sockPath); !os.IsNotExist(err) {
-		t.Fatalf("expected stale socket removed before autostart, stat err=%v", err)
+	if _, err := os.Stat(sockPath); err != nil {
+		t.Fatalf("launcher removed the socket without a lease: %v", err)
 	}
 }
 
@@ -218,9 +217,9 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		startCalled = true
-		return nil, nil
+		return nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -245,17 +244,17 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 	})
 
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
-		return nil, context.DeadlineExceeded
+		return nil, os.ErrNotExist
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
-		return nil, context.Canceled
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
+		return context.Canceled
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")
 		return nil, nil
 	}
 
-	_, err := connectDaemonWithAutostart(context.Background(), "/tmp/state")
+	_, err := connectDaemonWithAutostart(context.Background(), shortStatePath(t))
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -265,33 +264,33 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 }
 
 func TestResolveSpaceIDFromListResolvesName(t *testing.T) {
-	got, err := resolveSpaceIDFromList("Glados", []*s4wave_space_core.SpaceSoListEntry{
+	got, err := resolveSpaceIDFromList("Agent clients", []*s4wave_space_core.SpaceSoListEntry{
 		testSpaceListEntry("01other", "Other"),
-		testSpaceListEntry("01glados", "Glados"),
+		testSpaceListEntry("01agents", "Agent clients"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "01glados" {
-		t.Fatalf("got %q, want 01glados", got)
+	if got != "01agents" {
+		t.Fatalf("got %q, want 01agents", got)
 	}
 }
 
 func TestResolveSpaceIDFromListPreservesExactID(t *testing.T) {
-	got, err := resolveSpaceIDFromList("01glados", []*s4wave_space_core.SpaceSoListEntry{
-		testSpaceListEntry("01glados", "Glados"),
+	got, err := resolveSpaceIDFromList("01agents", []*s4wave_space_core.SpaceSoListEntry{
+		testSpaceListEntry("01agents", "Agent clients"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "01glados" {
-		t.Fatalf("got %q, want 01glados", got)
+	if got != "01agents" {
+		t.Fatalf("got %q, want 01agents", got)
 	}
 }
 
 func TestResolveSpaceIDFromListKeepsUnknownArgument(t *testing.T) {
 	got, err := resolveSpaceIDFromList("missing", []*s4wave_space_core.SpaceSoListEntry{
-		testSpaceListEntry("01glados", "Glados"),
+		testSpaceListEntry("01agents", "Agent clients"),
 	})
 	if err != nil {
 		t.Fatal(err)

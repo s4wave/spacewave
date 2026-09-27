@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,10 +53,18 @@ func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 	ctx := context.Background()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-b"), "stale.sock")
-	if err := os.WriteFile(sock, nil, 0o600); err != nil {
-		t.Fatal(err)
+
+	// Leave a real Unix socket path behind after its listener exits.
+	lis, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	lis.(*net.UnixListener).SetUnlinkOnClose(false)
+	if err := lis.Close(); err != nil {
+		t.Fatalf("close listener: %v", err)
 	}
 
+	// Takeover may remove the orphan socket and make the path available.
 	le := logrus.NewEntry(logrus.New())
 	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
@@ -63,6 +72,32 @@ func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 
 	if _, err := os.Stat(sock); !os.IsNotExist(err) {
 		t.Fatalf("expected socket removed; stat err=%v", err)
+	}
+}
+
+// TestTakeoverDaemonSocketPreservesNonSocket asserts takeover refuses to
+// remove user data occupying the socket path.
+func TestTakeoverDaemonSocketPreservesNonSocket(t *testing.T) {
+	ctx := context.Background()
+	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-file"), "stale.sock")
+	const contents = "user data"
+
+	// Put an ordinary file at the requested socket path.
+	if err := os.WriteFile(sock, []byte(contents), 0o600); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+
+	// Takeover must refuse the path without changing its contents.
+	le := logrus.NewEntry(logrus.New())
+	if err := takeoverDaemonSocket(ctx, le, sock); err == nil || !strings.Contains(err.Error(), "is not a socket") {
+		t.Fatalf("expected non-socket refusal, got %v", err)
+	}
+	dat, err := os.ReadFile(sock)
+	if err != nil {
+		t.Fatalf("read file after takeover: %v", err)
+	}
+	if string(dat) != contents {
+		t.Fatalf("file contents changed after takeover: %q", dat)
 	}
 }
 

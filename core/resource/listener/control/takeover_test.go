@@ -121,9 +121,7 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 func TestTakeoverSocketRemovesStaleFile(t *testing.T) {
 	ctx := context.Background()
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-stale"), "d.sock")
-	if err := os.WriteFile(sock, nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	createStaleTakeoverSocket(t, sock)
 
 	le := logrus.NewEntry(logrus.New())
 	if err := TakeoverSocket(ctx, le, sock); err != nil {
@@ -165,9 +163,7 @@ func TestEnsureSocketAvailableRefusesLiveListener(t *testing.T) {
 
 func TestEnsureSocketAvailableRemovesStaleFile(t *testing.T) {
 	sock := filepath.Join(makeShortTakeoverDir(t, "ensure-stale"), "d.sock")
-	if err := os.WriteFile(sock, nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	createStaleTakeoverSocket(t, sock)
 
 	if err := EnsureSocketAvailable(t.Context(), logrus.NewEntry(logrus.New()), sock); err != nil {
 		t.Fatalf("ensure socket available: %v", err)
@@ -443,24 +439,51 @@ func assertSocketAccepts(t *testing.T, sock string) {
 
 // makeShortTakeoverDir returns a short, test-package-local directory
 // for Unix sockets; mirrors the helper in the spacewave-cli tests.
-func makeShortTakeoverDir(t *testing.T, name string) string {
+func makeShortTakeoverDir(t *testing.T, _ string) string {
 	t.Helper()
-	tmpRoot, err := filepath.Abs(".tmp")
+	root := os.Getenv("SPACEWAVE_TEST_STATE_ROOT")
+	if root == "" {
+		root = "../../../../.tmp"
+	}
+	tmpRoot, err := filepath.Abs(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
+	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	dir := filepath.Join(tmpRoot, name)
-	if err := os.RemoveAll(dir); err != nil {
+	dir, err := os.MkdirTemp(tmpRoot, "tk")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.RemoveAll(dir)
-	})
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	return dir
+}
+
+// createStaleTakeoverSocket leaves a real unbound socket, not an ordinary file.
+func createStaleTakeoverSocket(t *testing.T, path string) {
+	t.Helper()
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener.SetUnlinkOnClose(false)
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestEnsureSocketAvailablePreservesNonSocket prevents arbitrary file removal
+// when a configured socket path actually names an ordinary file.
+func TestEnsureSocketAvailablePreservesNonSocket(t *testing.T) {
+	path := filepath.Join(makeShortTakeoverDir(t, "regular"), "d.sock")
+	if err := os.WriteFile(path, []byte("preserved"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnsureSocketAvailable(t.Context(), nil, path); err == nil {
+		t.Fatal("ordinary file was treated as a stale socket")
+	}
+	if contents, err := os.ReadFile(path); err != nil || string(contents) != "preserved" {
+		t.Fatalf("ordinary file changed: %q, %v", contents, err)
+	}
 }

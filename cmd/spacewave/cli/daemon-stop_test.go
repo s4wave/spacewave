@@ -6,7 +6,6 @@ import (
 	"context"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -163,9 +162,9 @@ func startResettingShutdownPeer(t *testing.T, name string, closeListener bool) (
 
 func TestRunStopWithoutDaemonDoesNotAutostart(t *testing.T) {
 	oldStart := connectDaemonStart
-	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+	connectDaemonStart = func(ctx context.Context, statePath string) error {
 		t.Fatal("stop should not autostart daemon")
-		return nil, nil
+		return nil
 	}
 	t.Cleanup(func() {
 		connectDaemonStart = oldStart

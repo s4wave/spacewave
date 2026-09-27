@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/aperturerobotics/fsnotify"
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ func EnsureSocketAvailable(ctx context.Context, le *logrus.Entry, sockPath strin
 	return prepareSocket(ctx, le, sockPath, false)
 }
 
+// prepareSocket protects a live listener unless explicit takeover is accepted.
 func prepareSocket(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -58,6 +60,12 @@ func prepareSocket(
 		}
 		return errors.Wrap(err, "stat daemon socket")
 	}
+	// A non-socket path may contain user data even when connect returns refusal.
+	if socketInfo.Mode()&os.ModeSocket == 0 {
+		return errors.Errorf("daemon socket path is not a socket: %s", sockPath)
+	}
+
+	// Watch before attempting handoff so socket release cannot go unnoticed.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return errors.Wrap(err, "watch daemon socket handoff")
@@ -67,8 +75,13 @@ func prepareSocket(
 		return errors.Wrap(err, "watch daemon socket directory")
 	}
 
-	conn, err := net.Dial("unix", sockPath)
+	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
 	if err != nil {
+		// Only a refused connection proves a stale socket; permission and other
+		// transport errors leave the existing path untouched.
+		if !errors.Is(err, syscall.ECONNREFUSED) && !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "connect to daemon socket")
+		}
 		le.WithError(err).Warn("removing stale daemon socket")
 		if err := os.Remove(sockPath); err != nil && !os.IsNotExist(err) {
 			return errors.Wrap(err, "remove stale daemon socket")
@@ -91,10 +104,13 @@ func prepareSocket(
 		// reaches us. Connection failure is the event; a fresh dial
 		// distinguishes that completed exit from a still-live listener.
 		_ = conn.Close()
-		probe, probeErr := net.Dial("unix", sockPath)
+		probe, probeErr := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
 		if probeErr == nil {
 			_ = probe.Close()
 			return err
+		}
+		if !errors.Is(probeErr, syscall.ECONNREFUSED) && !errors.Is(probeErr, os.ErrNotExist) {
+			return errors.Wrap(probeErr, "confirm daemon socket release")
 		}
 		le.WithError(err).Warn("takeover peer exited before handoff completion; removing stale daemon socket")
 		if removeErr := os.Remove(sockPath); removeErr != nil && !os.IsNotExist(removeErr) {
@@ -105,6 +121,7 @@ func prepareSocket(
 	return waitForSocketRelease(ctx, watcher, socketInfo, sockPath)
 }
 
+// waitForSocketRelease observes pathname changes after an accepted handoff.
 func waitForSocketRelease(
 	ctx context.Context,
 	watcher *fsnotify.Watcher,
