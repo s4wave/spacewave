@@ -62,7 +62,6 @@ func NewFactory(b bus.Bus) controller.Factory {
 		t.Fatal(err)
 	}
 	if _, err := compiler.GenerateModule(
-		ctx,
 		analysis,
 		bldr_plugin.NewPluginMeta("openmind", "openmind-core", "web/js/wasm", "dev"),
 		nil,

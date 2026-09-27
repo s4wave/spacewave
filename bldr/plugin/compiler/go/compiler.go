@@ -982,7 +982,7 @@ func (c *Controller) BuildPlugin(
 	}
 	an.AddVariableDefImports(le, goVariableDefs)
 
-	pluginDevInfo, err := mc.GenerateModule(ctx, an, pluginMeta, configSetBin, goVariableDefs, devInfoFile)
+	pluginDevInfo, err := mc.GenerateModule(an, pluginMeta, configSetBin, goVariableDefs, devInfoFile)
 	if err != nil {
 		return nil, err
 	}
