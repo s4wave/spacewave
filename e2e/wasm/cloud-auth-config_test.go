@@ -43,13 +43,14 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	}
 }
 
-// TestStableE2ECloudAuthConfigAddr checks stable, distinct per-harness ports.
+// TestStableE2ECloudAuthConfigAddr checks ports that are stable across
+// checkouts and distinct per build configuration.
 func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
 	a := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
-	b := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
+	b := stableE2ECloudAuthConfigAddr("/other/.bldr/e2e-wasm/wasm-a")
 	c := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-b")
 	if a != b {
-		t.Fatalf("stable addr changed: %q != %q", a, b)
+		t.Fatalf("addr changed across checkouts: %q != %q", a, b)
 	}
 	if a == c {
 		t.Fatalf("expected different state roots to use different addrs, got %q", a)

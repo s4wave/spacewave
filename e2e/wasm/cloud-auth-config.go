@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -23,9 +24,12 @@ import (
 // e2eCloudAuthConfigPath serves discovery for the loopback cloud fixture.
 const e2eCloudAuthConfigPath = "/api/auth/config"
 
-// stableE2ECloudAuthConfigAddr keeps cached startup manifests reusable.
+// stableE2ECloudAuthConfigAddr keeps cached startup manifests reusable. The
+// endpoint is baked into the plugin config, so the port derives from the state
+// root's name, which names the build configuration, and not from the checkout
+// path: another checkout of the same sources then replays the same plugin.
 func stableE2ECloudAuthConfigAddr(stateRoot string) string {
-	sum := sha256.Sum256([]byte("e2e-cloud-auth|" + stateRoot))
+	sum := sha256.Sum256([]byte("e2e-cloud-auth|" + filepath.Base(stateRoot)))
 	port := 20000 + int(binary.BigEndian.Uint16(sum[:2])%30000)
 	return "127.0.0.1:" + strconv.Itoa(port)
 }
