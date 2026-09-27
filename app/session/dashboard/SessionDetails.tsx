@@ -201,12 +201,18 @@ export function SessionDetails({
   const sessionCount = sessionsResource.value?.sessions?.length ?? 0
   const showTransfer = sessionCount > 1
 
+  // Reset the editor only while this display name belongs to the mounted panel.
   useEffect(() => {
+    let active = true
     queueMicrotask(() => {
+      if (!active) return
       setDisplayName(currentDisplayName)
       setDisplayNameError(null)
       setEditingDisplayName(false)
     })
+    return () => {
+      active = false
+    }
   }, [currentDisplayName])
 
   useEffect(() => {

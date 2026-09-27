@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 
 import {
@@ -270,7 +270,6 @@ describe('SessionDetails', () => {
   const mockRetry = vi.fn()
 
   beforeEach(() => {
-    cleanup()
     mockNavigate.mockClear()
     Object.defineProperty(navigator, 'clipboard', {
       value: mockClipboard,
@@ -284,6 +283,10 @@ describe('SessionDetails', () => {
       loading: false,
       error: null,
     })
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   function renderWithContext(
@@ -649,5 +652,34 @@ describe('SessionDetails', () => {
       expect(buttonsContainer?.className).toContain('flex')
       expect(buttonsContainer?.className).toContain('gap-1.5')
     })
+  })
+
+  it('does not update state after details unmounts', async () => {
+    // Close the panel before its queued display-name reset runs.
+    renderWithContext(<SessionDetails />)
+    cleanup()
+
+    // React reads window.event when a stale state update requests a lane.
+    const windowValue = window
+    const windowDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'window',
+    )!
+    const windowReadStacks: string[] = []
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      get: () => {
+        windowReadStacks.push(new Error().stack ?? '')
+        return windowValue
+      },
+    })
+
+    try {
+      // Let the display-name microtask run after unmount.
+      await Promise.resolve()
+      expect(windowReadStacks).toEqual([])
+    } finally {
+      Object.defineProperty(globalThis, 'window', windowDescriptor)
+    }
   })
 })
