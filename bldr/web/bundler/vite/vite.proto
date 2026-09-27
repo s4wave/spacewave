@@ -19,6 +19,9 @@ service ViteBundler {
 
   // SendDevelopment forwards an upstream client message into the environment.
   rpc SendDevelopment(.bldr.frontend.SendRequest) returns (.bldr.frontend.SendResponse);
+
+  // ChangeDevelopment applies source edits reported by the environment's source owner.
+  rpc ChangeDevelopment(ChangeDevelopmentRequest) returns (ChangeDevelopmentResponse);
 }
 
 // DevelopmentConfig configures a dedicated process's frontend environment.
@@ -44,6 +47,37 @@ message DevelopmentConfig {
   string route_prefix = 9;
   // WebPkgIds are packages supplied by another plugin at the shared /b/pkg route.
   repeated string web_pkg_ids = 10;
+  // ExternalChanges disables filesystem watching; the source owner reports
+  // each edit through ChangeDevelopment instead.
+  bool external_changes = 11;
+}
+
+// DevelopmentChangeKind classifies one reported source edit.
+enum DevelopmentChangeKind {
+  // DevelopmentChangeKind_CHANGE rewrote an existing file.
+  DevelopmentChangeKind_CHANGE = 0;
+  // DevelopmentChangeKind_ADD created a file.
+  DevelopmentChangeKind_ADD = 1;
+  // DevelopmentChangeKind_UNLINK removed a file.
+  DevelopmentChangeKind_UNLINK = 2;
+}
+
+// DevelopmentChange is one source file edited by the source owner.
+message DevelopmentChange {
+  // Path is the file path relative to the environment's RootDir.
+  string path = 1;
+  // Kind classifies the edit.
+  DevelopmentChangeKind kind = 2;
+}
+
+// ChangeDevelopmentRequest reports source edits already written to RootDir.
+message ChangeDevelopmentRequest {
+  // Changes lists each edited file once.
+  repeated DevelopmentChange changes = 1;
+}
+
+// ChangeDevelopmentResponse confirms the environment accepted the edits.
+message ChangeDevelopmentResponse {
 }
 
 // DevelopmentResult publishes readiness of the internal middleware adapter.

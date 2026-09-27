@@ -399,7 +399,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/project/controller": {
-      "hash": "ff885fe0aef8da6af84213513f3385d28fdb8e6ec799c4451660f0f9576f7ab4",
+      "hash": "55c8fb2cc1713a3a79d0614ab1eae3b3b1a7e98bede24c4df9ab7f9b32dd8aa7",
       "generatedFiles": [
         "bldr/project/controller/config.pb.go",
         "bldr/project/controller/config.pb.ts"
@@ -587,7 +587,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite": {
-      "hash": "e14cc5a66578fc3229a2641cc3e43d026ff70a6bf68fc5ed71d6803dbbaaf6ec",
+      "hash": "344b666a690b81e5f02f0475a2b8aa1de19ab8f53630c68947f2bc9aaf69711a",
       "generatedFiles": [
         "bldr/web/bundler/vite/vite.pb.go",
         "bldr/web/bundler/vite/vite.pb.ts",

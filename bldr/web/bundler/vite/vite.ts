@@ -15,6 +15,8 @@ import {
   BuildResponse,
   BuildWebPkgRequest,
   BuildWebPkgResponse,
+  ChangeDevelopmentRequest,
+  ChangeDevelopmentResponse,
   DevelopmentConfig,
   DevelopmentResult,
 } from './vite.pb.js'
@@ -111,6 +113,17 @@ class ViteBundlerService implements ViteBundler {
       throw new Error('Vite development environment is not started')
     environment.send(request)
     return SendResponse.create({})
+  }
+
+  /** ChangeDevelopment applies source edits reported by the source owner. */
+  async ChangeDevelopment(
+    request: ChangeDevelopmentRequest,
+  ): Promise<ChangeDevelopmentResponse> {
+    const environment = await this.development
+    if (!environment)
+      throw new Error('Vite development environment is not started')
+    environment.change(request.changes ?? [])
+    return ChangeDevelopmentResponse.create({})
   }
 
   async Build(request: BuildRequest): Promise<BuildResponse> {

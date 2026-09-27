@@ -2,12 +2,55 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/bundler/vite/vite.proto (package bldr.web.bundler.vite, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Session } from '../../../frontend/frontend.pb.js'
 import { WebPkgRefConfig } from '../bundler.pb.js'
+
+export const protobufPackage = 'bldr.web.bundler.vite'
+
+/**
+ * DevelopmentChangeKind classifies one reported source edit.
+ *
+ * @generated from enum bldr.web.bundler.vite.DevelopmentChangeKind
+ */
+export enum DevelopmentChangeKind {
+  /**
+   * DevelopmentChangeKind_CHANGE rewrote an existing file.
+   *
+   * @generated from enum value: DevelopmentChangeKind_CHANGE = 0;
+   */
+  DevelopmentChangeKind_CHANGE = 0,
+
+  /**
+   * DevelopmentChangeKind_ADD created a file.
+   *
+   * @generated from enum value: DevelopmentChangeKind_ADD = 1;
+   */
+  DevelopmentChangeKind_ADD = 1,
+
+  /**
+   * DevelopmentChangeKind_UNLINK removed a file.
+   *
+   * @generated from enum value: DevelopmentChangeKind_UNLINK = 2;
+   */
+  DevelopmentChangeKind_UNLINK = 2,
+}
+
+export const DevelopmentChangeKind_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.web.bundler.vite.DevelopmentChangeKind',
+  [
+    [0, 'DevelopmentChangeKind_CHANGE'],
+    [1, 'DevelopmentChangeKind_ADD'],
+    [2, 'DevelopmentChangeKind_UNLINK'],
+  ],
+)
 
 /**
  * DevelopmentConfig configures a dedicated process's frontend environment.
@@ -76,6 +119,13 @@ export interface DevelopmentConfig {
    * @generated from field: repeated string web_pkg_ids = 10;
    */
   webPkgIds?: string[]
+  /**
+   * ExternalChanges disables filesystem watching; the source owner reports
+   * each edit through ChangeDevelopment instead.
+   *
+   * @generated from field: bool external_changes = 11;
+   */
+  externalChanges?: boolean
 }
 
 export const DevelopmentConfig: MessageType<DevelopmentConfig> =
@@ -121,8 +171,82 @@ export const DevelopmentConfig: MessageType<DevelopmentConfig> =
         T: ScalarType.STRING,
         repeated: true,
       },
+      { no: 11, name: 'external_changes', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
+
+/**
+ * DevelopmentChange is one source file edited by the source owner.
+ *
+ * @generated from message bldr.web.bundler.vite.DevelopmentChange
+ */
+export interface DevelopmentChange {
+  /**
+   * Path is the file path relative to the environment's RootDir.
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+  /**
+   * Kind classifies the edit.
+   *
+   * @generated from field: bldr.web.bundler.vite.DevelopmentChangeKind kind = 2;
+   */
+  kind?: DevelopmentChangeKind
+}
+
+export const DevelopmentChange: MessageType<DevelopmentChange> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.DevelopmentChange',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'kind', kind: 'enum', T: DevelopmentChangeKind_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ChangeDevelopmentRequest reports source edits already written to RootDir.
+ *
+ * @generated from message bldr.web.bundler.vite.ChangeDevelopmentRequest
+ */
+export interface ChangeDevelopmentRequest {
+  /**
+   * Changes lists each edited file once.
+   *
+   * @generated from field: repeated bldr.web.bundler.vite.DevelopmentChange changes = 1;
+   */
+  changes?: DevelopmentChange[]
+}
+
+export const ChangeDevelopmentRequest: MessageType<ChangeDevelopmentRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.bundler.vite.ChangeDevelopmentRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'changes',
+        kind: 'message',
+        T: () => DevelopmentChange,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ChangeDevelopmentResponse confirms the environment accepted the edits.
+ *
+ * @generated from message bldr.web.bundler.vite.ChangeDevelopmentResponse
+ */
+export interface ChangeDevelopmentResponse {}
+
+export const ChangeDevelopmentResponse: MessageType<ChangeDevelopmentResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ChangeDevelopmentResponse>(
+    'bldr.web.bundler.vite.ChangeDevelopmentResponse',
+    true,
+  )
 
 /**
  * DevelopmentResult publishes readiness of the internal middleware adapter.
@@ -159,6 +283,7 @@ export const DevelopmentResult: MessageType<DevelopmentResult> =
       { no: 2, name: 'private_url', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'refresh_runtime', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -201,6 +326,7 @@ export const WebPkgRef: MessageType<WebPkgRef> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -230,6 +356,7 @@ export const ViteBuildRequestEntrypoint: MessageType<ViteBuildRequestEntrypoint>
       { no: 1, name: 'input_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -357,7 +484,7 @@ export const BuildRequest: MessageType<BuildRequest> =
         no: 8,
         name: 'entrypoints',
         kind: 'message',
-        T: ViteBuildRequestEntrypoint,
+        T: () => ViteBuildRequestEntrypoint,
         repeated: true,
       },
       {
@@ -387,6 +514,7 @@ export const BuildRequest: MessageType<BuildRequest> =
       { no: 15, name: 'sourcemap_mode', kind: 'scalar', T: ScalarType.STRING },
       { no: 16, name: 'project_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -442,6 +570,7 @@ export const EntrypointOutput: MessageType<EntrypointOutput> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -506,7 +635,7 @@ export const BuildResponse: MessageType<BuildResponse> =
         no: 3,
         name: 'entrypoint_outputs',
         kind: 'message',
-        T: EntrypointOutput,
+        T: () => EntrypointOutput,
         repeated: true,
       },
       {
@@ -527,7 +656,7 @@ export const BuildResponse: MessageType<BuildResponse> =
         no: 6,
         name: 'web_pkg_refs',
         kind: 'message',
-        T: WebPkgRef,
+        T: () => WebPkgRef,
         repeated: true,
       },
       {
@@ -538,6 +667,7 @@ export const BuildResponse: MessageType<BuildResponse> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -568,6 +698,7 @@ export const ViteOutputMeta: MessageType<ViteOutputMeta> =
       { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'entrypoint_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -683,6 +814,7 @@ export const BuildWebPkgRequest: MessageType<BuildWebPkgRequest> =
       { no: 10, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
       { no: 11, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -712,6 +844,7 @@ export const ImportMapEntry: MessageType<ImportMapEntry> =
       { no: 1, name: 'specifier', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'output_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -765,8 +898,9 @@ export const BuildWebPkgResponse: MessageType<BuildWebPkgResponse> =
         no: 4,
         name: 'import_map_entries',
         kind: 'message',
-        T: ImportMapEntry,
+        T: () => ImportMapEntry,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })

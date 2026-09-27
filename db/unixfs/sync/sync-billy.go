@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"slices"
-	"sort"
 
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/go-git/go-billy/v6"
@@ -24,6 +23,22 @@ type BillyFS interface {
 	billy.Dir
 }
 
+// ChangeKind classifies a destination file changed by a sync.
+type ChangeKind int
+
+const (
+	// ChangeWrite rewrote an existing file.
+	ChangeWrite ChangeKind = iota
+	// ChangeCreate created a file.
+	ChangeCreate
+	// ChangeRemove removed a file.
+	ChangeRemove
+)
+
+// ChangeCb observes a destination file after the sync changes it.
+// Removing a directory reports each file it contained.
+type ChangeCb func(outPath string, kind ChangeKind)
+
 // SyncToBilly recursively synchronizes the contents of the UnixFS to a BillyFS.
 //
 // Attempts to skip files by checking size and modification time.
@@ -36,34 +51,53 @@ func SyncToBilly(
 	deleteMode DeleteMode,
 	filterCb FilterCb,
 ) error {
-	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, false)
+	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, false, nil)
 }
 
 // SyncToBillyContents compares regular-file bytes even when size and mtime match.
 // Unchanged files are left intact so source watchers only observe actual edits.
-func SyncToBillyContents(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, deleteMode DeleteMode, filterCb FilterCb) error {
-	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, true)
+// changeCb, if set, observes each destination file the sync changes.
+func SyncToBillyContents(
+	ctx context.Context,
+	bfs BillyFS,
+	fsHandle *unixfs.FSHandle,
+	deleteMode DeleteMode,
+	filterCb FilterCb,
+	changeCb ChangeCb,
+) error {
+	return syncToBilly(ctx, bfs, fsHandle, deleteMode, filterCb, true, changeCb)
 }
 
 // syncToBilly applies the selected deletion policy and content comparison mode.
-func syncToBilly(ctx context.Context, bfs BillyFS, fsHandle *unixfs.FSHandle, deleteMode DeleteMode, filterCb FilterCb, compareContents bool) error {
+func syncToBilly(
+	ctx context.Context,
+	bfs BillyFS,
+	fsHandle *unixfs.FSHandle,
+	deleteMode DeleteMode,
+	filterCb FilterCb,
+	compareContents bool,
+	changeCb ChangeCb,
+) error {
+	once := func(doDelete, doWrite bool) error {
+		return syncToBillyOnce(ctx, bfs, fsHandle, doDelete, doWrite, filterCb, compareContents, changeCb)
+	}
 	switch deleteMode {
 	case DeleteMode_DeleteMode_BEFORE:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents); err != nil {
+		if err := once(true, false); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents)
+		return once(false, true)
 	case DeleteMode_DeleteMode_DURING:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, true, filterCb, compareContents)
+		return once(true, true)
 	case DeleteMode_DeleteMode_AFTER:
-		if err := syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents); err != nil {
+		if err := once(false, true); err != nil {
 			return err
 		}
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents)
+		return once(true, false)
 	case DeleteMode_DeleteMode_ONLY:
-		return syncToBillyOnce(ctx, bfs, fsHandle, true, false, filterCb, compareContents)
+		return once(true, false)
 	case DeleteMode_DeleteMode_NONE:
-		return syncToBillyOnce(ctx, bfs, fsHandle, false, true, filterCb, compareContents)
+		return once(false, true)
 	default:
 		return errors.Errorf("unknown delete mode: %s", deleteMode.String())
 	}
@@ -78,6 +112,7 @@ func syncToBillyOnce(
 	doWrite bool,
 	filterCb FilterCb,
 	compareContents bool,
+	changeCb ChangeCb,
 ) error {
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
@@ -182,16 +217,7 @@ func syncToBillyOnce(
 				releaseElem(nelem)
 				return &fs.PathError{Op: "readdir", Path: outPath, Err: err}
 			}
-			// sort childNames
 			slices.Sort(childNames)
-			// we can check if the child exists via a sorted search
-			checkChildExists := func(name string) bool {
-				idx := sort.SearchStrings(childNames, name)
-				if idx < 0 || idx >= len(childNames) {
-					return false
-				}
-				return childNames[idx] == name
-			}
 
 			// delete: remove any entries that shouldn't exist
 			if doDelete {
@@ -202,39 +228,43 @@ func syncToBillyOnce(
 				}
 				for _, entry := range outEntries {
 					_, entryName := path.Split(entry.Name())
-					if !checkChildExists(entryName) {
-						// delete from destination
-						// skip if filterCb mismatch
-						if filterCb != nil {
-							srcDelPath := path.Join(srcPath, entryName)
-							cntu, err := filterCb(ctx, srcDelPath, nil)
-							if err != nil {
-								releaseElem(nelem)
-								return err
-							}
-							if !cntu {
-								continue
-							}
-						}
-						if filterCb != nil {
-							filterPath := path.Join(srcPath, entryName)
-							nodeType, err := unixfs.FileModeToNodeType(entry.Type())
-							if err != nil {
-								return err
-							}
-							cntu, err := filterCb(ctx, filterPath, nodeType)
-							if err != nil || !cntu {
-								releaseElem(nelem)
-								return err
-							}
-						}
+					if _, exists := slices.BinarySearch(childNames, entryName); exists {
+						continue
+					}
 
-						// Remove recursive
-						err = billy_util.RemoveAll(bfs, path.Join(outPath, entryName))
+					// Filtered destination entries are outside the sync.
+					if filterCb != nil {
+						nodeType, err := unixfs.FileModeToNodeType(entry.Type())
 						if err != nil {
 							releaseElem(nelem)
 							return err
 						}
+						cntu, err := filterCb(ctx, path.Join(srcPath, entryName), nodeType)
+						if err != nil {
+							releaseElem(nelem)
+							return err
+						}
+						if !cntu {
+							continue
+						}
+					}
+
+					// List the files before removing them so each can be reported.
+					delPath := path.Join(outPath, entryName)
+					var removed []string
+					if changeCb != nil {
+						removed, err = listBillyFiles(bfs, delPath, entry)
+						if err != nil {
+							releaseElem(nelem)
+							return err
+						}
+					}
+					if err := billy_util.RemoveAll(bfs, delPath); err != nil {
+						releaseElem(nelem)
+						return err
+					}
+					for _, name := range removed {
+						changeCb(name, ChangeRemove)
 					}
 				}
 			}
@@ -364,6 +394,9 @@ func syncToBillyOnce(
 				// err is already a fs.PathError
 				return err
 			}
+			if changeCb != nil {
+				changeCb(outPath, writeKind(outStatErr))
+			}
 
 			// done with this entry
 			releaseElem(nelem)
@@ -383,11 +416,12 @@ func syncToBillyOnce(
 		}
 
 		xferBuf := cpyBuffer.GetOrAllocate(32 * 1024)
+		changed := createTruncateFile
 		if createTruncateFile {
 			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf, 0)
 		} else {
 			wbuffer := writeBuffer.GetOrAllocate(32 * 1024)
-			err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
+			changed, err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
 		}
 
 		if cerr := of.Close(); err == nil && cerr != nil {
@@ -399,7 +433,39 @@ func syncToBillyOnce(
 		if err != nil {
 			return &fs.PathError{Op: "write", Path: outPath, Err: err}
 		}
+		if changed && changeCb != nil {
+			changeCb(outPath, writeKind(outStatErr))
+		}
 	}
 
 	return nil
+}
+
+// writeKind classifies a destination write by the prior destination stat.
+func writeKind(outStatErr error) ChangeKind {
+	if outStatErr != nil {
+		return ChangeCreate
+	}
+	return ChangeWrite
+}
+
+// listBillyFiles lists the non-directory paths at or under a destination entry.
+func listBillyFiles(bfs BillyFS, name string, entry fs.DirEntry) ([]string, error) {
+	if !entry.IsDir() {
+		return []string{name}, nil
+	}
+	children, err := bfs.ReadDir(name)
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, child := range children {
+		_, childName := path.Split(child.Name())
+		childFiles, err := listBillyFiles(bfs, path.Join(name, childName), child)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, childFiles...)
+	}
+	return files, nil
 }

@@ -15,7 +15,12 @@ import {
 } from 'vite'
 
 import { Event, SendRequest, Session } from '../../../frontend/frontend.pb.js'
-import { DevelopmentConfig, DevelopmentResult } from './vite.pb.js'
+import {
+  DevelopmentChange,
+  DevelopmentChangeKind,
+  DevelopmentConfig,
+  DevelopmentResult,
+} from './vite.pb.js'
 import { buildConfig, createSilentViteLogger } from './build.js'
 import {
   adaptDevelopmentClient,
@@ -57,6 +62,24 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/** escapesRoot reports whether a relative path names the root or leaves it. */
+function escapesRoot(root: string, path: string): boolean {
+  const inside = relative(root, resolve(root, path))
+  return (
+    isAbsolute(path) ||
+    !inside ||
+    inside === '..' ||
+    inside.startsWith('..' + sep)
+  )
+}
+
+/** changeEvents maps reported edits to Vite's watcher events. */
+const changeEvents: Record<DevelopmentChangeKind, string> = {
+  [DevelopmentChangeKind.DevelopmentChangeKind_CHANGE]: 'change',
+  [DevelopmentChangeKind.DevelopmentChangeKind_ADD]: 'add',
+  [DevelopmentChangeKind.DevelopmentChangeKind_UNLINK]: 'unlink',
+}
+
 /** DevelopmentEnvironment retains one Vite graph behind the compiler RPC. */
 export class DevelopmentEnvironment {
   private readonly messages = new EventEmitter()
@@ -64,6 +87,7 @@ export class DevelopmentEnvironment {
   private sequence = 0n
   private server?: ViteDevServer
   private listener?: Server
+  private root?: string
 
   /** session is immutable for this environment's lifetime. */
   public readonly session: Session
@@ -74,16 +98,7 @@ export class DevelopmentEnvironment {
       throw new Error('Bldr frontend: invalid session ID')
     }
     for (const entry of config.entrypoints ?? []) {
-      const path = relative(
-        resolve(config.rootDir!),
-        resolve(config.rootDir!, entry),
-      )
-      if (
-        isAbsolute(entry) ||
-        !path ||
-        path === '..' ||
-        path.startsWith('..' + sep)
-      ) {
+      if (escapesRoot(resolve(config.rootDir!), entry)) {
         throw new Error(
           `Bldr frontend: entrypoint escapes the project: ${entry}`,
         )
@@ -107,6 +122,7 @@ export class DevelopmentEnvironment {
   public async start(): Promise<DevelopmentResult> {
     // Load the project's ordinary plugins in an isolated compiler process.
     const root = resolve(this.config.rootDir!)
+    this.root = realpathSync(root)
     const dist = resolve(this.config.distDir!)
     const dependencies = resolve(root, 'node_modules')
     process.env.BLDR_PROJECT_ROOT = root
@@ -238,14 +254,17 @@ export class DevelopmentEnvironment {
         middlewareMode: true,
         ws: false,
         hmr: true,
-        watch: {
-          ...config.server?.watch,
-          ignored: config.server?.watch?.ignored ?? [
-            '**/.bldr*/**',
-            '**/.tmp/**',
-            '**/vendor/**',
-          ],
-        },
+        // An external source owner reports each edit through change().
+        watch: this.config.externalChanges
+          ? null
+          : {
+              ...config.server?.watch,
+              ignored: config.server?.watch?.ignored ?? [
+                '**/.bldr*/**',
+                '**/.tmp/**',
+                '**/vendor/**',
+              ],
+            },
         fs: {
           strict: true,
           allow: [
@@ -355,6 +374,30 @@ export class DevelopmentEnvironment {
     this.clients.emit(payload.event, data, {
       send: (reply: HotPayload) => this.publish(reply),
     })
+  }
+
+  /** change delivers edits the source owner already wrote under the root. */
+  public change(changes: DevelopmentChange[]): void {
+    // Validate the whole batch before Vite observes any of it.
+    if (!this.config.externalChanges)
+      throw new Error('Bldr frontend: environment watches its own source')
+    const server = this.server
+    const root = this.root
+    if (!server || !root)
+      throw new Error('Bldr frontend: environment is not started')
+    const events = changes.map((change) => {
+      const path = change.path ?? ''
+      if (escapesRoot(root, path)) {
+        throw new Error(`Bldr frontend: change escapes the project: ${path}`)
+      }
+      return {
+        path: resolve(root, path),
+        event: changeEvents[change.kind ?? 0],
+      }
+    })
+
+    // Vite's watcher listeners own invalidation and HMR for each event.
+    for (const { path, event } of events) server.watcher.emit(event, path)
   }
 
   /** close releases the listener, graph, watchers, and pending subscriptions. */

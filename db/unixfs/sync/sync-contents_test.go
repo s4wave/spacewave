@@ -1,8 +1,11 @@
 package unixfs_sync
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -13,11 +16,16 @@ import (
 )
 
 // TestSyncContentsPreservesUnchangedFiles catches edits hidden by equal metadata
-// without emitting writes for every unchanged source module.
+// without emitting writes for every unchanged source module, and reports each
+// destination file it changes.
 func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 	ctx := t.Context()
 	stamp := time.Unix(1000, 0)
-	files := fstest.MapFS{"viewer.ts": {Data: []byte("before"), Mode: 0o644, ModTime: stamp}}
+	files := fstest.MapFS{
+		"viewer.ts":  {Data: []byte("before"), Mode: 0o644, ModTime: stamp},
+		"lib":        {Mode: fs.ModeDir | 0o755, ModTime: stamp},
+		"lib/one.ts": {Data: []byte("one"), Mode: 0o644, ModTime: stamp},
+	}
 	cursor, err := unixfs_iofs.NewFSCursor(files)
 	if err != nil {
 		t.Fatal(err)
@@ -31,17 +39,27 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 	directory := t.TempDir()
 	out := osfs.New(directory)
 	filename := filepath.Join(directory, "viewer.ts")
-	if err := SyncToBillyContents(ctx, out, handle, DeleteMode_DeleteMode_DURING, nil); err != nil {
-		t.Fatal(err)
+	sync := func(want ...string) {
+		t.Helper()
+		var got []string
+		err := SyncToBillyContents(ctx, out, handle, DeleteMode_DeleteMode_DURING, nil, func(name string, kind ChangeKind) {
+			got = append(got, fmt.Sprintf("%d %s", kind, name))
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		slices.Sort(got)
+		if !slices.Equal(got, want) {
+			t.Fatalf("changes = %q, want %q", got, want)
+		}
 	}
+	sync(fmt.Sprintf("%d lib/one.ts", ChangeCreate), fmt.Sprintf("%d viewer.ts", ChangeCreate))
 	if err := os.Chtimes(filename, stamp, stamp); err != nil {
 		t.Fatal(err)
 	}
 
 	// A second observation of the same source must leave its watcher idle.
-	if err := SyncToBillyContents(ctx, out, handle, DeleteMode_DeleteMode_DURING, nil); err != nil {
-		t.Fatal(err)
-	}
+	sync()
 	info, err := os.Stat(filename)
 	if err != nil {
 		t.Fatal(err)
@@ -52,9 +70,7 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 
 	// Same-length bytes with the same mtime still replace the previous module.
 	files["viewer.ts"].Data = []byte("edited")
-	if err := SyncToBillyContents(ctx, out, handle, DeleteMode_DeleteMode_DURING, nil); err != nil {
-		t.Fatal(err)
-	}
+	sync(fmt.Sprintf("%d viewer.ts", ChangeWrite))
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)
@@ -62,4 +78,8 @@ func TestSyncContentsPreservesUnchangedFiles(t *testing.T) {
 	if string(data) != "edited" {
 		t.Fatalf("source edit was skipped: %q", data)
 	}
+
+	// Removing a directory reports each file it held.
+	delete(files, "lib/one.ts")
+	sync(fmt.Sprintf("%d lib/one.ts", ChangeRemove))
 }

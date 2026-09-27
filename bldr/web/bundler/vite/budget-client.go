@@ -70,5 +70,10 @@ func (c *BudgetClient) SendDevelopment(ctx context.Context, request *frontend.Se
 	return c.client.SendDevelopment(ctx, request)
 }
 
+// ChangeDevelopment reports source edits without reserving compilation capacity.
+func (c *BudgetClient) ChangeDevelopment(ctx context.Context, request *ChangeDevelopmentRequest) (*ChangeDevelopmentResponse, error) {
+	return c.client.ChangeDevelopment(ctx, request)
+}
+
 // _ is a type assertion.
 var _ SRPCViteBundlerClient = (*BudgetClient)(nil)

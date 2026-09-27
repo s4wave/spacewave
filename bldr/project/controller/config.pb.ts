@@ -15,6 +15,8 @@ import {
   BuilderResult,
 } from '../../manifest/builder/builder.pb.js'
 
+export const protobufPackage = 'bldr.project.controller'
+
 /**
  * Config is the Project controller configuration.
  *
@@ -77,6 +79,8 @@ export interface Config {
   frontendDevelopment?: boolean
   /**
    * FrontendRoutePrefix overrides the browser namespace for an attached compiler.
+   * An attached compiler does not watch its source root; the attaching owner
+   * reports each edit through FrontendService.Change.
    *
    * @generated from field: string frontend_route_prefix = 9;
    */
@@ -106,6 +110,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
 })
 
 /**
@@ -191,6 +196,7 @@ export const ManifestBuilderConfig: MessageType<ManifestBuilderConfig> =
       },
       { no: 7, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -230,4 +236,5 @@ export const ManifestBuilderResult: MessageType<ManifestBuilderResult> =
         T: () => BuilderResult,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })

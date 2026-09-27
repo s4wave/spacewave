@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	project_controller "github.com/s4wave/spacewave/bldr/project/controller"
+	vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	"github.com/s4wave/spacewave/core/transport"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -115,7 +116,7 @@ func (h *buildPluginHandler) runFrontend(ctx context.Context, directory string, 
 	defer release()
 
 	// Source changes affect Vite's checkout, never the installed backend artifact.
-	err = h.watchFrontendSource(runCtx, directory)
+	err = h.watchFrontendSource(runCtx, directory, service)
 	if runCtx.Err() != nil && ctx.Err() == nil {
 		return nil
 	}
@@ -147,8 +148,9 @@ func (h *buildPluginHandler) frontendServer(transportBus bus.Bus, invoker srpc.I
 		authenticated, []protocol.ID{protocolID}, []string{h.handle.GetPeerId().String()}, false)
 }
 
-// watchFrontendSource copies complete accepted roots and retains compiler inputs.
-func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory string) error {
+// watchFrontendSource copies complete accepted roots into the checkout and
+// reports each changed file to the compiler, which does not watch the checkout.
+func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory string, service *project_controller.FrontendService) error {
 	ws := world.NewEngineWorldState(h.engine, false)
 	object, err := world.MustGetObject(ctx, ws, h.source.GetKey())
 	if err != nil {
@@ -162,6 +164,7 @@ func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory 
 			return err
 		}
 		if !root.EqualVT(previous) {
+			var changes []*vite.DevelopmentChange
 			err = h.handle.AccessStorage(ctx, root, func(cursor *bucket_lookup.Cursor) error {
 				filesystem := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor.Clone(), nil)
 				source, err := unixfs.NewFSHandle(filesystem)
@@ -174,9 +177,15 @@ func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory 
 					func(_ context.Context, name string, _ unixfs.FSCursorNodeType) (bool, error) {
 						first, _, _ := strings.Cut(name, "/")
 						return first != ".bldr" && first != "node_modules", nil
+					},
+					func(name string, kind unixfs_sync.ChangeKind) {
+						changes = append(changes, &vite.DevelopmentChange{Path: name, Kind: changeKinds[kind]})
 					})
 			})
 			if err != nil {
+				return err
+			}
+			if err := service.Change(ctx, changes); err != nil {
 				return err
 			}
 			previous = root
@@ -185,6 +194,13 @@ func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory 
 			return err
 		}
 	}
+}
+
+// changeKinds maps checkout sync changes to compiler source edits.
+var changeKinds = map[unixfs_sync.ChangeKind]vite.DevelopmentChangeKind{
+	unixfs_sync.ChangeWrite:  vite.DevelopmentChangeKind_DevelopmentChangeKind_CHANGE,
+	unixfs_sync.ChangeCreate: vite.DevelopmentChangeKind_DevelopmentChangeKind_ADD,
+	unixfs_sync.ChangeRemove: vite.DevelopmentChangeKind_DevelopmentChangeKind_UNLINK,
 }
 
 var _ frontend.SRPCFrontendServer = (*PluginFrontend)(nil)

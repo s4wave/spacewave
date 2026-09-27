@@ -84,6 +84,8 @@ func (f *FrontendService) configure(cc *Config) error {
 		CacheDir:     filepath.Join(cc.GetWorkingPath(), "frontend", "vite-cache"),
 		ExternalPkgs: slices.Clone(web_pkg_external.BldrExternal),
 		RoutePrefix:  cc.GetFrontendRoutePrefix(),
+		// An attached compiler's source owner reports each edit through Change.
+		ExternalChanges: cc.GetFrontendRoutePrefix() != "",
 	}
 	configured := false
 	for id, manifest := range cc.GetProjectConfig().GetManifests() {
@@ -246,6 +248,17 @@ func (f *FrontendService) Send(ctx context.Context, req *frontend.SendRequest) (
 		return nil, errors.New("frontend session expired")
 	}
 	return env.client.SendDevelopment(ctx, req)
+}
+
+// Change reports source edits the attaching owner already wrote to the source root.
+// An environment that is not ready yet reads the edited files when it starts.
+func (f *FrontendService) Change(ctx context.Context, changes []*vite.DevelopmentChange) error {
+	env := f.active.Load()
+	if env == nil || env.ctx.Err() != nil || len(changes) == 0 {
+		return nil
+	}
+	_, err := env.client.ChangeDevelopment(ctx, &vite.ChangeDevelopmentRequest{Changes: changes})
+	return err
 }
 
 // Fetch serves module requests using the existing streamed HTTP protocol.

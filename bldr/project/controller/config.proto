@@ -34,6 +34,8 @@ message Config {
   // project frontend service. Explicit build commands leave this disabled.
   bool frontend_development = 8;
   // FrontendRoutePrefix overrides the browser namespace for an attached compiler.
+  // An attached compiler does not watch its source root; the attaching owner
+  // reports each edit through FrontendService.Change.
   string frontend_route_prefix = 9;
 }
 

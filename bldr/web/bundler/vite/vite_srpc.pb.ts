@@ -7,6 +7,8 @@ import {
   BuildResponse,
   BuildWebPkgRequest,
   BuildWebPkgResponse,
+  ChangeDevelopmentRequest,
+  ChangeDevelopmentResponse,
   DevelopmentConfig,
   DevelopmentResult,
 } from './vite.pb.js'
@@ -87,6 +89,17 @@ export const ViteBundlerDefinition = {
       O: SendResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ChangeDevelopment applies source edits reported by the environment's source owner.
+     *
+     * @generated from rpc bldr.web.bundler.vite.ViteBundler.ChangeDevelopment
+     */
+    ChangeDevelopment: {
+      name: 'ChangeDevelopment',
+      I: ChangeDevelopmentRequest,
+      O: ChangeDevelopmentResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -145,6 +158,16 @@ export interface ViteBundler {
     request: SendRequest,
     abortSignal?: AbortSignal,
   ): Promise<SendResponse>
+
+  /**
+   * ChangeDevelopment applies source edits reported by the environment's source owner.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.ChangeDevelopment
+   */
+  ChangeDevelopment(
+    request: ChangeDevelopmentRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ChangeDevelopmentResponse>
 }
 
 /**
@@ -207,6 +230,17 @@ export interface ViteBundlerHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<SendResponse>
+
+  /**
+   * ChangeDevelopment applies source edits reported by the environment's source owner.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.ChangeDevelopment
+   */
+  ChangeDevelopment(
+    request: ChangeDevelopmentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ChangeDevelopmentResponse>
 }
 
 export const ViteBundlerServiceName = ViteBundlerDefinition.typeName
@@ -222,6 +256,7 @@ export class ViteBundlerClient implements ViteBundler {
     this.StartDevelopment = this.StartDevelopment.bind(this)
     this.WatchDevelopment = this.WatchDevelopment.bind(this)
     this.SendDevelopment = this.SendDevelopment.bind(this)
+    this.ChangeDevelopment = this.ChangeDevelopment.bind(this)
   }
   /**
    * Build runs the Vite compiler with the given configuration.
@@ -316,5 +351,24 @@ export class ViteBundlerClient implements ViteBundler {
       abortSignal || undefined,
     )
     return SendResponse.fromBinary(result)
+  }
+
+  /**
+   * ChangeDevelopment applies source edits reported by the environment's source owner.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.ChangeDevelopment
+   */
+  async ChangeDevelopment(
+    request: ChangeDevelopmentRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ChangeDevelopmentResponse> {
+    const requestMsg = ChangeDevelopmentRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ViteBundlerDefinition.methods.ChangeDevelopment.name,
+      ChangeDevelopmentRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ChangeDevelopmentResponse.fromBinary(result)
   }
 }

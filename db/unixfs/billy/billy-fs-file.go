@@ -95,20 +95,19 @@ func CopyToBillyFSFile(
 }
 
 // SyncToBillyFSFile synchronizes data from a FSHandle to a BillyFSFile.
-// Makes the two files identical by content.
-// If readBuffer and copyBuffer are set, uses them, otherwise allocates.
-// inBuffer and outBuffer must be different buffers.
-// inBuffer must have length >= outBuffer
+// Makes the two files identical by content and reports whether it changed
+// the destination. inBuffer and outBuffer must be different buffers; either
+// is allocated when too small.
 func SyncToBillyFSFile(
 	ctx context.Context,
 	destFile billy.File,
 	srcHandle *unixfs.FSHandle,
 	inBuffer, outBuffer []byte,
-) error {
+) (bool, error) {
 	if len(inBuffer) < 16 {
 		inBuffer = make([]byte, 32*1024)
 	}
-	if len(inBuffer) < len(outBuffer) {
+	if cap(outBuffer) < len(inBuffer) {
 		outBuffer = make([]byte, len(inBuffer))
 	} else {
 		outBuffer = outBuffer[:len(inBuffer)]
@@ -117,15 +116,16 @@ func SyncToBillyFSFile(
 	// Resize only when needed; truncating unchanged content emits file watches.
 	srcSize, err := srcHandle.GetSize(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	destSize, err := destFile.Seek(0, io.SeekEnd)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if destSize != int64(srcSize) { //nolint:gosec
+	changed := destSize != int64(srcSize) //nolint:gosec
+	if changed {
 		if err := destFile.Truncate(int64(srcSize)); err != nil { //nolint:gosec
-			return err
+			return false, err
 		}
 	}
 
@@ -135,11 +135,11 @@ func SyncToBillyFSFile(
 		nreadIn, err := srcHandle.ReadAt(ctx, offset, inBuffer)
 		isEOF := err == io.EOF
 		if err != nil && !isEOF {
-			return err
+			return false, err
 		}
 		if nreadIn == 0 {
 			if offset != int64(srcSize) { //nolint:gosec
-				return errors.Wrapf(unixfs_errors.ErrInvalidWrite, "wrote %d but expected %d", offset, srcSize)
+				return false, errors.Wrapf(unixfs_errors.ErrInvalidWrite, "wrote %d but expected %d", offset, srcSize)
 			}
 			break
 		}
@@ -148,10 +148,10 @@ func SyncToBillyFSFile(
 		nreadOut, err := destFile.ReadAt(outBuffer, offset)
 		if err != nil {
 			// we don't expect EOF due to the Truncate above.
-			return err
+			return false, err
 		}
 		if nreadOut == 0 {
-			return errors.Errorf("read 0 bytes but expected %d", nreadIn)
+			return false, errors.Errorf("read 0 bytes but expected %d", nreadIn)
 		}
 
 		compareSize := nreadIn
@@ -167,20 +167,21 @@ func SyncToBillyFSFile(
 
 		// otherwise write to the destination.
 		if _, err := destFile.Seek(offset, io.SeekStart); err != nil {
-			return err
+			return false, err
 		}
 
 		wroteSize, err := destFile.Write(inBuffer[:compareSize])
 		if err != nil {
-			return err
+			return false, err
 		}
 		if wroteSize == 0 {
-			return io.ErrShortWrite
+			return false, io.ErrShortWrite
 		}
 		offset += int64(wroteSize)
+		changed = true
 	}
 
-	return nil
+	return changed, nil
 }
 
 // GetReadOnly checks if the readonly flag is set.
