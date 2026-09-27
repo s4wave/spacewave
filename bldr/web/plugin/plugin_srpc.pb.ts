@@ -13,6 +13,10 @@ import {
   HandleWebViewViaHandlersResponse,
   HandleWebViewViaPluginRequest,
   HandleWebViewViaPluginResponse,
+  OpenOrFocusDesktopRequest,
+  OpenOrFocusDesktopResponse,
+  WatchDesktopPresenceRequest,
+  WatchDesktopPresenceResponse,
 } from './plugin.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
@@ -31,6 +35,28 @@ import {
 export const WebPluginDefinition = {
   typeName: 'bldr.web.plugin.WebPlugin',
   methods: {
+    /**
+     * OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+     *
+     * @generated from rpc bldr.web.plugin.WebPlugin.OpenOrFocusDesktop
+     */
+    OpenOrFocusDesktop: {
+      name: 'OpenOrFocusDesktop',
+      I: OpenOrFocusDesktopRequest,
+      O: OpenOrFocusDesktopResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+     *
+     * @generated from rpc bldr.web.plugin.WebPlugin.WatchDesktopPresence
+     */
+    WatchDesktopPresence: {
+      name: 'WatchDesktopPresence',
+      I: WatchDesktopPresenceRequest,
+      O: WatchDesktopPresenceResponse,
+      kind: MethodKind.ServerStreaming,
+    },
     /**
      * HandleWebViewViaPlugin configures handling web views via a plugin.
      *
@@ -97,6 +123,26 @@ export const WebPluginDefinition = {
  */
 export interface WebPlugin {
   /**
+   * OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.OpenOrFocusDesktop
+   */
+  OpenOrFocusDesktop(
+    request: OpenOrFocusDesktopRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenOrFocusDesktopResponse>
+
+  /**
+   * WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WatchDesktopPresence
+   */
+  WatchDesktopPresence(
+    request: WatchDesktopPresenceRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDesktopPresenceResponse>
+
+  /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
    *
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
@@ -154,6 +200,28 @@ export interface WebPlugin {
  * @generated from service bldr.web.plugin.WebPlugin
  */
 export interface WebPluginHandler {
+  /**
+   * OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.OpenOrFocusDesktop
+   */
+  OpenOrFocusDesktop(
+    request: OpenOrFocusDesktopRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenOrFocusDesktopResponse>
+
+  /**
+   * WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WatchDesktopPresence
+   */
+  WatchDesktopPresence(
+    request: WatchDesktopPresenceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDesktopPresenceResponse>
+
   /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
    *
@@ -218,6 +286,8 @@ export class WebPluginClient implements WebPlugin {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || WebPluginServiceName
     this.rpc = rpc
+    this.OpenOrFocusDesktop = this.OpenOrFocusDesktop.bind(this)
+    this.WatchDesktopPresence = this.WatchDesktopPresence.bind(this)
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
     this.HandleWebPkgViaPlugin = this.HandleWebPkgViaPlugin.bind(this)
     this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)
@@ -225,6 +295,44 @@ export class WebPluginClient implements WebPlugin {
     this.HandleWebPkgsViaPluginAssets =
       this.HandleWebPkgsViaPluginAssets.bind(this)
   }
+  /**
+   * OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.OpenOrFocusDesktop
+   */
+  async OpenOrFocusDesktop(
+    request: OpenOrFocusDesktopRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<OpenOrFocusDesktopResponse> {
+    const requestMsg = OpenOrFocusDesktopRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WebPluginDefinition.methods.OpenOrFocusDesktop.name,
+      OpenOrFocusDesktopRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return OpenOrFocusDesktopResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WatchDesktopPresence
+   */
+  WatchDesktopPresence(
+    request: WatchDesktopPresenceRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDesktopPresenceResponse> {
+    const requestMsg = WatchDesktopPresenceRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      WebPluginDefinition.methods.WatchDesktopPresence.name,
+      WatchDesktopPresenceRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchDesktopPresenceResponse)(result)
+  }
+
   /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
    *

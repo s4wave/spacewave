@@ -20,6 +20,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	"github.com/s4wave/spacewave/core/daemon"
+	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -232,8 +233,15 @@ func runServeCommand(
 	// Persistent services participate in the same idle count as public clients.
 	startWebListenerKeepalive(serveCtx, le, invoker, idleTracker)
 
-	// Register local controls before allowing clients onto the listener.
+	// Retain desktop demand independently of the connection that opens it.
 	mux := srpc.NewMux(invoker)
+	desktopControl := newDaemonDesktopControl(serveCtx, cliBus.GetBus(), idleTracker)
+	defer desktopControl.close()
+	if err := desktopcontrol.SRPCRegisterDesktopControlService(mux, desktopControl); err != nil {
+		return err
+	}
+
+	// Register local controls before allowing clients onto the listener.
 	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
 	defer shutdownCancel()
 	shutdownCh := shutdownCtx.Done()

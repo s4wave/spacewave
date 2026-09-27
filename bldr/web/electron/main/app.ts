@@ -673,13 +673,8 @@ export class BldrElectronApp {
     nwindow.focus()
   }
 
-  private async quitDesktopRuntime() {
-    try {
-      await this.webRuntimeHostServiceClient.RequestRuntimeQuit({})
-    } catch (err) {
-      console.error('failed to request host runtime quit', err)
-      this.app.quit()
-    }
+  private quitDesktopRuntime() {
+    this.app.quit()
   }
 
   private hasTrayBackgroundPresence(): boolean {

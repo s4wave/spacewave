@@ -2,12 +2,149 @@
 // @generated from file github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto (package bldr.web.plugin, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 import { WebViewHandlersConfig } from '../view/handler/handler.pb.js'
+
+/**
+ * DesktopPresenceState describes one shell generation, not the latest desktop.
+ *
+ * @generated from enum bldr.web.plugin.DesktopPresenceState
+ */
+export enum DesktopPresenceState {
+  /**
+   * DESKTOP_PRESENCE_STATE_UNKNOWN is not a valid watch result.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * DESKTOP_PRESENCE_STATE_ACTIVE means the selected shell generation is running.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_STATE_ACTIVE = 1;
+   */
+  ACTIVE = 1,
+
+  /**
+   * DESKTOP_PRESENCE_STATE_ENDED means the selected shell generation has ended.
+   *
+   * @generated from enum value: DESKTOP_PRESENCE_STATE_ENDED = 2;
+   */
+  ENDED = 2,
+}
+
+export const DesktopPresenceState_Enum = /* @__PURE__ */ createEnumType(
+  'bldr.web.plugin.DesktopPresenceState',
+  [
+    [0, 'DESKTOP_PRESENCE_STATE_UNKNOWN'],
+    [1, 'DESKTOP_PRESENCE_STATE_ACTIVE'],
+    [2, 'DESKTOP_PRESENCE_STATE_ENDED'],
+  ],
+)
+
+/**
+ * OpenOrFocusDesktopRequest identifies the route to open in the desktop shell.
+ *
+ * @generated from message bldr.web.plugin.OpenOrFocusDesktopRequest
+ */
+export interface OpenOrFocusDesktopRequest {
+  /**
+   * Route is an optional in-app route; empty opens or focuses the main window.
+   *
+   * @generated from field: string route = 1;
+   */
+  route?: string
+}
+
+export const OpenOrFocusDesktopRequest: MessageType<OpenOrFocusDesktopRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.plugin.OpenOrFocusDesktopRequest',
+    fields: [
+      { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.
+ *
+ * @generated from message bldr.web.plugin.OpenOrFocusDesktopResponse
+ */
+export interface OpenOrFocusDesktopResponse {
+  /**
+   * Generation identifies the acknowledged shell lifetime within this plugin controller.
+   *
+   * @generated from field: uint64 generation = 1;
+   */
+  generation?: bigint
+}
+
+export const OpenOrFocusDesktopResponse: MessageType<OpenOrFocusDesktopResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.plugin.OpenOrFocusDesktopResponse',
+    fields: [
+      { no: 1, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchDesktopPresenceRequest identifies the shell lifetime to observe.
+ *
+ * @generated from message bldr.web.plugin.WatchDesktopPresenceRequest
+ */
+export interface WatchDesktopPresenceRequest {
+  /**
+   * Generation is the value returned by OpenOrFocusDesktop.
+   *
+   * @generated from field: uint64 generation = 1;
+   */
+  generation?: bigint
+}
+
+export const WatchDesktopPresenceRequest: MessageType<WatchDesktopPresenceRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.plugin.WatchDesktopPresenceRequest',
+    fields: [
+      { no: 1, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchDesktopPresenceResponse reports the selected generation's current state.
+ *
+ * @generated from message bldr.web.plugin.WatchDesktopPresenceResponse
+ */
+export interface WatchDesktopPresenceResponse {
+  /**
+   * State first reports active or ended, then reports ended when an active shell exits.
+   *
+   * @generated from field: bldr.web.plugin.DesktopPresenceState state = 1;
+   */
+  state?: DesktopPresenceState
+  /**
+   * Error describes a failed shell exit; empty on a normal end or while active.
+   *
+   * @generated from field: string error = 2;
+   */
+  error?: string
+}
+
+export const WatchDesktopPresenceResponse: MessageType<WatchDesktopPresenceResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.web.plugin.WatchDesktopPresenceResponse',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: DesktopPresenceState_Enum },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.

@@ -14,6 +14,10 @@ type SRPCWebPluginClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+	OpenOrFocusDesktop(ctx context.Context, in *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
+	// WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+	WatchDesktopPresence(ctx context.Context, in *WatchDesktopPresenceRequest) (SRPCWebPlugin_WatchDesktopPresenceClient, error)
 	// HandleWebViewViaPlugin configures handling web views via a plugin.
 	HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error)
 	// HandleWebPkgViaPlugin configures handling web packages via a plugin.
@@ -43,6 +47,49 @@ func NewSRPCWebPluginClientWithServiceID(cc srpc.Client, serviceID string) SRPCW
 }
 
 func (c *srpcWebPluginClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcWebPluginClient) OpenOrFocusDesktop(ctx context.Context, in *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error) {
+	out := new(OpenOrFocusDesktopResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "OpenOrFocusDesktop", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcWebPluginClient) WatchDesktopPresence(ctx context.Context, in *WatchDesktopPresenceRequest) (SRPCWebPlugin_WatchDesktopPresenceClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchDesktopPresence", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcWebPlugin_WatchDesktopPresenceClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCWebPlugin_WatchDesktopPresenceClient interface {
+	srpc.Stream
+	Recv() (*WatchDesktopPresenceResponse, error)
+	RecvTo(*WatchDesktopPresenceResponse) error
+}
+
+type srpcWebPlugin_WatchDesktopPresenceClient struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_WatchDesktopPresenceClient) Recv() (*WatchDesktopPresenceResponse, error) {
+	m := new(WatchDesktopPresenceResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcWebPlugin_WatchDesktopPresenceClient) RecvTo(m *WatchDesktopPresenceResponse) error {
+	return x.MsgRecv(m)
+}
 
 func (c *srpcWebPluginClient) HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "HandleWebViewViaPlugin", in)
@@ -215,6 +262,10 @@ func (x *srpcWebPlugin_HandleWebPkgsViaPluginAssetsClient) RecvTo(m *HandleWebPk
 }
 
 type SRPCWebPluginServer interface {
+	// OpenOrFocusDesktop forwards explicit desktop demand to this plugin's Electron controller.
+	OpenOrFocusDesktop(context.Context, *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
+	// WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
+	WatchDesktopPresence(*WatchDesktopPresenceRequest, SRPCWebPlugin_WatchDesktopPresenceStream) error
 	// HandleWebViewViaPlugin configures handling web views via a plugin.
 	HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error
 	// HandleWebPkgViaPlugin configures handling web packages via a plugin.
@@ -253,6 +304,8 @@ func (d *SRPCWebPluginHandler) GetServiceID() string { return d.serviceID }
 
 func (SRPCWebPluginHandler) GetMethodIDs() []string {
 	return []string{
+		"OpenOrFocusDesktop",
+		"WatchDesktopPresence",
 		"HandleWebViewViaPlugin",
 		"HandleWebPkgViaPlugin",
 		"HandleRpcViaPlugin",
@@ -270,6 +323,10 @@ func (d *SRPCWebPluginHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "OpenOrFocusDesktop":
+		return true, d.InvokeMethod_OpenOrFocusDesktop(d.impl, strm)
+	case "WatchDesktopPresence":
+		return true, d.InvokeMethod_WatchDesktopPresence(d.impl, strm)
 	case "HandleWebViewViaPlugin":
 		return true, d.InvokeMethod_HandleWebViewViaPlugin(d.impl, strm)
 	case "HandleWebPkgViaPlugin":
@@ -283,6 +340,27 @@ func (d *SRPCWebPluginHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCWebPluginHandler) InvokeMethod_OpenOrFocusDesktop(impl SRPCWebPluginServer, strm srpc.Stream) error {
+	req := new(OpenOrFocusDesktopRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.OpenOrFocusDesktop(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWebPluginHandler) InvokeMethod_WatchDesktopPresence(impl SRPCWebPluginServer, strm srpc.Stream) error {
+	req := new(WatchDesktopPresenceRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcWebPlugin_WatchDesktopPresenceStream{strm}
+	return impl.WatchDesktopPresence(req, serverStrm)
 }
 
 func (SRPCWebPluginHandler) InvokeMethod_HandleWebViewViaPlugin(impl SRPCWebPluginServer, strm srpc.Stream) error {
@@ -328,6 +406,37 @@ func (SRPCWebPluginHandler) InvokeMethod_HandleWebPkgsViaPluginAssets(impl SRPCW
 	}
 	serverStrm := &srpcWebPlugin_HandleWebPkgsViaPluginAssetsStream{strm}
 	return impl.HandleWebPkgsViaPluginAssets(req, serverStrm)
+}
+
+type SRPCWebPlugin_OpenOrFocusDesktopStream interface {
+	srpc.Stream
+}
+
+type srpcWebPlugin_OpenOrFocusDesktopStream struct {
+	srpc.Stream
+}
+
+type SRPCWebPlugin_WatchDesktopPresenceStream interface {
+	srpc.Stream
+	Send(*WatchDesktopPresenceResponse) error
+	SendAndClose(*WatchDesktopPresenceResponse) error
+}
+
+type srpcWebPlugin_WatchDesktopPresenceStream struct {
+	srpc.Stream
+}
+
+func (x *srpcWebPlugin_WatchDesktopPresenceStream) Send(m *WatchDesktopPresenceResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcWebPlugin_WatchDesktopPresenceStream) SendAndClose(m *WatchDesktopPresenceResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCWebPlugin_HandleWebViewViaPluginStream interface {
