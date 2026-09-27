@@ -1,12 +1,17 @@
-import Spacewave.SObject.Host
+import Spacewave.SObject.RemoveParticipant
 
 /-!
 # Voluntary SharedObject departure
 
-Mirrors `core/sobject/leave.go`. Each independently authenticated identity
+Mirrors `core/sobject/leave.go`. Each authenticated identity
 consents only to its own removal; publication still requires a current owner.
 Retained history, the retained configuration at the signed head, watched
-snapshots and primitive signature/hash outcomes are provider inputs. The model computes membership, rebasing and retry decisions.
+snapshots and primitive signature/hash outcomes are provider inputs. The model
+computes membership, rebasing and retry decisions. Proof pruning uses the same
+removal callback as owner-initiated removal, including retained-root verification.
+Conformance projects signatures in the selected host's object context.
+The state fixtures contain no pending operations or rejections; their pruning
+is outside this consent and retained-proof model.
 
 One attempt distinguishes failure, completion and retry. Finite traces may
 remain pending: no eventual scheduling or quiescence guarantee is assumed.
@@ -71,9 +76,12 @@ def leaveAllowed (config : Config) (peers : List String) : Bool :=
     (next.participants.isEmpty ||
       !config.participants.any (fun p => p.role == Role.owner && peers.contains p.peer))
 
-/-- leaveCallback removes the consenting recipients' grants without changing other state. -/
-def leaveCallback (peers : List String) (state : State) : Option State :=
-  some {state with grants := state.grants.filter fun g => !peers.contains g.peer}
+/-- leaveCallback prunes departure proofs; final departure needs no retained root authority. -/
+def leaveCallback (previous : Config) (peers : List String) (signer : String)
+    (crypto : RemovalCrypto) (state : State) : Option State :=
+  if state.config.participants.isEmpty then
+    some {state with grants := state.grants.filter fun g => !removalTarget peers g.peer}
+  else removalCallback previous state.config peers signer crypto state
 
 /-- leaveEntry binds a concrete filtered audience to the watched head and consent hash. -/
 def leaveEntry (config : Config) (peers : List String) (sig : Sig)
@@ -90,6 +98,7 @@ structure LeaveAttempt where
   latest : Option Config
   sig : Sig
   hash : String
+  crypto : RemovalCrypto
   buildOK : Bool
   lockOK : Bool
   writeOK : Bool
@@ -108,7 +117,8 @@ def publishLeave (attempt : LeaveAttempt) (snapshot : Config) (peers : List Stri
   if !leaveAllowed snapshot peers || !attempt.buildOK then none
   else
     let change := leaveEntry snapshot peers attempt.sig attempt.hash requestHash
-    match applyConfigChange attempt.previous (some change.entry) (leaveCallback peers)
+    match applyConfigChange attempt.previous (some change.entry)
+        (leaveCallback snapshot peers attempt.sig.signer attempt.crypto)
         attempt.lockOK attempt.writeOK with
     | some outcome => some ⟨false, history ++ [change], outcome⟩
     | none => do
@@ -213,14 +223,23 @@ theorem leaveProofsRemainCurrent_members {peers : List String} {signed : Config}
 
 /-- A departure preserves every nonconsenting participant with all its fields unchanged. -/
 theorem leaveConfig_members {config : Config} {peers : List String} {p : Participant} :
-    p ∈ (leaveConfig config peers).participants ↔ p ∈ config.participants ∧ p.peer ∉ peers := by
+    p ∈ (leaveConfig config peers).participants ↔
+      p ∈ config.participants ∧ p.peer ∉ peers := by
   simp [leaveConfig]
 
-/-- Grant removal preserves the host callback's verified configuration contract. -/
-theorem leaveCallback_config {peers : List String} {state next : State}
-    (h : leaveCallback peers state = some next) : next.config = state.config := by
-  cases h
-  rfl
+/-- Proof pruning preserves configuration and root content while removing consenting recipients. -/
+theorem leaveCallback_spec {previous : Config} {peers : List String} {signer : String}
+    {crypto : RemovalCrypto} {state next : State}
+    (h : leaveCallback previous peers signer crypto state = some next) :
+    next.config = state.config ∧
+      next.grants.map (·.peer) =
+        (state.grants.filter fun g => !removalTarget peers g.peer).map (·.peer) ∧
+      next.root.content = state.root.content ∧ next.root.seqno = state.root.seqno ∧
+      next.root.nonces = state.root.nonces := by
+  unfold leaveCallback at h
+  split at h
+  · cases h; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  · exact removalCallback_spec h
 
 /-- A successful publication authenticates the filtered configuration under the held owner. -/
 theorem publishLeave_authorized {attempt : LeaveAttempt} {snapshot : Config}
@@ -238,7 +257,7 @@ theorem publishLeave_authorized {attempt : LeaveAttempt} {snapshot : Config}
     · rename_i result published
       cases h
       obtain ⟨e, equal, authorized⟩ := applyConfigChange_authorized
-        (fun _ _ => leaveCallback_config) published
+        (fun _ _ h => (leaveCallback_spec h).1) published
       cases equal
       exact authorized
     · cases latest : attempt.latest with
@@ -299,7 +318,7 @@ theorem leaveAttempt_published {request : LeaveRequest} {hostId requestHash : St
                 · exact ⟨peers, snapshot, history, rfl, rfl, h⟩
                 · contradiction
 
-/-- Published membership is filtered only by authenticated consenting peers and signed by an owner. -/
+/-- Published membership removes only authenticated consenting peers under an owner's signature. -/
 theorem leaveAttempt_authorized {request : LeaveRequest} {hostId requestHash : String}
     {attempt : LeaveAttempt} {out : LeaveResult}
     (h : leaveAttempt request hostId requestHash attempt = some out)
@@ -307,7 +326,8 @@ theorem leaveAttempt_authorized {request : LeaveRequest} {hostId requestHash : S
     attempt.sig.valid = true ∧ isOwner attempt.previous.config attempt.sig.signer = true ∧
       ∃ peers snapshot, verifyLeave request = some peers ∧ attempt.snapshot = some snapshot ∧
         out.outcome.state.config.participants = (leaveConfig snapshot peers).participants := by
-  obtain ⟨peers, snapshot, history, consent, watched, published⟩ := leaveAttempt_published h wrote
+  obtain ⟨peers, snapshot, history, consent, watched, published⟩ :=
+    leaveAttempt_published h wrote
   have verified := publishLeave_authorized published wrote
   obtain ⟨sig, present, valid, owner⟩ := verifyChange_authorized verified
   simp only [leaveEntry, Option.some.injEq] at present
@@ -354,14 +374,15 @@ theorem leaveAllowed_owners {config : Config} {peers : List String} {p : Partici
   rw [remaining, found] at h
   simp at h
 
-/-- Published leave uses the concrete grant-filtering callback exactly once. -/
+/-- Published leave uses the concrete proof-pruning callback exactly once. -/
 theorem publishLeave_applied {attempt : LeaveAttempt} {snapshot : Config}
     {peers : List String} {requestHash : String} {history : List LeaveChange} {out : LeaveResult}
     (h : publishLeave attempt snapshot peers requestHash history = some out)
     (wrote : out.outcome.wrote = true) :
     applyConfigChange attempt.previous
       (some (leaveEntry snapshot peers attempt.sig attempt.hash requestHash).entry)
-      (leaveCallback peers) attempt.lockOK attempt.writeOK = some out.outcome := by
+      (leaveCallback snapshot peers attempt.sig.signer attempt.crypto)
+      attempt.lockOK attempt.writeOK = some out.outcome := by
   unfold publishLeave at h
   split at h
   · contradiction
@@ -378,24 +399,22 @@ theorem publishLeave_applied {attempt : LeaveAttempt} {snapshot : Config}
         · contradiction
         · cases h; contradiction
 
-/-- Published leave removes only consenting grants and preserves every root and operation byte. -/
+/-- Published leave preserves root content and removes only consenting grant recipients. -/
 theorem leaveAttempt_state {request : LeaveRequest} {hostId requestHash : String}
     {attempt : LeaveAttempt} {out : LeaveResult}
     (h : leaveAttempt request hostId requestHash attempt = some out)
     (wrote : out.outcome.wrote = true) :
-    out.outcome.state.root = attempt.previous.root ∧
-      out.outcome.state.ops = attempt.previous.ops ∧
-      out.outcome.state.queued = attempt.previous.queued ∧
-      out.outcome.state.rejections = attempt.previous.rejections ∧
-      out.outcome.state.invites = attempt.previous.invites ∧
+    out.outcome.state.root.content = attempt.previous.root.content ∧
+      out.outcome.state.root.seqno = attempt.previous.root.seqno ∧
+      out.outcome.state.root.nonces = attempt.previous.root.nonces ∧
       ∃ peers, verifyLeave request = some peers ∧
-        out.outcome.state.grants = attempt.previous.grants.filter (fun g => !peers.contains g.peer) := by
+        out.outcome.state.grants.map (·.peer) =
+          (attempt.previous.grants.filter fun g => !removalTarget peers g.peer).map (·.peer) := by
   obtain ⟨peers, _, _, consent, _, published⟩ := leaveAttempt_published h wrote
   have applied := publishLeave_applied published wrote
   obtain ⟨_, _, _, _, called, _, _⟩ := applyConfigChange_spec applied
-  simp only [leaveCallback, Option.some.injEq] at called
-  rw [← called]
-  exact ⟨rfl, rfl, rfl, rfl, rfl, peers, consent, rfl⟩
+  obtain ⟨_, grants, content, seqno, nonces⟩ := leaveCallback_spec called
+  exact ⟨content, seqno, nonces, peers, consent, grants⟩
 
 /-- A retry neither publishes a state nor occurs without observing a different chain head. -/
 theorem publishLeave_retry {attempt : LeaveAttempt} {snapshot : Config}

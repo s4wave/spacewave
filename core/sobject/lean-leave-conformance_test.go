@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"math"
 	"slices"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
@@ -21,8 +21,11 @@ import (
 
 // TestLeanLeaveConformance compares consent, retained history and real owner publications.
 func TestLeanLeaveConformance(t *testing.T) {
+	// Reuse identities across independent consent and publication scenarios.
 	oracle := leanOracle(t)
 	peers := createMockPeers(t, 4)
+
+	// Compare complete traces across role, history and proof variants.
 	var cases []leanCase
 	for seed := range uint64(30) {
 		cases = append(cases, runLeanLeaveScenario(t, peers, seed)...)
@@ -32,8 +35,11 @@ func TestLeanLeaveConformance(t *testing.T) {
 
 // FuzzLeanLeave searches consent, admission continuity and owner publication boundaries.
 func FuzzLeanLeave(f *testing.F) {
+	// Retain the seeds that cover the original object-context disagreement.
 	f.Add(uint64(0))
 	f.Add(uint64(11))
+
+	// Compare every decision and published state for each generated scenario.
 	f.Fuzz(func(t *testing.T, seed uint64) {
 		checkLeanCases(t, leanOracle(t), runLeanLeaveScenario(t, createMockPeers(t, 4), seed))
 	})
@@ -42,6 +48,8 @@ func FuzzLeanLeave(f *testing.F) {
 // runLeanLeaveScenario retains actual signatures and verifies complete returned history and state.
 func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
 	t.Helper()
+
+	// Keep signing identities stable through the observed configuration history.
 	projection := &configChainScenario{t: t}
 	a := &projection.arena
 	keys := make([]crypto.PrivKey, len(peers))
@@ -52,6 +60,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		}
 		keys[i] = key
 	}
+
+	// Start with grants and a root authenticated for the default test object.
 	base := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_WRITER,
@@ -69,8 +79,10 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	}
 	base.RootGrants = grants
 
+	// Preserve each rejected checkpoint and compare every successful publication.
 	var cases []leanCase
-	for variant := range 31 {
+	for variant := range 37 {
+		// Select the host, consent identities and provider outcomes independently.
 		previous := base.CloneVT()
 		requestKeys := []crypto.PrivKey{keys[1]}
 		signer := keys[0]
@@ -99,9 +111,34 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			previous.Config.ConfigChainSeqno = math.MaxUint64
 		case 28:
 			requestKeys = []crypto.PrivKey{keys[1], keys[3]}
-		case 30:
+		case 30, 31:
 			hostID = strings.Repeat("é", 120)
+		case 32:
+			hostID = strings.Repeat("é", 128)
+		case 34:
+			previous.Root.ValidatorSignatures[0].SigData[0] ^= 1
+		case 35:
+			previous.Root.ValidatorSignatures = nil
+			if err := previous.Root.SignInnerData(keys[1], hostID, 1, hash.RecommendedHashType); err != nil {
+				t.Fatal(err)
+			}
+		case 36:
+			previous.Root.ValidatorSignatures = nil
 		}
+
+		// Compare a foreign-object root with valid roots at the UTF-8 byte boundary.
+		if variant == 31 || variant == 32 {
+			previous.Root.ValidatorSignatures = nil
+			if err := previous.Root.SignInnerData(keys[0], hostID, 1, hash.RecommendedHashType); err != nil {
+				t.Fatal(err)
+			}
+			_, previous.RootGrants, _, err = RotateTransformKey(keys[0], hostID, previous.Config.Participants, 1, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		// Mutate already signed consent to exercise receiver validation separately.
 		request, err := BuildSOLeaveRequest(hostID, previous.Config.ConfigChainHash, requestKeys...)
 		if err != nil {
 			t.Fatal(err)
@@ -135,8 +172,12 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			for len(request.Signatures) <= MaxParticipants {
 				request.Signatures = append(request.Signatures, request.Signatures[0].CloneVT())
 			}
+		case 33:
+			request.SharedObjectId = strings.Repeat("é", 128) + "a"
 		}
-		if variant >= 10 && variant <= 13 {
+
+		// Keep the object and hash mutations cryptographically authentic.
+		if variant >= 10 && variant <= 13 || variant == 33 {
 			unsigned := request.CloneVT()
 			unsigned.Signatures = nil
 			request.Signatures = nil
@@ -148,10 +189,14 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 				request.Signatures = append(request.Signatures, signature)
 			}
 		}
+
+		// Retain signed history for rebasing and idempotent removal responses.
 		requestHash := sha256.Sum256(mustMarshalVT(t, request))
 		var history []*SOConfigChange
 		advance := func(next *SharedObjectConfig, kind SOConfigChangeType, consent []byte) {
 			t.Helper()
+
+			// Verify the owner transition before adopting its audience and grants.
 			entry, err := BuildSOConfigChange(previous.Config, next, kind, keys[0], &SORevocationInfo{LeaveRequestHash: consent})
 			if err != nil {
 				t.Fatal(err)
@@ -168,6 +213,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 				})
 			})
 		}
+
+		// Distinguish continuous membership from removal followed by readmission.
 		switch variant {
 		case 14:
 			advance(previous.Config, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, nil)
@@ -192,6 +239,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			advance(next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, nil)
 			advance(previous.Config, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REVOKE_INVITE, nil)
 		}
+
+		// Bind the proposed entry to the observed snapshot and independently verified consent.
 		snapshot := previous.CloneVT()
 		if variant == 24 {
 			previous.Config.ConfigChainHash[0] ^= 1
@@ -211,8 +260,10 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			t.Fatal(err)
 		}
 		projectedEntry := projection.entryJSON(entry)
+
+		// Give the oracle the same object-bound proofs that the real host will check.
 		attempt := a.NewObject()
-		attempt.Set("previous", projectLeanState(t, a, previous))
+		attempt.Set("previous", projectLeanLeaveState(t, a, previous, hostID))
 		attempt.Set("snapshot", a.NewNull())
 		if watchOK {
 			attempt.Set("snapshot", projectLeanConfig(snapshot.Config).json(a))
@@ -231,6 +282,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		attempt.Set("writeOK", leanBool(a, writeOK))
 		attempts := a.NewArray()
 		attempts.SetArrayItem(0, attempt)
+
+		// Run the real leave operation with atomic in-memory publication.
 		store := &leanHostStore{state: previous.CloneVT(), lockOK: lockOK, writeOK: writeOK}
 		retained := map[string]*SOConfigChange{string(base.Config.ConfigChainHash): signed}
 		watch := ccontainer.NewCContainer[*SOState](snapshot)
@@ -248,19 +301,37 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			return retained[string(hash)], nil
 		}})
 		response, callErr := LeaveSOParticipants(t.Context(), host, signer, request)
+
+		// Pin acceptance independently of the oracle for object and proof regressions.
+		switch variant {
+		case 30, 33, 34:
+			if callErr == nil {
+				t.Fatalf("variant %d accepted an invalid object or root proof", variant)
+			}
+		case 31, 32, 35, 36:
+			if callErr != nil {
+				t.Fatalf("variant %d rejected valid leave: %v", variant, callErr)
+			}
+		}
+
+		// Project primitive proof replacement outcomes without deciding authorization.
+		attempt.Set("crypto", projectLeanLeaveCrypto(t, a, previous, store.state, rawPeers, signer, hostID))
 		result := a.NewNull()
 		if callErr == nil {
 			result = a.NewObject()
 			result.Set("retry", a.NewFalse())
 			result.Set("changes", projectLeanLeaveChanges(projection, response.GetChanges()))
 			outcome := a.NewObject()
-			outcome.Set("state", projectLeanState(t, a, store.state))
+			outcome.Set("state", projectLeanLeaveState(t, a, store.state, hostID))
 			outcome.Set("revoked", a.NewFalse())
 			outcome.Set("wrote", leanBool(a, store.writes != 0))
 			result.Set("outcome", outcome)
-		} else if !store.state.EqualVT(previous) || store.writes != 0 {
+		}
+		if callErr != nil && (!store.state.EqualVT(previous) || store.writes != 0) {
 			t.Fatal("failed leave changed the held state")
 		}
+
+		// Compare the complete trace, including pending and failed attempts.
 		trace := a.NewObject()
 		trace.Set("pending", a.NewFalse())
 		trace.Set("result", result)
@@ -276,7 +347,11 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			ok: callErr == nil, field: "leave", value: trace.MarshalTo(nil),
 		})
 
+		// Check receiver consent validation independently of host state.
 		verified, verifyErr := request.Verify()
+		if variant >= 30 && variant <= 33 && (verifyErr == nil) != (variant != 33) {
+			t.Fatalf("variant %d: unexpected UTF-8 request validation: %v", variant, verifyErr)
+		}
 		identities := a.NewNull()
 		if verifyErr == nil {
 			identities = leanLeavePeers(a, verified)
@@ -289,6 +364,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			ok: verifyErr == nil, field: "peers", value: identities.MarshalTo(nil),
 		})
 
+		// Check construction against the same proofs and byte limits as verification.
 		buildKeys := slices.Clone(requestKeys)
 		switch variant {
 		case 5:
@@ -306,6 +382,9 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			unsigned.Signatures = append(unsigned.Signatures, signature)
 		}
 		built, buildErr := BuildSOLeaveRequest(request.GetSharedObjectId(), request.GetConfigHash(), buildKeys...)
+		if variant >= 30 && variant <= 33 && (buildErr == nil) != (variant != 33) {
+			t.Fatalf("variant %d: unexpected UTF-8 request construction: %v", variant, buildErr)
+		}
 		builtValue := a.NewNull()
 		if buildErr == nil {
 			builtValue = projectLeanLeaveRequest(t, a, built)
@@ -319,6 +398,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			ok: buildErr == nil, field: "request", value: builtValue.MarshalTo(nil),
 		})
 
+		// Check continuity through every retained configuration independently of publication.
 		req = a.NewObject()
 		req.Set("op", a.NewString("leaveProofsRemainCurrent"))
 		req.Set("peers", leanLeavePeers(a, rawPeers))
@@ -329,13 +409,99 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			ok: leaveProofsRemainCurrent(rawPeers, base.Config, history),
 		})
 	}
+
+	// Exercise a real conflicting owner transition and its subsequent retry.
 	cases = append(cases, runLeanLeaveRetry(t, projection, base.Config, signed, keys[0], keys[1], seed)...)
 	return cases
+}
+
+// projectLeanLeaveState projects the operation-free leave fixtures in the selected
+// object's signature context. The shared state fixtures use mockSharedObjectID.
+func projectLeanLeaveState(t *testing.T, a *fastjson.Arena, state *SOState, objectID string) *fastjson.Value {
+	t.Helper()
+
+	// Verify retained root proofs against the same object as pruneRemovedParticipants.
+	result := projectLeanState(t, a, state)
+	root := state.GetRoot()
+	data, err := root.BuildSignatureData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	signatures := a.NewArray()
+	for i, signature := range root.GetValidatorSignatures() {
+		signatures.SetArrayItem(i, projectLeanSig(a, signature, data, func(string) string {
+			return BuildValidatorRootSignatureContext(objectID, root.GetInnerSeqno())
+		}))
+	}
+	result.Get("root").Set("sigs", signatures)
+
+	// Preserve grant identities while checking their object-bound signature contexts.
+	grants := result.GetArray("grants")
+	for i, grant := range state.GetRootGrants() {
+		grants[i].Set("sig", projectLeanSig(a, grant.GetSignature(), grant.GetInnerData(), func(signer string) string {
+			return BuildSOGrantSignatureContext(objectID, signer, grant.GetPeerId())
+		}))
+	}
+	return result
+}
+
+// projectLeanLeaveCrypto supplies primitive decryption and replacement identities
+// to the shared removal model; it leaves proof selection and authority to Lean.
+func projectLeanLeaveCrypto(t *testing.T, a *fastjson.Arena, previous, next *SOState,
+	departing []string, signer crypto.PrivKey, objectID string,
+) *fastjson.Value {
+	t.Helper()
+
+	// Decrypt the remaining signer's grant independently of role or proof validation.
+	signerID, err := peer.IDFromPrivateKey(signer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retained := slices.DeleteFunc(slices.Clone(previous.GetRootGrants()), func(grant *SOGrant) bool {
+		return slices.Contains(departing, grant.GetPeerId())
+	})
+	var inner *SOGrantInner
+	for _, grant := range retained {
+		if grant.GetPeerId() == signerID.String() {
+			decrypted, decryptErr := grant.DecryptInnerData(signer, objectID)
+			if decryptErr == nil {
+				inner = decrypted
+			}
+			break
+		}
+	}
+
+	// Keep fresh ciphertext opaque while exposing recipient-key parsing and encryption inputs.
+	wraps := a.NewArray()
+	for i, grant := range retained {
+		_, _, pubErr := peer.ParsePeerIDWithPubKey(grant.GetPeerId())
+		wrap := a.NewObject()
+		wrap.Set("publicKey", leanBool(a, pubErr == nil))
+		wrap.Set("encryptOK", leanBool(a, inner != nil && inner.Validate() == nil))
+		data := ""
+		if i < len(next.GetRootGrants()) {
+			data = hex.EncodeToString(mustMarshalVT(t, next.GetRootGrants()[i]))
+		}
+		wrap.Set("data", a.NewString(data))
+		wraps.SetArrayItem(i, wrap)
+	}
+
+	// Real fixture keys can sign replacement roots; serialization remains opaque.
+	root := projectLeanLeaveState(t, a, next, objectID).Get("root")
+	result := a.NewObject()
+	result.Set("decrypted", leanBool(a, inner != nil))
+	result.Set("wraps", wraps)
+	result.Set("rootSignOK", a.NewTrue())
+	result.Set("rootData", root.Get("data"))
+	result.Set("rootFormat", root.Get("format"))
+	return result
 }
 
 // projectLeanLeaveRequest projects individual raw signature verification without consent admission.
 func projectLeanLeaveRequest(t *testing.T, a *fastjson.Arena, request *SOLeaveRequest) *fastjson.Value {
 	t.Helper()
+
+	// Verify each signature over the same unsigned request bytes as the receiver.
 	unsigned := request.CloneVT()
 	if unsigned != nil {
 		unsigned.Signatures = nil
@@ -345,6 +511,8 @@ func projectLeanLeaveRequest(t *testing.T, a *fastjson.Arena, request *SOLeaveRe
 	for i, signature := range request.GetSignatures() {
 		signatures.SetArrayItem(i, projectLeanSig(a, signature, data, func(string) string { return "sobject leave" }))
 	}
+
+	// Keep byte-bound fields separate from the primitive signature results.
 	result := a.NewObject()
 	result.Set("object", a.NewString(request.GetSharedObjectId()))
 	result.Set("configHash", a.NewString(hex.EncodeToString(request.GetConfigHash())))
@@ -356,6 +524,8 @@ func projectLeanLeaveRequest(t *testing.T, a *fastjson.Arena, request *SOLeaveRe
 // provider history does for every head a participant can sign.
 func leanLeaveSignedHead(t *testing.T, config *SharedObjectConfig) *SOConfigChange {
 	t.Helper()
+
+	// Address the retained entry by its content hash before any consent is signed.
 	entry := &SOConfigChange{
 		ConfigSeqno: config.GetConfigChainSeqno(),
 		Config:      config.CloneVT(),
@@ -397,6 +567,8 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 	signed *SOConfigChange, owner, departing crypto.PrivKey, seed uint64,
 ) []leanCase {
 	t.Helper()
+
+	// Sign consent at the retained head before a concurrent owner update.
 	a := &projection.arena
 	host, state := newLeaveTestHost(t, config, signed)
 	request, err := BuildSOLeaveRequest(mockSharedObjectID, config.GetConfigChainHash(), departing)
@@ -408,6 +580,8 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Advance the observed configuration immediately before the first leave lock.
 	originalLock := host.lockFn
 	first := true
 	calls := 0
@@ -423,6 +597,8 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		}
 		return originalLock(ctx, objectID)
 	}
+
+	// Require the real host to retry once and return both retained changes.
 	response, err := LeaveSOParticipants(t.Context(), host, owner, request)
 	if err != nil {
 		t.Fatal(err)
@@ -430,6 +606,8 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 	if calls != 3 || advanced == nil || len(response.GetChanges()) != 2 {
 		t.Fatalf("leave did not retry the observed conflict: locks=%d changes=%d", calls, len(response.GetChanges()))
 	}
+
+	// Reconstruct both observations independently of the host's retry decision.
 	departingID, err := peer.IDFromPrivateKey(departing)
 	if err != nil {
 		t.Fatal(err)
@@ -454,11 +632,15 @@ func runLeanLeaveRetry(t *testing.T, projection *configChainScenario, config *Sh
 		attempt.Set("signed", projectLeanConfig(config).json(a))
 		attempt.Set("sig", projected.Get("sig"))
 		attempt.Set("hash", projected.Get("hash"))
+		attempt.Set("crypto", projectLeanLeaveCrypto(t, a, advanced, *state,
+			[]string{departingID.String()}, owner, mockSharedObjectID))
 		attempt.Set("buildOK", a.NewTrue())
 		attempt.Set("lockOK", a.NewTrue())
 		attempt.Set("writeOK", a.NewTrue())
 		attempts.SetArrayItem(i, attempt)
 	}
+
+	// Compare the completed publication and the exact response history.
 	result := a.NewObject()
 	result.Set("retry", a.NewFalse())
 	result.Set("changes", projectLeanLeaveChanges(projection, response.GetChanges()))
