@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
@@ -15,6 +16,7 @@ import (
 	pubmessage "github.com/s4wave/spacewave/net/pubsub/util/pubmessage"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // maxMessageSize constrains the message buffer allocation size.
@@ -43,7 +45,9 @@ type FloodSub struct {
 	// guarded by mtx
 	seenMessages map[string]time.Time
 
-	mtx sync.Mutex
+	// peerChanges wakes subscription-readiness consumers under mtx.
+	peerChanges broadcast.Broadcast
+	mtx         sync.Mutex
 	// peers are the complete set of executing remote peer streams that we can
 	// use to contact next-hop peers. this is the "working set" of peers.
 	peers map[pubsub.PeerLinkTuple]*streamHandler
@@ -87,135 +91,130 @@ func NewFloodSub(
 	}, nil
 }
 
-// Execute executes the PubSub routines.
+// Execute reconciles topology at known deadlines while continuously handling publications.
 func (m *FloodSub) Execute(ctx context.Context) error {
 	m.le.Debug("floodsub starting")
+	var sessions errgroup.Group
+	defer func() {
+		m.Close()
+		sessions.Wait()
+	}()
 
-	// re-evaluate at most once every 100ms
-	evalTimer := time.NewTicker(time.Millisecond * 100)
-	defer evalTimer.Stop()
-
-	// Register incoming sessions before reconciling subscriptions.
-	pubbedChannels := make(map[string]struct{})
+	// Timers are armed only for pending changes and known message expirations.
+	reconcile := time.NewTimer(time.Hour)
+	reconcile.Stop()
+	defer reconcile.Stop()
+	expire := time.NewTimer(time.Hour)
+	expire.Stop()
+	defer expire.Stop()
+	var reconcileCh, expireCh <-chan time.Time
+	published := make(map[string]struct{})
+	m.reconcile(ctx, published, &sessions)
 	for {
-		var initSet []*SubscriptionOpts
-		m.mtx.Lock()
-		for i := range m.incSessions {
-			s := m.incSessions[i]
-			nctx, nctxCancel := context.WithCancel(ctx)
-			s.ctx = nctx
-			s.ctxCancel = nctxCancel
-
-			// if !s.initiator {
-			if initSet == nil {
-				initSet = make([]*SubscriptionOpts, 0, len(m.channels))
-				for chid := range m.channels {
-					initSet = append(initSet, &SubscriptionOpts{
-						ChannelId: chid,
-						Subscribe: true,
-					})
-				}
-			}
-			s.packetCh <- &Packet{Subscriptions: initSet}
-
-			// }
-			go func() {
-				err := s.executeSession()
-				if err != nil && err != context.Canceled {
-					s.le.WithError(err).Warn("session exited with error")
-				}
-
-				// if s.initiator {
-				m.mtx.Lock()
-				if m.peers[s.tpl] == s {
-					delete(m.peers, s.tpl)
-					m.removePeerChannelsLocked(s.tpl)
-				}
-				m.mtx.Unlock()
-
-				// }
-			}()
-
-			// if s.initiator {
-			m.peers[s.tpl] = s
-
-			// }
-		}
-		m.incSessions = nil
-
-		m.mtx.Unlock() // intentional mtx hold-break
-		initSet = nil
-
-		// Reconcile local subscriptions and collect peers to notify.
-		var xmitPeers []*streamHandler
-		var subChanges []*SubscriptionOpts
-		m.mtx.Lock()
-
-		// sweep expired seen-message entries
-		now := time.Now()
-		for id, exp := range m.seenMessages {
-			if now.After(exp) {
-				delete(m.seenMessages, id)
-			}
-		}
-
-		// sweep empty channels
-		for chid, chm := range m.channels {
-			if len(chm) == 0 {
-				if _, ok := pubbedChannels[chid]; ok {
-					// cleanup no-ref subscription
-					// inform peers we no longer need the channel
-					subChanges = append(subChanges, &SubscriptionOpts{
-						ChannelId: chid,
-						Subscribe: false,
-					})
-					delete(pubbedChannels, chid)
-				}
-				delete(m.channels, chid)
-				m.le.WithField("channel-id", chid).Info("unsubscribed from channel")
-			} else if _, ok := pubbedChannels[chid]; !ok {
-				pubbedChannels[chid] = struct{}{}
-				subChanges = append(subChanges, &SubscriptionOpts{
-					ChannelId: chid,
-					Subscribe: true,
-				})
-			}
-		}
-
-		if len(subChanges) != 0 {
-			xmitPeers = make([]*streamHandler, 0, len(m.peers))
-			for _, p := range m.peers {
-				if p.ctx != nil {
-					xmitPeers = append(xmitPeers, p)
-				}
-			}
-		}
-		m.mtx.Unlock()
-
-		for _, p := range xmitPeers { // xmitPeers is usually nil
-			p.writePacket(&Packet{Subscriptions: subChanges})
-		}
-
-		// Process wakeups and queued publications until evaluation is due.
-		var woken bool
-		for !woken {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case pubMsg := <-m.publishCh:
-				m.execPublish(pubMsg.prevHopPeer, pubMsg)
-			case <-m.wakeCh:
-				woken = true
-			}
-		}
-
-		// Re-enter reconciliation on the next timer tick.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-evalTimer.C:
+		case pubMsg := <-m.publishCh:
+			m.execPublish(pubMsg.prevHopPeer, pubMsg)
+			if expireCh == nil {
+				expire.Reset(seenMessageTTL)
+				expireCh = expire.C
+			}
+		case <-m.wakeCh:
+			if reconcileCh == nil {
+				reconcile.Reset(100 * time.Millisecond)
+				reconcileCh = reconcile.C
+			}
+		case <-reconcileCh:
+			reconcileCh = nil
+			m.reconcile(ctx, published, &sessions)
+		case <-expireCh:
+			expireCh = nil
+			if next := m.expireSeen(time.Now()); !next.IsZero() {
+				expire.Reset(time.Until(next))
+				expireCh = expire.C
+			}
 		}
 	}
+}
+
+// reconcile starts pending streams and publishes coalesced subscription changes.
+// The Execute goroutine owns published and sessions.
+func (m *FloodSub) reconcile(ctx context.Context, published map[string]struct{}, sessions *errgroup.Group) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	// Queue initial subscriptions before each stream's writer starts.
+	for _, s := range m.incSessions {
+		if m.peers[s.tpl] != s {
+			s.stream.Close()
+			continue
+		}
+		s.ctx, s.ctxCancel = context.WithCancel(ctx)
+		initial := make([]*SubscriptionOpts, 0, len(m.channels))
+		for id, refs := range m.channels {
+			if len(refs) != 0 {
+				initial = append(initial, &SubscriptionOpts{ChannelId: id, Subscribe: true})
+			}
+		}
+		s.queueSubscriptions(initial)
+		sessions.Go(func() error {
+			if err := s.executeSession(); err != nil && !errors.Is(err, context.Canceled) {
+				s.le.WithError(err).Debug("session exited")
+			}
+			m.mtx.Lock()
+			if m.peers[s.tpl] == s {
+				delete(m.peers, s.tpl)
+				m.removePeerChannelsLocked(s.tpl)
+			}
+			m.mtx.Unlock()
+			return nil
+		})
+	}
+	m.incSessions = nil
+
+	// Retain only the final desired state for each peer; no peer queue is awaited.
+	var changes []*SubscriptionOpts
+	for id, refs := range m.channels {
+		_, announced := published[id]
+		if len(refs) == 0 {
+			if announced {
+				changes = append(changes, &SubscriptionOpts{ChannelId: id})
+				delete(published, id)
+			}
+			delete(m.channels, id)
+			continue
+		}
+		if !announced {
+			published[id] = struct{}{}
+			changes = append(changes, &SubscriptionOpts{ChannelId: id, Subscribe: true})
+		}
+	}
+	if len(changes) == 0 {
+		return
+	}
+	for _, peer := range m.peers {
+		if peer.ctx != nil {
+			peer.queueSubscriptions(changes)
+		}
+	}
+}
+
+// expireSeen removes expired message IDs and returns the next known deadline.
+func (m *FloodSub) expireSeen(now time.Time) time.Time {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	var next time.Time
+	for id, deadline := range m.seenMessages {
+		if !deadline.After(now) {
+			delete(m.seenMessages, id)
+			continue
+		}
+		if next.IsZero() || deadline.Before(next) {
+			next = deadline
+		}
+	}
+	return next
 }
 
 // execPublish executes publishing a message
@@ -310,12 +309,12 @@ func (m *FloodSub) AddPeerStream(
 		peerID: mstrm.GetPeerID(),
 
 		packetCh:  make(chan *Packet, 32),
+		subWake:   make(chan struct{}, 1),
 		stream:    stream_packet.NewSession(mstrm.GetStream(), maxMessageSize),
 		initiator: initiator,
 	}
 	m.mtx.Lock()
 
-	// if !initiator {
 	if e, ok := m.peers[tpl]; ok {
 		if e.ctxCancel != nil {
 			e.ctxCancel()
@@ -323,7 +322,6 @@ func (m *FloodSub) AddPeerStream(
 	}
 	m.peers[tpl] = sh
 
-	// }
 	m.incSessions = append(m.incSessions, sh)
 	m.mtx.Unlock()
 	m.wake()
@@ -385,9 +383,11 @@ func (m *FloodSub) handleValidMessage(
 	// Record the message ID and report whether it was already seen.
 	msgId := pkt.ComputeMessageID()
 	m.mtx.Lock()
-	_, seen := m.seenMessages[msgId]
+	now := time.Now()
+	deadline, seen := m.seenMessages[msgId]
+	seen = seen && deadline.After(now)
 	if !seen {
-		m.seenMessages[msgId] = time.Now().Add(seenMessageTTL)
+		m.seenMessages[msgId] = now.Add(seenMessageTTL)
 	}
 	m.mtx.Unlock()
 	if seen {
@@ -435,3 +435,29 @@ func (m *FloodSub) wake() {
 
 // _ is a type assertion
 var _ pubsub.PubSub = (*FloodSub)(nil)
+
+// WaitForPeerSubscription waits until a peer announces channelID.
+// It observes the router's subscription state without polling or publishing probes.
+func (m *FloodSub) WaitForPeerSubscription(ctx context.Context, channelID string, id peer.ID) error {
+	for {
+		m.mtx.Lock()
+		var wait <-chan struct{}
+		m.peerChanges.HoldLock(func(_ func(), getWait func() <-chan struct{}) { wait = getWait() })
+		found := false
+		for tuple := range m.peerChannels[channelID] {
+			if tuple.PeerID == id {
+				found = true
+				break
+			}
+		}
+		m.mtx.Unlock()
+		if found {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-wait:
+		}
+	}
+}

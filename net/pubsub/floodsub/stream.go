@@ -3,6 +3,7 @@ package floodsub
 import (
 	"context"
 	"io"
+	"sync"
 
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/pubsub"
@@ -23,14 +24,57 @@ type streamHandler struct {
 
 	ctx       context.Context
 	ctxCancel context.CancelFunc
+
+	// subMtx guards pending and announced subscription state.
+	subMtx sync.Mutex
+	// subWake wakes this stream's sole writer for coalesced state changes.
+	subWake chan struct{}
+	// pending contains only desired states that differ from announced.
+	pending map[string]bool
+	// announced records subscription changes already taken by the writer.
+	announced map[string]bool
 }
 
-// writePacket writes a packet.
-func (s *streamHandler) writePacket(pkt *Packet) {
-	select {
-	case s.packetCh <- pkt:
-	case <-s.ctx.Done():
+// queueSubscriptions coalesces state without waiting for the peer's writer.
+func (s *streamHandler) queueSubscriptions(changes []*SubscriptionOpts) {
+	s.subMtx.Lock()
+	if s.pending == nil {
+		s.pending = make(map[string]bool)
+		s.announced = make(map[string]bool)
 	}
+	for _, change := range changes {
+		id, subscribe := change.GetChannelId(), change.GetSubscribe()
+		if s.announced[id] == subscribe {
+			delete(s.pending, id)
+			continue
+		}
+		s.pending[id] = subscribe
+	}
+	s.subMtx.Unlock()
+	select {
+	case s.subWake <- struct{}{}:
+	default:
+	}
+}
+
+// takeSubscriptions transfers the next ordered state change to the sole writer.
+func (s *streamHandler) takeSubscriptions() *Packet {
+	s.subMtx.Lock()
+	defer s.subMtx.Unlock()
+	if len(s.pending) == 0 {
+		return nil
+	}
+	packet := &Packet{Subscriptions: make([]*SubscriptionOpts, 0, len(s.pending))}
+	for id, subscribe := range s.pending {
+		packet.Subscriptions = append(packet.Subscriptions, &SubscriptionOpts{ChannelId: id, Subscribe: subscribe})
+		if subscribe {
+			s.announced[id] = true
+		} else {
+			delete(s.announced, id)
+		}
+		delete(s.pending, id)
+	}
+	return packet
 }
 
 // tryWritePacket queues a packet without blocking.
@@ -52,16 +96,31 @@ func (s *streamHandler) tryWritePacket(pkt *Packet) bool {
 // executeSession executes the stream session.
 func (s *streamHandler) executeSession() error {
 	ctx := s.ctx
-	defer s.stream.Close()
-	defer s.ctxCancel()
-	go s.readPump(ctx)
+	// Closing the transport interrupts a blocked write as well as the reader.
+	stop := context.AfterFunc(ctx, func() { s.stream.Close() })
+	defer stop()
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		s.readPump(ctx)
+	}()
+	defer func() {
+		s.ctxCancel()
+		s.stream.Close()
+		<-readDone
+	}()
 
-	// le := s.le.WithField("initiator", s.initiator)
-	// le.Info("executing session")
 	for {
+		// Subscription changes use the same writer, preserving order under backpressure.
+		if packet := s.takeSubscriptions(); packet != nil {
+			if err := s.stream.SendMsg(packet); err != nil {
+				return err
+			}
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-s.subWake:
 		case pkt := <-s.packetCh:
 			if err := s.stream.SendMsg(pkt); err != nil {
 				return err
@@ -107,6 +166,7 @@ func (s *streamHandler) handlePublish(pkts []*peer.SignedMsg) {
 func (s *streamHandler) handleSubscriptions(subs []*SubscriptionOpts) {
 	s.m.mtx.Lock()
 	defer s.m.mtx.Unlock()
+	defer s.m.peerChanges.HoldLock(func(notify func(), _ func() <-chan struct{}) { notify() })
 
 	for _, sub := range subs {
 		chid := sub.GetChannelId()
