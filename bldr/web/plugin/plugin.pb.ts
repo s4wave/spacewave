@@ -40,11 +40,7 @@ export enum DesktopPresenceState {
 
 export const DesktopPresenceState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.web.plugin.DesktopPresenceState',
-  [
-    [0, 'DESKTOP_PRESENCE_STATE_UNKNOWN'],
-    [1, 'DESKTOP_PRESENCE_STATE_ACTIVE'],
-    [2, 'DESKTOP_PRESENCE_STATE_ENDED'],
-  ],
+  DesktopPresenceState,
 )
 
 /**
@@ -67,7 +63,6 @@ export const OpenOrFocusDesktopRequest: MessageType<OpenOrFocusDesktopRequest> =
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -90,7 +85,6 @@ export const OpenOrFocusDesktopResponse: MessageType<OpenOrFocusDesktopResponse>
     fields: [
       { no: 1, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -113,7 +107,6 @@ export const WatchDesktopPresenceRequest: MessageType<WatchDesktopPresenceReques
     fields: [
       { no: 1, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -143,7 +136,6 @@ export const WatchDesktopPresenceResponse: MessageType<WatchDesktopPresenceRespo
       { no: 1, name: 'state', kind: 'enum', T: DesktopPresenceState_Enum },
       { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
