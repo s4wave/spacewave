@@ -11,8 +11,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { WatchDesktopPresenceResponse } from '../../../bldr/web/plugin/plugin.pb.js'
 
-export const protobufPackage = 'spacewave.daemon.desktopcontrol'
-
 /**
  * OpenOrFocusDesktopRequest selects the initial route in the desktop.
  *
@@ -33,7 +31,6 @@ export const OpenOrFocusDesktopRequest: MessageType<OpenOrFocusDesktopRequest> =
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -82,7 +79,6 @@ export const OpenOrFocusDesktopResponse: MessageType<OpenOrFocusDesktopResponse>
       { no: 3, name: 'daemon_release', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'ui_manifest_ref', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -139,5 +135,4 @@ export const WatchDesktopStatusResponse: MessageType<WatchDesktopStatusResponse>
       },
       { no: 3, name: 'failure', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
