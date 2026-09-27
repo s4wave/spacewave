@@ -47,12 +47,21 @@ type GoScriptCompileOptions struct {
 	ProtobufTypeScriptBinding bool
 }
 
-// GoScriptCompilerCacheRootFromEnv resolves the optional compiler cache root
-// for a Bldr build working path.
+// GoScriptCompilerCacheRootFromEnv resolves the compiler cache root for a Bldr
+// build working path. The cache lives under the user cache directory unless
+// the environment overrides it, so resetting a Bldr state root keeps it. An
+// empty result disables the cache.
 func GoScriptCompilerCacheRootFromEnv(buildPath string) (string, error) {
-	rawRoot, ok := os.LookupEnv(GoScriptCompilerCacheRootEnv)
-	if !ok || strings.TrimSpace(rawRoot) == "" {
+	rawRoot := strings.TrimSpace(os.Getenv(GoScriptCompilerCacheRootEnv))
+	switch rawRoot {
+	case "off":
 		return "", nil
+	case "":
+		userCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return "", errors.Wrap(err, "resolve GoScript compiler cache root")
+		}
+		return filepath.Join(userCacheDir, "goscript"), nil
 	}
 	return ResolveGoScriptCompilerCacheRoot(buildPath, rawRoot)
 }

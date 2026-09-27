@@ -92,23 +92,27 @@ func TestExecGoScriptCompileUsesCompilerCacheRoot(t *testing.T) {
 	}
 }
 
-func TestGoScriptCompilerCacheRootFromEnvDefaultsDisabled(t *testing.T) {
+func TestGoScriptCompilerCacheRootFromEnvDefaultsToUserCacheDir(t *testing.T) {
 	stateRoot := filepath.Join(t.TempDir(), ".bldr")
 	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
+	userCacheDir, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Setenv(GoScriptCompilerCacheRootEnv, "")
+	t.Setenv("GOSCRIPT_COMPILER_CACHE_ROOT", filepath.Join("cache", "gs"))
 	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "" {
-		t.Fatalf("cache root = %q, want empty", got)
+	if want := filepath.Join(userCacheDir, "goscript"); got != want {
+		t.Fatalf("cache root = %q, want %q", got, want)
 	}
 }
 
-func TestGoScriptCompilerCacheRootFromEnvIgnoresGoScriptCliEnv(t *testing.T) {
-	stateRoot := filepath.Join(t.TempDir(), ".bldr")
-	buildPath := filepath.Join(stateRoot, "build", "web", "spacewave-core")
-	t.Setenv("GOSCRIPT_COMPILER_CACHE_ROOT", filepath.Join("cache", "gs"))
+func TestGoScriptCompilerCacheRootFromEnvOffDisablesCache(t *testing.T) {
+	buildPath := filepath.Join(t.TempDir(), ".bldr", "build", "web", "spacewave-core")
+	t.Setenv(GoScriptCompilerCacheRootEnv, "off")
 	got, err := GoScriptCompilerCacheRootFromEnv(buildPath)
 	if err != nil {
 		t.Fatal(err)

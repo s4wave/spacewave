@@ -33,8 +33,8 @@ const SQLLiteBuildTag = "sql_lite"
 // GoScript, and WebAssembly output. Native builds keep hardware hashing.
 const PureGoBuildTag = "purego"
 
-// GoScriptCompilerCacheRootEnv opts Bldr GoScript compiles into the compiler
-// package artifact cache.
+// GoScriptCompilerCacheRootEnv overrides the root of the GoScript compiler
+// package artifact cache. The value off disables the cache.
 const GoScriptCompilerCacheRootEnv = "BLDR_GOSCRIPT_COMPILER_CACHE_ROOT"
 
 // GetDefaultArgs returns compiler flags that preserve the module manifest.
