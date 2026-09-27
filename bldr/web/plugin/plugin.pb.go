@@ -8,12 +8,142 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	backoff "github.com/aperturerobotics/util/backoff"
 	handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 )
+
+// DesktopPresenceState describes one shell generation, not the latest desktop.
+type DesktopPresenceState int32
+
+const (
+	// DESKTOP_PRESENCE_STATE_UNKNOWN is not a valid watch result.
+	DesktopPresenceState_DESKTOP_PRESENCE_STATE_UNKNOWN DesktopPresenceState = 0
+	// DESKTOP_PRESENCE_STATE_ACTIVE means the selected shell generation is running.
+	DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE DesktopPresenceState = 1
+	// DESKTOP_PRESENCE_STATE_ENDED means the selected shell generation has ended.
+	DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED DesktopPresenceState = 2
+)
+
+// Enum value maps for DesktopPresenceState.
+var (
+	DesktopPresenceState_name = map[int32]string{
+		0: "DESKTOP_PRESENCE_STATE_UNKNOWN",
+		1: "DESKTOP_PRESENCE_STATE_ACTIVE",
+		2: "DESKTOP_PRESENCE_STATE_ENDED",
+	}
+	DesktopPresenceState_value = map[string]int32{
+		"DESKTOP_PRESENCE_STATE_UNKNOWN": 0,
+		"DESKTOP_PRESENCE_STATE_ACTIVE":  1,
+		"DESKTOP_PRESENCE_STATE_ENDED":   2,
+	}
+)
+
+func (x DesktopPresenceState) Enum() *DesktopPresenceState {
+	p := new(DesktopPresenceState)
+	*p = x
+	return p
+}
+
+func (x DesktopPresenceState) String() string {
+	name, valid := DesktopPresenceState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// OpenOrFocusDesktopRequest identifies the route to open in the desktop shell.
+type OpenOrFocusDesktopRequest struct {
+	unknownFields []byte
+	// Route is an optional in-app route; empty opens or focuses the main window.
+	Route string `protobuf:"bytes,1,opt,name=route,proto3" json:"route,omitempty"`
+}
+
+func (x *OpenOrFocusDesktopRequest) Reset() {
+	*x = OpenOrFocusDesktopRequest{}
+}
+
+func (*OpenOrFocusDesktopRequest) ProtoMessage() {}
+
+func (x *OpenOrFocusDesktopRequest) GetRoute() string {
+	if x != nil {
+		return x.Route
+	}
+	return ""
+}
+
+// OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.
+type OpenOrFocusDesktopResponse struct {
+	unknownFields []byte
+	// Generation identifies the acknowledged shell lifetime within this plugin controller.
+	Generation uint64 `protobuf:"varint,1,opt,name=generation,proto3" json:"generation,omitempty"`
+}
+
+func (x *OpenOrFocusDesktopResponse) Reset() {
+	*x = OpenOrFocusDesktopResponse{}
+}
+
+func (*OpenOrFocusDesktopResponse) ProtoMessage() {}
+
+func (x *OpenOrFocusDesktopResponse) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+// WatchDesktopPresenceRequest identifies the shell lifetime to observe.
+type WatchDesktopPresenceRequest struct {
+	unknownFields []byte
+	// Generation is the value returned by OpenOrFocusDesktop.
+	Generation uint64 `protobuf:"varint,1,opt,name=generation,proto3" json:"generation,omitempty"`
+}
+
+func (x *WatchDesktopPresenceRequest) Reset() {
+	*x = WatchDesktopPresenceRequest{}
+}
+
+func (*WatchDesktopPresenceRequest) ProtoMessage() {}
+
+func (x *WatchDesktopPresenceRequest) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+// WatchDesktopPresenceResponse reports the selected generation's current state.
+type WatchDesktopPresenceResponse struct {
+	unknownFields []byte
+	// State first reports active or ended, then reports ended when an active shell exits.
+	State DesktopPresenceState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// Error describes a failed shell exit; empty on a normal end or while active.
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+}
+
+func (x *WatchDesktopPresenceResponse) Reset() {
+	*x = WatchDesktopPresenceResponse{}
+}
+
+func (*WatchDesktopPresenceResponse) ProtoMessage() {}
+
+func (x *WatchDesktopPresenceResponse) GetState() DesktopPresenceState {
+	if x != nil {
+		return x.State
+	}
+	return DesktopPresenceState_DESKTOP_PRESENCE_STATE_UNKNOWN
+}
+
+func (x *WatchDesktopPresenceResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
 
 // HandleWebViewViaPluginRequest is a request to handle web views via a plugin RPC.
 type HandleWebViewViaPluginRequest struct {
@@ -401,6 +531,71 @@ type HandleWebPkgsViaPluginAssetsResponse_Ready struct {
 
 func (*HandleWebPkgsViaPluginAssetsResponse_Ready) isHandleWebPkgsViaPluginAssetsResponse_Body() {}
 
+func (m *OpenOrFocusDesktopRequest) CloneVT() *OpenOrFocusDesktopRequest {
+	if m == nil {
+		return (*OpenOrFocusDesktopRequest)(nil)
+	}
+	r := new(OpenOrFocusDesktopRequest)
+	r.Route = m.Route
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpenOrFocusDesktopRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *OpenOrFocusDesktopResponse) CloneVT() *OpenOrFocusDesktopResponse {
+	if m == nil {
+		return (*OpenOrFocusDesktopResponse)(nil)
+	}
+	r := new(OpenOrFocusDesktopResponse)
+	r.Generation = m.Generation
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *OpenOrFocusDesktopResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchDesktopPresenceRequest) CloneVT() *WatchDesktopPresenceRequest {
+	if m == nil {
+		return (*WatchDesktopPresenceRequest)(nil)
+	}
+	r := new(WatchDesktopPresenceRequest)
+	r.Generation = m.Generation
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDesktopPresenceRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchDesktopPresenceResponse) CloneVT() *WatchDesktopPresenceResponse {
+	if m == nil {
+		return (*WatchDesktopPresenceResponse)(nil)
+	}
+	r := new(WatchDesktopPresenceResponse)
+	r.State = m.State
+	r.Error = m.Error
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDesktopPresenceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *HandleWebViewViaPluginRequest) CloneVT() *HandleWebViewViaPluginRequest {
 	if m == nil {
 		return (*HandleWebViewViaPluginRequest)(nil)
@@ -653,6 +848,89 @@ func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) CloneVT() *HandleWebPkgsVia
 
 func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) CloneOneofVT() isHandleWebPkgsViaPluginAssetsResponse_Body {
 	return m.CloneVT()
+}
+
+func (this *OpenOrFocusDesktopRequest) EqualVT(that *OpenOrFocusDesktopRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Route != that.Route {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpenOrFocusDesktopRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpenOrFocusDesktopRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *OpenOrFocusDesktopResponse) EqualVT(that *OpenOrFocusDesktopResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *OpenOrFocusDesktopResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*OpenOrFocusDesktopResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchDesktopPresenceRequest) EqualVT(that *WatchDesktopPresenceRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDesktopPresenceRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDesktopPresenceRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchDesktopPresenceResponse) EqualVT(that *WatchDesktopPresenceResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDesktopPresenceResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDesktopPresenceResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *HandleWebViewViaPluginRequest) EqualVT(that *HandleWebViewViaPluginRequest) bool {
@@ -1010,6 +1288,222 @@ func (this *HandleWebPkgsViaPluginAssetsResponse_Ready) EqualVT(thatIface isHand
 		return false
 	}
 	return true
+}
+
+// MarshalProtoJSON marshals the DesktopPresenceState to JSON.
+func (x DesktopPresenceState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), DesktopPresenceState_name)
+}
+
+// MarshalText marshals the DesktopPresenceState to text.
+func (x DesktopPresenceState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), DesktopPresenceState_name)), nil
+}
+
+// MarshalJSON marshals the DesktopPresenceState to JSON.
+func (x DesktopPresenceState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DesktopPresenceState from JSON.
+func (x *DesktopPresenceState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(DesktopPresenceState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read DesktopPresenceState enum: %v", err)
+		return
+	}
+	*x = DesktopPresenceState(v)
+}
+
+// UnmarshalText unmarshals the DesktopPresenceState from text.
+func (x *DesktopPresenceState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), DesktopPresenceState_value)
+	if err != nil {
+		return err
+	}
+	*x = DesktopPresenceState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the DesktopPresenceState from JSON.
+func (x *DesktopPresenceState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpenOrFocusDesktopRequest message to JSON.
+func (x *OpenOrFocusDesktopRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Route != "" || s.HasField("route") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("route")
+		s.WriteString(x.Route)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpenOrFocusDesktopRequest to JSON.
+func (x *OpenOrFocusDesktopRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpenOrFocusDesktopRequest message from JSON.
+func (x *OpenOrFocusDesktopRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "route":
+			s.AddField("route")
+			x.Route = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpenOrFocusDesktopRequest from JSON.
+func (x *OpenOrFocusDesktopRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the OpenOrFocusDesktopResponse message to JSON.
+func (x *OpenOrFocusDesktopResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the OpenOrFocusDesktopResponse to JSON.
+func (x *OpenOrFocusDesktopResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the OpenOrFocusDesktopResponse message from JSON.
+func (x *OpenOrFocusDesktopResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the OpenOrFocusDesktopResponse from JSON.
+func (x *OpenOrFocusDesktopResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchDesktopPresenceRequest message to JSON.
+func (x *WatchDesktopPresenceRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDesktopPresenceRequest to JSON.
+func (x *WatchDesktopPresenceRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDesktopPresenceRequest message from JSON.
+func (x *WatchDesktopPresenceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDesktopPresenceRequest from JSON.
+func (x *WatchDesktopPresenceRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchDesktopPresenceResponse message to JSON.
+func (x *WatchDesktopPresenceResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDesktopPresenceResponse to JSON.
+func (x *WatchDesktopPresenceResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDesktopPresenceResponse message from JSON.
+func (x *WatchDesktopPresenceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDesktopPresenceResponse from JSON.
+func (x *WatchDesktopPresenceResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the HandleWebViewViaPluginRequest message to JSON.
@@ -1549,6 +2043,159 @@ func (x *HandleWebPkgsViaPluginAssetsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *OpenOrFocusDesktopRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpenOrFocusDesktopRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpenOrFocusDesktopRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Route) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Route)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *OpenOrFocusDesktopResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *OpenOrFocusDesktopResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OpenOrFocusDesktopResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchDesktopPresenceRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDesktopPresenceRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDesktopPresenceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchDesktopPresenceResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDesktopPresenceResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDesktopPresenceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Error) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *HandleWebViewViaPluginRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2065,6 +2712,51 @@ func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) MarshalToSizedBufferVT(dAtA
 	return len(dAtA) - i, nil
 }
 
+func (m *OpenOrFocusDesktopRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Route)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *OpenOrFocusDesktopResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Generation)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchDesktopPresenceRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Generation)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchDesktopPresenceResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *HandleWebViewViaPluginRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2248,6 +2940,70 @@ func (m *HandleWebPkgsViaPluginAssetsResponse_Ready) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBoolValue(1)
 	return n
+}
+
+func (x DesktopPresenceState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x *OpenOrFocusDesktopRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpenOrFocusDesktopRequest")
+	if x.Route != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "route")
+		protobuf_go_lite.TextWriteString(&sb, x.Route)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpenOrFocusDesktopRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *OpenOrFocusDesktopResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "OpenOrFocusDesktopResponse")
+	if x.Generation != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.Generation)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *OpenOrFocusDesktopResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchDesktopPresenceRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchDesktopPresenceRequest")
+	if x.Generation != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.Generation)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDesktopPresenceRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchDesktopPresenceResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchDesktopPresenceResponse")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, DesktopPresenceState(x.State))
+	}
+	if x.Error != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
+		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDesktopPresenceResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *HandleWebViewViaPluginRequest) MarshalProtoText() string {
@@ -2441,6 +3197,227 @@ func (x *HandleWebPkgsViaPluginAssetsResponse) MarshalProtoText() string {
 
 func (x *HandleWebPkgsViaPluginAssetsResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *OpenOrFocusDesktopRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpenOrFocusDesktopRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpenOrFocusDesktopRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Route", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Route = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *OpenOrFocusDesktopResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: OpenOrFocusDesktopResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: OpenOrFocusDesktopResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchDesktopPresenceRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDesktopPresenceRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDesktopPresenceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchDesktopPresenceResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDesktopPresenceResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDesktopPresenceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = DesktopPresenceState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Error = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *HandleWebViewViaPluginRequest) UnmarshalVT(dAtA []byte) error {

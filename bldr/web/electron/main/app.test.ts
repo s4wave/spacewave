@@ -5,7 +5,6 @@ Reflect.set(globalThis, 'BLDR_DEBUG', false)
 
 const browserWindows: MockBrowserWindow[] = []
 const webRuntimeInstances: MockWebRuntime[] = []
-const webRuntimeHostClientInstances: MockWebRuntimeHostClient[] = []
 const mockElectronApp = {
   getAppPath() {
     return '/app'
@@ -70,13 +69,7 @@ class MockWebRuntime {
   }
 }
 
-class MockWebRuntimeHostClient {
-  public readonly RequestRuntimeQuit = vi.fn(async () => ({}))
-
-  constructor() {
-    webRuntimeHostClientInstances.push(this)
-  }
-}
+class MockWebRuntimeHostClient {}
 
 vi.mock('electron', () => {
   const Menu = {
@@ -201,7 +194,6 @@ describe('BldrElectronApp', () => {
     Reflect.set(globalThis, 'BLDR_DEBUG', false)
     browserWindows.length = 0
     webRuntimeInstances.length = 0
-    webRuntimeHostClientInstances.length = 0
     vi.clearAllMocks()
     mockElectronApp.requestSingleInstanceLock.mockReturnValue(true)
     vi.resetModules()
@@ -399,7 +391,7 @@ describe('BldrElectronApp', () => {
     expect(resource.setQuitting).toHaveBeenCalledWith(true)
   })
 
-  it('requests host runtime interrupt for explicit desktop quit', async () => {
+  it('closes only the desktop shell for explicit desktop quit', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [
       mockElectronApp,
@@ -410,10 +402,7 @@ describe('BldrElectronApp', () => {
 
     await Reflect.apply(quitDesktopRuntime, app, [])
 
-    expect(
-      webRuntimeHostClientInstances[0]?.RequestRuntimeQuit,
-    ).toHaveBeenCalledWith({})
-    expect(mockElectronApp.quit).not.toHaveBeenCalled()
+    expect(mockElectronApp.quit).toHaveBeenCalledOnce()
   })
 
   it('opens routed requests in new hash-routed windows', async () => {
@@ -451,7 +440,7 @@ describe('BldrElectronApp', () => {
     expect(browserWindows[2]?.loadURL).toHaveBeenCalledTimes(1)
   })
 
-  it('opens or focuses the singleton main window without a route', async () => {
+  it('opens one main window for concurrent requests without a route', async () => {
     const { BldrElectronApp } = await import('./app.js')
     const app = Reflect.construct(BldrElectronApp, [
       mockElectronApp,
@@ -460,8 +449,10 @@ describe('BldrElectronApp', () => {
     ])
     const openOrFocusMainWindow = Reflect.get(app, 'openOrFocusMainWindow')
 
-    await Reflect.apply(openOrFocusMainWindow, app, [{}])
-    await Reflect.apply(openOrFocusMainWindow, app, [{}])
+    await Promise.all([
+      Reflect.apply(openOrFocusMainWindow, app, [{}]),
+      Reflect.apply(openOrFocusMainWindow, app, [{}]),
+    ])
 
     expect(browserWindows).toHaveLength(1)
     expect(browserWindows[0]?.loadURL).toHaveBeenCalledWith(
