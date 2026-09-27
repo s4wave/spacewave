@@ -16,41 +16,32 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// statePathLeaseStorageID identifies the cross-process runtime coordination store.
 const statePathLeaseStorageID = "runtime-lease"
 
+// localStatePathLeases complements process-scoped OS locks for same-process callers.
 var localStatePathLeases = struct {
 	sync.Mutex
+	// paths holds canonical lease paths while acquisition or a runtime is active.
 	paths map[string]struct{}
 }{paths: make(map[string]struct{})}
 
-// StatePathLeaseHeldError reports the process that owns a writable state path.
-type StatePathLeaseHeldError struct {
-	StatePath string
-	HolderPID int
-	StorePath string
-}
-
-// Error returns the terminal writable-state conflict.
-func (e *StatePathLeaseHeldError) Error() string {
-	if e.HolderPID > 0 && e.StorePath != "" {
-		return errors.Errorf("writable state path %s is held by PID %d through store %s", e.StatePath, e.HolderPID, e.StorePath).Error()
-	}
-	if e.HolderPID > 0 {
-		return errors.Errorf("writable state path %s is held by PID %d", e.StatePath, e.HolderPID).Error()
-	}
-	if e.StorePath != "" {
-		return errors.Errorf("writable state path %s is held by a writer-capable process through store %s", e.StatePath, e.StorePath).Error()
-	}
-	return errors.Errorf("writable state path %s is held by another process", e.StatePath).Error()
-}
-
+// statePathLease excludes writable runtimes until their bus has fully stopped.
 type statePathLease struct {
-	db     *bdb.DB
-	path   string
-	once   sync.Once
+	// db holds the cross-process coordination lock until release.
+	db *bdb.DB
+	// path identifies the process-local lease reservation.
+	path string
+	// mtx serializes release and its recorded result.
+	mtx sync.Mutex
+	// released prevents closing an already released lock.
+	released bool
+	// relErr retains the first release result.
 	relErr error
 }
 
+// prepareDaemonRuntime acquires writable-state exclusion before inspecting or
+// removing the socket. Explicit takeover completes before acquiring the lease.
 func prepareDaemonRuntime(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -58,48 +49,47 @@ func prepareDaemonRuntime(
 	sockPath string,
 	takeover bool,
 ) (*statePathLease, error) {
-	if err := os.MkdirAll(statePath, 0o755); err != nil {
-		return nil, err
-	}
-	if le == nil {
-		le = logrus.NewEntry(logrus.New())
-	}
-	var err error
+	// Only an explicit serve takeover may ask the previous runtime to yield.
 	if takeover {
-		err = takeoverDaemonSocket(ctx, le, sockPath)
-	} else {
-		err = listener_control.EnsureSocketAvailable(ctx, le, sockPath)
+		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
+			return nil, err
+		}
 	}
+
+	// Socket cleanup runs under the lease so simultaneous starters cannot unlink
+	// the winning runtime's new listener after observing its stale predecessor.
+	lease, err := acquireStatePathLease(statePath)
 	if err != nil {
 		return nil, err
 	}
-	return acquireStatePathLease(statePath)
+	if err := listener_control.EnsureSocketAvailable(ctx, le, sockPath); err != nil {
+		return nil, stderrors.Join(err, lease.release())
+	}
+	return lease, nil
 }
 
+// acquireStatePathLease reserves a canonical root in this process and in bbolt.
 func acquireStatePathLease(statePath string) (*statePathLease, error) {
+	// Create only the requested root before canonicalizing its filesystem identity.
 	statePath, err := filepath.Abs(statePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve writable state path")
 	}
-	if err := os.MkdirAll(statePath, 0o755); err != nil {
+	if err := os.MkdirAll(statePath, 0o700); err != nil {
 		return nil, err
 	}
-	holderPID, holderStore, err := findWritableStoreLeaseHolder(statePath)
+
+	// Canonicalize aliases before reserving a process-scoped file lock.
+	statePath, err = filepath.EvalSymlinks(statePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "inspect writable provider-store leases")
-	}
-	if holderStore != "" {
-		return nil, &StatePathLeaseHeldError{
-			StatePath: statePath,
-			HolderPID: holderPID,
-			StorePath: holderStore,
-		}
+		return nil, err
 	}
 	leasePath, err := storage_native.BoltDBPath(statePath, statePathLeaseStorageID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reserve the root locally before taking its cross-process lease.
 	localStatePathLeases.Lock()
 	if _, held := localStatePathLeases.paths[leasePath]; held {
 		localStatePathLeases.Unlock()
@@ -121,6 +111,7 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 		localStatePathLeases.Unlock()
 	}()
 
+	// Open the coordination store and attempt its nonblocking runtime lock.
 	db, err := bdb.Open(leasePath, 0o600, &bdb.Options{
 		Timeout:        0,
 		NoFreelistSync: false,
@@ -153,21 +144,42 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 		}
 	}
 
+	// Inspect older writable stores only after reserving the daemon lease. A
+	// concurrent daemon must report its runtime lease, even after opening stores.
+	holderPID, holderStore, err := findWritableStoreLeaseHolder(statePath)
+	if err != nil {
+		return nil, stderrors.Join(err, db.ReleaseCoordinationLock(), db.Close())
+	}
+	if holderStore != "" {
+		return nil, stderrors.Join(&StatePathLeaseHeldError{
+			StatePath: statePath,
+			HolderPID: holderPID,
+			StorePath: holderStore,
+		}, db.ReleaseCoordinationLock(), db.Close())
+	}
+
+	// Transfer the local reservation and database lock to the runtime.
 	claimed = false
 	return &statePathLease{db: db, path: leasePath}, nil
 }
 
+// release relinquishes the coordination lock after all writable bus state closes.
 func (l *statePathLease) release() error {
 	if l == nil {
 		return nil
 	}
-	l.once.Do(func() {
+
+	// Serialize repeated cleanup from setup failure and the bus release path.
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	if !l.released {
+		l.released = true
 		releaseErr := l.db.ReleaseCoordinationLock()
 		closeErr := l.db.Close()
 		localStatePathLeases.Lock()
 		delete(localStatePathLeases.paths, l.path)
 		localStatePathLeases.Unlock()
 		l.relErr = stderrors.Join(releaseErr, closeErr)
-	})
+	}
 	return l.relErr
 }

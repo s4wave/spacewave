@@ -272,3 +272,32 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 	}
 	return pid, parts[1]
 }
+
+// TestStateLeasePrecedesSocketCleanup rejects another socket under the same
+// writable root before it can remove the first runtime's socket pathname.
+func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
+	// Hold a runtime lease while a second starter sees a stale-looking socket.
+	statePath := shortStatePath(t)
+	lease, err := acquireStatePathLease(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lease.release()
+	socket := filepath.Join(statePath, "other.sock")
+	if err := os.WriteFile(socket, []byte("reserved"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Lease rejection must happen before any socket inspection or removal.
+	contender, err := prepareDaemonRuntime(t.Context(), nil, statePath, socket, false)
+	if contender != nil {
+		_ = contender.release()
+		t.Fatal("second socket acquired the same writable root")
+	}
+	if _, ok := errors.AsType[*StatePathLeaseHeldError](err); !ok {
+		t.Fatalf("expected lease conflict, got %v", err)
+	}
+	if value, err := os.ReadFile(socket); err != nil || string(value) != "reserved" {
+		t.Fatalf("loser changed socket pathname: %q, %v", value, err)
+	}
+}

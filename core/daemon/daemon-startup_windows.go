@@ -1,6 +1,6 @@
 //go:build !js && windows
 
-package spacewave_cli
+package daemon
 
 import (
 	"os/exec"
