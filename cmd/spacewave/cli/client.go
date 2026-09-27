@@ -141,9 +141,6 @@ func connectDaemonWithAutostart(ctx context.Context, statePath string) (*sdkClie
 		releaseDaemonCmd(daemonCmd)
 		return client, nil
 	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "connect to %s", sockPath)
-	}
 	client, err := connectDaemonBuildClient(ctx, conn)
 	if err != nil {
 		conn.Close()
@@ -318,14 +315,7 @@ func (nativeClientFactory) NewClient(ctx context.Context, c *cli.Context) (runne
 }
 
 func (nativeClientFactory) StatusEndpoint(ctx context.Context, c *cli.Context) (string, error) {
-	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
-		return sockPath, nil
-	}
-	resolved, err := resolveStatePathFromContext(c, defaultStatePath)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(resolved, socketName), nil
+	return daemonSocketPath(c, defaultStatePath)
 }
 
 func (c *nativeClient) Close() {
@@ -729,6 +719,22 @@ func effectiveSocketPath(c *cli.Context, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// daemonSocketPath returns the socket of the daemon a command addresses: the
+// absolute --socket-path value when set, else the socket in the state path.
+func daemonSocketPath(c *cli.Context, statePath string) (string, error) {
+	if socketPath := effectiveSocketPath(c, ""); socketPath != "" {
+		if !filepath.IsAbs(socketPath) {
+			return "", errors.New("daemon socket path must be absolute")
+		}
+		return filepath.Clean(socketPath), nil
+	}
+	resolved, err := resolveStatePathFromContext(c, statePath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(resolved, socketName), nil
 }
 
 func hasLocalFlag(c *cli.Context, name string) bool {

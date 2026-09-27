@@ -6,7 +6,6 @@ import (
 	"context"
 	stderrors "errors"
 	"os"
-	"path/filepath"
 	"syscall"
 
 	"github.com/aperturerobotics/cli"
@@ -21,21 +20,20 @@ func newStopCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "stop",
 		Usage: "stop the daemon",
-		Flags: []cli.Flag{
-			statePathFlag(&statePath),
-		},
+		Flags: daemonClientFlags(&statePath),
 		Action: func(c *cli.Context) error {
-			resolved, err := resolveStatePathFromContext(c, statePath)
+			sockPath, err := daemonSocketPath(c, statePath)
 			if err != nil {
 				return err
 			}
-			return runStop(c.Context, resolved)
+			return runStop(c.Context, sockPath)
 		},
 	}
 }
 
-func runStop(ctx context.Context, statePath string) error {
-	sockPath := filepath.Join(statePath, socketName)
+// runStop asks the daemon listening on sockPath to shut down and confirms its
+// listener is gone. It never starts a daemon.
+func runStop(ctx context.Context, sockPath string) error {
 	conn, err := connectDaemonDial(ctx, sockPath)
 	if err != nil {
 		if handled, handleErr := handleUnavailableDaemonSocket(sockPath, err); handled {

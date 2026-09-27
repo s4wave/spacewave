@@ -111,7 +111,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 	}
 	defer client.close()
 
-	daemonSocketPath, err := tuiDaemonSocketPath(c, a.statePath)
+	sockPath, err := daemonSocketPath(c, a.statePath)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 		ModuleURL:        moduleURL,
 		ExportName:       a.exportName,
 		PluginID:         pluginID,
-		DaemonSocketPath: daemonSocketPath,
+		DaemonSocketPath: sockPath,
 		SessionIndex:     sessionIndex32(a.sessionIndex),
 		SessionObjectKey: strings.TrimSpace(a.sessionObjectKey),
 		SpaceName:        strings.TrimSpace(a.spaceName),
@@ -134,20 +134,6 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 		return err
 	}
 	return host.Run(ctx, nil)
-}
-
-func tuiDaemonSocketPath(c *cli.Context, statePath string) (string, error) {
-	if socketPath := effectiveSocketPath(c, ""); socketPath != "" {
-		if !filepath.IsAbs(socketPath) {
-			return "", errors.New("daemon socket path must be absolute")
-		}
-		return filepath.Clean(socketPath), nil
-	}
-	resolved, err := resolveStatePathFromContext(c, statePath)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(resolved, socketName), nil
 }
 
 func resolveTuiModuleURL(value string) (string, error) {

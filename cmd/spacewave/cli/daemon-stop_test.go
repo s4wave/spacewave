@@ -11,23 +11,58 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
 func TestRunStopRequestsDaemonShutdown(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-
 	statePath := makeShortDaemonStopStatePath(t, "stop-a")
 	t.Cleanup(func() {
 		_ = os.RemoveAll(statePath)
 	})
+	sockPath := filepath.Join(statePath, socketName)
+	shutdownCh := serveDaemonControl(t, sockPath)
 
-	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
+	if err := runStop(t.Context(), sockPath); err != nil {
+		t.Fatal(err)
+	}
+	waitShutdownRequest(t, shutdownCh)
+}
+
+// TestStopCommandUsesSocketPathEnv proves stop reaches a daemon serving on
+// SPACEWAVE_SOCKET_PATH outside the state path, as serve places it.
+func TestStopCommandUsesSocketPathEnv(t *testing.T) {
+	clearSocketPathEnv(t)
+
+	root := makeShortDaemonStopStatePath(t, "stop-env")
+	t.Cleanup(func() {
+		_ = os.RemoveAll(root)
+	})
+	sockPath := filepath.Join(root, "s.sock")
+	t.Setenv(socketPathEnvVars[0], sockPath)
+	shutdownCh := serveDaemonControl(t, sockPath)
+
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Commands = []*cli.Command{newStopCommand(nil)}
+	args := []string{"spacewave", "stop", "--state-path", filepath.Join(root, "state")}
+	if err := app.RunContext(t.Context(), args); err != nil {
+		t.Fatal(err)
+	}
+	waitShutdownRequest(t, shutdownCh)
+}
+
+// serveDaemonControl serves the daemon control service for one connection on
+// sockPath and reports each shutdown request on the returned channel.
+func serveDaemonControl(t *testing.T, sockPath string) <-chan struct{} {
+	t.Helper()
+
+	lis, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer lis.Close()
+	t.Cleanup(func() { _ = lis.Close() })
 
 	shutdownCh := make(chan struct{}, 1)
 	mux := srpc.NewMux()
@@ -47,12 +82,14 @@ func TestRunStopRequestsDaemonShutdown(t *testing.T) {
 			conn.Close()
 			return
 		}
-		_ = server.AcceptMuxedConn(ctx, mp)
+		_ = server.AcceptMuxedConn(t.Context(), mp)
 	}()
+	return shutdownCh
+}
 
-	if err := runStop(ctx, statePath); err != nil {
-		t.Fatal(err)
-	}
+func waitShutdownRequest(t *testing.T, shutdownCh <-chan struct{}) {
+	t.Helper()
+
 	select {
 	case <-shutdownCh:
 	case <-time.After(time.Second):
@@ -63,7 +100,7 @@ func TestRunStopRequestsDaemonShutdown(t *testing.T) {
 func TestRunStopConfirmsPeerExitAfterControlStreamReset(t *testing.T) {
 	statePath, wait := startResettingShutdownPeer(t, "stop-reset", true)
 
-	if err := runStop(t.Context(), statePath); err != nil {
+	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err != nil {
 		t.Fatalf("stop after peer exit: %v", err)
 	}
 	wait()
@@ -72,7 +109,7 @@ func TestRunStopConfirmsPeerExitAfterControlStreamReset(t *testing.T) {
 func TestRunStopPreservesResetWhileListenerRemains(t *testing.T) {
 	statePath, wait := startResettingShutdownPeer(t, "stop-live-reset", false)
 
-	if err := runStop(t.Context(), statePath); err == nil {
+	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err == nil {
 		t.Fatal("stop succeeded while the listener remained reachable")
 	}
 	wait()
@@ -139,7 +176,7 @@ func TestRunStopWithoutDaemonDoesNotAutostart(t *testing.T) {
 		_ = os.RemoveAll(statePath)
 	})
 
-	if err := runStop(t.Context(), statePath); err != nil {
+	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err != nil {
 		t.Fatal(err)
 	}
 }
