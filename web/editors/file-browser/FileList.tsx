@@ -6,6 +6,7 @@ import {
   use,
   useCallback,
   useMemo,
+  useSyncExternalStore,
 } from 'react'
 import { LuChevronDown, LuChevronUp } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -76,6 +77,20 @@ type FileListRowConfig = Pick<
 >
 
 const FileListRowConfigContext = createContext<FileListRowConfig | null>(null)
+const coarsePointerQuery = '(pointer: coarse)'
+
+function subscribeCoarsePointer(callback: () => void): () => void {
+  const query = window.matchMedia(coarsePointerQuery)
+  query.addEventListener('change', callback)
+  return () => query.removeEventListener('change', callback)
+}
+
+function getCoarsePointerSnapshot(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia(coarsePointerQuery).matches
+  )
+}
 
 // FileListRow keeps the rendered row component identity stable while hover and
 // drag-drop props change during native drag sessions.
@@ -123,6 +138,14 @@ export function FileList({
   onEntryDrop,
 }: FileListProps) {
   const namespace = useStateNamespace(['file-browser'])
+  const coarsePointer = useSyncExternalStore(
+    subscribeCoarsePointer,
+    getCoarsePointerSnapshot,
+    () => false,
+  )
+
+  // The virtualizer reserves the full coarse-pointer menu target in each row.
+  const effectiveRowHeight = Math.max(rowHeight ?? 24, coarsePointer ? 44 : 24)
 
   const items = useMemo<ListItem<FileEntry>[]>(
     () => entries.map((entry) => ({ id: entry.id, data: entry })),
@@ -180,11 +203,11 @@ export function FileList({
     }
 
     return (
-      <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none">
+      <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none [@media(pointer:coarse)]:py-0">
         <button
           type="button"
           className={cn(
-            'flex min-w-30 flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left',
+            'flex min-w-30 flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left [@media(pointer:coarse)]:min-h-11',
             sortKey === 'name' && 'text-foreground',
           )}
           onClick={() => handleSort('name')}
@@ -195,7 +218,7 @@ export function FileList({
         <button
           type="button"
           className={cn(
-            'flex w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs',
+            'flex w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs [@media(pointer:coarse)]:min-h-11',
             sortKey === 'date' && 'text-foreground',
           )}
           onClick={() => handleSort('date')}
@@ -206,7 +229,7 @@ export function FileList({
         <button
           type="button"
           className={cn(
-            'flex w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs',
+            'flex w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs [@media(pointer:coarse)]:min-h-11',
             sortKey === 'size' && 'text-foreground',
           )}
           onClick={() => handleSort('size')}
@@ -223,7 +246,7 @@ export function FileList({
     <FileListRowConfigContext.Provider value={rowConfig}>
       <List
         items={items}
-        rowHeight={rowHeight ?? 24}
+        rowHeight={effectiveRowHeight}
         rowComponent={FileListRow}
         onRowDefaultAction={handleOpen}
         onRowContextMenu={onContextMenu}

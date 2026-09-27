@@ -21,9 +21,10 @@ interface PathInputProps {
   ) => boolean
   onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
   className?: string
+  mobileTouchTargets?: boolean
 }
 
-// PathInput renders an editable path breadcrumb component.
+/** PathInput renders an editable path with breadcrumb navigation. */
 export function PathInput({
   path,
   onPathChange,
@@ -31,6 +32,7 @@ export function PathInput({
   onPathTargetDragOver,
   onPathTargetDrop,
   className,
+  mobileTouchTargets = false,
 }: PathInputProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editState, setEditState] = useState({ path, value: path })
@@ -94,17 +96,22 @@ export function PathInput({
       <div
         className={cn(
           'bg-file-path-bar flex h-5 flex-1 items-center rounded px-2',
+          mobileTouchTargets && '[@media(pointer:coarse)]:min-h-11',
           className,
         )}
       >
         <input
           ref={inputRef}
           type="text"
+          aria-label="File path"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleInputBlur}
           onKeyDown={handleInputKeyDown}
-          className="text-foreground w-full bg-transparent font-mono text-xs outline-none"
+          className={cn(
+            'text-foreground w-full bg-transparent font-mono text-xs outline-none',
+            mobileTouchTargets && '[@media(pointer:coarse)]:text-base',
+          )}
           spellCheck={false}
           autoComplete="off"
         />
@@ -117,6 +124,8 @@ export function PathInput({
       onClick={handleContainerClick}
       className={cn(
         'bg-file-path-bar hover:bg-file-path-bar-hover text-foreground flex h-5 flex-1 cursor-text items-center gap-0.5 overflow-hidden rounded px-2 text-xs transition-colors select-none',
+        mobileTouchTargets &&
+          'min-w-0 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:px-0 [@media(pointer:coarse)]:text-sm',
         className,
       )}
       role="button"
@@ -130,6 +139,7 @@ export function PathInput({
       aria-label="File path"
     >
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation()
           handleRootClick()
@@ -138,6 +148,8 @@ export function PathInput({
         onDrop={(e) => onPathTargetDrop?.('/', e)}
         className={cn(
           'hover:bg-pulldown-hover flex items-center rounded px-1 transition-colors',
+          mobileTouchTargets &&
+            '[@media(pointer:coarse)]:size-11 [@media(pointer:coarse)]:shrink-0 [@media(pointer:coarse)]:justify-center [@media(pointer:coarse)]:px-0',
           pathSegments.length === 0 && 'text-text-highlight',
         )}
         aria-label="Navigate to root"
@@ -148,10 +160,17 @@ export function PathInput({
       {pathSegments.map((segment, index) => (
         <div
           key={pathSegments.slice(0, index + 1).join('/')}
-          className="flex items-center"
+          className={cn(
+            'flex items-center',
+            mobileTouchTargets &&
+              (index === pathSegments.length - 1
+                ? 'max-sm:min-w-0 max-sm:flex-1'
+                : 'max-sm:hidden'),
+          )}
         >
           <LuChevronRight className="text-foreground-alt size-3" />
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               handleBreadcrumbClick(index)
@@ -170,6 +189,8 @@ export function PathInput({
             }
             className={cn(
               'hover:bg-pulldown-hover rounded px-1 whitespace-nowrap transition-colors',
+              mobileTouchTargets &&
+                '[@media(pointer:coarse)]:min-h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:truncate max-sm:px-2 max-sm:text-left',
               index === pathSegments.length - 1 && 'text-text-highlight',
             )}
             aria-label={`Navigate to ${segment}`}

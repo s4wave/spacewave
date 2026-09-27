@@ -93,6 +93,28 @@ describe('PanelHeader', () => {
     expect(screen.getByText('Content')).toBeTruthy()
   })
 
+  it('opens the viewer menu below the header', async () => {
+    const user = userEvent.setup()
+    const components = [makeComponent('Properties'), makeComponent('Raw Data')]
+    const ctx: ObjectViewerContextValue = {
+      visibleComponents: components,
+      selectedComponent: components[0],
+      onSelectComponent: vi.fn(),
+    }
+    render(
+      <ObjectViewerProvider value={ctx}>
+        <PanelHeader />
+      </ObjectViewerProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Properties' }))
+
+    const menu = screen.getByRole('menu')
+    expect(menu.className).toContain('top-full')
+    expect(menu.className).toContain('left-0')
+    expect(screen.getByRole('menuitem', { name: 'Raw Data' })).toBeTruthy()
+  })
+
   it('renders with context and single component showing static name', () => {
     const components = [makeComponent('Properties')]
     const ctx: ObjectViewerContextValue = {

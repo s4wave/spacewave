@@ -32,8 +32,8 @@ type CollapseLevel = 'none' | 'menus' | 'nav' | 'path'
 
 function getCollapseLevel(width: number): CollapseLevel {
   if (width < 180) return 'path'
-  if (width < 260) return 'nav'
-  if (width < 420) return 'menus'
+  if (width < 480) return 'nav'
+  if (width < 600) return 'menus'
   return 'none'
 }
 
@@ -59,6 +59,7 @@ interface ToolbarProps {
   hideNav?: boolean
 }
 
+/** Toolbar keeps the file path and primary action visible as its width shrinks. */
 export function Toolbar({
   currentPath,
   onPathChange,
@@ -96,13 +97,22 @@ export function Toolbar({
     return () => observer.disconnect()
   }, [checkWidth])
 
+  // Keep upload visible while navigation and folder creation move into More.
   const showNav =
     !hideNav && (collapseLevel === 'none' || collapseLevel === 'menus')
   const showPath = collapseLevel !== 'path'
   const showOverflow = collapseLevel !== 'none'
+  const showNewFolder =
+    onNewFolder &&
+    (!onUploadFiles || collapseLevel === 'none' || collapseLevel === 'menus')
 
   return (
-    <PanelHeader ref={toolbarRef} variant="compact" height={height}>
+    <PanelHeader
+      ref={toolbarRef}
+      variant="compact"
+      height={height}
+      className="max-sm:min-h-11 [@media(pointer:coarse)]:min-h-11"
+    >
       {showNav && (
         <div className="flex items-center gap-0.5">
           <NavIconButton
@@ -136,7 +146,7 @@ export function Toolbar({
         </div>
       )}
 
-      {showPath ? (
+      {showPath && !searchActive ? (
         <PathBar
           path={currentPath}
           onPathChange={onPathChange}
@@ -148,9 +158,9 @@ export function Toolbar({
         <div className="flex-1" />
       )}
 
-      {(onNewFolder || onUploadFiles) && (
+      {(showNewFolder || onUploadFiles) && (
         <div className="flex items-center gap-0.5">
-          {onNewFolder && (
+          {showNewFolder && (
             <NavIconButton
               icon={<LuFolderPlus className="size-4" />}
               label="New folder"
@@ -173,6 +183,7 @@ export function Toolbar({
             placeholder="Search"
             focusOnMount
             onBlur={() => setSearchActive(false)}
+            className="[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
           />
         ) : (
           <OverflowMenu
@@ -187,10 +198,14 @@ export function Toolbar({
             upDropPath={upDropPath}
             onPathTargetDragOver={onPathTargetDragOver}
             onPathTargetDrop={onPathTargetDrop}
+            onNewFolder={onNewFolder}
           />
         )
       ) : (
-        <SearchBox placeholder="Search" />
+        <SearchBox
+          placeholder="Search"
+          className="[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+        />
       )}
     </PanelHeader>
   )
@@ -225,7 +240,7 @@ function NavIconButton({
       title={label}
       aria-label={label}
       className={cn(
-        'flex size-6 items-center justify-center rounded transition-colors',
+        'flex size-6 items-center justify-center rounded transition-colors max-sm:size-11 [@media(pointer:coarse)]:size-11',
         disabled
           ? 'text-foreground-alt/30 cursor-default'
           : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
@@ -251,6 +266,7 @@ interface OverflowMenuProps {
     event: DragEvent<HTMLElement>,
   ) => boolean
   onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
+  onNewFolder?: () => void
 }
 
 function OverflowMenu({
@@ -265,8 +281,10 @@ function OverflowMenu({
   upDropPath,
   onPathTargetDragOver,
   onPathTargetDrop,
+  onNewFolder,
 }: OverflowMenuProps) {
   const showNavItems = collapseLevel === 'nav' || collapseLevel === 'path'
+  const showNewFolderItem = showNavItems && onNewFolder
 
   return (
     <DropdownMenu>
@@ -274,28 +292,40 @@ function OverflowMenu({
         <button
           type="button"
           aria-label="More actions"
-          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors"
+          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors max-sm:size-11 [@media(pointer:coarse)]:size-11"
         >
           <LuEllipsisVertical className="size-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" variant="compact" className="min-w-35">
-        <DropdownMenuItem onClick={onSearchClick}>
+        <DropdownMenuItem
+          className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+          onClick={onSearchClick}
+        >
           <LuSearch className="size-3.5" />
           Search
         </DropdownMenuItem>
         {showNavItems && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onBack} disabled={!canGoBack}>
+            <DropdownMenuItem
+              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              onClick={onBack}
+              disabled={!canGoBack}
+            >
               <LuChevronLeft className="size-3.5" />
               Back
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onForward} disabled={!canGoForward}>
+            <DropdownMenuItem
+              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              onClick={onForward}
+              disabled={!canGoForward}
+            >
               <LuChevronRight className="size-3.5" />
               Forward
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
               onClick={onUp}
               disabled={!canGoUp}
               onDragOver={
@@ -311,6 +341,18 @@ function OverflowMenu({
             >
               <LuChevronUp className="size-3.5" />
               Up
+            </DropdownMenuItem>
+          </>
+        )}
+        {showNewFolderItem && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
+              onClick={onNewFolder}
+            >
+              <LuFolderPlus className="size-3.5" />
+              New folder
             </DropdownMenuItem>
           </>
         )}

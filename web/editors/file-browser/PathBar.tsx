@@ -12,6 +12,7 @@ interface PathBarProps {
   onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
 }
 
+/** PathBar shows the file path with touch-sized breadcrumbs on phones. */
 export function PathBar({
   path,
   onPathChange,
@@ -22,6 +23,7 @@ export function PathBar({
   return (
     <PathInput
       path={path}
+      mobileTouchTargets
       onPathChange={onPathChange}
       onNavigate={onNavigate}
       onPathTargetDragOver={onPathTargetDragOver}
