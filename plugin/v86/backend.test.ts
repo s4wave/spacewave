@@ -7,6 +7,7 @@ const h = vi.hoisted(() => ({
   pluginAssetHttpPath: vi.fn(),
   viewerRegistrations: [] as Array<Record<string, unknown>>,
   mountNames: [] as string[],
+  readOffsets: [] as number[],
   v86Constructors: [] as Array<Record<string, unknown>>,
   v86Instances: [] as Array<{
     add_listener: ReturnType<typeof vi.fn>
@@ -104,13 +105,16 @@ vi.mock('./v86fs-bridge.js', () => ({
       ) {
         reply(0, 7)
       },
+      // onRead returns at most two bytes per call, like the capped server.
       onRead(
         _handleId: number,
-        _offset: number,
-        _size: number,
+        offset: number,
+        size: number,
         reply: (status: number, data: Uint8Array) => void,
       ) {
-        reply(0, new Uint8Array([1, 2, 3, 4]))
+        h.readOffsets.push(offset)
+        const data = new Uint8Array([1, 2, 3, 4])
+        reply(0, data.subarray(offset, offset + Math.min(size, 2)))
       },
       onClose(_handleId: number, reply: () => void) {
         reply()
@@ -246,6 +250,7 @@ describe('v86 backend registration', () => {
     vi.clearAllMocks()
     h.viewerRegistrations.length = 0
     h.mountNames.length = 0
+    h.readOffsets.length = 0
     h.v86Constructors.length = 0
     h.v86Instances.length = 0
     h.v86BootWaiters.length = 0
@@ -285,6 +290,7 @@ describe('v86 backend registration', () => {
     )
     expect(h.retainedRefs.map((entry) => entry.resourceId)).toEqual([1])
     expect(h.mountNames).toEqual(['wasm', 'seabios', 'vgabios', 'kernel'])
+    expect(h.readOffsets).toEqual([0, 2, 0, 2, 0, 2, 0, 2])
     expect(h.v86Constructors).toHaveLength(1)
     expect(h.v86Constructors[0]).toEqual(
       expect.objectContaining({
