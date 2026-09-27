@@ -23,6 +23,7 @@ type DropdownEntry =
 
 interface ComponentSelectorProps {
   open: boolean
+  placement?: 'above' | 'below'
   onOpenChange: (open: boolean) => void
   components: ObjectViewerComponent[]
   selectedComponent?: ObjectViewerComponent
@@ -30,9 +31,10 @@ interface ComponentSelectorProps {
   children: React.ReactNode
 }
 
-// ComponentSelector displays a dropdown for selecting object viewer components.
+/** ComponentSelector displays and switches the available object viewer components. */
 export function ComponentSelector({
   open,
+  placement = 'above',
   onOpenChange,
   components,
   selectedComponent,
@@ -183,7 +185,7 @@ export function ComponentSelector({
       <div
         role="button"
         tabIndex={0}
-        className="cursor-pointer"
+        className="flex cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         onClick={() => {
           onOpenChange(!open)
         }}
@@ -196,7 +198,10 @@ export function ComponentSelector({
         <div
           role="menu"
           className={cn(
-            'absolute right-0 bottom-full z-50 mb-1',
+            'absolute z-50',
+            placement === 'below'
+              ? 'top-full left-0 mt-1'
+              : 'right-0 bottom-full mb-1',
             'border-border bg-background-card min-w-50 rounded-md border p-1 shadow-md',
           )}
         >
@@ -231,7 +236,7 @@ export function ComponentSelector({
                 tabIndex={-1}
                 key={entry.component.componentID}
                 className={cn(
-                  'text-foreground-alt relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none select-none',
+                  'text-foreground-alt relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none select-none [@media(pointer:coarse)]:min-h-11',
                   'hover:bg-muted hover:text-foreground',
                   isFocused && 'bg-muted/50',
                   isSelected && 'bg-muted/70 text-foreground',

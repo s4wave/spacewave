@@ -109,7 +109,7 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
           <button
             type="button"
             aria-label="Dismiss getting started"
-            className="text-foreground-alt hover:text-foreground rounded-md p-1 transition-colors"
+            className="text-foreground-alt hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md transition-colors [@media(pointer:coarse)]:size-11"
             onClick={() => setDismissed(true)}
           >
             <LuX className="size-4" />

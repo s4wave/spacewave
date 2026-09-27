@@ -104,8 +104,9 @@ export function UnixFSTextFileViewer({
       <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
         {draft === null ? (
           <Button
-            size="sm"
+            size="default"
             variant="ghost"
+            className="max-sm:min-h-11"
             disabled={!content.value.complete}
             onClick={() => setDraft(text)}
           >
@@ -114,15 +115,17 @@ export function UnixFSTextFileViewer({
         ) : (
           <>
             <Button
-              size="sm"
+              size="default"
+              className="max-sm:min-h-11"
               disabled={saving || !rootHandle.value || draft === text}
               onClick={() => void save()}
             >
               {saving ? 'Saving…' : 'Save file'}
             </Button>
             <Button
-              size="sm"
+              size="default"
               variant="ghost"
+              className="max-sm:min-h-11"
               disabled={saving}
               onClick={() => {
                 setDraft(null)
@@ -152,8 +155,9 @@ export function UnixFSTextFileViewer({
         <div role="alert" className="text-destructive p-2 text-sm">
           <p>{error}</p>
           <Button
-            size="sm"
+            size="default"
             variant="ghost"
+            className="max-sm:min-h-11"
             disabled={saving}
             onClick={() => void save()}
           >
@@ -162,7 +166,7 @@ export function UnixFSTextFileViewer({
         </div>
       )}
       {draft === null ? (
-        <pre className="text-foreground min-h-0 flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap">
+        <pre className="text-foreground min-h-0 min-w-0 flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap max-sm:text-sm max-sm:leading-6 max-sm:break-words">
           {text}
         </pre>
       ) : (
@@ -172,7 +176,7 @@ export function UnixFSTextFileViewer({
           disabled={saving}
           onChange={(event) => setDraft(event.target.value)}
           spellCheck={false}
-          className="bg-background text-foreground min-h-64 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none"
+          className="bg-background text-foreground min-h-64 min-w-0 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none max-sm:text-base max-sm:leading-6"
         />
       )}
     </div>

@@ -22,7 +22,7 @@ const variantStyles: Record<PanelHeaderVariant, string> = {
   compact: 'bg-panel-header gap-1.5',
 }
 
-// PanelHeader renders a consistent header bar for panels with optional viewer selector.
+/** PanelHeader renders a panel header with an optional object viewer selector. */
 export function PanelHeader({
   children,
   className,
@@ -42,6 +42,7 @@ export function PanelHeader({
       data-drag-handle=""
       className={cn(
         'panel-header-height text-ui border-ui-outline flex shrink-0 items-center gap-2 border-b px-2',
+        showSelector && '[@media(pointer:coarse)]:min-h-11',
         variantStyles[variant],
         className,
       )}
@@ -50,6 +51,7 @@ export function PanelHeader({
       {showSelector && viewer.selectedComponent && (
         <ComponentSelector
           open={selectorOpen}
+          placement="below"
           onOpenChange={setSelectorOpen}
           components={viewer.visibleComponents}
           selectedComponent={viewer.selectedComponent}
@@ -86,6 +88,7 @@ export function PanelHeaderButton({
 }: PanelHeaderButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
       className={cn(

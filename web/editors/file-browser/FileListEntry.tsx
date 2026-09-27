@@ -281,7 +281,8 @@ export function FileListEntry({
       </div>
       <button
         type="button"
-        className="flex h-full w-8 items-center justify-center"
+        aria-label={`More actions for ${entry.name || entry.id}`}
+        className="flex h-full w-8 shrink-0 items-center justify-center [@media(pointer:coarse)]:size-11"
         onClick={handleDotsClick}
         onDoubleClick={(e) => {
           e.stopPropagation()
@@ -289,7 +290,7 @@ export function FileListEntry({
         }}
         onContextMenu={handleDotsClick}
       >
-        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100" />
+        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100" />
       </button>
     </>
   )
@@ -304,7 +305,7 @@ export function FileListEntry({
       aria-setsize={ariaAttributes['aria-setsize']}
       style={style}
       className={cn(
-        'group relative flex items-center px-3 py-1.5 text-xs',
+        'group relative flex items-center px-3 py-1.5 text-xs [@media(pointer:coarse)]:py-0',
         'cursor-pointer transition-colors select-none',
         selected
           ? 'bg-brand/10 text-foreground'
