@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -66,6 +67,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Build bifrost archive
         shell: bash

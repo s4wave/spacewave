@@ -1,0 +1,21 @@
+name: Prune superseded Go dependency caches
+description: >-
+  Delete this job's trusted Go dependency cache entries keyed by an older
+  go.sum hash. They are never restored again and only fill the repository
+  cache quota. Requires the actions write permission.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        CACHE_PREFIX: trusted-go-${{ github.job }}-${{ runner.os }}-go-
+        CACHE_KEY: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      run: |
+        set -euo pipefail
+        gh cache list --repo "${GITHUB_REPOSITORY}" --key "${CACHE_PREFIX}" --limit 100 \
+          --json id,key --jq '.[] | select(.key != env.CACHE_KEY) | .id' |
+          while read -r id; do
+            gh cache delete "${id}" --repo "${GITHUB_REPOSITORY}"
+          done

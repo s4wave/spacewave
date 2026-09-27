@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
@@ -45,6 +46,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - uses: oven-sh/setup-bun@v2
 

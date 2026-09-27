@@ -41,6 +41,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: read
 
 env:
@@ -146,6 +147,10 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
@@ -291,6 +296,10 @@ jobs:
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
+      - name: Prune superseded Go dependency caches
+        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/prune-go-cache
+
       - name: Setup Bun
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         uses: oven-sh/setup-bun@v2
@@ -385,6 +394,7 @@ jobs:
     runs-on: windows-2025
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
+      actions: write
       contents: read
       id-token: write
     strategy:
@@ -427,6 +437,10 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         if: steps.windows_handoff_cache.outputs.cache-hit != 'true'
@@ -693,6 +707,7 @@ jobs:
     runs-on: macos-26
     environment: ${{ needs.prep.outputs.environment_name }}
     permissions:
+      actions: write
       contents: read
     strategy:
       fail-fast: false
@@ -734,6 +749,10 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         if: steps.macos_handoff_cache.outputs.cache-hit != 'true'
@@ -902,6 +921,7 @@ jobs:
       - macos
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       id-token: write
       attestations: write
@@ -1006,6 +1026,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Build public release checksums
         shell: bash

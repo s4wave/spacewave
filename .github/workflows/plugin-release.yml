@@ -27,6 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: read
   id-token: write
   attestations: write
@@ -116,6 +117,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -224,6 +228,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -334,6 +341,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -536,6 +546,9 @@ jobs:
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
@@ -610,6 +623,9 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: trusted-go-${{ github.job }}-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Prune superseded Go dependency caches
+        uses: ./.github/actions/prune-go-cache
 
       - name: Download browser plugin world state
         if: needs.prep.outputs.include_browser == 'true'
