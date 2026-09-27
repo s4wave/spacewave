@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
+	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 )
 
 // TestSharedDaemonStarters exercises real detached processes, state leases and
@@ -133,7 +135,34 @@ func TestSharedDaemonStarters(t *testing.T) {
 			if err != nil || value.GetStateJson() != `"after-close"` {
 				t.Fatalf("retained watch after client close: value=%v error=%v", value, err)
 			}
-			t.Logf("%s: both starters initialized daemon %s; one lease; retained stream advanced after other close", mode, identity)
+
+			// A missing UI artifact fails only the desktop request. The launcher
+			// disconnects while the other client's Resource watch remains live.
+			launcher, err := daemon.Connect(ctx, statePath, filepath.Join(statePath, socketName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, openErr := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher.RPC()).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+			launcher.Close()
+			if openErr == nil {
+				t.Fatal("desktop opened without a UI artifact")
+			}
+			if !strings.Contains(openErr.Error(), "desktop UI artifact unavailable") {
+				t.Fatalf("missing desktop artifact: %v", openErr)
+			}
+
+			// Advance the retained Resource watch after the desktop request fails.
+			if _, err := secondAtom.SetState(ctx, &resource_state.SetStateRequest{StateJson: `"after-desktop-failure"`}); err != nil {
+				t.Fatal(err)
+			}
+			value, err = stream.Recv()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if value.GetStateJson() != `"after-desktop-failure"` {
+				t.Fatalf("retained watch after desktop failure: value=%v error=%v", value, err)
+			}
+			t.Logf("%s: daemon %s kept its Resource watch after a missing-artifact desktop request", mode, identity)
 		})
 	}
 }
