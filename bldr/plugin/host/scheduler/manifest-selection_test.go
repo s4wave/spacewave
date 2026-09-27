@@ -226,3 +226,85 @@ func TestDirectManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 		t.Fatal("newer JavaScript revision did not replace the fallback")
 	}
 }
+
+// TestManifestSelectionNativeReplacesJavaScript matches a fresh desktop
+// install: the JavaScript core arrives first with a higher revision counter,
+// then the native build arrives and must replace it.
+func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
+	le := logrus.NewEntry(logrus.New())
+	jsHost := &testPluginHost{id: "js"}
+	nativeHost := &testPluginHost{id: "desktop/darwin/arm64"}
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{jsHost, nativeHost}}
+	newInstance := func(objKey string) *pluginInstance {
+		return &pluginInstance{
+			c:                       &Controller{conf: &Config{}, objKey: objKey},
+			le:                      le,
+			pluginID:                "spacewave-core",
+			downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+			executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+		}
+	}
+
+	t.Run("direct", func(t *testing.T) {
+		instance := newInstance("")
+		handler := instance.newDirectFetchHandler(t.Context(), hosts)
+		add := func(id uint32, platform string, rev uint64) {
+			t.Helper()
+			ref := newTestManifestRef("spacewave-core", platform, rev, "bucket")
+			handler.HandleValueAdded(nil, directive.NewAttachedValue(id, manifest.NewFetchManifestValue([]*manifest.ManifestRef{ref})))
+		}
+		add(1, "js", 16)
+		if selected := instance.executePluginRoutine.GetState(); selected == nil || selected.pluginHost != jsHost {
+			t.Fatal("JavaScript core was not selected before the native build arrived")
+		}
+		add(2, "desktop/darwin/arm64", 15)
+		if selected := instance.executePluginRoutine.GetState(); selected == nil || selected.pluginHost != nativeHost {
+			t.Fatal("native build did not replace the JavaScript core")
+		}
+	})
+
+	t.Run("world", func(t *testing.T) {
+		ctx := t.Context()
+		tb, err := testbed.NewTestbed(ctx, le)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(tb.Release)
+		cursor, err := tb.BuildEmptyCursor(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(cursor.Release)
+		ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		const hostKey = "plugin-host"
+		if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
+			t.Fatal(err)
+		}
+		instance := newInstance(hostKey)
+		selectAfterAdding := func(platform string, rev uint64) *executePluginArgs {
+			t.Helper()
+			_, key := storeTestWorldManifest(t, ctx, ws, "spacewave-core", platform, rev)
+			if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, key, "spacewave-core")); err != nil {
+				t.Fatal(err)
+			}
+			obj, found, err := ws.GetObject(ctx, hostKey)
+			defer world.ReleaseObjectState(obj)
+			if err != nil || !found {
+				t.Fatalf("host object: found=%t, error=%v", found, err)
+			}
+			if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+				t.Fatal(err)
+			}
+			return instance.executePluginRoutine.GetState()
+		}
+		if selected := selectAfterAdding("js", 16); selected == nil || selected.pluginHost != jsHost {
+			t.Fatal("JavaScript core was not selected before the native build arrived")
+		}
+		if selected := selectAfterAdding("desktop/darwin/arm64", 15); selected == nil || selected.pluginHost != nativeHost {
+			t.Fatal("native build did not replace the JavaScript core")
+		}
+	})
+}

@@ -47,11 +47,22 @@ func (c *manifestCandidate) betterThan(other *manifestCandidate) bool {
 
 // shouldRemainCurrent keeps a still-selectable admitted generation until a
 // newer revision arrives. Late same-revision variants cannot cancel its RPCs.
+//
+// A native build always replaces a non-native execution: native and
+// JavaScript builds carry independent revision counters, so a higher
+// JavaScript revision says nothing about which build is newer.
 func (c *manifestCandidate) shouldRemainCurrent(best *manifestCandidate) bool {
 	if c == nil {
 		return false
 	}
-	return best == nil || c.ref.GetMeta().GetRev() >= best.ref.GetMeta().GetRev()
+	if best == nil {
+		return true
+	}
+	if platformPreferenceRank(best.host.GetPlatformId()) == 0 &&
+		platformPreferenceRank(c.host.GetPlatformId()) != 0 {
+		return false
+	}
+	return c.ref.GetMeta().GetRev() >= best.ref.GetMeta().GetRev()
 }
 
 // matchesState checks the execution identity while allowing a manifest's
