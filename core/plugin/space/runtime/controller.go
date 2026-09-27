@@ -27,9 +27,8 @@ var controllerDescrip = "runs the shared plugin runtime of one Space"
 // with equal configs share one runtime, and it stops after the last mount
 // releases its reference.
 //
-// A change to the daemon plugin host set replaces the running generation. A
-// startup or runtime failure is published to every mount and retried with
-// backoff.
+// Host changes reconcile within the running scheduler. A composition failure
+// is published to every mount and retried with backoff.
 type Controller struct {
 	*bus.BusController[*Config]
 
@@ -38,7 +37,7 @@ type Controller struct {
 	// gen is the running generation, or nil while none runs.
 	gen *Generation
 	// err is the last startup or runtime failure. It is cleared when a
-	// generation starts or the plugin host set changes.
+	// generation starts.
 	err error
 	// prefixes is the set of attached RPC service ID prefixes bound by mounts.
 	prefixes map[string]struct{}
@@ -151,10 +150,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return nil
 		}
-		if errors.Is(err, errPluginHostSetChanged) {
-			c.GetLogger().Debug("daemon plugin host set changed, restarting Space runtime")
-			continue
-		}
 
 		// Wait out the backoff before the next attempt.
 		delay := retry.NextBackOff()
@@ -175,7 +170,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 // runGeneration starts one generation, publishes it, and returns the reason it
 // ended. A generation that starts resets retry.
 func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) error {
-	gen, err := startGeneration(ctx, c.GetBus(), c.GetLogger(), c.GetConfig().GetSpace(), c.NotifyProcessBindingsChanged)
+	gen, err := startGeneration(ctx, c.GetBus(), c.GetLogger(), c.GetConfig(), c.NotifyProcessBindingsChanged)
 	if err != nil {
 		c.publish(nil, err)
 		return err
@@ -183,14 +178,9 @@ func (c *Controller) runGeneration(ctx context.Context, retry backoff.BackOff) e
 	c.publish(gen, nil)
 	retry.Reset()
 
-	// Withdraw the generation before stopping it so no mount installs a route on
-	// a stopping bus. A plugin host set change is a restart, not a failure.
+	// Withdraw the generation before stopping it so mounts stop installing routes.
 	err = gen.wait(ctx)
-	failure := err
-	if errors.Is(err, errPluginHostSetChanged) {
-		failure = nil
-	}
-	c.publish(nil, failure)
+	c.publish(nil, err)
 	gen.release()
 	return err
 }

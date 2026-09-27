@@ -21,11 +21,24 @@ export interface Config {
    * @generated from field: string service_id = 1;
    */
   serviceId?: string
+  /**
+   * AppPluginIds declares the plugins this application supplies to mounted Spaces.
+   *
+   * @generated from field: repeated string app_plugin_ids = 2;
+   */
+  appPluginIds?: string[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'resource.root.controller.Config',
   fields: [
     { no: 1, name: 'service_id', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 2,
+      name: 'app_plugin_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
   ] satisfies readonly PartialFieldInfo[],
 })

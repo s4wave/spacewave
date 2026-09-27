@@ -101,6 +101,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		mountedBodySessionPeerID(body, r.sessionPeerID),
 		r.hostPluginID,
 	)
+	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 	resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
 	resourceValue = spaceResource
 

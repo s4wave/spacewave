@@ -120,6 +120,7 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 
 			// create the root resource
 			c.rootResource = resource_root.NewCoreRootServer(base.GetLogger(), b)
+			c.rootResource.SetAppPluginIDs(base.GetConfig().GetAppPluginIds())
 			c.rootResource.SetMountAppFunc(c.mountApp)
 			if c.yieldBroker != nil {
 				c.rootResource.SetYieldBroker(c.yieldBroker)

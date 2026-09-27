@@ -32,6 +32,7 @@ func (s *CoreRootServer) GetCdn(
 
 	// Mount a client resource without transferring the shared instance's lifetime.
 	cdnResource := resource_cdn.NewCdnResource(s.le, s.b, instance)
+	cdnResource.SetAppPluginIDs(s.appPluginIDs)
 	id, err := resourceCtx.AddResource(cdnResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err

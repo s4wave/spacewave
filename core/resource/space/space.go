@@ -2,6 +2,7 @@ package resource_space
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -36,6 +37,8 @@ type SpaceResource struct {
 	space         space.SpaceSharedObjectBody
 	sessionPeerID string
 	hostPluginID  string
+	// appPluginIDs is the immutable application declaration supplied before publication.
+	appPluginIDs []string
 }
 
 // NewSpaceResource creates a new SpaceResource.
@@ -346,7 +349,7 @@ func (r *SpaceResource) MountSpaceContents(
 	runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(
 		ctx,
 		r.b,
-		&plugin_space_runtime.Config{Space: conf},
+		&plugin_space_runtime.Config{Space: conf, AppPluginIds: r.appPluginIDs},
 	)
 	if err != nil {
 		r.le.WithError(err).Info("failed to mount space contents: could not start runtime")
@@ -579,3 +582,8 @@ func loadSharingParticipantPresentationState(
 
 // _ is a type assertion
 var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)
+
+// SetAppPluginIDs supplies application composition before the resource is published.
+func (r *SpaceResource) SetAppPluginIDs(ids []string) {
+	r.appPluginIDs = slices.Clone(ids)
+}

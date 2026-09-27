@@ -376,8 +376,13 @@ func (r *SpaceContentsResource) WatchState(
 		var loadedCh, requestedCh <-chan struct{}
 		var requestedIDs []string
 		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
-		var waitStatusChange func(context.Context) error
+		var waitStatusChange, waitHostChange func(context.Context) error
 		if gen != nil {
+			_, hostChanged, hostErr := gen.GetScheduler().GetHostState()
+			waitHostChange = hostChanged
+			if hostErr != nil {
+				runtimeErr = errors.Wrap(hostErr, "watch daemon plugin hosts")
+			}
 			var ids []string
 			ids, loadedCh = gen.GetSpaceController().GetLoadedPluginIDsAndWaitCh()
 			for _, pid := range ids {
@@ -435,7 +440,7 @@ func (r *SpaceContentsResource) WatchState(
 		err = waitSpaceContentsSources(ctx, func(waitCtx context.Context) error {
 			_, err := r.engine.WaitSeqno(waitCtx, prevSeqno+1)
 			return err
-		}, []<-chan struct{}{runtimeCh, loadedCh, requestedCh}, waitStatusChange)
+		}, []<-chan struct{}{runtimeCh, loadedCh, requestedCh}, waitStatusChange, waitHostChange)
 		if err != nil {
 			return err
 		}

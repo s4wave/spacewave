@@ -2,6 +2,7 @@ package resource_cdn
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -28,6 +29,8 @@ type CdnResource struct {
 	mux srpc.Invoker
 	// instance is borrowed from the CDN registry.
 	instance *CdnInstance
+	// appPluginIDs is the immutable application declaration supplied before publication.
+	appPluginIDs []string
 }
 
 // NewCdnResource constructs a CdnResource bound to the supplied instance.
@@ -79,6 +82,7 @@ func (r *CdnResource) MountCdnSpace(
 	}
 	body := cdn_sharedobject.NewCdnSpaceBody(cdnSO, we)
 	spaceResource := resource_space.NewSpaceResource(r.le, r.b, body)
+	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 
 	// Transfer engine release to the client resource reference.
 	id, err := resourceCtx.AddResource(spaceResource.GetMux(), we.Release)
@@ -183,3 +187,8 @@ func copyV86ImageProgress(
 
 // _ is a type assertion.
 var _ s4wave_cdn.SRPCCdnResourceServiceServer = (*CdnResource)(nil)
+
+// SetAppPluginIDs supplies application composition before the resource is published.
+func (r *CdnResource) SetAppPluginIDs(ids []string) {
+	r.appPluginIDs = slices.Clone(ids)
+}

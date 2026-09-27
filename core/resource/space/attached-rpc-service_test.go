@@ -10,11 +10,8 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
-	net_testbed "github.com/s4wave/spacewave/net/testbed"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-	"github.com/sirupsen/logrus"
 )
 
 // attachedEchoServiceID is the echo service ID behind the "attached/" prefix.
@@ -82,20 +79,13 @@ func (*attachedRpcServiceStream) Close() error {
 }
 
 func TestBindAttachedRpcService(t *testing.T) {
-	ctx := t.Context()
-	le := logrus.NewEntry(logrus.New())
-	tb, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	resource := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
-		SpaceId:  "space-a",
-		EngineId: "engine-a",
-	})
-	sibling := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
-		SpaceId:  "space-b",
-		EngineId: "engine-a",
-	})
+	ctx, tb := newSpaceRuntimeTestbed(t)
+	conf := newSpaceRuntimeConfig(tb)
+	conf.SpaceId = "space-a"
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
+	siblingConf := conf.CloneVT()
+	siblingConf.SpaceId = "space-b"
+	sibling := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, siblingConf)
 	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 	siblingGen := waitSpaceRuntimeGeneration(t, sibling.runtime, nil)
 
@@ -166,16 +156,10 @@ func TestBindAttachedRpcService(t *testing.T) {
 }
 
 func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
-	ctx := t.Context()
-	le := logrus.NewEntry(logrus.New())
-	tb, err := net_testbed.NewTestbed(ctx, le, net_testbed.TestbedOpts{NoEcho: true, NoPeer: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	resource := newTestSpaceContentsResource(t, le, tb.Bus, nil, &plugin_space.Config{
-		SpaceId:  "space-a",
-		EngineId: "engine-a",
-	})
+	ctx, tb := newSpaceRuntimeTestbed(t)
+	conf := newSpaceRuntimeConfig(tb)
+	conf.SpaceId = "space-a"
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
 	ownerCtx, cancelOwner := context.WithCancel(ctx)
@@ -184,7 +168,7 @@ func TestBindAttachedRpcServicePreEndedOwner(t *testing.T) {
 	cancelOwner()
 
 	stream := newAttachedRpcServiceStream(resource_server.WithResourceClientContext(ctx, attachedResources))
-	err = resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
+	err := resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
 		AttachedResourceId: attachedID,
 		ServiceIdPrefix:    "attached/",
 	}, stream)

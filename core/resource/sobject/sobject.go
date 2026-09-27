@@ -2,6 +2,7 @@ package resource_sobject
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -22,6 +23,8 @@ type SharedObjectResource struct {
 	ref           *sobject.SharedObjectRef
 	sessionPeerID string
 	hostPluginID  string
+	// appPluginIDs is the immutable application declaration supplied before publication.
+	appPluginIDs []string
 }
 
 // NewSharedObjectResource creates a new SharedObjectResource.
@@ -165,3 +168,8 @@ func waitSharedObjectHealth(
 
 // _ is a type assertion
 var _ s4wave_sobject.SRPCSharedObjectResourceServiceServer = (*SharedObjectResource)(nil)
+
+// SetAppPluginIDs supplies application composition before the resource is published.
+func (r *SharedObjectResource) SetAppPluginIDs(ids []string) {
+	r.appPluginIDs = slices.Clone(ids)
+}

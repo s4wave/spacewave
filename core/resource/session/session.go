@@ -59,6 +59,8 @@ type SessionResource struct {
 	session session.Session
 	// hostPluginID identifies the plugin serving this resource root.
 	hostPluginID string
+	// appPluginIDs is the immutable application declaration supplied before publication.
+	appPluginIDs []string
 	// transferMgr tracks transfers started through this resource.
 	transferMgr transferManager
 
@@ -317,6 +319,7 @@ func (r *SessionResource) addSharedObjectResource(
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
 	)
+	soResource.SetAppPluginIDs(r.appPluginIDs)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
 	if err != nil {
 		mountedSoRef.Release()
@@ -418,6 +421,7 @@ func (r *SessionResource) mountSpaceResponse(
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
 	)
+	spaceResource.SetAppPluginIDs(r.appPluginIDs)
 	spaceBodyID, err := mountedresource.Add(
 		resourceCtx,
 		spaceResource.GetMux(),
@@ -923,6 +927,7 @@ func (r *SessionResource) mountCdnSharedObject(
 		r.session.GetPeerId().String(),
 		r.hostPluginID,
 	)
+	soResource.SetAppPluginIDs(r.appPluginIDs)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
@@ -1655,3 +1660,8 @@ func acceptedCloudInviteJoinResponse(
 
 // _ is a type assertion
 var _ s4wave_session.SRPCSessionResourceServiceServer = (*SessionResource)(nil)
+
+// SetAppPluginIDs supplies application composition before the resource is published.
+func (r *SessionResource) SetAppPluginIDs(ids []string) {
+	r.appPluginIDs = slices.Clone(ids)
+}

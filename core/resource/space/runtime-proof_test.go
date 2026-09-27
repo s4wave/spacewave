@@ -17,6 +17,7 @@ import (
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_mock "github.com/s4wave/spacewave/bldr/plugin/host/mock"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_host_static "github.com/s4wave/spacewave/bldr/plugin/host/static"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -110,7 +111,11 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = tb.EngineObjectStoreID
-	waitSpaceRuntimeGeneration(t, resource.runtime, nil)
+	gen := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
+	second := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf.CloneVT())
+	if second.runtime != resource.runtime {
+		t.Fatal("two mounts did not retain the same active runtime")
+	}
 
 	approveSpaceRuntimePlugin(t, ctx, tb)
 	select {
@@ -135,6 +140,21 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 		return status.GetLoaded() &&
 			status.GetState() == s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED
 	})
+
+	// An unused host joins while the parent load remains active.
+	addSpaceRuntimePluginHost(t, tb.Bus, "unused/platform")
+	waitSpaceRuntimeHost(t, ctx, gen.GetScheduler(), "unused/platform")
+	if current, _, err := resource.runtime.GetGeneration(); current != gen || err != nil {
+		t.Fatal("unused host arrival replaced active execution")
+	}
+	second.Release()
+	select {
+	case <-host.released:
+		t.Fatal("releasing one mount canceled its sibling's plugin load")
+	case <-gen.Done():
+		t.Fatal("releasing one mount stopped the shared runtime")
+	default:
+	}
 
 	// A Space-stored installation crosses the parent RPC with its exact artifact,
 	// even when that artifact is absent from the parent's application catalog.
@@ -170,7 +190,8 @@ func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
 	}
 }
 
-func TestSpaceRuntimeRestartsAfterParentHostPublication(t *testing.T) {
+// TestSpaceRuntimeKeepsGenerationAfterParentHostPublication schedules through live hosts.
+func TestSpaceRuntimeKeepsGenerationAfterParentHostPublication(t *testing.T) {
 	ctx, tb := newSpaceRuntimeTestbed(t)
 	manifestSource := newEmptyManifestSource(spaceRuntimeManifestID)
 	addSpaceRuntimeController(t, tb.Bus, manifestSource)
@@ -179,12 +200,15 @@ func TestSpaceRuntimeRestartsAfterParentHostPublication(t *testing.T) {
 	first := waitSpaceRuntimeGeneration(t, resource.runtime, nil)
 
 	addSpaceRuntimePluginHost(t, tb.Bus, "test/platform")
-	waitSpaceRuntimeGeneration(t, resource.runtime, first)
+	waitSpaceRuntimeHost(t, ctx, first.GetScheduler(), "test/platform")
+	if current, _, err := resource.runtime.GetGeneration(); current != first || err != nil {
+		t.Fatal("host publication replaced the running Space")
+	}
 	approveSpaceRuntimePlugin(t, ctx, tb)
 	select {
 	case <-manifestSource.started:
 	case <-ctx.Done():
-		t.Fatal("restarted Space runtime did not fetch the approved parent manifest")
+		t.Fatal("running Space runtime did not fetch the approved parent manifest")
 	}
 }
 
@@ -238,8 +262,8 @@ func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T)
 		t.Fatal(err)
 	}
 
-	// Replace the generation while the old bind continuation is paused.
-	addSpaceRuntimePluginHost(t, tb.Bus, "test/platform")
+	// A composition failure still replaces the generation while binding is paused.
+	first.GetBus().RemoveController(first.GetScheduler())
 	second := waitSpaceRuntimeGeneration(t, resource.runtime, first)
 	select {
 	case <-stream.ready:
@@ -389,7 +413,10 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 	recvSpaceRuntimeWatchState(t, stream)
 
 	addSpaceRuntimePluginHost(t, tb.Bus, "desktop/test-b")
-	waitSpaceRuntimeGeneration(t, resource.runtime, first)
+	waitSpaceRuntimeHost(t, ctx, first.GetScheduler(), "desktop/test-b")
+	if current, _, err := resource.runtime.GetGeneration(); current != first || err != nil {
+		t.Fatal("host publication replaced the runtime")
+	}
 	state := recvSpaceRuntimeWatchState(t, stream)
 	if len(state.GetPlugins()) != 1 {
 		t.Fatalf("plugins = %d, want 1", len(state.GetPlugins()))
@@ -431,10 +458,8 @@ func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
 		}
 		break
 	}
-	select {
-	case <-first.Done():
-	case <-ctx.Done():
-		t.Fatal("failed generation was not released")
+	if current, _, err := resource.runtime.GetGeneration(); current != first || err != nil {
+		t.Fatal("a host resolver error replaced unrelated execution")
 	}
 }
 
@@ -580,5 +605,22 @@ func recvSpaceRuntimeWatchState(
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for Space contents state")
 		return nil
+	}
+}
+
+// waitSpaceRuntimeHost observes host publication at the responsible scheduler.
+func waitSpaceRuntimeHost(t *testing.T, ctx context.Context, scheduler *plugin_host_scheduler.Controller, platform string) {
+	t.Helper()
+	for {
+		hosts, wait, err := scheduler.GetHostState()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if slices.ContainsFunc(hosts, func(host plugin_host.PluginHost) bool { return host.GetPlatformId() == platform }) {
+			return
+		}
+		if err := wait(ctx); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

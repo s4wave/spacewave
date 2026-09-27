@@ -1138,7 +1138,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/plugin/space/runtime": {
-      "hash": "311e3eacf4d472fe4aceea19c2941e1cd427cf443116dffc93cde28af26b1fff",
+      "hash": "045909142318f0c49c51260d28f3a121edb27273952ad65360b5f0fb502da479",
       "generatedFiles": [
         "core/plugin/space/runtime/runtime.pb.go",
         "core/plugin/space/runtime/runtime.pb.ts"
@@ -1311,7 +1311,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/resource/root/controller": {
-      "hash": "8d3ec1f91e0c66cc6b7a159f4b42499fc3ef12498aa97ac493626b2b75b5757a",
+      "hash": "01fffb01d74f92a04ddde962fee6af6ad6b2357c11be40337ffb4376291c066b",
       "generatedFiles": [
         "core/resource/root/controller/config.pb.go",
         "core/resource/root/controller/config.pb.ts"

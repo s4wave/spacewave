@@ -61,6 +61,7 @@ import (
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	block_store_rpc_server_bucket "github.com/s4wave/spacewave/db/block/store/rpc/server/bucket"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
@@ -152,6 +153,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{block_store_rpc_server.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{block_store_rpc_server_bucket.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{block_store_s3.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bucket_setup.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

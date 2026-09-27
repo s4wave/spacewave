@@ -9,7 +9,6 @@ import (
 
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/block"
@@ -17,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-	"github.com/s4wave/spacewave/testbed"
 )
 
 // catalogCacheTestManifestSpec describes one seeded manifest object.
@@ -36,19 +34,12 @@ func TestSpaceContentsResourceWatchStateCachesAvailablePluginCatalogForUnchanged
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	tb, err := testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	_, tb := newSpaceRuntimeTestbed(t)
 
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
-	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
-		SpaceId:  "space-test",
-		EngineId: tb.EngineID,
-	})
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
 
@@ -125,19 +116,12 @@ func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenMan
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	tb, err := testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
+	_, tb := newSpaceRuntimeTestbed(t)
 
 	manifestSpecs := catalogCacheTestManifestSpecs()
 	manifests := seedCatalogCacheTestManifests(t, ctx, tb.Engine, manifestSpecs)
 
-	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
-		SpaceId:  "space-test",
-		EngineId: tb.EngineID,
-	})
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, newSpaceRuntimeConfig(tb))
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
 
