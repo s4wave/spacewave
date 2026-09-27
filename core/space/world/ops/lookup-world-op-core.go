@@ -17,6 +17,7 @@ import (
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
+	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
 func lookupCoreWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
@@ -43,6 +44,11 @@ func lookupCoreWorldOp(ctx context.Context, opTypeID string) (world.Operation, e
 		forge_dashboard.LookupInitForgeQuickstartOp,
 		forge_job_ops.LookupForgeJobCreateOp,
 		forge_task_ops.LookupForgeTaskCreateOp,
+		s4wave_vm.LookupCreateVmV86Op,
+		s4wave_vm.LookupSetV86ConfigOp,
+		s4wave_vm.LookupSetV86StateOp,
+		s4wave_vm.LookupCreateV86ImageOp,
+		s4wave_vm.LookupSetV86ImageMetadataOp,
 		lookupGitWizardOp,
 	}).LookupOp(ctx, opTypeID)
 }

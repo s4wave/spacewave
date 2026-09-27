@@ -15,6 +15,7 @@ import (
 	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
 func requireLookupWorldOp[T any](t *testing.T, opTypeID string) {
@@ -48,4 +49,12 @@ func TestGoScriptLookupWorldOpResolvesForgeQuickstartOps(t *testing.T) {
 	requireLookupWorldOp[*forge_execution_tx.Tx](t, forge_execution_tx.ObjectOperationTypeID)
 	requireLookupWorldOp[*forge_pass_tx.Tx](t, forge_pass_tx.WorldOperationTypeID)
 	requireLookupWorldOp[*forge_task_tx.Tx](t, forge_task_tx.WorldOperationTypeID)
+}
+
+func TestGoScriptLookupWorldOpResolvesVmOps(t *testing.T) {
+	requireLookupWorldOp[*s4wave_vm.CreateVmV86Op](t, s4wave_vm.CreateVmV86OpId)
+	requireLookupWorldOp[*s4wave_vm.SetV86ConfigOp](t, s4wave_vm.SetV86ConfigOpId)
+	requireLookupWorldOp[*s4wave_vm.SetV86StateOp](t, s4wave_vm.SetV86StateOpId)
+	requireLookupWorldOp[*s4wave_vm.CreateV86ImageOp](t, s4wave_vm.CreateV86ImageOpId)
+	requireLookupWorldOp[*s4wave_vm.SetV86ImageMetadataOp](t, s4wave_vm.SetV86ImageMetadataOpId)
 }
