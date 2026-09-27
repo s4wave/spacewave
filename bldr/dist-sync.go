@@ -7,8 +7,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/util/exec"
@@ -20,6 +23,10 @@ import (
 
 // DistGoMod is the Go module path used for the checked-out Bldr dist sources.
 const DistGoMod = "github.com/s4wave/spacewave/bldr-dist"
+
+// distSyncOwnedPaths are the dist root entries that SyncDistSources writes
+// itself rather than copying from the embedded dist sources.
+var distSyncOwnedPaths = []string{"vendor", "node_modules", "go.mod", "go.sum", ".sync-hash"}
 
 // DistSourceSyncConfig configures Bldr dist-source materialization.
 type DistSourceSyncConfig struct {
@@ -56,7 +63,7 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		conf.DistRoot,
 		distSourcesHandle,
 		unixfs_sync.DeleteMode_DeleteMode_DURING,
-		unixfs_sync.NewSkipPathPrefixes([]string{"vendor", "node_modules", "go.mod", "go.sum", ".sync-hash"}),
+		unixfs_sync.NewSkipPathPrefixes(distSyncOwnedPaths),
 	); err != nil {
 		return err
 	}
@@ -116,8 +123,18 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return err
 	}
 
-	goModHash := sha256.Sum256(updatedDistGoMod)
-	hashStr := hex.EncodeToString(goModHash[:])
+	sourceGoSumPath := filepath.Join(conf.RepoRoot, "go.sum")
+	sourceGoSumData, err := os.ReadFile(sourceGoSumPath)
+	if err != nil {
+		return errors.Wrapf(err, "read repo go.sum at %s", sourceGoSumPath)
+	}
+
+	// Tidy and vendor read the dist go.mod and go.sum and the imports of the
+	// synced dist sources. The vendor tree is reused while all three match.
+	hashStr, err := distSyncHash(conf.DistRoot, updatedDistGoMod, sourceGoSumData, conf.BldrSum)
+	if err != nil {
+		return err
+	}
 	syncHashPath := filepath.Join(conf.DistRoot, ".sync-hash")
 	vendorDir := filepath.Join(conf.DistRoot, "vendor")
 
@@ -135,11 +152,6 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	}
 
 	distGoSumPath := filepath.Join(conf.DistRoot, "go.sum")
-	sourceGoSumPath := filepath.Join(conf.RepoRoot, "go.sum")
-	sourceGoSumData, err := os.ReadFile(sourceGoSumPath)
-	if err != nil {
-		return errors.Wrapf(err, "read repo go.sum at %s", sourceGoSumPath)
-	}
 	// #nosec G703 -- this fixed filename is written in the caller-owned dist checkout.
 	if err := os.WriteFile(distGoSumPath, sourceGoSumData, 0o644); err != nil {
 		return err
@@ -186,6 +198,52 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	}
 	le.Info("done checking out bldr sources")
 	return nil
+}
+
+// distSyncHash digests the inputs of tidy and vendor: the dist go.mod, the repo
+// go.sum, the Bldr module checksum and every synced dist source file.
+func distSyncHash(distRoot string, distGoMod, goSum []byte, bldrSum string) (string, error) {
+	h := sha256.New()
+	writeField := func(name string, data []byte) {
+		_, _ = fmt.Fprintf(h, "%s %d\n", name, len(data))
+		_, _ = h.Write(data)
+	}
+	writeField("go.mod", distGoMod)
+	writeField("go.sum", goSum)
+	writeField("bldr-sum", []byte(bldrSum))
+
+	root, err := os.OpenRoot(distRoot)
+	if err != nil {
+		return "", err
+	}
+	defer root.Close()
+	err = fs.WalkDir(root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if p == "." {
+			return nil
+		}
+		if !strings.Contains(p, "/") && slices.Contains(distSyncOwnedPaths, p) {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		data, err := root.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		writeField(p, data)
+		return nil
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "hash dist sources")
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func absolutizeRelativeReplaces(modFile *modfile.File, repoRoot string) error {
