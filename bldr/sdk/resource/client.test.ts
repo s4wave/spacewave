@@ -792,14 +792,13 @@ describe('ResourceClient', () => {
     }
   })
 
-  it('retries ResourceClient streams that close before init', async () => {
-    vi.useFakeTimers()
+  it('reports a pre-init stream failure and connects on explicit retry', async () => {
     const service = buildUnusedService()
     let calls = 0
     service.ResourceClient = vi.fn(async function* (_request, signal) {
       calls++
       if (calls === 1) {
-        return
+        throw new Error('local transport unavailable')
       }
       yield {
         body: {
@@ -813,19 +812,23 @@ describe('ResourceClient', () => {
     })
 
     const client = new Client(service, new AbortController().signal)
-    const rootPromise = client.accessRootResource()
+    await expect(client.accessRootResource()).rejects.toMatchObject({
+      code: 'CONNECTION_FAILED',
+      message:
+        'Failed to initialize client connection: local transport unavailable',
+      cause: new Error('local transport unavailable'),
+    })
+    expect(calls).toBe(1)
 
-    await vi.advanceTimersByTimeAsync(500)
-    const root = await rootPromise
+    const root = await client.accessRootResource()
 
     expect(root.resourceId).toBe(2)
     expect(calls).toBe(2)
 
     client.dispose()
-    vi.useRealTimers()
   })
 
-  it('retries ResourceClient streams that hang before init', async () => {
+  it('reports an initialization timeout and connects on explicit retry', async () => {
     vi.useFakeTimers()
     const service = buildUnusedService()
     let calls = 0
@@ -849,10 +852,15 @@ describe('ResourceClient', () => {
     })
 
     const client = new Client(service, new AbortController().signal)
-    const rootPromise = client.accessRootResource()
+    const failure = expect(client.accessRootResource()).rejects.toThrow(
+      'ResourceClient stream did not initialize before timeout',
+    )
 
-    await vi.advanceTimersByTimeAsync(30500)
-    const root = await rootPromise
+    await vi.advanceTimersByTimeAsync(30000)
+    await failure
+    expect(calls).toBe(1)
+
+    const root = await client.accessRootResource()
 
     expect(root.resourceId).toBe(2)
     expect(calls).toBe(2)

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
@@ -144,10 +144,23 @@ vi.mock('@s4wave/web/command/index.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/ErrorState.js', () => ({
-  ErrorState: ({ title, message }: { title: string; message?: string }) => (
+  ErrorState: ({
+    title,
+    message,
+    onRetry,
+  }: {
+    title: string
+    message?: string
+    onRetry?: () => void
+  }) => (
     <div>
       <h1>{title}</h1>
       <p>{message}</p>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>
+          Retry
+        </button>
+      )}
     </div>
   ),
 }))
@@ -196,12 +209,15 @@ describe('SpacewaveRuntimeProviders', () => {
     expect(screen.queryByText('ready')).toBeNull()
   })
 
-  it('renders the root error state', () => {
+  it('shows the root connection error and offers its retry', () => {
+    const retry = vi.fn()
     mocks.setRootResource({
       value: null,
       loading: false,
-      error: new Error('root failed'),
-      retry: vi.fn(),
+      error: new Error(
+        'Failed to initialize client connection: local transport unavailable',
+      ),
+      retry,
     })
 
     render(
@@ -211,7 +227,13 @@ describe('SpacewaveRuntimeProviders', () => {
     )
 
     expect(screen.getByText('Failed to load')).toBeDefined()
-    expect(screen.getByText('root failed')).toBeDefined()
+    expect(
+      screen.getByText(
+        'Failed to initialize client connection: local transport unavailable',
+      ),
+    ).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(retry).toHaveBeenCalledOnce()
   })
 
   it('passes the explicit runtime context to render-function children', async () => {

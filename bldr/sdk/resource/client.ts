@@ -468,8 +468,9 @@ export class Client {
   }
 
   /**
-   * Get a reference to the root resource.
-   * This starts the client connection if not already active.
+   * accessRootResource returns a reference to the root resource. It starts the
+   * connection if needed and rejects on an initial stream failure. A later call
+   * opens a fresh connection after that failure.
    */
   async accessRootResource(): Promise<ClientResourceRef> {
     const state = await this.ensureInitialized()
@@ -838,6 +839,7 @@ export class Client {
 
       const cleanup = () => {
         if (!initialized) {
+          this.connectionController?.abort()
           this.connectionController = null
           this.initPromise = null
         }
@@ -864,7 +866,7 @@ export class Client {
       this.signal.addEventListener('abort', handleCancel, { once: true })
 
       // Start the connection with retry
-      this.startConnection(resolve, reject, () => {
+      this.startConnection(resolve, () => {
         initialized = true
         this.signal.removeEventListener('abort', handleCancel)
       }).catch((error) => {
@@ -874,7 +876,7 @@ export class Client {
             error instanceof Error ? error : new Error(String(error))
           reject(
             new ResourceClientError(
-              'Failed to initialize client connection',
+              `Failed to initialize client connection: ${cause.message}`,
               'CONNECTION_FAILED',
               cause,
             ),
@@ -889,7 +891,6 @@ export class Client {
    */
   private async startConnection(
     onInitialized: (state: ClientInitState) => void,
-    _onError: (error: Error) => void,
     markInitialized: () => void,
   ): Promise<void> {
     const controller = this.connectionController
@@ -900,6 +901,9 @@ export class Client {
       )
     }
 
+    // Reject the first failed stream. Once initialized, the same connection
+    // loop retains its backoff and reconnect behavior.
+    let initializedOnce = false
     await retryWithAbort(
       controller.signal,
       async (signal) => {
@@ -978,6 +982,7 @@ export class Client {
                 this._reconnectReject = null
               } else if (!this.initState) {
                 this.initState = state
+                initializedOnce = true
                 markInitialized()
                 onInitialized(state)
               } else {
@@ -1019,9 +1024,13 @@ export class Client {
         }
       },
       {
-        errorCb: (err) => {
-          if (this.shouldRetryResourceClientStreamSilently(err)) return
-          console.warn('Retry: retrying after error', { error: err })
+        errorCb: (error) => {
+          if (!initializedOnce) {
+            controller.abort()
+            return
+          }
+          if (this.shouldRetryResourceClientStreamSilently(error)) return
+          console.warn('Retry: retrying after error', { error })
         },
       },
     )

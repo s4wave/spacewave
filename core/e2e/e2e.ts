@@ -24,6 +24,24 @@ export default async function main(
   const testbedService = new TestbedResourceServiceClient(backendAPI.client)
 
   try {
+    // Wait for the native core plugin to finish building and start serving RPCs.
+    let coreRunning = false
+    for await (const update of backendAPI.pluginHost.WatchPluginStatus(
+      {},
+      abortSignal,
+    )) {
+      coreRunning =
+        update.status?.plugins?.some(
+          (plugin) =>
+            plugin.pluginId === 'spacewave-core' &&
+            !plugin.instanceKey &&
+            !!plugin.running,
+        ) ?? false
+      if (coreRunning) break
+    }
+    if (!coreRunning)
+      throw new Error('core plugin status stream ended before startup')
+
     // get the rpc client for the spacewave-core plugin
     const corePluginClient = new SRPCClient(
       backendAPI.buildPluginOpenStream('spacewave-core'),
