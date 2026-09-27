@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -29,18 +30,19 @@ const (
 // startDeviceCapacityObserver claims, observes, and drains the declared
 // forge-worker capacity envelope through the merged owner-state admission
 // APIs. It follows policy changes and renews the claim while the daemon runs.
+// The daemon's Resource invoker does not attach a public socket client. The
+// returned channel closes after daemon-context cleanup completes.
 func startDeviceCapacityObserver(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
-	sockPath string,
+	invoker srpc.Invoker,
 	store *device_policy.PolicyStore,
-) {
-	if sockPath == "" || store == nil {
-		return
-	}
+) <-chan struct{} {
+	done := make(chan struct{})
 	go func() {
-		client, err := connectDaemonAtSocket(ctx, sockPath)
+		defer close(done)
+		client, err := buildSDKClientFromInvoker(ctx, invoker)
 		if err != nil {
 			if ctx.Err() == nil {
 				le.WithError(err).Warn("device capacity observer unavailable")
@@ -52,6 +54,7 @@ func startDeviceCapacityObserver(
 			le.WithError(err).Warn("device capacity observer stopped")
 		}
 	}()
+	return done
 }
 
 // runDeviceCapacityObserver reacts to every accepted policy revision and

@@ -20,9 +20,12 @@ type daemonConnCtxKey struct{}
 // closes done when its serving goroutine exits.
 type trackedConn struct {
 	net.Conn
-	done      chan struct{}
+	// done closes when the serving goroutine exits.
+	done chan struct{}
+	// closeOnce ensures the idle hold is released once.
 	closeOnce sync.Once
-	onClose   func()
+	// onClose releases the admitted client's idle hold.
+	onClose func()
 }
 
 // Close closes the connection and runs the close callback once.
@@ -121,17 +124,16 @@ func acceptDaemonListener(
 			return closeClients, err
 		}
 
-		if idleTracker != nil {
-			idleTracker.clientAttached()
-		}
 		tc := &trackedConn{
 			Conn: nc,
 			done: make(chan struct{}),
-			onClose: func() {
-				if idleTracker != nil {
-					idleTracker.clientDetached()
-				}
-			},
+		}
+		if idleTracker != nil {
+			if !idleTracker.trackedClientAttached(tc) {
+				_ = nc.Close()
+				continue
+			}
+			tc.onClose = func() { idleTracker.trackedClientDetached(tc) }
 		}
 
 		mc, err := srpc.NewMuxedConn(tc, false, nil)

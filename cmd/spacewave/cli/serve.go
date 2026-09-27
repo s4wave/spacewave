@@ -278,7 +278,7 @@ func runServeCommand(
 
 	// Public service starts only after the launcher relinquishes custody.
 	srv := srpc.NewServer(mux)
-	startDeviceCapacityObserver(serveCtx, le, resolved, sockPath, devicePolicy)
+	startDeviceCapacityObserver(serveCtx, le, resolved, invoker, devicePolicy)
 	releaseStartupDemand()
 	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }
