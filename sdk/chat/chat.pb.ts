@@ -9,6 +9,9 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ChatMessageContent, ChatStateChange } from './content/content.pb.js'
+import { SendMessageRequest } from './rpc/rpc.pb.js'
+
+export const protobufPackage = 'spacewave.chat'
 
 /**
  * ChatChannel is a chat channel world object.
@@ -107,6 +110,7 @@ export const ChatChannel: MessageType<ChatChannel> =
         opt: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -165,6 +169,7 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -193,6 +198,7 @@ export const ChatMessagePage: MessageType<ChatMessagePage> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -260,6 +266,7 @@ export const ChatThread: MessageType<ChatThread> =
       { no: 5, name: 'newer_thread_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'older_thread_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -294,6 +301,7 @@ export const InitChatDemoOp: MessageType<InitChatDemoOp> =
       },
       { no: 2, name: 'timestamp', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -363,4 +371,56 @@ export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SendChatMessageOp appends a message against the accepted World history.
+ *
+ * @generated from message spacewave.chat.SendChatMessageOp
+ */
+export interface SendChatMessageOp {
+  /**
+   * ObjectKey selects the channel to append to.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Request retains the send intent and its stable transaction ID.
+   *
+   * @generated from field: spacewave.chat.rpc.SendMessageRequest request = 2;
+   */
+  request?: SendMessageRequest
+  /**
+   * Timestamp is chosen when the send is submitted.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 3;
+   */
+  timestamp?: Date
+  /**
+   * SenderPeerId is the authenticated device bound to the Chat Resource.
+   *
+   * @generated from field: string sender_peer_id = 4;
+   */
+  senderPeerId?: string
+  /**
+   * PersonPeerId is the verified person bound to the Chat Resource.
+   *
+   * @generated from field: string person_peer_id = 5;
+   */
+  personPeerId?: string
+}
+
+export const SendChatMessageOp: MessageType<SendChatMessageOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.SendChatMessageOp',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'request', kind: 'message', T: () => SendMessageRequest },
+      { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 4, name: 'sender_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'person_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
