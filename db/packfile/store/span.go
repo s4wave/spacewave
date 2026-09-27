@@ -41,8 +41,9 @@ func (s *span) readAt(p []byte, off int64) int {
 	return copy(p, s.data[off-s.off:])
 }
 
-// copySpans copies bytes starting at off from a list of disjoint spans.
-// Spans must be in ascending order with no gaps across the covered interval.
+// copySpans copies bytes starting at off from successive covering spans.
+// Spans may overlap when a later fetch replaces an evicted span retained by
+// the caller. Each span must cover the next uncopied byte or end before it.
 // Returns the number of bytes copied before hitting a gap, end of spans, or
 // filling dst.
 func copySpans(dst []byte, spans []*span, off int64) int {

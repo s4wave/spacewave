@@ -473,12 +473,12 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 	b.setBudget(budget)
 
 	for _, r := range [][2]int64{{0, 100}, {500, 600}} {
-		if err := a.ensureResident(ctx, r[0], r[1], true); err != nil {
-			t.Fatalf("a.ensureResident(%d, %d): %v", r[0], r[1], err)
+		if _, err := a.fetchSpans(ctx, r[0], r[1], true); err != nil {
+			t.Fatalf("a.fetchSpans(%d, %d): %v", r[0], r[1], err)
 		}
 	}
-	if err := b.ensureResident(ctx, 0, 200, true); err != nil {
-		t.Fatalf("b.ensureResident: %v", err)
+	if _, err := b.fetchSpans(ctx, 0, 200, true); err != nil {
+		t.Fatalf("b.fetchSpans: %v", err)
 	}
 
 	if used := budget.used.Load(); used != 300 {

@@ -95,7 +95,7 @@ func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 	}
 
 	// Prefill the far side, then request the uncovered interval between them.
-	if err := reader.ensureResident(context.Background(), 3<<20, 4<<20, true); err != nil {
+	if _, err := reader.fetchSpans(context.Background(), 3<<20, 4<<20, true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := reader.ReaderAt(ctx).ReadAt(buf, 2<<20); err != nil {

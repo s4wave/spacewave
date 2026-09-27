@@ -214,6 +214,7 @@ func (e *PackReader) Close() {
 	}
 }
 
+// waitCloseComplete waits for the first Close caller to drain reader work.
 func (e *PackReader) waitCloseComplete() {
 	for {
 		var complete bool
@@ -231,6 +232,7 @@ func (e *PackReader) waitCloseComplete() {
 	}
 }
 
+// finishOwnerWork releases one admitted job and wakes Close if it is waiting.
 func (e *PackReader) finishOwnerWork() {
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		e.workCount--
@@ -310,12 +312,15 @@ func (e *PackReader) ReaderAt(ctx context.Context) io.ReaderAt {
 
 // engineReaderAt is a request-scoped io.ReaderAt view onto an engine.
 type engineReaderAt struct {
+	// ctx bounds waits for this caller without canceling shared fetches.
 	ctx context.Context
-	e   *PackReader
+	// e holds the shared pack cache and transport lifetime.
+	e *PackReader
 }
 
 // ReadAt implements io.ReaderAt by routing through the span store.
 func (r *engineReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	// Bound the requested interval by the pack extent.
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -326,52 +331,45 @@ func (r *engineReaderAt) ReadAt(p []byte, off int64) (int, error) {
 	if r.e.size > 0 && end > r.e.size {
 		end = r.e.size
 	}
+
+	// Copy each immutable fetch result before advancing, even after cache eviction.
 	n := 0
 	for cur := off; cur < end; {
-		nread := r.e.readFromSpans(p[n:n+int(end-cur)], cur)
-		if nread != 0 {
-			n += nread
-			cur += int64(nread)
-			continue
+		sp, err := r.e.fetchRange(r.ctx, cur, end, false)
+		if err != nil {
+			return n, err
 		}
-		if err := r.e.fetchRange(r.ctx, cur, end, false); err != nil {
-			if n != 0 {
-				return n, err
-			}
-			return 0, err
-		}
+		nread := sp.readAt(p[n:n+int(end-cur)], cur)
+		n += nread
+		cur += int64(nread)
 	}
+
+	// Report a short read when the request extended past the pack.
 	if n < len(p) {
 		return n, io.EOF
 	}
 	return n, nil
 }
 
-// readFromSpans serves bytes from resident spans when possible.
-func (e *PackReader) readFromSpans(p []byte, off int64) int {
-	var s *span
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		s = e.findCoveringSpanLocked(off)
-	})
-	if s == nil {
-		return 0
-	}
-	return s.readAt(p, off)
-}
-
 // fetchKey identifies one in-flight transport fetch.
 type fetchKey struct {
-	off  int64
+	// off is the first requested pack byte.
+	off int64
+	// size is the requested byte count.
 	size int
 }
 
+// end returns the exclusive end of the requested interval.
 func (k fetchKey) end() int64 { return k.off + int64(k.size) }
 
 // fetchLoad tracks one in-flight transport fetch.
 type fetchLoad struct {
+	// done publishes sp and err to every waiter when the fetch finishes.
 	done chan struct{}
-	sp   *span
-	err  error
+	// sp retains the immutable response independently of cache residency.
+	sp *span
+	// err is the transport or reader shutdown error.
+	err error
 }
 
 // alignDown rounds v down to the nearest multiple of align.

@@ -12,13 +12,14 @@ import (
 //
 // It reads the target bytes from resident spans, fetching the semantic window
 // around the target on a miss, and checks them against the block ref. Fetched
-// bytes can be evicted before the read copies them, so the read fetches at
-// most twice. A hash mismatch drops the spans holding the target so a later
-// read fetches it again.
+// spans stay referenced until the read copies them, independently of cache
+// eviction. A hash mismatch drops the spans holding the target so a later read
+// fetches it again.
 //
 // key is the index key of ref's hash. Returns nil when the pack index does not
 // hold the block.
 func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Resolve the target and its co-block window from the validated index.
 	if err := e.ensureIndexLoaded(ctx); err != nil {
 		return nil, err
 	}
@@ -42,21 +43,22 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 		return nil, nil
 	}
 
-	for range 3 {
-		data, ok := e.readResidentRange(off, end)
-		if !ok {
-			if err := e.ensureResident(ctx, windowStart, windowEnd, false); err != nil {
-				return nil, err
-			}
-			continue
-		}
-		stored, err := decodeVerifiedBlock(ref, data)
+	// Copy from retained spans on a miss without requiring simultaneous residency.
+	data, ok := e.readResidentRange(off, end)
+	if !ok {
+		spans, err := e.fetchSpans(ctx, windowStart, windowEnd, false)
 		if err != nil {
-			e.dropRange(off, end)
+			return nil, err
 		}
-		return stored, err
+		copySpans(data, spans, off)
 	}
-	return nil, errors.Errorf("packfile block %x not resident after fetch", key)
+
+	// Verify the returned bytes and invalidate corrupted cache entries.
+	stored, err := decodeVerifiedBlock(ref, data)
+	if err != nil {
+		e.dropRange(off, end)
+	}
+	return stored, err
 }
 
 // dropRange removes the resident spans overlapping [start, end) and counts a
@@ -84,7 +86,9 @@ func decodeVerifiedBlock(ref *block.BlockRef, value []byte) (*block.StoredBlock,
 	return stored, nil
 }
 
+// getBlockExists reports whether the validated pack index contains key.
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {
+	// Load the index before looking up the key under its state lock.
 	if err := e.ensureIndexLoaded(ctx); err != nil {
 		return false, err
 	}

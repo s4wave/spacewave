@@ -11,36 +11,37 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
-// ensureResident fetches every uncovered byte of [start, end).
+// fetchSpans returns immutable spans covering every byte of [start, end).
 //
+// The returned references keep bytes readable even if later fetches or other
+// readers evict them from the resident cache before the caller copies them.
 // exact limits each fetch to the uncovered gap, as index-tail reads need.
 // Otherwise the planner may widen fetches for read-ahead.
-func (e *PackReader) ensureResident(ctx context.Context, start, end int64, exact bool) error {
+func (e *PackReader) fetchSpans(ctx context.Context, start, end int64, exact bool) ([]*span, error) {
+	// Retain each completed interval before advancing to the next gap.
+	var spans []*span
 	for cur := start; cur < end; {
-		var resident *span
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			resident = e.findCoveringSpanLocked(cur)
-		})
-		if resident != nil {
-			cur = min(end, resident.end())
-			continue
+		sp, err := e.fetchRange(ctx, cur, end, exact)
+		if err != nil {
+			return nil, err
 		}
-		if err := e.fetchRange(ctx, cur, end, exact); err != nil {
-			return err
-		}
+		spans = append(spans, sp)
+		cur = min(end, sp.end())
 	}
-	return nil
+	return spans, nil
 }
 
 // fetchRange drives a transport fetch to cover off, bounded by readEnd.
 //
-// It returns once the requested offset is resident or an error occurs. Other
-// concurrent callers for overlapping offsets fold onto the same in-flight
+// It returns an immutable span covering off or an error. The span stays readable
+// after cache eviction; callers consume it without a second cache lookup.
+// Concurrent callers for overlapping offsets fold onto the same in-flight
 // fetch via the loading map, guaranteeing one transport call per uncovered
 // span. Transport work belongs to the PackReader, so canceling the caller
 // that starts a fetch does not cancel another caller waiting for it. exact
 // selects the gap-clipped index planner instead of the adaptive planner.
-func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact bool) error {
+func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact bool) (*span, error) {
+	// Record the requested interval and reject canceled demand before fetching.
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
 	defer task.End()
 	trace.Log(ctx, "pack-id", e.packID)
@@ -49,10 +50,12 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 	trace.Logf(ctx, "exact", "%t", exact)
 
 	if err := ctx.Err(); err != nil {
-		return err
+		return nil, err
 	}
 
-	var resident, closed, started bool
+	// Retain a cached span or join one reader-owned fetch under the state lock.
+	var resident *span
+	var closed, started bool
 	var key fetchKey
 	var load *fetchLoad
 	var notifyStart func()
@@ -61,8 +64,8 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 			closed = true
 			return
 		}
-		if e.findCoveringSpanLocked(off) != nil {
-			resident = true
+		resident = e.findCoveringSpanLocked(off)
+		if resident != nil {
 			return
 		}
 		load = e.findLoadingLocked(off)
@@ -87,47 +90,50 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		notifyStart = e.statsChanged
 	})
 
+	// Start transport work outside the lock and preserve its lifetime for waiters.
 	if notifyStart != nil {
 		notifyStart()
 	}
 	if closed {
-		return context.Canceled
+		return nil, context.Canceled
 	}
-	if resident {
+	if resident != nil {
 		trace.Log(ctx, "result", "resident")
-		return nil
+		return resident, nil
 	}
 	if load == nil {
 		trace.Log(ctx, "result", "empty-plan")
-		return io.EOF
+		return nil, io.EOF
 	}
 	if started {
 		trace.Log(ctx, "role", "leader")
 		trace.Logf(ctx, "range-offset", "%d", key.off)
 		trace.Logf(ctx, "range-size", "%d", key.size)
 		e.startFetch(key, load, exact)
-	} else {
+	}
+	if !started {
 		trace.Log(ctx, "role", "waiter")
 	}
 
+	// The completed load owns its response even when reclaim already evicted it.
 	select {
 	case <-ctx.Done():
 		trace.Log(ctx, "result", "wait-canceled")
-		return ctx.Err()
+		return nil, ctx.Err()
 	case <-e.ctx.Done():
 		trace.Log(ctx, "result", "owner-canceled")
-		return context.Canceled
+		return nil, context.Canceled
 	case <-load.done:
 		if load.err != nil {
 			trace.Log(ctx, "result", "wait-error")
-			return load.err
+			return nil, load.err
 		}
-		if load.sp == nil {
+		if load.sp == nil || off < load.sp.off || off >= load.sp.end() {
 			trace.Log(ctx, "result", "wait-empty-response")
-			return io.EOF
+			return nil, io.EOF
 		}
 		trace.Log(ctx, "result", "waited")
-		return nil
+		return load.sp, nil
 	}
 }
 
@@ -331,7 +337,8 @@ func (e *PackReader) recordIndexTailFetchLocked(key fetchKey, responseBytes int)
 	return e.statsChanged
 }
 
-// readResidentRange returns an owned copy only when every byte is resident.
+// readResidentRange allocates an owned buffer for [start, end). It fills the
+// buffer and returns true only when every byte is resident under one lock.
 func (e *PackReader) readResidentRange(start, end int64) ([]byte, bool) {
 	if end <= start {
 		return nil, true

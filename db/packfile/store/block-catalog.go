@@ -20,7 +20,7 @@ const defaultIndexTailInitialWindow = 256 * 1024
 // ensureIndexLoaded loads the kvfile index for this pack if not already loaded.
 //
 // The raw index-tail cache is consulted first. On a miss, the engine slices
-// the kvfile tail through its own ReaderAt so tail bytes land in the shared
+// the kvfile tail through its span store so tail bytes land in the shared
 // span store. Parsed entries are runtime-only views rebuilt from the raw tail.
 // After a successful load any block already fully covered by resident spans is
 // handed to writeback.
@@ -136,6 +136,7 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 	})
 }
 
+// snapshotFetchedBytes returns the bytes requested by completed fetches.
 func (e *PackReader) snapshotFetchedBytes() int64 {
 	var bytes int64
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -144,6 +145,7 @@ func (e *PackReader) snapshotFetchedBytes() int64 {
 	return bytes
 }
 
+// recordIndexCacheHit counts a valid cached tail and notifies stats consumers.
 func (e *PackReader) recordIndexCacheHit() {
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -156,6 +158,7 @@ func (e *PackReader) recordIndexCacheHit() {
 	}
 }
 
+// recordIndexCacheMiss counts an absent cached tail and notifies stats consumers.
 func (e *PackReader) recordIndexCacheMiss() {
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -168,6 +171,7 @@ func (e *PackReader) recordIndexCacheMiss() {
 	}
 }
 
+// recordIndexCacheReadError counts an unreadable or invalid cached tail.
 func (e *PackReader) recordIndexCacheReadError() {
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -180,6 +184,7 @@ func (e *PackReader) recordIndexCacheReadError() {
 	}
 }
 
+// recordIndexCacheWriteError counts a failed attempt to cache a validated tail.
 func (e *PackReader) recordIndexCacheWriteError() {
 	var notify func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -192,6 +197,7 @@ func (e *PackReader) recordIndexCacheWriteError() {
 	}
 }
 
+// recordRemoteIndexLoad counts one remote index load and its transport bytes.
 func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
 	if bytes < 0 {
 		bytes = 0
@@ -211,7 +217,7 @@ func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
 
 // readIndexTailEntries reads the raw kvfile index tail and returns parsed entries.
 //
-// Tail reads go through the engine's ReaderAt, so the bytes land in the shared
+// Tail reads go through the engine's span store, so the bytes land in the shared
 // span store. Blocks fully contained in those spans can be written back
 // without another network round trip.
 func (e *PackReader) readIndexTailEntries(ctx context.Context) ([]byte, []*kvfile.IndexEntry, error) {
@@ -236,7 +242,9 @@ func (e *PackReader) readIndexTailEntries(ctx context.Context) ([]byte, []*kvfil
 	return tail, entries, err
 }
 
+// readIndexTailSuffix retains fetched bytes until the complete tail is copied.
 func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]byte, error) {
+	// Select the initial estimate or the maximum valid index extent.
 	window, err := e.indexTailWindow(maxBound)
 	if err != nil {
 		return nil, err
@@ -244,14 +252,17 @@ func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]
 	if window <= 0 {
 		return nil, errors.New("index tail window is empty")
 	}
+
+	// Hold the immutable spans across any eviction caused by later tail fetches.
 	start := max(e.size-int64(window), 0)
-	if err := e.ensureResident(ctx, start, e.size, true); err != nil {
+	spans, err := e.fetchSpans(ctx, start, e.size, true)
+	if err != nil {
 		return nil, err
 	}
-	suffix, ok := e.readResidentRange(start, e.size)
-	if !ok {
-		return nil, ErrIncompleteCachedPackRange
-	}
+	suffix := make([]byte, e.size-start)
+	copySpans(suffix, spans, start)
+
+	// Discard any leading payload bytes using the validated kvfile trailer.
 	_, tail, err := kvfile.TrimIndexTail(suffix, uint64(e.size)) //nolint:gosec // e.size is rejected when negative and is the validated pack length.
 	if err != nil {
 		return nil, err
@@ -259,6 +270,7 @@ func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]
 	return tail, nil
 }
 
+// indexTailWindow bounds the index estimate by its maximum encoding and pack size.
 func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 	maxTail, err := kvfile.MaxIndexTailSize(e.blockCount)
 	if err != nil {
@@ -284,6 +296,7 @@ func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 	return int(window), nil //nolint:gosec // window is capped by the non-negative int64 pack size.
 }
 
+// parseIndexTail validates the tail against the manifest size and block count.
 func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
 	if e.size < 0 {
 		return nil, errors.Errorf("negative pack size %d", e.size)
@@ -314,6 +327,7 @@ func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
 	return entries, nil
 }
 
+// validateIndexEntries checks key order, block references, and payload extents.
 func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockCount uint64) error {
 	if uint64(len(entries)) != blockCount {
 		return errors.Errorf("index entry count %d != manifest block count %d", len(entries), blockCount)
