@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
@@ -301,6 +302,125 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	})
 }
 
+// TestDesktopControlQuitWaitsForPresenceAndOtherClients verifies that Quit
+// decides busy or stop while the shell is visible and tears down after exit.
+func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
+	// Install a plugin Electron owner and the daemon's desktop control service.
+	ctx := t.Context()
+	idle := newDaemonIdleTracker(0, nil)
+	defer idle.close()
+	gate := make(chan struct{})
+	close(gate)
+	desktop := &socketDesktop{entered: make(chan string, 2), gate: gate}
+	le := logrus.NewEntry(logrus.New())
+	b, _, err := core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	releaseDesktop, err := b.AddHandler(desktop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseDesktop()
+	plugin := web_plugin_controller.NewController(le, b, &web_plugin_controller.Config{})
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(plugin)))
+	control := &daemonDesktopControl{ctx: ctx, idleTracker: idle}
+	control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
+		return bldr_web_plugin.NewSRPCWebPluginClient(pluginClient), "artifact/test", func() {}, nil
+	}
+	stopped := make(chan struct{}, 1)
+	control.shutdown = func(*trackedConn) { stopped <- struct{}{} }
+	defer control.close()
+
+	// Keep a second Resource connection through the first Quit and reopen.
+	socket := desktopSocket(t, control, make(chan struct{}))
+	launcher, launcherResources, launcherConn := desktopSocketClient(t, socket)
+	defer launcherResources.Release()
+	defer launcherConn.Close()
+	other, otherResources, otherConn := desktopSocketClient(t, socket)
+	defer otherResources.Release()
+	defer otherConn.Close()
+	otherStatus := desktopStatusWatch(t, other)
+	defer otherStatus.Close()
+	watch := desktopWatch(t, otherResources)
+	status := desktopStatusWatch(t, launcher)
+	service := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher)
+
+	// A busy Quit leaves the other client's stream and daemon admission alive.
+	if _, err := service.OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	<-desktop.entered
+	resp, err := service.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.GetOtherClients() != 1 || resp.GetOtherServices() != 0 {
+		t.Fatalf("busy Quit = %v, want one other client", resp)
+	}
+	desktop.closeShell("")
+	recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
+	})
+	if snapshot, _ := idle.observe(); snapshot.stopping {
+		t.Fatal("busy Quit stopped the daemon")
+	}
+	if err := watch.CloseSend(); err != nil {
+		t.Fatal(err)
+	}
+	if err := otherConn.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reopen and Quit without another client; claim admission before shell exit.
+	if _, err := service.OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	<-desktop.entered
+	resp, err = service.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.GetOtherClients() != 0 || resp.GetOtherServices() != 0 {
+		t.Fatalf("unused Quit = %v, want no other demand", resp)
+	}
+	if snapshot, _ := idle.observe(); !snapshot.stopping || snapshot.services != 1 {
+		t.Fatalf("pre-exit Quit claim = %+v", snapshot)
+	}
+	select {
+	case <-stopped:
+		t.Fatal("daemon stopped before shell exit")
+	default:
+	}
+	desktop.closeShell("")
+	select {
+	case <-stopped:
+	case <-time.After(5 * time.Second):
+		t.Fatal("unused Quit did not claim shutdown after shell exit")
+	}
+	if snapshot, _ := idle.observe(); !snapshot.stopping || snapshot.services != 0 {
+		t.Fatalf("unused Quit state = %+v", snapshot)
+	}
+
+	// A socket accepted after the claim cannot open another desktop request.
+	lateConn, err := net.Dial("unix", socket)
+	if err == nil {
+		defer lateConn.Close()
+		if err := lateConn.SetDeadline(time.Now().Add(2 * time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		lateClient, err := srpc.NewClientWithConn(lateConn, true, nil)
+		if err == nil {
+			admissionCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			if _, err := desktopcontrol.NewSRPCDesktopControlServiceClient(lateClient).OpenOrFocusDesktop(admissionCtx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err == nil {
+				t.Fatal("desktop client admitted after Quit stop claim")
+			}
+		}
+	}
+}
+
 // TestDesktopControlFailuresKeepResource verifies plugin failure cannot close
 // an existing Resource stream or retain an unsuccessful plugin reference.
 func TestDesktopControlFailuresKeepResource(t *testing.T) {
@@ -478,6 +598,94 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			})
 			if pluginReleases.Load() != 0 {
 				t.Fatal("presence failure released the retained plugin")
+			}
+		})
+	}
+}
+
+// TestDesktopControlOwnerExitAfterStreamFailure verifies a failed status stream
+// preserves demand until the unary owner wait returns, even after a late call.
+func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
+	for _, quit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "ordinary-exit", true: "quit"}[quit], func(t *testing.T) {
+			idle := newDaemonIdleTracker(0, nil)
+			defer idle.close()
+			control := &daemonDesktopControl{ctx: t.Context(), idleTracker: idle}
+			defer control.close()
+			failed := make(chan struct{})
+			exited := make(chan struct{})
+			waitStarted := make(chan struct{})
+			waitGate := make(chan struct{})
+			client := &failingPresenceClient{
+				stream:      &failingPresenceStream{fail: failed},
+				exit:        exited,
+				waitStarted: waitStarted,
+				waitGate:    waitGate,
+			}
+			control.load = func(context.Context) (bldr_web_plugin.SRPCWebPluginClient, string, func(), error) {
+				return client, "artifact/test", func() {}, nil
+			}
+			stopped := make(chan struct{}, 1)
+			control.shutdown = func(*trackedConn) { stopped <- struct{}{} }
+			socket := desktopSocket(t, control, make(chan struct{}))
+			launcher, resources, conn := desktopSocketClient(t, socket)
+			defer resources.Release()
+			defer conn.Close()
+			status := desktopStatusWatch(t, launcher)
+			service := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher)
+
+			// Confirm the shell, then fail only the status observation stream.
+			if _, err := service.OpenOrFocusDesktop(t.Context(), &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+				t.Fatal(err)
+			}
+			close(failed)
+			recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+				return state.GetFailure() != ""
+			})
+			if snapshot, _ := idle.observe(); snapshot.services != 1 || snapshot.stopping {
+				t.Fatalf("stream failure changed demand = %+v", snapshot)
+			}
+
+			// Quit claims immediately, but neither path releases demand before exit.
+			if quit {
+				result, err := service.QuitDesktop(t.Context(), &desktopcontrol.QuitDesktopRequest{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if result.GetOtherClients() != 0 || result.GetOtherServices() != 0 {
+					t.Fatalf("unused Quit = %v", result)
+				}
+			}
+			if snapshot, _ := idle.observe(); snapshot.services != 1 || snapshot.stopping != quit {
+				t.Fatalf("pre-exit state = %+v", snapshot)
+			}
+
+			// End the shell before allowing the owner wait to read its terminal state.
+			<-waitStarted
+			close(exited)
+			if snapshot, _ := idle.observe(); snapshot.services != 1 {
+				t.Fatalf("late owner wait released demand early = %+v", snapshot)
+			}
+			close(waitGate)
+			recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+				return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
+			})
+			for {
+				snapshot, changed := idle.observe()
+				if snapshot.services == 0 {
+					break
+				}
+				<-changed
+			}
+			select {
+			case <-stopped:
+				if !quit {
+					t.Fatal("ordinary exit bypassed idle rule")
+				}
+			default:
+				if quit {
+					<-stopped
+				}
 			}
 		})
 	}

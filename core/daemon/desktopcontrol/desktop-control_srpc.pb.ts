@@ -5,6 +5,8 @@
 import {
   OpenOrFocusDesktopRequest,
   OpenOrFocusDesktopResponse,
+  QuitDesktopRequest,
+  QuitDesktopResponse,
   WatchDesktopStatusRequest,
   WatchDesktopStatusResponse,
 } from './desktop-control.pb.js'
@@ -17,7 +19,7 @@ import {
 } from 'starpc'
 
 /**
- * DesktopControlService opens the desktop owned by the daemon serving the Resource socket.
+ * DesktopControlService opens and ends the desktop owned by the daemon serving the Resource socket.
  *
  * @generated from service spacewave.daemon.desktopcontrol.DesktopControlService
  */
@@ -36,6 +38,17 @@ export const DesktopControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+     *
+     * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.QuitDesktop
+     */
+    QuitDesktop: {
+      name: 'QuitDesktop',
+      I: QuitDesktopRequest,
+      O: QuitDesktopResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
      *
      * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.WatchDesktopStatus
@@ -50,7 +63,7 @@ export const DesktopControlServiceDefinition = {
 } as const
 
 /**
- * DesktopControlService opens the desktop owned by the daemon serving the Resource socket.
+ * DesktopControlService opens and ends the desktop owned by the daemon serving the Resource socket.
  *
  * @generated from service spacewave.daemon.desktopcontrol.DesktopControlService
  */
@@ -66,6 +79,16 @@ export interface DesktopControlService {
   ): Promise<OpenOrFocusDesktopResponse>
 
   /**
+   * QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+   *
+   * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.QuitDesktop
+   */
+  QuitDesktop(
+    request: QuitDesktopRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<QuitDesktopResponse>
+
+  /**
    * WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
    *
    * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.WatchDesktopStatus
@@ -77,7 +100,7 @@ export interface DesktopControlService {
 }
 
 /**
- * DesktopControlService opens the desktop owned by the daemon serving the Resource socket.
+ * DesktopControlService opens and ends the desktop owned by the daemon serving the Resource socket.
  *
  * @generated from service spacewave.daemon.desktopcontrol.DesktopControlService
  */
@@ -92,6 +115,17 @@ export interface DesktopControlServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<OpenOrFocusDesktopResponse>
+
+  /**
+   * QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+   *
+   * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.QuitDesktop
+   */
+  QuitDesktop(
+    request: QuitDesktopRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<QuitDesktopResponse>
 
   /**
    * WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
@@ -115,6 +149,7 @@ export class DesktopControlServiceClient implements DesktopControlService {
     this.service = opts?.service || DesktopControlServiceServiceName
     this.rpc = rpc
     this.OpenOrFocusDesktop = this.OpenOrFocusDesktop.bind(this)
+    this.QuitDesktop = this.QuitDesktop.bind(this)
     this.WatchDesktopStatus = this.WatchDesktopStatus.bind(this)
   }
   /**
@@ -134,6 +169,25 @@ export class DesktopControlServiceClient implements DesktopControlService {
       abortSignal || undefined,
     )
     return OpenOrFocusDesktopResponse.fromBinary(result)
+  }
+
+  /**
+   * QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+   *
+   * @generated from rpc spacewave.daemon.desktopcontrol.DesktopControlService.QuitDesktop
+   */
+  async QuitDesktop(
+    request: QuitDesktopRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<QuitDesktopResponse> {
+    const requestMsg = QuitDesktopRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      DesktopControlServiceDefinition.methods.QuitDesktop.name,
+      QuitDesktopRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return QuitDesktopResponse.fromBinary(result)
   }
 
   /**

@@ -727,7 +727,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin": {
-      "hash": "59d9db565ec397bd5ea5333f0a33d4722bd3f16f9f0cd605e6c699ff9dec4192",
+      "hash": "a563cdc2d986b2ed5db5c7c6db54d9d7934957b2344a2b31c59ffd0f1a15b974",
       "generatedFiles": [
         "bldr/web/plugin/plugin.pb.go",
         "bldr/web/plugin/plugin.pb.ts",
@@ -1006,7 +1006,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/daemon/desktopcontrol": {
-      "hash": "6ced696642ebe96f4a000596485d1fca91ab9794824949a4dc5c8943ff0a4e08",
+      "hash": "85d3d5414fcec5472c228ee4691e0b120f4e1339cf199d478cb69e42a6cfc12e",
       "generatedFiles": [
         "core/daemon/desktopcontrol/desktop-control.pb.go",
         "core/daemon/desktopcontrol/desktop-control.pb.ts",

@@ -177,6 +177,37 @@ func (c *Controller) WatchDesktopPresence(
 	}
 }
 
+// WaitDesktopExit waits for the Electron owner's terminal state for one shell
+// generation. A late caller receives the retained terminal result.
+func (c *Controller) WaitDesktopExit(
+	ctx context.Context,
+	req *bldr_web_plugin.WatchDesktopPresenceRequest,
+) (*bldr_web_plugin.WatchDesktopPresenceResponse, error) {
+	// Require the generation acknowledged by the Electron owner.
+	if req.GetGeneration() == 0 {
+		return nil, errors.New("desktop generation is required")
+	}
+
+	// Resolve the owner and keep its generation container alive for this wait.
+	desktop, _, ref, err := bldr_web_plugin.ExLookupDesktop(ctx, c.bus)
+	if err != nil {
+		return nil, err
+	}
+	if desktop == nil {
+		return nil, errors.New("desktop Electron capability unavailable; install a native desktop web plugin artifact")
+	}
+	defer ref.Release()
+	presence := desktop.DesktopPresence(req.GetGeneration())
+	if presence == nil {
+		return &bldr_web_plugin.WatchDesktopPresenceResponse{State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED}, nil
+	}
+
+	// Read the retained terminal value, or wait for the owner's state change.
+	return presence.WaitValueWithValidator(ctx, func(state *bldr_web_plugin.WatchDesktopPresenceResponse) (bool, error) {
+		return state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED, nil
+	}, nil)
+}
+
 // HandleWebViewViaPlugin starts a controller to forward web views to a plugin RPC.
 func (c *Controller) HandleWebViewViaPlugin(
 	req *bldr_web_plugin.HandleWebViewViaPluginRequest,

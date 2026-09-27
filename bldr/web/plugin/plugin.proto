@@ -11,6 +11,8 @@ service WebPlugin {
   rpc OpenOrFocusDesktop(OpenOrFocusDesktopRequest) returns (OpenOrFocusDesktopResponse) {}
   // WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
   rpc WatchDesktopPresence(WatchDesktopPresenceRequest) returns (stream WatchDesktopPresenceResponse) {}
+  // WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+  rpc WaitDesktopExit(WatchDesktopPresenceRequest) returns (WatchDesktopPresenceResponse) {}
   // HandleWebViewViaPlugin configures handling web views via a plugin.
   rpc HandleWebViewViaPlugin(HandleWebViewViaPluginRequest) returns (stream HandleWebViewViaPluginResponse) {}
   // HandleWebPkgViaPlugin configures handling web packages via a plugin.

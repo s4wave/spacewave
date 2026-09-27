@@ -120,4 +120,13 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	if _, err := late.Recv(); err != io.EOF {
 		t.Fatalf("late stream completion = %v, want EOF", err)
 	}
+
+	// A unary wait made after exit returns the owner's retained terminal result.
+	terminal, err := client.WaitDesktopExit(ctx, &bldr_web_plugin.WatchDesktopPresenceRequest{Generation: opened.GetGeneration()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if terminal.GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED || terminal.GetError() != "Electron exited with status 1" {
+		t.Fatalf("late owner wait = %v, want ended with shell error", terminal)
+	}
 }

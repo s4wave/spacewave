@@ -39,14 +39,11 @@ func (c *trackedConn) Close() error {
 }
 
 // serveDaemonListener serves accepted daemon clients until an approved
-// daemon-control Shutdown closes the accepting listener or serveCtx is
-// canceled. On an approved shutdown it waits for the control handler to finish
-// writing its acknowledgement (ShutdownComplete) and then for the requester to
-// read that acknowledgement and close its own connection, so the requester
-// observes a clean stream close instead of a reset. Only after the requester
-// departs does it drain any remaining clients and cancel the connection
-// lifecycle. External serveCtx cancellation and accept errors still exit
-// promptly.
+// daemon-control Shutdown, desktop Quit, or serveCtx cancellation closes the
+// accepting listener. On an approved Shutdown it waits for the control handler
+// acknowledgement. On desktop Quit it waits for the requester to read its RPC
+// reply and close. Only then does it drain remaining clients and cancel their
+// lifecycle. External serveCtx cancellation and accept errors still exit promptly.
 //
 // The shutdown callback registered on controlHandler must close only the
 // accepting listener and signal shutdownCh; it must not cancel serveCtx.
@@ -70,6 +67,17 @@ func serveDaemonListener(
 	serveCanceled := serveCtx.Err() != nil
 	select {
 	case <-shutdownCh:
+		// Preserve the desktop Quit stream until its requester receives the
+		// reply and closes, even if the shell exited during the RPC.
+		if requester := controlHandler.desktopQuitConn.Load(); requester != nil {
+			select {
+			case <-requester.done:
+			case <-serveCtx.Done():
+			}
+			break
+		}
+
+		// Explicit Shutdown has a separate acknowledgement fence.
 		select {
 		case <-controlHandler.ShutdownComplete():
 		case <-serveCtx.Done():

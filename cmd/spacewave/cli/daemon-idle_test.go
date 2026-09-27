@@ -3,10 +3,100 @@
 package spacewave_cli
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
 )
+
+// TestDaemonIdleTrackerOrdinaryFinalReleaseUsesThirtySeconds verifies that a
+// desktop service's ordinary release follows the common default idle expiry.
+func TestDaemonIdleTrackerOrdinaryFinalReleaseUsesThirtySeconds(t *testing.T) {
+	// Give the desktop one persistent service hold under the shipped timeout.
+	idleCh := make(chan struct{}, 1)
+	tracker := newDaemonIdleTracker(defaultDaemonIdleTimeout, func() {
+		idleCh <- struct{}{}
+	})
+	t.Cleanup(tracker.close)
+	releaseDesktop := tracker.serviceAttached()
+
+	// Observe the owner's expiry event after ordinary final service release.
+	start := time.Now()
+	releaseDesktop()
+	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
+	defer cancel()
+	select {
+	case <-idleCh:
+	case <-ctx.Done():
+		t.Fatal("idle expiry did not fire after final desktop release")
+	}
+	if elapsed := time.Since(start); elapsed < 30*time.Second {
+		t.Fatalf("ordinary idle expiry after %s, want at least 30s", elapsed)
+	}
+}
+
+// TestDaemonIdleTrackerClaimDesktopQuit excludes only the identified live holds.
+func TestDaemonIdleTrackerClaimDesktopQuit(t *testing.T) {
+	tracker := newDaemonIdleTracker(0, nil)
+	t.Cleanup(tracker.close)
+	requester := &trackedConn{}
+	tracker.trackedClientAttached(requester)
+	tracker.clientAttached()
+	t.Cleanup(tracker.clientDetached)
+	desktop := tracker.attachService()
+	releaseOther := tracker.serviceAttached()
+	t.Cleanup(releaseOther)
+	t.Cleanup(desktop.release)
+
+	// Count only the client and service outside the requesting desktop.
+	claimed, snapshot := tracker.claimDesktopQuit(requester, desktop)
+	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
+		t.Fatalf("admitted requester demand = %+v", snapshot)
+	}
+
+	// A disconnected requester must not subtract a different live client.
+	tracker.trackedClientDetached(requester)
+	claimed, snapshot = tracker.claimDesktopQuit(requester, desktop)
+	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
+		t.Fatalf("disconnected requester demand = %+v", snapshot)
+	}
+}
+
+// TestDaemonIdleTrackerDesktopClaimFencesAdmission verifies that a successful
+// claim precedes shell exit and rejects a client racing with that claim.
+func TestDaemonIdleTrackerDesktopClaimFencesAdmission(t *testing.T) {
+	for range 100 {
+		tracker := newDaemonIdleTracker(time.Minute, nil)
+		requester := &trackedConn{}
+		tracker.trackedClientAttached(requester)
+		desktop := tracker.attachService()
+		start := make(chan struct{})
+		var workers sync.WaitGroup
+		var admitted, claimed bool
+		var snapshot daemonIdleSnapshot
+		workers.Add(2)
+		go func() {
+			defer workers.Done()
+			<-start
+			admitted = tracker.clientAttached()
+		}()
+		go func() {
+			defer workers.Done()
+			<-start
+			claimed, snapshot = tracker.claimDesktopQuit(requester, desktop)
+		}()
+		close(start)
+		workers.Wait()
+		if admitted == claimed {
+			t.Fatalf("admitted = %t, claimed = %t, state = %+v", admitted, claimed, snapshot)
+		}
+		if admitted && (snapshot.clients != 1 || snapshot.services != 0) {
+			t.Fatalf("busy decision = %+v, want exactly one other client", snapshot)
+		}
+		desktop.release()
+		tracker.close()
+	}
+}
 
 // TestDaemonIdleTrackerReportsHoldsAndChanges exercises the coherent snapshot
 // and event across both kinds of hold.
@@ -63,81 +153,6 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 	idle, _ := tracker.observe()
 	if idle.clients != 0 || idle.services != 0 || idle.revision != initial.revision+4 {
 		t.Fatalf("idle snapshot = %+v", idle)
-	}
-}
-
-// TestDaemonIdleTrackerStopIfUnused reports the hold that prevents Quit and
-// excludes only the admitted requester's connection from the decision.
-func TestDaemonIdleTrackerStopIfUnused(t *testing.T) {
-	tracker := newDaemonIdleTracker(time.Minute, func() {})
-	t.Cleanup(tracker.close)
-	requester := &trackedConn{}
-	tracker.trackedClientAttached(requester)
-	tracker.clientAttached() // Retained public client.
-
-	claimed, state := tracker.stopIfUnused(requester)
-	if claimed || state.clients != 2 || state.services != 0 {
-		t.Fatalf("retained client claim = %t, state = %+v", claimed, state)
-	}
-
-	tracker.clientDetached()
-	release := tracker.serviceAttached()
-	claimed, state = tracker.stopIfUnused(requester)
-	if claimed || state.clients != 1 || state.services != 1 {
-		t.Fatalf("service claim = %t, state = %+v", claimed, state)
-	}
-
-	release()
-	claimed, state = tracker.stopIfUnused(requester)
-	if !claimed || !state.stopping || state.clients != 1 || state.services != 0 {
-		t.Fatalf("unused claim = %t, state = %+v", claimed, state)
-	}
-	if tracker.clientAttached() {
-		t.Fatal("client admitted after stop claim")
-	}
-}
-
-// TestDaemonIdleTrackerDisconnectedRequesterDoesNotExcludeAnotherClient
-// protects a retained client when the Quit requester disconnects mid-request.
-func TestDaemonIdleTrackerDisconnectedRequesterDoesNotExcludeAnotherClient(t *testing.T) {
-	tracker := newDaemonIdleTracker(time.Minute, func() {})
-	t.Cleanup(tracker.close)
-	requester := &trackedConn{}
-	tracker.trackedClientAttached(requester)
-	tracker.clientAttached()
-	tracker.trackedClientDetached(requester)
-
-	claimed, state := tracker.stopIfUnused(requester)
-	if claimed || state.clients != 1 {
-		t.Fatalf("disconnected requester claim = %t, state = %+v", claimed, state)
-	}
-}
-
-// TestDaemonIdleTrackerAttachmentRacesStopClaim checks that admission and the
-// stop decision linearize under the same lock.
-func TestDaemonIdleTrackerAttachmentRacesStopClaim(t *testing.T) {
-	for range 100 {
-		tracker := newDaemonIdleTracker(time.Minute, func() {})
-		start := make(chan struct{})
-		var workers sync.WaitGroup
-		var admitted, claimed bool
-		workers.Add(2)
-		go func() {
-			defer workers.Done()
-			<-start
-			admitted = tracker.clientAttached()
-		}()
-		go func() {
-			defer workers.Done()
-			<-start
-			claimed, _ = tracker.stopIfUnused(nil)
-		}()
-		close(start)
-		workers.Wait()
-		if admitted == claimed {
-			t.Fatalf("admitted = %t, claimed = %t", admitted, claimed)
-		}
-		tracker.close()
 	}
 }
 

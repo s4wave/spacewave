@@ -23,8 +23,12 @@ const (
 // granted connection so the serve loop can wait for that requester to read its
 // acknowledgement and close before draining.
 type daemonControlHandler struct {
+	// Handler serves explicit daemon shutdown requests.
 	*listener_control.Handler
+	// shutdownConn identifies the approved Shutdown requester.
 	shutdownConn atomic.Pointer[trackedConn]
+	// desktopQuitConn identifies the Quit requester whose RPC reply must drain.
+	desktopQuitConn atomic.Pointer[trackedConn]
 }
 
 // newDaemonControlHandler constructs a daemon control handler that invokes

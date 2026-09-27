@@ -18,6 +18,8 @@ type SRPCWebPluginClient interface {
 	OpenOrFocusDesktop(ctx context.Context, in *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
 	// WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
 	WatchDesktopPresence(ctx context.Context, in *WatchDesktopPresenceRequest) (SRPCWebPlugin_WatchDesktopPresenceClient, error)
+	// WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+	WaitDesktopExit(ctx context.Context, in *WatchDesktopPresenceRequest) (*WatchDesktopPresenceResponse, error)
 	// HandleWebViewViaPlugin configures handling web views via a plugin.
 	HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error)
 	// HandleWebPkgViaPlugin configures handling web packages via a plugin.
@@ -88,6 +90,15 @@ func (x *srpcWebPlugin_WatchDesktopPresenceClient) Recv() (*WatchDesktopPresence
 
 func (x *srpcWebPlugin_WatchDesktopPresenceClient) RecvTo(m *WatchDesktopPresenceResponse) error {
 	return x.MsgRecv(m)
+}
+
+func (c *srpcWebPluginClient) WaitDesktopExit(ctx context.Context, in *WatchDesktopPresenceRequest) (*WatchDesktopPresenceResponse, error) {
+	out := new(WatchDesktopPresenceResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "WaitDesktopExit", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *srpcWebPluginClient) HandleWebViewViaPlugin(ctx context.Context, in *HandleWebViewViaPluginRequest) (SRPCWebPlugin_HandleWebViewViaPluginClient, error) {
@@ -260,6 +271,8 @@ type SRPCWebPluginServer interface {
 	OpenOrFocusDesktop(context.Context, *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
 	// WatchDesktopPresence observes the shell generation acknowledged by OpenOrFocusDesktop.
 	WatchDesktopPresence(*WatchDesktopPresenceRequest, SRPCWebPlugin_WatchDesktopPresenceStream) error
+	// WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+	WaitDesktopExit(context.Context, *WatchDesktopPresenceRequest) (*WatchDesktopPresenceResponse, error)
 	// HandleWebViewViaPlugin configures handling web views via a plugin.
 	HandleWebViewViaPlugin(*HandleWebViewViaPluginRequest, SRPCWebPlugin_HandleWebViewViaPluginStream) error
 	// HandleWebPkgViaPlugin configures handling web packages via a plugin.
@@ -300,6 +313,7 @@ func (SRPCWebPluginHandler) GetMethodIDs() []string {
 	return []string{
 		"OpenOrFocusDesktop",
 		"WatchDesktopPresence",
+		"WaitDesktopExit",
 		"HandleWebViewViaPlugin",
 		"HandleWebPkgViaPlugin",
 		"HandleRpcViaPlugin",
@@ -321,6 +335,8 @@ func (d *SRPCWebPluginHandler) InvokeMethod(
 		return true, d.InvokeMethod_OpenOrFocusDesktop(d.impl, strm)
 	case "WatchDesktopPresence":
 		return true, d.InvokeMethod_WatchDesktopPresence(d.impl, strm)
+	case "WaitDesktopExit":
+		return true, d.InvokeMethod_WaitDesktopExit(d.impl, strm)
 	case "HandleWebViewViaPlugin":
 		return true, d.InvokeMethod_HandleWebViewViaPlugin(d.impl, strm)
 	case "HandleWebPkgViaPlugin":
@@ -355,6 +371,18 @@ func (SRPCWebPluginHandler) InvokeMethod_WatchDesktopPresence(impl SRPCWebPlugin
 	}
 	serverStrm := &srpcWebPlugin_WatchDesktopPresenceStream{strm}
 	return impl.WatchDesktopPresence(req, serverStrm)
+}
+
+func (SRPCWebPluginHandler) InvokeMethod_WaitDesktopExit(impl SRPCWebPluginServer, strm srpc.Stream) error {
+	req := new(WatchDesktopPresenceRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.WaitDesktopExit(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCWebPluginHandler) InvokeMethod_HandleWebViewViaPlugin(impl SRPCWebPluginServer, strm srpc.Stream) error {
@@ -431,6 +459,14 @@ func (x *srpcWebPlugin_WatchDesktopPresenceStream) SendAndClose(m *WatchDesktopP
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCWebPlugin_WaitDesktopExitStream interface {
+	srpc.Stream
+}
+
+type srpcWebPlugin_WaitDesktopExitStream struct {
+	srpc.Stream
 }
 
 type SRPCWebPlugin_HandleWebViewViaPluginStream interface {
