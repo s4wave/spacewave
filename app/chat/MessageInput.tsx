@@ -6,8 +6,9 @@ interface MessageInputProps {
   onSend: (text: string) => Promise<void>
 }
 
-// MessageInput provides the channel composer and preserves a failed draft for retry.
+/** MessageInput provides the channel composer and preserves a failed draft for retry. */
 export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
+  // Keep the draft and focus restoration with the send operation.
   const [state, setState] = useState({ text: '', sending: false, error: '' })
   const ref = useRef<HTMLTextAreaElement>(null)
   const restoreFocusRef = useRef(false)
@@ -18,6 +19,7 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
     }
   }, [state.sending])
 
+  // Send once and retain a failed draft for an explicit retry.
   const canSend = state.text.trim().length > 0 && !state.sending && !disabled
 
   const handleSubmit = useCallback(async () => {
@@ -49,6 +51,7 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
     [handleSubmit],
   )
 
+  // Keep the composer reachable by touch in either orientation.
   return (
     <div className="border-foreground/10 bg-background-secondary/70 shrink-0 border-t px-3 py-3 sm:px-4">
       <div className="border-foreground/15 bg-background-primary focus-within:border-primary/60 flex items-end gap-2 rounded-md border p-2 transition-colors">
@@ -67,14 +70,14 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
           placeholder="Message this channel"
           rows={1}
           disabled={state.sending || disabled}
-          className="text-foreground placeholder:text-muted-foreground max-h-32 min-h-9 flex-1 resize-none bg-transparent p-2 text-sm leading-5 outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="text-foreground placeholder:text-muted-foreground max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent p-2 text-sm leading-5 outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:pointer-fine:min-h-9"
         />
         <button
           type="button"
           aria-label={state.sending ? 'Sending message' : 'Send message'}
           disabled={!canSend}
           onClick={() => void handleSubmit()}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-35"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background flex size-11 shrink-0 items-center justify-center rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-35 sm:pointer-fine:size-9"
         >
           <LuSendHorizontal className="size-4" aria-hidden="true" />
         </button>
@@ -83,7 +86,7 @@ export function MessageInput({ disabled = false, onSend }: MessageInputProps) {
         <span role="alert" className="text-error-text">
           {state.error}
         </span>
-        <span className="text-muted-foreground ml-auto hidden sm:inline">
+        <span className="text-muted-foreground ml-auto hidden sm:pointer-fine:inline">
           Enter to send · Shift+Enter for a new line
         </span>
       </div>

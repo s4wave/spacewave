@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LuChevronDown } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -61,7 +62,9 @@ export default function NotebookSavedViews({
   // Recovery and a missing selected view remain visible without applying stale filters.
   return (
     <details className="border-border border-b p-2 text-xs">
-      <summary className="cursor-pointer font-medium">Shared views</summary>
+      <summary className="flex min-h-11 cursor-pointer items-center font-medium md:pointer-fine:min-h-0">
+        Shared views
+      </summary>
       <div className="mt-2 flex flex-col gap-2">
         <p className="text-muted-foreground">
           Save filters for everyone in this Notebook. Load a view to use it
@@ -69,24 +72,30 @@ export default function NotebookSavedViews({
         </p>
         <label className="flex flex-col gap-1">
           Saved view
-          <select
-            value={current?.id ?? ''}
-            disabled={saved.loading || saved.pending}
-            onChange={(event) => {
-              setSelected(event.target.value)
-              setLoadError(null)
-            }}
-            className="border-border bg-background-primary rounded border p-1"
-          >
-            <option value="">
-              {saved.loading ? 'Loading views…' : 'Choose a saved view'}
-            </option>
-            {saved.views.map((view) => (
-              <option key={view.id} value={view.id}>
-                {view.name}
+          <span className="relative">
+            <select
+              value={current?.id ?? ''}
+              disabled={saved.loading || saved.pending}
+              onChange={(event) => {
+                setSelected(event.target.value)
+                setLoadError(null)
+              }}
+              className="border-border bg-background-primary h-11 w-full appearance-none rounded border py-1 pr-6 pl-1 md:pointer-fine:h-auto md:pointer-fine:appearance-auto md:pointer-fine:pr-1"
+            >
+              <option value="">
+                {saved.loading ? 'Loading views…' : 'Choose a saved view'}
               </option>
-            ))}
-          </select>
+              {saved.views.map((view) => (
+                <option key={view.id} value={view.id}>
+                  {view.name}
+                </option>
+              ))}
+            </select>
+            <LuChevronDown
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 right-1 size-3 -translate-y-1/2 md:pointer-fine:hidden"
+            />
+          </span>
         </label>
         {selected && !current && !saved.loading && !saved.pending && (
           <p role="status">
@@ -95,11 +104,17 @@ export default function NotebookSavedViews({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!current || disabled} onClick={load}>
+          <button
+            type="button"
+            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+            disabled={!current || disabled}
+            onClick={load}
+          >
             Load view
           </button>
           <button
             type="button"
+            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
             disabled={!draft.sourceRef || disabled}
             onClick={() => setDialog('save')}
           >
@@ -107,6 +122,7 @@ export default function NotebookSavedViews({
           </button>
           <button
             type="button"
+            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
             disabled={!current || !draft.sourceRef || disabled}
             onClick={() =>
               current &&
@@ -122,6 +138,7 @@ export default function NotebookSavedViews({
           </button>
           <button
             type="button"
+            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
             disabled={!current || disabled}
             onClick={() => setDialog('rename')}
           >
@@ -129,6 +146,7 @@ export default function NotebookSavedViews({
           </button>
           <button
             type="button"
+            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
             disabled={!current || disabled}
             onClick={() => setDialog('delete')}
           >
@@ -140,7 +158,11 @@ export default function NotebookSavedViews({
           <div role="alert">
             <p>{saved.error?.message ?? loadError}</p>
             {saved.error && (
-              <button type="button" onClick={saved.retry}>
+              <button
+                type="button"
+                className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+                onClick={saved.retry}
+              >
                 Retry shared views
               </button>
             )}

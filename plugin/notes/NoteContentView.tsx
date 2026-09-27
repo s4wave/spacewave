@@ -48,7 +48,7 @@ function SaveStatus({ state, error, onRetry }: SaveStatusProps) {
         </span>
         <button
           type="button"
-          className="border-destructive/40 shrink-0 rounded border px-2 py-0.5 font-medium"
+          className="border-destructive/40 min-h-11 min-w-11 shrink-0 rounded border px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
           onClick={onRetry}
         >
           Retry
@@ -88,7 +88,7 @@ function NoteReadError({ error, onRetry }: NoteReadErrorProps) {
       </span>
       <button
         type="button"
-        className="border-border text-foreground rounded border px-2 py-1 font-medium"
+        className="border-border text-foreground min-h-11 min-w-11 rounded border px-2 py-1 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
         onClick={onRetry}
       >
         Retry
@@ -135,14 +135,14 @@ function NoteHeader({
   onTogglePointerDown,
 }: NoteHeaderProps) {
   return (
-    <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
-      <span className="text-xs font-medium">
+    <div className="border-border flex min-h-11 min-w-0 items-center justify-between gap-2 border-b px-3 py-1.5 md:pointer-fine:min-h-0">
+      <span className="min-w-0 truncate text-xs font-medium">
         {stripNoteFileExtension(noteName.split('/').pop() ?? noteName)}
       </span>
       <button
         type="button"
         className={cn(
-          'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
+          'flex min-h-11 shrink-0 items-center gap-1 rounded px-2 text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-0.5',
           'hover:bg-list-hover-background focus-visible:ring-brand focus-visible:ring-2',
           editing ? 'text-brand' : 'text-foreground-alt',
         )}
@@ -229,7 +229,7 @@ function NoteBody({
   )
 }
 
-// NoteContentView displays a note with WYSIWYG (Lexical) or source (textarea) mode.
+/** NoteContentView displays a note with WYSIWYG (Lexical) or source (textarea) mode. */
 function NoteContentView({
   worldState,
   sourceRef,

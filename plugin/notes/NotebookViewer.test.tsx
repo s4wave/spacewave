@@ -133,7 +133,7 @@ describe('NotebookViewer', () => {
     })
 
     renderViewer()
-    expect(screen.getByText('Docs')).toBeDefined()
+    expect(screen.getAllByText('Docs')).toHaveLength(2)
   })
 
   it('renders error state when notebook state has error', () => {
@@ -298,6 +298,6 @@ describe('NotebookViewer', () => {
     const outer = container.firstElementChild as HTMLElement
     expect(outer.className).toContain('flex')
     // Should render the sidebar with source name.
-    expect(screen.getByText('My Docs')).toBeDefined()
+    expect(screen.getAllByText('My Docs')).toHaveLength(2)
   })
 })

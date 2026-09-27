@@ -441,8 +441,8 @@ function NoteListView({ controller }: { controller: NoteListController }) {
         className="flex h-full flex-col overflow-y-auto"
         data-testid="notes-note-list"
       >
-        <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
-          <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
+        <div className="border-border flex min-w-0 items-center gap-1 border-b px-2 py-1.5">
+          <label className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 md:pointer-fine:py-1">
             <LuSearch className="text-muted-foreground size-3 shrink-0" />
             <input
               type="text"
@@ -450,12 +450,12 @@ function NoteListView({ controller }: { controller: NoteListController }) {
               placeholder="Search notes…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
+              className="text-foreground placeholder:text-muted-foreground min-h-11 w-full min-w-0 border-none bg-transparent text-xs outline-none md:pointer-fine:min-h-0"
             />
-          </div>
+          </label>
           <button
             type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
             onClick={() => handleCreateFolder()}
             title="New folder"
           >
@@ -463,7 +463,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
           </button>
           <button
             type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
+            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
             onClick={() => void handleCreateNote()}
             title="New note"
           >
@@ -472,7 +472,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
           {canCreateOrg && (
             <button
               type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded px-1.5 py-1 text-xs font-medium"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded text-xs font-medium md:pointer-fine:size-auto md:pointer-fine:px-1.5 md:pointer-fine:py-1"
               onClick={() => void handleCreateNoteDefault('org')}
               title="New Org note"
             >
@@ -484,7 +484,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
           <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
             <button
               type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
               onClick={() => onChangePath?.(getParentPath(currentPath))}
               title="Up one level"
             >
@@ -501,7 +501,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
             {filterTag && (
               <button
                 type="button"
-                className="bg-brand/10 text-brand inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                className="bg-brand/10 text-brand inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
                 onClick={() => onFilterTagChange?.(undefined)}
                 title="Clear tag filter"
               >
@@ -512,7 +512,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
             {filterStatus && (
               <button
                 type="button"
-                className="bg-muted text-foreground-alt inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium"
+                className="bg-muted text-foreground-alt inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
                 onClick={() => onFilterStatusChange?.(undefined)}
                 title="Clear status filter"
               >
@@ -530,7 +530,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
                   <span className="text-xs">No notes yet</span>
                   <button
                     type="button"
-                    className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
+                    className="bg-brand text-brand-foreground min-h-11 rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90 md:pointer-fine:min-h-0"
                     onClick={handleCreateNote}
                   >
                     Create your first note
@@ -546,7 +546,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
                 <button
                   key={entry.name}
                   type="button"
-                  className="hover:bg-list-hover-background flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs"
+                  className="hover:bg-list-hover-background flex min-h-11 w-full items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
                   onClick={() =>
                     onChangePath?.(joinNotePath(currentPath, entry.name))
                   }
@@ -571,7 +571,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
                       type="button"
                       data-testid="notes-note-row"
                       data-note-path={notePath}
-                      className="hover:bg-list-hover-background flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5 text-left text-xs"
+                      className="hover:bg-list-hover-background flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
                       onClick={() => onSelectNote(notePath)}
                     >
                       <LuFile className="size-3 shrink-0" />
@@ -582,7 +582,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
                     </button>
                     <button
                       type="button"
-                      className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground rounded p-1"
+                      className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
                       onClick={() => handleRenameNote(entry.name)}
                       title="Rename note"
                     >
@@ -590,7 +590,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
                     </button>
                     <button
                       type="button"
-                      className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive rounded p-1"
+                      className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
                       onClick={() => handleDeleteNote(entry.name)}
                       title="Delete note"
                     >
@@ -639,7 +639,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
   )
 }
 
-// NoteList lists notebook directories and note files for the selected source.
+/** NoteList lists notebook directories and note files for the selected source. */
 function NoteList(props: NoteListProps) {
   const controller = useNoteListController(props)
   return <NoteListView controller={controller} />

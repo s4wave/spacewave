@@ -109,7 +109,7 @@ function getSelectedBlockType(selection: RangeSelection): BlockType {
   return 'paragraph'
 }
 
-// ToolbarPlugin renders the editor toolbar with formatting controls.
+/** ToolbarPlugin renders the editor toolbar with formatting controls. */
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext()
   const [isBold, setIsBold] = useState(false)
@@ -238,12 +238,12 @@ function ToolbarPlugin() {
   )
 
   const btnClass =
-    'flex items-center justify-center rounded p-1 text-foreground-alt hover:bg-list-hover-background hover:text-foreground disabled:opacity-30'
+    'flex min-h-11 min-w-11 items-center justify-center rounded p-1 text-foreground-alt hover:bg-list-hover-background hover:text-foreground disabled:opacity-30 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0'
   const activeClass = 'text-brand bg-brand/10'
 
   return (
     <>
-      <div className="border-border flex items-center gap-0.5 border-b px-2 py-1">
+      <div className="border-border flex min-w-0 flex-wrap items-center gap-0.5 border-b px-2 py-1 md:pointer-fine:flex-nowrap">
         <button
           type="button"
           className={cn(btnClass, !canUndo && 'opacity-30')}
@@ -278,13 +278,13 @@ function ToolbarPlugin() {
             <LuChevronDown className="size-3" />
           </button>
           {showBlockMenu && (
-            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-35 rounded-lg border py-1 shadow-lg">
+            <div className="bg-popover border-border absolute top-full left-0 z-50 mt-1 min-w-35 rounded-lg border py-1 shadow-lg pointer-coarse:max-h-24 pointer-coarse:overflow-y-auto">
               {blockTypeOptions.map((type) => (
                 <button
                   key={type}
                   type="button"
                   className={cn(
-                    'w-full px-3 py-1 text-left text-xs hover:bg-list-hover-background',
+                    'min-h-11 w-full px-3 py-1 text-left text-xs hover:bg-list-hover-background md:pointer-fine:min-h-0',
                     blockType === type && 'text-brand font-medium',
                   )}
                   onClick={() => formatBlock(type)}
