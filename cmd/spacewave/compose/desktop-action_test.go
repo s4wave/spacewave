@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/appversion"
 	"github.com/s4wave/spacewave/core/daemon"
 	"github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
@@ -36,7 +37,7 @@ type desktopActionFixture struct {
 	control *fixtureDesktopControl
 }
 
-// fixtureDesktopControl identifies one daemon through each desktop response.
+// fixtureDesktopControl identifies a daemon with a different release from this launcher.
 type fixtureDesktopControl struct {
 	// mtx guards opens.
 	mtx sync.Mutex
@@ -105,10 +106,22 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 
 // OpenOrFocusDesktop acknowledges a request from the one fixture daemon.
 func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktopcontrol.OpenOrFocusDesktopRequest) (*desktopcontrol.OpenOrFocusDesktopResponse, error) {
+	// Record demand against the daemon even after the launcher disconnects.
 	c.mtx.Lock()
 	c.opens++
 	c.mtx.Unlock()
-	return &desktopcontrol.OpenOrFocusDesktopResponse{DaemonPid: int64(os.Getpid()), UiManifestRef: "fixture/web"}, nil
+
+	// Report the executing fixture's identity alongside its release and UI artifact.
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	return &desktopcontrol.OpenOrFocusDesktopResponse{
+		DaemonPid:        int64(os.Getpid()),
+		DaemonExecutable: executable,
+		DaemonRelease:    "fixture-older-release",
+		UiManifestRef:    "fixture/web",
+	}, nil
 }
 
 // QuitDesktop is outside this launcher-only fixture.
@@ -241,6 +254,57 @@ func TestDesktopActionExplicitSocketNeverStarts(t *testing.T) {
 	}
 }
 
+// TestDesktopActionAcceptsDifferentDaemonRelease checks capability attachment
+// and reports the executing daemon and selected UI independently of the launcher.
+func TestDesktopActionAcceptsDifferentDaemonRelease(t *testing.T) {
+	root := desktopActionStatePath(t)
+	fixture := newDesktopActionFixture(t, root, true)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	connector := daemon.NewConnector(nil, func(context.Context, string) error {
+		t.Fatal("launcher tried to replace the running daemon")
+		return nil
+	})
+
+	// Attach through the actual launcher action despite the daemon's release label.
+	if err := openDesktopWithConnector(ctx, connector); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the daemon's response to distinguish its executable, release, and UI.
+	client, err := connector.Connect(ctx, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	response, err := desktopcontrol.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetDaemonRelease() == appversion.GetVersion() {
+		t.Fatalf("daemon release = %q, launcher release = %q", response.GetDaemonRelease(), appversion.GetVersion())
+	}
+	if response.GetDaemonRelease() != "fixture-older-release" {
+		t.Fatalf("daemon release = %q, want fixture-older-release", response.GetDaemonRelease())
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetDaemonPid() != int64(os.Getpid()) {
+		t.Fatalf("executing daemon PID = %d, want %d", response.GetDaemonPid(), os.Getpid())
+	}
+	if response.GetDaemonExecutable() != executable {
+		t.Fatalf("executing daemon identity: pid=%d executable=%q", response.GetDaemonPid(), response.GetDaemonExecutable())
+	}
+	if response.GetUiManifestRef() != "fixture/web" {
+		t.Fatalf("selected UI artifact = %q", response.GetUiManifestRef())
+	}
+	if opens := fixture.control.openCount(); opens != 2 {
+		t.Fatalf("desktop acknowledgements = %d, want 2", opens)
+	}
+}
+
 // TestDesktopActionMissingCapabilityRequiresUpgrade checks that a Resource
 // daemon without desktop control is never replaced by the launcher.
 func TestDesktopActionMissingCapabilityRequiresUpgrade(t *testing.T) {
@@ -248,21 +312,49 @@ func TestDesktopActionMissingCapabilityRequiresUpgrade(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	starts := 0
+	var fixture *desktopActionFixture
 	connector := daemon.NewConnector(nil, func(_ context.Context, statePath string) error {
 		if statePath != root {
 			t.Fatalf("starter state root = %q, want %q", statePath, root)
 		}
 		starts++
-		newDesktopActionFixture(t, root, false)
+		fixture = newDesktopActionFixture(t, root, false)
 		return daemon.PublishReady(filepath.Join(root, daemon.SocketName))
 	})
-	err := openDesktopWithConnector(ctx, connector)
+
+	// Keep a Resource watch open while desktop launches fail on the old daemon.
+	retained, err := connector.Connect(ctx, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer retained.Close()
+	rootRPC, err := retained.Root().GetResourceRef().GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := rootRPC.NewStream(ctx, "test.DesktopActionWatch", "Watch", &emptypb.Empty{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	if err := stream.CloseSend(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Both launches must explain the missing capability without replacing the daemon.
+	err = openDesktopWithConnector(ctx, connector)
 	if err == nil || !strings.Contains(err.Error(), "upgrade and restart") || starts != 1 {
 		t.Fatalf("missing desktop capability: error=%v starts=%d", err, starts)
 	}
 	err = openDesktopWithConnector(ctx, connector)
 	if err == nil || !strings.Contains(err.Error(), "upgrade and restart") || starts != 1 {
 		t.Fatalf("repeat launch took over daemon: error=%v starts=%d", err, starts)
+	}
+
+	// The existing Resource watch still receives events from the original daemon.
+	fixture.events <- struct{}{}
+	if err := stream.MsgRecv(&emptypb.Empty{}); err != nil {
+		t.Fatalf("Resource stream after unsupported desktop launch: %v", err)
 	}
 }
 
