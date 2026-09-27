@@ -246,6 +246,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		execErr := args.pluginHost.ExecutePlugin(
 			ctx,
 			pluginID,
+			t.bindingKey,
 			t.instanceKey,
 			manifestRoot,
 			manifest.GetEntrypoint(),

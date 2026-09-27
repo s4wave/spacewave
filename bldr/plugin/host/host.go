@@ -39,12 +39,17 @@ type PluginHost interface {
 	// Should expect to be called only once (at a time) for a plugin ID.
 	// pluginDist contains the plugin distribution files (binaries and assets).
 	// rpcInit is called when the RPC client is ready, should return a mux for the server.
-	// instanceKey is the instance key for instanced plugins (empty for shared).
+	// instanceKey is the logical instance key passed to the plugin in its start
+	// info (empty for shared plugins).
+	// executionKey distinguishes concurrent executions of one instance, such
+	// as a replacement starting before its predecessor stops. Hosts derive
+	// worker and controller identities from it.
 	// manifestRoot identifies the exact files used by this execution.
 	ExecutePlugin(
 		ctx context.Context,
 		pluginID,
 		instanceKey,
+		executionKey,
 		manifestRoot,
 		entrypoint string,
 		pluginDist *unixfs.FSHandle,

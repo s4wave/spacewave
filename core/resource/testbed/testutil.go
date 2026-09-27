@@ -309,6 +309,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 			pluginCtx,
 			pluginID,
 			"",
+			"",
 			manifestRef.GetManifestRef().GetRootRef().GetHash().MarshalString(),
 			scriptPath,
 			distRef,
