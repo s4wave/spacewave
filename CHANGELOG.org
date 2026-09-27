@@ -1,5 +1,51 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.13
+<2026-09-27 Sun>
+
+Spacewave 0.57.13 improves sign-in, session recovery, collaboration,
+synchronization, and file storage reliability, with additional safeguards for
+invites, links, and malformed data.
+
+** Fixes
+- Browser sign-in popups open reliably instead of being reported as blocked.
+- Reloading a PIN-locked session now shows the unlock screen instead of
+  remaining on a loading view.
+- Remote changes no longer revert to an older pending value after a local
+  setting has finished saving.
+- Routes containing encoded characters open correctly throughout nested app
+  views.
+- Copying or merging Spaces now resumes only from the matching transfer,
+  preventing stale progress from skipping data.
+- Moving a Space between storage locations now verifies that its files are
+  available before releasing the previous copy.
+- Spacewave Cloud synchronization reconnects after stalled connections and no
+  longer applies outdated results over newer changes.
+- Spaces remain valid and continue synchronizing after participants leave or are
+  removed.
+- Peer connections recover more reliably from signaling, WebSocket, and
+  transport failures.
+- Large stored files and plugin data remain readable when concurrent activity
+  puts pressure on the storage cache.
+- The command-line stop command now reaches daemons using a configured custom
+  socket.
+
+** Improvements
+- Failed app resources retry more narrowly, reducing unnecessary reloads of
+  working views.
+- File storage handles interrupted writes, truncation, iteration, and cleanup
+  more safely.
+- Leaving, exporting, or repeatedly updating a Space releases storage resources
+  more consistently during long sessions.
+
+** Security
+- Limited-use invites now enforce their usage limit when several people accept
+  at the same time.
+- Public-page links reject disguised unsafe URL schemes containing tabs or line
+  breaks.
+- Malformed identity keys, encrypted connection messages, and password settings
+  are rejected safely instead of causing crashes or excessive resource use.
+
 * v0.57.12
 <2026-09-26 Sat>
 

@@ -1,4 +1,24 @@
 
+Ô
+0.57.13
+2026-09-27¶Spacewave 0.57.13 improves sign-in, session recovery, collaboration, synchronization, and file storage reliability, with additional safeguards for invites, links, and malformed data."¶Spacewave 0.57.13 improves sign-in, session recovery, collaboration, synchronization, and file storage reliability, with additional safeguards for invites, links, and malformed data.2˜
+JBrowser sign-in popups open reliably instead of being reported as blocked.JBrowser sign-in popups open reliably instead of being reported as blocked.2È
+bReloading a PIN-locked session now shows the unlock screen instead of remaining on a loading view.bReloading a PIN-locked session now shows the unlock screen instead of remaining on a loading view.2Ì
+dRemote changes no longer revert to an older pending value after a local setting has finished saving.dRemote changes no longer revert to an older pending value after a local setting has finished saving.2¤
+PRoutes containing encoded characters open correctly throughout nested app views.PRoutes containing encoded characters open correctly throughout nested app views.2ì
+tCopying or merging Spaces now resumes only from the matching transfer, preventing stale progress from skipping data.tCopying or merging Spaces now resumes only from the matching transfer, preventing stale progress from skipping data.2ð
+vMoving a Space between storage locations now verifies that its files are available before releasing the previous copy.vMoving a Space between storage locations now verifies that its files are available before releasing the previous copy.2‚
+Spacewave Cloud synchronization reconnects after stalled connections and no longer applies outdated results over newer changes.Spacewave Cloud synchronization reconnects after stalled connections and no longer applies outdated results over newer changes.2²
+WSpaces remain valid and continue synchronizing after participants leave or are removed.WSpaces remain valid and continue synchronizing after participants leave or are removed.2¶
+YPeer connections recover more reliably from signaling, WebSocket, and transport failures.YPeer connections recover more reliably from signaling, WebSocket, and transport failures.2â
+oLarge stored files and plugin data remain readable when concurrent activity puts pressure on the storage cache.oLarge stored files and plugin data remain readable when concurrent activity puts pressure on the storage cache.2ª
+SThe command-line stop command now reaches daemons using a configured custom socket.SThe command-line stop command now reaches daemons using a configured custom socket.:´
+XFailed app resources retry more narrowly, reducing unnecessary reloads of working views.XFailed app resources retry more narrowly, reducing unnecessary reloads of working views.:´
+XFile storage handles interrupted writes, truncation, iteration, and cleanup more safely.XFile storage handles interrupted writes, truncation, iteration, and cleanup more safely.:î
+uLeaving, exporting, or repeatedly updating a Space releases storage resources more consistently during long sessions.uLeaving, exporting, or repeatedly updating a Space releases storage resources more consistently during long sessions.BÀ
+^Limited-use invites now enforce their usage limit when several people accept at the same time.^Limited-use invites now enforce their usage limit when several people accept at the same time.B®
+UPublic-page links reject disguised unsafe URL schemes containing tabs or line breaks.UPublic-page links reject disguised unsafe URL schemes containing tabs or line breaks.B´
+—Malformed identity keys, encrypted connection messages, and password settings are rejected safely instead of causing crashes or excessive resource use.—Malformed identity keys, encrypted connection messages, and password settings are rejected safely instead of causing crashes or excessive resource use.
 Ï
 0.57.12
 2026-09-26¦Spacewave 0.57.12 improves Drive storage efficiency, Space recovery, plugin loading, and large-Space performance while strengthening network and web asset safeguards."¦Spacewave 0.57.12 improves Drive storage efficiency, Space recovery, plugin loading, and large-Space performance while strengthening network and web asset safeguards.2¨
