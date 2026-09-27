@@ -22,7 +22,7 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/bbolt v0.0.0-20260926104929-b38c91393b96 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260927071131-f10d98b6e172 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 // master
@@ -78,7 +78,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.3.3-0.20260927051237-8146e7cbba3a
+	github.com/s4wave/goscript v0.3.3-0.20260927073019-11fb84557612
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
