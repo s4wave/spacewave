@@ -93,8 +93,7 @@ message BuildOutput {
   string type = 2;
   string entrypoint_name = 3;
   int64 bytes = 4;
-  int64 gzip_bytes = 5;
-  string sha256 = 6;
+  string sha256 = 5;
 }
 
 // ToolIdentity records the exact runner tool versions and host identity.

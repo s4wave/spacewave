@@ -151,7 +151,7 @@ func TestBuildCancellationUsesContextAndReapsRunner(t *testing.T) {
 
 func TestBuildConcurrentCallsUsePrivateProtocolFiles(t *testing.T) {
 	root := t.TempDir()
-	prepareRunnerFixture(t, root, `printf '{"inputs":["%s"],"outputs":[{"path":"main.js","type":"javascript","bytes":"1","gzip_bytes":"1"}],"tool":{"rolldown_version":"1","bun_version":"1","platform":"darwin","arch":"arm64"}}\n' "$PWD/main.ts" > "$2"`)
+	prepareRunnerFixture(t, root, `printf '{"inputs":["%s"],"outputs":[{"path":"main.js","type":"javascript","bytes":"1"}],"tool":{"rolldown_version":"1","bun_version":"1","platform":"darwin","arch":"arm64"}}\n' "$PWD/main.ts" > "$2"`)
 	bldrDistRoot := validTestRequest(root).BldrDistRoot
 	fakeBun := prepareFakeBun(t, root)
 	t.Setenv("PATH", filepath.Dir(fakeBun)+string(os.PathListSeparator)+os.Getenv("PATH"))

@@ -436,11 +436,7 @@ export interface BuildOutput {
    */
   bytes?: bigint
   /**
-   * @generated from field: int64 gzip_bytes = 5;
-   */
-  gzipBytes?: bigint
-  /**
-   * @generated from field: string sha256 = 6;
+   * @generated from field: string sha256 = 5;
    */
   sha256?: string
 }
@@ -453,8 +449,7 @@ export const BuildOutput: MessageType<BuildOutput> =
       { no: 2, name: 'type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'entrypoint_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'bytes', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 5, name: 'gzip_bytes', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 6, name: 'sha256', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'sha256', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

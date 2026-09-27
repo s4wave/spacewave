@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
-import { gzipSync } from 'node:zlib'
 import {
   basename,
   dirname,
@@ -861,7 +860,6 @@ async function collectOutputs(
       type,
       entrypointName,
       bytes: BigInt(contents.byteLength),
-      gzipBytes: BigInt(gzipSync(contents, { level: 9 }).byteLength),
       sha256: createHash('sha256').update(contents).digest('hex'),
     })
   }
@@ -1053,7 +1051,6 @@ function resultToJSON(result: BuildResult): JsonValue {
       type: output.type || '',
       entrypoint_name: output.entrypointName || '',
       bytes: String(output.bytes ?? 0n),
-      gzip_bytes: String(output.gzipBytes ?? 0n),
       sha256: output.sha256 || '',
     })),
     entrypoint_outputs: result.entrypointOutputs ?? {},
