@@ -62,6 +62,7 @@ export function useNotebookViewerState({
       setEditing(false)
       setFilterTag(undefined)
       setFilterStatus(undefined)
+      setSidebarOpen(false)
     },
     [setSelectedSource, setCurrentPath, setSelectedNote, setEditing],
   )
@@ -82,6 +83,7 @@ export function useNotebookViewerState({
       setFilterTag(view.filterTag ?? undefined)
       setFilterStatus(view.filterStatus ?? undefined)
       setSort(view.sort)
+      setSidebarOpen(false)
       return null
     },
     [sources, setSelectedSource, setCurrentPath, setSelectedNote, setEditing],

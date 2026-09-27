@@ -11,12 +11,14 @@ import {
 
 import { StateBadge } from './StateBadge.js'
 
+/** ForgeViewerTab provides a named content panel within a Forge viewer. */
 export interface ForgeViewerTab {
   id: string
   label: string
   content: ReactNode
 }
 
+/** ForgeAction describes an action on a Forge viewer or its selected object. */
 export interface ForgeAction {
   label: string
   icon?: ReactNode
@@ -41,8 +43,7 @@ interface ForgeViewerShellProps {
   children?: ReactNode
 }
 
-// ForgeViewerShell provides shared chrome for all Forge viewers:
-// header (icon + name + state badge), tabbed content, and optional action bar.
+/** ForgeViewerShell owns Forge navigation, action bars, and touch target sizing. */
 export function ForgeViewerShell({
   icon,
   title,
@@ -55,6 +56,7 @@ export function ForgeViewerShell({
   stateKey,
   children,
 }: ForgeViewerShellProps) {
+  // Keep tab selection in the viewer’s existing personal state namespace.
   const ns = useStateNamespace(['forge-viewer', stateKey ?? title])
   const [activeTab, setActiveTab] = useStateAtom(ns, 'tab', '')
 
@@ -71,16 +73,17 @@ export function ForgeViewerShell({
     [setActiveTab],
   )
 
+  // Apply the touch floor to viewer-supplied controls as well as shared chrome.
   return (
     <div
       data-testid="forge-viewer"
-      className="bg-background-primary flex h-full w-full flex-col overflow-hidden"
+      className="bg-background-primary flex h-full w-full flex-col overflow-hidden max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11"
     >
       {/* Header */}
-      <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
+      <div className="border-foreground/8 flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-4 sm:pointer-fine:h-9 sm:pointer-fine:py-0">
         <div className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
           {icon}
-          <span className="tracking-tight">{title}</span>
+          <span className="min-w-0 truncate tracking-tight">{title}</span>
           {stateLabels && state !== undefined && (
             <StateBadge state={state} labels={stateLabels} />
           )}
@@ -88,13 +91,14 @@ export function ForgeViewerShell({
         {headerActions && headerActions.length > 0 && (
           <div
             data-testid="forge-viewer-header-actions"
-            className="ml-3 flex shrink-0 items-center gap-2"
+            className="flex w-full items-center gap-2 sm:ml-3 sm:w-auto sm:shrink-0"
           >
             {headerActions.map((action) => (
               <Tooltip key={action.label}>
                 <TooltipTrigger asChild>
                   <DashboardButton
                     icon={action.icon}
+                    className="flex-1 justify-center sm:flex-none"
                     onClick={action.onClick}
                     disabled={action.disabled}
                     variant={
@@ -118,16 +122,16 @@ export function ForgeViewerShell({
 
       {/* Tab bar */}
       {tabs && tabs.length > 1 && (
-        <div className="border-foreground/8 shrink-0 border-b px-4 py-1.5">
+        <div className="border-foreground/8 shrink-0 overflow-x-auto border-b px-3 py-1.5 sm:px-4">
           <div className="mx-auto w-full max-w-5xl">
-            <div className="bg-foreground/5 inline-flex gap-1 rounded-md p-1">
+            <div className="bg-foreground/5 inline-flex min-w-max gap-1 rounded-md p-1">
               {tabs.map((tab) => (
                 <button
                   type="button"
                   key={tab.id}
                   onClick={() => onTabClick(tab.id)}
                   className={cn(
-                    'rounded border px-2.5 py-1 text-xs font-medium transition-all duration-150 select-none',
+                    'rounded border px-3 text-xs font-medium transition-all duration-150 select-none sm:px-2.5 sm:py-1',
                     resolvedTab?.id === tab.id
                       ? 'border-brand/30 bg-brand/10 text-foreground'
                       : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 border-transparent',
@@ -152,7 +156,7 @@ export function ForgeViewerShell({
       {actions && actions.length > 0 && (
         <div
           data-testid="forge-viewer-action-bar"
-          className="border-foreground/8 flex h-10 shrink-0 items-center gap-2 border-t px-4"
+          className="border-foreground/8 flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-t px-3 py-2 sm:flex-nowrap sm:px-4 sm:pointer-fine:h-10 sm:pointer-fine:min-h-0 sm:pointer-fine:py-0"
         >
           {actions.map((action) => (
             <Tooltip key={action.label}>

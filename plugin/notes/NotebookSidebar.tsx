@@ -23,7 +23,7 @@ interface NotebookSidebarProps {
   namespace: StateNamespace
 }
 
-// NotebookSidebar shows the source list from the Notebook.
+/** NotebookSidebar shows the source list from the Notebook. */
 function NotebookSidebar({
   sources,
   selectedSource,
@@ -53,7 +53,7 @@ function NotebookSidebar({
         <span>No sources configured</span>
         <button
           type="button"
-          className="border-border text-foreground hover:bg-list-hover-background rounded-md border px-3 py-1.5 text-xs font-medium"
+          className="border-border text-foreground hover:bg-list-hover-background min-h-11 rounded-md border px-3 py-1.5 text-xs font-medium md:pointer-fine:min-h-0"
           onClick={onAddSource}
         >
           Add source
@@ -69,7 +69,7 @@ function NotebookSidebar({
           <span>Sources</span>
           <button
             type="button"
-            className="hover:bg-list-hover-background text-foreground-alt hover:text-foreground rounded p-1"
+            className="hover:bg-list-hover-background text-foreground-alt hover:text-foreground flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
             title="Add source"
             onClick={onAddSource}
           >
@@ -85,7 +85,7 @@ function NotebookSidebar({
             <div key={source.ref || source.name || `source-${selectedSource}`}>
               <div
                 className={cn(
-                  'flex items-center gap-1 px-2 py-1.5 text-xs',
+                  'flex min-h-11 items-center gap-1 px-2 text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5',
                   'hover:bg-list-hover-background',
                   selected &&
                     'bg-list-active-selection-background text-list-active-selection-foreground',
@@ -93,7 +93,7 @@ function NotebookSidebar({
               >
                 <button
                   type="button"
-                  className="flex min-w-0 flex-1 items-center gap-1 text-left"
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-1 text-left md:pointer-fine:min-h-0"
                   onClick={() => {
                     onSelectSource(index)
                     toggleExpanded(index)
@@ -112,7 +112,7 @@ function NotebookSidebar({
                 <span className="flex shrink-0 items-center gap-0.5">
                   <button
                     type="button"
-                    className="hover:bg-list-hover-background rounded p-0.5"
+                    className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Move source up"
                     disabled={index === 0}
                     onClick={(e) => {
@@ -124,7 +124,7 @@ function NotebookSidebar({
                   </button>
                   <button
                     type="button"
-                    className="hover:bg-list-hover-background rounded p-0.5"
+                    className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Move source down"
                     disabled={index === sources.length - 1}
                     onClick={(e) => {
@@ -136,7 +136,7 @@ function NotebookSidebar({
                   </button>
                   <button
                     type="button"
-                    className="hover:bg-list-hover-background rounded p-0.5"
+                    className="hover:bg-list-hover-background flex size-11 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-0.5"
                     title="Remove source"
                     onClick={(e) => {
                       e.stopPropagation()

@@ -57,7 +57,7 @@ const taskStateLabels: Record<number, string> = {
   [TaskState.TaskState_RETRY]: 'RETRY',
 }
 
-// ForgeJobViewer displays a Forge Job entity with tabbed layout.
+/** ForgeJobViewer displays a Forge Job entity with tabbed layout. */
 export function ForgeJobViewer({
   objectInfo,
   worldState,
