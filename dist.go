@@ -34,7 +34,7 @@ import "embed"
 //go:embed sdk/block/transaction/transaction_srpc.pb.ts sdk/bucket/lookup/lookup.pb.ts
 //go:embed sdk/bucket/lookup/lookup.ts sdk/bucket/lookup/lookup_srpc.pb.ts sdk/canvas/canvas.pb.ts
 //go:embed sdk/cdn/cdn-resource.pb.ts sdk/cdn/cdn-resource_srpc.pb.ts sdk/cdn/cdn.ts sdk/chat/chat.pb.ts
-//go:embed sdk/chat/content/content.pb.ts sdk/chat/state/state.pb.ts
+//go:embed sdk/chat/content/content.pb.ts sdk/chat/rpc/rpc.pb.ts sdk/chat/state/state.pb.ts
 //go:embed sdk/chat/create-channel.ts sdk/chat/init-chat-demo.ts sdk/command/command.pb.ts
 //go:embed sdk/command/registry/registry.pb.ts sdk/command/registry/registry_srpc.pb.ts
 //go:embed sdk/configtype/registry/registry.pb.ts sdk/configtype/registry/registry_srpc.pb.ts

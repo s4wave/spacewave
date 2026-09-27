@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
@@ -37,7 +38,7 @@ var ErrChatStateConflict = errors.New("chat state write condition conflicts with
 type ChatResource struct {
 	// ws serves reads within the mounted Space.
 	ws world.WorldState
-	// engine serializes channel mutations.
+	// engine submits channel mutations for ordered World replay.
 	engine world.Engine
 	// objectKey identifies the channel.
 	objectKey string
@@ -344,20 +345,63 @@ func (r *ChatResource) commitMessage(ctx context.Context, req *spacewave_chat_rp
 		return nil, ErrChatAuthorIdentityRequired
 	}
 
-	// Serialize retry resolution and message creation through the World transaction.
+	// Prepare the intent locally; shared replay assigns its final history position.
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer wtx.Discard()
-	response, err := r.appendMessage(ctx, wtx, req, timestamppb.Now())
+
+	// An unchanged unkeyed state write keeps the existing message identity.
+	if req.GetTransactionId() == "" && req.GetContent().GetStateChange() != nil {
+		content, err := normalizeSendMessageContent(req)
+		if err != nil {
+			return nil, err
+		}
+		_, acceptedKey, err := r.resolveMessageState(ctx, wtx, req, content)
+		if err != nil {
+			return nil, err
+		}
+		if acceptedKey != "" {
+			return &spacewave_chat_rpc.SendMessageResponse{MessageKey: acceptedKey}, nil
+		}
+	}
+
+	// Give every append a stable identity before submitting it for replay.
+	request := req.CloneVT()
+	if request.GetTransactionId() == "" {
+		request.TransactionId = ulid.NewULID()
+	}
+	seqno, err := wtx.GetSeqno(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := wtx.Commit(ctx); err != nil {
+
+	// Replay allocates the accepted position from current World history.
+	op := &SendChatMessageOp{
+		ObjectKey:    r.objectKey,
+		Request:      request,
+		Timestamp:    timestamppb.Now(),
+		SenderPeerId: r.localPeerID,
+		PersonPeerId: r.personPeerID,
+	}
+	nextSeqno, _, err := wtx.ApplyWorldOp(ctx, op, "")
+	if err != nil {
 		return nil, err
 	}
-	return response, nil
+
+	// A retry has an existing key and needs no new World publication.
+	messageKey, err := TransactionMessageKey(r.objectKey, r.localPeerID, request.GetTransactionId())
+	if err != nil {
+		return nil, err
+	}
+	if nextSeqno != seqno {
+		if err := wtx.Commit(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	return &spacewave_chat_rpc.SendMessageResponse{MessageKey: messageKey}, nil
 }
 
 // appendMessage records a message inside the caller's World transaction.
@@ -423,44 +467,13 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	}
 
 	// Resolve current state after retry lookup so old retries cannot replace newer state.
-	var priorState []world.GraphQuad
 	state := content.GetStateChange()
-	if state != nil {
-		priorState, err = wtx.LookupGraphQuads(ctx, NewChatStateQuad(r.objectKey, "", state.GetType(), state.GetStateKey()), 0)
-		if err != nil {
-			return nil, err
-		}
-		if expected := req.ExpectedStateMessageKey; expected != nil {
-			currentKey := ""
-			if len(priorState) > 1 {
-				return nil, errors.New("chat state has multiple current events")
-			}
-			if len(priorState) == 1 {
-				currentKey, err = world.GraphValueToKey(priorState[0].GetObj())
-				if err != nil {
-					return nil, err
-				}
-			}
-			if currentKey != *expected {
-				return nil, ErrChatStateConflict
-			}
-		}
-		for _, edge := range priorState {
-			key, err := world.GraphValueToKey(edge.GetObj())
-			if err != nil {
-				return nil, err
-			}
-			prior, err := world.LookupObjectBody[*ChatMessage](ctx, wtx, key, NewChatMessageBlock)
-			if err != nil {
-				return nil, err
-			}
-			if req.GetTransactionId() == "" && prior.GetContent().EqualVT(content) {
-				return &spacewave_chat_rpc.SendMessageResponse{MessageKey: key}, nil
-			}
-			if state.GetType() == "m.room.create" && state.GetStateKey() == "" {
-				return nil, errors.New("chat creation state cannot be replaced")
-			}
-		}
+	priorState, acceptedKey, err := r.resolveMessageState(ctx, wtx, req, content)
+	if err != nil {
+		return nil, err
+	}
+	if acceptedKey != "" {
+		return &spacewave_chat_rpc.SendMessageResponse{MessageKey: acceptedKey}, nil
 	}
 
 	// Every new append advances an already initialized history prefix atomically.
@@ -529,6 +542,51 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		return nil, err
 	}
 	return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
+}
+
+// resolveMessageState checks current-state conditions and unchanged unkeyed writes.
+// Returned edges are replaced only when a new message is appended.
+func (r *ChatResource) resolveMessageState(ctx context.Context, ws world.WorldState, req *spacewave_chat_rpc.SendMessageRequest, content *ChatMessageContent) ([]world.GraphQuad, string, error) {
+	state := content.GetStateChange()
+	if state == nil {
+		return nil, "", nil
+	}
+	priorState, err := ws.LookupGraphQuads(ctx, NewChatStateQuad(r.objectKey, "", state.GetType(), state.GetStateKey()), 0)
+	if err != nil {
+		return nil, "", err
+	}
+	if expected := req.ExpectedStateMessageKey; expected != nil {
+		currentKey := ""
+		if len(priorState) > 1 {
+			return nil, "", errors.New("chat state has multiple current events")
+		}
+		if len(priorState) == 1 {
+			currentKey, err = world.GraphValueToKey(priorState[0].GetObj())
+			if err != nil {
+				return nil, "", err
+			}
+		}
+		if currentKey != *expected {
+			return nil, "", ErrChatStateConflict
+		}
+	}
+	for _, edge := range priorState {
+		key, err := world.GraphValueToKey(edge.GetObj())
+		if err != nil {
+			return nil, "", err
+		}
+		prior, err := world.LookupObjectBody[*ChatMessage](ctx, ws, key, NewChatMessageBlock)
+		if err != nil {
+			return nil, "", err
+		}
+		if req.GetTransactionId() == "" && prior.GetContent().EqualVT(content) {
+			return priorState, key, nil
+		}
+		if state.GetType() == "m.room.create" && state.GetStateKey() == "" {
+			return nil, "", errors.New("chat creation state cannot be replaced")
+		}
+	}
+	return priorState, "", nil
 }
 
 // GetReadPositions reads shared receipt state without transferring mutable channel state.

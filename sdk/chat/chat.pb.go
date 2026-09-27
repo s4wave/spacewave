@@ -14,6 +14,7 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	content "github.com/s4wave/spacewave/sdk/chat/content"
+	rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 	state "github.com/s4wave/spacewave/sdk/chat/state"
 )
 
@@ -359,6 +360,62 @@ func (x *CreateChatChannelOp) GetInitialState() []*content.ChatStateChange {
 	return nil
 }
 
+// SendChatMessageOp appends a message against the accepted World history.
+type SendChatMessageOp struct {
+	unknownFields []byte
+	// ObjectKey selects the channel to append to.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Request retains the send intent and its stable transaction ID.
+	Request *rpc.SendMessageRequest `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
+	// Timestamp is chosen when the send is submitted.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// SenderPeerId is the authenticated device bound to the Chat Resource.
+	SenderPeerId string `protobuf:"bytes,4,opt,name=sender_peer_id,json=senderPeerId,proto3" json:"senderPeerId,omitempty"`
+	// PersonPeerId is the verified person bound to the Chat Resource.
+	PersonPeerId string `protobuf:"bytes,5,opt,name=person_peer_id,json=personPeerId,proto3" json:"personPeerId,omitempty"`
+}
+
+func (x *SendChatMessageOp) Reset() {
+	*x = SendChatMessageOp{}
+}
+
+func (*SendChatMessageOp) ProtoMessage() {}
+
+func (x *SendChatMessageOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *SendChatMessageOp) GetRequest() *rpc.SendMessageRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+func (x *SendChatMessageOp) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *SendChatMessageOp) GetSenderPeerId() string {
+	if x != nil {
+		return x.SenderPeerId
+	}
+	return ""
+}
+
+func (x *SendChatMessageOp) GetPersonPeerId() string {
+	if x != nil {
+		return x.PersonPeerId
+	}
+	return ""
+}
+
 type ChatChannel_ReadPositionsEntry struct {
 	unknownFields []byte
 	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -502,6 +559,26 @@ func (m *CreateChatChannelOp) CloneVT() *CreateChatChannelOp {
 }
 
 func (m *CreateChatChannelOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SendChatMessageOp) CloneVT() *SendChatMessageOp {
+	if m == nil {
+		return (*SendChatMessageOp)(nil)
+	}
+	r := new(SendChatMessageOp)
+	r.ObjectKey = m.ObjectKey
+	r.SenderPeerId = m.SenderPeerId
+	r.PersonPeerId = m.PersonPeerId
+	r.Request = protobuf_go_lite.CloneVTValue(m.Request)
+	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SendChatMessageOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -691,6 +768,38 @@ func (this *CreateChatChannelOp) EqualVT(that *CreateChatChannelOp) bool {
 
 func (this *CreateChatChannelOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateChatChannelOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SendChatMessageOp) EqualVT(that *SendChatMessageOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Request, that.Request) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if this.SenderPeerId != that.SenderPeerId {
+		return false
+	}
+	if this.PersonPeerId != that.PersonPeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SendChatMessageOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SendChatMessageOp)
 	if !ok {
 		return false
 	}
@@ -1262,6 +1371,88 @@ func (x *CreateChatChannelOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SendChatMessageOp message to JSON.
+func (x *SendChatMessageOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.Request != nil || s.HasField("request") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("request")
+		x.Request.MarshalProtoJSON(s.WithField("request"))
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if x.SenderPeerId != "" || s.HasField("senderPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("senderPeerId")
+		s.WriteString(x.SenderPeerId)
+	}
+	if x.PersonPeerId != "" || s.HasField("personPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("personPeerId")
+		s.WriteString(x.PersonPeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SendChatMessageOp to JSON.
+func (x *SendChatMessageOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SendChatMessageOp message from JSON.
+func (x *SendChatMessageOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "request":
+			if s.ReadNil() {
+				x.Request = nil
+				return
+			}
+			x.Request = &rpc.SendMessageRequest{}
+			x.Request.UnmarshalProtoJSON(s.WithField("request", true))
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "sender_peer_id", "senderPeerId":
+			s.AddField("sender_peer_id")
+			x.SenderPeerId = s.ReadString()
+		case "person_peer_id", "personPeerId":
+			s.AddField("person_peer_id")
+			x.PersonPeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SendChatMessageOp from JSON.
+func (x *SendChatMessageOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *ChatChannel) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1653,6 +1844,73 @@ func (m *CreateChatChannelOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *SendChatMessageOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SendChatMessageOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SendChatMessageOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PersonPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PersonPeerId)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.SenderPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SenderPeerId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Request != nil {
+		size, err := m.Request.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ChatChannel) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1766,6 +2024,27 @@ func (m *CreateChatChannelOp) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SendChatMessageOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	if m.Request != nil {
+		l = m.Request.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SenderPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1988,6 +2267,36 @@ func (x *CreateChatChannelOp) MarshalProtoText() string {
 }
 
 func (x *CreateChatChannelOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SendChatMessageOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SendChatMessageOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.Request != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "request")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Request)
+	}
+	if x.Timestamp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.SenderPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sender_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SenderPeerId)
+	}
+	if x.PersonPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "person_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PersonPeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SendChatMessageOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2587,6 +2896,109 @@ func (m *CreateChatChannelOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SendChatMessageOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SendChatMessageOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SendChatMessageOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Request == nil {
+				m.Request = &rpc.SendMessageRequest{}
+			}
+			if err := m.Request.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SenderPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SenderPeerId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PersonPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PersonPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
