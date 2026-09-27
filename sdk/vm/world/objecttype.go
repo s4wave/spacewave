@@ -68,7 +68,9 @@ func vmV86Factory(
 		return nil, nil, err
 	}
 
-	resource := newV86Resource(le, objectKey, resourceWS, b, v86fsServer)
+	// The runtime plugin loads and calls back through the plugin bus.
+	pluginBus := objecttype.PluginBusFromContext(ctx, b)
+	resource := newV86Resource(le, objectKey, resourceWS, pluginBus, v86fsServer)
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		if err := s4wave_process.SRPCRegisterPersistentExecutionService(mux, resource); err != nil {
 			return err
