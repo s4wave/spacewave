@@ -41,7 +41,7 @@ const labelClassName = 'text-foreground-alt mb-1.5 block text-xs select-none'
 
 const inputClassName = cn(
   'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50',
-  'w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
+  'w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none [@media(pointer:coarse)]:min-h-11',
   'focus:border-brand/50',
   'disabled:opacity-50',
 )
@@ -174,6 +174,7 @@ function SignInMethodButton({
 }) {
   return (
     <button
+      type="button"
       disabled={busy || !enabled}
       onClick={onClick}
       className={cn(
@@ -184,7 +185,7 @@ function SignInMethodButton({
           ? 'hover:border-brand/30 hover:bg-background/40'
           : 'cursor-not-allowed opacity-40',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        'flex h-10 items-center justify-center gap-2',
+        'flex h-11 items-center justify-center gap-2',
       )}
     >
       {loading ? <Spinner size="md" className="text-foreground-alt" /> : icon}
@@ -684,7 +685,7 @@ export function LoginForm({
                 I agree to the{' '}
                 <a
                   href="#/tos"
-                  className="text-brand hover:underline"
+                  className="text-brand inline-flex min-h-11 items-center hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Terms of Service
@@ -692,7 +693,7 @@ export function LoginForm({
                 and{' '}
                 <a
                   href="#/privacy"
-                  className="text-brand hover:underline"
+                  className="text-brand inline-flex min-h-11 items-center hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Privacy Policy
@@ -709,7 +710,7 @@ export function LoginForm({
                   href={forgotPasswordUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground text-xs underline"
+                  className="text-muted-foreground inline-flex min-h-11 items-center text-xs underline"
                 >
                   Forgot your password?
                 </a>
@@ -731,6 +732,7 @@ export function LoginForm({
                 Enhanced security required. Sign in via your browser.
               </p>
               <button
+                type="button"
                 onClick={() =>
                   isDesktop
                     ? void handleDesktopBrowserSignIn('browser')
@@ -739,7 +741,7 @@ export function LoginForm({
                 className={cn(
                   'w-full rounded-md border transition-all duration-300',
                   'border-brand/30 bg-brand/20 hover:bg-brand/30',
-                  'flex h-9 items-center justify-center gap-2',
+                  'flex h-11 items-center justify-center gap-2',
                 )}
               >
                 <LuKeyRound className="text-foreground size-4" />
@@ -755,6 +757,7 @@ export function LoginForm({
           )}
 
           <button
+            type="button"
             onClick={() => void handleContinueWithPassword()}
             disabled={
               loading !== null ||
@@ -768,7 +771,7 @@ export function LoginForm({
               'group w-full rounded-md border transition-all duration-300',
               'border-brand/30 bg-brand/10 hover:bg-brand/20',
               'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
-              'flex h-10 items-center justify-center gap-2',
+              'flex h-11 items-center justify-center gap-2',
             )}
           >
             {passwordBusy ? (
@@ -817,7 +820,7 @@ export function LoginForm({
                 setConfirm('')
                 setError(null)
               }}
-              className="text-foreground-alt hover:text-brand w-full text-center text-xs transition-colors"
+              className="text-foreground-alt hover:text-brand min-h-11 w-full text-center text-xs transition-colors"
             >
               &larr; Return to login
             </button>
@@ -914,6 +917,7 @@ export function LoginForm({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
+                        type="button"
                         onClick={() =>
                           void handleAction(
                             'continue',
@@ -925,7 +929,7 @@ export function LoginForm({
                           'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
                           'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
                           'disabled:cursor-not-allowed disabled:opacity-50',
-                          'flex h-10 items-center justify-between px-4',
+                          'flex h-11 items-center justify-between px-4',
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -979,7 +983,7 @@ export function LoginForm({
                 void handleDesktopBrowserSignIn(browserSignInPrompt)
               }}
               className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-colors',
+                'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
                 'border-brand/30 bg-brand/10 text-foreground hover:bg-brand/20',
               )}
             >
@@ -989,7 +993,7 @@ export function LoginForm({
               type="button"
               onClick={cancelBrowserSignInAttempt}
               className={cn(
-                'rounded-md border px-4 py-2 text-sm transition-colors',
+                'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
                 'border-foreground/20 bg-background text-foreground-alt hover:text-foreground',
               )}
             >

@@ -1448,7 +1448,7 @@ function Footer() {
         &copy; 2018-2026{' '}
         <ExternalLink
           href="https://github.com/aperturerobotics"
-          className="text-foreground-alt hover:text-foreground hover:underline"
+          className="text-foreground-alt hover:text-foreground hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center"
         >
           Aperture Robotics
         </ExternalLink>
@@ -1458,7 +1458,7 @@ function Footer() {
         {links.map((link) => (
           <a
             key={link.label}
-            className="text-foreground-alt/60 hover:text-foreground text-xs underline-offset-4 select-none hover:underline"
+            className="text-foreground-alt/60 hover:text-foreground text-xs underline-offset-4 select-none hover:underline [@media(pointer:coarse)]:flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:px-2"
             href={link.href}
           >
             {link.label}

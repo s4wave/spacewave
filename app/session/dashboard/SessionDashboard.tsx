@@ -149,13 +149,16 @@ export function SessionDashboard({
         </div>
       )}
 
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
+      <div className="very-short:justify-start very-short:py-2 relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
         {isEmpty && isCloud && !readOnly && <WelcomeHeading />}
         {!isEmpty && (
-          <AnimatedLogo followMouse={true} containerClassName="mb-8" />
+          <AnimatedLogo
+            followMouse={true}
+            containerClassName="mb-8 very-short:hidden"
+          />
         )}
 
-        <div className="w-full max-w-md">
+        <div className="very-short:shrink-0 very-short:sm:max-w-2xl w-full max-w-md">
           <DashboardCommandPalette
             spaces={spaces}
             orgs={orgs}
@@ -1013,7 +1016,10 @@ function DashboardCommandPalette({
         value={query}
         onValueChange={setQuery}
       />
-      <CommandList variant="transparent">
+      <CommandList
+        variant="transparent"
+        className="very-short:sm:[&_[cmdk-list-sizer]]:grid very-short:sm:[&_[cmdk-list-sizer]]:grid-cols-2 very-short:sm:[&_[cmdk-list-sizer]]:items-start very-short:sm:[&_[cmdk-separator]]:hidden"
+      >
         <CommandEmpty variant="dashboard">
           {isLoading ? (
             <div className="flex items-center justify-center">

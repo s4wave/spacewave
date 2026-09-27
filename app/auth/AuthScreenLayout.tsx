@@ -38,12 +38,20 @@ export function AuthScreenLayout({
       )}
       {...props}
     >
-      {topLeft && <div className="absolute top-4 left-4 z-20">{topLeft}</div>}
+      {topLeft && (
+        <div className="absolute top-4 left-4 z-20 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:px-2">
+          {topLeft}
+        </div>
+      )}
       {topRight && (
-        <div className="absolute top-4 right-4 z-20">{topRight}</div>
+        <div className="absolute top-4 right-4 z-20 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:px-2">
+          {topRight}
+        </div>
       )}
       {bottomRight && (
-        <div className="absolute right-4 bottom-4 z-20">{bottomRight}</div>
+        <div className="absolute right-4 bottom-4 z-20 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:px-2">
+          {bottomRight}
+        </div>
       )}
 
       <div
