@@ -56,12 +56,12 @@ require (
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260818093742-7bd059496705 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260926105804-1b122021c5d6 // main
 	github.com/go-sql-driver/mysql v1.10.1
-	github.com/goccy/go-json v0.10.6
+	github.com/goccy/go-json v0.11.1-0.20260927094459-17294910d0d3
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.2-0.20260925084326-e4086c1ba492
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-isatty v0.0.24
@@ -85,7 +85,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
-	github.com/tetratelabs/wazero v1.12.1-0.20260923121951-cfd684ff2e83
+	github.com/tetratelabs/wazero v1.12.1-0.20260926205855-1d1c0a136714
 	github.com/tidwall/btree v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
