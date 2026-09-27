@@ -21,6 +21,7 @@ const dashboardButtonVariants = cva(
   },
 )
 
+/** DashboardButtonProps configures an icon action on a dashboard or panel. */
 export interface DashboardButtonProps
   extends
     React.ComponentPropsWithRef<'button'>,
@@ -29,6 +30,7 @@ export interface DashboardButtonProps
   children?: React.ReactNode
 }
 
+/** DashboardButton renders a compact desktop action with a phone-sized touch target. */
 export function DashboardButton({
   icon,
   children,
@@ -40,7 +42,11 @@ export function DashboardButton({
     <Button
       variant="outline"
       size="sm"
-      className={cn(dashboardButtonVariants({ variant, className }))}
+      className={cn(
+        dashboardButtonVariants({ variant }),
+        'min-h-11 min-w-11 whitespace-normal sm:fine-pointer:min-h-0 sm:fine-pointer:min-w-0 sm:whitespace-nowrap',
+        className,
+      )}
       {...props}
     >
       {icon}

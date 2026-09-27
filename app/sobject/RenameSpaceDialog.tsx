@@ -1,4 +1,5 @@
 import { useCallback, useId, useReducer } from 'react'
+import { LuX } from 'react-icons/lu'
 
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+/** RenameSpaceDialogProps supplies the current name and rename operation. */
 export interface RenameSpaceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -43,7 +45,7 @@ function renameReducer(state: RenameState, action: RenameAction): RenameState {
   }
 }
 
-// RenameSpaceDialog prompts the user for a new display name for the space.
+/** RenameSpaceDialog prompts for a Space display name and submits the change. */
 export function RenameSpaceDialog({
   open,
   onOpenChange,
@@ -90,16 +92,25 @@ export function RenameSpaceDialog({
   }, [canSubmit, onConfirm, trimmed, handleOpenChange])
 
   const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors',
+    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-h-11 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors sm:min-h-0',
     'focus:border-brand/50',
   )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent showCloseButton={false}>
+        <button
+          type="button"
+          onClick={() => handleOpenChange(false)}
+          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand absolute top-2 right-2 flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none sm:top-4 sm:right-4 sm:size-4"
+        >
+          <LuX className="size-4" />
+          <span className="sr-only">Close</span>
+        </button>
+
         <DialogHeader>
           <DialogTitle>Rename Space</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="break-words">
             Enter a new display name for &ldquo;{spaceName}&rdquo;.
           </DialogDescription>
         </DialogHeader>
@@ -126,7 +137,11 @@ export function RenameSpaceDialog({
             className={inputClass}
             aria-label="New space name"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && canSubmit) {
+              if (
+                e.key === 'Enter' &&
+                !e.nativeEvent.isComposing &&
+                canSubmit
+              ) {
                 e.preventDefault()
                 void handleSubmit()
               }
@@ -140,17 +155,19 @@ export function RenameSpaceDialog({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={state.submitting}
-            className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            className="text-foreground-alt hover:text-foreground min-h-11 rounded-md px-4 py-2 text-sm transition-colors sm:min-h-0"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
             className={cn(
-              'rounded-md border px-4 py-2 text-sm transition-all',
+              'min-h-11 rounded-md border px-4 py-2 text-sm transition-all sm:min-h-0',
               'border-brand/30 bg-brand/10 text-brand hover:bg-brand/20',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}

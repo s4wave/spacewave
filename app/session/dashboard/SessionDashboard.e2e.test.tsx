@@ -55,7 +55,7 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
   default: () => <div data-testid="animated-logo" />,
 }))
 
-import { SessionDashboard } from './SessionDashboard.js'
+import { SessionDashboard, type DashboardSpace } from './SessionDashboard.js'
 
 function QuickstartIcon({ className }: { className?: string }) {
   return <svg className={className} aria-hidden="true" />
@@ -104,13 +104,23 @@ const quickstartOptions = [
 // SessionDashboardSurface fills the viewport so the dashboard's h-full column
 // resolves, and applies the bg-background-landing token so the screenshot
 // captures the real dashboard backdrop rather than a transparent root.
-function SessionDashboardSurface() {
+function SessionDashboardSurface({
+  spaces = [],
+  onSpaceClick,
+}: {
+  spaces?: DashboardSpace[]
+  onSpaceClick?: (space: DashboardSpace) => void
+}) {
   return (
     <div
       data-testid="dashboard-surface"
       className="bg-background-landing text-foreground fixed inset-0"
     >
-      <SessionDashboard spaces={[]} onQuickstartClick={vi.fn()} />
+      <SessionDashboard
+        spaces={spaces}
+        onSpaceClick={onSpaceClick}
+        onQuickstartClick={vi.fn()}
+      />
     </div>
   )
 }
@@ -167,6 +177,69 @@ describe('session dashboard browser render', () => {
     )
 
     await capture('empty-narrow')
+    await cleanup()
+  })
+
+  it('gives Space and Drive copy actions phone-sized hit areas', async () => {
+    await page.viewport(390, 844)
+    const onSpaceClick = vi.fn()
+
+    // Render both ID actions in the same dashboard list.
+    await render(
+      <SessionDashboardSurface
+        onSpaceClick={onSpaceClick}
+        spaces={[
+          { id: 'space-1', name: 'My Space' },
+          { id: 'drive-1', name: 'My Drive' },
+        ]}
+      />,
+    )
+
+    // Measure the actual buttons and keep the document inside the viewport.
+    for (const name of ['Copy My Space ID', 'Copy My Drive ID']) {
+      const button = page.getByRole('button', { name }).element()
+      expect(button).not.toBeNull()
+      const bounds = button!.getBoundingClientRect()
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+    }
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth,
+    )
+
+    // Copy remains independent of selecting its parent Space row.
+    await capture('space-drive-copy-narrow')
+    await page.getByRole('button', { name: 'Copy My Space ID' }).click()
+    expect(onSpaceClick).not.toHaveBeenCalled()
+    await cleanup()
+  })
+
+  it('keeps both copy actions reachable by scrolling in touch landscape', async () => {
+    await page.viewport(844, 390)
+    const onSpaceClick = vi.fn()
+
+    await render(
+      <SessionDashboardSurface
+        onSpaceClick={onSpaceClick}
+        spaces={[
+          { id: 'space-1', name: 'My Space' },
+          { id: 'drive-1', name: 'My Drive' },
+        ]}
+      />,
+    )
+
+    for (const name of ['Copy My Space ID', 'Copy My Drive ID']) {
+      const button = page.getByRole('button', { name }).element()
+      expect(button).not.toBeNull()
+      button!.scrollIntoView({ block: 'center' })
+      const bounds = button!.getBoundingClientRect()
+      expect(bounds.top).toBeGreaterThanOrEqual(0)
+      expect(bounds.bottom).toBeLessThanOrEqual(window.innerHeight)
+      await page.getByRole('button', { name }).click()
+    }
+
+    expect(onSpaceClick).not.toHaveBeenCalled()
+    await capture('space-drive-copy-landscape')
     await cleanup()
   })
 })

@@ -16,6 +16,7 @@
 @custom-variant narrow (@media (max-width: 640px));
 @custom-variant wide (@media (min-width: 1920px));
 @custom-variant ultrawide (@media (min-width: 2560px));
+@custom-variant fine-pointer (@media (pointer: fine));
 
 /* Tab bar style variants for LayoutDebug (scoped via data-variant attribute) */
 @custom-variant tab-frosted-glass (&:where([data-variant=frosted-glass], [data-variant=frosted-glass] *));

@@ -4,6 +4,7 @@ import { LuChevronDown } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
+/** CollapsibleSectionProps configures a section and its optional header actions. */
 export interface CollapsibleSectionProps {
   // Section title displayed in the header.
   title: string
@@ -25,9 +26,7 @@ export interface CollapsibleSectionProps {
   compact?: boolean
 }
 
-// CollapsibleSection wraps content in a glass card with a clickable
-// header that toggles visibility. Uses Radix Collapsible for
-// accessibility (keyboard, ARIA).
+/** CollapsibleSection renders a section whose header toggles its content. */
 export function CollapsibleSection({
   title,
   icon,
@@ -51,8 +50,8 @@ export function CollapsibleSection({
       >
         <div
           className={cn(
-            'hover:bg-background-card/50 flex items-center gap-2 transition-colors',
-            compact ? 'px-2.5 py-1.5' : 'px-3.5 py-2.5',
+            'hover:bg-background-card/50 flex min-h-11 items-center gap-2 transition-colors sm:fine-pointer:min-h-0',
+            compact ? 'px-2.5 sm:py-1.5' : 'px-3.5 sm:py-2.5',
             open && 'border-foreground/6 border-b',
           )}
         >
@@ -61,8 +60,8 @@ export function CollapsibleSection({
               type="button"
               onClick={toggle}
               className={cn(
-                'flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left',
-                compact ? '-my-1.5 py-1.5' : '-my-2.5 py-2.5',
+                'flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left sm:fine-pointer:min-h-0',
+                compact ? 'sm:-my-1.5 sm:py-1.5' : 'sm:-my-2.5 sm:py-2.5',
               )}
             >
               {icon && (
@@ -70,7 +69,7 @@ export function CollapsibleSection({
                   {icon}
                 </span>
               )}
-              <span className="text-foreground flex-1 text-xs font-medium select-none">
+              <span className="text-foreground min-w-0 flex-1 text-xs font-medium select-none">
                 {title}
               </span>
               {badge}
@@ -83,7 +82,9 @@ export function CollapsibleSection({
             </button>
           </Collapsible.Trigger>
           {headerActions && (
-            <div className="flex shrink-0 items-center">{headerActions}</div>
+            <div className="sm:fine-pointer:[&_button]:min-h-0 sm:fine-pointer:[&_button]:min-w-0 flex shrink-0 items-center [&_button]:min-h-11 [&_button]:min-w-11">
+              {headerActions}
+            </div>
           )}
         </div>
         <Collapsible.Content className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
