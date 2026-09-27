@@ -435,8 +435,7 @@ type BuildOutput struct {
 	Type           string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	EntrypointName string `protobuf:"bytes,3,opt,name=entrypoint_name,json=entrypointName,proto3" json:"entrypointName,omitempty"`
 	Bytes          int64  `protobuf:"varint,4,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	GzipBytes      int64  `protobuf:"varint,5,opt,name=gzip_bytes,json=gzipBytes,proto3" json:"gzipBytes,omitempty"`
-	Sha256         string `protobuf:"bytes,6,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	Sha256         string `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"`
 }
 
 func (x *BuildOutput) Reset() {
@@ -469,13 +468,6 @@ func (x *BuildOutput) GetEntrypointName() string {
 func (x *BuildOutput) GetBytes() int64 {
 	if x != nil {
 		return x.Bytes
-	}
-	return 0
-}
-
-func (x *BuildOutput) GetGzipBytes() int64 {
-	if x != nil {
-		return x.GzipBytes
 	}
 	return 0
 }
@@ -885,7 +877,6 @@ func (m *BuildOutput) CloneVT() *BuildOutput {
 	r.Type = m.Type
 	r.EntrypointName = m.EntrypointName
 	r.Bytes = m.Bytes
-	r.GzipBytes = m.GzipBytes
 	r.Sha256 = m.Sha256
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1150,9 +1141,6 @@ func (this *BuildOutput) EqualVT(that *BuildOutput) bool {
 		return false
 	}
 	if this.Bytes != that.Bytes {
-		return false
-	}
-	if this.GzipBytes != that.GzipBytes {
 		return false
 	}
 	if this.Sha256 != that.Sha256 {
@@ -2164,11 +2152,6 @@ func (x *BuildOutput) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("bytes")
 		s.WriteInt64(x.Bytes)
 	}
-	if x.GzipBytes != 0 || s.HasField("gzipBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gzipBytes")
-		s.WriteInt64(x.GzipBytes)
-	}
 	if x.Sha256 != "" || s.HasField("sha256") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("sha256")
@@ -2203,9 +2186,6 @@ func (x *BuildOutput) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "bytes":
 			s.AddField("bytes")
 			x.Bytes = s.ReadInt64()
-		case "gzip_bytes", "gzipBytes":
-			s.AddField("gzip_bytes")
-			x.GzipBytes = s.ReadInt64()
 		case "sha256":
 			s.AddField("sha256")
 			x.Sha256 = s.ReadString()
@@ -2964,12 +2944,7 @@ func (m *BuildOutput) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if len(m.Sha256) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Sha256)
 		i--
-		dAtA[i] = 0x32
-	}
-	if m.GzipBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GzipBytes))
-		i--
-		dAtA[i] = 0x28
+		dAtA[i] = 0x2a
 	}
 	if m.Bytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bytes))
@@ -3268,7 +3243,6 @@ func (m *BuildOutput) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Type)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntrypointName)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.GzipBytes)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Sha256)
 	n += len(m.unknownFields)
 	return n
@@ -3714,10 +3688,6 @@ func (x *BuildOutput) MarshalProtoText() string {
 	if x.Bytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.Bytes)
-	}
-	if x.GzipBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gzip_bytes")
-		protobuf_go_lite.TextWriteInt(&sb, x.GzipBytes)
 	}
 	if x.Sha256 != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sha256")
@@ -4695,15 +4665,6 @@ func (m *BuildOutput) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GzipBytes", wireType)
-			}
-			m.GzipBytes = 0
-			m.GzipBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Sha256", wireType)
 			}

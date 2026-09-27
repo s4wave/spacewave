@@ -577,7 +577,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/rolldown": {
-      "hash": "499bfe6221663fd53395f8855e0d3e7bb0a69b5a5fe1f3263dc34618544f1009",
+      "hash": "157d9350eefe70e11d5c3be806f28f5de1a19deefd01b8be9e0f4a5c5ba3cbc4",
       "generatedFiles": [
         "bldr/web/bundler/rolldown/rolldown.pb.go",
         "bldr/web/bundler/rolldown/rolldown.pb.ts"

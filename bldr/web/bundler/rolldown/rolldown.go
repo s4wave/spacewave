@@ -332,7 +332,7 @@ func validateBuildResult(result *BuildResult, outputRoot string) error {
 		if _, ok := validOutputKinds[output.GetType()]; !ok {
 			return errors.Errorf("outputs[%d] has invalid type %q", i, output.GetType())
 		}
-		if output.GetBytes() < 0 || output.GetGzipBytes() < 0 {
+		if output.GetBytes() < 0 {
 			return errors.Errorf("outputs[%d] has negative byte count", i)
 		}
 	}
@@ -396,12 +396,6 @@ func sortBuildResult(result *BuildResult) {
 			return -1
 		}
 		if a.GetBytes() > b.GetBytes() {
-			return 1
-		}
-		if a.GetGzipBytes() < b.GetGzipBytes() {
-			return -1
-		}
-		if a.GetGzipBytes() > b.GetGzipBytes() {
 			return 1
 		}
 		return 0

@@ -276,7 +276,6 @@ describe('direct Rolldown/Oxc owner', () => {
     for (const output of outputs) {
       expect(output.path).not.toMatch(/(^|\/|\\)\.\.($|\/|\\)/)
       expect(output.bytes).toBeGreaterThan(0n)
-      expect(output.gzipBytes).toBeGreaterThan(0n)
       expect(output.sha256).toMatch(/^[0-9a-f]{64}$/)
     }
     const main = await fs.readFile(
