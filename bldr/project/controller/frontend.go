@@ -18,6 +18,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
@@ -49,6 +50,10 @@ type FrontendService struct {
 	ready *promise.PromiseContainer[*frontendEnvironment]
 	// active permits nonblocking validation of session-bound requests.
 	active atomic.Pointer[frontendEnvironment]
+	// bcast guards the first configuration and wakes early Watch calls.
+	bcast broadcast.Broadcast
+	// configured distinguishes a disabled frontend from one not initialized yet.
+	configured bool
 }
 
 // frontendEnvironment is a ready compiler capability, valid until ctx ends.
@@ -123,6 +128,14 @@ func (f *FrontendService) configure(cc *Config) error {
 		conf = nil
 	}
 	f.run.SetState(conf)
+
+	// Release attachment calls only after the first configuration is visible.
+	f.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !f.configured {
+			f.configured = true
+			broadcast()
+		}
+	})
 	return nil
 }
 
@@ -178,14 +191,36 @@ func (f *FrontendService) Close() {
 
 // Watch forwards the compiler snapshot and ordered events for one session.
 func (f *FrontendService) Watch(_ *frontend.WatchRequest, stream frontend.SRPCFrontend_WatchStream) error {
+	// Wait for the project controller to configure this service after it is published.
+	ctx := stream.Context()
+	for {
+		var configured bool
+		var waitCh <-chan struct{}
+		f.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			configured = f.configured
+			waitCh = getWaitCh()
+		})
+		if configured {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
+	}
+
+	// Report a genuinely disabled frontend after configuration completes.
 	if f.run.GetState() == nil {
 		return stream.Send(&frontend.Event{Session: &frontend.Session{Id: "disabled", RoutePrefix: "/b/fe/disabled/"}})
 	}
-	env, err := f.ready.Await(stream.Context())
+
+	// Forward the current compiler session once its process is ready.
+	env, err := f.ready.Await(ctx)
 	if err != nil {
 		return err
 	}
-	watch, err := env.client.WatchDevelopment(stream.Context(), &frontend.WatchRequest{})
+	watch, err := env.client.WatchDevelopment(ctx, &frontend.WatchRequest{})
 	if err != nil {
 		return err
 	}
