@@ -676,39 +676,45 @@ export class BldrElectronApp {
     nwindow.focus()
   }
 
+  /** quitDesktopRuntime closes the shell after the daemon's Quit decision, even if its reply is lost. */
   private async quitDesktopRuntime(): Promise<void> {
-    // Ask the daemon to decide stop or busy before this shell begins exiting.
-    const daemonSocket = process.env[desktopDaemonSocketEnv]
-    let clients = 0n
-    let services = 0n
-    if (daemonSocket) {
-      // Release the requesting connection before Electron begins its exit.
-      {
-        using connection = await connectUnixResourceClient(
-          `unix://${daemonSocket}`,
-          new AbortController().signal,
-        )
-        const result = await new DesktopControlServiceClient(
-          connection.rpc,
-        ).QuitDesktop({})
-        clients = result.otherClients ?? 0n
-        services = result.otherServices ?? 0n
-      }
+    try {
+      // Ask the daemon to decide stop or busy before this shell begins exiting.
+      const daemonSocket = process.env[desktopDaemonSocketEnv]
+      if (daemonSocket) {
+        let clients = 0n
+        let services = 0n
 
-      // Explain any retained work while the desktop can still show a dialog.
-      if (clients || services) {
-        await dialog.showMessageBox({
-          type: 'info',
-          title: 'Spacewave daemon is in use',
-          message: 'The desktop will close. Other work is still running.',
-          detail: `${clients} other client(s) and ${services} other service(s) are using it.`,
-          buttons: ['Quit desktop'],
-        })
+        // Release the requesting connection before Electron begins its exit.
+        {
+          using connection = await connectUnixResourceClient(
+            `unix://${daemonSocket}`,
+            new AbortController().signal,
+          )
+          const result = await new DesktopControlServiceClient(
+            connection.rpc,
+          ).QuitDesktop({})
+          clients = result.otherClients ?? 0n
+          services = result.otherServices ?? 0n
+        }
+
+        // Explain any retained work while the desktop can still show a dialog.
+        if (clients || services) {
+          await dialog.showMessageBox({
+            type: 'info',
+            title: 'Spacewave daemon is in use',
+            message: 'The desktop will close. Other work is still running.',
+            detail: `${clients} other client(s) and ${services} other service(s) are using it.`,
+            buttons: ['Quit desktop'],
+          })
+        }
       }
+    } catch (error) {
+      console.error('desktop Quit could not confirm daemon demand', error)
+    } finally {
+      // Shell exit releases the owner's desktop service demand even if the reply was lost.
+      this.app.quit()
     }
-
-    // Shell exit releases the owner's desktop service demand.
-    this.app.quit()
   }
 
   private hasTrayBackgroundPresence(): boolean {

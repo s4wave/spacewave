@@ -421,6 +421,62 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	}
 }
 
+// TestDesktopControlLostQuitReply verifies a claimed stop still releases desktop
+// demand and requests shutdown when the requester disappears before its reply.
+func TestDesktopControlLostQuitReply(t *testing.T) {
+	// Attach the requesting connection and the active desktop to one idle tracker.
+	idle := newDaemonIdleTracker(0, nil)
+	t.Cleanup(idle.close)
+	requester := &trackedConn{}
+	if !idle.trackedClientAttached(requester) {
+		t.Fatal("requester was not admitted")
+	}
+	hold := idle.attachService()
+	stopped := make(chan *trackedConn, 1)
+	control := &daemonDesktopControl{
+		idleTracker:   idle,
+		demandRelease: hold.release,
+		demandHold:    hold,
+		watchSequence: 1,
+		status: &desktopcontrol.WatchDesktopStatusResponse{
+			Presence: &bldr_web_plugin.WatchDesktopPresenceResponse{
+				State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE,
+			},
+		},
+		shutdown: func(conn *trackedConn) { stopped <- conn },
+	}
+
+	// Claim stop, then lose the requester without delivering its response.
+	ctx := context.WithValue(t.Context(), daemonConnCtxKey{}, requester)
+	response, err := control.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.GetOtherClients() != 0 || response.GetOtherServices() != 0 {
+		t.Fatalf("unused Quit = %v", response)
+	}
+	idle.trackedClientDetached(requester)
+	if snapshot, _ := idle.observe(); !snapshot.stopping || snapshot.services != 1 || snapshot.clients != 0 {
+		t.Fatalf("lost reply changed stop claim or desktop demand = %+v", snapshot)
+	}
+
+	// Owner-confirmed shell exit releases demand and completes the claimed stop.
+	control.desktopEnded(1, 1, &bldr_web_plugin.WatchDesktopPresenceResponse{
+		State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED,
+	})
+	select {
+	case conn := <-stopped:
+		if conn != requester {
+			t.Fatal("shutdown used another requester")
+		}
+	default:
+		t.Fatal("lost Quit reply left the daemon waiting for desktop exit")
+	}
+	if snapshot, _ := idle.observe(); !snapshot.stopping || snapshot.services != 0 {
+		t.Fatalf("post-exit Quit state = %+v", snapshot)
+	}
+}
+
 // TestDesktopControlFailuresKeepResource verifies plugin failure cannot close
 // an existing Resource stream or retain an unsuccessful plugin reference.
 func TestDesktopControlFailuresKeepResource(t *testing.T) {
