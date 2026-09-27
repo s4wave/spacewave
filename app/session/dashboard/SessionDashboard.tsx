@@ -149,7 +149,9 @@ export function SessionDashboard({
         </div>
       )}
 
-      <div className="very-short:justify-start very-short:py-2 relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
+      <div
+        className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto px-4 py-8 very-short:justify-start very-short:py-2"
+      >
         {isEmpty && isCloud && !readOnly && <WelcomeHeading />}
         {!isEmpty && (
           <AnimatedLogo
@@ -1236,7 +1238,7 @@ function DashboardItem({
         text={identifier}
         label={`Copy ${label} ID`}
         variant="toolbar"
-        className="absolute right-8 bottom-2 size-6"
+        className="sm:fine-pointer:right-8 sm:fine-pointer:bottom-2 sm:fine-pointer:size-6 absolute right-3 bottom-1 size-11"
       />
     </div>
   )

@@ -80,7 +80,7 @@ export function AgentConnectPanel({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="text-foreground-alt/60 hover:text-foreground rounded p-1"
+          className="text-foreground-alt/60 hover:text-foreground sm:fine-pointer:size-auto sm:fine-pointer:p-1 flex size-11 shrink-0 items-center justify-center rounded"
         >
           <LuX className="size-3.5" />
         </button>
@@ -372,7 +372,7 @@ function PanelButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-xs [&_svg]:size-3.5',
+        'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-xs sm:fine-pointer:h-8 [&_svg]:size-3.5',
         primary
           ? 'border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground'
           : 'border-foreground/15 hover:border-foreground/30 text-foreground-alt',
