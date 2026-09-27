@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"context"
 	"net"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -20,11 +19,7 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dir, err := os.MkdirTemp("/tmp", "sw-daemon-*")
-	if err != nil {
-		t.Fatalf("temp dir: %v", err)
-	}
-	defer os.RemoveAll(dir)
+	dir := shortSocketDir(t)
 	sock := filepath.Join(dir, socketName)
 	lis, err := net.Listen("unix", sock)
 	if err != nil {

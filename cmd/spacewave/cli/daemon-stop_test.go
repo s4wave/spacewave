@@ -5,7 +5,6 @@ package spacewave_cli
 import (
 	"context"
 	"net"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -15,10 +14,7 @@ import (
 )
 
 func TestRunStopRequestsDaemonShutdown(t *testing.T) {
-	statePath := makeShortDaemonStopStatePath(t, "stop-a")
-	t.Cleanup(func() {
-		_ = os.RemoveAll(statePath)
-	})
+	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
 	shutdownCh := serveDaemonControl(t, sockPath)
 
@@ -33,10 +29,7 @@ func TestRunStopRequestsDaemonShutdown(t *testing.T) {
 func TestStopCommandUsesSocketPathEnv(t *testing.T) {
 	clearSocketPathEnv(t)
 
-	root := makeShortDaemonStopStatePath(t, "stop-env")
-	t.Cleanup(func() {
-		_ = os.RemoveAll(root)
-	})
+	root := shortSocketDir(t)
 	sockPath := filepath.Join(root, "s.sock")
 	t.Setenv(socketPathEnvVars[0], sockPath)
 	shutdownCh := serveDaemonControl(t, sockPath)
@@ -97,7 +90,7 @@ func waitShutdownRequest(t *testing.T, shutdownCh <-chan struct{}) {
 }
 
 func TestRunStopConfirmsPeerExitAfterControlStreamReset(t *testing.T) {
-	statePath, wait := startResettingShutdownPeer(t, "stop-reset", true)
+	statePath, wait := startResettingShutdownPeer(t, true)
 
 	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err != nil {
 		t.Fatalf("stop after peer exit: %v", err)
@@ -106,7 +99,7 @@ func TestRunStopConfirmsPeerExitAfterControlStreamReset(t *testing.T) {
 }
 
 func TestRunStopPreservesResetWhileListenerRemains(t *testing.T) {
-	statePath, wait := startResettingShutdownPeer(t, "stop-live-reset", false)
+	statePath, wait := startResettingShutdownPeer(t, false)
 
 	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err == nil {
 		t.Fatal("stop succeeded while the listener remained reachable")
@@ -114,11 +107,10 @@ func TestRunStopPreservesResetWhileListenerRemains(t *testing.T) {
 	wait()
 }
 
-func startResettingShutdownPeer(t *testing.T, name string, closeListener bool) (string, func()) {
+func startResettingShutdownPeer(t *testing.T, closeListener bool) (string, func()) {
 	t.Helper()
 
-	statePath := makeShortDaemonStopStatePath(t, name)
-	t.Cleanup(func() { _ = os.RemoveAll(statePath) })
+	statePath := shortSocketDir(t)
 	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
 	if err != nil {
 		t.Fatal(err)
@@ -170,32 +162,9 @@ func TestRunStopWithoutDaemonDoesNotAutostart(t *testing.T) {
 		connectDaemonStart = oldStart
 	})
 
-	statePath := makeShortDaemonStopStatePath(t, "stop-b")
-	t.Cleanup(func() {
-		_ = os.RemoveAll(statePath)
-	})
+	statePath := shortSocketDir(t)
 
 	if err := runStop(t.Context(), filepath.Join(statePath, socketName)); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func makeShortDaemonStopStatePath(t *testing.T, name string) string {
-	t.Helper()
-
-	tmpRoot, err := filepath.Abs(".tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	statePath := filepath.Join(tmpRoot, name)
-	if err := os.RemoveAll(statePath); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(statePath, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	return statePath
 }

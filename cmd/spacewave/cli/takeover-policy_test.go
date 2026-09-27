@@ -23,7 +23,7 @@ import (
 func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 	ctx := t.Context()
 
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-allow"), "d.sock")
+	sock := filepath.Join(shortSocketDir(t), "d.sock")
 	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
 	lis := startBrokerBackedListener(t, ctx, sock, broker)
 
@@ -63,7 +63,7 @@ func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 func TestTakeoverDaemonSocketSurfacesDenyAsClearError(t *testing.T) {
 	ctx := t.Context()
 
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-deny"), "d.sock")
+	sock := filepath.Join(shortSocketDir(t), "d.sock")
 	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
 	startBrokerBackedListener(t, ctx, sock, broker)
 

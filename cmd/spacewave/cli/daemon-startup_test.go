@@ -6,7 +6,6 @@ import (
 	"context"
 	"flag"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -19,33 +18,9 @@ import (
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 )
 
-// shortStatePath returns a state directory whose unix socket paths fit in
-// sun_path. t.TempDir() derives its name from the test, and a long test name
-// pushes the resulting socket path past the platform limit.
-func shortStatePath(t *testing.T) string {
-	t.Helper()
-	root := os.Getenv("SPACEWAVE_TEST_STATE_ROOT")
-	if root == "" {
-		root = ".tmp"
-		if err := os.MkdirAll(root, 0o700); err != nil {
-			t.Fatal(err)
-		}
-	}
-	root, err := filepath.Abs(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir, err := os.MkdirTemp(root, "sw")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	return dir
-}
-
 func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	pipeListener, err := pipesock.BuildPipeListener(daemon.NewStartupPipeLogger(), statePath, "startup")
 	if err != nil {
 		t.Fatal(err)
@@ -145,14 +120,7 @@ func TestGetDaemonStartupTimeoutInvalid(t *testing.T) {
 }
 
 func TestDaemonStartupPipeLoggerCanBuildListener(t *testing.T) {
-	if err := os.MkdirAll(".tmp", 0o755); err != nil {
-		t.Fatal(err)
-	}
-	root, err := os.MkdirTemp(".tmp", "startup-pipe-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(root)
+	root := shortSocketDir(t)
 
 	listener, err := pipesock.BuildPipeListener(daemon.NewStartupPipeLogger(), root, "startup")
 	if err != nil {

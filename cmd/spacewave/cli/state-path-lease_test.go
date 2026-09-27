@@ -27,7 +27,7 @@ import (
 const statePathLeaseHolderEnv = "SPACEWAVE_TEST_STATE_PATH_LEASE_HOLDER"
 
 func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
 	shutdownStarted := make(chan struct{})
 	finishShutdown := make(chan struct{})
@@ -80,7 +80,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	holderPID, holderStore := startStatePathLeaseHolder(t, statePath)
 	sockPath := filepath.Join(statePath, socketName)
 
@@ -120,7 +120,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
 	oldLease, err := acquireStatePathLease(statePath)
 	if err != nil {
@@ -161,8 +161,8 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
-	statePath := shortStatePath(t)
-	sockPath := filepath.Join(shortStatePath(t), "runtime.sock")
+	statePath := shortSocketDir(t)
+	sockPath := filepath.Join(shortSocketDir(t), "runtime.sock")
 	listener, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -188,7 +188,7 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 }
 
 func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	storePath, err := storage_native.BoltDBPath(statePath, "unknown")
 	if err != nil {
 		t.Fatalf("resolve provider store: %v", err)
@@ -277,7 +277,7 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (int, string) {
 // writable root before it can remove the first runtime's socket pathname.
 func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
 	// Hold a runtime lease while a second starter sees a stale-looking socket.
-	statePath := shortStatePath(t)
+	statePath := shortSocketDir(t)
 	lease, err := acquireStatePathLease(statePath)
 	if err != nil {
 		t.Fatal(err)

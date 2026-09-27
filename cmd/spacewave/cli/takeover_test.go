@@ -24,7 +24,7 @@ import (
 func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 	ctx := t.Context()
 
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-a"), "desktop.sock")
+	sock := filepath.Join(shortSocketDir(t), "desktop.sock")
 	lis := startDesktopLikeListener(t, ctx, sock)
 
 	le := logrus.NewEntry(logrus.New())
@@ -52,7 +52,7 @@ func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 // a leftover socket file when nothing is listening on it.
 func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 	ctx := context.Background()
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-b"), "stale.sock")
+	sock := filepath.Join(shortSocketDir(t), "stale.sock")
 
 	// Leave a real Unix socket path behind after its listener exits.
 	lis, err := net.Listen("unix", sock)
@@ -79,7 +79,7 @@ func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 // remove user data occupying the socket path.
 func TestTakeoverDaemonSocketPreservesNonSocket(t *testing.T) {
 	ctx := context.Background()
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-file"), "stale.sock")
+	sock := filepath.Join(shortSocketDir(t), "stale.sock")
 	const contents = "user data"
 
 	// Put an ordinary file at the requested socket path.
@@ -105,37 +105,12 @@ func TestTakeoverDaemonSocketPreservesNonSocket(t *testing.T) {
 // no socket file exists.
 func TestTakeoverDaemonSocketNoop(t *testing.T) {
 	ctx := context.Background()
-	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-c"), "missing.sock")
+	sock := filepath.Join(shortSocketDir(t), "missing.sock")
 
 	le := logrus.NewEntry(logrus.New())
 	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
-}
-
-// makeShortTakeoverDir returns a short, test-package-local directory
-// for Unix sockets. Darwin enforces a ~104 byte limit on sun_path;
-// t.TempDir on macOS can exceed this once the test name is long.
-func makeShortTakeoverDir(t *testing.T, name string) string {
-	t.Helper()
-	tmpRoot, err := filepath.Abs(".tmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(tmpRoot, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	dir := filepath.Join(tmpRoot, name)
-	if err := os.RemoveAll(dir); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.RemoveAll(dir)
-	})
-	return dir
 }
 
 // desktopLikeListener simulates the core/resource/listener controller
