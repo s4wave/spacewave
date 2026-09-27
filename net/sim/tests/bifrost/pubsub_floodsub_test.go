@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/net/pubsub"
+	"github.com/s4wave/spacewave/net/pubsub/floodsub"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 	pubsub_relay "github.com/s4wave/spacewave/net/pubsub/relay"
 	"github.com/s4wave/spacewave/net/sim/graph"
@@ -20,7 +21,17 @@ import (
 
 // TestPubsubFloodsub performs a simple pubsub / floodsub test.
 func TestPubsubFloodsub(t *testing.T) {
-	ctx, ctxCancel := context.WithCancel(context.Background())
+	testPubsubFloodsub(t, false)
+}
+
+// TestPubsubFloodsubChurn measures real two-hop delivery during local churn.
+func TestPubsubFloodsubChurn(t *testing.T) {
+	testPubsubFloodsub(t, true)
+}
+
+// testPubsubFloodsub uses the same three-peer topology for both scenarios.
+func testPubsubFloodsub(t *testing.T, churn bool) {
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -49,6 +60,7 @@ func TestPubsubFloodsub(t *testing.T) {
 		peer.AddFactory(func(b bus.Bus) controller.Factory { return pubsub_relay.NewFactory(b) })
 		peer.AddConfig("pubsub-relay", &pubsub_relay.Config{
 			TopicIds: topics,
+			PeerId:   peer.GetPeerID().String(),
 		})
 	}
 
@@ -110,28 +122,66 @@ func TestPubsubFloodsub(t *testing.T) {
 			}
 		})
 
-		// TODO: remove this delay... needs a little time to "settle"
-		<-time.After(time.Millisecond * 100)
+		// Wait for the relay's actual subscription announcement before publishing.
+		var routers []*floodsub.FloodSub
+		for _, b := range []bus.Bus{lp0tb.Bus, lp2tb.Bus} {
+			ready := false
+			for _, ctrl := range b.GetControllers() {
+				if pubCtrl, ok := ctrl.(pubsub.Controller); ok {
+					router, err := pubCtrl.GetPubSub(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err := router.(*floodsub.FloodSub).WaitForPeerSubscription(ctx, channelID, p1.GetPeerID()); err != nil {
+						t.Fatal(err)
+					}
+					routers = append(routers, router.(*floodsub.FloodSub))
+					ready = true
+				}
+			}
+			if !ready {
+				t.Fatal("missing pubsub controller")
+			}
+		}
 		testReplicate := func() {
 			le.Infof("publishing data on p2 with peer %s", p2.GetPeerID().String())
-			s2.Publish(testingData)
-			rmsg := <-msgRx
-			if bytes.Compare(rmsg.GetData(), testingData) != 0 {
+			started := time.Now()
+			if err := s2.Publish(testingData); err != nil {
+				t.Fatal(err)
+			}
+			var rmsg pubsub.Message
+			select {
+			case rmsg = <-msgRx:
+				t.Logf("two-hop publication latency: %s", time.Since(started))
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			}
+			if !bytes.Equal(rmsg.GetData(), testingData) {
 				t.Fatalf("pubsub data mismatch %v != expected %v", rmsg.GetData(), testingData)
 			}
 			le.Info("successful pubsub replication from p2 -> [lan2] -> p1 -> [lan1] -> p0 ")
 		}
 		testReplicate()
 
-		le.Info("interrupting connectivity between p2 and p1")
-		for _, l := range lp2.GetTransportController().GetPeerLinks(p1.GetPeerID()) {
-			le.Infof("closing link %v", l.GetUUID())
-			l.Close()
+		if churn {
+			for range 20 {
+				for range 100 {
+					sub, err := routers[1].AddSubscription(ctx, lp2tb.PrivKey, "transient-topic")
+					if err != nil {
+						t.Fatal(err)
+					}
+					sub.Release()
+				}
+				testReplicate()
+			}
+		} else {
+			le.Info("interrupting connectivity between p2 and p1")
+			for _, l := range lp2.GetTransportController().GetPeerLinks(p1.GetPeerID()) {
+				le.Infof("closing link %v", l.GetUUID())
+				l.Close()
+			}
+			assertConnectivity(p2, p1)
 		}
-
-		// re-connect
-		le.Info("expecting re-connect between peers")
-		assertConnectivity(p2, p1)
 
 		tpv0Ref.Release()
 		tpv2Ref.Release()
