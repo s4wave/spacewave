@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useSyncExternalStore } from 'react'
 
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -17,6 +17,19 @@ interface GetStartedSectionProps {
   sessions?: SessionListEntry[]
 }
 
+const shortHeightQuery = '(max-height: 580px)'
+
+function subscribeShortHeight(onChange: () => void) {
+  const query = window.matchMedia(shortHeightQuery)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+
+function getShortHeight() {
+  return window.matchMedia(shortHeightQuery).matches
+}
+
+/** GetStartedSection renders the landing entry and its reachable attribution controls. */
 export function GetStartedSection({
   homeRef,
   showScrollIndicator,
@@ -25,19 +38,25 @@ export function GetStartedSection({
   sessions,
 }: GetStartedSectionProps) {
   const navigate = useNavigate()
+  const isShortHeight = useSyncExternalStore(
+    subscribeShortHeight,
+    getShortHeight,
+    () => false,
+  )
+
   const goToCommunity = useCallback(() => {
     navigate({ path: '/community' })
   }, [navigate])
   return (
     <div
       ref={homeRef}
-      className="@2xl:pt-get-started-wide relative flex min-h-full w-full flex-col pt-6 @lg:pt-8"
+      className="@2xl:pt-get-started-wide short:shrink-0 relative flex min-h-full w-full flex-col pt-6 @lg:pt-8"
     >
       {/* Spacer to center content on tall screens */}
       <div className="tall:block tall:flex-1 hidden" />
 
       {/* Logo and Navigation Section */}
-      <div className="tall:flex-initial mb-1 flex min-h-0 flex-1 flex-col items-center gap-2 @lg:gap-3 @2xl:gap-4">
+      <div className="tall:flex-initial short:flex-none mb-1 flex min-h-0 flex-1 flex-col items-center gap-2 @lg:gap-3 @2xl:gap-4">
         <AnimatedLogo
           followMouse={true}
           containerClassName="very-short:hidden"
@@ -48,7 +67,7 @@ export function GetStartedSection({
 
         <NavigationLinks />
 
-        <div className="tall:flex-initial flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 text-sm @lg:gap-6 @lg:px-8">
+        <div className="tall:flex-initial short:flex-none flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-4 px-4 text-sm @lg:gap-6 @lg:px-8">
           <GetStarted className="relative z-10" sessions={sessions} />
 
           {/* Description Section */}
@@ -64,15 +83,15 @@ export function GetStartedSection({
       {/* Bottom spacer to center content on tall screens */}
       <div className="tall:block tall:flex-1 hidden" />
 
-      {/* Footer content pinned to bottom - fades out on short screens to avoid overlap */}
-      <div className="short:opacity-0 mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center transition-opacity duration-300 @lg:pt-6">
+      {/* Footer content follows the entry actions on short screens. */}
+      <div className="mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center @lg:pt-6">
         <div className="text-foreground-alt/60 flex flex-wrap items-center justify-center gap-x-1 text-xs">
           <span>
             Made by{' '}
             <button
               type="button"
               onClick={goToCommunity}
-              className="hover:text-brand cursor-pointer underline transition-colors"
+              className="hover:text-brand cursor-pointer underline transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center"
             >
               the community
             </button>
@@ -82,7 +101,7 @@ export function GetStartedSection({
           <span aria-hidden>·</span>
           <ExternalLink
             href="https://spacemacs.org"
-            className="hover:text-brand underline transition-colors"
+            className="hover:text-brand underline transition-colors [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:items-center [@media(pointer:coarse)]:justify-center"
           >
             Inspired by Spacemacs
           </ExternalLink>
@@ -91,10 +110,10 @@ export function GetStartedSection({
         {/* Scroll indicator */}
         <button
           type="button"
-          tabIndex={showScrollIndicator ? 0 : -1}
+          tabIndex={showScrollIndicator || isShortHeight ? 0 : -1}
           aria-label="Scroll down to learn more"
           className={cn(
-            'mt-2 mb-3 flex cursor-pointer flex-col items-center gap-0.5 transition-opacity duration-300',
+            'short:pointer-events-auto! short:opacity-100! mt-2 mb-3 flex cursor-pointer flex-col items-center gap-0.5 transition-opacity duration-300 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:justify-center',
             showScrollIndicator
               ? 'opacity-100'
               : 'pointer-events-none opacity-0',

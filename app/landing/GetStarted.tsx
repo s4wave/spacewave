@@ -167,9 +167,14 @@ function StaticGetStarted({ className }: { className?: string }) {
           </span>
         </span>
       </div>
-      <div className="bg-background-get-started flex-1 pb-2.5 @lg:min-h-0 @lg:overflow-y-auto">
+      <div className="bg-background-get-started very-short:@lg:grid very-short:@lg:grid-cols-2 very-short:@lg:content-start flex-1 pb-2.5 @lg:min-h-0 @lg:overflow-y-auto">
         {itemsByCategory.map(({ category, items }) => (
-          <div key={category}>
+          <div
+            key={category}
+            className={cn(
+              category === 'storage' && 'very-short:@lg:order-first',
+            )}
+          >
             <div className="text-foreground/50 px-5 pt-2.5 pb-1 text-xs font-medium tracking-wide">
               {category.charAt(0).toUpperCase() + category.slice(1)}
             </div>
@@ -255,7 +260,10 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
         placeholder="Where would you like to start? Type here to get started instantly."
         onKeyDown={handleKeyDown}
       />
-      <CommandList variant="landing">
+      <CommandList
+        variant="landing"
+        className="very-short:@lg:grid very-short:@lg:grid-cols-2 very-short:@lg:content-start"
+      >
         <CommandEmpty>No templates found.</CommandEmpty>
         {sessions && sessions.length > 0 && (
           <CommandGroup heading="Sessions" variant="landing">
@@ -269,6 +277,9 @@ const GetStarted = ({ className, sessions }: GetStartedProps) => {
             key={category}
             heading={category.charAt(0).toUpperCase() + category.slice(1)}
             variant="landing"
+            className={cn(
+              category === 'storage' && 'very-short:@lg:order-first',
+            )}
           >
             {items.map((item, idx) => (
               <React.Fragment key={item.id}>

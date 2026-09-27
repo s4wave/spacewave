@@ -18,9 +18,15 @@ export const NavigationLinks: React.FC = () => {
 
   return (
     <div className="relative flex flex-col items-center px-4 py-1">
-      <nav className="flex w-full flex-row flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm @lg:gap-x-4 @lg:gap-y-2">
+      <nav className="flex w-full flex-row flex-wrap items-center justify-center gap-x-1 text-sm @lg:gap-x-2">
         {navigationItems.map((item) =>
-          item ? <NavigationLink key={item.text} {...item} /> : null,
+          item ? (
+            <NavigationLink
+              key={item.text}
+              {...item}
+              className="flex items-center px-2 [@media(pointer:coarse)]:min-h-11"
+            />
+          ) : null,
         )}
       </nav>
     </div>

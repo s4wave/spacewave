@@ -489,7 +489,7 @@ export function SessionDetails({
 
             <div
               ref={settingsScrollRef}
-              className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-10"
+              className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-3"
               onScroll={updateSettingsScrollCue}
             >
               <div className="space-y-3">
@@ -854,15 +854,17 @@ export function SessionDetails({
               </div>
             </div>
             {showSettingsScrollCue && (
-              <button
-                type="button"
-                aria-label="Scroll down for more settings"
-                onClick={handleScrollMoreSettings}
-                className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground absolute right-3 bottom-2 z-10 flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs shadow-md transition-colors"
-              >
-                More settings
-                <LuChevronDown className="size-3" />
-              </button>
+              <div className="border-foreground/8 flex shrink-0 justify-end border-t px-3 py-1">
+                <button
+                  type="button"
+                  aria-label="Scroll down for more settings"
+                  onClick={handleScrollMoreSettings}
+                  className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground flex min-h-11 items-center gap-1 rounded-full border px-3 text-xs shadow-md transition-colors"
+                >
+                  More settings
+                  <LuChevronDown className="size-3" />
+                </button>
+              </div>
             )}
           </div>
         </Route>
