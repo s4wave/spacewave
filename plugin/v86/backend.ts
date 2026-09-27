@@ -101,6 +101,8 @@ function readV86fsMountFile(
   mountName: string,
   fileName: string,
 ): Promise<Uint8Array> {
+  // readInode reads size bytes, repeating the read because the server
+  // returns at most a bounded chunk per request.
   const readInode = (inodeId: number, size: number) =>
     new Promise<Uint8Array>((resolve, reject) => {
       adapter.onOpen(inodeId, 0, (status: number, handleId: number) => {
@@ -112,23 +114,34 @@ function readV86fsMountFile(
           )
           return
         }
-        adapter.onRead(
-          handleId,
-          0,
-          size,
-          (status: number, data: Uint8Array) => {
-            adapter.onClose(handleId, () => {})
-            if (status !== 0) {
-              reject(
-                new Error(
-                  'v86fs read "' + mountName + '" failed: status ' + status,
-                ),
-              )
-              return
-            }
-            resolve(data)
-          },
-        )
+        const buf = new Uint8Array(size)
+        const readFrom = (offset: number) => {
+          adapter.onRead(
+            handleId,
+            offset,
+            size - offset,
+            (status: number, data: Uint8Array) => {
+              if (status !== 0) {
+                adapter.onClose(handleId, () => {})
+                reject(
+                  new Error(
+                    'v86fs read "' + mountName + '" failed: status ' + status,
+                  ),
+                )
+                return
+              }
+              buf.set(data, offset)
+              const next = offset + data.byteLength
+              if (data.byteLength !== 0 && next < size) {
+                readFrom(next)
+                return
+              }
+              adapter.onClose(handleId, () => {})
+              resolve(buf.subarray(0, next))
+            },
+          )
+        }
+        readFrom(0)
       })
     })
 
