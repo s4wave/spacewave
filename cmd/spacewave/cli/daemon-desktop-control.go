@@ -37,6 +37,8 @@ type daemonDesktopControl struct {
 	pluginRelease func()
 	// demandRelease counts the current Electron shell as a daemon service.
 	demandRelease func()
+	// demandHold identifies the current shell's exact service hold.
+	demandHold *daemonServiceHold
 	// watchCancel stops the daemon-owned observation of the latest shell.
 	watchCancel context.CancelFunc
 	// watchClient identifies the web plugin instance that issued watchGeneration.
@@ -45,6 +47,10 @@ type daemonDesktopControl struct {
 	watchGeneration uint64
 	// watchSequence prevents an older shell watch from releasing newer demand.
 	watchSequence uint64
+	// quitRequester identifies the connection that requested Quit for watchSequence.
+	quitRequester *trackedConn
+	// shutdown closes admission after Quit wins the idle tracker's stop claim.
+	shutdown func(*trackedConn)
 }
 
 // newDaemonDesktopControl binds desktop loading to the daemon's PluginHost.
@@ -151,6 +157,41 @@ func (d *daemonDesktopControl) OpenOrFocusDesktop(
 	}, nil
 }
 
+// QuitDesktop decides whether the daemon can stop while Electron can report
+// other work. A winning claim fences admission before the shell exits.
+func (d *daemonDesktopControl) QuitDesktop(
+	ctx context.Context,
+	_ *desktopcontrol.QuitDesktopRequest,
+) (*desktopcontrol.QuitDesktopResponse, error) {
+	// Bind this Quit to its admitted socket and the currently active shell.
+	requester, ok := ctx.Value(daemonConnCtxKey{}).(*trackedConn)
+	if !ok {
+		return nil, errors.New("desktop Quit requires an admitted daemon connection")
+	}
+	var active bool
+	var snapshot daemonIdleSnapshot
+	var claimed bool
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		active = !d.closed && d.demandRelease != nil &&
+			d.status.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
+		if active {
+			claimed, snapshot = d.idleTracker.claimDesktopQuit(requester, d.demandHold)
+			if claimed {
+				d.quitRequester = requester
+			}
+		}
+	})
+	if !active {
+		return nil, errors.New("desktop shell is not active")
+	}
+
+	// Return the final decision before Electron begins exiting.
+	return &desktopcontrol.QuitDesktopResponse{
+		OtherClients:  int64(snapshot.clients),
+		OtherServices: int64(snapshot.services),
+	}, nil
+}
+
 // retainDesktop retains the acknowledged shell before observing its lifetime.
 // Only an owner-confirmed ENDED result releases demand; observation failure does not.
 func (d *daemonDesktopControl) retainDesktop(
@@ -160,7 +201,11 @@ func (d *daemonDesktopControl) retainDesktop(
 	release func(),
 ) (bool, error) {
 	// Protect the acknowledged shell while transferring its demand to the daemon.
-	releaseDemand := d.idleTracker.serviceAttached()
+	hold := d.idleTracker.attachService()
+	if hold.released {
+		return false, errors.New("desktop daemon is shutting down")
+	}
+	releaseDemand := hold.release
 	var demandRetained bool
 	var watchCtx context.Context
 	var sequence uint64
@@ -194,6 +239,7 @@ func (d *daemonDesktopControl) retainDesktop(
 		// Retain demand even if the first presence receive fails after Electron opened.
 		if d.demandRelease == nil {
 			d.demandRelease = releaseDemand
+			d.demandHold = hold
 			demandRetained = true
 		}
 		previousCancel = d.watchCancel
@@ -204,6 +250,7 @@ func (d *daemonDesktopControl) retainDesktop(
 		d.watchClient = client.SRPCClient()
 		d.watchGeneration = generation
 		d.watchSequence++
+		d.quitRequester = nil
 		d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation}
 		sequence = d.watchSequence
 		broadcast()
@@ -218,6 +265,7 @@ func (d *daemonDesktopControl) retainDesktop(
 	}
 	if watchCtx != nil {
 		go d.watchDesktop(watchCtx, sequence, client, generation)
+		go d.waitDesktopExit(watchCtx, sequence, client, generation)
 	}
 	if err != nil {
 		return retained, err
@@ -283,46 +331,69 @@ func (d *daemonDesktopControl) watchDesktop(
 			}
 
 			// Publish the owner's result and fence observations from superseded shells.
-			var release func()
-			var cancel context.CancelFunc
+			if state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
+				d.desktopEnded(sequence, generation, state)
+				return
+			}
+
 			d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				if sequence != d.watchSequence {
+				if sequence != d.watchSequence || d.demandRelease == nil {
 					return
 				}
 				d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation, Presence: state}
-				if state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
-					release = d.demandRelease
-					d.demandRelease = nil
-					cancel = d.watchCancel
-				}
 				broadcast()
 			})
-			if cancel != nil {
-				cancel()
-			}
-			if release != nil {
-				release()
-			}
-			if state.GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
-				return
-			}
 		}
 	}
 
 	// A broken stream cannot prove Electron exited; retain its service demand.
-	var cancel context.CancelFunc
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if sequence != d.watchSequence {
+		if sequence != d.watchSequence || d.demandRelease == nil {
 			return
 		}
 		d.status = d.status.CloneVT()
 		d.status.Failure = errors.Wrap(err, "desktop presence unavailable; inspect the daemon log and reopen to observe the shell").Error()
+		broadcast()
+	})
+}
+
+// waitDesktopExit obtains the owner's retained terminal state even when the
+// status stream failed or this call reaches the owner after shell exit.
+func (d *daemonDesktopControl) waitDesktopExit(ctx context.Context, sequence uint64, client bldr_web_plugin.SRPCWebPluginClient, generation uint64) {
+	state, err := client.WaitDesktopExit(ctx, &bldr_web_plugin.WatchDesktopPresenceRequest{Generation: generation})
+	if err != nil {
+		return
+	}
+	d.desktopEnded(sequence, generation, state)
+}
+
+// desktopEnded releases the identified shell once after an owner-confirmed exit.
+func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *bldr_web_plugin.WatchDesktopPresenceResponse) {
+	var release func()
+	var cancel context.CancelFunc
+	var requester *trackedConn
+	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if sequence != d.watchSequence || d.demandRelease == nil {
+			return
+		}
+		d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation, Presence: state}
+		release = d.demandRelease
+		d.demandRelease = nil
+		d.demandHold = nil
 		cancel = d.watchCancel
 		d.watchCancel = nil
+		requester = d.quitRequester
+		d.quitRequester = nil
 		broadcast()
 	})
 	if cancel != nil {
 		cancel()
+	}
+	if release != nil {
+		release()
+	}
+	if requester != nil {
+		d.shutdown(requester)
 	}
 }
 
@@ -394,11 +465,13 @@ func (d *daemonDesktopControl) close() {
 		releasePlugin = d.pluginRelease
 		cancel = d.watchCancel
 		d.demandRelease = nil
+		d.demandHold = nil
 		d.pluginRelease = nil
 		d.watchCancel = nil
 		d.watchClient = nil
 		d.watchGeneration = 0
 		d.watchSequence++
+		d.quitRequester = nil
 		broadcast()
 	})
 

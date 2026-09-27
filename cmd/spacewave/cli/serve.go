@@ -30,6 +30,9 @@ import (
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
+// desktopDaemonSocketEnvVar carries this daemon's exact protected socket to its Electron shell.
+const desktopDaemonSocketEnvVar = "SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH"
+
 // serveSocketPath selects the exact listener requested by the command and
 // falls back to the state-local daemon socket.
 func serveSocketPath(c *cli.Context, statePath string) string {
@@ -115,6 +118,23 @@ func runServeCommand(
 
 	// Suppress the bus-hosted listener while serve owns the public socket.
 	sockPath := serveSocketPath(c, resolved)
+
+	// Pass the exact daemon socket to this daemon's desktop descendants.
+	previousDesktopSocket, hadDesktopSocket := os.LookupEnv(desktopDaemonSocketEnvVar)
+	if err := os.Setenv(desktopDaemonSocketEnvVar, sockPath); err != nil {
+		return errors.Wrap(err, "expose desktop daemon socket to child")
+	}
+	defer func() {
+		var restoreErr error
+		if hadDesktopSocket {
+			restoreErr = os.Setenv(desktopDaemonSocketEnvVar, previousDesktopSocket)
+		} else {
+			restoreErr = os.Unsetenv(desktopDaemonSocketEnvVar)
+		}
+		if restoreErr != nil && retErr == nil {
+			retErr = errors.Wrap(restoreErr, "restore desktop daemon socket environment")
+		}
+	}()
 	handoffBroker := yieldBroker
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)
 	defer handoffBroker.Reclaim()
@@ -249,6 +269,11 @@ func runServeCommand(
 		shutdownCancel()
 		lis.Close()
 	})
+	desktopControl.shutdown = func(requester *trackedConn) {
+		controlHandler.desktopQuitConn.Store(requester)
+		shutdownCancel()
+		_ = lis.Close()
+	}
 	if err := mux.Register(controlHandler); err != nil {
 		return err
 	}

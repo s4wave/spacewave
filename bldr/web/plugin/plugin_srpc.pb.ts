@@ -58,6 +58,17 @@ export const WebPluginDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+     *
+     * @generated from rpc bldr.web.plugin.WebPlugin.WaitDesktopExit
+     */
+    WaitDesktopExit: {
+      name: 'WaitDesktopExit',
+      I: WatchDesktopPresenceRequest,
+      O: WatchDesktopPresenceResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * HandleWebViewViaPlugin configures handling web views via a plugin.
      *
      * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
@@ -143,6 +154,16 @@ export interface WebPlugin {
   ): MessageStream<WatchDesktopPresenceResponse>
 
   /**
+   * WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WaitDesktopExit
+   */
+  WaitDesktopExit(
+    request: WatchDesktopPresenceRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WatchDesktopPresenceResponse>
+
+  /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
    *
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
@@ -223,6 +244,17 @@ export interface WebPluginHandler {
   ): MessageStream<WatchDesktopPresenceResponse>
 
   /**
+   * WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WaitDesktopExit
+   */
+  WaitDesktopExit(
+    request: WatchDesktopPresenceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WatchDesktopPresenceResponse>
+
+  /**
    * HandleWebViewViaPlugin configures handling web views via a plugin.
    *
    * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
@@ -288,6 +320,7 @@ export class WebPluginClient implements WebPlugin {
     this.rpc = rpc
     this.OpenOrFocusDesktop = this.OpenOrFocusDesktop.bind(this)
     this.WatchDesktopPresence = this.WatchDesktopPresence.bind(this)
+    this.WaitDesktopExit = this.WaitDesktopExit.bind(this)
     this.HandleWebViewViaPlugin = this.HandleWebViewViaPlugin.bind(this)
     this.HandleWebPkgViaPlugin = this.HandleWebPkgViaPlugin.bind(this)
     this.HandleRpcViaPlugin = this.HandleRpcViaPlugin.bind(this)
@@ -331,6 +364,25 @@ export class WebPluginClient implements WebPlugin {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchDesktopPresenceResponse)(result)
+  }
+
+  /**
+   * WaitDesktopExit returns the selected shell generation's terminal owner state, including after exit.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.WaitDesktopExit
+   */
+  async WaitDesktopExit(
+    request: WatchDesktopPresenceRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WatchDesktopPresenceResponse> {
+    const requestMsg = WatchDesktopPresenceRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WebPluginDefinition.methods.WaitDesktopExit.name,
+      WatchDesktopPresenceRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return WatchDesktopPresenceResponse.fromBinary(result)
   }
 
   /**

@@ -109,7 +109,12 @@ export class DesktopRuntimeResource implements DesktopRuntimeResourceService {
     _abortSignal?: AbortSignal,
   ): Promise<QuitDesktopRuntimeResponse> {
     this.setQuitting(true)
-    await this.opts.quitDesktopRuntime()
+    try {
+      await this.opts.quitDesktopRuntime()
+    } catch (error) {
+      this.setQuitting(false)
+      throw error
+    }
     return {}
   }
 

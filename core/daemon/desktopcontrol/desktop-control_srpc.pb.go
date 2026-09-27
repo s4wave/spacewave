@@ -16,6 +16,8 @@ type SRPCDesktopControlServiceClient interface {
 
 	// OpenOrFocusDesktop opens or focuses the daemon's selected desktop.
 	OpenOrFocusDesktop(ctx context.Context, in *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
+	// QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+	QuitDesktop(ctx context.Context, in *QuitDesktopRequest) (*QuitDesktopResponse, error)
 	// WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
 	WatchDesktopStatus(ctx context.Context, in *WatchDesktopStatusRequest) (SRPCDesktopControlService_WatchDesktopStatusClient, error)
 }
@@ -41,6 +43,15 @@ func (c *srpcDesktopControlServiceClient) SRPCClient() srpc.Client { return c.cc
 func (c *srpcDesktopControlServiceClient) OpenOrFocusDesktop(ctx context.Context, in *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error) {
 	out := new(OpenOrFocusDesktopResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "OpenOrFocusDesktop", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcDesktopControlServiceClient) QuitDesktop(ctx context.Context, in *QuitDesktopRequest) (*QuitDesktopResponse, error) {
+	out := new(QuitDesktopResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "QuitDesktop", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +94,8 @@ func (x *srpcDesktopControlService_WatchDesktopStatusClient) RecvTo(m *WatchDesk
 type SRPCDesktopControlServiceServer interface {
 	// OpenOrFocusDesktop opens or focuses the daemon's selected desktop.
 	OpenOrFocusDesktop(context.Context, *OpenOrFocusDesktopRequest) (*OpenOrFocusDesktopResponse, error)
+	// QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+	QuitDesktop(context.Context, *QuitDesktopRequest) (*QuitDesktopResponse, error)
 	// WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
 	WatchDesktopStatus(*WatchDesktopStatusRequest, SRPCDesktopControlService_WatchDesktopStatusStream) error
 }
@@ -114,6 +127,7 @@ func (d *SRPCDesktopControlServiceHandler) GetServiceID() string { return d.serv
 func (SRPCDesktopControlServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"OpenOrFocusDesktop",
+		"QuitDesktop",
 		"WatchDesktopStatus",
 	}
 }
@@ -129,6 +143,8 @@ func (d *SRPCDesktopControlServiceHandler) InvokeMethod(
 	switch methodID {
 	case "OpenOrFocusDesktop":
 		return true, d.InvokeMethod_OpenOrFocusDesktop(d.impl, strm)
+	case "QuitDesktop":
+		return true, d.InvokeMethod_QuitDesktop(d.impl, strm)
 	case "WatchDesktopStatus":
 		return true, d.InvokeMethod_WatchDesktopStatus(d.impl, strm)
 	default:
@@ -142,6 +158,18 @@ func (SRPCDesktopControlServiceHandler) InvokeMethod_OpenOrFocusDesktop(impl SRP
 		return err
 	}
 	out, err := impl.OpenOrFocusDesktop(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCDesktopControlServiceHandler) InvokeMethod_QuitDesktop(impl SRPCDesktopControlServiceServer, strm srpc.Stream) error {
+	req := new(QuitDesktopRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.QuitDesktop(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -162,6 +190,14 @@ type SRPCDesktopControlService_OpenOrFocusDesktopStream interface {
 }
 
 type srpcDesktopControlService_OpenOrFocusDesktopStream struct {
+	srpc.Stream
+}
+
+type SRPCDesktopControlService_QuitDesktopStream interface {
+	srpc.Stream
+}
+
+type srpcDesktopControlService_QuitDesktopStream struct {
 	srpc.Stream
 }
 

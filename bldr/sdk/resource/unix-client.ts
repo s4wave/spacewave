@@ -2,7 +2,7 @@ import '../dispose-symbol.js'
 
 import net from 'node:net'
 
-import { StreamConn, castToError } from 'starpc'
+import { Client as StarPCClient, StreamConn, castToError } from 'starpc'
 
 import { ResourceServiceClient } from '../../resource/resource_srpc.pb.js'
 import { Client as ResourceClient } from './client.js'
@@ -10,12 +10,15 @@ import { Client as ResourceClient } from './client.js'
 // UnixResourceConnection owns one Unix socket and its outbound Yamux session.
 export interface UnixResourceConnection extends Disposable {
   readonly client: ResourceClient
+  /** rpc invokes other services on the same protected Unix socket. */
+  readonly rpc: StarPCClient
   readonly closed: Promise<Error | undefined>
   close(): void
 }
 
 class UnixResourceConnectionOwner implements UnixResourceConnection {
   public readonly client: ResourceClient
+  public readonly rpc: StarPCClient
   public readonly closed: Promise<Error | undefined>
 
   private readonly socket: net.Socket
@@ -38,8 +41,9 @@ class UnixResourceConnectionOwner implements UnixResourceConnection {
       direction: 'outbound',
       yamuxParams: { enableKeepAlive: false },
     })
+    this.rpc = this.connection.buildClient()
     this.client = new ResourceClient(
-      new ResourceServiceClient(this.connection.buildClient()),
+      new ResourceServiceClient(this.rpc),
       this.controller.signal,
     )
     this.ready = new Promise<void>((resolve, reject) => {
@@ -149,8 +153,8 @@ class UnixResourceConnectionOwner implements UnixResourceConnection {
   }
 }
 
-// connectUnixResourceClient connects the Resource SDK through the private
-// per-launch Unix endpoint used by a native TuiView host.
+// connectUnixResourceClient connects the Resource SDK and sibling RPC services
+// through a protected Unix endpoint.
 export async function connectUnixResourceClient(
   endpoint: string,
   signal: AbortSignal,

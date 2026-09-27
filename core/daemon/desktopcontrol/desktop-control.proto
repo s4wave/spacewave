@@ -5,10 +5,12 @@ import "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto";
 
 option go_package = "github.com/s4wave/spacewave/core/daemon/desktopcontrol;desktopcontrol";
 
-// DesktopControlService opens the desktop owned by the daemon serving the Resource socket.
+// DesktopControlService opens and ends the desktop owned by the daemon serving the Resource socket.
 service DesktopControlService {
   // OpenOrFocusDesktop opens or focuses the daemon's selected desktop.
   rpc OpenOrFocusDesktop(OpenOrFocusDesktopRequest) returns (OpenOrFocusDesktopResponse);
+  // QuitDesktop records explicit Quit for the current shell and reports work that will retain the daemon.
+  rpc QuitDesktop(QuitDesktopRequest) returns (QuitDesktopResponse);
   // WatchDesktopStatus sends current desktop status and subsequent changes without owning the shell.
   rpc WatchDesktopStatus(WatchDesktopStatusRequest) returns (stream WatchDesktopStatusResponse);
 }
@@ -31,6 +33,18 @@ message OpenOrFocusDesktopResponse {
   string ui_manifest_ref = 4;
 }
 
+// QuitDesktopRequest asks the daemon to stop after this desktop shell exits if unused.
+message QuitDesktopRequest {
+}
+
+// QuitDesktopResponse reports demand outside this shell and the requesting connection.
+message QuitDesktopResponse {
+  // OtherClients counts admitted Resource connections apart from the requester.
+  int64 other_clients = 1;
+  // OtherServices counts persistent services apart from this desktop shell.
+  int64 other_services = 2;
+}
+
 // WatchDesktopStatusRequest subscribes to the daemon's desktop observation.
 message WatchDesktopStatusRequest {
 }
@@ -42,7 +56,7 @@ message WatchDesktopStatusResponse {
   // Presence is the Electron owner's last observation, absent until confirmed.
   // ACTIVE confirms open readiness; ENDED confirms exit, with Error distinguishing failure.
   .bldr.web.plugin.WatchDesktopPresenceResponse presence = 2;
-  // Failure reports a desktop operation or observation failure, not proof of shell exit.
+  // Failure reports an operation, observation, or busy Quit outcome, not proof of shell exit.
   // An observation failure preserves Presence and the daemon's service demand.
   string failure = 3;
 }

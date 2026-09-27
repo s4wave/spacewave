@@ -82,6 +82,49 @@ export const OpenOrFocusDesktopResponse: MessageType<OpenOrFocusDesktopResponse>
   })
 
 /**
+ * QuitDesktopRequest asks the daemon to stop after this desktop shell exits if unused.
+ *
+ * @generated from message spacewave.daemon.desktopcontrol.QuitDesktopRequest
+ */
+export interface QuitDesktopRequest {}
+
+export const QuitDesktopRequest: MessageType<QuitDesktopRequest> =
+  /* @__PURE__ */ createEmptyMessageType<QuitDesktopRequest>(
+    'spacewave.daemon.desktopcontrol.QuitDesktopRequest',
+    true,
+  )
+
+/**
+ * QuitDesktopResponse reports demand outside this shell and the requesting connection.
+ *
+ * @generated from message spacewave.daemon.desktopcontrol.QuitDesktopResponse
+ */
+export interface QuitDesktopResponse {
+  /**
+   * OtherClients counts admitted Resource connections apart from the requester.
+   *
+   * @generated from field: int64 other_clients = 1;
+   */
+  otherClients?: bigint
+  /**
+   * OtherServices counts persistent services apart from this desktop shell.
+   *
+   * @generated from field: int64 other_services = 2;
+   */
+  otherServices?: bigint
+}
+
+export const QuitDesktopResponse: MessageType<QuitDesktopResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.daemon.desktopcontrol.QuitDesktopResponse',
+    fields: [
+      { no: 1, name: 'other_clients', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 2, name: 'other_services', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchDesktopStatusRequest subscribes to the daemon's desktop observation.
  *
  * @generated from message spacewave.daemon.desktopcontrol.WatchDesktopStatusRequest
@@ -114,7 +157,7 @@ export interface WatchDesktopStatusResponse {
    */
   presence?: WatchDesktopPresenceResponse
   /**
-   * Failure reports a desktop operation or observation failure, not proof of shell exit.
+   * Failure reports an operation, observation, or busy Quit outcome, not proof of shell exit.
    * An observation failure preserves Presence and the daemon's service demand.
    *
    * @generated from field: string failure = 3;

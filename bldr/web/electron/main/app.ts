@@ -14,7 +14,9 @@ import electron, {
 } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
+import { DesktopControlServiceClient } from '@go/github.com/s4wave/spacewave/core/daemon/desktopcontrol/desktop-control_srpc.pb.js'
 
+import { connectUnixResourceClient } from '../../../sdk/resource/unix-client.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
 import { ServiceWorkerFetchTracker } from '../../bldr/service-worker-fetch-tracker.js'
 import {
@@ -69,6 +71,7 @@ const proxyFetchHeaderTimeoutMs = 30_000
 const logRendererEvents =
   isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
 const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
+const desktopDaemonSocketEnv = 'SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH'
 const runtimeDownloadPathPattern =
   /^\/p\/[^/]+\/(?:export|export-batch|fs)(?:\/|$)/
 // BLDR_ELECTRON_WINDOW_TITLE overrides the OS window title for this instance
@@ -673,7 +676,38 @@ export class BldrElectronApp {
     nwindow.focus()
   }
 
-  private quitDesktopRuntime() {
+  private async quitDesktopRuntime(): Promise<void> {
+    // Ask the daemon to decide stop or busy before this shell begins exiting.
+    const daemonSocket = process.env[desktopDaemonSocketEnv]
+    let clients = 0n
+    let services = 0n
+    if (daemonSocket) {
+      // Release the requesting connection before Electron begins its exit.
+      {
+        using connection = await connectUnixResourceClient(
+          `unix://${daemonSocket}`,
+          new AbortController().signal,
+        )
+        const result = await new DesktopControlServiceClient(
+          connection.rpc,
+        ).QuitDesktop({})
+        clients = result.otherClients ?? 0n
+        services = result.otherServices ?? 0n
+      }
+
+      // Explain any retained work while the desktop can still show a dialog.
+      if (clients || services) {
+        await dialog.showMessageBox({
+          type: 'info',
+          title: 'Spacewave daemon is in use',
+          message: 'The desktop will close. Other work is still running.',
+          detail: `${clients} other client(s) and ${services} other service(s) are using it.`,
+          buttons: ['Quit desktop'],
+        })
+      }
+    }
+
+    // Shell exit releases the owner's desktop service demand.
     this.app.quit()
   }
 

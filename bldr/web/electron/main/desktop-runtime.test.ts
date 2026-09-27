@@ -283,6 +283,20 @@ describe('DesktopRuntimeResource', () => {
     })
   })
 
+  it('restores active desktop state when the daemon rejects Quit', async () => {
+    const resource = new DesktopRuntimeResource({
+      openOrFocusMainWindow: vi.fn(),
+      quitDesktopRuntime: vi.fn(async () => {
+        throw new Error('daemon unavailable')
+      }),
+    })
+
+    await expect(resource.QuitDesktopRuntime({})).rejects.toThrow(
+      'daemon unavailable',
+    )
+    expect(resource.getState().quitting).toBe(false)
+  })
+
   it('owns a ResourceServer for the desktop runtime tree', () => {
     const resource = new DesktopRuntimeResource({
       openOrFocusMainWindow: vi.fn(),

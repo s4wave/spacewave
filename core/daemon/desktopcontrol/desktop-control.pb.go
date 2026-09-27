@@ -81,6 +81,46 @@ func (x *OpenOrFocusDesktopResponse) GetUiManifestRef() string {
 	return ""
 }
 
+// QuitDesktopRequest asks the daemon to stop after this desktop shell exits if unused.
+type QuitDesktopRequest struct {
+	unknownFields []byte
+}
+
+func (x *QuitDesktopRequest) Reset() {
+	*x = QuitDesktopRequest{}
+}
+
+func (*QuitDesktopRequest) ProtoMessage() {}
+
+// QuitDesktopResponse reports demand outside this shell and the requesting connection.
+type QuitDesktopResponse struct {
+	unknownFields []byte
+	// OtherClients counts admitted Resource connections apart from the requester.
+	OtherClients int64 `protobuf:"varint,1,opt,name=other_clients,json=otherClients,proto3" json:"otherClients,omitempty"`
+	// OtherServices counts persistent services apart from this desktop shell.
+	OtherServices int64 `protobuf:"varint,2,opt,name=other_services,json=otherServices,proto3" json:"otherServices,omitempty"`
+}
+
+func (x *QuitDesktopResponse) Reset() {
+	*x = QuitDesktopResponse{}
+}
+
+func (*QuitDesktopResponse) ProtoMessage() {}
+
+func (x *QuitDesktopResponse) GetOtherClients() int64 {
+	if x != nil {
+		return x.OtherClients
+	}
+	return 0
+}
+
+func (x *QuitDesktopResponse) GetOtherServices() int64 {
+	if x != nil {
+		return x.OtherServices
+	}
+	return 0
+}
+
 // WatchDesktopStatusRequest subscribes to the daemon's desktop observation.
 type WatchDesktopStatusRequest struct {
 	unknownFields []byte
@@ -100,7 +140,7 @@ type WatchDesktopStatusResponse struct {
 	// Presence is the Electron owner's last observation, absent until confirmed.
 	// ACTIVE confirms open readiness; ENDED confirms exit, with Error distinguishing failure.
 	Presence *plugin.WatchDesktopPresenceResponse `protobuf:"bytes,2,opt,name=presence,proto3" json:"presence,omitempty"`
-	// Failure reports a desktop operation or observation failure, not proof of shell exit.
+	// Failure reports an operation, observation, or busy Quit outcome, not proof of shell exit.
 	// An observation failure preserves Presence and the daemon's service demand.
 	Failure string `protobuf:"bytes,3,opt,name=failure,proto3" json:"failure,omitempty"`
 }
@@ -164,6 +204,38 @@ func (m *OpenOrFocusDesktopResponse) CloneVT() *OpenOrFocusDesktopResponse {
 }
 
 func (m *OpenOrFocusDesktopResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *QuitDesktopRequest) CloneVT() *QuitDesktopRequest {
+	if m == nil {
+		return (*QuitDesktopRequest)(nil)
+	}
+	r := new(QuitDesktopRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *QuitDesktopRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *QuitDesktopResponse) CloneVT() *QuitDesktopResponse {
+	if m == nil {
+		return (*QuitDesktopResponse)(nil)
+	}
+	r := new(QuitDesktopResponse)
+	r.OtherClients = m.OtherClients
+	r.OtherServices = m.OtherServices
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *QuitDesktopResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -243,6 +315,46 @@ func (this *OpenOrFocusDesktopResponse) EqualVT(that *OpenOrFocusDesktopResponse
 
 func (this *OpenOrFocusDesktopResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*OpenOrFocusDesktopResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *QuitDesktopRequest) EqualVT(that *QuitDesktopRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *QuitDesktopRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*QuitDesktopRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *QuitDesktopResponse) EqualVT(that *QuitDesktopResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OtherClients != that.OtherClients {
+		return false
+	}
+	if this.OtherServices != that.OtherServices {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *QuitDesktopResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*QuitDesktopResponse)
 	if !ok {
 		return false
 	}
@@ -397,6 +509,86 @@ func (x *OpenOrFocusDesktopResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the OpenOrFocusDesktopResponse from JSON.
 func (x *OpenOrFocusDesktopResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the QuitDesktopRequest message to JSON.
+func (x *QuitDesktopRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the QuitDesktopRequest to JSON.
+func (x *QuitDesktopRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QuitDesktopRequest message from JSON.
+func (x *QuitDesktopRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the QuitDesktopRequest from JSON.
+func (x *QuitDesktopRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the QuitDesktopResponse message to JSON.
+func (x *QuitDesktopResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OtherClients != 0 || s.HasField("otherClients") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherClients")
+		s.WriteInt64(x.OtherClients)
+	}
+	if x.OtherServices != 0 || s.HasField("otherServices") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherServices")
+		s.WriteInt64(x.OtherServices)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the QuitDesktopResponse to JSON.
+func (x *QuitDesktopResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the QuitDesktopResponse message from JSON.
+func (x *QuitDesktopResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "other_clients", "otherClients":
+			s.AddField("other_clients")
+			x.OtherClients = s.ReadInt64()
+		case "other_services", "otherServices":
+			s.AddField("other_services")
+			x.OtherServices = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the QuitDesktopResponse from JSON.
+func (x *QuitDesktopResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -581,6 +773,80 @@ func (m *OpenOrFocusDesktopResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *QuitDesktopRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QuitDesktopRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *QuitDesktopRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QuitDesktopResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QuitDesktopResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *QuitDesktopResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.OtherServices != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherServices))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.OtherClients != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherClients))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchDesktopStatusRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -690,6 +956,28 @@ func (m *OpenOrFocusDesktopResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *QuitDesktopRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *QuitDesktopResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherClients)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherServices)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchDesktopStatusRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -753,6 +1041,34 @@ func (x *OpenOrFocusDesktopResponse) MarshalProtoText() string {
 }
 
 func (x *OpenOrFocusDesktopResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *QuitDesktopRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "QuitDesktopRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *QuitDesktopRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *QuitDesktopResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "QuitDesktopResponse")
+	if x.OtherClients != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_clients")
+		protobuf_go_lite.TextWriteInt(&sb, x.OtherClients)
+	}
+	if x.OtherServices != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_services")
+		protobuf_go_lite.TextWriteInt(&sb, x.OtherServices)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *QuitDesktopResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -900,6 +1216,110 @@ func (m *OpenOrFocusDesktopResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.UiManifestRef = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *QuitDesktopRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QuitDesktopRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QuitDesktopRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *QuitDesktopResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QuitDesktopResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QuitDesktopResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherClients", wireType)
+			}
+			m.OtherClients = 0
+			m.OtherClients, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherServices", wireType)
+			}
+			m.OtherServices = 0
+			m.OtherServices, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

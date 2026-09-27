@@ -26,6 +26,30 @@ type daemonIdleSnapshot struct {
 	stopping bool
 }
 
+// daemonServiceHold identifies one persistent service in the idle tracker.
+type daemonServiceHold struct {
+	// tracker owns the service count and guards released.
+	tracker *daemonIdleTracker
+	// released prevents this hold from releasing another service.
+	released bool
+}
+
+// release removes this exact service hold once.
+func (h *daemonServiceHold) release() {
+	t := h.tracker
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if h.released {
+		return
+	}
+
+	h.released = true
+	t.services--
+	t.active--
+	t.publishLocked()
+	t.armIdleLocked()
+}
+
 // daemonIdleTracker owns client admission, service holds, and idle shutdown.
 type daemonIdleTracker struct {
 	// mu guards the holds, event, deadline, and stop claim.
@@ -124,10 +148,17 @@ func (t *daemonIdleTracker) trackedClientDetached(conn *trackedConn) {
 // serviceAttached holds the daemon for a persistent service and returns an
 // idempotent release callback.
 func (t *daemonIdleTracker) serviceAttached() func() {
+	return t.attachService().release
+}
+
+// attachService returns the identity and release operation for one service.
+func (t *daemonIdleTracker) attachService() *daemonServiceHold {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	hold := &daemonServiceHold{tracker: t}
 	if t.stopping {
-		return func() {}
+		hold.released = true
+		return hold
 	}
 
 	// Cancel the deadline while the persistent service is active.
@@ -136,43 +167,32 @@ func (t *daemonIdleTracker) serviceAttached() func() {
 	t.active++
 	t.publishLocked()
 
-	var released bool
-	return func() {
-		t.mu.Lock()
-		defer t.mu.Unlock()
-		if released {
-			return
-		}
-
-		// Release the service once and arm expiry after the final hold.
-		released = true
-		t.services--
-		t.active--
-		t.publishLocked()
-		t.armIdleLocked()
-	}
+	return hold
 }
 
-// stopIfUnused claims shutdown when no holds remain apart from the identified
-// admitted requester. The caller closes the listener on success. Later accepts are
-// rejected by clientAttached even if Accept already returned a socket.
-func (t *daemonIdleTracker) stopIfUnused(requester *trackedConn) (bool, daemonIdleSnapshot) {
+// claimDesktopQuit decides the final busy result while Electron can report it.
+// Only the identified requester and live desktop hold are excluded. A winning
+// claim fences later admission; teardown waits for the shell and RPC reply.
+func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn, desktop *daemonServiceHold) (bool, daemonIdleSnapshot) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-
-	remaining := t.clients
+	snapshot := t.snapshotLocked()
+	if t.stopping || desktop == nil || desktop.tracker != t || desktop.released {
+		return false, snapshot
+	}
 	if _, ok := t.connections[requester]; requester != nil && ok {
-		remaining--
+		snapshot.clients--
 	}
-	if t.stopping || remaining != 0 || t.services != 0 {
-		return false, t.snapshotLocked()
+	snapshot.services--
+	if snapshot.clients != 0 || snapshot.services != 0 {
+		return false, snapshot
 	}
 
-	// Claim shutdown before the listener can admit another accepted socket.
 	t.stopping = true
 	t.cancelIdleLocked()
 	t.publishLocked()
-	return true, t.snapshotLocked()
+	snapshot.stopping = true
+	return true, snapshot
 }
 
 // snapshotLocked returns the current state while mu is held.

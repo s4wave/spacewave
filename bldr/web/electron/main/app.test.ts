@@ -1,5 +1,11 @@
 import { EventEmitter } from 'events'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const daemonQuitMocks = vi.hoisted(() => ({
+  connect: vi.fn(),
+  quit: vi.fn(),
+  dispose: vi.fn(),
+}))
 
 Reflect.set(globalThis, 'BLDR_DEBUG', false)
 
@@ -90,6 +96,7 @@ vi.mock('electron', () => {
   const dialog = {
     showOpenDialog: vi.fn(),
     showSaveDialog: vi.fn(),
+    showMessageBox: vi.fn(),
   }
   const session = {
     defaultSession: mockDefaultSession,
@@ -164,6 +171,19 @@ vi.mock('./ipc.js', () => ({
   messagePortMainToMessagePort: vi.fn(),
 }))
 
+vi.mock('../../../sdk/resource/unix-client.js', () => ({
+  connectUnixResourceClient: daemonQuitMocks.connect,
+}))
+
+vi.mock(
+  '@go/github.com/s4wave/spacewave/core/daemon/desktopcontrol/desktop-control_srpc.pb.js',
+  () => ({
+    DesktopControlServiceClient: class {
+      public QuitDesktop = daemonQuitMocks.quit
+    },
+  }),
+)
+
 vi.mock('./desktop-runtime.js', () => ({
   DesktopRuntimeResource: class {
     public readonly OpenOrFocusMainWindow = vi.fn(async () => ({}))
@@ -190,6 +210,10 @@ vi.mock('@go/github.com/aperturerobotics/util/pipesock/pipesock.js', () => ({
 }))
 
 describe('BldrElectronApp', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   beforeEach(() => {
     Reflect.set(globalThis, 'BLDR_DEBUG', false)
     browserWindows.length = 0
@@ -402,6 +426,52 @@ describe('BldrElectronApp', () => {
 
     await Reflect.apply(quitDesktopRuntime, app, [])
 
+    expect(mockElectronApp.quit).toHaveBeenCalledOnce()
+  })
+
+  it('reports the final busy decision before closing its desktop shell', async () => {
+    vi.stubEnv('SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH', '/tmp/desktop.sock')
+    daemonQuitMocks.connect.mockResolvedValue({
+      rpc: {},
+      [Symbol.dispose]: daemonQuitMocks.dispose,
+    })
+    let decide!: (value: {
+      otherClients: bigint
+      otherServices: bigint
+    }) => void
+    daemonQuitMocks.quit.mockReturnValue(
+      new Promise((resolve) => {
+        decide = resolve
+      }),
+    )
+    const { BldrElectronApp } = await import('./app.js')
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+
+    const quitting = Reflect.apply(
+      Reflect.get(app, 'quitDesktopRuntime'),
+      app,
+      [],
+    )
+    expect(mockElectronApp.quit).not.toHaveBeenCalled()
+    decide({ otherClients: 1n, otherServices: 2n })
+    await quitting
+
+    expect(daemonQuitMocks.connect).toHaveBeenCalledWith(
+      'unix:///tmp/desktop.sock',
+      expect.any(AbortSignal),
+    )
+    expect(daemonQuitMocks.quit).toHaveBeenCalledOnce()
+    expect(daemonQuitMocks.dispose).toHaveBeenCalledOnce()
+    const { dialog } = await import('electron')
+    expect(dialog.showMessageBox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: '1 other client(s) and 2 other service(s) are using it.',
+      }),
+    )
     expect(mockElectronApp.quit).toHaveBeenCalledOnce()
   })
 

@@ -12,6 +12,7 @@ import "embed"
 //go:embed app/space/space-settings.ts app/space/space.ts app/urls.ts app/vm/v86-wizard-config.ts
 //go:embed bldr/manifest/manifest.pb.ts
 //go:embed app/wizard/intro.ts core/account/settings/settings.pb.ts core/changelog/changelog.pb.ts
+//go:embed core/daemon/desktopcontrol/desktop-control.pb.ts core/daemon/desktopcontrol/desktop-control_srpc.pb.ts
 //go:embed core/pairing/pairing.pb.ts
 //go:embed core/forge/dashboard/dashboard.pb.ts core/forge/job/job.pb.ts core/forge/task/task.pb.ts
 //go:embed core/git/git.pb.ts core/provider/provider.pb.ts core/provider/spacewave/api/api.pb.ts

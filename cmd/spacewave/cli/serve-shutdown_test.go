@@ -11,9 +11,80 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 )
+
+// TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain verifies that a
+// desktop stop claim preserves the requesting RPC reply before client drain.
+func TestServeDaemonListenerDesktopQuitAckCompletesBeforeDrain(t *testing.T) {
+	// Keep the Unix socket path short on macOS and within this worktree.
+	root := filepath.Join("..", "..", "..", ".tmp")
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(root, "q-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	lis, err := net.Listen("unix", filepath.Join(dir, socketName))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Wire the same listener callback and acknowledgement fence as serve.
+	serveCtx, serveCancel := context.WithCancel(t.Context())
+	defer serveCancel()
+	shutdownCtx, shutdownCancel := context.WithCancel(serveCtx)
+	defer shutdownCancel()
+	controlHandler := newDaemonControlHandler(func() {})
+	quitHandler := &desktopQuitAckHandler{requestShutdown: func(requester *trackedConn) {
+		controlHandler.desktopQuitConn.Store(requester)
+		shutdownCancel()
+		_ = lis.Close()
+	}}
+	mux := srpc.NewMux()
+	if err := mux.Register(controlHandler); err != nil {
+		t.Fatal(err)
+	}
+	if err := mux.Register(quitHandler); err != nil {
+		t.Fatal(err)
+	}
+
+	// Serve until the fake desktop Quit handler closes admission.
+	finished := make(chan error, 1)
+	go func() {
+		finished <- serveDaemonListener(serveCtx, serveCancel, lis, srpc.NewServer(mux), controlHandler, shutdownCtx.Done(), nil)
+	}()
+
+	// Read the reply after admission closes, then release the requesting socket.
+	conn, err := net.Dial("unix", lis.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := srpc.NewClientWithConn(conn, true, nil)
+	if err != nil {
+		_ = conn.Close()
+		t.Fatal(err)
+	}
+	if err := client.ExecCall(t.Context(), quitHandler.GetServiceID(), "Quit", &emptypb.Empty{}, &emptypb.Empty{}); err != nil {
+		_ = conn.Close()
+		t.Fatalf("desktop Quit reply: %v", err)
+	}
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("daemon did not drain after desktop Quit reply")
+	}
+}
 
 // startDaemonListener wires a daemon-control handler exactly as runServeCommand
 // does: the Shutdown callback closes only the accepting listener and signals
