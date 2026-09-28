@@ -306,6 +306,11 @@ func (s *testSessionPresentationSnapshot) GetParticipantConfig(context.Context) 
 	panic("unexpected GetParticipantConfig call")
 }
 
+// GetParticipantConfigForPeer rejects participant lookups outside this fixture's contract.
+func (s *testSessionPresentationSnapshot) GetParticipantConfigForPeer(context.Context, string) (*sobject.SOParticipantConfig, error) {
+	panic("unexpected GetParticipantConfigForPeer call")
+}
+
 func (s *testSessionPresentationSnapshot) GetTransformer(context.Context) (*block_transform.Transformer, error) {
 	panic("unexpected GetTransformer call")
 }
