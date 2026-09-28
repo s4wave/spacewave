@@ -7,12 +7,16 @@ import (
 	"os"
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/sirupsen/logrus"
+
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 )
@@ -150,10 +154,35 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 
 	projCtrl.StartStartup(ctx)
+	go openDesktopWindow(ctx, le, b.GetBus())
 	b.setCommandRunningWithLogFile("start desktop", "desktop runtime active", commandLogFile)
 
 	<-b.GetContext().Done()
 	return nil
+}
+
+// openDesktopWindow asks the web plugin to open the main window once it loads.
+// Electron starts only on demand, so the devtool supplies the demand a
+// launcher would. The plugin reference is held until ctx ends.
+func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
+	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, "web", nil)
+	if err != nil {
+		if ctx.Err() == nil {
+			le.WithError(err).Warn("unable to load web plugin to open desktop window")
+		}
+		return
+	}
+	defer ref.Release()
+
+	_, err = bldr_web_plugin.NewSRPCWebPluginClient(client).
+		OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
+	if err != nil {
+		if ctx.Err() == nil {
+			le.WithError(err).Warn("unable to open desktop window")
+		}
+		return
+	}
+	<-ctx.Done()
 }
 
 // nativeDesktopQuickJSPluginIDs returns the QuickJS plugin ids needed by a
