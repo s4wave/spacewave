@@ -7,8 +7,11 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch requests and responses.
-const ObjectBodiesBatchByteBudget = block.MaxBlockSize - 64*1024
+// ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch
+// requests and responses. One page must fit in a single starpc frame, which is
+// capped at 10,000,000 bytes, with room for the packet envelope. A body larger
+// than the budget is reported as ObjectBodyTooLargeError.
+const ObjectBodiesBatchByteBudget = 8 << 20
 
 // ObjectBody contains the serialized root body for one object key.
 type ObjectBody struct {
