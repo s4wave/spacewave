@@ -211,7 +211,6 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 	}
 
 	var txed, acked bool
-	var sessionSeqno *uint64
 
 	defer func() {
 		if !txed || outErr == nil {
@@ -240,11 +239,6 @@ func (r *ClientPeerRef) Send(ctx context.Context, msg []byte) (_ *signaling_rpc.
 				txed = false
 				waitCh = getWaitCh()
 				return
-			}
-
-			if sessionSeqno == nil || *sessionSeqno != *tkr.open {
-				txed = false
-				sessionSeqno = tkr.open
 			}
 
 			if txed {
