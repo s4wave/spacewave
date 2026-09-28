@@ -1,7 +1,6 @@
 package spacewave_chat
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -49,17 +48,17 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	// A cleanup based on the first event fails, including when its body matches current state.
 	stale := newer.CloneVT()
 	stale.ExpectedStateMessageKey = &first.MessageKey
-	if _, err := cleaner.SendMessage(ctx, stale); !errors.Is(err, ErrChatStateConflict) {
-		t.Fatalf("stale identical state error = %v, want state conflict", err)
+	if conflict, err := cleaner.SendMessage(ctx, stale); err != nil || conflict.GetMessageKey() != "" {
+		t.Fatalf("stale identical state = %v, %v; want state conflict", conflict, err)
 	}
 	stale.Content.GetStateChange().ContentJson = `{}`
-	if _, err := cleaner.SendMessage(ctx, stale); !errors.Is(err, ErrChatStateConflict) {
-		t.Fatalf("stale cleanup error = %v, want state conflict", err)
+	if conflict, err := cleaner.SendMessage(ctx, stale); err != nil || conflict.GetMessageKey() != "" {
+		t.Fatalf("stale cleanup = %v, %v; want state conflict", conflict, err)
 	}
 	absent := stale.CloneVT()
 	absent.ExpectedStateMessageKey = &empty
-	if _, err := cleaner.SendMessage(ctx, absent); !errors.Is(err, ErrChatStateConflict) {
-		t.Fatalf("absent-state condition error = %v, want state conflict", err)
+	if conflict, err := cleaner.SendMessage(ctx, absent); err != nil || conflict.GetMessageKey() != "" {
+		t.Fatalf("absent-state condition = %v, %v; want state conflict", conflict, err)
 	}
 	current, err := writer.GetState(ctx, &spacewave_chat_rpc.GetStateRequest{})
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -182,10 +181,10 @@ func TestChatResourceGetMessageValidatesChannelKey(t *testing.T) {
 		t.Fatalf("GetMessage key = %q, want %q", messageResp.GetMessage().GetObjectKey(), sendResp.GetMessageKey())
 	}
 
-	// Preserve the missing-object result and reject a foreign-channel key.
-	_, err = resource.GetMessage(ctx, &spacewave_chat_rpc.GetMessageRequest{MessageKey: GeneralChannelKey + "/message/missing"})
-	if !errors.Is(err, world.ErrObjectNotFound) {
-		t.Fatalf("GetMessage missing error = %v, want %v", err, world.ErrObjectNotFound)
+	// Report a missing message as an unset result and reject a foreign-channel key.
+	missing, err := resource.GetMessage(ctx, &spacewave_chat_rpc.GetMessageRequest{MessageKey: GeneralChannelKey + "/message/missing"})
+	if err != nil || missing.GetMessage() != nil {
+		t.Fatalf("GetMessage missing = %v, %v; want unset message", missing, err)
 	}
 	_, err = resource.GetMessage(ctx, &spacewave_chat_rpc.GetMessageRequest{MessageKey: "other/message/0"})
 	if err == nil {

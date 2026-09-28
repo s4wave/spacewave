@@ -89,7 +89,8 @@ message GetMessageRequest {
 
 // GetMessageResponse contains the selected channel message.
 message GetMessageResponse {
-  // Message is the selected message projection.
+  // Message is the selected message projection, unset when the key names no
+  // message.
   ChatMessageInfo message = 1;
 }
 
@@ -178,7 +179,8 @@ message SendMessageRequest {
 
 // SendMessageResponse is the response after sending a message.
 message SendMessageResponse {
-  // MessageKey is the object key of the created message.
+  // MessageKey is the object key of the created message. It is empty when
+  // expected_state_message_key no longer names the current state.
   string message_key = 1;
 }
 

@@ -32,8 +32,8 @@ const (
 // ErrChatAuthorIdentityRequired is returned when a message has no authenticated author.
 var ErrChatAuthorIdentityRequired = errors.New("chat author identity required")
 
-// ErrChatStateConflict indicates that current state no longer matches a write condition.
-var ErrChatStateConflict = errors.New("chat state write condition conflicts with current state")
+// errChatStateConflict indicates that current state no longer matches a write condition.
+var errChatStateConflict = errors.New("chat state write condition conflicts with current state")
 
 // ChatResource serves ChatResourceService for a single chat channel object.
 type ChatResource struct {
@@ -168,6 +168,7 @@ func (r *ChatResource) GetState(ctx context.Context, _ *spacewave_chat_rpc.GetSt
 }
 
 // GetMessage reads one channel message by its channel-scoped object key.
+// A missing message returns a response with Message unset.
 func (r *ChatResource) GetMessage(
 	ctx context.Context,
 	req *spacewave_chat_rpc.GetMessageRequest,
@@ -184,11 +185,6 @@ func (r *ChatResource) GetMessage(
 	if err != nil {
 		return nil, err
 	}
-	if message == nil {
-		return nil, world.ErrObjectNotFound
-	}
-
-	// Return the selected message projection.
 	return &spacewave_chat_rpc.GetMessageResponse{Message: message}, nil
 }
 
@@ -243,6 +239,9 @@ func (r *ChatResource) ListMessages(
 		messageResponse, err := r.GetMessage(ctx, &spacewave_chat_rpc.GetMessageRequest{MessageKey: beforeKey})
 		if err != nil {
 			return nil, err
+		}
+		if messageResponse.GetMessage() == nil {
+			return nil, world.ErrObjectNotFound
 		}
 		endIndex = min(messageResponse.GetMessage().GetIndex(), messageCount)
 		count := min(uint64(limit), endIndex)
@@ -346,6 +345,9 @@ func (r *ChatResource) SendMessage(
 		}
 	}
 	response, err := r.commitMessage(ctx, req)
+	if errors.Is(err, errChatStateConflict) {
+		return &spacewave_chat_rpc.SendMessageResponse{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -583,7 +585,7 @@ func (r *ChatResource) resolveMessageState(ctx context.Context, ws world.WorldSt
 			}
 		}
 		if currentKey != *expected {
-			return nil, "", ErrChatStateConflict
+			return nil, "", errChatStateConflict
 		}
 	}
 	for _, edge := range priorState {
