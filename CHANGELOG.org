@@ -1,5 +1,24 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.15
+<2026-09-28 Mon>
+
+Spacewave 0.57.15 improves browser and desktop updates, shares saved Sessions
+between command-line tools and the desktop app, and adds Docker support for
+Forge Workers.
+
+** Features
+- Forge Workers can now run Docker targets on eligible devices.
+
+** Fixes
+- Browser and desktop updates now load plugins from the current Spacewave
+  release, preventing blank logos, connection failures, and startup errors
+  caused by stale cached plugins.
+- Command-line tools and the desktop app now use the same saved Session and
+  Spaces.
+- Plugin restarts no longer remove newly started replacements, keeping affected
+  views available during recovery.
+
 * v0.57.14
 <2026-09-27 Sun>
 

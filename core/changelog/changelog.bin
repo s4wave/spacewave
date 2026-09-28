@@ -1,4 +1,11 @@
 
+à	
+0.57.15
+2026-09-28¨Spacewave 0.57.15 improves browser and desktop updates, shares saved Sessions between command-line tools and the desktop app, and adds Docker support for Forge Workers."¨Spacewave 0.57.15 improves browser and desktop updates, shares saved Sessions between command-line tools and the desktop app, and adds Docker support for Forge Workers.*~
+=Forge Workers can now run Docker targets on eligible devices.=Forge Workers can now run Docker targets on eligible devices.2æ
+°Browser and desktop updates now load plugins from the current Spacewave release, preventing blank logos, connection failures, and startup errors caused by stale cached plugins.°Browser and desktop updates now load plugins from the current Spacewave release, preventing blank logos, connection failures, and startup errors caused by stale cached plugins.2¦
+QCommand-line tools and the desktop app now use the same saved Session and Spaces.QCommand-line tools and the desktop app now use the same saved Session and Spaces.2à
+nPlugin restarts no longer remove newly started replacements, keeping affected views available during recovery.nPlugin restarts no longer remove newly started replacements, keeping affected views available during recovery.
 †"
 0.57.14
 2026-09-27ÔSpacewave 0.57.14 lets the desktop app and command-line tools share one local session, improves phone and tablet usability, and makes chat, synchronization, Git Spaces, plugins, and desktop startup more reliable."ÔSpacewave 0.57.14 lets the desktop app and command-line tools share one local session, improves phone and tablet usability, and makes chat, synchronization, Git Spaces, plugins, and desktop startup more reliable.*¨
