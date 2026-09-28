@@ -272,6 +272,13 @@ type testSecretPayloadStoreSnapshot struct {
 	root *sobject.SORootInner
 }
 
+func (s *testSecretPayloadStoreSnapshot) GetParticipantConfigForPeer(
+	context.Context,
+	string,
+) (*sobject.SOParticipantConfig, error) {
+	return nil, nil
+}
+
 func (s *testSecretPayloadStoreSnapshot) GetParticipantConfig(
 	context.Context,
 ) (*sobject.SOParticipantConfig, error) {

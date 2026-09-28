@@ -165,19 +165,19 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "starpc", git = "https://github.com/aperturerobotics/starpc.git?rev=b78c815f1e13b4a2d8e7f602658d6c695fa26e53" }]
+requires-dist = [{ name = "starpc", git = "https://github.com/aperturerobotics/starpc.git?rev=60aebb7f3a140f0772a63269afce10859d45b27f" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = "==2.3.1" },
-    { name = "starpc-python-plugin", git = "https://github.com/aperturerobotics/starpc.git?subdirectory=python%2Fplugin&rev=b78c815f1e13b4a2d8e7f602658d6c695fa26e53" },
+    { name = "starpc-python-plugin", git = "https://github.com/aperturerobotics/starpc.git?subdirectory=python%2Fplugin&rev=60aebb7f3a140f0772a63269afce10859d45b27f" },
     { name = "types-protobuf", specifier = "==7.35.1.20260906" },
 ]
 
 [[package]]
 name = "starpc"
 version = "0.52.0"
-source = { git = "https://github.com/aperturerobotics/starpc.git?rev=b78c815f1e13b4a2d8e7f602658d6c695fa26e53#b78c815f1e13b4a2d8e7f602658d6c695fa26e53" }
+source = { git = "https://github.com/aperturerobotics/starpc.git?rev=60aebb7f3a140f0772a63269afce10859d45b27f#60aebb7f3a140f0772a63269afce10859d45b27f" }
 dependencies = [
     { name = "protobuf" },
 ]
@@ -185,7 +185,7 @@ dependencies = [
 [[package]]
 name = "starpc-python-plugin"
 version = "0.52.0"
-source = { git = "https://github.com/aperturerobotics/starpc.git?subdirectory=python%2Fplugin&rev=b78c815f1e13b4a2d8e7f602658d6c695fa26e53#b78c815f1e13b4a2d8e7f602658d6c695fa26e53" }
+source = { git = "https://github.com/aperturerobotics/starpc.git?subdirectory=python%2Fplugin&rev=60aebb7f3a140f0772a63269afce10859d45b27f#60aebb7f3a140f0772a63269afce10859d45b27f" }
 dependencies = [
     { name = "protobuf" },
     { name = "ruff" },
