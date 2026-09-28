@@ -4,6 +4,7 @@ package spacewave_compose
 
 import (
 	"context"
+	"os"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -13,10 +14,16 @@ import (
 )
 
 // openDesktop attaches a no-argument native launch to the shared daemon. The
-// connector resolves the state root and starts a detached daemon when needed;
-// this process owns only its Resource connection through acknowledgement.
+// connector resolves the state root and starts a verified daemon copy outside
+// the app bundle when needed; this process owns only its Resource connection.
 func openDesktop(ctx context.Context, _ *logrus.Entry) error {
-	return openDesktopWithConnector(ctx, daemon.NewConnector(nil, nil))
+	return openDesktopWithConnector(ctx, daemon.NewConnector(nil, func(ctx context.Context, statePath string) error {
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		return daemon.StartCopiedProcess(ctx, statePath, executable)
+	}))
 }
 
 // openDesktopWithConnector retains the launcher's connection until the daemon

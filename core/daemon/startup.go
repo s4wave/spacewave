@@ -61,12 +61,22 @@ func NewStartupPipeLogger() *logrus.Entry {
 	return logrus.NewEntry(logger)
 }
 
-// StartProcess starts the current executable and transfers custody before
+// StartProcess starts the current executable with StartExecutable's readiness
+// and child-custody guarantees.
+func StartProcess(ctx context.Context, statePath string) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	return StartExecutable(ctx, statePath, executable)
+}
+
+// StartExecutable starts the selected executable and transfers custody before
 // returning success. Failure stops and joins only this attempt's unready child.
 // If the OS refuses termination without a verified exit, failure releases the
 // handles and reports that the unacknowledged child may remain alive. It never
 // requests shutdown through the shared socket.
-func StartProcess(ctx context.Context, statePath string) error {
+func StartExecutable(ctx context.Context, statePath, executable string) error {
 	// Establish the private startup channel before creating the child.
 	timeout, err := StartupTimeout()
 	if err != nil {
@@ -81,11 +91,8 @@ func StartProcess(ctx context.Context, statePath string) error {
 	}
 	defer listener.Close()
 
-	// Launch the same composition with the complete inherited environment.
-	executable, err := os.Executable()
-	if err != nil {
-		return err
-	}
+	// Launch the selected composition with the complete inherited environment.
+	// #nosec G204 -- callers select the executable; desktop verifies its copy before launch.
 	cmd := exec.Command(executable, ServeArgs(statePath, pipeID)...)
 	if err := prepareDaemonStart(cmd); err != nil {
 		return err
