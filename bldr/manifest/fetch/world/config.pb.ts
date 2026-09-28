@@ -7,6 +7,8 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
+export const protobufPackage = 'manifest.fetch.world'
+
 /**
  * Config configures a controller to fetch manifests via a world engine.
  * Searches for <manifest> linked manifests to the object key.
@@ -41,13 +43,6 @@ export interface Config {
    * @generated from field: bool disable_watch = 4;
    */
   disableWatch?: boolean
-  /**
-   * OverrideManifestRev overrides the manifest revision in the returned metadata.
-   * Ignored if unset or zero.
-   *
-   * @generated from field: uint64 override_manifest_rev = 5;
-   */
-  overrideManifestRev?: bigint
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -68,11 +63,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
     { no: 4, name: 'disable_watch', kind: 'scalar', T: ScalarType.BOOL },
-    {
-      no: 5,
-      name: 'override_manifest_rev',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
-    },
   ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
 })

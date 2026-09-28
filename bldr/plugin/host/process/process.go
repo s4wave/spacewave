@@ -353,6 +353,7 @@ func (h *ProcessHost) ExecutePlugin(
 				for _, line := range lines {
 					le.Error("  | " + line)
 				}
+				return startupFailure(pluginID, manifestRoot, entrypointPath, lines, err)
 			}
 		}
 		return err

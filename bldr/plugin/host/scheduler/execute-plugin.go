@@ -70,7 +70,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	}
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
 	defer task.End()
-	defer t.updateRpcClient(nil)
+	defer func() { t.finishExecution(rerr) }()
 	t.ensureAccessProviders()
 	defer func() {
 		if rerr != nil {
@@ -298,7 +298,9 @@ func (t *pluginInstance) beginInitialCapabilityRegistration() {
 func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		registrationState := current.GetInitialCapabilityRegistrationState()
-		if client == nil {
+		// A disconnect during registration precedes process Wait. Preserve pending
+		// until ExecutePlugin returns the diagnostic that decides retry policy.
+		if client == nil && registrationState == bldr_plugin.InitialCapabilityRegistrationComplete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed
 		}
 		next := bldr_plugin.NewPluginLoadState(client, registrationState)
@@ -309,6 +311,14 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 	})
 }
 
+// finishExecution publishes the execution result after the process has stopped.
+func (t *pluginInstance) finishExecution(err error) {
+	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		return current.WithStartupError(err)
+	})
+}
+
+// finishInitialCapabilityRegistration publishes the plugin's startup RPC result.
 func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
 	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		registrationState := bldr_plugin.InitialCapabilityRegistrationFailed
@@ -339,6 +349,7 @@ func (t *pluginInstance) updatePluginLoadState(
 	})
 }
 
+// publishPluginLoadState updates the running projection inside the load-state lock.
 func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadState) {
 	running := state.GetRunningPlugin()
 	t.runningPluginCtr.SetValue(running)

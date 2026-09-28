@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_devtool "github.com/s4wave/spacewave/bldr/devtool"
 	bldr_manifest_pack "github.com/s4wave/spacewave/bldr/manifest/pack"
+	"github.com/s4wave/spacewave/cmd/internal/releaseconfig"
 	"github.com/sirupsen/logrus"
 )
 
@@ -172,6 +173,12 @@ func Run(ctx context.Context, args *Args) error {
 		return errors.New("at least one platform is required")
 	}
 
+	// Apply the release authority to executables and their immutable manifest packs.
+	configPath, err := releaseconfig.Prepare(repoDir, args.ReleaseEnvironment)
+	if err != nil {
+		return err
+	}
+
 	le.WithField("platforms", strings.Join(platforms, ",")).
 		WithField("include_browser", args.IncludeBrowser).
 		Info("building entrypoint handoff slice")
@@ -185,6 +192,7 @@ func Run(ctx context.Context, args *Args) error {
 				ctx,
 				le,
 				repoDir,
+				configPath,
 				args.OutDir,
 				args.ReactDev,
 				args.ManifestID,
@@ -260,12 +268,12 @@ func Run(ctx context.Context, args *Args) error {
 			return err
 		}
 		if err := runPhase(le, "build-entrypoints", func() error {
-			return buildEntrypoints(ctx, repoDir, platforms)
+			return buildEntrypoints(ctx, repoDir, configPath, platforms)
 		}); err != nil {
 			return err
 		}
 		if err := runPhase(le, "build-cli-entrypoints", func() error {
-			return buildCliEntrypoints(ctx, repoDir, platforms)
+			return buildCliEntrypoints(ctx, repoDir, configPath, platforms)
 		}); err != nil {
 			return err
 		}
@@ -420,11 +428,12 @@ func buildHelpers(ctx context.Context, repoDir string, platforms []string) error
 	return nil
 }
 
-func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+// buildEntrypoints produces desktop executables from the selected release overlay.
+func buildEntrypoints(ctx context.Context, repoDir, configPath string, platforms []string) error {
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
 		buildID := "release-desktop-" + goos + "-" + goarch
-		if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", buildID); err != nil {
+		if err := runBldr(ctx, repoDir, "--config", configPath, "--build-type=release", "build", "-b", buildID); err != nil {
 			return errors.Wrap(err, "run bldr "+platform)
 		}
 
@@ -451,10 +460,12 @@ func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) e
 	return nil
 }
 
+// produceManifestPack binds the packaged executable to its producer configuration.
 func produceManifestPack(
 	ctx context.Context,
 	le *logrus.Entry,
 	repoDir string,
+	configPath string,
 	outDir string,
 	reactDev bool,
 	manifestID string,
@@ -484,7 +495,7 @@ func produceManifestPack(
 		ctx,
 		busHandle.GetBus(),
 		repoDir,
-		"bldr.yaml",
+		configPath,
 		"devtool",
 		nil,
 	)
@@ -662,11 +673,12 @@ func fileSHA256(path string) (string, error) {
 // buildCliEntrypoints cross-compiles the standalone spacewave binary
 // for each requested platform and stages the result at
 // .tmp/dist-cli/<platform>/spacewave[.exe].
-func buildCliEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
+// It uses the same release overlay as desktop and manifest-pack production.
+func buildCliEntrypoints(ctx context.Context, repoDir, configPath string, platforms []string) error {
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
 		buildID := "release-cli-" + goos + "-" + goarch
-		if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", buildID); err != nil {
+		if err := runBldr(ctx, repoDir, "--config", configPath, "--build-type=release", "build", "-b", buildID); err != nil {
 			return errors.Wrap(err, "run bldr "+platform)
 		}
 

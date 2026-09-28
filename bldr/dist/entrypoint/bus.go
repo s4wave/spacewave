@@ -371,8 +371,13 @@ func BuildDistBus(
 	}
 	rels = append(rels, relLookupCtrl)
 
-	// ensure the manifest store exists in the world
-	pluginHostObjectKey := "plugin-host"
+	// A distribution reuses only its own plugin cache. An earlier installation's
+	// higher artifact revision cannot displace this build's embedded manifests.
+	pluginHostObjectKey, err := bldr_dist.PluginHostObjectKey(distMeta)
+	if err != nil {
+		rel()
+		return nil, err
+	}
 	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, eng, pluginHostObjectKey); err != nil {
 		rel()
 		return nil, err

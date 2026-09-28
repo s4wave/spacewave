@@ -2,25 +2,15 @@ package bldr_plugin
 
 import "github.com/aperturerobotics/starpc/srpc"
 
-// InitialCapabilityRegistrationState reports the terminal state of a plugin
-// instance's startup capability-registration pass.
-type InitialCapabilityRegistrationState uint8
-
-const (
-	// InitialCapabilityRegistrationPending indicates the startup pass is running.
-	InitialCapabilityRegistrationPending InitialCapabilityRegistrationState = iota
-	// InitialCapabilityRegistrationComplete indicates the startup pass completed.
-	InitialCapabilityRegistrationComplete
-	// InitialCapabilityRegistrationFailed indicates the plugin instance ended
-	// before completing the startup pass.
-	InitialCapabilityRegistrationFailed
-)
-
 // PluginLoadState atomically projects the plugin RPC client, initial
 // capability-registration state, and startup wait budget state.
 type PluginLoadState struct {
-	plugin            RunningPlugin
+	// plugin carries the live RPC connection, including during registration.
+	plugin RunningPlugin
+	// registrationState describes the current execution's startup result.
 	registrationState InitialCapabilityRegistrationState
+	// startupError carries the execution failure to the selecting scheduler.
+	startupError error
 	// startupBudgetExhausted reports that the plugin instance exceeded its
 	// configured startup wait budget before completing registration.
 	startupBudgetExhausted bool
@@ -71,4 +61,17 @@ func (s PluginLoadState) WithStartupBudgetExhausted() PluginLoadState {
 // startup wait budget before completing initial capability registration.
 func (s PluginLoadState) GetStartupBudgetExhausted() bool {
 	return s.startupBudgetExhausted
+}
+
+// WithStartupError marks execution as failed and preserves its terminal cause.
+func (s PluginLoadState) WithStartupError(err error) PluginLoadState {
+	s.plugin = nil
+	s.registrationState = InitialCapabilityRegistrationFailed
+	s.startupError = err
+	return s
+}
+
+// GetStartupError returns the execution error after registration fails.
+func (s PluginLoadState) GetStartupError() error {
+	return s.startupError
 }
