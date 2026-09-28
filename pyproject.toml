@@ -3,14 +3,14 @@ name = "spacewave-resource"
 version = "0.0.0"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "starpc @ git+https://github.com/aperturerobotics/starpc.git@b78c815f1e13b4a2d8e7f602658d6c695fa26e53",
+    "starpc @ git+https://github.com/aperturerobotics/starpc.git@60aebb7f3a140f0772a63269afce10859d45b27f",
 ]
 
 [dependency-groups]
 dev = [
     "mypy==2.3.1",
     # The StarPC generator supplies Ruff for formatting and linting.
-    "starpc-python-plugin @ git+https://github.com/aperturerobotics/starpc.git@b78c815f1e13b4a2d8e7f602658d6c695fa26e53#subdirectory=python/plugin",
+    "starpc-python-plugin @ git+https://github.com/aperturerobotics/starpc.git@60aebb7f3a140f0772a63269afce10859d45b27f#subdirectory=python/plugin",
     "types-protobuf==7.35.1.20260906",
 ]
 

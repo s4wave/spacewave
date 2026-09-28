@@ -53,7 +53,7 @@ gofmt_stdin() {
 	gofmt
 }
 
-format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
+format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -vE '^\.protoc(-[a-z-]+)?-manifest\.json$' || true)
 if [ -n "$format_files" ]; then
 	format_whole=$(whole_files "$format_files")
 	if [ -n "$format_whole" ]; then

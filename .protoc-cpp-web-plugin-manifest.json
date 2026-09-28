@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "protocFlagsHash": "8e309df782695a04665c688a9dffcf5ed60d4fc02a1c60ec57776a49d3c23de2",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.2-0.20260927191206-60aebb7f3a14,protobuf-es-lite=1.1.2",
+  "packages": {
+    "github.com/s4wave/spacewave/bldr/web/plugin": {
+      "hash": "a563cdc2d986b2ed5db5c7c6db54d9d7934957b2344a2b31c59ffd0f1a15b974",
+      "generatedFiles": [
+        "bldr/web/plugin/plugin.pb.cc",
+        "bldr/web/plugin/plugin.pb.h"
+      ],
+      "protoFiles": [
+        "bldr/web/plugin/plugin.proto"
+      ]
+    }
+  }
+}

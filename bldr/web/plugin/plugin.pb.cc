@@ -583,30 +583,33 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "eady\030\001 \001(\010H\000B\006\n\004body*\177\n\024DesktopPresenceS"
     "tate\022\"\n\036DESKTOP_PRESENCE_STATE_UNKNOWN\020\000"
     "\022!\n\035DESKTOP_PRESENCE_STATE_ACTIVE\020\001\022 \n\034D"
-    "ESKTOP_PRESENCE_STATE_ENDED\020\0022\373\006\n\tWebPlu"
+    "ESKTOP_PRESENCE_STATE_ENDED\020\0022\355\007\n\tWebPlu"
     "gin\022o\n\022OpenOrFocusDesktop\022*.bldr.web.plu"
     "gin.OpenOrFocusDesktopRequest\032+.bldr.web"
     ".plugin.OpenOrFocusDesktopResponse\"\000\022w\n\024"
     "WatchDesktopPresence\022,.bldr.web.plugin.W"
     "atchDesktopPresenceRequest\032-.bldr.web.pl"
-    "ugin.WatchDesktopPresenceResponse\"\0000\001\022}\n"
-    "\026HandleWebViewViaPlugin\022..bldr.web.plugi"
-    "n.HandleWebViewViaPluginRequest\032/.bldr.w"
-    "eb.plugin.HandleWebViewViaPluginResponse"
-    "\"\0000\001\022z\n\025HandleWebPkgViaPlugin\022-.bldr.web"
-    ".plugin.HandleWebPkgViaPluginRequest\032..b"
-    "ldr.web.plugin.HandleWebPkgViaPluginResp"
-    "onse\"\0000\001\022q\n\022HandleRpcViaPlugin\022*.bldr.we"
-    "b.plugin.HandleRpcViaPluginRequest\032+.bld"
-    "r.web.plugin.HandleRpcViaPluginResponse\""
-    "\0000\001\022\203\001\n\030HandleWebViewViaHandlers\0220.bldr."
-    "web.plugin.HandleWebViewViaHandlersReque"
-    "st\0321.bldr.web.plugin.HandleWebViewViaHan"
-    "dlersResponse\"\0000\001\022\217\001\n\034HandleWebPkgsViaPl"
-    "uginAssets\0224.bldr.web.plugin.HandleWebPk"
-    "gsViaPluginAssetsRequest\0325.bldr.web.plug"
-    "in.HandleWebPkgsViaPluginAssetsResponse\""
-    "\0000\001b\006proto3"
+    "ugin.WatchDesktopPresenceResponse\"\0000\001\022p\n"
+    "\017WaitDesktopExit\022,.bldr.web.plugin.Watch"
+    "DesktopPresenceRequest\032-.bldr.web.plugin"
+    ".WatchDesktopPresenceResponse\"\000\022}\n\026Handl"
+    "eWebViewViaPlugin\022..bldr.web.plugin.Hand"
+    "leWebViewViaPluginRequest\032/.bldr.web.plu"
+    "gin.HandleWebViewViaPluginResponse\"\0000\001\022z"
+    "\n\025HandleWebPkgViaPlugin\022-.bldr.web.plugi"
+    "n.HandleWebPkgViaPluginRequest\032..bldr.we"
+    "b.plugin.HandleWebPkgViaPluginResponse\"\000"
+    "0\001\022q\n\022HandleRpcViaPlugin\022*.bldr.web.plug"
+    "in.HandleRpcViaPluginRequest\032+.bldr.web."
+    "plugin.HandleRpcViaPluginResponse\"\0000\001\022\203\001"
+    "\n\030HandleWebViewViaHandlers\0220.bldr.web.pl"
+    "ugin.HandleWebViewViaHandlersRequest\0321.b"
+    "ldr.web.plugin.HandleWebViewViaHandlersR"
+    "esponse\"\0000\001\022\217\001\n\034HandleWebPkgsViaPluginAs"
+    "sets\0224.bldr.web.plugin.HandleWebPkgsViaP"
+    "luginAssetsRequest\0325.bldr.web.plugin.Han"
+    "dleWebPkgsViaPluginAssetsResponse\"\0000\001b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[2] = {
@@ -617,7 +620,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    2331,
+    2445,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once,
