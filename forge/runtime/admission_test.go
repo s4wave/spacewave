@@ -2,6 +2,7 @@ package forge_runtime
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -144,7 +145,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStateActive || loaded.Runtime != rt {
+	if loaded.State != ReservationStateActive || !reflect.DeepEqual(loaded.Runtime, rt) {
 		t.Fatalf("unexpected active reservation: %+v", loaded)
 	}
 	if loaded.Outcome(time.Now()) != OutcomeActive {
@@ -260,7 +261,7 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.State != ReservationStateActive || loaded.Runtime != rt || loaded.Generation != 1 {
+	if loaded.State != ReservationStateActive || !reflect.DeepEqual(loaded.Runtime, rt) || loaded.Generation != 1 {
 		t.Fatalf("reconcile lost custody facts: %+v", loaded)
 	}
 	if loaded.Outcome(time.Now()) != OutcomeActive {

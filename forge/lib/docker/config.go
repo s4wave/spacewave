@@ -17,6 +17,9 @@ func (c *Config) Validate() error {
 	if c.GetImage() == "" {
 		return errors.New("image cannot be empty")
 	}
+	if c.GetMilliCpu() == 0 || c.GetMemoryBytes() == 0 {
+		return errors.New("docker milli_cpu and memory_bytes requests must be set")
+	}
 	if err := validateEnvMap(c.GetDockerEnv()); err != nil {
 		return errors.Wrap(err, "docker_env")
 	}

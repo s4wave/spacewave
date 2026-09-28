@@ -33,6 +33,8 @@ type Controller struct {
 	inputVals forge_target.InputMap
 	// handle writes retained execution output.
 	handle forge_target.ExecControllerHandle
+	// admission reserves and fences Docker runtimes for the owning Worker.
+	admission Admission
 }
 
 // NewController constructs a docker controller.
@@ -40,12 +42,14 @@ func NewController(
 	le *logrus.Entry,
 	bus bus.Bus,
 	conf *Config,
+	admission Admission,
 ) *Controller {
 	return &Controller{
-		le:     le,
-		bus:    bus,
-		conf:   conf,
-		runner: NewExecDockerRunner(),
+		le:        le,
+		bus:       bus,
+		conf:      conf,
+		runner:    NewExecDockerRunner(),
+		admission: admission,
 	}
 }
 
@@ -69,41 +73,50 @@ func (c *Controller) InitForgeExecController(
 }
 
 // Execute executes the docker container lifecycle.
-func (c *Controller) Execute(ctx context.Context) error {
+func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	if c.handle == nil {
 		return errors.New("forge exec controller not initialized")
 	}
 	if err := c.conf.Validate(); err != nil {
 		return err
 	}
+	if c.admission == nil {
+		return errors.New("docker runtime admission unavailable")
+	}
 
-	dockerPath := c.dockerPath()
-	dockerEnv := buildDockerEnv(c.conf)
-
-	var containerID string
+	// Debit and activate a deterministic runtime name before Docker can create it.
+	grant, err := c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf)
+	if err != nil {
+		return errors.Wrap(err, "reserve docker capacity")
+	}
 	defer func() {
-		if ctx.Err() == nil || containerID == "" {
-			return
-		}
-		if err := c.stopContainer(context.Background(), dockerPath, dockerEnv, containerID); err != nil {
-			c.le.WithError(err).Warn("stop docker container after cancellation")
+		if err := grant.Release(context.WithoutCancel(ctx)); err != nil {
+			if retErr == nil {
+				retErr = errors.Wrap(err, "release docker capacity")
+			} else {
+				c.le.WithError(err).Warn("release docker capacity")
+			}
 		}
 	}()
-
-	out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf), dockerEnv)
-	if err != nil {
-		return errors.Wrap(err, "docker create")
-	}
-	containerID = strings.TrimSpace(string(out))
-	if containerID == "" {
-		return errors.New("docker create returned empty container id")
-	}
-
-	if _, err := c.runner.Run(ctx, dockerPath, []string{"start", containerID}, dockerEnv); err != nil {
+	dockerPath := c.dockerPath()
+	dockerEnv := BuildDockerEnv(c.conf)
+	var containerID string
+	if err := grant.Launch(ctx, func(name string) error {
+		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name), dockerEnv)
+		if err != nil {
+			return errors.Wrap(err, "docker create")
+		}
+		containerID = strings.TrimSpace(string(out))
+		if containerID == "" {
+			return errors.New("docker create returned empty container id")
+		}
+		_, err = c.runner.Run(ctx, dockerPath, []string{"start", containerID}, dockerEnv)
 		return errors.Wrap(err, "docker start")
+	}); err != nil {
+		return err
 	}
 
-	out, err = c.runner.Run(ctx, dockerPath, []string{"wait", containerID}, dockerEnv)
+	out, err := c.runner.Run(ctx, dockerPath, []string{"wait", containerID}, dockerEnv)
 	if err != nil {
 		if ctx.Err() != nil {
 			return context.Canceled
@@ -148,12 +161,6 @@ func (c *Controller) dockerPath() string {
 		return path
 	}
 	return "docker"
-}
-
-// stopContainer stops a container after execution cancellation.
-func (c *Controller) stopContainer(ctx context.Context, dockerPath string, dockerEnv []string, containerID string) error {
-	_, err := c.runner.Run(ctx, dockerPath, buildStopArgs(c.conf, containerID), dockerEnv)
-	return err
 }
 
 // HandleDirective asks if the handler can resolve the directive.

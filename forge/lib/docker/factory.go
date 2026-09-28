@@ -12,11 +12,13 @@ import (
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
+	// admission belongs to the Worker that registered this factory.
+	admission Admission
 }
 
-// NewFactory builds a factory.
-func NewFactory(bus bus.Bus) *Factory {
-	return &Factory{bus: bus}
+// NewFactory binds Docker execution to one Worker's admission.
+func NewFactory(bus bus.Bus, admission Admission) *Factory {
+	return &Factory{bus: bus, admission: admission}
 }
 
 // GetConfigID returns the configuration ID for the controller.
@@ -40,7 +42,7 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
-	return NewController(opts.GetLogger(), t.bus, conf.(*Config)), nil
+	return NewController(opts.GetLogger(), t.bus, conf.(*Config), t.admission), nil
 }
 
 // GetVersion returns the version of this controller.

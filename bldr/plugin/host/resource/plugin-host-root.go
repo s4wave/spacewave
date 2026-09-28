@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
@@ -218,6 +219,33 @@ func (r *PluginHostRoot) GetPluginInfo(
 		PluginId:   r.pluginID,
 		Entrypoint: r.entrypoint,
 	}, nil
+}
+
+// WatchDevicePolicy forwards the current daemon policy and every subsequent revision.
+func (r *PluginHostRoot) WatchDevicePolicy(
+	_ *sdk_plugin_host.WatchDevicePolicyRequest,
+	stream sdk_plugin_host.SRPCPluginHostResourceService_WatchDevicePolicyStream,
+) error {
+	if r.pluginID != "spacewave-core" {
+		return errors.New("Device policy watch is restricted to the core plugin")
+	}
+	source, err := r.hostRoot.WaitDevicePolicySource(stream.Context())
+	if err != nil {
+		return err
+	}
+	var last []byte
+	for {
+		policy, deviceKey, revision, err := source.WaitDevicePolicy(stream.Context(), last)
+		if err != nil {
+			return err
+		}
+		if err := stream.Send(&sdk_plugin_host.WatchDevicePolicyResponse{
+			Policy: policy, DeviceObjectKey: deviceKey, Revision: revision,
+		}); err != nil {
+			return err
+		}
+		last = policy
+	}
 }
 
 // _ is a type assertion

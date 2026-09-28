@@ -8,7 +8,6 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 	"github.com/s4wave/spacewave/db/world"
-	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 )
 
 // WorkdirMount is the single writer-fenced live mount of one Workdir FSHandle
@@ -101,32 +100,5 @@ func (m *V86WorkdirMount) Release(_ context.Context) error {
 		m.server.RemoveMount(m.name)
 	}
 	m.released = true
-	return nil
-}
-
-// ApplyDockerWorkdirBind adds the single POSIX bind-mount entry for one
-// supervised Workdir host path to a Docker config.
-//
-// This adapter does not fence writes: a Docker bind mount lets the container
-// write the host path directly, bypassing any FSHandle writer. The missing
-// piece is a supervised POSIX live-FSHandle mount - a FUSE supervisor backed
-// by db/unixfs/mount MountController exposing the Workdir FSHandle at the
-// host path - owned by the Spacewave filesystem stack. Until that supervisor
-// supplies the host path and its flush, Docker-backed attempts must collect
-// diff evidence only after their own supervisor proves quiescence; this
-// package provides no flush contract for them.
-func ApplyDockerWorkdirBind(conf *forge_lib_docker.Config, hostPath, containerPath string) error {
-	switch {
-	case conf == nil:
-		return errors.New("docker config not set")
-	case hostPath == "":
-		return errors.New("host path must be set")
-	case containerPath == "":
-		return errors.New("container path must be set")
-	}
-	conf.Mounts = append(conf.Mounts, &forge_lib_docker.Mount{
-		HostPath:      hostPath,
-		ContainerPath: containerPath,
-	})
 	return nil
 }

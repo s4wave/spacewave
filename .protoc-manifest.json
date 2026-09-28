@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "c2b9eaf6c65b4296e7b4a75c44d79b8bb3a2d54e441f80c1ed15011e01b2d7c4",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.2-0.20260927191206-60aebb7f3a14,protobuf-es-lite=1.1.2",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.1,protobuf-es-lite=1.1.2",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
@@ -497,7 +497,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "1791b3f53e809a6355d7d71f27a7baf7cbfae32190f596ba03106b826ad8a9bf",
+      "hash": "d697df53d7743e4e0ae4acba780af5c8a3ec1a67e7297085572143e796905b9c",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.go",
         "bldr/sdk/plugin/host/host.pb.ts",
@@ -2646,7 +2646,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/lib/docker": {
-      "hash": "c16d3c5ffb37c7d864f73dc3839248a1b68e4e0196686190e0ba708ba7551b2c",
+      "hash": "aeea86047356d1c0bedbca9c20ddbbb2639c62e4e539eb9e44a8ea6e326d1185",
       "generatedFiles": [
         "forge/lib/docker/config.pb.go",
         "forge/lib/docker/config.pb.ts"
@@ -3521,7 +3521,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/chat/rpc": {
-      "hash": "3498ac6be0f42b3b28f5328e22f01965a758277cf6717c552e3ef7505043005e",
+      "hash": "fbeb9b45dc9af732ee094ff52d769b7196550ee2411c9e0c6af6e2ef066eda4a",
       "generatedFiles": [
         "sdk/chat/rpc/rpc.pb.go",
         "sdk/chat/rpc/rpc.pb.ts",

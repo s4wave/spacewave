@@ -31,6 +31,8 @@ type ExecController interface {
 type ExecControllerHandle interface {
 	// GetExecutionUniqueId returns a unique identifier for the execution pass.
 	GetExecutionUniqueId() string
+	// GetExecutionObjectKey returns the durable Execution attempt key used by admission.
+	GetExecutionObjectKey() string
 	// GetPeerId returns the peer id that this exec controller is operating as.
 	GetPeerId() peer.ID
 	// GetTimestamp returns the timestamp for the execution and all execution ops.

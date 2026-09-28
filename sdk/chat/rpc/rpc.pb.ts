@@ -231,7 +231,8 @@ export const GetMessageRequest: MessageType<GetMessageRequest> =
  */
 export interface GetMessageResponse {
   /**
-   * Message is the selected message projection.
+   * Message is the selected message projection, unset when the key names no
+   * message.
    *
    * @generated from field: spacewave.chat.rpc.ChatMessageInfo message = 1;
    */
@@ -590,7 +591,8 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
  */
 export interface SendMessageResponse {
   /**
-   * MessageKey is the object key of the created message.
+   * MessageKey is the object key of the created message. It is empty when
+   * expected_state_message_key no longer names the current state.
    *
    * @generated from field: string message_key = 1;
    */

@@ -13,6 +13,55 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
+// WatchDevicePolicyRequest subscribes to the local daemon policy.
+type WatchDevicePolicyRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchDevicePolicyRequest) Reset() {
+	*x = WatchDevicePolicyRequest{}
+}
+
+func (*WatchDevicePolicyRequest) ProtoMessage() {}
+
+// WatchDevicePolicyResponse carries one complete policy revision and its Device identity.
+type WatchDevicePolicyResponse struct {
+	unknownFields []byte
+	// Policy is the binary s4wave.device.policy.DevicePolicy message.
+	Policy []byte `protobuf:"bytes,1,opt,name=policy,proto3" json:"policy,omitempty"`
+	// DeviceObjectKey identifies the enrolled Device that owns Worker capacity.
+	DeviceObjectKey string `protobuf:"bytes,2,opt,name=device_object_key,json=deviceObjectKey,proto3" json:"deviceObjectKey,omitempty"`
+	// Revision identifies the policy mutation that produced this snapshot.
+	Revision uint64 `protobuf:"varint,3,opt,name=revision,proto3" json:"revision,omitempty"`
+}
+
+func (x *WatchDevicePolicyResponse) Reset() {
+	*x = WatchDevicePolicyResponse{}
+}
+
+func (*WatchDevicePolicyResponse) ProtoMessage() {}
+
+func (x *WatchDevicePolicyResponse) GetPolicy() []byte {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+func (x *WatchDevicePolicyResponse) GetDeviceObjectKey() string {
+	if x != nil {
+		return x.DeviceObjectKey
+	}
+	return ""
+}
+
+func (x *WatchDevicePolicyResponse) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
 // CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
 //
 // The plugin calls this once after its entrypoint's startup
@@ -243,6 +292,39 @@ func (x *GetPluginInfoResponse) GetEntrypoint() string {
 	return ""
 }
 
+func (m *WatchDevicePolicyRequest) CloneVT() *WatchDevicePolicyRequest {
+	if m == nil {
+		return (*WatchDevicePolicyRequest)(nil)
+	}
+	r := new(WatchDevicePolicyRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDevicePolicyRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchDevicePolicyResponse) CloneVT() *WatchDevicePolicyResponse {
+	if m == nil {
+		return (*WatchDevicePolicyResponse)(nil)
+	}
+	r := new(WatchDevicePolicyResponse)
+	r.DeviceObjectKey = m.DeviceObjectKey
+	r.Revision = m.Revision
+	r.Policy = protobuf_go_lite.CloneBytes(m.Policy)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchDevicePolicyResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CompleteInitialCapabilityRegistrationRequest) CloneVT() *CompleteInitialCapabilityRegistrationRequest {
 	if m == nil {
 		return (*CompleteInitialCapabilityRegistrationRequest)(nil)
@@ -459,6 +541,49 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 
 func (m *GetPluginInfoResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *WatchDevicePolicyRequest) EqualVT(that *WatchDevicePolicyRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDevicePolicyRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDevicePolicyRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchDevicePolicyResponse) EqualVT(that *WatchDevicePolicyResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Policy, that.Policy) {
+		return false
+	}
+	if this.DeviceObjectKey != that.DeviceObjectKey {
+		return false
+	}
+	if this.Revision != that.Revision {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchDevicePolicyResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchDevicePolicyResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *CompleteInitialCapabilityRegistrationRequest) EqualVT(that *CompleteInitialCapabilityRegistrationRequest) bool {
@@ -721,6 +846,94 @@ func (this *GetPluginInfoResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the WatchDevicePolicyRequest message to JSON.
+func (x *WatchDevicePolicyRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDevicePolicyRequest to JSON.
+func (x *WatchDevicePolicyRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDevicePolicyRequest message from JSON.
+func (x *WatchDevicePolicyRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDevicePolicyRequest from JSON.
+func (x *WatchDevicePolicyRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchDevicePolicyResponse message to JSON.
+func (x *WatchDevicePolicyResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Policy) > 0 || s.HasField("policy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("policy")
+		s.WriteBytes(x.Policy)
+	}
+	if x.DeviceObjectKey != "" || s.HasField("deviceObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deviceObjectKey")
+		s.WriteString(x.DeviceObjectKey)
+	}
+	if x.Revision != 0 || s.HasField("revision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revision")
+		s.WriteUint64(x.Revision)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchDevicePolicyResponse to JSON.
+func (x *WatchDevicePolicyResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchDevicePolicyResponse message from JSON.
+func (x *WatchDevicePolicyResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "policy":
+			s.AddField("policy")
+			x.Policy = s.ReadBytes()
+		case "device_object_key", "deviceObjectKey":
+			s.AddField("device_object_key")
+			x.DeviceObjectKey = s.ReadString()
+		case "revision":
+			s.AddField("revision")
+			x.Revision = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchDevicePolicyResponse from JSON.
+func (x *WatchDevicePolicyResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the CompleteInitialCapabilityRegistrationRequest message to JSON.
@@ -1235,6 +1448,85 @@ func (x *GetPluginInfoResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *WatchDevicePolicyRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDevicePolicyRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDevicePolicyRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchDevicePolicyResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchDevicePolicyResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchDevicePolicyResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Revision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Revision))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.DeviceObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DeviceObjectKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Policy) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Policy)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CompleteInitialCapabilityRegistrationRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1723,6 +2015,29 @@ func (m *GetPluginInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchDevicePolicyRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchDevicePolicyResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Policy)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DeviceObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Revision)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CompleteInitialCapabilityRegistrationRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1869,6 +2184,38 @@ func (m *GetPluginInfoResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Entrypoint)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x *WatchDevicePolicyRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchDevicePolicyRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDevicePolicyRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchDevicePolicyResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchDevicePolicyResponse")
+	if len(x.Policy) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "policy")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Policy)
+	}
+	if x.DeviceObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "device_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.DeviceObjectKey)
+	}
+	if x.Revision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.Revision)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchDevicePolicyResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *CompleteInitialCapabilityRegistrationRequest) MarshalProtoText() string {
@@ -2041,6 +2388,119 @@ func (x *GetPluginInfoResponse) MarshalProtoText() string {
 
 func (x *GetPluginInfoResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *WatchDevicePolicyRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDevicePolicyRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDevicePolicyRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchDevicePolicyResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchDevicePolicyResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchDevicePolicyResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Policy", wireType)
+			}
+			m.Policy, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Policy, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeviceObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DeviceObjectKey = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
+			}
+			m.Revision = 0
+			m.Revision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *CompleteInitialCapabilityRegistrationRequest) UnmarshalVT(dAtA []byte) error {

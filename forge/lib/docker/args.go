@@ -2,10 +2,11 @@ package forge_lib_docker
 
 import (
 	"strconv"
+	"strings"
 )
 
-// buildDockerEnv renders the configured environment as KEY=value arguments.
-func buildDockerEnv(conf *Config) []string {
+// BuildDockerEnv renders the complete configured CLI environment as KEY=value arguments.
+func BuildDockerEnv(conf *Config) []string {
 	vals := conf.GetDockerEnv()
 	env := make([]string, 0, len(vals))
 	for _, key := range sortedMapKeys(vals) {
@@ -15,8 +16,17 @@ func buildDockerEnv(conf *Config) []string {
 }
 
 // buildCreateArgs renders the docker create invocation for the config.
-func buildCreateArgs(conf *Config) []string {
+func buildCreateArgs(conf *Config, runtimeName string) []string {
 	args := []string{"create"}
+	if runtimeName != "" {
+		args = append(args, "--name", runtimeName)
+	}
+	// Enforce the same CPU and memory request that admission debits.
+	cpu := strconv.FormatUint(conf.GetMilliCpu()/1000, 10)
+	if fraction := conf.GetMilliCpu() % 1000; fraction != 0 {
+		cpu += "." + strings.TrimRight(strconv.FormatUint(1000+fraction, 10)[1:], "0")
+	}
+	args = append(args, "--cpus", cpu, "--memory", strconv.FormatUint(conf.GetMemoryBytes(), 10))
 	if workdir := conf.GetWorkdir(); workdir != "" {
 		args = append(args, "--workdir", workdir)
 	}
@@ -29,15 +39,6 @@ func buildCreateArgs(conf *Config) []string {
 	args = append(args, conf.GetImage())
 	args = append(args, conf.GetCommand()...)
 	return args
-}
-
-// buildStopArgs renders the docker stop invocation with the stop timeout.
-func buildStopArgs(conf *Config, containerID string) []string {
-	args := []string{"stop"}
-	if timeout := conf.GetStopTimeoutSeconds(); timeout != 0 {
-		args = append(args, "--time", strconv.FormatUint(uint64(timeout), 10))
-	}
-	return append(args, containerID)
 }
 
 // buildMountArg renders one bind mount in docker --mount syntax.

@@ -37,6 +37,9 @@ func (h *captureHandle) GetExecutionUniqueId() string {
 	return "test-git-commit"
 }
 
+// GetExecutionObjectKey identifies the synthetic test attempt.
+func (h *captureHandle) GetExecutionObjectKey() string { return "exec/test-git-commit" }
+
 func (h *captureHandle) GetPeerId() peer.ID {
 	return h.peerID
 }

@@ -1,10 +1,11 @@
-//go:build !tinygo
+//go:build !tinygo && !goscript
 
 package s4wave_forge_world
 
 import (
 	"context"
 	stderrors "errors"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -14,6 +15,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
@@ -34,10 +38,12 @@ func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 	workerBus := &workerExitBus{Bus: baseBus, exitErr: controllerErr}
 	stream := &forgeWorkerExecuteStream{ctx: ctx}
 	resource := &forgeWorkerResource{
-		objectKey: "worker/test",
-		b:         workerBus,
-		le:        le,
-		peerID:    workerPeer.GetPeerID(),
+		objectKey:       "worker/test",
+		b:               workerBus,
+		le:              le,
+		peerID:          workerPeer.GetPeerID(),
+		admission:       testWorkerRuntime{},
+		openPolicyWatch: openTestWorkerPolicyWatch,
 	}
 
 	err = resource.Execute(nil, stream)
@@ -49,6 +55,253 @@ func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 		t.Fatalf("status count = %d, want 1", stream.statuses)
 	}
 }
+
+// TestForgeWorkerExecuteReturnsCleanControllerExit keeps a completed Worker
+// controller from turning a clean terminal result into a restart error.
+func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	workerPeer, _, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
+	resource := &forgeWorkerResource{
+		objectKey: "worker/test", b: &workerExitBus{Bus: baseBus}, le: le,
+		peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{},
+		openPolicyWatch: openTestWorkerPolicyWatch,
+	}
+	if err := resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}); err != nil {
+		t.Fatalf("clean Worker controller exit = %v", err)
+	}
+}
+
+// TestForgeWorkerPolicyRemovalReachesAdmission checks that the Worker's
+// enrolled initial snapshot and later policy removal both reach admission.
+func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	workerPeer, _, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
+	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
+	updates := make(chan *device_policy.DevicePolicy, 1)
+	applied := make(chan *device_policy.ForgeWorkerPolicy, 2)
+	stream := &changingWorkerPolicyStream{ctx: ctx, updates: updates}
+	resource := &forgeWorkerResource{
+		objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(),
+		admission:       &observingWorkerRuntime{applied: applied, pendingOnRemoval: true},
+		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return stream, nil },
+	}
+	done := make(chan error, 1)
+	go func() { done <- resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}) }()
+	select {
+	case <-workerBus.started:
+	case <-time.After(time.Second):
+		t.Fatal("Worker controller did not start")
+	}
+	select {
+	case got := <-applied:
+		if got.GetWorkerObjectKey() != "worker/test" {
+			t.Fatalf("initial policy = %+v", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("initial policy did not reach admission")
+	}
+	updates <- &device_policy.DevicePolicy{}
+	select {
+	case got := <-applied:
+		if got != nil {
+			t.Fatalf("removed policy = %+v", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("policy removal did not reach admission")
+	}
+	cancel()
+	if err := <-done; !stderrors.Is(err, context.Canceled) {
+		t.Fatalf("Worker cancellation = %v", err)
+	}
+}
+
+// TestForgeWorkerCancellationRenewsThroughStop proves stream cancellation
+// keeps the durable owner claim alive while Docker cleanup holds its debit.
+func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
+	admission, stopper, _ := newWorkerAdmissionTestbed(t)
+	grant, err := admission.Reserve(t.Context(), "exec/cancel", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := grant.Launch(t.Context(), func(string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	initial, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := initial.OwnerLeaseExpiresAt.AsTime().Add(-forge_runtime.DefaultOwnerLeaseDuration)
+	var now atomic.Int64
+	now.Store(base.UnixNano())
+	admission.admission.SetTimeNow(func() time.Time { return time.Unix(0, now.Load()).UTC() })
+	stopper.entered = make(chan struct{})
+	stopper.release = make(chan struct{})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	le := logrus.NewEntry(logrus.New())
+	workerPeer, _, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
+	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
+	policy := &device_policy.DevicePolicy{ForgeWorker: &device_policy.ForgeWorkerPolicy{
+		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
+	}}
+	watch := &changingWorkerPolicyStream{ctx: ctx, initialPolicy: policy}
+	renewed := make(chan struct{}, 1)
+	renewTick := make(chan time.Time)
+	resource := &forgeWorkerResource{
+		objectKey: "worker/a", b: workerBus, le: le, peerID: workerPeer.GetPeerID(),
+		admission:       &notifyingWorkerRuntime{WorkerAdmission: admission, stopEntered: stopper.entered, renewed: renewed},
+		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return watch, nil },
+		renewTick:       renewTick,
+	}
+	done := make(chan error, 1)
+	go func() { done <- resource.Execute(nil, &forgeWorkerExecuteStream{ctx: ctx}) }()
+	select {
+	case <-workerBus.started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Worker controller did not start")
+	}
+	cancel()
+	select {
+	case <-stopper.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Docker stop did not start")
+	}
+
+	// Move the controlled clock near expiry and wait for the renewal event
+	// while the stopper remains blocked, without waiting for wall time.
+	now.Store(base.Add(50 * time.Second).UnixNano())
+	select {
+	case renewTick <- time.Unix(0, now.Load()):
+	case <-time.After(5 * time.Second):
+		t.Fatal("renewal clock was not received")
+	}
+	select {
+	case <-renewed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("owner claim did not renew during Docker stop")
+	}
+	now.Store(base.Add(65 * time.Second).UnixNano())
+	capacity, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !time.Unix(0, now.Load()).Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
+		t.Fatalf("claim expired during Docker stop: %v", capacity.OwnerLeaseExpiresAt.AsTime())
+	}
+	if capacity.MilliCPUReserved != 500 || capacity.OwnerState != forge_runtime.CapacityOwnerStateDraining {
+		t.Fatalf("blocked stop lost custody: %+v", capacity)
+	}
+
+	close(stopper.release)
+	select {
+	case err := <-done:
+		if !stderrors.Is(err, context.Canceled) {
+			t.Fatalf("Worker cancellation = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Worker cleanup did not finish")
+	}
+	if _, err := admission.admission.LookupWorkerCapacityAdmission(t.Context(), "worker/a"); !stderrors.Is(err, forge_runtime.ErrWorkerNotObserved) {
+		t.Fatalf("clean drain retained capacity: %v", err)
+	}
+}
+
+// notifyingWorkerRuntime reports renewal after Docker cleanup has begun.
+type notifyingWorkerRuntime struct {
+	*WorkerAdmission
+	stopEntered <-chan struct{}
+	renewed     chan<- struct{}
+}
+
+// Renew forwards the durable renewal and signals that it ran during stop.
+func (r *notifyingWorkerRuntime) Renew(ctx context.Context) error {
+	err := r.WorkerAdmission.Renew(ctx)
+	select {
+	case <-r.stopEntered:
+		select {
+		case r.renewed <- struct{}{}:
+		default:
+		}
+	default:
+	}
+	return err
+}
+
+// observingWorkerRuntime records the policies presented to admission.
+type observingWorkerRuntime struct {
+	// applied receives each delivered policy.
+	applied chan *device_policy.ForgeWorkerPolicy
+	// pendingOnRemoval makes removal report retained stop custody.
+	pendingOnRemoval bool
+}
+
+// Reserve rejects Docker work outside this policy delivery test.
+func (*observingWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+	return nil, stderrors.New("unexpected Docker reservation")
+}
+
+// ApplyPolicy records the current Worker declaration or its removal.
+func (r *observingWorkerRuntime) ApplyPolicy(_ context.Context, key string, policy *device_policy.ForgeWorkerPolicy) error {
+	if key != "devices/self" {
+		return stderrors.New("Worker lost enrolled Device identity")
+	}
+	r.applied <- policy
+	if policy == nil && r.pendingOnRemoval {
+		return ErrWorkerStopPending
+	}
+	return nil
+}
+
+// Renew has no lease effect in this policy delivery test.
+func (*observingWorkerRuntime) Renew(context.Context) error { return nil }
+
+// Close has no World state to drain in this policy delivery test.
+func (*observingWorkerRuntime) Close(context.Context) error { return nil }
+
+// changingWorkerPolicyStream supplies an enrolled initial snapshot and changes.
+type changingWorkerPolicyStream struct {
+	ctx           context.Context
+	updates       <-chan *device_policy.DevicePolicy
+	initial       bool
+	initialPolicy *device_policy.DevicePolicy
+}
+
+// Recv returns the current policy before waiting for an update.
+func (s *changingWorkerPolicyStream) Recv() (*device_policy.DevicePolicy, string, error) {
+	if !s.initial {
+		s.initial = true
+		if s.initialPolicy != nil {
+			return s.initialPolicy, "devices/self", nil
+		}
+		return &device_policy.DevicePolicy{ForgeWorker: &device_policy.ForgeWorkerPolicy{WorkerObjectKey: "worker/test"}}, "devices/self", nil
+	}
+	select {
+	case <-s.ctx.Done():
+		return nil, "", s.ctx.Err()
+	case policy := <-s.updates:
+		return policy, "devices/self", nil
+	}
+}
+
+// Close leaves cancellation to the owning execution context.
+func (*changingWorkerPolicyStream) Close() {}
 
 type workerExitBus struct {
 	bus.Bus
@@ -108,7 +361,7 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 		base := inmem.NewBus(directive_controller.NewController(ctx, le))
 		workerBus := &workerExitBus{Bus: base, started: make(chan struct{}), released: make(chan struct{})}
 		stream := &forgeWorkerExecuteStream{ctx: ctx}
-		resource := &forgeWorkerResource{objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID()}
+		resource := &forgeWorkerResource{objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{}, openPolicyWatch: openTestWorkerPolicyWatch}
 		done := make(chan error, 1)
 		go func() { done <- resource.Execute(nil, stream) }()
 		<-workerBus.started
@@ -126,3 +379,48 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 		<-workerBus.released
 	})
 }
+
+// testWorkerRuntime is the offline Worker admission seam for lifecycle tests.
+type testWorkerRuntime struct{}
+
+// Reserve is unused by the Worker lifecycle tests.
+func (testWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+	return nil, stderrors.New("unexpected Docker reservation")
+}
+
+// ApplyPolicy accepts the test stream's initial empty declaration.
+func (testWorkerRuntime) ApplyPolicy(context.Context, string, *device_policy.ForgeWorkerPolicy) error {
+	return nil
+}
+
+// Renew keeps virtual lease deadlines from changing this test's focus.
+func (testWorkerRuntime) Renew(context.Context) error { return nil }
+
+// Close keeps lifecycle tests isolated from World admission.
+func (testWorkerRuntime) Close(context.Context) error { return nil }
+
+// testWorkerPolicyStream emits current policy then waits for closure.
+type testWorkerPolicyStream struct {
+	ctx     context.Context
+	cancel  context.CancelFunc
+	initial bool
+}
+
+// openTestWorkerPolicyWatch opens an isolated in-memory policy stream.
+func openTestWorkerPolicyWatch(context.Context, bus.Bus) (workerPolicyStream, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &testWorkerPolicyStream{ctx: ctx, cancel: cancel}, nil
+}
+
+// Recv emits one snapshot and then follows stream cancellation.
+func (s *testWorkerPolicyStream) Recv() (*device_policy.DevicePolicy, string, error) {
+	if !s.initial {
+		s.initial = true
+		return &device_policy.DevicePolicy{}, "", nil
+	}
+	<-s.ctx.Done()
+	return nil, "", s.ctx.Err()
+}
+
+// Close cancels the test stream's pending receive.
+func (s *testWorkerPolicyStream) Close() { s.cancel() }

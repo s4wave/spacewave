@@ -28,6 +28,8 @@ type SRPCPluginHostResourceServiceClient interface {
 	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	// CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
 	CompleteInitialCapabilityRegistration(ctx context.Context, in *CompleteInitialCapabilityRegistrationRequest) (*CompleteInitialCapabilityRegistrationResponse, error)
+	// WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+	WatchDevicePolicy(ctx context.Context, in *WatchDevicePolicyRequest) (SRPCPluginHostResourceService_WatchDevicePolicyClient, error)
 }
 
 type srpcPluginHostResourceServiceClient struct {
@@ -111,6 +113,39 @@ func (c *srpcPluginHostResourceServiceClient) CompleteInitialCapabilityRegistrat
 	return out, nil
 }
 
+func (c *srpcPluginHostResourceServiceClient) WatchDevicePolicy(ctx context.Context, in *WatchDevicePolicyRequest) (SRPCPluginHostResourceService_WatchDevicePolicyClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchDevicePolicy", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcPluginHostResourceService_WatchDevicePolicyClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCPluginHostResourceService_WatchDevicePolicyClient interface {
+	srpc.Stream
+	Recv() (*WatchDevicePolicyResponse, error)
+	RecvTo(*WatchDevicePolicyResponse) error
+}
+
+type srpcPluginHostResourceService_WatchDevicePolicyClient struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHostResourceService_WatchDevicePolicyClient) Recv() (*WatchDevicePolicyResponse, error) {
+	m := new(WatchDevicePolicyResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcPluginHostResourceService_WatchDevicePolicyClient) RecvTo(m *WatchDevicePolicyResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCPluginHostResourceServiceServer interface {
 	// AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
 	AccessAssetsFS(context.Context, *AccessAssetsFSRequest) (*AccessAssetsFSResponse, error)
@@ -126,6 +161,8 @@ type SRPCPluginHostResourceServiceServer interface {
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
 	// CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
 	CompleteInitialCapabilityRegistration(context.Context, *CompleteInitialCapabilityRegistrationRequest) (*CompleteInitialCapabilityRegistrationResponse, error)
+	// WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+	WatchDevicePolicy(*WatchDevicePolicyRequest, SRPCPluginHostResourceService_WatchDevicePolicyStream) error
 }
 
 const SRPCPluginHostResourceServiceServiceID = "bldr.plugin.host.PluginHostResourceService"
@@ -161,6 +198,7 @@ func (SRPCPluginHostResourceServiceHandler) GetMethodIDs() []string {
 		"AccessDesktopTray",
 		"GetPluginInfo",
 		"CompleteInitialCapabilityRegistration",
+		"WatchDevicePolicy",
 	}
 }
 
@@ -187,6 +225,8 @@ func (d *SRPCPluginHostResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
 	case "CompleteInitialCapabilityRegistration":
 		return true, d.InvokeMethod_CompleteInitialCapabilityRegistration(d.impl, strm)
+	case "WatchDevicePolicy":
+		return true, d.InvokeMethod_WatchDevicePolicy(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -276,6 +316,15 @@ func (SRPCPluginHostResourceServiceHandler) InvokeMethod_CompleteInitialCapabili
 	return strm.MsgSend(out)
 }
 
+func (SRPCPluginHostResourceServiceHandler) InvokeMethod_WatchDevicePolicy(impl SRPCPluginHostResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchDevicePolicyRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcPluginHostResourceService_WatchDevicePolicyStream{strm}
+	return impl.WatchDevicePolicy(req, serverStrm)
+}
+
 type SRPCPluginHostResourceService_AccessAssetsFSStream interface {
 	srpc.Stream
 }
@@ -330,4 +379,27 @@ type SRPCPluginHostResourceService_CompleteInitialCapabilityRegistrationStream i
 
 type srpcPluginHostResourceService_CompleteInitialCapabilityRegistrationStream struct {
 	srpc.Stream
+}
+
+type SRPCPluginHostResourceService_WatchDevicePolicyStream interface {
+	srpc.Stream
+	Send(*WatchDevicePolicyResponse) error
+	SendAndClose(*WatchDevicePolicyResponse) error
+}
+
+type srpcPluginHostResourceService_WatchDevicePolicyStream struct {
+	srpc.Stream
+}
+
+func (x *srpcPluginHostResourceService_WatchDevicePolicyStream) Send(m *WatchDevicePolicyResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcPluginHostResourceService_WatchDevicePolicyStream) SendAndClose(m *WatchDevicePolicyResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

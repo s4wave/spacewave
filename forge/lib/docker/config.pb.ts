@@ -102,6 +102,18 @@ export interface Config {
    * @generated from field: uint32 stop_timeout_seconds = 8;
    */
   stopTimeoutSeconds?: number
+  /**
+   * MilliCpu is the CPU requested by this target in milli-cores.
+   *
+   * @generated from field: uint64 milli_cpu = 9;
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the memory requested by this target in bytes.
+   *
+   * @generated from field: uint64 memory_bytes = 10;
+   */
+  memoryBytes?: bigint
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -138,5 +150,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.UINT32,
     },
+    { no: 9, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 10, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
 })

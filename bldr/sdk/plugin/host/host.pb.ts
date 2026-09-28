@@ -11,6 +11,60 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
+ * WatchDevicePolicyRequest subscribes to the local daemon policy.
+ *
+ * @generated from message bldr.plugin.host.WatchDevicePolicyRequest
+ */
+export interface WatchDevicePolicyRequest {}
+
+export const WatchDevicePolicyRequest: MessageType<WatchDevicePolicyRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchDevicePolicyRequest>(
+    'bldr.plugin.host.WatchDevicePolicyRequest',
+    true,
+  )
+
+/**
+ * WatchDevicePolicyResponse carries one complete policy revision and its Device identity.
+ *
+ * @generated from message bldr.plugin.host.WatchDevicePolicyResponse
+ */
+export interface WatchDevicePolicyResponse {
+  /**
+   * Policy is the binary s4wave.device.policy.DevicePolicy message.
+   *
+   * @generated from field: bytes policy = 1;
+   */
+  policy?: Uint8Array
+  /**
+   * DeviceObjectKey identifies the enrolled Device that owns Worker capacity.
+   *
+   * @generated from field: string device_object_key = 2;
+   */
+  deviceObjectKey?: string
+  /**
+   * Revision identifies the policy mutation that produced this snapshot.
+   *
+   * @generated from field: uint64 revision = 3;
+   */
+  revision?: bigint
+}
+
+export const WatchDevicePolicyResponse: MessageType<WatchDevicePolicyResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.host.WatchDevicePolicyResponse',
+    fields: [
+      { no: 1, name: 'policy', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'device_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
  *
  * The plugin calls this once after its entrypoint's startup

@@ -89,6 +89,22 @@ func runSharedDaemonFixture() error {
 		for _, factory := range plugin_host_default.PluginHostControllerFactories {
 			cliBus.GetStaticResolver().AddFactory(factory(cliBus.GetBus()))
 		}
+		if os.Getenv(sharedDaemonFixtureMode) == "distribution" {
+			pluginStateRoot := filepath.Join(statePath, "plugin", "state")
+			pluginDistRoot := filepath.Join(statePath, "plugin", "dist")
+			for _, dir := range []string{pluginStateRoot, pluginDistRoot} {
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					buildErr = err
+					return nil
+				}
+			}
+			_, releaseHost, err := plugin_host_default.StartPluginHost(ctx, cliBus.GetBus(), pluginStateRoot, pluginDistRoot, "")
+			if err != nil {
+				buildErr = err
+				return nil
+			}
+			cliBus.AddRelease(releaseHost)
+		}
 
 		// A real stored atom supplies a watch that crosses the Resource Init stream.
 		atoms := resource_state.NewStateAtomManager(cliBus.GetBus(), "fixture-atoms", cliBus.GetVolume().GetID())

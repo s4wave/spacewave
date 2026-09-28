@@ -1,9 +1,11 @@
-//go:build !tinygo
+//go:build !tinygo && !goscript
 
 package s4wave_forge_world
 
 import (
 	"context"
+	"crypto/rand"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -12,11 +14,14 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
 	"github.com/s4wave/spacewave/db/world"
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
 	exec_controller "github.com/s4wave/spacewave/forge/execution/controller"
+	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	pass_controller "github.com/s4wave/spacewave/forge/pass/controller"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	task_controller "github.com/s4wave/spacewave/forge/task/controller"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
@@ -67,12 +72,14 @@ func forgeWorkerFactory(
 
 	engineID := objecttype.EngineIDFromContext(ctx)
 	resource := &forgeWorkerResource{
-		objectKey: objectKey,
-		ws:        ws,
-		b:         b,
-		le:        le,
-		peerID:    sessionPeerID,
-		engineID:  engineID,
+		objectKey:       objectKey,
+		ws:              ws,
+		b:               b,
+		le:              le,
+		peerID:          sessionPeerID,
+		engineID:        engineID,
+		admission:       NewWorkerAdmission(engine, objectKey, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
+		openPolicyWatch: func(ctx context.Context, b bus.Bus) (workerPolicyStream, error) { return openWorkerPolicyWatch(ctx, b) },
 	}
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_process.SRPCRegisterPersistentExecutionService(mux, resource)
@@ -114,6 +121,26 @@ type forgeWorkerResource struct {
 	peerID peer.ID
 	// engineID identifies the worker's World engine.
 	engineID string
+	// admission owns this Worker's sole capacity claim and Docker lifecycle.
+	admission workerRuntime
+	// openPolicyWatch connects the Worker to daemon-owned policy.
+	openPolicyWatch func(context.Context, bus.Bus) (workerPolicyStream, error)
+	// renewTick supplies a controlled renewal clock in tests.
+	renewTick <-chan time.Time
+}
+
+// workerRuntime is the Worker's capacity and Docker admission contract.
+type workerRuntime interface {
+	forge_lib_docker.Admission
+	ApplyPolicy(context.Context, string, *device_policy.ForgeWorkerPolicy) error
+	Renew(context.Context) error
+	Close(context.Context) error
+}
+
+// workerPolicyStream receives current and changed daemon policy snapshots.
+type workerPolicyStream interface {
+	Recv() (*device_policy.DevicePolicy, string, error)
+	Close()
 }
 
 // Execute implements SRPCPersistentExecutionServiceServer.
@@ -127,6 +154,67 @@ func (r *forgeWorkerResource) Execute(
 ) error {
 	ctx := stream.Context()
 	le := r.le.WithField("worker", r.objectKey)
+	watch, err := r.openPolicyWatch(ctx, r.b)
+	if err != nil {
+		return errors.Wrap(err, "watch device policy")
+	}
+	var watchDone <-chan struct{}
+	defer func() {
+		watch.Close()
+		if watchDone != nil {
+			<-watchDone
+		}
+	}()
+	policy, deviceKey, err := watch.Recv()
+	if err != nil {
+		return errors.Wrap(err, "initial device policy")
+	}
+	// Keep the owner claim renewing through the bounded Docker stop and
+	// durable credit. Stream cancellation only stops new Worker work.
+	renewCtx, cancelRenew := context.WithCancel(context.WithoutCancel(ctx))
+	renewDone := make(chan struct{})
+	renewErr := make(chan error, 1)
+	go func() {
+		defer close(renewDone)
+		renewTick := r.renewTick
+		if renewTick == nil {
+			renew := time.NewTicker(forge_runtime.DefaultOwnerLeaseDuration / 3)
+			defer renew.Stop()
+			renewTick = renew.C
+		}
+		for {
+			select {
+			case <-renewCtx.Done():
+				return
+			case <-renewTick:
+				if err := r.admission.Renew(renewCtx); err != nil {
+					select {
+					case renewErr <- err:
+					default:
+					}
+				}
+			}
+		}
+	}()
+	defer func() {
+		cancelRenew()
+		<-renewDone
+	}()
+	if err := r.admission.ApplyPolicy(ctx, deviceKey, policy.GetForgeWorker()); err != nil {
+		if !errors.Is(err, ErrWorkerStopPending) {
+			return errors.Wrap(err, "observe worker capacity")
+		}
+		le.WithError(err).Warn("Worker runtime stop pending; retaining capacity claim")
+	}
+	defer func() {
+		// A stop that exceeds this deadline retains its World pending-stop
+		// reservation and debit for the next owner to reconcile.
+		stopCtx, cancelStop := context.WithTimeout(context.WithoutCancel(ctx), forge_runtime.DefaultOwnerLeaseDuration/3)
+		if err := r.admission.Close(stopCtx); err != nil {
+			le.WithError(err).Warn("drain Worker capacity on exit")
+		}
+		cancelStop()
+	}()
 
 	if err := stream.Send(&s4wave_process.ExecuteStatus{
 		State: s4wave_process.ExecutionState_ExecutionState_RUNNING,
@@ -158,6 +246,7 @@ func (r *forgeWorkerResource) Execute(
 		task_controller.NewFactory(r.b),
 		pass_controller.NewFactory(r.b),
 		exec_controller.NewFactory(r.b),
+		forge_lib_docker.NewFactory(r.b, r.admission),
 	}
 	sr := static.NewResolver(append(forgeFactories, bridgeFactories...)...)
 	resolverCtrl := resolver_ctrl.NewController(le, r.b, sr)
@@ -182,15 +271,54 @@ func (r *forgeWorkerResource) Execute(
 	}
 	defer workerRelease()
 
-	// Stream cancellation and actual controller exit delimit this execution.
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case exitErr := <-workerExited:
-		if exitErr == nil {
-			return errors.New("forge worker controller exited")
+	// Read policy updates on the stream while the owner lease deadline drives renewal.
+	type policyUpdate struct {
+		policy    *device_policy.DevicePolicy
+		deviceKey string
+		err       error
+	}
+	updates := make(chan policyUpdate, 1)
+	done := make(chan struct{})
+	watchDone = done
+	go func() {
+		defer close(done)
+		for {
+			policy, deviceKey, err := watch.Recv()
+			select {
+			case updates <- policyUpdate{policy: policy, deviceKey: deviceKey, err: err}:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
 		}
-		return errors.Wrap(exitErr, "forge worker controller")
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case exitErr := <-workerExited:
+			if exitErr == nil {
+				return nil
+			}
+			return errors.Wrap(exitErr, "forge worker controller")
+		case update := <-updates:
+			if update.err != nil {
+				return errors.Wrap(update.err, "watch device policy")
+			}
+			if err := r.admission.ApplyPolicy(ctx, update.deviceKey, update.policy.GetForgeWorker()); err != nil {
+				if !errors.Is(err, ErrWorkerStopPending) {
+					return err
+				}
+				le.WithError(err).Warn("Worker runtime stop pending; retaining capacity claim")
+			}
+		case err := <-renewErr:
+			if !errors.Is(err, ErrWorkerStopPending) {
+				return errors.Wrap(err, "renew worker claim")
+			}
+			le.WithError(err).Warn("Worker runtime stop pending; retaining capacity claim")
+		}
 	}
 }
 
