@@ -306,39 +306,14 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
       }
     }
 
-    // Asset extensions that must NOT be externalized, they need Vite's
-    // CSS/asset pipeline (Tailwind, PostCSS, etc.).
-    const assetExts = [
-      '.css',
-      '.scss',
-      '.sass',
-      '.less',
-      '.styl',
-      '.png',
-      '.jpg',
-      '.jpeg',
-      '.gif',
-      '.svg',
-      '.webp',
-      '.ico',
-      '.woff',
-      '.woff2',
-      '.ttf',
-      '.eot',
-    ]
-
     // Keep runtime packages and web package imports bare through Rolldown
     // resolution. Vite 8 resolves tsconfig aliases before the package remap
     // plugin's resolveId hook, so web package IDs must be externalized here and
     // then rewritten by renderChunk.
     const allExternal = [...externalPkgs, ...webPkgIDs]
     if (allExternal.length > 0) {
-      mergedConfig.build.rolldownOptions.external = (id, importer) => {
-        if (assetExts.some((ext) => id.endsWith(ext))) {
-          return false
-        }
-        return isExternalWebPkgImport(allExternal, id, importer)
-      }
+      mergedConfig.build.rolldownOptions.external = (id, importer) =>
+        isExternalWebPkgImport(allExternal, id, importer)
     }
 
     // Rewrite app-owned web pkg import specifiers to /b/pkg/ URLs in the

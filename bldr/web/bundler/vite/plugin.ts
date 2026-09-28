@@ -511,6 +511,31 @@ export function createWebPkgRemapPlugin(
   }
 }
 
+// webAssetExts are import extensions that stay in the bundle so Vite's CSS and
+// asset pipeline (Tailwind, PostCSS, etc.) processes them, even when they live
+// in a web package.
+const webAssetExts = [
+  'css',
+  'scss',
+  'sass',
+  'less',
+  'styl',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'svg',
+  'webp',
+  'ico',
+  'woff',
+  'woff2',
+  'ttf',
+  'eot',
+]
+
+// webAssetPattern matches an import id ending in a web asset extension.
+const webAssetPattern = new RegExp(`\\.(?:${webAssetExts.join('|')})$`)
+
 // isExternalWebPkgImport reports whether Rolldown's external option claims an
 // import of a web package. Project sources import web packages through
 // tsconfig paths, which resolve before plugin hooks, so the option must claim
@@ -522,6 +547,7 @@ export function isExternalWebPkgImport(
   id: string,
   importer: string | undefined,
 ): boolean {
+  if (webAssetPattern.test(id)) return false
   if (importer && /[\\/]node_modules[\\/]/.test(importer)) return false
   return webPkgIDs.some((pkg) => id === pkg || id.startsWith(pkg + '/'))
 }
@@ -529,11 +555,13 @@ export function isExternalWebPkgImport(
 // createExternalRequirePlugin externalizes web packages and rewrites CommonJS
 // require() calls of them into ESM imports. Web packages load as external ES
 // modules, so a bundled CommonJS dependency such as react-compiler-runtime
-// would otherwise call a require() the browser does not provide.
+// would otherwise call a require() the browser does not provide. Web asset
+// imports stay in the bundle.
 export function createExternalRequirePlugin(webPkgIDs: string[]): Plugin {
+  const notAsset = `(?!.*${webAssetPattern.source})`
   return esmExternalRequirePlugin({
     external: webPkgIDs.map(
-      (pkg) => new RegExp(`^${escapeRegExp(pkg)}(?:/.*)?$`),
+      (pkg) => new RegExp(`^${notAsset}${escapeRegExp(pkg)}(?:/.*)?$`),
     ),
   }) as Plugin
 }

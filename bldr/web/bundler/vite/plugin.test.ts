@@ -480,4 +480,51 @@ describe('createExternalRequirePlugin', () => {
       fs.rmSync(root, { recursive: true, force: true })
     }
   })
+
+  it('bundles stylesheets imported from web packages', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bldr-web-pkg-css-'))
+    try {
+      const pkgRoot = path.join(root, 'node_modules', 'web-pkg')
+      fs.mkdirSync(pkgRoot, { recursive: true })
+      fs.writeFileSync(
+        path.join(pkgRoot, 'package.json'),
+        JSON.stringify({ name: 'web-pkg', main: 'index.js' }),
+      )
+      fs.writeFileSync(path.join(pkgRoot, 'style.css'), '.web-pkg{color:red}')
+      const entry = path.join(root, 'entry.js')
+      fs.writeFileSync(entry, "import 'web-pkg/style.css'\nexport const x = 1")
+
+      const output = (await build({
+        root,
+        configFile: false,
+        logLevel: 'silent',
+        plugins: [createExternalRequirePlugin(['web-pkg'])],
+        build: {
+          write: false,
+          minify: false,
+          lib: { entry, formats: ['es'], cssFileName: 'style' },
+          rolldownOptions: {
+            external: (id, importer) =>
+              isExternalWebPkgImport(['web-pkg'], id, importer),
+          },
+        },
+      })) as Rollup.RollupOutput[]
+
+      const files = output.flatMap((result) => result.output)
+      const code = files
+        .map((file) => (file.type === 'chunk' ? file.code : ''))
+        .join('\n')
+      const css = files
+        .map((file) =>
+          file.type === 'asset' && file.fileName.endsWith('.css')
+            ? String(file.source)
+            : '',
+        )
+        .join('\n')
+      expect(code).not.toMatch(/web-pkg\/style\.css/)
+      expect(css).toContain('.web-pkg')
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
