@@ -123,7 +123,7 @@ func runPluginImportManifest(
 	var dest volume.Volume
 	var destEngine world.Engine
 	var destClose func() error
-	destBucketID := "bldr/cli"
+	destBucketID := cliBus.GetWorldEngineID()
 	if targetDBPath == "" {
 		dest = cliBus.GetVolume()
 		destEngine = cliBus.GetWorldEngine()

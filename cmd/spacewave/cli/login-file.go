@@ -5,7 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,11 +15,13 @@ import (
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	core_session "github.com/s4wave/spacewave/core/session"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"golang.org/x/term"
 )
 
+// newLoginFileCommand builds the command for opening a catalog or provider volume.
 func newLoginFileCommand() *cli.Command {
 	var statePath string
 	return &cli.Command{
@@ -33,7 +35,9 @@ func newLoginFileCommand() *cli.Command {
 	}
 }
 
+// runLoginFile registers a file alias after the source daemon verifies its Sessions.
 func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
+	// Resolve the user-selected volume before contacting either daemon.
 	var err error
 	if path == "" {
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
@@ -63,12 +67,13 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 	if !info.Mode().IsRegular() {
 		return errors.New("Session file must be a regular .s4wave file")
 	}
-	if filepath.Base(path) != "cli.s4wave" {
-		if _, err := os.Stat(filepath.Join(filepath.Dir(path), "cli.s4wave")); err != nil {
-			return errors.Wrap(err, "find sibling Session catalog cli.s4wave")
+	if filepath.Base(path) != entrypoint_state.Filename {
+		if _, err := os.Stat(filepath.Join(filepath.Dir(path), entrypoint_state.Filename)); err != nil {
+			return errors.Wrap(err, "find sibling Session catalog state.s4wave")
 		}
 	}
 
+	// Ask the source daemon to verify the catalog and its provider volumes.
 	ctx := c.Context
 	sourcePath := filepath.Dir(path)
 	source, err := connectDaemonWithAutostart(ctx, sourcePath)
@@ -84,13 +89,14 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 		return errors.New("the selected .s4wave volume has no usable Sessions")
 	}
 
+	// Save the validated alias in the target daemon.
 	target, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
 		return err
 	}
 	defer target.close()
 	aliasHash := sha256.Sum256([]byte(path))
-	aliasID := fmt.Sprintf("file-%x", aliasHash[:8])
+	aliasID := "file-" + hex.EncodeToString(aliasHash[:8])
 	_, err = target.root.UpsertSpaceRootAlias(ctx, &s4wave_root.SpaceRootAliasRecord{
 		AliasId:     aliasID,
 		DisplayName: filepath.Base(path),
@@ -102,6 +108,7 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 		return errors.Wrap(err, "add Session file")
 	}
 
+	// Render the Sessions and source path for the selected output format.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		data, err := protojson.MarshalSlice(protojson.MarshalerConfig{}, entries)
 		if err != nil {
@@ -126,8 +133,9 @@ func runLoginFile(c *cli.Context, statePath, outputFormat, path string) error {
 	return nil
 }
 
+// sessionsFromLoginFile selects all catalog Sessions or the chosen provider account.
 func sessionsFromLoginFile(path string, entries []*core_session.SessionListEntry) []*core_session.SessionListEntry {
-	if filepath.Base(path) == "cli.s4wave" {
+	if filepath.Base(path) == entrypoint_state.Filename {
 		return entries
 	}
 	filtered := make([]*core_session.SessionListEntry, 0, len(entries))
@@ -141,6 +149,7 @@ func sessionsFromLoginFile(path string, entries []*core_session.SessionListEntry
 	return filtered
 }
 
+// usableFileSessions returns file Sessions that the source daemon can mount.
 func usableFileSessions(ctx context.Context, source *sdkClient, path string) ([]*core_session.SessionListEntry, error) {
 	entries, err := source.root.ListSessions(ctx)
 	if err != nil {

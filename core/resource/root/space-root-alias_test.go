@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
@@ -103,7 +104,7 @@ func TestSpaceRootFileAliasUsesItsContainingStateRoot(t *testing.T) {
 	server, serverCancel := setupSpaceRootAliasServer(t.Context(), t)
 	defer serverCancel()
 	statePath := makeSpaceRootAliasDir(t)
-	filePath := filepath.Join(statePath, "cli.s4wave")
+	filePath := filepath.Join(statePath, entrypoint_state.Filename)
 	if err := os.WriteFile(filePath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}

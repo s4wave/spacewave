@@ -22,7 +22,7 @@ func TestReleaseClosesStorage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), t.TempDir())
+			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), "test", t.TempDir())
 			if err != nil {
 				t.Fatal(err)
 			}

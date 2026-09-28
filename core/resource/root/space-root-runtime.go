@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	session "github.com/s4wave/spacewave/core/session"
@@ -132,8 +133,9 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 	}
 }
 
+// sessionsFromSpaceRootFile selects the shared catalog or one provider account.
 func sessionsFromSpaceRootFile(path string, entries []*session.SessionListEntry) []*session.SessionListEntry {
-	if filepath.Base(path) == "cli.s4wave" {
+	if filepath.Base(path) == entrypoint_state.Filename {
 		return entries
 	}
 	filtered := make([]*session.SessionListEntry, 0, len(entries))

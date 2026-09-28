@@ -60,7 +60,7 @@ func Main(
 				return
 			}
 
-			b, err := BuildCliBus(ctx, le, root)
+			b, err := BuildCliBus(ctx, le, projectID, root)
 			if err != nil {
 				busInitErr = err
 				return

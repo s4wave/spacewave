@@ -82,7 +82,7 @@ func runSharedDaemonFixture() error {
 		if buildErr != nil {
 			return nil
 		}
-		cliBus, buildErr = cli_entrypoint.BuildCliBus(ctx, le, statePath)
+		cliBus, buildErr = cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath)
 		if buildErr != nil {
 			return nil
 		}

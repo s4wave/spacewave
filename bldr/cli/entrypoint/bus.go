@@ -7,33 +7,24 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/config"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	"github.com/pkg/errors"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
 )
-
-// cliTransformConf is the block transform conf to use.
-var cliTransformConf = []config.Config{
-	&transform_gzip.Config{CompressionLevel: 9},
-}
 
 // CliBusImpl implements the CliBus interface for CLI binaries.
 type CliBusImpl struct {
@@ -64,8 +55,10 @@ type CliBusImpl struct {
 // _ is a type assertion.
 var _ CliBus = (*CliBusImpl)(nil)
 
-// BuildCliBus builds a lightweight bus for CLI binaries.
-func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*CliBusImpl, error) {
+// BuildCliBus opens the shared project state for a native CLI daemon.
+// The caller must hold the state-root lease until Release finishes.
+func BuildCliBus(rctx context.Context, le *logrus.Entry, projectID, stateRoot string) (*CliBusImpl, error) {
+	// Cancel bus work before releasing controller and storage references.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	var b bus.Bus
@@ -81,6 +74,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		}
 	}
 
+	// Create the controller bus before registering native storage factories.
 	b, sr, err := cbc.NewCoreBus(ctx, le)
 	if err != nil {
 		rel()
@@ -127,19 +121,14 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	}
 
 	// Start the storage volume.
-	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
-		StorageId:       storageID,
-		StorageVolumeId: "cli",
-		VolumeConfig: &volume_controller.Config{
-			VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
-		},
-	})
+	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, entrypoint_state.NewVolumeConfig(storageID))
 	if err != nil {
 		rel()
 		return nil, err
 	}
 	rels = append(rels, volCtrlRef.Release)
 
+	// Keep the actual mounted volume identity for all world operations.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		rel()
@@ -155,41 +144,24 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	}
 	rels = append(rels, nodeCtrlRef.Release)
 
-	// Start the world engine.
-	engineBucketID := "bldr/cli"
-	engineObjStoreID := engineBucketID
-	engineID := "bldr/cli"
-
-	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
+	// Open the project World through the same schema as the desktop entrypoint.
+	engConf, err := entrypoint_state.NewWorldConfig(projectID, vol.GetID())
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID()))
+	engineID := engConf.GetEngineId()
+	bucketConf, err := bucket.NewConfig(engConf.GetBucketId(), 1, nil)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-
-	transformConf, err := block_transform.NewConfig(cliTransformConf)
-	if err != nil {
+	if _, err := bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID())); err != nil {
 		rel()
 		return nil, err
 	}
-	initRef := &bucket.ObjectRef{
-		BucketId:      engineBucketID,
-		TransformConf: transformConf,
-	}
 
-	engConf := world_block_engine.NewConfig(
-		engineID,
-		vol.GetID(), engineBucketID,
-		engineObjStoreID,
-		initRef,
-		nil,
-		false,
-	)
-
+	// Retain the world controller until bus cleanup.
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, b, engConf)
 	if err != nil {
 		rel()
@@ -197,6 +169,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	}
 	rels = append(rels, worldCtrlRef.Release)
 
+	// Publish a writable World facade owned by this bus.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		rel()
@@ -204,6 +177,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 	}
 	worldState := world.NewEngineWorldState(eng, true)
 
+	// Return the bus and the single cleanup boundary.
 	return &CliBusImpl{
 		ctx:           ctx,
 		b:             b,
