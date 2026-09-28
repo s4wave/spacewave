@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -256,5 +257,55 @@ func TestWSSignalPeerResolverReplacesValueOnReconnect(t *testing.T) {
 	cancel()
 	if err := <-errCh; !errors.Is(err, context.Canceled) {
 		t.Fatalf("resolve error = %v, want context cancellation", err)
+	}
+}
+
+// TestWSSignalingGenerationEndsOnCloseFrame verifies that a server close
+// frame ends the connection generation without waiting for the ping.
+func TestWSSignalingGenerationEndsOnCloseFrame(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	t.Cleanup(cancel)
+	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reject the first frame the way the signaling server rejects one it
+	// cannot decode.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := ws.Accept(w, r, nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer conn.CloseNow()
+		if _, _, err := conn.Read(r.Context()); err != nil {
+			return
+		}
+		_ = conn.Close(ws.StatusInvalidFramePayloadData, "invalid signaling frame")
+	}))
+	t.Cleanup(server.Close)
+
+	ctrl := &wsSignalingCtrl{
+		le:    logrus.NewEntry(logrus.New()),
+		ready: make(chan struct{}),
+		priv:  priv,
+		sigID: "webrtc",
+		pid:   pid,
+		url: func(context.Context) (string, error) {
+			return "ws" + strings.TrimPrefix(server.URL, "http"), nil
+		},
+	}
+	start := time.Now()
+	err = ctrl.executeGeneration(ctx)
+	if elapsed := time.Since(start); elapsed > signalingWebSocketPingInterval/3 {
+		t.Fatalf("generation ended after %v with %v, want it to end at the close frame", elapsed, err)
+	}
+	if err == nil || ctx.Err() != nil {
+		t.Fatalf("generation error = %v, want the close frame error", err)
 	}
 }
