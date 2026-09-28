@@ -55,6 +55,7 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 			taskName: {Exec: &forge_target.Exec{Disable: true}},
 		},
 		peerID,
+		nil,
 		timestamp.Now(),
 	)
 	world.ReleaseObjectState(createdObject)

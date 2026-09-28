@@ -9,6 +9,7 @@ import (
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_task "github.com/s4wave/spacewave/forge/task"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -41,6 +42,7 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	taskKey := o.GetTaskKey()
 	jobKey := o.GetJobKey()
+	var placement *forge_worker.Placement
 
 	// If a job key is provided, verify it exists and can be decoded as a Job.
 	if jobKey != "" {
@@ -51,12 +53,13 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 		if err := job.Validate(); err != nil {
 			return false, errors.Wrap(err, "job")
 		}
+		placement = job.GetPlacement()
 	}
 
 	// Create the task with the default noop exec target.
 	tgt := space_exec_noop.NewTarget()
 	var createdObject world.ObjectState
-	createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, o.GetName(), tgt, "", 1, o.GetTimestamp())
+	createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, o.GetName(), tgt, "", 1, placement, o.GetTimestamp())
 	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err

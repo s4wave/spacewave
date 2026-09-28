@@ -4,6 +4,7 @@ package forge.pass;
 import "github.com/s4wave/spacewave/forge/execution/execution.proto";
 import "github.com/s4wave/spacewave/forge/target/target.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -58,6 +59,8 @@ message Pass {
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
   google.protobuf.Timestamp timestamp = 9;
+  // Placement is the immutable Worker and Device peer selected for this Pass.
+  .forge.worker.Placement placement = 10;
 }
 
 // ExecState contains the previous snapshot of an execution state.

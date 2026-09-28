@@ -4,6 +4,7 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { Result } from '../value/value.pb.js'
+import { Placement } from '../worker/worker.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -90,6 +91,12 @@ export interface Job {
    * @generated from field: google.protobuf.Timestamp timestamp = 3;
    */
   timestamp?: Date
+  /**
+   * Placement is the immutable Worker and Device peer selected when this Job was created.
+   *
+   * @generated from field: forge.worker.Placement placement = 4;
+   */
+  placement?: Placement
 }
 
 export const Job: MessageType<Job> = /* @__PURE__ */ createMessageType({
@@ -98,5 +105,6 @@ export const Job: MessageType<Job> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'job_state', kind: 'enum', T: State_Enum },
     { no: 2, name: 'result', kind: 'message', T: () => Result },
     { no: 3, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    { no: 4, name: 'placement', kind: 'message', T: () => Placement },
   ] satisfies readonly PartialFieldInfo[],
 })

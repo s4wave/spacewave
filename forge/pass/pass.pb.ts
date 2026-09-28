@@ -13,6 +13,7 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
+import { Placement } from '../worker/worker.pb.js'
 
 /**
  * State contains the possible Pass states.
@@ -225,6 +226,12 @@ export interface Pass {
    * @generated from field: google.protobuf.Timestamp timestamp = 9;
    */
   timestamp?: Date
+  /**
+   * Placement is the immutable Worker and Device peer selected for this Pass.
+   *
+   * @generated from field: forge.worker.Placement placement = 10;
+   */
+  placement?: Placement
 }
 
 export const Pass: MessageType<Pass> = /* @__PURE__ */ createMessageType({
@@ -245,5 +252,6 @@ export const Pass: MessageType<Pass> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
     { no: 9, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    { no: 10, name: 'placement', kind: 'message', T: () => Placement },
   ] satisfies readonly PartialFieldInfo[],
 })

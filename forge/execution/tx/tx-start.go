@@ -74,6 +74,9 @@ func (t *TxStart) ExecuteTx(
 	if err := root.CheckPeerID(txPeerID); err != nil {
 		return err
 	}
+	if placement := root.GetPlacement(); placement != nil && placement.GetPeerId() != txPeerID.String() {
+		return errors.Errorf("execution peer %s does not match placement peer %s", txPeerID, placement.GetPeerId())
+	}
 	if t.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")
 	}

@@ -69,6 +69,12 @@ func (t *TxStart) ExecuteTx(
 			"%s", passState.String(),
 		)
 	}
+	if placement := root.GetPlacement(); placement != nil {
+		specs := t.GetCreateExecSpecs().GetExecSpecs()
+		if len(specs) != 1 || specs[0].GetPeerId() != placement.GetPeerId() {
+			return errors.New("placed pass must start one Execution on its selected peer")
+		}
+	}
 
 	// promote to RUNNING
 	root.PassState = forge_pass.State_PassState_RUNNING

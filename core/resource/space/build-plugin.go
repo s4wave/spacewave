@@ -84,26 +84,13 @@ func (r *SpaceResource) queuePluginBuild(ctx context.Context, req *s4wave_space.
 		return nil, errors.New("device has no available Forge worker")
 	}
 	workerKey := worker.GetLink().GetObjectKey()
-	if err := forge_worker.CheckWorkerType(ctx, tx, workerKey); err != nil {
-		return nil, err
-	}
 	devicePeer, err := confparse.ParsePeerID(device.GetPeerId())
 	if err != nil {
 		return nil, err
 	}
-	keypairs, _, err := forge_worker.CollectWorkerKeypairs(ctx, tx, workerKey)
-	if err != nil {
+	placement := &forge_worker.Placement{WorkerObjectKey: workerKey, PeerId: devicePeer.String()}
+	if err := placement.ValidateLinked(ctx, tx); err != nil {
 		return nil, err
-	}
-	assigned := false
-	for _, keypair := range keypairs {
-		if keypair.GetPeerId() == devicePeer.String() {
-			assigned = true
-			break
-		}
-	}
-	if !assigned {
-		return nil, errors.New("device session does not own its selected Forge worker")
 	}
 	sourceObject, err := world.MustGetObject(ctx, tx, req.GetSourceKey())
 	if err != nil {
@@ -136,7 +123,7 @@ func (r *SpaceResource) queuePluginBuild(ctx context.Context, req *s4wave_space.
 			Exec: &forge_target.Exec{
 				Controller: &configset_proto.ControllerConfig{Id: space_exec.BuildPluginConfigID, Rev: 1, Config: configData},
 			},
-		}, timestamppb.Now())
+		}, placement, timestamppb.Now())
 	if err != nil {
 		return nil, err
 	}

@@ -1080,7 +1080,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/forge/job": {
-      "hash": "68ed41193d8bdb37d0b7738cec1c6c1db6acf5d53e3a4e6696e8eec6b9ae8b37",
+      "hash": "dbfc75b0256308849c86da11217a5c339cfdb4581efb418d46eb96dd1f132112",
       "generatedFiles": [
         "core/forge/job/job.pb.go",
         "core/forge/job/job.pb.ts"
@@ -2616,7 +2616,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/execution": {
-      "hash": "ecb5b0e4cd793eed88e06554264b255f010e5e5f905a037afd12e0e756009879",
+      "hash": "907d771cd884ca0039b359f5588b6314911828bf78aed40fa742c7430d67c362",
       "generatedFiles": [
         "forge/execution/execution.pb.go",
         "forge/execution/execution.pb.ts"
@@ -2646,7 +2646,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/job": {
-      "hash": "215586a49a74458014b91900531898c3c32b093b8760063f4316ea23c68d4c6b",
+      "hash": "40e0b63d54faf1e8b15f879bb2712bc88bf2f641d0f5db2e647a31180adc8517",
       "generatedFiles": [
         "forge/job/job.pb.go",
         "forge/job/job.pb.ts"
@@ -2706,7 +2706,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/pass": {
-      "hash": "65e3cb8634dee08b2c82775587df23d74890d1858456e6761c00190b02422ca5",
+      "hash": "872ef8c94f272f30e636d44448c6862ce62e7a590e921fecefd269243c42524f",
       "generatedFiles": [
         "forge/pass/pass.pb.go",
         "forge/pass/pass.pb.ts"
@@ -2746,7 +2746,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/task": {
-      "hash": "cda7c01886f2e3cd9d0b564c2a6324ab535af2a4cae451f54bc10d778402309b",
+      "hash": "7e236179c0efa5cd98e07751cc6de4916f4a8894320f93974f87b026e04e7c2f",
       "generatedFiles": [
         "forge/task/task.pb.go",
         "forge/task/task.pb.ts"
@@ -2786,7 +2786,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/worker": {
-      "hash": "e10088236530261febe1765c112a286075d880e2b5c6a5194cf5a30352ef0cd5",
+      "hash": "f75383fcb2c63cd615d552713c8adbf225570d1aace74772f34f4624a6dc64c2",
       "generatedFiles": [
         "forge/worker/worker.pb.go",
         "forge/worker/worker.pb.ts"

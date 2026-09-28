@@ -19,7 +19,7 @@ func TestTxRetryRejectsLivePredecessor(t *testing.T) {
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	{
 		createdObject, _, err := forge_task.CreateTaskWithTarget(f.ctx, f.tb.WorldState,
-			f.peerID, taskKey, "retry-live-predecessor", f.target.CloneVT(), f.peerID, 1, f.ts)
+			f.peerID, taskKey, "retry-live-predecessor", f.target.CloneVT(), f.peerID, 1, nil, f.ts)
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)

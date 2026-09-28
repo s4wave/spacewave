@@ -13,6 +13,7 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_task "github.com/s4wave/spacewave/forge/task"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -60,6 +61,7 @@ func EnsureJobHasTask(ctx context.Context, w world.WorldState, jobKey, taskKey s
 // CreateJobWithTasks creates a pending Job object in the world.
 //
 // TasksPeer sets the peer ID to set on the tasks. Can be empty.
+// Placement selects the Worker and authenticated Device peer for every Task.
 func CreateJobWithTasks(
 	ctx context.Context,
 	ws world.WorldState,
@@ -67,10 +69,17 @@ func CreateJobWithTasks(
 	objKey string,
 	tasks map[string]*forge_target.Target,
 	tasksPeer peer.ID,
+	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	if placement != nil {
+		if err := placement.ValidateLinked(ctx, ws); err != nil {
+			return nil, nil, errors.Wrap(err, "placement")
+		}
+	}
 	njob := &Job{
 		JobState:  State_JobState_PENDING,
+		Placement: placement.CloneVT(),
 		Timestamp: ts,
 	}
 	if err := njob.Validate(); err != nil {
@@ -101,7 +110,7 @@ func CreateJobWithTasks(
 		taskKey := NewJobTaskKey(objKey, taskName)
 		replicas := uint32(1)
 		var createdObject world.ObjectState
-		createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
+		createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, placement, ts)
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)

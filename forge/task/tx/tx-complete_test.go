@@ -42,6 +42,7 @@ func buildTaskWithPass(
 			target,
 			"",
 			1,
+			nil,
 			ts,
 		)
 		world.ReleaseObjectState(createdObject)
@@ -60,6 +61,7 @@ func buildTaskWithPass(
 			1,
 			1,
 			"",
+			nil,
 			ts,
 		)
 		world.ReleaseObjectState(createdObject2)

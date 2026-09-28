@@ -24,6 +24,11 @@ func (o *ForgeJobCreateOp) GetOperationTypeId() string {
 
 // Validate performs cursory validation of the operation.
 func (o *ForgeJobCreateOp) Validate() error {
+	if placement := o.GetPlacement(); placement != nil {
+		if err := placement.Validate(); err != nil {
+			return errors.Wrap(err, "placement")
+		}
+	}
 	if o.GetJobKey() == "" {
 		return errors.Wrap(world.ErrEmptyObjectKey, "job_key")
 	}
@@ -68,7 +73,7 @@ func (o *ForgeJobCreateOp) ApplyWorldOp(
 
 	// Create the job with tasks.
 	var createdObject world.ObjectState
-	createdObject, _, err = forge_job.CreateJobWithTasks(ctx, ws, sender, jobKey, tasks, "", o.GetTimestamp())
+	createdObject, _, err = forge_job.CreateJobWithTasks(ctx, ws, sender, jobKey, tasks, "", o.GetPlacement(), o.GetTimestamp())
 	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err

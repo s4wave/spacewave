@@ -33,9 +33,8 @@ import (
 )
 
 // forgeWorkerFactory creates a ForgeWorker resource with PersistentExecutionService.
-// Checks that the Worker's linked keypair peer ID matches the local session
-// peer ID. Returns nil invoker (no-op) if they don't match, so only the
-// creating session runs the worker loop.
+// Checks that the local session peer is linked to the Worker. Returns a nil
+// invoker for an unlinked session; each linked session runs its own worker loop.
 func forgeWorkerFactory(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -55,18 +54,12 @@ func forgeWorkerFactory(
 		return nil, func() {}, nil
 	}
 
-	// Look up the Worker's linked keypairs to derive its peer ID.
-	workerPeerID, err := resolveWorkerPeerID(ctx, ws, objectKey)
+	// A Worker may serve several Device peers; this session runs only when linked.
+	linked, err := workerHasPeerID(ctx, ws, objectKey, sessionPeerID)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(workerPeerID) == 0 {
-		// Worker has no linked keypair; cannot determine which session runs it.
-		return nil, func() {}, nil
-	}
-
-	// Only the session whose peer ID matches runs the worker loop.
-	if workerPeerID != sessionPeerID {
+	if !linked {
 		return nil, func() {}, nil
 	}
 
@@ -78,7 +71,7 @@ func forgeWorkerFactory(
 		le:              le,
 		peerID:          sessionPeerID,
 		engineID:        engineID,
-		admission:       NewWorkerAdmission(engine, objectKey, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
+		admission:       NewWorkerAdmission(engine, objectKey, sessionPeerID, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
 		openPolicyWatch: func(ctx context.Context, b bus.Bus) (workerPolicyStream, error) { return openWorkerPolicyWatch(ctx, b) },
 	}
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
@@ -87,24 +80,22 @@ func forgeWorkerFactory(
 	return mux, func() {}, nil
 }
 
-// resolveWorkerPeerID looks up the Worker's linked keypairs and returns the
-// peer ID derived from the first keypair. Returns empty if no keypair linked.
-func resolveWorkerPeerID(ctx context.Context, ws world.WorldState, objectKey string) (peer.ID, error) {
+// workerHasPeerID reports whether the session peer is linked to this Worker.
+func workerHasPeerID(ctx context.Context, ws world.WorldState, objectKey string, sessionPeerID peer.ID) (bool, error) {
 	kps, _, err := forge_worker.CollectWorkerKeypairs(ctx, ws, objectKey)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	for _, kp := range kps {
-		if kp == nil {
-			continue
-		}
 		pid, err := kp.ParsePeerID()
 		if err != nil {
-			continue
+			return false, err
 		}
-		return pid, nil
+		if pid == sessionPeerID {
+			return true, nil
+		}
 	}
-	return "", nil
+	return false, nil
 }
 
 // forgeWorkerResource implements PersistentExecutionService for a Forge Worker.

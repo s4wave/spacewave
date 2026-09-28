@@ -64,6 +64,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		peerID,
 		forge_target.NewValueSet(),
 		target,
+		nil,
 		timestamp.Now(),
 	)
 	if err != nil {
@@ -200,6 +201,7 @@ func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 		peerID,
 		forge_target.NewValueSet(),
 		target,
+		nil,
 		timestamp.Now(),
 	)
 	if err != nil {

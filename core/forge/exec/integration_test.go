@@ -139,7 +139,7 @@ func createTestExecution(
 		},
 	}
 	_, err := forge_execution.CreateExecutionWithTarget(
-		ctx, ws, sender, execKey, sender, nil, tgt, timestamp.Now(),
+		ctx, ws, sender, execKey, sender, nil, tgt, nil, timestamp.Now(),
 	)
 	if err != nil {
 		t.Fatalf("CreateExecutionWithTarget: %v", err)
@@ -166,7 +166,7 @@ func createTestExecutionWithValueSet(
 		},
 	}
 	_, err := forge_execution.CreateExecutionWithTarget(
-		ctx, ws, sender, execKey, sender, valueSet, tgt, timestamp.Now(),
+		ctx, ws, sender, execKey, sender, valueSet, tgt, nil, timestamp.Now(),
 	)
 	if err != nil {
 		t.Fatalf("CreateExecutionWithTarget: %v", err)
@@ -187,7 +187,7 @@ func createDisabledTestExecution(
 		},
 	}
 	_, err := forge_execution.CreateExecutionWithTarget(
-		ctx, ws, sender, execKey, sender, nil, tgt, timestamp.Now(),
+		ctx, ws, sender, execKey, sender, nil, tgt, nil, timestamp.Now(),
 	)
 	if err != nil {
 		t.Fatalf("CreateExecutionWithTarget: %v", err)

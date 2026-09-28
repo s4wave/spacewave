@@ -8,13 +8,18 @@ import (
 	"testing"
 	"time"
 
+	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/db/block"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+	forge_target "github.com/s4wave/spacewave/forge/target"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/sirupsen/logrus"
 )
 
@@ -69,7 +74,7 @@ func newWorkerAdmissionTestbed(t *testing.T) (*WorkerAdmission, *admissionStoppe
 	}
 	t.Cleanup(wtb.Release)
 	stopper := &admissionStopper{}
-	admission := NewWorkerAdmission(wtb.Engine, "worker/a", "claim-1", stopper)
+	admission := NewWorkerAdmission(wtb.Engine, "worker/a", wtb.Volume.GetPeerID(), "claim-1", stopper)
 	if err := admission.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
 	}); err != nil {
@@ -78,12 +83,49 @@ func newWorkerAdmissionTestbed(t *testing.T) (*WorkerAdmission, *admissionStoppe
 	return admission, stopper, wtb.Engine
 }
 
+// reserveDocker creates a real Execution for the admission boundary to inspect.
+func reserveDocker(t *testing.T, admission *WorkerAdmission, ctx context.Context, key string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+	t.Helper()
+	ws := world.NewEngineWorldState(admission.engine, true)
+	_, err := forge_execution.CreateExecutionWithTarget(ctx, ws, admission.peerID, key, admission.peerID,
+		forge_target.NewValueSet(), &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}, nil, timestamp.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return admission.Reserve(ctx, key, conf)
+}
+
+// TestWorkerAdmissionRejectsOtherWorkerPlacement keeps backend creation behind
+// the selected Worker's capacity claim even if a resolver picks this factory.
+func TestWorkerAdmissionRejectsOtherWorkerPlacement(t *testing.T) {
+	admission, _, _ := newWorkerAdmissionTestbed(t)
+	ctx := t.Context()
+	const key = "exec/other-worker"
+	ws := world.NewEngineWorldState(admission.engine, true)
+	object, _, err := world.CreateWorldObject(ctx, ws, key, func(cursor *block.Cursor) error {
+		cursor.SetBlock(&forge_execution.Execution{
+			ExecutionState: forge_execution.State_ExecutionState_PENDING,
+			PeerId:         admission.peerID.String(),
+			Placement:      &forge_worker.Placement{WorkerObjectKey: "worker/b", PeerId: admission.peerID.String()},
+			Timestamp:      timestamp.Now(),
+		}, true)
+		return nil
+	})
+	world.ReleaseObjectState(object)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.Reserve(ctx, key, &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20}); err == nil {
+		t.Fatal("backend capacity was reserved on another Worker")
+	}
+}
+
 // TestWorkerAdmissionReleaseStopsAndCredits proves one active runtime stops
 // before its debit is credited, and a repeated release has no extra effect.
 func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/one", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/one", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +169,7 @@ func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 func TestWorkerAdmissionPolicyRemovalDrainsRunningRuntime(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/drain", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/drain", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +196,7 @@ func TestWorkerAdmissionPendingStopRetainsClaim(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	grant, err := admission.Reserve(ctx, "exec/pending", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/pending", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +249,7 @@ func TestWorkerAdmissionUnconfirmedStopRetainsClaim(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	grant, err := admission.Reserve(ctx, "exec/unconfirmed", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/unconfirmed", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +276,7 @@ func TestWorkerAdmissionUnconfirmedStopRetainsClaim(t *testing.T) {
 func TestWorkerAdmissionPolicyReductionStopsAndCredits(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/reduced", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/reduced", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +311,7 @@ func TestWorkerAdmissionPolicyReductionStopsAndCredits(t *testing.T) {
 func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/backend-removal", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/backend-removal", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +333,7 @@ func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
 	if len(stopper.stopped) != 1 {
 		t.Fatalf("backend removal stopped %d runtimes, want 1", len(stopper.stopped))
 	}
-	if _, err := admission.Reserve(ctx, "exec/rejected", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20}); !errors.Is(err, forge_runtime.ErrBackendUnsupported) {
+	if _, err := reserveDocker(t, admission, ctx, "exec/rejected", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20}); !errors.Is(err, forge_runtime.ErrBackendUnsupported) {
 		t.Fatalf("Docker reservation after backend removal = %v", err)
 	}
 	if err := grant.Release(ctx); err != nil {
@@ -304,7 +346,7 @@ func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
 func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/backend-pending", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/backend-pending", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,11 +388,11 @@ func TestWorkerAdmissionBlockedLaunchRenewsAndDrains(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	grant, err := admission.Reserve(ctx, "exec/blocked", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/blocked", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
-	late, err := admission.Reserve(ctx, "exec/late", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	late, err := reserveDocker(t, admission, ctx, "exec/late", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -456,7 +498,7 @@ func TestWorkerAdmissionLaunchFailureStopsNamedRuntime(t *testing.T) {
 		t.Run(stage, func(t *testing.T) {
 			admission, stopper, _ := newWorkerAdmissionTestbed(t)
 			ctx := t.Context()
-			grant, err := admission.Reserve(ctx, "exec/failed", &forge_lib_docker.Config{
+			grant, err := reserveDocker(t, admission, ctx, "exec/failed", &forge_lib_docker.Config{
 				Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20,
 			})
 			if err != nil {
@@ -492,7 +534,7 @@ func TestWorkerAdmissionLaunchFailureStopsNamedRuntime(t *testing.T) {
 func TestWorkerAdmissionRenewExtendsActiveReservation(t *testing.T) {
 	admission, _, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/long", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/long", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -518,14 +560,14 @@ func TestWorkerAdmissionRenewExtendsActiveReservation(t *testing.T) {
 func TestWorkerAdmissionReclaimStopsPreviousRuntime(t *testing.T) {
 	admission, stopper, eng := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
-	grant, err := admission.Reserve(ctx, "exec/old", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, ctx, "exec/old", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := grant.Launch(ctx, func(string) error { return nil }); err != nil {
 		t.Fatal(err)
 	}
-	replacement := NewWorkerAdmission(eng, "worker/a", "claim-2", stopper)
+	replacement := NewWorkerAdmission(eng, "worker/a", admission.peerID, "claim-2", stopper)
 	if err := replacement.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
 	}); err != nil {

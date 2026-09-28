@@ -44,6 +44,35 @@ func (x *Worker) GetName() string {
 	return ""
 }
 
+// Placement freezes the selected Worker and authenticated Device peer for a Job attempt.
+type Placement struct {
+	unknownFields []byte
+	// WorkerObjectKey is the selected Worker's World identity, retained as an immutable placement snapshot.
+	WorkerObjectKey string `protobuf:"bytes,1,opt,name=worker_object_key,json=workerObjectKey,proto3" json:"workerObjectKey,omitempty"`
+	// PeerId is the authenticated Device peer linked to that Worker when selected.
+	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+}
+
+func (x *Placement) Reset() {
+	*x = Placement{}
+}
+
+func (*Placement) ProtoMessage() {}
+
+func (x *Placement) GetWorkerObjectKey() string {
+	if x != nil {
+		return x.WorkerObjectKey
+	}
+	return ""
+}
+
+func (x *Placement) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
 // WorkerCreateOp creates a Worker.
 type WorkerCreateOp struct {
 	unknownFields []byte
@@ -100,6 +129,23 @@ func (m *Worker) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *Placement) CloneVT() *Placement {
+	if m == nil {
+		return (*Placement)(nil)
+	}
+	r := new(Placement)
+	r.WorkerObjectKey = m.WorkerObjectKey
+	r.PeerId = m.PeerId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Placement) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WorkerCreateOp) CloneVT() *WorkerCreateOp {
 	if m == nil {
 		return (*WorkerCreateOp)(nil)
@@ -132,6 +178,29 @@ func (this *Worker) EqualVT(that *Worker) bool {
 
 func (this *Worker) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Worker)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Placement) EqualVT(that *Placement) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WorkerObjectKey != that.WorkerObjectKey {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Placement) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Placement)
 	if !ok {
 		return false
 	}
@@ -203,6 +272,56 @@ func (x *Worker) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the Worker from JSON.
 func (x *Worker) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Placement message to JSON.
+func (x *Placement) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.WorkerObjectKey != "" || s.HasField("workerObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("workerObjectKey")
+		s.WriteString(x.WorkerObjectKey)
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Placement to JSON.
+func (x *Placement) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Placement message from JSON.
+func (x *Placement) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "worker_object_key", "workerObjectKey":
+			s.AddField("worker_object_key")
+			x.WorkerObjectKey = s.ReadString()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Placement from JSON.
+func (x *Placement) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -322,6 +441,48 @@ func (m *Worker) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Placement) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Placement) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Placement) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.WorkerObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.WorkerObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WorkerCreateOp) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -387,6 +548,18 @@ func (m *Worker) SizeVT() (n int) {
 	return n
 }
 
+func (m *Placement) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WorkerObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WorkerCreateOp) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -414,6 +587,24 @@ func (x *Worker) MarshalProtoText() string {
 }
 
 func (x *Worker) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Placement) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Placement")
+	if x.WorkerObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "worker_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.WorkerObjectKey)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Placement) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -477,6 +668,69 @@ func (m *Worker) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Name = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Placement) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Placement: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Placement: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WorkerObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

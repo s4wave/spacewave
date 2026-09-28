@@ -112,7 +112,9 @@ func (c *Controller) ProcessState(
 	if currState == forge_pass.State_PassState_PENDING {
 		var execSpecs []*pass_transaction.ExecSpec
 		if len(execStates)+len(execSpecs) < int(passState.GetReplicas()) {
-			if c.conf.GetAssignSelf() {
+			if placement := passState.GetPlacement(); placement != nil {
+				execSpecs = []*pass_transaction.ExecSpec{{PeerId: placement.GetPeerId()}}
+			} else if c.conf.GetAssignSelf() {
 				execSpecs = []*pass_transaction.ExecSpec{{
 					PeerId: c.peerID.String(),
 				}}

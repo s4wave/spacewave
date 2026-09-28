@@ -54,6 +54,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		peerID,
 		forge_target.NewValueSet(),
 		target,
+		nil,
 		timestamp.Now(),
 	)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/labels"
@@ -113,8 +114,14 @@ func CreateTaskWithTarget(
 	tgt *forge_target.Target,
 	peerID peer.ID,
 	replicas uint32,
+	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	if placement != nil {
+		if err := placement.ValidateLinked(ctx, ws); err != nil {
+			return nil, nil, errors.Wrap(err, "placement")
+		}
+	}
 	if err := tgt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -124,6 +131,7 @@ func CreateTaskWithTarget(
 		Name:      name,
 		Replicas:  replicas,
 		PeerId:    peerID.String(),
+		Placement: placement.CloneVT(),
 		Timestamp: ts,
 	}
 	if err := ntask.Validate(); err != nil {
@@ -196,6 +204,11 @@ func ValidateName(name string) error {
 
 // Validate performs cursory checks of the Task object.
 func (e *Task) Validate() error {
+	if p := e.GetPlacement(); p != nil {
+		if err := p.Validate(); err != nil {
+			return errors.Wrap(err, "placement")
+		}
+	}
 	if err := e.GetTaskState().Validate(false); err != nil {
 		return err
 	}
@@ -207,6 +220,9 @@ func (e *Task) Validate() error {
 	}
 	if e.GetReplicas() == 0 {
 		return errors.New("replicas cannot be zero")
+	}
+	if e.GetPlacement() != nil && e.GetReplicas() != 1 {
+		return errors.New("placed task must have one replica")
 	}
 	if e.GetTargetRef().GetEmpty() {
 		if ts := e.GetTaskState(); ts != State_TaskState_PENDING {

@@ -31,7 +31,7 @@ func completeJobTestSetup(t *testing.T, ws world.WorldState, peerID net_peer.ID)
 	{
 		createdObject, _, err := forge_job.CreateJobWithTasks(ctx, ws, peerID, jobKey, map[string]*forge_target.Target{
 			"task-a": {Exec: &forge_target.Exec{Disable: true}},
-		}, peerID, timestamp.Now())
+		}, peerID, nil, timestamp.Now())
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)

@@ -45,7 +45,10 @@ func TestQueueSpacePluginBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	input, _ := execution.GetValueSet().LookupInput("source")
-	if execution.GetPeerId() != peer.String() || !input.GetWorldObjectSnapshot().GetRootRef().EqualVT(root) {
+	if execution.GetPeerId() != peer.String() ||
+		execution.GetPlacement().GetWorkerObjectKey() != "workers/build" ||
+		execution.GetPlacement().GetPeerId() != peer.String() ||
+		!input.GetWorldObjectSnapshot().GetRootRef().EqualVT(root) {
 		t.Fatal("queued execution lost its selected device or exact source")
 	}
 

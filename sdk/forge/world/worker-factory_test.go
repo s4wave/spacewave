@@ -16,13 +16,70 @@ import (
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/db/world"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+	forge_testbed "github.com/s4wave/spacewave/forge/testbed"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
+	forge_world "github.com/s4wave/spacewave/forge/world"
+	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/sirupsen/logrus"
 )
+
+// TestWorkerHasPeerID accepts every linked session, not just the first keypair.
+func TestWorkerHasPeerID(t *testing.T) {
+	ctx := t.Context()
+	tb, err := forge_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	op := world.NewLookupOpController("forge-ops", tb.EngineID, forge_world.LookupWorldOp)
+	release, err := tb.Bus.AddController(ctx, op, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+	firstID := tb.Volume.GetPeerID()
+	firstPublic, err := firstID.ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	third, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstKeypair, err := identity.NewKeypair(firstPublic, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondKeypair, err := identity.NewKeypair(second.GetPubKey(), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const workerKey = "workers/multi-peer"
+	if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, workerKey, "multi-peer",
+		[]*identity.Keypair{firstKeypair, secondKeypair}, firstID); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []peer.ID{firstID, second.GetPeerID()} {
+		linked, err := workerHasPeerID(ctx, tb.WorldState, workerKey, id)
+		if err != nil || !linked {
+			t.Fatalf("linked peer %s: linked=%t error=%v", id, linked, err)
+		}
+	}
+	linked, err := workerHasPeerID(ctx, tb.WorldState, workerKey, third.GetPeerID())
+	if err != nil || linked {
+		t.Fatalf("unlinked peer: linked=%t error=%v", linked, err)
+	}
+}
 
 func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
@@ -131,7 +188,7 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 // keeps the durable owner claim alive while Docker cleanup holds its debit.
 func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
-	grant, err := admission.Reserve(t.Context(), "exec/cancel", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
+	grant, err := reserveDocker(t, admission, t.Context(), "exec/cancel", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}

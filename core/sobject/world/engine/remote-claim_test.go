@@ -96,6 +96,7 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 			peerID,
 			forge_target.NewValueSet(),
 			&forge_target.Target{Exec: &forge_target.Exec{Disable: true}},
+			nil,
 			timestamp.Now(),
 		)
 		return err

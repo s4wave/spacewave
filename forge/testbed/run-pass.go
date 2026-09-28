@@ -37,6 +37,7 @@ func (tb *Testbed) RunPassWithTarget(
 		1,
 		replicas,
 		peerID.String(),
+		nil,
 		ts,
 	)
 	world.ReleaseObjectState(createdObject)
