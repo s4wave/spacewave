@@ -7,7 +7,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
+	core_provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/keypem"
@@ -34,6 +36,61 @@ type LocalProviderResource struct {
 	deviceSessions map[string]directive.Reference
 	// released prevents an in-flight enrollment from retaining a late Session.
 	released bool
+}
+
+// AttachAccount registers the Session whose signing key is already stored in
+// the selected local account volume. It does not create or mount a Session.
+func (s *LocalProviderResource) AttachAccount(
+	ctx context.Context,
+	req *s4wave_provider_local.AttachAccountRequest,
+) (*s4wave_provider_local.AttachAccountResponse, error) {
+	accountID := req.GetAccountId()
+	if _, err := ulid.ParseULID(accountID); err != nil {
+		return nil, errors.Wrap(err, "invalid local account ID")
+	}
+
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer sessionCtrlRef.Release()
+
+	entries, err := sessionCtrl.ListSessions(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "list sessions")
+	}
+	for _, entry := range entries {
+		ref := entry.GetSessionRef().GetProviderResourceRef()
+		if ref.GetProviderId() == provider_local.ProviderID && ref.GetProviderAccountId() == accountID {
+			return &s4wave_provider_local.AttachAccountResponse{SessionListEntry: entry}, nil
+		}
+	}
+
+	account, release, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "open local account")
+	}
+	defer release()
+	storedIDs, err := account.(*provider_local.ProviderAccount).ListStoredSessionIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(storedIDs) != 1 {
+		return nil, errors.Errorf("local account %s has %d stored Session keys; expected one", accountID, len(storedIDs))
+	}
+
+	ref := &session.SessionRef{ProviderResourceRef: &core_provider.ProviderResourceRef{
+		Id: storedIDs[0], ProviderId: provider_local.ProviderID, ProviderAccountId: accountID,
+	}}
+	meta := &session.SessionMetadata{
+		ProviderDisplayName: "Local", ProviderId: provider_local.ProviderID,
+		ProviderAccountId: accountID,
+	}
+	entry, err := sessionCtrl.RegisterSession(ctx, ref, meta)
+	if err != nil {
+		return nil, errors.Wrap(err, "register stored Session")
+	}
+	return &s4wave_provider_local.AttachAccountResponse{SessionListEntry: entry}, nil
 }
 
 // NewLocalProviderResource creates a new LocalProviderResource.

@@ -2,7 +2,6 @@
 // @generated from file github.com/s4wave/spacewave/sdk/provider/local/local.proto (package s4wave.provider.local, syntax proto3)
 /* eslint-disable */
 
-import { SOInviteMessage } from '../../../core/sobject/sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -11,6 +10,60 @@ import {
   SessionListEntry,
   SessionRef,
 } from '../../../core/session/session.pb.js'
+import { SOInviteMessage } from '../../../core/sobject/sobject.pb.js'
+
+export const protobufPackage = 's4wave.provider.local'
+
+/**
+ * AttachAccountRequest identifies an existing local account volume.
+ *
+ * @generated from message s4wave.provider.local.AttachAccountRequest
+ */
+export interface AttachAccountRequest {
+  /**
+   * AccountId identifies the local provider account to attach.
+   *
+   * @generated from field: string account_id = 1;
+   */
+  accountId?: string
+}
+
+export const AttachAccountRequest: MessageType<AttachAccountRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.local.AttachAccountRequest',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AttachAccountResponse identifies the registered or previously attached Session.
+ *
+ * @generated from message s4wave.provider.local.AttachAccountResponse
+ */
+export interface AttachAccountResponse {
+  /**
+   * SessionListEntry identifies the Session in the shared catalog.
+   *
+   * @generated from field: session.SessionListEntry session_list_entry = 1;
+   */
+  sessionListEntry?: SessionListEntry
+}
+
+export const AttachAccountResponse: MessageType<AttachAccountResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.local.AttachAccountResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'session_list_entry',
+        kind: 'message',
+        T: () => SessionListEntry,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
@@ -55,6 +108,7 @@ export const CompleteSpaceLinkEnrollmentRequest: MessageType<CompleteSpaceLinkEn
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'invite', kind: 'message', T: () => SOInviteMessage },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -82,6 +136,7 @@ export const CompleteSpaceLinkEnrollmentResponse: MessageType<CompleteSpaceLinkE
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -105,6 +160,7 @@ export const CreateAccountRequest: MessageType<CreateAccountRequest> =
     fields: [
       { no: 1, name: 'defer_registration', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
 
 /**
@@ -139,4 +195,5 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
       },
       { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
     ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
   })
