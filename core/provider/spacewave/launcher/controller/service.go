@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
+	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
@@ -53,17 +55,21 @@ func (l *LauncherServer) RecheckDistConfig(
 	return &spacewave_launcher.RecheckDistConfigResponse{}, nil
 }
 
-// ApplyUpdate applies a staged entrypoint update.
-// Replaces the current binary and relaunches the process.
+// ApplyUpdate returns a verified desktop artifact to its app process. Daemon
+// replacement requires a separate idle handoff and is not accepted here.
 func (l *LauncherServer) ApplyUpdate(
 	ctx context.Context,
-	req *spacewave_launcher.ApplyUpdateRequest,
-) (*spacewave_launcher.ApplyUpdateResponse, error) {
-	if err := l.c.applyUpdate(); err != nil {
+	req *desktop_update.ApplyUpdateRequest,
+) (*desktop_update.ApplyUpdateResponse, error) {
+	if req.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_APP {
+		return nil, errors.New("select the installed app; daemon updates are not available yet")
+	}
+	stagedPath, err := l.c.prepareAppUpdate(ctx)
+	if err != nil {
 		l.c.setUpdateError(err)
 		return nil, err
 	}
-	return &spacewave_launcher.ApplyUpdateResponse{}, nil
+	return &desktop_update.ApplyUpdateResponse{StagedPath: stagedPath}, nil
 }
 
 // _ is a type assertion

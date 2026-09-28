@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -52,6 +53,7 @@ func (c *Controller) refreshReleaseMetadataStatus(ctx context.Context, distConf 
 	// Withdraw staged status when no distribution is selected.
 	if distConf.GetRev() == 0 {
 		c.clearUpdateState()
+		c.clearDaemonUpdateState()
 		c.setSelectedEntrypointManifestRef(nil)
 		c.setSelectedCLIManifestRef(nil, "")
 		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_IDLE)
@@ -163,6 +165,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	// Publish selection and allocate the version-specific staging roots.
 	c.setSelectedEntrypointManifestRef(manifestRef)
 	c.setSelectedCLIManifestRef(cliManifestRef, "")
+	c.clearDaemonUpdateState()
 	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
 		return errors.Wrap(err, "get staging dir")
@@ -232,17 +235,19 @@ func (c *Controller) stageReleaseManifestUpdate(
 		}
 	}
 
-	// Publish readiness only after artifact verification and CLI discovery.
+	// Publish each selected target only after its own artifact is verified.
 	c.setSelectedCLIManifestRef(cliManifestRef, cliStagedPath)
-	current, err := c.stagedReleaseIsCurrent(stagedPath)
-	if err != nil {
-		return err
+	if cliManifestRef != nil {
+		currentCLI, err := c.stagedDaemonReleaseIsCurrent(cliStagedPath)
+		if err != nil {
+			return err
+		}
+		if !currentCLI {
+			c.setDaemonUpdateStaged(metadata.GetVersion(), cliStagedPath)
+		}
 	}
-	if current {
-		c.clearUpdateState()
-		c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT)
-		return nil
-	}
+	// The daemon cannot identify Electron's installed app. Its executable
+	// bytes must never suppress the separately selected desktop artifact.
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
 	return nil
 }
@@ -266,8 +271,10 @@ func (c *Controller) resolveStagingDir() (string, error) {
 func (c *Controller) setUpdateDownloading(version string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING,
-			Version: version,
+			Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_DOWNLOADING,
+			Version:            version,
+			Target:             desktop_update.UpdateTarget_UPDATE_TARGET_APP,
+			ArtifactManifestId: info.GetFetchStatus().GetSelectedEntrypointManifestId(),
 		}
 		return true, nil
 	})
@@ -278,14 +285,32 @@ func (c *Controller) setUpdateDownloading(version string) {
 func (c *Controller) setUpdateStaged(version, stagedPath string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:            spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
-			Version:          version,
-			DownloadProgress: 100,
-			StagedPath:       stagedPath,
+			Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
+			Version:            version,
+			DownloadProgress:   100,
+			StagedPath:         stagedPath,
+			Target:             desktop_update.UpdateTarget_UPDATE_TARGET_APP,
+			ArtifactManifestId: info.GetFetchStatus().GetSelectedEntrypointManifestId(),
 		}
 		return true, nil
 	})
 	c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED)
+}
+
+// setDaemonUpdateStaged identifies the verified CLI artifact separately from
+// the installed app. Acceptance waits for the daemon-update coordinator.
+func (c *Controller) setDaemonUpdateStaged(version, stagedPath string) {
+	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		info.DaemonUpdateState = &spacewave_launcher.UpdateState{
+			Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
+			Version:            version,
+			DownloadProgress:   100,
+			StagedPath:         stagedPath,
+			Target:             desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
+			ArtifactManifestId: cliEntrypointManifestID,
+		}
+		return true, nil
+	})
 }
 
 // setReleaseMetadataOutcome updates release-resolution diagnostics.
@@ -606,11 +631,11 @@ func (c *Controller) verifyStagedReleaseEntrypoint(
 		return errors.Wrap(err, "stat staged release entrypoint")
 	}
 
-	// Installed macOS bundles must remain signed bundles after an update.
-	if isDarwinDesktopPlatform(platformID) {
-		if err := c.verifyDarwinInstalledAppStagedEntrypoint(stageRoot, stagedPath, stagedInfo.IsDir()); err != nil {
-			return err
-		}
+	// The selected Darwin desktop artifact replaces an app bundle even when
+	// the daemon executable lives outside the installed app.
+	if isDarwinDesktopPlatform(platformID) && (!stagedInfo.IsDir() || !strings.HasSuffix(stagedPath, ".app")) {
+		_ = os.RemoveAll(stageRoot)
+		return errors.New("darwin installed-app update must stage a signed .app bundle")
 	}
 	if !stagedInfo.IsDir() {
 		return nil
@@ -626,26 +651,6 @@ func (c *Controller) verifyStagedReleaseEntrypoint(
 		return errors.Wrap(err, "verify staged app bundle")
 	}
 	return nil
-}
-
-// verifyDarwinInstalledAppStagedEntrypoint prevents replacing an installed app bundle with a raw binary.
-func (c *Controller) verifyDarwinInstalledAppStagedEntrypoint(
-	stageRoot string,
-	stagedPath string,
-	stagedIsDir bool,
-) error {
-	_, isBundle, _, err := c.currentExecutableBundle()
-	if err != nil {
-		return err
-	}
-	if !isBundle {
-		return nil
-	}
-	if stagedIsDir && strings.HasSuffix(stagedPath, ".app") {
-		return nil
-	}
-	_ = os.RemoveAll(stageRoot)
-	return errors.New("darwin installed-app update must stage a signed .app bundle")
 }
 
 // readReleaseMetadataSnapshot reads metadata and its root reference in one World snapshot.

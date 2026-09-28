@@ -568,6 +568,7 @@ func buildLauncherRecoveryStatus(info *spacewave_launcher.LauncherInfo) *s4wave_
 	}
 	fetch := info.GetFetchStatus()
 	state := info.GetUpdateState()
+	daemonState := info.GetDaemonUpdateState()
 	return &s4wave_status.LauncherRecoveryStatus{
 		SelectedChannelKey:            info.GetDistConfig().ResolvedChannelKey(),
 		SelectedConfigRev:             fetch.GetSelectedConfigRev(),
@@ -584,6 +585,11 @@ func buildLauncherRecoveryStatus(info *spacewave_launcher.LauncherInfo) *s4wave_
 		UpdateVersion:                 state.GetVersion(),
 		StagedPath:                    state.GetStagedPath(),
 		UpdateError:                   state.GetErrorMessage(),
+		SelectedCliManifestId:         fetch.GetSelectedCliManifestId(),
+		SelectedCliBinaryPath:         fetch.GetSelectedCliBinaryPath(),
+		DaemonUpdatePhase:             launcherUpdatePhaseString(daemonState.GetPhase()),
+		DaemonUpdateVersion:           daemonState.GetVersion(),
+		DaemonStagedPath:              daemonState.GetStagedPath(),
 	}
 }
 

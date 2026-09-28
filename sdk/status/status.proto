@@ -77,21 +77,46 @@ message NetworkPeerInfo {
 
 // LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
 message LauncherRecoveryStatus {
+  // SelectedConfigRev is the accepted distribution revision.
   uint64 selected_config_rev = 1;
+  // SelectedConfigSource identifies where the accepted config came from.
   string selected_config_source = 2;
+  // FetchedConfigRev is the newest fetched distribution revision.
   uint64 fetched_config_rev = 3;
+  // FetchedConfigSource identifies the endpoint for FetchedConfigRev.
   string fetched_config_source = 4;
+  // ReleaseMetadataOutcome is the latest release resolution result.
   string release_metadata_outcome = 5;
+  // ReleaseWorldHeadRef identifies the resolved Release World snapshot.
   string release_world_head_ref = 6;
+  // SelectedChannelKey is the release channel selected by the launcher.
   string selected_channel_key = 7;
+  // SelectedEntrypointManifestId identifies the desktop artifact.
   string selected_entrypoint_manifest_id = 8;
+  // SelectedEntrypointPlatformId is the desktop artifact platform.
   string selected_entrypoint_platform_id = 9;
+  // SelectedEntrypointManifestRev is the desktop artifact revision.
   uint64 selected_entrypoint_manifest_rev = 10;
+  // SelectedEntrypointManifestRef is the desktop artifact reference.
   string selected_entrypoint_manifest_ref = 11;
+  // UpdatePhase is the installed-app update phase.
   string update_phase = 12;
+  // UpdateVersion is the selected installed-app release version.
   string update_version = 13;
+  // StagedPath is the verified installed-app artifact path.
   string staged_path = 14;
+  // UpdateError is the installed-app update error.
   string update_error = 15;
+  // SelectedCliManifestId identifies the daemon artifact.
+  string selected_cli_manifest_id = 16;
+  // SelectedCliBinaryPath is the verified daemon artifact path.
+  string selected_cli_binary_path = 17;
+  // DaemonUpdatePhase is the separately staged daemon update phase.
+  string daemon_update_phase = 18;
+  // DaemonUpdateVersion is the selected daemon release version.
+  string daemon_update_version = 19;
+  // DaemonStagedPath is the verified daemon update artifact path.
+  string daemon_staged_path = 20;
 }
 
 // NativePackageRecoveryStatus reports process-host dist materialization facts.

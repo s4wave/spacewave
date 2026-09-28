@@ -11,6 +11,8 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import type { UpdateTarget } from '../../../../bldr/desktop/update/update.pb.js'
+import { UpdateTarget_Enum } from '../../../../bldr/desktop/update/update.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -255,7 +257,7 @@ export const DistConfig: MessageType<DistConfig> =
   })
 
 /**
- * UpdateState describes the current state of an entrypoint self-update.
+ * UpdateState describes one explicit installed-app or daemon update target.
  *
  * @generated from message spacewave.launcher.UpdateState
  */
@@ -290,6 +292,18 @@ export interface UpdateState {
    * @generated from field: string error_message = 5;
    */
   errorMessage?: string
+  /**
+   * Target identifies the component this state can replace.
+   *
+   * @generated from field: bldr.desktop.update.UpdateTarget target = 6;
+   */
+  target?: UpdateTarget
+  /**
+   * ArtifactManifestId identifies the selected signed release artifact.
+   *
+   * @generated from field: string artifact_manifest_id = 7;
+   */
+  artifactManifestId?: string
 }
 
 export const UpdateState: MessageType<UpdateState> =
@@ -306,6 +320,13 @@ export const UpdateState: MessageType<UpdateState> =
       },
       { no: 4, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'target', kind: 'enum', T: UpdateTarget_Enum },
+      {
+        no: 7,
+        name: 'artifact_manifest_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -568,7 +589,7 @@ export interface LauncherInfo {
    */
   distConfig?: DistConfig
   /**
-   * UpdateState describes the entrypoint update state.
+   * UpdateState describes the installed-app update state.
    *
    * @generated from field: spacewave.launcher.UpdateState update_state = 2;
    */
@@ -579,6 +600,12 @@ export interface LauncherInfo {
    * @generated from field: spacewave.launcher.FetchStatus fetch_status = 3;
    */
   fetchStatus?: FetchStatus
+  /**
+   * DaemonUpdateState describes the separately staged daemon artifact.
+   *
+   * @generated from field: spacewave.launcher.UpdateState daemon_update_state = 4;
+   */
+  daemonUpdateState?: UpdateState
 }
 
 export const LauncherInfo: MessageType<LauncherInfo> =
@@ -588,6 +615,7 @@ export const LauncherInfo: MessageType<LauncherInfo> =
       { no: 1, name: 'dist_config', kind: 'message', T: DistConfig },
       { no: 2, name: 'update_state', kind: 'message', T: UpdateState },
       { no: 3, name: 'fetch_status', kind: 'message', T: FetchStatus },
+      { no: 4, name: 'daemon_update_state', kind: 'message', T: UpdateState },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -696,30 +724,3 @@ export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =
       { no: 4, name: 'prev_rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
-
-/**
- * ApplyUpdateRequest is a request to apply a staged update.
- *
- * @generated from message spacewave.launcher.ApplyUpdateRequest
- */
-export interface ApplyUpdateRequest {}
-
-export const ApplyUpdateRequest: MessageType<ApplyUpdateRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ApplyUpdateRequest>(
-    'spacewave.launcher.ApplyUpdateRequest',
-    true,
-  )
-
-/**
- * ApplyUpdateResponse is the response to ApplyUpdateRequest.
- * If successful, the process will be relaunched and this response may not arrive.
- *
- * @generated from message spacewave.launcher.ApplyUpdateResponse
- */
-export interface ApplyUpdateResponse {}
-
-export const ApplyUpdateResponse: MessageType<ApplyUpdateResponse> =
-  /* @__PURE__ */ createEmptyMessageType<ApplyUpdateResponse>(
-    'spacewave.launcher.ApplyUpdateResponse',
-    true,
-  )

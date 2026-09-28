@@ -3,64 +3,61 @@
 package spacewave_launcher_controller
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/appbundle"
 )
 
-// applyUpdate applies the staged update.
-// For macOS .app bundles, launches the helper to swap bundles and exits. For
-// raw binaries, launches the staged entrypoint as a tmp relay that copies
-// itself back to the canonical executable path.
-func (c *Controller) applyUpdate() error {
+// prepareAppUpdate returns the verified desktop artifact. Electron owns the
+// installed-app destination and exit; this daemon must remain running.
+func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
 	info := c.launcherInfoCtr.GetValue()
 	if info == nil {
-		return errors.New("launcher info not available")
+		return "", errors.New("launcher info not available")
 	}
-	us := info.GetUpdateState()
-	if us == nil || us.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
-		return errors.New("no staged update available")
+	state := info.GetUpdateState()
+	if state.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_APP || state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		return "", errors.New("no staged app update available")
 	}
-	stagedPath := us.GetStagedPath()
+	stagedPath := state.GetStagedPath()
 	if stagedPath == "" {
-		return errors.New("staged path is empty")
+		return "", errors.New("staged app path is empty")
 	}
 
-	// verify staged path exists
-	stagedInfo, err := os.Stat(stagedPath)
+	// Keep the selected artifact under the launcher's version staging root.
+	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
-		return errors.Wrap(err, "stat staged path")
+		return "", err
 	}
-
-	execPath, isBundle, bundleRoot, err := c.currentExecutableBundle()
+	stageRoot, err := releaseVersionStagingRoot(stagingDir, state.GetVersion())
 	if err != nil {
-		return err
+		return "", err
+	}
+	if err := verifyNoSymlinkPath(stageRoot, stagedPath); err != nil {
+		return "", err
+	}
+	stagedInfo, err := os.Lstat(stagedPath)
+	if err != nil {
+		return "", errors.Wrap(err, "stat staged app path")
+	}
+	if stagedInfo.Mode()&os.ModeSymlink != 0 {
+		return "", errors.New("staged app path must not be a symlink")
 	}
 
-	// set applying state
-	c.modifyLauncherInfo(func(li *spacewave_launcher.LauncherInfo) (bool, error) {
-		li.UpdateState = &spacewave_launcher.UpdateState{
-			Phase:      spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
-			Version:    us.GetVersion(),
-			StagedPath: stagedPath,
-		}
-		return true, nil
-	})
-
-	if isBundle && stagedInfo.IsDir() {
-		return c.applyAppBundleUpdate(bundleRoot, stagedPath)
+	// Recheck the installed-app shape and signature at the apply boundary.
+	if err := c.verifyStagedReleaseEntrypoint(ctx, info.GetFetchStatus().GetSelectedEntrypointPlatformId(), stageRoot, stagedPath); err != nil {
+		return "", err
 	}
-
-	if stagedInfo.IsDir() {
-		return errors.New("staged path is a directory for non-bundle update")
-	}
-
-	return applyRawBinaryUpdate(execPath, stagedPath)
+	return stagedPath, nil
 }
 
+// currentExecutableBundle resolves the daemon executable for daemon-specific
+// comparisons and diagnostics, never as the installed-app update destination.
 func (c *Controller) currentExecutableBundle() (string, bool, string, error) {
 	if c.currentExecutableBundleFunc != nil {
 		return c.currentExecutableBundleFunc()

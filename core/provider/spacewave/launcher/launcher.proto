@@ -2,6 +2,7 @@ syntax = "proto3";
 package spacewave.launcher;
 
 import "github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.proto";
+import "github.com/s4wave/spacewave/bldr/desktop/update/update.proto";
 import "google/protobuf/timestamp.proto";
 
 // DistConfig is the encoded and signed object that is exposed on the
@@ -40,10 +41,12 @@ message LauncherInfo {
   // DistConfig contains the latest app dist config object.
   // May be empty if the config is not known / fetched yet.
   DistConfig dist_config = 1;
-  // UpdateState describes the entrypoint update state.
+  // UpdateState describes the installed-app update state.
   UpdateState update_state = 2;
   // FetchStatus describes DistConfig fetching and release selection.
   FetchStatus fetch_status = 3;
+  // DaemonUpdateState describes the separately staged daemon artifact.
+  UpdateState daemon_update_state = 4;
 }
 
 // FetchStatus describes the launcher's DistConfig fetch and Release World
@@ -151,7 +154,7 @@ enum ReleaseMetadataOutcome {
   RELEASE_METADATA_OUTCOME_ERROR = 8;
 }
 
-// UpdateState describes the current state of an entrypoint self-update.
+// UpdateState describes one explicit installed-app or daemon update target.
 message UpdateState {
   // Phase is the current update phase.
   UpdatePhase phase = 1;
@@ -163,6 +166,10 @@ message UpdateState {
   string staged_path = 4;
   // ErrorMessage contains any error message.
   string error_message = 5;
+  // Target identifies the component this state can replace.
+  .bldr.desktop.update.UpdateTarget target = 6;
+  // ArtifactManifestId identifies the selected signed release artifact.
+  string artifact_manifest_id = 7;
 }
 
 // UpdatePhase is the phase of the entrypoint update.
@@ -187,8 +194,8 @@ service Launcher {
   rpc PushDistConfigMsg(PushDistConfigRequest) returns (PushDistConfigResponse) {}
   // RecheckDistConfig starts an immediate DistConfig fetch.
   rpc RecheckDistConfig(RecheckDistConfigRequest) returns (RecheckDistConfigResponse) {}
-  // ApplyUpdate installs the staged entrypoint update and relaunches.
-  rpc ApplyUpdate(ApplyUpdateRequest) returns (ApplyUpdateResponse) {}
+  // ApplyUpdate prepares the explicitly selected staged target for its owner.
+  rpc ApplyUpdate(.bldr.desktop.update.ApplyUpdateRequest) returns (.bldr.desktop.update.ApplyUpdateResponse) {}
 }
 
 // RecheckDistConfigRequest is a request to immediately recheck for updates.
@@ -219,10 +226,3 @@ message PushDistConfigResponse {
   // PrevRev was the revision of the old app config object. 0 if none.
   uint64 prev_rev = 4;
 }
-
-// ApplyUpdateRequest is a request to apply a staged update.
-message ApplyUpdateRequest {}
-
-// ApplyUpdateResponse is the response to ApplyUpdateRequest.
-// If successful, the process will be relaunched and this response may not arrive.
-message ApplyUpdateResponse {}

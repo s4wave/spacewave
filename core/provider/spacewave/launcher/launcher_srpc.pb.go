@@ -8,6 +8,7 @@ import (
 	context "context"
 
 	srpc "github.com/aperturerobotics/starpc/srpc"
+	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 )
 
 type SRPCLauncherClient interface {
@@ -20,8 +21,8 @@ type SRPCLauncherClient interface {
 	PushDistConfigMsg(ctx context.Context, in *PushDistConfigRequest) (*PushDistConfigResponse, error)
 	// RecheckDistConfig starts an immediate DistConfig fetch.
 	RecheckDistConfig(ctx context.Context, in *RecheckDistConfigRequest) (*RecheckDistConfigResponse, error)
-	// ApplyUpdate installs the staged entrypoint update and relaunches.
-	ApplyUpdate(ctx context.Context, in *ApplyUpdateRequest) (*ApplyUpdateResponse, error)
+	// ApplyUpdate prepares the explicitly selected staged target for its owner.
+	ApplyUpdate(ctx context.Context, in *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error)
 }
 
 type srpcLauncherClient struct {
@@ -93,8 +94,8 @@ func (c *srpcLauncherClient) RecheckDistConfig(ctx context.Context, in *RecheckD
 	return out, nil
 }
 
-func (c *srpcLauncherClient) ApplyUpdate(ctx context.Context, in *ApplyUpdateRequest) (*ApplyUpdateResponse, error) {
-	out := new(ApplyUpdateResponse)
+func (c *srpcLauncherClient) ApplyUpdate(ctx context.Context, in *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error) {
+	out := new(desktop_update.ApplyUpdateResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ApplyUpdate", in, out)
 	if err != nil {
 		return nil, err
@@ -109,8 +110,8 @@ type SRPCLauncherServer interface {
 	PushDistConfigMsg(context.Context, *PushDistConfigRequest) (*PushDistConfigResponse, error)
 	// RecheckDistConfig starts an immediate DistConfig fetch.
 	RecheckDistConfig(context.Context, *RecheckDistConfigRequest) (*RecheckDistConfigResponse, error)
-	// ApplyUpdate installs the staged entrypoint update and relaunches.
-	ApplyUpdate(context.Context, *ApplyUpdateRequest) (*ApplyUpdateResponse, error)
+	// ApplyUpdate prepares the explicitly selected staged target for its owner.
+	ApplyUpdate(context.Context, *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error)
 }
 
 const SRPCLauncherServiceID = "spacewave.launcher.Launcher"
@@ -202,7 +203,7 @@ func (SRPCLauncherHandler) InvokeMethod_RecheckDistConfig(impl SRPCLauncherServe
 }
 
 func (SRPCLauncherHandler) InvokeMethod_ApplyUpdate(impl SRPCLauncherServer, strm srpc.Stream) error {
-	req := new(ApplyUpdateRequest)
+	req := new(desktop_update.ApplyUpdateRequest)
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}

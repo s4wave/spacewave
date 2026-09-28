@@ -1,0 +1,26 @@
+syntax = "proto3";
+package bldr.desktop.update;
+
+option go_package = "github.com/s4wave/spacewave/bldr/desktop/update;desktop_update";
+
+// UpdateTarget identifies the installed component selected for replacement.
+enum UpdateTarget {
+  // UPDATE_TARGET_UNKNOWN is invalid for an apply request.
+  UPDATE_TARGET_UNKNOWN = 0;
+  // UPDATE_TARGET_APP selects the installed desktop application.
+  UPDATE_TARGET_APP = 1;
+  // UPDATE_TARGET_DAEMON selects the executing shared daemon.
+  UPDATE_TARGET_DAEMON = 2;
+}
+
+// ApplyUpdateRequest selects the installed component to update.
+message ApplyUpdateRequest {
+  // Target identifies the installed component to update.
+  UpdateTarget target = 1;
+}
+
+// ApplyUpdateResponse hands a verified app artifact to its process owner.
+message ApplyUpdateResponse {
+  // StagedPath is the verified desktop artifact; Electron owns its replacement.
+  string staged_path = 1;
+}

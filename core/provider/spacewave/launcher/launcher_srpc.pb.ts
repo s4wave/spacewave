@@ -3,8 +3,6 @@
 /* eslint-disable */
 
 import {
-  ApplyUpdateRequest,
-  ApplyUpdateResponse,
   LauncherInfo,
   PushDistConfigRequest,
   PushDistConfigResponse,
@@ -13,6 +11,10 @@ import {
   WatchLauncherInfoRequest,
 } from './launcher.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
+import {
+  ApplyUpdateRequest,
+  ApplyUpdateResponse,
+} from '../../../../bldr/desktop/update/update.pb.js'
 import {
   buildDecodeMessageTransform,
   MessageStream,
@@ -62,7 +64,7 @@ export const LauncherDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * ApplyUpdate installs the staged entrypoint update and relaunches.
+     * ApplyUpdate prepares the explicitly selected staged target for its owner.
      *
      * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
      */
@@ -112,7 +114,7 @@ export interface Launcher {
   ): Promise<RecheckDistConfigResponse>
 
   /**
-   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   * ApplyUpdate prepares the explicitly selected staged target for its owner.
    *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */
@@ -162,7 +164,7 @@ export interface LauncherHandler {
   ): Promise<RecheckDistConfigResponse>
 
   /**
-   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   * ApplyUpdate prepares the explicitly selected staged target for its owner.
    *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */
@@ -244,7 +246,7 @@ export class LauncherClient implements Launcher {
   }
 
   /**
-   * ApplyUpdate installs the staged entrypoint update and relaunches.
+   * ApplyUpdate prepares the explicitly selected staged target for its owner.
    *
    * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
    */

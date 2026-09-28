@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,6 +18,146 @@ import (
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
 )
+
+// TestAppBundleReplacementRetainsSharedDaemon starts from a separate app copy,
+// swaps that copy, and keeps the copied daemon's Resource watch alive.
+func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
+	// Keep every fixture path under this checkout's disposable state root.
+	tmpRoot, err := filepath.Abs(filepath.Join("..", "..", "..", ".tmp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(tmpRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	statePath, err := os.MkdirTemp(tmpRoot, "app-update-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(statePath) })
+	t.Setenv(sharedDaemonFixtureMode, "native")
+	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
+	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
+	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
+	ctx, cancel := context.WithTimeout(t.Context(), 35*time.Second)
+	defer cancel()
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer watcher.Close()
+	if err := watcher.Add(statePath); err != nil {
+		t.Fatal(err)
+	}
+
+	// Copy the executable into a fake installed bundle before desktop startup.
+	source, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	installedApp := filepath.Join(statePath, "Spacewave.app")
+	appBinary := filepath.Join(installedApp, "Contents", "MacOS", "spacewave")
+	if err := os.MkdirAll(filepath.Dir(appBinary), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	input, err := os.Open(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	output, err := os.OpenFile(appBinary, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.Copy(output, input); err != nil {
+		_ = output.Close()
+		t.Fatal(err)
+	}
+	if err := output.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Start a digest-named daemon copy and retain its live Resource stream.
+	connector := daemon.NewConnector(nil, func(ctx context.Context, root string) error {
+		return daemon.StartCopiedProcess(ctx, root, appBinary)
+	})
+	client, err := connector.Connect(ctx, statePath, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopSharedDaemonFixture(t, statePath, watcher)
+	defer client.Close()
+	atom := sharedDaemonAtom(t, client)
+	stream, err := atom.WatchState(ctx, &resource_state.WatchStateRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	if _, err := stream.Recv(); err != nil {
+		t.Fatal(err)
+	}
+	pidBefore, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	executableBefore, err := os.ReadFile(filepath.Join(statePath, "runtime-executable"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(string(executableBefore), filepath.Join(statePath, "daemon-bin")+string(filepath.Separator)) {
+		t.Fatalf("daemon executable remained in app bundle: %q", executableBefore)
+	}
+	daemonFileBefore, err := os.Stat(string(executableBefore))
+	if err != nil {
+		t.Fatal(err)
+	}
+	socketPath := filepath.Join(statePath, socketName)
+	socketBefore, err := os.Stat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Swap only the app copy while the daemon and its watch remain attached.
+	stagedApp := filepath.Join(statePath, "Staged.app")
+	if err := os.MkdirAll(stagedApp, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stagedApp, "new-version"), []byte("updated app"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(installedApp, filepath.Join(statePath, "Old.app")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(stagedApp, installedApp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := atom.SetState(ctx, &resource_state.SetStateRequest{StateJson: `"after-app-update"`}); err != nil {
+		t.Fatal(err)
+	}
+	value, err := stream.Recv()
+	if err != nil || value.GetStateJson() != `"after-app-update"` {
+		t.Fatalf("retained watch after app swap: value=%v error=%v", value, err)
+	}
+
+	// The daemon PID, executable inode, and protected socket retain identity.
+	pidAfter, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
+	if err != nil || string(pidAfter) != string(pidBefore) {
+		t.Fatalf("daemon PID changed from %q to %q: %v", pidBefore, pidAfter, err)
+	}
+	executableAfter, err := os.ReadFile(filepath.Join(statePath, "runtime-executable"))
+	if err != nil || string(executableAfter) != string(executableBefore) {
+		t.Fatalf("daemon executable changed from %q to %q: %v", executableBefore, executableAfter, err)
+	}
+	daemonFileAfter, err := os.Stat(string(executableAfter))
+	if err != nil || !os.SameFile(daemonFileBefore, daemonFileAfter) {
+		t.Fatalf("daemon executable inode changed: %v", err)
+	}
+	socketAfter, err := os.Stat(socketPath)
+	if err != nil || !os.SameFile(socketBefore, socketAfter) {
+		t.Fatalf("daemon socket changed: %v", err)
+	}
+}
 
 // TestSharedDaemonStarters exercises real detached processes, state leases and
 // Resource streams against both production serve branches.

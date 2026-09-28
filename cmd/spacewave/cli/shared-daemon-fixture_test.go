@@ -82,6 +82,14 @@ func runSharedDaemonFixture() error {
 		if buildErr != nil {
 			return nil
 		}
+		executable, err := os.Executable()
+		if err != nil {
+			buildErr = err
+			return nil
+		}
+		if buildErr = os.WriteFile(filepath.Join(statePath, "runtime-executable"), []byte(executable), 0o600); buildErr != nil {
+			return nil
+		}
 		cliBus, buildErr = cli_entrypoint.BuildCliBus(ctx, le, "spacewave", statePath)
 		if buildErr != nil {
 			return nil

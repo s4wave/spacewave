@@ -30,6 +30,8 @@ export interface BldrElectron {
   openDirectory(): Promise<string | null>
   // quitDesktopRuntime requests a clean user-initiated desktop runtime quit.
   quitDesktopRuntime(): Promise<void>
+  // applyElectronAppUpdate replaces this app using its view's daemon plugin route.
+  applyElectronAppUpdate(webViewId: string): Promise<void>
 }
 
 // BLDR_ELECTRON is declared if this is Electron.
@@ -99,6 +101,15 @@ export async function quitDesktopRuntime(): Promise<void> {
   }
 
   await BLDR_ELECTRON.quitDesktopRuntime()
+}
+
+// applyElectronAppUpdate asks Electron to fetch and apply its staged app artifact.
+export async function applyElectronAppUpdate(webViewId: string): Promise<void> {
+  if (!BLDR_ELECTRON) {
+    throw new Error('not running in electron')
+  }
+
+  await BLDR_ELECTRON.applyElectronAppUpdate(webViewId)
 }
 
 // handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.

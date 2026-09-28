@@ -23,7 +23,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	platform := nativeTestPlatformID()
 	ws := buildReleaseMetadataTestWorld(t, ctx, "alpha", platform)
-	manifest := writeReleaseManifestTestBlockWithBinary(t, ctx, ws, "release/manifests/orbit", "orbit-desktop", platform, 2, "desktop payload")
+	manifest := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/orbit", "orbit-desktop", platform, 2, "desktop payload")
 	metadata := testReleaseMetadata("alpha", platform, manifest.GetManifestRef().GetRootRef())
 	metadata.ProjectId = "orbit"
 	metadata.BrowserShell = nil
@@ -61,11 +61,15 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("update phase = %v: %s", state.GetPhase(), state.GetErrorMessage())
 	}
-	dat, err := os.ReadFile(state.GetStagedPath())
+	appExecutable := state.GetStagedPath()
+	if isDarwinDesktopPlatform(platform) {
+		appExecutable = filepath.Join(appExecutable, "Contents", "MacOS", "spacewave")
+	}
+	dat, err := os.ReadFile(appExecutable)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(dat) != "desktop payload" {
+	if !isDarwinDesktopPlatform(platform) && string(dat) != "desktop payload" {
 		t.Fatalf("staged desktop = %q", dat)
 	}
 	if _, err := os.Stat(sidecar); !os.IsNotExist(err) {
@@ -75,7 +79,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 		t.Fatalf("desktop-only release selected CLI %q", got)
 	}
 
-	// Rechecking after replacement must not offer the same executable again.
+	// The daemon's executable cannot establish that the installed app is current.
 	installed := filepath.Join(t.TempDir(), "installed.exe")
 	if err := os.WriteFile(installed, dat, 0o755); err != nil {
 		t.Fatal(err)
@@ -86,11 +90,11 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if err := ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{ProjectId: "orbit", Rev: 1, ChannelKey: "alpha"}); err != nil {
 		t.Fatal(err)
 	}
-	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
-		t.Fatal("offered the installed executable as an update")
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatal("matching daemon bytes hid the app update")
 	}
-	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_CURRENT {
-		t.Fatal("installed release was not recognized")
+	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
+		t.Fatal("daemon bytes misclassified the installed app as current")
 	}
 
 	// Application releases must not share Spacewave's version staging directory.
