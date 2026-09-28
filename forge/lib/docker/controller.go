@@ -21,17 +21,17 @@ const ControllerID = "forge/lib/docker"
 
 // Controller implements the docker CLI execution controller.
 type Controller struct {
-	// le is the log entry
+	// le reports container cleanup failures.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
-	// conf is the configuration
+	// conf configures the container command.
 	conf *Config
-	// runner executes docker CLI commands
+	// runner executes docker CLI commands.
 	runner DockerRunner
-	// inputVals is the input values map
+	// inputVals is the input values map.
 	inputVals forge_target.InputMap
-	// handle contains the controller handle
+	// handle writes retained execution output.
 	handle forge_target.ExecControllerHandle
 }
 
@@ -114,6 +114,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return context.Canceled
 	}
 
+	// Retain both container output streams before recording the exit status.
+	stdout, stderr, err := c.runner.Logs(ctx, dockerPath, containerID, dockerEnv)
+	if err != nil {
+		return errors.Wrap(err, "docker logs")
+	}
+	if len(stdout) != 0 {
+		if err := c.handle.WriteLog(ctx, "info", string(stdout)); err != nil {
+			return errors.Wrap(err, "retain docker stdout")
+		}
+	}
+	if len(stderr) != 0 {
+		if err := c.handle.WriteLog(ctx, "error", string(stderr)); err != nil {
+			return errors.Wrap(err, "retain docker stderr")
+		}
+	}
+
+	// Return the container exit status as the execution outcome.
 	statusText := strings.TrimSpace(string(out))
 	status, err := strconv.Atoi(statusText)
 	if err != nil {
@@ -125,6 +142,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
+// dockerPath resolves the configured Docker CLI executable.
 func (c *Controller) dockerPath() string {
 	if path := c.conf.GetDockerPath(); path != "" {
 		return path
@@ -132,6 +150,7 @@ func (c *Controller) dockerPath() string {
 	return "docker"
 }
 
+// stopContainer stops a container after execution cancellation.
 func (c *Controller) stopContainer(ctx context.Context, dockerPath string, dockerEnv []string, containerID string) error {
 	_, err := c.runner.Run(ctx, dockerPath, buildStopArgs(c.conf, containerID), dockerEnv)
 	return err
