@@ -26,6 +26,7 @@ import (
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -953,37 +954,75 @@ func upsertLinkedDeviceObject(
 	}
 	defer engineCleanup()
 
-	objectKey := deviceObjectKey(record.PeerID)
-	now := time.Now()
-	next := deviceObjectFromSetupRecord(record, now)
 	policy, err := device_policy.ReadFile(statePath)
 	if err != nil {
 		return "", err
 	}
+	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, policy, time.Now())
+}
 
+// upsertLinkedDeviceObjectInWorld replays the Device projection from a fresh
+// World snapshot when another writer advances the SharedObject root.
+func upsertLinkedDeviceObjectInWorld(
+	ctx context.Context,
+	engine world.Engine,
+	record *deviceSetupRecord,
+	policy *device_policy.DevicePolicy,
+	now time.Time,
+) (string, error) {
+	objectKey := deviceObjectKey(record.PeerID)
+	var lastErr error
+	// Reopen the complete read/merge/write transaction after a stale base.
+	for range 10 {
+		err := upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, policy, now)
+		if err == nil {
+			return objectKey, nil
+		}
+		if !errors.Is(err, coord.ErrStaleGeneration) {
+			return "", err
+		}
+		if ctx.Err() != nil {
+			return "", ctx.Err()
+		}
+		lastErr = err
+	}
+	return "", lastErr
+}
+
+// upsertLinkedDeviceObjectAttempt reads and writes the Device in one World
+// transaction, releasing every acquired object before the next attempt.
+func upsertLinkedDeviceObjectAttempt(
+	ctx context.Context,
+	engine world.Engine,
+	objectKey string,
+	record *deviceSetupRecord,
+	policy *device_policy.DevicePolicy,
+	now time.Time,
+) error {
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
-		return "", errors.Wrap(err, "new transaction")
+		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
+	next := deviceObjectFromSetupRecord(record, now)
 	existingState, found, err := tx.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(existingState)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if found {
 		existing, err := readDeviceBlock(ctx, existingState)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if existing != nil && existing.GetPeerId() != "" && existing.GetPeerId() != record.PeerID {
-			return "", errors.New("existing device object peer_id does not match setup state")
+			return errors.New("existing device object peer_id does not match setup state")
 		}
 		mergeDeviceObjectState(next, existing)
 		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
 		if err != nil {
-			return "", err
+			return err
 		}
 		next = projected
 		_, _, err = world.AccessObjectState(ctx, existingState, true, func(bcs *block.Cursor) error {
@@ -991,12 +1030,12 @@ func upsertLinkedDeviceObject(
 			return nil
 		})
 		if err != nil {
-			return "", err
+			return err
 		}
 	} else {
 		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
 		if err != nil {
-			return "", err
+			return err
 		}
 		next = projected
 		var createdObject world.ObjectState
@@ -1007,16 +1046,13 @@ func upsertLinkedDeviceObject(
 		})
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if err := world_types.SetObjectType(ctx, tx, objectKey, s4wave_device.DeviceTypeID); err != nil {
-			return "", err
+			return err
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return "", err
-	}
-	return objectKey, nil
+	return tx.Commit(ctx)
 }
 
 func decodeDeviceResourceID(encoded string) (string, error) {
