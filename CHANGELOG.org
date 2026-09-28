@@ -1,5 +1,51 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.14
+<2026-09-27 Sun>
+
+Spacewave 0.57.14 lets the desktop app and command-line tools share one local
+session, improves phone and tablet usability, and makes chat, synchronization,
+Git Spaces, plugins, and desktop startup more reliable.
+
+** Features
+- Opening the desktop app now connects to the same local session and Spaces
+  already used by command-line tools instead of starting a separate copy.
+- The desktop can open, close, and reopen on demand without interrupting work
+  that is still using the shared session.
+
+** Fixes
+- Fresh desktop installations now start reliably instead of occasionally
+  selecting an incompatible app component and remaining unavailable.
+- Quitting the desktop app now closes its processes cleanly. An unused
+  background session stops immediately, while work still used by another client
+  continues running.
+- Messages sent concurrently from different sessions are preserved in their
+  accepted order instead of one message being lost.
+- Plugin changes no longer restart unrelated active plugins or mounted Spaces,
+  and replaced plugins no longer leave stale routes behind.
+- Browser-created virtual machines now load correctly, with default images
+  copying in seconds instead of minutes.
+- File storage operations using reverse-order browsing now work correctly in
+  Safari and other WebKit browsers.
+
+** Improvements
+- Phone and tablet controls are larger and remain reachable across sign-in,
+  session home, Drive, chat, notebooks, Forge, Space settings, and the app menu.
+- Drive keeps upload and file actions accessible on narrow screens, with
+  touch-friendly rows, breadcrumbs, sorting, search, and text editing.
+- Git Spaces use less memory and open large repositories with many packfiles
+  more efficiently.
+- Synchronization handles sustained upload activity with bounded memory use and
+  applies file-storage updates incrementally.
+- Forge executions now show when they are waiting for a plugin to load.
+- Peer-to-peer messages continue flowing while connection subscriptions are
+  being updated, reducing avoidable delays.
+
+** Security
+- Chat messages, channel creators, and read receipts are now attributed to
+  verified participants, preventing collaborators from claiming another
+  participant’s identity.
+
 * v0.57.13
 <2026-09-27 Sun>
 
