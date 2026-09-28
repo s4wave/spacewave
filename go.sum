@@ -285,8 +285,8 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.3.3-0.20260928025644-1513da6e75d1 h1:b4dLEY81N5A5D95vfZVuizKzWWK9icZaUJ5MEWvlh2M=
-github.com/s4wave/goscript v0.3.3-0.20260928025644-1513da6e75d1/go.mod h1:dw+GqiDCqRjsnwIjlWgdRIao4/dnZfYXZ2UxhiXFYEQ=
+github.com/s4wave/goscript v0.3.3 h1:0cb/R5uQlePZ3DH+/QnefpCKs4ZwUQbCiJML/X+0aAU=
+github.com/s4wave/goscript v0.3.3/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
