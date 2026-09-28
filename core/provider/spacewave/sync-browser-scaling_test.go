@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"syscall/js"
 	"testing"
 	"time"
 
@@ -56,6 +57,10 @@ func TestSyncBrowserDrainScaling100000(t *testing.T) {
 // testSyncBrowserDrainScaling exercises real OPFS metadata, queue, and packing.
 func testSyncBrowserDrainScaling(t *testing.T, count int) {
 	t.Helper()
+	// The Bun runtime has no OPFS; run with goscript test --browser.
+	if nav := js.Global().Get("navigator"); nav.IsUndefined() || nav.Get("storage").IsUndefined() {
+		t.Skip("browser OPFS is unavailable in this runtime")
+	}
 	ctx := t.Context()
 	driver := opfs.BrowserDriver{}
 	root, err := driver.GetRoot()
