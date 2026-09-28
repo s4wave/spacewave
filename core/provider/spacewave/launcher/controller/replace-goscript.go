@@ -2,9 +2,13 @@
 
 package spacewave_launcher_controller
 
-import "github.com/pkg/errors"
+import (
+	"context"
 
-// applyUpdate is not supported in browser environments.
-func (c *Controller) applyUpdate() error {
-	return errors.New("self-update not supported in browser")
+	"github.com/pkg/errors"
+)
+
+// prepareAppUpdate is not supported in browser environments.
+func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
+	return "", errors.New("app update not supported in browser")
 }

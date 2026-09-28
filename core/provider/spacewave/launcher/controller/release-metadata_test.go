@@ -5,6 +5,7 @@ package spacewave_launcher_controller
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
+	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
@@ -145,7 +147,7 @@ func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
 	src := t.TempDir()
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
 	out := t.TempDir()
@@ -176,11 +178,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
-	src := t.TempDir()
-	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
-		t.Fatal(err.Error())
-	}
-	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+	manifestRef := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/native", nativeEntrypointManifestID, nativeTestPlatformID(), 1, "binary")
 	cliManifestRef := writeReleaseManifestTestBlockWithBinary(
 		t,
 		ctx,
@@ -230,14 +228,25 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("phase = %v error=%q", state.GetPhase(), state.GetErrorMessage())
 	}
-	if state.GetStagedPath() != filepath.Join(stagingDir, "0.1.0", "dist", "spacewave") {
+	if state.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_APP || state.GetArtifactManifestId() != nativeEntrypointManifestID {
+		t.Fatalf("desktop target = %v artifact = %q", state.GetTarget(), state.GetArtifactManifestId())
+	}
+	wantStagedPath := filepath.Join(stagingDir, "0.1.0", "dist", "spacewave")
+	if runtime.GOOS == "darwin" {
+		wantStagedPath = filepath.Join(stagingDir, "0.1.0", "dist", "Spacewave.app")
+	}
+	if state.GetStagedPath() != wantStagedPath {
 		t.Fatalf("staged path = %q", state.GetStagedPath())
 	}
-	got, err := os.ReadFile(state.GetStagedPath())
+	appExecutable := state.GetStagedPath()
+	if runtime.GOOS == "darwin" {
+		appExecutable = filepath.Join(appExecutable, "Contents", "MacOS", "spacewave")
+	}
+	got, err := os.ReadFile(appExecutable)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if string(got) != "binary" {
+	if runtime.GOOS != "darwin" && string(got) != "binary" {
 		t.Fatalf("staged binary = %q", string(got))
 	}
 	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
@@ -292,8 +301,42 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if string(cliBinary) != "cli" {
 		t.Fatalf("staged CLI binary = %q", string(cliBinary))
 	}
+	daemonState := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()
+	if daemonState.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON || daemonState.GetArtifactManifestId() != cliEntrypointManifestID || daemonState.GetStagedPath() != fetchStatus.SelectedCliBinaryPath {
+		t.Fatalf("daemon artifact selection = %#v", daemonState)
+	}
 	if fetchStatus.ReleaseWorldHeadRef == "" {
 		t.Fatal("release world head ref is empty")
+	}
+
+	// Matching CLI bytes suppress only the daemon target, not the desktop app.
+	installedCLI := filepath.Join(t.TempDir(), "spacewave-daemon")
+	if err := os.WriteFile(installedCLI, cliBinary, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
+		return installedCLI, false, "", nil
+	}
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState() != nil {
+		t.Fatal("offered matching daemon bytes as an update")
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatal("matching daemon bytes hid the app update")
+	}
+	if err := os.WriteFile(installedCLI, got, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatal("matching app and daemon executable bytes hid the app update")
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
+		t.Fatal("matching daemon executable misclassified the app as current")
 	}
 }
 
@@ -393,7 +436,11 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected directory entrypoint error")
 	}
-	if !strings.Contains(err.Error(), "staged directory entrypoint must be a .app bundle") {
+	want := "staged directory entrypoint must be a .app bundle"
+	if isDarwinDesktopPlatform(nativeTestPlatformID()) {
+		want = "darwin installed-app update must stage a signed .app bundle"
+	}
+	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q", err.Error())
 	}
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
@@ -409,20 +456,7 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
-	src := t.TempDir()
-	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
-		t.Fatal(err.Error())
-	}
-	manifestRef := writeReleaseManifestTestBlockWithMeta(
-		t,
-		ctx,
-		ws,
-		"release/manifests/native",
-		src,
-		nativeEntrypointManifestID,
-		nativeTestPlatformID(),
-		1,
-	)
+	manifestRef := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/native", nativeEntrypointManifestID, nativeTestPlatformID(), 1, "binary")
 	cliManifestRef := writeReleaseManifestTestBlockWithBinary(
 		t,
 		ctx,
@@ -458,7 +492,11 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 	defer rel()
 
 	state := waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED)
-	if state.GetStagedPath() != filepath.Join(stagingDir, "0.1.0", "dist", "spacewave") {
+	wantStagedPath := filepath.Join(stagingDir, "0.1.0", "dist", "spacewave")
+	if runtime.GOOS == "darwin" {
+		wantStagedPath = filepath.Join(stagingDir, "0.1.0", "dist", "Spacewave.app")
+	}
+	if state.GetStagedPath() != wantStagedPath {
 		t.Fatalf("staged path = %q", state.GetStagedPath())
 	}
 }
@@ -584,7 +622,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 	}
 }
 
-func TestStageReleaseManifestUpdateRejectsRawDarwinInstalledAppPayload(t *testing.T) {
+func TestStageReleaseManifestUpdateRejectsRawDarwinPayloadWithOutsideDaemon(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "desktop/darwin/arm64")
@@ -624,7 +662,7 @@ func TestStageReleaseManifestUpdateRejectsRawDarwinInstalledAppPayload(t *testin
 	stagingDir := t.TempDir()
 	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
 	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
-		return filepath.Join(t.TempDir(), "Spacewave.app", "Contents", "MacOS", "spacewave"), true, "/Applications/Spacewave.app", nil
+		return filepath.Join(t.TempDir(), "daemon-bin", "spacewave"), false, "", nil
 	}
 	metadata := testReleaseMetadata("stable", "desktop/darwin/arm64", manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef, cliManifestRef}
@@ -1036,6 +1074,62 @@ func writeReleaseManifestTestBlockWithMeta(
 	platformID string,
 	rev uint64,
 ) *bldr_manifest.ManifestRef {
+	return writeReleaseManifestTestBlockWithEntrypointMeta(t, ctx, ws, objKey, distDir, manifestID, platformID, rev, "spacewave")
+}
+
+// writeReleaseDesktopArtifactTestBlock creates the platform's installed-app
+// shape; Darwin verification uses a signed copy under the test directory.
+func writeReleaseDesktopArtifactTestBlock(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	manifestID string,
+	platformID string,
+	rev uint64,
+	contents string,
+) *bldr_manifest.ManifestRef {
+	t.Helper()
+	src := t.TempDir()
+	entrypoint := "spacewave"
+	if isDarwinDesktopPlatform(platformID) {
+		entrypoint = "Spacewave.app"
+		appDir := filepath.Join(src, entrypoint)
+		executable := filepath.Join(appDir, "Contents", "MacOS", "spacewave")
+		if err := os.MkdirAll(filepath.Dir(executable), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		binary, err := os.ReadFile("/usr/bin/true")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(executable, binary, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		plist := []byte(`<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>spacewave</string><key>CFBundleIdentifier</key><string>us.aperture.spacewave-test</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>`)
+		if err := os.WriteFile(filepath.Join(appDir, "Contents", "Info.plist"), plist, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if output, err := exec.Command("codesign", "--force", "--sign", "-", appDir).CombinedOutput(); err != nil {
+			t.Fatalf("sign test app: %v: %s", err, output)
+		}
+	} else if err := os.WriteFile(filepath.Join(src, entrypoint), []byte(contents), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return writeReleaseManifestTestBlockWithEntrypointMeta(t, ctx, ws, objKey, src, manifestID, platformID, rev, entrypoint)
+}
+
+func writeReleaseManifestTestBlockWithEntrypointMeta(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+	distDir string,
+	manifestID string,
+	platformID string,
+	rev uint64,
+	entrypoint string,
+) *bldr_manifest.ManifestRef {
 	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{
 		ManifestId: manifestID,
@@ -1045,7 +1139,7 @@ func writeReleaseManifestTestBlockWithMeta(
 	}
 	objRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
-		return bldr_manifest.CreateManifestWithIoFS(ctx, bcs, bldr_manifest.NewManifest(meta, "spacewave"), os.DirFS(distDir), nil, nil)
+		return bldr_manifest.CreateManifestWithIoFS(ctx, bcs, bldr_manifest.NewManifest(meta, entrypoint), os.DirFS(distDir), nil, nil)
 	})
 	if err != nil {
 		t.Fatal(err.Error())

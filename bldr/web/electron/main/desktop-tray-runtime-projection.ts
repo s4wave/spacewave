@@ -295,11 +295,10 @@ function applyUpdateEntry(
 ): DesktopTrayEntry {
   return actionEntry(
     'apply-update',
-    'Install Update',
-    DesktopTrayActionKind.ATTACHED_HANDLER,
+    'Open app to install update',
+    DesktopTrayActionKind.OPEN_ROUTE,
     {
       enabled: update.ready,
-      value: update.version,
       severity: DesktopTraySeverity.INFO,
     },
   )

@@ -47,8 +47,8 @@ export function ReleaseInspector({
       </InspectorSection>
 
       <InspectorSection
-        title="Updates"
-        description="The launcher fetches signed release metadata and stages new versions."
+        title="Installed app update"
+        description="The launcher stages the signed desktop app. Installing it restarts this app while the shared daemon keeps running."
       >
         <Facts
           empty={
@@ -60,13 +60,13 @@ export function ReleaseInspector({
             launcher
               ? [
                   {
-                    label: 'State',
+                    label: 'App state',
                     value: updatePhaseLabel(launcher.updatePhase),
                     tone:
                       launcher.updatePhase === 'error' ? 'error' : undefined,
                   },
                   {
-                    label: 'Next version',
+                    label: 'App version',
                     value: launcher.updateVersion,
                     mono: true,
                   },
@@ -77,13 +77,53 @@ export function ReleaseInspector({
                   },
                   { label: 'Channel', value: launcher.selectedChannelKey },
                   {
-                    label: 'Staged at',
+                    label: 'Staged app',
                     value: launcher.stagedPath,
                     mono: true,
                   },
                   {
                     label: 'Release metadata',
                     value: launcher.releaseMetadataOutcome,
+                  },
+                ]
+              : []
+          }
+        />
+      </InspectorSection>
+
+      <InspectorSection
+        title="Shared daemon update"
+        description="The CLI artifact is staged separately; daemon replacement waits for its own idle update operation."
+      >
+        <Facts
+          empty={
+            launcher
+              ? 'No daemon artifact selected.'
+              : 'Waiting for the recovery watcher.'
+          }
+          facts={
+            launcher
+              ? [
+                  {
+                    label: 'Daemon state',
+                    value: updatePhaseLabel(launcher.daemonUpdatePhase),
+                  },
+                  {
+                    label: 'Daemon version',
+                    value: launcher.daemonUpdateVersion,
+                    mono: true,
+                  },
+                  {
+                    label: 'CLI artifact',
+                    value: launcher.selectedCliManifestId,
+                    mono: true,
+                  },
+                  {
+                    label: 'Staged daemon',
+                    value:
+                      launcher.daemonStagedPath ??
+                      launcher.selectedCliBinaryPath,
+                    mono: true,
                   },
                 ]
               : []

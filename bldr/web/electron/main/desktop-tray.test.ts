@@ -290,11 +290,10 @@ describe('DesktopTrayController', () => {
         {
           id: 'apply-update',
           kind: DesktopTrayEntryKind.ACTION,
-          label: 'Install Update',
+          label: 'Open app to install update',
           enabled: true,
           action: {
-            kind: DesktopTrayActionKind.ATTACHED_HANDLER,
-            value: '1.2.3',
+            kind: DesktopTrayActionKind.OPEN_ROUTE,
           },
         },
       ],
@@ -323,7 +322,7 @@ describe('DesktopTrayController', () => {
     await flushPromises()
 
     expect(trayInstances[0]?.setContextMenu).toHaveBeenCalledTimes(2)
-    expect(templateLabels(menuTemplates[1])).toContain('Install Update')
+    expect(templateLabels(menuTemplates[1])).toContain('Open app to install update')
     expect(templateLabels(menuTemplates[1])).not.toContain(
       'Advanced resource row',
     )

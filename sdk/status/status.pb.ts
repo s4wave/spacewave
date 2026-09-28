@@ -225,65 +225,125 @@ export const NetworkPeerInfo: MessageType<NetworkPeerInfo> =
  */
 export interface LauncherRecoveryStatus {
   /**
+   * SelectedConfigRev is the accepted distribution revision.
+   *
    * @generated from field: uint64 selected_config_rev = 1;
    */
   selectedConfigRev?: bigint
   /**
+   * SelectedConfigSource identifies where the accepted config came from.
+   *
    * @generated from field: string selected_config_source = 2;
    */
   selectedConfigSource?: string
   /**
+   * FetchedConfigRev is the newest fetched distribution revision.
+   *
    * @generated from field: uint64 fetched_config_rev = 3;
    */
   fetchedConfigRev?: bigint
   /**
+   * FetchedConfigSource identifies the endpoint for FetchedConfigRev.
+   *
    * @generated from field: string fetched_config_source = 4;
    */
   fetchedConfigSource?: string
   /**
+   * ReleaseMetadataOutcome is the latest release resolution result.
+   *
    * @generated from field: string release_metadata_outcome = 5;
    */
   releaseMetadataOutcome?: string
   /**
+   * ReleaseWorldHeadRef identifies the resolved Release World snapshot.
+   *
    * @generated from field: string release_world_head_ref = 6;
    */
   releaseWorldHeadRef?: string
   /**
+   * SelectedChannelKey is the release channel selected by the launcher.
+   *
    * @generated from field: string selected_channel_key = 7;
    */
   selectedChannelKey?: string
   /**
+   * SelectedEntrypointManifestId identifies the desktop artifact.
+   *
    * @generated from field: string selected_entrypoint_manifest_id = 8;
    */
   selectedEntrypointManifestId?: string
   /**
+   * SelectedEntrypointPlatformId is the desktop artifact platform.
+   *
    * @generated from field: string selected_entrypoint_platform_id = 9;
    */
   selectedEntrypointPlatformId?: string
   /**
+   * SelectedEntrypointManifestRev is the desktop artifact revision.
+   *
    * @generated from field: uint64 selected_entrypoint_manifest_rev = 10;
    */
   selectedEntrypointManifestRev?: bigint
   /**
+   * SelectedEntrypointManifestRef is the desktop artifact reference.
+   *
    * @generated from field: string selected_entrypoint_manifest_ref = 11;
    */
   selectedEntrypointManifestRef?: string
   /**
+   * UpdatePhase is the installed-app update phase.
+   *
    * @generated from field: string update_phase = 12;
    */
   updatePhase?: string
   /**
+   * UpdateVersion is the selected installed-app release version.
+   *
    * @generated from field: string update_version = 13;
    */
   updateVersion?: string
   /**
+   * StagedPath is the verified installed-app artifact path.
+   *
    * @generated from field: string staged_path = 14;
    */
   stagedPath?: string
   /**
+   * UpdateError is the installed-app update error.
+   *
    * @generated from field: string update_error = 15;
    */
   updateError?: string
+  /**
+   * SelectedCliManifestId identifies the daemon artifact.
+   *
+   * @generated from field: string selected_cli_manifest_id = 16;
+   */
+  selectedCliManifestId?: string
+  /**
+   * SelectedCliBinaryPath is the verified daemon artifact path.
+   *
+   * @generated from field: string selected_cli_binary_path = 17;
+   */
+  selectedCliBinaryPath?: string
+  /**
+   * DaemonUpdatePhase is the separately staged daemon update phase.
+   *
+   * @generated from field: string daemon_update_phase = 18;
+   */
+  daemonUpdatePhase?: string
+  /**
+   * DaemonUpdateVersion is the selected daemon release version.
+   *
+   * @generated from field: string daemon_update_version = 19;
+   */
+  daemonUpdateVersion?: string
+  /**
+   * DaemonStagedPath is the verified daemon update artifact path.
+   *
+   * @generated from field: string daemon_staged_path = 20;
+   */
+  daemonStagedPath?: string
 }
 
 export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
@@ -360,6 +420,36 @@ export const LauncherRecoveryStatus: MessageType<LauncherRecoveryStatus> =
       { no: 13, name: 'update_version', kind: 'scalar', T: ScalarType.STRING },
       { no: 14, name: 'staged_path', kind: 'scalar', T: ScalarType.STRING },
       { no: 15, name: 'update_error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 16,
+        name: 'selected_cli_manifest_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 17,
+        name: 'selected_cli_binary_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 18,
+        name: 'daemon_update_phase',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 19,
+        name: 'daemon_update_version',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 20,
+        name: 'daemon_staged_path',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

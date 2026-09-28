@@ -36,6 +36,7 @@ import (
 //go:embed web/plugin/electron/electron.pb.ts
 //go:embed web/plugin/plugin.pb.ts web/plugin/plugin_srpc.pb.ts
 //go:embed desktop/control/control.pb.ts desktop/control/control_srpc.pb.ts
+//go:embed desktop/update/update.pb.ts
 //go:embed plugin/plugin.pb.ts plugin/plugin_srpc.pb.ts
 //go:embed manifest/manifest.pb.ts manifest/manifest_srpc.pb.ts
 //go:embed devtool/status/status.pb.ts devtool/status/status_srpc.pb.ts

@@ -12,10 +12,20 @@ import electron, {
   session,
   shell,
 } from 'electron'
-import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
+import {
+  Client as SRPCClient,
+  OpenStreamCtr,
+  StreamConn,
+  buildRpcStreamOpenStream,
+} from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
 
 import { DesktopControlServiceClient } from '../../../desktop/control/control_srpc.pb.js'
+import {
+  ApplyUpdateRequest,
+  ApplyUpdateResponse,
+  UpdateTarget,
+} from '../../../desktop/update/update.pb.js'
 import { connectUnixResourceClient } from '../../../sdk/resource/unix-client.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
 import { ServiceWorkerFetchTracker } from '../../bldr/service-worker-fetch-tracker.js'
@@ -27,6 +37,7 @@ import {
   WebRuntimeClientInit,
 } from '../../runtime/runtime.pb.js'
 import { WebRuntimeHostClient } from '../../runtime/runtime_srpc.pb.js'
+import { WebDocumentHostClient } from '../../document/document_srpc.pb.js'
 import type {
   DesktopRuntimeState,
   OpenOrFocusMainWindowRequest,
@@ -59,6 +70,7 @@ import {
 } from './desktop-tray-runtime-projection.js'
 import { DesktopTrayController } from './desktop-tray.js'
 import { buildApplicationMenuTemplate } from './app-menu.js'
+import { startAppBundleUpdate } from './app-update.js'
 
 // isMac reports whether the app runs on macOS.
 export const isMac = os.platform() === 'darwin'
@@ -280,6 +292,8 @@ export class BldrElectronApp {
     this.setupDesktopDownloads()
     // setup renderer desktop runtime lifecycle ipc
     this.setupDesktopRuntimeIpc()
+    // setup installed-app replacement under this Electron process's custody
+    this.setupAppUpdateIpc()
     // setup test-only control surface for windowless Electron e2e assertions
     this.setupE2EControlServer()
 
@@ -318,6 +332,50 @@ export class BldrElectronApp {
     ipcMain.handle('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME', async () => {
       await this.desktopRuntimeResource.QuitDesktopRuntime({})
     })
+  }
+
+  /** setupAppUpdateIpc obtains the verified artifact through Electron's own host route. */
+  private setupAppUpdateIpc() {
+    ipcMain.handle(
+      'BLDR_ELECTRON_APPLY_APP_UPDATE',
+      async (event, webViewId: string) => {
+        if (!isMac) {
+          throw new Error('installed .app updates are only supported on macOS')
+        }
+        const documentId = Object.entries(this.browserWindows).find(
+          ([, win]) => win.webContents === event.sender,
+        )?.[0]
+        if (!documentId || !webViewId) {
+          throw new Error('app update requires an active desktop view')
+        }
+
+        // Request the app target through the same daemon plugin route as its watch.
+        const documentHost = new WebDocumentHostClient(
+          new SRPCClient(() =>
+            this.webRuntime.openWebDocumentHostStream(documentId),
+          ),
+        )
+        const launcher = new SRPCClient(
+          buildRpcStreamOpenStream(
+            webViewId,
+            documentHost.WebViewRpc.bind(documentHost),
+          ),
+        )
+        const reply = await launcher.request(
+          'plugin/spacewave-launcher/spacewave.launcher.Launcher',
+          'ApplyUpdate',
+          ApplyUpdateRequest.toBinary({ target: UpdateTarget.APP }),
+        )
+        const update = ApplyUpdateResponse.fromBinary(reply)
+        await startAppBundleUpdate(
+          update.stagedPath ?? '',
+          process.execPath,
+          this.app.getPath('userData'),
+          process.pid,
+        )
+        this.app.quit()
+      },
+    )
   }
 
   private setupDesktopDownloads() {

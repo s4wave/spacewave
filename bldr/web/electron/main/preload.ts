@@ -30,9 +30,16 @@ async function quitDesktopRuntime(): Promise<void> {
   await ipcRenderer.invoke('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME')
 }
 
+// applyElectronAppUpdate asks Electron to fetch the verified app artifact from
+// the selected daemon plugin and own the bundle helper's PID and exit.
+async function applyElectronAppUpdate(webViewId: string): Promise<void> {
+  await ipcRenderer.invoke('BLDR_ELECTRON_APPLY_APP_UPDATE', webViewId)
+}
+
 const exposeContext: BldrElectron = {
   openClientPort,
   openDirectory,
   quitDesktopRuntime,
+  applyElectronAppUpdate,
 }
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', exposeContext)

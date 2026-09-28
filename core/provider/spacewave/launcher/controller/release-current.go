@@ -9,10 +9,9 @@ import (
 	"os"
 )
 
-// stagedReleaseIsCurrent compares raw installed executables by content rather
-// than release labels. Signed app bundles retain their bundle update path.
-func (c *Controller) stagedReleaseIsCurrent(stagedPath string) (bool, error) {
-	// Only the desktop host can identify the installed entrypoint correctly.
+// stagedDaemonReleaseIsCurrent compares the staged CLI to the running daemon
+// bytes. It says nothing about Electron's separately installed app.
+func (c *Controller) stagedDaemonReleaseIsCurrent(stagedPath string) (bool, error) {
 	executable, bundle, _, err := c.currentExecutableBundle()
 	if err != nil || bundle {
 		return false, err

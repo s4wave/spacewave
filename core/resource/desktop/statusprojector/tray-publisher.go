@@ -64,13 +64,11 @@ func newHostDesktopTrayPublisher(ctx context.Context, b bus.Bus) (*desktopTrayPu
 		return nil, err
 	}
 	return &desktopTrayPublisher{
-		resources: resources,
-		trayRef:   trayRef,
-		tray:      desktop_tray.NewSRPCDesktopTrayResourceServiceClient(trayClient),
-		entries:   make(map[string]*desktopTrayEntryRegistration),
-		actionHandlers: map[string]desktop_tray.SRPCDesktopTrayActionHandlerServiceServer{
-			"apply-update": &applyUpdateTrayActionHandler{bus: b},
-		},
+		resources:      resources,
+		trayRef:        trayRef,
+		tray:           desktop_tray.NewSRPCDesktopTrayResourceServiceClient(trayClient),
+		entries:        make(map[string]*desktopTrayEntryRegistration),
+		actionHandlers: map[string]desktop_tray.SRPCDesktopTrayActionHandlerServiceServer{},
 	}, nil
 }
 

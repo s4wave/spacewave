@@ -34,9 +34,6 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		}
 	}()
 
-	handler := &recordingTrayActionHandler{}
-	publisher.actionHandlers["apply-update"] = handler
-
 	state := BuildDesktopRuntimeStateFromListener(resource_listener.ListenerStatus{
 		SocketPath:       "/run/spacewave.sock",
 		Listening:        true,
@@ -56,16 +53,15 @@ func TestDesktopTrayPublisherPublishesUpdatesAndReleasesProjectedEntries(t *test
 		t.Fatal("expected initial publish to change tray entries")
 	}
 
-	if _, err := tray.InvokeDesktopTrayEntry(ctx, &desktop_tray.InvokeDesktopTrayEntryRequest{
-		EntryId: "apply-update",
-	}); err != nil {
-		t.Fatalf("invoke published update action: %v", err)
+	updateEntry := publisher.entries["apply-update"]
+	if updateEntry == nil {
+		t.Fatal("expected projected update action")
 	}
-	if len(handler.requests) != 1 {
-		t.Fatalf("update action requests = %d, want 1", len(handler.requests))
+	if updateEntry.attachedActionResourceID != 0 {
+		t.Fatal("app-open action must not attach a daemon update handler")
 	}
-	if handler.requests[0].GetAction().GetValue() != "1.2.3" {
-		t.Fatalf("update action value = %q, want version", handler.requests[0].GetAction().GetValue())
+	if updateEntry.entry.GetAction().GetKind() != desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE {
+		t.Fatalf("update action kind = %v, want open route", updateEntry.entry.GetAction().GetKind())
 	}
 
 	changed, err = publisher.Publish(ctx, state.CloneVT())

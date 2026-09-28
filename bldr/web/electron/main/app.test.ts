@@ -1,10 +1,19 @@
 import { EventEmitter } from 'events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  ApplyUpdateRequest,
+  ApplyUpdateResponse,
+  UpdateTarget,
+} from '../../../desktop/update/update.pb.js'
 
 const daemonQuitMocks = vi.hoisted(() => ({
   connect: vi.fn(),
   quit: vi.fn(),
   dispose: vi.fn(),
+}))
+const appUpdateMocks = vi.hoisted(() => ({
+  applyRpc: vi.fn(),
+  startHelper: vi.fn(),
 }))
 
 Reflect.set(globalThis, 'BLDR_DEBUG', false)
@@ -16,6 +25,7 @@ const mockElectronApp = {
     return '/app'
   },
   getName: vi.fn(() => 'Spacewave'),
+  getPath: vi.fn(() => '/tmp/electron-state'),
   on: vi.fn(),
   quit: vi.fn(),
   requestSingleInstanceLock: vi.fn(() => true),
@@ -66,6 +76,7 @@ class MockWebRuntime {
     this.removeConnection(clientId)
   })
   public readonly openServiceWorkerHostStream = vi.fn()
+  public readonly openWebDocumentHostStream = vi.fn()
   public readonly getWebRuntimeServer = vi.fn()
   public readonly handleClient = vi.fn()
   public readonly registerServerExtension = vi.fn()
@@ -140,7 +151,10 @@ vi.mock('electron', () => {
 })
 
 vi.mock('starpc', () => ({
-  Client: class {},
+  Client: class {
+    public readonly request = appUpdateMocks.applyRpc
+  },
+  buildRpcStreamOpenStream: vi.fn(() => vi.fn()),
   OpenStreamCtr: class {
     public readonly openStreamFunc = vi.fn()
     public readonly set = vi.fn()
@@ -149,6 +163,16 @@ vi.mock('starpc', () => ({
     constructor() {}
     public readonly buildOpenStreamFunc = vi.fn()
   },
+}))
+
+vi.mock('../../document/document_srpc.pb.js', () => ({
+  WebDocumentHostClient: class {
+    public readonly WebViewRpc = vi.fn()
+  },
+}))
+
+vi.mock('./app-update.js', () => ({
+  startAppBundleUpdate: appUpdateMocks.startHelper,
 }))
 
 vi.mock('../../bldr/web-runtime.js', () => ({
@@ -175,14 +199,11 @@ vi.mock('../../../sdk/resource/unix-client.js', () => ({
   connectUnixResourceClient: daemonQuitMocks.connect,
 }))
 
-vi.mock(
-  '../../../desktop/control/control_srpc.pb.js',
-  () => ({
-    DesktopControlServiceClient: class {
-      public QuitDesktop = daemonQuitMocks.quit
-    },
-  }),
-)
+vi.mock('../../../desktop/control/control_srpc.pb.js', () => ({
+  DesktopControlServiceClient: class {
+    public QuitDesktop = daemonQuitMocks.quit
+  },
+}))
 
 vi.mock('./desktop-runtime.js', () => ({
   DesktopRuntimeResource: class {
@@ -221,6 +242,12 @@ describe('BldrElectronApp', () => {
     vi.clearAllMocks()
     mockElectronApp.quit.mockReset()
     mockElectronApp.requestSingleInstanceLock.mockReturnValue(true)
+    appUpdateMocks.applyRpc.mockResolvedValue(
+      ApplyUpdateResponse.toBinary({
+        stagedPath: '/tmp/staged/Spacewave.app',
+      }),
+    )
+    appUpdateMocks.startHelper.mockResolvedValue(undefined)
     vi.resetModules()
   })
 
@@ -853,6 +880,45 @@ describe('BldrElectronApp', () => {
 
     const resource = Reflect.get(app, 'desktopRuntimeResource')
     expect(resource.QuitDesktopRuntime).toHaveBeenCalledWith({})
+  })
+
+  it('applies only the launcher app target and quits Electron after its helper starts', async () => {
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    Reflect.apply(Reflect.get(app, 'init'), app, [])
+    getAppHandler('ready')()
+
+    const handler = vi
+      .mocked(electron.ipcMain.handle)
+      .mock.calls.find(
+        ([channel]) => channel === 'BLDR_ELECTRON_APPLY_APP_UPDATE',
+      )?.[1]
+    if (!handler) throw new Error('app update handler not registered')
+    const win = browserWindows[0]
+    await Reflect.apply(handler, null, [
+      { sender: win.webContents },
+      'update-webview',
+    ])
+
+    expect(appUpdateMocks.applyRpc).toHaveBeenCalledWith(
+      'plugin/spacewave-launcher/spacewave.launcher.Launcher',
+      'ApplyUpdate',
+      ApplyUpdateRequest.toBinary({ target: UpdateTarget.APP }),
+    )
+    expect(appUpdateMocks.startHelper).toHaveBeenCalledWith(
+      '/tmp/staged/Spacewave.app',
+      process.execPath,
+      '/tmp/electron-state',
+      process.pid,
+    )
+    expect(mockElectronApp.quit).toHaveBeenCalledTimes(1)
   })
 
   it('does not expose exception details from the e2e control server', async () => {

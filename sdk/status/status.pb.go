@@ -226,22 +226,47 @@ func (x *NetworkPeerInfo) GetLinks() []*NetworkLinkInfo {
 
 // LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
 type LauncherRecoveryStatus struct {
-	unknownFields                 []byte
-	SelectedConfigRev             uint64 `protobuf:"varint,1,opt,name=selected_config_rev,json=selectedConfigRev,proto3" json:"selectedConfigRev,omitempty"`
-	SelectedConfigSource          string `protobuf:"bytes,2,opt,name=selected_config_source,json=selectedConfigSource,proto3" json:"selectedConfigSource,omitempty"`
-	FetchedConfigRev              uint64 `protobuf:"varint,3,opt,name=fetched_config_rev,json=fetchedConfigRev,proto3" json:"fetchedConfigRev,omitempty"`
-	FetchedConfigSource           string `protobuf:"bytes,4,opt,name=fetched_config_source,json=fetchedConfigSource,proto3" json:"fetchedConfigSource,omitempty"`
-	ReleaseMetadataOutcome        string `protobuf:"bytes,5,opt,name=release_metadata_outcome,json=releaseMetadataOutcome,proto3" json:"releaseMetadataOutcome,omitempty"`
-	ReleaseWorldHeadRef           string `protobuf:"bytes,6,opt,name=release_world_head_ref,json=releaseWorldHeadRef,proto3" json:"releaseWorldHeadRef,omitempty"`
-	SelectedChannelKey            string `protobuf:"bytes,7,opt,name=selected_channel_key,json=selectedChannelKey,proto3" json:"selectedChannelKey,omitempty"`
-	SelectedEntrypointManifestId  string `protobuf:"bytes,8,opt,name=selected_entrypoint_manifest_id,json=selectedEntrypointManifestId,proto3" json:"selectedEntrypointManifestId,omitempty"`
-	SelectedEntrypointPlatformId  string `protobuf:"bytes,9,opt,name=selected_entrypoint_platform_id,json=selectedEntrypointPlatformId,proto3" json:"selectedEntrypointPlatformId,omitempty"`
+	unknownFields []byte
+	// SelectedConfigRev is the accepted distribution revision.
+	SelectedConfigRev uint64 `protobuf:"varint,1,opt,name=selected_config_rev,json=selectedConfigRev,proto3" json:"selectedConfigRev,omitempty"`
+	// SelectedConfigSource identifies where the accepted config came from.
+	SelectedConfigSource string `protobuf:"bytes,2,opt,name=selected_config_source,json=selectedConfigSource,proto3" json:"selectedConfigSource,omitempty"`
+	// FetchedConfigRev is the newest fetched distribution revision.
+	FetchedConfigRev uint64 `protobuf:"varint,3,opt,name=fetched_config_rev,json=fetchedConfigRev,proto3" json:"fetchedConfigRev,omitempty"`
+	// FetchedConfigSource identifies the endpoint for FetchedConfigRev.
+	FetchedConfigSource string `protobuf:"bytes,4,opt,name=fetched_config_source,json=fetchedConfigSource,proto3" json:"fetchedConfigSource,omitempty"`
+	// ReleaseMetadataOutcome is the latest release resolution result.
+	ReleaseMetadataOutcome string `protobuf:"bytes,5,opt,name=release_metadata_outcome,json=releaseMetadataOutcome,proto3" json:"releaseMetadataOutcome,omitempty"`
+	// ReleaseWorldHeadRef identifies the resolved Release World snapshot.
+	ReleaseWorldHeadRef string `protobuf:"bytes,6,opt,name=release_world_head_ref,json=releaseWorldHeadRef,proto3" json:"releaseWorldHeadRef,omitempty"`
+	// SelectedChannelKey is the release channel selected by the launcher.
+	SelectedChannelKey string `protobuf:"bytes,7,opt,name=selected_channel_key,json=selectedChannelKey,proto3" json:"selectedChannelKey,omitempty"`
+	// SelectedEntrypointManifestId identifies the desktop artifact.
+	SelectedEntrypointManifestId string `protobuf:"bytes,8,opt,name=selected_entrypoint_manifest_id,json=selectedEntrypointManifestId,proto3" json:"selectedEntrypointManifestId,omitempty"`
+	// SelectedEntrypointPlatformId is the desktop artifact platform.
+	SelectedEntrypointPlatformId string `protobuf:"bytes,9,opt,name=selected_entrypoint_platform_id,json=selectedEntrypointPlatformId,proto3" json:"selectedEntrypointPlatformId,omitempty"`
+	// SelectedEntrypointManifestRev is the desktop artifact revision.
 	SelectedEntrypointManifestRev uint64 `protobuf:"varint,10,opt,name=selected_entrypoint_manifest_rev,json=selectedEntrypointManifestRev,proto3" json:"selectedEntrypointManifestRev,omitempty"`
+	// SelectedEntrypointManifestRef is the desktop artifact reference.
 	SelectedEntrypointManifestRef string `protobuf:"bytes,11,opt,name=selected_entrypoint_manifest_ref,json=selectedEntrypointManifestRef,proto3" json:"selectedEntrypointManifestRef,omitempty"`
-	UpdatePhase                   string `protobuf:"bytes,12,opt,name=update_phase,json=updatePhase,proto3" json:"updatePhase,omitempty"`
-	UpdateVersion                 string `protobuf:"bytes,13,opt,name=update_version,json=updateVersion,proto3" json:"updateVersion,omitempty"`
-	StagedPath                    string `protobuf:"bytes,14,opt,name=staged_path,json=stagedPath,proto3" json:"stagedPath,omitempty"`
-	UpdateError                   string `protobuf:"bytes,15,opt,name=update_error,json=updateError,proto3" json:"updateError,omitempty"`
+	// UpdatePhase is the installed-app update phase.
+	UpdatePhase string `protobuf:"bytes,12,opt,name=update_phase,json=updatePhase,proto3" json:"updatePhase,omitempty"`
+	// UpdateVersion is the selected installed-app release version.
+	UpdateVersion string `protobuf:"bytes,13,opt,name=update_version,json=updateVersion,proto3" json:"updateVersion,omitempty"`
+	// StagedPath is the verified installed-app artifact path.
+	StagedPath string `protobuf:"bytes,14,opt,name=staged_path,json=stagedPath,proto3" json:"stagedPath,omitempty"`
+	// UpdateError is the installed-app update error.
+	UpdateError string `protobuf:"bytes,15,opt,name=update_error,json=updateError,proto3" json:"updateError,omitempty"`
+	// SelectedCliManifestId identifies the daemon artifact.
+	SelectedCliManifestId string `protobuf:"bytes,16,opt,name=selected_cli_manifest_id,json=selectedCliManifestId,proto3" json:"selectedCliManifestId,omitempty"`
+	// SelectedCliBinaryPath is the verified daemon artifact path.
+	SelectedCliBinaryPath string `protobuf:"bytes,17,opt,name=selected_cli_binary_path,json=selectedCliBinaryPath,proto3" json:"selectedCliBinaryPath,omitempty"`
+	// DaemonUpdatePhase is the separately staged daemon update phase.
+	DaemonUpdatePhase string `protobuf:"bytes,18,opt,name=daemon_update_phase,json=daemonUpdatePhase,proto3" json:"daemonUpdatePhase,omitempty"`
+	// DaemonUpdateVersion is the selected daemon release version.
+	DaemonUpdateVersion string `protobuf:"bytes,19,opt,name=daemon_update_version,json=daemonUpdateVersion,proto3" json:"daemonUpdateVersion,omitempty"`
+	// DaemonStagedPath is the verified daemon update artifact path.
+	DaemonStagedPath string `protobuf:"bytes,20,opt,name=daemon_staged_path,json=daemonStagedPath,proto3" json:"daemonStagedPath,omitempty"`
 }
 
 func (x *LauncherRecoveryStatus) Reset() {
@@ -351,6 +376,41 @@ func (x *LauncherRecoveryStatus) GetStagedPath() string {
 func (x *LauncherRecoveryStatus) GetUpdateError() string {
 	if x != nil {
 		return x.UpdateError
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedCliManifestId() string {
+	if x != nil {
+		return x.SelectedCliManifestId
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetSelectedCliBinaryPath() string {
+	if x != nil {
+		return x.SelectedCliBinaryPath
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetDaemonUpdatePhase() string {
+	if x != nil {
+		return x.DaemonUpdatePhase
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetDaemonUpdateVersion() string {
+	if x != nil {
+		return x.DaemonUpdateVersion
+	}
+	return ""
+}
+
+func (x *LauncherRecoveryStatus) GetDaemonStagedPath() string {
+	if x != nil {
+		return x.DaemonStagedPath
 	}
 	return ""
 }
@@ -970,6 +1030,11 @@ func (m *LauncherRecoveryStatus) CloneVT() *LauncherRecoveryStatus {
 	r.UpdateVersion = m.UpdateVersion
 	r.StagedPath = m.StagedPath
 	r.UpdateError = m.UpdateError
+	r.SelectedCliManifestId = m.SelectedCliManifestId
+	r.SelectedCliBinaryPath = m.SelectedCliBinaryPath
+	r.DaemonUpdatePhase = m.DaemonUpdatePhase
+	r.DaemonUpdateVersion = m.DaemonUpdateVersion
+	r.DaemonStagedPath = m.DaemonStagedPath
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1444,6 +1509,21 @@ func (this *LauncherRecoveryStatus) EqualVT(that *LauncherRecoveryStatus) bool {
 		return false
 	}
 	if this.UpdateError != that.UpdateError {
+		return false
+	}
+	if this.SelectedCliManifestId != that.SelectedCliManifestId {
+		return false
+	}
+	if this.SelectedCliBinaryPath != that.SelectedCliBinaryPath {
+		return false
+	}
+	if this.DaemonUpdatePhase != that.DaemonUpdatePhase {
+		return false
+	}
+	if this.DaemonUpdateVersion != that.DaemonUpdateVersion {
+		return false
+	}
+	if this.DaemonStagedPath != that.DaemonStagedPath {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2256,6 +2336,31 @@ func (x *LauncherRecoveryStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updateError")
 		s.WriteString(x.UpdateError)
 	}
+	if x.SelectedCliManifestId != "" || s.HasField("selectedCliManifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedCliManifestId")
+		s.WriteString(x.SelectedCliManifestId)
+	}
+	if x.SelectedCliBinaryPath != "" || s.HasField("selectedCliBinaryPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selectedCliBinaryPath")
+		s.WriteString(x.SelectedCliBinaryPath)
+	}
+	if x.DaemonUpdatePhase != "" || s.HasField("daemonUpdatePhase") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonUpdatePhase")
+		s.WriteString(x.DaemonUpdatePhase)
+	}
+	if x.DaemonUpdateVersion != "" || s.HasField("daemonUpdateVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonUpdateVersion")
+		s.WriteString(x.DaemonUpdateVersion)
+	}
+	if x.DaemonStagedPath != "" || s.HasField("daemonStagedPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonStagedPath")
+		s.WriteString(x.DaemonStagedPath)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2318,6 +2423,21 @@ func (x *LauncherRecoveryStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "update_error", "updateError":
 			s.AddField("update_error")
 			x.UpdateError = s.ReadString()
+		case "selected_cli_manifest_id", "selectedCliManifestId":
+			s.AddField("selected_cli_manifest_id")
+			x.SelectedCliManifestId = s.ReadString()
+		case "selected_cli_binary_path", "selectedCliBinaryPath":
+			s.AddField("selected_cli_binary_path")
+			x.SelectedCliBinaryPath = s.ReadString()
+		case "daemon_update_phase", "daemonUpdatePhase":
+			s.AddField("daemon_update_phase")
+			x.DaemonUpdatePhase = s.ReadString()
+		case "daemon_update_version", "daemonUpdateVersion":
+			s.AddField("daemon_update_version")
+			x.DaemonUpdateVersion = s.ReadString()
+		case "daemon_staged_path", "daemonStagedPath":
+			s.AddField("daemon_staged_path")
+			x.DaemonStagedPath = s.ReadString()
 		}
 	})
 }
@@ -3590,6 +3710,41 @@ func (m *LauncherRecoveryStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.DaemonStagedPath) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DaemonStagedPath)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if len(m.DaemonUpdateVersion) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DaemonUpdateVersion)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
+	if len(m.DaemonUpdatePhase) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DaemonUpdatePhase)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
+	if len(m.SelectedCliBinaryPath) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SelectedCliBinaryPath)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	if len(m.SelectedCliManifestId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SelectedCliManifestId)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
 	if len(m.UpdateError) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.UpdateError)
 		i--
@@ -4538,6 +4693,11 @@ func (m *LauncherRecoveryStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UpdateVersion)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StagedPath)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UpdateError)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.SelectedCliManifestId)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.SelectedCliBinaryPath)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.DaemonUpdatePhase)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.DaemonUpdateVersion)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.DaemonStagedPath)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4965,6 +5125,26 @@ func (x *LauncherRecoveryStatus) MarshalProtoText() string {
 	if x.UpdateError != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "update_error")
 		protobuf_go_lite.TextWriteString(&sb, x.UpdateError)
+	}
+	if x.SelectedCliManifestId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selected_cli_manifest_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SelectedCliManifestId)
+	}
+	if x.SelectedCliBinaryPath != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selected_cli_binary_path")
+		protobuf_go_lite.TextWriteString(&sb, x.SelectedCliBinaryPath)
+	}
+	if x.DaemonUpdatePhase != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_phase")
+		protobuf_go_lite.TextWriteString(&sb, x.DaemonUpdatePhase)
+	}
+	if x.DaemonUpdateVersion != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_version")
+		protobuf_go_lite.TextWriteString(&sb, x.DaemonUpdateVersion)
+	}
+	if x.DaemonStagedPath != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_staged_path")
+		protobuf_go_lite.TextWriteString(&sb, x.DaemonStagedPath)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5888,6 +6068,56 @@ func (m *LauncherRecoveryStatus) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.UpdateError = v
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedCliManifestId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SelectedCliManifestId = v
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectedCliBinaryPath", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SelectedCliBinaryPath = v
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonUpdatePhase", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DaemonUpdatePhase = v
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonUpdateVersion", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DaemonUpdateVersion = v
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonStagedPath", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DaemonStagedPath = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

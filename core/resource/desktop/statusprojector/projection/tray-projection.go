@@ -266,10 +266,10 @@ func buildActionTrayItem(item *desktop_runtime.DesktopRuntimeActionItem) *deskto
 func applyUpdateTrayEntry(update *desktop_runtime.DesktopRuntimeUpdateStatus) *desktop_tray.DesktopTrayEntry {
 	entry := actionTrayEntry(
 		"apply-update",
-		"Install Update",
-		desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+		"Open app to install update",
+		desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE,
 		"",
-		update.GetVersion(),
+		"",
 		update.GetReady(),
 	)
 	entry.Severity = desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_INFO

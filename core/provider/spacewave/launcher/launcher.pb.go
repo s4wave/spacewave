@@ -15,6 +15,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	update "github.com/s4wave/spacewave/bldr/desktop/update"
 )
 
 // DistConfigSource is where the launcher found its selected DistConfig.
@@ -250,10 +251,12 @@ type LauncherInfo struct {
 	// DistConfig contains the latest app dist config object.
 	// May be empty if the config is not known / fetched yet.
 	DistConfig *DistConfig `protobuf:"bytes,1,opt,name=dist_config,json=distConfig,proto3" json:"distConfig,omitempty"`
-	// UpdateState describes the entrypoint update state.
+	// UpdateState describes the installed-app update state.
 	UpdateState *UpdateState `protobuf:"bytes,2,opt,name=update_state,json=updateState,proto3" json:"updateState,omitempty"`
 	// FetchStatus describes DistConfig fetching and release selection.
 	FetchStatus *FetchStatus `protobuf:"bytes,3,opt,name=fetch_status,json=fetchStatus,proto3" json:"fetchStatus,omitempty"`
+	// DaemonUpdateState describes the separately staged daemon artifact.
+	DaemonUpdateState *UpdateState `protobuf:"bytes,4,opt,name=daemon_update_state,json=daemonUpdateState,proto3" json:"daemonUpdateState,omitempty"`
 }
 
 func (x *LauncherInfo) Reset() {
@@ -279,6 +282,13 @@ func (x *LauncherInfo) GetUpdateState() *UpdateState {
 func (x *LauncherInfo) GetFetchStatus() *FetchStatus {
 	if x != nil {
 		return x.FetchStatus
+	}
+	return nil
+}
+
+func (x *LauncherInfo) GetDaemonUpdateState() *UpdateState {
+	if x != nil {
+		return x.DaemonUpdateState
 	}
 	return nil
 }
@@ -489,7 +499,7 @@ func (x *FetchStatus) GetNextRetryAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// UpdateState describes the current state of an entrypoint self-update.
+// UpdateState describes one explicit installed-app or daemon update target.
 type UpdateState struct {
 	unknownFields []byte
 	// Phase is the current update phase.
@@ -502,6 +512,10 @@ type UpdateState struct {
 	StagedPath string `protobuf:"bytes,4,opt,name=staged_path,json=stagedPath,proto3" json:"stagedPath,omitempty"`
 	// ErrorMessage contains any error message.
 	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+	// Target identifies the component this state can replace.
+	Target update.UpdateTarget `protobuf:"varint,6,opt,name=target,proto3" json:"target,omitempty"`
+	// ArtifactManifestId identifies the selected signed release artifact.
+	ArtifactManifestId string `protobuf:"bytes,7,opt,name=artifact_manifest_id,json=artifactManifestId,proto3" json:"artifactManifestId,omitempty"`
 }
 
 func (x *UpdateState) Reset() {
@@ -541,6 +555,20 @@ func (x *UpdateState) GetStagedPath() string {
 func (x *UpdateState) GetErrorMessage() string {
 	if x != nil {
 		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *UpdateState) GetTarget() update.UpdateTarget {
+	if x != nil {
+		return x.Target
+	}
+	return update.UpdateTarget(0)
+}
+
+func (x *UpdateState) GetArtifactManifestId() string {
+	if x != nil {
+		return x.ArtifactManifestId
 	}
 	return ""
 }
@@ -647,29 +675,6 @@ func (x *PushDistConfigResponse) GetPrevRev() uint64 {
 	return 0
 }
 
-// ApplyUpdateRequest is a request to apply a staged update.
-type ApplyUpdateRequest struct {
-	unknownFields []byte
-}
-
-func (x *ApplyUpdateRequest) Reset() {
-	*x = ApplyUpdateRequest{}
-}
-
-func (*ApplyUpdateRequest) ProtoMessage() {}
-
-// ApplyUpdateResponse is the response to ApplyUpdateRequest.
-// If successful, the process will be relaunched and this response may not arrive.
-type ApplyUpdateResponse struct {
-	unknownFields []byte
-}
-
-func (x *ApplyUpdateResponse) Reset() {
-	*x = ApplyUpdateResponse{}
-}
-
-func (*ApplyUpdateResponse) ProtoMessage() {}
-
 type DistConfig_LauncherConfigSetEntry struct {
 	unknownFields []byte
 	Key           string                  `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -723,6 +728,7 @@ func (m *LauncherInfo) CloneVT() *LauncherInfo {
 	r.DistConfig = protobuf_go_lite.CloneVTValue(m.DistConfig)
 	r.UpdateState = protobuf_go_lite.CloneVTValue(m.UpdateState)
 	r.FetchStatus = protobuf_go_lite.CloneVTValue(m.FetchStatus)
+	r.DaemonUpdateState = protobuf_go_lite.CloneVTValue(m.DaemonUpdateState)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -778,6 +784,8 @@ func (m *UpdateState) CloneVT() *UpdateState {
 	r.DownloadProgress = m.DownloadProgress
 	r.StagedPath = m.StagedPath
 	r.ErrorMessage = m.ErrorMessage
+	r.Target = m.Target
+	r.ArtifactManifestId = m.ArtifactManifestId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -868,36 +876,6 @@ func (m *PushDistConfigResponse) CloneMessageVT() protobuf_go_lite.CloneMessage 
 	return m.CloneVT()
 }
 
-func (m *ApplyUpdateRequest) CloneVT() *ApplyUpdateRequest {
-	if m == nil {
-		return (*ApplyUpdateRequest)(nil)
-	}
-	r := new(ApplyUpdateRequest)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ApplyUpdateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ApplyUpdateResponse) CloneVT() *ApplyUpdateResponse {
-	if m == nil {
-		return (*ApplyUpdateResponse)(nil)
-	}
-	r := new(ApplyUpdateResponse)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ApplyUpdateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (this *DistConfig) EqualVT(that *DistConfig) bool {
 	if this == that {
 		return true
@@ -940,6 +918,9 @@ func (this *LauncherInfo) EqualVT(that *LauncherInfo) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.FetchStatus, that.FetchStatus) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.DaemonUpdateState, that.DaemonUpdateState) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1051,6 +1032,12 @@ func (this *UpdateState) EqualVT(that *UpdateState) bool {
 	if this.ErrorMessage != that.ErrorMessage {
 		return false
 	}
+	if this.Target != that.Target {
+		return false
+	}
+	if this.ArtifactManifestId != that.ArtifactManifestId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1156,40 +1143,6 @@ func (this *PushDistConfigResponse) EqualVT(that *PushDistConfigResponse) bool {
 
 func (this *PushDistConfigResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PushDistConfigResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ApplyUpdateRequest) EqualVT(that *ApplyUpdateRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ApplyUpdateRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ApplyUpdateRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ApplyUpdateResponse) EqualVT(that *ApplyUpdateResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ApplyUpdateResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ApplyUpdateResponse)
 	if !ok {
 		return false
 	}
@@ -1476,6 +1429,11 @@ func (x *LauncherInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("fetchStatus")
 		x.FetchStatus.MarshalProtoJSON(s.WithField("fetchStatus"))
 	}
+	if x.DaemonUpdateState != nil || s.HasField("daemonUpdateState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonUpdateState")
+		x.DaemonUpdateState.MarshalProtoJSON(s.WithField("daemonUpdateState"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1514,6 +1472,13 @@ func (x *LauncherInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.FetchStatus = &FetchStatus{}
 			x.FetchStatus.UnmarshalProtoJSON(s.WithField("fetch_status", true))
+		case "daemon_update_state", "daemonUpdateState":
+			if s.ReadNil() {
+				x.DaemonUpdateState = nil
+				return
+			}
+			x.DaemonUpdateState = &UpdateState{}
+			x.DaemonUpdateState.UnmarshalProtoJSON(s.WithField("daemon_update_state", true))
 		}
 	})
 }
@@ -1754,6 +1719,16 @@ func (x *UpdateState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("errorMessage")
 		s.WriteString(x.ErrorMessage)
 	}
+	if x.Target != 0 || s.HasField("target") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("target")
+		x.Target.MarshalProtoJSON(s)
+	}
+	if x.ArtifactManifestId != "" || s.HasField("artifactManifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("artifactManifestId")
+		s.WriteString(x.ArtifactManifestId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1786,6 +1761,12 @@ func (x *UpdateState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error_message", "errorMessage":
 			s.AddField("error_message")
 			x.ErrorMessage = s.ReadString()
+		case "target":
+			s.AddField("target")
+			x.Target.UnmarshalProtoJSON(s)
+		case "artifact_manifest_id", "artifactManifestId":
+			s.AddField("artifact_manifest_id")
+			x.ArtifactManifestId = s.ReadString()
 		}
 	})
 }
@@ -1993,66 +1974,6 @@ func (x *PushDistConfigResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the ApplyUpdateRequest message to JSON.
-func (x *ApplyUpdateRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ApplyUpdateRequest to JSON.
-func (x *ApplyUpdateRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ApplyUpdateRequest message from JSON.
-func (x *ApplyUpdateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the ApplyUpdateRequest from JSON.
-func (x *ApplyUpdateRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ApplyUpdateResponse message to JSON.
-func (x *ApplyUpdateResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ApplyUpdateResponse to JSON.
-func (x *ApplyUpdateResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ApplyUpdateResponse message from JSON.
-func (x *ApplyUpdateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the ApplyUpdateResponse from JSON.
-func (x *ApplyUpdateResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *DistConfig) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2148,6 +2069,16 @@ func (m *LauncherInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.DaemonUpdateState != nil {
+		size, err := m.DaemonUpdateState.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
 	}
 	if m.FetchStatus != nil {
 		size, err := m.FetchStatus.MarshalToSizedBufferVT(dAtA[:i])
@@ -2357,6 +2288,16 @@ func (m *UpdateState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ArtifactManifestId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ArtifactManifestId)
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Target != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Target))
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.ErrorMessage) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
@@ -2571,70 +2512,6 @@ func (m *PushDistConfigResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
-func (m *ApplyUpdateRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ApplyUpdateRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ApplyUpdateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ApplyUpdateResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ApplyUpdateResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ApplyUpdateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *DistConfig) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2674,6 +2551,10 @@ func (m *LauncherInfo) SizeVT() (n int) {
 	}
 	if m.FetchStatus != nil {
 		l = m.FetchStatus.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.DaemonUpdateState != nil {
+		l = m.DaemonUpdateState.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -2724,6 +2605,8 @@ func (m *UpdateState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.DownloadProgress)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StagedPath)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ArtifactManifestId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2779,26 +2662,6 @@ func (m *PushDistConfigResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Updated)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PrevRev)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ApplyUpdateRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ApplyUpdateResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -2884,6 +2747,10 @@ func (x *LauncherInfo) MarshalProtoText() string {
 	if x.FetchStatus != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fetch_status")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.FetchStatus)
+	}
+	if x.DaemonUpdateState != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_state")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.DaemonUpdateState)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3005,6 +2872,14 @@ func (x *UpdateState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
 		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
 	}
+	if x.Target != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
+		protobuf_go_lite.TextWriteStringer(&sb, update.UpdateTarget(x.Target))
+	}
+	if x.ArtifactManifestId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "artifact_manifest_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ArtifactManifestId)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -3079,26 +2954,6 @@ func (x *PushDistConfigResponse) MarshalProtoText() string {
 }
 
 func (x *PushDistConfigResponse) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ApplyUpdateRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ApplyUpdateRequest")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ApplyUpdateRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ApplyUpdateResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ApplyUpdateResponse")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ApplyUpdateResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3283,6 +3138,21 @@ func (m *LauncherInfo) UnmarshalVT(dAtA []byte) error {
 				m.FetchStatus = &FetchStatus{}
 			}
 			if err := m.FetchStatus.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonUpdateState", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.DaemonUpdateState == nil {
+				m.DaemonUpdateState = &UpdateState{}
+			}
+			if err := m.DaemonUpdateState.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3624,6 +3494,27 @@ func (m *UpdateState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ErrorMessage = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
+			}
+			m.Target = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Target = update.UpdateTarget(_v)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ArtifactManifestId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ArtifactManifestId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3887,92 +3778,6 @@ func (m *PushDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ApplyUpdateRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ApplyUpdateRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ApplyUpdateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ApplyUpdateResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ApplyUpdateResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ApplyUpdateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
