@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import path from 'path'
 import os from 'os'
 import fs from 'fs'
-import type { ResolvedConfig } from 'vite'
+import { build, type ResolvedConfig, type Rollup } from 'vite'
 
 import { bindDevelopmentImports } from './development-client.js'
 import {
+  createExternalRequirePlugin,
   createWebPkgRemapPlugin,
+  isExternalWebPkgImport,
   readPackageServedNameMap,
   resolveWebPkgImportURL,
 } from './plugin.js'
@@ -423,5 +425,59 @@ describe('createWebPkgRemapPlugin', () => {
     )
 
     expect(result).toEqual({ id: '/b/pkg/pkg/index.mjs', external: true })
+  })
+})
+
+describe('createExternalRequirePlugin', () => {
+  it('imports web packages required by bundled CommonJS modules', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bldr-cjs-require-'))
+    try {
+      const depRoot = path.join(root, 'node_modules', 'cjs-dep')
+      fs.mkdirSync(depRoot, { recursive: true })
+      fs.writeFileSync(
+        path.join(depRoot, 'package.json'),
+        JSON.stringify({ name: 'cjs-dep', main: 'index.js' }),
+      )
+      fs.writeFileSync(
+        path.join(depRoot, 'index.js'),
+        "module.exports = require('react').version",
+      )
+      const entry = path.join(root, 'entry.js')
+      fs.writeFileSync(
+        entry,
+        "import version from 'cjs-dep'\nexport { version }",
+      )
+
+      const output = (await build({
+        root,
+        configFile: false,
+        logLevel: 'silent',
+        plugins: [
+          createExternalRequirePlugin(['react']),
+          createWebPkgRemapPlugin({
+            webPkgIDs: ['react'],
+            webPkgImports: { react: ['index.js'] },
+          }),
+        ],
+        build: {
+          write: false,
+          minify: false,
+          lib: { entry, formats: ['es'] },
+          rolldownOptions: {
+            external: (id, importer) =>
+              isExternalWebPkgImport(['react'], id, importer),
+          },
+        },
+      })) as Rollup.RollupOutput[]
+
+      const code = output
+        .flatMap((result) => result.output)
+        .map((chunk) => (chunk.type === 'chunk' ? chunk.code : ''))
+        .join('\n')
+      expect(code).toMatch(/from ["']\/b\/pkg\/react\/index\.mjs["']/)
+      expect(code).not.toMatch(/require\(["']react["']\)/)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
   })
 })

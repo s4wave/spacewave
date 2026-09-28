@@ -1,7 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import type { Rollup } from 'vite'
-import { Plugin } from 'vite'
+import { type Plugin, type Rollup, esmExternalRequirePlugin } from 'vite'
 
 import { servedEntryName, specifierEntryNames } from './web-pkg-naming.js'
 
@@ -510,4 +509,31 @@ export function createWebPkgRemapPlugin(
       return modified ? result : null
     },
   }
+}
+
+// isExternalWebPkgImport reports whether Rolldown's external option claims an
+// import of a web package. Project sources import web packages through
+// tsconfig paths, which resolve before plugin hooks, so the option must claim
+// those imports. Installed dependencies are left to the external require
+// plugin, which converts their CommonJS require() calls into imports; the
+// option would otherwise claim those calls first and leave them unconverted.
+export function isExternalWebPkgImport(
+  webPkgIDs: string[],
+  id: string,
+  importer: string | undefined,
+): boolean {
+  if (importer && /[\\/]node_modules[\\/]/.test(importer)) return false
+  return webPkgIDs.some((pkg) => id === pkg || id.startsWith(pkg + '/'))
+}
+
+// createExternalRequirePlugin externalizes web packages and rewrites CommonJS
+// require() calls of them into ESM imports. Web packages load as external ES
+// modules, so a bundled CommonJS dependency such as react-compiler-runtime
+// would otherwise call a require() the browser does not provide.
+export function createExternalRequirePlugin(webPkgIDs: string[]): Plugin {
+  return esmExternalRequirePlugin({
+    external: webPkgIDs.map(
+      (pkg) => new RegExp(`^${escapeRegExp(pkg)}(?:/.*)?$`),
+    ),
+  }) as Plugin
 }

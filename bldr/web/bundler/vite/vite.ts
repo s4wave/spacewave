@@ -34,10 +34,14 @@ import {
   isBundleError,
   isRollupError,
 } from './build.js'
-import { createWebPkgRemapPlugin, readPackageRootServedName } from './plugin.js'
+import {
+  createExternalRequirePlugin,
+  createWebPkgRemapPlugin,
+  isExternalWebPkgImport,
+  readPackageRootServedName,
+} from './plugin.js'
 import {
   build as viteBuild,
-  esmExternalRequirePlugin,
   type UserConfig,
   type InlineConfig,
   type Rollup,
@@ -285,9 +289,10 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // served at /b/pkg/ URLs, specifiers rewritten by the bldr-pkg-resolve
     // plugin's renderChunk hook.
     //
-    // Both must use rolldownOptions.external because Rolldown's built-in
-    // vite-resolve plugin resolves tsconfig paths before user plugin resolveId
-    // hooks fire.
+    // Project imports of both must use rolldownOptions.external because
+    // Rolldown's built-in vite-resolve plugin resolves tsconfig paths before
+    // user plugin resolveId hooks fire. The external require plugin owns
+    // imports from installed dependencies.
     const externalPkgs = request.externalPkgs ?? []
     const webPkgIDs: string[] = (request.webPkgs ?? []).flatMap((pkg) =>
       pkg.id ? [pkg.id] : [],
@@ -328,14 +333,13 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // resolution. Vite 8 resolves tsconfig aliases before the package remap
     // plugin's resolveId hook, so web package IDs must be externalized here and
     // then rewritten by renderChunk.
-    if (externalPkgs.length > 0 || webPkgIDs.length > 0) {
-      mergedConfig.build.rolldownOptions.external = (id: string) => {
+    const allExternal = [...externalPkgs, ...webPkgIDs]
+    if (allExternal.length > 0) {
+      mergedConfig.build.rolldownOptions.external = (id, importer) => {
         if (assetExts.some((ext) => id.endsWith(ext))) {
           return false
         }
-        return [...externalPkgs, ...webPkgIDs].some(
-          (pkg) => id === pkg || id.startsWith(pkg + '/'),
-        )
+        return isExternalWebPkgImport(allExternal, id, importer)
       }
     }
 
@@ -361,6 +365,9 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     }
     mergedConfig.plugins.push(
       createWorkerSafeModulePreloadPlugin(),
+      ...(allExternal.length > 0
+        ? [createExternalRequirePlugin(allExternal)]
+        : []),
       createWebPkgRemapPlugin({
         webPkgIDs,
         preserveWebPkgIDs: externalPkgs,
@@ -614,26 +621,14 @@ async function buildWebPkg(
       // Disable config file lookup for web pkg builds.
       configFile: false,
 
-      // Convert require() calls for external packages to ESM imports
-      // and handle externalization. The esmExternalRequirePlugin MUST be
-      // the sole externalizer for these packages: if they also appear in
-      // rolldownOptions.external, Rolldown's built-in external resolution
-      // runs first and the plugin never sees ImportKind::Require calls.
-      // Also remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
+      // The external require plugin is the sole externalizer for these
+      // packages and converts their require() calls to ESM imports. Also
+      // remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
         goTsResolver(projectRoot, distRoot),
         createWorkerSafeModulePreloadPlugin(),
         ...(allExternal.length > 0
-          ? [
-              esmExternalRequirePlugin({
-                external: allExternal.map(
-                  (pkg) =>
-                    new RegExp(
-                      `^${pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\/.*)?$`,
-                    ),
-                ),
-              }),
-            ]
+          ? [createExternalRequirePlugin(allExternal)]
           : []),
         ...(remapSiblingIds.length > 0
           ? [
