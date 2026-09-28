@@ -6,27 +6,29 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { SpaceRootKind, SpaceRootOpenMode } from '@s4wave/sdk/root/root.pb.js'
 
 // useAddSpaceRootAlias opens the native directory picker and persists a root alias.
+// add resolves to the new alias id, or null when nothing was added.
 export function useAddSpaceRootAlias() {
   const rootResource = useRootResource()
   const root = rootResource.value
   const [adding, setAdding] = useState(false)
   const canAdd = isDesktop && !!root && !adding
 
-  const add = useCallback(async () => {
+  const add = useCallback(async (): Promise<string | null> => {
     if (!isDesktop) {
       toast.error('Desktop app required', {
         description: 'State root loading is available in the desktop app.',
       })
-      return
+      return null
     }
-    if (!root || adding) return
+    if (!root || adding) return null
     setAdding(true)
     try {
       const path = await openElectronDirectory()
-      if (!path) return
+      if (!path) return null
+      const aliasId = aliasIdFromPath(path)
       await root.upsertSpaceRootAlias({
         record: {
-          aliasId: aliasIdFromPath(path),
+          aliasId,
           displayName: pathBaseName(path),
           kind: SpaceRootKind.SpaceRootKind_NATIVE_DIRECTORY,
           openMode: SpaceRootOpenMode.SpaceRootOpenMode_OPEN_EXISTING,
@@ -34,8 +36,10 @@ export function useAddSpaceRootAlias() {
         },
       })
       toast.success('State root added', { description: path })
+      return aliasId
     } catch (err) {
       toast.error('Could not add state root', { description: String(err) })
+      return null
     } finally {
       setAdding(false)
     }

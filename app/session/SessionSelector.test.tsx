@@ -3,12 +3,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
+import {
+  SpaceRootStatus,
+  type SpaceRootAliasRecord,
+} from '@s4wave/sdk/root/root.pb.js'
 import { SessionSelector } from './SessionSelector.js'
 
 const mockUseSessionList = vi.hoisted(() => vi.fn())
 const mockUseSessionMetadata = vi.hoisted(() => vi.fn())
 const mockUseSessionAccountStatuses = vi.hoisted(() => vi.fn())
 const mockNavigate = vi.hoisted(() => vi.fn())
+const mockUseSpaceRootAliases = vi.hoisted(() =>
+  vi.fn(() => ({
+    loading: false,
+    value: { records: [] as SpaceRootAliasRecord[] },
+  })),
+)
+const mockUseSpaceRootRuntime = vi.hoisted(() =>
+  vi.fn((_aliasId: string | null) => ({ loading: false, value: null })),
+)
 
 vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
   useSessionList: mockUseSessionList,
@@ -20,6 +33,14 @@ vi.mock('@s4wave/app/hooks/useSessionMetadata.js', () => ({
 
 vi.mock('@s4wave/app/hooks/useSessionAccountStatuses.js', () => ({
   useSessionAccountStatuses: mockUseSessionAccountStatuses,
+}))
+
+vi.mock('@s4wave/app/hooks/useSpaceRootAliases.js', () => ({
+  useSpaceRootAliases: mockUseSpaceRootAliases,
+}))
+
+vi.mock('@s4wave/app/hooks/useSpaceRootRuntime.js', () => ({
+  useSpaceRootRuntime: mockUseSpaceRootRuntime,
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
@@ -52,6 +73,34 @@ afterEach(() => {
 })
 
 describe('SessionSelector', () => {
+  it('opens the first ready state root when there are no local sessions', () => {
+    mockUseSessionList.mockReturnValue({
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+      value: { sessions: [] },
+    })
+    mockUseSessionAccountStatuses.mockReturnValue(new Map())
+    mockUseSpaceRootAliases.mockReturnValue({
+      loading: false,
+      value: {
+        records: [
+          {
+            aliasId: 'spacewave',
+            displayName: '.spacewave',
+            status: SpaceRootStatus.SpaceRootStatus_READY,
+            native: { path: '/home/user/.spacewave' },
+          },
+        ],
+      },
+    })
+
+    render(<SessionSelector />)
+
+    expect(screen.getByText('.spacewave')).toBeTruthy()
+    expect(mockUseSpaceRootRuntime).toHaveBeenLastCalledWith('spacewave')
+  })
+
   it('renders an inactive pill for dormant cloud sessions', () => {
     mockUseSessionList.mockReturnValue({
       loading: false,

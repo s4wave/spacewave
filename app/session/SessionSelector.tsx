@@ -46,9 +46,16 @@ export function SessionSelector() {
   const accountStatuses = useSessionAccountStatuses()
   const navigate = useNavigate()
   const sessions = resource.value?.sessions ?? []
-  const [selectedRootAliasId, setSelectedRootAliasId] = useState<string | null>(
+  const rootRecords = rootAliases.value?.records ?? []
+  const [chosenRootAliasId, setSelectedRootAliasId] = useState<string | null>(
     null,
   )
+  // Without local sessions, the first ready root is the only thing to show.
+  const selectedRootAliasId =
+    chosenRootAliasId ??
+    (sessions.length === 0
+      ? (rootRecords.find(isRootAliasReady)?.aliasId ?? null)
+      : null)
   const selectedRootRuntime = useSpaceRootRuntime(selectedRootAliasId)
 
   const handleAddAccount = useCallback(() => {
@@ -59,7 +66,7 @@ export function SessionSelector() {
     navigate({ path: '/landing' })
   }, [navigate])
 
-  if (resource.loading) {
+  if (resource.loading || (sessions.length === 0 && rootAliases.loading)) {
     return (
       <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
         <div className="w-full max-w-sm">
@@ -92,7 +99,7 @@ export function SessionSelector() {
     )
   }
 
-  if (sessions.length === 0) {
+  if (sessions.length === 0 && rootRecords.length === 0) {
     return <NavigatePath to="/landing" replace />
   }
 
@@ -124,7 +131,7 @@ export function SessionSelector() {
         </div>
 
         <div className="mt-4 w-full max-w-md space-y-2">
-          {(rootAliases.value?.records ?? []).map((record) => (
+          {rootRecords.map((record) => (
             <SpaceRootAliasCard
               key={record.aliasId}
               record={record}
@@ -146,7 +153,9 @@ export function SessionSelector() {
           <Button
             variant="outline"
             onClick={() => {
-              void addRootAlias.add()
+              void addRootAlias.add().then((aliasId) => {
+                if (aliasId) setSelectedRootAliasId(aliasId)
+              })
             }}
             disabled={!addRootAlias.canAdd}
           >
@@ -187,9 +196,7 @@ function SpaceRootAliasCard(props: {
   const rootResource = useRootResource()
   const root = rootResource.value
   const [removing, setRemoving] = useState(false)
-  const ready =
-    record.status === SpaceRootStatus.SpaceRootStatus_READY ||
-    record.status === SpaceRootStatus.SpaceRootStatus_UNKNOWN
+  const ready = isRootAliasReady(record)
   const path = record.native?.path ?? ''
 
   const handleRemove = useCallback(async () => {
@@ -253,6 +260,14 @@ function SpaceRootAliasCard(props: {
         <LuTrash2 className="size-4" />
       </Button>
     </div>
+  )
+}
+
+// isRootAliasReady reports whether a configured root can be opened.
+function isRootAliasReady(record: SpaceRootAliasRecord): boolean {
+  return (
+    record.status === SpaceRootStatus.SpaceRootStatus_READY ||
+    record.status === SpaceRootStatus.SpaceRootStatus_UNKNOWN
   )
 }
 

@@ -169,7 +169,11 @@ export function AppLogin({
           )}
         >
           <button
-            onClick={() => void addRootAlias.add()}
+            onClick={() => {
+              void addRootAlias.add().then((aliasId) => {
+                if (aliasId) navigate({ path: '/sessions' })
+              })
+            }}
             disabled={!addRootAlias.canAdd}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
           >

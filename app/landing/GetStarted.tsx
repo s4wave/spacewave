@@ -65,9 +65,10 @@ const GetStartedItem = ({ item }: { item: QuickstartOption }) => {
 
 function AddStateRootItem() {
   const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
-  const handleClick = useCallback(() => {
-    void addRootAlias()
-  }, [addRootAlias])
+  const navigate = useNavigate()
+  const handleClick = useCallback(async () => {
+    if (await addRootAlias()) navigate({ path: '/sessions' })
+  }, [addRootAlias, navigate])
 
   return (
     <CommandItem
