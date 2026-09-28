@@ -202,15 +202,23 @@ function synthesizeManifest(
   return manifest
 }
 
+// isVirtualModuleId reports whether a module id names a plugin-generated
+// module rather than a source file. Vite and Rolldown builtin plugins emit ids
+// such as __vite-browser-external and builtin:esm-external-require-react.
+export function isVirtualModuleId(id: string): boolean {
+  return (
+    id.startsWith('\x00') ||
+    id.startsWith('__vite-browser-external') ||
+    id.startsWith('builtin:')
+  )
+}
+
 // normalizeModuleId returns a source-relative path and excludes virtual modules.
 function normalizeModuleId(id: string, rootDir: string): string | null {
-  if (id.startsWith('\x00')) {
+  if (isVirtualModuleId(id)) {
     return null
   }
   const withoutQuery = id.split('?')[0]
-  if (withoutQuery.startsWith('__vite-browser-external')) {
-    return null
-  }
 
   let relPath = withoutQuery
   if (path.isAbsolute(withoutQuery)) {

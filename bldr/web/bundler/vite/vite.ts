@@ -33,6 +33,7 @@ import {
   createSilentViteLogger,
   isBundleError,
   isRollupError,
+  isVirtualModuleId,
 } from './build.js'
 import {
   createExternalRequirePlugin,
@@ -147,10 +148,7 @@ function resolveTrackedSourceFile(
   pkgRoot: string,
   moduleId: string,
 ): string | null {
-  if (moduleId.startsWith('\x00')) {
-    return null
-  }
-  if (moduleId.startsWith('__vite-browser-external')) {
+  if (isVirtualModuleId(moduleId)) {
     return null
   }
 

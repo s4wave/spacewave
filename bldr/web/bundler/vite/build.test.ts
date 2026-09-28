@@ -340,7 +340,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       expect(entryA!.outputs.css).not.toContain('assets/opfs-worker-hash.js')
     })
 
-    it('should ignore synthetic vite external module ids', async () => {
+    it('should ignore synthetic vite and rolldown module ids', async () => {
       const manifest = {
         'A.tsx': {
           file: 'assets/A-hash123.mjs',
@@ -364,6 +364,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
             path.join(testDir, 'A.tsx'),
             '__vite-browser-external',
             '__vite-browser-external?commonjs-proxy',
+            'builtin:esm-external-require-react',
           ],
           code: '',
           dynamicImports: [],
@@ -386,7 +387,7 @@ describe('Vite Build - Transitive Dependency Tracking', () => {
       const entryA = analysis.entrypointOutputs[0]
 
       expect(entryA.inputs).toContain('A.tsx')
-      expect(entryA.inputs).not.toContain('__vite-browser-external')
+      expect(entryA.inputs).toEqual(['A.tsx'])
     })
 
     it('should normalize escaped relative module ids back into the repo root', async () => {
