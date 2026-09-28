@@ -219,39 +219,42 @@ describe('session dashboard browser render', () => {
     await cleanup()
   })
 
-  it('gives Space and Drive copy actions phone-sized hit areas', async () => {
-    await page.viewport(390, 844)
-    const onSpaceClick = vi.fn()
+  touchTest(
+    'gives Space and Drive copy actions phone-sized hit areas',
+    async () => {
+      await page.viewport(390, 844)
+      const onSpaceClick = vi.fn()
 
-    // Render both ID actions in the same dashboard list.
-    await render(
-      <SessionDashboardSurface
-        onSpaceClick={onSpaceClick}
-        spaces={[
-          { id: 'space-1', name: 'My Space' },
-          { id: 'drive-1', name: 'My Drive' },
-        ]}
-      />,
-    )
+      // Render both ID actions in the same dashboard list.
+      await render(
+        <SessionDashboardSurface
+          onSpaceClick={onSpaceClick}
+          spaces={[
+            { id: 'space-1', name: 'My Space' },
+            { id: 'drive-1', name: 'My Drive' },
+          ]}
+        />,
+      )
 
-    // Measure the actual buttons and keep the document inside the viewport.
-    for (const name of ['Copy My Space ID', 'Copy My Drive ID']) {
-      const button = page.getByRole('button', { name }).element()
-      expect(button).not.toBeNull()
-      const bounds = button!.getBoundingClientRect()
-      expect(bounds.width).toBeGreaterThanOrEqual(44)
-      expect(bounds.height).toBeGreaterThanOrEqual(44)
-    }
-    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
-      window.innerWidth,
-    )
+      // Measure the actual buttons and keep the document inside the viewport.
+      for (const name of ['Copy My Space ID', 'Copy My Drive ID']) {
+        const button = page.getByRole('button', { name }).element()
+        expect(button).not.toBeNull()
+        const bounds = button!.getBoundingClientRect()
+        expect(bounds.width).toBeGreaterThanOrEqual(44)
+        expect(bounds.height).toBeGreaterThanOrEqual(44)
+      }
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+        window.innerWidth,
+      )
 
-    // Copy remains independent of selecting its parent Space row.
-    await capture('space-drive-copy-narrow')
-    await page.getByRole('button', { name: 'Copy My Space ID' }).click()
-    expect(onSpaceClick).not.toHaveBeenCalled()
-    await cleanup()
-  })
+      // Copy remains independent of selecting its parent Space row.
+      await capture('space-drive-copy-narrow')
+      await page.getByRole('button', { name: 'Copy My Space ID' }).click()
+      expect(onSpaceClick).not.toHaveBeenCalled()
+      await cleanup()
+    },
+  )
 
   it('keeps both copy actions reachable by scrolling in touch landscape', async () => {
     await page.viewport(844, 390)

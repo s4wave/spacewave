@@ -50,7 +50,7 @@ export function CollapsibleSection({
       >
         <div
           className={cn(
-            'hover:bg-background-card/50 flex min-h-11 items-center gap-2 transition-colors sm:fine-pointer:min-h-0',
+            'hover:bg-background-card/50 flex min-h-11 items-center gap-2 transition-colors fine-pointer:min-h-0',
             compact ? 'px-2.5 sm:py-1.5' : 'px-3.5 sm:py-2.5',
             open && 'border-foreground/6 border-b',
           )}
@@ -60,7 +60,7 @@ export function CollapsibleSection({
               type="button"
               onClick={toggle}
               className={cn(
-                'flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left sm:fine-pointer:min-h-0',
+                'flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left fine-pointer:min-h-0',
                 compact ? 'sm:-my-1.5 sm:py-1.5' : 'sm:-my-2.5 sm:py-2.5',
               )}
             >
@@ -82,7 +82,7 @@ export function CollapsibleSection({
             </button>
           </Collapsible.Trigger>
           {headerActions && (
-            <div className="sm:fine-pointer:[&_button]:min-h-0 sm:fine-pointer:[&_button]:min-w-0 flex shrink-0 items-center [&_button]:min-h-11 [&_button]:min-w-11">
+            <div className="fine-pointer:[&_button]:min-h-0 fine-pointer:[&_button]:min-w-0 flex shrink-0 items-center [&_button]:min-h-11 [&_button]:min-w-11">
               {headerActions}
             </div>
           )}

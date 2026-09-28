@@ -88,7 +88,7 @@ const MENU_COLLAPSE_WIDTH = 640
 
 // Keep this query aligned with the phone shell rules in web/style/app.css.
 const PHONE_SHELL_QUERY =
-  '(max-width: 640px), (max-height: 470px) and (hover: none) and (pointer: coarse)'
+  '(max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)'
 
 function subscribePhoneShell(listener: () => void) {
   const media = window.matchMedia(PHONE_SHELL_QUERY)

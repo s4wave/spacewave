@@ -44,7 +44,7 @@ export function DashboardButton({
       size="sm"
       className={cn(
         dashboardButtonVariants({ variant }),
-        'min-h-11 min-w-11 whitespace-normal sm:fine-pointer:min-h-0 sm:fine-pointer:min-w-0 sm:whitespace-nowrap',
+        'min-h-11 min-w-11 whitespace-normal fine-pointer:min-h-0 fine-pointer:min-w-0 sm:whitespace-nowrap',
         className,
       )}
       {...props}

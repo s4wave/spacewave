@@ -2547,6 +2547,11 @@ body,
   opacity: 0;
 }
 
+/* The collapsed menu stays reachable through the compact menu button. */
+.shell-menu-bar-overlay[data-menu-collapsed='true'] .shell-menu-mobile {
+  display: flex;
+}
+
 /* Each shell owns its chrome, including shells mounted inside another tab.
  * Tab children start the next surface and are outside this layout scope. */
 @scope (.shell-flexlayout) to (.flexlayout__tab > *) {
@@ -2869,8 +2874,9 @@ body,
 
 /* end of shell flexlayout styles */
 
-/* Phone workbench chrome keeps the familiar compact icons inside full touch targets. */
-@media (max-width: 640px),
+/* Phone workbench chrome keeps the familiar compact icons inside full touch
+   targets. A narrow window with a mouse keeps the desktop chrome. */
+@media (max-width: 640px) and (pointer: coarse),
   (max-height: 470px) and (hover: none) and (pointer: coarse) {
   .shell-menu-bar {
     padding-left: 0;
@@ -2882,8 +2888,7 @@ body,
     margin-top: 0;
   }
 
-  .shell-menu-mobile,
-  .shell-menu-bar-overlay[data-menu-collapsed='true'] .shell-menu-mobile {
+  .shell-menu-mobile {
     display: flex;
   }
 

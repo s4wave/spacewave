@@ -111,7 +111,7 @@ export function Toolbar({
       ref={toolbarRef}
       variant="compact"
       height={height}
-      className="max-sm:min-h-11 [@media(pointer:coarse)]:min-h-11"
+      className="[@media(pointer:coarse)]:min-h-11"
     >
       {showNav && (
         <div className="flex items-center gap-0.5">
@@ -240,7 +240,7 @@ function NavIconButton({
       title={label}
       aria-label={label}
       className={cn(
-        'flex size-6 items-center justify-center rounded transition-colors max-sm:size-11 [@media(pointer:coarse)]:size-11',
+        'flex size-6 items-center justify-center rounded transition-colors [@media(pointer:coarse)]:size-11',
         disabled
           ? 'text-foreground-alt/30 cursor-default'
           : 'text-foreground-alt hover:text-foreground hover:bg-foreground/5',
@@ -292,7 +292,7 @@ function OverflowMenu({
         <button
           type="button"
           aria-label="More actions"
-          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors max-sm:size-11 [@media(pointer:coarse)]:size-11"
+          className="text-foreground-alt hover:text-foreground hover:bg-foreground/5 flex size-6 items-center justify-center rounded transition-colors [@media(pointer:coarse)]:size-11"
         >
           <LuEllipsisVertical className="size-4" />
         </button>
