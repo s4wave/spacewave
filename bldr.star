@@ -171,13 +171,16 @@ def spacewave_launcher_controller_config(
         endpoints=[{"url": PRODUCTION_RELEASE_CONFIG_URL}],
         refetch_dur="1h",
         init_dist_config="",
-        disable_endpoint_fetch=False):
+        disable_endpoint_fetch=False,
+        channel_key=""):
     conf = {
         "projectId": "spacewave",
         # Public defaults are production-only. Release-owned overlays replace
         # endpoints and distPeerIds for other release environments.
         "distPeerIds": dist_peer_ids,
     }
+    if channel_key:
+        conf["channelKey"] = channel_key
     if not disable_endpoint_fetch:
         conf["endpoints"] = endpoints
     if disable_endpoint_fetch:
@@ -404,9 +407,11 @@ manifest("spacewave-loader",
     },
 )
 
+SPACEWAVE_CORE_MANIFEST_REV = 13
+
 manifest("spacewave-core",
     builder="bldr/plugin/compiler/go",
-    rev=13,
+    rev=SPACEWAVE_CORE_MANIFEST_REV,
     config=spacewave_core_config(),
 )
 
@@ -599,12 +604,12 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None):
+def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None, channel_key="stable"):
     conf = dist_compiler_config(
         composePackage="./cmd/spacewave/compose",
         embedManifests=embed_manifests,
         entrypointRole=entrypoint_role,
-        channelKey="stable",
+        channelKey=channel_key,
         loadPlugins=load_plugins,
         loadWebStartup=WEB_STARTUP,
     )
@@ -915,7 +920,7 @@ RELEASE_HOSTS = [
     ("desktop-windows-amd64", "desktop/windows/amd64"),
 ]
 
-def define_release_build(host_key, platform_id):
+def define_release_build(host_key, platform_id, channel_key="stable"):
     desktop_embed_manifests = [
         {"manifestId": "spacewave-launcher",
          "platformId": platform_id},
@@ -927,6 +932,7 @@ def define_release_build(host_key, platform_id):
             "spacewave-dist": dist_release_config(
                 desktop_embed_manifests,
                 DESKTOP_RELEASE_LOAD_PLUGINS,
+                channel_key=channel_key,
             ),
         },
     )
@@ -939,7 +945,7 @@ for host_key, platform_id in RELEASE_HOSTS:
 # `spacewave-cli` dist entrypoint for the matching host. The terminal path
 # loads the same release-world product plugin surface as desktop, but omits the
 # native helper-window loader so CLI startup owns progress and failure output.
-for host_key, platform_id in RELEASE_HOSTS:
+def define_release_cli_build(host_key, platform_id, channel_key="stable"):
     cli_host_key = host_key.replace("desktop-", "")
     cli_embed_manifests = [
         {"manifestId": "spacewave-launcher",
@@ -953,9 +959,76 @@ for host_key, platform_id in RELEASE_HOSTS:
                 cli_embed_manifests,
                 CLI_RELEASE_LOAD_PLUGINS,
                 entrypoint_role="cli",
+                channel_key=channel_key,
             ),
         },
     )
+
+for host_key, platform_id in RELEASE_HOSTS:
+    define_release_cli_build(host_key, platform_id)
+
+# The release repository supplies public environment values through this one
+# overlay contract. Native and browser producers retain the source-owned
+# controller factories and build shapes while replacing release authority.
+def apply_release_environment(
+        channel_key,
+        signer_peer_id,
+        worker_endpoint,
+        account_endpoint,
+        signing_env_prefix,
+        world_space_id,
+        cdn_base_url,
+        web_go_compiler=None):
+    core = spacewave_core_config(web_go_compiler=web_go_compiler)
+    include_export = web_go_compiler != "GO_COMPILER_GOSCRIPT"
+    core["goPkgs"] = core_go_pkgs(include_export=include_export)
+    core["configSet"] = core_config_set(
+        include_export=include_export,
+        cloud_api_endpoint=worker_endpoint,
+        account_endpoint=account_endpoint,
+        signing_env_prefix=signing_env_prefix,
+    )
+    core["configSet"]["provider-spacewave"] = config_entry("provider/spacewave", 2, {
+        "endpoint": worker_endpoint,
+        "accountEndpoint": account_endpoint,
+        "publicBaseUrl": worker_endpoint,
+        "signingEnvPrefix": signing_env_prefix,
+    })
+    manifest("spacewave-core", builder="bldr/plugin/compiler/go",
+        rev=SPACEWAVE_CORE_MANIFEST_REV, config=core)
+
+    native = web_go_compiler == None
+    launcher = spacewave_launcher_config(
+        launcher_controller_config=spacewave_launcher_controller_config(
+            dist_peer_ids=[signer_peer_id],
+            endpoints=[{"url": worker_endpoint.rstrip("/") + "/api/release/config"}],
+            channel_key=channel_key,
+        ),
+        web_go_compiler=web_go_compiler,
+        include_release_world=native,
+    )
+    launcher["hostConfigSet"] = release_world_config_set(
+        space_id=world_space_id, cdn_base_url=cdn_base_url, cache_block_store_id="dist")
+    if native:
+        launcher["configSet"].update(release_world_reader_config_set(
+            space_id=world_space_id, cdn_base_url=cdn_base_url))
+        launcher["hostConfigSet"].update(release_world_serve_config_set())
+    manifest("spacewave-launcher", builder="bldr/plugin/compiler/go", rev=1, config=launcher)
+
+    if native:
+        for host_key, platform_id in RELEASE_HOSTS:
+            define_release_build(host_key, platform_id, channel_key=channel_key)
+            define_release_cli_build(host_key, platform_id, channel_key=channel_key)
+    if not native:
+        build("release-web", manifests=BROWSER_RELEASE_MANIFESTS, targets=["browser"],
+            manifestOverrides={
+                "spacewave-browser": dist_release_config(
+                    BROWSER_RELEASE_EMBED_MANIFESTS, BROWSER_RELEASE_LOAD_PLUGINS,
+                    entrypoint_role="browser", go_compiler=web_go_compiler,
+                    channel_key=channel_key,
+                ),
+            },
+        )
 
 # Per-host plugin releases include the Electron host needed to load the UI.
 # Shared JavaScript manifests are built once by plugin-release-browser.

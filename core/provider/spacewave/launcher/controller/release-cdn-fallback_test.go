@@ -20,12 +20,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore_controller "github.com/s4wave/spacewave/core/cdn/bstore/controller"
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
@@ -46,7 +44,9 @@ const (
 	releaseCDNFallbackCacheStoreID = "dist/spacewave"
 )
 
-func TestSignedDistConfigAppliesReleaseCDNBlockFallbackWithWriteback(t *testing.T) {
+// TestHostConfigAppliesReleaseCDNBlockFallbackWithWriteback exercises the
+// producer-owned CDN transport and its durable writeback cache.
+func TestHostConfigAppliesReleaseCDNBlockFallbackWithWriteback(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -97,32 +97,17 @@ func TestSignedDistConfigAppliesReleaseCDNBlockFallbackWithWriteback(t *testing.
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ctrl := &Controller{
-		le:  le,
-		bus: b,
-		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
-			&spacewave_launcher.LauncherInfo{
-				DistConfig: &spacewave_launcher.DistConfig{
-					ProjectId:         "spacewave",
-					Rev:               1,
-					ChannelKey:        "stable",
-					LauncherConfigSet: launcherConfigSet,
-				},
-			},
-		),
+	// The producer installs this configuration on the host; signed runtime
+	// config no longer creates a competing Release World transport.
+	cs, err := configset_proto.ConfigSetMap(launcherConfigSet).Resolve(ctx, b)
+	if err != nil {
+		t.Fatal(err)
 	}
-	applyCtx, applyCancel := context.WithCancel(ctx)
-	defer applyCancel()
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- ctrl.applyDistConfigSet(applyCtx)
-	}()
-	defer func() {
-		applyCancel()
-		if err := <-errCh; err != context.Canceled {
-			t.Fatalf("applyDistConfigSet() error = %v, want context.Canceled", err)
-		}
-	}()
+	_, refConfig, err := b.AddDirective(configset.NewApplyConfigSet(cs), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer refConfig.Release()
 
 	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, b, releaseCDNFallbackStoreID, false, nil)
 	if err != nil {

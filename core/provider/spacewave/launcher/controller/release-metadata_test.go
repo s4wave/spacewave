@@ -30,6 +30,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -959,6 +960,11 @@ func (c *releaseWorldLookupTestController) HandleDirective(
 
 type releaseWorldTestEngine struct {
 	world.WorldState
+}
+
+// OperationAuthor identifies this unsigned, read-only release fixture.
+func (e *releaseWorldTestEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
+	return "", "", nil
 }
 
 func (e *releaseWorldTestEngine) NewTransaction(context.Context, bool) (world.Tx, error) {

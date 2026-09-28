@@ -78,8 +78,8 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 	defer providerRel()
 
 	host := &blockingPluginHost{
-		testPluginHost: testPluginHost{id: platformID},
-		started:        make(chan struct{}),
+		id:      platformID,
+		started: make(chan struct{}),
 	}
 	hostRel, err := tb.Bus.AddController(ctx, plugin_host_controller.NewController(
 		le,

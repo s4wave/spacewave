@@ -55,7 +55,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		run := &execution{worker: worker, start: make(chan bool, 1), closed: make(chan struct{}), activation: &candidateActivation{activated: make(chan struct{})}}
 		return func(ctx context.Context) error {
 			defer close(run.closed)
-			defer worker.updateRpcClient(nil)
+			defer worker.finishExecution(nil)
 			started <- run
 			select {
 			case <-ctx.Done():

@@ -63,7 +63,19 @@ func (c *Config) ParseInitDistConfig(projectID string, signerPeerIDs []peer.ID) 
 	if len(initDistConfTxt) == 0 {
 		return nil, "", "", nil
 	}
-	return spacewave_launcher.ParseDistConfigPackedMsg(nil, []byte(initDistConfTxt), signerPeerIDs, projectID)
+	distConfig, confMsg, confPeerID, err = spacewave_launcher.ParseDistConfigPackedMsg(nil, []byte(initDistConfTxt), signerPeerIDs, projectID)
+	if err == nil {
+		err = c.ValidateDistChannel(distConfig)
+	}
+	return
+}
+
+// ValidateDistChannel restricts a verified config to the producer's release channel.
+func (c *Config) ValidateDistChannel(conf *spacewave_launcher.DistConfig) error {
+	if expected := c.GetChannelKey(); expected != "" && conf.ResolvedChannelKey() != expected {
+		return errors.Errorf("dist config channel %q does not match host channel %q", conf.ResolvedChannelKey(), expected)
+	}
+	return nil
 }
 
 // CloneSortEndpoints returns a copy of endpoints compacted + sorted.

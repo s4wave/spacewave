@@ -277,6 +277,8 @@ jobs:
           BLDR_MACOS_SIGN_OPTIONS: ${{ vars.BLDR_MACOS_SIGN_OPTIONS }}
         run: |
           set -euo pipefail
+          BLDR_CONFIG="$(go run ./cmd/release-config)"
+          export BLDR_CONFIG
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-darwin-arm64,plugin-release-desktop-darwin-amd64
 
       - name: Verify macOS signatures
@@ -471,7 +473,7 @@ jobs:
       - name: Check Windows renderer and dependency cache
         shell: pwsh
         run: |
-          go test -timeout=2m ./bldr/util/npm ./bldr/web/entrypoint/electron/bundle -run 'TestEnsureBunAddIsolatesDownloads|TestBuildRendererBundleUsesSelfContainedDistEntrypoint'
+          go test -timeout=110s ./bldr/util/npm ./bldr/web/entrypoint/electron/bundle -run 'TestEnsureBunAddIsolatesDownloads|TestBuildRendererBundleUsesSelfContainedDistEntrypoint'
           if ($LASTEXITCODE -ne 0) { throw "Windows renderer checks failed: $LASTEXITCODE" }
 
       # Staging leaves Windows binaries unsigned: its developer machines
@@ -483,6 +485,8 @@ jobs:
           BLDR_WINDOWS_SIGN_ACCOUNT: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_WINDOWS_SIGN_ACCOUNT || '' }}
           BLDR_WINDOWS_SIGN_ENDPOINT: ${{ needs.prep.outputs.sign_artifacts == 'true' && vars.BLDR_WINDOWS_SIGN_ENDPOINT || '' }}
         run: |
+          $env:BLDR_CONFIG = go run ./cmd/release-config
+          if ($LASTEXITCODE -ne 0) { throw "Release overlay failed: $LASTEXITCODE" }
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-windows-arm64,plugin-release-desktop-windows-amd64
 
       - name: Verify Windows signatures
@@ -563,6 +567,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          BLDR_CONFIG="$(go run ./cmd/release-config)"
+          export BLDR_CONFIG
           bun run bldr -- --build-type=release --watch=false build -b plugin-release-desktop-linux-arm64,plugin-release-desktop-linux-amd64
 
       - name: Upload plugin world state

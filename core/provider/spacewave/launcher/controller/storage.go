@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/pkg/errors"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/localdist"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -59,8 +58,8 @@ func (c *Controller) parseDistConf(distConfDat []byte) (*spacewave_launcher.Dist
 		c.distPeerIDs,
 		c.conf.GetProjectId(),
 	)
-	if err == nil && distConf.GetProjectId() != c.conf.GetProjectId() {
-		err = errors.Errorf("dist conf project id mismatch: %s != expected %s", distConf.GetProjectId(), c.conf.GetProjectId())
+	if err == nil {
+		err = c.conf.ValidateDistChannel(distConf)
 	}
 	if err != nil {
 		return nil, "", "", err

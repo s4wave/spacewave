@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 )
 
 // executionReference identifies a candidate and its registration startup mode.
@@ -36,6 +37,16 @@ func (t *pluginInstance) newExecution(key executionReference) (keyed.Routine, *p
 // An admitted worker survives failed replacements without restarting or falling back.
 func (t *pluginInstance) execSelectedPlugin(ctx context.Context, args *executePluginArgs) error {
 	err := t.execSelectedCandidate(ctx, args, false)
+	// A proven protocol mismatch is terminal for this selected manifest. Returning
+	// nil stops backoff retries; the selection routine restarts on a changed manifest.
+	var protocolErr *plugin_host.StartupProtocolError
+	if errors.As(err, &protocolErr) {
+		t.stopStartupWaitBudget()
+		if t.runningPluginCtr.GetValue() == nil {
+			t.finishExecution(err)
+		}
+		return nil
+	}
 	if args == nil {
 		return err
 	}
@@ -44,6 +55,13 @@ func (t *pluginInstance) execSelectedPlugin(ctx context.Context, args *executePl
 			return err
 		}
 		err = t.execSelectedCandidate(ctx, fallback, true)
+		if errors.As(err, &protocolErr) {
+			t.stopStartupWaitBudget()
+			if t.runningPluginCtr.GetValue() == nil {
+				t.finishExecution(err)
+			}
+			return nil
+		}
 	}
 	return err
 }
@@ -102,6 +120,9 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 	}
 	state, err := worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
 		if state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed {
+			if err := state.GetStartupError(); err != nil {
+				return false, err
+			}
 			return false, errors.New("plugin exited before completing startup")
 		}
 		return state.GetRunningPlugin() != nil, nil

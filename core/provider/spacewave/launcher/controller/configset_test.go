@@ -100,7 +100,7 @@ func TestFilterBrowserLauncherConfigSetDropsReleaseWorldCDNControllers(t *testin
 		},
 	}
 
-	filtered := filterBrowserLauncherConfigSet(input)
+	filtered := filterRuntimeLauncherConfigSet(input)
 	if _, ok := filtered["release-world"]; ok {
 		t.Fatal("browser launcher configset kept release-world CDN world controller")
 	}

@@ -194,7 +194,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world": {
-      "hash": "e47753c24d180e1056e0b9418793c156882254aed761cf71df4c7f63cdf341c1",
+      "hash": "6b51e7a4eb440bea4696fafec50a136fec9fb85d4bd63798b21a9b25c8553651",
       "generatedFiles": [
         "bldr/manifest/fetch/world/config.pb.go",
         "bldr/manifest/fetch/world/config.pb.ts"
@@ -1253,7 +1253,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller": {
-      "hash": "4316f1355d07d59eb2ff0f2fe6fae3595ad605951c394733e5252c1b4cad8368",
+      "hash": "5a97fd81d4ded16adcce0b9896c1224e7d2cfea529dbe80bb922c7c720053ccd",
       "generatedFiles": [
         "core/provider/spacewave/launcher/controller/config.pb.go",
         "core/provider/spacewave/launcher/controller/config.pb.ts"

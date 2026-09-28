@@ -42,6 +42,9 @@ message Config {
   // DisableCliUpdate allows applications distributed without a companion CLI.
   // When true, no CLI manifest, binary, or managed CLI sidecar is required.
   bool disable_cli_update = 13;
+  // ChannelKey restricts signed configs to the channel embedded by the producer.
+  // Empty allows any channel selected by a trusted signer.
+  string channel_key = 14;
 }
 
 // HttpEndpoint is an http endpoint.

@@ -97,12 +97,7 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			setFailErr(err)
 			continue
 		}
-		updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, err := spacewave_launcher.ParseDistConfigPackedMsg(
-			c.le.WithField("endpoint", endpURLStr),
-			dat,
-			c.distPeerIDs,
-			c.conf.GetProjectId(),
-		)
+		updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, err := c.parseDistConf(dat)
 		rev := updatedAppDistConf.GetRev()
 		if err == nil && rev == 0 {
 			err = errors.New("failed to find a valid dist config")
