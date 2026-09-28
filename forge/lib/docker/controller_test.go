@@ -75,7 +75,9 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 			"create": []byte("container-123\n"),
 			"start":  []byte("container-123\n"),
 			"wait":   []byte("0\n"),
+			"logs":   []byte("build complete\n"),
 		},
+		stderr: []byte("warning\n"),
 	}
 	ctrl := NewController(nil, nil, &Config{
 		DockerPath: "docker-test",
@@ -89,7 +91,8 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 		Command: []string{"ghbot-agent", "-h"},
 	})
 	ctrl.runner = runner
-	ctrl.handle = noopExecHandle{}
+	handle := &recordingExecHandle{}
+	ctrl.handle = handle
 
 	if err := ctrl.Execute(context.Background()); err != nil {
 		t.Fatal(err.Error())
@@ -110,9 +113,35 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 		},
 		{name: "docker-test", args: []string{"start", "container-123"}, env: []string{"DOCKER_HOST=unix:///var/run/docker.sock"}},
 		{name: "docker-test", args: []string{"wait", "container-123"}, env: []string{"DOCKER_HOST=unix:///var/run/docker.sock"}},
+		{name: "docker-test", args: []string{"logs", "container-123"}, env: []string{"DOCKER_HOST=unix:///var/run/docker.sock"}},
 	}
 	if !reflect.DeepEqual(runner.commands, want) {
 		t.Fatalf("commands mismatch\nwant: %#v\n got: %#v", want, runner.commands)
+	}
+	if !reflect.DeepEqual(handle.logs, []recordedLog{{"info", "build complete\n"}, {"error", "warning\n"}}) {
+		t.Fatalf("retained output mismatch: %#v", handle.logs)
+	}
+}
+
+// TestExecuteRetainsOutputOnFailure verifies failed command output survives in
+// the Execution log along with its nonzero result.
+func TestExecuteRetainsOutputOnFailure(t *testing.T) {
+	runner := &recordingRunner{outputs: map[string][]byte{
+		"create": []byte("container-123\n"),
+		"wait":   []byte("2\n"),
+		"logs":   []byte("compile failed\n"),
+	}, stderr: []byte("missing package\n")}
+	ctrl := NewController(nil, nil, &Config{Image: "go:latest"})
+	ctrl.runner = runner
+	handle := &recordingExecHandle{}
+	ctrl.handle = handle
+
+	err := ctrl.Execute(context.Background())
+	if err == nil || err.Error() != "docker container exited with status 2" {
+		t.Fatalf("unexpected exit result: %v", err)
+	}
+	if !reflect.DeepEqual(handle.logs, []recordedLog{{"info", "compile failed\n"}, {"error", "missing package\n"}}) {
+		t.Fatalf("failed command output missing: %#v", handle.logs)
 	}
 }
 
@@ -174,9 +203,34 @@ type recordedCommand struct {
 
 type recordingRunner struct {
 	outputs     map[string][]byte
+	stderr      []byte
 	commands    []recordedCommand
 	waitStarted chan struct{}
 	waitCancel  func()
+}
+
+// Logs records the Docker log read and returns its separate output streams.
+func (r *recordingRunner) Logs(ctx context.Context, name, containerID string, env []string) ([]byte, []byte, error) {
+	stdout, err := r.Run(ctx, name, []string{"logs", containerID}, env)
+	return stdout, r.stderr, err
+}
+
+// recordedLog is one retained Execution log entry.
+type recordedLog struct {
+	level   string
+	message string
+}
+
+// recordingExecHandle records output written by the Docker controller.
+type recordingExecHandle struct {
+	noopExecHandle
+	logs []recordedLog
+}
+
+// WriteLog records one container output stream.
+func (h *recordingExecHandle) WriteLog(ctx context.Context, level, message string) error {
+	h.logs = append(h.logs, recordedLog{level, message})
+	return nil
 }
 
 func (r *recordingRunner) Run(ctx context.Context, name string, args []string, env []string) ([]byte, error) {
