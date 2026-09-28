@@ -49,6 +49,8 @@ func main() {
 		&appcli.StringFlag{Name: "manifest-link-object-keys", Usage: "comma-separated manifest-pack link object keys", Destination: &args.ManifestLinkObjectKeysCSV},
 		&appcli.StringFlag{Name: "manifest-producer-target", Usage: "manifest-pack producer target name", Destination: &args.ManifestProducerTarget},
 		&appcli.StringFlag{Name: "manifest-cache-schema", Usage: "manifest-pack cache schema", Destination: &args.ManifestCacheSchema},
+		&appcli.StringFlag{Name: "manifest-dist-dir", Usage: "packaged directory replacing the produced manifest contents", Destination: &args.ManifestDistDir},
+		&appcli.StringFlag{Name: "manifest-entrypoint", Usage: "entrypoint path within --manifest-dist-dir", Destination: &args.ManifestEntrypoint},
 	}
 	app.Action = func(ctx *appcli.Context) error {
 		return handoff.Run(context.Background(), args)

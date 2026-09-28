@@ -857,11 +857,20 @@ jobs:
           BLDR_MACOS_ADHOC_SIGN: ${{ inputs.sign_artifacts && '0' || '1' }}
         run: |
           set -euo pipefail
+          # The installed macOS app updates by replacing its signed bundle, so
+          # the release artifact is the notarized app the DMG ships.
+          APP_DIST=".tmp/entrypoint-app-dist/macos-${{ matrix.arch }}"
+          rm -rf "${APP_DIST}"
+          mkdir -p "${APP_DIST}"
+          ditto .tmp/Spacewave.app "${APP_DIST}/Spacewave.app"
+          codesign --verify --deep --strict "${APP_DIST}/Spacewave.app"
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --manifest-pack-produce \
             --manifest-id spacewave-dist \
             --manifest-platform "desktop/darwin/${{ matrix.arch }}" \
+            --manifest-dist-dir "${APP_DIST}" \
+            --manifest-entrypoint Spacewave.app \
             --manifest-object-key "spacewave/release/manifests/spacewave-dist/desktop/darwin/${{ matrix.arch }}" \
             --manifest-link-object-keys "spacewave/release/manifests" \
             --manifest-producer-target "release-desktop-darwin-${{ matrix.arch }}" \

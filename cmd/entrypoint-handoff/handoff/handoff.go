@@ -98,6 +98,11 @@ type Args struct {
 	ManifestProducerTarget string
 	// ManifestCacheSchema identifies the producer cache schema.
 	ManifestCacheSchema string
+	// ManifestDistDir replaces the produced manifest contents with a
+	// packaged directory, such as the signed macOS app bundle.
+	ManifestDistDir string
+	// ManifestEntrypoint is the entrypoint path within ManifestDistDir.
+	ManifestEntrypoint string
 }
 
 // FillDefaults fills default argument values.
@@ -201,6 +206,8 @@ func Run(ctx context.Context, args *Args) error {
 				splitCSV(args.ManifestLinkObjectKeysCSV),
 				args.ManifestProducerTarget,
 				args.ManifestCacheSchema,
+				args.ManifestDistDir,
+				args.ManifestEntrypoint,
 			)
 		})
 	}
@@ -474,6 +481,8 @@ func produceManifestPack(
 	linkObjectKeys []string,
 	producerTarget string,
 	cacheSchema string,
+	distDir string,
+	entrypoint string,
 ) error {
 	if manifestID == "" || platformID == "" || objectKey == "" || producerTarget == "" {
 		return errors.New("--manifest-pack-produce requires --manifest-id, --manifest-platform, --manifest-object-key, and --manifest-producer-target")
@@ -528,6 +537,8 @@ func produceManifestPack(
 		ReactDev:       reactDev,
 		CacheSchema:    cacheSchema,
 		Writer:         packFile,
+		DistDir:        distDir,
+		Entrypoint:     entrypoint,
 	})
 	closeErr := packFile.Close()
 	if produceErr != nil {

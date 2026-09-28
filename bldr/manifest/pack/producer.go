@@ -3,9 +3,15 @@ package bldr_manifest_pack
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/go-git/go-billy/v6/osfs"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -32,6 +38,13 @@ type ProducerConfig struct {
 	CacheSchema string
 	// Writer receives the kvfile pack bytes.
 	Writer io.Writer
+	// DistDir optionally replaces the built manifest contents with a
+	// directory packaged after the build, such as a signed app bundle. The
+	// manifest keeps the built identity and revision.
+	DistDir string
+	// Entrypoint is the path within DistDir to the entrypoint. Required
+	// when DistDir is set.
+	Entrypoint string
 }
 
 // ProduceManifestPack resolves one tuple and writes its manifest-pack artifact.
@@ -42,6 +55,12 @@ func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPa
 	manifestRef, err := ResolveManifestTuple(ctx, conf.Bus, conf.Tuple, conf.BuildType)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve manifest tuple")
+	}
+	if conf.DistDir != "" {
+		manifestRef, err = commitDistDirManifest(ctx, conf, manifestRef.GetMeta())
+		if err != nil {
+			return nil, err
+		}
 	}
 	tuple := conf.Tuple.CloneVT()
 	tuple.Rev = manifestRef.GetMeta().GetRev()
@@ -108,5 +127,32 @@ func (c *ProducerConfig) Validate() error {
 	if c.Writer == nil {
 		return errors.New("writer is nil")
 	}
+	if (c.DistDir == "") != (c.Entrypoint == "") {
+		return errors.New("dist_dir and entrypoint must be set together")
+	}
 	return nil
+}
+
+// commitDistDirManifest writes a manifest with the built metadata whose dist
+// tree is conf.DistDir. The directory is the complete artifact, so the
+// manifest carries no assets.
+func commitDistDirManifest(
+	ctx context.Context,
+	conf *ProducerConfig,
+	meta *bldr_manifest.ManifestMeta,
+) (*bldr_manifest.ManifestRef, error) {
+	entrypointPath := filepath.Join(conf.DistDir, filepath.FromSlash(conf.Entrypoint))
+	if _, err := os.Stat(entrypointPath); err != nil {
+		return nil, errors.Wrap(err, "stat dist dir entrypoint")
+	}
+
+	manifest := bldr_manifest.NewManifest(meta.CloneVT(), conf.Entrypoint)
+	distFs := osfs.New(conf.DistDir, osfs.WithBoundOS())
+	ref, err := world.AccessObject(ctx, conf.WorldState.AccessWorldState, nil, func(bcs *block.Cursor) error {
+		return bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifest, distFs, nil, timestamppb.Now())
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "commit dist dir manifest")
+	}
+	return bldr_manifest.NewManifestRef(manifest.GetMeta(), ref), nil
 }
