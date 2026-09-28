@@ -583,7 +583,7 @@ DESKTOP_RELEASE_LOAD_PLUGINS = [
 
 CLI_RELEASE_LOAD_PLUGINS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app",
 ]
 
 BROWSER_RELEASE_LOAD_PLUGINS = [

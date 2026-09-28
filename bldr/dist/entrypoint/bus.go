@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -26,13 +27,10 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
-	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/s4wave/spacewave/net/peer"
@@ -231,12 +229,20 @@ func BuildDistBus(
 	}
 	rels = append(rels, relStaticVolCtrl)
 
-	// run the distribution storage volume
-	// used for the plugin host world
+	// Native renderers share the daemon store; browser profiles keep their
+	// distribution volume within the origin's storage namespace.
+	volumeConf := entrypoint_state.NewVolumeConfig(storageID)
+	if isWebDistPlatform(platformID) {
+		volumeConf.StorageVolumeId = "dist/" + projectID
+		volumeConf.VolumeConfig.VolumeIdAlias = []string{"dist"}
+		volumeConf.VolumeConfig.DisablePeer = true
+	}
+
+	// Retain the state volume until the distribution bus has stopped.
 	volCtrli, _, diRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(NewDistStorageVolumeConfig(storageID, projectID)),
+		resolver.NewLoadControllerWithConfig(volumeConf),
 		ctxCancel,
 	)
 	if err != nil {
@@ -316,43 +322,25 @@ func BuildDistBus(
 	}
 	rels = append(rels, nodeCtrlRef.Release)
 
-	// start world
-	engineID := "entrypoint/" + projectID
-	engineBucketID := engineID
-	engineObjStoreID := engineBucketID
-
-	// create bucket if it doesn't exist
+	// Open the shared project World independently of this renderer's plugin set.
+	engConf, err := entrypoint_state.NewWorldConfig(projectID, vol.GetID())
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	engineID := engConf.GetEngineId()
+	engineBucketID := engConf.GetBucketId()
+	engineObjStoreID := engConf.GetObjectStoreId()
 	bucketConf, err := bucket.NewConfig(engineBucketID, 1, nil)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	_, err = bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID()))
-	if err != nil {
+	if _, err := bucket.ExApplyBucketConfig(ctx, b, bucket.NewApplyBucketConfigToVolume(bucketConf, vol.GetID())); err != nil {
 		rel()
 		return nil, err
 	}
 
-	distTransformConf := buildStorageTransformConf(projectID)
-	transformConf, err := block_transform.NewConfig(distTransformConf)
-	if err != nil {
-		rel()
-		return nil, err
-	}
-	initRef := &bucket.ObjectRef{
-		BucketId:      engineBucketID,
-		TransformConf: transformConf,
-	}
-
-	engConf := world_block_engine.NewConfig(
-		engineID,
-		vol.GetID(),
-		engineBucketID,
-		engineObjStoreID,
-		initRef,
-		nil,
-		false,
-	)
 	engConf.DisableLookup = true
 	engConf.RecoverMissingPersistedHead = true
 
@@ -487,22 +475,7 @@ func newReleaseSchedulerConfig(
 	return pluginSchedConf
 }
 
-// NewDistStorageVolumeConfig builds the storage volume config of the
-// distribution state volume "dist/<projectID>", aliased "dist".
-func NewDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Config {
-	return &storage_volume.Config{
-		StorageId:       storageID,
-		StorageVolumeId: "dist/" + projectID,
-		VolumeConfig: &volume_controller.Config{
-			VolumeIdAlias: []string{"dist"},
-
-			DisableEventBlockRm: true,
-			DisablePeer:         true,
-			GcIntervalDur:       "0",
-		},
-	}
-}
-
+// isWebDistPlatform reports whether the distribution uses browser storage.
 func isWebDistPlatform(platformID string) bool {
 	platform, err := bldr_platform.ParsePlatform(platformID)
 	return err == nil && bldr_platform.IsWebPlatform(platform)

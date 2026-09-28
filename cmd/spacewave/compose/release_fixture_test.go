@@ -14,7 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
-	dist_entrypoint "github.com/s4wave/spacewave/bldr/dist/entrypoint"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
@@ -351,7 +351,7 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	t.Cleanup(storageCtrlRelease)
 	_, _, distVolumeRef, err := loader.WaitExecControllerRunning(
 		ctx, b,
-		resolver.NewLoadControllerWithConfig(dist_entrypoint.NewDistStorageVolumeConfig(storageID, "spacewave")),
+		resolver.NewLoadControllerWithConfig(entrypoint_state.NewVolumeConfig(storageID)),
 		nil,
 	)
 	if err != nil {

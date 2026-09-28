@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	entrypoint_state "github.com/s4wave/spacewave/bldr/entrypoint/state"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
@@ -266,6 +267,7 @@ func validateSpaceRootAliasRecord(
 	}, nil
 }
 
+// validateSpaceRootAliasPath requires an existing catalog beside a provider volume.
 func validateSpaceRootAliasPath(kind s4wave_root.SpaceRootKind, path string) error {
 	if kind == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
 		if filepath.Ext(path) != ".s4wave" {
@@ -278,9 +280,9 @@ func validateSpaceRootAliasPath(kind s4wave_root.SpaceRootKind, path string) err
 		if !info.Mode().IsRegular() {
 			return errors.New("selected .s4wave path is not a regular file")
 		}
-		if filepath.Base(path) != "cli.s4wave" {
-			if _, err := os.Stat(filepath.Join(filepath.Dir(path), "cli.s4wave")); err != nil {
-				return errors.Wrap(err, "find sibling Session catalog cli.s4wave")
+		if filepath.Base(path) != entrypoint_state.Filename {
+			if _, err := os.Stat(filepath.Join(filepath.Dir(path), entrypoint_state.Filename)); err != nil {
+				return errors.Wrap(err, "find sibling Session catalog state.s4wave")
 			}
 		}
 		return validateExistingSpaceRootPath(filepath.Dir(path))
