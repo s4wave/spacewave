@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/core"
@@ -207,14 +208,12 @@ func ExecutePluginEntrypoint(
 
 	// apply config sets
 	mergedConfigSet := configset.MergeConfigSets(configSets...)
-	if len(mergedConfigSet) != 0 {
-		_, csetRef, err := b.AddDirective(configset.NewApplyConfigSet(mergedConfigSet), nil)
-		if err != nil {
-			rel()
-			return err
-		}
-		rels = append(rels, csetRef.Release)
+	configSetStarted, csetRel, err := applyStartupConfigSet(b, mergedConfigSet)
+	if err != nil {
+		rel()
+		return err
 	}
+	rels = append(rels, csetRel)
 
 	rpcMux := newPluginRpcMux(le, b)
 
@@ -226,6 +225,13 @@ func ExecutePluginEntrypoint(
 		acceptPluginHostStreams,
 		errCh,
 		func(ctx context.Context) error {
+			// Startup controllers are initial capabilities: callers of a ready
+			// plugin must reach the directives they resolve.
+			select {
+			case <-configSetStarted:
+			case <-ctx.Done():
+				return context.Cause(ctx)
+			}
 			if pluginInfo.GetStandalone() {
 				return nil
 			}
@@ -353,6 +359,56 @@ func startInitialCapabilityRegistration(
 	}
 
 	return complete(ctx)
+}
+
+// applyStartupConfigSet applies the plugin's startup controllers. The returned
+// channel closes once every controller in set is running or reported an error.
+func applyStartupConfigSet(b bus.Bus, set configset.ConfigSet) (<-chan struct{}, func(), error) {
+	started := make(chan struct{})
+	if len(set) == 0 {
+		close(started)
+		return started, func() {}, nil
+	}
+
+	// Track the settled state of each controller key by directive value.
+	var mtx sync.Mutex
+	var closed bool
+	settled := make(map[uint32]string)
+	update := func() {
+		keys := make(map[string]struct{}, len(settled))
+		for _, key := range settled {
+			keys[key] = struct{}{}
+		}
+		if !closed && len(keys) >= len(set) {
+			closed = true
+			close(started)
+		}
+	}
+	_, ref, err := b.AddDirective(
+		configset.NewApplyConfigSet(set),
+		directive.NewCallbackHandler(
+			func(v directive.AttachedValue) {
+				st, ok := v.GetValue().(configset.State)
+				if !ok || (st.GetController() == nil && st.GetError() == nil) {
+					return
+				}
+				mtx.Lock()
+				settled[v.GetValueID()] = st.GetId()
+				update()
+				mtx.Unlock()
+			},
+			func(v directive.AttachedValue) {
+				mtx.Lock()
+				delete(settled, v.GetValueID())
+				mtx.Unlock()
+			},
+			nil,
+		),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	return started, ref.Release, nil
 }
 
 // completeInitialCapabilityRegistration tells the plugin host that the plugin
