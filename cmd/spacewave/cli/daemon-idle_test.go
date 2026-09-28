@@ -156,6 +156,111 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 	}
 }
 
+// TestDaemonUpdateWaitRetainsClientsAndServices verifies that accepted update
+// demand waits for every hold, including a client admitted before the claim.
+func TestDaemonUpdateWaitRetainsClientsAndServices(t *testing.T) {
+	tracker := newDaemonIdleTracker(time.Minute, nil)
+	t.Cleanup(tracker.close)
+	client := &trackedConn{}
+	if !tracker.trackedClientAttached(client) {
+		t.Fatal("initial client was rejected")
+	}
+	service := tracker.attachService()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	claimed := make(chan bool, 1)
+	go func() { claimed <- tracker.waitDaemonUpdate(ctx) }()
+
+	// Releasing the first client leaves the persistent service in charge.
+	tracker.trackedClientDetached(client)
+	snapshot, changed := tracker.observe()
+	if snapshot.clients != 0 || snapshot.services != 1 || snapshot.stopping {
+		t.Fatalf("service hold after client exit = %+v", snapshot)
+	}
+	select {
+	case <-claimed:
+		t.Fatal("update claimed while service was active")
+	default:
+	}
+
+	// A late client admitted before the final service release keeps serving.
+	late := &trackedConn{}
+	if !tracker.trackedClientAttached(late) {
+		t.Fatal("late client was rejected before idle commitment")
+	}
+	select {
+	case <-changed:
+	default:
+		t.Fatal("late attachment did not publish the owner event")
+	}
+	service.release()
+	snapshot, _ = tracker.observe()
+	if snapshot.clients != 1 || snapshot.services != 0 || snapshot.stopping {
+		t.Fatalf("late client after service exit = %+v", snapshot)
+	}
+	tracker.trackedClientDetached(late)
+	select {
+	case won := <-claimed:
+		if !won {
+			t.Fatal("update did not claim final idle")
+		}
+	case <-ctx.Done():
+		t.Fatal("update claim canceled")
+	}
+	if tracker.clientAttached() {
+		t.Fatal("client admitted after update claim")
+	}
+}
+
+// TestDaemonUpdateClaimRacesClientAdmission proves that the idle decision and
+// admission fence share one lock, so either the client or update wins.
+func TestDaemonUpdateClaimRacesClientAdmission(t *testing.T) {
+	for range 100 {
+		tracker := newDaemonIdleTracker(time.Minute, nil)
+		start := make(chan struct{})
+		var workers sync.WaitGroup
+		var admitted, claimed bool
+		workers.Add(2)
+		go func() {
+			defer workers.Done()
+			<-start
+			admitted = tracker.clientAttached()
+		}()
+		go func() {
+			defer workers.Done()
+			<-start
+			claimed = tracker.claimDaemonUpdate()
+		}()
+		close(start)
+		workers.Wait()
+		if admitted == claimed {
+			t.Fatalf("client admitted = %t, update claimed = %t", admitted, claimed)
+		}
+		if admitted {
+			tracker.clientDetached()
+		}
+		tracker.close()
+	}
+}
+
+// TestDaemonUpdateWaitCancellation keeps admission open when the serving
+// context ends before all holds leave.
+func TestDaemonUpdateWaitCancellation(t *testing.T) {
+	tracker := newDaemonIdleTracker(time.Minute, nil)
+	t.Cleanup(tracker.close)
+	hold := tracker.attachService()
+	defer hold.release()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if tracker.waitDaemonUpdate(ctx) {
+		t.Fatal("canceled update claimed idle")
+	}
+	if !tracker.clientAttached() {
+		t.Fatal("canceled update fenced admission")
+	}
+	tracker.clientDetached()
+}
+
 // TestDaemonIdleTrackerDeadlinePolicy checks final-release expiry against an
 // isolated short deadline and confirms a new hold cancels that deadline.
 func TestDaemonIdleTrackerDeadlinePolicy(t *testing.T) {

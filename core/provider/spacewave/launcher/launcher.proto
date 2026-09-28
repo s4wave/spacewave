@@ -170,6 +170,8 @@ message UpdateState {
   .bldr.desktop.update.UpdateTarget target = 6;
   // ArtifactManifestId identifies the selected signed release artifact.
   string artifact_manifest_id = 7;
+  // StagedSha256 identifies the verified executable bytes for a daemon handoff.
+  string staged_sha256 = 8;
 }
 
 // UpdatePhase is the phase of the entrypoint update.
@@ -196,6 +198,36 @@ service Launcher {
   rpc RecheckDistConfig(RecheckDistConfigRequest) returns (RecheckDistConfigResponse) {}
   // ApplyUpdate prepares the explicitly selected staged target for its owner.
   rpc ApplyUpdate(.bldr.desktop.update.ApplyUpdateRequest) returns (.bldr.desktop.update.ApplyUpdateResponse) {}
+  // ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+  rpc ReportDaemonUpdateFailure(ReportDaemonUpdateFailureRequest) returns (ReportDaemonUpdateFailureResponse) {}
+  // ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+  rpc ClaimDaemonUpdate(ClaimDaemonUpdateRequest) returns (ClaimDaemonUpdateResponse) {}
+}
+
+// ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.
+message ClaimDaemonUpdateRequest {
+  // Selection is the APPLYING state observed by the serving daemon.
+  UpdateState selection = 1;
+}
+
+// ClaimDaemonUpdateResponse says whether the current selection was claimed.
+message ClaimDaemonUpdateResponse {
+  // Claimed is false if the accepted selection has already changed.
+  bool claimed = 1;
+}
+
+// ReportDaemonUpdateFailureRequest identifies the accepted selection that failed.
+message ReportDaemonUpdateFailureRequest {
+  // Selection is the APPLYING state observed by the serving daemon.
+  UpdateState selection = 1;
+  // ErrorMessage describes the failure before the daemon claimed full idle.
+  string error_message = 2;
+}
+
+// ReportDaemonUpdateFailureResponse says whether the current selection failed.
+message ReportDaemonUpdateFailureResponse {
+  // Reported is false if the selected update has already changed.
+  bool reported = 1;
 }
 
 // RecheckDistConfigRequest is a request to immediately recheck for updates.
@@ -205,7 +237,10 @@ message RecheckDistConfigRequest {}
 message RecheckDistConfigResponse {}
 
 // WatchLauncherInfoRequest is the request to get the launcher info.
-message WatchLauncherInfoRequest {}
+message WatchLauncherInfoRequest {
+  // DaemonOwner registers this stream as the serving daemon's update watch.
+  bool daemon_owner = 1;
+}
 
 // PushDistConfigRequest is the request to push an app dist config signed message.
 message PushDistConfigRequest {

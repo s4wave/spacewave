@@ -304,6 +304,12 @@ export interface UpdateState {
    * @generated from field: string artifact_manifest_id = 7;
    */
   artifactManifestId?: string
+  /**
+   * StagedSha256 identifies the verified executable bytes for a daemon handoff.
+   *
+   * @generated from field: string staged_sha256 = 8;
+   */
+  stagedSha256?: string
 }
 
 export const UpdateState: MessageType<UpdateState> =
@@ -327,6 +333,7 @@ export const UpdateState: MessageType<UpdateState> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      { no: 8, name: 'staged_sha256', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -620,6 +627,101 @@ export const LauncherInfo: MessageType<LauncherInfo> =
   })
 
 /**
+ * ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.
+ *
+ * @generated from message spacewave.launcher.ClaimDaemonUpdateRequest
+ */
+export interface ClaimDaemonUpdateRequest {
+  /**
+   * Selection is the APPLYING state observed by the serving daemon.
+   *
+   * @generated from field: spacewave.launcher.UpdateState selection = 1;
+   */
+  selection?: UpdateState
+}
+
+export const ClaimDaemonUpdateRequest: MessageType<ClaimDaemonUpdateRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ClaimDaemonUpdateRequest',
+    fields: [
+      { no: 1, name: 'selection', kind: 'message', T: UpdateState },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ClaimDaemonUpdateResponse says whether the current selection was claimed.
+ *
+ * @generated from message spacewave.launcher.ClaimDaemonUpdateResponse
+ */
+export interface ClaimDaemonUpdateResponse {
+  /**
+   * Claimed is false if the accepted selection has already changed.
+   *
+   * @generated from field: bool claimed = 1;
+   */
+  claimed?: boolean
+}
+
+export const ClaimDaemonUpdateResponse: MessageType<ClaimDaemonUpdateResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ClaimDaemonUpdateResponse',
+    fields: [
+      { no: 1, name: 'claimed', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReportDaemonUpdateFailureRequest identifies the accepted selection that failed.
+ *
+ * @generated from message spacewave.launcher.ReportDaemonUpdateFailureRequest
+ */
+export interface ReportDaemonUpdateFailureRequest {
+  /**
+   * Selection is the APPLYING state observed by the serving daemon.
+   *
+   * @generated from field: spacewave.launcher.UpdateState selection = 1;
+   */
+  selection?: UpdateState
+  /**
+   * ErrorMessage describes the failure before the daemon claimed full idle.
+   *
+   * @generated from field: string error_message = 2;
+   */
+  errorMessage?: string
+}
+
+export const ReportDaemonUpdateFailureRequest: MessageType<ReportDaemonUpdateFailureRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ReportDaemonUpdateFailureRequest',
+    fields: [
+      { no: 1, name: 'selection', kind: 'message', T: UpdateState },
+      { no: 2, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReportDaemonUpdateFailureResponse says whether the current selection failed.
+ *
+ * @generated from message spacewave.launcher.ReportDaemonUpdateFailureResponse
+ */
+export interface ReportDaemonUpdateFailureResponse {
+  /**
+   * Reported is false if the selected update has already changed.
+   *
+   * @generated from field: bool reported = 1;
+   */
+  reported?: boolean
+}
+
+export const ReportDaemonUpdateFailureResponse: MessageType<ReportDaemonUpdateFailureResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ReportDaemonUpdateFailureResponse',
+    fields: [
+      { no: 1, name: 'reported', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * RecheckDistConfigRequest is a request to immediately recheck for updates.
  *
  * @generated from message spacewave.launcher.RecheckDistConfigRequest
@@ -650,13 +752,22 @@ export const RecheckDistConfigResponse: MessageType<RecheckDistConfigResponse> =
  *
  * @generated from message spacewave.launcher.WatchLauncherInfoRequest
  */
-export interface WatchLauncherInfoRequest {}
+export interface WatchLauncherInfoRequest {
+  /**
+   * DaemonOwner registers this stream as the serving daemon's update watch.
+   *
+   * @generated from field: bool daemon_owner = 1;
+   */
+  daemonOwner?: boolean
+}
 
 export const WatchLauncherInfoRequest: MessageType<WatchLauncherInfoRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchLauncherInfoRequest>(
-    'spacewave.launcher.WatchLauncherInfoRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.WatchLauncherInfoRequest',
+    fields: [
+      { no: 1, name: 'daemon_owner', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * PushDistConfigRequest is the request to push an app dist config signed message.

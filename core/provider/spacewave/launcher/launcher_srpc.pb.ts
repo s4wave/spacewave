@@ -3,11 +3,15 @@
 /* eslint-disable */
 
 import {
+  ClaimDaemonUpdateRequest,
+  ClaimDaemonUpdateResponse,
   LauncherInfo,
   PushDistConfigRequest,
   PushDistConfigResponse,
   RecheckDistConfigRequest,
   RecheckDistConfigResponse,
+  ReportDaemonUpdateFailureRequest,
+  ReportDaemonUpdateFailureResponse,
   WatchLauncherInfoRequest,
 } from './launcher.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
@@ -74,6 +78,28 @@ export const LauncherDefinition = {
       O: ApplyUpdateResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+     *
+     * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateFailure
+     */
+    ReportDaemonUpdateFailure: {
+      name: 'ReportDaemonUpdateFailure',
+      I: ReportDaemonUpdateFailureRequest,
+      O: ReportDaemonUpdateFailureResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+     *
+     * @generated from rpc spacewave.launcher.Launcher.ClaimDaemonUpdate
+     */
+    ClaimDaemonUpdate: {
+      name: 'ClaimDaemonUpdate',
+      I: ClaimDaemonUpdateRequest,
+      O: ClaimDaemonUpdateResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -122,6 +148,26 @@ export interface Launcher {
     request: ApplyUpdateRequest,
     abortSignal?: AbortSignal,
   ): Promise<ApplyUpdateResponse>
+
+  /**
+   * ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateFailure
+   */
+  ReportDaemonUpdateFailure(
+    request: ReportDaemonUpdateFailureRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportDaemonUpdateFailureResponse>
+
+  /**
+   * ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ClaimDaemonUpdate
+   */
+  ClaimDaemonUpdate(
+    request: ClaimDaemonUpdateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ClaimDaemonUpdateResponse>
 }
 
 /**
@@ -173,6 +219,28 @@ export interface LauncherHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ApplyUpdateResponse>
+
+  /**
+   * ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateFailure
+   */
+  ReportDaemonUpdateFailure(
+    request: ReportDaemonUpdateFailureRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReportDaemonUpdateFailureResponse>
+
+  /**
+   * ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ClaimDaemonUpdate
+   */
+  ClaimDaemonUpdate(
+    request: ClaimDaemonUpdateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ClaimDaemonUpdateResponse>
 }
 
 export const LauncherServiceName = LauncherDefinition.typeName
@@ -187,6 +255,8 @@ export class LauncherClient implements Launcher {
     this.PushDistConfigMsg = this.PushDistConfigMsg.bind(this)
     this.RecheckDistConfig = this.RecheckDistConfig.bind(this)
     this.ApplyUpdate = this.ApplyUpdate.bind(this)
+    this.ReportDaemonUpdateFailure = this.ReportDaemonUpdateFailure.bind(this)
+    this.ClaimDaemonUpdate = this.ClaimDaemonUpdate.bind(this)
   }
   /**
    * WatchLauncherInfo streams the launcher state on every change.
@@ -262,5 +332,43 @@ export class LauncherClient implements Launcher {
       abortSignal || undefined,
     )
     return ApplyUpdateResponse.fromBinary(result)
+  }
+
+  /**
+   * ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateFailure
+   */
+  async ReportDaemonUpdateFailure(
+    request: ReportDaemonUpdateFailureRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportDaemonUpdateFailureResponse> {
+    const requestMsg = ReportDaemonUpdateFailureRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LauncherDefinition.methods.ReportDaemonUpdateFailure.name,
+      ReportDaemonUpdateFailureRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReportDaemonUpdateFailureResponse.fromBinary(result)
+  }
+
+  /**
+   * ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ClaimDaemonUpdate
+   */
+  async ClaimDaemonUpdate(
+    request: ClaimDaemonUpdateRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ClaimDaemonUpdateResponse> {
+    const requestMsg = ClaimDaemonUpdateRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LauncherDefinition.methods.ClaimDaemonUpdate.name,
+      ClaimDaemonUpdateRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ClaimDaemonUpdateResponse.fromBinary(result)
   }
 }

@@ -23,6 +23,10 @@ type SRPCLauncherClient interface {
 	RecheckDistConfig(ctx context.Context, in *RecheckDistConfigRequest) (*RecheckDistConfigResponse, error)
 	// ApplyUpdate prepares the explicitly selected staged target for its owner.
 	ApplyUpdate(ctx context.Context, in *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error)
+	// ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+	ReportDaemonUpdateFailure(ctx context.Context, in *ReportDaemonUpdateFailureRequest) (*ReportDaemonUpdateFailureResponse, error)
+	// ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+	ClaimDaemonUpdate(ctx context.Context, in *ClaimDaemonUpdateRequest) (*ClaimDaemonUpdateResponse, error)
 }
 
 type srpcLauncherClient struct {
@@ -103,6 +107,24 @@ func (c *srpcLauncherClient) ApplyUpdate(ctx context.Context, in *desktop_update
 	return out, nil
 }
 
+func (c *srpcLauncherClient) ReportDaemonUpdateFailure(ctx context.Context, in *ReportDaemonUpdateFailureRequest) (*ReportDaemonUpdateFailureResponse, error) {
+	out := new(ReportDaemonUpdateFailureResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReportDaemonUpdateFailure", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcLauncherClient) ClaimDaemonUpdate(ctx context.Context, in *ClaimDaemonUpdateRequest) (*ClaimDaemonUpdateResponse, error) {
+	out := new(ClaimDaemonUpdateResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ClaimDaemonUpdate", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCLauncherServer interface {
 	// WatchLauncherInfo streams the launcher state on every change.
 	WatchLauncherInfo(*WatchLauncherInfoRequest, SRPCLauncher_WatchLauncherInfoStream) error
@@ -112,6 +134,10 @@ type SRPCLauncherServer interface {
 	RecheckDistConfig(context.Context, *RecheckDistConfigRequest) (*RecheckDistConfigResponse, error)
 	// ApplyUpdate prepares the explicitly selected staged target for its owner.
 	ApplyUpdate(context.Context, *desktop_update.ApplyUpdateRequest) (*desktop_update.ApplyUpdateResponse, error)
+	// ReportDaemonUpdateFailure records a failed accepted daemon handoff.
+	ReportDaemonUpdateFailure(context.Context, *ReportDaemonUpdateFailureRequest) (*ReportDaemonUpdateFailureResponse, error)
+	// ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
+	ClaimDaemonUpdate(context.Context, *ClaimDaemonUpdateRequest) (*ClaimDaemonUpdateResponse, error)
 }
 
 const SRPCLauncherServiceID = "spacewave.launcher.Launcher"
@@ -144,6 +170,8 @@ func (SRPCLauncherHandler) GetMethodIDs() []string {
 		"PushDistConfigMsg",
 		"RecheckDistConfig",
 		"ApplyUpdate",
+		"ReportDaemonUpdateFailure",
+		"ClaimDaemonUpdate",
 	}
 }
 
@@ -164,6 +192,10 @@ func (d *SRPCLauncherHandler) InvokeMethod(
 		return true, d.InvokeMethod_RecheckDistConfig(d.impl, strm)
 	case "ApplyUpdate":
 		return true, d.InvokeMethod_ApplyUpdate(d.impl, strm)
+	case "ReportDaemonUpdateFailure":
+		return true, d.InvokeMethod_ReportDaemonUpdateFailure(d.impl, strm)
+	case "ClaimDaemonUpdate":
+		return true, d.InvokeMethod_ClaimDaemonUpdate(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -214,6 +246,30 @@ func (SRPCLauncherHandler) InvokeMethod_ApplyUpdate(impl SRPCLauncherServer, str
 	return strm.MsgSend(out)
 }
 
+func (SRPCLauncherHandler) InvokeMethod_ReportDaemonUpdateFailure(impl SRPCLauncherServer, strm srpc.Stream) error {
+	req := new(ReportDaemonUpdateFailureRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReportDaemonUpdateFailure(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCLauncherHandler) InvokeMethod_ClaimDaemonUpdate(impl SRPCLauncherServer, strm srpc.Stream) error {
+	req := new(ClaimDaemonUpdateRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ClaimDaemonUpdate(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCLauncher_WatchLauncherInfoStream interface {
 	srpc.Stream
 	Send(*LauncherInfo) error
@@ -258,5 +314,21 @@ type SRPCLauncher_ApplyUpdateStream interface {
 }
 
 type srpcLauncher_ApplyUpdateStream struct {
+	srpc.Stream
+}
+
+type SRPCLauncher_ReportDaemonUpdateFailureStream interface {
+	srpc.Stream
+}
+
+type srpcLauncher_ReportDaemonUpdateFailureStream struct {
+	srpc.Stream
+}
+
+type SRPCLauncher_ClaimDaemonUpdateStream interface {
+	srpc.Stream
+}
+
+type srpcLauncher_ClaimDaemonUpdateStream struct {
 	srpc.Stream
 }

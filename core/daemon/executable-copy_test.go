@@ -3,11 +3,42 @@
 package daemon
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+// TestPrepareVerifiedExecutableRejectsChangedSource prevents a staged path
+// from supplying different bytes after the launcher accepts its digest.
+func TestPrepareVerifiedExecutableRejectsChangedSource(t *testing.T) {
+	root := daemonTestRoot(t)
+	state := filepath.Join(root, "state")
+	if err := os.Mkdir(state, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(root, "spacewave")
+	accepted := []byte("accepted executable")
+	if err := os.WriteFile(source, accepted, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(accepted)
+	selected := hex.EncodeToString(digest[:])
+	if err := os.WriteFile(source, []byte("different executable"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PrepareVerifiedExecutable(state, source, selected); err == nil || !strings.Contains(err.Error(), "fails accepted digest") {
+		t.Fatalf("changed source accepted: %v", err)
+	}
+	if err := os.WriteFile(source, accepted, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PrepareVerifiedExecutable(state, source, selected); err != nil {
+		t.Fatalf("accepted source rejected: %v", err)
+	}
+}
 
 // TestCopyExecutablePublishesVerifiedVersions exercises the desktop bootstrap
 // with a bundled source and keeps an earlier digest path intact for a live daemon.
@@ -28,11 +59,11 @@ func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 	}
 
 	// Reusing the same source must verify and return the same immutable path.
-	first, err := copyExecutable(state, source)
+	first, err := PrepareExecutable(state, source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := copyExecutable(state, source)
+	again, err := PrepareExecutable(state, source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +78,7 @@ func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 	if err := os.WriteFile(source, []byte("second executable"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	second, err := copyExecutable(state, source)
+	second, err := PrepareExecutable(state, source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +93,7 @@ func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 	if err := os.WriteFile(second, []byte("damaged"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := copyExecutable(state, source); err == nil || !strings.Contains(err.Error(), "fails source digest") {
+	if _, err := PrepareExecutable(state, source); err == nil || !strings.Contains(err.Error(), "fails source digest") {
 		t.Fatalf("damaged executable accepted: %v", err)
 	}
 	if data, err := os.ReadFile(second); err != nil || string(data) != "damaged" {
@@ -83,7 +114,7 @@ func TestCopyExecutableRejectsBundleState(t *testing.T) {
 	if err := os.WriteFile(source, []byte("source"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := copyExecutable(state, source); err == nil || !strings.Contains(err.Error(), "inside application bundle") {
+	if _, err := PrepareExecutable(state, source); err == nil || !strings.Contains(err.Error(), "inside application bundle") {
 		t.Fatalf("bundle-local state accepted: %v", err)
 	}
 }

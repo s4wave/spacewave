@@ -79,6 +79,25 @@ type DistBus struct {
 	addRelease func(func())
 }
 
+// distReleaseStack runs bus cleanup before caller callbacks in registration order.
+type distReleaseStack struct {
+	callbacks []func()
+}
+
+// add registers a cleanup operation for this distribution lifetime.
+func (s *distReleaseStack) add(release func()) {
+	if release != nil {
+		s.callbacks = append(s.callbacks, release)
+	}
+}
+
+// release runs every operation in the order it was registered.
+func (s *distReleaseStack) release() {
+	for _, release := range s.callbacks {
+		release()
+	}
+}
+
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
 // Returns a set of functions to call to release the controllers.
 func BuildDistBus(
@@ -99,19 +118,10 @@ func BuildDistBus(
 		Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
 
-	rels := []func(){ctxCancel}
-	rel := func() {
-		for _, rel := range rels {
-			if rel != nil {
-				rel()
-			}
-		}
-	}
-	addRelease := func(release func()) {
-		if release != nil {
-			rels = append(rels, release)
-		}
-	}
+	rels := &distReleaseStack{}
+	rels.add(ctxCancel)
+	rel := rels.release
+	addRelease := rels.add
 
 	// The composition's factories must resolve the startup config set.
 	b, sr, err := NewCoreBus(ctx, le)
@@ -173,7 +183,7 @@ func BuildDistBus(
 				rel()
 				return nil, err
 			}
-			rels = append(rels, applyCsetRef.Release)
+			rels.add(applyCsetRef.Release)
 		}
 	}
 
@@ -183,7 +193,9 @@ func BuildDistBus(
 			rel()
 			return nil, err
 		}
-		rels = append(rels, hookRels...)
+		for _, hookRel := range hookRels {
+			rels.add(hookRel)
+		}
 	}
 
 	// attach the default storage controller
@@ -194,7 +206,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, relStorageCtrl)
+	rels.add(relStorageCtrl)
 
 	// ensure there is at least one storage method
 	storageMethods := storageCtrl.GetStorage()
@@ -227,7 +239,7 @@ func BuildDistBus(
 		rel()
 		return nil, errors.Wrap(err, "add static block store controller")
 	}
-	rels = append(rels, relStaticVolCtrl)
+	rels.add(relStaticVolCtrl)
 
 	// Native renderers share the daemon store; browser profiles keep their
 	// distribution volume within the origin's storage namespace.
@@ -249,7 +261,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, diRef.Release)
+	rels.add(diRef.Release)
 
 	volCtrl, ok := volCtrli.(volume.Controller)
 	if !ok {
@@ -299,7 +311,7 @@ func BuildDistBus(
 		rel()
 		return nil, errors.Wrap(err, "start static embedded engine controller")
 	}
-	rels = append(rels, embedEngineCtrlRef.Release)
+	rels.add(embedEngineCtrlRef.Release)
 
 	// mount the manifest fetcher from the static world
 	staticManifestFetcher := manifest_fetch_world.NewController(le, b, &manifest_fetch_world.Config{
@@ -311,7 +323,7 @@ func BuildDistBus(
 		rel()
 		return nil, errors.Wrap(err, "start static manifest fetcher")
 	}
-	rels = append(rels, relStaticManifestFetcher)
+	rels.add(relStaticManifestFetcher)
 
 	// start the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
@@ -320,7 +332,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, nodeCtrlRef.Release)
+	rels.add(nodeCtrlRef.Release)
 
 	// Open the shared project World independently of this renderer's plugin set.
 	engConf, err := entrypoint_state.NewWorldConfig(projectID, vol.GetID())
@@ -353,7 +365,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, worldCtrlRef.Release)
+	rels.add(worldCtrlRef.Release)
 
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
@@ -369,7 +381,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, relLookupCtrl)
+	rels.add(relLookupCtrl)
 
 	// A distribution reuses only its own plugin cache. An earlier installation's
 	// higher artifact revision cannot displace this build's embedded manifests.
@@ -402,7 +414,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, pluginSchedCtrlRef.Release)
+	rels.add(pluginSchedCtrlRef.Release)
 	startupGroup := plugin_entrypoint_controller.NewStartupGroupCoordinator(
 		distMeta.GetStartupPlugins(),
 		pluginSchedCtrl,
@@ -421,7 +433,7 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
-	rels = append(rels, pluginHostRel)
+	rels.add(pluginHostRel)
 
 	// Create LoadPlugin directives for the startup plugins.
 	for _, pluginID := range distMeta.GetStartupPlugins() {
@@ -430,7 +442,7 @@ func BuildDistBus(
 			le.WithError(err).WithField("plugin-id", pluginID).Warn("failed to load startup plugin")
 			continue
 		}
-		rels = append(rels, pluginRef.Release)
+		rels.add(pluginRef.Release)
 	}
 	if err := startupGroup.Start(ctx); err != nil {
 		rel()

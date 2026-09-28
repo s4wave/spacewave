@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"context"
 	"os"
 	"sync"
 	"time"
@@ -193,6 +194,42 @@ func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn, desktop *da
 	t.publishLocked()
 	snapshot.stopping = true
 	return true, snapshot
+}
+
+// claimDaemonUpdate fences admission only after every client and persistent
+// service has released its hold. A failed claim leaves the daemon serving.
+func (t *daemonIdleTracker) claimDaemonUpdate() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.stopping || t.active != 0 {
+		return false
+	}
+	t.stopping = true
+	t.cancelIdleLocked()
+	t.publishLocked()
+	return true
+}
+
+// waitDaemonUpdate waits on the owner's change event and claims full idle
+// atomically with the admission fence. Cancellation leaves admission open.
+func (t *daemonIdleTracker) waitDaemonUpdate(ctx context.Context) bool {
+	for {
+		if ctx.Err() != nil {
+			return false
+		}
+		snapshot, changed := t.observe()
+		if snapshot.stopping {
+			return false
+		}
+		if snapshot.clients == 0 && snapshot.services == 0 && t.claimDaemonUpdate() {
+			return true
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-changed:
+		}
+	}
 }
 
 // snapshotLocked returns the current state while mu is held.

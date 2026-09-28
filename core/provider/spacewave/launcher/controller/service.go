@@ -26,6 +26,10 @@ func (l *LauncherServer) WatchLauncherInfo(
 	req *spacewave_launcher.WatchLauncherInfoRequest,
 	strm spacewave_launcher.SRPCLauncher_WatchLauncherInfoStream,
 ) error {
+	if req.GetDaemonOwner() {
+		release := l.c.attachDaemonUpdateWatcher()
+		defer release()
+	}
 	return ccontainer.WatchChanges[*spacewave_launcher.LauncherInfo](strm.Context(), nil, l.c.launcherInfoCtr, strm.Send, nil)
 }
 
@@ -55,14 +59,33 @@ func (l *LauncherServer) RecheckDistConfig(
 	return &spacewave_launcher.RecheckDistConfigResponse{}, nil
 }
 
-// ApplyUpdate returns a verified desktop artifact to its app process. Daemon
-// replacement requires a separate idle handoff and is not accepted here.
+// ApplyUpdate hands an app artifact to Electron or publishes a verified daemon
+// artifact for the serving daemon to replace after its full idle claim.
 func (l *LauncherServer) ApplyUpdate(
 	ctx context.Context,
 	req *desktop_update.ApplyUpdateRequest,
 ) (*desktop_update.ApplyUpdateResponse, error) {
-	if req.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_APP {
-		return nil, errors.New("select the installed app; daemon updates are not available yet")
+	switch req.GetTarget() {
+	case desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON:
+		if info := l.c.launcherInfoCtr.GetValue(); info != nil && info.GetDaemonUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+			if !l.c.hasDaemonUpdateWatcher() {
+				return nil, errors.New("daemon update owner watch is unavailable")
+			}
+			return &desktop_update.ApplyUpdateResponse{}, nil
+		}
+		state, err := l.c.prepareDaemonUpdate()
+		if err != nil {
+			l.c.setDaemonUpdateError(err)
+			return nil, err
+		}
+		if err := l.c.setDaemonUpdateApplying(state); err != nil {
+			l.c.setDaemonUpdateError(err)
+			return nil, err
+		}
+		return &desktop_update.ApplyUpdateResponse{}, nil
+	case desktop_update.UpdateTarget_UPDATE_TARGET_APP:
+	default:
+		return nil, errors.New("select an installed app or shared daemon update target")
 	}
 	stagedPath, err := l.c.prepareAppUpdate(ctx)
 	if err != nil {
@@ -70,6 +93,31 @@ func (l *LauncherServer) ApplyUpdate(
 		return nil, err
 	}
 	return &desktop_update.ApplyUpdateResponse{StagedPath: stagedPath}, nil
+}
+
+// ReportDaemonUpdateFailure records a failed accepted handoff while the old
+// daemon is still serving. The selection comparison rejects stale reports.
+func (l *LauncherServer) ReportDaemonUpdateFailure(
+	_ context.Context,
+	req *spacewave_launcher.ReportDaemonUpdateFailureRequest,
+) (*spacewave_launcher.ReportDaemonUpdateFailureResponse, error) {
+	if req.GetErrorMessage() == "" {
+		return nil, errors.New("daemon update failure message is empty")
+	}
+	return &spacewave_launcher.ReportDaemonUpdateFailureResponse{
+		Reported: l.c.setAcceptedDaemonUpdateError(req.GetSelection(), req.GetErrorMessage()),
+	}, nil
+}
+
+// ClaimDaemonUpdate records the successful owner idle fence before its watch
+// ends while the old bus drains.
+func (l *LauncherServer) ClaimDaemonUpdate(
+	_ context.Context,
+	req *spacewave_launcher.ClaimDaemonUpdateRequest,
+) (*spacewave_launcher.ClaimDaemonUpdateResponse, error) {
+	return &spacewave_launcher.ClaimDaemonUpdateResponse{
+		Claimed: l.c.claimAcceptedDaemonUpdate(req.GetSelection()),
+	}, nil
 }
 
 // _ is a type assertion

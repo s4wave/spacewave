@@ -516,6 +516,8 @@ type UpdateState struct {
 	Target update.UpdateTarget `protobuf:"varint,6,opt,name=target,proto3" json:"target,omitempty"`
 	// ArtifactManifestId identifies the selected signed release artifact.
 	ArtifactManifestId string `protobuf:"bytes,7,opt,name=artifact_manifest_id,json=artifactManifestId,proto3" json:"artifactManifestId,omitempty"`
+	// StagedSha256 identifies the verified executable bytes for a daemon handoff.
+	StagedSha256 string `protobuf:"bytes,8,opt,name=staged_sha256,json=stagedSha256,proto3" json:"stagedSha256,omitempty"`
 }
 
 func (x *UpdateState) Reset() {
@@ -573,6 +575,102 @@ func (x *UpdateState) GetArtifactManifestId() string {
 	return ""
 }
 
+func (x *UpdateState) GetStagedSha256() string {
+	if x != nil {
+		return x.StagedSha256
+	}
+	return ""
+}
+
+// ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.
+type ClaimDaemonUpdateRequest struct {
+	unknownFields []byte
+	// Selection is the APPLYING state observed by the serving daemon.
+	Selection *UpdateState `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+}
+
+func (x *ClaimDaemonUpdateRequest) Reset() {
+	*x = ClaimDaemonUpdateRequest{}
+}
+
+func (*ClaimDaemonUpdateRequest) ProtoMessage() {}
+
+func (x *ClaimDaemonUpdateRequest) GetSelection() *UpdateState {
+	if x != nil {
+		return x.Selection
+	}
+	return nil
+}
+
+// ClaimDaemonUpdateResponse says whether the current selection was claimed.
+type ClaimDaemonUpdateResponse struct {
+	unknownFields []byte
+	// Claimed is false if the accepted selection has already changed.
+	Claimed bool `protobuf:"varint,1,opt,name=claimed,proto3" json:"claimed,omitempty"`
+}
+
+func (x *ClaimDaemonUpdateResponse) Reset() {
+	*x = ClaimDaemonUpdateResponse{}
+}
+
+func (*ClaimDaemonUpdateResponse) ProtoMessage() {}
+
+func (x *ClaimDaemonUpdateResponse) GetClaimed() bool {
+	if x != nil {
+		return x.Claimed
+	}
+	return false
+}
+
+// ReportDaemonUpdateFailureRequest identifies the accepted selection that failed.
+type ReportDaemonUpdateFailureRequest struct {
+	unknownFields []byte
+	// Selection is the APPLYING state observed by the serving daemon.
+	Selection *UpdateState `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+	// ErrorMessage describes the failure before the daemon claimed full idle.
+	ErrorMessage string `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+}
+
+func (x *ReportDaemonUpdateFailureRequest) Reset() {
+	*x = ReportDaemonUpdateFailureRequest{}
+}
+
+func (*ReportDaemonUpdateFailureRequest) ProtoMessage() {}
+
+func (x *ReportDaemonUpdateFailureRequest) GetSelection() *UpdateState {
+	if x != nil {
+		return x.Selection
+	}
+	return nil
+}
+
+func (x *ReportDaemonUpdateFailureRequest) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+// ReportDaemonUpdateFailureResponse says whether the current selection failed.
+type ReportDaemonUpdateFailureResponse struct {
+	unknownFields []byte
+	// Reported is false if the selected update has already changed.
+	Reported bool `protobuf:"varint,1,opt,name=reported,proto3" json:"reported,omitempty"`
+}
+
+func (x *ReportDaemonUpdateFailureResponse) Reset() {
+	*x = ReportDaemonUpdateFailureResponse{}
+}
+
+func (*ReportDaemonUpdateFailureResponse) ProtoMessage() {}
+
+func (x *ReportDaemonUpdateFailureResponse) GetReported() bool {
+	if x != nil {
+		return x.Reported
+	}
+	return false
+}
+
 // RecheckDistConfigRequest is a request to immediately recheck for updates.
 type RecheckDistConfigRequest struct {
 	unknownFields []byte
@@ -598,6 +696,8 @@ func (*RecheckDistConfigResponse) ProtoMessage() {}
 // WatchLauncherInfoRequest is the request to get the launcher info.
 type WatchLauncherInfoRequest struct {
 	unknownFields []byte
+	// DaemonOwner registers this stream as the serving daemon's update watch.
+	DaemonOwner bool `protobuf:"varint,1,opt,name=daemon_owner,json=daemonOwner,proto3" json:"daemonOwner,omitempty"`
 }
 
 func (x *WatchLauncherInfoRequest) Reset() {
@@ -605,6 +705,13 @@ func (x *WatchLauncherInfoRequest) Reset() {
 }
 
 func (*WatchLauncherInfoRequest) ProtoMessage() {}
+
+func (x *WatchLauncherInfoRequest) GetDaemonOwner() bool {
+	if x != nil {
+		return x.DaemonOwner
+	}
+	return false
+}
 
 // PushDistConfigRequest is the request to push an app dist config signed message.
 type PushDistConfigRequest struct {
@@ -786,6 +893,7 @@ func (m *UpdateState) CloneVT() *UpdateState {
 	r.ErrorMessage = m.ErrorMessage
 	r.Target = m.Target
 	r.ArtifactManifestId = m.ArtifactManifestId
+	r.StagedSha256 = m.StagedSha256
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -793,6 +901,71 @@ func (m *UpdateState) CloneVT() *UpdateState {
 }
 
 func (m *UpdateState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ClaimDaemonUpdateRequest) CloneVT() *ClaimDaemonUpdateRequest {
+	if m == nil {
+		return (*ClaimDaemonUpdateRequest)(nil)
+	}
+	r := new(ClaimDaemonUpdateRequest)
+	r.Selection = protobuf_go_lite.CloneVTValue(m.Selection)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClaimDaemonUpdateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ClaimDaemonUpdateResponse) CloneVT() *ClaimDaemonUpdateResponse {
+	if m == nil {
+		return (*ClaimDaemonUpdateResponse)(nil)
+	}
+	r := new(ClaimDaemonUpdateResponse)
+	r.Claimed = m.Claimed
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClaimDaemonUpdateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportDaemonUpdateFailureRequest) CloneVT() *ReportDaemonUpdateFailureRequest {
+	if m == nil {
+		return (*ReportDaemonUpdateFailureRequest)(nil)
+	}
+	r := new(ReportDaemonUpdateFailureRequest)
+	r.ErrorMessage = m.ErrorMessage
+	r.Selection = protobuf_go_lite.CloneVTValue(m.Selection)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportDaemonUpdateFailureRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportDaemonUpdateFailureResponse) CloneVT() *ReportDaemonUpdateFailureResponse {
+	if m == nil {
+		return (*ReportDaemonUpdateFailureResponse)(nil)
+	}
+	r := new(ReportDaemonUpdateFailureResponse)
+	r.Reported = m.Reported
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportDaemonUpdateFailureResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -831,6 +1004,7 @@ func (m *WatchLauncherInfoRequest) CloneVT() *WatchLauncherInfoRequest {
 		return (*WatchLauncherInfoRequest)(nil)
 	}
 	r := new(WatchLauncherInfoRequest)
+	r.DaemonOwner = m.DaemonOwner
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1038,11 +1212,97 @@ func (this *UpdateState) EqualVT(that *UpdateState) bool {
 	if this.ArtifactManifestId != that.ArtifactManifestId {
 		return false
 	}
+	if this.StagedSha256 != that.StagedSha256 {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *UpdateState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*UpdateState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ClaimDaemonUpdateRequest) EqualVT(that *ClaimDaemonUpdateRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Selection, that.Selection) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClaimDaemonUpdateRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ClaimDaemonUpdateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ClaimDaemonUpdateResponse) EqualVT(that *ClaimDaemonUpdateResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Claimed != that.Claimed {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClaimDaemonUpdateResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ClaimDaemonUpdateResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportDaemonUpdateFailureRequest) EqualVT(that *ReportDaemonUpdateFailureRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Selection, that.Selection) {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportDaemonUpdateFailureRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportDaemonUpdateFailureRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportDaemonUpdateFailureResponse) EqualVT(that *ReportDaemonUpdateFailureResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Reported != that.Reported {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportDaemonUpdateFailureResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportDaemonUpdateFailureResponse)
 	if !ok {
 		return false
 	}
@@ -1087,6 +1347,9 @@ func (this *WatchLauncherInfoRequest) EqualVT(that *WatchLauncherInfoRequest) bo
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DaemonOwner != that.DaemonOwner {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1729,6 +1992,11 @@ func (x *UpdateState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("artifactManifestId")
 		s.WriteString(x.ArtifactManifestId)
 	}
+	if x.StagedSha256 != "" || s.HasField("stagedSha256") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stagedSha256")
+		s.WriteString(x.StagedSha256)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1767,12 +2035,199 @@ func (x *UpdateState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "artifact_manifest_id", "artifactManifestId":
 			s.AddField("artifact_manifest_id")
 			x.ArtifactManifestId = s.ReadString()
+		case "staged_sha256", "stagedSha256":
+			s.AddField("staged_sha256")
+			x.StagedSha256 = s.ReadString()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the UpdateState from JSON.
 func (x *UpdateState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ClaimDaemonUpdateRequest message to JSON.
+func (x *ClaimDaemonUpdateRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Selection != nil || s.HasField("selection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selection")
+		x.Selection.MarshalProtoJSON(s.WithField("selection"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ClaimDaemonUpdateRequest to JSON.
+func (x *ClaimDaemonUpdateRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ClaimDaemonUpdateRequest message from JSON.
+func (x *ClaimDaemonUpdateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "selection":
+			if s.ReadNil() {
+				x.Selection = nil
+				return
+			}
+			x.Selection = &UpdateState{}
+			x.Selection.UnmarshalProtoJSON(s.WithField("selection", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ClaimDaemonUpdateRequest from JSON.
+func (x *ClaimDaemonUpdateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ClaimDaemonUpdateResponse message to JSON.
+func (x *ClaimDaemonUpdateResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Claimed || s.HasField("claimed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimed")
+		s.WriteBool(x.Claimed)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ClaimDaemonUpdateResponse to JSON.
+func (x *ClaimDaemonUpdateResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ClaimDaemonUpdateResponse message from JSON.
+func (x *ClaimDaemonUpdateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "claimed":
+			s.AddField("claimed")
+			x.Claimed = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ClaimDaemonUpdateResponse from JSON.
+func (x *ClaimDaemonUpdateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportDaemonUpdateFailureRequest message to JSON.
+func (x *ReportDaemonUpdateFailureRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Selection != nil || s.HasField("selection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selection")
+		x.Selection.MarshalProtoJSON(s.WithField("selection"))
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportDaemonUpdateFailureRequest to JSON.
+func (x *ReportDaemonUpdateFailureRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportDaemonUpdateFailureRequest message from JSON.
+func (x *ReportDaemonUpdateFailureRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "selection":
+			if s.ReadNil() {
+				x.Selection = nil
+				return
+			}
+			x.Selection = &UpdateState{}
+			x.Selection.UnmarshalProtoJSON(s.WithField("selection", true))
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportDaemonUpdateFailureRequest from JSON.
+func (x *ReportDaemonUpdateFailureRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportDaemonUpdateFailureResponse message to JSON.
+func (x *ReportDaemonUpdateFailureResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Reported || s.HasField("reported") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reported")
+		s.WriteBool(x.Reported)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportDaemonUpdateFailureResponse to JSON.
+func (x *ReportDaemonUpdateFailureResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportDaemonUpdateFailureResponse message from JSON.
+func (x *ReportDaemonUpdateFailureResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "reported":
+			s.AddField("reported")
+			x.Reported = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportDaemonUpdateFailureResponse from JSON.
+func (x *ReportDaemonUpdateFailureResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1843,6 +2298,12 @@ func (x *WatchLauncherInfoRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.DaemonOwner || s.HasField("daemonOwner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonOwner")
+		s.WriteBool(x.DaemonOwner)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1857,7 +2318,13 @@ func (x *WatchLauncherInfoRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "daemon_owner", "daemonOwner":
+			s.AddField("daemon_owner")
+			x.DaemonOwner = s.ReadBool()
+		}
 	})
 }
 
@@ -2289,6 +2756,11 @@ func (m *UpdateState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.StagedSha256) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StagedSha256)
+		i--
+		dAtA[i] = 0x42
+	}
 	if len(m.ArtifactManifestId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ArtifactManifestId)
 		i--
@@ -2321,6 +2793,169 @@ func (m *UpdateState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.Phase != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClaimDaemonUpdateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClaimDaemonUpdateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClaimDaemonUpdateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Selection != nil {
+		size, err := m.Selection.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClaimDaemonUpdateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClaimDaemonUpdateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClaimDaemonUpdateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Claimed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Claimed)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportDaemonUpdateFailureRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportDaemonUpdateFailureRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportDaemonUpdateFailureRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ErrorMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Selection != nil {
+		size, err := m.Selection.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportDaemonUpdateFailureResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportDaemonUpdateFailureResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportDaemonUpdateFailureResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Reported {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Reported)
 		i--
 		dAtA[i] = 0x8
 	}
@@ -2419,6 +3054,11 @@ func (m *WatchLauncherInfoRequest) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.DaemonOwner {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DaemonOwner)
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -2607,6 +3247,58 @@ func (m *UpdateState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ArtifactManifestId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StagedSha256)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClaimDaemonUpdateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Selection != nil {
+		l = m.Selection.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClaimDaemonUpdateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Claimed)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportDaemonUpdateFailureRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Selection != nil {
+		l = m.Selection.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportDaemonUpdateFailureResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Reported)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2637,6 +3329,7 @@ func (m *WatchLauncherInfoRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DaemonOwner)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2880,10 +3573,74 @@ func (x *UpdateState) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "artifact_manifest_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ArtifactManifestId)
 	}
+	if x.StagedSha256 != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "staged_sha256")
+		protobuf_go_lite.TextWriteString(&sb, x.StagedSha256)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *UpdateState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ClaimDaemonUpdateRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ClaimDaemonUpdateRequest")
+	if x.Selection != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selection")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Selection)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ClaimDaemonUpdateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ClaimDaemonUpdateResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ClaimDaemonUpdateResponse")
+	if x.Claimed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claimed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Claimed)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ClaimDaemonUpdateResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportDaemonUpdateFailureRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportDaemonUpdateFailureRequest")
+	if x.Selection != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selection")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Selection)
+	}
+	if x.ErrorMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
+		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportDaemonUpdateFailureRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportDaemonUpdateFailureResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportDaemonUpdateFailureResponse")
+	if x.Reported != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reported")
+		protobuf_go_lite.TextWriteBool(&sb, x.Reported)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportDaemonUpdateFailureResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2909,7 +3666,11 @@ func (x *RecheckDistConfigResponse) String() string {
 
 func (x *WatchLauncherInfoRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "WatchLauncherInfoRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchLauncherInfoRequest")
+	if x.DaemonOwner != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_owner")
+		protobuf_go_lite.TextWriteBool(&sb, x.DaemonOwner)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -3515,6 +4276,248 @@ func (m *UpdateState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ArtifactManifestId = v
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StagedSha256", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StagedSha256 = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ClaimDaemonUpdateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClaimDaemonUpdateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClaimDaemonUpdateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Selection", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Selection == nil {
+				m.Selection = &UpdateState{}
+			}
+			if err := m.Selection.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ClaimDaemonUpdateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClaimDaemonUpdateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClaimDaemonUpdateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Claimed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Claimed = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportDaemonUpdateFailureRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportDaemonUpdateFailureRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportDaemonUpdateFailureRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Selection", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Selection == nil {
+				m.Selection = &UpdateState{}
+			}
+			if err := m.Selection.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ErrorMessage = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportDaemonUpdateFailureResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportDaemonUpdateFailureResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportDaemonUpdateFailureResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reported", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reported = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3644,6 +4647,16 @@ func (m *WatchLauncherInfoRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: WatchLauncherInfoRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonOwner", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DaemonOwner = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
