@@ -1,5 +1,19 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.16
+<2026-09-28 Mon>
+
+Spacewave 0.57.16 fixes macOS desktop updates and makes device setup and peer
+reconnections more reliable.
+
+** Fixes
+- macOS desktop updates now receive and install the signed Spacewave app
+  correctly.
+- Adding a device now retries concurrent Space changes automatically instead of
+  requiring device setup to be completed a second time.
+- Device setup and other peer connections no longer stall when a connection
+  reopens while a message is still being delivered.
+
 * v0.57.15
 <2026-09-28 Mon>
 
