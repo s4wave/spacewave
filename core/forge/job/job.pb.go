@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	worker "github.com/s4wave/spacewave/forge/worker"
 )
 
 // ForgeJobCreateOp creates a Forge Job with tasks and assigns it to a Cluster.
@@ -26,6 +27,8 @@ type ForgeJobCreateOp struct {
 	TaskDefs []*ForgeJobTaskDef `protobuf:"bytes,3,rep,name=task_defs,json=taskDefs,proto3" json:"taskDefs,omitempty"`
 	// Timestamp is the creation timestamp.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Placement freezes the selected Worker and authenticated Device peer for every Task.
+	Placement *worker.Placement `protobuf:"bytes,5,opt,name=placement,proto3" json:"placement,omitempty"`
 }
 
 func (x *ForgeJobCreateOp) Reset() {
@@ -62,6 +65,13 @@ func (x *ForgeJobCreateOp) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ForgeJobCreateOp) GetPlacement() *worker.Placement {
+	if x != nil {
+		return x.Placement
+	}
+	return nil
+}
+
 // ForgeJobTaskDef defines a task to create as part of a ForgeJobCreateOp.
 type ForgeJobTaskDef struct {
 	unknownFields []byte
@@ -91,6 +101,7 @@ func (m *ForgeJobCreateOp) CloneVT() *ForgeJobCreateOp {
 	r.ClusterKey = m.ClusterKey
 	r.TaskDefs = protobuf_go_lite.CloneVTSlice(m.TaskDefs)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.Placement = protobuf_go_lite.CloneVTValue(m.Placement)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -133,6 +144,9 @@ func (this *ForgeJobCreateOp) EqualVT(that *ForgeJobCreateOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Placement, that.Placement) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -200,6 +214,11 @@ func (x *ForgeJobCreateOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.Placement != nil || s.HasField("placement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placement")
+		x.Placement.MarshalProtoJSON(s.WithField("placement"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -248,6 +267,13 @@ func (x *ForgeJobCreateOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "placement":
+			if s.ReadNil() {
+				x.Placement = nil
+				return
+			}
+			x.Placement = &worker.Placement{}
+			x.Placement.UnmarshalProtoJSON(s.WithField("placement", true))
 		}
 	})
 }
@@ -327,6 +353,16 @@ func (m *ForgeJobCreateOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Placement != nil {
+		size, err := m.Placement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
@@ -416,6 +452,10 @@ func (m *ForgeJobCreateOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Placement != nil {
+		l = m.Placement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -457,6 +497,10 @@ func (x *ForgeJobCreateOp) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.Placement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "placement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Placement)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -544,6 +588,21 @@ func (m *ForgeJobCreateOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Placement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Placement == nil {
+				m.Placement = &worker.Placement{}
+			}
+			if err := m.Placement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

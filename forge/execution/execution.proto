@@ -3,6 +3,7 @@ package forge.execution;
 
 import "github.com/s4wave/spacewave/forge/target/target.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -33,6 +34,8 @@ message Execution {
   // WaitingPluginId names the plugin whose load currently blocks this
   // Execution. It is empty once the plugin's client is available.
   string waiting_plugin_id = 9;
+  // Placement is the immutable Worker and Device peer authorized for this Execution.
+  .forge.worker.Placement placement = 10;
 }
 
 // Claim fences side effects and write-back for one execution owner.

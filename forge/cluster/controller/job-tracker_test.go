@@ -101,7 +101,7 @@ func TestCompletedJobReconciliationDoesNotWaitForWriter(t *testing.T) {
 	}
 	defer tb.Release()
 	ws := world.NewEngineWorldState(tb.Engine, true)
-	obj, _, err := forge_job.CreateJobWithTasks(ctx, ws, tb.Volume.GetPeerID(), "job/completed", nil, tb.Volume.GetPeerID(), timestamp.Now())
+	obj, _, err := forge_job.CreateJobWithTasks(ctx, ws, tb.Volume.GetPeerID(), "job/completed", nil, tb.Volume.GetPeerID(), nil, timestamp.Now())
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)

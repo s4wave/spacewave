@@ -6,6 +6,7 @@ import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { ValueSet } from '../target/target.pb.js'
 import { Result } from '../value/value.pb.js'
+import { Placement } from '../worker/worker.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -164,6 +165,12 @@ export interface Task {
    * @generated from field: google.protobuf.Timestamp timestamp = 10;
    */
   timestamp?: Date
+  /**
+   * Placement freezes the selected Worker and Device peer for every Pass of this Task.
+   *
+   * @generated from field: forge.worker.Placement placement = 11;
+   */
+  placement?: Placement
 }
 
 export const Task: MessageType<Task> = /* @__PURE__ */ createMessageType({
@@ -178,5 +185,6 @@ export const Task: MessageType<Task> = /* @__PURE__ */ createMessageType({
     { no: 8, name: 'value_set', kind: 'message', T: () => ValueSet },
     { no: 9, name: 'result', kind: 'message', T: () => Result },
     { no: 10, name: 'timestamp', kind: 'message', T: () => Timestamp },
+    { no: 11, name: 'placement', kind: 'message', T: () => Placement },
   ] satisfies readonly PartialFieldInfo[],
 })

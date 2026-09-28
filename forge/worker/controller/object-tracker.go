@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
@@ -191,6 +192,21 @@ func (t *objectTracker) processState(
 	objType, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return false, err
+	}
+	if objType == forge_execution.ExecutionTypeID {
+		var execution *forge_execution.Execution
+		_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(cursor *block.Cursor) error {
+			var readErr error
+			execution, readErr = forge_execution.UnmarshalExecution(ctx, cursor)
+			return readErr
+		})
+		if err != nil {
+			return false, err
+		}
+		if placement := execution.GetPlacement(); placement != nil && placement.GetWorkerObjectKey() != t.c.objKey {
+			t.pushObjType("")
+			return true, nil
+		}
 	}
 
 	t.pushObjType(objType)

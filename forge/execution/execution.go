@@ -11,6 +11,7 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -38,13 +39,23 @@ func CreateExecutionWithTarget(
 	execPeerID peer.ID,
 	valueSet *forge_target.ValueSet,
 	tgt *forge_target.Target,
+	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (*bucket.ObjectRef, error) {
+	if placement != nil {
+		if err := placement.ValidateLinked(ctx, ws); err != nil {
+			return nil, errors.Wrap(err, "placement")
+		}
+		if execPeerID.String() != placement.GetPeerId() {
+			return nil, errors.Errorf("execution peer %s does not match placement peer %s", execPeerID, placement.GetPeerId())
+		}
+	}
 	rootRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(&Execution{
 			ExecutionState: State_ExecutionState_PENDING,
 			PeerId:         execPeerID.String(),
+			Placement:      placement.CloneVT(),
 			ValueSet:       valueSet,
 			Timestamp:      ts,
 		}, true)
@@ -78,6 +89,14 @@ func UnmarshalExecution(ctx context.Context, bcs *block.Cursor) (*Execution, err
 
 // Validate performs cursory checks of the execution object.
 func (e *Execution) Validate() error {
+	if p := e.GetPlacement(); p != nil {
+		if err := p.Validate(); err != nil {
+			return errors.Wrap(err, "placement")
+		}
+		if e.GetPeerId() != p.GetPeerId() {
+			return errors.New("execution peer_id does not match placement")
+		}
+	}
 	if err := e.GetExecutionState().Validate(false); err != nil {
 		return err
 	}

@@ -78,6 +78,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 		jobKey,
 		taskMap,
 		"",
+		nil,
 		ts,
 	)
 	world.ReleaseObjectState(createdObject)

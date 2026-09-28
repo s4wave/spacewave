@@ -12,8 +12,10 @@ import (
 	"github.com/pkg/errors"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/world"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // ErrWorkerStopPending reports a durable pending stop whose owner claim must
@@ -24,8 +26,12 @@ var ErrWorkerStopPending = errors.New("Worker runtime stop remains pending")
 type WorkerAdmission struct {
 	// admission owns the durable capacity and reservation state.
 	admission *forge_runtime.WorldRuntimeAdmission
+	// engine reads Execution placement before reserving capacity.
+	engine world.Engine
 	// workerKey identifies the Worker served by this plugin resource.
 	workerKey string
+	// peerID is the authenticated Device peer serving this Worker resource.
+	peerID peer.ID
 	// claimID identifies this Worker execution lifetime.
 	claimID string
 
@@ -46,10 +52,12 @@ type WorkerAdmission struct {
 }
 
 // NewWorkerAdmission constructs one Worker admission with a Docker stopper.
-func NewWorkerAdmission(eng world.Engine, workerKey, claimID string, stopper forge_runtime.RuntimeStopper) *WorkerAdmission {
+func NewWorkerAdmission(eng world.Engine, workerKey string, peerID peer.ID, claimID string, stopper forge_runtime.RuntimeStopper) *WorkerAdmission {
 	return &WorkerAdmission{
 		admission: forge_runtime.NewWorldRuntimeAdmission(eng, stopper, 0, 0),
+		engine:    eng,
 		workerKey: workerKey,
+		peerID:    peerID,
 		claimID:   claimID,
 		changed:   make(chan struct{}),
 	}
@@ -278,6 +286,21 @@ func (w *WorkerAdmission) drain(ctx context.Context, ref forge_runtime.WorkerCla
 
 // Reserve debits the Docker target's explicit request under the current claim.
 func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
+	tx, err := w.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	execution, executionState, err := forge_execution.LookupExecution(ctx, tx, executionKey)
+	world.ReleaseObjectState(executionState)
+	tx.Discard()
+	if err != nil {
+		return nil, err
+	}
+	if placement := execution.GetPlacement(); placement != nil &&
+		(placement.GetWorkerObjectKey() != w.workerKey || placement.GetPeerId() != w.peerID.String()) {
+		return nil, errors.Errorf("execution %s is placed on Worker %s peer %s", executionKey, placement.GetWorkerObjectKey(), placement.GetPeerId())
+	}
+
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	if !w.active {

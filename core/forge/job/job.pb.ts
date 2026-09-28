@@ -6,6 +6,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Placement } from '../../../forge/worker/worker.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -61,6 +62,12 @@ export interface ForgeJobCreateOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
+  /**
+   * Placement freezes the selected Worker and authenticated Device peer for every Task.
+   *
+   * @generated from field: forge.worker.Placement placement = 5;
+   */
+  placement?: Placement
 }
 
 export const ForgeJobCreateOp: MessageType<ForgeJobCreateOp> =
@@ -77,5 +84,6 @@ export const ForgeJobCreateOp: MessageType<ForgeJobCreateOp> =
         repeated: true,
       },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'placement', kind: 'message', T: () => Placement },
     ] satisfies readonly PartialFieldInfo[],
   })

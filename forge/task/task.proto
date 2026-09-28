@@ -4,6 +4,7 @@ package forge.task;
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/forge/target/target.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "google/protobuf/timestamp.proto";
 
 // Task contains state for running a Target.
@@ -53,6 +54,8 @@ message Task {
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
   google.protobuf.Timestamp timestamp = 10;
+  // Placement freezes the selected Worker and Device peer for every Pass of this Task.
+  .forge.worker.Placement placement = 11;
 }
 
 // State contains the possible Task states.

@@ -97,7 +97,7 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		"test":    space_exec_noop.NewTarget(),
 	}
 	var createdObject2 world.ObjectState
-	createdObject2, _, err = forge_job.CreateJobWithTasks(ctx, ws, sessionPeerID, jobKey, tasks, "", o.GetTimestamp())
+	createdObject2, _, err = forge_job.CreateJobWithTasks(ctx, ws, sessionPeerID, jobKey, tasks, "", nil, o.GetTimestamp())
 	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		return false, err

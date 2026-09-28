@@ -67,6 +67,12 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 	if t.IsEmpty() {
 		return nil
 	}
+	if placement := root.GetPlacement(); placement != nil {
+		specs := t.GetExecSpecs()
+		if len(specs) != 1 || specs[0].GetPeerId() != placement.GetPeerId() {
+			return errors.New("placed pass requires one Execution on its selected peer")
+		}
+	}
 
 	// list all existing executions & clear those with the same peer IDs
 	// ... but only if they are in a terminal state (not running)

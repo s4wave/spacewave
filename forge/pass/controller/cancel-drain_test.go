@@ -47,6 +47,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 		1,
 		1,
 		peerID.String(),
+		nil,
 		timestamp.Now(),
 	)
 	world.ReleaseObjectState(createdObject)

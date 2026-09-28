@@ -13,6 +13,7 @@ import (
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -67,8 +68,14 @@ func CreatePassWithTarget(
 	nonce uint64,
 	replicas uint32,
 	passPeerID string,
+	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	if placement != nil {
+		if err := placement.ValidateLinked(ctx, ws); err != nil {
+			return nil, nil, errors.Wrap(err, "placement")
+		}
+	}
 	if valueSet == nil {
 		valueSet = forge_target.NewValueSet()
 	} else {
@@ -79,6 +86,7 @@ func CreatePassWithTarget(
 	ps := &Pass{
 		PassState: State_PassState_PENDING,
 		PeerId:    passPeerID,
+		Placement: placement.CloneVT(),
 		ValueSet:  valueSet,
 		PassNonce: nonce,
 		Replicas:  replicas,
@@ -129,6 +137,11 @@ func UnmarshalPass(ctx context.Context, bcs *block.Cursor) (*Pass, error) {
 
 // Validate performs cursory checks of the Pass object.
 func (e *Pass) Validate(allowEmptyRefs bool) error {
+	if p := e.GetPlacement(); p != nil {
+		if err := p.Validate(); err != nil {
+			return errors.Wrap(err, "placement")
+		}
+	}
 	if err := e.GetPassState().Validate(false); err != nil {
 		return err
 	}
@@ -149,6 +162,9 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 	}
 	if e.GetReplicas() == 0 {
 		return errors.New("replicas cannot be zero")
+	}
+	if e.GetPlacement() != nil && e.GetReplicas() != 1 {
+		return errors.New("placed pass must have one replica")
 	}
 	switch e.GetPassState() {
 	case State_PassState_COMPLETE:
@@ -343,6 +359,9 @@ func (e *Pass) ApplyExecStates(
 
 	states := make([]*ExecState, len(execObjs))
 	for i, obj := range execObjs {
+		if !e.GetPlacement().EqualVT(obj.GetPlacement()) {
+			return errors.Errorf("executions[%d]: placement does not match pass", i)
+		}
 		objKey := execObjKeys[i]
 		states[i] = NewExecState(objKey, obj)
 		if err := states[i].Validate(); err != nil {

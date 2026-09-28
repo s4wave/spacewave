@@ -56,6 +56,11 @@ func (e *Job) IsComplete() bool {
 
 // Validate performs cursory checks of the Job object.
 func (e *Job) Validate() error {
+	if placement := e.GetPlacement(); placement != nil {
+		if err := placement.Validate(); err != nil {
+			return errors.Wrap(err, "placement")
+		}
+	}
 	if err := e.GetJobState().Validate(false); err != nil {
 		return err
 	}

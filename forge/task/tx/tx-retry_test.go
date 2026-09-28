@@ -66,7 +66,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 
 	{
 		createdObject, _, err := forge_task.CreateTaskWithTarget(ctx, tb.WorldState, sender,
-			taskKey, "retry-result", target, "", 1, ts)
+			taskKey, "retry-result", target, "", 1, nil, ts)
 		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)
@@ -80,7 +80,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	}
 	{
 		createdObject2, _, err := forge_pass.CreatePassWithTarget(ctx, tb.WorldState, sender,
-			passKey, forge_target.NewValueSet(), target.CloneVT(), 1, 1, "", ts)
+			passKey, forge_target.NewValueSet(), target.CloneVT(), 1, 1, "", nil, ts)
 		world.ReleaseObjectState(createdObject2)
 		if err != nil {
 			t.Fatal(err)

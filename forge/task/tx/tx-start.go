@@ -138,6 +138,7 @@ func (t *TxStart) ExecuteTx(
 		nextNonce,
 		root.GetReplicas(),
 		passPeerID.String(),
+		root.GetPlacement(),
 		root.GetTimestamp(),
 	)
 	world.ReleaseObjectState(createdObject)

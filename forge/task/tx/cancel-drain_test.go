@@ -71,6 +71,7 @@ func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce u
 		nonce,
 		1,
 		f.peerID.String(),
+		nil,
 		f.ts,
 	)
 	world.ReleaseObjectState(createdObject)
@@ -221,6 +222,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 		&forge_target.Target{Exec: &forge_target.Exec{Disable: true}},
 		f.peerID,
 		1,
+		nil,
 		f.ts,
 	)
 	world.ReleaseObjectState(createdObject)
@@ -287,6 +289,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 		f.target.CloneVT(),
 		f.peerID,
 		1,
+		nil,
 		f.ts,
 	)
 	world.ReleaseObjectState(createdObject)

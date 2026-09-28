@@ -16,6 +16,7 @@ import (
 	block "github.com/s4wave/spacewave/db/block"
 	target "github.com/s4wave/spacewave/forge/target"
 	value "github.com/s4wave/spacewave/forge/value"
+	worker "github.com/s4wave/spacewave/forge/worker"
 )
 
 // State contains the possible execution states.
@@ -96,6 +97,8 @@ type Execution struct {
 	// WaitingPluginId names the plugin whose load currently blocks this
 	// Execution. It is empty once the plugin's client is available.
 	WaitingPluginId string `protobuf:"bytes,9,opt,name=waiting_plugin_id,json=waitingPluginId,proto3" json:"waitingPluginId,omitempty"`
+	// Placement is the immutable Worker and Device peer authorized for this Execution.
+	Placement *worker.Placement `protobuf:"bytes,10,opt,name=placement,proto3" json:"placement,omitempty"`
 }
 
 func (x *Execution) Reset() {
@@ -165,6 +168,13 @@ func (x *Execution) GetWaitingPluginId() string {
 		return x.WaitingPluginId
 	}
 	return ""
+}
+
+func (x *Execution) GetPlacement() *worker.Placement {
+	if x != nil {
+		return x.Placement
+	}
+	return nil
 }
 
 // Claim fences side effects and write-back for one execution owner.
@@ -289,6 +299,7 @@ func (m *Execution) CloneVT() *Execution {
 	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
 	r.LogEntries = protobuf_go_lite.CloneVTSlice(m.LogEntries)
 	r.Claim = protobuf_go_lite.CloneVTValue(m.Claim)
+	r.Placement = protobuf_go_lite.CloneVTValue(m.Placement)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -383,6 +394,9 @@ func (this *Execution) EqualVT(that *Execution) bool {
 		return false
 	}
 	if this.WaitingPluginId != that.WaitingPluginId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Placement, that.Placement) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -570,6 +584,11 @@ func (x *Execution) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("waitingPluginId")
 		s.WriteString(x.WaitingPluginId)
 	}
+	if x.Placement != nil || s.HasField("placement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placement")
+		x.Placement.MarshalProtoJSON(s.WithField("placement"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -649,6 +668,13 @@ func (x *Execution) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "waiting_plugin_id", "waitingPluginId":
 			s.AddField("waiting_plugin_id")
 			x.WaitingPluginId = s.ReadString()
+		case "placement":
+			if s.ReadNil() {
+				x.Placement = nil
+				return
+			}
+			x.Placement = &worker.Placement{}
+			x.Placement.UnmarshalProtoJSON(s.WithField("placement", true))
 		}
 	})
 }
@@ -864,6 +890,16 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Placement != nil {
+		size, err := m.Placement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if len(m.WaitingPluginId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.WaitingPluginId)
@@ -1129,6 +1165,10 @@ func (m *Execution) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WaitingPluginId)
+	if m.Placement != nil {
+		l = m.Placement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1230,6 +1270,10 @@ func (x *Execution) MarshalProtoText() string {
 	if x.WaitingPluginId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "waiting_plugin_id")
 		protobuf_go_lite.TextWriteString(&sb, x.WaitingPluginId)
+	}
+	if x.Placement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "placement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Placement)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1439,6 +1483,21 @@ func (m *Execution) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.WaitingPluginId = v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Placement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Placement == nil {
+				m.Placement = &worker.Placement{}
+			}
+			if err := m.Placement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

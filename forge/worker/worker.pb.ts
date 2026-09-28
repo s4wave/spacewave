@@ -40,6 +40,40 @@ export const Worker: MessageType<Worker> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * Placement freezes the selected Worker and authenticated Device peer for a Job attempt.
+ *
+ * @generated from message forge.worker.Placement
+ */
+export interface Placement {
+  /**
+   * WorkerObjectKey is the selected Worker's World identity, retained as an immutable placement snapshot.
+   *
+   * @generated from field: string worker_object_key = 1;
+   */
+  workerObjectKey?: string
+  /**
+   * PeerId is the authenticated Device peer linked to that Worker when selected.
+   *
+   * @generated from field: string peer_id = 2;
+   */
+  peerId?: string
+}
+
+export const Placement: MessageType<Placement> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.worker.Placement',
+    fields: [
+      {
+        no: 1,
+        name: 'worker_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * WorkerCreateOp creates a Worker.
  *
  * @generated from message forge.worker.WorkerCreateOp

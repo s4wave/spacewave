@@ -19,6 +19,14 @@ message Worker {
   string name = 1;
 }
 
+// Placement freezes the selected Worker and authenticated Device peer for a Job attempt.
+message Placement {
+  // WorkerObjectKey is the selected Worker's World identity, retained as an immutable placement snapshot.
+  string worker_object_key = 1;
+  // PeerId is the authenticated Device peer linked to that Worker when selected.
+  string peer_id = 2;
+}
+
 // WorkerCreateOp creates a Worker.
 message WorkerCreateOp {
   // ObjectKey is the object key to create the Worker.

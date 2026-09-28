@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.forge.job;
 
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/s4wave/spacewave/core/forge/job;forge_job_ops";
@@ -16,6 +17,8 @@ message ForgeJobCreateOp {
   repeated ForgeJobTaskDef task_defs = 3;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 4;
+  // Placement freezes the selected Worker and authenticated Device peer for every Task.
+  .forge.worker.Placement placement = 5;
 }
 
 // ForgeJobTaskDef defines a task to create as part of a ForgeJobCreateOp.

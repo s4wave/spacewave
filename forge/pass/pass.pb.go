@@ -17,6 +17,7 @@ import (
 	execution "github.com/s4wave/spacewave/forge/execution"
 	target "github.com/s4wave/spacewave/forge/target"
 	value "github.com/s4wave/spacewave/forge/value"
+	worker "github.com/s4wave/spacewave/forge/worker"
 )
 
 // State contains the possible Pass states.
@@ -129,6 +130,8 @@ type Pass struct {
 	// For example: all unixfs timestamps will be set to this value.
 	// Must be set.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Placement is the immutable Worker and Device peer selected for this Pass.
+	Placement *worker.Placement `protobuf:"bytes,10,opt,name=placement,proto3" json:"placement,omitempty"`
 }
 
 func (x *Pass) Reset() {
@@ -196,6 +199,13 @@ func (x *Pass) GetExecStates() []*ExecState {
 func (x *Pass) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *Pass) GetPlacement() *worker.Placement {
+	if x != nil {
+		return x.Placement
 	}
 	return nil
 }
@@ -283,6 +293,7 @@ func (m *Pass) CloneVT() *Pass {
 	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
 	r.ExecStates = protobuf_go_lite.CloneVTSlice(m.ExecStates)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.Placement = protobuf_go_lite.CloneVTValue(m.Placement)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -345,6 +356,9 @@ func (this *Pass) EqualVT(that *Pass) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Placement, that.Placement) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -492,6 +506,11 @@ func (x *Pass) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.Placement != nil || s.HasField("placement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placement")
+		x.Placement.MarshalProtoJSON(s.WithField("placement"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -567,6 +586,13 @@ func (x *Pass) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "placement":
+			if s.ReadNil() {
+				x.Placement = nil
+				return
+			}
+			x.Placement = &worker.Placement{}
+			x.Placement.UnmarshalProtoJSON(s.WithField("placement", true))
 		}
 	})
 }
@@ -698,6 +724,16 @@ func (m *Pass) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Placement != nil {
+		size, err := m.Placement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
@@ -881,6 +917,10 @@ func (m *Pass) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Placement != nil {
+		l = m.Placement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -960,6 +1000,10 @@ func (x *Pass) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.Placement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "placement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Placement)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1131,6 +1175,21 @@ func (m *Pass) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Placement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Placement == nil {
+				m.Placement = &worker.Placement{}
+			}
+			if err := m.Placement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

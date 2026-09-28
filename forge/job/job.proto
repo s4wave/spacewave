@@ -2,6 +2,7 @@ syntax = "proto3";
 package forge.job;
 
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "google/protobuf/timestamp.proto";
 
 // Job contains state for running a set of Tasks.
@@ -24,6 +25,8 @@ message Job {
   // For example: all unixfs timestamps will be set to this value.
   // Must be set.
   google.protobuf.Timestamp timestamp = 3;
+  // Placement is the immutable Worker and Device peer selected when this Job was created.
+  .forge.worker.Placement placement = 4;
 }
 
 // State contains the possible Job states.

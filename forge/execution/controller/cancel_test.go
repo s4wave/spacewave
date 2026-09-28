@@ -56,7 +56,7 @@ func TestCancellationInterruptsSetupAndDrainsTarget(t *testing.T) {
 			const key = "test/cancel-execution"
 			_, err = forge_execution.CreateExecutionWithTarget(ctx, tb.WorldState, peerID, key, peerID, forge_target.NewValueSet(), &forge_target.Target{
 				Exec: &forge_target.Exec{Controller: &configset_proto.ControllerConfig{Id: configID, Rev: 1}},
-			}, timestamp.Now())
+			}, nil, timestamp.Now())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -154,7 +154,7 @@ func TestCancellationCommittedAsTargetFinishes(t *testing.T) {
 	const key = "test/finish-execution"
 	_, err = forge_execution.CreateExecutionWithTarget(ctx, tb.WorldState, peerID, key, peerID, forge_target.NewValueSet(), &forge_target.Target{
 		Exec: &forge_target.Exec{Controller: &configset_proto.ControllerConfig{Id: configID, Rev: 1}},
-	}, timestamp.Now())
+	}, nil, timestamp.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
