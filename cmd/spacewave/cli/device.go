@@ -387,9 +387,8 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	if err := writeDeviceSetupRecord(resolvedStatePath, updated); err != nil {
 		return err
 	}
-	// Wake the daemon observer after the durable completion exists. The observer
-	// retains the enrolled session while this request projects the Device into
-	// the World, so a slow or retryable projection cannot tear down its network.
+	// Publish the completed Device identity to the daemon's policy host before
+	// this request projects the Device into the World.
 	_ = requestDevicePolicyReload(ctx, client)
 	if updated.SetupState == deviceSetupStateImported {
 		activated, err := openDeviceSession(ctx, client, resolvedStatePath, updated)
@@ -805,9 +804,70 @@ func openLocalDeviceSession(
 	return updated, nil
 }
 
+// projectPendingDeviceEnrollment retries World projection after the imported
+// Device session has been durably activated.
+func projectPendingDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
+	record, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		return err
+	}
+	if record.SetupState != deviceSetupStateImported || record.SessionIndex == 0 || record.DeviceObjectKey != "" {
+		return nil
+	}
+
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, record)
+	if err != nil {
+		record.FailureReason = "Device object projection pending: " + err.Error()
+		if persistErr := writeDeviceSetupRecord(statePath, record); persistErr != nil {
+			return errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
+		}
+		return err
+	}
+
+	record.DeviceObjectKey = objectKey
+	record.FailureReason = ""
+	record.SetupState = deviceSetupStateSessionReady
+	return writeDeviceSetupRecord(statePath, record)
+}
+
+// restoreLocalDeviceEnrollment retains the persisted local Device session on
+// daemon startup and reasserts its P2P enrollment without replaying the invite.
+func restoreLocalDeviceEnrollment(
+	ctx context.Context,
+	statePath string,
+	client *sdkClient,
+	mount func(uint32) (localSessionMount, error),
+) (func(), error) {
+	record, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) || record.SessionIndex == 0 {
+		return nil, nil
+	}
+
+	sess, err := mount(record.SessionIndex)
+	if err != nil {
+		return nil, err
+	}
+	updated, err := deviceMountLocalSession(ctx, client, statePath, record)
+	if err != nil {
+		sess.Release()
+		return nil, err
+	}
+	if updated.DeviceObjectKey == "" {
+		updated.SetupState = deviceSetupStateImported
+	}
+	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+		sess.Release()
+		return nil, err
+	}
+	return sess.Release, nil
+}
+
 // mountLocalDeviceSession restores the durable session and P2P enrollment
-// without requiring the Space World to be writable. Daemon startup retains
-// this mount before it observes or updates Device and capacity objects.
+// without requiring the Space World to be writable. The local session keeper
+// retains this mount while the daemon serves requests.
 func mountLocalDeviceSession(
 	ctx context.Context,
 	client *sdkClient,

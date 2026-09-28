@@ -27,7 +27,7 @@ type RuntimeStopper interface {
 // transaction, so create-plus-debit and release-plus-credit are atomic even
 // across a crash. All mutations for one Worker serialize on a per-Worker lock;
 // the durable boundary assumes exactly one writer instance per Forge Worker
-// capacity record. A second daemon writing the same Worker's capacity record
+// capacity record. A second process writing the same Worker's capacity record
 // is outside this contract and must not be attempted: run one admission owner
 // per Worker.
 type WorldRuntimeAdmission struct {
@@ -385,6 +385,68 @@ func (a *WorldRuntimeAdmission) BeginDrainCapacity(
 	return out, nil
 }
 
+// DrainWorker blocks new reservations, stops each live runtime, and removes
+// the capacity record after every debit has been credited.
+func (a *WorldRuntimeAdmission) DrainWorker(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+) error {
+	if _, err := a.BeginDrainCapacity(ctx, workerObjectKey, ref, epoch); err != nil {
+		return err
+	}
+	if err := a.StopWorkerReservations(ctx, workerObjectKey, ref, epoch); err != nil {
+		return err
+	}
+	return a.CompleteDrainCapacity(ctx, workerObjectKey, ref, epoch)
+}
+
+// StopWorkerReservations stops persisted runtimes from a previous Worker
+// execution and reconciles interrupted stops under the current claim.
+func (a *WorldRuntimeAdmission) StopWorkerReservations(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+) error {
+	// Stop persisted reservations even when their original controller is gone.
+	keys, err := a.listReservationKeys(ctx)
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		res, err := a.LookupReservation(ctx, key)
+		if err != nil {
+			return err
+		}
+		if res.WorkerObjectKey != workerObjectKey || res.State.Terminal() {
+			continue
+		}
+		if res.State == ReservationStatePendingStop {
+			continue
+		}
+		if _, err := a.StopAndRelease(ctx, ref, epoch, key, res.Generation); err != nil {
+			return err
+		}
+	}
+	if _, err := a.ReconcilePendingStops(ctx, ref); err != nil {
+		return err
+	}
+	// A stopper may report no error without confirming the stop. Keep the
+	// Worker draining until every reservation reaches a terminal receipt.
+	for _, key := range keys {
+		res, err := a.LookupReservation(ctx, key)
+		if err != nil {
+			return err
+		}
+		if res.WorkerObjectKey == workerObjectKey && !res.State.Terminal() {
+			return errors.Errorf("worker %s still holds reservation %s", workerObjectKey, key)
+		}
+	}
+	return nil
+}
+
 // CompleteDrainCapacity deletes a fully drained capacity record exactly once.
 // It requires the DRAINING state and no non-terminal reservation referencing
 // the Worker; the scan runs inside the same transaction as the deletion.
@@ -467,6 +529,29 @@ func (a *WorldRuntimeAdmission) Reserve(
 	workerObjectKey, executionObjectKey string,
 	request ResourceRequest,
 ) (*Reservation, error) {
+	return a.reserve(ctx, workerObjectKey, executionObjectKey, request, nil, 0)
+}
+
+// ReserveForClaim reserves capacity only while the caller owns the current
+// Worker claim epoch. The claim check and debit share one World transaction.
+func (a *WorldRuntimeAdmission) ReserveForClaim(
+	ctx context.Context,
+	workerObjectKey, executionObjectKey string,
+	request ResourceRequest,
+	ref WorkerClaimRef,
+	epoch uint64,
+) (*Reservation, error) {
+	return a.reserve(ctx, workerObjectKey, executionObjectKey, request, &ref, epoch)
+}
+
+// reserve creates and debits one reservation under the Worker mutation lock.
+func (a *WorldRuntimeAdmission) reserve(
+	ctx context.Context,
+	workerObjectKey, executionObjectKey string,
+	request ResourceRequest,
+	ref *WorkerClaimRef,
+	epoch uint64,
+) (*Reservation, error) {
 	if workerObjectKey == "" || executionObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker and execution keys")
 	}
@@ -499,6 +584,14 @@ func (a *WorldRuntimeAdmission) Reserve(
 			if err != nil {
 				return err
 			}
+			if ref != nil {
+				if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
+					return err
+				}
+				if capacity.OwnerEpoch != epoch {
+					return ErrCapacityOwned
+				}
+			}
 			if err := capacity.OwnerClaimActive(a.now()); err != nil {
 				return err
 			}
@@ -514,6 +607,14 @@ func (a *WorldRuntimeAdmission) Reserve(
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil {
 			return err
+		}
+		if ref != nil {
+			if err := verifyLiveClaim(capacity, *ref, a.now()); err != nil {
+				return err
+			}
+			if capacity.OwnerEpoch != epoch {
+				return ErrCapacityOwned
+			}
 		}
 		if err := capacity.OwnerClaimActive(a.now()); err != nil {
 			return err
@@ -558,10 +659,32 @@ func (a *WorldRuntimeAdmission) Activate(
 	reservationObjectKey string,
 	rt BackendRuntimeIdentity,
 ) (*Reservation, error) {
+	return a.activate(ctx, reservationObjectKey, rt, nil, 0)
+}
+
+// ActivateForClaim fences runtime activation against the current Worker claim.
+func (a *WorldRuntimeAdmission) ActivateForClaim(
+	ctx context.Context,
+	reservationObjectKey string,
+	rt BackendRuntimeIdentity,
+	ref WorkerClaimRef,
+	epoch uint64,
+) (*Reservation, error) {
+	return a.activate(ctx, reservationObjectKey, rt, &ref, epoch)
+}
+
+// activate records runtime custody after its claim fence passes.
+func (a *WorldRuntimeAdmission) activate(
+	ctx context.Context,
+	reservationObjectKey string,
+	rt BackendRuntimeIdentity,
+	ref *WorkerClaimRef,
+	epoch uint64,
+) (*Reservation, error) {
 	if rt.IsZero() {
 		return nil, errors.New("runtime identity must be set")
 	}
-	return a.transitionReservation(ctx, reservationObjectKey, func(res *Reservation) error {
+	return a.transitionReservationForClaim(ctx, reservationObjectKey, ref, epoch, func(res *Reservation) error {
 		if res.State != ReservationStateReserved {
 			return errors.Errorf("cannot activate from state %d", res.State)
 		}
@@ -654,6 +777,29 @@ func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimR
 		return nil, err
 	}
 	return out, nil
+}
+
+// RenewWorkerReservations extends every live reservation held by the Worker.
+// The durable reservation records supply the renewal set after controller
+// exits, policy transitions, and Worker restarts.
+func (a *WorldRuntimeAdmission) RenewWorkerReservations(ctx context.Context, workerObjectKey string, ref WorkerClaimRef) error {
+	keys, err := a.listReservationKeys(ctx)
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		res, err := a.LookupReservation(ctx, key)
+		if err != nil {
+			return err
+		}
+		if res.WorkerObjectKey != workerObjectKey || !res.State.Live() {
+			continue
+		}
+		if _, err := a.RenewLease(ctx, ref, key); err != nil && !errors.Is(err, ErrReservationTerminal) {
+			return err
+		}
+	}
+	return nil
 }
 
 // LookupReservation implements RuntimeAdmission.
@@ -892,20 +1038,21 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 
 	var out *Reservation
 	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
-		if _, err := loadOwnedCapacity(ctx, ws, res.WorkerObjectKey, ref, ownerEpoch, a.now()); err != nil {
-			return err
-		}
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
 		}
-		switch {
-		case current.State.Terminal():
+		if current.State.Terminal() {
 			if current.Generation != generation {
 				return ErrStaleGeneration
 			}
 			out = current
 			return nil
+		}
+		if _, err := loadOwnedCapacity(ctx, ws, res.WorkerObjectKey, ref, ownerEpoch, a.now()); err != nil {
+			return err
+		}
+		switch {
 		case current.Generation != generation:
 			return ErrStaleGeneration
 		case current.State == ReservationStatePendingStop:
@@ -1159,6 +1306,18 @@ func (a *WorldRuntimeAdmission) transitionReservation(
 	reservationObjectKey string,
 	cb func(*Reservation) error,
 ) (*Reservation, error) {
+	return a.transitionReservationForClaim(ctx, reservationObjectKey, nil, 0, cb)
+}
+
+// transitionReservationForClaim applies an optional claim fence in the same
+// transaction as the reservation transition.
+func (a *WorldRuntimeAdmission) transitionReservationForClaim(
+	ctx context.Context,
+	reservationObjectKey string,
+	ref *WorkerClaimRef,
+	epoch uint64,
+	cb func(*Reservation) error,
+) (*Reservation, error) {
 	res, err := a.LookupReservation(ctx, reservationObjectKey)
 	if err != nil {
 		return nil, err
@@ -1171,6 +1330,11 @@ func (a *WorldRuntimeAdmission) transitionReservation(
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
+		}
+		if ref != nil {
+			if _, err := loadOwnedCapacity(ctx, ws, current.WorkerObjectKey, *ref, epoch, a.now()); err != nil {
+				return err
+			}
 		}
 		if err := cb(current); err != nil {
 			return err

@@ -14,12 +14,42 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// recordingAdmission supplies an offline admission boundary to Docker tests.
+type recordingAdmission struct {
+	name         string
+	release      func(context.Context) error
+	executionKey string
+	request      *Config
+}
+
+// Reserve returns a deterministic named runtime grant.
+func (a *recordingAdmission) Reserve(_ context.Context, key string, conf *Config) (Reservation, error) {
+	a.executionKey = key
+	a.request = conf.CloneVT()
+	return a, nil
+}
+
+// Launch executes Docker creation under the fake's grant.
+func (a *recordingAdmission) Launch(_ context.Context, createAndStart func(string) error) error {
+	return createAndStart(a.name)
+}
+
+// Release records the configured stop effect when this test needs one.
+func (a *recordingAdmission) Release(ctx context.Context) error {
+	if a.release != nil {
+		return a.release(ctx)
+	}
+	return nil
+}
+
 func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	t.Setenv("FORGE_DOCKER_SENTINEL", "host-secret")
 
 	conf := &Config{
-		Image:   "ghbot:dev",
-		Workdir: "/work/repo",
+		Image:       "ghbot:dev",
+		Workdir:     "/work/repo",
+		MilliCpu:    1500,
+		MemoryBytes: 1 << 30,
 		Env: map[string]string{
 			"BETA":  "two",
 			"ALPHA": "one",
@@ -31,9 +61,10 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 		Command: []string{"ghbot-agent", "-h"},
 	}
 
-	got := buildCreateArgs(conf)
+	got := buildCreateArgs(conf, "")
 	want := []string{
 		"create",
+		"--cpus", "1.5", "--memory", "1073741824",
 		"--workdir", "/work/repo",
 		"--env", "ALPHA=one",
 		"--env", "BETA=two",
@@ -55,7 +86,7 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 func TestBuildDockerEnvIsExplicit(t *testing.T) {
 	t.Setenv("FORGE_DOCKER_SENTINEL", "host-secret")
 
-	got := buildDockerEnv(&Config{
+	got := BuildDockerEnv(&Config{
 		DockerEnv: map[string]string{
 			"DOCKER_HOST": "unix:///var/run/docker.sock",
 		},
@@ -69,6 +100,21 @@ func TestBuildDockerEnvIsExplicit(t *testing.T) {
 	}
 }
 
+// TestExecuteRejectsMissingRequestBeforeCreate keeps the Docker effect behind
+// the target's explicit capacity declaration.
+func TestExecuteRejectsMissingRequestBeforeCreate(t *testing.T) {
+	runner := &recordingRunner{}
+	ctrl := NewController(nil, nil, &Config{Image: "img"}, &recordingAdmission{name: "unused"})
+	ctrl.runner = runner
+	ctrl.handle = noopExecHandle{}
+	if err := ctrl.Execute(t.Context()); err == nil {
+		t.Fatal("missing capacity request was accepted")
+	}
+	if len(runner.commands) != 0 {
+		t.Fatalf("Docker commands ran before request validation: %+v", runner.commands)
+	}
+}
+
 func TestExecuteRunsCreateStartWait(t *testing.T) {
 	runner := &recordingRunner{
 		outputs: map[string][]byte{
@@ -79,17 +125,20 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 		},
 		stderr: []byte("warning\n"),
 	}
+	admission := &recordingAdmission{name: "test-runtime"}
 	ctrl := NewController(nil, nil, &Config{
-		DockerPath: "docker-test",
-		DockerEnv:  map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"},
-		Image:      "ghbot:dev",
-		Workdir:    "/work/repo",
-		Env:        map[string]string{"GHBOT_SOCKET": "/run/ghbot.sock"},
+		DockerPath:  "docker-test",
+		DockerEnv:   map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"},
+		Image:       "ghbot:dev",
+		MilliCpu:    1000,
+		MemoryBytes: 1 << 20,
+		Workdir:     "/work/repo",
+		Env:         map[string]string{"GHBOT_SOCKET": "/run/ghbot.sock"},
 		Mounts: []*Mount{
 			{HostPath: "/host/socket", ContainerPath: "/run/ghbot.sock"},
 		},
 		Command: []string{"ghbot-agent", "-h"},
-	})
+	}, admission)
 	ctrl.runner = runner
 	handle := &recordingExecHandle{}
 	ctrl.handle = handle
@@ -97,12 +146,15 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 	if err := ctrl.Execute(context.Background()); err != nil {
 		t.Fatal(err.Error())
 	}
+	if admission.executionKey != "exec/test" || admission.request.GetMilliCpu() != 1000 || admission.request.GetMemoryBytes() != 1<<20 {
+		t.Fatalf("Docker request did not reach admission: key=%q request=%+v", admission.executionKey, admission.request)
+	}
 
 	want := []recordedCommand{
 		{
 			name: "docker-test",
 			args: []string{
-				"create",
+				"create", "--name", "test-runtime", "--cpus", "1", "--memory", "1048576",
 				"--workdir", "/work/repo",
 				"--env", "GHBOT_SOCKET=/run/ghbot.sock",
 				"--mount", "type=bind,source=/host/socket,target=/run/ghbot.sock",
@@ -131,7 +183,7 @@ func TestExecuteRetainsOutputOnFailure(t *testing.T) {
 		"wait":   []byte("2\n"),
 		"logs":   []byte("compile failed\n"),
 	}, stderr: []byte("missing package\n")}
-	ctrl := NewController(nil, nil, &Config{Image: "go:latest"})
+	ctrl := NewController(nil, nil, &Config{Image: "go:latest", MilliCpu: 1000, MemoryBytes: 1 << 20}, &recordingAdmission{name: "test-runtime"})
 	ctrl.runner = runner
 	handle := &recordingExecHandle{}
 	ctrl.handle = handle
@@ -142,6 +194,36 @@ func TestExecuteRetainsOutputOnFailure(t *testing.T) {
 	}
 	if !reflect.DeepEqual(handle.logs, []recordedLog{{"info", "compile failed\n"}, {"error", "missing package\n"}}) {
 		t.Fatalf("failed command output missing: %#v", handle.logs)
+	}
+}
+
+// TestExecuteLaunchFailuresReleaseNamedGrant checks that Docker create and
+// start errors still surrender the preactivated named runtime grant.
+func TestExecuteLaunchFailuresReleaseNamedGrant(t *testing.T) {
+	for _, stage := range []string{"create", "start"} {
+		t.Run(stage, func(t *testing.T) {
+			runner := &recordingRunner{
+				outputs: map[string][]byte{"create": []byte("container-123\n")},
+				errors:  map[string]error{stage: context.Canceled},
+			}
+			released := 0
+			grant := &recordingAdmission{name: "named-runtime", release: func(context.Context) error {
+				released++
+				return nil
+			}}
+			ctrl := NewController(nil, nil, &Config{Image: "img", MilliCpu: 1000, MemoryBytes: 1 << 20}, grant)
+			ctrl.runner = runner
+			ctrl.handle = noopExecHandle{}
+			if err := ctrl.Execute(t.Context()); err == nil {
+				t.Fatal("failed Docker launch returned no error")
+			}
+			if released != 1 {
+				t.Fatalf("grant released %d times, want once", released)
+			}
+			if len(runner.commands) == 0 || !slices.Contains(runner.commands[0].args, "named-runtime") {
+				t.Fatalf("Docker create lost runtime name: %+v", runner.commands)
+			}
+		})
 	}
 }
 
@@ -160,7 +242,12 @@ func TestExecuteStopsContainerOnCancel(t *testing.T) {
 		DockerPath:         "docker-test",
 		Image:              "ghbot:dev",
 		StopTimeoutSeconds: 3,
-	})
+		MilliCpu:           1000,
+		MemoryBytes:        1 << 20,
+	}, &recordingAdmission{name: "test-runtime", release: func(ctx context.Context) error {
+		_, err := runner.Run(ctx, "docker-test", []string{"stop", "--time", "3", "test-runtime"}, []string{})
+		return err
+	}})
 	ctrl.runner = runner
 	ctrl.handle = noopExecHandle{}
 
@@ -176,7 +263,7 @@ func TestExecuteStopsContainerOnCancel(t *testing.T) {
 
 	wantStop := recordedCommand{
 		name: "docker-test",
-		args: []string{"stop", "--time", "3", "container-123"},
+		args: []string{"stop", "--time", "3", "test-runtime"},
 		env:  []string{},
 	}
 	if !slices.ContainsFunc(runner.commands, func(cmd recordedCommand) bool {
@@ -203,6 +290,7 @@ type recordedCommand struct {
 
 type recordingRunner struct {
 	outputs     map[string][]byte
+	errors      map[string]error
 	stderr      []byte
 	commands    []recordedCommand
 	waitStarted chan struct{}
@@ -249,6 +337,9 @@ func (r *recordingRunner) Run(ctx context.Context, name string, args []string, e
 		<-ctx.Done()
 		return nil, context.Canceled
 	}
+	if err := r.errors[args[0]]; err != nil {
+		return nil, err
+	}
 	return r.outputs[args[0]], nil
 }
 
@@ -257,6 +348,9 @@ type noopExecHandle struct{}
 func (noopExecHandle) GetExecutionUniqueId() string {
 	return "test-exec"
 }
+
+// GetExecutionObjectKey identifies the fake's one durable attempt.
+func (noopExecHandle) GetExecutionObjectKey() string { return "exec/test" }
 
 func (noopExecHandle) GetPeerId() peer.ID {
 	return ""

@@ -47,6 +47,11 @@ func (a *accessHandle) GetExecutionUniqueId() string {
 	return a.uniqueID
 }
 
+// GetExecutionObjectKey uses the synthetic access handle's caller identity.
+func (a *accessHandle) GetExecutionObjectKey() string {
+	return a.uniqueID
+}
+
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (a *accessHandle) GetPeerId() peer.ID {
 	return a.peerID

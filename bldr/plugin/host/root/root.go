@@ -1,7 +1,10 @@
 package plugin_host_root
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
 	plugin_host_logs "github.com/s4wave/spacewave/bldr/plugin/host/logs"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -17,6 +20,38 @@ type Root struct {
 	structuredLogs *plugin_host_logs.Hub
 	// mux routes resource access to the owned services.
 	mux srpc.Invoker
+	// policyBcast guards the daemon policy source and wakes waiting plugin streams.
+	policyBcast broadcast.Broadcast
+	// policySource forwards the daemon's current policy and changes.
+	policySource DevicePolicySource
+}
+
+// SetDevicePolicySource binds the daemon's policy watch to this host lifetime.
+func (r *Root) SetDevicePolicySource(source DevicePolicySource) {
+	r.policyBcast.HoldLock(func(wake func(), _ func() <-chan struct{}) {
+		r.policySource = source
+		wake()
+	})
+}
+
+// WaitDevicePolicySource waits for the daemon to bind its read-only policy source.
+func (r *Root) WaitDevicePolicySource(ctx context.Context) (DevicePolicySource, error) {
+	for {
+		var source DevicePolicySource
+		var waitCh <-chan struct{}
+		r.policyBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			source = r.policySource
+			waitCh = getWaitCh()
+		})
+		if source != nil {
+			return source, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-waitCh:
+		}
+	}
 }
 
 // NewRoot constructs a new Root.

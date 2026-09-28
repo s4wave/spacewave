@@ -20,6 +20,22 @@ service PluginHostResourceService {
   // CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
   rpc CompleteInitialCapabilityRegistration(CompleteInitialCapabilityRegistrationRequest)
     returns (CompleteInitialCapabilityRegistrationResponse);
+  // WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+  rpc WatchDevicePolicy(WatchDevicePolicyRequest) returns (stream WatchDevicePolicyResponse);
+}
+
+// WatchDevicePolicyRequest subscribes to the local daemon policy.
+message WatchDevicePolicyRequest {
+}
+
+// WatchDevicePolicyResponse carries one complete policy revision and its Device identity.
+message WatchDevicePolicyResponse {
+  // Policy is the binary s4wave.device.policy.DevicePolicy message.
+  bytes policy = 1;
+  // DeviceObjectKey identifies the enrolled Device that owns Worker capacity.
+  string device_object_key = 2;
+  // Revision identifies the policy mutation that produced this snapshot.
+  uint64 revision = 3;
 }
 
 // CompleteInitialCapabilityRegistrationRequest marks initial registration complete.

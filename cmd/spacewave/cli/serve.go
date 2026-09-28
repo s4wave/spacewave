@@ -12,14 +12,19 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
+	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/daemon"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
@@ -198,6 +203,7 @@ func runServeCommand(
 
 	// Native hosts supply the same plugin-host services as a distribution bus.
 	var releasePluginHost func()
+	var nativeHostRoot *plugin_host_root.Root
 	if nativeCore {
 		pluginRoot := filepath.Join(resolved, "plugin")
 		pluginStateRoot := filepath.Join(pluginRoot, "state")
@@ -207,7 +213,7 @@ func runServeCommand(
 				return err
 			}
 		}
-		_, releasePluginHost, err = plugin_host_default.StartPluginHost(
+		pluginHost, release, err := plugin_host_default.StartPluginHost(
 			serveCtx,
 			cliBus.GetBus(),
 			pluginStateRoot,
@@ -217,6 +223,8 @@ func runServeCommand(
 		if err != nil {
 			return err
 		}
+		releasePluginHost = release
+		nativeHostRoot = pluginHost.ProcessHost.GetHostRoot()
 		defer releasePluginHost()
 	}
 
@@ -225,7 +233,39 @@ func runServeCommand(
 	if err != nil {
 		return err
 	}
-	startLocalSessionKeeper(serveCtx, le, invoker)
+	if nativeHostRoot == nil {
+		var hostRef directive.Reference
+		nativeHostRoot, _, hostRef, err = plugin_host_root.ExLookupRootByPlatform(
+			serveCtx, cliBus.GetBus(), false, (&bldr_platform.NativePlatform{}).GetPlatformID(), nil,
+		)
+		if err != nil {
+			return err
+		}
+		defer hostRef.Release()
+	}
+	nativeHostRoot.SetDevicePolicySource(&devicePolicyHostSource{store: devicePolicy, statePath: resolved})
+	if nativeCore {
+		// Native core reaches the same host Resource service on its local bus.
+		pluginRoot := plugin_host_resource.NewPluginHostRoot(
+			cliBus.GetBus(), nativeCorePluginID, "", nil, nil, nil, nativeHostRoot,
+			"native-policy-atoms", cliBus.GetVolume().GetID(), nil,
+		)
+		defer pluginRoot.Release()
+		hostMux := srpc.NewMux()
+		if err := resource_server.NewResourceServer(pluginRoot.GetMux()).Register(hostMux); err != nil {
+			return err
+		}
+		hostCtrl := bifrost_rpc.NewInvokerController(le, cliBus.GetBus(),
+			controller.NewInfo("cli/native-core-policy-host", controller.MustParseVersion("0.0.1"), ""),
+			hostMux, []string{bldr_plugin.HostServiceIDPrefix},
+		)
+		releaseHost, err := cliBus.GetBus().AddController(serveCtx, hostCtrl, nil)
+		if err != nil {
+			return err
+		}
+		defer releaseHost()
+	}
+	startLocalSessionKeeper(serveCtx, le, resolved, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
@@ -303,7 +343,6 @@ func runServeCommand(
 
 	// Public service starts only after the launcher relinquishes custody.
 	srv := srpc.NewServer(mux)
-	startDeviceCapacityObserver(serveCtx, le, resolved, invoker, devicePolicy)
 	releaseStartupDemand()
 	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }

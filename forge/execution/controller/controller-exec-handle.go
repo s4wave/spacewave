@@ -46,6 +46,11 @@ func (h *execControllerHandle) GetExecutionUniqueId() string {
 	return h.c.uniqueID
 }
 
+// GetExecutionObjectKey returns the durable Execution attempt key.
+func (h *execControllerHandle) GetExecutionObjectKey() string {
+	return h.c.conf.GetObjectKey()
+}
+
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (h *execControllerHandle) GetPeerId() peer.ID {
 	return h.c.peerID

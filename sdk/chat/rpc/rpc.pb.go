@@ -232,7 +232,8 @@ func (x *GetMessageRequest) GetMessageKey() string {
 // GetMessageResponse contains the selected channel message.
 type GetMessageResponse struct {
 	unknownFields []byte
-	// Message is the selected message projection.
+	// Message is the selected message projection, unset when the key names no
+	// message.
 	Message *ChatMessageInfo `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 }
 
@@ -545,7 +546,8 @@ func (x *SendMessageRequest) GetReuseAcceptedTransaction() bool {
 // SendMessageResponse is the response after sending a message.
 type SendMessageResponse struct {
 	unknownFields []byte
-	// MessageKey is the object key of the created message.
+	// MessageKey is the object key of the created message. It is empty when
+	// expected_state_message_key no longer names the current state.
 	MessageKey string `protobuf:"bytes,1,opt,name=message_key,json=messageKey,proto3" json:"messageKey,omitempty"`
 }
 

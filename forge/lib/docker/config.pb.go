@@ -39,6 +39,10 @@ type Config struct {
 	// StopTimeoutSeconds is passed to docker stop when cancellation stops a
 	// container. Docker's default stop timeout is used when zero.
 	StopTimeoutSeconds uint32 `protobuf:"varint,8,opt,name=stop_timeout_seconds,json=stopTimeoutSeconds,proto3" json:"stopTimeoutSeconds,omitempty"`
+	// MilliCpu is the CPU requested by this target in milli-cores.
+	MilliCpu uint64 `protobuf:"varint,9,opt,name=milli_cpu,json=milliCpu,proto3" json:"milliCpu,omitempty"`
+	// MemoryBytes is the memory requested by this target in bytes.
+	MemoryBytes uint64 `protobuf:"varint,10,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -99,6 +103,20 @@ func (x *Config) GetCommand() []string {
 func (x *Config) GetStopTimeoutSeconds() uint32 {
 	if x != nil {
 		return x.StopTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *Config) GetMilliCpu() uint64 {
+	if x != nil {
+		return x.MilliCpu
+	}
+	return 0
+}
+
+func (x *Config) GetMemoryBytes() uint64 {
+	if x != nil {
+		return x.MemoryBytes
 	}
 	return 0
 }
@@ -202,6 +220,8 @@ func (m *Config) CloneVT() *Config {
 	r.Image = m.Image
 	r.Workdir = m.Workdir
 	r.StopTimeoutSeconds = m.StopTimeoutSeconds
+	r.MilliCpu = m.MilliCpu
+	r.MemoryBytes = m.MemoryBytes
 	r.DockerEnv = protobuf_go_lite.CloneMap(m.DockerEnv)
 	r.Env = protobuf_go_lite.CloneMap(m.Env)
 	r.Mounts = protobuf_go_lite.CloneVTSlice(m.Mounts)
@@ -262,6 +282,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.StopTimeoutSeconds != that.StopTimeoutSeconds {
+		return false
+	}
+	if this.MilliCpu != that.MilliCpu {
+		return false
+	}
+	if this.MemoryBytes != that.MemoryBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -471,6 +497,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("stopTimeoutSeconds")
 		s.WriteUint32(x.StopTimeoutSeconds)
 	}
+	if x.MilliCpu != 0 || s.HasField("milliCpu") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("milliCpu")
+		s.WriteUint64(x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 || s.HasField("memoryBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("memoryBytes")
+		s.WriteUint64(x.MemoryBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -545,6 +581,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "stop_timeout_seconds", "stopTimeoutSeconds":
 			s.AddField("stop_timeout_seconds")
 			x.StopTimeoutSeconds = s.ReadUint32()
+		case "milli_cpu", "milliCpu":
+			s.AddField("milli_cpu")
+			x.MilliCpu = s.ReadUint64()
+		case "memory_bytes", "memoryBytes":
+			s.AddField("memory_bytes")
+			x.MemoryBytes = s.ReadUint64()
 		}
 	})
 }
@@ -640,6 +682,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MemoryBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MemoryBytes))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.MilliCpu != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MilliCpu))
+		i--
+		dAtA[i] = 0x48
 	}
 	if m.StopTimeoutSeconds != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StopTimeoutSeconds))
@@ -787,6 +839,8 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringSlice(1, m.Command)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.StopTimeoutSeconds)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MilliCpu)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MemoryBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -900,6 +954,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.StopTimeoutSeconds != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stop_timeout_seconds")
 		protobuf_go_lite.TextWriteUint(&sb, x.StopTimeoutSeconds)
+	}
+	if x.MilliCpu != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "milli_cpu")
+		protobuf_go_lite.TextWriteUint(&sb, x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "memory_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MemoryBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1093,6 +1155,24 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StopTimeoutSeconds = 0
 			m.StopTimeoutSeconds, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MilliCpu", wireType)
+			}
+			m.MilliCpu = 0
+			m.MilliCpu, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MemoryBytes", wireType)
+			}
+			m.MemoryBytes = 0
+			m.MemoryBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

@@ -209,6 +209,9 @@ func (h *pluginExecHandleStub) GetExecutionUniqueId() string {
 	return "test-exec"
 }
 
+// GetExecutionObjectKey identifies the synthetic plugin execution attempt.
+func (h *pluginExecHandleStub) GetExecutionObjectKey() string { return "exec/test" }
+
 func (h *pluginExecHandleStub) GetPeerId() peer.ID {
 	return ""
 }

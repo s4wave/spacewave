@@ -17,9 +17,16 @@ import {
   CompleteInitialCapabilityRegistrationResponse,
   GetPluginInfoRequest,
   GetPluginInfoResponse,
+  WatchDevicePolicyRequest,
+  WatchDevicePolicyResponse,
 } from './host.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc, ServerContext } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * PluginHostResourceService provides resource access for plugins.
@@ -106,6 +113,17 @@ export const PluginHostResourceServiceDefinition = {
       O: CompleteInitialCapabilityRegistrationResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+     *
+     * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+     */
+    WatchDevicePolicy: {
+      name: 'WatchDevicePolicy',
+      I: WatchDevicePolicyRequest,
+      O: WatchDevicePolicyResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -184,6 +202,16 @@ export interface PluginHostResourceService {
     request: CompleteInitialCapabilityRegistrationRequest,
     abortSignal?: AbortSignal,
   ): Promise<CompleteInitialCapabilityRegistrationResponse>
+
+  /**
+   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   */
+  WatchDevicePolicy(
+    request: WatchDevicePolicyRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDevicePolicyResponse>
 }
 
 /**
@@ -268,6 +296,17 @@ export interface PluginHostResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<CompleteInitialCapabilityRegistrationResponse>
+
+  /**
+   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   */
+  WatchDevicePolicy(
+    request: WatchDevicePolicyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDevicePolicyResponse>
 }
 
 export const PluginHostResourceServiceServiceName =
@@ -287,6 +326,7 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
     this.GetPluginInfo = this.GetPluginInfo.bind(this)
     this.CompleteInitialCapabilityRegistration =
       this.CompleteInitialCapabilityRegistration.bind(this)
+    this.WatchDevicePolicy = this.WatchDevicePolicy.bind(this)
   }
   /**
    * AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
@@ -421,5 +461,24 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
       abortSignal || undefined,
     )
     return CompleteInitialCapabilityRegistrationResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   */
+  WatchDevicePolicy(
+    request: WatchDevicePolicyRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchDevicePolicyResponse> {
+    const requestMsg = WatchDevicePolicyRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      PluginHostResourceServiceDefinition.methods.WatchDevicePolicy.name,
+      WatchDevicePolicyRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchDevicePolicyResponse)(result)
   }
 }

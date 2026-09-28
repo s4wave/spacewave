@@ -31,7 +31,7 @@ func NewReservationBlock() block.Block {
 }
 
 // Reservation records one generation-fenced and lease-fenced capacity grant.
-// The record is the durable truth: a daemon restart reconciles by reading it.
+// The record is the durable truth: a Worker restart reconciles by reading it.
 type Reservation struct {
 	// WorkerObjectKey is the Forge Worker object key holding the capacity.
 	WorkerObjectKey string `json:"workerObjectKey,omitempty"`
@@ -154,6 +154,13 @@ func (r *Reservation) MarshalJSON() ([]byte, error) {
 		rt := arena.NewObject()
 		rt.Set("backend", arena.NewString(r.Runtime.Backend))
 		rt.Set("id", arena.NewString(r.Runtime.ID))
+		rt.Set("stopCommand", arena.NewString(r.Runtime.StopCommand))
+		env := arena.NewArray()
+		for i, entry := range r.Runtime.StopEnv {
+			env.SetArrayItem(i, arena.NewString(entry))
+		}
+		rt.Set("stopEnv", env)
+		rt.Set("stopTimeoutSeconds", arena.NewNumberString(strconv.FormatUint(uint64(r.Runtime.StopTimeoutSeconds), 10)))
 		obj.Set("runtime", rt)
 	}
 	if r.Cleanup != nil {
@@ -201,9 +208,18 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 		r.LeaseExpiresAt = ts
 	}
 	if rt := value.Get("runtime"); rt != nil && rt.Type() == fastjson.TypeObject {
+		stopTimeoutSeconds := rt.GetUint64("stopTimeoutSeconds")
+		if stopTimeoutSeconds > math.MaxUint32 {
+			return errors.New("runtime stop timeout out of range")
+		}
 		r.Runtime = BackendRuntimeIdentity{
-			Backend: string(rt.GetStringBytes("backend")),
-			ID:      string(rt.GetStringBytes("id")),
+			Backend:            string(rt.GetStringBytes("backend")),
+			ID:                 string(rt.GetStringBytes("id")),
+			StopCommand:        string(rt.GetStringBytes("stopCommand")),
+			StopTimeoutSeconds: uint32(stopTimeoutSeconds),
+		}
+		for _, entry := range rt.GetArray("stopEnv") {
+			r.Runtime.StopEnv = append(r.Runtime.StopEnv, string(entry.GetStringBytes()))
 		}
 	}
 	if cleanupValue := value.Get("cleanup"); cleanupValue != nil && cleanupValue.Type() == fastjson.TypeObject {

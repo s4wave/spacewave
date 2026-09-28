@@ -91,6 +91,39 @@ func TestClaimAdoptsLegacyOwnerlessRecord(t *testing.T) {
 	}
 }
 
+// TestClaimFencesReserveAndActivate proves a replaced Worker cannot debit or
+// activate capacity after a new owner epoch takes custody.
+func TestClaimFencesReserveAndActivate(t *testing.T) {
+	ctx, eng, _ := newTestbed(t)
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+		t.Fatal(err)
+	}
+	res, err := admission.ReserveForClaim(ctx, "worker/a", "exec/one", testRequest, selfRef, capacity.OwnerEpoch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newRef := WorkerClaimRef{DeviceObjectKey: selfRef.DeviceObjectKey, ClaimID: "replacement"}
+	newCapacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", newRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if newCapacity.OwnerEpoch == capacity.OwnerEpoch {
+		t.Fatal("replacement kept the old owner epoch")
+	}
+	if _, err := admission.ReserveForClaim(ctx, "worker/a", "exec/two", testRequest, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrCapacityOwned) {
+		t.Fatalf("old owner reserved capacity: %v", err)
+	}
+	if _, err := admission.ActivateForClaim(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "stale"}, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrStaleGeneration) {
+		t.Fatalf("old owner activated runtime: %v", err)
+	}
+}
+
 func TestForeignLiveClaimRejected(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)

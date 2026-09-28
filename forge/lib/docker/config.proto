@@ -25,6 +25,10 @@ message Config {
   // StopTimeoutSeconds is passed to docker stop when cancellation stops a
   // container. Docker's default stop timeout is used when zero.
   uint32 stop_timeout_seconds = 8;
+  // MilliCpu is the CPU requested by this target in milli-cores.
+  uint64 milli_cpu = 9;
+  // MemoryBytes is the memory requested by this target in bytes.
+  uint64 memory_bytes = 10;
 }
 
 // Mount configures one docker bind mount.

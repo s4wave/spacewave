@@ -19,7 +19,7 @@ import (
 const workerCapacityObjectKeyPrefix = "forge/runtime/capacity/"
 
 // BuildWorkerCapacityObjectKey builds the deterministic capacity object key
-// for one Forge Worker. The Worker daemon owns this record; Forge validates
+// for one Forge Worker. The Worker process owns this record; Forge validates
 // and debits it, callers never keep a parallel ledger.
 func BuildWorkerCapacityObjectKey(workerObjectKey string) string {
 	hash := sha256.Sum256([]byte(workerObjectKey))
@@ -74,10 +74,10 @@ type WorkerCapacity struct {
 	// fence stale capacity views.
 	Generation uint64
 	// OwnerDeviceObjectKey is the enrolled Device object key of the owning
-	// daemon instance. Empty together with every other owner field marks a
+	// Worker execution. Empty together with every other owner field marks a
 	// legacy ownerless record.
 	OwnerDeviceObjectKey string
-	// ClaimID identifies one owning daemon instance claim.
+	// ClaimID identifies one owning Worker execution claim.
 	ClaimID string
 	// OwnerEpoch increments on every claim transition; calls fencing against
 	// an older epoch are stale.
