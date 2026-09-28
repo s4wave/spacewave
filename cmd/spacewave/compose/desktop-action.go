@@ -7,8 +7,8 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	"github.com/s4wave/spacewave/core/daemon"
-	"github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,8 +28,8 @@ func openDesktopWithConnector(ctx context.Context, connector *daemon.Connector) 
 	}
 	defer client.Close()
 
-	_, err = desktopcontrol.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
-		ctx, &desktopcontrol.OpenOrFocusDesktopRequest{},
+	_, err = desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
+		ctx, &desktop_control.OpenOrFocusDesktopRequest{},
 	)
 	if err == nil {
 		return nil

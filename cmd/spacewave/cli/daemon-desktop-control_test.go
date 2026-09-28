@@ -16,13 +16,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
 	"github.com/s4wave/spacewave/core/appversion"
-	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	"github.com/sirupsen/logrus"
 )
@@ -65,7 +65,7 @@ func desktopSocket(t *testing.T, control *daemonDesktopControl, events <-chan st
 	if err := resource_server.NewResourceServer(root).Register(mux); err != nil {
 		t.Fatal(err)
 	}
-	if err := desktopcontrol.SRPCRegisterDesktopControlService(mux, control); err != nil {
+	if err := desktop_control.SRPCRegisterDesktopControlService(mux, control); err != nil {
 		t.Fatal(err)
 	}
 
@@ -170,7 +170,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	defer retainedConn.Close()
 	watch := desktopWatch(t, retainedResources)
 	status := desktopStatusWatch(t, retained)
-	initial := recvDesktopStatus(t, status, func(*desktopcontrol.WatchDesktopStatusResponse) bool { return true })
+	initial := recvDesktopStatus(t, status, func(*desktop_control.WatchDesktopStatusResponse) bool { return true })
 	if initial.GetGeneration() != 0 || initial.GetPresence() != nil || initial.GetFailure() != "" {
 		t.Fatalf("headless desktop status = %v", initial)
 	}
@@ -182,7 +182,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 		route  string
 	}{{launcher, "/spaces"}, {retained, "/settings"}} {
 		go func() {
-			resp, err := desktopcontrol.NewSRPCDesktopControlServiceClient(request.client).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{Route: request.route})
+			resp, err := desktop_control.NewSRPCDesktopControlServiceClient(request.client).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{Route: request.route})
 			if err == nil && (resp.GetDaemonPid() != int64(os.Getpid()) || resp.GetDaemonExecutable() == "" || resp.GetUiManifestRef() != "artifact/test" || resp.GetDaemonRelease() != appversion.GetVersion()) {
 				err = errors.New("desktop response omitted daemon or UI identity")
 			}
@@ -207,7 +207,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	}
 
 	// Confirm open readiness from the owner's presence through the daemon status stream.
-	ready := recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+	ready := recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
 	})
 	if ready.GetGeneration() != 1 || ready.GetFailure() != "" {
@@ -240,7 +240,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	})
 	desktop.closeShell("")
 	<-demandEnded
-	ended := recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+	ended := recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
 	})
 	if ended.GetPresence().GetError() != "" || ended.GetFailure() != "" {
@@ -255,7 +255,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	}
 
 	// Reopen through the retained client's socket connection.
-	resp, err := desktopcontrol.NewSRPCDesktopControlServiceClient(retained).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+	resp, err := desktop_control.NewSRPCDesktopControlServiceClient(retained).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,10 +275,10 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 	if !reopened {
 		t.Fatal("reopen did not retain desktop demand")
 	}
-	recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+	recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetGeneration() == 2 && state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
 	})
-	late := recvDesktopStatus(t, desktopStatusWatch(t, retained), func(*desktopcontrol.WatchDesktopStatusResponse) bool { return true })
+	late := recvDesktopStatus(t, desktopStatusWatch(t, retained), func(*desktop_control.WatchDesktopStatusResponse) bool { return true })
 	if late.GetGeneration() != 2 || late.GetPresence().GetState() != bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE {
 		t.Fatalf("late subscriber missed the current shell: %v", late)
 	}
@@ -289,7 +289,7 @@ func TestDesktopControlSocketKeepsResourceAndPluginPresence(t *testing.T) {
 
 	// A failed shell exit is distinct from a clean close and a broken watch.
 	desktop.closeShell("Electron exited with status 1")
-	failed := recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+	failed := recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
 	})
 	if failed.GetGeneration() != 2 || failed.GetPresence().GetError() != "Electron exited with status 1" || failed.GetFailure() != "" {
@@ -345,14 +345,14 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	defer otherStatus.Close()
 	watch := desktopWatch(t, otherResources)
 	status := desktopStatusWatch(t, launcher)
-	service := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher)
+	service := desktop_control.NewSRPCDesktopControlServiceClient(launcher)
 
 	// A busy Quit leaves the other client's stream and daemon admission alive.
-	if _, err := service.OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+	if _, err := service.OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{}); err != nil {
 		t.Fatal(err)
 	}
 	<-desktop.entered
-	resp, err := service.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	resp, err := service.QuitDesktop(ctx, &desktop_control.QuitDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 		t.Fatalf("busy Quit = %v, want one other client", resp)
 	}
 	desktop.closeShell("")
-	recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+	recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 		return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
 	})
 	if snapshot, _ := idle.observe(); snapshot.stopping {
@@ -374,11 +374,11 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 	}
 
 	// Reopen and Quit without another client; claim admission before shell exit.
-	if _, err := service.OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+	if _, err := service.OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{}); err != nil {
 		t.Fatal(err)
 	}
 	<-desktop.entered
-	resp, err = service.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	resp, err = service.QuitDesktop(ctx, &desktop_control.QuitDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -414,7 +414,7 @@ func TestDesktopControlQuitWaitsForPresenceAndOtherClients(t *testing.T) {
 		if err == nil {
 			admissionCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			defer cancel()
-			if _, err := desktopcontrol.NewSRPCDesktopControlServiceClient(lateClient).OpenOrFocusDesktop(admissionCtx, &desktopcontrol.OpenOrFocusDesktopRequest{}); err == nil {
+			if _, err := desktop_control.NewSRPCDesktopControlServiceClient(lateClient).OpenOrFocusDesktop(admissionCtx, &desktop_control.OpenOrFocusDesktopRequest{}); err == nil {
 				t.Fatal("desktop client admitted after Quit stop claim")
 			}
 		}
@@ -438,7 +438,7 @@ func TestDesktopControlLostQuitReply(t *testing.T) {
 		demandRelease: hold.release,
 		demandHold:    hold,
 		watchSequence: 1,
-		status: &desktopcontrol.WatchDesktopStatusResponse{
+		status: &desktop_control.WatchDesktopStatusResponse{
 			Presence: &bldr_web_plugin.WatchDesktopPresenceResponse{
 				State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE,
 			},
@@ -448,7 +448,7 @@ func TestDesktopControlLostQuitReply(t *testing.T) {
 
 	// Claim stop, then lose the requester without delivering its response.
 	ctx := context.WithValue(t.Context(), daemonConnCtxKey{}, requester)
-	response, err := control.QuitDesktop(ctx, &desktopcontrol.QuitDesktopRequest{})
+	response, err := control.QuitDesktop(ctx, &desktop_control.QuitDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,7 +533,7 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 			status := desktopStatusWatch(t, client)
 
 			// Reject desktop failure while the Resource stream remains usable.
-			_, err := desktopcontrol.NewSRPCDesktopControlServiceClient(client).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+			_, err := desktop_control.NewSRPCDesktopControlServiceClient(client).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{})
 			if err == nil || !strings.Contains(err.Error(), failure.want) {
 				t.Fatalf("desktop error = %v, want %q", err, failure.want)
 			}
@@ -545,7 +545,7 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 				t.Fatalf("failed plugin references released = %d, want 1", releases.Load())
 			}
 			if !failure.endOnOpen {
-				failed := recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+				failed := recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 					return state.GetFailure() != ""
 				})
 				if !strings.Contains(failed.GetFailure(), failure.want) {
@@ -607,12 +607,12 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			watch := desktopWatch(t, resources)
 
 			// Fail before or after confirmation; neither outcome proves a shell exit.
-			_, err := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher).OpenOrFocusDesktop(t.Context(), &desktopcontrol.OpenOrFocusDesktopRequest{})
+			_, err := desktop_control.NewSRPCDesktopControlServiceClient(launcher).OpenOrFocusDesktop(t.Context(), &desktop_control.OpenOrFocusDesktopRequest{})
 			if failure == "active-stream" {
 				if err != nil {
 					t.Fatal(err)
 				}
-				recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+				recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 					return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
 				})
 				close(fail)
@@ -620,7 +620,7 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			if failure != "active-stream" && err == nil {
 				t.Fatal("unconfirmed presence acknowledged readiness")
 			}
-			failed := recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+			failed := recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 				return state.GetFailure() != ""
 			})
 			if !strings.Contains(failed.GetFailure(), "reopen") {
@@ -643,7 +643,7 @@ func TestDesktopControlStreamFailureKeepsDemand(t *testing.T) {
 			lateClient, lateResources, lateConn := desktopSocketClient(t, socket)
 			defer lateResources.Release()
 			defer lateConn.Close()
-			late := recvDesktopStatus(t, desktopStatusWatch(t, lateClient), func(state *desktopcontrol.WatchDesktopStatusResponse) bool { return true })
+			late := recvDesktopStatus(t, desktopStatusWatch(t, lateClient), func(state *desktop_control.WatchDesktopStatusResponse) bool { return true })
 			if !failed.EqualVT(late) {
 				t.Fatalf("late status = %v, want %v", late, failed)
 			}
@@ -688,14 +688,14 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 			defer resources.Release()
 			defer conn.Close()
 			status := desktopStatusWatch(t, launcher)
-			service := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher)
+			service := desktop_control.NewSRPCDesktopControlServiceClient(launcher)
 
 			// Confirm the shell, then fail only the status observation stream.
-			if _, err := service.OpenOrFocusDesktop(t.Context(), &desktopcontrol.OpenOrFocusDesktopRequest{}); err != nil {
+			if _, err := service.OpenOrFocusDesktop(t.Context(), &desktop_control.OpenOrFocusDesktopRequest{}); err != nil {
 				t.Fatal(err)
 			}
 			close(failed)
-			recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+			recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 				return state.GetFailure() != ""
 			})
 			if snapshot, _ := idle.observe(); snapshot.services != 1 || snapshot.stopping {
@@ -704,7 +704,7 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 
 			// Quit claims immediately, but neither path releases demand before exit.
 			if quit {
-				result, err := service.QuitDesktop(t.Context(), &desktopcontrol.QuitDesktopRequest{})
+				result, err := service.QuitDesktop(t.Context(), &desktop_control.QuitDesktopRequest{})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -723,7 +723,7 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 				t.Fatalf("late owner wait released demand early = %+v", snapshot)
 			}
 			close(waitGate)
-			recvDesktopStatus(t, status, func(state *desktopcontrol.WatchDesktopStatusResponse) bool {
+			recvDesktopStatus(t, status, func(state *desktop_control.WatchDesktopStatusResponse) bool {
 				return state.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED
 			})
 			for {
@@ -748,9 +748,9 @@ func TestDesktopControlOwnerExitAfterStreamFailure(t *testing.T) {
 }
 
 // desktopStatusWatch opens the generated status RPC on an existing protected connection.
-func desktopStatusWatch(t *testing.T, client srpc.Client) desktopcontrol.SRPCDesktopControlService_WatchDesktopStatusClient {
+func desktopStatusWatch(t *testing.T, client srpc.Client) desktop_control.SRPCDesktopControlService_WatchDesktopStatusClient {
 	t.Helper()
-	stream, err := desktopcontrol.NewSRPCDesktopControlServiceClient(client).WatchDesktopStatus(t.Context(), &desktopcontrol.WatchDesktopStatusRequest{})
+	stream, err := desktop_control.NewSRPCDesktopControlServiceClient(client).WatchDesktopStatus(t.Context(), &desktop_control.WatchDesktopStatusRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -759,7 +759,7 @@ func desktopStatusWatch(t *testing.T, client srpc.Client) desktopcontrol.SRPCDes
 }
 
 // recvDesktopStatus receives owner-driven updates until the expected observation arrives.
-func recvDesktopStatus(t *testing.T, stream desktopcontrol.SRPCDesktopControlService_WatchDesktopStatusClient, match func(*desktopcontrol.WatchDesktopStatusResponse) bool) *desktopcontrol.WatchDesktopStatusResponse {
+func recvDesktopStatus(t *testing.T, stream desktop_control.SRPCDesktopControlService_WatchDesktopStatusClient, match func(*desktop_control.WatchDesktopStatusResponse) bool) *desktop_control.WatchDesktopStatusResponse {
 	t.Helper()
 	for {
 		state, err := stream.Recv()

@@ -176,7 +176,7 @@ vi.mock('../../../sdk/resource/unix-client.js', () => ({
 }))
 
 vi.mock(
-  '@go/github.com/s4wave/spacewave/core/daemon/desktopcontrol/desktop-control_srpc.pb.js',
+  '../../../desktop/control/control_srpc.pb.js',
   () => ({
     DesktopControlServiceClient: class {
       public QuitDesktop = daemonQuitMocks.quit

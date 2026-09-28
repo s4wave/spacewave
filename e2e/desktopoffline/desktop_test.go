@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fsnotify"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	"github.com/s4wave/spacewave/core/daemon"
-	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 )
 
 // TestDesktopDistributionSocket opens the built fixture through the protected
@@ -116,9 +116,9 @@ func TestDesktopDistributionSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opened, err := desktopcontrol.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
+	opened, err := desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
 		ctx,
-		&desktopcontrol.OpenOrFocusDesktopRequest{},
+		&desktop_control.OpenOrFocusDesktopRequest{},
 	)
 	if err != nil {
 		t.Fatalf("open desktop: %v; log: %s", err, logFile.Name())

@@ -16,11 +16,11 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	"github.com/s4wave/spacewave/core/daemon"
-	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -257,7 +257,7 @@ func runServeCommand(
 	mux := srpc.NewMux(invoker)
 	desktopControl := newDaemonDesktopControl(serveCtx, cliBus.GetBus(), idleTracker)
 	defer desktopControl.close()
-	if err := desktopcontrol.SRPCRegisterDesktopControlService(mux, desktopControl); err != nil {
+	if err := desktop_control.SRPCRegisterDesktopControlService(mux, desktopControl); err != nil {
 		return err
 	}
 

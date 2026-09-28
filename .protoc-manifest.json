@@ -43,6 +43,18 @@
         "bldr/cli/compiler/compiler.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/desktop/control": {
+      "hash": "26681e1ce3fc298ebe25c772ba6f9327c0e94ed5e0b95d0feeff4a3caddc91c6",
+      "generatedFiles": [
+        "bldr/desktop/control/control.pb.go",
+        "bldr/desktop/control/control.pb.ts",
+        "bldr/desktop/control/control_srpc.pb.go",
+        "bldr/desktop/control/control_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/desktop/control/control.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/desktop/tray": {
       "hash": "83c55210ab3bbcd6d68b394730ca231b0794a13008242d32e105bfe07ebcbb9b",
       "generatedFiles": [
@@ -1003,18 +1015,6 @@
       ],
       "protoFiles": [
         "core/changelog/changelog.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/core/daemon/desktopcontrol": {
-      "hash": "85d3d5414fcec5472c228ee4691e0b120f4e1339cf199d478cb69e42a6cfc12e",
-      "generatedFiles": [
-        "core/daemon/desktopcontrol/desktop-control.pb.go",
-        "core/daemon/desktopcontrol/desktop-control.pb.ts",
-        "core/daemon/desktopcontrol/desktop-control_srpc.pb.go",
-        "core/daemon/desktopcontrol/desktop-control_srpc.pb.ts"
-      ],
-      "protoFiles": [
-        "core/daemon/desktopcontrol/desktop-control.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/debug/bridge": {

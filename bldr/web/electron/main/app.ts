@@ -14,8 +14,8 @@ import electron, {
 } from 'electron'
 import { Client as SRPCClient, OpenStreamCtr, StreamConn } from 'starpc'
 import type { Message } from '@aptre/protobuf-es-lite'
-import { DesktopControlServiceClient } from '@go/github.com/s4wave/spacewave/core/daemon/desktopcontrol/desktop-control_srpc.pb.js'
 
+import { DesktopControlServiceClient } from '../../../desktop/control/control_srpc.pb.js'
 import { connectUnixResourceClient } from '../../../sdk/resource/unix-client.js'
 import { WebRuntime } from '../../bldr/web-runtime.js'
 import { ServiceWorkerFetchTracker } from '../../bldr/service-worker-fetch-tracker.js'

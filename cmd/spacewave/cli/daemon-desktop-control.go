@@ -10,11 +10,11 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	"github.com/s4wave/spacewave/core/appversion"
-	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 )
 
 // daemonDesktopControl serves desktop requests on the daemon's protected Resource socket.
@@ -30,7 +30,7 @@ type daemonDesktopControl struct {
 	// bcast guards retained references and the latest owner observation.
 	bcast broadcast.Broadcast
 	// status is replayed to current and future desktop-status clients.
-	status *desktopcontrol.WatchDesktopStatusResponse
+	status *desktop_control.WatchDesktopStatusResponse
 	// closed prevents in-flight launcher requests from restoring demand after shutdown.
 	closed bool
 	// pluginRelease retains web plugin infrastructure for warm reopen.
@@ -113,8 +113,8 @@ func selectedDesktopArtifact(b bus.Bus) (string, error) {
 // acknowledges only after Electron opens or focuses its main window.
 func (d *daemonDesktopControl) OpenOrFocusDesktop(
 	ctx context.Context,
-	req *desktopcontrol.OpenOrFocusDesktopRequest,
-) (*desktopcontrol.OpenOrFocusDesktopResponse, error) {
+	req *desktop_control.OpenOrFocusDesktopRequest,
+) (*desktop_control.OpenOrFocusDesktopResponse, error) {
 	// Identify the executable actually serving this socket before opening the desktop.
 	executable, err := os.Executable()
 	if err != nil {
@@ -149,7 +149,7 @@ func (d *daemonDesktopControl) OpenOrFocusDesktop(
 	}
 
 	// Return the daemon executable and UI manifest that served this request.
-	return &desktopcontrol.OpenOrFocusDesktopResponse{
+	return &desktop_control.OpenOrFocusDesktopResponse{
 		DaemonPid:        int64(os.Getpid()),
 		DaemonExecutable: executable,
 		UiManifestRef:    artifact,
@@ -161,8 +161,8 @@ func (d *daemonDesktopControl) OpenOrFocusDesktop(
 // other work. A winning claim fences admission before the shell exits.
 func (d *daemonDesktopControl) QuitDesktop(
 	ctx context.Context,
-	_ *desktopcontrol.QuitDesktopRequest,
-) (*desktopcontrol.QuitDesktopResponse, error) {
+	_ *desktop_control.QuitDesktopRequest,
+) (*desktop_control.QuitDesktopResponse, error) {
 	// Bind this Quit to its admitted socket and the currently active shell.
 	requester, ok := ctx.Value(daemonConnCtxKey{}).(*trackedConn)
 	if !ok {
@@ -186,7 +186,7 @@ func (d *daemonDesktopControl) QuitDesktop(
 	}
 
 	// Return the final decision before Electron begins exiting.
-	return &desktopcontrol.QuitDesktopResponse{
+	return &desktop_control.QuitDesktopResponse{
 		OtherClients:  int64(snapshot.clients),
 		OtherServices: int64(snapshot.services),
 	}, nil
@@ -251,7 +251,7 @@ func (d *daemonDesktopControl) retainDesktop(
 		d.watchGeneration = generation
 		d.watchSequence++
 		d.quitRequester = nil
-		d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation}
+		d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation}
 		sequence = d.watchSequence
 		broadcast()
 	})
@@ -273,7 +273,7 @@ func (d *daemonDesktopControl) retainDesktop(
 
 	// A launcher waits for readiness, while observation continues after it disconnects.
 	for {
-		var status *desktopcontrol.WatchDesktopStatusResponse
+		var status *desktop_control.WatchDesktopStatusResponse
 		var wait <-chan struct{}
 		var closed bool
 		d.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -340,7 +340,7 @@ func (d *daemonDesktopControl) watchDesktop(
 				if sequence != d.watchSequence || d.demandRelease == nil {
 					return
 				}
-				d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation, Presence: state}
+				d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation, Presence: state}
 				broadcast()
 			})
 		}
@@ -376,7 +376,7 @@ func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *
 		if sequence != d.watchSequence || d.demandRelease == nil {
 			return
 		}
-		d.status = &desktopcontrol.WatchDesktopStatusResponse{Generation: generation, Presence: state}
+		d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation, Presence: state}
 		release = d.demandRelease
 		d.demandRelease = nil
 		d.demandHold = nil
@@ -403,7 +403,7 @@ func (d *daemonDesktopControl) reportFailure(err error) {
 		if d.closed {
 			return
 		}
-		status := &desktopcontrol.WatchDesktopStatusResponse{}
+		status := &desktop_control.WatchDesktopStatusResponse{}
 		if d.status != nil {
 			status = d.status.CloneVT()
 		}
@@ -416,13 +416,13 @@ func (d *daemonDesktopControl) reportFailure(err error) {
 // WatchDesktopStatus replays current status, then watches daemon-owned observations.
 // Canceling this RPC only unsubscribes the caller; it cannot release desktop demand.
 func (d *daemonDesktopControl) WatchDesktopStatus(
-	_ *desktopcontrol.WatchDesktopStatusRequest,
-	stream desktopcontrol.SRPCDesktopControlService_WatchDesktopStatusStream,
+	_ *desktop_control.WatchDesktopStatusRequest,
+	stream desktop_control.SRPCDesktopControlService_WatchDesktopStatusStream,
 ) error {
-	var previous *desktopcontrol.WatchDesktopStatusResponse
+	var previous *desktop_control.WatchDesktopStatusResponse
 	for {
 		// Read the snapshot and its next notification under the same lock.
-		var status *desktopcontrol.WatchDesktopStatusResponse
+		var status *desktop_control.WatchDesktopStatusResponse
 		var wait <-chan struct{}
 		var closed bool
 		d.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -434,7 +434,7 @@ func (d *daemonDesktopControl) WatchDesktopStatus(
 			return context.Canceled
 		}
 		if status == nil {
-			status = &desktopcontrol.WatchDesktopStatusResponse{}
+			status = &desktop_control.WatchDesktopStatusResponse{}
 		}
 
 		// Send outside the lock so a slow subscriber cannot block the owner watch.
@@ -488,4 +488,4 @@ func (d *daemonDesktopControl) close() {
 }
 
 // _ is a type assertion.
-var _ desktopcontrol.SRPCDesktopControlServiceServer = (*daemonDesktopControl)(nil)
+var _ desktop_control.SRPCDesktopControlServiceServer = (*daemonDesktopControl)(nil)

@@ -15,10 +15,10 @@ import (
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/appversion"
 	"github.com/s4wave/spacewave/core/daemon"
-	"github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 )
 
@@ -75,7 +75,7 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 		t.Fatal(err)
 	}
 	if withDesktop {
-		if err := desktopcontrol.SRPCRegisterDesktopControlService(mux, fixture.control); err != nil {
+		if err := desktop_control.SRPCRegisterDesktopControlService(mux, fixture.control); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -105,7 +105,7 @@ func newDesktopActionFixture(t *testing.T, root string, withDesktop bool) *deskt
 }
 
 // OpenOrFocusDesktop acknowledges a request from the one fixture daemon.
-func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktopcontrol.OpenOrFocusDesktopRequest) (*desktopcontrol.OpenOrFocusDesktopResponse, error) {
+func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktop_control.OpenOrFocusDesktopRequest) (*desktop_control.OpenOrFocusDesktopResponse, error) {
 	// Record demand against the daemon even after the launcher disconnects.
 	c.mtx.Lock()
 	c.opens++
@@ -116,7 +116,7 @@ func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktopcont
 	if err != nil {
 		return nil, err
 	}
-	return &desktopcontrol.OpenOrFocusDesktopResponse{
+	return &desktop_control.OpenOrFocusDesktopResponse{
 		DaemonPid:        int64(os.Getpid()),
 		DaemonExecutable: executable,
 		DaemonRelease:    "fixture-older-release",
@@ -125,12 +125,12 @@ func (c *fixtureDesktopControl) OpenOrFocusDesktop(context.Context, *desktopcont
 }
 
 // QuitDesktop is outside this launcher-only fixture.
-func (c *fixtureDesktopControl) QuitDesktop(context.Context, *desktopcontrol.QuitDesktopRequest) (*desktopcontrol.QuitDesktopResponse, error) {
+func (c *fixtureDesktopControl) QuitDesktop(context.Context, *desktop_control.QuitDesktopRequest) (*desktop_control.QuitDesktopResponse, error) {
 	return nil, errors.New("desktop Quit is outside the launcher fixture")
 }
 
 // WatchDesktopStatus is unused by the launcher's one-shot operation.
-func (c *fixtureDesktopControl) WatchDesktopStatus(*desktopcontrol.WatchDesktopStatusRequest, desktopcontrol.SRPCDesktopControlService_WatchDesktopStatusStream) error {
+func (c *fixtureDesktopControl) WatchDesktopStatus(*desktop_control.WatchDesktopStatusRequest, desktop_control.SRPCDesktopControlService_WatchDesktopStatusStream) error {
 	return nil
 }
 
@@ -277,7 +277,7 @@ func TestDesktopActionAcceptsDifferentDaemonRelease(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Close()
-	response, err := desktopcontrol.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+	response, err := desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,6 +381,6 @@ func desktopActionStatePath(t *testing.T) string {
 
 // _ is a type assertion.
 var (
-	_ desktopcontrol.SRPCDesktopControlServiceServer = (*fixtureDesktopControl)(nil)
-	_ srpc.Invoker                                   = (*fixtureResourceWatch)(nil)
+	_ desktop_control.SRPCDesktopControlServiceServer = (*fixtureDesktopControl)(nil)
+	_ srpc.Invoker                                    = (*fixtureResourceWatch)(nil)
 )

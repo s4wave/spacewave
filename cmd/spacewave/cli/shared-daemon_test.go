@@ -13,9 +13,9 @@ import (
 
 	"github.com/aperturerobotics/fsnotify"
 	"github.com/pkg/errors"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
-	desktopcontrol "github.com/s4wave/spacewave/core/daemon/desktopcontrol"
 )
 
 // TestSharedDaemonStarters exercises real detached processes, state leases and
@@ -142,7 +142,7 @@ func TestSharedDaemonStarters(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, openErr := desktopcontrol.NewSRPCDesktopControlServiceClient(launcher.RPC()).OpenOrFocusDesktop(ctx, &desktopcontrol.OpenOrFocusDesktopRequest{})
+			_, openErr := desktop_control.NewSRPCDesktopControlServiceClient(launcher.RPC()).OpenOrFocusDesktop(ctx, &desktop_control.OpenOrFocusDesktopRequest{})
 			launcher.Close()
 			if openErr == nil {
 				t.Fatal("desktop opened without a UI artifact")
