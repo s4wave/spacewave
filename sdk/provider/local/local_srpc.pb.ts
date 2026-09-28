@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  AttachAccountRequest,
+  AttachAccountResponse,
   CompleteSpaceLinkEnrollmentRequest,
   CompleteSpaceLinkEnrollmentResponse,
   CreateAccountRequest,
@@ -24,6 +26,17 @@ export const LocalProviderResourceServiceDefinition = {
       name: 'CreateAccount',
       I: CreateAccountRequest,
       O: CreateAccountResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * AttachAccount registers the existing Session key in a local account volume.
+     *
+     * @generated from rpc s4wave.provider.local.LocalProviderResourceService.AttachAccount
+     */
+    AttachAccount: {
+      name: 'AttachAccount',
+      I: AttachAccountRequest,
+      O: AttachAccountResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -55,6 +68,16 @@ export interface LocalProviderResourceService {
   ): Promise<CreateAccountResponse>
 
   /**
+   * AttachAccount registers the existing Session key in a local account volume.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.AttachAccount
+   */
+  AttachAccount(
+    request: AttachAccountRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AttachAccountResponse>
+
+  /**
    * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
    * session from the supplied Device key and joins the target Space through
    * the one-use targeted invite from a local SpaceLink approval.
@@ -81,6 +104,17 @@ export interface LocalProviderResourceServiceHandler {
   ): Promise<CreateAccountResponse>
 
   /**
+   * AttachAccount registers the existing Session key in a local account volume.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.AttachAccount
+   */
+  AttachAccount(
+    request: AttachAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AttachAccountResponse>
+
+  /**
    * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
    * session from the supplied Device key and joins the target Space through
    * the one-use targeted invite from a local SpaceLink approval.
@@ -104,6 +138,7 @@ export class LocalProviderResourceServiceClient implements LocalProviderResource
     this.service = opts?.service || LocalProviderResourceServiceServiceName
     this.rpc = rpc
     this.CreateAccount = this.CreateAccount.bind(this)
+    this.AttachAccount = this.AttachAccount.bind(this)
     this.CompleteSpaceLinkEnrollment =
       this.CompleteSpaceLinkEnrollment.bind(this)
   }
@@ -122,6 +157,25 @@ export class LocalProviderResourceServiceClient implements LocalProviderResource
       abortSignal || undefined,
     )
     return CreateAccountResponse.fromBinary(result)
+  }
+
+  /**
+   * AttachAccount registers the existing Session key in a local account volume.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.AttachAccount
+   */
+  async AttachAccount(
+    request: AttachAccountRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AttachAccountResponse> {
+    const requestMsg = AttachAccountRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LocalProviderResourceServiceDefinition.methods.AttachAccount.name,
+      AttachAccountRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AttachAccountResponse.fromBinary(result)
   }
 
   /**

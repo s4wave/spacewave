@@ -3767,7 +3767,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/provider/local": {
-      "hash": "4ff93cd5f58c9679a8fe453c05c562602ae2f89a4d9e5d1b47c3fa95f5c6190b",
+      "hash": "68da5b12a3784063b4b37233636d2e38f1d2765139f5281fb9f3bea5c1602679",
       "generatedFiles": [
         "sdk/provider/local/local.pb.go",
         "sdk/provider/local/local.pb.ts",
