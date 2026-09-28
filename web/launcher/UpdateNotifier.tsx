@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react'
 import { useBldrContext, useWatchStateRpc } from '@aptre/bldr-react'
-import { applyElectronAppUpdate, isDesktop } from '@aptre/bldr'
+import { applyElectronAppUpdate, isDesktop, UpdateTarget } from '@aptre/bldr'
 import { Client as SRPCClient } from 'starpc'
 
 import {
@@ -96,8 +96,30 @@ function UpdateNotifierInner() {
 
       if (daemonPhase === UpdatePhase.STAGED) {
         toast('Daemon update available', {
-          description: `The ${info?.daemonUpdateState?.artifactManifestId || 'daemon'} artifact is staged. Daemon replacement is a separate operation.`,
+          description: `The ${info?.daemonUpdateState?.artifactManifestId || 'daemon'} artifact is ready. The daemon will restart after its clients and services finish.`,
           duration: Infinity,
+          action: {
+            label: 'Update daemon',
+            onClick: () => {
+              launcher
+                ?.ApplyUpdate({ target: UpdateTarget.DAEMON })
+                .catch((err) => {
+                  toast.error('Daemon update failed', {
+                    description: String(err),
+                  })
+                })
+            },
+          },
+        })
+      } else if (daemonPhase === UpdatePhase.APPLYING) {
+        toast('Daemon update accepted', {
+          description:
+            'Waiting for all daemon clients and services to finish before restarting.',
+          duration: Infinity,
+        })
+      } else if (daemonPhase === UpdatePhase.ERROR) {
+        toast.error('Daemon update failed', {
+          description: info?.daemonUpdateState?.errorMessage || 'Unknown error',
         })
       }
     },

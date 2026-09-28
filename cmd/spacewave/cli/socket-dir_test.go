@@ -8,13 +8,19 @@ import (
 	"testing"
 )
 
-// shortSocketDir returns a fresh, symlink-resolved directory short enough to
-// hold Unix sockets. Darwin limits sun_path to 104 bytes, which t.TempDir and
-// checkout-relative paths exceed once the test name or checkout path is long.
+// shortSocketDir returns a fresh, symlink-resolved worktree-local directory
+// short enough for Darwin's 104-byte Unix socket path limit.
 func shortSocketDir(t *testing.T) string {
 	t.Helper()
 
-	dir, err := os.MkdirTemp("", "sw-")
+	root, err := filepath.Abs(filepath.Join("..", "..", "..", ".tmp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(root, "sw-")
 	if err != nil {
 		t.Fatal(err)
 	}

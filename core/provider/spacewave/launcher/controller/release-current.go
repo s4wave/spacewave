@@ -5,9 +5,25 @@ package spacewave_launcher_controller
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 )
+
+// stagedExecutableSHA256 identifies the exact CLI bytes selected for an
+// accepted daemon update, independently of its staging pathname.
+func stagedExecutableSHA256(path string) (string, error) {
+	input, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer input.Close()
+	digest := sha256.New()
+	if _, err := io.Copy(digest, input); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
 
 // stagedDaemonReleaseIsCurrent compares the staged CLI to the running daemon
 // bytes. It says nothing about Electron's separately installed app.

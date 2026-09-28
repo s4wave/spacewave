@@ -56,6 +56,47 @@ func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
 	return stagedPath, nil
 }
 
+// prepareDaemonUpdate rechecks the selected CLI artifact before the launcher
+// publishes acceptance to the daemon's independent serving lifetime.
+func (c *Controller) prepareDaemonUpdate() (*spacewave_launcher.UpdateState, error) {
+	// Require the separately selected daemon artifact and its signed manifest.
+	info := c.launcherInfoCtr.GetValue()
+	if info == nil {
+		return nil, errors.New("launcher info not available")
+	}
+	state := info.GetDaemonUpdateState()
+	if state.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON ||
+		(state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED &&
+			state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR) ||
+		state.GetArtifactManifestId() != cliEntrypointManifestID ||
+		state.GetStagedPath() == "" ||
+		state.GetStagedPath() != info.GetFetchStatus().GetSelectedCliBinaryPath() {
+		return nil, errors.New("no staged daemon update available")
+	}
+
+	// Recheck the selected path inside its version-specific CLI checkout.
+	stagingDir, err := c.resolveStagingDir()
+	if err != nil {
+		return nil, err
+	}
+	stageRoot, err := releaseVersionStagingRoot(stagingDir, state.GetVersion())
+	if err != nil {
+		return nil, err
+	}
+	cliDistPath := filepath.Join(stageRoot, "cli-dist")
+	if err := verifyStagedCLIEntrypoint(stageRoot, cliDistPath, state.GetStagedPath()); err != nil {
+		return nil, err
+	}
+	digest, err := stagedExecutableSHA256(state.GetStagedPath())
+	if err != nil {
+		return nil, errors.Wrap(err, "hash staged daemon executable")
+	}
+	if digest == "" || digest != state.GetStagedSha256() {
+		return nil, errors.New("staged daemon executable fails selected digest")
+	}
+	return state.CloneVT(), nil
+}
+
 // currentExecutableBundle resolves the daemon executable for daemon-specific
 // comparisons and diagnostics, never as the installed-app update destination.
 func (c *Controller) currentExecutableBundle() (string, bool, string, error) {

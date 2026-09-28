@@ -1,6 +1,7 @@
 import { cleanup, render, waitFor } from '@testing-library/react'
 import { Client as SRPCClient } from 'starpc'
 import { UpdateTarget } from '@aptre/bldr'
+import { ApplyUpdateRequest } from '../../bldr/desktop/update/update.pb.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -63,6 +64,7 @@ describe('UpdateNotifier', () => {
     // Supply a staged update through the generated launcher's binary codec.
     vi.clearAllMocks()
     mocks.applyElectronAppUpdate.mockResolvedValue(undefined)
+    mocks.request.mockResolvedValue(new Uint8Array())
     mocks.serverStreamingRequest.mockImplementation(() =>
       asyncValues(
         LauncherInfo.toBinary({
@@ -120,7 +122,7 @@ describe('UpdateNotifier', () => {
     expect(signal.aborted).toBe(true)
   })
 
-  it('announces a staged daemon artifact without routing it through the app action', async () => {
+  it('accepts the daemon artifact through its explicit launcher target', async () => {
     mocks.serverStreamingRequest.mockImplementation(() =>
       asyncValues(
         LauncherInfo.toBinary({
@@ -139,7 +141,19 @@ describe('UpdateNotifier', () => {
     await waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
     const [title, options] = mocks.toast.mock.calls[0]
     expect(title).toBe('Daemon update available')
-    expect(options?.action).toBeUndefined()
-    expect(mocks.request).not.toHaveBeenCalled()
+    const action = options?.action
+    if (!action || typeof action !== 'object' || !('onClick' in action)) {
+      throw new Error('Daemon update toast has no action')
+    }
+    expect(action.label).toBe('Update daemon')
+    action.onClick({} as React.MouseEvent<HTMLButtonElement>)
+    await waitFor(() =>
+      expect(mocks.request).toHaveBeenCalledWith(
+        'plugin/spacewave-launcher/' + LauncherServiceName,
+        'ApplyUpdate',
+        ApplyUpdateRequest.toBinary({ target: UpdateTarget.DAEMON }),
+        undefined,
+      ),
+    )
   })
 })

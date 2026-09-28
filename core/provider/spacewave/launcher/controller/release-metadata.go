@@ -243,7 +243,11 @@ func (c *Controller) stageReleaseManifestUpdate(
 			return err
 		}
 		if !currentCLI {
-			c.setDaemonUpdateStaged(metadata.GetVersion(), cliStagedPath)
+			digest, err := stagedExecutableSHA256(cliStagedPath)
+			if err != nil {
+				return errors.Wrap(err, "hash staged daemon executable")
+			}
+			c.setDaemonUpdateStaged(metadata.GetVersion(), cliStagedPath, digest)
 		}
 	}
 	// The daemon cannot identify Electron's installed app. Its executable
@@ -298,14 +302,18 @@ func (c *Controller) setUpdateStaged(version, stagedPath string) {
 }
 
 // setDaemonUpdateStaged identifies the verified CLI artifact separately from
-// the installed app. Acceptance waits for the daemon-update coordinator.
-func (c *Controller) setDaemonUpdateStaged(version, stagedPath string) {
+// the installed app. A later release cannot replace an accepted handoff.
+func (c *Controller) setDaemonUpdateStaged(version, stagedPath, sha256 string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.GetDaemonUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+			return false, nil
+		}
 		info.DaemonUpdateState = &spacewave_launcher.UpdateState{
 			Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
 			Version:            version,
 			DownloadProgress:   100,
 			StagedPath:         stagedPath,
+			StagedSha256:       sha256,
 			Target:             desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
 			ArtifactManifestId: cliEntrypointManifestID,
 		}

@@ -4,11 +4,14 @@ package spacewave_cli
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/cli"
@@ -19,6 +22,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -26,6 +30,15 @@ import (
 
 // sharedDaemonFixtureMode selects the native or forwarded core in this test binary.
 const sharedDaemonFixtureMode = "SPACEWAVE_TEST_DAEMON_MODE"
+
+// sharedDaemonUpdateTarget selects the controlled CLI copy in the relaunch fixture.
+const sharedDaemonUpdateTarget = "SPACEWAVE_TEST_DAEMON_UPDATE_TARGET"
+
+// sharedDaemonCorruptOnAccept changes selected fixture bytes after acceptance.
+const sharedDaemonCorruptOnAccept = "SPACEWAVE_TEST_DAEMON_CORRUPT_ON_ACCEPT"
+
+// sharedDaemonFailSelected holds an unready selected fixture until startup stops it.
+const sharedDaemonFailSelected = "SPACEWAVE_TEST_DAEMON_FAIL_SELECTED"
 
 // sharedDaemonFixtureBus keeps a real writable CLI bus while selecting the
 // distribution serve branch, whose Resource RPCs load the core plugin.
@@ -56,23 +69,49 @@ func runSharedDaemonFixture() error {
 	// Retain the same signal and bus release boundary as a native executable.
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+	statePath := os.Args[2]
+	if os.Getenv(sharedDaemonFailSelected) != "" {
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(executable, ".sh") {
+			if err := os.WriteFile(filepath.Join(statePath, "failed-new-pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
+				return err
+			}
+			<-ctx.Done()
+			return ctx.Err()
+		}
+	}
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	le := logrus.NewEntry(logger)
 	var cliBus *cli_entrypoint.CliBusImpl
 	var buildErr error
-	statePath := os.Args[2]
+	if os.Getenv(sharedDaemonUpdateTarget) != "" {
+		logFile, err := os.Create(filepath.Join(statePath, "fixture-"+strconv.Itoa(os.Getpid())+".log"))
+		if err != nil {
+			return err
+		}
+		defer logFile.Close()
+		logger.SetOutput(logFile)
+	}
 	defer func() {
 		if cliBus != nil {
 			cliBus.Release()
 			_ = os.WriteFile(filepath.Join(statePath, "stopped"), nil, 0o600)
+			_ = os.WriteFile(filepath.Join(statePath, "stopped-"+strconv.Itoa(os.Getpid())), nil, 0o600)
 		}
 	}()
 
 	// getBus is called only after production serve acquires the state lease.
 	getBus := func() cli_entrypoint.CliBus {
 		identity := strconv.Itoa(os.Getpid())
-		marker, err := os.OpenFile(filepath.Join(statePath, "runtime-identity"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		markerFlags := os.O_CREATE | os.O_EXCL | os.O_WRONLY
+		if os.Getenv(sharedDaemonUpdateTarget) != "" {
+			markerFlags = os.O_CREATE | os.O_TRUNC | os.O_WRONLY
+		}
+		marker, err := os.OpenFile(filepath.Join(statePath, "runtime-identity"), markerFlags, 0o600)
 		if err != nil {
 			buildErr = err
 			return nil
@@ -126,8 +165,37 @@ func runSharedDaemonFixture() error {
 			buildErr = err
 			return nil
 		}
+		resourceMux := srpc.NewMux(resource_state.NewStateAtomResource(store).GetMux())
+		if target := os.Getenv(sharedDaemonUpdateTarget); target != "" && filepath.Dir(executable) != filepath.Join(statePath, "daemon-bin") {
+			input, err := os.Open(target)
+			if err != nil {
+				buildErr = err
+				return nil
+			}
+			digest := sha256.New()
+			_, buildErr = io.Copy(digest, input)
+			_ = input.Close()
+			if buildErr != nil {
+				return nil
+			}
+			launcher := newFixtureLauncher(target, hex.EncodeToString(digest.Sum(nil)), statePath, os.Getenv(sharedDaemonCorruptOnAccept) != "")
+			if buildErr = resourceMux.Register(&fixtureUpdateTrigger{launcher: launcher}); buildErr != nil {
+				return nil
+			}
+			launcherMux := srpc.NewMux()
+			if buildErr = spacewave_launcher.SRPCRegisterLauncher(launcherMux, launcher); buildErr != nil {
+				return nil
+			}
+			launcherController := &fixtureLauncherController{mux: launcherMux}
+			release, err := cliBus.GetBus().AddController(ctx, launcherController, nil)
+			if err != nil {
+				buildErr = err
+				return nil
+			}
+			cliBus.AddRelease(release)
+		}
 		mux := srpc.NewMux()
-		buildErr = resource_server.NewResourceServer(resource_state.NewStateAtomResource(store).GetMux()).Register(mux)
+		buildErr = resource_server.NewResourceServer(resourceMux).Register(mux)
 		if buildErr != nil {
 			return nil
 		}

@@ -53,6 +53,55 @@ func TestReadSelectedReleaseMetadata(t *testing.T) {
 	}
 }
 
+// TestDaemonApplyingSelectionSurvivesReleaseRefresh keeps the accepted CLI
+// selection visible while refresh clears and stages a later release. The app
+// target still follows that later release independently.
+func TestDaemonApplyingSelectionSurvivesReleaseRefresh(t *testing.T) {
+	accepted := &spacewave_launcher.UpdateState{
+		Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
+		Version:            "0.1.0",
+		StagedPath:         "/selected/0.1.0/spacewave",
+		StagedSha256:       strings.Repeat("a", 64),
+		Target:             desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
+		ArtifactManifestId: cliEntrypointManifestID,
+	}
+	ctrl := &Controller{launcherInfoCtr: ccontainer.NewCContainer(&spacewave_launcher.LauncherInfo{
+		DaemonUpdateState: accepted,
+		UpdateState: &spacewave_launcher.UpdateState{
+			Phase:   spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
+			Version: "0.1.0",
+			Target:  desktop_update.UpdateTarget_UPDATE_TARGET_APP,
+		},
+	})}
+
+	// Refresh clears an old selection before staging the next release. A
+	// missing daemon target can also clear it after staging completes.
+	ctrl.clearDaemonUpdateState()
+	ctrl.setDaemonUpdateStaged("0.2.0", "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
+	ctrl.setUpdateStaged("0.2.0", "/selected/0.2.0/Spacewave.app")
+	ctrl.clearDaemonUpdateState()
+	info := ctrl.launcherInfoCtr.GetValue()
+	if !info.GetDaemonUpdateState().EqualVT(accepted) {
+		t.Fatalf("refresh replaced accepted daemon selection: %v", info.GetDaemonUpdateState())
+	}
+	if state := info.GetUpdateState(); state.GetVersion() != "0.2.0" || state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatalf("app selection did not advance independently: %v", state)
+	}
+
+	// An explicit handoff failure releases the hold on the old selection.
+	if !ctrl.setAcceptedDaemonUpdateError(accepted, "selected copy failed") {
+		t.Fatal("accepted failure did not publish")
+	}
+	ctrl.setDaemonUpdateStaged("0.2.0", "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
+	if state := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState(); state.GetVersion() != "0.2.0" || state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatalf("later daemon selection did not stage after failure: %v", state)
+	}
+	ctrl.clearDaemonUpdateState()
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState() != nil {
+		t.Fatal("clear retained a staged daemon selection after failure")
+	}
+}
+
 func TestReadSelectedReleaseMetadataErrors(t *testing.T) {
 	ctx := context.Background()
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "desktop/other/arch")
@@ -304,6 +353,13 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	daemonState := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()
 	if daemonState.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON || daemonState.GetArtifactManifestId() != cliEntrypointManifestID || daemonState.GetStagedPath() != fetchStatus.SelectedCliBinaryPath {
 		t.Fatalf("daemon artifact selection = %#v", daemonState)
+	}
+	digest, err := stagedExecutableSHA256(fetchStatus.SelectedCliBinaryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if daemonState.GetStagedSha256() != digest {
+		t.Fatalf("staged daemon digest = %q, want %q", daemonState.GetStagedSha256(), digest)
 	}
 	if fetchStatus.ReleaseWorldHeadRef == "" {
 		t.Fatal("release world head ref is empty")

@@ -18,16 +18,32 @@ import (
 // StartCopiedProcess starts a verified, state-local copy of the desktop
 // executable. The digest path remains available while that daemon is running.
 func StartCopiedProcess(ctx context.Context, statePath, source string) error {
-	executable, err := copyExecutable(statePath, source)
+	executable, err := PrepareExecutable(statePath, source)
 	if err != nil {
 		return err
 	}
 	return StartExecutable(ctx, statePath, executable)
 }
 
-// copyExecutable publishes a digest-named executable without replacing an
-// existing path, including one that a daemon may currently be executing.
-func copyExecutable(statePath, source string) (published string, retErr error) {
+// PrepareExecutable publishes a digest-named executable without replacing an
+// existing path, including one that a daemon may currently be executing. The
+// caller selects and verifies the source before preparing it for startup.
+func PrepareExecutable(statePath, source string) (published string, retErr error) {
+	return prepareExecutable(statePath, source, "")
+}
+
+// PrepareVerifiedExecutable publishes the selected executable only when its
+// bytes match the digest accepted by the launcher controller.
+func PrepareVerifiedExecutable(statePath, source, expectedSHA256 string) (string, error) {
+	if len(expectedSHA256) != 64 {
+		return "", errors.New("accepted daemon executable digest is missing")
+	}
+	return prepareExecutable(statePath, source, expectedSHA256)
+}
+
+// prepareExecutable copies selected bytes to a digest path without replacing
+// a version that another daemon may still be executing.
+func prepareExecutable(statePath, source, expectedSHA256 string) (published string, retErr error) {
 	// Keep the daemon copy outside any application bundle, even with a state-root symlink.
 	root, err := filepath.EvalSymlinks(statePath)
 	if err != nil {
@@ -39,17 +55,20 @@ func copyExecutable(statePath, source string) (published string, retErr error) {
 		}
 	}
 
-	// Hash the bundled source before selecting its immutable destination name.
+	// Hash the selected source before choosing its immutable destination name.
 	input, err := os.Open(source)
 	if err != nil {
-		return "", errors.Wrap(err, "open bundled daemon executable")
+		return "", errors.Wrap(err, "open selected daemon executable")
 	}
 	defer input.Close()
 	digest := sha256.New()
 	if _, err := io.Copy(digest, input); err != nil {
-		return "", errors.Wrap(err, "hash bundled daemon executable")
+		return "", errors.Wrap(err, "hash selected daemon executable")
 	}
 	expected := digest.Sum(nil)
+	if expectedSHA256 != "" && hex.EncodeToString(expected) != expectedSHA256 {
+		return "", errors.New("selected daemon executable fails accepted digest")
+	}
 
 	// Keep digest versions in an owned directory outside the application bundle.
 	dir := filepath.Join(root, "daemon-bin")
@@ -74,9 +93,9 @@ func copyExecutable(statePath, source string) (published string, retErr error) {
 		return path, nil
 	}
 
-	// Create a private temporary inode for the bundled executable.
+	// Create a private temporary inode for the selected executable.
 	if _, err := input.Seek(0, io.SeekStart); err != nil {
-		return "", errors.Wrap(err, "rewind bundled daemon executable")
+		return "", errors.Wrap(err, "rewind selected daemon executable")
 	}
 	output, err := os.CreateTemp(dir, ".daemon-*")
 	if err != nil {
@@ -93,11 +112,11 @@ func copyExecutable(statePath, source string) (published string, retErr error) {
 	copyDigest := sha256.New()
 	if _, err := io.Copy(io.MultiWriter(output, copyDigest), input); err != nil {
 		_ = output.Close()
-		return "", errors.Wrap(err, "copy bundled daemon executable")
+		return "", errors.Wrap(err, "copy selected daemon executable")
 	}
 	if !bytes.Equal(copyDigest.Sum(nil), expected) {
 		_ = output.Close()
-		return "", errors.New("bundled daemon executable changed while copying")
+		return "", errors.New("selected daemon executable changed while copying")
 	}
 
 	// Finish the file's executable mode and contents before publication.

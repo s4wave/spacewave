@@ -60,6 +60,10 @@ type Controller struct {
 	mtx sync.Mutex
 	// confFetcherRefetch is a timer to restart confFetcherRoutine on success
 	confFetcherRefetch *time.Timer
+	// daemonUpdateWatchers counts live serving-daemon update streams.
+	daemonUpdateWatchers int
+	// daemonUpdateClaimed suppresses watch-loss failure after the idle claim.
+	daemonUpdateClaimed bool
 }
 
 // NewController constructs a new controller.
