@@ -12,6 +12,7 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	bifhash "github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // soEngineWriteTx holds the write mutex until its candidate is accepted or discarded.
@@ -212,6 +213,21 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// Wake maintenance only after the accepted World is visible locally.
 	t.eng.c.notifyGCSweepMaintenance()
 	return nil
+}
+
+// ApplyWorldOp applies op to the candidate as accepted replay will apply it.
+// Replay attributes an authenticated operation to the verified signer, so the
+// candidate runs it as this engine's device with the device's accepted person.
+func (t *soEngineWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
+	if _, authenticated := op.(world.AuthenticatedOperation); authenticated {
+		device, person, err := t.eng.OperationAuthor(ctx)
+		if err != nil {
+			return 0, false, err
+		}
+		sender = device
+		ctx = world.WithOperationPerson(ctx, person)
+	}
+	return t.WorldState.ApplyWorldOp(ctx, op, sender)
 }
 
 // Discard cancels the transaction.
