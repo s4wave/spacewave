@@ -57,7 +57,7 @@ it('keeps Forge navigation and actions reachable through touch rotation', async 
         .getByRole('button', { name, exact: true })
         .element()
         .getBoundingClientRect()
-      if (coarse || width < 640) {
+      if (coarse) {
         expect(rect.width).toBeGreaterThanOrEqual(44)
         expect(rect.height).toBeGreaterThanOrEqual(44)
       } else {

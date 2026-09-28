@@ -77,7 +77,7 @@ export function ForgeViewerShell({
   return (
     <div
       data-testid="forge-viewer"
-      className="bg-background-primary flex h-full w-full flex-col overflow-hidden max-sm:[&_button]:min-h-11 max-sm:[&_button]:min-w-11 pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11"
+      className="bg-background-primary flex h-full w-full flex-col overflow-hidden pointer-coarse:[&_button]:min-h-11 pointer-coarse:[&_button]:min-w-11"
     >
       {/* Header */}
       <div className="border-foreground/8 flex shrink-0 flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-4 sm:pointer-fine:h-9 sm:pointer-fine:py-0">

@@ -310,7 +310,7 @@ function VerdictBar({
         type="button"
         onClick={onClose}
         aria-label="Close system status"
-        className="text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 sm:fine-pointer:size-7 ml-auto flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        className="text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5 focus-visible:ring-brand/50 fine-pointer:size-7 ml-auto flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
         <LuX className="size-4" aria-hidden="true" />
       </button>

@@ -92,7 +92,7 @@ export function RenameSpaceDialog({
   }, [canSubmit, onConfirm, trimmed, handleOpenChange])
 
   const inputClass = cn(
-    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-h-11 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors sm:min-h-0',
+    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-h-11 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors fine-pointer:min-h-0',
     'focus:border-brand/50',
   )
 
@@ -102,7 +102,7 @@ export function RenameSpaceDialog({
         <button
           type="button"
           onClick={() => handleOpenChange(false)}
-          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand absolute top-2 right-2 flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none sm:top-4 sm:right-4 sm:size-4"
+          className="text-foreground-alt hover:text-foreground focus-visible:ring-brand fine-pointer:size-4 absolute top-2 right-2 flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none sm:top-4 sm:right-4"
         >
           <LuX className="size-4" />
           <span className="sr-only">Close</span>
@@ -158,7 +158,7 @@ export function RenameSpaceDialog({
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={state.submitting}
-            className="text-foreground-alt hover:text-foreground min-h-11 rounded-md px-4 py-2 text-sm transition-colors sm:min-h-0"
+            className="text-foreground-alt hover:text-foreground fine-pointer:min-h-0 min-h-11 rounded-md px-4 py-2 text-sm transition-colors"
           >
             Cancel
           </button>
@@ -167,7 +167,7 @@ export function RenameSpaceDialog({
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
             className={cn(
-              'min-h-11 rounded-md border px-4 py-2 text-sm transition-all sm:min-h-0',
+              'min-h-11 rounded-md border px-4 py-2 text-sm transition-all fine-pointer:min-h-0',
               'border-brand/30 bg-brand/10 text-brand hover:bg-brand/20',
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}

@@ -250,7 +250,7 @@ export function ShellMenuBar() {
               <button
                 type="button"
                 aria-label="Open app menu"
-                className="text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover rounded-menu-button flex size-11 items-center justify-center"
+                className="text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover rounded-menu-button flex size-7 items-center justify-center pointer-coarse:size-11"
               >
                 <LuMenu className="size-5" />
               </button>
@@ -261,7 +261,7 @@ export function ShellMenuBar() {
                 const items = node ? sortedGroupedChildren(node.children) : []
                 return (
                   <MenubarSub key={name}>
-                    <MenubarSubTrigger className="min-h-11">
+                    <MenubarSubTrigger className="pointer-coarse:min-h-11">
                       {name}
                     </MenubarSubTrigger>
                     <MenubarSubContent data-phone-menu>

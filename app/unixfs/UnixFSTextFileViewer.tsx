@@ -106,7 +106,7 @@ export function UnixFSTextFileViewer({
           <Button
             size="default"
             variant="ghost"
-            className="max-sm:min-h-11"
+            className="pointer-coarse:min-h-11"
             disabled={!content.value.complete}
             onClick={() => setDraft(text)}
           >
@@ -116,7 +116,7 @@ export function UnixFSTextFileViewer({
           <>
             <Button
               size="default"
-              className="max-sm:min-h-11"
+              className="pointer-coarse:min-h-11"
               disabled={saving || !rootHandle.value || draft === text}
               onClick={() => void save()}
             >
@@ -125,7 +125,7 @@ export function UnixFSTextFileViewer({
             <Button
               size="default"
               variant="ghost"
-              className="max-sm:min-h-11"
+              className="pointer-coarse:min-h-11"
               disabled={saving}
               onClick={() => {
                 setDraft(null)
@@ -157,7 +157,7 @@ export function UnixFSTextFileViewer({
           <Button
             size="default"
             variant="ghost"
-            className="max-sm:min-h-11"
+            className="pointer-coarse:min-h-11"
             disabled={saving}
             onClick={() => void save()}
           >

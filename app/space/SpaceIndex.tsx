@@ -167,7 +167,7 @@ export function SpaceIndex() {
 
   return (
     <EmptyState
-      className="sm:fine-pointer:[&_button]:min-h-0 flex-1 [&_button]:min-h-11"
+      className="fine-pointer:[&_button]:min-h-0 flex-1 [&_button]:min-h-11"
       icon={<LuBox className="text-foreground-alt size-7" />}
       title="Empty Space"
       description="This space has no objects yet."
