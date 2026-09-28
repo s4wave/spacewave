@@ -19,7 +19,11 @@ type Desktop interface {
 
 // LookupDesktop resolves the plugin's desktop controller without starting it.
 type LookupDesktop interface {
+	// Directive indicates LookupDesktop is a directive.
 	directive.Directive
+
+	// IsLookupDesktop marks the directive type.
+	IsLookupDesktop()
 }
 
 // lookupDesktop is the single desktop lookup directive.
@@ -36,6 +40,9 @@ func NewLookupDesktop() LookupDesktop {
 func ExLookupDesktop(ctx context.Context, b bus.Bus) (Desktop, directive.Instance, directive.Reference, error) {
 	return bus.ExecWaitValue[Desktop](ctx, b, NewLookupDesktop(), bus.ReturnIfIdle(true), nil, nil)
 }
+
+// IsLookupDesktop marks the directive type.
+func (d *lookupDesktop) IsLookupDesktop() {}
 
 // Validate accepts the desktop lookup.
 func (d *lookupDesktop) Validate() error {
