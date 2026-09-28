@@ -16,8 +16,7 @@ import (
 )
 
 func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
-	_, sender := generateTestKeypair(t)
-	data, err := marshalFriendDmChannelWorldOp(sender)
+	data, err := marshalFriendDmChannelWorldOp()
 	if err != nil {
 		t.Fatalf("marshalFriendDmChannelWorldOp: %v", err)
 	}
@@ -40,7 +39,7 @@ func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 	if chatOp.GetObjectKey() != FriendDmChannelObjectKey {
 		t.Fatalf("object key = %q", chatOp.GetObjectKey())
 	}
-	if tx.GetTxApplyWorldOp().GetOpSender() != sender.String() {
+	if tx.GetTxApplyWorldOp().GetOpSender() != "" {
 		t.Fatalf("op sender = %q", tx.GetTxApplyWorldOp().GetOpSender())
 	}
 }

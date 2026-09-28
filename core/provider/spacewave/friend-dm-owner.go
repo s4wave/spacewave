@@ -18,7 +18,6 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	"github.com/sirupsen/logrus"
 )
@@ -164,7 +163,6 @@ func (a *ProviderAccount) OpenFriendDM(
 			a.p.b,
 			ref,
 			swSO,
-			a.GetCurrentSessionPeerID(),
 		); err != nil {
 			return nil, errors.Wrap(err, "ensure friend dm channel")
 		}
@@ -415,16 +413,16 @@ func reconcileFriendDmParticipants(
 	return nil
 }
 
-func marshalFriendDmChannelWorldOp(opSender peer.ID) ([]byte, error) {
-	if opSender == "" {
-		return nil, errors.New("friend dm channel op sender is required")
-	}
+// marshalFriendDmChannelWorldOp builds the channel creation operation. It is
+// an authenticated World operation, so replay takes the sender from the
+// verified SharedObject signer rather than the transaction.
+func marshalFriendDmChannelWorldOp() ([]byte, error) {
 	op := &spacewave_chat.CreateChatChannelOp{
 		ObjectKey: FriendDmChannelObjectKey,
 		Name:      "Direct Messages",
 		Timestamp: timestamppb.Now(),
 	}
-	tx, err := world_block_tx.NewTxApplyWorldOp(op, opSender)
+	tx, err := world_block_tx.NewTxApplyWorldOp(op, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "build friend dm channel transaction")
 	}
@@ -446,7 +444,6 @@ func ensureFriendDmChannel(
 	b bus.Bus,
 	ref *sobject.SharedObjectRef,
 	swSO *SharedObject,
-	opSender peer.ID,
 ) error {
 	mounted, bodyRef, err := space.ExMountSpaceSoBody(ctx, b, ref, false, nil)
 	if err != nil {
@@ -466,7 +463,7 @@ func ensureFriendDmChannel(
 		return nil
 	}
 
-	opData, err := marshalFriendDmChannelWorldOp(opSender)
+	opData, err := marshalFriendDmChannelWorldOp()
 	if err != nil {
 		return err
 	}
