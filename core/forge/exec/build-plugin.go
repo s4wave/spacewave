@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -28,6 +29,7 @@ import (
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	project "github.com/s4wave/spacewave/bldr/project"
 	project_controller "github.com/s4wave/spacewave/bldr/project/controller"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -38,6 +40,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	app_web "github.com/s4wave/spacewave/web"
 	uuid "github.com/satori/go.uuid"
@@ -61,6 +64,9 @@ type buildPluginHandler struct {
 	platformID string
 	// configPath identifies the project configuration inside source.
 	configPath string
+	// installer is the Session that submitted the build with the authority to
+	// install plugins. It is empty when the build only retains its artifact.
+	installer peer.ID
 	// bus supplies the assigned device's authenticated transport.
 	bus bus.Bus
 	// config selects an immutable build or a retained frontend attachment.
@@ -102,6 +108,15 @@ func NewBuildPluginHandlerWithBus(_ context.Context, b bus.Bus, le *logrus.Entry
 		return nil, errors.New("config_path must be relative to the source tree")
 	}
 
+	// Resolve the Session whose installation authority the submission checked.
+	var installer peer.ID
+	if conf.GetInstallerPeerId() != "" {
+		installer, err = confparse.ParsePeerID(conf.GetInstallerPeerId())
+		if err != nil {
+			return nil, errors.Wrap(err, "parse plugin installer Session")
+		}
+	}
+
 	// Require the transactional World the artifacts are written into.
 	input, ok := inputs["world"].(forge_target.InputValueWorld)
 	if !ok || input.GetWorldEngine() == nil {
@@ -110,7 +125,7 @@ func NewBuildPluginHandlerWithBus(_ context.Context, b bus.Bus, le *logrus.Entry
 	return &buildPluginHandler{
 		le: le, engine: input.GetWorldEngine(), handle: handle,
 		source: source.CloneVT(), manifestID: manifestID, platformID: conf.GetPlatformId(),
-		configPath: configPath, bus: b, config: conf,
+		configPath: configPath, installer: installer, bus: b, config: conf,
 	}, nil
 }
 
@@ -194,8 +209,8 @@ func (h *buildPluginHandler) Execute(ctx context.Context) error {
 		return errors.Errorf("plugin compiler built platform %q, not %q", got, h.platformID)
 	}
 
-	// Retain the source with the artifact and report the accepted outputs.
-	resultRef, err := h.retainBuildSource(ctx, keys[0], refs[0])
+	// Retain the source with the artifact, install it, and report the outputs.
+	resultRef, err := h.retainBuild(ctx, keys[0], refs[0])
 	if err != nil {
 		return err
 	}
@@ -238,9 +253,11 @@ func (h *buildPluginHandler) prepareSDK(ctx context.Context, sourceRoot, distRoo
 	return os.Symlink(distRoot, filepath.Join(moduleRoot, "spacewave"))
 }
 
-// retainBuildSource retains the source DAG with the completed build result.
+// retainBuild retains the source DAG with the completed build result and, when
+// the submitter asked for it, installs the artifact in the same transaction.
 // Execution cleanup must not remove the only local root of an installed plugin's input.
-func (h *buildPluginHandler) retainBuildSource(ctx context.Context, key string, ref *manifest.ManifestRef) (*bucket.ObjectRef, error) {
+// A failure before the commit leaves the installed plugins unchanged.
+func (h *buildPluginHandler) retainBuild(ctx context.Context, key string, ref *manifest.ManifestRef) (*bucket.ObjectRef, error) {
 	// Read the completed build result and check it identifies the manifest.
 	tx, err := h.engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -262,6 +279,14 @@ func (h *buildPluginHandler) retainBuildSource(ctx context.Context, key string, 
 	resultRef, err := resultworld.SetManifestBuildResult(ctx, tx, key, result)
 	if err != nil {
 		return nil, err
+	}
+
+	// Install the immutable artifact under the submitter's authority.
+	if h.installer != "" {
+		_, err = space_world_ops.InstallSpacePlugin(ctx, tx, h.installer, h.manifestID, key, time.Now())
+		if err != nil {
+			return nil, errors.Wrap(err, "install plugin build")
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err

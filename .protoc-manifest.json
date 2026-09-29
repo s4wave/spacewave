@@ -1080,7 +1080,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/forge/exec": {
-      "hash": "c5be40f05fc745a8007912e2445f79878a86f685db8841aa00fade610f3a22a3",
+      "hash": "b1d68cf68766caf61981059043db94d96bfcacc256f017ae347e5c97d48f7f77",
       "generatedFiles": [
         "core/forge/exec/plugin.pb.go",
         "core/forge/exec/plugin.pb.ts",

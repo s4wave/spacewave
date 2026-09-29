@@ -3,10 +3,12 @@ package resource_space
 import (
 	"slices"
 	"testing"
+	"time"
 
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -90,5 +92,56 @@ func TestInstallSpacePluginArtifact(t *testing.T) {
 	settings, err = space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
 	if err != nil || len(settings.GetPluginInstallations()) != 0 || len(settings.GetPluginIds()) != 0 {
 		t.Fatalf("uninstall retained its selection: %v", err)
+	}
+}
+
+// TestInstallSpacePluginPerPlatform checks that installing a build replaces only
+// its platform's current artifact: the predecessor and the other platforms'
+// artifacts stay pinned behind it.
+func TestInstallSpacePluginPerPlatform(t *testing.T) {
+	// Register one artifact per platform revision in the World.
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	builds := []struct {
+		platform string
+		rev      uint64
+	}{{"desktop/linux/amd64", 1}, {"desktop/darwin/arm64", 1}, {"desktop/linux/amd64", 2}}
+	var keys []string
+	for _, build := range builds {
+		ref := createSpacePluginManifest(t, ctx, tb, settingsPluginID, build.platform, build.rev)
+		key := manifest.NewManifestArtifactKey(ref.GetManifestRef())
+		if _, _, err := manifest_world.SetManifest(ctx, tb.WorldState, "", key, ref.GetManifestRef()); err != nil {
+			t.Fatal(err)
+		}
+		keys = append(keys, key)
+	}
+
+	// Install them in order as the submitting Session.
+	sender := tb.Volume.GetPeerID()
+	for _, key := range keys {
+		changed, err := space_world_ops.InstallSpacePlugin(ctx, tb.WorldState, sender, settingsPluginID, key, time.Now())
+		if err != nil || !changed {
+			t.Fatalf("install %s: changed=%v err=%v", key, changed, err)
+		}
+	}
+
+	// The newest linux artifact leads and keeps its predecessor and the darwin artifact.
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []string{keys[2], keys[1], keys[0]}
+	if got := settings.GetPluginInstallations()[settingsPluginID].GetManifestKeys(); !slices.Equal(got, expected) {
+		t.Fatalf("installed artifacts %v, expected %v", got, expected)
+	}
+
+	// Installing the leading artifact again changes nothing.
+	changed, err := space_world_ops.InstallSpacePlugin(ctx, tb.WorldState, sender, settingsPluginID, keys[2], time.Now())
+	if err != nil || changed {
+		t.Fatalf("repeat install: changed=%v err=%v", changed, err)
 	}
 }

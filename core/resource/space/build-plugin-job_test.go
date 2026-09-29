@@ -4,6 +4,7 @@ package resource_space
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
@@ -65,12 +67,65 @@ func TestSpacePluginBuildJob(t *testing.T) {
 
 	// The builder result names the built platform and the exact source.
 	artifact := taskOutput(t, task, "manifest").GetWorldObjectSnapshot().GetRootRef()
-	provenance, _, err := resultworld.LookupManifestBuildResult(ctx, tb.WorldState, bldr_manifest.NewManifestArtifactKey(artifact))
+	artifactKey := bldr_manifest.NewManifestArtifactKey(artifact)
+	provenance, _, err := resultworld.LookupManifestBuildResult(ctx, tb.WorldState, artifactKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if provenance.GetManifest().GetMeta().GetPlatformId() != "js" || !provenance.GetSourceRef().GetRootRef().EqualVT(root.GetRootRef()) {
 		t.Fatalf("build result lost its platform or source: %v", provenance)
+	}
+
+	// The successful build installed its immutable artifact in the Space.
+	assertPluginInstallation(t, tb, request.GetManifestId(), []string{artifactKey})
+}
+
+// TestSpacePluginBuildJobFailure checks that a failed build installs nothing.
+func TestSpacePluginBuildJobFailure(t *testing.T) {
+	// Start a testbed with a build device.
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	// Submit a build of a manifest the source project does not define.
+	peerID := tb.Volume.GetPeerID()
+	request := setupPluginBuildSource(t, tb, peerID)
+	request.PlatformId = "js"
+	request.ManifestId = "missing-plugin"
+	writeColorsSource(t, tb, peerID, request.GetSourceKey())
+	response := submitPluginBuild(t, tb, peerID, request)
+
+	// The Job fails, retains no manifest, and leaves the installations alone.
+	startPluginBuildWorker(t, tb, peerID, "workers/build")
+	state, err := forge_job.WaitJobComplete(ctx, tb.Logger, tb.WorldState, response.GetJobKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.GetResult().GetFailError() == "" {
+		t.Fatal("build of a missing manifest succeeded")
+	}
+	assertPluginInstallation(t, tb, request.GetManifestId(), nil)
+}
+
+// assertPluginInstallation checks the plugin's pinned artifacts in the Space settings.
+func assertPluginInstallation(t *testing.T, tb *testbed.Testbed, pluginID string, keys []string) {
+	// Read the Space settings.
+	t.Helper()
+	settings, err := space_world.LookupSpaceSettingsBody(t.Context(), tb.WorldState)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Compare the pinned artifacts and the installed list.
+	if got := settings.GetPluginInstallations()[pluginID].GetManifestKeys(); !slices.Equal(got, keys) {
+		t.Fatalf("plugin %s pins %v, expected %v", pluginID, got, keys)
+	}
+	if installed := slices.Contains(settings.GetPluginIds(), pluginID); installed != (len(keys) != 0) {
+		t.Fatalf("plugin %s installed=%v with pins %v", pluginID, installed, keys)
 	}
 }
 

@@ -16,62 +16,25 @@ func (r *SpaceResource) AddSpacePlugin(
 	ctx context.Context,
 	req *s4wave_space.AddSpacePluginRequest,
 ) (*s4wave_space.AddSpacePluginResponse, error) {
-	pid := req.GetPluginId()
-	if pid == "" {
-		return nil, errors.New("plugin_id is required")
-	}
-
-	engine := r.space.GetWorldEngine()
-	tx, err := engine.NewTransaction(ctx, true)
+	// Install the plugin, and its artifact if pinned, in one transaction.
+	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
-
-	// Read current settings (may be nil if not yet created).
-	settings, err := space_world.LookupSpaceSettingsBody(ctx, tx)
+	changed, err := space_world_ops.InstallSpacePlugin(ctx, tx, "", req.GetPluginId(), req.GetManifestKey(), time.Now())
 	if err != nil {
 		return nil, err
 	}
-	if settings == nil {
-		settings = &space_world.SpaceSettings{}
-	}
-
-	key := req.GetManifestKey()
-	keys := settings.GetPluginInstallations()[pid].GetManifestKeys()
-	if key != "" {
-		if _, err := space_world.LookupSpacePluginManifest(ctx, tx, pid, key); err != nil {
-			return nil, err
-		}
-	}
-	if slices.Contains(settings.PluginIds, pid) && (key == "" || len(keys) != 0 && keys[0] == key) {
+	if !changed {
 		return &s4wave_space.AddSpacePluginResponse{}, nil
 	}
-	if !slices.Contains(settings.PluginIds, pid) {
-		settings.PluginIds = append(settings.PluginIds, pid)
-	}
-	if key != "" {
-		if settings.PluginInstallations == nil {
-			settings.PluginInstallations = make(map[string]*space_world.SpacePluginInstallation)
-		}
-		keys = slices.DeleteFunc(keys, func(previous string) bool { return previous == key })
-		settings.PluginInstallations[pid] = &space_world.SpacePluginInstallation{ManifestKeys: append([]string{key}, keys...)}
-	}
 
-	// Write back via SetSpaceSettings operation.
-	_, _, err = space_world_ops.SetSpaceSettings(
-		ctx, tx, "", space_world_ops.DefaultSpaceSettingsObjectKey,
-		settings, true, time.Now(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
+	// Commit the new installation.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-
-	r.le.Infof("added plugin %s to space settings", pid)
+	r.le.Infof("added plugin %s to space settings", req.GetPluginId())
 	return &s4wave_space.AddSpacePluginResponse{}, nil
 }
 

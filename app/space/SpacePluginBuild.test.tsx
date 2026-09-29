@@ -27,7 +27,7 @@ import { SpacePluginBuild } from './SpacePluginBuild.js'
 
 afterEach(cleanup)
 
-it('installs only a successful build and releases observation after completion', async () => {
+it('reports the installation of a successful build and releases observation', async () => {
   let complete: (() => void) | undefined
   let current: Task = { taskState: State.TaskState_RUNNING }
   const releaseObject = vi.fn()
@@ -35,7 +35,6 @@ it('installs only a successful build and releases observation after completion',
   const buildSpacePlugin = vi
     .fn()
     .mockResolvedValue({ jobKey: 'builds/one', taskKey: 'builds/one/build' })
-  const addSpacePlugin = vi.fn().mockResolvedValue(undefined)
   const navigateToObjects = vi.fn()
   mocks.context = {
     navigateToObjects,
@@ -76,7 +75,7 @@ it('installs only a successful build and releases observation after completion',
       error: null,
     },
   }
-  const space = { buildSpacePlugin, addSpacePlugin } as unknown as Space
+  const space = { buildSpacePlugin } as unknown as Space
   const rendered = render(<SpacePluginBuild space={space} />)
   fireEvent.click(screen.getByText('Build a TypeScript plugin'))
   expect(
@@ -104,37 +103,18 @@ it('installs only a successful build and releases observation after completion',
     }),
   )
   await waitFor(() => expect(complete).toBeDefined())
-  expect(
-    screen.queryByRole('button', { name: 'Install in this Space' }),
-  ).toBeNull()
+  expect(screen.queryByText(/Plugin installed/)).toBeNull()
 
   await act(async () => {
     current = {
       taskState: State.TaskState_COMPLETE,
       result: { success: true },
-      valueSet: {
-        outputs: [
-          {
-            name: 'manifest',
-            worldObjectSnapshot: { key: 'plugins/colors/v1' },
-          },
-        ],
-      },
     }
     complete?.()
   })
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Install in this Space' }),
-  )
-  await waitFor(() =>
-    expect(addSpacePlugin).toHaveBeenCalledWith(
-      'space-colors',
-      'plugins/colors/v1',
-    ),
-  )
   expect(
     await screen.findByText(
-      'Plugin added. Its status appears in the installed list.',
+      'Plugin installed. Its status appears in the installed list.',
     ),
   ).toBeDefined()
   rendered.unmount()
