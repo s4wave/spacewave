@@ -42,12 +42,14 @@ func newChunkReadAhead(ctx context.Context, chunks *sbset.SubBlockSet) *chunkRea
 // read fills the bounded forward window and returns only the requested chunk's
 // result. A speculative error remains attached to its chunk until requested.
 func (r *chunkReadAhead) read(idx int) ([]byte, error) {
+	// Drop pending reads behind the requested chunk.
 	for previous := range r.pending {
 		if previous < idx {
 			delete(r.pending, previous)
 		}
 	}
 
+	// Fill the forward window with chunk fetches.
 	var total uint64
 	end := min(r.chunks.Len(), idx+chunkReadAheadCount)
 	for next := idx; next < end; next++ {
@@ -75,6 +77,8 @@ func (r *chunkReadAhead) read(idx int) ([]byte, error) {
 			result.SetResult(data, err)
 		})
 	}
+
+	// Await the requested chunk's result.
 	return r.pending[idx].Await(r.ctx)
 }
 

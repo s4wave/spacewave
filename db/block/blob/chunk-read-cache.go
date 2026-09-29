@@ -25,12 +25,15 @@ type chunkReadCacheEntry struct {
 
 // get returns the retained data for idx and marks it most recently used.
 func (c *chunkReadCache) get(idx int) ([]byte, bool) {
+	// Locate the chunk's entry.
 	i := slices.IndexFunc(c.entries, func(entry chunkReadCacheEntry) bool {
 		return entry.idx == idx
 	})
 	if i < 0 {
 		return nil, false
 	}
+
+	// Move the entry to the most recently used position and return its data.
 	entry := c.entries[i]
 	copy(c.entries[i:], c.entries[i+1:])
 	c.entries[len(c.entries)-1] = entry
