@@ -1,5 +1,31 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.17
+<2026-09-28 Mon>
+
+Spacewave 0.57.17 improves desktop updates, sign-in and session selection, app
+startup, Forge Workers, and file storage reliability.
+
+** Fixes
+- Desktop updates now replace the installed Spacewave app that opened the
+  desktop, ensuring the updated version launches correctly.
+- Older Spacewave installations can fall back to compatible app components,
+  allowing them to start and receive updates instead of becoming stuck in a
+  restart loop.
+- App views and assets now load reliably after startup, and the desktop no
+  longer reports components as ready before they are available.
+- Approved Forge Workers remain available after their Space is reopened.
+- File storage no longer writes incomplete compressed data that can fail to
+  reopen.
+
+** Improvements
+- The session picker now keeps each storage location and its accounts together,
+  uses readable account names, and shows Spaces as compact links.
+- Added Spacewave storage locations now appear immediately even when they do not
+  contain a local session.
+- Narrow desktop windows retain compact mouse controls, while phones and tablets
+  continue to use larger touch targets.
+
 * v0.57.16
 <2026-09-28 Mon>
 

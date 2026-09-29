@@ -1,4 +1,15 @@
 
+±
+0.57.17
+2026-09-28ÑSpacewave 0.57.17 improves desktop updates, sign-in and session selection, app startup, Forge Workers, and file storage reliability."ÑSpacewave 0.57.17 improves desktop updates, sign-in and session selection, app startup, Forge Workers, and file storage reliability.2à
+ÅDesktop updates now replace the installed Spacewave app that opened the desktop, ensuring the updated version launches correctly.ÅDesktop updates now replace the installed Spacewave app that opened the desktop, ensuring the updated version launches correctly.2»
+°Older Spacewave installations can fall back to compatible app components, allowing them to start and receive updates instead of becoming stuck in a restart loop.°Older Spacewave installations can fall back to compatible app components, allowing them to start and receive updates instead of becoming stuck in a restart loop.2í
+ÜApp views and assets now load reliably after startup, and the desktop no longer reports components as ready before they are available.ÜApp views and assets now load reliably after startup, and the desktop no longer reports components as ready before they are available.2ê
+FApproved Forge Workers remain available after their Space is reopened.FApproved Forge Workers remain available after their Space is reopened.2¶
+QFile storage no longer writes incomplete compressed data that can fail to reopen.QFile storage no longer writes incomplete compressed data that can fail to reopen.:†
+çThe session picker now keeps each storage location and its accounts together, uses readable account names, and shows Spaces as compact links.çThe session picker now keeps each storage location and its accounts together, uses readable account names, and shows Spaces as compact links.:“
+gAdded Spacewave storage locations now appear immediately even when they do not contain a local session.gAdded Spacewave storage locations now appear immediately even when they do not contain a local session.:Ï
+tNarrow desktop windows retain compact mouse controls, while phones and tablets continue to use larger touch targets.tNarrow desktop windows retain compact mouse controls, while phones and tablets continue to use larger touch targets.
 ¢
 0.57.16
 2026-09-28jSpacewave 0.57.16 fixes macOS desktop updates and makes device setup and peer reconnections more reliable."jSpacewave 0.57.16 fixes macOS desktop updates and makes device setup and peer reconnections more reliable.2¶
