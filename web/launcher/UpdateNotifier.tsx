@@ -14,13 +14,17 @@ import {
   LauncherServiceName,
 } from '@s4wave/core/provider/spacewave/launcher/launcher_srpc.pb.js'
 import {
+  DaemonUpdateWait,
+  LauncherInfo,
   UpdatePhase,
   WatchLauncherInfoRequest,
-  LauncherInfo,
 } from '@s4wave/core/provider/spacewave/launcher/launcher.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 const launcherServiceId = 'plugin/spacewave-launcher/' + LauncherServiceName
+
+// daemonToastId keeps one daemon update toast current across its phases.
+const daemonToastId = 'daemon-update'
 
 /** UpdateNotifier announces staged launcher updates on desktop. */
 export function UpdateNotifier() {
@@ -62,41 +66,42 @@ function UpdateNotifierInner() {
     { errorCb: handleWatchError },
   )
 
-  // Announce each target using its own staged state and action.
-  const announcePhase = useEffectEvent(
-    (
-      appPhase: UpdatePhase | undefined,
-      daemonPhase: UpdatePhase | undefined,
-    ) => {
-      if (appPhase === UpdatePhase.STAGED) {
-        const version = info?.updateState?.version || 'new version'
-        toast('App update ready', {
-          description: `Spacewave app ${version} is ready to install. The shared daemon will keep running.`,
-          duration: Infinity,
-          action: info?.updateState?.stagedPath?.endsWith('.app')
-            ? {
-                label: 'Update app',
-                onClick: () => {
-                  if (!launcher || !webViewUuid) {
-                    return
-                  }
-                  applyElectronAppUpdate(webViewUuid).catch((err) => {
-                    toast.error('Update failed', {
-                      description: String(err),
-                    })
+  // Announce the installed-app target with Electron's own update action.
+  const announceApp = useEffectEvent((appPhase: UpdatePhase | undefined) => {
+    if (appPhase === UpdatePhase.STAGED) {
+      const version = info?.updateState?.version || 'new version'
+      toast('App update ready', {
+        description: `Spacewave app ${version} is ready to install. The shared daemon will keep running.`,
+        duration: Infinity,
+        action: info?.updateState?.stagedPath?.endsWith('.app')
+          ? {
+              label: 'Update app',
+              onClick: () => {
+                if (!launcher || !webViewUuid) {
+                  return
+                }
+                applyElectronAppUpdate(webViewUuid).catch((err) => {
+                  toast.error('Update failed', {
+                    description: String(err),
                   })
-                },
-              }
-            : undefined,
-        })
-      } else if (appPhase === UpdatePhase.ERROR) {
-        const msg = info?.updateState?.errorMessage || 'Unknown error'
-        toast.error('App update error', { description: msg })
-      }
+                })
+              },
+            }
+          : undefined,
+      })
+    } else if (appPhase === UpdatePhase.ERROR) {
+      const msg = info?.updateState?.errorMessage || 'Unknown error'
+      toast.error('App update error', { description: msg })
+    }
+  })
 
+  // Announce the daemon target in one toast that follows its wait.
+  const announceDaemon = useEffectEvent(
+    (daemonPhase: UpdatePhase | undefined) => {
       if (daemonPhase === UpdatePhase.STAGED) {
         toast('Daemon update available', {
-          description: `The ${info?.daemonUpdateState?.artifactManifestId || 'daemon'} artifact is ready. The daemon will restart after its clients and services finish.`,
+          id: daemonToastId,
+          description: `The ${info?.daemonUpdateState?.artifactManifestId || 'daemon'} artifact is ready. The daemon will restart after its other clients and services finish.`,
           duration: Infinity,
           action: {
             label: 'Update daemon',
@@ -105,6 +110,7 @@ function UpdateNotifierInner() {
                 ?.ApplyUpdate({ target: UpdateTarget.DAEMON })
                 .catch((err) => {
                   toast.error('Daemon update failed', {
+                    id: daemonToastId,
                     description: String(err),
                   })
                 })
@@ -112,13 +118,33 @@ function UpdateNotifierInner() {
           },
         })
       } else if (daemonPhase === UpdatePhase.APPLYING) {
+        const wait = info?.daemonUpdateWait
+        const busy = describeDaemonWait(wait)
         toast('Daemon update accepted', {
+          id: daemonToastId,
           description:
-            'Waiting for all daemon clients and services to finish before restarting.',
+            wait?.restartNow || !busy
+              ? 'Restarting the daemon. Clients will reconnect.'
+              : `Waiting for ${busy} to finish before restarting.`,
           duration: Infinity,
+          action:
+            wait?.restartNow || !busy
+              ? undefined
+              : {
+                  label: 'Restart now',
+                  onClick: () => {
+                    launcher?.RestartDaemonUpdateNow({}).catch((err) => {
+                      toast.error('Daemon restart failed', {
+                        id: daemonToastId,
+                        description: String(err),
+                      })
+                    })
+                  },
+                },
         })
       } else if (daemonPhase === UpdatePhase.ERROR) {
         toast.error('Daemon update failed', {
+          id: daemonToastId,
           description: info?.daemonUpdateState?.errorMessage || 'Unknown error',
         })
       }
@@ -128,11 +154,33 @@ function UpdateNotifierInner() {
   // Announce version changes even if the target remains in the staged phase.
   const appPhase = info?.updateState?.phase
   const appVersion = info?.updateState?.version
+  useEffect(() => {
+    announceApp(appPhase)
+  }, [appPhase, appVersion])
+
   const daemonPhase = info?.daemonUpdateState?.phase
   const daemonVersion = info?.daemonUpdateState?.version
+  const otherClients = info?.daemonUpdateWait?.otherClients
+  const otherServices = info?.daemonUpdateWait?.otherServices
+  const restartNow = info?.daemonUpdateWait?.restartNow
   useEffect(() => {
-    announcePhase(appPhase, daemonPhase)
-  }, [appPhase, appVersion, daemonPhase, daemonVersion])
+    announceDaemon(daemonPhase)
+  }, [daemonPhase, daemonVersion, otherClients, otherServices, restartNow])
 
   return null
+}
+
+// describeDaemonWait names the other work an accepted daemon update waits for,
+// or returns an empty string when nothing else holds the daemon.
+function describeDaemonWait(wait: DaemonUpdateWait | undefined): string {
+  const parts: string[] = []
+  const clients = wait?.otherClients ?? 0
+  const services = wait?.otherServices ?? 0
+  if (clients) {
+    parts.push(`${clients} other ${clients === 1 ? 'client' : 'clients'}`)
+  }
+  if (services) {
+    parts.push(`${services} ${services === 1 ? 'service' : 'services'}`)
+  }
+  return parts.join(' and ')
 }

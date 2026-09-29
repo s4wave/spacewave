@@ -164,6 +164,54 @@ func (f *fixtureLauncher) ClaimDaemonUpdate(_ context.Context, req *spacewave_la
 	return &spacewave_launcher.ClaimDaemonUpdateResponse{Claimed: current.EqualVT(req.GetSelection())}, nil
 }
 
+// ReportDaemonUpdateWait publishes the old daemon's other work.
+func (f *fixtureLauncher) ReportDaemonUpdateWait(_ context.Context, req *spacewave_launcher.ReportDaemonUpdateWaitRequest) (*spacewave_launcher.ReportDaemonUpdateWaitResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	info := f.state.GetValue().CloneVT()
+	if !info.GetDaemonUpdateState().EqualVT(req.GetSelection()) {
+		return &spacewave_launcher.ReportDaemonUpdateWaitResponse{}, nil
+	}
+	if info.DaemonUpdateWait == nil {
+		info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
+	}
+	info.DaemonUpdateWait.OtherClients = req.GetOtherClients()
+	info.DaemonUpdateWait.OtherServices = req.GetOtherServices()
+	f.state.SetValue(info)
+	return &spacewave_launcher.ReportDaemonUpdateWaitResponse{Reported: true}, nil
+}
+
+// RestartDaemonUpdateNow asks the waiting old daemon to hand off at once.
+func (f *fixtureLauncher) RestartDaemonUpdateNow(context.Context, *spacewave_launcher.RestartDaemonUpdateNowRequest) (*spacewave_launcher.RestartDaemonUpdateNowResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	info := f.state.GetValue().CloneVT()
+	if info.GetDaemonUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+		return nil, errors.New("no accepted daemon update is waiting")
+	}
+	if info.DaemonUpdateWait == nil {
+		info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
+	}
+	info.DaemonUpdateWait.RestartNow = true
+	f.state.SetValue(info)
+	return &spacewave_launcher.RestartDaemonUpdateNowResponse{}, nil
+}
+
+// restartWhenBusy waits for the old daemon to report its other clients, then
+// requests Restart now and returns the reported wait.
+func (f *fixtureLauncher) restartWhenBusy(ctx context.Context) (*spacewave_launcher.DaemonUpdateWait, error) {
+	info, err := f.state.WaitValueWithValidator(ctx, func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		return info.GetDaemonUpdateWait().GetOtherClients() != 0, nil
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.RestartDaemonUpdateNow(ctx, &spacewave_launcher.RestartDaemonUpdateNowRequest{}); err != nil {
+		return nil, err
+	}
+	return info.GetDaemonUpdateWait(), nil
+}
+
 // restore puts the originally verified fixture bytes back for an explicit retry.
 func (f *fixtureLauncher) restore() error {
 	original, err := os.ReadFile(filepath.Join(f.statePath, "old-spacewave"))
@@ -185,7 +233,7 @@ func (f *fixtureUpdateTrigger) GetServiceID() string { return "test.DaemonUpdate
 
 // GetMethodIDs lists the fixture's acceptance operation.
 func (f *fixtureUpdateTrigger) GetMethodIDs() []string {
-	return []string{"Accept", "Restore", "Status"}
+	return []string{"Accept", "Restart", "Restore", "Status"}
 }
 
 // InvokeMethod accepts the selected daemon update through a Resource stream.
@@ -198,6 +246,19 @@ func (f *fixtureUpdateTrigger) InvokeMethod(serviceID, methodID string, stream s
 			return true, err
 		}
 		if err := stream.MsgSend(f.launcher.state.GetValue()); err != nil {
+			return true, err
+		}
+		return true, stream.CloseSend()
+	}
+	if methodID == "Restart" {
+		if err := stream.MsgRecv(&spacewave_launcher.RestartDaemonUpdateNowRequest{}); err != nil && err != io.EOF {
+			return true, err
+		}
+		wait, err := f.launcher.restartWhenBusy(stream.Context())
+		if err != nil {
+			return true, err
+		}
+		if err := stream.MsgSend(wait); err != nil {
 			return true, err
 		}
 		return true, stream.CloseSend()

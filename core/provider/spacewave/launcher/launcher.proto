@@ -47,6 +47,19 @@ message LauncherInfo {
   FetchStatus fetch_status = 3;
   // DaemonUpdateState describes the separately staged daemon artifact.
   UpdateState daemon_update_state = 4;
+  // DaemonUpdateWait describes an accepted daemon update waiting for other work.
+  DaemonUpdateWait daemon_update_wait = 5;
+}
+
+// DaemonUpdateWait reports the work keeping an accepted daemon update from
+// its handoff. The desktop shell is not counted: the handoff reopens it.
+message DaemonUpdateWait {
+  // OtherClients is the number of connected daemon clients.
+  uint32 other_clients = 1;
+  // OtherServices is the number of persistent services besides the desktop.
+  uint32 other_services = 2;
+  // RestartNow asks the daemon to hand off without waiting for other work.
+  bool restart_now = 3;
 }
 
 // FetchStatus describes the launcher's DistConfig fetch and Release World
@@ -202,7 +215,33 @@ service Launcher {
   rpc ReportDaemonUpdateFailure(ReportDaemonUpdateFailureRequest) returns (ReportDaemonUpdateFailureResponse) {}
   // ClaimDaemonUpdate marks a completed daemon idle claim before watch teardown.
   rpc ClaimDaemonUpdate(ClaimDaemonUpdateRequest) returns (ClaimDaemonUpdateResponse) {}
+  // ReportDaemonUpdateWait publishes the work an accepted daemon update waits for.
+  rpc ReportDaemonUpdateWait(ReportDaemonUpdateWaitRequest) returns (ReportDaemonUpdateWaitResponse) {}
+  // RestartDaemonUpdateNow asks the daemon to hand off without waiting.
+  rpc RestartDaemonUpdateNow(RestartDaemonUpdateNowRequest) returns (RestartDaemonUpdateNowResponse) {}
 }
+
+// ReportDaemonUpdateWaitRequest identifies the accepted selection and its wait.
+message ReportDaemonUpdateWaitRequest {
+  // Selection is the APPLYING state observed by the serving daemon.
+  UpdateState selection = 1;
+  // OtherClients is the number of connected daemon clients.
+  uint32 other_clients = 2;
+  // OtherServices is the number of persistent services besides the desktop.
+  uint32 other_services = 3;
+}
+
+// ReportDaemonUpdateWaitResponse says whether the current selection was updated.
+message ReportDaemonUpdateWaitResponse {
+  // Reported is false if the accepted selection has already changed.
+  bool reported = 1;
+}
+
+// RestartDaemonUpdateNowRequest asks the waiting daemon update to proceed.
+message RestartDaemonUpdateNowRequest {}
+
+// RestartDaemonUpdateNowResponse is returned once the request is published.
+message RestartDaemonUpdateNowResponse {}
 
 // ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.
 message ClaimDaemonUpdateRequest {

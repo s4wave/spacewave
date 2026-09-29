@@ -212,6 +212,64 @@ func TestApplyUpdateAcceptsVerifiedDaemonSelection(t *testing.T) {
 	}
 }
 
+// TestDaemonUpdateWaitAndRestartNow publishes the work an accepted update
+// waits for and records the user's request to restart without waiting.
+func TestDaemonUpdateWaitAndRestartNow(t *testing.T) {
+	selected := &spacewave_launcher.UpdateState{
+		Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
+		Target:       desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
+		StagedPath:   "fixture-selected-cli",
+		StagedSha256: strings.Repeat("a", 64),
+	}
+	ctrl := &Controller{launcherInfoCtr: ccontainer.NewCContainer(&spacewave_launcher.LauncherInfo{
+		DaemonUpdateState: &spacewave_launcher.UpdateState{
+			Phase:        spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED,
+			Target:       selected.GetTarget(),
+			StagedPath:   selected.GetStagedPath(),
+			StagedSha256: selected.GetStagedSha256(),
+		},
+	})}
+	server := NewLauncherServer(ctrl)
+
+	// Nothing waits before acceptance.
+	if _, err := server.RestartDaemonUpdateNow(t.Context(), &spacewave_launcher.RestartDaemonUpdateNowRequest{}); err == nil {
+		t.Fatal("restart now succeeded without an accepted update")
+	}
+	report := &spacewave_launcher.ReportDaemonUpdateWaitRequest{Selection: selected, OtherClients: 2, OtherServices: 1}
+	if resp, err := server.ReportDaemonUpdateWait(t.Context(), report); err != nil || resp.GetReported() {
+		t.Fatalf("wait report before acceptance: response=%v error=%v", resp, err)
+	}
+
+	// The accepted selection publishes its counts and the restart request.
+	releaseWatch := ctrl.attachDaemonUpdateWatcher()
+	defer releaseWatch()
+	if err := ctrl.setDaemonUpdateApplying(ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()); err != nil {
+		t.Fatal(err)
+	}
+	if resp, err := server.ReportDaemonUpdateWait(t.Context(), report); err != nil || !resp.GetReported() {
+		t.Fatalf("wait report after acceptance: response=%v error=%v", resp, err)
+	}
+	if _, err := server.RestartDaemonUpdateNow(t.Context(), &spacewave_launcher.RestartDaemonUpdateNowRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	info := ctrl.launcherInfoCtr.GetValue()
+	wait := info.GetDaemonUpdateWait()
+	if wait.GetOtherClients() != 2 || wait.GetOtherServices() != 1 || !wait.GetRestartNow() {
+		t.Fatalf("daemon update wait = %v", wait)
+	}
+	if !info.GetDaemonUpdateState().EqualVT(selected) {
+		t.Fatal("wait report changed the accepted selection")
+	}
+
+	// A failure withdraws the wait.
+	if !ctrl.setAcceptedDaemonUpdateError(selected, "handoff failed") {
+		t.Fatal("accepted failure was not recorded")
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateWait() != nil {
+		t.Fatal("failed update kept its wait state")
+	}
+}
+
 // TestApplyUpdateRejectsChangedDaemonBytes keeps a changed staged executable
 // from becoming the daemon's accepted replacement.
 func TestApplyUpdateRejectsChangedDaemonBytes(t *testing.T) {

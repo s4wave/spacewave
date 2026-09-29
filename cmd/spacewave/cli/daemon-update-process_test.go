@@ -16,6 +16,7 @@ import (
 	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/daemon"
+	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 )
 
 // TestAcceptedDaemonUpdateRelaunchesAfterFinalClient crosses the real Resource
@@ -111,6 +112,80 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 
 	// The final close releases the owner claim, then readiness announces the
 	// selected executable after the old state lease has been relinquished.
+	waitDaemonReplacement(ctx, t, watcher, connector, statePath, string(oldPID))
+}
+
+// TestDaemonUpdateRestartNowReplacesBusyDaemon hands off while a client still
+// holds the old daemon, after it reports that client to the launcher.
+func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
+	statePath := shortSocketDir(t)
+	t.Setenv(sharedDaemonFixtureMode, "native")
+	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
+	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
+	t.Setenv(daemonIdleTimeoutEnvVar, "30s")
+	t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
+	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Second)
+	defer cancel()
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer watcher.Close()
+	if err := watcher.Add(statePath); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"old-spacewave", "staged-cli"} {
+		copyFixtureExecutable(t, filepath.Join(statePath, name))
+	}
+	oldPath := filepath.Join(statePath, "old-spacewave")
+	t.Setenv(sharedDaemonUpdateTarget, filepath.Join(statePath, "staged-cli"))
+	socketPath := filepath.Join(statePath, socketName)
+	cleanupDaemonUpdateFixture(t, statePath)
+	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
+		t.Fatal(err)
+	}
+
+	// Accept the update through a client that stays connected.
+	connector := daemon.NewConnector(nil, nil)
+	client, err := connector.Connect(ctx, statePath, socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	oldPID, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rpc, err := client.Root().GetResourceRef().GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Accept",
+		&desktop_update.ApplyUpdateRequest{Target: desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON},
+		&desktop_update.ApplyUpdateResponse{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Restart now drains the busy daemon, so its reply may be cut off.
+	wait := &spacewave_launcher.DaemonUpdateWait{}
+	if err := rpc.ExecCall(ctx, "test.DaemonUpdate", "Restart", &spacewave_launcher.RestartDaemonUpdateNowRequest{}, wait); err == nil && wait.GetOtherClients() == 0 {
+		t.Fatalf("reported wait = %v, want the retained client", wait)
+	}
+	waitDaemonReplacement(ctx, t, watcher, connector, statePath, string(oldPID))
+}
+
+// waitDaemonReplacement waits until a new daemon process announces readiness
+// from a daemon-bin executable and accepts a connection.
+func waitDaemonReplacement(
+	ctx context.Context,
+	t *testing.T,
+	watcher *fsnotify.Watcher,
+	connector *daemon.Connector,
+	statePath string,
+	oldPID string,
+) {
+	t.Helper()
+	socketPath := filepath.Join(statePath, socketName)
 	for {
 		select {
 		case event := <-watcher.Events:
@@ -118,7 +193,7 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 				continue
 			}
 			pid, err := os.ReadFile(filepath.Join(statePath, "runtime-identity"))
-			if err == nil && string(pid) != string(oldPID) {
+			if err == nil && string(pid) != oldPID {
 				newClient, err := connector.Connect(ctx, statePath, socketPath)
 				if err != nil {
 					t.Fatal(err)
