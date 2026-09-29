@@ -18,6 +18,7 @@ func ServiceRoutePrefix(serviceID string) string {
 // RouteService selects a frontend service from a browser module path.
 // Ordinary development URLs use the document's existing devtool connection.
 func RouteService(requestPath string) (string, error) {
+	// Cut the routing prefix; otherwise the request falls through to the devtool service.
 	encoded, routed := strings.CutPrefix(requestPath, "/b/fe/rpc/")
 	if !routed {
 		return "devtool/" + SRPCFrontendServiceID, nil
