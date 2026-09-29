@@ -82,6 +82,7 @@ func (m *Memory) Stats() Stats {
 // durable records and a prefix of the later commits, as rng chooses. The store
 // then accepts calls again.
 func (m *Memory) PowerLoss(rng *rand.Rand) {
+	// Rebuild the records from the durable image plus a prefix of pending commits.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	image := m.durable.Copy()
@@ -89,11 +90,14 @@ func (m *Memory) PowerLoss(rng *rand.Rand) {
 		apply(image, ops)
 	}
 	m.records, m.durable, m.pending = image, image.Copy(), nil
+
+	// Accept calls again.
 	m.crashed, m.crashAfter = false, -1
 }
 
 // Get reads the records of keys, nil for an absent key.
 func (m *Memory) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
+	// Count the read and return a copy of each key's record.
 	if err := m.read(ctx); err != nil {
 		return nil, err
 	}
@@ -110,6 +114,7 @@ func (m *Memory) Get(ctx context.Context, keys [][]byte) ([][]byte, error) {
 
 // Has reports which keys have records.
 func (m *Memory) Has(ctx context.Context, keys [][]byte) ([]bool, error) {
+	// Count the read and report each key's presence.
 	if err := m.read(ctx); err != nil {
 		return nil, err
 	}
@@ -125,12 +130,15 @@ func (m *Memory) Has(ctx context.Context, keys [][]byte) ([]bool, error) {
 // Scan calls fn with each record whose key has prefix, in key order, over the
 // records as of the call.
 func (m *Memory) Scan(ctx context.Context, prefix []byte, fn func(key, value []byte) error) error {
+	// Count the read and copy the records for the scan.
 	if err := m.read(ctx); err != nil {
 		return err
 	}
 	m.mtx.Lock()
 	records := m.records.Copy()
 	m.mtx.Unlock()
+
+	// Call fn with each record whose key has the prefix.
 	var err error
 	records.Ascend(string(prefix), func(key string, value []byte) bool {
 		if !bytes.HasPrefix([]byte(key), prefix) {
@@ -144,9 +152,12 @@ func (m *Memory) Scan(ctx context.Context, prefix []byte, fn func(key, value []b
 
 // read counts a read call and checks that the store has not crashed.
 func (m *Memory) read(ctx context.Context) error {
+	// Reject a cancelled caller before counting the read.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Count the read and reject calls after a crash.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.stats.Reads++
@@ -159,6 +170,7 @@ func (m *Memory) read(ctx context.Context) error {
 // Commit applies ops atomically, injecting the crash when it is due. The
 // crashing commit joins the pending ones, so PowerLoss may keep it.
 func (m *Memory) Commit(ctx context.Context, ops []Op, durable bool) error {
+	// Reject a cancelled caller and count the commit.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -168,11 +180,15 @@ func (m *Memory) Commit(ctx context.Context, ops []Op, durable bool) error {
 	if m.crashed {
 		return ErrCrashed
 	}
+
+	// Retain a copy of the ops as pending and charge their bytes.
 	ops = cloneOps(ops)
 	for _, op := range ops {
 		m.stats.Bytes += int64(len(op.Key) + len(op.Value))
 	}
 	m.pending = append(m.pending, ops)
+
+	// Inject the crash when it is due.
 	if m.crashAfter == 0 {
 		m.crashed = true
 		return ErrCrashed
@@ -180,6 +196,8 @@ func (m *Memory) Commit(ctx context.Context, ops []Op, durable bool) error {
 	if m.crashAfter > 0 {
 		m.crashAfter--
 	}
+
+	// Apply the ops and make them durable when requested.
 	apply(m.records, ops)
 	if durable {
 		m.stats.Durable++
