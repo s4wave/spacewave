@@ -59,6 +59,7 @@ func (m *Materializer) MaterializeManifest(
 	req *MaterializeManifestRequest,
 	strm SRPCMaterializer_MaterializeManifestStream,
 ) error {
+	// Run the handler on a child of the RPC stream context.
 	ctx, cancel := context.WithCancel(strm.Context())
 	defer cancel()
 
