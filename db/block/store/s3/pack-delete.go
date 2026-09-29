@@ -33,11 +33,7 @@ func deleteObjectsUnder(ctx context.Context, client *Client, bucket, prefix stri
 	eg.Go(func() error {
 		return client.ListObjects(egCtx, bucket, prefix, func(key string, _ int64) error {
 			eg.Go(func() error {
-				err := client.DeleteObject(egCtx, bucket, key)
-				if errors.Is(err, ErrNotFound) {
-					return nil
-				}
-				return err
+				return client.DeleteObject(egCtx, bucket, key)
 			})
 			return nil
 		})

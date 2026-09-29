@@ -137,12 +137,13 @@ func (s *PackStore) knowsAll(entries []*packfile.PackfileEntry) bool {
 	return known
 }
 
-// merge writes the blocks of inputs as one packfile, then deletes the inputs'
-// entries and then their packfiles. Returns ErrNotFound when an input is gone.
+// merge writes the blocks of inputs as one packfile and replaces the inputs
+// with it. Returns ErrNotFound when an input is gone.
 //
 // The merged packfile holds the blocks in key order, so merging the same
 // inputs anywhere writes the same packfile id.
 func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry) error {
+	// Read the inputs concurrently.
 	packs := make([]map[string][]byte, len(inputs))
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchConcurrency)
@@ -157,37 +158,56 @@ func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry)
 		return err
 	}
 
+	// Write their blocks as one packfile in key order.
 	values := make(map[string][]byte)
 	for _, pack := range packs {
 		maps.Copy(values, pack)
 	}
-	keys := slices.Sorted(maps.Keys(values))
-	i := 0
-	merged, err := s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
-		if i == len(keys) {
-			return nil, nil, nil
-		}
-		key := keys[i]
-		i++
-		ref, stored, err := packfile.DecodeBlockValue([]byte(key), values[key])
-		if err != nil {
-			return nil, nil, err
-		}
-		return ref.GetHash(), stored, nil
-	})
+	merged, err := s.writeValues(ctx, slices.Sorted(maps.Keys(values)), values)
 	if err != nil {
 		return errors.Wrap(err, "write merged packfile")
 	}
 	if merged == nil {
 		return errors.New("merged packfiles hold no blocks")
 	}
-	s.updateEntries([]*packfile.PackfileEntry{merged}, nil)
 
-	ids := make([]string, 0, len(inputs))
-	for _, input := range inputs {
-		if input.GetId() != merged.GetId() {
-			ids = append(ids, input.GetId())
+	// Replace the inputs with the merged packfile.
+	ids := make([]string, len(inputs))
+	for i, input := range inputs {
+		ids[i] = input.GetId()
+	}
+	return s.replace(ctx, merged, ids)
+}
+
+// writeValues writes the block values of keys, in order, as one packfile.
+// Returns nil when keys is empty.
+func (s *PackStore) writeValues(ctx context.Context, keys []string, values map[string][]byte) (*packfile.PackfileEntry, error) {
+	i := 0
+	return s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
+		// Take the next key, or end the packfile after the last.
+		if i == len(keys) {
+			return nil, nil, nil
 		}
+		key := keys[i]
+		i++
+
+		// Decode its stored block.
+		ref, stored, err := packfile.DecodeBlockValue([]byte(key), values[key])
+		if err != nil {
+			return nil, nil, err
+		}
+		return ref.GetHash(), stored, nil
+	})
+}
+
+// replace publishes output, which may be nil, then deletes the entries of
+// packfiles ids and then the packfiles. An id equal to output's is kept.
+func (s *PackStore) replace(ctx context.Context, output *packfile.PackfileEntry, ids []string) error {
+	if output != nil {
+		s.updateEntries([]*packfile.PackfileEntry{output}, nil)
+		ids = slices.DeleteFunc(slices.Clone(ids), func(id string) bool {
+			return id == output.GetId()
+		})
 	}
 	if err := s.deleteObjects(ctx, entryDir, ids); err != nil {
 		return err
@@ -222,7 +242,7 @@ func (s *PackStore) readPack(ctx context.Context, id string) (map[string][]byte,
 	return values, nil
 }
 
-// deleteObjects deletes the object dir+id for each id.
+// deleteObjects deletes every version of the object dir+id for each id.
 func (s *PackStore) deleteObjects(ctx context.Context, dir string, ids []string) error {
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchConcurrency)
@@ -231,7 +251,7 @@ func (s *PackStore) deleteObjects(ctx context.Context, dir string, ids []string)
 			return s.client.DeleteObject(egCtx, s.bucket, s.prefix+dir+id)
 		})
 	}
-	return errors.Wrap(eg.Wait(), "delete merged "+strings.TrimSuffix(dir, "/"))
+	return errors.Wrap(eg.Wait(), "delete replaced "+strings.TrimSuffix(dir, "/"))
 }
 
 // packTier returns the compaction tier of a packfile, or -1 when it is final.
