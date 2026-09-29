@@ -14,6 +14,7 @@ import (
 
 // AddFactories registers the shared node, bucket, lookup, and in-memory stores.
 func AddFactories(b bus.Bus, resolver *static.Resolver) {
+	// Register each storage factory on the resolver.
 	resolver.AddFactory(bucket_setup.NewFactory(b))
 	resolver.AddFactory(node_controller.NewFactory(b))
 	resolver.AddFactory(lookup_concurrent.NewFactory(b))
