@@ -16,6 +16,8 @@ func markLogInUse(f *os.File) {
 
 // logInUse reports whether a writer holds the advisory lock on path.
 func logInUse(path string) bool {
+
+	// Open the log file and probe it with a non-blocking exclusive lock.
 	f, err := os.Open(path)
 	if err != nil {
 		return false
