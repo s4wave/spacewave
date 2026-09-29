@@ -121,18 +121,10 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 			continue
 		}
 
-		// config is newer, store it & update
-		if err := c.storeDistConf(ctx, []byte(updatedAppDistConfMsg)); err != nil {
-			c.le.WithError(err).Warn("failed to store updated app dist config")
+		// config is newer: adopt it unless a concurrent push was newer still
+		if !c.adoptDistConf(ctx, updatedAppDistConf, updatedAppDistConfMsg, spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT) {
+			return nil
 		}
-		_, _ = c.swapDistConf(updatedAppDistConf)
-		c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
-			next.SelectedConfigRev = rev
-			next.SelectedConfigSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT
-			next.FetchedConfigRev = fetchedRev
-			next.FetchedConfigSource = fetchedSource
-		})
-		c.RecheckReleaseMetadata()
 		c.le.
 			WithField("prev-conf-rev", currRev).
 			WithField("conf-rev", rev).

@@ -35,6 +35,9 @@ const (
 	DistConfigSource_DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT DistConfigSource = 4
 	// DIST_CONFIG_SOURCE_ENDPOINT means the config came from a dist endpoint.
 	DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT DistConfigSource = 5
+	// DIST_CONFIG_SOURCE_PUSH means the config was pushed to the launcher,
+	// such as by a linked peer.
+	DistConfigSource_DIST_CONFIG_SOURCE_PUSH DistConfigSource = 6
 )
 
 // Enum value maps for DistConfigSource.
@@ -46,6 +49,7 @@ var (
 		3: "DIST_CONFIG_SOURCE_PACKAGE",
 		4: "DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT",
 		5: "DIST_CONFIG_SOURCE_ENDPOINT",
+		6: "DIST_CONFIG_SOURCE_PUSH",
 	}
 	DistConfigSource_value = map[string]int32{
 		"DIST_CONFIG_SOURCE_UNKNOWN":          0,
@@ -54,6 +58,7 @@ var (
 		"DIST_CONFIG_SOURCE_PACKAGE":          3,
 		"DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT": 4,
 		"DIST_CONFIG_SOURCE_ENDPOINT":         5,
+		"DIST_CONFIG_SOURCE_PUSH":             6,
 	}
 )
 
@@ -259,6 +264,9 @@ type LauncherInfo struct {
 	DaemonUpdateState *UpdateState `protobuf:"bytes,4,opt,name=daemon_update_state,json=daemonUpdateState,proto3" json:"daemonUpdateState,omitempty"`
 	// DaemonUpdateWait describes an accepted daemon update waiting for other work.
 	DaemonUpdateWait *DaemonUpdateWait `protobuf:"bytes,5,opt,name=daemon_update_wait,json=daemonUpdateWait,proto3" json:"daemonUpdateWait,omitempty"`
+	// DistConfigMsg is the signed packedmsg dist_config was parsed from.
+	// Empty when dist_config is empty.
+	DistConfigMsg string `protobuf:"bytes,6,opt,name=dist_config_msg,json=distConfigMsg,proto3" json:"distConfigMsg,omitempty"`
 }
 
 func (x *LauncherInfo) Reset() {
@@ -300,6 +308,13 @@ func (x *LauncherInfo) GetDaemonUpdateWait() *DaemonUpdateWait {
 		return x.DaemonUpdateWait
 	}
 	return nil
+}
+
+func (x *LauncherInfo) GetDistConfigMsg() string {
+	if x != nil {
+		return x.DistConfigMsg
+	}
+	return ""
 }
 
 // DaemonUpdateWait reports the work keeping an accepted daemon update from
@@ -863,17 +878,15 @@ func (x *PushDistConfigRequest) GetBody() string {
 }
 
 // PushDistConfigResponse is the response to PushDistConfigRequest.
+// A body without a valid packedmsg fails the call instead.
 type PushDistConfigResponse struct {
 	unknownFields []byte
-	// Valid indicates that a valid packedmsg was found in the body.
-	Valid bool `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
 	// Updated indicates that the found packedmsg is now the latest.
-	// Will be false if valid=false.
-	Updated bool `protobuf:"varint,2,opt,name=updated,proto3" json:"updated,omitempty"`
-	// Rev was the revision of the found app config object. 0 if none.
-	Rev uint64 `protobuf:"varint,3,opt,name=rev,proto3" json:"rev,omitempty"`
-	// PrevRev was the revision of the old app config object. 0 if none.
-	PrevRev uint64 `protobuf:"varint,4,opt,name=prev_rev,json=prevRev,proto3" json:"prevRev,omitempty"`
+	Updated bool `protobuf:"varint,1,opt,name=updated,proto3" json:"updated,omitempty"`
+	// Rev is the revision of the found app config object.
+	Rev uint64 `protobuf:"varint,2,opt,name=rev,proto3" json:"rev,omitempty"`
+	// PrevRev is the revision of the previous app config object. 0 if none.
+	PrevRev uint64 `protobuf:"varint,3,opt,name=prev_rev,json=prevRev,proto3" json:"prevRev,omitempty"`
 }
 
 func (x *PushDistConfigResponse) Reset() {
@@ -881,13 +894,6 @@ func (x *PushDistConfigResponse) Reset() {
 }
 
 func (*PushDistConfigResponse) ProtoMessage() {}
-
-func (x *PushDistConfigResponse) GetValid() bool {
-	if x != nil {
-		return x.Valid
-	}
-	return false
-}
 
 func (x *PushDistConfigResponse) GetUpdated() bool {
 	if x != nil {
@@ -960,6 +966,7 @@ func (m *LauncherInfo) CloneVT() *LauncherInfo {
 		return (*LauncherInfo)(nil)
 	}
 	r := new(LauncherInfo)
+	r.DistConfigMsg = m.DistConfigMsg
 	r.DistConfig = protobuf_go_lite.CloneVTValue(m.DistConfig)
 	r.UpdateState = protobuf_go_lite.CloneVTValue(m.UpdateState)
 	r.FetchStatus = protobuf_go_lite.CloneVTValue(m.FetchStatus)
@@ -1247,7 +1254,6 @@ func (m *PushDistConfigResponse) CloneVT() *PushDistConfigResponse {
 		return (*PushDistConfigResponse)(nil)
 	}
 	r := new(PushDistConfigResponse)
-	r.Valid = m.Valid
 	r.Updated = m.Updated
 	r.Rev = m.Rev
 	r.PrevRev = m.PrevRev
@@ -1309,6 +1315,9 @@ func (this *LauncherInfo) EqualVT(that *LauncherInfo) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.DaemonUpdateWait, that.DaemonUpdateWait) {
+		return false
+	}
+	if this.DistConfigMsg != that.DistConfigMsg {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1709,9 +1718,6 @@ func (this *PushDistConfigResponse) EqualVT(that *PushDistConfigResponse) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Valid != that.Valid {
-		return false
-	}
 	if this.Updated != that.Updated {
 		return false
 	}
@@ -2022,6 +2028,11 @@ func (x *LauncherInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("daemonUpdateWait")
 		x.DaemonUpdateWait.MarshalProtoJSON(s.WithField("daemonUpdateWait"))
 	}
+	if x.DistConfigMsg != "" || s.HasField("distConfigMsg") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("distConfigMsg")
+		s.WriteString(x.DistConfigMsg)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2074,6 +2085,9 @@ func (x *LauncherInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.DaemonUpdateWait = &DaemonUpdateWait{}
 			x.DaemonUpdateWait.UnmarshalProtoJSON(s.WithField("daemon_update_wait", true))
+		case "dist_config_msg", "distConfigMsg":
+			s.AddField("dist_config_msg")
+			x.DistConfigMsg = s.ReadString()
 		}
 	})
 }
@@ -2937,11 +2951,6 @@ func (x *PushDistConfigResponse) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Valid || s.HasField("valid") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("valid")
-		s.WriteBool(x.Valid)
-	}
 	if x.Updated || s.HasField("updated") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("updated")
@@ -2974,9 +2983,6 @@ func (x *PushDistConfigResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "valid":
-			s.AddField("valid")
-			x.Valid = s.ReadBool()
 		case "updated":
 			s.AddField("updated")
 			x.Updated = s.ReadBool()
@@ -3090,6 +3096,11 @@ func (m *LauncherInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.DistConfigMsg) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DistConfigMsg)
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.DaemonUpdateWait != nil {
 		size, err := m.DaemonUpdateWait.MarshalToSizedBufferVT(dAtA[:i])
@@ -3896,20 +3907,15 @@ func (m *PushDistConfigResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.PrevRev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PrevRev))
 		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x18
 	}
 	if m.Rev != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 	}
 	if m.Updated {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Updated)
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Valid {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Valid)
 		i--
 		dAtA[i] = 0x8
 	}
@@ -3965,6 +3971,7 @@ func (m *LauncherInfo) SizeVT() (n int) {
 		l = m.DaemonUpdateWait.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DistConfigMsg)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4179,7 +4186,6 @@ func (m *PushDistConfigResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Valid)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Updated)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PrevRev)
@@ -4276,6 +4282,10 @@ func (x *LauncherInfo) MarshalProtoText() string {
 	if x.DaemonUpdateWait != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_wait")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.DaemonUpdateWait)
+	}
+	if x.DistConfigMsg != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dist_config_msg")
+		protobuf_go_lite.TextWriteString(&sb, x.DistConfigMsg)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4605,10 +4615,6 @@ func (x *PushDistConfigRequest) String() string {
 func (x *PushDistConfigResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PushDistConfigResponse")
-	if x.Valid != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "valid")
-		protobuf_go_lite.TextWriteBool(&sb, x.Valid)
-	}
 	if x.Updated != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated")
 		protobuf_go_lite.TextWriteBool(&sb, x.Updated)
@@ -4842,6 +4848,16 @@ func (m *LauncherInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DistConfigMsg", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DistConfigMsg = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5966,16 +5982,6 @@ func (m *PushDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Valid", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Valid = bool(v)
-		case 2:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Updated", wireType)
 			}
 			var v bool
@@ -5984,7 +5990,7 @@ func (m *PushDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Updated = bool(v)
-		case 3:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
 			}
@@ -5993,7 +5999,7 @@ func (m *PushDistConfigResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PrevRev", wireType)
 			}

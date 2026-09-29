@@ -38,12 +38,11 @@ func (l *LauncherServer) PushDistConfigMsg(
 	ctx context.Context,
 	req *spacewave_launcher.PushDistConfigRequest,
 ) (*spacewave_launcher.PushDistConfigResponse, error) {
-	foundConf, _, _, updated, prevRev, err := l.c.PushDistConf(ctx, []byte(req.GetBody()))
+	foundConf, updated, prevRev, err := l.c.PushDistConf(ctx, []byte(req.GetBody()))
 	if err != nil {
 		return nil, err
 	}
 	return &spacewave_launcher.PushDistConfigResponse{
-		Valid:   foundConf != nil,
 		Updated: updated,
 		Rev:     foundConf.GetRev(),
 		PrevRev: prevRev,
