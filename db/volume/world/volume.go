@@ -51,6 +51,7 @@ func NewVolumeWithEngine(
 	conf *Config,
 	engine world.Engine,
 ) (*Volume, error) {
+	// Build the key codec and the world-backed store.
 	keys, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
@@ -65,14 +66,18 @@ func NewVolumeWithEngine(
 		}
 	}
 
+	// Wrap the store in a logger when verbose logging is enabled.
 	var loggedStore kvtx.Store = store
 	if conf.GetVerbose() {
 		loggedStore = kvtx_vlogger.NewVLogger(le, store)
 	}
+
+	// Construct the common kvtx volume over the logged store.
 	bvol, err := common_kvtx.NewVolume(
 		ctx, ControllerID, keys, loggedStore, conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(), conf.GetNoWriteKey(), nil, nil,
 		func() error {
+			// Delete the volume's object in one engine transaction.
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return err
@@ -92,6 +97,7 @@ func NewVolumeWithEngine(
 
 // initializeIdentity creates the durable identity once across concurrent mounts.
 func initializeIdentity(ctx context.Context, store kvtx.Store, key []byte) error {
+	// Open a write transaction and check the identity key's absence.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -101,6 +107,8 @@ func initializeIdentity(ctx context.Context, store kvtx.Store, key []byte) error
 	if err != nil || (found && len(data) != 0) {
 		return err
 	}
+
+	// Generate a new peer identity and marshal its private key.
 	p, err := peer.NewPeer(nil)
 	if err != nil {
 		return err
@@ -113,6 +121,8 @@ func initializeIdentity(ctx context.Context, store kvtx.Store, key []byte) error
 	if err != nil {
 		return err
 	}
+
+	// Store the identity and commit the transaction.
 	if err := tx.Set(ctx, key, data); err != nil {
 		return err
 	}

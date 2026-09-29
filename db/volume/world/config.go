@@ -26,6 +26,7 @@ func NewConfig(
 
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the optional init head reference.
 	initRef := c.GetInitHeadRef()
 	hasInitRef := !initRef.GetEmpty()
 	if hasInitRef {
@@ -33,6 +34,8 @@ func (c *Config) Validate() error {
 			return errors.Wrap(err, "init_head_ref")
 		}
 	}
+
+	// Require an object key, valid key options, and an engine ID.
 	if c.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
