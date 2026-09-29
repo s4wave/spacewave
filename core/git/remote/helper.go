@@ -125,6 +125,7 @@ func readBatch(r *bufio.Reader, first string) ([]string, error) {
 // list writes every Repo ref and HEAD in the helper list format. A missing
 // Repo lists no refs, so the first push can create it.
 func (h *Helper) list(ctx context.Context, w *bufio.Writer) error {
+	// Resolve the Repo's root; a missing Repo lists no refs.
 	_, _, found, err := h.repoRoot(ctx)
 	if err != nil {
 		return err
@@ -133,7 +134,10 @@ func (h *Helper) list(ctx context.Context, w *bufio.Writer) error {
 		_, err = w.WriteString("\n")
 		return err
 	}
+
+	// Write every ref except HEAD, then HEAD last.
 	err = h.readRepo(ctx, func(repo *git.Repository) error {
+		// Iterate the repository's references, writing each one.
 		refs, err := repo.Storer.IterReferences()
 		if err != nil {
 			return err
@@ -154,6 +158,8 @@ func (h *Helper) list(ctx context.Context, w *bufio.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	// Terminate the list with a blank line.
 	_, err = w.WriteString("\n")
 	return err
 }
@@ -171,10 +177,13 @@ func writeListRef(w *bufio.Writer, ref *plumbing.Reference) error {
 // serveFetch copies the objects for a batch of "fetch <hash> <name>" lines
 // into the local repository.
 func (h *Helper) serveFetch(ctx context.Context, r *bufio.Reader, w *bufio.Writer, first string) error {
+	// Read the fetch command batch.
 	batch, err := readBatch(r, first)
 	if err != nil {
 		return err
 	}
+
+	// Parse each line into the hash to fetch.
 	hashes := make([]string, 0, len(batch))
 	for _, line := range batch {
 		fields := strings.Fields(line)
@@ -183,6 +192,8 @@ func (h *Helper) serveFetch(ctx context.Context, r *bufio.Reader, w *bufio.Write
 		}
 		hashes = append(hashes, fields[1])
 	}
+
+	// Copy the objects and terminate the response with a blank line.
 	if err := h.fetch(ctx, hashes); err != nil {
 		return err
 	}
@@ -193,10 +204,13 @@ func (h *Helper) serveFetch(ctx context.Context, r *bufio.Reader, w *bufio.Write
 // fetch pushes the objects reachable from hashes from the Repo into the local
 // repository under temporary refs, then removes those refs.
 func (h *Helper) fetch(ctx context.Context, hashes []string) error {
+	// Build a temporary ref spec per hash.
 	specs := make([]config.RefSpec, len(hashes))
 	for i, hash := range hashes {
 		specs[i] = config.RefSpec("+" + hash + ":" + fetchRefPrefix + strconv.Itoa(i))
 	}
+
+	// Push the objects from the Repo into the local repository.
 	err := h.readRepo(ctx, func(repo *git.Repository) error {
 		remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
 		err := remote.PushContext(ctx, &git.PushOptions{RemoteName: localRemoteName, RefSpecs: specs})
@@ -209,6 +223,7 @@ func (h *Helper) fetch(ctx context.Context, hashes []string) error {
 		return errors.Wrap(err, "copy objects to the local repository")
 	}
 
+	// Remove the temporary refs from the local repository.
 	local, err := git.PlainOpen(h.gitDir)
 	if err != nil {
 		return errors.Wrap(err, "open local repository")
@@ -225,10 +240,13 @@ func (h *Helper) fetch(ctx context.Context, hashes []string) error {
 // servePush applies a batch of "push [+]<src>:<dst>" lines and reports each
 // ref's result.
 func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer, first string) error {
+	// Read the push command batch.
 	batch, err := readBatch(r, first)
 	if err != nil {
 		return err
 	}
+
+	// Parse each line into a push command.
 	cmds := make([]pushCommand, 0, len(batch))
 	for _, line := range batch {
 		spec, ok := strings.CutPrefix(line, "push ")
@@ -244,6 +262,7 @@ func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer
 		cmds = append(cmds, cmd)
 	}
 
+	// Apply the commands and report each ref's result.
 	results, err := h.push(ctx, cmds)
 	if err != nil {
 		return err
@@ -267,6 +286,7 @@ func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer
 // meanwhile, otherwise the push repeats against the current root.
 func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error) {
 	for {
+		// Resolve the Repo root, creating the Repo when missing.
 		prevRef, prevRev, found, err := h.repoRoot(ctx)
 		if err != nil {
 			return nil, err
@@ -278,6 +298,7 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 			continue
 		}
 
+		// Apply every command inside one World writer and collect reasons.
 		results := make([]string, len(cmds))
 		nextRef, err := git_world.AccessRepo(ctx, h.engine.AccessWorldState, prevRef, nil, nil, nil, func(repo *git.Repository) error {
 			remote := git.NewRemote(repo.Storer, &config.RemoteConfig{Name: localRemoteName, URLs: []string{h.gitDir}})
@@ -294,6 +315,7 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 			return nil, errors.Wrap(err, "update the Space repository")
 		}
 
+		// Adopt the new root or retry against the writer that moved it.
 		applied, err := h.adoptRoot(ctx, prevRev, nextRef)
 		if err != nil || applied {
 			h.pushed = applied
@@ -305,10 +327,13 @@ func (h *Helper) push(ctx context.Context, cmds []pushCommand) ([]string, error)
 // pushOne applies one ref update inside the Repo and returns the reason it was
 // refused, or an error when the Repo itself failed.
 func (h *Helper) pushOne(ctx context.Context, repo *git.Repository, remote *git.Remote, cmd pushCommand) (string, error) {
+	// Delete the destination ref for an empty source.
 	dst := plumbing.ReferenceName(cmd.dst)
 	if cmd.src == "" {
 		return "", repo.Storer.RemoveReference(dst)
 	}
+
+	// Fetch the source ref into the destination from the local repository.
 	spec := cmd.src + ":" + cmd.dst
 	if cmd.force {
 		spec = "+" + spec
@@ -342,6 +367,7 @@ func (h *Helper) readRepo(ctx context.Context, cb func(repo *git.Repository) err
 // when the object does not exist.
 func (h *Helper) repoRoot(ctx context.Context) (ref *bucket.ObjectRef, rev uint64, found bool, err error) {
 	err = world.ExecTransaction(ctx, h.engine, false, func(ctx context.Context, ws world.WorldState) error {
+		// Read the Repo object and its root ref.
 		obj, ok, err := ws.GetObject(ctx, h.objectKey)
 		defer world.ReleaseObjectState(obj)
 		if err != nil || !ok {
@@ -368,6 +394,7 @@ func (h *Helper) createRepo(ctx context.Context) error {
 func (h *Helper) adoptRoot(ctx context.Context, prevRev uint64, next *bucket.ObjectRef) (bool, error) {
 	var applied bool
 	err := world.ExecTransaction(ctx, h.engine, true, func(ctx context.Context, ws world.WorldState) error {
+		// Compare the object's revision and set the new root when unchanged.
 		obj, err := world.MustGetObject(ctx, ws, h.objectKey)
 		if err != nil {
 			return err
