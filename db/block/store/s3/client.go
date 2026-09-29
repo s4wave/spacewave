@@ -22,8 +22,8 @@ import (
 const emptyPayloadHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 // Client is a minimal HTTP client for an S3-compatible API.
-// Supports GET/HEAD/PUT/DELETE on objects and object listing, with AWS SigV4
-// signing.
+// Supports GET/HEAD/PUT/DELETE on objects, object and version listing, with
+// AWS SigV4 signing.
 type Client struct {
 	httpClient *http.Client
 	endpoint   string
@@ -118,14 +118,95 @@ func (c *Client) HeadObject(ctx context.Context, bucket, key string) (int64, err
 	return resp.ContentLength, nil
 }
 
-// DeleteObject removes an object. Returns ErrNotFound if it did not exist.
+// DeleteObject removes every version of an object, so a bucket with
+// versioning, such as Backblaze B2, keeps no hidden copy. A missing object is
+// already deleted. Where the service does not list versions, or the key may
+// not, it deletes the current version alone.
 func (c *Client) DeleteObject(ctx context.Context, bucket, key string) error {
-	resp, err := c.do(ctx, http.MethodDelete, bucket, key, nil, nil, nil)
+	// List the versions, or delete the current version alone where they are
+	// not listed.
+	versions, err := c.listObjectVersions(ctx, bucket, key)
+	var serr *StatusError
+	if errors.As(err, &serr) && (serr.StatusCode == http.StatusNotImplemented || serr.StatusCode == http.StatusForbidden) {
+		return c.deleteObjectVersion(ctx, bucket, key, "")
+	}
+	if err != nil {
+		return err
+	}
+
+	// Delete each version.
+	for _, version := range versions {
+		if err := c.deleteObjectVersion(ctx, bucket, key, version); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteObjectVersion removes one version of an object, or the current version
+// when version is empty.
+func (c *Client) deleteObjectVersion(ctx context.Context, bucket, key, version string) error {
+	// Address the version, or the current version when version is empty.
+	var query url.Values
+	if version != "" {
+		query = url.Values{"versionId": {version}}
+	}
+
+	// Delete it. A missing version is already deleted.
+	resp, err := c.do(ctx, http.MethodDelete, bucket, key, query, nil, nil)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	return checkStatus(resp, bucket, key, http.MethodDelete)
+	err = checkStatus(resp, bucket, key, http.MethodDelete)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	return err
+}
+
+// listObjectVersions returns the version ids of key, including delete
+// markers.
+func (c *Client) listObjectVersions(ctx context.Context, bucket, key string) ([]string, error) {
+	query := url.Values{"versions": {""}, "prefix": {key}}
+	var versions []string
+	for {
+		// Read one page of the listing.
+		resp, err := c.do(ctx, http.MethodGet, bucket, "", query, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkStatus(resp, bucket, key, http.MethodGet); err != nil {
+			_ = resp.Body.Close()
+			return nil, err
+		}
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		// Collect the versions and delete markers of key alone, since the
+		// prefix also matches longer keys.
+		doc := string(body)
+		for _, name := range []string{"Version", "DeleteMarker"} {
+			err := visitElements(doc, name, func(version string) error {
+				if html.UnescapeString(xmlElementText(version, "Key")) == key {
+					versions = append(versions, html.UnescapeString(xmlElementText(version, "VersionId")))
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+		// Continue from the next page, if any.
+		if xmlElementText(doc, "IsTruncated") != "true" {
+			return versions, nil
+		}
+		query.Set("key-marker", html.UnescapeString(xmlElementText(doc, "NextKeyMarker")))
+		query.Set("version-id-marker", html.UnescapeString(xmlElementText(doc, "NextVersionIdMarker")))
+	}
 }
 
 // ListObjects calls fn with the key and size of every object under prefix, in
@@ -151,6 +232,7 @@ func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, fn func
 		if err := visitListedObjects(doc, fn); err != nil {
 			return err
 		}
+		// Continue from the next page, if any.
 		if xmlElementText(doc, "IsTruncated") != "true" {
 			return nil
 		}
@@ -163,24 +245,31 @@ func (c *Client) ListObjects(ctx context.Context, bucket, prefix string, fn func
 }
 
 // visitListedObjects calls fn with the key and size of each Contents element
-// of a ListObjectsV2 result. Object keys cannot contain an element because XML
-// escapes '<'.
+// of a ListObjectsV2 result.
 func visitListedObjects(doc string, fn func(key string, size int64) error) error {
-	for {
-		_, rest, ok := strings.Cut(doc, "<Contents>")
-		if !ok {
-			return nil
-		}
-		contents, rest, ok := strings.Cut(rest, "</Contents>")
-		if !ok {
-			return errors.New("s3 list: unterminated Contents element")
-		}
+	return visitElements(doc, "Contents", func(contents string) error {
 		key := html.UnescapeString(xmlElementText(contents, "Key"))
 		size, err := strconv.ParseInt(xmlElementText(contents, "Size"), 10, 64)
 		if err != nil {
 			return errors.Wrap(err, "s3 list: object size")
 		}
-		if err := fn(key, size); err != nil {
+		return fn(key, size)
+	})
+}
+
+// visitElements calls fn with the content of each element of doc with the
+// given name. Object keys cannot contain an element because XML escapes '<'.
+func visitElements(doc, name string, fn func(content string) error) error {
+	for {
+		_, rest, ok := strings.Cut(doc, "<"+name+">")
+		if !ok {
+			return nil
+		}
+		content, rest, ok := strings.Cut(rest, "</"+name+">")
+		if !ok {
+			return errors.New("s3 list: unterminated " + name + " element")
+		}
+		if err := fn(content); err != nil {
 			return err
 		}
 		doc = rest

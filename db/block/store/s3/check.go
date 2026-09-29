@@ -27,6 +27,7 @@ const checkProbeReadOffset = 10
 // then measures the objects under objectPrefix, other than probes, and deletes
 // the probes earlier checks left.
 func CheckBucket(ctx context.Context, client *Client, bucket, objectPrefix string) *CheckResult {
+	// Name a new probe object under the probe directory.
 	probePrefix := objectPrefix + checkProbeDir
 	key := probePrefix + ulid.NewULID()
 
@@ -50,7 +51,7 @@ func CheckBucket(ctx context.Context, client *Client, bucket, objectPrefix strin
 	}
 
 	// Delete the probe object.
-	if err := client.DeleteObject(ctx, bucket, key); err != nil && !errors.Is(err, ErrNotFound) {
+	if err := client.DeleteObject(ctx, bucket, key); err != nil {
 		return newCheckFailure("delete", err)
 	}
 
