@@ -18,11 +18,15 @@ import (
 func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
+
+	// Start a testbed whose block store holds the encrypted World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Encrypt every block with an inline transform the snapshot can carry.
 	transform, err := block_transform.NewConfig([]config.Config{&transform_blockenc.Config{
 		BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 		Key:      make([]byte, 32),
@@ -30,6 +34,8 @@ func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the live World engine on an empty cursor.
 	cursor, _, err := bucket_lookup.BuildEmptyCursor(ctx, tb.Bus, le, tb.StepFactorySet, tb.BucketId, tb.Volume.GetID(), transform, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -54,11 +60,13 @@ func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the live engine so only the saved root and block store remain.
 	if err := engine.Close(); err != nil {
 		t.Fatal(err)
 	}
 
-	// Only the saved root and block store are supplied to recovery.
+	// Open the saved root without the original engine.
 	recovered, err := world_block.OpenSnapshot(ctx, le, tb.Volume, root)
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +77,8 @@ func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
+
+	// Require the saved object and reject the object created after the save.
 	for key, want := range map[string]bool{"saved": true, "later": false} {
 		obj, found, err := tx.GetObject(ctx, key)
 		world.ReleaseObjectState(obj)
@@ -79,6 +89,8 @@ func TestOpenSnapshotRecoversHistoricalWorld(t *testing.T) {
 			t.Fatalf("historical object %s present=%t, want %t", key, found, want)
 		}
 	}
+
+	// Require the recovered World to keep its changelog.
 	entries, err := world_block.ReadChangeLogEntries(ctx, tx.AccessWorldState, world_block.ChangeLogReadOptions{Limit: 10})
 	if err != nil {
 		t.Fatal(err)

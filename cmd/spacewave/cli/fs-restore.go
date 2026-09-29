@@ -57,6 +57,8 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 		}
 		return errors.New("restore destination already exists; choose a new directory")
 	}
+
+	// Read the recovery root that names the World to restore.
 	data, err := os.ReadFile(a.snapshotPath)
 	if err != nil {
 		return err
@@ -79,6 +81,8 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 	le := logrus.NewEntry(logrus.New())
 	store := block_store_s3.NewPackStore(le, client, a.bucket, a.prefix)
 	defer store.Close()
+
+	// Open the saved World root and a read transaction on it.
 	engine, err := world_block.OpenSnapshot(ctx, le, store, snapshot.GetRootRef())
 	if err != nil {
 		return err
@@ -89,6 +93,8 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 		return err
 	}
 	defer tx.Discard()
+
+	// Open the UnixFS object to restore; it must be a directory.
 	handle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, tx, "", &unixfs_world.UnixfsRef{ObjectKey: a.objectKey}, false, false, time.Time{})
 	if err != nil {
 		return err

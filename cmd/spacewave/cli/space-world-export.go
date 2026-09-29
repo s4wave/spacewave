@@ -21,6 +21,7 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 		ArgsUsage:   "NEW_FILE",
 		Description: "Writes a binary WorldRootSnapshot with mode 0600, refusing to overwrite a file.\nThe file contains decryption material: encrypt it before storing it offsite.\nKeep the Space's S3 endpoint, bucket, and block-store prefix with the recovery file.\nThe referenced packfiles must remain available; this file does not contain them.\nExporting does not register a permanent garbage-collection retention root.",
 		Action: func(c *cli.Context) error {
+			// Require one new output path and mount the Space's World.
 			if c.NArg() != 1 {
 				return errors.New("one new output file is required")
 			}
@@ -37,6 +38,8 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 				return err
 			}
 			defer tx.Discard()
+
+			// Record the committed root with an inline transform so recovery needs no account state.
 			snapshot := &s4wave_world.WorldRootSnapshot{}
 			snapshot.Seqno, err = tx.GetSeqno(ctx)
 			if err != nil {
@@ -50,6 +53,8 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 			}); err != nil {
 				return errors.Wrap(err, "resolve recovery transform")
 			}
+
+			// Make the root durable and wait until the Space's storage has its blocks.
 			if _, err := engine.Sync(ctx); err != nil {
 				return err
 			}
@@ -68,6 +73,8 @@ func newSpaceWorldExportCommand(statePath *string, sessionIdx *uint, spaceID *st
 			if err != nil {
 				return err
 			}
+
+			// Remove the partial file unless every write reaches disk.
 			complete := false
 			defer func() {
 				if !complete {

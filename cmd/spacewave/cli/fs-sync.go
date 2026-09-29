@@ -38,7 +38,7 @@ func (a *FsSyncArgs) BuildFlags() []cli.Flag {
 
 // Run mirrors the source directory and fences uploaded World blocks.
 func (a *FsSyncArgs) Run(c *cli.Context) error {
-	// Require an explicit remote prefix so local paths cannot select the wrong side.
+	// Require exactly one spacewave: path so local paths cannot select the wrong side.
 	if c.NArg() != 2 {
 		return errors.New("expected SOURCE DESTINATION; prefix the UnixFS URI with spacewave:")
 	}
@@ -47,6 +47,8 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	if upload == strings.HasPrefix(source, "spacewave:") {
 		return errors.New("exactly one path must have the spacewave: prefix")
 	}
+
+	// Split the arguments into the local directory and the UnixFS URI.
 	localPath, remotePath := source, destination
 	if !upload {
 		localPath, remotePath = destination, source
@@ -55,6 +57,8 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Require an uploaded local source to be a directory.
 	if upload {
 		info, err := os.Stat(localPath)
 		if err != nil {
@@ -72,6 +76,8 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 		return err
 	}
 	defer release()
+
+	// Write through the engine on upload and read from a snapshot on download.
 	ws := world.NewEngineWorldState(engine, upload)
 	if !upload {
 		tx, err := engine.NewTransaction(ctx, false)
@@ -81,12 +87,16 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 		defer tx.Discard()
 		ws = tx
 	}
+
+	// Open the UnixFS root object.
 	ref := &unixfs_world.UnixfsRef{ObjectKey: uri.objectKey}
 	root, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, ws, "", ref, false, upload, time.Now())
 	if err != nil {
 		return err
 	}
 	defer root.Release()
+
+	// Resolve the requested directory below the root; it must already exist.
 	handle := root
 	if uri.path != "" {
 		var missing []string
@@ -112,18 +122,22 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	if a.keepExtra {
 		mode = unixfs_sync.DeleteMode_DeleteMode_NONE
 	}
-	if upload {
-		if err := unixfs_sync.SyncFromDisk(ctx, handle, localPath, mode, nil); err != nil {
-			return err
-		}
-		if _, err := engine.Sync(ctx); err != nil {
-			return errors.Wrap(err, "make synced World durable")
-		}
-		return withSession(c, a.statePath, uint(uri.sessionIdx), func(ctx context.Context, sess *s4wave_session.Session) error {
-			return waitSpaceStorageSynced(ctx, sess, resolvedSpaceID)
-		})
+
+	// Download by mirroring the UnixFS directory onto disk.
+	if !upload {
+		return unixfs_sync.Sync(ctx, localPath, handle, mode, nil)
 	}
-	return unixfs_sync.Sync(ctx, localPath, handle, mode, nil)
+
+	// Upload the directory, then wait until the Space's storage has the new blocks.
+	if err := unixfs_sync.SyncFromDisk(ctx, handle, localPath, mode, nil); err != nil {
+		return err
+	}
+	if _, err := engine.Sync(ctx); err != nil {
+		return errors.Wrap(err, "make synced World durable")
+	}
+	return withSession(c, a.statePath, uint(uri.sessionIdx), func(ctx context.Context, sess *s4wave_session.Session) error {
+		return waitSpaceStorageSynced(ctx, sess, resolvedSpaceID)
+	})
 }
 
 // newFsSyncCommand builds the directory mirror command.
