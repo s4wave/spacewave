@@ -10,6 +10,7 @@ import (
 
 // Validate checks that a placement names one Worker and one Device peer.
 func (p *Placement) Validate() error {
+	// Require a Worker key, a peer ID, and a parseable peer ID.
 	if p.GetWorkerObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
@@ -22,9 +23,12 @@ func (p *Placement) Validate() error {
 
 // ValidateLinked checks that the selected peer belongs to the selected Worker.
 func (p *Placement) ValidateLinked(ctx context.Context, ws world.WorldState) error {
+	// Require the placement itself to be valid.
 	if err := p.Validate(); err != nil {
 		return err
 	}
+
+	// Require the selected object to be a Worker and collect its keypairs.
 	if err := CheckWorkerType(ctx, ws, p.GetWorkerObjectKey()); err != nil {
 		return err
 	}
@@ -32,6 +36,8 @@ func (p *Placement) ValidateLinked(ctx context.Context, ws world.WorldState) err
 	if err != nil {
 		return err
 	}
+
+	// Require the selected peer to match one of the Worker's keypairs.
 	for _, keypair := range keypairs {
 		id, err := keypair.ParsePeerID()
 		if err != nil {
