@@ -34,11 +34,14 @@ import (
 // the plugin files the runtime publishes, and the Space scheduler reaches the
 // running plugin through the export.
 func TestExecPluginOnExportedHost(t *testing.T) {
+	// Bind the test context and logger.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
 	// The distribution bus owns the only plugin host.
 	const platformID = "desktop/darwin/arm64"
+
+	// Build the distribution testbed and its exported host server.
 	distTb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,6 +91,8 @@ func TestExecPluginOnExportedHost(t *testing.T) {
 	}
 
 	// Store the Space plugin's manifest in the Space's world.
+
+	// Open a World state over the Space testbed.
 	ocs, err := spaceTb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -97,6 +102,8 @@ func TestExecPluginOnExportedHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Write the plugin's entrypoint and create its manifest in the World.
 	distFS := memfs.New()
 	if err := billy_util.WriteFile(distFS, "viewer.js", []byte("export {}\n"), 0o644); err != nil {
 		t.Fatal(err.Error())
@@ -119,6 +126,7 @@ func TestExecPluginOnExportedHost(t *testing.T) {
 	}
 	defer proxyRef.Release()
 
+	// Run the plugin instance against the exported host.
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
@@ -214,6 +222,7 @@ func (h *exportTestPluginHost) ExecutePlugin(
 	hostRpcMux srpc.Mux,
 	rpcInit bldr_plugin_host.PluginRpcInitCb,
 ) error {
+	// Read the published entrypoint and signal the test.
 	defer close(h.stopped)
 	h.entrypoint, h.err = h.readPublished(ctx, bldr_plugin.PluginArtifactID(pluginID, manifestRoot), entrypoint)
 	close(h.started)
@@ -221,6 +230,7 @@ func (h *exportTestPluginHost) ExecutePlugin(
 		return h.err
 	}
 
+	// Publish an Echo service to the plugin and serve it until canceled.
 	mux := srpc.NewMux()
 	if err := echo.SRPCRegisterEchoer(mux, echo.NewEchoServer(nil)); err != nil {
 		return err
@@ -234,6 +244,7 @@ func (h *exportTestPluginHost) ExecutePlugin(
 
 // readPublished reads a dist file published for artifactID on the bus.
 func (h *exportTestPluginHost) readPublished(ctx context.Context, artifactID, path string) ([]byte, error) {
+	// Demand the published plugin dist filesystem on the bus.
 	access, ref, err := unixfs_access.ExAccessUnixFS(ctx, h.b, bldr_plugin.PluginDistFsId(artifactID), true, nil)
 	if err != nil {
 		return nil, err
@@ -242,6 +253,8 @@ func (h *exportTestPluginHost) readPublished(ctx context.Context, artifactID, pa
 		return nil, errors.New("plugin dist is not published")
 	}
 	defer ref.Release()
+
+	// Open the filesystem and read the requested file.
 	fs, release, err := access(ctx, nil)
 	if err != nil {
 		return nil, err

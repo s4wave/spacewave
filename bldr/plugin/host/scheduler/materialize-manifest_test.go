@@ -48,8 +48,8 @@ func TestMaterializeManifestThroughPluginHostVolumeProxy(t *testing.T) {
 // and the destination ProxyVolume mapping. instanceKey selects the browser
 // worker identity the source filter must accept.
 func runBrowserCopyFixture(t *testing.T, instanceKey string) {
+	// Bind the test context and logger.
 	t.Helper()
-
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -59,6 +59,8 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(srcTB.Release)
+
+	// Build the host and plugin worker testbeds.
 	hostTB, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -96,6 +98,8 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the source and destination cursors with their transforms.
 	srcCursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx, srcTB.Bus, le, srcTB.StepFactorySet,
 		"mm-src", srcTB.Volume.GetID(), srcTransformConf, nil,
@@ -136,6 +140,8 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 		DistFsRef:   dirRef,
 		AssetsFsRef: dirRef,
 	}
+
+	// Write the manifest into the source cursor and read back its root ref.
 	btx, bcs := srcCursor.BuildTransaction(nil)
 	bcs.SetBlock(srcManifest, true)
 	manifestRef, _, err := btx.Write(ctx, true)
@@ -148,7 +154,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 		t.Fatal("test setup: source ref is empty")
 	}
 
-	// Follow the manifest root to obtain the selected source cursor, as the
+	// Follow the manifest root into a read-only selected cursor, as the
 	// scheduler does when executing a manifest.
 	srcSel, err := bldr_manifest_world.FollowObjectRefReadOnly(ctx, srcCursor, srcRef)
 	if err != nil {
@@ -223,6 +229,8 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 
 	// Plugin bus: mount the host volume proxy under the plugin-host volume
 	// alias, exactly as the plugin entrypoint does.
+
+	// Build the host volume info and its proxy controller.
 	hostVolInfo, err := volume.NewVolumeInfo(
 		ctx,
 		controller.NewInfo("test-host-volume", controller.MustParseVersion("0.0.1"), "test host volume"),
@@ -255,22 +263,25 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginMux)))
 
-	// Route the copy's RPC lookup through the scheduler's normal plugin demand.
-	// The fixture publishes its already constructed worker only for LoadPlugin.
+	// Handle RPC lookups and LoadPlugin demands for the materializer.
 	ctrl := &Controller{bus: hostTB.Bus, conf: &Config{InstanceKey: instanceKey}}
 	demanded := make(chan string, 1)
 	released := make(chan struct{})
 	relPluginHandler, err := hostTB.Bus.AddHandler(directive.NewFuncHandler(
 		func(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
 			switch dir := inst.GetDirective().(type) {
+			// Route RPC client lookups through the scheduler controller.
 			case bifrost_rpc.LookupRpcClient:
 				return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, ctrl))
+
+			// Publish the fixture's plugin client for the materializer demand.
 			case bldr_plugin.LoadPlugin:
 				if dir.LoadPluginID() != "bldr-materializer" {
 					return nil, nil
 				}
 				return directive.R(directive.NewFuncResolver(
 					func(ctx context.Context, handler directive.ResolverHandler) error {
+						// Record the demanded instance key and publish the client.
 						demanded <- dir.LoadPluginInstanceKey()
 						defer close(released)
 						_, _ = handler.AddValue(bldr_plugin.NewRunningPlugin(pluginClient))
@@ -288,8 +299,8 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	}
 	t.Cleanup(relPluginHandler)
 
-	// Call the scheduler helper against the host bus. Bound the call so the
-	// RPC completes or fails within the deadline instead of hanging.
+	// Run the materialize copy under a bounded deadline so the RPC completes
+	// or fails instead of hanging.
 	copyCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	t.Cleanup(cancel)
 	copiedRef, _, err := ctrl.materializeManifest(

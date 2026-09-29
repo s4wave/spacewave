@@ -14,6 +14,7 @@ import (
 // TestInstalledManifestSelection proves explicit installation beats catalog
 // order and keeps independent bindings when one installation changes.
 func TestInstalledManifestSelection(t *testing.T) {
+	// Build a controller with one JavaScript plugin host.
 	le := logrus.NewEntry(logrus.New())
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	c := NewController(le, nil, &Config{})
@@ -22,6 +23,8 @@ func TestInstalledManifestSelection(t *testing.T) {
 	_, second := c.newPluginInstance(pluginReference{pluginID: "colors", instanceKey: "second"})
 	old := newTestManifestRef("colors", "js", 1, "old")
 	newer := newTestManifestRef("colors", "js", 99, "newer")
+
+	// Give each manifest ref a resolvable root hash.
 	for _, ref := range []*manifest.ManifestRef{old, newer} {
 		digest, err := hash.Sum(hash.RecommendedHashType, []byte(ref.GetManifestRef().GetBucketId()))
 		if err != nil {
@@ -29,10 +32,14 @@ func TestInstalledManifestSelection(t *testing.T) {
 		}
 		ref.ManifestRef.RootRef = block.NewBlockRef(digest)
 	}
+
+	// Install the old artifact on the first binding and the newer on the second.
 	firstRelease := first.addManifestSelection(old)
 	defer firstRelease()
 	secondRelease := second.addManifestSelection(newer)
 	defer secondRelease()
+
+	// assertSelection fails when the instance's execution state differs.
 	assertSelection := func(instance *pluginInstance, expected *manifest.ManifestRef) {
 		t.Helper()
 		state := instance.executePluginRoutine.GetState()

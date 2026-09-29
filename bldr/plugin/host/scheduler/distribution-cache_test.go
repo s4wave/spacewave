@@ -20,6 +20,8 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 	// Store both installations in one application World, as on a shared state root.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a World state over a testbed cursor.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +36,8 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Store an older high-revision install and the current low-revision install.
 	old, oldKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 14)
 	current, currentKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 1)
 	oldMeta := &dist.DistMeta{ChannelKey: "stable", DistWorldRef: old.GetManifestRef()}
@@ -46,6 +50,8 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the manifest stores and point the old ones at the previous install.
 	for _, key := range []string{"plugin-host", oldHost, hostKey} {
 		if _, err := manifest_world.CreateManifestStore(ctx, ws, key); err != nil {
 			t.Fatal(err)
@@ -58,6 +64,8 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 	}
 
 	// The new host waits for its own source, even while the old cache is usable.
+
+	// Run selection for a plugin instance bound to the new host object.
 	host := &testPluginHost{id: "desktop/darwin/arm64"}
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{host}}
 	instance := &pluginInstance{
@@ -66,6 +74,7 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
 	selectManifest := func() *executePluginArgs {
+		// Load the host object and run manifest selection over it.
 		t.Helper()
 		obj, found, err := ws.GetObject(ctx, hostKey)
 		if obj != nil {
@@ -79,11 +88,15 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 		}
 		return instance.executePluginRoutine.GetState()
 	}
+
+	// Selection waits while only the previous distribution is present.
 	if selected := selectManifest(); selected != nil {
 		t.Fatal("previous installation ran before this distribution's source arrived")
 	}
 
 	// This build's lower artifact revision wins and remains available on a warm reopen.
+
+	// Point the new host at the current install and select it.
 	if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, currentKey, "spacewave-core")); err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +104,8 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 	if selected == nil || !selected.manifestSnapshot.GetManifestRef().EqualVT(current.GetManifestRef()) {
 		t.Fatalf("selection = %v, want current distribution", selected)
 	}
+
+	// The reopened host object key parses back to the same key.
 	reopenedKey, err := dist.PluginHostObjectKey(currentMeta.CloneVT())
 	if err != nil || reopenedKey != hostKey {
 		t.Fatalf("reopened cache = %q, error=%v", reopenedKey, err)
