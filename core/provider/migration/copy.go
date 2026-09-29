@@ -15,6 +15,7 @@ import (
 // the destination. A cache inventory cannot establish completeness. Existing
 // content-addressed blocks make retries safe after any interrupted write.
 func CopyWorld(ctx context.Context, le *logrus.Entry, factories *block_transform.StepFactorySet, object sobject.SharedObject, accepted *sobject.SOState, destination block.StoreOps) error {
+	// Decrypt the accepted checkpoint's inner state.
 	host, ok := object.(sobject.InviteHost)
 	if !ok {
 		return errors.New("source cannot decrypt its accepted migration checkpoint")
@@ -28,12 +29,16 @@ func CopyWorld(ctx context.Context, le *logrus.Entry, factories *block_transform
 	if err := state.UnmarshalVT(root.GetStateData()); err != nil {
 		return err
 	}
+
+	// Copy the reachable block graph into the destination store.
 	head := state.GetHeadRef()
 	if head != nil && !head.GetRootRef().GetEmpty() {
 		if err := block.CopyGraph(ctx, object.GetBlockStore(), destination, head.GetRootRef(), nil); err != nil {
 			return err
 		}
 	}
+
+	// Sync the destination and require its durable-storage confirmation.
 	fenced, err := destination.Sync(ctx)
 	if err == nil && !fenced {
 		err = errors.New("destination block store did not confirm durable storage")

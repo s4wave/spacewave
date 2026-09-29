@@ -55,6 +55,7 @@ type CredentialSource interface {
 // Provider commits make retries safe; source attachments change only after the
 // destination resources and returning Session authorization are durable.
 func Merge(ctx context.Context, source Account, mounted session.Session, destination provider.ProviderAccount, destinationRef *session.SessionRef) (func(context.Context) (*session.SessionRef, error), error) {
+	// Mount the destination account's Session.
 	target, ok := destination.(Account)
 	if !ok {
 		return nil, errors.New("destination provider does not support account migration")
@@ -64,6 +65,9 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 		return nil, err
 	}
 	defer releaseSession()
+
+	// Collect migration info from both accounts, refusing a source with
+	// pending Sessions from an earlier merge.
 	sourceInfo, err := source.MigrationInfo(ctx, mounted.GetPrivKey())
 	if err != nil {
 		return nil, err
@@ -75,6 +79,8 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the account transition and derive its stable operation id.
 	transition := &provider.AccountTransition{
 		Source: sourceInfo.Settings.GetProviderResourceRef().CloneVT(), Destination: targetInfo.Settings.GetProviderResourceRef().CloneVT(),
 		DestinationEndpoint: targetInfo.Endpoint, DestinationPeerIds: uniquePeers(targetInfo.SessionPeers), SessionPeerIds: uniquePeers(sourceInfo.SessionPeers),
@@ -86,12 +92,16 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 	}
 	digest := sha256.Sum256(identity)
 	transition.OperationId = hex.EncodeToString(digest[:])
+
+	// Reuse the source's committed transition and reject a different destination.
 	if sourceInfo.Transition != nil {
 		if !sourceInfo.Transition.GetDestination().EqualVT(transition.GetDestination()) {
 			return nil, errors.New("source account already moved to another destination")
 		}
 		transition = sourceInfo.Transition.CloneVT()
 	}
+
+	// Validate the transition and check both accounts' Sessions.
 	if err := transition.Validate(); err != nil {
 		return nil, err
 	}
@@ -132,6 +142,7 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 		objects = append(objects, object)
 	}
 
+	// Copy every non-settings resource into the destination.
 	// Checkpoints keep their exact roots and complete permission histories.
 	for i, entry := range entries {
 		if entry.GetRef().GetProviderResourceRef().GetId() == sourceInfo.Settings.GetProviderResourceRef().GetId() {
@@ -145,11 +156,15 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 			return nil, errors.Wrapf(err, "copy resource %s", objects[i].GetSharedObjectID())
 		}
 	}
+
+	// Admit the mounted Sessions on a connected source account.
 	if sourceInfo.Endpoint != "" {
 		if err := target.AcceptMigrationSessions(ctx, transition, mounted.GetPrivKey(), targetSession.GetPrivKey()); err != nil {
 			return nil, err
 		}
 	}
+
+	// Commit the transition on the source account.
 	if err := source.CommitAccountTransition(ctx, transition, mounted.GetPrivKey(), targetSession.GetPrivKey()); err != nil {
 		return nil, err
 	}
@@ -176,6 +191,7 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 			return nil, err
 		}
 	}
+
 	// The caller acknowledges the completed account transfer before retiring
 	// the transport that carries its pairing receipt.
 	return func(ctx context.Context) (*session.SessionRef, error) {
@@ -192,11 +208,14 @@ func Merge(ctx context.Context, source Account, mounted session.Session, destina
 
 // RebindSession publishes an already durable provider attachment at its old UI index.
 func RebindSession(ctx context.Context, mounted session.Session, ref *session.SessionRef) error {
+	// Resolve the Session controller on the mounted Session's bus.
 	controller, release, err := session.ExLookupSessionController(ctx, mounted.GetBus(), "", false, nil)
 	if err != nil {
 		return err
 	}
 	defer release.Release()
+
+	// Commit the session transition through the transition controller.
 	transition, ok := controller.(session.SessionTransitionController)
 	if !ok {
 		return errors.New("Session controller cannot commit account transitions")

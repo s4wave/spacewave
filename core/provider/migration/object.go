@@ -13,6 +13,7 @@ import (
 // CheckObject requires the current participant to authorize new account peers.
 // Existing third-party permissions remain part of the verified configuration.
 func CheckObject(ctx context.Context, object sobject.SharedObject, peers []string) error {
+	// Read the object's host state.
 	host, ok := object.(sobject.InviteHost)
 	if !ok {
 		return errors.New("SharedObject cannot authorize account migration")
@@ -21,6 +22,8 @@ func CheckObject(ctx context.Context, object sobject.SharedObject, peers []strin
 	if err != nil {
 		return err
 	}
+
+	// Track the incoming peers not already participants.
 	remaining := make(map[string]bool, len(peers))
 	for _, id := range peers {
 		if _, _, err := peer.ParsePeerIDWithPubKey(id); err != nil {
@@ -28,6 +31,8 @@ func CheckObject(ctx context.Context, object sobject.SharedObject, peers []strin
 		}
 		remaining[id] = true
 	}
+
+	// Remove existing participants and detect the local owner role.
 	owner := false
 	for _, participant := range state.GetConfig().GetParticipants() {
 		delete(remaining, participant.GetPeerId())
@@ -35,6 +40,8 @@ func CheckObject(ctx context.Context, object sobject.SharedObject, peers []strin
 			owner = participant.GetRole() == sobject.SOParticipantRole_SOParticipantRole_OWNER
 		}
 	}
+
+	// Accept the object when every incoming peer is already a participant.
 	if len(remaining) == 0 {
 		return nil
 	}
