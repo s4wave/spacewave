@@ -93,6 +93,7 @@ type blockStoreResolver struct {
 
 // Resolve publishes each controller-owned block store until it is withdrawn.
 func (r *blockStoreResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Clear the published value, its id, and its lease on demand.
 	var current *blockStoreAuthority
 	var lease *blockStoreLease
 	var valueID uint32
@@ -116,6 +117,7 @@ func (r *blockStoreResolver) Resolve(ctx context.Context, handler directive.Reso
 		handler.ClearValues()
 	}()
 
+	// Follow the authority container until the context cancels.
 	for {
 		// Replace the published value when the controller begins a new attempt.
 		next, err := r.ctr.WaitValueChange(ctx, current, nil)
