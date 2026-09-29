@@ -35,6 +35,8 @@ type bootSpanFrame struct {
 }
 
 func bootIntervalUnionDuration(intervals []bootInterval) uint64 {
+
+	// Sum the time covered by the union of the sorted, merged intervals.
 	if len(intervals) == 0 {
 		return 0
 	}
@@ -347,9 +349,13 @@ func validBootWorkClass(value BootWorkClass) bool {
 }
 
 func bootReportExceedsCollectionBounds(report *BootReport) bool {
+	// Reject a missing report before measuring its collections.
 	if report == nil {
 		return false
 	}
+
+	// Compare the report's collection sizes against the collection bounds.
+	// Reject a missing report before measuring its collections.
 	marks := len(report.GetMarks())
 	spans := len(report.GetSpans())
 	samples := len(report.GetAccounting().GetSamples())
@@ -365,6 +371,8 @@ func bootReportExceedsCollectionBounds(report *BootReport) bool {
 }
 
 func validateBootReportContract(report *BootReport, total uint64) bool {
+
+	// Check the report header, schema version, and required sections.
 	if report.SizeVT() > maxBootRecordBytes || report.GetSchemaVersion() != 1 || !validBootReportID(report.GetReportId()) ||
 		!validOptionalBootReportID(report.GetParentReportId()) || !bootVocabularyContains(bootEntrypoints, report.GetEntrypointId()) ||
 		!bootVocabularyContains(bootMarkLabels, report.GetUsableMark()) || report.GetStartedUnixMicros() <= 0 ||
@@ -373,6 +381,8 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 		report.GetPrivacy() == nil || report.GetPrivacy().GetExportPolicyVersion() != 1 {
 		return false
 	}
+
+	// Validate the build identity against the boot vocabulary.
 	build := report.GetBuild()
 	if !validBootCommit(build.GetCommit()) || !validBootIdentifier(build.GetReleaseGeneration()) ||
 		!bootVocabularyContains(bootProjects, build.GetProjectId()) || !validBootBuildType(build.GetBuildType()) ||
@@ -380,6 +390,8 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 		!validBootWorkerMode(build.GetWorkerMode()) {
 		return false
 	}
+
+	// Validate the environment class, engine, OS, and runtime states.
 	environment := report.GetEnvironment()
 	if !validBootEnvironmentClass(environment.GetClass()) ||
 		!bootVocabularyContains(bootBrowserEngines, environment.GetBrowserEngine()) || !bootVocabularyContains(bootOSFamilies, environment.GetOsFamily()) ||
@@ -402,10 +414,14 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 			previous = detail.GetKey()
 		}
 	}
+
+	// Collect each mark's monotonic time to align samples to marks.
 	markTimes := make(map[uint64]struct{}, len(report.GetMarks()))
 	for _, mark := range report.GetMarks() {
 		markTimes[mark.GetMonotonicMicros()] = struct{}{}
 	}
+
+	// Check each accounting sample's vocabulary, ordering, and mark alignment.
 	previousSampleTime := uint64(0)
 	for idx, sample := range report.GetAccounting().GetSamples() {
 		_, atMark := markTimes[sample.GetMonotonicMicros()]
@@ -417,6 +433,8 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 		}
 		previousSampleTime = sample.GetMonotonicMicros()
 	}
+
+	// Check each attachment's identity, hash, and release generation.
 	for _, attachment := range report.GetAttachments() {
 		if attachment == nil || !validBootArtifactID(attachment.GetArtifactId()) ||
 			!validBootAttachmentKind(attachment.GetKind()) ||
@@ -432,6 +450,8 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 			return false
 		}
 	}
+
+	// Check the share timestamp against the share destination.
 	shared := privacy.GetSharedUnixMicros()
 	destination := privacy.GetShareDestination()
 	if (shared == 0) != (destination == BootShareDestination_BOOT_SHARE_DESTINATION_UNKNOWN) || shared < 0 ||
@@ -442,6 +462,8 @@ func validateBootReportContract(report *BootReport, total uint64) bool {
 }
 
 func validateBootSpanStructure(spans []*BootSpan, total uint64) (map[string][]*BootSpan, bool) {
+
+	// Index the spans by ID and collect their children.
 	spanByID := make(map[string]*BootSpan, len(spans))
 	children := make(map[string][]*BootSpan)
 	invalid := false
@@ -495,25 +517,37 @@ func validateBootSpanStructure(spans []*BootSpan, total uint64) (map[string][]*B
 }
 
 func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, children map[string][]*BootSpan, violations *[]*BootValidationViolation) []bootInterval {
+
+	// Seed the traversal stack with the root spans in reverse order.
 	stack := make([]bootSpanFrame, 0, len(roots))
 	for _, root := range slices.Backward(roots) {
 		stack = append(stack, bootSpanFrame{span: root, start: start, end: end})
 	}
+
+	// Track the actionable intervals and the visited span IDs.
 	actionable := make([]bootInterval, 0, len(roots))
 	visited := make(map[string]struct{}, len(children))
+
+	// Walk the span tree depth-first, clipping each span to its parent.
 	for len(stack) != 0 {
+
+		// Pop the next frame and skip spans outside the parent interval.
 		frame := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		interval, ok := clippedBootInterval(frame.span, frame.start, frame.end)
 		if !ok {
 			continue
 		}
+
+		// Skip already-visited spans and look up the child spans.
 		id := frame.span.GetSpanId()
 		if _, seen := visited[id]; seen {
 			continue
 		}
 		visited[id] = struct{}{}
 		nested := children[id]
+
+		// Record actionable leaves and flag over-threshold generic leaves.
 		if len(nested) == 0 {
 			if bootSpanIsActionable(frame.span) {
 				actionable = append(actionable, interval)
@@ -525,12 +559,16 @@ func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, child
 			}
 			continue
 		}
+
+		// Clip the child spans into the parent's interval.
 		childIntervals := make([]bootInterval, 0, len(nested))
 		for _, child := range nested {
 			if childInterval, childOK := clippedBootInterval(child, interval.start, interval.end); childOK {
 				childIntervals = append(childIntervals, childInterval)
 			}
 		}
+
+		// Flag a parent span whose children leave an uncovered gap.
 		duration := interval.end - interval.start
 		covered := bootIntervalUnionDuration(childIntervals)
 		if duration > threshold && (duration-covered > duration/noGapDivisor || duration-covered > threshold) {
@@ -539,6 +577,8 @@ func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, child
 				StartMonotonicMicros: interval.start, EndMonotonicMicros: interval.end, SpanId: id,
 			})
 		}
+
+		// Push the children onto the stack for traversal.
 		for _, n := range slices.Backward(nested) {
 			stack = append(stack, bootSpanFrame{span: n, start: interval.start, end: interval.end})
 		}
@@ -549,12 +589,16 @@ func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, child
 // ValidateBootReport derives phase totals and enforces the recursive five-percent
 // attribution contract over one terminal BootReport.
 func ValidateBootReport(report *BootReport) *BootValidation {
+
+	// Start the validation and reject a missing report.
 	validation := &BootValidation{}
 	if report == nil {
 		validation.Violations = append(validation.Violations,
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT))
 		return validation
 	}
+
+	// Record the terminal duration and reject out-of-bounds collections.
 	total := report.GetTerminalMonotonicMicros()
 	validation.TotalDurationMicros = total
 	if bootReportExceedsCollectionBounds(report) {
@@ -562,11 +606,14 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT))
 		return validation
 	}
+
+	// Enforce the report's field-level contract.
 	if !validateBootReportContract(report, total) {
 		validation.Violations = append(validation.Violations,
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT))
 	}
 
+	// Count the usable and terminal marks and note the terminal time.
 	usableMarkCount := 0
 	terminalMarkCount := 0
 	terminalMarkTime := uint64(0)
@@ -579,6 +626,8 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 			terminalMarkTime = mark.GetMonotonicMicros()
 		}
 	}
+
+	// Check the terminal contract required by the report's state.
 	terminalState := report.GetState() == BootReportState_BOOT_REPORT_STATE_READY ||
 		report.GetState() == BootReportState_BOOT_REPORT_STATE_FAILED ||
 		report.GetState() == BootReportState_BOOT_REPORT_STATE_ABORTED
@@ -597,6 +646,7 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_TERMINAL_CONTRACT))
 	}
 
+	// Check the mark sequence and monotonic ordering.
 	marks := report.GetMarks()
 	markOrderInvalid := len(marks) < 2 || marks[0] == nil || marks[0].GetMonotonicMicros() != 0
 	for idx, mark := range marks {
@@ -620,12 +670,14 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_MARK_ORDER))
 	}
 
+	// Validate the span graph structure.
 	children, spanContractInvalid := validateBootSpanStructure(report.GetSpans(), total)
 	if spanContractInvalid {
 		validation.Violations = append(validation.Violations,
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_SPAN_CONTRACT))
 	}
 
+	// Attribute each inter-mark gap to its phase and check span coverage.
 	phaseTotals := make(map[BootPhase]uint64)
 	threshold := total / noGapDivisor
 	if !markOrderInvalid && !spanContractInvalid && total > 0 {
@@ -637,6 +689,8 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 			if duration <= threshold {
 				continue
 			}
+
+			// Clip the top-level spans into the gap interval and measure coverage.
 			topLevel := children[""]
 			topIntervals := make([]bootInterval, 0, len(topLevel))
 			for _, span := range topLevel {
@@ -645,31 +699,42 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 				}
 			}
 			covered := bootIntervalUnionDuration(topIntervals)
+
+			// Record the gap with its covered duration.
 			validation.LongestGaps = append(validation.LongestGaps, &BootGap{
 				BeforeSequence: before.GetSequence(), AfterSequence: after.GetSequence(),
 				StartMonotonicMicros: start, EndMonotonicMicros: end,
 				DurationMicros: duration, CoveredDurationMicros: covered,
 			})
+
+			// Flag a gap whose uncovered share exceeds the threshold.
 			if duration-covered > duration/noGapDivisor || duration-covered > threshold {
 				validation.Violations = append(validation.Violations, &BootValidationViolation{
 					Kind:                 BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_GAP_COVERAGE,
 					StartMonotonicMicros: start, EndMonotonicMicros: end, MarkSequence: before.GetSequence(),
 				})
 			}
+
+			// Attribute the span tree's uncovered time as unknown.
 			actionable := validateBootSpanTree(start, end, threshold, topLevel, children, &validation.Violations)
 			validation.UnknownDurationMicros += duration - bootIntervalUnionDuration(actionable)
 		}
 	}
 
+	// Convert the unknown duration into parts per million.
 	if total != 0 {
 		hi, lo := bits.Mul64(validation.UnknownDurationMicros, 1_000_000)
 		ppm, _ := bits.Div64(hi, lo, total)
 		validation.UnknownPartsPerMillion = uint32(ppm) //nolint:gosec // bits.Div64 computes a parts-per-million quotient bounded by the uint32 report field.
 	}
+
+	// Flag a report whose unknown share exceeds the threshold.
 	if !spanContractInvalid && validation.UnknownDurationMicros > threshold {
 		validation.Violations = append(validation.Violations,
 			bootViolation(BootValidationViolationKind_BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN_SHARE))
 	}
+
+	// Collect the observed phases in order, ignoring the unknown phase.
 	phases := make([]BootPhase, 0, len(phaseTotals))
 	for phase := range phaseTotals {
 		if phase != BootPhase_BOOT_PHASE_UNKNOWN {
@@ -677,15 +742,21 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 		}
 	}
 	slices.Sort(phases)
+
+	// Emit one phase duration record per phase.
 	for _, phase := range phases {
 		validation.PhaseDurations = append(validation.PhaseDurations, &BootPhaseDuration{Phase: phase, DurationMicros: phaseTotals[phase]})
 	}
+
+	// Order the longest gaps by descending duration and sequence.
 	slices.SortStableFunc(validation.LongestGaps, func(a, b *BootGap) int {
 		if c := cmp.Compare(b.GetDurationMicros(), a.GetDurationMicros()); c != 0 {
 			return c
 		}
 		return cmp.Compare(a.GetBeforeSequence(), b.GetBeforeSequence())
 	})
+
+	// Mark the validation as passing when no violations remain.
 	validation.Pass = len(validation.Violations) == 0
 	return validation
 }
