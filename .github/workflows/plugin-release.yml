@@ -661,57 +661,19 @@ jobs:
           name: plugin-world-linux
           path: .tmp/plugin-worlds/linux
 
-      - name: Consolidate plugin world state
+      - name: Pack plugin manifests
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .bldr
-          args=(--out .bldr/devtool.s4wave)
+          args=(--out .tmp/plugin-handoff --refs-out .tmp/plugin-handoff-manifest-refs.json --git-sha "${GITHUB_SHA}")
           while IFS= read -r world_path; do
             args+=(--world "${world_path}")
           done < <(find .tmp/plugin-worlds -name devtool.s4wave -type f | sort)
-          if [[ "${#args[@]}" -eq 2 ]]; then
+          if [[ "${#args[@]}" -eq 6 ]]; then
             echo "no plugin worlds selected" >&2
             exit 1
           fi
-          go run ./cmd/plugin-release consolidate-world "${args[@]}"
-          go run ./cmd/plugin-release manifest-inventory \
-            --world .bldr/devtool.s4wave \
-            --out .tmp/plugin-handoff-manifest-refs.json
-
-      - name: Download macOS native plugin artifacts
-        if: needs.prep.outputs.include_macos == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-native-darwin
-          path: .tmp/native-artifacts/darwin
-
-      - name: Download Windows native plugin artifacts
-        if: needs.prep.outputs.include_windows == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-native-windows
-          path: .tmp/native-artifacts/windows
-
-      - name: Download Linux native plugin artifacts
-        if: needs.prep.outputs.include_linux == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: plugin-native-linux
-          path: .tmp/native-artifacts/linux
-
-      - name: Stage plugin handoff bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf .tmp/plugin-handoff
-          mkdir -p .tmp/plugin-handoff/native
-          cp .bldr/devtool.s4wave .tmp/plugin-handoff/devtool.s4wave
-          for platform in darwin windows linux; do
-            if [[ -d ".tmp/native-artifacts/${platform}" ]]; then
-              cp -R ".tmp/native-artifacts/${platform}" ".tmp/plugin-handoff/native/${platform}"
-            fi
-          done
+          go run ./cmd/plugin-release pack-world "${args[@]}"
 
       - name: Build plugin handoff manifest
         shell: bash
@@ -719,9 +681,7 @@ jobs:
           set -euo pipefail
           go run ./cmd/plugin-release write-handoff-manifest \
             --root .tmp/plugin-handoff \
-            --world .tmp/plugin-handoff/devtool.s4wave \
             --manifest-refs .tmp/plugin-handoff-manifest-refs.json \
-            --native-dir .tmp/plugin-handoff/native \
             --plugin-rev "${{ needs.prep.outputs.plugin_rev }}" \
             --release-environment "${{ needs.prep.outputs.environment_name }}" \
             --requested-selection "${{ needs.prep.outputs.selection }}" \
@@ -735,15 +695,12 @@ jobs:
             --include-windows=${{ needs.prep.outputs.include_windows }} \
             --include-linux=${{ needs.prep.outputs.include_linux }}
 
-      - name: Archive plugin handoff bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          tar -cf .tmp/plugin-handoff.tar -C .tmp/plugin-handoff .
-
+      # The files are stored uncompressed so the promote job can read a byte
+      # range of the artifact zip without downloading the rest.
       - name: Upload plugin handoff artifact
         uses: actions/upload-artifact@v7
         with:
           name: plugin-handoff-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.plugin_rev }}
-          path: .tmp/plugin-handoff.tar
+          path: .tmp/plugin-handoff
+          compression-level: 0
           if-no-files-found: error

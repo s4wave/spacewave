@@ -10,23 +10,21 @@ import (
 	"github.com/aperturerobotics/fastjson"
 )
 
-func TestWritePluginHandoffManifestRecordsSurfacesAndArtifacts(t *testing.T) {
+func TestWritePluginHandoffManifestRecordsSurfacesAndPack(t *testing.T) {
+	// Stage the pack files and the manifest refs in a handoff root.
 	root := t.TempDir()
-	worldPath := filepath.Join(root, "devtool.s4wave")
 	manifestRefsPath := filepath.Join(root, "manifest-refs.json")
-	nativePath := filepath.Join(root, "native", "darwin", "arm64", "plugin.tar.gz")
-	writePluginTestFile(t, worldPath, []byte("world"))
-	writePluginTestFile(t, nativePath, []byte("artifact"))
+	writePluginTestFile(t, filepath.Join(root, "manifest.pack.kvf"), []byte("pack"))
+	writePluginTestFile(t, filepath.Join(root, "manifest-pack.bin"), []byte("metadata"))
 	writePluginTestFile(t, manifestRefsPath, []byte(`[
   {"manifest_id":"devtool","platform_id":"browser/js","rev":31,"ref":"browser-ref"},
   {"manifest_id":"devtool","platform_id":"darwin/arm64","rev":31,"ref":"darwin-ref"}
 ]`))
 
+	// Write the handoff manifest for the browser and macOS surfaces.
 	if err := writePluginHandoffManifest(pluginHandoffOptions{
 		rootDir:            root,
-		worldPath:          worldPath,
 		manifestRefsPath:   manifestRefsPath,
-		nativeDir:          filepath.Join(root, "native"),
 		pluginRev:          "abc123",
 		releaseEnvironment: "plugin-production",
 		requestedSelection: "browser,macos",
@@ -41,6 +39,7 @@ func TestWritePluginHandoffManifestRecordsSurfacesAndArtifacts(t *testing.T) {
 		t.Fatalf("writePluginHandoffManifest() error = %v", err)
 	}
 
+	// Parse the written manifest.
 	data, err := os.ReadFile(filepath.Join(root, "manifest.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +49,8 @@ func TestWritePluginHandoffManifestRecordsSurfacesAndArtifacts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse manifest: %v", err)
 	}
+
+	// Require the provenance, surfaces, and refs it was given.
 	if got := string(v.GetStringBytes("run_id")); got != "456" {
 		t.Fatalf("run_id = %q, want 456", got)
 	}
@@ -63,28 +64,33 @@ func TestWritePluginHandoffManifestRecordsSurfacesAndArtifacts(t *testing.T) {
 	if len(refs) != 2 {
 		t.Fatalf("manifest_refs len = %d, want 2", len(refs))
 	}
-	if got := string(v.GetStringBytes("world", "path")); got != "devtool.s4wave" {
-		t.Fatalf("world path = %q", got)
+
+	// Require the pack entries and no world or native artifacts.
+	if got := string(v.GetStringBytes("pack", "path")); got != "manifest.pack.kvf" {
+		t.Fatalf("pack path = %q", got)
 	}
-	artifacts := v.GetArray("artifacts")
-	if len(artifacts) != 1 {
-		t.Fatalf("artifacts len = %d, want 1", len(artifacts))
+	if got := v.GetInt64("pack", "size"); got != 4 {
+		t.Fatalf("pack size = %d, want 4", got)
 	}
-	if got := string(artifacts[0].GetStringBytes("path")); got != "darwin/arm64/plugin.tar.gz" {
-		t.Fatalf("artifact path = %q", got)
+	if got := string(v.GetStringBytes("pack_metadata", "path")); got != "manifest-pack.bin" {
+		t.Fatalf("pack metadata path = %q", got)
+	}
+	if v.Exists("artifacts") || v.Exists("world") {
+		t.Fatalf("handoff manifest keeps the removed world and artifacts: %s", data)
 	}
 }
 
 func TestWritePluginHandoffManifestRejectsNonArrayManifestRefs(t *testing.T) {
+	// Stage the pack files and a manifest refs file that is not an array.
 	root := t.TempDir()
-	worldPath := filepath.Join(root, "devtool.s4wave")
 	manifestRefsPath := filepath.Join(root, "manifest-refs.json")
-	writePluginTestFile(t, worldPath, []byte("world"))
+	writePluginTestFile(t, filepath.Join(root, "manifest.pack.kvf"), []byte("pack"))
+	writePluginTestFile(t, filepath.Join(root, "manifest-pack.bin"), []byte("metadata"))
 	writePluginTestFile(t, manifestRefsPath, []byte(`{"manifest_id":"devtool"}`))
 
+	// Require the handoff manifest to reject the refs.
 	err := writePluginHandoffManifest(pluginHandoffOptions{
 		rootDir:            root,
-		worldPath:          worldPath,
 		manifestRefsPath:   manifestRefsPath,
 		pluginRev:          "abc123",
 		releaseEnvironment: "plugin-production",
@@ -102,10 +108,13 @@ func TestWritePluginHandoffManifestRejectsNonArrayManifestRefs(t *testing.T) {
 }
 
 func TestMarshalManifestInventoryStable(t *testing.T) {
+	// Render two entries.
 	got := marshalManifestInventory([]manifestInventoryEntry{
 		{manifestID: "devtool", platformID: "browser/js", rev: 31, ref: "browser-ref"},
 		{manifestID: "devtool", platformID: "darwin/arm64", rev: 31, ref: "darwin-ref"},
 	})
+
+	// Require the stable one-object-per-line form.
 	want := `[
   {"manifest_id":"devtool","platform_id":"browser/js","rev":31,"ref":"browser-ref"},
   {"manifest_id":"devtool","platform_id":"darwin/arm64","rev":31,"ref":"darwin-ref"}

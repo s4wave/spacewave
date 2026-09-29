@@ -37,10 +37,8 @@ func run() error {
 	switch os.Args[1] {
 	case "export-kvfile":
 		return runExportKVFile(os.Args[2:])
-	case "consolidate-world":
-		return runConsolidateWorld(os.Args[2:])
-	case "manifest-inventory":
-		return runManifestInventory(os.Args[2:])
+	case "pack-world":
+		return runPackWorld(os.Args[2:])
 	case "write-handoff-manifest":
 		return runWritePluginHandoffManifest(os.Args[2:])
 	default:
