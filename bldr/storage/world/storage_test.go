@@ -14,6 +14,7 @@ import (
 // TestNamedVolumes covers stable names, prefix isolation, identity, and deletion
 // through the real World and Volume implementations.
 func TestNamedVolumes(t *testing.T) {
+	// Start a World testbed and two storages with distinct prefixes.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -28,6 +29,8 @@ func TestNamedVolumes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open four volumes concurrently over the binding matrix.
 	bindings := []struct {
 		storage *Storage
 		name    string
@@ -52,23 +55,32 @@ func TestNamedVolumes(t *testing.T) {
 	if err := group.Wait(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close every volume when the test finishes.
 	for _, vol := range volumes {
 		defer vol.Close()
 	}
+
+	// Assert equal names in one prefix reopen one identity and others differ.
 	if volumes[0].GetPeerID() != volumes[3].GetPeerID() {
 		t.Fatal("equal names in the same prefix did not reopen one identity")
 	}
 	if volumes[0].GetPeerID() == volumes[1].GetPeerID() || volumes[0].GetPeerID() == volumes[2].GetPeerID() {
 		t.Fatal("different names or prefixes share an identity")
 	}
+
+	// Reject an empty volume name.
 	if _, err := first.VolumeKey(""); err == nil {
 		t.Fatal("empty name was accepted")
 	}
+
+	// Load the backing of the shared volume.
 	key, _ := first.VolumeKey("account/a")
 	backing, err := volume_world.LoadBacking(ctx, tb.WorldState, key)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// A second object retaining this backing prevents its deletion.
 	owner, err := tb.WorldState.CreateObject(ctx, "retained-reference", nil)
 	if err != nil {
@@ -78,6 +90,8 @@ func TestNamedVolumes(t *testing.T) {
 	if err := tb.WorldState.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("retained-reference", "retains", backing.KvObjectKey, "")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Close the volumes holding the shared backing and delete the volume.
 	for _, i := range []int{0, 3} {
 		if err := volumes[i].Close(); err != nil {
 			t.Fatal(err)
@@ -86,12 +100,15 @@ func TestNamedVolumes(t *testing.T) {
 	if err := first.DeleteVolume("account/a"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the descriptor is gone while the retained backing survives.
 	if found, err := tb.WorldState.HasObject(ctx, key); err != nil || found {
 		t.Fatalf("deleted descriptor exists=%v err=%v", found, err)
 	}
 	if found, err := tb.WorldState.HasObject(ctx, backing.KvObjectKey); err != nil || !found {
 		t.Fatalf("shared backing exists=%v err=%v", found, err)
 	}
+
 	// Unshared owned backing is removed with its descriptor.
 	otherKey, _ := first.VolumeKey("account/b")
 	if err := volumes[1].Close(); err != nil {
@@ -103,6 +120,8 @@ func TestNamedVolumes(t *testing.T) {
 	if found, err := tb.WorldState.HasObject(ctx, otherKey+"/kv"); err != nil || found {
 		t.Fatalf("unshared backing exists=%v err=%v", found, err)
 	}
+
+	// Assert the deletion left the other prefix's volume untouched.
 	secondKey, _ := second.VolumeKey("account/a")
 	if _, err := volume_world.LoadBacking(ctx, tb.WorldState, secondKey); err != nil {
 		t.Fatalf("deletion affected another prefix: %v", err)

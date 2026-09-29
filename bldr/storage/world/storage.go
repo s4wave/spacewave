@@ -57,6 +57,7 @@ func (s *Storage) VolumeKey(id string) (string, error) {
 
 // BuildVolumeConfig creates or reopens a typed Volume and its owned KV backing.
 func (s *Storage) BuildVolumeConfig(id string, base *volume_controller.Config) (config.Config, error) {
+	// Resolve the volume's object key and ensure its backing exists.
 	key, err := s.VolumeKey(id)
 	if err != nil {
 		return nil, err
@@ -65,17 +66,22 @@ func (s *Storage) BuildVolumeConfig(id string, base *volume_controller.Config) (
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the World volume config over the backing's KV object.
 	return &volume_world.Config{EngineId: s.engineID, ObjectKey: backing.GetKvObjectKey(), VolumeConfig: base}, nil
 }
 
 // ensureVolume commits the descriptor, KV object, and ownership edge together.
 func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
+	// Open a write transaction on the World engine.
 	ctx := s.ctx
 	tx, err := s.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
+
+	// Load the existing backing when the volume object already exists.
 	exists, err := tx.HasObject(ctx, key)
 	if err != nil {
 		return nil, err
@@ -83,6 +89,8 @@ func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
 	if exists {
 		return volume_world.LoadBacking(ctx, tx, key)
 	}
+
+	// Create the volume's owned KV object and type it.
 	backing := &volume_world.Backing{KvObjectKey: key + "/kv"}
 	kvObject, err := tx.CreateObject(ctx, backing.KvObjectKey, nil)
 	world.ReleaseObjectState(kvObject)
@@ -92,6 +100,8 @@ func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
 	if err := world_types.SetObjectType(ctx, tx, backing.KvObjectKey, volume_world.KVObjectTypeID); err != nil {
 		return nil, err
 	}
+
+	// Create the volume descriptor object and type it.
 	obj, _, err := world.CreateWorldObject(ctx, tx, key, func(cursor *block.Cursor) error {
 		cursor.SetBlock(backing, true)
 		return nil
@@ -103,6 +113,8 @@ func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
 	if err := world_types.SetObjectType(ctx, tx, key, volume_world.ObjectTypeID); err != nil {
 		return nil, err
 	}
+
+	// Link the descriptor to its KV object and commit the transaction.
 	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(key, volume_world.BackingPredicate, backing.KvObjectKey, "")); err != nil {
 		return nil, err
 	}
@@ -115,6 +127,7 @@ func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
 // DeleteVolume removes the closed Volume and its unshared owned KV object.
 // Shared backing objects and the enclosing World's block storage remain alive.
 func (s *Storage) DeleteVolume(id string) error {
+	// Resolve the volume's object key and open a write transaction.
 	key, err := s.VolumeKey(id)
 	if err != nil {
 		return err
@@ -125,10 +138,14 @@ func (s *Storage) DeleteVolume(id string) error {
 		return err
 	}
 	defer tx.Discard()
+
+	// Skip an absent volume.
 	exists, err := tx.HasObject(ctx, key)
 	if err != nil || !exists {
 		return err
 	}
+
+	// Load the backing and delete the volume descriptor object.
 	backing, err := volume_world.LoadBacking(ctx, tx, key)
 	if err != nil {
 		return err
@@ -136,6 +153,8 @@ func (s *Storage) DeleteVolume(id string) error {
 	if _, err := tx.DeleteObject(ctx, key); err != nil {
 		return err
 	}
+
+	// Delete the owned KV object when nothing else references it.
 	if backing.KvObjectKey == key+"/kv" {
 		refs, err := tx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("", "", backing.KvObjectKey, ""), 1)
 		if err != nil {
@@ -147,6 +166,8 @@ func (s *Storage) DeleteVolume(id string) error {
 			}
 		}
 	}
+
+	// Commit the deletion.
 	return tx.Commit(ctx)
 }
 
