@@ -3,6 +3,7 @@ package forge_execution
 import (
 	"context"
 
+	"github.com/aperturerobotics/cayley/quad"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -18,9 +19,16 @@ import (
 )
 
 const (
-	// ExecutionTypeID is the type identifier for a Execution.
+	// ExecutionTypeID is the type identifier for an Execution.
 	ExecutionTypeID = "forge/execution"
+	// PredExecutionToWorker links an Execution to its placement's Worker.
+	PredExecutionToWorker = quad.IRI("forge/execution-worker")
 )
+
+// NewExecutionToWorkerQuad creates a quad linking an Execution to its Worker.
+func NewExecutionToWorkerQuad(executionObjKey, workerObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(executionObjKey, PredExecutionToWorker.String(), workerObjKey, "")
+}
 
 // NewExecutionBlock constructs a new Execution block.
 func NewExecutionBlock() block.Block {
@@ -30,7 +38,9 @@ func NewExecutionBlock() block.Block {
 // CreateExecutionWithTarget creates a pending Execution object in the world.
 //
 // Writes the Target to a block linked to by the Execution.
-// peerID is the peer id to assign to the execution.
+// execPeerID is the peer ID to assign to the Execution.
+// Replacing the Execution replaces its placement and sole Worker edge; a nil
+// placement removes the edge. The caller owns the World transaction.
 func CreateExecutionWithTarget(
 	ctx context.Context,
 	ws world.WorldState,
@@ -42,6 +52,7 @@ func CreateExecutionWithTarget(
 	placement *forge_worker.Placement,
 	ts *timestamp.Timestamp,
 ) (*bucket.ObjectRef, error) {
+	// Require the Execution peer to belong to the selected Worker.
 	if placement != nil {
 		if err := placement.ValidateLinked(ctx, ws); err != nil {
 			return nil, errors.Wrap(err, "placement")
@@ -50,7 +61,10 @@ func CreateExecutionWithTarget(
 			return nil, errors.Errorf("execution peer %s does not match placement peer %s", execPeerID, placement.GetPeerId())
 		}
 	}
+
+	// Replace the Execution body and its Target block.
 	rootRef, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		// Store the pending Execution and its Target without retaining previous blocks.
 		bcs.ClearAllRefs()
 		bcs.SetBlock(&Execution{
 			ExecutionState: State_ExecutionState_PENDING,
@@ -67,16 +81,32 @@ func CreateExecutionWithTarget(
 		return nil, err
 	}
 
-	// create the <type> ref
+	// Register the Execution's object type.
 	err = world_types.SetObjectType(ctx, ws, objKey, ExecutionTypeID)
 	if err != nil {
 		return nil, err
 	}
 
-	// create the keypair and link to it if necessary
+	// Link the Execution to its authenticated peer keypair.
 	_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, execPeerID, "", nil)
 	if err != nil {
 		return nil, err
+	}
+
+	// Replace the Worker relationship with the current placement in this transaction.
+	quads, err := ws.LookupGraphQuads(ctx, NewExecutionToWorkerQuad(objKey, ""), 0)
+	if err != nil {
+		return nil, err
+	}
+	for _, q := range quads {
+		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
+			return nil, err
+		}
+	}
+	if placement != nil {
+		if err := ws.SetGraphQuad(ctx, NewExecutionToWorkerQuad(objKey, placement.GetWorkerObjectKey())); err != nil {
+			return nil, err
+		}
 	}
 
 	return rootRef, nil
@@ -89,6 +119,7 @@ func UnmarshalExecution(ctx context.Context, bcs *block.Cursor) (*Execution, err
 
 // Validate performs cursory checks of the execution object.
 func (e *Execution) Validate() error {
+	// Require the Execution peer to match its placement.
 	if p := e.GetPlacement(); p != nil {
 		if err := p.Validate(); err != nil {
 			return errors.Wrap(err, "placement")
@@ -97,6 +128,8 @@ func (e *Execution) Validate() error {
 			return errors.New("execution peer_id does not match placement")
 		}
 	}
+
+	// Validate the Execution state, peer, timestamp, and claim.
 	if err := e.GetExecutionState().Validate(false); err != nil {
 		return err
 	}
@@ -111,7 +144,8 @@ func (e *Execution) Validate() error {
 			return errors.Wrap(err, "claim")
 		}
 	}
-	// disallow empty reference to target
+
+	// Require a Target reference and a valid value set.
 	if err := e.GetTargetRef().Validate(false); err != nil {
 		return errors.Wrap(err, "target_ref")
 	}
@@ -119,6 +153,7 @@ func (e *Execution) Validate() error {
 		return errors.Wrap(err, "value_set")
 	}
 
+	// Require a result exactly when the Execution is complete.
 	if e.GetExecutionState() == State_ExecutionState_COMPLETE {
 		if err := e.GetResult().Validate(); err != nil {
 			return errors.Wrap(err, "result")
@@ -126,10 +161,10 @@ func (e *Execution) Validate() error {
 		if e.GetResult().IsEmpty() {
 			return errors.New("result: cannot be empty when execution is complete")
 		}
-	} else {
-		if !e.GetResult().IsEmpty() {
-			return errors.New("result: cannot be set when execution is not complete")
-		}
+		return nil
+	}
+	if !e.GetResult().IsEmpty() {
+		return errors.New("result: cannot be set when execution is not complete")
 	}
 	return nil
 }
@@ -141,17 +176,18 @@ func (e *Execution) IsComplete() bool {
 
 // CheckPeerID checks if the peer ID matches the Execution.
 func (e *Execution) CheckPeerID(id peer.ID) error {
-	// accept any peer id if field is unset
+	// Accept any peer when the Execution is unassigned.
 	if len(e.GetPeerId()) == 0 {
 		return nil
 	}
 
+	// Decode the Execution's assigned peer.
 	currPeerID, err := e.ParsePeerID()
 	if err != nil {
 		return err
 	}
 
-	// basic string comparison
+	// Reject a peer that differs from the Execution's assignment.
 	currPeerIDStr := currPeerID.String()
 	idStr := id.String()
 	if currPeerIDStr != idStr {
@@ -161,12 +197,11 @@ func (e *Execution) CheckPeerID(id peer.ID) error {
 		)
 	}
 
-	// match
 	return nil
 }
 
 // ParsePeerID parses the peer ID field.
-// Returns empty if not set.
+// Returns an empty peer ID if not set.
 func (e *Execution) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(e.GetPeerId())
 }
@@ -203,12 +238,9 @@ func (e *Execution) ApplySubBlock(id uint32, next block.SubBlock) error {
 }
 
 // GetSubBlocks returns all constructed sub-blocks by ID.
-// May return nil, and values may also be nil.
+// Values may be nil.
 func (e *Execution) GetSubBlocks() map[uint32]block.SubBlock {
-	m := make(map[uint32]block.SubBlock)
-	m[3] = e.GetValueSet()
-	m[5] = e.GetResult()
-	return m
+	return map[uint32]block.SubBlock{3: e.GetValueSet(), 5: e.GetResult()}
 }
 
 // GetSubBlockCtor returns a function which creates or returns the existing
@@ -234,12 +266,9 @@ func (e *Execution) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 }
 
 // GetBlockRefs returns all block references by ID.
-// May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Values may be nil. Pending cursor references are excluded.
 func (e *Execution) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	m := make(map[uint32]*block.BlockRef)
-	m[4] = e.GetTargetRef()
-	return m, nil
+	return map[uint32]*block.BlockRef{4: e.GetTargetRef()}, nil
 }
 
 // GetBlockRefCtor returns the constructor for the block at the ref id.
