@@ -19,10 +19,13 @@ type accountObjectSync struct {
 
 // removeMissingObjects stops deleted objects before starting new inventory work.
 func (s *p2pSyncState) removeMissingObjects(list *sobject.SharedObjectList) {
+	// Record the object IDs present in the new inventory.
 	present := make(map[string]struct{}, len(list.GetSharedObjects()))
 	for _, entry := range list.GetSharedObjects() {
 		present[entry.GetRef().GetProviderResourceRef().GetId()] = struct{}{}
 	}
+
+	// Stop and collect every sync missing from the inventory.
 	var removed []*accountObjectSync
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		for id, object := range s.soSync {
@@ -37,6 +40,8 @@ func (s *p2pSyncState) removeMissingObjects(list *sobject.SharedObjectList) {
 			bcast()
 		}
 	})
+
+	// Release each removed sync after its workers exit.
 	for _, object := range removed {
 		object.cancel()
 		for _, worker := range []*routine.RoutineContainer{object.sync, object.copy, object.body} {
