@@ -43,9 +43,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Take the typed configuration and the controller's logger.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Resolve the client's URL for the controller info.
 	u, err := cc.GetClient().ParseURL()
 	if err != nil {
 		return nil, err

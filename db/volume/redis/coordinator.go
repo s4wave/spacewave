@@ -76,6 +76,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 
 // TryAcquireWriteLease attempts to set the keyed redis lease without blocking.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Delegate unkeyed scopes to the inner coordinator.
 	if scope.Key == "" {
 		return c.inner.TryAcquireWriteLease(ctx, scope)
 	}
@@ -89,6 +90,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, false, errors.New("redis coordinator backing store identity cannot be empty")
 	}
 
+	// Prepare the lease value and key, then borrow a connection.
 	value := make([]byte, 16)
 	if _, err := rand.Read(value); err != nil {
 		return nil, false, err
@@ -100,6 +102,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	}
 	defer conn.Close()
 
+	// Set the key only when absent, with the lease TTL.
 	reply, err := conn.Do(
 		"SET",
 		lockKey,
@@ -121,6 +124,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, false, errors.New("redis lease returned unexpected acquisition result")
 	}
 
+	// Start the lease's keepalive loop.
 	leaseCtx, cancel := context.WithCancel(context.Background())
 	l := &lease{
 		pool:          c.pool,

@@ -26,16 +26,19 @@ func NewRedis(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Redis, error) {
+	// Build the key codec from the configuration.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the redis connection options.
 	redisOpts, err := conf.BuildRedisOptions()
 	if err != nil {
 		return nil, err
 	}
 
+	// Connect the redis client with this controller's client name.
 	store, err := conf.GetClient().ConnectWithClientName(
 		ctx,
 		redisClientName,
@@ -46,11 +49,13 @@ func NewRedis(
 	}
 	store.SetContext(ctx)
 
+	// Wrap the store in a logger when verbose logging is enabled.
 	var vstore skvtx.Store = store
 	if conf.GetVerbose() {
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	// Construct the volume over the store.
 	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
