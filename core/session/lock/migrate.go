@@ -18,6 +18,7 @@ import (
 // volume key. An existing credential is retained only when it is the same key;
 // a different or unprovable credential fails without changing either store.
 func CopyCredential(ctx context.Context, source, destination object.ObjectStore, sourceID, destinationID string, key crypto.PrivKey, destinationKey [32]byte) error {
+	// Read the credential records carried between the two stores.
 	suffixes := [][]byte{SuffixPK, SuffixLocked, SuffixLockKey, SuffixLockParams, SuffixEnvelope, SuffixSetupDone}
 	values := make(map[string][]byte, len(suffixes))
 	if err := kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) {
