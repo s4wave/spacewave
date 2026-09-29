@@ -226,7 +226,6 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	// Serialize the write fork with other writes and accepted-root adoption.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction")
 	defer task.End()
-
 	taskCtx, subtask := trace.NewTask(ctx, "alpha/so-engine/new-transaction/lock-write-mtx")
 	unlockWriteMtx, err := e.c.writeMtx.Lock(taskCtx)
 	subtask.End()
@@ -236,8 +235,9 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	_, holdWriteMtxTask := trace.NewTask(ctx, "alpha/so-engine/write-tx/hold-write-mtx")
 	unlockWriteMtx = wrapReleaseWithTask(unlockWriteMtx, holdWriteMtxTask)
 
-	// Refresh both transaction bases from one accepted snapshot. The watcher
-	// may still be waiting for writeMtx after a remote root has advanced.
+	// Refresh the transaction bases and storage generation from one accepted
+	// snapshot. The watcher may still be waiting for writeMtx after a remote
+	// root has advanced.
 	snapshot, err := e.so.GetSharedObjectState(ctx)
 	if err != nil {
 		unlockWriteMtx()
@@ -252,12 +252,12 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 		unlockWriteMtx()
 		return nil, errors.New("base SharedObject root is missing")
 	}
-	head, err := finalizationWorldRoot(ctx, snapshot)
+	state, err := snapshotWorldState(ctx, snapshot)
 	if err != nil {
 		unlockWriteMtx()
 		return nil, err
 	}
-	if err := e.updateEngineState(ctx, head); err != nil {
+	if err := e.updateEngineState(ctx, state.GetHeadRef()); err != nil {
 		unlockWriteMtx()
 		return nil, err
 	}
@@ -290,7 +290,7 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	}
 
 	// Return the txn wrapper.
-	return newSoEngineWriteTx(ttx, btx, e, baseRoot.CloneVT(), unlockWriteMtx), nil
+	return newSoEngineWriteTx(ttx, btx, e, baseRoot.CloneVT(), state.GetStorageGeneration(), unlockWriteMtx), nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

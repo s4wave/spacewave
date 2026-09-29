@@ -86,6 +86,11 @@ func (s *SuppliedBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return nil
 }
 
+// ReclaimStorage returns nil: the supplying owner holds the storage.
+func (s *SuppliedBlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
+	return nil
+}
+
 // Pointer returns the currently-cached root pointer without triggering a
 // refresh. Returns nil if no pointer has been fetched yet.
 func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {

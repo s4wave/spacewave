@@ -65,15 +65,18 @@ type Controller struct {
 }
 
 // commitResult caches a foreground commit result for replay adoption.
-// Replay consumers can adopt this result when the base root ref and
-// op bytes match, avoiding expensive re-execution of processOp.
+// Replay consumers can adopt this result when the base root ref, storage
+// generation, and op bytes match, avoiding expensive re-execution of processOp.
+// It is immutable once published to the validator.
 type commitResult struct {
 	// baseRootRef identifies the accepted World used to compute the candidate.
 	baseRootRef *block.BlockRef
+	// storageGeneration is the storage generation the candidate was built on.
+	storageGeneration uint64
 	// opData is the exact encoded operation used to compute the candidate.
 	opData []byte
-	// resultState is immutable once published to the validator.
-	resultState *InnerState
+	// resultRef is the candidate World head.
+	resultRef *bucket.ObjectRef
 }
 
 // NewController constructs a new World Engine controller.

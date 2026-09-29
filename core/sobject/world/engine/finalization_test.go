@@ -22,7 +22,6 @@ func TestSpaceWorldFinalizationPacketValidate(t *testing.T) {
 		BaseWorldRoot:        testFinalizationObjectRef(t, "base"),
 		CandidateWorldRoot:   testFinalizationObjectRef(t, "candidate"),
 		CandidateContentId:   []byte("candidate-content"),
-		StorageGeneration:    11,
 		AuthorityEpoch:       13,
 		BlocksAvailable:      true,
 		Op: &SOWorldOp{

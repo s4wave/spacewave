@@ -18,13 +18,18 @@ const gcSweepDefaultIdleWindow = 5 * time.Second
 const gcSweepDefaultBackstopInterval = 5 * time.Minute
 
 type gcJournalEntryCounter interface {
+	// GetGCJournalEntries returns the number of pending GC journal entries.
 	GetGCJournalEntries() uint64
 }
 
 // executeGCSweepMaintenance runs the GC sweep maintenance routine.
 // GC sweep queueing is gated on validator/owner role and re-checked on every
 // attempted enqueue so role changes are picked up without restarting.
+//
+// Each queued sweep schedules a storage reclaim pass storageReclaimDelay
+// later, and no sooner than storageReclaimInterval after the previous pass.
 func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.SharedObject, bengine gcJournalEntryCounter) error {
+	// Idle until shutdown while maintenance is disabled.
 	if c.gcSweepMaintenanceDisabled() {
 		c.le.Debug("gc sweep maintenance disabled")
 		<-ctx.Done()
@@ -40,27 +45,52 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 	if d := c.conf.GetGcSweepBackstopIntervalDur(); d != 0 {
 		backstopInterval = time.Duration(d) //nolint:gosec // configuration duration is already represented in nanoseconds.
 	}
-
 	c.le.Debug("gc sweep maintenance routine started")
 
-	var idleTimer *time.Timer
+	// Track the idle window, the backstop, and the pending reclaim pass.
+	var idleTimer, reclaimTimer *time.Timer
+	var lastReclaim time.Time
 	backstopTicker := time.NewTicker(backstopInterval)
 	defer func() {
 		backstopTicker.Stop()
-		if idleTimer != nil {
-			idleTimer.Stop()
-		}
+		stopTimer(idleTimer)
+		stopTimer(reclaimTimer)
 	}()
 
+	// sweep queues a GC sweep and, when one was queued, schedules a reclaim
+	// pass and drops the pending idle expiry.
+	sweep := func(reason string, entries uint64) error {
+		// Queue the sweep.
+		queued, err := c.queueGCSweepTx(ctx, so)
+		if err != nil || !queued {
+			return err
+		}
+		c.le.WithField("gc-journal-entries", entries).Debug(reason + ", queued gc sweep")
+
+		// End the idle window and schedule a reclaim pass.
+		stopTimer(idleTimer)
+		idleTimer = nil
+		if reclaimTimer == nil {
+			delay := max(storageReclaimDelay, time.Until(lastReclaim.Add(storageReclaimInterval)))
+			reclaimTimer = time.NewTimer(delay)
+		}
+		return nil
+	}
+
+	// Sweep on write bursts, idle expiry, and the backstop, and reclaim
+	// storage when a pass is due.
 	for {
 		var waitCh <-chan struct{}
 		c.writeBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
 		})
 
-		var idleCh <-chan time.Time
+		var idleCh, reclaimCh <-chan time.Time
 		if idleTimer != nil {
 			idleCh = idleTimer.C
+		}
+		if reclaimTimer != nil {
+			reclaimCh = reclaimTimer.C
 		}
 
 		select {
@@ -69,30 +99,14 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 		case <-waitCh:
 			entries := bengine.GetGCJournalEntries()
 			if entries >= gcSweepJournalThreshold {
-				queued, err := c.queueGCSweepTx(ctx, so)
-				if err != nil {
+				if err := sweep("journal threshold exceeded", entries); err != nil {
 					return err
-				}
-				if queued {
-					c.le.WithField("gc-journal-entries", entries).Debug("journal threshold exceeded, queued gc sweep")
-					if idleTimer != nil {
-						idleTimer.Stop()
-						idleTimer = nil
-					}
 				}
 				continue
 			}
 
-			if idleTimer == nil {
-				idleTimer = time.NewTimer(idleWindow)
-			}
-			if !idleTimer.Stop() {
-				select {
-				case <-idleTimer.C:
-				default:
-				}
-			}
-			idleTimer.Reset(idleWindow)
+			stopTimer(idleTimer)
+			idleTimer = time.NewTimer(idleWindow)
 		case <-idleCh:
 			idleTimer = nil
 			entries := bengine.GetGCJournalEntries()
@@ -100,33 +114,35 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 			// Sparse journal entries wait for the backstop so small write bursts do
 			// not queue a GC sweep after every idle window.
 			if entries >= gcSweepJournalThreshold {
-				queued, err := c.queueGCSweepTx(ctx, so)
-				if err != nil {
+				if err := sweep("idle window expired with threshold garbage", entries); err != nil {
 					return err
-				}
-				if queued {
-					c.le.WithField("gc-journal-entries", entries).Debug("idle window expired with threshold garbage, queued gc sweep")
 				}
 			}
 		case <-backstopTicker.C:
-			entries := bengine.GetGCJournalEntries()
-			if entries > 0 {
-				queued, err := c.queueGCSweepTx(ctx, so)
-				if err != nil {
+			if entries := bengine.GetGCJournalEntries(); entries > 0 {
+				if err := sweep("periodic backstop", entries); err != nil {
 					return err
 				}
-				if queued {
-					c.le.WithField("gc-journal-entries", entries).Debug("periodic backstop, queued gc sweep")
-					if idleTimer != nil {
-						idleTimer.Stop()
-						idleTimer = nil
-					}
-				}
+			}
+		case <-reclaimCh:
+			reclaimTimer = nil
+			lastReclaim = time.Now()
+			if err := c.reclaimStorage(ctx, so); err != nil {
+				return err
 			}
 		}
 	}
 }
 
+// stopTimer stops timer when it is set.
+func stopTimer(timer *time.Timer) {
+	if timer != nil {
+		timer.Stop()
+	}
+}
+
+// gcSweepMaintenanceDisabled reports whether the config disables both sweep
+// triggers.
 func (c *Controller) gcSweepMaintenanceDisabled() bool {
 	return c.conf.GetGcSweepIdleWindowDur() == 0 &&
 		c.conf.GetGcSweepBackstopIntervalDur() == 0
@@ -156,61 +172,81 @@ func (c *Controller) canQueueGCSweepTx(ctx context.Context, so sobject.SharedObj
 	return sobject.IsValidatorOrOwner(participant.GetRole()), nil
 }
 
-// queueGCSweepTx constructs a GC_SWEEP transaction and queues it through
-// SOWorldOp.ApplyTxOp. Returns whether a sweep was actually queued.
-//
-// The sweep advances the SharedObject root like a foreground write, so it
-// holds writeMtx from queueing until the validator decides. Otherwise a write
-// transaction open across the sweep would commit against a stale base.
+// queueGCSweepTx queues a GC_SWEEP transaction when this participant is the
+// validator or owner, and waits for its decision. Returns whether a sweep was
+// queued.
 func (c *Controller) queueGCSweepTx(ctx context.Context, so sobject.SharedObject) (bool, error) {
+	// Only the validator or owner sweeps.
 	canQueue, err := c.canQueueGCSweepTx(ctx, so)
-	if err != nil {
+	if err != nil || !canQueue {
 		return false, err
 	}
-	if !canQueue {
-		return false, nil
-	}
 
+	// Sweep on the accepted storage generation. A rejected sweep was still
+	// queued.
+	rejected, err := c.commitMaintenanceOp(ctx, so, func(state *InnerState) (*SOWorldOp, error) {
+		tx, err := world_block_tx.NewMaintenanceTxGCSweep()
+		if err != nil {
+			return nil, err
+		}
+		return &SOWorldOp{
+			Body: &SOWorldOp_ApplyTxOp{
+				ApplyTxOp: &ApplyTxOp{Tx: tx, StorageGeneration: state.GetStorageGeneration()},
+			},
+		}, nil
+	})
+	if rejected {
+		c.le.WithError(err).Warn("gc sweep tx was rejected")
+		return true, nil
+	}
+	return err == nil, err
+}
+
+// commitMaintenanceOp builds an operation on the accepted World state, queues
+// it, and waits for the validator's decision. A rejection is cleared from the
+// SharedObject state and returned as rejected with its error.
+//
+// The operation advances the SharedObject root like a foreground write, so it
+// holds writeMtx from building until the decision. Otherwise a write
+// transaction open across it would commit against a stale base.
+func (c *Controller) commitMaintenanceOp(
+	ctx context.Context,
+	so sobject.SharedObject,
+	build func(state *InnerState) (*SOWorldOp, error),
+) (bool, error) {
+	// Exclude write transactions until the decision.
 	unlockWriteMtx, err := c.writeMtx.Lock(ctx)
 	if err != nil {
 		return false, err
 	}
 	defer unlockWriteMtx()
 
-	tx, err := world_block_tx.NewMaintenanceTxGCSweep()
+	// Build the operation on the accepted World state.
+	snap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		return false, err
 	}
-	op := &SOWorldOp{
-		Body: &SOWorldOp_ApplyTxOp{
-			ApplyTxOp: &ApplyTxOp{Tx: tx},
-		},
+	state, err := ReadInnerState(ctx, snap)
+	if err != nil {
+		return false, err
+	}
+	op, err := build(state)
+	if err != nil {
+		return false, err
 	}
 
+	// Queue it and wait for the decision.
 	opData, err := op.MarshalVT()
 	if err != nil {
 		return false, err
 	}
-
 	localOpID, err := so.QueueOperation(ctx, opData)
 	if err != nil {
 		return false, err
 	}
-
-	c.le.WithField("op-id", localOpID).Debug("queued gc sweep tx")
-
-	// Wait for the operation to be confirmed or rejected.
-	// A rejection is returned with its error; clear it so it does not remain
-	// in the shared object state.
 	_, rejected, err := so.WaitOperation(ctx, localOpID)
 	if rejected {
 		_ = so.ClearOperationResult(ctx, localOpID)
-		c.le.WithError(err).Warn("gc sweep tx was rejected")
-		return true, nil
 	}
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return rejected, err
 }

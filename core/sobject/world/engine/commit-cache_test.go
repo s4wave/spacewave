@@ -12,47 +12,53 @@ import (
 )
 
 // TestValidatorAdoptsCommitResultOnlyOnMatchingCacheKey proves the validator
-// replay cache adopts the cached foreground commit result only when both the
-// base world root ref and the operation bytes match the cache key. A mismatched
-// base root or mismatched op bytes must fall through to processOp, so a stale
-// cache entry can never be adopted onto the wrong base or the wrong operation.
+// replay cache adopts the cached foreground commit result only when the base
+// world root ref, the storage generation, and the operation bytes match the
+// cache key. Any mismatch must fall through to processOp, so a stale cache
+// entry can never be adopted onto the wrong base or the wrong operation.
 func TestValidatorAdoptsCommitResultOnlyOnMatchingCacheKey(t *testing.T) {
+	// Build the World roots.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	pid := newProcessTestPeerID(t)
-
 	baseRootRef := mustBuildCommitCacheRef(t, "commit-cache/base-root")
 	otherRootRef := mustBuildCommitCacheRef(t, "commit-cache/other-root")
 	resultRootRef := mustBuildCommitCacheRef(t, "commit-cache/result-root")
 
+	// Build two distinct operations.
 	cachedOp := mustMarshalInitWorldOp(t, true)
 	otherOp := mustMarshalInitWorldOp(t, false)
 	if bytes.Equal(cachedOp, otherOp) {
 		t.Fatal("cache-key test requires two distinct op encodings")
 	}
 
+	// Cache a result for the base root, generation 3, and cachedOp.
 	cached := &commitResult{
-		baseRootRef: baseRootRef,
-		opData:      cachedOp,
-		resultState: &InnerState{HeadRef: &bucket.ObjectRef{RootRef: resultRootRef}},
+		baseRootRef:       baseRootRef,
+		storageGeneration: 3,
+		opData:            cachedOp,
+		resultRef:         &bucket.ObjectRef{RootRef: resultRootRef},
 	}
 
+	// Offer each operation on each base.
 	for _, tc := range []struct {
-		name      string
-		stateRoot *block.BlockRef
-		opData    []byte
-		wantAdopt bool
+		name       string
+		stateRoot  *block.BlockRef
+		generation uint64
+		opData     []byte
+		wantAdopt  bool
 	}{
-		{"matching base root and op bytes adopts", baseRootRef, cachedOp, true},
-		{"mismatched base root does not adopt", otherRootRef, cachedOp, false},
-		{"mismatched op bytes does not adopt", baseRootRef, otherOp, false},
+		{"matching base root and op bytes adopts", baseRootRef, 3, cachedOp, true},
+		{"mismatched base root does not adopt", otherRootRef, 3, cachedOp, false},
+		{"mismatched storage generation does not adopt", baseRootRef, 4, cachedOp, false},
+		{"mismatched op bytes does not adopt", baseRootRef, 3, otherOp, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Replay the operation on the case's base.
 			c := &Controller{le: le}
 			c.lastCommitResult.Store(cached)
-
 			so := &commitCacheValidatorSharedObject{
-				currentStateData: mustMarshalInnerStateHead(t, tc.stateRoot),
+				currentStateData: mustMarshalInnerStateHead(t, tc.stateRoot, tc.generation),
 				ops: []*sobject.SOOperationInner{{
 					PeerId: pid.String(),
 					Nonce:  1,
@@ -66,6 +72,7 @@ func TestValidatorAdoptsCommitResultOnlyOnMatchingCacheKey(t *testing.T) {
 				t.Fatalf("expected 1 op result, got %d", len(so.opResults))
 			}
 
+			// A match adopts the cached head on the same generation.
 			if tc.wantAdopt {
 				if so.nextStateData == nil {
 					t.Fatal("matching cache key must adopt the cached commit result")
@@ -77,12 +84,17 @@ func TestValidatorAdoptsCommitResultOnlyOnMatchingCacheKey(t *testing.T) {
 				if !adopted.GetHeadRef().GetRootRef().EqualsRef(resultRootRef) {
 					t.Fatal("adopted state must carry the cached result head ref")
 				}
+				if adopted.GetStorageGeneration() != tc.generation {
+					t.Fatal("adopted state must keep the storage generation")
+				}
 				if !so.opResults[0].GetSuccess() {
 					t.Fatal("adopted op must report success")
 				}
 				return
 			}
 
+			// A mismatch falls through to processOp, which rejects an
+			// InitWorld on an initialized World.
 			if so.nextStateData != nil {
 				t.Fatal("mismatched cache key must not adopt the cached commit result")
 			}
@@ -110,6 +122,7 @@ type commitCacheValidatorSharedObject struct {
 
 // ProcessOperations runs one controlled validator batch.
 func (s *commitCacheValidatorSharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
+	// Admit each op's peer and run the callback once.
 	var err error
 	snapshot := &testSharedObjectSnapshot{participants: make(map[string]*sobject.SOParticipantConfig)}
 	for _, op := range s.ops {
@@ -130,9 +143,12 @@ func mustBuildCommitCacheRef(t *testing.T, seed string) *block.BlockRef {
 }
 
 // mustMarshalInnerStateHead encodes a World head for validator replay.
-func mustMarshalInnerStateHead(t *testing.T, root *block.BlockRef) []byte {
+func mustMarshalInnerStateHead(t *testing.T, root *block.BlockRef, generation uint64) []byte {
 	t.Helper()
-	data, err := (&InnerState{HeadRef: &bucket.ObjectRef{RootRef: root}}).MarshalVT()
+	data, err := (&InnerState{
+		HeadRef:           &bucket.ObjectRef{RootRef: root},
+		StorageGeneration: generation,
+	}).MarshalVT()
 	if err != nil {
 		t.Fatal(err.Error())
 	}

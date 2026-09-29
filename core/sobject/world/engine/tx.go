@@ -25,6 +25,8 @@ type soEngineWriteTx struct {
 	eng *soEngine
 	// baseRoot is the accepted SharedObject root captured before the write fork.
 	baseRoot *sobject.SORoot
+	// storageGeneration is the accepted storage generation captured with baseRoot.
+	storageGeneration uint64
 	// unlockWriteMtx releases the write mutex once, including repeated Discard calls.
 	unlockWriteMtx func()
 }
@@ -35,14 +37,16 @@ func newSoEngineWriteTx(
 	btx *world_block.Tx,
 	eng *soEngine,
 	baseRoot *sobject.SORoot,
+	storageGeneration uint64,
 	unlockWriteMtx func(),
 ) *soEngineWriteTx {
 	return &soEngineWriteTx{
-		WorldState:     worldState,
-		btx:            btx,
-		eng:            eng,
-		baseRoot:       baseRoot,
-		unlockWriteMtx: unlockWriteMtx,
+		WorldState:        worldState,
+		btx:               btx,
+		eng:               eng,
+		baseRoot:          baseRoot,
+		storageGeneration: storageGeneration,
+		unlockWriteMtx:    unlockWriteMtx,
 	}
 }
 
@@ -112,10 +116,11 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
-	// Wrap the batch in the SharedObject World operation.
+	// Wrap the batch in the SharedObject World operation. The storage
+	// generation fences the candidate against bucket reclamation.
 	op := &SOWorldOp{
 		Body: &SOWorldOp_ApplyTxOp{
-			ApplyTxOp: &ApplyTxOp{Tx: tx},
+			ApplyTxOp: &ApplyTxOp{Tx: tx, StorageGeneration: t.storageGeneration},
 		},
 	}
 
@@ -161,20 +166,18 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		Op:                    op,
 		FollowerParticipantId: t.eng.so.GetPeerID().String(),
 		LocalOperationId:      sobject.NewSOOperationLocalID(),
-		StorageGeneration:     0,
 		AuthorityEpoch:        t.baseRoot.GetInnerSeqno(),
 	}
 
 	// Cache the commit result for validator replay adoption. The validator
-	// can adopt this instead of re-executing processOp when
-	// the base root ref and op bytes match.
-	{
-		t.eng.c.lastCommitResult.Store(&commitResult{
-			baseRootRef: baseObjRef.GetRootRef(),
-			opData:      opData,
-			resultState: &InnerState{HeadRef: nextStoredObjRef.CloneVT()},
-		})
-	}
+	// can adopt this instead of re-executing processOp when the base root
+	// ref, storage generation, and op bytes match.
+	t.eng.c.lastCommitResult.Store(&commitResult{
+		baseRootRef:       baseObjRef.GetRootRef(),
+		storageGeneration: t.storageGeneration,
+		opData:            opData,
+		resultRef:         nextStoredObjRef.CloneVT(),
+	})
 
 	// Wait for authority without allowing the watcher to replace the write base.
 	// An ordered world commit lets the provider accept its operation ordered.

@@ -65,6 +65,7 @@ export enum SpaceWorldFinalizationStatus {
 export const SpaceWorldFinalizationStatus_Enum = /* @__PURE__ */ createEnumType(
   'sobject.world.engine.SpaceWorldFinalizationStatus',
   SpaceWorldFinalizationStatus,
+  'SPACE_WORLD_FINALIZATION_STATUS_',
 )
 
 /**
@@ -235,6 +236,14 @@ export interface InnerState {
    * @generated from field: bucket.ObjectRef head_ref = 1;
    */
   headRef?: ObjectRef
+  /**
+   * StorageGeneration is the storage generation of the accepted World.
+   * The Space authority advances it before reclaiming unreachable blocks from
+   * the storage bucket. Transactions built on an older generation are rejected.
+   *
+   * @generated from field: uint64 storage_generation = 2;
+   */
+  storageGeneration?: bigint
 }
 
 export const InnerState: MessageType<InnerState> =
@@ -242,6 +251,12 @@ export const InnerState: MessageType<InnerState> =
     typeName: 'sobject.world.engine.InnerState',
     fields: [
       { no: 1, name: 'head_ref', kind: 'message', T: () => ObjectRef },
+      {
+        no: 2,
+        name: 'storage_generation',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -257,6 +272,12 @@ export interface ApplyTxOp {
    * @generated from field: world.block.tx.Tx tx = 1;
    */
   tx?: Tx
+  /**
+   * StorageGeneration is the storage generation the transaction was built on.
+   *
+   * @generated from field: uint64 storage_generation = 2;
+   */
+  storageGeneration?: bigint
 }
 
 export const ApplyTxOp: MessageType<ApplyTxOp> =
@@ -264,6 +285,41 @@ export const ApplyTxOp: MessageType<ApplyTxOp> =
     typeName: 'sobject.world.engine.ApplyTxOp',
     fields: [
       { no: 1, name: 'tx', kind: 'message', T: () => Tx },
+      {
+        no: 2,
+        name: 'storage_generation',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * AdvanceStorageGenerationOp advances the storage generation of the World.
+ * Only the validator submits it, after listing the storage bucket and before
+ * dropping unreachable blocks from the listed packs.
+ *
+ * @generated from message sobject.world.engine.AdvanceStorageGenerationOp
+ */
+export interface AdvanceStorageGenerationOp {
+  /**
+   * StorageGeneration is the storage generation the operation advances from.
+   *
+   * @generated from field: uint64 storage_generation = 1;
+   */
+  storageGeneration?: bigint
+}
+
+export const AdvanceStorageGenerationOp: MessageType<AdvanceStorageGenerationOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.AdvanceStorageGenerationOp',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_generation',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -301,6 +357,15 @@ export interface SOWorldOp {
         value: ApplyTxOp
         case: 'applyTxOp'
       }
+    | {
+        /**
+         * AdvanceStorageGeneration advances the storage generation.
+         *
+         * @generated from field: sobject.world.engine.AdvanceStorageGenerationOp advance_storage_generation = 3;
+         */
+        value: AdvanceStorageGenerationOp
+        case: 'advanceStorageGeneration'
+      }
 }
 
 export const SOWorldOp: MessageType<SOWorldOp> =
@@ -319,6 +384,13 @@ export const SOWorldOp: MessageType<SOWorldOp> =
         name: 'apply_tx_op',
         kind: 'message',
         T: ApplyTxOp,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'advance_storage_generation',
+        kind: 'message',
+        T: AdvanceStorageGenerationOp,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -355,12 +427,6 @@ export interface SpaceWorldFinalizationPacket {
    * @generated from field: bytes candidate_content_id = 4;
    */
   candidateContentId?: Uint8Array
-  /**
-   * StorageGeneration is the storage coordinator generation observed by the follower.
-   *
-   * @generated from field: uint64 storage_generation = 5;
-   */
-  storageGeneration?: bigint
   /**
    * AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
    *
@@ -415,12 +481,6 @@ export const SpaceWorldFinalizationPacket: MessageType<SpaceWorldFinalizationPac
         name: 'candidate_content_id',
         kind: 'scalar',
         T: ScalarType.BYTES,
-      },
-      {
-        no: 5,
-        name: 'storage_generation',
-        kind: 'scalar',
-        T: ScalarType.UINT64,
       },
       { no: 6, name: 'authority_epoch', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 7, name: 'blocks_available', kind: 'scalar', T: ScalarType.BOOL },

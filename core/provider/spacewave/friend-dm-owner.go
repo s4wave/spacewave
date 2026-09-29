@@ -415,8 +415,10 @@ func reconcileFriendDmParticipants(
 
 // marshalFriendDmChannelWorldOp builds the channel creation operation. It is
 // an authenticated World operation, so replay takes the sender from the
-// verified SharedObject signer rather than the transaction.
-func marshalFriendDmChannelWorldOp() ([]byte, error) {
+// verified SharedObject signer rather than the transaction. storageGeneration
+// is the accepted storage generation of the World.
+func marshalFriendDmChannelWorldOp(storageGeneration uint64) ([]byte, error) {
+	// Build the transaction that creates the channel.
 	op := &spacewave_chat.CreateChatChannelOp{
 		ObjectKey: FriendDmChannelObjectKey,
 		Name:      "Direct Messages",
@@ -426,9 +428,11 @@ func marshalFriendDmChannelWorldOp() ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "build friend dm channel transaction")
 	}
+
+	// Wrap it in a World operation on storageGeneration.
 	worldOp := &sobject_world_engine.SOWorldOp{
 		Body: &sobject_world_engine.SOWorldOp_ApplyTxOp{
-			ApplyTxOp: &sobject_world_engine.ApplyTxOp{Tx: tx},
+			ApplyTxOp: &sobject_world_engine.ApplyTxOp{Tx: tx, StorageGeneration: storageGeneration},
 		},
 	}
 	opData, err := worldOp.MarshalVT()
@@ -438,6 +442,8 @@ func marshalFriendDmChannelWorldOp() ([]byte, error) {
 	return opData, nil
 }
 
+// ensureFriendDmChannel creates the direct message channel when the Space
+// World lacks it, and waits for the World to project the channel.
 func ensureFriendDmChannel(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -445,12 +451,14 @@ func ensureFriendDmChannel(
 	ref *sobject.SharedObjectRef,
 	swSO *SharedObject,
 ) error {
+	// Mount the Space body to read its World.
 	mounted, bodyRef, err := space.ExMountSpaceSoBody(ctx, b, ref, false, nil)
 	if err != nil {
 		return err
 	}
 	defer bodyRef.Release()
 
+	// Skip creation when the channel exists.
 	ws := world.NewEngineWorldState(
 		mounted.GetSharedObjectBody().GetWorldEngine(),
 		false,
@@ -463,15 +471,30 @@ func ensureFriendDmChannel(
 		return nil
 	}
 
-	opData, err := marshalFriendDmChannelWorldOp()
+	// Build the creation on the accepted storage generation.
+	snap, err := swSO.GetSharedObjectState(ctx)
 	if err != nil {
 		return err
 	}
+	state, err := sobject_world_engine.ReadInnerState(ctx, snap)
+	if err != nil {
+		return err
+	}
+	opData, err := marshalFriendDmChannelWorldOp(state.GetStorageGeneration())
+	if err != nil {
+		return err
+	}
+
+	// Queue it and wait for the decision. A rejection is fine when another
+	// device created the channel first.
 	localID, err := swSO.QueueOperation(ctx, opData)
 	if err != nil {
 		return errors.Wrap(err, "queue friend dm channel operation")
 	}
 	_, wasRejected, waitErr := swSO.WaitOperation(ctx, localID)
+	if !wasRejected && waitErr != nil {
+		return errors.Wrap(waitErr, "create friend dm channel")
+	}
 	if wasRejected {
 		if err := swSO.ClearOperationResult(ctx, localID); err != nil {
 			return errors.Wrap(err, "clear friend dm channel rejection")
@@ -483,10 +506,9 @@ func ensureFriendDmChannel(
 		if found {
 			return nil
 		}
-	} else if waitErr != nil {
-		return errors.Wrap(waitErr, "create friend dm channel")
 	}
 
+	// Wait for the World to project the channel.
 	projected, err := world_control.WaitForObjectRev(
 		ctx,
 		le,
