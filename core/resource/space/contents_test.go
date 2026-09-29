@@ -636,14 +636,9 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 }
 
 func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), spaceContentsTestTimeout)
-	defer cancel()
+	ctx, tb := newSpaceRuntimeTestbed(t, time.Minute)
 
-	tb, err := testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	// Create the Worker and sample Job that its binding will execute.
 	pid := generateSpaceContentsTestPeerID(t)
 	op := &forge_dashboard.InitForgeQuickstartOp{
 		LayoutKey:     "forge",
@@ -658,16 +653,28 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
-	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, &plugin_space.Config{
+	// Make a plugin desired without a manifest for the Linux host.
+	addSpaceRuntimePluginHost(t, tb.Bus, "desktop/linux/amd64")
+	manifestSource := newEmptyManifestSource(spaceRuntimeManifestID)
+	addSpaceRuntimeController(t, tb.Bus, manifestSource)
+	approveSpaceRuntimePlugin(t, ctx, tb)
+
+	conf := &plugin_space.Config{
 		SpaceId:       "space-test",
 		VolumeId:      tb.EngineVolumeID,
 		ObjectStoreId: "platform-account",
 		EngineId:      tb.EngineID,
 		SessionPeerId: pid.String(),
-	})
+	}
+	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
 	addBindingTestWorkerPolicyHost(t, ctx, tb, resource.runtime, "session-worker")
+	select {
+	case <-manifestSource.started:
+	case <-ctx.Done():
+		t.Fatal("desired plugin did not request its missing manifest")
+	}
 
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
@@ -718,6 +725,15 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	if len(resp.GetProcessBindings()) != 1 || !resp.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("expected one approved binding, got %+v", resp.GetProcessBindings())
 	}
+
+	// Release the submitting mount while another mount retains the runtime.
+	keeper := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf.CloneVT())
+	if keeper.runtime != resource.runtime {
+		t.Fatal("keeper acquired a different Space runtime")
+	}
+	resource.Release()
+
+	// Observe the bound Worker's published capacity after the release.
 	capacity := waitBindingWorkerCapacity(t, ctx, tb.WorldState, "session-worker")
 	if capacity.MilliCPUTotal != 1000 || capacity.MemoryBytesTotal != 1<<30 ||
 		capacity.OwnerDeviceObjectKey != "devices/self" || !capacity.SupportsBackend("docker") {
