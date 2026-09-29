@@ -54,10 +54,13 @@ func (s *AccountSettings) PlacedBlockStoreIDs(backendID string) []string {
 // CheckStorageBackendUnused returns a StorageBackendInUseError naming the
 // Spaces placed on the backend, or nil when it holds none.
 func (s *AccountSettings) CheckStorageBackendUnused(backendID string) error {
+	// Return nil when no block store is placed on the backend.
 	placed := s.PlacedBlockStoreIDs(backendID)
 	if len(placed) == 0 {
 		return nil
 	}
+
+	// Name each placed block store's Space for the in-use error.
 	spaces := make([]string, len(placed))
 	for i, blockStoreID := range placed {
 		spaces[i] = blockStoreID
@@ -70,12 +73,15 @@ func (s *AccountSettings) CheckStorageBackendUnused(backendID string) error {
 
 // upsertStorageBackend adds a storage backend or replaces the one with its id.
 func (s *AccountSettings) upsertStorageBackend(backend *StorageBackend) error {
+	// Validate the backend and reject a duplicate display name.
 	if err := backend.Validate(); err != nil {
 		return err
 	}
 	if other := s.FindStorageBackendByName(backend.GetDisplayName()); other != nil && other.GetId() != backend.GetId() {
 		return errors.Errorf("a storage backend named %q already exists", backend.GetDisplayName())
 	}
+
+	// Replace the backend's stored copy with the incoming one.
 	s.StorageBackends = slices.DeleteFunc(s.StorageBackends, func(current *StorageBackend) bool {
 		return current.GetId() == backend.GetId()
 	})
@@ -87,12 +93,15 @@ func (s *AccountSettings) upsertStorageBackend(backend *StorageBackend) error {
 // Removing the default backend returns new Spaces to the account's storage.
 // Pending releases on the backend are dropped with it.
 func (s *AccountSettings) removeStorageBackend(id string) error {
+	// Require an id and an unused backend.
 	if id == "" {
 		return errors.New("storage_backend_id is required")
 	}
 	if err := s.CheckStorageBackendUnused(id); err != nil {
 		return err
 	}
+
+	// Remove the backend, its pending releases, and any default selection.
 	s.StorageBackends = slices.DeleteFunc(s.StorageBackends, func(current *StorageBackend) bool {
 		return current.GetId() == id
 	})
@@ -121,6 +130,7 @@ func (s *AccountSettings) setDefaultStorageBackend(id string) error {
 // Leaving a backend releases the store's objects there. Returning to a
 // backend cancels its pending release, since the store writes there again.
 func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement) error {
+	// Require a block store id and an existing target backend.
 	blockStoreID := placement.GetBlockStoreId()
 	if blockStoreID == "" {
 		return errors.New("block_store_id is required")
@@ -129,6 +139,8 @@ func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement)
 	if backendID != "" && s.FindStorageBackend(backendID) == nil {
 		return ErrStorageBackendNotFound
 	}
+
+	// Apply the new placement, canceling a pending release on the backend.
 	s.unplaceBlockStore(blockStoreID)
 	if backendID != "" {
 		s.BlockStorePlacements = append(s.BlockStorePlacements, placement.CloneVT())
@@ -169,12 +181,15 @@ func (s *AccountSettings) dropStorageRelease(release *BlockStorePlacement) {
 
 // Validate checks that the storage backend is complete.
 func (b *StorageBackend) Validate() error {
+	// Require an id and a display name.
 	if b.GetId() == "" {
 		return errors.New("storage backend id is required")
 	}
 	if b.GetDisplayName() == "" {
 		return errors.New("storage backend display_name is required")
 	}
+
+	// Validate the S3 location and credential reference.
 	if err := b.GetS3().Validate(); err != nil {
 		return errors.Wrap(err, "s3")
 	}
