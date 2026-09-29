@@ -1,5 +1,23 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.19
+<2026-09-29 Tue>
+
+Spacewave 0.57.19 improves desktop updates, update discovery, and Space
+dashboard usability.
+
+** Fixes
+- Desktop updates no longer offer the version already running, and the macOS app
+  now reopens reliably after an update.
+- Space lists now scroll within the dashboard, with compact rows and correctly
+  aligned copy buttons.
+
+** Improvements
+- Linked devices can now pass along Spacewave release information, helping
+  updates appear sooner and reach devices with limited connectivity.
+- Floating windows now rise when focused by keyboard or pointer and provide
+  clearer labels for assistive technologies.
+
 * v0.57.18
 <2026-09-29 Tue>
 
