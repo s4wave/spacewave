@@ -18,6 +18,7 @@ import (
 )
 
 func TestPluginInstanceWaitsForInitialCapabilityRegistration(t *testing.T) {
+	// Build a controller and an instance still pending initial registration.
 	le := logrus.NewEntry(logrus.New())
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
@@ -36,6 +37,7 @@ func TestPluginInstanceWaitsForInitialCapabilityRegistration(t *testing.T) {
 		),
 	}
 
+	// Connect an RPC client while registration is pending.
 	instance.beginInitialCapabilityRegistration()
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux())))
 	instance.updateRpcClient(client)
@@ -50,6 +52,7 @@ func TestPluginInstanceWaitsForInitialCapabilityRegistration(t *testing.T) {
 		t.Fatalf("registration state = %v, want pending", state.GetInitialCapabilityRegistrationState())
 	}
 
+	// Completing registration publishes the running plugin.
 	instance.finishInitialCapabilityRegistration(true)
 	if running := instance.runningPluginCtr.GetValue(); running == nil {
 		t.Fatal("plugin did not report running after initial registration")
@@ -92,6 +95,7 @@ func (h *loadPluginValuesHandler) notify() {
 }
 
 func (h *loadPluginValuesHandler) AddValue(v directive.Value) (uint32, bool) {
+	// Store only RunningPlugin values under a new id.
 	running, ok := v.(bldr_plugin.RunningPlugin)
 	if !ok {
 		return 0, false
@@ -105,6 +109,7 @@ func (h *loadPluginValuesHandler) AddValue(v directive.Value) (uint32, bool) {
 }
 
 func (h *loadPluginValuesHandler) RemoveValue(id uint32) (directive.Value, bool) {
+	// Remove the value by id and notify only when it existed.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	v, found := h.values[id]
@@ -123,6 +128,7 @@ func (h *loadPluginValuesHandler) CountValues(allResolvers bool) int {
 }
 
 func (h *loadPluginValuesHandler) ClearValues() []uint32 {
+	// Clear every value and notify when any existed.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	ids := make([]uint32, 0, len(h.values))
@@ -205,6 +211,7 @@ func waitChange(t *testing.T, h *loadPluginValuesHandler, rev uint64) handlerSna
 // withheld until the worker RPC connection and initial capability
 // registration complete.
 func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
+	// Bind a cancelable context and build the controller.
 	ctx, ctxCancel := context.WithCancel(t.Context())
 	defer ctxCancel()
 	le := logrus.NewEntry(logrus.New())
@@ -216,6 +223,7 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 	}
 	ctrl.pluginInstances = keyed.NewKeyedRefCountWithLogger(ctrl.newPluginInstance, le)
 
+	// Add a LoadPlugin reference and take the created instance.
 	_, relRef := ctrl.AddPluginReference("test-plugin", "")
 	defer relRef()
 	instance, ok := ctrl.pluginInstances.GetKey(pluginReference{pluginID: "test-plugin"})
@@ -223,11 +231,13 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 		t.Fatal("plugin instance was not created for LoadPlugin reference")
 	}
 
+	// Resolve the LoadPlugin directive against a value handler.
 	handler := newLoadPluginValuesHandler()
 	resolver := bldr_plugin_host.NewLoadPluginResolver(ctrl, "test-plugin", "", "", nil)
 	resolveDone := make(chan error, 1)
 	go func() { resolveDone <- resolver.Resolve(ctx, handler) }()
 
+	// No RunningPlugin value exists before the worker connects.
 	if snap := handler.snapshot(); len(snap.vals) != 0 {
 		t.Fatalf("RunningPlugin published before worker connection: %d values", len(snap.vals))
 	}
@@ -240,6 +250,7 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 		t.Fatal("RPC-connected plugin published RunningPlugin before initial registration")
 	}
 
+	// Completing registration publishes the running plugin with the client.
 	base = handler.revision()
 	instance.finishInitialCapabilityRegistration(true)
 	snap := waitChange(t, handler, base)
@@ -255,6 +266,7 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 		t.Fatal("worker disconnect did not clear RunningPlugin and mark the resolver idle")
 	}
 
+	// Cancel the context and expect the resolver to exit cleanly.
 	ctxCancel()
 	if err := <-resolveDone; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("resolver returned %v, want context canceled", err)

@@ -29,15 +29,18 @@ import (
 // runs and released when the consumer stops. The host receives the logical
 // instance key for the plugin and the execution key for its worker.
 func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
+	// Bind the test context and logger.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
+	// Open a testbed for the consumer and its dependency.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build a mock World state over a testbed cursor.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -66,6 +69,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Register the dependency provider that signals load and release.
 	provider := &testDepProvider{
 		pluginID: "provider",
 		loaded:   make(chan struct{}),
@@ -77,6 +81,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 	}
 	defer providerRel()
 
+	// Register the plugin host controller that records execution keys.
 	host := &blockingPluginHost{
 		id:      platformID,
 		started: make(chan struct{}),
@@ -92,6 +97,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 	}
 	defer hostRel()
 
+	// Build the consumer plugin instance wired to the testbed bus.
 	var wsv world.WorldState = ws
 	pi := &pluginInstance{
 		c: &Controller{
@@ -115,6 +121,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		),
 	}
 
+	// Start the consumer execution in the background.
 	execCtx, cancelExec := context.WithCancel(ctx)
 	defer cancelExec()
 	execErr := make(chan error, 1)
@@ -128,6 +135,7 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		})
 	}()
 
+	// Wait for the consumer to start and the dependency to load.
 	for _, step := range []struct {
 		name string
 		ch   <-chan struct{}
@@ -144,10 +152,12 @@ func TestExecPluginHoldsDeclaredDeps(t *testing.T) {
 		}
 	}
 
+	// The host received the logical instance key and the execution key.
 	if host.instanceKey != "vm-1" || host.executionKey != "vm-1/generation/root" {
 		t.Fatalf("host keys = (%q, %q), want (\"vm-1\", \"vm-1/generation/root\")", host.instanceKey, host.executionKey)
 	}
 
+	// Stop the consumer and confirm the dependency is released.
 	cancelExec()
 	select {
 	case <-provider.released:

@@ -20,9 +20,12 @@ import (
 // TestPinnedManifestRetainsExactRevision exercises immutable selection through stored World manifests.
 func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 	// Store two executable revisions under the same plugin host.
+	// Bind a bounded context and logger for the test.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a World testbed and an empty cursor over it.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -33,23 +36,30 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(cursor.Release)
+
+	// Build a mock World state over the cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	const hostKey = "plugin-host"
+
+	// Create the plugin-host manifest store and store both executable revisions.
 	if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
 		t.Fatal(err)
 	}
 	old, _ := storeTestWorldManifest(t, ctx, ws, "colors", "js", 1)
 	newer, _ := storeTestWorldManifest(t, ctx, ws, "colors", "js", 2)
 	oldKey := manifest.NewManifestKey(hostKey, old.GetMeta())
+
+	// Store both revisions under their manifest keys.
 	for _, ref := range []*manifest.ManifestRef{old, newer} {
 		key := manifest.NewManifestKey(hostKey, ref.GetMeta())
 		if err := manifest_world.ExStoreManifestOp(ctx, ws, "", key, []string{hostKey}, ref); err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	// An unrelated retained revision lives in a closed Space. Exact lookup must
 	// filter its identity without opening that unavailable bucket.
 	closed, _ := storeTestWorldManifest(t, ctx, ws, "colors", "js", 3)
@@ -57,6 +67,8 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 	if err := manifest_world.ExStoreManifestOp(ctx, ws, "", "a-closed-artifact", []string{hostKey}, closed); err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the plugin instance pinned to the old revision's root.
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "js"}}}
 	instance := &pluginInstance{
 		c: &Controller{conf: &Config{WatchFetchManifest: true, DisableStoreManifest: true}, objKey: hostKey}, le: le, pluginID: "colors",
@@ -66,13 +78,18 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 		pluginLoadStateCtr:      ccontainer.NewCContainer[bldr_plugin.PluginLoadState](bldr_plugin.NewPluginLoadState(nil, bldr_plugin.InitialCapabilityRegistrationPending)),
 		runningPluginCtr:        ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
 	}
+
+	// selectManifest runs manifest selection over the stored host object.
 	selectManifest := func() {
+		// Load the host object, releasing it before returning.
 		t.Helper()
 		obj, found, err := ws.GetObject(ctx, hostKey)
 		defer world.ReleaseObjectState(obj)
 		if err != nil || !found {
 			t.Fatalf("host object: %t, %v", found, err)
 		}
+
+		// Run selection over the loaded host object.
 		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
