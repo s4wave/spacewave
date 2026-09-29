@@ -21,6 +21,7 @@ import (
 // held authority. The new destination peer is authenticated by that history;
 // its transport identity alone grants no access and receives no account data.
 func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoint *pairing.SharedObject) (*provider_migration.AccountTransitionReceipt, error) {
+	// Require the delivered checkpoint to name this account's settings object.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
@@ -29,6 +30,8 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 	if err != nil {
 		return nil, err
 	}
+
+	// Accept a retained source redirect only for a peer the destination already authorized.
 	if checkpoint.GetEntry().GetRef().GetProviderResourceRef().GetId() != ref.GetProviderResourceRef().GetId() {
 		settings, err := a.readAccountSettings(ctx)
 		if err != nil {
@@ -43,9 +46,13 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 		}
 		return nil, errors.New("account redirect belongs to another settings object")
 	}
+
+	// Reject a checkpoint whose history is too large to verify.
 	if checkpoint.SizeVT() > 10*1024*1024 || len(checkpoint.GetHistory()) > sobject.MaxConfigSuffixEntries {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Mount the settings object and hash the delivered history.
 	object, release, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		return nil, err
@@ -56,6 +63,8 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 	if err != nil {
 		return nil, err
 	}
+
+	// Index the delivered history by config hash.
 	entries := make(map[string]*sobject.SOConfigChange, len(checkpoint.GetHistory()))
 	for _, entry := range checkpoint.GetHistory() {
 		hash, err := sobject.HashSOConfigChange(entry)
@@ -64,6 +73,8 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 		}
 		entries[hex.EncodeToString(hash)] = entry
 	}
+
+	// Import the checkpoint, validating its signed redirect against the stream.
 	suffix, err := sobject.ReadConfigSuffix(ctx, current.GetConfig().GetConfigChainHash(), checkpoint.GetState().GetConfig().GetConfigChainHash(), func(_ context.Context, hash []byte) (*sobject.SOConfigChange, error) {
 		return entries[hex.EncodeToString(hash)], nil
 	})
@@ -71,6 +82,7 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 		return nil, err
 	}
 	err = local.soHost.ImportPeerSnapshot(ctx, checkpoint.GetState(), suffix, local.GetPeerID(), func(ctx context.Context, state *sobject.SOState) error {
+		// Decode the imported settings snapshot.
 		snapshot := sobject.NewSOStateParticipantHandle(a.le, a.t.p.sfs, local.GetSharedObjectID(), state, local.GetPrivKey(), local.GetPeerID())
 		settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
 		if err != nil {
@@ -80,6 +92,7 @@ func (a *ProviderAccount) DeliverAccountTransition(ctx context.Context, checkpoi
 		if err := transition.Validate(); err != nil {
 			return err
 		}
+
 		// The signed redirect names Session transport identities. A migrated
 		// Session can deliver it without sharing its old local storage key.
 		remote := stream.GetPeerID().String()
