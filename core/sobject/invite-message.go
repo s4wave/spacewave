@@ -9,6 +9,7 @@ import (
 
 // Sign signs every invitation field with the declared owner's key.
 func (m *SOInviteMessage) Sign(ownerKey crypto.PrivKey) error {
+	// Require the signing key to be the declared owner's key.
 	ownerID, err := peer.IDFromPrivateKey(ownerKey)
 	if err != nil {
 		return err
@@ -35,6 +36,7 @@ func (m *SOInviteMessage) Sign(ownerKey crypto.PrivKey) error {
 // VerifyTransportPeer verifies the owner's signature before resolving the peer
 // that receives the invitation token. Older invitations dial the owner directly.
 func (m *SOInviteMessage) VerifyTransportPeer() (peer.ID, error) {
+	// Require a signature and resolve its public key.
 	if m == nil || m.GetSignature() == nil {
 		return "", errors.New("invitation signature is required")
 	}
@@ -67,6 +69,8 @@ func (m *SOInviteMessage) VerifyTransportPeer() (peer.ID, error) {
 	if !valid {
 		return "", errors.New("invitation signature is invalid")
 	}
+
+	// Prefer the invitation's transport peer and fall back to the owner.
 	if endpoint := m.GetTransportPeerId(); endpoint != "" {
 		return peer.IDB58Decode(endpoint)
 	}

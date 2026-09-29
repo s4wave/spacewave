@@ -94,6 +94,7 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 	}
 	requestHash := sha256.Sum256(data)
 
+	// Rebase the removal onto the current configuration until it applies.
 	for {
 		state, err := host.GetHostState(ctx)
 		if err != nil {
@@ -161,13 +162,18 @@ func LeaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 // admitted at the signed head and remained admitted through each later transition.
 // A signer absent from any of those configurations must consent again.
 func leaveProofsRemainCurrent(peers []string, signed *SharedObjectConfig, changes []*SOConfigChange) bool {
+	// Require at least one later transition to rebase against.
 	if len(changes) == 0 {
 		return false
 	}
+
+	// Rebuild the configuration chain from the signed head forward.
 	configs := []*SharedObjectConfig{signed}
 	for _, change := range changes {
 		configs = append(configs, change.GetConfig())
 	}
+
+	// Require every signer to remain admitted through the whole chain.
 	for _, config := range configs {
 		for _, peerID := range peers {
 			if !slices.ContainsFunc(config.GetParticipants(), func(p *SOParticipantConfig) bool {
