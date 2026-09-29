@@ -15,8 +15,10 @@ import (
 // immutable artifact. It reports whether the SpaceSettings changed.
 //
 // A pinned artifact moves to the front of the plugin's ordered installation
-// list. Earlier artifacts stay behind it, so replacing the artifact of one
-// platform keeps its predecessor and every other platform's artifact.
+// list and retains one predecessor for its platform. Older pins for that
+// platform are removed; every other platform's pins keep their relative order.
+// Immutable manifests and build provenance remain in the World. The caller
+// supplies the World transaction that commits the installation.
 func InstallSpacePlugin(
 	ctx context.Context,
 	ws world.WorldState,
@@ -38,15 +40,46 @@ func InstallSpacePlugin(
 		settings = &space_world.SpaceSettings{}
 	}
 
-	// A pinned artifact must be this plugin's immutable content.
+	// Retain the pinned artifact and its platform's immediate predecessor.
 	keys := settings.GetPluginInstallations()[pluginID].GetManifestKeys()
+	next := keys
 	if manifestKey != "" {
-		if _, err := space_world.LookupSpacePluginManifest(ctx, ws, pluginID, manifestKey); err != nil {
+		// Resolve the new pin's immutable artifact and platform.
+		artifact, err := space_world.LookupSpacePluginManifest(ctx, ws, pluginID, manifestKey)
+		if err != nil {
 			return false, err
 		}
+
+		// Put the new pin first and filter earlier pins without reordering them.
+		next = make([]string, 1, len(keys)+1)
+		next[0] = manifestKey
+		retainedPrevious := false
+		for _, key := range keys {
+			// Reinstalling the artifact moves its existing pin to the front.
+			if key == manifestKey {
+				continue
+			}
+
+			// Resolve each pin's platform through its immutable manifest.
+			previous, err := space_world.LookupSpacePluginManifest(ctx, ws, pluginID, key)
+			if err != nil {
+				return false, err
+			}
+
+			// Keep one rollback pin for this platform and every foreign pin.
+			if previous.GetMeta().GetPlatformId() == artifact.GetMeta().GetPlatformId() {
+				if retainedPrevious {
+					continue
+				}
+				retainedPrevious = true
+			}
+			next = append(next, key)
+		}
 	}
+
+	// Leave an unchanged installation untouched.
 	installed := slices.Contains(settings.PluginIds, pluginID)
-	if installed && (manifestKey == "" || len(keys) != 0 && keys[0] == manifestKey) {
+	if installed && slices.Equal(keys, next) {
 		return false, nil
 	}
 
@@ -58,9 +91,8 @@ func InstallSpacePlugin(
 		if settings.PluginInstallations == nil {
 			settings.PluginInstallations = make(map[string]*space_world.SpacePluginInstallation)
 		}
-		keys = slices.DeleteFunc(keys, func(previous string) bool { return previous == manifestKey })
 		settings.PluginInstallations[pluginID] = &space_world.SpacePluginInstallation{
-			ManifestKeys: append([]string{manifestKey}, keys...),
+			ManifestKeys: next,
 		}
 	}
 
