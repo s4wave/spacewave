@@ -121,9 +121,12 @@ func NewSOHostSyncFuncs(store kvtx.Store) *sobject.SOHostSyncFuncs {
 // WriteSOConfigCheckpoint records already-held trust in the caller's state transaction.
 // Only an explicit authenticated invitation may replace an existing checkpoint.
 func WriteSOConfigCheckpoint(ctx context.Context, tx kvtx.Tx, id string, config *sobject.SharedObjectConfig, replace bool) error {
+	// Require a chain hash and a valid config.
 	if len(config.GetConfigChainHash()) == 0 {
 		return sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Validate the config before storing it.
 	if err := config.Validate(); err != nil {
 		return err
 	}
@@ -150,6 +153,7 @@ func readSOConfigHistory(ctx context.Context, tx kvtx.Tx, id string, base, targe
 
 // readSOConfigEntry reads one retained entry, returning nil when it is absent.
 func readSOConfigEntry(ctx context.Context, tx kvtx.Tx, id string, hash []byte) (*sobject.SOConfigChange, error) {
+	// Read one retained entry, returning nil when it is absent.
 	data, found, err := tx.Get(ctx, SOConfigHistoryEntryKey(id, hash))
 	if err != nil || !found {
 		return nil, err
@@ -163,11 +167,14 @@ func readSOConfigEntry(ctx context.Context, tx kvtx.Tx, id string, hash []byte) 
 
 // ReadSharedObjectConfigHistory returns accepted lineage from the local trust checkpoint.
 func (s *SharedObject) ReadSharedObjectConfigHistory(ctx context.Context, target *sobject.SharedObjectConfig) (*sobject.SharedObjectConfig, []*sobject.SOConfigChange, error) {
+	// Open a read transaction on the object store.
 	read, err := s.objStore.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer read.Discard()
+
+	// Read the checkpoint and verify the suffix to the target.
 	data, found, err := read.Get(ctx, SOConfigHistoryCheckpointKey(s.GetSharedObjectID()))
 	if err != nil {
 		return nil, nil, err
@@ -175,6 +182,8 @@ func (s *SharedObject) ReadSharedObjectConfigHistory(ctx context.Context, target
 	if !found {
 		return nil, nil, sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Decode the checkpoint and read its suffix to the target.
 	base := &sobject.SharedObjectConfig{}
 	if err := base.UnmarshalVT(data); err != nil {
 		return nil, nil, err
@@ -192,6 +201,7 @@ func (s *SharedObject) ReadSharedObjectConfigHistory(ctx context.Context, target
 // ReadSharedObjectGenesis returns the signed entry behind the oldest retained
 // checkpoint. Older replicas may require their original owner to supply it.
 func (s *SharedObject) ReadSharedObjectGenesis(ctx context.Context, base *sobject.SharedObjectConfig) (*sobject.SOConfigChange, error) {
+	// Return nothing when the checkpoint is not the genesis.
 	if base.GetConfigChainSeqno() != 0 {
 		return nil, nil
 	}
@@ -200,14 +210,20 @@ func (s *SharedObject) ReadSharedObjectGenesis(ctx context.Context, base *sobjec
 		return nil, err
 	}
 	defer read.Discard()
+
+	// Read the genesis entry behind the checkpoint hash.
 	entry, err := readSOConfigEntry(ctx, read, s.GetSharedObjectID(), base.GetConfigChainHash())
 	if err != nil || entry == nil {
 		return nil, err
 	}
+
+	// Hash the entry and verify it matches the checkpoint hash.
 	hash, err := sobject.HashSOConfigChange(entry)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the entry hash to match the checkpoint hash.
 	if !bytes.Equal(hash, base.GetConfigChainHash()) {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
@@ -216,6 +232,7 @@ func (s *SharedObject) ReadSharedObjectGenesis(ctx context.Context, base *sobjec
 
 // ReadSharedObjectFullConfigHistory proves an imported object's original lineage.
 func (s *SharedObject) ReadSharedObjectFullConfigHistory(ctx context.Context, target *sobject.SharedObjectConfig) ([]*sobject.SOConfigChange, error) {
+	// Read the checkpoint history and its genesis entry.
 	base, suffix, err := s.ReadSharedObjectConfigHistory(ctx, target)
 	if err != nil {
 		return nil, err
