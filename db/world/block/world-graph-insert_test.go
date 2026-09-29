@@ -10,10 +10,12 @@ import (
 // TestWorldStateSetGraphQuadValidatesAndDeduplicates checks endpoint validation
 // and revision stability when an existing relationship is inserted again.
 func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
+	// Open a fresh write state through the shared setup helper.
 	ctx := context.Background()
 	ws, cleanup := setupWorldWriteBench(ctx, t)
 	defer cleanup()
 
+	// Create the source and target objects in the write state.
 	keys := []string{"graph-insert/source", "graph-insert/target"}
 	for _, key := range keys {
 		{
@@ -25,20 +27,25 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 		}
 	}
 
+	// Reject a relationship whose endpoint object does not exist.
 	invalid := world.NewGraphQuadWithKeys(keys[0], "<graph-insert/relation>", "graph-insert/missing", "")
 	if err := ws.SetGraphQuad(ctx, invalid); err == nil {
 		t.Fatal("relationship with missing endpoint succeeded")
 	}
+
+	// Verify the invalid relationship was not inserted.
 	quads, err := ws.LookupGraphQuads(ctx, invalid, 1)
 	if err != nil || len(quads) != 0 {
 		t.Fatalf("invalid relationship was inserted: quads=%v err=%v", quads, err)
 	}
 
+	// Insert a valid relationship between the two objects.
 	q := world.NewGraphQuadWithKeys(keys[0], "<graph-insert/relation>", keys[1], "")
 	if err := ws.SetGraphQuad(ctx, q); err != nil {
 		t.Fatal(err)
 	}
 
+	// Record both endpoint revisions before the duplicate insert.
 	revisions := make([]uint64, len(keys))
 	for i, key := range keys {
 		obj, err := world.MustGetObject(ctx, ws, key)
@@ -52,6 +59,7 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 		}
 	}
 
+	// Insert the same relationship again and require unchanged revisions.
 	if err := ws.SetGraphQuad(ctx, q); err != nil {
 		t.Fatal(err)
 	}

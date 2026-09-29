@@ -17,6 +17,7 @@ import (
 // repeated relationship is an error; discard the enclosing transaction on error.
 // Like other mutable WorldState operations, calls must be serialized by its owner.
 func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQuad) error {
+	// Reject a non-write, discarded state, or canceled context.
 	if !t.write {
 		return tx.ErrNotWrite
 	}
@@ -38,6 +39,8 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 		state *ObjectState
 		count uint64
 	}
+
+	// Collect Cayley deltas and deduplicated endpoint states per object key.
 	deltas := make([]graph.Delta, len(quads))
 	endpointIndexes := make(map[string]int)
 	var endpoints []endpointUpdate
@@ -67,15 +70,20 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			endpoints = append(endpoints, endpointUpdate{state: state, count: 1})
 		}
 	}
+
+	// Apply the deltas to the graph index.
 	if err := t.graphHd.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{}); err != nil {
 		return err
 	}
 
+	// Increment each endpoint object's revision by its relationship count.
 	for _, endpoint := range endpoints {
 		if _, err := endpoint.state.incrementRevBy(ctx, endpoint.count, false); err != nil {
 			return err
 		}
 	}
+
+	// Record one graph-set World change per relationship.
 	for _, q := range quads {
 		if _, err := t.queueWorldChange(ctx, &WorldChange{
 			ChangeType: WorldChangeType_WorldChange_GRAPH_SET,
