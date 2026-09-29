@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -40,8 +39,8 @@ func (p *bindingTestPolicy) WaitDevicePolicy(ctx context.Context, last []byte) (
 	return nil, "", 0, ctx.Err()
 }
 
-// addBindingTestWorkerPolicyHost serves the daemon policy Resource route to
-// the Space runtime's plugin bus, as the native core host does in serve.
+// addBindingTestWorkerPolicyHost serves the policy Resource route through the
+// Space scheduler's plugin-host client.
 func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, runtime *plugin_space_runtime.Controller, workerKey string) {
 	t.Helper()
 	policy, err := (&device_policy.DevicePolicy{Revision: 1, ForgeWorker: &device_policy.ForgeWorkerPolicy{
@@ -62,20 +61,12 @@ func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testb
 	gen := waitSpaceRuntimeGeneration(t, runtime, nil)
 	hostServer := bifrost_rpc.NewInvokerController(tb.Logger, gen.GetBus(),
 		controller.NewInfo("test/worker-policy-server", controller.MustParseVersion("0.0.1"), ""),
-		hostMux, []string{bldr_plugin.HostServiceIDPrefix})
+		hostMux, nil)
 	releaseServer, err := gen.GetBus().AddController(ctx, hostServer, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseServer)
-	hostCtrl := bifrost_rpc.NewClientController(tb.Logger, gen.GetBus(),
-		controller.NewInfo("test/worker-policy-host", controller.MustParseVersion("0.0.1"), ""),
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(hostMux))), []string{bldr_plugin.HostServiceIDPrefix})
-	releaseHost, err := gen.GetBus().AddController(ctx, hostCtrl, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseHost)
 }
 
 // bindingTestBody presents the test World under one stable Space identity.

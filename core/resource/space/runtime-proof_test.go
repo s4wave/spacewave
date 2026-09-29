@@ -463,13 +463,20 @@ func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
 	}
 }
 
-// newSpaceRuntimeTestbed starts a testbed that stops when the test ends. Its
-// volume also serves as the plugin volume. The returned context bounds the
-// test.
-func newSpaceRuntimeTestbed(t *testing.T) (context.Context, *testbed.Testbed) {
+// newSpaceRuntimeTestbed starts a testbed whose volume also serves as the plugin
+// volume. The test context defaults to 10 seconds unless timeout is supplied.
+func newSpaceRuntimeTestbed(t *testing.T, timeout ...time.Duration) (context.Context, *testbed.Testbed) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+
+	// Keep the usual test bound unless this fixture needs more startup time.
+	bound := 10 * time.Second
+	if len(timeout) != 0 {
+		bound = timeout[0]
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), bound)
 	t.Cleanup(cancel)
+
+	// Mount the test volume under the plugin host's expected ID.
 	tb, err := testbed.WithTestbedOptions(ctx, []db_testbed.Option{
 		db_testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
 			VolumeConfig: &volume_controller.Config{
