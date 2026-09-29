@@ -39,10 +39,14 @@ func (n *StartupNotifier) Ready(ctx context.Context) error {
 	if n.conn == nil {
 		return nil
 	}
+
+	// Take custody of the pipe, closing it on cancellation or return.
 	conn := n.conn
 	defer n.Close()
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
+
+	// Report readiness and wait for the parent's acknowledgement.
 	if _, err := io.WriteString(conn, "ready\n"); err != nil {
 		return err
 	}

@@ -160,6 +160,7 @@ func prepareExecutable(statePath, source, expectedSHA256 string) (published stri
 // its executable. The rename publishes a fully verified bundle atomically and
 // never replaces a bundle that another daemon may be executing.
 func prepareBundle(dir, name, bundleRoot, executable string, expected []byte) (published string, retErr error) {
+	// Name the published bundle and its executable path.
 	bundle := filepath.Join(dir, name+".app")
 	path := filepath.Join(bundle, "Contents", "MacOS", executable)
 
