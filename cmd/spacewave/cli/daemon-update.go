@@ -219,6 +219,7 @@ func watchDaemonUpdate(
 // reopenDesktop asks the replacement daemon to open the desktop shell that
 // the handoff closed. It never starts another daemon.
 func reopenDesktop(ctx context.Context, statePath string, req *desktop_control.OpenOrFocusDesktopRequest) error {
+	// Connect to the replacement daemon already serving the state path.
 	connector := daemon.NewConnector(nil, func(context.Context, string) error {
 		return errors.New("replacement daemon is not running")
 	})
@@ -234,14 +235,19 @@ func reopenDesktop(ctx context.Context, statePath string, req *desktop_control.O
 // prepareDaemonUpdateHandoff preserves the running executable before the
 // handoff claim.
 func prepareDaemonUpdateHandoff(statePath string, selected *spacewave_launcher.UpdateState) (*daemonUpdateHandoff, error) {
+	// Preserve the running executable as the fallback for a failed update.
 	oldSource, err := os.Executable()
 	if err != nil {
 		return nil, errors.Wrap(err, "locate running daemon executable")
 	}
+
+	// Stage the running executable as the fallback for a failed update.
 	fallback, err := daemon.PrepareExecutable(statePath, oldSource)
 	if err != nil {
 		return nil, errors.Wrap(err, "preserve running daemon executable")
 	}
+
+	// Stage the selected update executable and verify its recorded hash.
 	executable, err := daemon.PrepareVerifiedExecutable(statePath, selected.GetStagedPath(), selected.GetStagedSha256())
 	if err != nil {
 		return nil, err
