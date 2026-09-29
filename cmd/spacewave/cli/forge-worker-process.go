@@ -23,9 +23,12 @@ func buildForgeWorkerProcessCommand(statePath *string, sessionIdx *uint, spaceID
 		Name: name, Usage: usage, ArgsUsage: "<worker-key>", Flags: flags,
 		Description: "The Worker must already exist and belong to this session peer. The Space runtime starts or stops execution and retains the binding across CLI invocations.",
 		Action: func(c *cli.Context) error {
+			// Reject invocations without exactly one Worker key.
 			if c.Args().Len() != 1 {
 				return errors.New("one Worker key is required")
 			}
+
+			// Connect to the daemon and mount the target session.
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
@@ -37,6 +40,8 @@ func buildForgeWorkerProcessCommand(statePath *string, sessionIdx *uint, spaceID
 				return err
 			}
 			defer session.Release()
+
+			// Resolve the Space and mount its contents resource.
 			sid, err := client.resolveSpaceID(ctx, session, *spaceID)
 			if err != nil {
 				return err
@@ -51,6 +56,8 @@ func buildForgeWorkerProcessCommand(statePath *string, sessionIdx *uint, spaceID
 				return err
 			}
 			defer releaseContents()
+
+			// Apply the process binding and report the result.
 			_, err = contents.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 				ObjectKey: c.Args().First(), TypeId: forge_worker.WorkerTypeID, Approved: approved,
 			})
