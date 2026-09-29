@@ -40,12 +40,14 @@ func (a *aptImportDebArgs) Run(c *cli.Context) error {
 	packageKey := c.Args().Get(1)
 	debPath := c.Args().Get(2)
 
+	// Open the .deb package file for reading.
 	debFile, err := os.OpenFile(debPath, os.O_RDONLY|aptDebOpenFlag, 0)
 	if err != nil {
 		return errors.Wrap(err, "open deb package")
 	}
 	defer debFile.Close()
 
+	// Require the .deb to be a nonempty regular file within the block size.
 	info, err := debFile.Stat()
 	if err != nil {
 		return errors.Wrap(err, "stat deb package")
@@ -60,6 +62,7 @@ func (a *aptImportDebArgs) Run(c *cli.Context) error {
 		return errors.Errorf("deb package exceeds maximum block size of %d bytes", block.MaxBlockSize)
 	}
 
+	// Read the .deb bytes and recheck the size limits after reading.
 	deb, err := io.ReadAll(io.LimitReader(debFile, block.MaxBlockSize+1))
 	if err != nil {
 		return errors.Wrap(err, "read deb package")
@@ -71,6 +74,7 @@ func (a *aptImportDebArgs) Run(c *cli.Context) error {
 		return errors.Errorf("deb package exceeds maximum block size of %d bytes", block.MaxBlockSize)
 	}
 
+	// Mount the Space's World engine for the import.
 	ctx := c.Context
 	engine, cleanup, _, err := mountSpaceWorldEngine(ctx, c, a.statePath, a.sessionIdx, a.spaceID)
 	if err != nil {
@@ -89,12 +93,14 @@ func importAptDebPackage(
 	deb []byte,
 	w io.Writer,
 ) error {
+	// Open a write transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
+	// Import the .deb package and commit the transaction.
 	aptPackage, debRef, err := s4wave_apt.ImportDebPackage(ctx, tx, repositoryKey, packageKey, deb)
 	if err != nil {
 		return errors.Wrap(err, "import deb package")
@@ -103,6 +109,7 @@ func importAptDebPackage(
 		return errors.Wrap(err, "commit transaction")
 	}
 
+	// Report the imported package details and the .deb block reference.
 	writeFields(w, [][2]string{
 		{"Package Key", packageKey},
 		{"Package", aptPackage.GetName()},
