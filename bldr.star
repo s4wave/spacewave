@@ -28,8 +28,10 @@ COMPOSED_GO_PKGS = [
     "./core/resource/listener",
 ]
 
+# core_go_pkgs lists the spacewave-core plugin's Go packages: CORE_GO_PKGS and
+# the proxy for its host's exported plugin hosts.
 def core_go_pkgs(include_export=True):
-    pkgs = []
+    pkgs = ["github.com/s4wave/spacewave/bldr/plugin/host/export"]
     for pkg in CORE_GO_PKGS:
         if include_export or pkg != "./core/space/http/export":
             pkgs.append(pkg)
@@ -104,6 +106,13 @@ def core_config_set(
         configs["export"] = config_entry("space/http/export", 1)
     return configs
 
+# spacewave_core_config_set extends core_config_set for the spacewave-core
+# plugin, which runs Space plugins on its host's exported plugin hosts.
+def spacewave_core_config_set(**kwargs):
+    configs = core_config_set(**kwargs)
+    configs["plugin-host-export"] = config_entry("bldr/plugin/host/export", 1)
+    return configs
+
 def desktop_status_projector_config_set():
     return {
         "desktop-status-projector": config_entry("resource/desktop/status-projector", 1),
@@ -135,7 +144,7 @@ def spacewave_core_config(
             "github.com/s4wave/spacewave/core/cdn/v86copy.CopyV86ImageFromCdnWithProgress",
             "github.com/s4wave/spacewave/sdk/world/wizard/resource.LookupWizardObjectType",
         ],
-        "configSet": core_config_set(cloud_api_endpoint=cloud_api_endpoint),
+        "configSet": spacewave_core_config_set(cloud_api_endpoint=cloud_api_endpoint),
         "buildTypes": {
             "dev": {
                 "goPkgs": ["./core/debug/trace"],
@@ -877,7 +886,7 @@ def plugin_release_browser_manifest_overrides(manifest_id, release_environment="
     if manifest_id == "spacewave-core":
         if release_environment == "staging":
             core = browser_spacewave_core_config("GO_COMPILER_GOSCRIPT")
-            core["configSet"] = core_config_set(
+            core["configSet"] = spacewave_core_config_set(
                 cloud_api_endpoint=BROWSER_RELEASE_CLOUD_API_ENDPOINT,
                 account_endpoint="https://account-staging.spacewave.app",
                 signing_env_prefix="spacewave-staging",
@@ -982,7 +991,7 @@ def apply_release_environment(
     core = spacewave_core_config(web_go_compiler=web_go_compiler)
     include_export = web_go_compiler != "GO_COMPILER_GOSCRIPT"
     core["goPkgs"] = core_go_pkgs(include_export=include_export)
-    core["configSet"] = core_config_set(
+    core["configSet"] = spacewave_core_config_set(
         include_export=include_export,
         cloud_api_endpoint=worker_endpoint,
         account_endpoint=account_endpoint,

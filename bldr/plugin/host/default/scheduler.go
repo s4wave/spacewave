@@ -37,34 +37,6 @@ func StartPluginScheduler(
 	return StartPluginSchedulerWithConfig(ctx, b, schedConf)
 }
 
-// StartNativeDesktopPluginScheduler starts the native desktop plugin scheduler.
-func StartNativeDesktopPluginScheduler(
-	ctx context.Context,
-	b bus.Bus,
-	instanceKey,
-	engineID,
-	pluginHostObjectKey,
-	volID,
-	peerID string,
-	watchFetchManifest,
-	disableStoreManifest,
-	disableCopyManifest bool,
-	quickJSPluginIDs []string,
-) (sched *plugin_host_scheduler.Controller, rel func(), err error) {
-	schedConf := NewNativeDesktopSchedulerConfig(
-		instanceKey,
-		engineID,
-		pluginHostObjectKey,
-		volID,
-		peerID,
-		watchFetchManifest,
-		disableStoreManifest,
-		disableCopyManifest,
-		quickJSPluginIDs,
-	)
-	return StartPluginSchedulerWithConfig(ctx, b, schedConf)
-}
-
 // StartPluginSchedulerWithConfig starts the scheduler with an explicit runtime binding.
 func StartPluginSchedulerWithConfig(
 	ctx context.Context,
