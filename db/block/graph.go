@@ -100,10 +100,13 @@ func (g *BlockGraph) Nodes() []GraphNode {
 
 // From returns the nodes directly referenced by id, ordered by ID.
 func (g *BlockGraph) From(id int64) []GraphNode {
+	// Return nil without outgoing edges.
 	edges := g.from[id]
 	if len(edges) == 0 {
 		return nil
 	}
+
+	// Collect the referenced nodes in ID order.
 	nodes := make([]GraphNode, 0, len(edges))
 	for _, toID := range edges {
 		if node := g.nodes[toID]; node != nil {
@@ -118,6 +121,7 @@ func (g *BlockGraph) From(id int64) []GraphNode {
 
 // Edges returns all edges ordered by from then to node ID.
 func (g *BlockGraph) Edges() []GraphEdge {
+	// Collect every edge ordered by from then to node ID.
 	edges := make([]GraphEdge, 0, len(g.edges))
 	for _, edge := range g.edges {
 		edges = append(edges, edge)
@@ -133,6 +137,7 @@ func (g *BlockGraph) Edges() []GraphEdge {
 
 // RemoveEdge removes the edge between two nodes, if present.
 func (g *BlockGraph) RemoveEdge(fid, tid int64) {
+	// Drop the edge and its adjacency entries.
 	key := [2]int64{fid, tid}
 	if _, ok := g.edges[key]; !ok {
 		return
@@ -158,6 +163,7 @@ func removeAdjacent(adjacent map[int64][]int64, id, target int64) {
 
 // RemoveNode removes a node and its connected edges, if present.
 func (g *BlockGraph) RemoveNode(id int64) {
+	// Remove the node and every edge it participates in.
 	if g.nodes[id] == nil {
 		return
 	}
@@ -177,6 +183,7 @@ func (g *BlockGraph) RemoveNode(id int64) {
 // SetEdge adds or replaces an edge, adding its endpoints as needed.
 // Panics on self-edges.
 func (g *BlockGraph) SetEdge(e GraphEdge) {
+	// Reject a self-edge and add missing endpoints.
 	from := e.From()
 	to := e.To()
 	if from.ID() == to.ID() {
@@ -190,6 +197,8 @@ func (g *BlockGraph) SetEdge(e GraphEdge) {
 		g.AddNode(to)
 	}
 	g.nodes[to.ID()] = to
+
+	// Add the adjacency entries and store the edge.
 	fid, tid := from.ID(), to.ID()
 	key := [2]int64{fid, tid}
 	if _, exists := g.edges[key]; !exists {

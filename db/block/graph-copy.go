@@ -43,6 +43,7 @@ type CopySource interface {
 // holds without its refs, each wrapped with the block ref. Known, Complete
 // and Visited run on the calling goroutine, one at a time.
 func CopyGraph(ctx context.Context, src, dst StoreOps, root *BlockRef, opts *GraphCopyOptions) error {
+	// Skip an empty root and fill missing options.
 	if root.GetEmpty() {
 		return nil
 	}
@@ -52,6 +53,8 @@ func CopyGraph(ctx context.Context, src, dst StoreOps, root *BlockRef, opts *Gra
 	if cs, ok := src.(CopySource); ok {
 		src = cs.GetCopySource()
 	}
+
+	// Run the copy from the source to the destination.
 	c := &graphCopy{
 		src:   src,
 		dst:   dst,
@@ -96,14 +99,15 @@ type graphCopyRead struct {
 // run copies the graph under root. It returns only after every reader it
 // started has returned.
 func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
+	// Stop immediately when the root already has a complete copy.
 	known, err := c.known(ctx, []*BlockRef{root})
 	if err != nil || known[0] {
 		return err
 	}
 
+	// Start the bounded reader pool.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
 	reads := c.opts.Reads
 	if reads <= 0 {
 		reads = DefaultGraphCopyReads
@@ -117,10 +121,12 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		}
 	}()
 
+	// Copy blocks depth first until the queue drains.
 	rootNode := &graphCopyNode{ref: root}
 	c.nodes[root.MarshalString()] = rootNode
 	c.queue = append(c.queue, rootNode)
 	for {
+		// Fill the reader pool from the queue.
 		for inFlight < reads && len(c.queue) != 0 {
 			node := c.queue[len(c.queue)-1]
 			c.queue = c.queue[:len(c.queue)-1]
@@ -132,6 +138,8 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		if inFlight == 0 {
 			return nil
 		}
+
+		// Consume one result and expand its children.
 		res := <-results
 		inFlight--
 		if res.err != nil {
@@ -148,6 +156,7 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 
 // copyBlock reads one block with its refs from src and writes both to dst.
 func (c *graphCopy) copyBlock(ctx context.Context, node *graphCopyNode) graphCopyRead {
+	// Read the block with its refs from the source.
 	stored, err := c.src.GetStoredBlock(ctx, node.ref)
 	if err == nil && stored == nil {
 		err = ErrNotFound
@@ -155,6 +164,8 @@ func (c *graphCopy) copyBlock(ctx context.Context, node *graphCopyNode) graphCop
 	if err == nil && !stored.RefsKnown {
 		err = ErrRefsUnknown
 	}
+
+	// Write the block with its refs to the destination.
 	if err == nil {
 		err = c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
 			Ref:  node.ref,
@@ -171,6 +182,7 @@ func (c *graphCopy) copyBlock(ctx context.Context, node *graphCopyNode) graphCop
 // expand queues the children of a written block that are neither seen nor
 // known, and completes the block when none remain.
 func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*BlockRef) error {
+	// Link the children into the copy graph, collecting unseen ones.
 	var fresh []*graphCopyNode
 	for _, ref := range refs {
 		if ref.GetEmpty() {
@@ -190,6 +202,7 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*Blo
 		fresh = append(fresh, child)
 	}
 
+	// Skip known children and queue the rest for copying.
 	if len(fresh) != 0 {
 		refs := make([]*BlockRef, len(fresh))
 		for i, child := range fresh {
@@ -209,6 +222,8 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*Blo
 			c.queue = append(c.queue, child)
 		}
 	}
+
+	// Complete the node when no child is outstanding.
 	if node.waiting == 0 {
 		return c.complete(ctx, node)
 	}
@@ -218,6 +233,7 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*Blo
 // complete marks a block complete and completes each parent that no longer
 // waits on a child.
 func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
+	// Complete each node, then any parent it fully released.
 	stack := []*graphCopyNode{node}
 	for len(stack) != 0 {
 		node := stack[len(stack)-1]
@@ -241,9 +257,12 @@ func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
 
 // known reports which refs already have a complete copy.
 func (c *graphCopy) known(ctx context.Context, refs []*BlockRef) ([]bool, error) {
+	// Report nothing known without a Known callback.
 	if c.opts.Known == nil {
 		return make([]bool, len(refs)), nil
 	}
+
+	// Call the Known callback and validate its result length.
 	known, err := c.opts.Known(ctx, refs)
 	if err != nil {
 		return nil, err

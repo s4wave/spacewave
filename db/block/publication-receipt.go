@@ -54,6 +54,7 @@ func (r *PublicationReceipt) Done() <-chan struct{} { return r.doneCh }
 // Resolve completes a receipt exactly once. Only its owning publisher calls it.
 func (r *PublicationReceipt) Resolve(err error) {
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Resolve the receipt once and wake its waiters.
 		if r.resolved {
 			return
 		}

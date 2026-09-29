@@ -6,6 +6,7 @@ package block
 // their targets. Positions cleared by an earlier write are already released.
 // The caller must no longer use the discarded cursor position.
 func (c *Cursor) DiscardDetached() map[uint32]*Cursor {
+	// Reject an unusable cursor position.
 	if c == nil || c.t == nil || c.pos == nil {
 		return nil
 	}

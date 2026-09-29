@@ -13,11 +13,13 @@ import (
 // this for a newly constructed snapshot, not a buffer shared with other work.
 // It never removes blocks from the inner store.
 func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (bool, error) {
+	// Hold the drain lock for the exclusive reachable-set rewrite.
 	release, err := s.drainMu.Lock(ctx)
 	if err != nil {
 		return false, err
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Walk the pending graph from the roots, ordering children first.
 		keep := make(map[string]struct{})
 		type visit struct {
 			ref *BlockRef
@@ -27,6 +29,8 @@ func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (
 		for _, root := range roots {
 			stack = append(stack, visit{ref: root})
 		}
+
+		// Pop each visit, retaining reachable pending blocks in order.
 		var queue []string
 		for len(stack) != 0 {
 			if err = ctx.Err(); err != nil {
@@ -68,6 +72,8 @@ func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (
 			}
 		}
 		s.queue = queue
+
+		// Drop every pending block outside the retained set.
 		for key, pending := range s.pending {
 			if _, retained := keep[key]; !retained {
 				delete(s.pending, key)

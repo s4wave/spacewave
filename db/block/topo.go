@@ -11,10 +11,13 @@ type Unorderable [][]GraphNode
 
 // Error implements the error interface.
 func (e Unorderable) Error() string {
+	// Summarize when the component list would be too long.
 	n := len(e)
 	if n > maxCyclicComponentsInError {
 		return fmt.Sprintf("block: no topological ordering: %d nodes in %d cyclic components", n, len(e))
 	}
+
+	// List each cyclic component.
 	var b strings.Builder
 	b.WriteString("block: no topological ordering: cyclic components:")
 	for _, component := range e {
@@ -42,6 +45,7 @@ func (q *nodeQueue) Push(node any) { *q = append(*q, node.(GraphNode)) }
 
 // Pop removes the last heap entry and releases its reference.
 func (q *nodeQueue) Pop() any {
+	// Remove the last heap entry and release its reference.
 	last := len(*q) - 1
 	node := (*q)[last]
 	(*q)[last] = nil
@@ -54,8 +58,8 @@ func (q *nodeQueue) Pop() any {
 // The caller processes the result in reverse to encode referenced blocks
 // before their parents.
 func SortBlockGraph(g *BlockGraph) ([]GraphNode, error) {
+	// Count each node's incoming edges.
 	nodes := g.Nodes()
-
 	indegree := make(map[int64]int, len(nodes))
 	for _, nod := range nodes {
 		indegree[nod.ID()] += 0
@@ -72,6 +76,7 @@ func SortBlockGraph(g *BlockGraph) ([]GraphNode, error) {
 		}
 	}
 
+	// Pop ready nodes by ID, releasing their dependents.
 	sorted := make([]GraphNode, 0, len(nodes))
 	for len(queue) != 0 {
 		nod := heap.Pop(&queue).(GraphNode)
@@ -84,6 +89,7 @@ func SortBlockGraph(g *BlockGraph) ([]GraphNode, error) {
 		}
 	}
 
+	// Report the cyclic remainder when the sort is incomplete.
 	if len(sorted) != len(nodes) {
 		inSort := make(map[int64]bool, len(sorted))
 		for _, nod := range sorted {
