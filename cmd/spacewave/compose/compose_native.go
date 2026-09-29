@@ -23,6 +23,7 @@ import (
 // the resource listener, the root resource controller, the status projector and
 // the CLI commands.
 func composeNative(composition *compose.Composition) {
+	// Create the shared brokers and set the native desktop action.
 	yield := yield_policy.NewBroker()
 	status := resource_listener.NewStatusBroker()
 	composition.NativeAction = openDesktop

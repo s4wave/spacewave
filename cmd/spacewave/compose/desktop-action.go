@@ -31,12 +31,14 @@ func openDesktop(ctx context.Context, _ *logrus.Entry) error {
 // openDesktopWithConnector retains the launcher's connection until the daemon
 // acknowledges desktop presence, then releases only that connection.
 func openDesktopWithConnector(ctx context.Context, connector *daemon.Connector) error {
+	// Connect to the running daemon for the duration of the call.
 	client, err := connector.Connect(ctx, "", "")
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 
+	// Ask the daemon to open or focus the installed desktop app.
 	_, err = desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
 		ctx, &desktop_control.OpenOrFocusDesktopRequest{InstalledApp: installedApp()},
 	)
@@ -52,6 +54,7 @@ func openDesktopWithConnector(ctx context.Context, connector *daemon.Connector) 
 // installedApp returns the application bundle containing this executable, the
 // destination for desktop app updates, or empty outside a bundle.
 func installedApp() string {
+	// Resolve this process's executable path through its symlinks.
 	executable, err := os.Executable()
 	if err != nil {
 		return ""
@@ -60,6 +63,8 @@ func installedApp() string {
 	if err != nil {
 		return ""
 	}
+
+	// Detect the enclosing application bundle.
 	_, appDir := appbundle.Detect(executable)
 	return appDir
 }
