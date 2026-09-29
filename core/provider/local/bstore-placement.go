@@ -34,6 +34,7 @@ func (a *ProviderAccount) lookupAccountSettingsRef(ctx context.Context) (*sobjec
 
 // watchAccountSettings mounts the account settings for watching.
 func (a *ProviderAccount) watchAccountSettings(ctx context.Context, ref *sobject.SharedObjectRef) (*settingsWatch, error) {
+	// Mount the settings object and open its state for watching.
 	so, releaseSo, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		return nil, err
@@ -54,6 +55,7 @@ func (a *ProviderAccount) watchAccountSettings(ctx context.Context, ref *sobject
 
 // next waits for the next settings change and returns the settings.
 func (w *settingsWatch) next(ctx context.Context) (*account_settings.AccountSettings, error) {
+	// Wait for the next settings change and decode it.
 	snapshot, err := w.states.WaitValueChange(ctx, w.snapshot, nil)
 	if err != nil {
 		return nil, err
@@ -67,10 +69,13 @@ func (w *settingsWatch) next(ctx context.Context) (*account_settings.AccountSett
 // backend holding the store, or nil when the store is on the account's own
 // storage.
 func (t *bstoreTracker) nextBackend(ctx context.Context, watch *settingsWatch) (*account_settings.StorageBackend, error) {
+	// Read the next settings change and resolve this store's backend.
 	settings, err := watch.next(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve the placement and its storage backend for this store.
 	placement := settings.FindBlockStorePlacement(t.id)
 	if placement == nil {
 		return nil, nil
@@ -86,6 +91,7 @@ func (t *bstoreTracker) nextBackend(ctx context.Context, watch *settingsWatch) (
 // runs, so writes queued in a closed Space still upload, and deletes the
 // objects of the block stores that left a backend.
 func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
+	// Watch the account settings for placement changes.
 	ref, err := a.lookupAccountSettingsRef(ctx)
 	if err != nil || ref == nil {
 		return err
@@ -96,23 +102,29 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 	}
 	defer watch.release()
 
+	// Hold a reference on every placed block store while the account runs.
 	releases := a.newStorageReleases()
 	releases.SetContext(ctx, true)
 	defer releases.SetContext(nil, false)
 
+	// Track the stores this replica holds by block store ID.
 	held := make(map[string]*keyed.KeyedRef[string, *bstoreTracker])
 	defer func() {
 		for _, ref := range held {
 			ref.Release()
 		}
 	}()
+
+	// Sync pending releases with the settings' pending placements.
 	for {
 		settings, err := watch.next(ctx)
 		if err != nil {
 			return err
 		}
+
 		releases.SyncKeys(pendingStorageReleases(settings), false)
 
+		// Release stores that left a backend and hold newly placed stores.
 		placed := make(map[string]struct{}, len(settings.GetBlockStorePlacements()))
 		for _, placement := range settings.GetBlockStorePlacements() {
 			placed[placement.GetBlockStoreId()] = struct{}{}
@@ -165,6 +177,7 @@ func (t *bstoreTracker) runUpload(
 	wb *block_store_writeback.Store,
 	backend *account_settings.StorageBackend,
 ) error {
+	// Reopen the backend store when the placement changed.
 	remote := t.remote.Load()
 	if remote == nil || !remote.backend.EqualVT(backend) {
 		store, err := t.openBackendStore(ctx, backend)
@@ -175,6 +188,8 @@ func (t *bstoreTracker) runUpload(
 		remote = &openBackend{backend: backend, store: store}
 		t.swapRemote(remote)
 	}
+
+	// Upload the queued blocks, closing the store when the context ends.
 	err := wb.Upload(ctx, remote.store)
 	if ctx.Err() != nil {
 		t.swapRemote(nil)
@@ -187,6 +202,7 @@ func (t *bstoreTracker) openBackendStore(
 	ctx context.Context,
 	backend *account_settings.StorageBackend,
 ) (backendStore, error) {
+	// Open the backend's bucket with its credential Secret.
 	creds, err := t.a.ReadStorageCredentials(ctx, backend)
 	if err != nil {
 		return nil, err
