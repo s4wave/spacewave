@@ -110,7 +110,7 @@ func TestHarnessStateRootSerialOwnersReuseStableRoot(t *testing.T) {
 	assertHarnessStateRootPathMissing(t, filepath.Join(stableStateRoot, harnessStateRootOwnerName))
 
 	durable := filepath.Join(stableStateRoot, "build", "cached")
-	transient := filepath.Join(stableStateRoot, "src", "stale")
+	transient := filepath.Join(stableStateRoot, "plugin", "stale")
 	for _, path := range []string{durable, transient} {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
