@@ -130,9 +130,9 @@ func runCopiedDaemonFixture(statePath, pipeID string) (retErr error) {
 	}
 }
 
-// TestDesktopStarterUsesOutsideBundleExecutable proves copied bootstrap,
-// concurrent attachment, and later attachment without the bundled source.
-func TestDesktopStarterUsesOutsideBundleExecutable(t *testing.T) {
+// TestDesktopStarterUsesCopiedBundle proves copied bootstrap, concurrent
+// attachment, and later attachment without the installed bundle source.
+func TestDesktopStarterUsesCopiedBundle(t *testing.T) {
 	// Copy this built test executable into an isolated fake app bundle.
 	statePath := desktopActionStatePath(t)
 	t.Setenv(copiedDaemonFixtureEnv, "1")
@@ -233,7 +233,8 @@ func TestDesktopStarterUsesOutsideBundleExecutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.GetDaemonPid() <= 0 || strings.Contains(first.GetDaemonExecutable(), ".app") || !strings.HasPrefix(first.GetDaemonExecutable(), filepath.Join(statePath, "daemon-bin")) {
+	copied := filepath.Join(statePath, "daemon-bin")
+	if first.GetDaemonPid() <= 0 || !strings.HasPrefix(first.GetDaemonExecutable(), copied) || !strings.HasSuffix(first.GetDaemonExecutable(), filepath.Join(".app", "Contents", "MacOS", "spacewave")) {
 		t.Fatalf("daemon identity: pid=%d executable=%q", first.GetDaemonPid(), first.GetDaemonExecutable())
 	}
 	if first.GetUiManifestRef() != "fixture/web" {

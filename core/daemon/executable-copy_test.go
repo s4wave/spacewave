@@ -45,11 +45,14 @@ func TestPrepareVerifiedExecutableRejectsChangedSource(t *testing.T) {
 func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 	// Place source bytes in a fake bundle and select an independent state root.
 	root := daemonTestRoot(t)
-	bundle := filepath.Join(root, "Spacewave.app", "Contents", "MacOS")
-	if err := os.MkdirAll(bundle, 0o700); err != nil {
+	contents := filepath.Join(root, "Spacewave.app", "Contents")
+	if err := os.MkdirAll(filepath.Join(contents, "MacOS"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	source := filepath.Join(bundle, "spacewave")
+	if err := os.WriteFile(filepath.Join(contents, "Info.plist"), []byte("plist"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(contents, "MacOS", "spacewave")
 	state := filepath.Join(root, "state")
 	if err := os.Mkdir(state, 0o700); err != nil {
 		t.Fatal(err)
@@ -67,11 +70,18 @@ func TestCopyExecutablePublishesVerifiedVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first != again || strings.Contains(first, ".app") {
-		t.Fatalf("verified copy path: first=%q again=%q", first, again)
+	digest := sha256.Sum256([]byte("first executable"))
+	want := filepath.Join(state, "daemon-bin", hex.EncodeToString(digest[:])+".app", "Contents", "MacOS", "spacewave")
+	if first != want || again != want {
+		t.Fatalf("verified copy path: first=%q again=%q want=%q", first, again, want)
 	}
 	if data, err := os.ReadFile(first); err != nil || string(data) != "first executable" {
 		t.Fatalf("copied executable: %q, %v", data, err)
+	}
+
+	// The signature's bound Info.plist travels with the executable.
+	if data, err := os.ReadFile(filepath.Join(filepath.Dir(filepath.Dir(first)), "Info.plist")); err != nil || string(data) != "plist" {
+		t.Fatalf("copied Info.plist: %q, %v", data, err)
 	}
 
 	// A newer source gets a new name while the old executable stays intact.
