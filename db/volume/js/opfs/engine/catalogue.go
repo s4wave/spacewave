@@ -9,6 +9,7 @@ import (
 
 // readCatalogue decodes and validates one bounded immutable routing page.
 func (e *Engine) readCatalogue(ctx context.Context, name string) (*Catalogue, error) {
+	// Return a cached page after checking its concrete type.
 	if cached, err := e.cachedMessage(ctx, name); cached != nil || err != nil {
 		if err != nil {
 			return nil, err
@@ -19,6 +20,8 @@ func (e *Engine) readCatalogue(ctx context.Context, name string) (*Catalogue, er
 		}
 		return page, nil
 	}
+
+	// Read and decode the page's encoded bytes.
 	data, err := e.readFile(ctx, name)
 	if err != nil {
 		return nil, err
@@ -27,9 +30,13 @@ func (e *Engine) readCatalogue(ctx context.Context, name string) (*Catalogue, er
 	if err := decode(data, page); err != nil {
 		return nil, err
 	}
+
+	// Reject pages without exactly one of children or partitions, or beyond the fanout.
 	if (len(page.Children) == 0) == (len(page.Partitions) == 0) || len(page.Children) > pageFanout || len(page.Partitions) > pageFanout {
 		return nil, ErrCorrupt
 	}
+
+	// Check children carry files and strictly increasing lower bounds.
 	var previous []byte
 	for i, child := range page.Children {
 		if child == nil || child.File == "" || len(child.Lower) > maxKeyBytes || (i > 0 && bytes.Compare(previous, child.Lower) >= 0) {
@@ -37,12 +44,16 @@ func (e *Engine) readCatalogue(ctx context.Context, name string) (*Catalogue, er
 		}
 		previous = child.Lower
 	}
+
+	// Check partitions carry valid runs and strictly increasing lower bounds.
 	for i, partition := range page.Partitions {
 		if partition == nil || len(partition.Lower) > maxKeyBytes || len(partition.Runs) > partitionRunLimit || slices.ContainsFunc(partition.Runs, invalidRunFile) || (i > 0 && bytes.Compare(previous, partition.Lower) >= 0) {
 			return nil, ErrCorrupt
 		}
 		previous = partition.Lower
 	}
+
+	// Cache the validated page and return it.
 	e.cacheMessage(name, page, len(data)*2+(len(page.Children)+len(page.Partitions))*192)
 	return page, nil
 }
@@ -54,6 +65,7 @@ func invalidRunFile(file *RunFile) bool {
 
 // readRun decodes a sorted run with bounded records and encoded size.
 func (e *Engine) readRun(ctx context.Context, name string) (*Run, error) {
+	// Return a cached run after checking its concrete type.
 	if cached, err := e.cachedMessage(ctx, name); cached != nil || err != nil {
 		if err != nil {
 			return nil, err
@@ -64,6 +76,8 @@ func (e *Engine) readRun(ctx context.Context, name string) (*Run, error) {
 		}
 		return run, nil
 	}
+
+	// Read the run's bytes and reject files beyond the run size bound.
 	data, err := e.readFile(ctx, name)
 	if err != nil {
 		return nil, err
@@ -71,6 +85,8 @@ func (e *Engine) readRun(ctx context.Context, name string) (*Run, error) {
 	if len(data) > maxRunBytes {
 		return nil, ErrCorrupt
 	}
+
+	// Decode the run and validate its records.
 	run := new(Run)
 	if err := decode(data, run); err != nil {
 		return nil, err
@@ -78,12 +94,15 @@ func (e *Engine) readRun(ctx context.Context, name string) (*Run, error) {
 	if err := validateRecords(run.Records); err != nil {
 		return nil, ErrCorrupt
 	}
+
+	// Cache the validated run and return it.
 	e.cacheMessage(name, run, len(data)*2+len(run.Records)*192)
 	return run, nil
 }
 
 // updateCatalogue rewrites only paths containing this sorted mutation batch.
 func (p *publication) updateCatalogue(ctx context.Context, name string, records []*Record) ([]*Child, error) {
+	// Read the page and retire its cache entry before rewriting it.
 	page, err := p.engine.readCatalogue(ctx, name)
 	if err != nil {
 		return nil, err
@@ -151,10 +170,13 @@ func (p *publication) updateCatalogue(ctx context.Context, name string, records 
 // merge reaching the oldest run discards deletion records and splits the output,
 // so one also runs once pending deletions could hide half the oldest run.
 func (p *publication) updatePartition(ctx context.Context, partition *Partition, records []*Record) ([]*Partition, error) {
+	// Extend the partition's lower bound to cover the batch.
 	lower := partition.Lower
 	if bytes.Compare(records[0].Key, lower) < 0 {
 		lower = records[0].Key
 	}
+
+	// Sum the batch's encoded size and deletions plus retained runs' deletions.
 	var encodedSize, deleted int
 	for _, record := range records {
 		encodedSize += record.SizeVT() + 8
@@ -197,6 +219,7 @@ func (p *publication) updatePartition(ctx context.Context, partition *Partition,
 		return []*Partition{{Lower: lower, Runs: runs}}, nil
 	}
 
+	// Merge every run with the batch and drop deletion records.
 	all, err := p.mergeRuns(ctx, runs, records, false)
 	if err != nil || len(all) == 0 {
 		return nil, err
@@ -233,6 +256,7 @@ func (p *publication) updatePartition(ctx context.Context, partition *Partition,
 // Deletion records survive only when keepDeleted is set, because a merge that
 // excludes the oldest run must keep hiding the older values it holds.
 func (p *publication) mergeRuns(ctx context.Context, runs []*RunFile, records []*Record, keepDeleted bool) ([]*Record, error) {
+	// Overlay each run's records with the batch by key.
 	merged := make(map[string]*Record)
 	for _, file := range runs {
 		run, err := p.engine.readRun(ctx, file.GetName())
@@ -247,6 +271,8 @@ func (p *publication) mergeRuns(ctx context.Context, runs []*RunFile, records []
 	for _, record := range records {
 		merged[string(record.Key)] = record
 	}
+
+	// Collect the surviving records in key order.
 	all := make([]*Record, 0, len(merged))
 	for _, record := range merged {
 		if keepDeleted || !record.Deleted {
@@ -259,6 +285,7 @@ func (p *publication) mergeRuns(ctx context.Context, runs []*RunFile, records []
 
 // addRun retains one sorted run and records its encoded size.
 func (p *publication) addRun(records []*Record) (*RunFile, error) {
+	// Encode the run and add its bytes to the publication.
 	data, err := encode(&Run{Records: records})
 	if err != nil {
 		return nil, err
@@ -267,6 +294,8 @@ func (p *publication) addRun(records []*Record) (*RunFile, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Record the run's encoded size and deletion count.
 	file := &RunFile{Name: name, Bytes: uint32(len(data)), Records: uint32(len(records))} //nolint:gosec // addBytes bounds data by maxPublicationBytes.
 	for _, record := range records {
 		if record.Deleted {

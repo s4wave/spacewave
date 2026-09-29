@@ -14,6 +14,7 @@ func (s *snapshot) seekEntries(ctx context.Context, key []byte, exclusive, rever
 
 // seekPage visits only routing ranges that can follow the requested boundary.
 func (s *snapshot) seekPage(ctx context.Context, name string, key []byte, exclusive, reverse bool) ([]*Record, error) {
+	// Read the page and count its routing entries.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -25,6 +26,8 @@ func (s *snapshot) seekPage(ctx context.Context, name string, key []byte, exclus
 	if count == 0 {
 		count = len(page.Partitions)
 	}
+
+	// Visit each entry in scan order, skipping ranges beyond the boundary.
 	for step := range count {
 		i := step
 		if reverse {
@@ -45,6 +48,8 @@ func (s *snapshot) seekPage(ctx context.Context, name string, key []byte, exclus
 		if key != nil && ((!reverse && upper != nil && bytes.Compare(key, upper) >= 0) || (reverse && bytes.Compare(key, lower) < 0)) {
 			continue
 		}
+
+		// Descend into the child page or read the partition's entries.
 		var records []*Record
 		if len(page.Children) != 0 {
 			records, err = s.seekPage(ctx, page.Children[i].File, key, exclusive, reverse)
@@ -60,6 +65,7 @@ func (s *snapshot) seekPage(ctx context.Context, name string, key []byte, exclus
 
 // partitionEntries resolves newest values before returning bounded live entries.
 func (s *snapshot) partitionEntries(ctx context.Context, partition *Partition, key []byte, exclusive, reverse bool) ([]*Record, error) {
+	// Overlay the partition's runs by key so the newest record wins.
 	latest := make(map[string]*Record)
 	for _, file := range partition.Runs {
 		run, err := s.engine.readRun(ctx, file.GetName())
@@ -70,6 +76,8 @@ func (s *snapshot) partitionEntries(ctx context.Context, partition *Partition, k
 			latest[string(record.Key)] = record
 		}
 	}
+
+	// Collect live records within the boundary and sort them in scan order.
 	records := make([]*Record, 0, len(latest))
 	for _, record := range latest {
 		if record.Deleted {

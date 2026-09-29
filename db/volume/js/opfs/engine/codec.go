@@ -55,6 +55,7 @@ func encode(value message) ([]byte, error) {
 
 // decode validates framing before decoding a persistent record.
 func decode(data []byte, value message) error {
+	// Verify the trailing checksum over the encoded body.
 	if len(data) < 4 {
 		return ErrCorrupt
 	}
@@ -62,6 +63,8 @@ func decode(data []byte, value message) error {
 	if crc32.ChecksumIEEE(body) != binary.LittleEndian.Uint32(data[len(body):]) {
 		return ErrCorrupt
 	}
+
+	// Decode the body into the record.
 	if err := value.UnmarshalVT(body); err != nil {
 		return errors.Join(ErrCorrupt, err)
 	}

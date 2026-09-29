@@ -56,12 +56,15 @@ func (s *readSet) addKey(key []byte) {
 // conflicts reports whether current changed any range observed in before.
 // The caller holds publication authority and file protection for both roots.
 func (e *Engine) conflicts(ctx context.Context, reads *readSet, before, current *Root) (bool, error) {
+	// Report no conflict when the revision is unchanged or the read set overflowed.
 	if before.Revision == current.Revision {
 		return false, nil
 	}
 	if reads.overflow {
 		return true, nil
 	}
+
+	// Compare each observed range between the two generations.
 	c := &comparison{
 		before:  &snapshot{engine: e, root: before},
 		current: &snapshot{engine: e, root: current},
@@ -90,6 +93,7 @@ type comparison struct {
 // changed reports whether the live records within r differ between generations.
 // Partitions with identical bounds and immutable runs hold identical records.
 func (c *comparison) changed(ctx context.Context, r keyRange) (bool, error) {
+	// Collect the partitions overlapping r in both generations.
 	before, err := c.before.partitions(ctx, c.before.root.Catalogue, r, nil)
 	if err != nil {
 		return false, err
@@ -98,9 +102,13 @@ func (c *comparison) changed(ctx context.Context, r keyRange) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	// Skip the record comparison when the partition sets are identical.
 	if slices.EqualFunc(before, current, (*Partition).EqualVT) {
 		return false, nil
 	}
+
+	// Compare the ordered live records of each generation within r.
 	beforeRecords, err := c.records(ctx, c.before, before, r)
 	if err != nil {
 		return false, err
@@ -114,6 +122,7 @@ func (c *comparison) changed(ctx context.Context, r keyRange) (bool, error) {
 
 // records returns the ordered live records within r from the given partitions.
 func (c *comparison) records(ctx context.Context, s *snapshot, partitions []*Partition, r keyRange) ([]*Record, error) {
+	// Merge each partition's entries once and collect records within r.
 	var out []*Record
 	for _, partition := range partitions {
 		entries, ok := c.entries[partition]
@@ -136,6 +145,7 @@ func (c *comparison) records(ctx context.Context, s *snapshot, partitions []*Par
 
 // partitions appends the ordered partitions whose bounds intersect r.
 func (s *snapshot) partitions(ctx context.Context, name string, r keyRange, out []*Partition) ([]*Partition, error) {
+	// Read the routing page and descend into overlapping children.
 	page, err := s.engine.readCatalogue(ctx, name)
 	if err != nil {
 		return nil, err
@@ -153,6 +163,8 @@ func (s *snapshot) partitions(ctx context.Context, name string, r keyRange, out 
 			return nil, err
 		}
 	}
+
+	// Append the page's overlapping leaf partitions.
 	for i, partition := range page.Partitions {
 		var upper []byte
 		if i+1 < len(page.Partitions) {

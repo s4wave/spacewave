@@ -42,6 +42,7 @@ func (e *Engine) protect(ctx context.Context) (func(), error) {
 
 // unprotect releases backend protection after the last local operation ends.
 func (e *Engine) unprotect() {
+	// Drop the local reader count and capture the backend release when empty.
 	e.mtx.Lock()
 	e.readers--
 	var release func()
@@ -50,6 +51,8 @@ func (e *Engine) unprotect() {
 		e.releaseReaders = nil
 	}
 	e.mtx.Unlock()
+
+	// Release backend protection once the last local reader leaves.
 	if release != nil {
 		release()
 	}

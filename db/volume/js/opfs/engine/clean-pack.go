@@ -19,12 +19,16 @@ type preparedExtent struct {
 // Preparation does not hold the publication lock; each copied location is
 // compared again before it can replace a current index entry.
 func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
+	// Copy the oldest dirty pack's still-live extents outside the publication lock.
 	key, name, extents, err := e.preparePack(ctx)
 	if err != nil || key == nil {
 		return false, err
 	}
 	progress := false
+
+	// Recheck the queue entry and source pack under the publication lock.
 	err = e.mutate(ctx, func(read *snapshot, p *publication) ([]*Record, error) {
+		// Compare the queued pack name and decode the current pack record.
 		queued, found, err := read.get(ctx, key)
 		if err != nil || !found {
 			return nil, err
@@ -47,6 +51,8 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 		// Keep only extents that still point to exactly the copied source version.
 		var payload []byte
 		pack := new(Pack)
+
+		// Recheck each extent's location and append its payload to the new pack.
 		for _, extent := range extents {
 			current, found, err := read.get(ctx, extent.record.Key)
 			if err != nil {
@@ -72,11 +78,18 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 			pack.Records = append(pack.Records, &Record{Key: extent.record.Key, Value: encoded})
 			pack.LiveBytes += uint64(location.Length)
 		}
+
+		// Reject the pack when live bytes drift or the payload exceeds the bound.
 		if pack.LiveBytes != source.LiveBytes || len(payload) > maxPackBytes {
 			return nil, ErrCorrupt
 		}
+
+		// Delete the queue entry and the old pack record.
 		records := []*Record{{Key: key, Deleted: true}, {Key: []byte(packPrefix + name), Deleted: true}}
+
+		// Add the rewritten pack and repoint its records' locations.
 		if len(payload) != 0 {
+			// Write the payload as a new pack file.
 			newName, err := p.addBytes("pack", payload)
 			if err != nil {
 				return nil, err
@@ -100,6 +113,8 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 			}
 			records = append(records, &Record{Key: []byte(packPrefix + newName), Value: encoded})
 		}
+
+		// Drop the old pack from the cache and report progress.
 		p.retire(name)
 		progress = true
 		return records, nil
@@ -109,6 +124,7 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 
 // preparePack copies one bounded pack's still-live extents with file protection.
 func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExtent, error) {
+	// Take a snapshot and read the oldest cleanup queue entry.
 	read, err := e.snapshot(ctx)
 	if err != nil {
 		return nil, "", nil, err
@@ -122,6 +138,8 @@ func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExt
 		return nil, "", nil, nil
 	}
 	key, name := records[0].Key, string(records[0].Value)
+
+	// Read the named pack and validate its bounds and cleanup key.
 	data, found, err := read.get(ctx, []byte(packPrefix+name))
 	if err != nil {
 		return nil, "", nil, err
@@ -136,6 +154,7 @@ func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExt
 	if len(pack.Records) > maxPackRecords || pack.LiveBytes > maxPackBytes || !bytes.Equal(pack.CleanupKey, key) {
 		return nil, "", nil, ErrCorrupt
 	}
+
 	// Open a source pack only once; copied extents retain this bounded byte slice.
 	var payload []byte
 	if pack.LiveBytes != 0 {
@@ -147,12 +166,16 @@ func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExt
 			return nil, "", nil, ErrCorrupt
 		}
 	}
+
+	// Recheck each record's location and copy its payload extent.
 	var extents []preparedExtent
 	var liveBytes uint64
 	for _, record := range pack.Records {
 		if record == nil {
 			return nil, "", nil, ErrCorrupt
 		}
+
+		// Compare the record's current index entry with the snapshot.
 		current, found, err := read.get(ctx, record.Key)
 		if err != nil {
 			return nil, "", nil, err
@@ -160,6 +183,7 @@ func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExt
 		if !found || !sameLocation(current, record.Value) {
 			continue
 		}
+		// Validate the current location against the source pack.
 		location := new(Location)
 		if err := decode(current, location); err != nil {
 			return nil, "", nil, err
@@ -173,6 +197,7 @@ func (e *Engine) preparePack(ctx context.Context) ([]byte, string, []preparedExt
 		if int(location.PackBytes) != len(payload) {
 			return nil, "", nil, ErrCorrupt
 		}
+		// Copy the extent's bytes and check its checksum and size bound.
 		data := payload[location.Offset : location.Offset+uint64(location.Length)]
 		if crc32.ChecksumIEEE(data) != location.Checksum {
 			return nil, "", nil, ErrCorrupt

@@ -16,12 +16,15 @@ const journalPrefix = "\x03w"
 // Append durably journals one ownership transition while sharing the GC barrier.
 // Sequence allocation and the journal record publish in the same engine root.
 func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	// Reject empty and oversized edge batches.
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
 	if len(adds)+len(removes) > maxBatchRecords {
 		return ErrLimit
 	}
+
+	// Build the journal entry from the add and remove edges.
 	entry := new(JournalEntry)
 	for _, edges := range [][]block_gc.RefEdge{adds, removes} {
 		for _, edge := range edges {
@@ -36,6 +39,8 @@ func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) e
 	for _, edge := range removes {
 		entry.Removes = append(entry.Removes, &Edge{Subject: edge.Subject, Object: edge.Object})
 	}
+
+	// Encode the entry and reject records beyond the value bound.
 	data, err := encode(entry)
 	if err != nil {
 		return err
@@ -44,6 +49,8 @@ func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) e
 		return ErrLimit
 	}
 	workload.Record{Op: workload.OpJournalAppend, Size: int64(len(data))}.Log(ctx)
+
+	// Hold the GC stop-the-world lock and publish the sequence-numbered record.
 	release, err := e.backend.Lock(ctx, "gc-stw", false)
 	if err != nil {
 		return err
@@ -60,12 +67,16 @@ func (e *Engine) Append(ctx context.Context, adds, removes []block_gc.RefEdge) e
 // ReplayWAL serializes ordered replay and removes each entry only after application.
 // Repeating an entry after interruption is safe because graph updates are idempotent.
 func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (count int, err error) {
+	// Record the replayed entry count when replay finishes.
 	defer func() { workload.Record{Op: workload.OpJournalReplay, Size: int64(count)}.Log(ctx) }()
+
+	// Hold the replay lock so appends wait until replay completes.
 	release, err := e.backend.Lock(ctx, "gc-replay", true)
 	if err != nil {
 		return 0, err
 	}
 	defer release()
+
 	// Replay only entries present at this fence so concurrent appenders cannot starve GC.
 	read, err := e.snapshot(ctx)
 	if err != nil {
@@ -73,6 +84,8 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 	}
 	fence := read.root.JournalSequence
 	read.release()
+
+	// Apply each entry to the graph, then delete its record in commit order.
 	for {
 		key, entry, err := e.nextJournalEntry(ctx)
 		if err != nil || entry == nil {
@@ -81,6 +94,8 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 		if binary.BigEndian.Uint64(key[len(journalPrefix):]) > fence {
 			return count, nil
 		}
+
+		// Convert the entry's edges and apply them to the collector graph.
 		adds := make([]block_gc.RefEdge, len(entry.Adds))
 		removes := make([]block_gc.RefEdge, len(entry.Removes))
 		for i, edge := range entry.Adds {
@@ -92,6 +107,8 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 		if err := graph.ApplyRefBatch(ctx, adds, removes); err != nil {
 			return count, err
 		}
+
+		// Delete the applied entry so a repeat stays idempotent.
 		if err := e.Apply(ctx, []*Record{{Key: key, Deleted: true}}); err != nil {
 			return count, err
 		}
@@ -101,6 +118,7 @@ func (e *Engine) ReplayWAL(ctx context.Context, graph block_gc.CollectorGraph) (
 
 // nextJournalEntry copies one bounded record before releasing file protection.
 func (e *Engine) nextJournalEntry(ctx context.Context) ([]byte, *JournalEntry, error) {
+	// Take a snapshot and find the oldest journal record.
 	read, err := e.snapshot(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -113,6 +131,8 @@ func (e *Engine) nextJournalEntry(ctx context.Context) ([]byte, *JournalEntry, e
 	if len(records) == 0 || !bytes.HasPrefix(records[0].Key, []byte(journalPrefix)) {
 		return nil, nil, nil
 	}
+
+	// Decode the oldest record and return it with its key.
 	entry, err := decodeJournalRecord(records[0])
 	if err != nil {
 		return nil, nil, err
@@ -123,12 +143,14 @@ func (e *Engine) nextJournalEntry(ctx context.Context) ([]byte, *JournalEntry, e
 // GetPendingOutgoingRefs scans the unreplayed journal in one snapshot for
 // edges from node. Journal order applies each removal after earlier additions.
 func (e *Engine) GetPendingOutgoingRefs(ctx context.Context, node string) ([]string, error) {
+	// Scan the journal pages in one protected snapshot.
 	read, err := e.snapshot(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer read.release()
 
+	// Accumulate the pending targets over the whole unreplayed journal.
 	var targets []string
 	key, exclusive := []byte(journalPrefix), false
 	for {
@@ -136,6 +158,8 @@ func (e *Engine) GetPendingOutgoingRefs(ctx context.Context, node string) ([]str
 		if err != nil {
 			return nil, err
 		}
+
+		// Apply each entry's edges for node in journal order.
 		for _, record := range records {
 			if !bytes.HasPrefix(record.Key, []byte(journalPrefix)) {
 				return targets, nil
@@ -158,12 +182,15 @@ func (e *Engine) GetPendingOutgoingRefs(ctx context.Context, node string) ([]str
 		if len(records) == 0 {
 			return targets, nil
 		}
+
+		// Continue the scan after the last returned record.
 		key, exclusive = records[len(records)-1].Key, true
 	}
 }
 
 // decodeJournalRecord decodes and bounds one journal record.
 func decodeJournalRecord(record *Record) (*JournalEntry, error) {
+	// Reject a key without a sequence suffix and decode the entry.
 	if len(record.Key) != len(journalPrefix)+8 {
 		return nil, ErrCorrupt
 	}
@@ -171,6 +198,8 @@ func decodeJournalRecord(record *Record) (*JournalEntry, error) {
 	if err := decode(record.Value, entry); err != nil {
 		return nil, err
 	}
+
+	// Reject entries beyond the batch bound or with invalid edges.
 	if len(entry.Adds)+len(entry.Removes) > maxBatchRecords {
 		return nil, ErrCorrupt
 	}

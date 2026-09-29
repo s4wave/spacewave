@@ -94,6 +94,7 @@ func (s *scopedStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Blo
 
 // pendingEntry overlays current admission and the operation's original pending data.
 func (s *scopedStore) pendingEntry(ctx context.Context, ref *block.BlockRef) (*block.PutBatchEntry, error) {
+	// Prefer the owner's current admission, then this scope's captured pending data.
 	entry, err := s.owner.pendingEntry(ctx, ref)
 	if err != nil || entry != nil {
 		return entry, err

@@ -261,6 +261,7 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	defer task.End()
 	var payloadBytes, tombstones int
 
+	// Check each entry's reference, payload size, and data hash.
 	for _, entry := range entries {
 		if entry == nil {
 			return block.ErrEmptyBlockRef
@@ -320,6 +321,7 @@ func (s *BlockStore) sync(ctx context.Context) (bool, error) {
 	if err := s.check(ctx); err != nil {
 		return false, err
 	}
+
 	// Volume shutdown cancels caller-owned fences as well as background writeback.
 	ctx, cancel := context.WithCancel(ctx)
 	stop := context.AfterFunc(s.ctx, cancel)
@@ -381,6 +383,7 @@ func (s *BlockStore) sync(ctx context.Context) (bool, error) {
 
 // pendingEntry returns immutable local read-through state after lifetime checks.
 func (s *BlockStore) pendingEntry(ctx context.Context, ref *block.BlockRef) (*block.PutBatchEntry, error) {
+	// Verify the store is open and derive the block's key.
 	if err := s.check(ctx); err != nil {
 		return nil, err
 	}
@@ -499,9 +502,11 @@ func (s *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 
 // beginRead opens a numbered read scope without recording its lifetime.
 func (s *BlockStore) beginRead(ctx context.Context) (*scopedStore, func(), error) {
+	// Reject closed stores before opening the read scope.
 	if err := s.check(ctx); err != nil {
 		return nil, nil, err
 	}
+
 	// Preserve admitted values if writeback drains while this operation is active.
 	s.mtx.Lock()
 	pending := maps.Clone(s.pending)

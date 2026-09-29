@@ -128,6 +128,7 @@ func Open(ctx context.Context, backend Backend) (_ *Engine, retErr error) {
 
 // Close releases instance cache state and rejects subsequent operations.
 func (e *Engine) Close() error {
+	// Mark the engine closed and drop its cache under the engine lock.
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 	if e.closed {
@@ -138,6 +139,8 @@ func (e *Engine) Close() error {
 	e.cache = nil
 	e.recency.Init()
 	e.cacheBytes = 0
+
+	// Close the backend and release its storage.
 	return e.backend.Close()
 }
 
@@ -191,6 +194,7 @@ func (e *Engine) loadRoot(ctx context.Context) (*Root, error) {
 	secondData, secondErr := e.backend.Read(ctx, "root-1", 0, readAll)
 	firstData, firstErr := first.Await(context.WithoutCancel(ctx))
 
+	// Pick the valid descriptor with the highest generation.
 	var best *Root
 	var invalid error
 	for slot := range 2 {
@@ -279,6 +283,7 @@ func (e *Engine) apply(ctx context.Context, base *Root, reads *readSet, records 
 	if len(records) == 0 {
 		return nil
 	}
+
 	// Build the next immutable generation before replacing either descriptor.
 	p := newPublication(e, root)
 	p.root.Revision++
@@ -295,9 +300,12 @@ func (e *Engine) apply(ctx context.Context, base *Root, reads *readSet, records 
 
 // validateRecords enforces the transaction memory and ordering bounds.
 func validateRecords(records []*Record) error {
+	// Reject a batch beyond the record count bound.
 	if len(records) > maxBatchRecords {
 		return ErrLimit
 	}
+
+	// Check each record's key ordering, sizes, and the batch memory bound.
 	var size int
 	var previous string
 	for i, record := range records {
@@ -319,6 +327,7 @@ func validateRecords(records []*Record) error {
 
 // hasIdentity distinguishes an initialized volume from interrupted first creation.
 func (e *Engine) hasIdentity(ctx context.Context) (bool, error) {
+	// Read the identity entry and treat a missing file as uninitialized.
 	data, err := e.backend.Read(ctx, "identity", 0, readAll)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
@@ -326,10 +335,13 @@ func (e *Engine) hasIdentity(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	// Only first initialization writes this entry; an empty file was never committed.
 	if len(data) == 0 {
 		return false, nil
 	}
+
+	// Reject an identity entry with unexpected contents.
 	if !bytes.Equal(data, []byte("immutable-opfs-3\n")) {
 		return false, ErrCorrupt
 	}
@@ -338,6 +350,7 @@ func (e *Engine) hasIdentity(ctx context.Context) (bool, error) {
 
 // ensureIdentity makes successful initialization durable before exposing writes.
 func (e *Engine) ensureIdentity(ctx context.Context) error {
+	// Write the identity entry only when it is still absent.
 	found, err := e.hasIdentity(ctx)
 	if err != nil || found {
 		return err

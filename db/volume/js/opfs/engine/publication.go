@@ -47,7 +47,9 @@ type outputFile struct {
 
 // newPublication allocates a distinct identity, including after a failed commit.
 func newPublication(e *Engine, base *Root) *publication {
+	// Stamp the cloned root with a fresh publication identity.
 	var nonce [16]byte
+
 	// crypto/rand.Read fills the buffer or terminates the process.
 	_, _ = rand.Read(nonce[:])
 	root := base.CloneVT()
@@ -59,6 +61,7 @@ func newPublication(e *Engine, base *Root) *publication {
 
 // add encodes a persistent object into bounded unpublished output.
 func (p *publication) add(kind string, value message) (string, error) {
+	// Encode the object and retain its bytes as unpublished output.
 	data, err := encode(value)
 	if err != nil {
 		return "", err
@@ -68,6 +71,7 @@ func (p *publication) add(kind string, value message) (string, error) {
 
 // addBytes retains a bounded immutable file for this publication.
 func (p *publication) addBytes(kind string, data []byte) (string, error) {
+	// Reject output beyond the byte or file bounds.
 	if p.bytes+len(data) > maxPublicationBytes || len(p.output) >= maxPublicationFiles {
 		return "", ErrLimit
 	}
@@ -112,6 +116,7 @@ func (p *publication) commit(ctx context.Context) error {
 	if err := p.engine.writeMessage(ctx, "intent", intent); err != nil {
 		return err
 	}
+
 	// Join bounded immutable writes before publishing or releasing protection.
 	// Failed writes cancel their siblings; the durable intent retains cleanup.
 	writes, writeCtx := errgroup.WithContext(ctx)
@@ -141,6 +146,8 @@ func (p *publication) commit(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Publish the alternate root descriptor.
 	if err := p.publishRoot(ctx); err != nil {
 		return err
 	}
@@ -248,11 +255,15 @@ func (e *Engine) Reclaim(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	defer release()
+
+	// Join the publication queue before reading the durable root.
 	unlock, err := e.backend.Lock(ctx, "publish", true)
 	if err != nil {
 		return false, err
 	}
 	defer unlock()
+
+	// Load the root and skip reclamation when nothing is pending.
 	root, err := e.loadRoot(ctx)
 	if err != nil {
 		return false, err
@@ -277,6 +288,7 @@ func (e *Engine) Reclaim(ctx context.Context) (bool, error) {
 			return false, err
 		}
 		if err == nil {
+			// Decode the generation's retirement list and validate its size.
 			files := new(Files)
 			if err := decode(data, files); err != nil {
 				return false, err
@@ -287,6 +299,8 @@ func (e *Engine) Reclaim(ctx context.Context) (bool, error) {
 			if deleted+len(files.Names) > maxPublicationFiles {
 				break
 			}
+
+			// Delete the retired files and the retirement record.
 			for _, file := range files.Names {
 				if err := e.backend.Remove(ctx, file); err != nil {
 					return false, err

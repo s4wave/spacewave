@@ -58,12 +58,15 @@ func (s *packStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fun
 
 // PutBlock validates a complete reference and durably inserts it if absent.
 func (s *packStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Reject empty payloads and payloads beyond the value bound.
 	if len(data) == 0 {
 		return nil, false, block.ErrEmptyBlock
 	}
 	if len(data) > MaxValueBytes {
 		return nil, false, ErrLimit
 	}
+
+	// Build the reference from the payload and the caller's options.
 	if opts == nil {
 		opts = new(block.PutOpts)
 	} else {
@@ -77,12 +80,15 @@ func (s *packStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	if forced := opts.GetForceBlockRef(); !forced.GetEmpty() && !ref.EqualsRef(forced) {
 		return ref, false, block.ErrBlockRefMismatch
 	}
+
+	// Publish the block through one pack write.
 	existed, err := s.writePack(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}})
 	return ref, existed, err
 }
 
 // PutBlockBatch validates all inputs, then publishes bounded arrival-order packs.
 func (s *packStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Validate every entry's reference and payload before publishing any.
 	for _, entry := range entries {
 		if entry == nil {
 			return block.ErrEmptyBlockRef
@@ -102,8 +108,12 @@ func (s *packStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 			}
 		}
 	}
+
+	// Publish bounded arrival-order packs until the batch is exhausted.
 	for len(entries) != 0 {
 		count, size := 0, 0
+
+		// Size one pack from the batch's leading entries.
 		for count < len(entries) && count < maxPackRecords {
 			entry := entries[count]
 			key, err := blockKey(entry.Ref)
@@ -120,6 +130,8 @@ func (s *packStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		if _, err := s.writePack(ctx, entries[:count]); err != nil {
 			return err
 		}
+
+		// Continue after the published prefix.
 		entries = entries[count:]
 	}
 	return nil
@@ -128,10 +140,15 @@ func (s *packStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 // writePack resolves duplicate identities under the publication lock.
 func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntry) (bool, error) {
 	existed := false
+
+	// Revise the index and pack records under the publication lock.
 	err := s.engine.mutate(ctx, func(read *snapshot, p *publication) ([]*Record, error) {
+		// Start a fresh publication revision and change set.
 		p.root.Revision++
 		changes := make(map[string]*Record)
 		packs := make(map[string]*Pack)
+
+		// Overlay each entry's pending change on the current index state.
 		var payload []byte
 		pack := new(Pack)
 		for _, entry := range entries {
@@ -161,6 +178,8 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 			}
 
 			// The pack carries full identity and framing beside each payload.
+
+			// Append the new extent's framing and payload to the pack bytes.
 			checksum := crc32.ChecksumIEEE(entry.Data)
 			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(key)))        //nolint:gosec // pack payloads are bounded by maxPackBytes.
 			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(entry.Data))) //nolint:gosec // pack payloads are bounded by maxPackBytes.
@@ -179,6 +198,8 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 			p.root.BlockCount++
 			p.root.BlockBytes += uint64(len(entry.Data))
 		}
+
+		// Write the payload as a new pack and point its locations at it.
 		if len(payload) != 0 {
 			if len(payload) > maxPackBytes {
 				return nil, ErrLimit
@@ -201,6 +222,8 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 			}
 			packs[name] = pack
 		}
+
+		// Record each pack's encoded form in the index changes.
 		for name, pack := range packs {
 			encoded, err := encode(pack)
 			if err != nil {
@@ -209,6 +232,8 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 			key := []byte(packPrefix + name)
 			changes[string(key)] = &Record{Key: key, Value: encoded}
 		}
+
+		// Collect the changed records for the publication.
 		records := make([]*Record, 0, len(changes))
 		for _, record := range changes {
 			records = append(records, record)
@@ -220,6 +245,7 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 
 // removeLocation updates the exact old pack and queues its first deletion.
 func removeLocation(ctx context.Context, read *snapshot, p *publication, key, encoded []byte, packs map[string]*Pack, changes map[string]*Record) error {
+	// Decode the location and load its pack once.
 	location := new(Location)
 	if err := decode(encoded, location); err != nil {
 		return err
@@ -239,23 +265,32 @@ func removeLocation(ctx context.Context, read *snapshot, p *publication, key, en
 		}
 		packs[location.Pack] = pack
 	}
+
+	// Reject accounting drift before subtracting the extent.
 	if pack.LiveBytes < uint64(location.Length) || p.root.BlockCount == 0 || p.root.BlockBytes < uint64(location.Length) {
 		return ErrCorrupt
 	}
+
+	// Subtract the extent from the pack and root accounting.
 	pack.LiveBytes -= uint64(location.Length)
 	p.root.BlockCount--
 	p.root.BlockBytes -= uint64(location.Length)
+
+	// Queue the pack for cleanup on its first deletion.
 	if len(pack.CleanupKey) == 0 {
 		pack.CleanupKey = binary.BigEndian.AppendUint64([]byte(cleanupPrefix), p.root.Generation)
 		pack.CleanupKey = append(pack.CleanupKey, location.Pack...)
 		changes[string(pack.CleanupKey)] = &Record{Key: pack.CleanupKey, Value: []byte(location.Pack)}
 	}
+
+	// Delete the block's location record.
 	changes[string(key)] = &Record{Key: key, Deleted: true}
 	return nil
 }
 
 // GetBlock resolves an index location before reading and checking payload bytes.
 func (s *packStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Derive the key and open a protected read scope.
 	key, err := blockKey(ref)
 	if err != nil {
 		return nil, false, err
@@ -265,6 +300,8 @@ func (s *packStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 		return nil, false, err
 	}
 	defer release()
+
+	// Read the location record and its payload extent.
 	encoded, found, err := read.get(ctx, key)
 	if err != nil || !found {
 		return nil, found, err
@@ -297,10 +334,13 @@ func (s *packStore) openRead(ctx context.Context) (*snapshot, func(), error) {
 
 // readLocation validates a bounded extent without opening any unrelated payload.
 func (e *Engine) readLocation(ctx context.Context, location *Location) ([]byte, error) {
+	// Validate the extent before reading any bytes.
 	if err := validateLocation(location); err != nil {
 		return nil, err
 	}
 	const windowBytes = 64 << 10
+
+	// Read the extent through the bounded window strategy.
 	var data []byte
 	if location.Length >= windowBytes {
 		// Large payloads use one bounded range call and avoid displacing small-read windows.
@@ -329,6 +369,8 @@ func (e *Engine) readLocation(ctx context.Context, location *Location) ([]byte, 
 			offset += count
 		}
 	}
+
+	// Reject a payload whose length or checksum does not match.
 	if len(data) != int(location.Length) || crc32.ChecksumIEEE(data) != location.Checksum {
 		return nil, ErrCorrupt
 	}
@@ -351,11 +393,14 @@ func (s *packStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 
 // GetBlockExistsBatch shares root validation and file protection across the batch.
 func (s *packStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Share one read scope across the existence batch.
 	read, release, err := s.openRead(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
+
+	// Look up each non-empty reference's location record.
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
 		if ref.GetEmpty() {
@@ -375,6 +420,7 @@ func (s *packStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 
 // RmBlock atomically hides a location and accounts its exact old extent as dead.
 func (s *packStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Validate the reference and publish its tombstone.
 	if err := ref.Validate(false); err != nil {
 		return err
 	}
@@ -384,6 +430,7 @@ func (s *packStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 
 // StatBlock reads the payload length from the location index alone.
 func (s *packStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	// Derive the key and open a protected read scope.
 	key, err := blockKey(ref)
 	if err != nil {
 		return nil, err
@@ -393,6 +440,8 @@ func (s *packStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.
 		return nil, err
 	}
 	defer release()
+
+	// Report the payload length from the location record.
 	encoded, found, err := read.get(ctx, key)
 	if err != nil || !found {
 		return nil, err

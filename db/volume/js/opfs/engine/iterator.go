@@ -106,6 +106,7 @@ func (i *iterator) Seek(key []byte) error {
 
 // seek positions the merge without recording a workload operation.
 func (i *iterator) seek(key []byte) error {
+	// Reject seeks on a closed iterator or an invalid transaction.
 	if i.closed {
 		return kvtx.ErrDiscarded
 	}
@@ -113,6 +114,8 @@ func (i *iterator) seek(key []byte) error {
 		i.err = err
 		return err
 	}
+
+	// Reset the merge state and derive the boundary from the key or prefix.
 	i.started, i.exhausted = true, false
 	i.current, i.committed = nil, nil
 	i.boundary, i.exclusive = bytes.Clone(key), false
@@ -124,6 +127,8 @@ func (i *iterator) seek(key []byte) error {
 			i.boundary = bytes.Clone(i.prefix)
 		}
 	}
+
+	// Position the pending index at the first candidate record.
 	i.pendingIndex = sort.Search(len(i.pending), func(j int) bool {
 		comparison := bytes.Compare(i.pending[j].Key, i.boundary)
 		if i.reverse || i.exclusive {
@@ -131,6 +136,8 @@ func (i *iterator) seek(key []byte) error {
 		}
 		return comparison >= 0
 	})
+
+	// Step the pending index back for reverse iteration.
 	if i.reverse {
 		if i.boundary == nil {
 			i.pendingIndex = len(i.pending)
@@ -140,6 +147,8 @@ func (i *iterator) seek(key []byte) error {
 			i.pendingIndex--
 		}
 	}
+
+	// Choose the first visible record.
 	i.advance()
 	return i.Err()
 }
@@ -205,9 +214,12 @@ func (i *iterator) advance() bool {
 
 // fill copies the next partition from the transaction's committed snapshot.
 func (i *iterator) fill() error {
+	// Skip filling while buffered committed records remain.
 	if len(i.committed) != 0 || i.exhausted {
 		return nil
 	}
+
+	// Seek the committed snapshot at the current boundary.
 	s, err := i.tx.readSnapshot(i.ctx)
 	if err != nil {
 		return err
@@ -216,6 +228,8 @@ func (i *iterator) fill() error {
 	if err != nil {
 		return err
 	}
+
+	// Buffer the records inside the prefix and mark exhaustion outside it.
 	for _, record := range records {
 		if !bytes.HasPrefix(record.Key, i.prefix) {
 			i.exhausted = true

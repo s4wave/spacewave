@@ -44,12 +44,15 @@ func (t *transaction) readSnapshot(ctx context.Context) (*snapshot, error) {
 
 // check validates the transaction lifetime and caller cancellation.
 func (t *transaction) check(ctx context.Context) error {
+	// Reject a discarded transaction or a cancelled caller.
 	if t.discarded {
 		return kvtx.ErrDiscarded
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Reject an operation on a closed engine.
 	t.engine.mtx.Lock()
 	closed := t.engine.closed
 	t.engine.mtx.Unlock()
@@ -75,6 +78,7 @@ func (t *transaction) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // get reads the pending value or the protected committed snapshot.
 func (t *transaction) get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	// Validate the transaction and acquire its committed snapshot.
 	if err := t.check(ctx); err != nil {
 		return nil, false, err
 	}
@@ -82,6 +86,8 @@ func (t *transaction) get(ctx context.Context, key []byte) ([]byte, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Serve the pending value before recording the read and consulting the snapshot.
 	if pending := t.pending[string(key)]; pending != nil {
 		return bytes.Clone(pending.Value), !pending.Deleted, nil
 	}
@@ -104,6 +110,7 @@ func (t *transaction) Delete(ctx context.Context, key []byte) error {
 
 // mutate retains bounded copied input; blind writes observe no committed state.
 func (t *transaction) mutate(ctx context.Context, key, value []byte, deleted bool) error {
+	// Validate the transaction, write access, and mutation sizes.
 	if err := t.check(ctx); err != nil {
 		return err
 	}
@@ -116,6 +123,8 @@ func (t *transaction) mutate(ctx context.Context, key, value []byte, deleted boo
 	if len(key) > maxKeyBytes || len(value) > MaxValueBytes {
 		return ErrLimit
 	}
+
+	// Charge the mutation against the transaction's memory bound.
 	previous := t.pending[string(key)]
 	count, size := len(t.pending)+1, t.pendingBytes+len(key)+len(value)+32
 	if previous != nil {
@@ -125,6 +134,8 @@ func (t *transaction) mutate(ctx context.Context, key, value []byte, deleted boo
 	if count > maxBatchRecords || size > maxBatchBytes {
 		return ErrLimit
 	}
+
+	// Retain the copied mutation as pending.
 	t.pending[string(key)] = &Record{Key: bytes.Clone(key), Value: bytes.Clone(value), Deleted: deleted}
 	t.pendingBytes = size
 	return nil
@@ -163,6 +174,7 @@ func (t *transaction) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func
 
 // Iterate merges bounded pending changes with a lazy committed partition cursor.
 func (t *transaction) Iterate(ctx context.Context, prefix []byte, _ bool, reverse bool) kvtx.Iterator {
+	// Collect the pending mutations under the prefix in key order.
 	pending := make([]*Record, 0, len(t.pending))
 	for _, record := range t.pending {
 		if bytes.HasPrefix(record.Key, prefix) {
@@ -170,18 +182,23 @@ func (t *transaction) Iterate(ctx context.Context, prefix []byte, _ bool, revers
 		}
 	}
 	slices.SortFunc(pending, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
+
+	// Record the observed range and construct the merging iterator.
 	t.reads.add(prefix, prefixEnd(prefix))
 	it := &iterator{ctx: ctx, tx: t, id: t.engine.workloadIDs.Add(1), prefix: bytes.Clone(prefix), reverse: reverse, pending: pending}
 	var order int64
 	if reverse {
 		order = 1
 	}
+
+	// Log the iterator's workload operation.
 	workload.Record{Op: workload.OpIterate, ID: it.id, Parent: t.id, Size: order, Key: prefix}.Log(ctx)
 	return it
 }
 
 // Commit validates the observed ranges and durably publishes writes.
 func (t *transaction) Commit(ctx context.Context) error {
+	// Validate the transaction and release empty or read-only commits.
 	workload.Record{Op: workload.OpCommit, ID: t.id, Size: int64(len(t.pending))}.Log(ctx)
 	if err := t.check(ctx); err != nil {
 		return err
@@ -190,16 +207,21 @@ func (t *transaction) Commit(ctx context.Context) error {
 		t.release()
 		return nil
 	}
+
+	// Sort the pending mutations for publication.
 	records := make([]*Record, 0, len(t.pending))
 	for _, record := range t.pending {
 		records = append(records, record)
 	}
 	slices.SortFunc(records, func(a, b *Record) int { return bytes.Compare(a.Key, b.Key) })
+
 	// Blind writes serialize against the current root without a read dependency.
 	var base *Root
 	if t.snapshot != nil {
 		base = t.snapshot.root
 	}
+
+	// Publish the mutations and release the transaction.
 	err := t.engine.apply(ctx, base, &t.reads, records)
 	t.release()
 	return err
@@ -213,6 +235,7 @@ func (t *transaction) Discard() {
 
 // release ends the transaction, dropping its snapshot and mutations.
 func (t *transaction) release() {
+	// Release the retained snapshot and reset the transaction state.
 	if t.snapshot != nil {
 		t.snapshot.release()
 		t.snapshot = nil
