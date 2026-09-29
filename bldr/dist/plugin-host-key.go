@@ -25,10 +25,13 @@ func PluginHostObjectKey(meta *DistMeta) (string, error) {
 
 // ParsePluginHostObjectKey reads the distribution identity from a plugin cache key.
 func ParsePluginHostObjectKey(key string) (*hash.Hash, error) {
+	// Cut the plugin-host prefix and require it to be present.
 	id, ok := strings.CutPrefix(key, "plugin-host/")
 	if !ok {
 		return nil, errors.New("invalid distribution plugin-host object key")
 	}
+
+	// Parse and validate the distribution identity from the remaining text.
 	identity := &hash.Hash{}
 	if err := identity.ParseFromB58(id); err != nil {
 		return nil, err

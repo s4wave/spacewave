@@ -15,11 +15,14 @@ import (
 // writeFrontendBindings records stable source attachments for asset consumers.
 // Explicit bundles retain their entries; obsolete automatic outputs are removed.
 func writeFrontendBindings(assetsDir string, bindings map[string]*frontend.Binding, preserve bool) error {
+	// Resolve the frontend binding manifest path and start a fresh entry set.
 	frontendDir := filepath.Join(assetsDir, bldr_plugin_compiler.ViteAssetSubdir, "b", "fe")
 	manifestPath := filepath.Join(frontendDir, ".vite", "manifest.json")
 	var arena fastjson.Arena
 	var parser fastjson.Parser
 	entries := arena.NewObject()
+
+	// When preserving, load the existing manifest so stale automatic entries can be replaced.
 	if preserve {
 		data, err := os.ReadFile(manifestPath)
 		if err != nil && !os.IsNotExist(err) {
@@ -37,6 +40,8 @@ func writeFrontendBindings(assetsDir string, bindings map[string]*frontend.Bindi
 	} else if err := fsutil.CleanCreateDir(frontendDir); err != nil {
 		return err
 	}
+
+	// Record each binding's entrypoint under its source path.
 	for source, binding := range bindings {
 		entry := arena.NewObject()
 		attachment := arena.NewObject()
@@ -44,6 +49,8 @@ func writeFrontendBindings(assetsDir string, bindings map[string]*frontend.Bindi
 		entry.Set("frontendBinding", attachment)
 		entries.Set(source, entry)
 	}
+
+	// Write the manifest into the compiler-owned asset directory.
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		return err
 	}
