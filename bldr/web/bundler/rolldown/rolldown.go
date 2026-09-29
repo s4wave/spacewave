@@ -30,6 +30,7 @@ var (
 
 // ValidateBuildRequest validates the direct Rolldown build contract.
 func ValidateBuildRequest(req *BuildRequest) error {
+	// Require the request and the four root paths to be absolute.
 	if req == nil {
 		return errors.New("build request is nil")
 	}
@@ -43,6 +44,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 			return err
 		}
 	}
+
+	// Require each entrypoint to carry a unique name and absolute input path.
 	if len(req.GetEntrypoints()) == 0 {
 		return errors.New("entrypoints are required")
 	}
@@ -64,6 +67,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 			return err
 		}
 	}
+
+	// Check the format, platform, and sourcemap against the accepted values.
 	if _, ok := validFormats[req.GetFormat()]; !ok {
 		return errors.Errorf("format %q is invalid", req.GetFormat())
 	}
@@ -73,6 +78,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 	if _, ok := validSourcemaps[req.GetSourcemap()]; !ok {
 		return errors.Errorf("sourcemap %q is invalid", req.GetSourcemap())
 	}
+
+	// Enforce the format-dependent code splitting and iife constraints.
 	if req.GetCodeSplitting() && req.GetFormat() != "es" {
 		return errors.New("code_splitting requires format es")
 	}
@@ -82,6 +89,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 	if req.GetFormat() == "iife" && strings.TrimSpace(req.GetGlobalName()) == "" {
 		return errors.New("format iife requires global_name")
 	}
+
+	// Require output name patterns to be relative and contained.
 	for field, value := range map[string]string{
 		"entry_file_names": req.GetEntryFileNames(),
 		"chunk_file_names": req.GetChunkFileNames(),
@@ -94,6 +103,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 			return errors.Errorf("%s must be a relative contained path pattern", field)
 		}
 	}
+
+	// Check each loader key and kind against the accepted loader kinds.
 	for key, loader := range req.GetLoaders() {
 		if strings.TrimSpace(key) == "" {
 			return errors.New("loaders contains an empty key")
@@ -102,6 +113,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 			return errors.Errorf("loader %q for %q is invalid", loader, key)
 		}
 	}
+
+	// Validate the GoScript output root and the inject, override, and alias path maps.
 	if policy := req.GetGoscript(); policy != nil && policy.GetOutputRoot() != "" {
 		if err := validateAbsolutePath("goscript.output_root", policy.GetOutputRoot()); err != nil {
 			return err
@@ -130,12 +143,15 @@ func ValidateBuildRequest(req *BuildRequest) error {
 
 // Build runs one Bun Rolldown/Oxc build from toolRoot and returns its structured result.
 func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req *BuildRequest) (*BuildResult, error) {
+	// Default the logger and validate the build request.
 	if le == nil {
 		le = logrus.NewEntry(logrus.New())
 	}
 	if err := ValidateBuildRequest(req); err != nil {
 		return nil, err
 	}
+
+	// Create the working directory and resolve the tool root.
 	if err := os.MkdirAll(req.GetWorkingDir(), 0o755); err != nil {
 		return nil, errors.Wrap(err, "create working directory")
 	}
@@ -143,6 +159,8 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		return nil, err
 	}
 	toolRoot = resolveToolRoot(toolRoot)
+
+	// Ensure the Rolldown dependency root and the Bun binary are available.
 	dependencyRoot, err := ensureDependencyRoot(ctx, le, stateDir, toolRoot)
 	if err != nil {
 		return nil, err
@@ -151,6 +169,8 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve bun")
 	}
+
+	// Require the runner script to exist in the tool root.
 	runnerPath := filepath.Join(toolRoot, "web", "bundler", "rolldown", "run-build.mjs")
 	if info, statErr := os.Stat(runnerPath); statErr != nil || info.IsDir() {
 		if statErr == nil {
@@ -158,12 +178,16 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		}
 		return nil, errors.Wrapf(statErr, "rolldown runner %s", runnerPath)
 	}
+
+	// Create the request protocol file, removing it when the build ends.
 	requestFile, err := os.CreateTemp(req.GetWorkingDir(), ".bldr-rolldown-request-*")
 	if err != nil {
 		return nil, errors.Wrap(err, "create request protocol file")
 	}
 	requestPath := requestFile.Name()
 	defer os.Remove(requestPath)
+
+	// Create the result protocol file and close it until the runner writes.
 	resultFile, err := os.CreateTemp(req.GetWorkingDir(), ".bldr-rolldown-result-*")
 	if err != nil {
 		requestFile.Close()
@@ -176,6 +200,8 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		requestFile.Close()
 		return nil, errors.Wrap(err, "close result protocol file")
 	}
+
+	// Marshal the build request into the request file and close it.
 	requestJSON, err := protojson.Marshal(protojson.MarshalerConfig{}, req)
 	if err != nil {
 		requestFile.Close()
@@ -189,6 +215,7 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		return nil, errors.Wrap(err, "close request protocol file")
 	}
 
+	// Run the Rolldown runner through Bun and read back the structured result.
 	cmd := bldr_exec.NewCmd(ctx, bunPath, runnerPath, requestPath, resultPath, dependencyRoot)
 	cmd.Dir = req.GetWorkingDir()
 	cmd.Env = append(os.Environ(), "NO_COLOR=1", "NODE_DISABLE_COLORS=1", "FORCE_COLOR=0", "CI=1")
@@ -199,6 +226,8 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		result.Inputs = append(result.Inputs, runnerPath)
 		sortBuildResult(result)
 	}
+
+	// Fail on context cancellation, runner errors, and unparseable results.
 	if ctxErr := ctx.Err(); ctxErr != nil {
 		return result, ctxErr
 	}
@@ -208,6 +237,8 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 	if parseErr != nil {
 		return nil, errors.Wrap(parseErr, "parse rolldown build result")
 	}
+
+	// Validate the build result against the output root before returning it.
 	if err := validateBuildResult(result, req.GetOutputRoot()); err != nil {
 		return result, err
 	}
@@ -233,10 +264,13 @@ func validateAbsolutePath(field, value string) error {
 }
 
 func ensureDependencyRoot(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
+	// Reuse the dependency root when its Rolldown install is already current.
 	depsRoot := filepath.Join(bldrDistRoot, "dist", "deps")
 	if sourceRolldownCurrent(depsRoot) {
 		return depsRoot, nil
 	}
+
+	// Otherwise run a shared Bun install and require the Rolldown entrypoint.
 	packageJSON := filepath.Join(depsRoot, "package.json")
 	installRoot, err := npm.EnsureSharedBunInstall(
 		ctx, le, stateDir, packageJSON, filepath.Join(stateDir, "build-web-pkgs"),
@@ -254,6 +288,7 @@ func ensureDependencyRoot(ctx context.Context, le *logrus.Entry, stateDir, bldrD
 }
 
 func sourceRolldownCurrent(depsRoot string) bool {
+	// Read the required Rolldown version from the dependency root manifest.
 	data, err := os.ReadFile(filepath.Join(depsRoot, "package.json"))
 	if err != nil {
 		return false
@@ -263,6 +298,8 @@ func sourceRolldownCurrent(depsRoot string) bool {
 	if err != nil {
 		return false
 	}
+
+	// Compare the installed Rolldown manifest version and entrypoint file.
 	requiredVersion := string(manifest.GetStringBytes("dependencies", "rolldown"))
 	if requiredVersion == "" {
 		return false
@@ -280,6 +317,7 @@ func sourceRolldownCurrent(depsRoot string) bool {
 }
 
 func readBuildResult(path string) (*BuildResult, error) {
+	// Read the result file and unmarshal it as a protojson BuildResult.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -292,6 +330,7 @@ func readBuildResult(path string) (*BuildResult, error) {
 }
 
 func runnerFailure(runErr, parseErr error, result *BuildResult) error {
+	// Collect the parse error and every diagnostic from the partial result.
 	extra := make([]string, 0, 1)
 	if parseErr != nil {
 		extra = append(extra, "parse structured result: "+parseErr.Error())
@@ -303,6 +342,8 @@ func runnerFailure(runErr, parseErr error, result *BuildResult) error {
 			}
 		}
 	}
+
+	// Wrap the runner error with the collected details when present.
 	if len(extra) == 0 {
 		return errors.Wrap(runErr, "rolldown runner failed")
 	}
@@ -310,6 +351,7 @@ func runnerFailure(runErr, parseErr error, result *BuildResult) error {
 }
 
 func validateBuildResult(result *BuildResult, outputRoot string) error {
+	// Require a result with a complete tool identity.
 	if result == nil {
 		return errors.New("rolldown build result is nil")
 	}
@@ -317,11 +359,15 @@ func validateBuildResult(result *BuildResult, outputRoot string) error {
 	if tool == nil || tool.GetRolldownVersion() == "" || tool.GetBunVersion() == "" || tool.GetPlatform() == "" || tool.GetArch() == "" {
 		return errors.New("rolldown build result has incomplete tool identity")
 	}
+
+	// Require each input to be a normalized absolute path.
 	for i, input := range result.GetInputs() {
 		if strings.TrimSpace(input) == "" || !filepath.IsAbs(input) || filepath.Clean(input) != input {
 			return errors.Errorf("inputs[%d] is not a normalized absolute path: %q", i, input)
 		}
 	}
+
+	// Validate each output's contained path, type, and byte count.
 	for i, output := range result.GetOutputs() {
 		if output == nil {
 			return errors.Errorf("outputs[%d] is nil", i)
@@ -336,6 +382,8 @@ func validateBuildResult(result *BuildResult, outputRoot string) error {
 			return errors.Errorf("outputs[%d] has negative byte count", i)
 		}
 	}
+
+	// Validate each entrypoint output name and contained path.
 	for name, path := range result.GetEntrypointOutputs() {
 		if strings.TrimSpace(name) == "" {
 			return errors.New("entrypoint_outputs contains an empty name")
@@ -348,9 +396,12 @@ func validateBuildResult(result *BuildResult, outputRoot string) error {
 }
 
 func validateContainedOutput(path, outputRoot string) error {
+	// Reject absolute or escaping path patterns before joining the root.
 	if strings.TrimSpace(path) == "" || logicalPathIsAbs(path) || outputNameEscapes(path) {
 		return errors.Errorf("path %q is not a relative output-root-contained path", path)
 	}
+
+	// Confirm the joined path stays inside the output root and is normalized.
 	joined := filepath.Join(outputRoot, filepath.FromSlash(path))
 	rel, err := filepath.Rel(outputRoot, joined)
 	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
@@ -376,8 +427,11 @@ func outputNameEscapes(path string) bool {
 }
 
 func sortBuildResult(result *BuildResult) {
+	// Sort inputs, then outputs, then diagnostics into a stable order.
 	slices.Sort(result.Inputs)
+	// Order outputs by path, type, entrypoint name, hash, then byte count.
 	slices.SortFunc(result.Outputs, func(a, b *BuildOutput) int {
+		// Sort nil outputs first so real entries compare after them.
 		if a == nil && b == nil {
 			return 0
 		}
@@ -387,6 +441,8 @@ func sortBuildResult(result *BuildResult) {
 		if b == nil {
 			return 1
 		}
+
+		// Compare the string fields, then the byte count.
 		for _, pair := range [][2]string{{a.GetPath(), b.GetPath()}, {a.GetType(), b.GetType()}, {a.GetEntrypointName(), b.GetEntrypointName()}, {a.GetSha256(), b.GetSha256()}} {
 			if c := strings.Compare(pair[0], pair[1]); c != 0 {
 				return c
@@ -400,7 +456,9 @@ func sortBuildResult(result *BuildResult) {
 		}
 		return 0
 	})
+	// Order diagnostics by message fields, then line and column position.
 	slices.SortFunc(result.Diagnostics, func(a, b *Diagnostic) int {
+		// Sort nil diagnostics first so real entries compare after them.
 		if a == nil && b == nil {
 			return 0
 		}
@@ -410,6 +468,8 @@ func sortBuildResult(result *BuildResult) {
 		if b == nil {
 			return 1
 		}
+
+		// Compare the message fields, then the line and column position.
 		for _, pair := range [][2]string{{a.GetSeverity(), b.GetSeverity()}, {a.GetMessage(), b.GetMessage()}, {a.GetCode(), b.GetCode()}, {a.GetFile(), b.GetFile()}, {a.GetLineText(), b.GetLineText()}} {
 			if c := strings.Compare(pair[0], pair[1]); c != 0 {
 				return c
