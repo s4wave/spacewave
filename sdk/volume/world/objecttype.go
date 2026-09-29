@@ -22,12 +22,15 @@ var VolumeType = objecttype.NewObjectType(volume_world.ObjectTypeID, VolumeFacto
 func VolumeFactory(ctx context.Context, le *logrus.Entry, b bus.Bus, engine world.Engine,
 	ws world.WorldState, key string,
 ) (srpc.Invoker, func(), error) {
+	// Require a writable World state.
 	if ws == nil || engine == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 	if ws.GetReadOnly() {
 		return nil, nil, tx.ErrNotWrite
 	}
+
+	// Load the granted backing and open its Volume on the engine.
 	backing, err := volume_world.LoadBacking(ctx, ws, key)
 	if err != nil {
 		return nil, nil, err
@@ -37,6 +40,8 @@ func VolumeFactory(ctx context.Context, le *logrus.Entry, b bus.Bus, engine worl
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Register the Volume's proxy service on a new RPC mux.
 	mux := srpc.NewMux()
 	proxy := volume_rpc_server.NewProxyVolume(ctx, vol, true)
 	if err := volume_rpc_server.RegisterProxyVolume(mux, proxy); err != nil {
