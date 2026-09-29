@@ -121,9 +121,12 @@ func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) 
 // Returns nil, nil, nil to skip resolving the client.
 // Otherwise returns client, releaseFunc, nil
 func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
+	// Serve the controller's own plugin ID from the loopback client.
 	if pluginID == c.meta.GetPluginId() {
 		return c.loopbackClient, nil, nil
 	}
+
+	// Otherwise resolve the client through the plugin-host load directive.
 	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
 		return nil, nil, err
 	}

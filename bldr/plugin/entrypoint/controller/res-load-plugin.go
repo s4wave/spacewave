@@ -56,13 +56,16 @@ type loadPluginResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Attach the plugin identity to the logger and log the load attempt.
 	le := r.c.le.WithField("load-plugin-id", r.pluginID)
 	if r.instanceKey != "" {
 		le = le.WithField("instance-key", r.instanceKey)
 	}
 	le.Debug("loading plugin via plugin host")
 
+	// load runs one plugin-load attempt against the plugin host.
 	load := func(ctx context.Context, success func()) error {
+		// Reset the published plugin state and clear prior resolver values.
 		r.runningPluginCtr.SetValue(nil)
 		r.pluginLoadStateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 			nil,
@@ -70,6 +73,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		))
 		_ = handler.ClearValues()
 
+		// Stream the plugin load from the plugin host.
 		strm, err := r.c.srv.LoadPlugin(ctx, &bldr_plugin.LoadPluginRequest{
 			PluginId:     r.pluginID,
 			InstanceKey:  r.instanceKey,
@@ -81,6 +85,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 		}
 		defer strm.Close()
 
+		// Consume load-status responses, updating the running plugin on transitions.
 		var running bool
 		for {
 			resp, err := strm.Recv()
@@ -97,6 +102,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			running = nextRunning
 
 			if !running {
+				// Publish the not-yet-loaded state while the plugin is not running.
 				le.Debug("plugin not yet loaded")
 				r.runningPluginCtr.SetValue(nil)
 				r.pluginLoadStateCtr.SetValue(bldr_plugin.NewPluginLoadState(
@@ -107,6 +113,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 				continue
 			}
 
+			// Publish the running plugin and its RPC stream client.
 			// construct the rpc stream client
 			le.Debug("plugin loaded")
 			rpcClient := rpcstream.NewRpcStreamClient(
@@ -124,6 +131,7 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			handler.MarkIdle(true)
 		}
 	}
+
 	// An exact request must settle when its retained executable is unavailable.
 	// The caller can retry when storage recovers; catalog loads keep reconnecting.
 	if r.manifestRoot != "" {

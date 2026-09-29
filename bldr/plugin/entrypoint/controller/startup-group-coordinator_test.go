@@ -52,25 +52,32 @@ func (s *testStartupPluginSource) AddPluginReference(
 }
 
 func TestStartupGroupCoordinatorTransitionsOnceAfterAllPluginsTerminal(t *testing.T) {
+	// Start a coordinator for a duplicated, unordered plugin list.
 	ctx := t.Context()
 	source := newTestStartupPluginSource("plugin/a", "plugin/b")
 	coordinator := NewStartupGroupCoordinator([]string{"plugin/b", "plugin/a", "plugin/a"}, source)
 	if err := coordinator.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the group is not ready before any plugin completes.
 	if coordinator.IsReady() {
 		t.Fatal("startup group was ready before any plugin completed")
 	}
 
+	// Complete plugin/a and wait for its reference release.
 	source.refs["plugin/a"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 		nil,
 		bldr_plugin.InitialCapabilityRegistrationComplete,
 	))
 	<-source.releasedCh["plugin/a"]
+
+	// Assert the group is still not ready while plugin/b is pending.
 	if coordinator.IsReady() {
 		t.Fatal("startup group was ready before the last plugin completed")
 	}
 
+	// Complete plugin/b and wait for the group to become ready.
 	source.refs["plugin/b"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 		nil,
 		bldr_plugin.InitialCapabilityRegistrationComplete,
@@ -80,6 +87,7 @@ func TestStartupGroupCoordinatorTransitionsOnceAfterAllPluginsTerminal(t *testin
 	}
 	<-source.releasedCh["plugin/b"]
 
+	// Push plugin/a back to pending and assert readiness stays terminal.
 	source.refs["plugin/a"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 		nil,
 		bldr_plugin.InitialCapabilityRegistrationPending,
@@ -90,6 +98,7 @@ func TestStartupGroupCoordinatorTransitionsOnceAfterAllPluginsTerminal(t *testin
 }
 
 func TestStartupGroupCoordinatorReleasesAfterTerminalFailure(t *testing.T) {
+	// Start a coordinator watching a single failing plugin.
 	ctx := t.Context()
 	source := newTestStartupPluginSource("plugin/broken")
 	coordinator := NewStartupGroupCoordinator([]string{"plugin/broken"}, source)
@@ -97,6 +106,7 @@ func TestStartupGroupCoordinatorReleasesAfterTerminalFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Fail the plugin and wait for the group to become ready and release it.
 	source.refs["plugin/broken"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 		nil,
 		bldr_plugin.InitialCapabilityRegistrationFailed,
@@ -108,6 +118,7 @@ func TestStartupGroupCoordinatorReleasesAfterTerminalFailure(t *testing.T) {
 }
 
 func TestStartupGroupCoordinatorReleasesAfterStartupBudgetExhaustion(t *testing.T) {
+	// Start a coordinator watching a single stuck plugin.
 	ctx := t.Context()
 	source := newTestStartupPluginSource("plugin/stuck")
 	coordinator := NewStartupGroupCoordinator([]string{"plugin/stuck"}, source)
@@ -115,6 +126,7 @@ func TestStartupGroupCoordinatorReleasesAfterStartupBudgetExhaustion(t *testing.
 		t.Fatal(err)
 	}
 
+	// Exhaust the plugin's startup budget and wait for readiness and release.
 	source.refs["plugin/stuck"].stateCtr.SetValue(
 		bldr_plugin.NewPluginLoadState(
 			nil,
@@ -126,6 +138,7 @@ func TestStartupGroupCoordinatorReleasesAfterStartupBudgetExhaustion(t *testing.
 	}
 	<-source.releasedCh["plugin/stuck"]
 
+	// Clear the budget exhaustion and assert readiness stays terminal.
 	source.refs["plugin/stuck"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
 		nil,
 		bldr_plugin.InitialCapabilityRegistrationPending,

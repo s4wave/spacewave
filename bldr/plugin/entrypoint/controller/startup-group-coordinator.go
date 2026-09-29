@@ -35,6 +35,7 @@ func NewStartupGroupCoordinator(
 	pluginIDs []string,
 	source StartupPluginReferenceSource,
 ) *StartupGroupCoordinator {
+	// Normalize the plugin list and construct the coordinator with its watcher set.
 	pluginIDs = slices.Clone(pluginIDs)
 	slices.Sort(pluginIDs)
 	pluginIDs = slices.Compact(pluginIDs)
@@ -63,6 +64,7 @@ func (c *StartupGroupCoordinator) IsReady() bool {
 // Start is idempotent: the readiness container and keyed watcher set both
 // diff internally, so repeated calls are no-ops.
 func (c *StartupGroupCoordinator) Start(ctx context.Context) error {
+	// With no configured plugins the group is ready immediately.
 	if len(c.pluginIDs) == 0 {
 		c.readyCtr.SetValue(true)
 		return nil
@@ -71,6 +73,7 @@ func (c *StartupGroupCoordinator) Start(ctx context.Context) error {
 		return errors.New("startup plugin reference source is required")
 	}
 
+	// Start one watcher routine per configured startup plugin.
 	c.watchers.SetContext(ctx, true)
 	c.watchers.SyncKeys(c.pluginIDs, false)
 	return nil
@@ -86,6 +89,7 @@ func (c *StartupGroupCoordinator) newPluginWatcher(
 	pluginID string,
 ) (keyed.Routine, struct{}) {
 	return func(ctx context.Context) error {
+		// Hold a readiness reference for the plugin for the watcher's lifetime.
 		ref, release := c.source.AddPluginReference(pluginID, "")
 		if release != nil {
 			defer release()
@@ -94,6 +98,7 @@ func (c *StartupGroupCoordinator) newPluginWatcher(
 			return nil
 		}
 
+		// Follow the plugin load state until registration reaches a terminal state.
 		stateCtr := ref.GetPluginLoadStateCtr()
 		var current bldr_plugin.PluginLoadState
 		for {
@@ -120,9 +125,11 @@ func (c *StartupGroupCoordinator) newPluginWatcher(
 
 // setPluginTerminal marks a plugin's watcher state as terminal.
 func (c *StartupGroupCoordinator) setPluginTerminal(pluginID string) {
+	// Track the resulting readiness and whether the state changed at all.
 	var ready bool
 	var changed bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Mark the plugin terminal and recompute readiness while holding the lock.
 		if c.terminalByPluginID[pluginID] {
 			return
 		}

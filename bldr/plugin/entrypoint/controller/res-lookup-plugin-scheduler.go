@@ -36,12 +36,14 @@ type lookupPluginSchedulerResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupPluginSchedulerResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Open the plugin-status watch stream against the host scheduler.
 	strm, err := r.c.srv.WatchPluginStatus(ctx, &bldr_plugin.WatchPluginStatusRequest{})
 	if err != nil {
 		return err
 	}
 	defer strm.Close()
 
+	// Consume status snapshots, replacing the scheduler value once established.
 	var scheduler *hostPluginScheduler
 	var valID uint32
 	for {
@@ -62,11 +64,13 @@ func (r *lookupPluginSchedulerResolver) Resolve(ctx context.Context, handler dir
 			continue
 		}
 
+		// Publish the first snapshot as a new host plugin scheduler.
 		scheduler = &hostPluginScheduler{
 			instanceKey: msg.GetInstanceKey(),
 			statusCtr:   ccontainer.NewCContainer(status),
 		}
 		var accepted bool
+		// Add the scheduler value; stop when the handler rejects it.
 		valID, accepted = handler.AddValue(bldr_plugin.LookupPluginSchedulerValue(scheduler))
 		if !accepted {
 			return nil

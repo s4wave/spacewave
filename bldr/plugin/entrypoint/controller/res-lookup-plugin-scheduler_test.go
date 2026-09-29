@@ -31,10 +31,12 @@ func (s *testHostScheduler) GetPluginStatusCtr() ccontainer.Watchable[*bldr_plug
 // TestLookupPluginSchedulerStreamsHostStatus checks that a plugin sees its
 // host scheduler's plugin status, including later changes.
 func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
+	// Bound the test and build a logger for the plugin host and controller.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 
+	// Run a plugin host server with a settable status snapshot over an in-memory SRPC pipe.
 	hostBus := inmem.NewBus(cdc.NewController(ctx, le))
 	scheduler := &testHostScheduler{
 		statusCtr: ccontainer.NewCContainer(&bldr_plugin.PluginStatusSnapshot{}),
@@ -47,6 +49,7 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 	}
 	hostClient := bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 
+	// Add the plugin entrypoint controller against the host client.
 	pluginBus := inmem.NewBus(cdc.NewController(ctx, le))
 	meta := &bldr_plugin.PluginMeta{PluginId: "spacewave-core"}
 	rel, err := pluginBus.AddController(ctx, NewController(pluginBus, le, meta, hostClient), nil)
@@ -55,6 +58,7 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 	}
 	defer rel()
 
+	// Resolve LookupPluginScheduler and expect the root host scheduler.
 	vals, _, ref, err := bus.ExecCollectValues[bldr_plugin.LookupPluginSchedulerValue](
 		ctx, pluginBus, bldr_plugin.NewLookupPluginScheduler(), false, nil,
 	)
@@ -66,6 +70,7 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 		t.Fatalf("schedulers = %v, want the root host scheduler", vals)
 	}
 
+	// Publish a running plugin snapshot through the host scheduler.
 	scheduler.statusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "spacewave-notes",
@@ -73,6 +78,8 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 			State:       bldr_plugin.PluginState_PluginState_RUNNING,
 		}},
 	})
+
+	// Wait for the scheduler to stream the running plugin status.
 	got, err := vals[0].GetPluginStatusCtr().WaitValueWithValidator(
 		ctx,
 		func(status *bldr_plugin.PluginStatusSnapshot) (bool, error) {
@@ -83,6 +90,8 @@ func TestLookupPluginSchedulerStreamsHostStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the streamed status reports the running spacewave-notes plugin.
 	if plugin := got.GetPlugins()[0]; plugin.GetPluginId() != "spacewave-notes" ||
 		plugin.GetState() != bldr_plugin.PluginState_PluginState_RUNNING {
 		t.Fatalf("plugin status = %v, want running spacewave-notes", plugin)
