@@ -20,12 +20,14 @@ const accountReplicaProtocol = protocol.ID("alpha/account-replica/1")
 // FetchObject authorizes the authenticated Session against the current canonical
 // account registry. Catalog knowledge alone never permits checkpoint enrollment.
 func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountReplicaObjectRequest) (*pairing.SharedObject, error) {
+	// Serialize the enrollment with other replica mutations.
 	release, err := a.replicaAuth.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
 
+	// Require the request to name this account's settings object.
 	stream, err := link.MustGetMountedStreamContext(ctx)
 	if err != nil {
 		return nil, err
@@ -41,10 +43,14 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the requesting Session to be an active account member.
 	member := settings.FindAccountSession(stream.GetPeerID().String())
 	if member == nil || member.GetRevoked() {
 		return nil, errors.New("replica Session is not an active account member")
 	}
+
+	// Enroll the member into the requested catalog object.
 	entry := settings.FindCatalogEntry(request.GetObjectId())
 	if entry == nil || entry.GetDeleted() {
 		return nil, errors.New("requested object is absent from the account catalog")
@@ -55,6 +61,7 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 // startAccountReplicaSync attaches service and reconciliation to the existing P2P
 // generation. Its ordinary stop path joins reconciliation before releasing mounts.
 func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
+	// Attach the replica and migration services to the transport's bus.
 	transport := state.sessionTransport
 	server, err := stream_srpc_server.NewServer(
 		transport.GetChildBus(), a.le,
@@ -73,6 +80,8 @@ func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 		return err
 	}
 	state.addRelease(release)
+
+	// Run replica reconciliation against the settings state.
 	reconcile := routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-replica"), routine.WithRetry(providerBackoff))
 	reconcile.SetRoutine(func(ctx context.Context) error { return a.runAccountReplicaSync(ctx, state) })
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) { state.replicaSync = reconcile })

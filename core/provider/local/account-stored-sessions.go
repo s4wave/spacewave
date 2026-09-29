@@ -15,6 +15,7 @@ import (
 // already present in the account volume. It never mounts a Session, since
 // mounting an unknown ID would generate a new key.
 func (a *ProviderAccount) ListStoredSessionIDs(ctx context.Context) ([]string, error) {
+	// Open the account's session object store.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		a.t.p.b,
@@ -28,15 +29,18 @@ func (a *ProviderAccount) ListStoredSessionIDs(ctx context.Context) ([]string, e
 	}
 	defer diRef.Release()
 
+	// Collect the identities that own a signing key or lock params.
 	var ids []string
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Collect the identities that own a signing key or lock params.
 			ids = nil
 			seen := make(map[string]struct{})
 			err := tx.ScanPrefixKeys(ctx, []byte{}, func(key []byte) error {
+				// Trim the key suffix to recover the identity.
 				var id []byte
 				switch {
 				case bytes.HasSuffix(key, session_lock.SuffixPK):
@@ -46,6 +50,8 @@ func (a *ProviderAccount) ListStoredSessionIDs(ctx context.Context) ([]string, e
 				default:
 					return nil
 				}
+
+				// Record only well-formed top-level identities.
 				if len(id) == 0 || bytes.ContainsRune(id, '/') {
 					return nil
 				}
@@ -64,6 +70,8 @@ func (a *ProviderAccount) ListStoredSessionIDs(ctx context.Context) ([]string, e
 	if err != nil {
 		return nil, errors.Wrap(err, "scan stored session keys")
 	}
+
+	// Return the identities sorted.
 	slices.Sort(ids)
 	return ids, nil
 }
