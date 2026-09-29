@@ -94,6 +94,16 @@ func (d *Device) Validate() error {
 	return nil
 }
 
+// NativePlatformID returns the Bldr platform ID of the Device's daemon, such as
+// desktop/linux/amd64. It returns empty if the Device reports no platform.
+func (d *Device) NativePlatformID() string {
+	platform := d.GetPlatform()
+	if platform.GetOs() == "" || platform.GetArch() == "" {
+		return ""
+	}
+	return "desktop/" + platform.GetOs() + "/" + platform.GetArch()
+}
+
 // IsSelectable reports whether the Device has enough identity and setup state
 // for Forge or a workflow builder to present it as an execution or resource
 // target.

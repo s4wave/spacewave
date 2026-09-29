@@ -9,9 +9,9 @@ import {
 import { afterEach, expect, it, vi } from 'vitest'
 import type { Space } from '@s4wave/sdk/space/space.js'
 import {
-  Execution,
   State,
-} from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
+  Task,
+} from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 
 const mocks = vi.hoisted(() => ({
   context: null as unknown,
@@ -29,12 +29,12 @@ afterEach(cleanup)
 
 it('installs only a successful build and releases observation after completion', async () => {
   let complete: (() => void) | undefined
-  let current: Execution = { executionState: State.ExecutionState_RUNNING }
+  let current: Task = { taskState: State.TaskState_RUNNING }
   const releaseObject = vi.fn()
   const releaseCursor = vi.fn()
   const buildSpacePlugin = vi
     .fn()
-    .mockResolvedValue({ executionKey: 'builds/one' })
+    .mockResolvedValue({ jobKey: 'builds/one', taskKey: 'builds/one/build' })
   const addSpacePlugin = vi.fn().mockResolvedValue(undefined)
   const navigateToObjects = vi.fn()
   mocks.context = {
@@ -56,7 +56,7 @@ it('installs only a successful build and releases observation after completion',
             [Symbol.dispose]: releaseCursor,
             unmarshal: async () => ({
               found: true,
-              data: Execution.toBinary(current),
+              data: Task.toBinary(current),
             }),
           }),
           waitRev: (
@@ -99,6 +99,8 @@ it('installs only a successful build and releases observation after completion',
       sourceKey: 'projects/colors',
       deviceKey: 'devices/local',
       manifestId: 'space-colors',
+      milliCpu: 1000n,
+      memoryBytes: 2n << 30n,
     }),
   )
   await waitFor(() => expect(complete).toBeDefined())
@@ -108,7 +110,7 @@ it('installs only a successful build and releases observation after completion',
 
   await act(async () => {
     current = {
-      executionState: State.ExecutionState_COMPLETE,
+      taskState: State.TaskState_COMPLETE,
       result: { success: true },
       valueSet: {
         outputs: [

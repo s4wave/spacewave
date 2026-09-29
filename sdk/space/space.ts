@@ -87,7 +87,7 @@ export class Space extends Resource {
   }
 
   // buildSpacePlugin queues an immutable source snapshot on a registered device.
-  // The returned Forge execution owns progress, cancellation, logs, and outputs.
+  // The returned Forge Job and Task own progress, cancellation, logs, and outputs.
   public async buildSpacePlugin(
     request: BuildSpacePluginRequest,
     abortSignal?: AbortSignal,

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,6 +50,35 @@ func TestBunInstallHashIncludesLockfile(t *testing.T) {
 	}
 	if bunInstallHash(pkg, lockA) == bunInstallHash(pkg, lockB) {
 		t.Fatal("different lockfiles produced the same install hash")
+	}
+}
+
+// TestWithoutRootScripts proves the seeded manifest drops only the scripts.
+func TestWithoutRootScripts(t *testing.T) {
+	// Strip the scripts from a manifest that also has dependencies.
+	pkg := []byte(`{"name":"app","scripts":{"prepare":"go mod vendor"},"dependencies":{"react":"19.2.5"}}`)
+	got, err := withoutRootScripts(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the scripts are gone and the dependencies remain.
+	var parser fastjson.Parser
+	fields, err := parser.ParseBytes(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fields.Get("scripts") != nil {
+		t.Fatalf("scripts kept in %s", got)
+	}
+	if fields.Get("dependencies") == nil {
+		t.Fatalf("dependencies dropped from %s", got)
+	}
+
+	// Check a manifest without scripts is returned unchanged.
+	plain := []byte(`{"dependencies":{}}`)
+	if got, err := withoutRootScripts(plain); err != nil || string(got) != string(plain) {
+		t.Fatalf("manifest without scripts changed: %s, %v", got, err)
 	}
 }
 

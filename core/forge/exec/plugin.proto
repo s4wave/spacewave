@@ -7,7 +7,7 @@ option go_package = "github.com/s4wave/spacewave/core/forge/exec;space_exec";
 
 // PluginBuildConfig builds an immutable artifact or retains a frontend compiler.
 message PluginBuildConfig {
-  // ManifestId selects the JavaScript plugin manifest for an immutable build.
+  // ManifestId selects the plugin manifest for an immutable build.
   string manifest_id = 1;
   // ConfigPath is relative to the source tree; empty selects bldr.yaml.
   string config_path = 2;
@@ -19,6 +19,13 @@ message PluginBuildConfig {
   string frontend_peer_id = 4;
   // FrontendRoutePrefix routes same-origin modules back to the authoring Resource.
   string frontend_route_prefix = 5;
+  // PlatformId is the platform of the immutable build, such as js or
+  // desktop/linux/amd64. Required unless FrontendId is set.
+  string platform_id = 6;
+  // MilliCpu is the CPU the build requests from its Worker in milli-cores.
+  uint64 milli_cpu = 7;
+  // MemoryBytes is the memory the build requests from its Worker in bytes.
+  uint64 memory_bytes = 8;
 }
 
 // PluginExecConfig configures the generic plugin execution bridge.
