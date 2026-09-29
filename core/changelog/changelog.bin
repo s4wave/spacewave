@@ -1,4 +1,12 @@
 
+í
+0.57.18
+2026-09-29ÂSpacewave 0.57.18 restores reliable macOS startup and desktop updates, enables Space-deployed plugins in desktop and browser apps, and adds directory synchronization and snapshot recovery tools."ÂSpacewave 0.57.18 restores reliable macOS startup and desktop updates, enables Space-deployed plugins in desktop and browser apps, and adds directory synchronization and snapshot recovery tools.*‚
+?Space-deployed plugins now run in the desktop and browser apps.?Space-deployed plugins now run in the desktop and browser apps.*º
+šNew command-line tools synchronize directories between local storage and Spacewave file storage and restore snapshots directly from S3-compatible storage.šNew command-line tools synchronize directories between local storage and Spacewave file storage and restore snapshots directly from S3-compatible storage.2|
+<Installed macOS apps now start reliably after a cold launch.<Installed macOS apps now start reliably after a cold launch.2¨
+‘Desktop updates now restart from the updated app, reopen the desktop automatically, and no longer wait for the desktop that initiated the update.‘Desktop updates now restart from the updated app, reopen the desktop automatically, and no longer wait for the desktop that initiated the update.:à
+nDesktop updates now show when other clients or services are delaying a restart and offer a Restart now action.nDesktop updates now show when other clients or services are delaying a restart and offer a Restart now action.
 ±
 0.57.17
 2026-09-28„Spacewave 0.57.17 improves desktop updates, sign-in and session selection, app startup, Forge Workers, and file storage reliability."„Spacewave 0.57.17 improves desktop updates, sign-in and session selection, app startup, Forge Workers, and file storage reliability.2ˆ
