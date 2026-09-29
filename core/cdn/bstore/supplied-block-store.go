@@ -52,6 +52,7 @@ type SuppliedBlockStore struct {
 // NewSuppliedBlockStore constructs a SuppliedBlockStore. The pointer is not
 // fetched until Refresh is called.
 func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
+	// Require the CDN origin, Space, and supplied store.
 	if opts.CdnBaseURL == "" {
 		return nil, errors.New("cdn bstore: CdnBaseURL required")
 	}
@@ -61,6 +62,8 @@ func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 	if opts.Store == nil {
 		return nil, errors.New("cdn bstore: Store required")
 	}
+
+	// Resolve the HTTP client, defaulting to the shared client.
 	cli := opts.HttpClient
 	if cli == nil {
 		cli = http.DefaultClient
@@ -94,6 +97,7 @@ func (s *SuppliedBlockStore) ReclaimStorage(context.Context, func(context.Contex
 // Pointer returns the currently-cached root pointer without triggering a
 // refresh. Returns nil if no pointer has been fetched yet.
 func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {
+	// Read the cached pointer under the broadcast lock.
 	var ptr *cdn.CdnRootPointer
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ptr = s.pointer
@@ -104,10 +108,12 @@ func (s *SuppliedBlockStore) Pointer() *cdn.CdnRootPointer {
 // Refresh forces a re-fetch of the root pointer.
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *SuppliedBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
+	// Fetch the root pointer from the CDN.
 	ptr, err := FetchRootPointer(ctx, s.cli, s.cdnBaseURL, s.spaceID)
 	if err != nil {
 		return nil, err
 	}
+	// Publish the fetched pointer to watchers.
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		s.pointer = ptr
 		broadcastFn()

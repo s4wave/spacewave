@@ -44,9 +44,12 @@ type CachedBlockStoreOptions struct {
 // references. On assembly failure every acquired reference is freed before
 // the error returns.
 func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOptions) (*CdnBlockStore, func(), error) {
+	// Declare the cache and release slots for the bus lookups.
 	var indexCache packfile_store.IndexCache
 	var cacheStore block_store.LookupBlockStoreValue
 	var releaseCache, releaseIndex func()
+
+	// Build a release helper that frees the cache and pack-index bus references.
 	releaseRefs := func() {
 		if releaseIndex != nil {
 			releaseIndex()
@@ -55,6 +58,8 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 			releaseCache()
 		}
 	}
+
+	// Look up the writeback block store and the durable pack-index object store on the bus.
 	if cacheID := opts.CacheBlockStoreID; cacheID != "" {
 		var err error
 		var cacheRef directive.Reference
@@ -80,6 +85,8 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 			indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
 		}
 	}
+
+	// Assemble the CDN block store with the resolved index cache.
 	store, err := NewCdnBlockStore(Options{
 		CdnBaseURL: opts.CdnBaseURL,
 		SpaceID:    opts.SpaceID,
@@ -91,6 +98,8 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 		releaseRefs()
 		return nil, nil, err
 	}
+
+	// Attach the writeback store when the cache block store resolved.
 	if cacheStore != nil {
 		store.SetWriteback(ctx, cacheStore, opts.WritebackWindowBytes)
 	}
