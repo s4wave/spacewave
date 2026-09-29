@@ -13,7 +13,7 @@ type LZ4 struct {
 	opts []lz4.Option
 }
 
-// NewLZ4 constructs the s2 compress step.
+// NewLZ4 constructs the lz4 compress step.
 func NewLZ4(c *Config) (*LZ4, error) {
 	if err := c.Validate(); err != nil {
 		return nil, err
@@ -38,7 +38,8 @@ func (s *LZ4) EncodeBlock(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := wr.Flush(); err != nil {
+	// Close writes the frame end mark, which readers require.
+	if err := wr.Close(); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
