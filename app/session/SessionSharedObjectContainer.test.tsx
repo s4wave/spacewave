@@ -499,7 +499,13 @@ describe('SessionSharedObjectContainer', () => {
       {
         value: null,
         loading: false,
-        error: new Error('build cdn world engine: block not found'),
+        error: new SharedObjectHealthError({
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.BODY,
+          commonReason: SharedObjectHealthCommonReason.BLOCK_NOT_FOUND,
+          remediationHint: SharedObjectHealthRemediationHint.REPAIR_SOURCE_DATA,
+          error: 'build cdn world engine: block not found',
+        }),
         retry: vi.fn(),
       },
     )
@@ -643,7 +649,13 @@ describe('SessionSharedObjectContainer', () => {
       {
         value: null,
         loading: false,
-        error: new Error(`shared object not found: ${SPACE_ID}`),
+        error: new SharedObjectHealthError({
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.NOT_FOUND,
+          remediationHint: SharedObjectHealthRemediationHint.NONE,
+          error: `shared object not found: ${SPACE_ID}`,
+        }),
         retry: vi.fn(),
       },
       {
