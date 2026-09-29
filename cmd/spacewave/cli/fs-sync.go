@@ -156,6 +156,7 @@ func newFsSyncCommand() *cli.Command {
 // waitSpaceStorageSynced waits for the provider that owns the Space's uploads.
 // Call after Engine.Sync has persisted the World and marked its blocks for upload.
 func waitSpaceStorageSynced(ctx context.Context, sess *s4wave_session.Session, spaceID string) error {
+	// Skip the provider watch when the session is not served locally.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return err
@@ -163,6 +164,8 @@ func waitSpaceStorageSynced(ctx context.Context, sess *s4wave_session.Session, s
 	if info.GetSessionRef().GetProviderResourceRef().GetProviderId() != provider_local.ProviderID {
 		return waitSessionSynced(ctx, sess)
 	}
+
+	// Open the upload status watch with its own cancellation scope.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	stream, err := sess.WatchSpaceStorage(ctx, spaceID)
@@ -170,6 +173,8 @@ func waitSpaceStorageSynced(ctx context.Context, sess *s4wave_session.Session, s
 		return errors.Wrap(err, "watch Space uploads")
 	}
 	defer stream.Close()
+
+	// Fail on an upload error and return once no blocks remain pending.
 	for {
 		status, err := stream.Recv()
 		if err != nil {
