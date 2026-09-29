@@ -45,6 +45,7 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 // Release unlocks and closes the lock file, then releases the in-memory
 // lease so a woken local waiter finds the file lock free.
 func (l *lease) Release(context.Context) error {
+	// Release the lease only once.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if l.released {
@@ -52,6 +53,7 @@ func (l *lease) Release(context.Context) error {
 	}
 	l.released = true
 
+	// Unlock and close the lock file.
 	if l.file != nil {
 		if err := unlockFile(l.file); err != nil {
 			l.releaseErr = pkgerrors.Wrap(err, "release lock file")
@@ -60,6 +62,8 @@ func (l *lease) Release(context.Context) error {
 			l.releaseErr = pkgerrors.Wrap(err, "close lock file")
 		}
 	}
+
+	// Release the in-memory lease so a woken local waiter finds the file free.
 	if err := l.inner.Release(context.Background()); err != nil && l.releaseErr == nil {
 		l.releaseErr = err
 	}
