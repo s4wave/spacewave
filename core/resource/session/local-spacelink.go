@@ -26,6 +26,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	ctx context.Context,
 	req *s4wave_session.ApproveLocalSpaceLinkRequest,
 ) (*s4wave_session.ApproveLocalSpaceLinkResponse, error) {
+	// Verify the signed ticket and require a target resource id.
 	verified, err := verifySpaceLinkTicketData(req.GetTicket(), time.Now())
 	if err != nil {
 		return nil, err
@@ -35,6 +36,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 		return nil, errors.New("resource_id is required")
 	}
 
+	// Load the session's local provider account.
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
 	if !ok {
 		return nil, errors.New("session provider account is not local")
@@ -50,6 +52,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	}
 	defer so.release()
 
+	// Confirm the approving session is the originating account's OWNER.
 	ih, ok := any(so.so).(sobject.InviteHost)
 	if !ok {
 		return nil, errors.New("shared object does not support invites")
@@ -66,6 +69,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 		return nil, err
 	}
 
+	// Consume the ticket's one-use nonce for the requesting Device.
 	payload := verified.payload
 	if err := localAcc.ConsumeSpaceLinkNonce(
 		ctx,
@@ -96,6 +100,8 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err := ih.GetSOHost().CreateInvite(ctx, ih.GetPrivKey(), invite); err != nil {
 		return nil, errors.Wrap(err, "store targeted invite")
 	}
+
+	// Record the enrolled Device and start the invite-serving sync.
 	if err := localAcc.RecordPairedDevice(
 		ctx,
 		verified.agentPeerID.String(),
@@ -110,6 +116,8 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err := localAcc.StartPersistentP2PSync(ctx, ownerTransport); err != nil {
 		return nil, errors.Wrap(err, "start invite service")
 	}
+
+	// Return the one-use invite completion for the Device.
 	return &s4wave_session.ApproveLocalSpaceLinkResponse{
 		Completion: &s4wave_session.LocalSpaceLinkCompletion{
 			ProviderId:    ih.GetProviderID(),
@@ -134,12 +142,15 @@ type mountedLocalSpace struct {
 // requireOriginOwner returns an error unless the peer is an OWNER on the
 // originating local account's copy of the Space.
 func (m *mountedLocalSpace) requireOriginOwner(ctx context.Context, approverPeerID string) error {
+	// Reject a joined shared copy and a missing approver id.
 	if m.sharedCopy {
 		return errors.New("spacelink approval requires the originating local account")
 	}
 	if approverPeerID == "" {
 		return errors.New("approver peer id is required")
 	}
+
+	// Require the approver to hold the OWNER role on the Space.
 	state, err := m.so.GetSOHostState(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get target space state")
@@ -160,6 +171,7 @@ func (r *LocalSessionResource) mountLocalSpace(
 	localAcc *provider_local.ProviderAccount,
 	resourceID string,
 ) (*mountedLocalSpace, error) {
+	// Locate the Space in the account's shared object list.
 	providerID := localAcc.GetProviderID()
 	found := false
 	sharedCopy := false
@@ -173,6 +185,8 @@ func (r *LocalSessionResource) mountLocalSpace(
 	if !found {
 		return nil, errors.New("target space not found on the approving account")
 	}
+
+	// Mount the Space's shared object on the account.
 	ref := sobject.NewSharedObjectRef(
 		providerID,
 		localAcc.GetAccountID(),
@@ -188,6 +202,8 @@ func (r *LocalSessionResource) mountLocalSpace(
 		relSO()
 		return nil, errors.New("unexpected shared object type")
 	}
+
+	// Return the mounted Space with its release function.
 	return &mountedLocalSpace{
 		so:         so,
 		providerID: providerID,

@@ -18,6 +18,7 @@ func (r *SessionResource) AccessPeerTransport(
 	ctx context.Context,
 	_ *s4wave_session.AccessPeerTransportRequest,
 ) (*s4wave_session.AccessPeerTransportResponse, error) {
+	// Resolve the calling resource client and the local account.
 	owner, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -26,6 +27,8 @@ func (r *SessionResource) AccessPeerTransport(
 	if !ok {
 		return nil, errors.New("peer transport requires a local account")
 	}
+
+	// Ensure the account's session transport is configured.
 	if err := account.EnsureConfiguredSessionTransport(ctx, r.session.GetPrivKey()); err != nil {
 		return nil, err
 	}
@@ -33,6 +36,8 @@ func (r *SessionResource) AccessPeerTransport(
 	if transport == nil || transport.GetChildBus() == nil {
 		return nil, errors.New("account peer transport is unavailable")
 	}
+
+	// Expose the transport's stream API as a caller-owned resource.
 	api, err := bifrost_api.NewAPI(transport.GetChildBus(), &bifrost_api.Config{})
 	if err != nil {
 		return nil, err
@@ -45,6 +50,8 @@ func (r *SessionResource) AccessPeerTransport(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the resource id and the transport's peer id.
 	return &s4wave_session.AccessPeerTransportResponse{
 		ResourceId: id,
 		PeerId:     transport.GetPeerID().String(),

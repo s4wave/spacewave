@@ -20,9 +20,11 @@ func (r *SessionResource) WatchStorageBackends(
 	req *s4wave_session.WatchStorageBackendsRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchStorageBackendsStream,
 ) error {
+	// Tie the stream's resources to its context.
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
 
+	// Mount the account settings shared object and access its state.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return err
@@ -36,12 +38,15 @@ func (r *SessionResource) WatchStorageBackends(
 		return err
 	}
 	defer mountRef.Release()
+
+	// Access the settings object's state container.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, ctxCancel)
 	if err != nil {
 		return err
 	}
 	defer relStateCtr()
 
+	// Stream a response whenever the settings change materially.
 	var snap sobject.SharedObjectStateSnapshot
 	var prev *s4wave_session.WatchStorageBackendsResponse
 	for {
@@ -66,6 +71,7 @@ func (r *SessionResource) WatchStorageBackends(
 
 // buildStorageBackendsResponse lists each backend with its placed Spaces.
 func buildStorageBackendsResponse(settings *account_settings.AccountSettings) *s4wave_session.WatchStorageBackendsResponse {
+	// List each backend with the Spaces placed on it.
 	backends := make([]*s4wave_session.StorageBackendInfo, 0, len(settings.GetStorageBackends()))
 	for _, backend := range settings.GetStorageBackends() {
 		info := &s4wave_session.StorageBackendInfo{Backend: backend}
@@ -78,6 +84,8 @@ func buildStorageBackendsResponse(settings *account_settings.AccountSettings) *s
 		}
 		backends = append(backends, info)
 	}
+
+	// Return the backend list with the default selection.
 	return &s4wave_session.WatchStorageBackendsResponse{
 		StorageBackends:         backends,
 		DefaultStorageBackendId: settings.GetDefaultStorageBackendId(),
@@ -90,10 +98,13 @@ func (r *SessionResource) CheckStorageBackend(
 	ctx context.Context,
 	req *s4wave_session.CheckStorageBackendRequest,
 ) (*s4wave_session.CheckStorageBackendResponse, error) {
+	// Load the local provider account.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return nil, err
 	}
+
+	// Check a saved backend by id.
 	if id := req.GetStorageBackendId(); id != "" {
 		result, err := localAcc.CheckStorageBackend(ctx, id)
 		if err != nil {
@@ -101,6 +112,8 @@ func (r *SessionResource) CheckStorageBackend(
 		}
 		return &s4wave_session.CheckStorageBackendResponse{Result: result}, nil
 	}
+
+	// Check an unsaved S3 location and credentials.
 	if err := req.GetS3().Validate(); err != nil {
 		return nil, err
 	}
@@ -113,6 +126,7 @@ func (r *SessionResource) AddStorageBackend(
 	ctx context.Context,
 	req *s4wave_session.AddStorageBackendRequest,
 ) (*s4wave_session.AddStorageBackendResponse, error) {
+	// Save the backend after the account's connectivity check.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return nil, err
@@ -121,6 +135,8 @@ func (r *SessionResource) AddStorageBackend(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the saved backend id and its check result.
 	return &s4wave_session.AddStorageBackendResponse{StorageBackendId: id, Check: check}, nil
 }
 
@@ -129,6 +145,7 @@ func (r *SessionResource) RemoveStorageBackend(
 	ctx context.Context,
 	req *s4wave_session.RemoveStorageBackendRequest,
 ) (*s4wave_session.RemoveStorageBackendResponse, error) {
+	// Remove the unused backend from the account.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return nil, err
@@ -136,6 +153,8 @@ func (r *SessionResource) RemoveStorageBackend(
 	if err := localAcc.RemoveStorageBackend(ctx, req.GetStorageBackendId()); err != nil {
 		return nil, err
 	}
+
+	// Acknowledge the removal.
 	return &s4wave_session.RemoveStorageBackendResponse{}, nil
 }
 
@@ -144,6 +163,7 @@ func (r *SessionResource) SetDefaultStorageBackend(
 	ctx context.Context,
 	req *s4wave_session.SetDefaultStorageBackendRequest,
 ) (*s4wave_session.SetDefaultStorageBackendResponse, error) {
+	// Select the default backend on the account.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return nil, err
@@ -151,6 +171,8 @@ func (r *SessionResource) SetDefaultStorageBackend(
 	if err := localAcc.SetDefaultStorageBackend(ctx, req.GetStorageBackendId()); err != nil {
 		return nil, err
 	}
+
+	// Acknowledge the selection.
 	return &s4wave_session.SetDefaultStorageBackendResponse{}, nil
 }
 
@@ -168,10 +190,13 @@ func decodeAccountSettings(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
 ) (*account_settings.AccountSettings, error) {
+	// Read the snapshot's root inner state.
 	rootInner, err := snap.GetRootInner(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the account settings payload when present.
 	settings := &account_settings.AccountSettings{}
 	if data := rootInner.GetStateData(); len(data) > 0 {
 		if err := settings.UnmarshalVT(data); err != nil {
@@ -189,17 +214,23 @@ func (r *SessionResource) placeNewSpaceBlockStore(
 	soID string,
 	req *s4wave_session.CreateSpaceRequest,
 ) (string, error) {
+	// Load the session's provider account.
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
 	if !ok || localAcc == nil {
+		// Reject an explicit backend request on a non-local account.
 		if req.GetStorageBackendId() != "" {
 			return "", errStorageBackendsLocalOnly
 		}
 		return "", nil
 	}
+
+	// Resolve the target backend for the new Space.
 	backendID, err := localAcc.ResolveNewSpaceStorageBackend(ctx, req.GetStorageBackendId(), req.GetAccountStorage())
 	if err != nil || backendID == "" {
 		return "", err
 	}
+
+	// Place the Space's block store on the resolved backend.
 	blockStoreID := provider_local.SobjectBlockStoreID(soID)
 	if err := localAcc.PlaceBlockStore(ctx, blockStoreID, backendID); err != nil {
 		return "", err
@@ -225,12 +256,14 @@ func (r *SessionResource) WatchSpaceStorage(
 	req *s4wave_session.WatchSpaceStorageRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchSpaceStorageStream,
 ) error {
+	// Stream the Space's upload status until the stream ends.
 	localAcc, err := r.localProviderAccount()
 	if err != nil {
 		return err
 	}
 	var prev *s4wave_session.WatchSpaceStorageResponse
 	return localAcc.WatchUploadStatus(strm.Context(), req.GetSharedObjectId(), func(status provider_local.UploadStatus) error {
+		// Build the response from the upload status.
 		resp := &s4wave_session.WatchSpaceStorageResponse{
 			StorageBackendId:   status.Backend.GetId(),
 			StorageBackendName: status.Backend.GetDisplayName(),
@@ -240,6 +273,8 @@ func (r *SessionResource) WatchSpaceStorage(
 		if status.Err != nil {
 			resp.UploadError = status.Err.Error()
 		}
+
+		// Send the response when it differs from the previous one.
 		if prev != nil && resp.EqualVT(prev) {
 			return nil
 		}

@@ -36,9 +36,12 @@ func (r *RecoveryStatusRegistry) GetSessionRecoveryStatusCtr(
 func (r *RecoveryStatusRegistry) getSessionRecoveryStatusCtrForRef(
 	ref *session.SessionRef,
 ) *ccontainer.CContainer[*s4wave_status.ReportRecoveryStatusRequest] {
+	// Return a detached container for a nil registry or reference.
 	if r == nil || ref == nil {
 		return newRendererRecoveryCtr()
 	}
+
+	// Reuse or create the session's shared status container.
 	key := recoveryStatusSessionKey(ref)
 	r.mtx.Lock()
 	defer r.mtx.Unlock()

@@ -29,12 +29,14 @@ const localEnrollmentTestTimeout = 2 * time.Minute
 
 // buildDeviceTicket builds a signed SpaceLink DEVICE ticket for the test.
 func buildDeviceTicket(t *testing.T, priv crypto.PrivKey, agentPeerID peer.ID) (ticketBytes, nonce []byte) {
+	// Mark the helper and generate the ticket's one-use nonce.
 	t.Helper()
-
 	nonce = make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the ticket payload for a DEVICE enrollment.
 	payload := &s4wave_provider_spacewave.SpaceLinkAuthRequest{
 		Version:        1,
 		SessionType:    core_session.SessionType_SESSION_TYPE_DEVICE,
@@ -45,6 +47,8 @@ func buildDeviceTicket(t *testing.T, priv crypto.PrivKey, agentPeerID peer.ID) (
 		ExpiresAt:      time.Now().Add(15 * time.Minute).Unix(),
 		CompletionMode: s4wave_provider_spacewave.SpaceLinkCompletionMode_SpaceLinkCompletionMode_CLI,
 	}
+
+	// Marshal the payload, sign it, and wrap it in the ticket.
 	payloadBytes, err := payload.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
@@ -66,15 +70,17 @@ func buildDeviceTicket(t *testing.T, priv crypto.PrivKey, agentPeerID peer.ID) (
 // connectSessionTransportsForTest connects two session transports via inproc
 // and waits for one established link. Dual-dial from both sides is unstable.
 func connectSessionTransportsForTest(ctx context.Context, t *testing.T, stA, stB *transport.SessionTransport) {
+	// Capture both transports' peer ids and child buses.
 	t.Helper()
-
 	peerIDA := stA.GetPeerID()
 	peerIDB := stB.GetPeerID()
 	childBusA := stA.GetChildBus()
 	childBusB := stB.GetChildBus()
 
+	// Build a logger for the inproc controllers.
 	le := logrus.NewEntry(logrus.New())
 
+	// Build an inproc transport controller per child bus, each dialing the other.
 	inprocCtrlA := transport_inproc.BuildInprocController(le, childBusA, "", &transport_inproc.Config{
 		Dialers: map[string]*transport_dialer.DialerOpts{
 			peerIDB.String(): {Address: transport_inproc.NewAddr(peerIDB).String()},
@@ -86,6 +92,7 @@ func connectSessionTransportsForTest(ctx context.Context, t *testing.T, stA, stB
 		},
 	})
 
+	// Add both controllers to their child buses.
 	if _, err := childBusA.AddController(ctx, inprocCtrlA, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +100,7 @@ func connectSessionTransportsForTest(ctx context.Context, t *testing.T, stA, stB
 		t.Fatal(err)
 	}
 
+	// Connect the two inproc transports in both directions.
 	tptA, err := inprocCtrlA.GetTransport(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +114,7 @@ func connectSessionTransportsForTest(ctx context.Context, t *testing.T, stA, stB
 	ipA.ConnectToInproc(ctx, ipB)
 	ipB.ConnectToInproc(ctx, ipA)
 
+	// Establish a link between the peers and release it at test end.
 	_, rel, err := link.EstablishLinkWithPeerEx(ctx, childBusA, peerIDA, peerIDB, false)
 	if err != nil {
 		t.Fatal(err)
@@ -118,13 +127,16 @@ func connectSessionTransportsForTest(ctx context.Context, t *testing.T, stA, stB
 // rejection before mutation, nonce replay rejection, one-use targeted invite
 // completion from the Device's own key, and restart remount identity.
 func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
+	// Skip the in-memory enrollment e2e in short mode.
 	if testing.Short() {
 		t.Skip("skipping in-memory enrollment e2e in short mode")
 	}
 
+	// Bound the test's lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), localEnrollmentTestTimeout)
 	defer cancel()
 
+	// Set up the owner and device test environments.
 	ownerEnv := setupTestEnv(ctx, t)
 	deviceEnv := setupTestEnv(ctx, t)
 
@@ -152,6 +164,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal("unexpected owner shared object type")
 	}
 
+	// Mount the owner session for the approval.
 	ownerSess, relOwnerSess, err := ownerAcc.MountSession(ctx, ownerSessRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -168,6 +181,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	}
 	defer relOtherSess()
 
+	// Generate the Device and non-owner keypairs and PEM encodings.
 	devicePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +194,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Generate the non-owner's keypair and PEM encoding.
 	otherPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -188,6 +204,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the signed Device ticket for the OWNER to approve.
 	ticketBytes, nonce := buildDeviceTicket(t, devicePriv, devicePeerID)
 
 	// Non-owner approval is rejected before any mutation.
@@ -211,6 +229,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the completion names the local provider, Space, and Device.
 	completion := resp.GetCompletion()
 	if completion == nil {
 		t.Fatal("approval returned no completion")
@@ -227,6 +247,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if string(completion.GetNonce()) != string(nonce) {
 		t.Fatal("completion nonce does not match ticket nonce")
 	}
+
+	// Assert the invite is one-use, targeted, and matches the requested role.
 	invite := completion.GetInvite()
 	if invite == nil {
 		t.Fatal("completion carries no invite")
@@ -295,6 +317,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	defer relDeviceAcc()
 	deviceAcc := deviceAccIface.(*provider_local.ProviderAccount)
 
+	// Mount the Device session and assert it reopened its durable identity.
 	deviceSess, relDeviceSess, err := deviceAcc.MountSession(ctx, deviceSessRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -310,6 +333,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if ownerTransport == nil {
 		t.Fatal("approval did not retain the owner session transport")
 	}
+
+	// Assert the owner never dials the Device's link itself.
 	for _, di := range ownerTransport.GetChildBus().GetDirectives() {
 		establish, ok := di.GetDirective().(link.EstablishLinkWithPeer)
 		if ok && establish.EstablishLinkSourcePeerId() == ownerTransport.GetPeerID() &&
@@ -317,6 +342,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 			t.Fatal("approval made the owner compete with the Device to establish the same WebRTC link")
 		}
 	}
+
+	// Configure the Device transport and connect both transports.
 	defer ownerAcc.StopSessionTransport()
 	defer ownerAcc.StopP2PSync()
 	if err := deviceAcc.EnsureConfiguredSessionTransport(ctx, devicePriv); err != nil {
@@ -325,12 +352,15 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	defer deviceAcc.StopSessionTransport()
 	connectSessionTransportsForTest(ctx, t, deviceAcc.GetSessionTransport(), ownerTransport)
 
+	// Join the Space through the one-use targeted invite.
 	joinCtx, cancelJoin := context.WithCancel(ctx)
 	joinResult, err := deviceAcc.JoinViaInvite(joinCtx, devicePriv, invite, "")
 	cancelJoin()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the join returned the grant, owner grant, and shared object state.
 	if joinResult == nil || joinResult.Grant == nil {
 		t.Fatal("invite join returned no grant")
 	}
@@ -362,6 +392,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if _, err := joinResult.OwnerGrant.DecryptInnerData(ownerMountedSO.GetPrivKey(), spaceID); err != nil {
 		t.Fatalf("originating owner cannot decrypt joined state: %v", err)
 	}
+
+	// Wait past the join request's lifetime and retain the owner peer.
 	joinRelease := time.NewTimer(250 * time.Millisecond)
 	defer joinRelease.Stop()
 	select {
@@ -386,6 +418,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Wait past the reopen request's lifetime and retain the owner peer again.
 	reopenRelease := time.NewTimer(250 * time.Millisecond)
 	defer reopenRelease.Stop()
 	select {
@@ -396,6 +430,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err := deviceAcc.RetainP2PPeer(ctx, ownerTransport.GetPeerID()); err != nil {
 		t.Fatalf("reopened enrollment request released P2P sync: %v", err)
 	}
+
+	// Assert the join targeted the Space and the Device peer.
 	if joinResult.SharedObjectID != spaceID {
 		t.Fatalf("unexpected joined shared object %q", joinResult.SharedObjectID)
 	}
@@ -411,6 +447,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer relDeviceSO()
+
+	// Read the joined Space's host state from the device copy.
 	localDeviceSO, ok := deviceSO.(*provider_local.SharedObject)
 	if !ok {
 		t.Fatal("unexpected shared object type")
@@ -419,6 +457,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the Device and storage grants exist and the storage grant decrypts.
 	foundGrant := false
 	foundStorageGrant := false
 	storagePeerID := localDeviceSO.GetPeerID().String()
@@ -439,6 +479,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if !foundStorageGrant {
 		t.Fatal("device SO state is missing the storage grant")
 	}
+
+	// Assert the storage signer joined as a WRITER participant.
 	foundStorageParticipant := false
 	for _, participant := range deviceSOState.GetConfig().GetParticipants() {
 		if participant.GetPeerId() == storagePeerID &&
@@ -449,6 +491,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if !foundStorageParticipant {
 		t.Fatal("device SO state is missing the storage participant")
 	}
+
+	// Assert the joined Space appears as a shared entry on the device account.
 	foundEntry := false
 	for _, soEntry := range deviceAcc.GetSOListCtr().GetValue().GetSharedObjects() {
 		if soEntry.GetRef().GetProviderResourceRef().GetId() == spaceID && soEntry.GetSource() == "shared" {
@@ -459,6 +503,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal("device SO list is missing the joined Space")
 	}
 
+	// Assert the owner's Space lists the enrolled Device as a WRITER.
 	ownerState, err := ownerMountedSO.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -499,6 +544,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	// remains on the persisted Space.
 	relDeviceSO()
 	relDeviceSess()
+
+	// Remount the session and assert it keeps the Device identity.
 	restartedSess, relRestartedSess, err := deviceAcc.MountSession(ctx, deviceSessRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -507,6 +554,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if restartedSess.GetPeerId().String() != devicePeerID.String() {
 		t.Fatal("remounted session lost its device identity")
 	}
+
+	// Remount the Space and assert the device grant persisted.
 	restartedSO, relRestartedSO, err := deviceAcc.MountSharedObject(ctx, deviceSORef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -516,6 +565,8 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if !ok {
 		t.Fatal("unexpected shared object type after remount")
 	}
+
+	// Read the remounted Space's state and assert the device grant survived.
 	restartedState, err := localRestartedSO.GetSOHostState(ctx)
 	if err != nil {
 		t.Fatal(err)

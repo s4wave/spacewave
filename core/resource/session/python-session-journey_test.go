@@ -33,10 +33,12 @@ const (
 // the Session watch handler, the child release callback, the Python client,
 // and the Go generation to settle before the listener closes.
 func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
+	// Skip outside the Python Resource CI job.
 	if os.Getenv("RUN_PYTHON_SESSION_JOURNEY") != "1" {
 		t.Skip("Python Session journey runs in the Python Resource CI job")
 	}
 
+	// Bound the journey's lifetime.
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
 
@@ -66,10 +68,13 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 	// Serve one bounded Root that mounts that Session owner as a child.
 	releaseComplete := make(chan struct{}, 1)
 	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		// Serve only the Root's MountSessionByIdx method.
 		if serviceID != s4wave_root.SRPCRootResourceServiceServiceID ||
 			methodID != "MountSessionByIdx" {
 			return false, nil
 		}
+
+		// Reject a session index other than the journey's target.
 		request := new(s4wave_root.MountSessionByIdxRequest)
 		if err := strm.MsgRecv(request); err != nil {
 			return true, err
@@ -77,6 +82,8 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 		if request.GetSessionIdx() != pythonSessionJourneySessionIdx {
 			return true, strm.MsgSend(&s4wave_root.MountSessionByIdxResponse{NotFound: true})
 		}
+
+		// Mount the Session owner as a child resource of the caller.
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
 		if err != nil {
 			return true, err
@@ -120,6 +127,8 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 	var handlers sync.WaitGroup
 	connections := make(map[net.Conn]struct{})
 	var connectionsMtx sync.Mutex
+
+	// Accept TCP connections and serve each with its own handler goroutine.
 	go func() {
 		defer close(acceptDone)
 		for {
@@ -141,10 +150,15 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 			})
 		}
 	}()
+
+	// Close the listener and drain every connection when the test ends.
 	defer func() {
+		// Close the listener and wait for its accept loop.
 		_ = listener.Close()
 		<-acceptDone
 		cancel()
+
+		// Close any remaining connections and wait for their handlers.
 		connectionsMtx.Lock()
 		remaining := make([]net.Conn, 0, len(connections))
 		for conn := range connections {
@@ -172,6 +186,8 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 	)
 	command.Dir = repositoryRoot
 	command.Env = os.Environ()
+
+	// Start the client with its stderr captured and stdout piped.
 	var stderr bytes.Buffer
 	stdout, err := command.StdoutPipe()
 	if err != nil {
@@ -181,6 +197,8 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 	if err := command.Start(); err != nil {
 		t.Fatalf("start python client: %v", err)
 	}
+
+	// Collect the client's stdout lines behind a mutex.
 	var outputMtx sync.Mutex
 	var outputLines []string
 	scanDone := make(chan struct{})
@@ -198,9 +216,10 @@ func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
 		defer outputMtx.Unlock()
 		return strings.Join(outputLines, "\n")
 	}
+
+	// Wait for the client to finish or the journey to time out.
 	wait := make(chan error, 1)
 	go func() { wait <- command.Wait() }()
-
 	select {
 	case err := <-wait:
 		if err != nil {
