@@ -3,6 +3,8 @@ package bldr_manifest_pack
 import (
 	"context"
 	"io"
+	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -85,6 +87,27 @@ func ProduceReleasePack(
 			ObjectKey:  conf.BundleKey,
 		})
 	}
+
+	// Order the Manifests as the bundle does, by entry key, so the tuples line up
+	// with the bundle entries whatever order the sources arrived in.
+	order := make([]int, len(refs))
+	keys := make([]string, len(refs))
+	for i, ref := range refs {
+		order[i] = i
+		key, err := bldr_manifest.NewManifestBundleEntryKey(conf.BundleKey, ref.GetMeta())
+		if err != nil {
+			return nil, nil, err
+		}
+		keys[i] = key
+	}
+	slices.SortFunc(order, func(a, b int) int { return strings.Compare(keys[a], keys[b]) })
+	sortedTuples := make([]*ManifestTuple, len(order))
+	sortedRefs := make([]*bldr_manifest.ManifestRef, len(order))
+	for i, idx := range order {
+		sortedTuples[i] = tuples[idx]
+		sortedRefs[i] = refs[idx]
+	}
+	tuples, refs = sortedTuples, sortedRefs
 
 	// Store the encoded Manifests under one bundle with the release timestamp.
 	_, bundleRef, err := StoreManifestBundles(

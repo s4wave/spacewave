@@ -3,6 +3,7 @@ package bldr_manifest_pack
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/peer"
@@ -53,5 +54,56 @@ func TestProduceReleasePackIsDeterministic(t *testing.T) {
 	}
 	if !bytes.Equal(metaA.GetPackSha256(), metaB.GetPackSha256()) || !metaA.GetManifestBundleRef().EqualVT(metaB.GetManifestBundleRef()) {
 		t.Fatal("pack identity differs between identical builds")
+	}
+}
+
+// TestProduceReleasePackOrdersTuplesLikeTheBundle checks that the tuples and
+// encoded references come out in bundle order whatever order the sources
+// arrive in. The bundle sorts its entries by key, and the consumer pairs each
+// tuple with the bundle entry at the same index.
+func TestProduceReleasePackOrdersTuplesLikeTheBundle(t *testing.T) {
+	// Store two manifests in one source world.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	src := newTestWorld(t, ctx, le)
+	var sources []ReleaseSource
+	for _, id := range []string{"plugin", "plugin-b"} {
+		tuple := testManifestPackTuple()
+		tuple.ManifestId = id
+		ref := storeTestManifest(t, ctx, src, tuple, false, true)
+		sources = append(sources, ReleaseSource{Access: src.AccessWorldState, Ref: ref.GetManifestRef()})
+	}
+
+	// Pack the sources in both orders.
+	var ids [][]string
+	for _, ordered := range [][]ReleaseSource{sources, {sources[1], sources[0]}} {
+		meta, refs, err := ProduceReleasePack(ctx, le, &ReleasePackConfig{
+			WorldState:     newTestWorld(t, ctx, le),
+			Sender:         peer.ID("sender"),
+			BundleKey:      "plugin-handoff",
+			Sources:        ordered,
+			GitSHA:         "0123456789abcdef0123456789abcdef01234567",
+			ProducerTarget: "plugin-release",
+			CacheSchema:    "manifest-pack-v1",
+			Writer:         &bytes.Buffer{},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Require each tuple to describe the reference at its index.
+		var got []string
+		for i, tuple := range meta.GetManifests() {
+			if tuple.GetManifestId() != refs[i].GetMeta().GetManifestId() {
+				t.Fatalf("tuple %d is %q, reference is %q", i, tuple.GetManifestId(), refs[i].GetMeta().GetManifestId())
+			}
+			got = append(got, tuple.GetManifestId())
+		}
+		ids = append(ids, got)
+	}
+
+	// Require the same tuple order for both source orders.
+	if strings.Join(ids[0], ",") != "plugin-b,plugin" || strings.Join(ids[1], ",") != "plugin-b,plugin" {
+		t.Fatalf("tuple order = %v, want plugin-b,plugin for both source orders", ids)
 	}
 }
