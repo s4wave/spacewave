@@ -145,12 +145,12 @@ export function OrganizationDashboard() {
         </div>
 
         <div className="w-full max-w-md">
-          <Command variant={isEmpty ? 'dashboardEmpty' : 'dashboard'}>
+          <Command variant="dashboard">
             <CommandInput
               variant="dashboard"
               placeholder={!isEmpty ? 'Search spaces...' : 'Get started...'}
             />
-            <CommandList variant="transparent">
+            <CommandList variant="transparent" className="overscroll-y-contain">
               <CommandEmpty variant="dashboard">No results</CommandEmpty>
 
               {!isEmpty && (
@@ -159,6 +159,7 @@ export function OrganizationDashboard() {
                     <span className="flex w-full items-center justify-between">
                       <span>Spaces</span>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleCreateSpace('drive')
@@ -179,8 +180,8 @@ export function OrganizationDashboard() {
                       className="mx-1"
                       onSelect={() => handleSpaceClick(space.id ?? '')}
                     >
-                      <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                        <LuLayers className="text-brand size-4" />
+                      <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <LuLayers className="text-brand size-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-foreground truncate text-sm font-medium">
@@ -210,8 +211,8 @@ export function OrganizationDashboard() {
                     className="mx-1"
                     onSelect={() => handleCreateSpace(opt.id)}
                   >
-                    <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                      <opt.icon className="text-foreground-alt size-4" />
+                    <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+                      <opt.icon className="text-foreground-alt size-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-foreground truncate text-sm font-medium">
@@ -230,8 +231,8 @@ export function OrganizationDashboard() {
                   className="mx-1"
                   onSelect={handleJoinSpace}
                 >
-                  <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
-                    <LuLogIn className="text-foreground-alt size-4" />
+                  <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <LuLogIn className="text-foreground-alt size-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-foreground truncate text-sm font-medium">

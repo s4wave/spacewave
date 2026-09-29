@@ -264,7 +264,6 @@ describe('SessionDashboard', () => {
       name: 'Copy Alpha Space ID',
     })
     expect(copyButton.closest('[cmdk-item]')).toBeNull()
-    expect(copyButton.className).toContain('size-6')
     copyButton.focus()
     await userEvent.keyboard('{Enter}')
     expect(mockClipboard.writeText).toHaveBeenCalledWith('space-1')

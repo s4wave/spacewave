@@ -19,8 +19,6 @@ const commandVariants = cva('', {
       landing:
         'border-foreground/11 bg-background-get-started rounded-landing-launcher shadow-landing-launcher relative min-h-50 border backdrop-blur-sm',
       dashboard:
-        'border-ui-outline bg-background-get-started/95 relative rounded-lg border shadow-xl backdrop-blur-sm',
-      dashboardEmpty:
         'border-ui-outline bg-background-get-started/95 relative max-h-(--max-height-dashboard-list) rounded-lg border shadow-xl backdrop-blur-sm',
       folder: 'rounded-md bg-transparent',
       palette:
@@ -101,9 +99,9 @@ const commandItemVariants = cva('', {
       landing:
         'text-foreground-alt mx-1 flex rounded-lg cursor-pointer items-center gap-3 px-3 py-1.5 duration-200',
       dashboard:
-        'group flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5',
+        'group flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-1.5',
       dashboardIdentifier:
-        'group flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5 pr-16',
+        'group flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-1.5 pr-14 fine-pointer:pr-11',
       palette:
         'min-h-12 rounded-none border-b border-foreground/6 px-3 py-2 data-[selected=true]:bg-brand/25',
       paletteDisabled:

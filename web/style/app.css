@@ -42,7 +42,6 @@
   --max-width-viewport-control: calc(100vw - 1rem);
   --max-width-content: 85%;
   --max-width-docs-sidebar: calc(100% - 32px);
-  --height-dashboard-list: min(380px, 60vh);
   --max-height-dashboard-list: min(380px, 60vh);
   --height-keybinding-editor: min(45rem, calc(100vh - 2rem));
   --width-command-editor: min(64rem, calc(100vw - 2rem));

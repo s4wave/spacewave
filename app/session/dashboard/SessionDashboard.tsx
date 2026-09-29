@@ -1010,7 +1010,7 @@ function DashboardCommandPalette({
   }, [recentSpaces, orgs])
 
   return (
-    <Command variant={hasSpaces ? 'dashboard' : 'dashboardEmpty'}>
+    <Command variant="dashboard">
       <CommandInput
         ref={inputRef}
         variant="dashboard"
@@ -1020,7 +1020,7 @@ function DashboardCommandPalette({
       />
       <CommandList
         variant="transparent"
-        className="very-short:sm:[&_[cmdk-list-sizer]]:grid very-short:sm:[&_[cmdk-list-sizer]]:grid-cols-2 very-short:sm:[&_[cmdk-list-sizer]]:items-start very-short:sm:[&_[cmdk-separator]]:hidden"
+        className="very-short:sm:[&_[cmdk-list-sizer]]:grid very-short:sm:[&_[cmdk-list-sizer]]:grid-cols-2 very-short:sm:[&_[cmdk-list-sizer]]:items-start very-short:sm:[&_[cmdk-separator]]:hidden overscroll-y-contain"
       >
         <CommandEmpty variant="dashboard">
           {isLoading ? (
@@ -1152,11 +1152,11 @@ function IconButton({
   return (
     <div
       className={cn(
-        'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+        'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
         tones.bg,
       )}
     >
-      <Icon className={cn('size-4', tones.icon)} />
+      <Icon className={cn('size-3.5', tones.icon)} />
     </div>
   )
 }
@@ -1208,7 +1208,7 @@ function DashboardItem({
           {experimental && <ExperimentalBadge />}
         </div>
         {(sublabel || identifier) && (
-          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             {sublabel && (
               <div className="text-foreground-alt/60 truncate text-xs">
                 {sublabel}
@@ -1238,7 +1238,7 @@ function DashboardItem({
         text={identifier}
         label={`Copy ${label} ID`}
         variant="toolbar"
-        className="fine-pointer:right-8 fine-pointer:bottom-2 fine-pointer:size-6 absolute right-3 bottom-1 size-11"
+        className="fine-pointer:right-2 fine-pointer:size-7 absolute top-1/2 right-1 size-11 -translate-y-1/2"
       />
     </div>
   )
