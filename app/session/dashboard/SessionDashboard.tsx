@@ -311,6 +311,7 @@ function InlineSecureAccountSection(props: {
   const [savingLock, setSavingLock] = useState(false)
 
   const account = props.accountResource?.value
+  const session = props.session
 
   const handleDownloadPem = useCallback(async () => {
     if (!account) return
@@ -363,14 +364,14 @@ function InlineSecureAccountSection(props: {
     dispatchLock({ type: 'set-error', error: null })
     setSavingLock(true)
     try {
-      if (props.session) {
+      if (session) {
         const mode =
           lock.mode === 'pin'
             ? SessionLockMode.PIN_ENCRYPTED
             : SessionLockMode.AUTO_UNLOCK
         const pinBytes =
           lock.mode === 'pin' ? new TextEncoder().encode(lock.pin) : undefined
-        await props.session.setLockMode(mode, pinBytes)
+        await session.setLockMode(mode, pinBytes)
       }
       onboarding.markLockComplete()
       toast.success('Lock mode set')
@@ -382,7 +383,7 @@ function InlineSecureAccountSection(props: {
     } finally {
       setSavingLock(false)
     }
-  }, [props.session, lock.mode, lock.pin, lock.confirmPin, onboarding])
+  }, [session, lock.mode, lock.pin, lock.confirmPin, onboarding])
 
   return (
     <div className="mt-4 w-full max-w-md">
@@ -632,6 +633,7 @@ function CreateOrgSection() {
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             placeholder="Organization name"
+            aria-label="Organization name"
             className={cn(
               'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
               'focus:border-brand/50',

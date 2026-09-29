@@ -178,7 +178,7 @@ export function FloatingWindow({
   testId,
 }: FloatingWindowProps) {
   const manager = useFloatingWindowManager()
-  const panelRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDialogElement>(null)
   const minY = isDesktop ? MIN_Y_ELECTRON : 0
 
   // Register/unregister with manager
@@ -220,7 +220,8 @@ export function FloatingWindow({
     })
   }, [state, onStateChange, defaultPosition, defaultSize])
 
-  const handleMouseDown = useCallback(() => {
+  // Focus within the window, by pointer or keyboard, raises it.
+  const handleFocus = useCallback(() => {
     manager?.bringToFront(id)
   }, [manager, id])
 
@@ -337,12 +338,12 @@ export function FloatingWindow({
   )
 
   return (
-    <div
+    <dialog
       ref={panelRef}
-      role="dialog"
+      open
       aria-label={title}
       className={cn(
-        'floating-window-position fixed flex flex-col overflow-hidden',
+        'floating-window-position fixed m-0 flex flex-col overflow-hidden p-0 text-inherit outline-none',
         'rounded-lg shadow-lg',
         'bg-background-menu/95 backdrop-blur-sm',
         'border-popover-border border',
@@ -355,7 +356,8 @@ export function FloatingWindow({
         '--floating-window-height': `${state.size.height}px`,
         '--floating-window-z-index': zIndex,
       }}
-      onMouseDown={handleMouseDown}
+      tabIndex={-1}
+      onFocus={handleFocus}
       data-testid={testId}
     >
       {/* Header */}
@@ -384,6 +386,7 @@ export function FloatingWindow({
           <button
             type="button"
             onClick={handleMinimize}
+            aria-label="Minimize"
             className={cn(
               'flex size-4 items-center justify-center rounded',
               'text-foreground-alt hover:text-foreground',
@@ -396,6 +399,7 @@ export function FloatingWindow({
           <button
             type="button"
             onClick={onClose ?? handleMinimize}
+            aria-label="Close"
             className={cn(
               'flex size-4 items-center justify-center rounded',
               'text-foreground-alt hover:text-error',
@@ -422,7 +426,7 @@ export function FloatingWindow({
       <ResizeHandle edge="nw" onMouseDown={handleResizeStart('nw')} />
       <ResizeHandle edge="se" onMouseDown={handleResizeStart('se')} />
       <ResizeHandle edge="sw" onMouseDown={handleResizeStart('sw')} />
-    </div>
+    </dialog>
   )
 }
 
@@ -446,6 +450,8 @@ function ResizeHandle({ edge, onMouseDown }: ResizeHandleProps) {
   return (
     <div
       role="separator"
+      aria-label={`Resize ${edge}`}
+      tabIndex={-1}
       aria-orientation={
         edge === 'n' || edge === 's' ? 'horizontal' : 'vertical'
       }

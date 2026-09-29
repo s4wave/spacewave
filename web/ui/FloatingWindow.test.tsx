@@ -104,8 +104,8 @@ describe('FloatingWindowManagerProvider', () => {
       getStyleNumber(winA, '--floating-window-z-index'),
     )
 
-    // Click on win-a to bring it to front (mousedown triggers bringToFront)
-    fireEvent.mouseDown(winA)
+    // Focusing win-a brings it to front
+    fireEvent.focus(winA)
 
     // Now win-a should have a higher z-index than win-b
     expect(getStyleNumber(winA, '--floating-window-z-index')).toBeGreaterThan(
@@ -477,7 +477,7 @@ describe('FloatingWindowManagerProvider + FloatingWindow integration', () => {
     expect(z2).toBe(1001)
   })
 
-  it('clicking a window brings it to front', () => {
+  it('focusing a window brings it to front', () => {
     const state = makeState()
     const onStateChange = vi.fn()
 
@@ -512,8 +512,8 @@ describe('FloatingWindowManagerProvider + FloatingWindow integration', () => {
       getStyleNumber(w1, '--floating-window-z-index'),
     )
 
-    // Click on w1 to bring it to front
-    fireEvent.mouseDown(w1)
+    // Focus w1 to bring it to front
+    fireEvent.focus(w1)
 
     // Now w1 should have the higher z-index
     expect(getStyleNumber(w1, '--floating-window-z-index')).toBeGreaterThan(
