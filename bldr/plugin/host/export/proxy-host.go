@@ -62,9 +62,11 @@ func (h *proxyHost) ExecutePlugin(
 	hostRpcMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	// Bound the proxied execution to the caller's lifetime.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// Open the export stream and serve the caller's host mux over it.
 	strm, err := h.client.ExecutePlugin(ctx)
 	if err != nil {
 		return err
@@ -77,6 +79,7 @@ func (h *proxyHost) ExecutePlugin(
 	defer mc.Close()
 	go func() { _ = srpc.NewServer(hostRpcMux).AcceptMuxedConn(ctx, mc) }()
 
+	// Start the plugin through the exported execution service.
 	session := srpc.NewClientWithMuxedConn(mc)
 	start, err := NewSRPCExecutionClient(session).Start(ctx, &StartRequest{
 		PlatformId:   h.platformID,

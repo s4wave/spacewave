@@ -68,6 +68,7 @@ func (s *Server) WatchHosts(_ *WatchHostsRequest, strm SRPCHostExport_WatchHosts
 
 // ExecutePlugin serves one execution session until the caller closes it.
 func (s *Server) ExecutePlugin(strm SRPCHostExport_ExecutePluginStream) error {
+	// Wrap the RPC stream in a muxed connection for the execution session.
 	ctx := strm.Context()
 	mc, err := srpc.NewMuxedConnWithRwc(ctx, rpcstream.NewRpcStreamReadWriter(strm), false, nil)
 	if err != nil {
@@ -75,6 +76,7 @@ func (s *Server) ExecutePlugin(strm SRPCHostExport_ExecutePluginStream) error {
 	}
 	defer mc.Close()
 
+	// Serve the execution service and the plugin's calls on that connection.
 	exec := &execution{
 		s:      s,
 		caller: srpc.NewClientWithMuxedConn(mc),
@@ -108,6 +110,7 @@ func (e *execution) invokePlugin(serviceID, methodID string, strm srpc.Stream) (
 
 // Start executes the plugin on the requested host and reports its readiness.
 func (e *execution) Start(req *StartRequest, strm SRPCExecution_StartStream) error {
+	// Select the host registered for the requested platform.
 	ctx := strm.Context()
 	hosts, _, err := e.s.hosts.GetHostState()
 	i := slices.IndexFunc(hosts, func(host plugin_host.PluginHost) bool {
