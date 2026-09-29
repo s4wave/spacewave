@@ -1,11 +1,12 @@
 
-™	
+Ð
 0.57.19
 2026-09-29\Spacewave 0.57.19 improves desktop updates, update discovery, and Space dashboard usability."\Spacewave 0.57.19 improves desktop updates, update discovery, and Space dashboard usability.2ì
 tDesktop updates no longer offer the version already running, and the macOS app now reopens reliably after an update.tDesktop updates no longer offer the version already running, and the macOS app now reopens reliably after an update.2È
 bSpace lists now scroll within the dashboard, with compact rows and correctly aligned copy buttons.bSpace lists now scroll within the dashboard, with compact rows and correctly aligned copy buttons.:œ
 ‹Linked devices can now pass along Spacewave release information, helping updates appear sooner and reach devices with limited connectivity.‹Linked devices can now pass along Spacewave release information, helping updates appear sooner and reach devices with limited connectivity.:ì
-tFloating windows now rise when focused by keyboard or pointer and provide clearer labels for assistive technologies.tFloating windows now rise when focused by keyboard or pointer and provide clearer labels for assistive technologies.
+tFloating windows now rise when focused by keyboard or pointer and provide clearer labels for assistive technologies.tFloating windows now rise when focused by keyboard or pointer and provide clearer labels for assistive technologies.:´
+—Shared Spaces now reclaim cloud storage held by deleted data, and deleting from a versioned S3-compatible bucket no longer leaves hidden copies behind.—Shared Spaces now reclaim cloud storage held by deleted data, and deleting from a versioned S3-compatible bucket no longer leaves hidden copies behind.
 í
 0.57.18
 2026-09-29ÂSpacewave 0.57.18 restores reliable macOS startup and desktop updates, enables Space-deployed plugins in desktop and browser apps, and adds directory synchronization and snapshot recovery tools."ÂSpacewave 0.57.18 restores reliable macOS startup and desktop updates, enables Space-deployed plugins in desktop and browser apps, and adds directory synchronization and snapshot recovery tools.*‚
