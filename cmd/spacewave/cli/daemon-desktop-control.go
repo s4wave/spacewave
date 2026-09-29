@@ -221,18 +221,25 @@ func (d *daemonDesktopControl) retainDesktop(
 	var err error
 	var previousCancel context.CancelFunc
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Reject open or watch requests while the daemon is shutting down.
 		if d.closed || d.ctx.Err() != nil {
 			err = errors.New("desktop daemon is shutting down")
 			return
 		}
+
+		// Reject requests that reference a superseded shell generation.
 		if d.watchClient == client.SRPCClient() && generation < d.watchGeneration {
 			err = errors.New("desktop shell changed before acknowledgement; reopen the desktop")
 			return
 		}
+
+		// Retain the first caller's plugin release reference.
 		if d.pluginRelease == nil {
 			d.pluginRelease = release
 			retained = true
 		}
+
+		// Reuse the active watch for the same shell and clear a stale failure.
 		if d.watchClient == client.SRPCClient() && d.watchGeneration == generation && d.watchCancel != nil {
 			if d.status.GetFailure() != "" {
 				d.status = d.status.CloneVT()
@@ -248,11 +255,16 @@ func (d *daemonDesktopControl) retainDesktop(
 			d.idleTracker.setDesktop(hold)
 			demandRetained = true
 		}
+
+		// Take over the watch slot and start a fresh cancellation scope for the shell.
 		previousCancel = d.watchCancel
 		var cancel context.CancelFunc
+
 		// #nosec G118 -- watchCancel owns cancellation until replacement, ENDED, observation failure, or close.
 		watchCtx, cancel = context.WithCancel(d.ctx)
 		d.watchCancel = cancel
+
+		// Install the new shell's watch state and wake status watchers.
 		d.watchClient = client.SRPCClient()
 		d.watchGeneration = generation
 		d.watchSequence++
@@ -375,14 +387,19 @@ func (d *daemonDesktopControl) waitDesktopExit(ctx context.Context, sequence uin
 
 // desktopEnded releases the identified shell once after an owner-confirmed exit.
 func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *bldr_web_plugin.WatchDesktopPresenceResponse) {
+	// Collect the shell's owned references under the shared lock.
 	var release func()
 	var cancel context.CancelFunc
 	var requester *trackedConn
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+
+		// Publish the owner's terminal presence for the current shell generation.
 		if sequence != d.watchSequence || d.demandRelease == nil {
 			return
 		}
 		d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation, Presence: state}
+
+		// Take the shell's owned references before releasing them outside the lock.
 		release = d.demandRelease
 		d.demandRelease = nil
 		cancel = d.watchCancel
@@ -405,9 +422,13 @@ func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *
 // reportFailure makes a failed desktop request visible without changing shell presence.
 func (d *daemonDesktopControl) reportFailure(err error) {
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+
+		// Ignore failure reports after the daemon stopped serving requests.
 		if d.closed {
 			return
 		}
+
+		// Clone the current status and attach the failure.
 		status := &desktop_control.WatchDesktopStatusResponse{}
 		if d.status != nil {
 			status = d.status.CloneVT()
@@ -475,10 +496,14 @@ func (d *daemonDesktopControl) close() {
 	var releaseDemand, releasePlugin func()
 	var cancel context.CancelFunc
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+
+		// Mark the service closed and capture its owned references.
 		d.closed = true
 		releaseDemand = d.demandRelease
 		releasePlugin = d.pluginRelease
 		cancel = d.watchCancel
+
+		// Clear the daemon's owned references and wake status watchers.
 		d.demandRelease = nil
 		d.pluginRelease = nil
 		d.watchCancel = nil
