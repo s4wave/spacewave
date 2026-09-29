@@ -7,6 +7,7 @@ import (
 
 // Validate checks the fixed account relationship and independently authorized peers.
 func (t *AccountTransition) Validate() error {
+	// Require the transition to carry its operation identity.
 	if t.GetOperationId() == "" {
 		return errors.New("account transition requires an operation identity")
 	}
@@ -15,10 +16,14 @@ func (t *AccountTransition) Validate() error {
 			return err
 		}
 	}
+
+	// Require the source and destination accounts to differ.
 	source, destination := t.GetSource(), t.GetDestination()
 	if source.GetProviderId() == destination.GetProviderId() && source.GetProviderAccountId() == destination.GetProviderAccountId() {
 		return errors.New("account transition requires different accounts")
 	}
+
+	// Validate and deduplicate each authorized peer list.
 	for _, peers := range [][]string{t.GetDestinationPeerIds(), t.GetSessionPeerIds()} {
 		if len(peers) == 0 {
 			return errors.New("account transition requires authorized Session peers")
