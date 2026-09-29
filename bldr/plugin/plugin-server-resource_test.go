@@ -15,8 +15,10 @@ import (
 )
 
 func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
+	// Build a core bus to host the resource service invoker.
 	ctx := t.Context()
 
+	// Attach a logger for bus diagnostics.
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -24,6 +26,7 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Register a sentinel resource service on the target mux.
 	targetMux := srpc.NewMux()
 	if err := resource.SRPCRegisterResourceService(targetMux, sentinelResourceService{}); err != nil {
 		t.Fatal(err)
@@ -41,6 +44,7 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 	}
 	defer rel()
 
+	// Reach the sentinel service through the plugin server's RPC stream.
 	pluginMux := srpc.NewMux()
 	if err := SRPCRegisterPlugin(pluginMux, NewPluginServer(b)); err != nil {
 		t.Fatal(err)
@@ -49,6 +53,7 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 	openStream := rpcstream.NewRpcStreamClient(pluginClient.PluginRpc, "spacewave-app", true)
 	resClient := resource.NewSRPCResourceServiceClient(openStream)
 
+	// Open a resource client stream and complete the init handshake.
 	strm, err := resClient.ResourceClient(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -65,6 +70,8 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The sentinel service answered, so the plugin server fell through to the bus.
 	init := resp.GetInit()
 	if init == nil {
 		t.Fatalf("expected init response, got %T", resp.GetBody())
@@ -79,6 +86,7 @@ type sentinelResourceService struct{}
 func (sentinelResourceService) ResourceClient(
 	strm resource.SRPCResourceService_ResourceClientStream,
 ) error {
+	// Require an init request before answering with fixed handles.
 	req, err := strm.Recv()
 	if err != nil {
 		return err
@@ -86,6 +94,8 @@ func (sentinelResourceService) ResourceClient(
 	if req.GetInit() == nil {
 		return errors.New("expected resource client init")
 	}
+
+	// Reply with the sentinel init and hold the stream until it closes.
 	if err := strm.Send(&resource.ResourceClientResponse{
 		Body: &resource.ResourceClientResponse_Init{
 			Init: &resource.ResourceClientInit{

@@ -37,18 +37,25 @@ func ParsePluginArtifactID(artifactID string, allowEmpty bool) (pluginID, manife
 // ParseHTTPPathPluginArtifact separates a plugin file binding from the file path.
 // The manifest segment stays in the base URL, so relative module imports retain it.
 func ParseHTTPPathPluginArtifact(httpPath string) (artifactID, suffix string, err error) {
+	// Split the plugin ID from the remainder of the URL path.
 	pluginID, suffix, err := ParseHTTPPathPluginID(httpPath)
 	if err != nil {
 		return "", "", err
 	}
+
+	// Return the mutable binding when the path does not pin a manifest root.
 	manifestPath, pinned := strings.CutPrefix(suffix, "/manifest/")
 	if !pinned {
 		return pluginID, suffix, nil
 	}
+
+	// Reject a pinned root that does not select a file below it.
 	root, filePath, hasPath := strings.Cut(manifestPath, "/")
 	if !hasPath || root == "" {
 		return "", "", errors.New("immutable plugin URL requires a file path")
 	}
+
+	// Rebuild the artifact ID and validate its parsed form.
 	artifactID = PluginArtifactID(pluginID, root)
 	if _, _, err := ParsePluginArtifactID(artifactID, false); err != nil {
 		return "", "", err

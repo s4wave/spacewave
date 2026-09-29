@@ -13,6 +13,7 @@ import (
 // TestLookupRpcClientReleasesBeforeReplacement checks client invalidation and
 // directive cancellation through the same retained-client lifetime.
 func TestLookupRpcClientReleasesBeforeReplacement(t *testing.T) {
+	// Bound the test with a two-second timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	t.Cleanup(cancel)
 
@@ -32,12 +33,15 @@ func TestLookupRpcClientReleasesBeforeReplacement(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- resolver.Resolve(ctx, stubResolverHandler{}) }()
 
+	// Start the resolver and capture the first published client.
 	// Invalidate the published client and observe a replacement publication.
 	first, err := resolver.GetRpcClientCtr().WaitValue(ctx, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	(<-invalidators)()
+
+	// Wait for the replacement publication after invalidation.
 	second, err := resolver.GetRpcClientCtr().WaitValueChange(ctx, first, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -64,8 +68,11 @@ func TestLookupRpcClientReleasesBeforeReplacement(t *testing.T) {
 // TestLookupRpcClientHostNeedsNoRelease verifies that the host-owned client can
 // be withdrawn without a caller release function.
 func TestLookupRpcClientHostNeedsNoRelease(t *testing.T) {
+	// Bound the test with a two-second timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	t.Cleanup(cancel)
+
+	// Resolve the host-owned client that needs no caller release.
 	resolver := NewLookupRpcClientResolver(&nilReleaseClientHandler{
 		client: &testForwardingClient{},
 	}, "", "")
