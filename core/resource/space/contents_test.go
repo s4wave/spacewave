@@ -667,6 +667,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
+	addBindingTestWorkerPolicyHost(t, ctx, tb, resource.runtime, "session-worker")
 
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
@@ -716,6 +717,11 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	}
 	if len(resp.GetProcessBindings()) != 1 || !resp.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("expected one approved binding, got %+v", resp.GetProcessBindings())
+	}
+	capacity := waitBindingWorkerCapacity(t, ctx, tb.WorldState, "session-worker")
+	if capacity.MilliCPUTotal != 1000 || capacity.MemoryBytesTotal != 1<<30 ||
+		capacity.OwnerDeviceObjectKey != "devices/self" || !capacity.SupportsBackend("docker") {
+		t.Fatalf("observed Worker capacity = %#v", capacity)
 	}
 
 	passState, execState := waitForForgeExecutionState(

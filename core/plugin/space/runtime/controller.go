@@ -11,6 +11,7 @@ import (
 	backoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 )
 
 // ControllerID is the controller ID.
@@ -41,6 +42,8 @@ type Controller struct {
 	err error
 	// prefixes is the set of attached RPC service ID prefixes bound by mounts.
 	prefixes map[string]struct{}
+	// bindingRegistry reports binding writes and orphan deletions to Resource watches.
+	bindingRegistry *process_binding.BindingRegistry
 }
 
 // NewFactory constructs the component factory.
@@ -80,6 +83,14 @@ func StartControllerWithConfig(
 		nil,
 	)
 	return ctrl, ref, err
+}
+
+// SetBindingRegistry connects this shared runtime to its Resource root's
+// binding watch without retaining another runtime reference.
+func (c *Controller) SetBindingRegistry(registry *process_binding.BindingRegistry) {
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		c.bindingRegistry = registry
+	})
 }
 
 // GetGeneration returns the running generation and a channel closed when the
@@ -126,10 +137,15 @@ func (c *Controller) ReserveServicePrefix(prefix string) (release func(), err er
 // controller after a process binding of the Space changed.
 func (c *Controller) NotifyProcessBindingsChanged() {
 	var gen *Generation
+	var registry *process_binding.BindingRegistry
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		gen = c.gen
+		registry = c.bindingRegistry
 		broadcast()
 	})
+	if registry != nil {
+		registry.NotifyChanged()
+	}
 	if gen != nil {
 		gen.GetSpaceController().NotifyChanged()
 	}

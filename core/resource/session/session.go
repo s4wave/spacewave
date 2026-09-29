@@ -19,6 +19,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/core/cdn"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -61,6 +62,8 @@ type SessionResource struct {
 	hostPluginID string
 	// appPluginIDs is the immutable application declaration supplied before publication.
 	appPluginIDs []string
+	// bindingRegistry carries binding change notifications from the Resource root.
+	bindingRegistry *process_binding.BindingRegistry
 	// transferMgr tracks transfers started through this resource.
 	transferMgr transferManager
 
@@ -320,6 +323,7 @@ func (r *SessionResource) addSharedObjectResource(
 		r.hostPluginID,
 	)
 	soResource.SetAppPluginIDs(r.appPluginIDs)
+	soResource.SetBindingRegistry(r.bindingRegistry)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), mountedSoRef.Release)
 	if err != nil {
 		mountedSoRef.Release()
@@ -422,6 +426,7 @@ func (r *SessionResource) mountSpaceResponse(
 		r.hostPluginID,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
+	spaceResource.SetBindingRegistry(r.bindingRegistry)
 	spaceBodyID, err := mountedresource.Add(
 		resourceCtx,
 		spaceResource.GetMux(),
@@ -928,6 +933,7 @@ func (r *SessionResource) mountCdnSharedObject(
 		r.hostPluginID,
 	)
 	soResource.SetAppPluginIDs(r.appPluginIDs)
+	soResource.SetBindingRegistry(r.bindingRegistry)
 	id, err := resourceCtx.AddResource(soResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
@@ -1664,4 +1670,9 @@ var _ s4wave_session.SRPCSessionResourceServiceServer = (*SessionResource)(nil)
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SessionResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
+}
+
+// SetBindingRegistry supplies the Resource root's binding event source.
+func (r *SessionResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
+	r.bindingRegistry = registry
 }

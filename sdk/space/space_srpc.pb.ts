@@ -25,6 +25,8 @@ import {
   SpaceContentsState,
   SpaceSharingState,
   SpaceState,
+  WatchProcessBindingsRequest,
+  WatchProcessBindingsResponse,
   WatchSpaceContentsStateRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
@@ -54,6 +56,18 @@ export const SpaceResourceServiceDefinition = {
       name: 'WatchSpaceState',
       I: WatchSpaceStateRequest,
       O: SpaceState,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * WatchProcessBindings streams local process binding decisions without
+     * retaining the Space plugin runtime.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
+     */
+    WatchProcessBindings: {
+      name: 'WatchProcessBindings',
+      I: WatchProcessBindingsRequest,
+      O: WatchProcessBindingsResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -179,6 +193,17 @@ export interface SpaceResourceService {
   ): MessageStream<SpaceState>
 
   /**
+   * WatchProcessBindings streams local process binding decisions without
+   * retaining the Space plugin runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
+   */
+  WatchProcessBindings(
+    request: WatchProcessBindingsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchProcessBindingsResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
    */
   WatchSpaceSharingState(
@@ -287,6 +312,18 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<SpaceState>
+
+  /**
+   * WatchProcessBindings streams local process binding decisions without
+   * retaining the Space plugin runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
+   */
+  WatchProcessBindings(
+    request: WatchProcessBindingsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchProcessBindingsResponse>
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
@@ -406,6 +443,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.service = opts?.service || SpaceResourceServiceServiceName
     this.rpc = rpc
     this.WatchSpaceState = this.WatchSpaceState.bind(this)
+    this.WatchProcessBindings = this.WatchProcessBindings.bind(this)
     this.WatchSpaceSharingState = this.WatchSpaceSharingState.bind(this)
     this.AccessWorld = this.AccessWorld.bind(this)
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
@@ -433,6 +471,26 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(SpaceState)(result)
+  }
+
+  /**
+   * WatchProcessBindings streams local process binding decisions without
+   * retaining the Space plugin runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
+   */
+  WatchProcessBindings(
+    request: WatchProcessBindingsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchProcessBindingsResponse> {
+    const requestMsg = WatchProcessBindingsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpaceResourceServiceDefinition.methods.WatchProcessBindings.name,
+      WatchProcessBindingsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchProcessBindingsResponse)(result)
   }
 
   /**

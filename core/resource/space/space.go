@@ -10,6 +10,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/bldr/storage"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -39,6 +40,8 @@ type SpaceResource struct {
 	hostPluginID  string
 	// appPluginIDs is the immutable application declaration supplied before publication.
 	appPluginIDs []string
+	// bindingRegistry carries binding changes from the Resource root.
+	bindingRegistry *process_binding.BindingRegistry
 }
 
 // NewSpaceResource creates a new SpaceResource.
@@ -355,6 +358,9 @@ func (r *SpaceResource) MountSpaceContents(
 		r.le.WithError(err).Info("failed to mount space contents: could not start runtime")
 		return nil, err
 	}
+	if r.bindingRegistry != nil {
+		runtime.SetBindingRegistry(r.bindingRegistry)
+	}
 
 	contentsResource := NewSpaceContentsResource(
 		r.le,
@@ -586,4 +592,9 @@ var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SpaceResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
+}
+
+// SetBindingRegistry supplies the Resource root's binding event source.
+func (r *SpaceResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
+	r.bindingRegistry = registry
 }

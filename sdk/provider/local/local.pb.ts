@@ -12,8 +12,6 @@ import {
 } from '../../../core/session/session.pb.js'
 import { SOInviteMessage } from '../../../core/sobject/sobject.pb.js'
 
-export const protobufPackage = 's4wave.provider.local'
-
 /**
  * AttachAccountRequest identifies an existing local account volume.
  *
@@ -34,7 +32,6 @@ export const AttachAccountRequest: MessageType<AttachAccountRequest> =
     fields: [
       { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -62,7 +59,6 @@ export const AttachAccountResponse: MessageType<AttachAccountResponse> =
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -108,7 +104,6 @@ export const CompleteSpaceLinkEnrollmentRequest: MessageType<CompleteSpaceLinkEn
       { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'invite', kind: 'message', T: () => SOInviteMessage },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -136,7 +131,6 @@ export const CompleteSpaceLinkEnrollmentResponse: MessageType<CompleteSpaceLinkE
         T: () => SessionListEntry,
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -160,7 +154,6 @@ export const CreateAccountRequest: MessageType<CreateAccountRequest> =
     fields: [
       { no: 1, name: 'defer_registration', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -195,5 +188,4 @@ export const CreateAccountResponse: MessageType<CreateAccountResponse> =
       },
       { no: 2, name: 'session_ref', kind: 'message', T: () => SessionRef },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })

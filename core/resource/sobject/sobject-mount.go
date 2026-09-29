@@ -102,6 +102,7 @@ func (r *SharedObjectResource) MountSharedObjectBody(ctx context.Context, req *s
 		r.hostPluginID,
 	)
 	spaceResource.SetAppPluginIDs(r.appPluginIDs)
+	spaceResource.SetBindingRegistry(r.bindingRegistry)
 	resource, relResource = spaceResource.GetMux(), mountedSpaceRef.Release
 	resourceValue = spaceResource
 

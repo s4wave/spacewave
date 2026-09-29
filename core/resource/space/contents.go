@@ -838,35 +838,7 @@ func (r *SpaceContentsResource) listProcessBindingInfos(
 	ctx context.Context,
 ) ([]*s4wave_space.ProcessBindingInfo, error) {
 	volumeID, storeID := r.getStoreLocation()
-	handle, _, ref, err := volume.ExBuildObjectStoreAPI(
-		ctx,
-		r.b,
-		true,
-		storeID,
-		volumeID,
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer ref.Release()
-
-	bindings, err := process_binding.ListProcessBindings(ctx, handle.GetObjectStore(), r.spaceID)
-	if err != nil {
-		return nil, err
-	}
-
-	infos := make([]*s4wave_space.ProcessBindingInfo, 0, len(bindings))
-	for _, b := range bindings {
-		infos = append(infos, &s4wave_space.ProcessBindingInfo{
-			ObjectKey: b.GetObjectKey(),
-			TypeId:    b.GetTypeId(),
-			Approved:  b.GetState() == s4wave_process.ProcessBindingState_ProcessBindingState_APPROVED,
-			DecidedAt: b.GetDecidedAt(),
-		})
-	}
-
-	return infos, nil
+	return listProcessBindingInfos(ctx, r.b, volumeID, storeID, r.spaceID)
 }
 
 // _ is a type assertion
