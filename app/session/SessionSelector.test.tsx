@@ -4,8 +4,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import {
+  SpaceRootRuntimeStatus,
   SpaceRootStatus,
   type SpaceRootAliasRecord,
+  type WatchSpaceRootRuntimeResponse,
 } from '@s4wave/sdk/root/root.pb.js'
 import { SessionSelector } from './SessionSelector.js'
 
@@ -20,7 +22,14 @@ const mockUseSpaceRootAliases = vi.hoisted(() =>
   })),
 )
 const mockUseSpaceRootRuntime = vi.hoisted(() =>
-  vi.fn((_aliasId: string | null) => ({ loading: false, value: null })),
+  vi.fn(
+    (
+      _aliasId: string | null,
+    ): { loading: boolean; value: WatchSpaceRootRuntimeResponse | null } => ({
+      loading: false,
+      value: null,
+    }),
+  ),
 )
 
 vi.mock('@s4wave/app/hooks/useSessionList.js', () => ({
@@ -95,10 +104,30 @@ describe('SessionSelector', () => {
       },
     })
 
+    mockUseSpaceRootRuntime.mockReturnValue({
+      loading: false,
+      value: {
+        status: SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY,
+        runtimeSessions: [
+          {
+            session: { sessionIndex: 1 },
+            metadata: { providerId: 'local', providerAccountId: 'acct-1' },
+            spaces: [{ spaceMeta: { name: 'aperture' } }],
+          },
+        ],
+      } as WatchSpaceRootRuntimeResponse,
+    })
+
     render(<SessionSelector />)
 
     expect(screen.getByText('.spacewave')).toBeTruthy()
     expect(mockUseSpaceRootRuntime).toHaveBeenLastCalledWith('spacewave')
+    expect(screen.getByText('Local account')).toBeTruthy()
+    expect(screen.getByText('aperture')).toBeTruthy()
+
+    // Closing the default root keeps it closed.
+    fireEvent.click(screen.getByRole('button', { expanded: true }))
+    expect(mockUseSpaceRootRuntime).toHaveBeenLastCalledWith(null)
   })
 
   it('renders an inactive pill for dormant cloud sessions', () => {

@@ -1,11 +1,14 @@
 import { useCallback, useState } from 'react'
 import {
+  LuChevronDown,
   LuChevronRight,
   LuFolderOpen,
-  LuPlug,
+  LuFolderPlus,
+  LuHardDrive,
   LuTrash2,
   LuTriangleAlert,
   LuUser,
+  LuUserPlus,
 } from 'react-icons/lu'
 import { isDesktop } from '@aptre/bldr'
 
@@ -47,15 +50,17 @@ export function SessionSelector() {
   const navigate = useNavigate()
   const sessions = resource.value?.sessions ?? []
   const rootRecords = rootAliases.value?.records ?? []
-  const [chosenRootAliasId, setSelectedRootAliasId] = useState<string | null>(
-    null,
-  )
-  // Without local sessions, the first ready root is the only thing to show.
+  // undefined means the user has not chosen; null means every root is closed.
+  const [chosenRootAliasId, setChosenRootAliasId] = useState<
+    string | null | undefined
+  >(undefined)
+  // Without local sessions, the first ready root opens by default.
   const selectedRootAliasId =
-    chosenRootAliasId ??
-    (sessions.length === 0
-      ? (rootRecords.find(isRootAliasReady)?.aliasId ?? null)
-      : null)
+    chosenRootAliasId !== undefined
+      ? chosenRootAliasId
+      : sessions.length === 0
+        ? (rootRecords.find(isRootAliasReady)?.aliasId ?? null)
+        : null
   const selectedRootRuntime = useSpaceRootRuntime(selectedRootAliasId)
 
   const handleAddAccount = useCallback(() => {
@@ -117,61 +122,69 @@ export function SessionSelector() {
 
         <h1 className="text-2xl font-semibold tracking-wide">Welcome back</h1>
         <p className="text-foreground-alt/60 mb-6 text-sm">
-          Choose a session to continue
+          {sessions.length > 0
+            ? 'Choose a session to continue'
+            : 'Accounts found in your state roots'}
         </p>
 
-        <div className="w-full max-w-md space-y-2">
-          {sessions.map((session) => (
-            <SessionCard
-              key={session.sessionIndex}
-              session={session}
-              accountStatus={accountStatuses.get(session.sessionIndex ?? 0)}
-            />
-          ))}
-        </div>
+        {sessions.length > 0 && (
+          <div className="w-full max-w-md space-y-2">
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.sessionIndex}
+                session={session}
+                accountStatus={accountStatuses.get(session.sessionIndex ?? 0)}
+              />
+            ))}
+          </div>
+        )}
 
-        <div className="mt-4 w-full max-w-md space-y-2">
-          {rootRecords.map((record) => (
-            <SpaceRootAliasCard
-              key={record.aliasId}
-              record={record}
-              selected={record.aliasId === selectedRootAliasId}
-              onSelect={setSelectedRootAliasId}
-              onRemoveSelected={setSelectedRootAliasId}
-            />
-          ))}
-        </div>
-
-        {selectedRootAliasId && (
-          <SpaceRootRuntimePanel runtime={selectedRootRuntime.value} />
+        {rootRecords.length > 0 && (
+          <div className="w-full max-w-md">
+            {sessions.length > 0 && (
+              <h2 className="text-foreground-alt/60 mt-6 mb-2 px-1 text-xs font-medium">
+                State roots
+              </h2>
+            )}
+            <div className="space-y-2">
+              {rootRecords.map((record) => (
+                <SpaceRootCard
+                  key={record.aliasId}
+                  record={record}
+                  open={record.aliasId === selectedRootAliasId}
+                  runtime={
+                    record.aliasId === selectedRootAliasId
+                      ? selectedRootRuntime.value
+                      : null
+                  }
+                  onOpenChange={setChosenRootAliasId}
+                />
+              ))}
+            </div>
+          </div>
         )}
 
         <div className="mt-6 flex items-center justify-center gap-3">
           <Button variant="outline" onClick={handleAddAccount}>
+            <LuUserPlus className="size-4" />
             Add account
           </Button>
           <Button
             variant="outline"
             onClick={() => {
               void addRootAlias.add().then((aliasId) => {
-                if (aliasId) setSelectedRootAliasId(aliasId)
+                if (aliasId) setChosenRootAliasId(aliasId)
               })
             }}
             disabled={!addRootAlias.canAdd}
           >
-            <LuFolderOpen className="size-4" />
-            {addRootAlias.adding ? 'Adding root' : 'Add state root'}
+            <LuFolderPlus className="size-4" />
+            {addRootAlias.adding ? 'Adding state root' : 'Add state root'}
           </Button>
         </div>
         {!isDesktop && (
           <p className="text-foreground-alt/50 mt-2 text-xs">
-            State root loading is available in the desktop app.
-          </p>
-        )}
-        {isDesktop && (
-          <p className="text-foreground-alt/50 mt-2 text-xs">
-            Select an existing .spacewave state directory. .s4wave files are
-            deferred.
+            State roots can be added in the desktop app.
           </p>
         )}
       </div>
@@ -185,80 +198,93 @@ export function SessionSelector() {
   )
 }
 
-// SpaceRootAliasCard renders a configured local state root entry.
-function SpaceRootAliasCard(props: {
+// SpaceRootCard renders a configured state root and, when open, its accounts.
+function SpaceRootCard(props: {
   record: SpaceRootAliasRecord
-  selected: boolean
-  onSelect: (aliasId: string) => void
-  onRemoveSelected: (aliasId: string | null) => void
+  open: boolean
+  runtime?: WatchSpaceRootRuntimeResponse | null
+  onOpenChange: (aliasId: string | null) => void
 }) {
-  const { record, selected, onSelect, onRemoveSelected } = props
+  const { record, open, runtime, onOpenChange } = props
   const rootResource = useRootResource()
   const root = rootResource.value
   const [removing, setRemoving] = useState(false)
   const ready = isRootAliasReady(record)
-  const path = record.native?.path ?? ''
+  const aliasId = record.aliasId ?? ''
 
   const handleRemove = useCallback(async () => {
-    if (!root || !record.aliasId || removing) return
+    if (!root || !aliasId || removing) return
     setRemoving(true)
     try {
-      await root.removeSpaceRootAlias(record.aliasId)
-      if (selected) onRemoveSelected(null)
+      await root.removeSpaceRootAlias(aliasId)
+      if (open) onOpenChange(null)
     } catch (err) {
       toast.error('Could not remove state root', { description: String(err) })
     } finally {
       setRemoving(false)
     }
-  }, [onRemoveSelected, record.aliasId, selected, removing, root])
+  }, [aliasId, onOpenChange, open, removing, root])
 
-  const handleSelect = useCallback(() => {
-    if (!ready || !record.aliasId) return
-    onSelect(record.aliasId)
-  }, [onSelect, record.aliasId, ready])
+  const handleToggle = useCallback(() => {
+    if (!ready || !aliasId) return
+    onOpenChange(open ? null : aliasId)
+  }, [aliasId, onOpenChange, open, ready])
 
   return (
-    <div className="border-foreground/10 flex items-center gap-3 rounded-lg border px-4 py-3">
-      <div className="bg-brand/10 flex size-9 items-center justify-center rounded-lg">
-        {ready ? (
-          <LuFolderOpen className="size-4" />
-        ) : (
-          <LuTriangleAlert className="text-warning size-4" />
-        )}
+    <div
+      className="border-foreground/10 rounded-lg border"
+      data-testid="space-root-card"
+    >
+      <div className="flex items-center gap-1 pr-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={!ready}
+          aria-expanded={open}
+          className="hover:bg-foreground/5 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+        >
+          <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-lg">
+            {ready ? (
+              <LuHardDrive className="size-4" />
+            ) : (
+              <LuTriangleAlert className="text-warning size-4" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-foreground truncate text-sm font-medium">
+              {record.displayName || aliasId}
+            </div>
+            <div
+              className={cn(
+                'truncate text-xs',
+                ready ? 'text-foreground-alt/60' : 'text-warning',
+              )}
+            >
+              {record.statusMessage || record.native?.path}
+            </div>
+          </div>
+          {ready && (
+            <LuChevronDown
+              className={cn(
+                'text-foreground-alt/40 size-4 shrink-0 transition-transform',
+                !open && '-rotate-90',
+              )}
+            />
+          )}
+        </button>
+        <Button
+          onClick={() => {
+            void handleRemove()
+          }}
+          disabled={!root || removing}
+          aria-label="Remove state root"
+          variant="muted"
+          size="iconSm"
+        >
+          <LuTrash2 className="size-4" />
+        </Button>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground truncate text-sm font-medium">
-            {record.displayName || record.aliasId}
-          </span>
-          <span className="bg-foreground/6 text-foreground-alt/75 rounded-full px-1.5 py-0.5 text-xs font-medium">
-            State root
-          </span>
-        </div>
-        <div className="text-foreground-alt/60 truncate text-xs">
-          {record.statusMessage || path}
-        </div>
-      </div>
-      <Button
-        variant={selected ? 'secondary' : 'outline'}
-        onClick={handleSelect}
-        disabled={!ready}
-        size="compact8"
-      >
-        <LuPlug className="size-3.5" />
-        {selected ? 'Using' : 'Use'}
-      </Button>
-      <Button
-        onClick={() => {
-          void handleRemove()
-        }}
-        disabled={!root || removing}
-        aria-label="Remove state root"
-        variant="muted"
-        size="iconSm"
-      >
-        <LuTrash2 className="size-4" />
-      </Button>
+      {open && <SpaceRootAccounts runtime={runtime} />}
     </div>
   )
 }
@@ -271,138 +297,116 @@ function isRootAliasReady(record: SpaceRootAliasRecord): boolean {
   )
 }
 
-// SpaceRootRuntimePanel renders the selected root daemon status and sessions.
-function SpaceRootRuntimePanel(props: {
+// SpaceRootAccounts renders the accounts served by an open state root.
+function SpaceRootAccounts(props: {
   runtime?: WatchSpaceRootRuntimeResponse | null
 }) {
   const runtime = props.runtime
-  const sessions = runtime?.sessions ?? []
+  const status = runtime?.status
+
+  if (status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR) {
+    return (
+      <div className="border-foreground/10 text-warning flex items-start gap-2 border-t px-4 py-3 text-xs">
+        <LuTriangleAlert className="mt-px size-3.5 shrink-0" />
+        <span>{runtime?.error || 'State root unavailable'}</span>
+      </div>
+    )
+  }
+  if (status !== SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY) {
+    return (
+      <div className="border-foreground/10 text-foreground-alt/60 flex items-center gap-2 border-t px-4 py-3 text-xs">
+        <Spinner size="sm" />
+        {status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_STARTING
+          ? 'Starting the state root daemon'
+          : 'Connecting to the state root'}
+      </div>
+    )
+  }
+
   const runtimeSessions = runtime?.runtimeSessions?.length
     ? runtime.runtimeSessions
-    : sessions.map((session): SpaceRootRuntimeSession => ({ session }))
-  const statusLabel = runtimeStatusLabel(runtime?.status)
-  const loading =
-    !runtime ||
-    runtime.status ===
-      SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_CONNECTING ||
-    runtime.status === SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_STARTING
+    : (runtime?.sessions ?? []).map((session): SpaceRootRuntimeSession => ({
+        session,
+      }))
+  if (runtimeSessions.length === 0) {
+    return (
+      <div className="border-foreground/10 text-foreground-alt/60 border-t px-4 py-3 text-xs">
+        No accounts in this state root.
+      </div>
+    )
+  }
 
   return (
-    <div className="border-foreground/10 mt-4 w-full max-w-md rounded-lg border px-4 py-3">
-      <div className="flex items-center gap-2">
-        {loading ? (
-          <Spinner size="md" />
-        ) : runtime?.status ===
-          SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR ? (
-          <LuTriangleAlert className="text-warning size-4" />
-        ) : (
-          <LuPlug className="size-4" />
-        )}
-        <span className="text-foreground text-sm font-medium">
-          {statusLabel}
-        </span>
-      </div>
-      {runtime?.error && (
-        <div className="text-warning mt-2 text-xs">{runtime.error}</div>
-      )}
-      {runtime?.statePath && (
-        <div className="text-foreground-alt/60 mt-1 truncate text-xs">
-          {runtime.statePath}
-        </div>
-      )}
-      {runtimeSessions.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {runtimeSessions.map((runtimeSession) => (
-            <div
-              key={runtimeSession.session?.sessionIndex}
-              className="bg-foreground/5 rounded-md px-3 py-2"
-            >
-              <div className="flex items-center gap-2">
-                <LuUser className="size-4" />
-                <div className="min-w-0">
-                  <div className="text-foreground truncate text-sm">
-                    {runtimeSessionTitle(runtimeSession)}
-                  </div>
-                  <div className="text-foreground-alt/60 truncate text-xs">
-                    {runtimeSessionSubtitle(runtimeSession)}
-                  </div>
-                </div>
-              </div>
-              {runtimeSession.spaces && runtimeSession.spaces.length > 0 && (
-                <div className="mt-2 space-y-1 pl-6">
-                  {runtimeSession.spaces.map((space) => (
-                    <div
-                      key={
-                        space.entry?.ref?.providerResourceRef?.id ??
-                        [
-                          runtimeSession.session?.sessionIndex,
-                          space.entry?.source,
-                          space.spaceMeta?.name,
-                        ].join(':')
-                      }
-                      className="text-foreground-alt/80 flex items-center gap-2 text-xs"
-                    >
-                      <LuFolderOpen className="size-3.5" />
-                      <span className="truncate">
-                        {space.spaceMeta?.name || 'Untitled space'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {runtimeSession.error && (
-                <div className="text-warning mt-2 pl-6 text-xs">
-                  {runtimeSession.error}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {runtime?.status ===
-        SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY &&
-        sessions.length === 0 && (
-          <div className="text-foreground-alt/60 mt-2 text-xs">
-            No sessions in this state root.
-          </div>
-        )}
+    <div className="border-foreground/10 divide-foreground/10 divide-y border-t">
+      {runtimeSessions.map((runtimeSession) => (
+        <SpaceRootAccount
+          key={runtimeSession.session?.sessionIndex}
+          runtimeSession={runtimeSession}
+        />
+      ))}
     </div>
   )
 }
 
-function runtimeSessionTitle(session: SpaceRootRuntimeSession): string {
-  return (
-    session.metadata?.displayName ||
-    session.metadata?.cloudEntityId ||
-    session.metadata?.providerAccountId ||
-    `Session ${session.session?.sessionIndex ?? ''}`
-  )
-}
-
-function runtimeSessionSubtitle(session: SpaceRootRuntimeSession): string {
+// SpaceRootAccount renders one account and its spaces in a state root.
+function SpaceRootAccount(props: { runtimeSession: SpaceRootRuntimeSession }) {
+  const { runtimeSession } = props
+  const meta = runtimeSession.metadata
   const provider =
-    session.metadata?.providerDisplayName || session.metadata?.providerId
-  const count = session.spaces?.length ?? 0
-  const spaces = count === 1 ? '1 space' : `${count} spaces`
-  if (provider) {
-    return `${provider} - ${spaces}`
-  }
-  return spaces
-}
+    meta?.providerDisplayName ||
+    (meta?.providerId === 'spacewave' ? 'Cloud' : 'Local')
+  const title =
+    meta?.displayName || meta?.cloudEntityId || `${provider} account`
+  const accountId = meta?.providerAccountId
+  const spaces = runtimeSession.spaces ?? []
 
-function runtimeStatusLabel(status?: SpaceRootRuntimeStatus): string {
-  switch (status) {
-    case SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_CONNECTING:
-      return 'Connecting to state root'
-    case SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_STARTING:
-      return 'Starting state root daemon'
-    case SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_READY:
-      return 'State root ready'
-    case SpaceRootRuntimeStatus.SpaceRootRuntimeStatus_ERROR:
-      return 'State root unavailable'
-    default:
-      return 'Preparing state root'
-  }
+  return (
+    <div className="px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="bg-foreground/5 flex size-9 shrink-0 items-center justify-center rounded-lg">
+          <LuUser className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-foreground truncate text-sm font-medium">
+            {title}
+          </div>
+          <div className="text-foreground-alt/60 flex min-w-0 gap-1.5 text-xs">
+            <span className="shrink-0">
+              {spaces.length === 1 ? '1 space' : `${spaces.length} spaces`}
+            </span>
+            {accountId && (
+              <span className="truncate font-mono" title={accountId}>
+                · {accountId}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {spaces.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5 pl-12">
+          {spaces.map((space) => (
+            <span
+              key={
+                space.entry?.ref?.providerResourceRef?.id ??
+                [space.entry?.source, space.spaceMeta?.name].join(':')
+              }
+              className="bg-foreground/5 text-foreground-alt/80 inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs"
+            >
+              <LuFolderOpen className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {space.spaceMeta?.name || 'Untitled space'}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      {runtimeSession.error && (
+        <div className="text-warning mt-2 pl-12 text-xs">
+          {runtimeSession.error}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // SessionCard renders a single session entry in the selector list.
