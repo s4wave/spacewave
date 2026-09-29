@@ -40,10 +40,14 @@ func PrepareGeneration(
 	if info.GetHistorical() {
 		return nil, nil
 	}
+
+	// Require the plugin identity and immutable manifest root.
 	manifestRoot := info.GetManifestRef().GetManifestRef().GetRootRef().GetHash().MarshalString()
 	if info.GetPluginId() == "" || manifestRoot == "" {
 		return nil, errors.New("plugin has no immutable manifest")
 	}
+
+	// Open the generation scope under the caller's core Resource client.
 
 	// Open the generation scope under the caller's core Resource client.
 	resp, err := NewSRPCRegistrationServiceClient(root).Prepare(ctx, &PrepareRequest{
@@ -54,6 +58,8 @@ func PrepareGeneration(
 	if err != nil {
 		return nil, errors.Wrap(err, "prepare registrations")
 	}
+
+	// Wrap the returned scope resource for the caller.
 	if resp.GetResourceId() == 0 {
 		return nil, errors.New("plugin registration scope returned no resource id")
 	}
