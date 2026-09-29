@@ -37,6 +37,7 @@ func (g *testManifestCopyGate) WaitReady(ctx context.Context) error {
 }
 
 func TestManifestCopyGateDefersOnlyPreReadyDynamicCopies(t *testing.T) {
+	// Build a controller whose copy gate is not ready and classify two snapshots.
 	gate := newTestManifestCopyGate(false)
 	controller := &Controller{
 		conf:                &Config{NoCopyBucketIds: []string{"dist/project"}},
@@ -50,6 +51,7 @@ func TestManifestCopyGateDefersOnlyPreReadyDynamicCopies(t *testing.T) {
 		ManifestRef: &bucket.ObjectRef{BucketId: "dynamic-provider"},
 	}
 
+	// A suppressed snapshot stays suppressed and a dynamic copy waits for readiness.
 	if class := instance.classifyManifestCopy(suppressed); class != manifestCopyClassSuppressed {
 		t.Fatalf("suppressed copy class = %q, want %q", class, manifestCopyClassSuppressed)
 	}
@@ -57,6 +59,7 @@ func TestManifestCopyGateDefersOnlyPreReadyDynamicCopies(t *testing.T) {
 		t.Fatalf("pre-ready dynamic copy class = %q, want %q", class, manifestCopyClassAfterStartupGroupReady)
 	}
 
+	// Start a gate wait for the dynamic copy and confirm it blocks.
 	waitErrCh := make(chan error, 1)
 	go func() {
 		waitErrCh <- instance.waitForManifestCopyReady(
@@ -73,6 +76,7 @@ func TestManifestCopyGateDefersOnlyPreReadyDynamicCopies(t *testing.T) {
 	default:
 	}
 
+	// Mark the gate ready and confirm the wait returns and reclassifies.
 	gate.readyCtr.SetValue(true)
 	if err := <-waitErrCh; err != nil {
 		t.Fatal(err)
