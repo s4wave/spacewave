@@ -102,6 +102,7 @@ func (a *devicePolicyForgeWorkerSetArgs) BuildFlags() []cli.Flag {
 
 // Run validates and replaces the Forge Worker policy declaration.
 func (a *devicePolicyForgeWorkerSetArgs) Run(c *cli.Context) error {
+	// Validate the command arguments and the declared capacity fields.
 	if c.NArg() != 1 {
 		return errors.New("forge-worker set requires <worker-object-key>")
 	}
@@ -119,6 +120,7 @@ func (a *devicePolicyForgeWorkerSetArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	return runDevicePolicyMutationValidated(
 		c,
 		a.statePath,
@@ -139,9 +141,12 @@ func (a *devicePolicyForgeWorkerSetArgs) Run(c *cli.Context) error {
 
 // Run prints the exact local Forge Worker declaration.
 func (a *devicePolicyForgeWorkerShowArgs) Run(c *cli.Context) error {
+	// Reject unexpected arguments.
 	if c.NArg() != 0 {
 		return errors.New("forge-worker show does not accept arguments")
 	}
+
+	// Load the policy file and select the output format.
 	statePath, err := resolveStatePathFromContext(c, a.statePath)
 	if err != nil {
 		return err
@@ -156,19 +161,27 @@ func (a *devicePolicyForgeWorkerShowArgs) Run(c *cli.Context) error {
 		if worker == nil {
 			return formatOutput([]byte("null"), outputFormat)
 		}
+
+		// Render the structured output for a declared worker.
 		data, err := worker.MarshalJSON()
 		if err != nil {
 			return errors.Wrap(err, "marshal Forge Worker policy")
 		}
 		return formatOutput(data, outputFormat)
 	}
+
+	// Reject unknown output formats.
 	if outputFormat != "text" {
 		return formatOutput(nil, outputFormat)
 	}
+
+	// Render the human-readable text output.
 	if worker == nil {
 		_, err = fmt.Fprintln(os.Stdout, "Forge Worker: not declared")
 		return err
 	}
+
+	// Print the declared worker's capacity summary.
 	_, err = fmt.Fprintf(
 		os.Stdout,
 		"Worker: %s\nCPU: %d milli-cores\nMemory: %d bytes\nBackends: %s\n",
@@ -200,6 +213,7 @@ func (a *devicePolicyForgeWorkerClearArgs) Run(c *cli.Context) error {
 }
 
 func normalizedForgeWorkerBackends(values []string) ([]string, error) {
+	// Collect each backend once, rejecting empty, spaced, or duplicate names.
 	seen := make(map[string]struct{}, len(values))
 	backends := make([]string, 0, len(values))
 	for _, value := range values {
@@ -216,6 +230,8 @@ func normalizedForgeWorkerBackends(values []string) ([]string, error) {
 		seen[backend] = struct{}{}
 		backends = append(backends, backend)
 	}
+
+	// Require at least one backend and return the sorted list.
 	if len(backends) == 0 {
 		return nil, errors.New("forge-worker requires at least one backend")
 	}
@@ -229,6 +245,7 @@ func validateDevicePolicyForgeWorker(
 	client *sdkClient,
 	policy *device_policy.ForgeWorkerPolicy,
 ) error {
+	// Require a policy and a completed Device session projection.
 	if policy == nil {
 		return errors.New("forge-worker policy is required")
 	}
@@ -239,6 +256,8 @@ func validateDevicePolicyForgeWorker(
 	if !ok {
 		return errors.New("completed Device session is required before declaring a Forge Worker")
 	}
+
+	// Mount the session and decode the Space's resource ID.
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
 		return err
@@ -248,6 +267,8 @@ func validateDevicePolicyForgeWorker(
 	if err != nil {
 		return err
 	}
+
+	// Mount the Space and open a read transaction on its World engine.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		return err
@@ -258,11 +279,15 @@ func validateDevicePolicyForgeWorker(
 		return err
 	}
 	defer engineCleanup()
+
+	// Open a read transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
+
+	// Verify the worker object and collect its keypairs from the World.
 	workerObjectKey := policy.GetWorkerObjectKey()
 	if err := verifyForgeWorkerLink(ctx, tx, workerObjectKey); err != nil {
 		return err
@@ -271,6 +296,8 @@ func validateDevicePolicyForgeWorker(
 	if err != nil {
 		return errors.Wrap(err, "collect Forge Worker keypairs")
 	}
+
+	// Match one worker keypair against the Device session's peer identity.
 	var workerPeerIDs []string
 	for _, keypair := range keypairs {
 		if keypair == nil {
@@ -286,6 +313,8 @@ func validateDevicePolicyForgeWorker(
 		}
 		workerPeerIDs = append(workerPeerIDs, workerPeerID)
 	}
+
+	// Fail when no worker keypair matches the Device session peer.
 	if len(workerPeerIDs) == 0 {
 		return errors.Errorf("Forge Worker %q has no usable keypair", workerObjectKey)
 	}
