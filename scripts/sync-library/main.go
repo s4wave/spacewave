@@ -14,10 +14,13 @@ import (
 )
 
 func main() {
+	// Parse the output and compiler flags for the build.
 	output := flag.String("output", "packages/spacewave/dist", "Directory for the compiled npm exports")
 	skipCompile := flag.Bool("skip-compile", false, "Reuse the existing compiled engine for a TypeScript-only change")
 	overrideDir := flag.String("override-dir", "", "GoScript runtime override directory for compiler development")
 	flag.Parse()
+
+	// Run the build and exit nonzero when it fails.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	if err := build(ctx, le, *output, *skipCompile, *overrideDir); err != nil {
@@ -28,6 +31,7 @@ func main() {
 
 // build uses the same compiler binding discovery and bundle owner as Bldr.
 func build(ctx context.Context, le *logrus.Entry, output string, skipCompile bool, overrideDir string) error {
+	// Resolve the repository root and the absolute output directory.
 	root, err := os.Getwd()
 	if err != nil {
 		return err
@@ -36,6 +40,8 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 	if err != nil {
 		return err
 	}
+
+	// Compile the GoScript engine unless the caller reuses it.
 	working := filepath.Join(root, ".tmp", "sync-library")
 	compiled := filepath.Join(working, "goscript")
 	if !skipCompile {
@@ -58,10 +64,14 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 			return err
 		}
 	}
+
+	// Write the worker entrypoint into the working directory.
 	entrypoint := filepath.Join(working, "engine-worker.ts")
 	if err := os.WriteFile(entrypoint, []byte(workerEntrypoint), 0o644); err != nil {
 		return err
 	}
+
+	// Bundle the node platform build with the GoScript engine.
 	result, err := rolldown.Build(ctx, le, working, filepath.Join(root, "bldr"), &rolldown.BuildRequest{
 		WorkingDir: working, SourceRoot: root, OutputRoot: output,
 		BldrDistRoot: filepath.Join(root, "bldr"),
@@ -80,6 +90,8 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 	if err != nil {
 		return err
 	}
+
+	// Bundle the browser platform build for the public client entrypoints.
 	client, err := rolldown.Build(ctx, le, working, filepath.Join(root, "bldr"), &rolldown.BuildRequest{
 		WorkingDir: working, SourceRoot: root, OutputRoot: output,
 		BldrDistRoot: filepath.Join(root, "bldr"),
@@ -96,6 +108,8 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 	if err != nil {
 		return err
 	}
+
+	// Write both build reports into the working directory.
 	clientReport, err := client.MarshalJSON()
 	if err != nil {
 		return err
@@ -110,6 +124,8 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 	if err := os.WriteFile(filepath.Join(working, "build-report.json"), report, 0o644); err != nil {
 		return err
 	}
+
+	// Generate TypeScript declarations for the output.
 	declarations := exec.CommandContext(ctx, "bun", "run", "scripts/sync-library/declarations.ts", output)
 	declarations.Dir = root
 	declarations.Stdout = os.Stdout
@@ -117,6 +133,8 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 	if err := declarations.Run(); err != nil {
 		return err
 	}
+
+	// Generate license notices for the output.
 	notices := exec.CommandContext(ctx, "bun", "run", "scripts/sync-library/notices.ts", output)
 	notices.Dir = root
 	notices.Stdout = os.Stdout
