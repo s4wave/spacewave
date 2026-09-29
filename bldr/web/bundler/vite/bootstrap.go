@@ -21,9 +21,12 @@ func BuildServiceScript(
 	bldrDistRoot,
 	outputPath string,
 ) (*bldr_web_bundler_rolldown.BuildResult, error) {
+	// Split the output path into its root, file name, and entrypoint name.
 	outputRoot := filepath.Dir(outputPath)
 	outputName := filepath.Base(outputPath)
 	entrypointName := strings.TrimSuffix(outputName, filepath.Ext(outputName))
+
+	// Build the Node host through the Rolldown bundler contract.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -54,6 +57,8 @@ func BuildServiceScript(
 	if err != nil {
 		return result, errors.Wrap(err, "build Vite service script")
 	}
+
+	// Require the build to report the requested entrypoint output name.
 	if got := result.GetEntrypointOutputs()[entrypointName]; got != outputName {
 		return result, errors.Errorf("Vite service output is %q, expected %q", got, outputName)
 	}
