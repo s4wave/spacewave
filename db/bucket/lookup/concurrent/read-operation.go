@@ -12,20 +12,24 @@ import (
 // BeginReadOperation retains the sole local bucket's read scope when available.
 // Network fallback remains live; writeback lookups keep their unscoped path.
 func (c *LookupController) BeginReadOperation(ctx context.Context) (lookup.Lookup, func(), error) {
+	// Resolve the controller's bucket handles.
 	handles, err := c.getBucketHandles(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	// Multi-bucket lookup can return while losing reads are still running.
 	// Those reads cannot safely share a caller-released storage scope.
 	if len(handles) != 1 {
 		return c, func() {}, nil
 	}
+
 	// A native read scope may block writes, including synchronous writeback.
 	if c.conf.GetWritebackBehavior() != WritebackBehavior_WritebackBehavior_NONE {
 		return c, func() {}, nil
 	}
 
+	// Open a read scope on the sole local bucket.
 	original := handles[0].GetBucket()
 	read, release, err := original.BeginReadOperation(ctx)
 	if err != nil {
