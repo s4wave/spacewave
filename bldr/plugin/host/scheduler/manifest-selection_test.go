@@ -9,10 +9,9 @@ import (
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
-
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestManifestSelectionPlatformPreference checks the same platform ordering
@@ -188,6 +187,81 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 	_, _ = addManifest("web/js/wasm", 9)
 	if selectManifest() != current {
 		t.Fatal("late web variant replaced the active JavaScript generation")
+	}
+}
+
+// TestWorldManifestSelectionSkipsIncompatible checks that World selection
+// falls back past manifests whose startup proved a protocol mismatch, and
+// keeps the current target when no compatible manifest remains.
+func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
+	// Link an older and a newer release for one available host.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	cursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cursor.Release)
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const hostKey = "plugin-host"
+	if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
+		t.Fatal(err)
+	}
+	jsHost := &testPluginHost{id: "js"}
+	webHost := &testPluginHost{id: "web/js/wasm"}
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{jsHost, webHost}}
+	instance := &pluginInstance{
+		c:                       &Controller{conf: &Config{}, objKey: hostKey},
+		le:                      le,
+		pluginID:                "web",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	for rev, platform := range []string{"web/js/wasm", "js"} {
+		_, key := storeTestWorldManifest(t, ctx, ws, "web", platform, uint64(rev+1))
+		if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, key, "web")); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Select again the way execution does after it rejects a manifest.
+	selectManifest := func() *executePluginArgs {
+		t.Helper()
+		instance.manifestSelectionFingerprint.Store(nil)
+		obj, found, err := ws.GetObject(ctx, hostKey)
+		defer world.ReleaseObjectState(obj)
+		if err != nil || !found {
+			t.Fatalf("host object: found=%t, error=%v", found, err)
+		}
+		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+			t.Fatal(err)
+		}
+		return instance.executePluginRoutine.GetState()
+	}
+	reject := func(args *executePluginArgs) {
+		ref := args.manifestSnapshot.GetManifestRef()
+		instance.incompatibleManifests.Store(manifestRootKey(ref), struct{}{})
+	}
+	newer := selectManifest()
+	if newer == nil || newer.pluginHost != jsHost {
+		t.Fatal("newest release was not selected")
+	}
+	reject(newer)
+	older := selectManifest()
+	if older == nil || older.pluginHost != webHost {
+		t.Fatal("selection did not fall back past the incompatible release")
+	}
+	reject(older)
+	if selectManifest() != older {
+		t.Fatal("rejecting every release cleared the current target")
 	}
 }
 

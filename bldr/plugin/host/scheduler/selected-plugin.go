@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 // executionReference identifies a candidate and its registration startup mode.
@@ -18,7 +19,7 @@ type executionReference struct {
 
 // newExecution constructs one immutable worker without manifest-selection loops.
 func (t *pluginInstance) newExecution(key executionReference) (keyed.Routine, *pluginInstance) {
-	root := key.args.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString()
+	root := manifestRootKey(key.args.manifestSnapshot.GetManifestRef())
 	worker := newPluginState(t.c, t.le, t.pluginID, t.instanceKey+"/generation/"+root, t.manifestRoot)
 	worker.bindingKey = t.bindingKey
 	worker.physical = true
@@ -34,36 +35,53 @@ func (t *pluginInstance) newExecution(key executionReference) (keyed.Routine, *p
 }
 
 // execSelectedPlugin recovers a cold installation with its retained artifacts.
-// An admitted worker survives failed replacements without restarting or falling back.
+// An admitted worker survives failed replacements without restarting or falling
+// back. Manifests that fail startup with a protocol mismatch are rejected for
+// this binding, and World selection repeats without them.
 func (t *pluginInstance) execSelectedPlugin(ctx context.Context, args *executePluginArgs) error {
-	err := t.execSelectedCandidate(ctx, args, false)
-	// A proven protocol mismatch is terminal for this selected manifest. Returning
-	// nil stops backoff retries; the selection routine restarts on a changed manifest.
-	var protocolErr *plugin_host.StartupProtocolError
-	if errors.As(err, &protocolErr) {
-		t.stopStartupWaitBudget()
-		if t.runningPluginCtr.GetValue() == nil {
-			t.finishExecution(err)
-		}
-		return nil
+	// Try the selection, then its retained fallbacks while no worker runs. A
+	// protocol mismatch rejects that manifest on this host and moves on.
+	candidates := []*executePluginArgs{args}
+	if args != nil {
+		candidates = append(candidates, args.fallbacks...)
 	}
-	if args == nil {
+	var err error
+	var protocolErr *plugin_host.StartupProtocolError
+	for i, candidate := range candidates {
+		if i != 0 && (err == nil || ctx.Err() != nil || t.runningPluginCtr.GetValue() != nil) {
+			break
+		}
+		err = t.execSelectedCandidate(ctx, candidate, i != 0)
+		if errors.As(err, &protocolErr) {
+			t.incompatibleManifests.Store(manifestRootKey(candidate.manifestSnapshot.GetManifestRef()), struct{}{})
+		}
+	}
+	if !errors.As(err, &protocolErr) {
 		return err
 	}
-	for _, fallback := range args.fallbacks {
-		if err == nil || ctx.Err() != nil || t.runningPluginCtr.GetValue() != nil {
-			return err
-		}
-		err = t.execSelectedCandidate(ctx, fallback, true)
-		if errors.As(err, &protocolErr) {
-			t.stopStartupWaitBudget()
-			if t.runningPluginCtr.GetValue() == nil {
-				t.finishExecution(err)
-			}
-			return nil
-		}
+
+	// A proven protocol mismatch is terminal for these candidates. Returning nil
+	// stops backoff retries; World selection repeats without the rejected roots.
+	t.stopStartupWaitBudget()
+	if t.runningPluginCtr.GetValue() == nil {
+		t.finishExecution(err)
 	}
-	return err
+	if args != nil && args.installation == nil {
+		t.manifestSelectionFingerprint.Store(nil)
+		t.watchWorldManifestRoutine.RestartRoutine()
+	}
+	return nil
+}
+
+// manifestRootKey identifies a manifest's executable content across buckets.
+func manifestRootKey(ref *bucket.ObjectRef) string {
+	return ref.GetRootRef().GetHash().MarshalString()
+}
+
+// incompatibleManifest reports whether the manifest failed startup on this host.
+func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
+	_, ok := t.incompatibleManifests.Load(manifestRootKey(ref))
+	return ok
 }
 
 // execSelectedCandidate prepares a candidate while retaining the admitted worker.

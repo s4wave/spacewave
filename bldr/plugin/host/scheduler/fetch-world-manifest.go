@@ -216,12 +216,17 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 	selectBest := func() {
 		var best *manifestCandidate
 		var current *manifestCandidate
+		var rejected bool
 		currentState := t.executePluginRoutine.GetState()
 		for _, refs := range allRefs {
 			for _, ref := range refs {
 				meta := ref.GetMeta()
 				host, ok := platformIDsMap[meta.GetPlatformId()]
 				if !ok || host == nil {
+					continue
+				}
+				if t.incompatibleManifest(ref.GetManifestRef()) {
+					rejected = true
 					continue
 				}
 				candidate := &manifestCandidate{
@@ -254,9 +259,9 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			return
 		}
 
-		if len(allRefs) == 0 &&
+		if (len(allRefs) == 0 || rejected) &&
 			(t.executePluginRoutine.GetState() != nil || t.downloadManifestRoutine.GetState() != nil) {
-			t.le.Debug("preserving current plugin target while fetched manifest refs are temporarily empty")
+			t.le.Debug("preserving current plugin target without a compatible fetched manifest ref")
 			return
 		}
 

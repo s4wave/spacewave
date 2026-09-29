@@ -96,6 +96,10 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		return true, context.Canceled
 	}
 	manifests := bldr_manifest_world.SelectableStartupManifests(candidateEligibility)
+	selectable := len(manifests)
+	manifests = slices.DeleteFunc(manifests, func(m *bldr_manifest_world.CollectedManifest) bool {
+		return t.incompatibleManifest(m.ManifestRef)
+	})
 	trace.Logf(ctx, "candidate-count", "%d", len(candidateEligibility))
 	trace.Logf(ctx, "selectable-candidate-count", "%d", len(manifests))
 	trace.Logf(ctx, "skipped-candidate-count", "%d", countStartupManifestEligibilitySkips(candidateEligibility))
@@ -124,6 +128,13 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		)
 	} else {
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
+	}
+	if selectable != 0 && len(manifests) == 0 {
+		// Every candidate failed startup on this host: keep any admitted worker
+		// and its terminal status until the World offers another manifest.
+		le.Warn("every selectable manifest is incompatible with this plugin host")
+		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
+		return true, nil
 	}
 	if len(manifests) == 0 {
 		if t.manifestRoot != "" {

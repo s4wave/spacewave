@@ -62,6 +62,9 @@ type pluginInstance struct {
 	// manifestSelectionFingerprint is the last input set fully processed by
 	// watchWorldManifestRoutine.
 	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
+	// incompatibleManifests holds manifest roots whose startup proved a protocol
+	// mismatch with this host. Selection skips them for the binding's lifetime.
+	incompatibleManifests sync.Map
 
 	// startupWaitBudgetTimer holds the armed startup wait budget deadline.
 	startupWaitBudgetTimer atomic.Pointer[time.Timer]
