@@ -35,6 +35,8 @@ func TestManifestSelectionPlatformPreference(t *testing.T) {
 				// Use the real World representation for persisted selection.
 				ctx := t.Context()
 				le := logrus.NewEntry(logrus.New())
+
+				// Open a World testbed and a mock World state over it.
 				tb, err := testbed.NewTestbed(ctx, le)
 				if err != nil {
 					t.Fatal(err)
@@ -49,6 +51,8 @@ func TestManifestSelectionPlatformPreference(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+
+				// Create the plugin-host manifest store.
 				const hostKey = "plugin-host"
 				if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
 					t.Fatal(err)
@@ -101,8 +105,12 @@ func TestManifestSelectionPlatformPreference(t *testing.T) {
 // arrival, a newer release, and removal of the current candidate.
 func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 	// Start with a valid web-only manifest and both available browser hosts.
+
+	// Bind the test context and logger.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a World testbed and a mock World state over it.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +125,8 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the plugin-host manifest store and both browser hosts.
 	const hostKey = "plugin-host"
 	if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
 		t.Fatal(err)
@@ -124,6 +134,8 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 	jsHost := &testPluginHost{id: "js"}
 	webHost := &testPluginHost{id: "web/js/wasm"}
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{jsHost, webHost}}
+
+	// Build the plugin instance bound to the host object.
 	instance := &pluginInstance{
 		c:                       &Controller{conf: &Config{}, objKey: hostKey},
 		le:                      le,
@@ -131,13 +143,18 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
+
+	// selectManifest loads the host object and runs World selection over it.
 	selectManifest := func() *executePluginArgs {
+		// Load the host object, releasing it before returning.
 		t.Helper()
 		obj, found, err := ws.GetObject(ctx, hostKey)
 		defer world.ReleaseObjectState(obj)
 		if err != nil || !found {
 			t.Fatalf("host object: found=%t, error=%v", found, err)
 		}
+
+		// Run selection over the loaded host object.
 		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
@@ -194,14 +211,18 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 // falls back past manifests whose startup proved a protocol mismatch, and
 // keeps the current target when no compatible manifest remains.
 func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
-	// Link an older and a newer release for one available host.
+	// Bind the test context and logger.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
+
+	// Open a World testbed over the bounded context.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Build a mock World state over an empty testbed cursor.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -211,6 +232,8 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the plugin-host manifest store and both hosts.
 	const hostKey = "plugin-host"
 	if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
 		t.Fatal(err)
@@ -218,6 +241,8 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 	jsHost := &testPluginHost{id: "js"}
 	webHost := &testPluginHost{id: "web/js/wasm"}
 	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{jsHost, webHost}}
+
+	// Build the plugin instance bound to the host object.
 	instance := &pluginInstance{
 		c:                       &Controller{conf: &Config{}, objKey: hostKey},
 		le:                      le,
@@ -225,6 +250,8 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
+
+	// Store one manifest per platform revision under the host.
 	for rev, platform := range []string{"web/js/wasm", "js"} {
 		_, key := storeTestWorldManifest(t, ctx, ws, "web", platform, uint64(rev+1))
 		if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, key, "web")); err != nil {
@@ -234,27 +261,38 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 
 	// Select again the way execution does after it rejects a manifest.
 	selectManifest := func() *executePluginArgs {
+		// Reset the selection fingerprint so selection reruns fully.
 		t.Helper()
 		instance.manifestSelectionFingerprint.Store(nil)
+
+		// Load the host object, releasing it before returning.
 		obj, found, err := ws.GetObject(ctx, hostKey)
 		defer world.ReleaseObjectState(obj)
 		if err != nil || !found {
 			t.Fatalf("host object: found=%t, error=%v", found, err)
 		}
+
+		// Run selection over the loaded host object.
 		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
 		return instance.executePluginRoutine.GetState()
 	}
+
+	// reject marks a manifest's root as incompatible for future selection.
 	reject := func(args *executePluginArgs) {
 		ref := args.manifestSnapshot.GetManifestRef()
 		instance.incompatibleManifests.Store(manifestRootKey(ref), struct{}{})
 	}
+
+	// The newest release is selected first and then rejected.
 	newer := selectManifest()
 	if newer == nil || newer.pluginHost != jsHost {
 		t.Fatal("newest release was not selected")
 	}
 	reject(newer)
+
+	// Selection falls back to the older release, and rejecting it too keeps it.
 	older := selectManifest()
 	if older == nil || older.pluginHost != webHost {
 		t.Fatal("selection did not fall back past the incompatible release")
@@ -268,6 +306,7 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 // TestDirectManifestSelectionKeepsCurrentPlatform protects a running fallback
 // from same-revision arrivals while permitting an upgrade.
 func TestDirectManifestSelectionKeepsCurrentPlatform(t *testing.T) {
+	// Build the instance with both platform hosts.
 	le := logrus.NewEntry(logrus.New())
 	fallback := &testPluginHost{id: "web/js/wasm"}
 	preferred := &testPluginHost{id: "js"}
@@ -278,14 +317,20 @@ func TestDirectManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
+
+	// Build a direct fetch handler over both hosts.
 	handler := instance.newDirectFetchHandler(t.Context(), &pluginHostSet{
 		pluginHosts: []plugin_host.PluginHost{fallback, preferred},
 	})
+
+	// add delivers one manifest ref for a platform and revision.
 	add := func(id uint32, platform string, rev uint64) {
 		t.Helper()
 		ref := newTestManifestRef("spacewave-core", platform, rev, "bucket")
 		handler.HandleValueAdded(nil, directive.NewAttachedValue(id, manifest.NewFetchManifestValue([]*manifest.ManifestRef{ref})))
 	}
+
+	// The browser fallback is selected first.
 	add(1, "web/js/wasm", 7)
 	current := instance.executePluginRoutine.GetState()
 	if current == nil || current.pluginHost != fallback {
@@ -305,6 +350,7 @@ func TestDirectManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 // install: the JavaScript core arrives first with a higher revision counter,
 // then the native build arrives and must replace it.
 func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
+	// Build both hosts and an instance constructor for either selection mode.
 	le := logrus.NewEntry(logrus.New())
 	jsHost := &testPluginHost{id: "js"}
 	nativeHost := &testPluginHost{id: "desktop/darwin/arm64"}
@@ -319,14 +365,20 @@ func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
 		}
 	}
 
+	// Direct selection orders the same platforms through fetch values.
 	t.Run("direct", func(t *testing.T) {
+		// Build the instance and a direct fetch handler over both hosts.
 		instance := newInstance("")
 		handler := instance.newDirectFetchHandler(t.Context(), hosts)
+
+		// add delivers one manifest ref for a platform and revision.
 		add := func(id uint32, platform string, rev uint64) {
 			t.Helper()
 			ref := newTestManifestRef("spacewave-core", platform, rev, "bucket")
 			handler.HandleValueAdded(nil, directive.NewAttachedValue(id, manifest.NewFetchManifestValue([]*manifest.ManifestRef{ref})))
 		}
+
+		// The JavaScript core is selected before the native build arrives.
 		add(1, "js", 16)
 		if selected := instance.executePluginRoutine.GetState(); selected == nil || selected.pluginHost != jsHost {
 			t.Fatal("JavaScript core was not selected before the native build arrived")
@@ -337,46 +389,65 @@ func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
 		}
 	})
 
+	// World selection orders the same platforms through stored manifests.
 	t.Run("world", func(t *testing.T) {
+		// Open a World testbed and a mock World state over it.
 		ctx := t.Context()
 		tb, err := testbed.NewTestbed(ctx, le)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(tb.Release)
+
+		// Build a cursor and the mock World state over it.
 		cursor, err := tb.BuildEmptyCursor(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(cursor.Release)
+
+		// Build a mock World state over the cursor.
 		ws, err := world_block.BuildMockWorldState(ctx, le, true, cursor, false)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Create the plugin-host manifest store and the instance.
 		const hostKey = "plugin-host"
 		if _, err := manifest_world.CreateManifestStore(ctx, ws, hostKey); err != nil {
 			t.Fatal(err)
 		}
 		instance := newInstance(hostKey)
+
+		// selectAfterAdding stores a manifest and runs World selection.
 		selectAfterAdding := func(platform string, rev uint64) *executePluginArgs {
+			// Store the manifest and link it to the host.
 			t.Helper()
 			_, key := storeTestWorldManifest(t, ctx, ws, "spacewave-core", platform, rev)
 			if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, key, "spacewave-core")); err != nil {
 				t.Fatal(err)
 			}
+
+			// Load the host object, releasing it before returning.
 			obj, found, err := ws.GetObject(ctx, hostKey)
 			defer world.ReleaseObjectState(obj)
 			if err != nil || !found {
 				t.Fatalf("host object: found=%t, error=%v", found, err)
 			}
+
+			// Run selection over the loaded host object.
 			if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 				t.Fatal(err)
 			}
 			return instance.executePluginRoutine.GetState()
 		}
+
+		// The JavaScript core is selected first despite its higher revision.
 		if selected := selectAfterAdding("js", 16); selected == nil || selected.pluginHost != jsHost {
 			t.Fatal("JavaScript core was not selected before the native build arrived")
 		}
+
+		// The lower-revision native build replaces it by platform preference.
 		if selected := selectAfterAdding("desktop/darwin/arm64", 15); selected == nil || selected.pluginHost != nativeHost {
 			t.Fatal("native build did not replace the JavaScript core")
 		}
