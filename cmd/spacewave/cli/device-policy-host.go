@@ -20,6 +20,7 @@ type devicePolicyHostSource struct {
 // WaitDevicePolicy waits for the first or next policy revision and attaches the
 // enrolled Device identity from the daemon's local setup record.
 func (s *devicePolicyHostSource) WaitDevicePolicy(ctx context.Context, last []byte) ([]byte, string, uint64, error) {
+	// Decode the caller's last-seen policy as the wait baseline.
 	var previous *device_policy.DevicePolicy
 	if len(last) != 0 {
 		previous = &device_policy.DevicePolicy{}
@@ -28,6 +29,7 @@ func (s *devicePolicyHostSource) WaitDevicePolicy(ctx context.Context, last []by
 		}
 	}
 
+	// Wait for a new revision and encode the policy.
 	policy, err := s.store.WaitChange(ctx, previous)
 	if err != nil {
 		return nil, "", 0, err
@@ -36,6 +38,8 @@ func (s *devicePolicyHostSource) WaitDevicePolicy(ctx context.Context, last []by
 	if err != nil {
 		return nil, "", 0, errors.Wrap(err, "encode device policy")
 	}
+
+	// Attach the enrolled Device identity when a projection record exists.
 	record, ok, err := deviceLauncherProjectionTarget(s.statePath)
 	if err != nil {
 		return nil, "", 0, err
