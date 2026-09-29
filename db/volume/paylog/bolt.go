@@ -26,6 +26,7 @@ type boltIndex struct {
 
 // OpenBolt opens the bbolt index on dev, creating it when dev has none.
 func OpenBolt(ctx context.Context, dev device.Device) (Index, error) {
+	// Open the bbolt index on the device's handle.
 	h, err := device.OpenHandle(ctx, dev, boltIndexName)
 	if err != nil {
 		return nil, err

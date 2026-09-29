@@ -25,11 +25,15 @@ func (s *Store) AppendJournalOrdered(ctx context.Context, adds, removes []block_
 // appendJournal journals reference graph changes in one index commit, ordered
 // if ordered is set.
 func (s *Store) appendJournal(ctx context.Context, adds, removes []block_gc.RefEdge, ordered bool) error {
+	// Skip empty batches and encode the entry once.
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
 	value := journal.Marshal(adds, removes)
+
+	// Append the sequence-numbered entry in one index commit.
 	return s.update(ctx, ordered, func(tx kvtx.Tx) error {
+		// Write the next sequence-numbered journal entry.
 		seq := s.journal + 1
 		key := binary.BigEndian.AppendUint64([]byte(journalPrefix), seq)
 		if err := tx.Set(ctx, key, value); err != nil {

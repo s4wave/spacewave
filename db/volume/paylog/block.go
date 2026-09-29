@@ -201,6 +201,7 @@ func (s *Store) locate(ctx context.Context, refs []*block.BlockRef) ([]*location
 
 // GetBlock reads a block's payload.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Locate the block and read its payload from the segment.
 	locs, err := s.locate(ctx, []*block.BlockRef{ref})
 	if err != nil || locs[0] == nil {
 		return nil, false, err
@@ -228,6 +229,7 @@ func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, 
 
 // GetBlockExistsBatch checks each reference from one index view.
 func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Locate every reference and report which were found.
 	locs, err := s.locate(ctx, refs)
 	if err != nil {
 		return nil, err
@@ -259,12 +261,15 @@ func (s *Store) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 // which also makes the earlier ordered commits durable. With nothing pending
 // it flushes the device instead, which costs nothing when nothing is dirty.
 func (s *Store) Sync(ctx context.Context) (bool, error) {
+	// Flush the device when nothing is pending.
 	s.mtx.Lock()
 	idle := len(s.pending) == 0
 	s.mtx.Unlock()
 	if idle {
 		return true, s.dev.Write(ctx, nil, true)
 	}
+
+	// Publish the pending writes and removes through one index commit.
 	return true, s.update(ctx, false, nil)
 }
 

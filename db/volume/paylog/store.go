@@ -89,6 +89,7 @@ type pendingBlock struct {
 // Open opens the store on dev with index, an index opened on the same device.
 // The store owns the index and closes it on Close or on failure.
 func Open(ctx context.Context, dev device.Device, index Index) (*Store, error) {
+	// Construct the store and its prefixed index view.
 	s := &Store{
 		dev:     dev,
 		index:   index,
@@ -144,6 +145,7 @@ func (s *Store) view(ctx context.Context, fn func(tx kvtx.Tx) error) error {
 // update runs fn in an index write transaction and commits it, durably with
 // the pending blocks unless ordered is set.
 func (s *Store) update(ctx context.Context, ordered bool, fn func(tx kvtx.Tx) error) error {
+	// Apply fn and commit the index write transaction.
 	tx, err := s.index.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -214,6 +216,7 @@ type indexStore struct {
 
 // NewTransaction opens an index transaction.
 func (i indexStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Buffer write transactions over one index read transaction.
 	read, err := i.s.index.NewTransaction(ctx, false)
 	if err != nil || !write {
 		return read, err
@@ -263,6 +266,7 @@ func (w *writeTx) CommitOrdered(ctx context.Context) error {
 
 // commit applies the collected changes and commits the index transaction.
 func (w *writeTx) commit(ctx context.Context, ordered bool) error {
+	// Apply the collected changes to the opened index transaction.
 	err := w.Tx.Commit(ctx)
 	if w.itx == nil {
 		return err
@@ -271,6 +275,8 @@ func (w *writeTx) commit(ctx context.Context, ordered bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Publish the pending blocks and commit with the requested ordering.
 	return w.s.commit(ctx, w.itx, ordered)
 }
 
