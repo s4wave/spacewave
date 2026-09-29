@@ -8,6 +8,7 @@ import (
 
 // main writes the native producer configuration and prints its Bldr path.
 func main() {
+	// Build the CLI app with the release-config flags and action.
 	args := &Args{}
 	app := cli.NewApp()
 	app.Name = "release-config"
