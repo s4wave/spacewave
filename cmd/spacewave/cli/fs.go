@@ -59,6 +59,8 @@ func newFsCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Name:  "fs",
 		Usage: "filesystem operations on UnixFS objects",
 		Subcommands: []*cli.Command{
+			newFsSyncCommand(),
+			newFsRestoreCommand(),
 			buildFsLsCommand(),
 			buildFsCatCommand(),
 			buildFsMkdirCommand(),

@@ -1,0 +1,35 @@
+# Mirror files through the real daemon and restore exact bytes.
+env SPACEWAVE_CLI_AUTOSTART=true
+spacewave --state-path $WORK/state login local
+spacewave --state-path $WORK/state space create Backup
+spacewave --state-path $WORK/state space object create --type fs files
+spacewave --state-path $WORK/state fs sync spacewave:files $WORK/source
+write-file $WORK/source/database 98304
+spacewave --state-path $WORK/state fs sync $WORK/source spacewave:files
+spacewave --state-path $WORK/state fs sync spacewave:files $WORK/restored
+cmp $WORK/source/database $WORK/restored/database
+
+# Copy mode preserves extra files; mirror mode deletes them after copying.
+spacewave --state-path $WORK/state fs write --from $WORK/source/database files/-/obsolete
+spacewave --state-path $WORK/state fs sync --keep-extra $WORK/source spacewave:files
+spacewave --state-path $WORK/state fs stat files/-/obsolete
+spacewave --state-path $WORK/state fs sync $WORK/source spacewave:files
+! spacewave --state-path $WORK/state fs stat files/-/obsolete
+
+# Changed and unchanged passes both restore correctly.
+write-file $WORK/source/database 65536
+spacewave --state-path $WORK/state fs sync $WORK/source spacewave:files
+spacewave --state-path $WORK/state fs sync $WORK/source spacewave:files
+spacewave --state-path $WORK/state fs sync spacewave:files $WORK/restored
+cmp $WORK/source/database $WORK/restored/database
+
+# Missing paths and ambiguous endpoints fail without selecting another directory.
+! spacewave --state-path $WORK/state fs sync $WORK/missing spacewave:files
+! spacewave --state-path $WORK/state fs sync $WORK/source spacewave:files/-/missing
+! spacewave --state-path $WORK/state fs sync $WORK/source $WORK/restored
+stderr "exactly one path"
+
+# Recovery keys go to a new file, never over an existing record.
+spacewave --state-path $WORK/state space world export-root $WORK/root.pb
+! spacewave --state-path $WORK/state space world export-root $WORK/root.pb
+spacewave --state-path $WORK/state stop
