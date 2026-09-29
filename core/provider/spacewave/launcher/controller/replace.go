@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/appbundle"
 )
@@ -118,13 +119,14 @@ func (c *Controller) prepareDaemonUpdate(ctx context.Context) (*spacewave_launch
 
 // currentExecutableBundle resolves the daemon executable for daemon-specific
 // comparisons and diagnostics, never as the installed-app update destination.
+// The launcher runs as a plugin, so the daemon is the plugin host executable.
 func (c *Controller) currentExecutableBundle() (string, bool, string, error) {
 	if c.currentExecutableBundleFunc != nil {
 		return c.currentExecutableBundleFunc()
 	}
-	execPath, err := os.Executable()
+	execPath, err := bldr_plugin.HostExecutable()
 	if err != nil {
-		return "", false, "", errors.Wrap(err, "get executable path")
+		return "", false, "", errors.Wrap(err, "get daemon executable path")
 	}
 	execPath, err = filepath.EvalSymlinks(execPath)
 	if err != nil {

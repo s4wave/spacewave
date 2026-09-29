@@ -19,12 +19,14 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn<typeof toast>(),
   toastError: vi.fn(),
   applyElectronAppUpdate: vi.fn(),
+  installedElectronAppVersion: vi.fn(),
 }))
 
 vi.mock('@aptre/bldr', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@aptre/bldr')>()),
   isDesktop: true,
   applyElectronAppUpdate: mocks.applyElectronAppUpdate,
+  installedElectronAppVersion: mocks.installedElectronAppVersion,
 }))
 
 vi.mock('@aptre/bldr-react', async (importOriginal) => {
@@ -64,6 +66,7 @@ describe('UpdateNotifier', () => {
     // Supply a staged update through the generated launcher's binary codec.
     vi.clearAllMocks()
     mocks.applyElectronAppUpdate.mockResolvedValue(undefined)
+    mocks.installedElectronAppVersion.mockResolvedValue('1.2.2')
     mocks.request.mockResolvedValue(new Uint8Array())
     mocks.serverStreamingRequest.mockImplementation(() =>
       asyncValues(
@@ -120,6 +123,40 @@ describe('UpdateNotifier', () => {
     const signal = mocks.serverStreamingRequest.mock.calls[0][3] as AbortSignal
     unmount()
     expect(signal.aborted).toBe(true)
+  })
+
+  it('does not offer the app release it already runs', async () => {
+    // Stage the installed version with a daemon update to mark the state seen.
+    mocks.installedElectronAppVersion.mockResolvedValue('1.2.3')
+    mocks.serverStreamingRequest.mockImplementation(() =>
+      asyncValues(
+        LauncherInfo.toBinary({
+          updateState: {
+            phase: UpdatePhase.STAGED,
+            version: '1.2.3',
+            stagedPath: '/staged/Spacewave.app',
+            target: UpdateTarget.APP,
+          },
+          daemonUpdateState: {
+            phase: UpdatePhase.STAGED,
+            version: '1.2.3',
+            target: UpdateTarget.DAEMON,
+          },
+        }),
+      ),
+    )
+    render(<UpdateNotifier />)
+    await waitFor(() =>
+      expect(mocks.toast).toHaveBeenCalledWith(
+        'Daemon update available',
+        expect.anything(),
+      ),
+    )
+    expect(mocks.installedElectronAppVersion).toHaveBeenCalled()
+    expect(mocks.toast).not.toHaveBeenCalledWith(
+      'App update ready',
+      expect.anything(),
+    )
   })
 
   it('accepts the daemon artifact through its explicit launcher target', async () => {

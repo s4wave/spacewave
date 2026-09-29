@@ -23,6 +23,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	desktop_update "github.com/s4wave/spacewave/bldr/desktop/update"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
@@ -393,6 +394,30 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
 		t.Fatal("matching daemon executable misclassified the app as current")
+	}
+
+	// A plugin whose host did not report its executable offers no daemon
+	// update rather than comparing against its own plugin binary.
+	ctrl.currentExecutableBundleFunc = nil
+	t.Setenv("BLDR_PLUGIN_START_INFO", "plugin")
+	t.Setenv(bldr_plugin.HostExecutableEnv, "")
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState() != nil {
+		t.Fatal("offered a daemon update without the host executable")
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
+		t.Fatal("unknown host executable hid the app update")
+	}
+
+	// A plugin compares its host executable with the staged daemon.
+	t.Setenv(bldr_plugin.HostExecutableEnv, installedCLI)
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState() == nil {
+		t.Fatal("host executable with different bytes offered no daemon update")
 	}
 
 	// A daemon running from an app bundle copy moves to the same executable in

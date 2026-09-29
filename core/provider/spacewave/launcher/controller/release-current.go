@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
 // stagedExecutableSHA256 identifies the exact executable bytes selected for
@@ -32,9 +33,14 @@ func stagedExecutableSHA256(path string) (string, error) {
 // stageDaemonUpdate offers the daemon handoff target when its bytes differ
 // from the running daemon. A daemon running from an app bundle copy moves to
 // the same executable in the staged app bundle, which carries the desktop
-// manifests. Any other daemon moves to the staged CLI.
+// manifests. Any other daemon moves to the staged CLI. A daemon that cannot
+// identify its executable is offered nothing.
 func (c *Controller) stageDaemonUpdate(version, appManifestID, stageRoot, distPath, appPath, cliPath string) error {
 	executable, bundle, _, err := c.currentExecutableBundle()
+	if errors.Is(err, bldr_plugin.ErrHostExecutableUnknown) {
+		c.le.WithError(err).Warn("skipping daemon update offer")
+		return nil
+	}
 	if err != nil {
 		return err
 	}
