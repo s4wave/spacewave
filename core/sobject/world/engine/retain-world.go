@@ -12,6 +12,7 @@ import (
 
 // retainPublicationWorld fences dependencies for asynchronously persisted providers.
 func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef) error {
+	// Skip objects without publication retention or an empty head.
 	retention, ok := so.(sobject.PublicationRetention)
 	if !ok {
 		return nil
@@ -19,6 +20,8 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 	if head.GetRootRef().GetEmpty() {
 		return nil
 	}
+
+	// Retain the World into the publication's local retention store.
 	local, release, err := retention.AccessPublicationRetention(ctx)
 	if err != nil {
 		return err
@@ -34,6 +37,7 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 // it. visited observes newly traversed blocks; cached complete subtrees are
 // omitted.
 func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
+	// Short-circuit a World whose graph is already complete in the store.
 	store := so.GetBlockStore()
 	if complete, err := block.RootComplete(ctx, store, head.GetRootRef()); err != nil {
 		return err
@@ -59,6 +63,7 @@ func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.Obje
 		return err
 	}
 
+	// Copy the graph through the proof recorder and mark the root complete.
 	proofs := newRetainProofs(store, store.GetID(), local)
 	err := block.CopyGraph(ctx, store, proofs.writes, head.GetRootRef(), &block.GraphCopyOptions{
 		Known:    proofs.known,
@@ -119,6 +124,7 @@ func (p *retainProofs) key(ref *block.BlockRef) string {
 
 // known reports which refs have a durable or pending completion proof.
 func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Start from pending proofs and collect the refs that need checking.
 	known := make([]bool, len(refs))
 	var check []int
 	for i, ref := range refs {
@@ -131,6 +137,8 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef) ([]boo
 	if len(check) == 0 {
 		return known, nil
 	}
+
+	// Check volume proofs directly against the block store.
 	if p.volume {
 		for _, i := range check {
 			var err error
@@ -142,6 +150,7 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef) ([]boo
 		return known, nil
 	}
 
+	// Read the local proof records for the remaining refs.
 	tx, err := p.local.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -163,6 +172,7 @@ func (p *retainProofs) known(ctx context.Context, refs []*block.BlockRef) ([]boo
 	if len(proved) == 0 {
 		return known, nil
 	}
+
 	// Collection can invalidate an older completion record. A live parent
 	// still retains its descendants through the volume graph.
 	exists, err := p.store.GetBlockExistsBatch(ctx, proved)
@@ -191,6 +201,7 @@ func (p *retainProofs) complete(ctx context.Context, ref *block.BlockRef) error 
 // may keep proofs of complete subtrees, but never records a parent whose
 // descendants failed.
 func (p *retainProofs) flush(ctx context.Context) error {
+	// Fence the buffered block writes before recording any proof.
 	fenced, err := p.writes.Sync(ctx)
 	if err != nil {
 		return err
@@ -201,6 +212,8 @@ func (p *retainProofs) flush(ctx context.Context) error {
 	if len(p.pending) == 0 {
 		return nil
 	}
+
+	// Record volume proofs on the block store itself.
 	if p.volume {
 		if err := block.MarkRootsComplete(ctx, p.store, p.roots); err != nil {
 			return err
@@ -209,6 +222,8 @@ func (p *retainProofs) flush(ctx context.Context) error {
 		clear(p.pending)
 		return nil
 	}
+
+	// Record the remaining proofs in the local state store.
 	err = kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return p.local.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
