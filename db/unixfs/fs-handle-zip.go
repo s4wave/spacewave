@@ -32,11 +32,13 @@ func WriteZipArchive(ctx context.Context, w io.Writer, h *FSHandle, rootName str
 // rootName: directories recurse into their contents, symlinks serialize
 // their target, and regular files stream with deflate compression.
 func WriteFSHandleToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, rootName string) error {
+	// Stat the handle to choose its zip representation.
 	info, err := handle.GetFileInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "stat "+rootName)
 	}
 
+	// Write directories with a dir header and recurse into their contents.
 	if info.IsDir() {
 		cleanPrefix := strings.TrimSuffix(rootName, "/")
 		if cleanPrefix != "" {
@@ -52,6 +54,7 @@ func WriteFSHandleToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, r
 		return walkAndZip(ctx, zw, handle, cleanPrefix)
 	}
 
+	// Write symlinks with their target path as the entry content.
 	if info.Mode()&fs.ModeSymlink != 0 {
 		target, isAbsolute, err := handle.Readlink(ctx, "")
 		if err != nil {
@@ -71,21 +74,23 @@ func WriteFSHandleToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, r
 		return err
 	}
 
+	// Write everything else as a regular file.
 	return writeFileToZip(ctx, zw, handle, path.Clean(rootName), info)
 }
 
 // walkAndZip recursively walks the FSHandle tree and writes zip entries.
 func walkAndZip(ctx context.Context, zw *zip.Writer, h *FSHandle, prefix string) error {
+	// Stop the walk when the context cancels.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
+	// Collect the directory's entries.
 	type dirent struct {
 		name      string
 		isDir     bool
 		isSymlink bool
 	}
-
 	var entries []dirent
 	err := h.ReaddirAll(ctx, 0, func(ent FSCursorDirent) error {
 		entries = append(entries, dirent{
@@ -99,6 +104,7 @@ func walkAndZip(ctx context.Context, zw *zip.Writer, h *FSHandle, prefix string)
 		return errors.Wrap(err, "readdir")
 	}
 
+	// Zip each entry by its type.
 	for _, entry := range entries {
 		entryPath := path.Join(prefix, entry.name)
 		if entry.isDir {
@@ -122,12 +128,14 @@ func walkAndZip(ctx context.Context, zw *zip.Writer, h *FSHandle, prefix string)
 
 // zipDirectory writes a directory entry and recurses into it.
 func zipDirectory(ctx context.Context, zw *zip.Writer, parent *FSHandle, name string, entryPath string) error {
+	// Look up the child directory handle.
 	child, err := parent.Lookup(ctx, name)
 	if err != nil {
 		return errors.Wrap(err, "lookup "+name)
 	}
 	defer child.Release()
 
+	// Write the directory header and recurse into its contents.
 	header := &zip.FileHeader{
 		Name:     entryPath + "/",
 		Method:   zip.Store,
@@ -142,16 +150,17 @@ func zipDirectory(ctx context.Context, zw *zip.Writer, parent *FSHandle, name st
 
 // zipSymlink writes a symlink entry with the target as content.
 func zipSymlink(ctx context.Context, zw *zip.Writer, parent *FSHandle, name string, entryPath string) error {
+	// Read the symlink's target path.
 	target, isAbsolute, err := parent.Readlink(ctx, name)
 	if err != nil {
 		return errors.Wrap(err, "readlink "+name)
 	}
-
 	targetStr := strings.Join(target, "/")
 	if isAbsolute {
 		targetStr = "/" + targetStr
 	}
 
+	// Write the symlink header with the target as content.
 	header := &zip.FileHeader{
 		Name:     entryPath,
 		Method:   zip.Store,
@@ -168,22 +177,25 @@ func zipSymlink(ctx context.Context, zw *zip.Writer, parent *FSHandle, name stri
 
 // zipFile writes a regular file entry with deflate compression.
 func zipFile(ctx context.Context, zw *zip.Writer, parent *FSHandle, name string, entryPath string) error {
+	// Look up the child file handle and stat it.
 	child, err := parent.Lookup(ctx, name)
 	if err != nil {
 		return errors.Wrap(err, "lookup "+name)
 	}
 	defer child.Release()
-
 	info, err := child.GetFileInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "getfileinfo "+entryPath)
 	}
+
+	// Stream the file into its zip entry.
 	return writeFileToZip(ctx, zw, child, entryPath, info)
 }
 
 // writeFileToZip streams one file handle into a zip entry with deflate
 // compression.
 func writeFileToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, entryPath string, info fs.FileInfo) error {
+	// Build the deflate header from the file's info.
 	if info.Size() < 0 {
 		return errors.Errorf("zip entry %s has negative size: %d", entryPath, info.Size())
 	}
@@ -194,12 +206,12 @@ func writeFileToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, entry
 		UncompressedSize64: uint64(info.Size()), //nolint:gosec // the preceding check protects the zip unsigned size field.
 	}
 	header.SetMode(info.Mode())
-
 	w, err := zw.CreateHeader(header)
 	if err != nil {
 		return errors.Wrap(err, "create file header "+entryPath)
 	}
 
+	// Stream the file content into the entry in chunks.
 	buf := make([]byte, zipReadChunkSize)
 	var offset int64
 	for {
