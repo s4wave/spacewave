@@ -20,6 +20,7 @@ import (
 
 // OfferPairingAccount identifies the canonical local account and its replica signer.
 func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.PrivKey) (*pairing.AccountOffer, error) {
+	// Resolve the settings object reference.
 	settings, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return nil, err
@@ -28,11 +29,15 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 	if err != nil {
 		return nil, err
 	}
+
+	// Mount the settings object and decode its state.
 	settingsSO, releaseSettings, err := a.MountSharedObject(ctx, settings, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer releaseSettings()
+
+	// Decode the settings state.
 	snapshot, err := settingsSO.GetSharedObjectState(ctx)
 	if err != nil {
 		return nil, err
@@ -41,6 +46,8 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the offer from the settings and storage peer.
 	name := accountSettings.GetDisplayName()
 	if name == "" {
 		name = "Local account"
@@ -50,6 +57,8 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 	if err != nil {
 		return nil, err
 	}
+
+	// Count active Sessions and collect revoked ones.
 	active := map[string]bool{current.String(): true}
 	for _, presentation := range accountSettings.GetSessionPresentations() {
 		if presentation.GetPeerId() == current.String() {
@@ -76,12 +85,15 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 
 // PreparePairingReceiver reserves a receiving Session without granting account access.
 func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pairing.AccountOffer, sourcePeer, receivingPeer peer.ID) (*pairing.Receiver, error) {
+	// Require the offer to name this account and a valid storage peer.
 	if offer.GetSettingsId() == "" || offer.GetAccountId() != a.GetAccountID() {
 		return nil, errors.New("pairing source did not offer this local account")
 	}
 	if _, _, err := peer.ParsePeerIDWithPubKey(offer.GetStoragePeerId()); err != nil {
 		return nil, err
 	}
+
+	// Reserve a receiving Session and build its identity proofs.
 	ref, err := a.preparePairingSession(ctx)
 	if err != nil {
 		return nil, err
@@ -90,6 +102,7 @@ func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pai
 	if err != nil {
 		return nil, err
 	}
+
 	// Repair reserves a fresh key before approval when prior access was revoked.
 	if slices.Contains(offer.GetRevokedSessionPeerIds(), sess.GetPeerId().String()) {
 		release()
@@ -102,6 +115,8 @@ func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pai
 			return nil, err
 		}
 	}
+
+	// Build the receiving identity proofs.
 	identity, err := a.buildPairingIdentity(ctx, offer, sess, sourcePeer, receivingPeer)
 	if err != nil {
 		release()
@@ -117,16 +132,21 @@ func (a *ProviderAccount) PreparePairingReceiver(ctx context.Context, offer *pai
 // storePairingSessionRef replaces the resumable receiver after its prior key
 // was revoked. The rejected key remains durable for audit and cannot be reused.
 func (a *ProviderAccount) storePairingSessionRef(ctx context.Context, ref *session.SessionRef) error {
+	// Serialize the binding write with account-local mutations.
 	release, err := a.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
+
+	// Open the object store and store the binding durably.
 	store, releaseStore, err := a.buildSoObjectStore(ctx)
 	if err != nil {
 		return err
 	}
 	defer releaseStore()
+
+	// Store the reference in the object store binding.
 	data, err := ref.MarshalVT()
 	if err != nil {
 		return err
@@ -140,6 +160,7 @@ func (a *ProviderAccount) storePairingSessionRef(ctx context.Context, ref *sessi
 
 // EnrollPairingReceiver authorizes both receiving keys and transfers checkpoints.
 func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *stream_packet.Session, enrollment *pairing.Enrollment, _ crypto.PrivKey, sourcePeer, receivingPeer peer.ID) error {
+	// Validate the identity and register the receiving replicas.
 	offer, identity := enrollment.Offer, enrollment.Identity
 	if err := pairing.ValidateIdentity(offer, identity, sourcePeer, receivingPeer); err != nil {
 		return err
@@ -152,6 +173,8 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 	if err := a.registerPairingReplicas(ctx, enrollment, sourcePeer, receivingPeer); err != nil {
 		return err
 	}
+
+	// Enroll and transfer every object's checkpoint to the receiver.
 	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 		// A merge keeps the authenticated receiving key after its temporary
 		// enrollment retires. Grant it before exporting any checkpoint, so
@@ -162,6 +185,8 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 				return errors.Wrap(err, "enroll merging Session")
 			}
 		}
+
+		// Enroll the object and transfer its checkpoint.
 		object, err := a.enrollPairingObject(ctx, entry, identity)
 		if err != nil {
 			return errors.Wrap(err, "enroll SharedObject "+entry.GetRef().GetProviderResourceRef().GetId())
@@ -170,6 +195,8 @@ func (a *ProviderAccount) EnrollPairingReceiver(ctx context.Context, stream *str
 			return err
 		}
 	}
+
+	// Retain the paired peer and acknowledge completion.
 	remotePeer, _, err := peer.ParsePeerIDWithPubKey(identity.GetSessionProof().GetResponderPeerId())
 	if err != nil {
 		return err
@@ -186,6 +213,8 @@ func (a *ProviderAccount) receivePairingEnrollment(ctx context.Context, stream *
 	if err := a.bindPairingSettings(ctx, offer); err != nil {
 		return err
 	}
+
+	// Import each checkpoint until the stream completes.
 	settingsReceived := false
 	for {
 		frame, err := pairing.ReceiveFrame(stream)
@@ -219,6 +248,8 @@ func (a *ProviderAccount) receivePairingEnrollment(ctx context.Context, stream *
 		return err
 	}
 	defer releaseController.Release()
+
+	// Register the Session, reusing existing metadata when already listed.
 	ref := sess.GetSessionRef()
 	metadata := &session.SessionMetadata{
 		ProviderId: "local", ProviderDisplayName: "Local", ProviderAccountId: a.GetAccountID(), CreatedAt: time.Now().UnixMilli(),
@@ -271,11 +302,14 @@ func (a *ProviderAccount) preparePairingSession(ctx context.Context) (*session.S
 		return nil, err
 	}
 	defer releaseStore()
+
+	// Open the object store for the binding.
 	key := SobjectBindingKey("pairing-session")
 	var ref *session.SessionRef
 	err = kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, false)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read an existing binding and validate its account.
 		data, found, err := tx.Get(ctx, key)
 		if err != nil || !found {
 			return err
@@ -292,6 +326,8 @@ func (a *ProviderAccount) preparePairingSession(ctx context.Context) (*session.S
 		}
 		return nil
 	})
+
+	// Return the existing binding when one was found.
 	if err != nil || ref != nil {
 		return ref, err
 	}
@@ -314,6 +350,7 @@ func (a *ProviderAccount) preparePairingSession(ctx context.Context) (*session.S
 
 // retainPairedAccountPeer persists reconnect demand through the account lifecycle.
 func (a *ProviderAccount) retainPairedAccountPeer(ctx context.Context, remotePeer peer.ID) error {
+	// Start persistent sync and retain the paired peer.
 	transport := a.GetSessionTransport()
 	if transport == nil {
 		return ErrNoSessionTransport

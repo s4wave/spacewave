@@ -18,6 +18,7 @@ func (a *ProviderAccount) RecordPairedDevice(
 	remotePeerID string,
 	displayName string,
 ) error {
+	// Parse the peer ID and mark it pending enrollment.
 	if remotePeerID == "" {
 		return errors.New("paired Device peer ID is required")
 	}
@@ -26,6 +27,8 @@ func (a *ProviderAccount) RecordPairedDevice(
 		return errors.Wrap(err, "parse paired Device peer id")
 	}
 	a.markP2PPendingEnrollPeer(pendingPeerID)
+
+	// Mount the settings object and queue the paired-device operations.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get account settings ref")
