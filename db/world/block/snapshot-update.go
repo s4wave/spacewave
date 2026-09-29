@@ -25,13 +25,16 @@ func UpdateSnapshot(
 	base *bucket.ObjectRef,
 	update func(context.Context, *WorldState) error,
 ) (*bucket.ObjectRef, error) {
+	// Require an existing World root before opening the update.
 	if base.GetRootRef() == nil {
 		return nil, errors.New("snapshot update requires an existing World root")
 	}
 
+	// Trace the snapshot update for the whole operation.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/update-snapshot")
 	defer task.End()
 
+	// Run the update inside one access scope on the base World.
 	var result *bucket.ObjectRef
 	err := storage.AccessWorldState(ctx, base, func(bucketCursor *bucket_lookup.Cursor) error {
 		// Retain writes until the final indexes exist, since copy-on-write
@@ -44,13 +47,19 @@ func UpdateSnapshot(
 			DrainBatchEntries:       4096,
 		})
 		bucketCursor.SetTransactionStore(writes)
+
+		// Apply the update callback and compute the new root.
 		root, err := updateWorld(ctx, le, bucketCursor, base, update)
 		if err != nil {
 			return err
 		}
+
+		// Sync only the blocks reachable from the new root.
 		if _, err := writes.SyncReachable(ctx, root); err != nil {
 			return errors.Wrap(err, "sync snapshot")
 		}
+
+		// Capture the destination reference with the new root.
 		result = bucketCursor.GetRefWithOpArgs()
 		result.RootRef = root
 		return nil
@@ -71,6 +80,7 @@ func updateWorld(
 	base *bucket.ObjectRef,
 	update func(context.Context, *WorldState) error,
 ) (*block.BlockRef, error) {
+	// Open a write transaction at the base root with a World state over it.
 	local := world.NewWorldStorageFromCursor(bucketCursor)
 	transaction, cursor := bucketCursor.BuildTransactionAtRef(nil, base.GetRootRef())
 	state, err := NewWorldState(ctx, le, true, nil, cursor, nil, nil, nil, local, nil, false)
@@ -78,8 +88,11 @@ func updateWorld(
 		return nil, err
 	}
 	defer state.Discard()
+
+	// Point the state's local bucket at the destination.
 	state.localBucketID = bucketCursor.GetRefWithOpArgs().GetBucketId()
 
+	// Apply the update, commit it, and write the transaction root.
 	if err := update(ctx, state); err != nil {
 		return nil, err
 	}

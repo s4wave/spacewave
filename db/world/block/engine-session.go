@@ -102,6 +102,7 @@ func (e *Engine) takeWriteSessionRetirementLocked(s *engineWriteSession) *engine
 }
 
 func (e *Engine) releaseWriteSession(s *engineWriteSession) error {
+	// Release the coordinator lease under its own mutex.
 	s.leaseMu.Lock()
 	var err error
 	if s.lease != nil {
@@ -109,6 +110,8 @@ func (e *Engine) releaseWriteSession(s *engineWriteSession) error {
 	}
 	s.leaseMu.Unlock()
 	locked := e.bcast.Lock()
+
+	// Deregister the session from the engine and wake waiters.
 	if e.writeSession == s {
 		e.writeSession = nil
 	}
@@ -128,6 +131,7 @@ func (e *EngineTx) Submit(ctx context.Context) (world.CommitReceipt, error) {
 // SubmitBlockTransaction is Submit with the immutable prepared root identity.
 // The returned reference is not a promise of durability: await the receipt.
 func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, world.CommitReceipt, error) {
+	// Commit directly when the transaction holds no engine session.
 	if e.staged == nil || e.session == nil {
 		root, err := e.CommitBlockTransaction(ctx)
 		if err != nil {
@@ -137,15 +141,21 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		r.Resolve(nil)
 		return root, r, nil
 	}
+
+	// Reject a non-write transaction.
 	if e.writeTx == nil {
 		e.Discard()
 		return nil, nil, tx.ErrNotWrite
 	}
+
+	// Claim the single release flag so a double submit cannot proceed.
 	if e.rel.Swap(true) {
 		return nil, nil, tx.ErrDiscarded
 	}
 	s := e.session
 	locked := e.engine.bcast.Lock()
+
+	// Register this transaction as the engine's active writer.
 	if e.engine.writeTx != e || e.engine.closed {
 		locked.Unlock()
 		return nil, nil, tx.ErrDiscarded
@@ -159,11 +169,14 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 	}()
 
+	// Seal the staged revision into a prepared root.
 	root, err := e.writeTx.CommitBlockTransaction(ctx)
 	if isCoordinatedWriteSnapshotError(err) {
 		err = pkgerrors.Wrap(coord.ErrStaleGeneration, "prepare world blocks")
 	}
 	if err == nil {
+
+		// Validate the prepared root and refresh the coordinator lease.
 		err = root.Validate(false)
 	}
 	if err == nil && s.lease != nil {
@@ -171,6 +184,7 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		_, err = s.lease.Refresh(ctx)
 		s.leaseMu.Unlock()
 	}
+
 	// Recheck authority after the sealing operation, which can race Close or a
 	// failed predecessor. No failed/stale attempt may fall back to old commit.
 	locked = e.engine.bcast.Lock()
@@ -184,6 +198,8 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if err == nil {
 		batch, err = e.staged.TakePending(ctx)
 	}
+
+	// Build the atomic publication carrying the sealed root and its validation callback.
 	var next *bucket.ObjectRef
 	var durable *block.PublicationReceipt
 	var fallback bool
@@ -214,6 +230,8 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 	}
 	if err != nil {
+
+		// On any admission failure, complete the batch and retire this writer.
 		if batch != nil {
 			batch.Complete(err)
 		}
@@ -226,6 +244,7 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		return nil, nil, err
 	}
 
+	// Register the new publication as the session's pending tail.
 	p := &enginePublication{
 		root:     next,
 		previous: s.tail,
@@ -234,20 +253,26 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		session:  s,
 		batch:    batch,
 	}
+
+	// Advance the session's prepared root and pending publication tail.
 	s.pending++
 	s.prepared, s.tail = next.Clone(), p
 	s.fallbackPending = fallback
 	e.engine.submitted = p.complete
 	// Increment pending before detaching so the session cannot be released
 	// between sealing N and beginning its durable completion.
+
+	// Detach this transaction and wake waiters under the engine guard.
 	retired := e.engine.beginRetirementLocked(e.detachLocked())
 	locked.Broadcast()
 	locked.Unlock()
-	transferred = true
+
 	// Drain the old mutable state before allowing completion to release shared
 	// coordinator authority. A next writer can then prepare while the durable
 	// result is pending. Committing retains baseRoot across this handoff.
+	transferred = true
 	_ = e.engine.drainRetirement(context.Background(), retired)
+
 	// Completion goroutines outlive the request context: admission already
 	// committed the caller to the durable result.
 	durableCtx := context.WithoutCancel(ctx)
@@ -262,11 +287,13 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 // for a publisher that explicitly refuses before admission. There is no retry
 // through this path after a comparison, storage, or uncertain-result failure.
 func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublication, base *bucket.ObjectRef) {
+	// Wait for the previous publication to complete before writing.
 	var err error
 	if p.previous != nil {
 		err = p.previous.complete.Wait(ctx)
 	}
 	if err == nil {
+		// Write the batch, sync the store, and mark the root complete.
 		err = e.writeBlockStore.PutBlockBatch(ctx, p.batch.Entries)
 	}
 	if err == nil {
@@ -276,10 +303,14 @@ func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublicat
 		err = block.MarkRootComplete(ctx, e.writeBlockStore, p.root.GetRootRef())
 	}
 	if err == nil {
+
+		// Validate the root through the write store before committing.
 		err = e.validatePreparedRoot(ctx, p.root, e.writeBlockStore)
 	}
 	if err == nil {
 		locked := e.bcast.Lock()
+
+		// Run the commit callback and retain the root under the engine guard.
 		if e.commitFn != nil {
 			err = e.commitFn(ctx, base, p.root.Clone())
 		}
@@ -288,26 +319,34 @@ func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublicat
 		}
 		locked.Unlock()
 	}
+
+	// Resolve the durable receipt with the final result.
 	p.durable.Resolve(err)
 }
 
 // finishPublication awaits durable admission, installs the new canonical head
 // in order, and resolves the caller-facing completion receipt.
 func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
+	// Await the durable admission result from the publisher.
 	defer e.finishCommit()
 	err := p.durable.Wait(ctx)
+
 	// Return the immutable borrow even while the publication guard is held by
 	// a capacity-bound producer. Raw durability is sufficient for block reads.
 	p.batch.Complete(err)
+
 	// Completed revisions retain only identity/receipts while an active
 	// successor holds the session. Do not pin an already returned data borrow.
 	p.batch = nil
 	if p.previous != nil {
+		// Wait for the previous publication and surface its failure in order.
 		if prior := p.previous.complete.Wait(ctx); err == nil && prior != nil {
 			err = block.NewPublicationDependencyError(prior)
 		}
 	}
 	p.previous = nil // do not retain an unbounded completed revision chain
+
+	// Install the published root as the engine's durable head.
 	s := p.session
 	locked := e.bcast.Lock()
 	if err == nil && s.failed != nil {
@@ -322,11 +361,14 @@ func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
 	}
 	locked.Unlock()
 	_ = e.drainRetirement(ctx, retired)
+
 	// The installed reader pin now replaces temporary publication ownership.
 	// Release on errors and Engine.Close too; the durable head owns live data.
 	p.durable.Release()
 	if err == nil && s.lease != nil {
 		s.leaseMu.Lock()
+
+		// Publish the root change on the coordinator lease.
 		_, err = s.lease.Publish(ctx, coord.Event{
 			KeyPrefixChanged: append([]byte(nil), e.writeCoordKeyPrefix...),
 			RootChanged:      p.root.Clone(),
@@ -334,6 +376,8 @@ func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
 		s.leaseMu.Unlock()
 	}
 	locked = e.bcast.Lock()
+
+	// Record failure and retire the session's writer under the engine guard.
 	s.pending--
 	retired = engineRetirement{}
 	if err != nil {
@@ -350,6 +394,8 @@ func (e *Engine) finishPublication(ctx context.Context, p *enginePublication) {
 	retired = e.beginRetirementLocked(retired)
 	locked.Broadcast()
 	locked.Unlock()
+
+	// Drain the retirement and resolve the caller-facing receipt.
 	if releaseErr := e.drainRetirement(ctx, retired); err == nil {
 		err = releaseErr
 	}

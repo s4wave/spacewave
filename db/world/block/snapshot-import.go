@@ -42,19 +42,25 @@ func ImportSnapshot(
 	objects iter.Seq2[string, block.Block],
 	quads []world.GraphQuad,
 ) (*bucket.ObjectRef, error) {
+	// Trace the snapshot import for the whole operation.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/import-snapshot")
 	defer task.End()
 
+	// Run the import inside one access scope on the destination storage.
 	var result *bucket.ObjectRef
 	err := storage.AccessWorldState(ctx, nil, func(bucketCursor *bucket_lookup.Cursor) error {
 		// Drain with the bounds of ordinary World writes. Sync fences the
 		// remainder through the destination's normal durability path.
 		writes := block.NewBufferedStore(ctx, bucketCursor.GetBucket())
 		bucketCursor.SetTransactionStore(writes)
+
+		// Import the objects and relationships into that buffered store.
 		root, err := importWorld(ctx, bucketCursor, objects, quads)
 		if err != nil {
 			return err
 		}
+
+		// Sync the buffered writes and capture the resulting reference.
 		if _, err := writes.Sync(ctx); err != nil {
 			return errors.Wrap(err, "sync snapshot")
 		}
@@ -109,11 +115,17 @@ func importWorld(
 	if err != nil {
 		return nil, err
 	}
+
+	// Prepare the body reference and counters for the object pass.
 	objectTree := objectTx.(*kvtx_block_okra.Tx)
+
+	// Write each object body as its own transaction and yield its record.
 	bodyRef := bucketCursor.GetRefWithOpArgs()
 	bodyRef.BucketId = ""
 	var count uint64
 	var bodyErr error
+
+	// Stream each object body through its own write transaction.
 	err = objectTree.ReplaceAllBlocks(ctx, func(yield func([]byte, block.Block) bool) {
 		for key, body := range objects {
 			btx, cursor := bucketCursor.BuildTransactionAtRef(nil, nil)
@@ -168,15 +180,19 @@ func importWorld(
 // Bounded batches keep Cayley's per-call delta indexes small; each batch
 // resolves the nodes written by the batches before it.
 func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTreeMap[[]byte], error) {
+	// Trace the graph index build.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/import-snapshot/build-graph")
 	defer task.End()
 
+	// Create the in-memory graph index and its staged Cayley graph.
 	index := hashmap.NewBTreeMap[[]byte]()
 	staged, err := kvtx_cayley.NewGraph(ctx, hashmap.NewHashmapKvtx(index), graph.Options{cayley_kv.OptAssumeDefaultIdx: true})
 	if err != nil {
 		return nil, errors.Wrap(err, "create graph index")
 	}
 	defer staged.Close()
+
+	// Apply relationships to the index in bounded batches.
 	for batch := range slices.Chunk(quads, graphImportBatchSize) {
 		deltas := make([]graph.Delta, len(batch))
 		for i, q := range batch {
@@ -195,15 +211,19 @@ func buildGraphIndex(ctx context.Context, quads []world.GraphQuad) (*hashmap.BTr
 
 // writeGraphIndex packs a built graph index into the World's graph sub-block.
 func writeGraphIndex(ctx context.Context, worldCursor *block.Cursor, index *hashmap.BTreeMap[[]byte]) error {
+	// Trace the graph index write.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/import-snapshot/write-graph")
 	defer task.End()
 
+	// Open an okra-inline transaction over the World's graph sub-block.
 	cursor := worldCursor.Detach(false)
 	cursor.SetBlock(kvtx_block.NewKeyValueStore(kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE), true)
 	graphTx, err := kvtx_block.BuildKvTransaction(ctx, cursor, true)
 	if err != nil {
 		return err
 	}
+
+	// Copy the built index into the transaction and attach it to the World.
 	err = graphTx.(*kvtx_block_okra.Tx).ReplaceAll(ctx, func(yield func([]byte, []byte) bool) {
 		// Iterate fails only when yield stops it or ctx ends, and ReplaceAll
 		// reports both.
