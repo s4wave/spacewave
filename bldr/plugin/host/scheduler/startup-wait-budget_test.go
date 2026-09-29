@@ -36,6 +36,7 @@ func waitForStartupBudgetExhausted(
 	t *testing.T,
 	inst *pluginInstance,
 ) bldr_plugin.PluginLoadState {
+	// Wait for the load state to publish budget exhaustion.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
@@ -51,9 +52,11 @@ func waitForStartupBudgetExhausted(
 }
 
 func TestStartupWaitBudgetPublishesExhaustionWhilePending(t *testing.T) {
+	// Arm a short budget on a fresh instance.
 	instance := newStartupWaitBudgetTestInstance()
 	defer instance.stopStartupWaitBudget()
 
+	// Exhaustion publishes while registration stays pending.
 	instance.armStartupWaitBudget(5 * time.Millisecond)
 	state := waitForStartupBudgetExhausted(t, instance)
 	if state.GetInitialCapabilityRegistrationState() != bldr_plugin.InitialCapabilityRegistrationPending {
@@ -62,8 +65,10 @@ func TestStartupWaitBudgetPublishesExhaustionWhilePending(t *testing.T) {
 }
 
 func TestStartupWaitBudgetDeadlineNoOpsAfterCompletion(t *testing.T) {
+	// Complete registration before any deadline fires.
 	instance := newStartupWaitBudgetTestInstance()
 
+	// Connect an RPC client and complete registration.
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(srpc.NewMux())))
 	instance.updateRpcClient(client)
 	instance.finishInitialCapabilityRegistration(true)
@@ -72,6 +77,7 @@ func TestStartupWaitBudgetDeadlineNoOpsAfterCompletion(t *testing.T) {
 	// the published projection untouched.
 	instance.markStartupWaitBudgetExhausted(time.Minute)
 
+	// The late deadline leaves the terminal state and projection untouched.
 	state := instance.pluginLoadStateCtr.GetValue()
 	if state.GetStartupBudgetExhausted() {
 		t.Fatal("deadline marked a completed registration as exhausted")
@@ -85,9 +91,11 @@ func TestStartupWaitBudgetDeadlineNoOpsAfterCompletion(t *testing.T) {
 }
 
 func TestExecutionRetriesContinueAfterBudgetExhaustion(t *testing.T) {
+	// Arm a short budget and wait for exhaustion.
 	instance := newStartupWaitBudgetTestInstance()
 	defer instance.stopStartupWaitBudget()
 
+	// Arm a short budget and wait for exhaustion.
 	instance.armStartupWaitBudget(5 * time.Millisecond)
 	waitForStartupBudgetExhausted(t, instance)
 
@@ -97,6 +105,7 @@ func TestExecutionRetriesContinueAfterBudgetExhaustion(t *testing.T) {
 	instance.updateRpcClient(client)
 	instance.finishInitialCapabilityRegistration(true)
 
+	// The retry completes registration and publishes the running plugin.
 	state := instance.pluginLoadStateCtr.GetValue()
 	if state.GetInitialCapabilityRegistrationState() != bldr_plugin.InitialCapabilityRegistrationComplete {
 		t.Fatalf("registration state = %v, want complete after exhaustion", state.GetInitialCapabilityRegistrationState())
@@ -107,14 +116,17 @@ func TestExecutionRetriesContinueAfterBudgetExhaustion(t *testing.T) {
 }
 
 func TestStartupBudgetExhaustionDoesNotRevert(t *testing.T) {
+	// Arm a short budget and wait for exhaustion.
 	instance := newStartupWaitBudgetTestInstance()
 	defer instance.stopStartupWaitBudget()
 
+	// Arm a short budget and wait for exhaustion.
 	instance.armStartupWaitBudget(5 * time.Millisecond)
 	waitForStartupBudgetExhausted(t, instance)
 
 	// A subsequent execution attempt for the same instance boot keeps the
 	// exhausted fact published.
+	// A retry attempt keeps the exhausted fact published.
 	instance.beginInitialCapabilityRegistration()
 	state := instance.pluginLoadStateCtr.GetValue()
 	if !state.GetStartupBudgetExhausted() {

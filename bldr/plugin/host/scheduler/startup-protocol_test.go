@@ -33,6 +33,7 @@ func TestStartupProtocolFailureStopsSelection(t *testing.T) {
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
 		_, worker := instance.newExecution(key)
 		return func(context.Context) error {
+			// Count the start and fail the execution like a process disconnect.
 			starts.Add(1)
 			worker.beginInitialCapabilityRegistration()
 			worker.updateRpcClient(nil)
@@ -83,6 +84,7 @@ func TestStartupProtocolFailureFallsBack(t *testing.T) {
 	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
 		_, worker := instance.newExecution(key)
 		return func(ctx context.Context) error {
+			// Fail the newer revision's startup like a protocol mismatch.
 			worker.beginInitialCapabilityRegistration()
 			if key.args.manifestSnapshot.GetManifest().GetMeta().GetRev() == 2 {
 				err := plugin_host.NewStartupProtocolError("host-a", "plugin-b", errors.New("proto: wrong wireType"))

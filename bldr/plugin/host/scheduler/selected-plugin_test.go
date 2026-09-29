@@ -34,6 +34,7 @@ func (a *candidateActivation) Activate(context.Context, *plugin.ActivatePluginRe
 // while worker startup is blocked, fails, succeeds, or is superseded.
 func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	// Retain worker lifetime independently from each candidate-selection request.
+	// Bind a bounded context, logger, and controller with one instance.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -43,6 +44,8 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		pluginStatus:    make(map[string]*plugin.PluginStatus),
 	}
 	_, instance := c.newPluginInstance(pluginReference{pluginID: "colors"})
+
+	// Declare the execution record and the channel reporting started workers.
 	type execution struct {
 		worker     *pluginInstance
 		start      chan bool
@@ -54,6 +57,7 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 		_, worker := instance.newExecution(key)
 		run := &execution{worker: worker, start: make(chan bool, 1), closed: make(chan struct{}), activation: &candidateActivation{activated: make(chan struct{})}}
 		return func(ctx context.Context) error {
+			// Publish the started execution and wait for the test's verdict.
 			defer close(run.closed)
 			defer worker.finishExecution(nil)
 			started <- run
@@ -65,6 +69,8 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 					return errors.New("startup failed")
 				}
 			}
+
+			// Admit the worker through an activation RPC served in-process.
 			mux := srpc.NewMux()
 			if err := plugin.SRPCRegisterActivation(mux, run.activation); err != nil {
 				return err
@@ -78,7 +84,10 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	instance.executions.SetContext(ctx, true)
 	defer instance.executions.ClearContext()
 	defer instance.clearExecution(nil)
+
+	// start launches a candidate at the given revision and waits for it to start.
 	start := func(rev uint64) (*execution, context.CancelFunc, <-chan error) {
+		// Build the candidate args and run selection in the background.
 		t.Helper()
 		attempt, stop := context.WithCancel(ctx)
 		args := &executePluginArgs{pluginHost: &testPluginHost{id: "test"}, manifestSnapshot: &manifest.ManifestSnapshot{
@@ -150,6 +159,8 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	next, stopNext, doneNext := start(4)
 	next.start <- true
 	wait(next.activation.activated)
+
+	// The replacement publishes and the retired worker's teardown cannot clear it.
 	if _, err := instance.runningPluginCtr.WaitValueChange(ctx, initial, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -157,6 +168,8 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	if instance.runningPluginCtr.GetValue() == nil {
 		t.Fatal("retired teardown cleared the replacement")
 	}
+
+	// Releasing the binding ends the remaining worker.
 	stopNext()
 	<-doneNext
 	instance.closeExecutions()
