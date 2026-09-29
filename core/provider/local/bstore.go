@@ -51,6 +51,8 @@ type placementState struct {
 	backend atomic.Pointer[account_settings.StorageBackend]
 	// local is the account's own storage, written without upload markers.
 	local block.StoreOps
+	// remote is the open storage backend store, or nil.
+	remote *atomic.Pointer[openBackend]
 }
 
 // UploadStatus is a block store's storage backend and upload status.
@@ -92,6 +94,17 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 	status, changed := b.placement.wb.GetStatus()
 	return UploadStatus{Backend: b.placement.backend.Load(), Status: status}, changed
+}
+
+// ReclaimStorage drops the blocks the local store no longer holds from the
+// storage backend's bucket. Returns nil without calling fence when no storage
+// backend is open.
+func (b *BlockStore) ReclaimStorage(ctx context.Context, fence func(context.Context) error) error {
+	remote := b.placement.remote.Load()
+	if remote == nil {
+		return nil
+	}
+	return remote.store.Reclaim(ctx, fence, b.placement.local.GetBlockExistsBatch)
 }
 
 // GetCopySource returns the store a graph copy reads from. A copy writes each
@@ -240,15 +253,16 @@ func (a *ProviderAccount) buildBlockStoreTracker(bstoreID string) (keyed.Routine
 	return tracker.executeBlockStoreTracker, tracker
 }
 
-// executeBlockStoreTracker exeecutes the bstoreTracker for the bstore.
+// executeBlockStoreTracker mounts the block store and publishes its handle
+// until ctx ends.
 func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
+	// Bound the mount to its own context and log it by store id.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
 	le := t.a.le.WithField("bstore-id", t.id)
 	le.Debug("mounting bstore")
 
-	// Local provider: ensure the bucket exists
+	// Build the config of the store's bucket.
 	bucketConf, err := t.buildBucketConf()
 	if err != nil {
 		return err
@@ -288,7 +302,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer bucketHandleRef.Release()
 
-	// not expected
+	// The bucket exists once its config applies.
 	if !bucketHandle.GetExists() {
 		return errors.New("bucket does not exist even after creating it")
 	}
@@ -322,6 +336,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			return err
 		}
 	}
+
+	// Record the writes still to upload beside the store.
 	markers, _, markersRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		t.a.t.p.b,
@@ -342,6 +358,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Upload the recorded writes to the current backend until the store
+	// unmounts.
 	upload := routine.NewStateRoutineContainerWithLoggerVT[*account_settings.StorageBackend](
 		le.WithField("routine", "storage-upload"),
 		routine.WithRetry(providerBackoff),
@@ -371,7 +390,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		func() block.StoreOps { return lowerOps },
 		false,
 	)
-	placement := &placementState{wb: wb, local: localBucket}
+
+	// Build the handle, which places new writes and reclaims backend storage.
+	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote}
 	placement.backend.Store(backend)
 	bstoreHandle := &BlockStore{
 		store:         localStore,
@@ -380,6 +401,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		decodedBlocks: decodedBlocks,
 		placement:     placement,
 	}
+
+	// Serve the local store to block store directives.
 	bstoreCtrl := newLocalBlockStoreController(le, blockStoreLocalID, localStore)
 	relBstoreCtrl, err := t.a.t.p.b.AddController(ctx, bstoreCtrl, nil)
 	if err != nil {
@@ -387,7 +410,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer relBstoreCtrl()
 
-	// Done
+	// Publish the handle until the store unmounts.
 	le.Debug("mounted bstore successfully")
 	t.bstoreCtr.SetValue(bstoreHandle)
 	defer t.bstoreCtr.SetValue(nil)
@@ -419,6 +442,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	return context.Canceled
 }
 
+// newLocalBlockStoreController builds the controller that serves localStore
+// under blockStoreLocalID.
 func newLocalBlockStoreController(
 	le *logrus.Entry,
 	blockStoreLocalID string,

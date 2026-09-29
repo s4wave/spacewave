@@ -231,6 +231,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 }
 
 type testSharedObject struct {
+	peerID            peer.ID
 	blockStore        bstore.BlockStore
 	processOperations func(context.Context, bool, sobject.ProcessOpsFunc) error
 }
@@ -248,12 +249,16 @@ func (s *testBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return s.decodedBlocks
 }
 
+func (s *testBlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
+	return nil
+}
+
 func (s *testSharedObject) GetBus() bus.Bus {
 	return nil
 }
 
 func (s *testSharedObject) GetPeerID() peer.ID {
-	return ""
+	return s.peerID
 }
 
 func (s *testSharedObject) GetSharedObjectID() string {

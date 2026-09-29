@@ -23,10 +23,12 @@ func OpenReadCheckpoint(
 	so sobject.SharedObject,
 	snapshot sobject.SharedObjectStateSnapshot,
 ) (world.Engine, func(), error) {
-	head, err := finalizationWorldRoot(ctx, snapshot)
+	// Open a block engine on the snapshot's World head.
+	state, err := snapshotWorldState(ctx, snapshot)
 	if err != nil {
 		return nil, nil, err
 	}
+	head := state.GetHeadRef()
 	engine, err := buildBlockEngine(ctx, le, b, transform_all.BuildFactorySet(), so, head, head.GetTransformConf(), nil, false)
 	if err != nil {
 		return nil, nil, err

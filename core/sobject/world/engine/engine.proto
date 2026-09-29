@@ -54,6 +54,10 @@ message InnerState {
   // The bucket ID should be set to empty.
   // The object referenced is a .world.block.World block.
   .bucket.ObjectRef head_ref = 1;
+  // StorageGeneration is the storage generation of the accepted World.
+  // The Space authority advances it before reclaiming unreachable blocks from
+  // the storage bucket. Transactions built on an older generation are rejected.
+  uint64 storage_generation = 2;
 }
 
 // SOWorldOp is the outer wrapper for a shared object operation against a world InnerState.
@@ -64,6 +68,8 @@ message SOWorldOp {
     InitWorldOp init_world = 1;
     // ApplyTxOp applies a world transaction.
     ApplyTxOp apply_tx_op = 2;
+    // AdvanceStorageGeneration advances the storage generation.
+    AdvanceStorageGenerationOp advance_storage_generation = 3;
   }
 }
 
@@ -82,6 +88,16 @@ message InitWorldOp {
 message ApplyTxOp {
   // tx is the tx or tx batch to apply
   .world.block.tx.Tx tx = 1;
+  // StorageGeneration is the storage generation the transaction was built on.
+  uint64 storage_generation = 2;
+}
+
+// AdvanceStorageGenerationOp advances the storage generation of the World.
+// Only the validator submits it, after listing the storage bucket and before
+// dropping unreachable blocks from the listed packs.
+message AdvanceStorageGenerationOp {
+  // StorageGeneration is the storage generation the operation advances from.
+  uint64 storage_generation = 1;
 }
 
 // SpaceWorldFinalizationPacket is submitted by a follower after it has produced
@@ -95,8 +111,6 @@ message SpaceWorldFinalizationPacket {
   .bucket.ObjectRef candidate_world_root = 3;
   // CandidateContentId identifies the candidate content/op payload being finalized.
   bytes candidate_content_id = 4;
-  // StorageGeneration is the storage coordinator generation observed by the follower.
-  uint64 storage_generation = 5;
   // AuthorityEpoch identifies the leader/daemon authority epoch observed by the follower.
   uint64 authority_epoch = 6;
   // BlocksAvailable is true when the follower believes candidate blocks are readable by the authority owner.

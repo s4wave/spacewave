@@ -57,16 +57,18 @@ func (c *Controller) executeWatchSOStateOnce(
 	snap sobject.SharedObjectStateSnapshot,
 	soEngine *soEngine,
 ) error {
+	// Trace the adoption.
 	ctx, task := trace.NewTask(ctx, "alpha/watch-state/process-snapshot")
 	defer task.End()
 
 	// Only accepted roots may become the local World. Queue replay belongs to
 	// the validator; installing its speculative result would make the next
 	// transaction base disagree with this same SharedObject snapshot.
-	head, err := finalizationWorldRoot(ctx, snap)
+	state, err := snapshotWorldState(ctx, snap)
 	if err != nil {
 		return err
 	}
+	head := state.GetHeadRef()
 
 	// Publish the accepted head and wake maintenance after successful adoption.
 	taskCtx, task2 := trace.NewTask(ctx, "alpha/watch-state/update-engine-state")

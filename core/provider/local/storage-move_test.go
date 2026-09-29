@@ -22,9 +22,12 @@ import (
 )
 
 // fakeS3 is an in-memory S3-compatible bucket serving object PUT, GET, HEAD,
-// DELETE, and ListObjectsV2 on path-style URLs. It ignores signatures.
+// DELETE, and ListObjectsV2 on path-style URLs. Like Cloudflare R2, it does
+// not list object versions. It ignores signatures.
 type fakeS3 struct {
-	mtx     sync.Mutex
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// objects holds each object by key.
 	objects map[string][]byte
 	// unavailable fails every request with a server error.
 	unavailable bool
@@ -32,14 +35,20 @@ type fakeS3 struct {
 
 // ServeHTTP handles one request against the single bucket.
 func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Hold the bucket for the request, failing it while unavailable.
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-
 	if f.unavailable {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
+
+	// Answer listings, then the object request.
 	_, key, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	if r.URL.Query().Has("versions") {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
 	if key == "" {
 		f.list(w, r.URL.Query().Get("prefix"))
 		return

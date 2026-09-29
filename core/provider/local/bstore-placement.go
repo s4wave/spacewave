@@ -134,6 +134,13 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 // backendStore is a block store on a storage backend's bucket.
 type backendStore interface {
 	block.StoreOps
+	// Reclaim drops the blocks live reports dead from the bucket, calling
+	// fence after listing the bucket and before dropping any.
+	Reclaim(
+		ctx context.Context,
+		fence func(context.Context) error,
+		live func(context.Context, []*block.BlockRef) ([]bool, error),
+	) error
 	// Close releases the store's open readers.
 	Close()
 }

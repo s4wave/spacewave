@@ -5,10 +5,13 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
 
 // executeProcessOpsWhenValidator waits until this participant can validate and
@@ -55,9 +58,9 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 			opResults []*sobject.SOOperationResult,
 			err error,
 		) {
+			// Trace and log the batch.
 			ctx, task := trace.NewTask(ctx, "alpha/validator/process-batch")
 			defer task.End()
-
 			le := c.le.
 				WithField("ops-stage", "validator").
 				WithField("ops-len", len(ops))
@@ -73,56 +76,42 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 			// Apply ops
 			opResults = make([]*sobject.SOOperationResult, 0, len(ops))
 			for i, opInner := range ops {
-				// Check the commit result cache before expensive processOp.
-				if cached := c.lastCommitResult.Load(); cached != nil &&
-					cached.baseRootRef.EqualsRef(headState.GetHeadRef().GetRootRef()) &&
-					bytes.Equal(cached.opData, opInner.GetOpData()) {
-					headState = cached.resultState
-					if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "validator-world", headState.GetHeadRef().GetRootRef()); err != nil {
-						return nil, nil, err
-					}
-					opPeerID, _ := opInner.ParsePeerID()
-					opResults = append(opResults, sobject.BuildSOOperationResult(
-						opPeerID.String(), opInner.GetNonce(), true, nil,
-					))
-					continue
-				}
-
+				// Replay the operation as its signer.
 				opPeerID, err := opInner.ParsePeerID()
 				if err != nil {
 					return nil, nil, err
 				}
-
-				// Authenticated World operations attribute the signer's accepted person.
-				person, err := operationPerson(ctx, snap, opPeerID)
+				nhs, res, err := c.replayOp(ctx, le, snap, so, opInner, opPeerID, i, headState)
 				if err != nil {
 					return nil, nil, err
 				}
 
-				nhs, res, err := c.processOp(
-					world.WithOperationPerson(ctx, person),
-					le,
-					so,
-					opInner.GetOpData(),
-					opInner.GetLocalId(),
-					opPeerID,
-					opInner.GetNonce(),
-					i,
-					headState,
-				)
-				if err != nil {
-					return nil, nil, err
+				// Retain the World before it can become the accepted root. A
+				// block missing locally and from storage rejects only its
+				// operation.
+				if nhs != nil {
+					err := c.retainPublicationWorld(ctx, so, nhs.GetHeadRef())
+					if err != nil && !errors.Is(err, block.ErrNotFound) {
+						return nil, nil, err
+					}
+					if err != nil {
+						le.WithError(err).Warn("rejecting op: world block is missing")
+						nhs = nil
+						res = opRejection(opPeerID, opInner.GetNonce(), "world block is missing: "+err.Error())
+					}
 				}
 				if res != nil {
 					opResults = append(opResults, res)
 				}
-				if nhs != nil {
-					headState = nhs
-					// Only the current replay candidate needs its own root. Its
-					// immutable history and the accepted head retain their data.
-					if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "validator-world", headState.GetHeadRef().GetRootRef()); err != nil {
-						return nil, nil, err
-					}
+				if nhs == nil {
+					continue
+				}
+
+				// Only the current replay candidate needs its own root. Its
+				// immutable history and the accepted head retain their data.
+				headState = nhs
+				if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "validator-world", headState.GetHeadRef().GetRootRef()); err != nil {
+					return nil, nil, err
 				}
 			}
 
@@ -132,19 +121,56 @@ func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobjec
 				return nil, opResults, nil
 			}
 
-			// Retain replayed dependencies before accepting the next signed root.
-			if err := c.retainPublicationWorld(ctx, so, headState.GetHeadRef()); err != nil {
-				return nil, nil, err
-			}
-
-			// Marshal the next state
+			// Propose the next state.
 			nextStateData, err := headState.MarshalVT()
 			if err != nil {
 				return nil, nil, err
 			}
-
 			le.Debug("processed ops")
 			return &nextStateData, opResults, nil
 		},
+	)
+}
+
+// replayOp computes the next state and result of one queued operation. It
+// adopts the foreground commit result instead of replaying the same operation
+// on the same base.
+func (c *Controller) replayOp(
+	ctx context.Context,
+	le *logrus.Entry,
+	snap sobject.SharedObjectStateSnapshot,
+	so sobject.SharedObject,
+	opInner *sobject.SOOperationInner,
+	opPeerID peer.ID,
+	opIdx int,
+	headState *InnerState,
+) (*InnerState, *sobject.SOOperationResult, error) {
+	// Adopt the foreground result of the same operation on the same base and
+	// storage generation.
+	cached := c.lastCommitResult.Load()
+	if cached != nil &&
+		cached.baseRootRef.EqualsRef(headState.GetHeadRef().GetRootRef()) &&
+		cached.storageGeneration == headState.GetStorageGeneration() &&
+		bytes.Equal(cached.opData, opInner.GetOpData()) {
+		next := headState.CloneVT()
+		next.HeadRef = cached.resultRef.CloneVT()
+		return next, sobject.BuildSOOperationResult(opPeerID.String(), opInner.GetNonce(), true, nil), nil
+	}
+
+	// Authenticated World operations attribute the signer's accepted person.
+	person, err := operationPerson(ctx, snap, opPeerID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return c.processOp(
+		world.WithOperationPerson(ctx, person),
+		le,
+		so,
+		opInner.GetOpData(),
+		opInner.GetLocalId(),
+		opPeerID,
+		opInner.GetNonce(),
+		opIdx,
+		headState,
 	)
 }
