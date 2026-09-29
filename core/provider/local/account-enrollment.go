@@ -16,6 +16,7 @@ import (
 
 // buildPairingIdentity proves the Session and volume keys independently.
 func (a *ProviderAccount) buildPairingIdentity(ctx context.Context, offer *pairing.AccountOffer, sess session.Session, sourcePeer, receivingPeer peer.ID) (*pairing.Identity, error) {
+	// Resolve the volume's storage peer and its key.
 	storagePeer, err := a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return nil, err
@@ -44,6 +45,7 @@ func (a *ProviderAccount) enrollPairingObject(ctx context.Context, entry *sobjec
 // installPairingObject accepts a checkpoint only for the offered account. The
 // authenticated enrollment exchange supplies its trust; the catalog does not.
 func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairing.AccountOffer, object *pairing.SharedObject, sourcePeer peer.ID) error {
+	// Validate the object reference and its account binding.
 	entry := object.GetEntry()
 	ref := entry.GetRef()
 	if err := ref.Validate(); err != nil {
@@ -53,9 +55,13 @@ func (a *ProviderAccount) installPairingObject(ctx context.Context, offer *pairi
 	if offer.GetAccountId() != a.GetAccountID() || providerRef.GetProviderAccountId() != a.GetAccountID() || providerRef.GetProviderId() != a.GetProviderID() {
 		return errors.New("pairing object belongs to another account")
 	}
+
+	// Require a complete checkpoint before mounting.
 	if object.GetState() == nil || entry.GetMeta().GetBodyType() == "" {
 		return errors.New("pairing object checkpoint is incomplete")
 	}
+
+	// Mount the enrolled object and retain its enrollment history.
 	if err := a.mountEnrolledSO(ctx, providerRef.GetId(), entry.GetMeta(), entry.GetSource(), object.GetState(), sourcePeer); err != nil {
 		return err
 	}
@@ -103,10 +109,14 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 
 	// Keep the old object durable until the new binding is committed.
 	ref := sobject.NewSharedObjectRef(a.GetProviderID(), a.GetAccountID(), offer.GetSettingsId(), SobjectBlockStoreID(offer.GetSettingsId()))
+
+	// Replace the old object with the offered settings in the list.
 	next := list.CloneVT()
 	next.SharedObjects = slices.DeleteFunc(next.SharedObjects, func(entry *sobject.SharedObjectListEntry) bool {
 		return entry.GetRef().GetProviderResourceRef().GetId() == current.GetProviderResourceRef().GetId()
 	})
+
+	// Open the object store and marshal the new binding and list.
 	store, releaseStore, err := a.buildSoObjectStore(ctx)
 	if err != nil {
 		return err
@@ -120,6 +130,8 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 	if err != nil {
 		return err
 	}
+
+	// Commit the new binding and list, then publish them in memory.
 	if err := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return store.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
@@ -130,6 +142,8 @@ func (a *ProviderAccount) bindPairingSettings(ctx context.Context, offer *pairin
 	}); err != nil {
 		return err
 	}
+
+	// Publish the new list in memory and restart the settings processor.
 	a.soListCtr.SetValue(next)
 	a.accountSettingsProcessor.SetRoutine(a.runAccountSettingsProcessor)
 	return nil

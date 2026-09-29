@@ -23,10 +23,13 @@ func (a *ProviderAccount) MergePairingAccount(ctx context.Context, mounted sessi
 
 // MigrationInfo reads the canonical registry and keeps the active Session in the census.
 func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey) (*provider_migration.Info, error) {
+	// Read the settings, receiving reference, storage peer, and local peer.
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the census from the local Session and storage peer.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return nil, err
@@ -42,6 +45,8 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 	info := &provider_migration.Info{
 		Settings: ref, SessionPeers: []string{current.String()}, ParticipantPeers: []string{current.String(), storage.GetPeerID().String()}, Transition: settings.GetTransition().CloneVT(),
 	}
+
+	// Add each active member's Session and storage peer to the census.
 	for _, member := range settings.GetSessions() {
 		if member.GetRevoked() {
 			continue
@@ -49,6 +54,7 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 		info.SessionPeers = append(info.SessionPeers, member.GetPeerId())
 		info.ParticipantPeers = append(info.ParticipantPeers, member.GetPeerId(), member.GetStoragePeerId())
 	}
+
 	// An offline predecessor can follow its original signed redirect after the
 	// merging machine leaves. Keep that destination until it has attached.
 	for _, accepted := range settings.GetAcceptedMigrations() {
@@ -59,6 +65,8 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 			}
 		}
 	}
+
+	// Sort and deduplicate each peer list.
 	slices.Sort(info.PendingSessionPeers)
 	info.PendingSessionPeers = slices.Compact(info.PendingSessionPeers)
 	slices.Sort(info.SessionPeers)
@@ -71,6 +79,7 @@ func (a *ProviderAccount) MigrationInfo(ctx context.Context, key crypto.PrivKey)
 // CheckMigrationSessions checks the destination's complete current permission set.
 // An externally owned Space can block enrollment; it is never silently omitted.
 func (a *ProviderAccount) CheckMigrationSessions(ctx context.Context, transition *provider.AccountTransition, _ crypto.PrivKey, _ crypto.PrivKey) error {
+	// Validate the transition and the destination's current settings.
 	if err := a.validateMigrationDestination(ctx, transition); err != nil {
 		return err
 	}
@@ -81,11 +90,15 @@ func (a *ProviderAccount) CheckMigrationSessions(ctx context.Context, transition
 	if current := settings.FindAccountMigration(transition.GetOperationId()); current != nil && !current.EqualVT(transition) {
 		return errors.New("destination already accepted another migration authorization")
 	}
+
+	// Require every authorized Session peer to remain active.
 	for _, id := range transition.GetSessionPeerIds() {
 		if settings.FindAccountSession(id).GetRevoked() {
 			return errors.New("a removed destination Session must pair with a new key before merging")
 		}
 	}
+
+	// Check each mounted object grants the destination Sessions access.
 	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 		object, release, err := a.MountSharedObject(ctx, entry.GetRef(), nil)
 		if err != nil {
@@ -103,6 +116,7 @@ func (a *ProviderAccount) CheckMigrationSessions(ctx context.Context, transition
 // AcceptMigrationSessions durably authorizes each returning Session peer before
 // source retirement. Its storage identity is bound only after possession is proven.
 func (a *ProviderAccount) AcceptMigrationSessions(ctx context.Context, transition *provider.AccountTransition, sourceKey, destinationKey crypto.PrivKey) error {
+	// Validate the transition and lock replica authorization against mutations.
 	if err := a.CheckMigrationSessions(ctx, transition, sourceKey, destinationKey); err != nil {
 		return err
 	}
@@ -122,6 +136,8 @@ func (a *ProviderAccount) AcceptMigrationSessions(ctx context.Context, transitio
 			return err
 		}
 	}
+
+	// Commit the accepted migration into the account settings.
 	return a.commitMigrationSettings(ctx, &account_settings.AccountSettingsOp{Op: &account_settings.AccountSettingsOp_AcceptAccountMigration{AcceptAccountMigration: transition}})
 }
 
@@ -138,10 +154,13 @@ func (a *ProviderAccount) CommitAccountTransition(ctx context.Context, transitio
 }
 
 func (a *ProviderAccount) commitMigrationSettings(ctx context.Context, op *account_settings.AccountSettingsOp) error {
+	// Mount the settings object and commit the operation.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Mount the settings object and commit the operation.
 	object, release, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		return err
@@ -151,6 +170,7 @@ func (a *ProviderAccount) commitMigrationSettings(ctx context.Context, op *accou
 }
 
 func (a *ProviderAccount) validateMigrationDestination(ctx context.Context, transition *provider.AccountTransition) error {
+	// Validate the transition and require this account as the destination.
 	if err := transition.Validate(); err != nil {
 		return err
 	}
@@ -167,11 +187,14 @@ func (a *ProviderAccount) validateMigrationDestination(ctx context.Context, tran
 // ImportMigrationObject copies the accepted data before publishing its verified
 // checkpoint. Source blocks and grants remain available after failure or retry.
 func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_migration.Account, object sobject.SharedObject, entry *sobject.SharedObjectListEntry, state *sobject.SOState) error {
+	// Create the destination block store for the migrated object.
 	id := entry.GetRef().GetProviderResourceRef().GetId()
 	blockID := SobjectBlockStoreID(id)
 	if _, err := a.CreateBlockStore(ctx, blockID); err != nil && !errors.Is(err, bstore.ErrBlockStoreExists) {
 		return err
 	}
+
+	// Mount the destination block store for the copy.
 	ref := sobject.NewSharedObjectRef(a.GetProviderID(), a.GetAccountID(), id, blockID)
 	blocksRef := &bstore.BlockStoreRef{ProviderResourceRef: ref.GetProviderResourceRef().CloneVT()}
 	blocksRef.ProviderResourceRef.Id = blockID
@@ -180,6 +203,8 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 		return err
 	}
 	defer release()
+
+	// Copy a Space body, then mount the enrolled object on this replica.
 	if entry.GetMeta().GetBodyType() == "space" {
 		if err := provider_migration.CopyWorld(ctx, a.le, a.t.p.sfs, object, state, blocks); err != nil {
 			return err
@@ -188,16 +213,21 @@ func (a *ProviderAccount) ImportMigrationObject(ctx context.Context, _ provider_
 	if err := a.mountEnrolledSO(ctx, id, entry.GetMeta(), entry.GetSource(), state, object.GetPeerID()); err != nil {
 		return err
 	}
+
+	// Retain the config history checkpoint when the source records one.
 	next := entry.CloneVT()
 	next.Ref = ref
 	if history, ok := object.(interface {
 		ReadSharedObjectConfigHistory(context.Context, *sobject.SharedObjectConfig) (*sobject.SharedObjectConfig, []*sobject.SOConfigChange, error)
 	}); ok {
+		// Read the config history and build the pairing checkpoint.
 		base, changes, err := history.ReadSharedObjectConfigHistory(ctx, state.GetConfig())
 		if err != nil {
 			return err
 		}
 		checkpoint := &pairing.SharedObject{Entry: next, State: state, HistoryBase: base, History: changes}
+
+		// Retain the genesis change when the source records one.
 		if genesis, ok := object.(interface {
 			ReadSharedObjectGenesis(context.Context, *sobject.SharedObjectConfig) (*sobject.SOConfigChange, error)
 		}); ok {
