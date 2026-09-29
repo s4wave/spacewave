@@ -29,6 +29,7 @@ func buildElectronScript(
 	devMode,
 	requireGlobals bool,
 ) error {
+	// Pick the sourcemap mode and JS banner for the build options.
 	sourcemap := "external"
 	if minify {
 		sourcemap = "none"
