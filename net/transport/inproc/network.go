@@ -25,6 +25,7 @@ func NewNetwork() *Network { return &Network{peers: make(map[peer.ID]*Inproc)} }
 // The same peer cannot be attached twice; replacement first releases its old attachment.
 func (n *Network) Attach(ctx context.Context, transport *Inproc) (func(), error) {
 	// Serialize both directions of every connection against other topology changes.
+	// Require a live context and a non-nil transport.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -33,6 +34,8 @@ func (n *Network) Attach(ctx context.Context, transport *Inproc) (func(), error)
 	}
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
+
+	// Wire the transport to every attached peer and register it.
 	id := transport.GetPeerID()
 	if n.peers[id] != nil {
 		return nil, errors.New("peer is already attached to the in-process network")
@@ -42,13 +45,18 @@ func (n *Network) Attach(ctx context.Context, transport *Inproc) (func(), error)
 		other.ConnectToInproc(ctx, transport)
 	}
 	n.peers[id] = transport
+
+	// Detach the transport from every remaining peer when called.
 	attached := true
 	return func() {
+		// Skip a repeated detach of the same attachment.
 		n.mtx.Lock()
 		defer n.mtx.Unlock()
 		if !attached {
 			return
 		}
+
+		// Remove the transport and disconnect both directions.
 		attached = false
 		delete(n.peers, id)
 		for _, other := range n.peers {
