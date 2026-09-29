@@ -69,6 +69,8 @@ func (e *Engine) GenerateCode(ctx context.Context, relay Relay) (string, error) 
 	if err != nil {
 		return "", err
 	}
+
+	// Sign and send the registration request to the relay.
 	req.Header.Set("Content-Type", "application/octet-stream")
 	if err := transport.SignHTTPRequest(req, body, e.key, e.peerID, relay.SigningEnvPrefix); err != nil {
 		return "", err
@@ -103,6 +105,7 @@ func (e *Engine) CompletePeer(ctx context.Context, relay Relay, remotePeer peer.
 	// Hold the link in the background until the exchange ends.
 	parentCtx, active := e.begin(false, offerCurrent, label, "", remotePeer, StatusWaitingForPeer)
 	go func() {
+		// Establish the authenticated link, then run the solicitation.
 		_, release, err := link.EstablishLinkWithPeerEx(parentCtx, st.GetChildBus(), e.peerID, remotePeer, false)
 		if err != nil {
 			e.fail(active, StatusFailed, err)

@@ -136,6 +136,7 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 	}
 
 	// The configured provider owns receiving keys, storage, and durable attachment.
+	// Resolve the configured provider and its account, releasing them on any failure.
 	p, releaseProvider, err := provider.ExLookupProvider(ctx, e.b, SessionProviderID(offer), false, nil)
 	if err != nil {
 		return nil, err
@@ -155,6 +156,8 @@ func (e *Engine) prepare(ctx context.Context, active *attempt, stream *stream_pa
 		release()
 		return nil, errors.New("the selected account provider does not support pairing")
 	}
+
+	// Prepare the receiving identity and return the durable enrollment.
 	receiver, err := adapter.PreparePairingReceiver(ctx, offer, remote, e.peerID)
 	if err != nil {
 		release()

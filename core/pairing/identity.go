@@ -16,6 +16,7 @@ import (
 // BuildIdentity binds the receiving Session and storage keys to one offered
 // account, Session reference, and authenticated transport connection.
 func BuildIdentity(offer *AccountOffer, ref *session.SessionRef, sessionKey, storageKey crypto.PrivKey, sourcePeer, receivingPeer peer.ID) (*Identity, error) {
+	// Build the identity context and sign both receiving keys over it.
 	proofContext, err := IdentityContext(offer, ref, sourcePeer, receivingPeer)
 	if err != nil {
 		return nil, err
@@ -34,6 +35,7 @@ func BuildIdentity(offer *AccountOffer, ref *session.SessionRef, sessionKey, sto
 // IdentityContext prevents a proof from authorizing another account, receiving
 // reference, transport connection, or pairing attempt.
 func IdentityContext(offer *AccountOffer, ref *session.SessionRef, sourcePeer, receivingPeer peer.ID) (string, error) {
+	// Reject an offer or receiving reference that does not attach to the account.
 	if offer.GetAccountId() == "" || offer.GetOperationId() == "" {
 		return "", errors.New("pairing account identity is incomplete")
 	}
@@ -46,14 +48,20 @@ func IdentityContext(offer *AccountOffer, ref *session.SessionRef, sourcePeer, r
 	if sourcePeer == "" || receivingPeer == "" || sourcePeer == receivingPeer {
 		return "", errors.New("pairing requires distinct authenticated transport peers")
 	}
+
+	// Digest the offer, receiving reference, and both transport peers.
 	data, err := (&Frame{Body: &Frame_Account{Account: offer}}).MarshalVT()
 	if err != nil {
 		return "", err
 	}
+
+	// Marshal the receiving reference the context must bind.
 	identity, err := (&Identity{SessionRef: ref}).MarshalVT()
 	if err != nil {
 		return "", err
 	}
+
+	// Digest the offer, receiving reference, and both transport peers.
 	digest := sha256.New()
 	digest.Write(data)
 	digest.Write(identity)
@@ -80,6 +88,7 @@ func ValidateIdentity(offer *AccountOffer, identity *Identity, sourcePeer, recei
 
 // ApprovalContext binds bilateral approval to both complete signed proofs.
 func ApprovalContext(offer *AccountOffer, identity *Identity, sourcePeer, receivingPeer peer.ID) (string, error) {
+	// Digest the proof context with the complete signed identity.
 	proofContext, err := IdentityContext(offer, identity.GetSessionRef(), sourcePeer, receivingPeer)
 	if err != nil {
 		return "", err

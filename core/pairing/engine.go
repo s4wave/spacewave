@@ -105,6 +105,7 @@ type attempt struct {
 
 // NewEngine binds a Session's key, provider adapter, and transport owner.
 func NewEngine(ctx context.Context, le *logrus.Entry, b bus.Bus, mounted session.Session, adapter AccountAdapter, getTransport func(context.Context, Relay) (*transport.SessionTransport, error)) (*Engine, error) {
+	// Validate the Session key and construct the engine on its lifetime.
 	key := mounted.GetPrivKey()
 	if ctx == nil || key == nil {
 		return nil, errors.New("pairing requires an unlocked Session lifecycle")
@@ -123,6 +124,7 @@ func (e *Engine) Context() context.Context { return e.ctx }
 
 // begin cancels the prior attempt before publishing another operation identity.
 func (e *Engine) begin(offering, offerCurrent bool, label, code string, remote peer.ID, status Status) (context.Context, *attempt) {
+	// Build the attempt's channels and snapshot, then publish it over the prior one.
 	ctx, cancel := context.WithCancel(e.ctx)
 	active := &attempt{
 		offering:     offering,
@@ -260,6 +262,7 @@ func (e *Engine) ConfirmSAS(confirmed bool) {
 func (e *Engine) SelectAccount(outcome AccountOutcome) error {
 	var err error
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Require an active receiving attempt that is still choosing an account.
 		active := e.active
 		if active == nil || active.offering || active.snapshot.Status != StatusSelectingAccount {
 			err = errors.New("this client is not choosing a pairing account")

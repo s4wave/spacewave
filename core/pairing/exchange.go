@@ -54,12 +54,15 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 	}
 	defer ref.Release()
 
+	// Wait for the peer to solicit a pairing stream or the attempt to end.
 	var mounted link_solicit.SolicitMountedStream
 	select {
 	case <-ctx.Done():
 		return
 	case mounted = <-streams:
 	}
+
+	// Accept the mounted stream, failing the attempt if it was taken.
 	accepted, taken, err := mounted.AcceptMountedStream()
 	if err != nil || taken {
 		if err == nil {
@@ -68,9 +71,13 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Keep the accepted stream open and capture the remote peer.
 	strm := accepted.GetStream()
 	defer strm.Close()
 	remote := accepted.GetPeerID()
+
+	// Establish an authenticated link to the remote and run the exchange on it.
 	_, release, err := link.EstablishLinkWithPeerEx(ctx, childBus, e.peerID, remote, false)
 	if err != nil {
 		e.fail(active, StatusFailed, err)
@@ -81,6 +88,7 @@ func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *tra
 }
 
 func (e *Engine) runDirect(ctx context.Context, active *attempt, lnk link.Link) {
+	// Open the pairing stream: the offerer accepts, the receiver opens and greets.
 	var strm stream.Stream
 	var err error
 	if active.offering {
@@ -96,6 +104,8 @@ func (e *Engine) runDirect(ctx context.Context, active *attempt, lnk link.Link) 
 		return
 	}
 	defer strm.Close()
+
+	// Verify the receiver sent the direct pairing preamble byte.
 	if active.offering {
 		var preamble [1]byte
 		if _, err := io.ReadFull(strm, preamble[:]); err != nil {
@@ -107,6 +117,8 @@ func (e *Engine) runDirect(ctx context.Context, active *attempt, lnk link.Link) 
 			return
 		}
 	}
+
+	// Run the exchange and close the link unless both sides confirmed.
 	e.runStream(ctx, active, strm, lnk.GetRemotePeer(), lnk)
 	snapshot, _ := e.Snapshot()
 	if snapshot.Status != StatusBothConfirmed {
@@ -116,12 +128,15 @@ func (e *Engine) runDirect(ctx context.Context, active *attempt, lnk link.Link) 
 
 // runStream completes one selected account relationship on the authenticated stream.
 func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWriteCloser, remote peer.ID, directLink link.Link) {
+	// Close the stream with the attempt and bound the account choice window.
 	defer strm.Close()
 	stopClose := context.AfterFunc(ctx, func() { _ = strm.Close() })
 	defer stopClose()
 	sess := stream_packet.NewSession(strm, 16<<20)
 	prepareCtx, cancelPrepare := context.WithTimeout(ctx, prepareTimeout)
 	stopPrepare := context.AfterFunc(prepareCtx, func() { _ = strm.Close() })
+
+	// Prepare the enrollment and retain its resources for the attempt.
 	enrollment, err := e.prepare(prepareCtx, active, sess, remote)
 	stopPrepare()
 	cancelPrepare()
@@ -132,22 +147,30 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 	if !e.retain(active, enrollment.Release) {
 		return
 	}
+
+	// Release the enrollment resources if the exchange does not succeed.
 	succeeded := false
 	defer func() {
 		if !succeeded {
 			e.releaseResources(active)
 		}
 	}()
+
+	// Assign the source and receiving peers by offering side.
 	offer, identity, receiver := enrollment.Offer, enrollment.Identity, enrollment.Receiver
 	sourcePeer, receivingPeer := e.peerID, remote
 	if !enrollment.Offering {
 		sourcePeer, receivingPeer = remote, e.peerID
 	}
+
+	// Build the approval proof binding this enrollment to both peers.
 	proof, err := ApprovalContext(offer, identity, sourcePeer, receivingPeer)
 	if err != nil {
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Derive the SAS emoji from both pairing keys and peer IDs.
 	remoteKey, err := remote.ExtractPublicKey()
 	if err != nil {
 		e.fail(active, StatusFailed, err)
@@ -158,7 +181,10 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Publish the offer, identity, and emoji as the verifying snapshot.
 	e.update(active, func(a *attempt) {
+		// Record the remote peer, account, provider, and emoji to verify.
 		a.snapshot.RemotePeerID = remote
 		a.snapshot.AccountID = offer.GetAccountId()
 		a.snapshot.AccountName = offer.GetDisplayName()
@@ -169,6 +195,8 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		a.snapshot.Status = StatusVerifyingEmoji
 	})
 	setStatus := func(status Status) { e.update(active, func(a *attempt) { a.snapshot.Status = status }) }
+
+	// Run the emoji approval exchange, then mark the attempt enrolling.
 	approvalCtx, cancelApproval := context.WithTimeout(ctx, approvalTimeout)
 	status, err := exchangeApproval(approvalCtx, sess, active.confirm, proof, setStatus)
 	cancelApproval()
@@ -178,6 +206,8 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 	}
 	setStatus(StatusEnrolling)
 	result := receivingSessionRef(receiver)
+
+	// Enroll the receiver or receive the account, capturing any merge commit.
 	var commitMerge func(context.Context) (*session.SessionRef, error)
 	if enrollment.Offering {
 		err = e.adapter.EnrollPairingReceiver(ctx, sess, enrollment, e.key, sourcePeer, receivingPeer)
@@ -206,10 +236,14 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Fail the attempt if the pairing context ended during enrollment.
 	if err := ctx.Err(); err != nil {
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Commit the account merge and attach the merged session.
 	if commitMerge != nil {
 		result, err = commitMerge(ctx)
 		if err != nil {
@@ -217,6 +251,8 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 			return
 		}
 	}
+
+	// Resolve the transport owner and bind the direct link to the enrollment.
 	if directLink != nil {
 		var owner *transport.SessionTransport
 		if enrollment.Offering {
@@ -247,6 +283,7 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 			return
 		}
 	}
+
 	// Both clients acknowledge their final attachment and connection ownership.
 	// The earlier receipt only released the source's enrollment operation.
 	if enrollment.Offering {
@@ -266,6 +303,8 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 		e.fail(active, StatusFailed, err)
 		return
 	}
+
+	// Publish the confirmed result and mark the attempt succeeded.
 	e.update(active, func(a *attempt) {
 		a.result = result
 		a.snapshot.Status = StatusBothConfirmed
@@ -277,6 +316,7 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 // exchangeApproval reads the remote decision while the local user decides.
 // A remote rejection ends the flow immediately, including before local approval.
 func exchangeApproval(ctx context.Context, stream *stream_packet.Session, confirmCh <-chan bool, proof string, setStatus func(Status)) (Status, error) {
+	// Read the remote decision while exchanging local approval over the stream.
 	type decision struct {
 		message Approval
 		err     error
