@@ -30,14 +30,18 @@ func (o *SetSpaceIndexPathOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Read the transaction's current settings.
 	current, err := space_world.LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		return false, err
 	}
+
+	// Conditional repairs preserve a path another operation has already selected.
 	if o.ExpectedIndexPath != nil && current.GetIndexPath() != o.GetExpectedIndexPath() {
 		return false, nil
 	}
 
+	// Apply the new index path through a SetSpaceSettings operation.
 	settings := &space_world.SpaceSettings{}
 	if current != nil {
 		settings = current.CloneVT()
