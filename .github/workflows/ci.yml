@@ -417,7 +417,6 @@ jobs:
           "$python" -I - <<'PY'
           from bldr.resource import resource_pb2, resource_srpc
           from core.space import space_pb2
-          from rpcstream import rpcstream_pb2
           from sdk.root import root_pb2, root_srpc
           from sdk.session import session_pb2, session_srpc
           import spacewave_resource
@@ -438,8 +437,8 @@ jobs:
               for method in resource_srpc.RESOURCESERVICE_SERVICE.methods
               if method.name == "ResourceRpc"
           )
-          assert rpc.input_type is rpcstream_pb2.RpcStreamPacket
-          assert rpc.output_type is rpcstream_pb2.RpcStreamPacket
+          assert rpc.input_type is resource_pb2.ResourceRpcPacket
+          assert rpc.output_type is resource_pb2.ResourceRpcPacket
           PY
 
   licenses:
