@@ -66,6 +66,8 @@ func (s *SOSync) authenticate(ctx context.Context, sess *stream_packet.Session, 
 	if err != nil {
 		return "", err
 	}
+
+	// Exchange proofs and verify the remote participant's signature.
 	incoming, err = exchangeMessage(sess, sendFirst, &SOSyncMessage{Body: &SOSyncMessage_Proof{Proof: proof}})
 	if err != nil {
 		return "", err
@@ -90,6 +92,8 @@ func (s *SOSync) authenticate(ctx context.Context, sess *stream_packet.Session, 
 	if err != nil {
 		return "", err
 	}
+
+	// Report the exchange outcome and surface the local admission error.
 	authorization := incoming.GetAuthorization()
 	if authorization == nil {
 		return "", errors.New("expected synchronization admission response")
@@ -108,6 +112,7 @@ func (s *SOSync) authenticate(ctx context.Context, sess *stream_packet.Session, 
 
 // verifyParticipantProof verifies the exact directional transcript and returns its signer.
 func verifyParticipantProof(transcript *SOSyncAuthTranscript, proof *peer.Signature) (peer.ID, error) {
+	// Resolve the proof's public key.
 	if proof == nil {
 		return "", errors.New("participant proof is required")
 	}
@@ -115,6 +120,8 @@ func verifyParticipantProof(transcript *SOSyncAuthTranscript, proof *peer.Signat
 	if err != nil || pub == nil {
 		return "", errors.New("participant proof public key is invalid")
 	}
+
+	// Verify the signature over the transcript and return its signer.
 	data, err := transcript.MarshalVT()
 	if err != nil {
 		return "", err
@@ -128,6 +135,7 @@ func verifyParticipantProof(transcript *SOSyncAuthTranscript, proof *peer.Signat
 
 // authorizeParticipants evaluates both endpoint roles under the latest held authority.
 func (s *SOSync) authorizeParticipants(state *sobject.SOState, remoteID peer.ID) error {
+	// Require both endpoints to hold a readable role.
 	cfg := state.GetConfig()
 	var localReadable, remoteReadable bool
 	for _, participant := range cfg.GetParticipants() {
@@ -140,6 +148,8 @@ func (s *SOSync) authorizeParticipants(state *sobject.SOState, remoteID peer.ID)
 	if !localReadable || !remoteReadable {
 		return ErrAccessDenied
 	}
+
+	// Require a resolvable configuration history for catch-up.
 	if len(cfg.GetConfigChainHash()) == 0 {
 		return sobject.ErrConfigHistoryUnavailable
 	}

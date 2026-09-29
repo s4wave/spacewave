@@ -244,6 +244,7 @@ func (x *syncExchange) advance(
 		send = outbound
 	}
 
+	// Wait for the next exchange event and update the exchange state.
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -254,6 +255,7 @@ func (x *syncExchange) advance(
 	case send <- x.outgoing:
 		x.inFlight, x.outgoing = x.outgoing, nil
 	case err := <-sent:
+		// Complete a sent frame or drain the peer's denial response.
 		if err != nil {
 			return x.sync.drainDenial(ctx, incoming, x.remoteID, err)
 		}
@@ -262,6 +264,7 @@ func (x *syncExchange) advance(
 		}
 		x.inFlight = nil
 	case received := <-incoming:
+		// Re-check authority and consume the received frame.
 		if received.err != nil {
 			if x.terminal != nil {
 				return x.terminal
@@ -319,6 +322,7 @@ func (x *syncExchange) prepareSend(current *sobject.SOState) error {
 // receive consumes one frame after the owner has checked current participant authority.
 // Terminal recovery still observes explicit denials while discarding later data frames.
 func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *sobject.SOState, message *SOSyncMessage) error {
+	// Handle an explicit denial before any other body type.
 	var err error
 	if authorization, ok := message.GetBody().(*SOSyncMessage_Authorization); ok {
 		return x.sync.handleDenial(x.remoteID, authorization.Authorization)
@@ -329,6 +333,7 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		return nil
 	}
 
+	// Consume the frame by its body type.
 	switch body := message.GetBody().(type) {
 	case *SOSyncMessage_Head:
 		head := body.Head
@@ -352,6 +357,8 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 			x.control = syncAcknowledgment(head.GetRevision())
 			return nil
 		}
+
+		// Pin the head and request the config history behind it.
 		base := bytes.Clone(config.GetConfigChainHash())
 		x.receiving = &syncReceive{head: head, base: base, cursor: base, deadline: time.Now().Add(catchupTimeout)}
 		x.control = &SOSyncMessage{Body: &SOSyncMessage_HistoryRequest{HistoryRequest: &SOSyncHistoryRequest{
@@ -391,6 +398,8 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		if err != nil {
 			return err
 		}
+
+		// Acknowledge the accepted snapshot and clear the pinned receive.
 		if x.sync.peerRecovery != nil && !x.sync.responseObsolete(ctx, x.receiving.head) {
 			x.sync.peerRecovery(x.remoteID, false)
 		}
@@ -465,6 +474,7 @@ func syncAcknowledgment(revision uint64) *SOSyncMessage {
 
 // prepareResponse reads a bounded suffix and serializes exactly the advertised state.
 func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, request *SOSyncHistoryRequest) (*syncResponse, error) {
+	// Read the config history suffix and enforce its size budget.
 	changes, err := s.soHost.ReadConfigHistory(ctx, request.GetBaseHash(), state.GetConfig().GetConfigChainHash())
 	if err != nil {
 		return nil, err
@@ -483,18 +493,25 @@ func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, re
 	if err != nil {
 		return nil, err
 	}
+
+	// Serialize the snapshot and reject one that exceeds the frame budget.
 	snapshot := &SOSyncSnapshot{SoState: data, RootSeqno: state.GetRoot().GetInnerSeqno(), Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
 	if (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT() > maxMessageSize {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Return the response with its page cursor.
 	return &syncResponse{revision: request.GetRevision(), cursor: bytes.Clone(request.GetBaseHash()), changes: changes, snapshot: snapshot}, nil
 }
 
 // nextMessage emits one causal page or the final snapshot without exceeding a frame budget.
 func (r *syncResponse) nextMessage() (*SOSyncMessage, error) {
+	// Finish with the snapshot once every page has been emitted.
 	if len(r.changes) == 0 {
 		return &SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: r.snapshot}}, nil
 	}
+
+	// Fill one page within the frame budget, advancing the cursor.
 	page := &SOSyncHistoryPage{Revision: r.revision, Cursor: bytes.Clone(r.cursor)}
 	message := &SOSyncMessage{Body: &SOSyncMessage_HistoryPage{HistoryPage: page}}
 	for len(r.changes) != 0 && len(page.Changes) < maxHistoryPageEntries {
@@ -510,6 +527,8 @@ func (r *syncResponse) nextMessage() (*SOSyncMessage, error) {
 		r.cursor = hash
 		r.changes = r.changes[1:]
 	}
+
+	// Reject a change that cannot fit in any page.
 	if len(page.Changes) == 0 {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
@@ -518,6 +537,7 @@ func (r *syncResponse) nextMessage() (*SOSyncMessage, error) {
 
 // appendPage checks target binding, cursor continuity and aggregate budgets.
 func (r *syncReceive) appendPage(message *SOSyncMessage) error {
+	// Bind the page to the pinned head and cursor and check its budget.
 	page := message.GetHistoryPage()
 	if page.GetRevision() != r.head.GetRevision() || !bytes.Equal(page.GetCursor(), r.cursor) || len(page.GetChanges()) == 0 {
 		return errors.New("invalid history page")
@@ -525,6 +545,8 @@ func (r *syncReceive) appendPage(message *SOSyncMessage) error {
 	if message.SizeVT() > maxHistoryPageBytes || len(page.GetChanges()) > maxHistoryPageEntries {
 		return sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Append each contiguous change, tracking the aggregate size.
 	for _, change := range page.GetChanges() {
 		if !bytes.Equal(change.GetPreviousHash(), r.cursor) {
 			return errors.New("noncontiguous history page")
@@ -545,6 +567,7 @@ func (r *syncReceive) appendPage(message *SOSyncMessage) error {
 
 // acceptResponse verifies the pinned response through the host's atomic import boundary.
 func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, snapshot *SOSyncSnapshot) error {
+	// Verify the snapshot completes the requested history and digest.
 	if snapshot.GetRevision() != receiving.head.GetRevision() || !bytes.Equal(snapshot.GetBaseHash(), receiving.base) || !bytes.Equal(receiving.cursor, receiving.head.GetConfigHash()) {
 		return errors.New("snapshot does not complete requested history")
 	}
@@ -552,6 +575,8 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 	if !bytes.Equal(digest[:], receiving.head.GetStateHash()) {
 		return errors.New("snapshot differs from advertised content digest")
 	}
+
+	// Decline a response the local state already surpassed.
 	if s.responseObsolete(ctx, receiving.head) {
 		return nil
 	}
@@ -559,6 +584,8 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 	if err := state.UnmarshalVT(snapshot.GetSoState()); err != nil {
 		return err
 	}
+
+	// Verify the snapshot matches the pinned advertisement and import it.
 	if snapshot.GetRootSeqno() != receiving.head.GetRootSeqno() || state.GetRoot().GetInnerSeqno() != snapshot.GetRootSeqno() || state.GetConfig().GetConfigChainSeqno() != receiving.head.GetConfigSeqno() || !bytes.Equal(state.GetConfig().GetConfigChainHash(), receiving.head.GetConfigHash()) {
 		return errors.New("snapshot differs from pinned advertisement")
 	}
@@ -571,9 +598,12 @@ func (s *SOSync) acceptResponse(ctx context.Context, receiving *syncReceive, sna
 
 // syncStateHash detects unchanged content without treating the advertised digest as authority.
 func syncStateHash(state *sobject.SOState) ([]byte, error) {
+	// Require a resolvable configuration history for the digest.
 	if len(state.GetConfig().GetConfigChainHash()) == 0 {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
+
+	// Strip local capabilities and hash the remaining state.
 	state = state.CloneVT()
 	state.Invites = nil
 	state.QueuedAccountNonces = nil
