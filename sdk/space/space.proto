@@ -13,6 +13,10 @@ import "google/protobuf/timestamp.proto";
 service SpaceResourceService {
   rpc WatchSpaceState(WatchSpaceStateRequest) returns (stream SpaceState) {};
 
+  // WatchProcessBindings streams local process binding decisions without
+  // retaining the Space plugin runtime.
+  rpc WatchProcessBindings(WatchProcessBindingsRequest) returns (stream WatchProcessBindingsResponse) {};
+
   rpc WatchSpaceSharingState(WatchSpaceSharingStateRequest) returns (stream SpaceSharingState) {};
 
   rpc AccessWorld(AccessWorldRequest) returns (AccessWorldResponse) {}
@@ -337,6 +341,16 @@ message SetProcessBindingRequest {
 
 // SetProcessBindingResponse is the response for SetProcessBinding.
 message SetProcessBindingResponse {}
+
+// WatchProcessBindingsRequest selects this mounted Space's local bindings.
+message WatchProcessBindingsRequest {
+}
+
+// WatchProcessBindingsResponse contains the latest local binding decisions.
+message WatchProcessBindingsResponse {
+  // ProcessBindings contains decisions for this mounted Space.
+  repeated ProcessBindingInfo process_bindings = 1;
+}
 
 // ProcessBindingInfo contains info about a single process binding.
 message ProcessBindingInfo {

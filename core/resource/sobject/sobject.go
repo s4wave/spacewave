@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	"github.com/sirupsen/logrus"
@@ -25,6 +26,8 @@ type SharedObjectResource struct {
 	hostPluginID  string
 	// appPluginIDs is the immutable application declaration supplied before publication.
 	appPluginIDs []string
+	// bindingRegistry carries binding changes from the Resource root.
+	bindingRegistry *process_binding.BindingRegistry
 }
 
 // NewSharedObjectResource creates a new SharedObjectResource.
@@ -172,4 +175,9 @@ var _ s4wave_sobject.SRPCSharedObjectResourceServiceServer = (*SharedObjectResou
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SharedObjectResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
+}
+
+// SetBindingRegistry supplies the Resource root's binding event source.
+func (r *SharedObjectResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
+	r.bindingRegistry = registry
 }

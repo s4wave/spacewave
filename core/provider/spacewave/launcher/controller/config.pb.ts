@@ -8,8 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
-export const protobufPackage = 'spacewave.launcher.controller'
-
 /**
  * HttpEndpoint is an http endpoint.
  *
@@ -43,7 +41,6 @@ export const HttpEndpoint: MessageType<HttpEndpoint> =
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
     ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
   })
 
 /**
@@ -168,7 +165,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       no: 6,
       name: 'endpoints',
       kind: 'message',
-      T: () => HttpEndpoint,
+      T: HttpEndpoint,
       repeated: true,
     },
     { no: 7, name: 'refetch_dur', kind: 'scalar', T: ScalarType.STRING },
@@ -190,5 +187,4 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 13, name: 'disable_cli_update', kind: 'scalar', T: ScalarType.BOOL },
     { no: 14, name: 'channel_key', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
-  packedByDefault: true,
 })

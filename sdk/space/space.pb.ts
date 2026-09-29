@@ -1170,3 +1170,44 @@ export const SetProcessBindingResponse: MessageType<SetProcessBindingResponse> =
     's4wave.space.SetProcessBindingResponse',
     true,
   )
+
+/**
+ * WatchProcessBindingsRequest selects this mounted Space's local bindings.
+ *
+ * @generated from message s4wave.space.WatchProcessBindingsRequest
+ */
+export interface WatchProcessBindingsRequest {}
+
+export const WatchProcessBindingsRequest: MessageType<WatchProcessBindingsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchProcessBindingsRequest>(
+    's4wave.space.WatchProcessBindingsRequest',
+    true,
+  )
+
+/**
+ * WatchProcessBindingsResponse contains the latest local binding decisions.
+ *
+ * @generated from message s4wave.space.WatchProcessBindingsResponse
+ */
+export interface WatchProcessBindingsResponse {
+  /**
+   * ProcessBindings contains decisions for this mounted Space.
+   *
+   * @generated from field: repeated s4wave.space.ProcessBindingInfo process_bindings = 1;
+   */
+  processBindings?: ProcessBindingInfo[]
+}
+
+export const WatchProcessBindingsResponse: MessageType<WatchProcessBindingsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.WatchProcessBindingsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'process_bindings',
+        kind: 'message',
+        T: ProcessBindingInfo,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })

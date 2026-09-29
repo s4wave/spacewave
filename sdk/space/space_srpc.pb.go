@@ -16,6 +16,9 @@ type SRPCSpaceResourceServiceClient interface {
 	SRPCClient() srpc.Client
 
 	WatchSpaceState(ctx context.Context, in *WatchSpaceStateRequest) (SRPCSpaceResourceService_WatchSpaceStateClient, error)
+	// WatchProcessBindings streams local process binding decisions without
+	// retaining the Space plugin runtime.
+	WatchProcessBindings(ctx context.Context, in *WatchProcessBindingsRequest) (SRPCSpaceResourceService_WatchProcessBindingsClient, error)
 
 	WatchSpaceSharingState(ctx context.Context, in *WatchSpaceSharingStateRequest) (SRPCSpaceResourceService_WatchSpaceSharingStateClient, error)
 
@@ -90,6 +93,39 @@ func (x *srpcSpaceResourceService_WatchSpaceStateClient) Recv() (*SpaceState, er
 }
 
 func (x *srpcSpaceResourceService_WatchSpaceStateClient) RecvTo(m *SpaceState) error {
+	return x.MsgRecv(m)
+}
+
+func (c *srpcSpaceResourceServiceClient) WatchProcessBindings(ctx context.Context, in *WatchProcessBindingsRequest) (SRPCSpaceResourceService_WatchProcessBindingsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchProcessBindings", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSpaceResourceService_WatchProcessBindingsClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSpaceResourceService_WatchProcessBindingsClient interface {
+	srpc.Stream
+	Recv() (*WatchProcessBindingsResponse, error)
+	RecvTo(*WatchProcessBindingsResponse) error
+}
+
+type srpcSpaceResourceService_WatchProcessBindingsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchProcessBindingsClient) Recv() (*WatchProcessBindingsResponse, error) {
+	m := new(WatchProcessBindingsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpaceResourceService_WatchProcessBindingsClient) RecvTo(m *WatchProcessBindingsResponse) error {
 	return x.MsgRecv(m)
 }
 
@@ -248,6 +284,9 @@ func (c *srpcSpaceResourceServiceClient) OpenPluginFrontend(ctx context.Context,
 
 type SRPCSpaceResourceServiceServer interface {
 	WatchSpaceState(*WatchSpaceStateRequest, SRPCSpaceResourceService_WatchSpaceStateStream) error
+	// WatchProcessBindings streams local process binding decisions without
+	// retaining the Space plugin runtime.
+	WatchProcessBindings(*WatchProcessBindingsRequest, SRPCSpaceResourceService_WatchProcessBindingsStream) error
 
 	WatchSpaceSharingState(*WatchSpaceSharingStateRequest, SRPCSpaceResourceService_WatchSpaceSharingStateStream) error
 
@@ -301,6 +340,7 @@ func (d *SRPCSpaceResourceServiceHandler) GetServiceID() string { return d.servi
 func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchSpaceState",
+		"WatchProcessBindings",
 		"WatchSpaceSharingState",
 		"AccessWorld",
 		"MountSpaceContents",
@@ -326,6 +366,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 	switch methodID {
 	case "WatchSpaceState":
 		return true, d.InvokeMethod_WatchSpaceState(d.impl, strm)
+	case "WatchProcessBindings":
+		return true, d.InvokeMethod_WatchProcessBindings(d.impl, strm)
 	case "WatchSpaceSharingState":
 		return true, d.InvokeMethod_WatchSpaceSharingState(d.impl, strm)
 	case "AccessWorld":
@@ -360,6 +402,15 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_WatchSpaceState(impl SRPCSpa
 	}
 	serverStrm := &srpcSpaceResourceService_WatchSpaceStateStream{strm}
 	return impl.WatchSpaceState(req, serverStrm)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_WatchProcessBindings(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchProcessBindingsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSpaceResourceService_WatchProcessBindingsStream{strm}
+	return impl.WatchProcessBindings(req, serverStrm)
 }
 
 func (SRPCSpaceResourceServiceHandler) InvokeMethod_WatchSpaceSharingState(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
@@ -499,6 +550,29 @@ func (x *srpcSpaceResourceService_WatchSpaceStateStream) Send(m *SpaceState) err
 }
 
 func (x *srpcSpaceResourceService_WatchSpaceStateStream) SendAndClose(m *SpaceState) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSpaceResourceService_WatchProcessBindingsStream interface {
+	srpc.Stream
+	Send(*WatchProcessBindingsResponse) error
+	SendAndClose(*WatchProcessBindingsResponse) error
+}
+
+type srpcSpaceResourceService_WatchProcessBindingsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchProcessBindingsStream) Send(m *WatchProcessBindingsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpaceResourceService_WatchProcessBindingsStream) SendAndClose(m *WatchProcessBindingsResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

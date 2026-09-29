@@ -135,6 +135,24 @@ func TestForeignLiveClaimRejected(t *testing.T) {
 	}
 }
 
+// TestExpiredOwnerClaimRejectsNewReservation checks that an unswept capacity
+// record stops admitting work at its persisted owner lease deadline.
+func TestExpiredOwnerClaimRejectsNewReservation(t *testing.T) {
+	ctx, eng, _ := newTestbed(t)
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, DefaultOwnerLeaseDuration)
+	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+		t.Fatal(err)
+	}
+	admission.SetTimeNow(func() time.Time { return capacity.OwnerLeaseExpiresAt.AsTime() })
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/after-expiry", testRequest); !errors.Is(err, ErrCapacityOwnerExpired) {
+		t.Fatalf("expired owner admitted work: %v", err)
+	}
+}
+
 func TestEpochFencesObserveDrainAndComplete(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)

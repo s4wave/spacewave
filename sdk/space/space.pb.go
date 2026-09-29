@@ -1062,6 +1062,37 @@ func (x *SetProcessBindingResponse) Reset() {
 
 func (*SetProcessBindingResponse) ProtoMessage() {}
 
+// WatchProcessBindingsRequest selects this mounted Space's local bindings.
+type WatchProcessBindingsRequest struct {
+	unknownFields []byte
+}
+
+func (x *WatchProcessBindingsRequest) Reset() {
+	*x = WatchProcessBindingsRequest{}
+}
+
+func (*WatchProcessBindingsRequest) ProtoMessage() {}
+
+// WatchProcessBindingsResponse contains the latest local binding decisions.
+type WatchProcessBindingsResponse struct {
+	unknownFields []byte
+	// ProcessBindings contains decisions for this mounted Space.
+	ProcessBindings []*ProcessBindingInfo `protobuf:"bytes,1,rep,name=process_bindings,json=processBindings,proto3" json:"processBindings,omitempty"`
+}
+
+func (x *WatchProcessBindingsResponse) Reset() {
+	*x = WatchProcessBindingsResponse{}
+}
+
+func (*WatchProcessBindingsResponse) ProtoMessage() {}
+
+func (x *WatchProcessBindingsResponse) GetProcessBindings() []*ProcessBindingInfo {
+	if x != nil {
+		return x.ProcessBindings
+	}
+	return nil
+}
+
 // ProcessBindingInfo contains info about a single process binding.
 type ProcessBindingInfo struct {
 	unknownFields []byte
@@ -1641,6 +1672,37 @@ func (m *SetProcessBindingResponse) CloneVT() *SetProcessBindingResponse {
 }
 
 func (m *SetProcessBindingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchProcessBindingsRequest) CloneVT() *WatchProcessBindingsRequest {
+	if m == nil {
+		return (*WatchProcessBindingsRequest)(nil)
+	}
+	r := new(WatchProcessBindingsRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchProcessBindingsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *WatchProcessBindingsResponse) CloneVT() *WatchProcessBindingsResponse {
+	if m == nil {
+		return (*WatchProcessBindingsResponse)(nil)
+	}
+	r := new(WatchProcessBindingsResponse)
+	r.ProcessBindings = protobuf_go_lite.CloneVTSlice(m.ProcessBindings)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *WatchProcessBindingsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2394,6 +2456,43 @@ func (this *SetProcessBindingResponse) EqualVT(that *SetProcessBindingResponse) 
 
 func (this *SetProcessBindingResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetProcessBindingResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchProcessBindingsRequest) EqualVT(that *WatchProcessBindingsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchProcessBindingsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchProcessBindingsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *WatchProcessBindingsResponse) EqualVT(that *WatchProcessBindingsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.ProcessBindings, that.ProcessBindings, func() *ProcessBindingInfo { return &ProcessBindingInfo{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *WatchProcessBindingsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*WatchProcessBindingsResponse)
 	if !ok {
 		return false
 	}
@@ -4243,6 +4342,99 @@ func (x *SetProcessBindingResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the WatchProcessBindingsRequest message to JSON.
+func (x *WatchProcessBindingsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchProcessBindingsRequest to JSON.
+func (x *WatchProcessBindingsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchProcessBindingsRequest message from JSON.
+func (x *WatchProcessBindingsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchProcessBindingsRequest from JSON.
+func (x *WatchProcessBindingsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the WatchProcessBindingsResponse message to JSON.
+func (x *WatchProcessBindingsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ProcessBindings) > 0 || s.HasField("processBindings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("processBindings")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.ProcessBindings {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("processBindings"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the WatchProcessBindingsResponse to JSON.
+func (x *WatchProcessBindingsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the WatchProcessBindingsResponse message from JSON.
+func (x *WatchProcessBindingsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "process_bindings", "processBindings":
+			s.AddField("process_bindings")
+			if s.ReadNil() {
+				x.ProcessBindings = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.ProcessBindings = append(x.ProcessBindings, nil)
+					return
+				}
+				v := &ProcessBindingInfo{}
+				v.UnmarshalProtoJSON(s.WithField("process_bindings", false))
+				if s.Err() != nil {
+					return
+				}
+				x.ProcessBindings = append(x.ProcessBindings, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the WatchProcessBindingsResponse from JSON.
+func (x *WatchProcessBindingsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ProcessBindingInfo message to JSON.
 func (x *ProcessBindingInfo) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -5745,6 +5937,82 @@ func (m *SetProcessBindingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *WatchProcessBindingsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchProcessBindingsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchProcessBindingsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WatchProcessBindingsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WatchProcessBindingsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *WatchProcessBindingsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ProcessBindings) > 0 {
+		for iNdEx := len(m.ProcessBindings) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.ProcessBindings[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ProcessBindingInfo) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -6220,6 +6488,30 @@ func (m *SetProcessBindingResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchProcessBindingsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *WatchProcessBindingsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.ProcessBindings {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6904,6 +7196,38 @@ func (x *SetProcessBindingResponse) MarshalProtoText() string {
 }
 
 func (x *SetProcessBindingResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchProcessBindingsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "WatchProcessBindingsRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchProcessBindingsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *WatchProcessBindingsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchProcessBindingsResponse")
+	if len(x.ProcessBindings) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "process_bindings")
+		for i, v := range x.ProcessBindings {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ProcessBindingInfo{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *WatchProcessBindingsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8985,6 +9309,105 @@ func (m *SetProcessBindingResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: SetProcessBindingResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchProcessBindingsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchProcessBindingsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchProcessBindingsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *WatchProcessBindingsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WatchProcessBindingsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WatchProcessBindingsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProcessBindings", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProcessBindings = append(m.ProcessBindings, &ProcessBindingInfo{})
+			if err := m.ProcessBindings[len(m.ProcessBindings)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

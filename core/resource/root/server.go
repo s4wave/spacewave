@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	resource_cdn "github.com/s4wave/spacewave/core/resource/cdn"
 	resource_debugdb "github.com/s4wave/spacewave/core/resource/debugdb"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
@@ -54,6 +55,8 @@ type CoreRootServer struct {
 	// recoveryStatusRegistry owns volatile renderer recovery facts by logical
 	// session across separately mounted SessionResources.
 	recoveryStatusRegistry *resource_session.RecoveryStatusRegistry
+	// bindingRegistry wakes binding watches for this Resource root.
+	bindingRegistry *process_binding.BindingRegistry
 
 	// yieldBrokerMtx and listenerStatusMtx guard the injected shared brokers.
 	yieldBrokerMtx    sync.Mutex
@@ -72,7 +75,14 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	s.cdnRegistry = resource_cdn.NewRegistry(le, b)
 	s.webListeners = newWebListenerRegistry(le)
 	s.recoveryStatusRegistry = resource_session.NewRecoveryStatusRegistry()
+	s.bindingRegistry = process_binding.NewBindingRegistry()
 	return s
+}
+
+// SetBindingRegistry shares binding notifications with the parent Resource
+// root when this root belongs to a nested application.
+func (s *CoreRootServer) SetBindingRegistry(registry *process_binding.BindingRegistry) {
+	s.bindingRegistry = registry
 }
 
 // SetYieldBroker injects the shared listener yield broker. The composition

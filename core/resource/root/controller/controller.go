@@ -13,6 +13,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -57,6 +58,8 @@ type Controller struct {
 	hostPluginID string
 	// registries are the plugin capability registries, shared with parent.
 	registries *registries
+	// bindingRegistry is shared with nested Resource roots.
+	bindingRegistry *process_binding.BindingRegistry
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
 
@@ -86,6 +89,7 @@ func withParent(parent *Controller) Option {
 	return func(c *Controller) {
 		c.parent = parent
 		c.registries = parent.registries
+		c.bindingRegistry = parent.bindingRegistry
 	}
 }
 
@@ -106,6 +110,9 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 			for _, opt := range opts {
 				opt(c)
 			}
+			if c.bindingRegistry == nil {
+				c.bindingRegistry = process_binding.NewBindingRegistry()
+			}
 
 			// create the resource server
 			c.rootResourceMux = srpc.NewMux()
@@ -120,6 +127,7 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 
 			// create the root resource
 			c.rootResource = resource_root.NewCoreRootServer(base.GetLogger(), b)
+			c.rootResource.SetBindingRegistry(c.bindingRegistry)
 			c.rootResource.SetAppPluginIDs(base.GetConfig().GetAppPluginIds())
 			c.rootResource.SetMountAppFunc(c.mountApp)
 			if c.yieldBroker != nil {
