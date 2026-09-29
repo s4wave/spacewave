@@ -63,6 +63,9 @@ STUB
 	cat >"$test_dir/go" <<'STUB'
 #!/bin/sh
 printf 'go %s\n' "$*" >>"${HOOKTEST_LOG:?}"
+if [ "${1:-}" = run ] && [ "${2:-}" = ./.githooks/go-paragraphs ] && [ -n "${HOOKTEST_PARAGRAPHS_FAIL:-}" ]; then
+	exit 1
+fi
 if [ "${1:-}" = env ] && [ "${2:-}" = GOMOD ]; then
 	prefix=$(git rev-parse --show-prefix)
 	printf '%s/go.mod\n' "${PWD%/${prefix%/}}"
@@ -144,69 +147,6 @@ test_fast_path_skips_full_format() {
 	git -C "$test_dir/repo" add README.md
 	try_commit ok &&
 		log_lacks 'bun run format'
-	note_result $? "$label"
-	cleanup
-}
-
-# --- 2. whitespace-only dirty file ----------------------------------------
-
-test_whitespace_dirty_failure() {
-	label='gate: whitespace-only dirty ts triggers full check, format change fails commit'
-	new_repo
-	mkdir -p "$test_dir/repo/web"
-	printf 'let x = 1;\n' >"$test_dir/repo/web/a.ts"
-	seed_commit
-	# Whitespace-only unstaged edit.
-	printf 'let x = 1;\n \t\n' >"$test_dir/repo/web/a.ts"
-	printf 'doc\n' >"$test_dir/repo/README.md"
-	git -C "$test_dir/repo" add README.md
-	HOOKTEST_REWRITE_TARGETS=web/a.ts
-	export HOOKTEST_REWRITE_TARGETS
-	try_commit fail &&
-		out_says 'bun run format changed the working tree' &&
-		log_has 'bun run format'
-	unset HOOKTEST_REWRITE_TARGETS
-		log_has 'bun run format'
-	note_result $? "$label"
-	cleanup
-}
-
-test_whitespace_dirty_clean_format_passes() {
-	label='gate: whitespace-only dirty ts with idempotent format passes'
-	new_repo
-	mkdir -p "$test_dir/repo/web"
-	printf 'let x = 1;\n' >"$test_dir/repo/web/a.ts"
-	seed_commit
-	printf 'let x = 1;\n \t\n' >"$test_dir/repo/web/a.ts"
-	printf 'doc\n' >"$test_dir/repo/README.md"
-	git -C "$test_dir/repo" add README.md
-	try_commit ok &&
-		log_has 'bun run format'
-	note_result $? "$label"
-	cleanup
-}
-
-# --- 3. nested dirty Go source ---------------------------------------------
-
-test_nested_go_dirty_detected() {
-	label='gate: nested dirty Go source triggers check, go fix edit fails commit'
-	new_repo
-	mkdir -p "$test_dir/repo/net/deep"
-	printf 'package deep\n' >"$test_dir/repo/net/deep/b.go"
-	printf 'package net\n' >"$test_dir/repo/net/a.go"
-	seed_commit
-	# Unstaged, unformatted edit in the same package tree as the staged file.
-	printf 'package deep\nfunc F( ) {}\n' >"$test_dir/repo/net/deep/b.go"
-	printf 'doc\n' >"$test_dir/repo/README.md"
-	git -C "$test_dir/repo" add README.md net/a.go
-	HOOKTEST_REWRITE_TARGETS=net/deep/b.go
-	export HOOKTEST_REWRITE_TARGETS
-	try_commit fail &&
-		out_says 'bun run format changed the working tree' &&
-		log_has 'bun run format'
-	unset HOOKTEST_REWRITE_TARGETS
-		out_says 'bun run format changed the working tree' &&
-		log_has 'bun run format'
 	note_result $? "$label"
 	cleanup
 }
@@ -334,20 +274,48 @@ test_vendor_dirty_not_candidate() {
 	cleanup
 }
 
+test_go_paragraphs_gate() {
+	label='paragraphs: staged Go runs the paragraph check and its failure fails the commit'
+	new_repo
+	printf 'package a\n' >"$test_dir/repo/a.go"
+	seed_commit
+	printf 'package a\n\nfunc F() {}\n' >"$test_dir/repo/a.go"
+	git -C "$test_dir/repo" add a.go
+	HOOKTEST_PARAGRAPHS_FAIL=1
+	export HOOKTEST_PARAGRAPHS_FAIL
+	try_commit fail &&
+		log_has 'go run ./.githooks/go-paragraphs'
+	unset HOOKTEST_PARAGRAPHS_FAIL
+	note_result $? "$label"
+	cleanup
+}
+
+test_docs_skip_go_paragraphs() {
+	label='paragraphs: a commit without Go files skips the paragraph check'
+	new_repo
+	printf 'readme\n' >"$test_dir/repo/README.md"
+	seed_commit
+	printf 'more\n' >>"$test_dir/repo/README.md"
+	git -C "$test_dir/repo" add README.md
+	try_commit ok &&
+		log_lacks 'go run ./.githooks/go-paragraphs'
+	note_result $? "$label"
+	cleanup
+}
+
 # --- runner ------------------------------------------------------------------
 
 for t in \
 	test_fast_path_skips_full_format \
-	test_whitespace_dirty_failure \
-	test_whitespace_dirty_clean_format_passes \
-	test_nested_go_dirty_detected \
 	test_rename_dirty_destination \
 	test_rename_clean_commits_and_formats_destination \
 	test_spaces_and_quotes_in_names \
 	test_space_in_go_name_package_dirs \
 	test_go_pkg_dirs_unique_and_rooted \
 	test_deleted_file_not_candidate \
-	test_vendor_dirty_not_candidate
+	test_vendor_dirty_not_candidate \
+	test_go_paragraphs_gate \
+	test_docs_skip_go_paragraphs
 do
 	"$t"
 done

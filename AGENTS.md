@@ -69,7 +69,7 @@ if err != nil {
 }
 ```
 
-Braces and `if err != nil` blocks do not separate paragraphs. When you edit a Go file, bring the functions you touch up to this shape. Comment every top-level declaration with a sentence that starts with its identifier.
+Braces and `if err != nil` blocks do not separate paragraphs. When you edit a Go file, bring the functions you touch up to this shape. The pre-commit hook (`.githooks/go-paragraphs`) rejects a staged Go function that has a changed line and breaks the rule, so fix such a function in the same commit. Comment every top-level declaration with a sentence that starts with its identifier.
 
 ## Dependency Tooling
 

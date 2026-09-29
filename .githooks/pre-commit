@@ -77,6 +77,9 @@ if [ -n "$go_files" ]; then
 	fi
 	check_partial_files "$go_files" gofmt_stdin
 
+	# Functions this commit changes must be written as code paragraphs.
+	go run ./.githooks/go-paragraphs
+
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
 
 	# A package whose files the host platform excludes, such as a js-only one,
