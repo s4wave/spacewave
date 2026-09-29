@@ -13,6 +13,7 @@ var ErrNoSessionTransport = errors.New("no session transport running")
 
 // GetPairingEngine returns this unlocked Session's account enrollment owner.
 func (s *Session) GetPairingEngine() (*pairing.Engine, error) {
+	// Return the existing engine, or build one on the Session's lifetime.
 	s.pairingMu.Lock()
 	defer s.pairingMu.Unlock()
 	if s.GetPrivKey() == nil || s.ctx.Err() != nil {
@@ -21,6 +22,8 @@ func (s *Session) GetPairingEngine() (*pairing.Engine, error) {
 	if s.pairingEngine != nil {
 		return s.pairingEngine, nil
 	}
+
+	// Build and retain the pairing engine for this Session.
 	ctx, cancel := context.WithCancel(s.ctx)
 	a := s.tkr.a
 	engine, err := pairing.NewEngine(ctx, a.le, a.t.p.b, s, a, s.GetPairingTransport)
@@ -44,6 +47,7 @@ func (s *Session) clearPairingEngine() {
 // GetPairingTransport uses this Session's existing connection owner. An empty
 // relay requests a direct connection and does not replace working signaling.
 func (s *Session) GetPairingTransport(ctx context.Context, relay pairing.Relay) (*transport.SessionTransport, error) {
+	// Reuse the account transport when it already serves this Session.
 	a := s.tkr.a
 	if relay.URL == "" {
 		if st := a.GetSessionTransport(); st != nil && st.GetPeerID() == s.sessionPid {
