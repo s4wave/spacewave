@@ -20,8 +20,10 @@ import (
 )
 
 func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
+	// Bind the bus context.
 	busCtx := t.Context()
 
+	// Build the bus, a peer, and the scheduler controller.
 	logger := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(directive_controller.NewController(busCtx, logger))
 	p, _, _, err := peer.NewPeerWithGenerateED25519()
@@ -39,6 +41,7 @@ func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
 		false,
 	))
 
+	// Start the wait in the background before the scheduler registers.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	type waitResult struct {
@@ -51,6 +54,7 @@ func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
 		resultCh <- waitResult{scheduler: got, err: err}
 	}()
 
+	// The wait must still be blocked after a short delay.
 	delay := time.NewTimer(50 * time.Millisecond)
 	defer delay.Stop()
 	select {
@@ -59,12 +63,14 @@ func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
 	case <-delay.C:
 	}
 
+	// Register the scheduler controller on the bus.
 	rel, err := b.AddController(busCtx, scheduler, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rel()
 
+	// The wait returns the registered scheduler.
 	select {
 	case result := <-resultCh:
 		if result.err != nil {
@@ -79,10 +85,12 @@ func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
 }
 
 func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
+	// Bind the bus context and build the bus.
 	busCtx := t.Context()
-
 	logger := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(directive_controller.NewController(busCtx, logger))
+
+	// Start the wait and cancel its context immediately.
 	ctx, cancel := context.WithCancel(context.Background())
 	resultCh := make(chan error, 1)
 	go func() {
@@ -91,6 +99,7 @@ func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
 	}()
 	cancel()
 
+	// The wait returns context.Canceled.
 	select {
 	case err := <-resultCh:
 		if !errors.Is(err, context.Canceled) {
@@ -102,6 +111,7 @@ func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
 }
 
 func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -110,9 +120,11 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// Record an error on a requested plugin.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
 	ctrl.recordPluginStatusError("notes", "left", "download plugin manifest", errors.New("copy failed"))
 
+	// The snapshot carries the error message, timestamp, and state.
 	status := ctrl.GetPluginStatusCtr().GetValue()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
@@ -128,12 +140,14 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 		t.Fatalf("unexpected state after error: %s", plugin.GetState())
 	}
 
+	// A plain requested status update preserves the last error.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
 	status = ctrl.GetPluginStatusCtr().GetValue()
 	if status.Plugins[0].GetLastErrorMessage() == "" {
 		t.Fatal("expected requested status update to preserve last error")
 	}
 
+	// The running status clears the last error.
 	ctrl.setPluginStatusClearingError("notes", "left", bldr_plugin.PluginState_PluginState_RUNNING)
 	status = ctrl.GetPluginStatusCtr().GetValue()
 	plugin = status.Plugins[0]
@@ -146,6 +160,7 @@ func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 }
 
 func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -154,6 +169,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// Record a terminal worker failure on the requested plugin.
 	ctrl.setPluginStatus("spacewave-core", "", bldr_plugin.PluginState_PluginState_REQUESTED)
 	ctrl.recordPluginStatusError(
 		"spacewave-core",
@@ -162,6 +178,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 		errors.New("web worker terminal failure before becoming ready: fatal wasm exit"),
 	)
 
+	// The snapshot reports the terminal failure and no running generation.
 	status := ctrl.GetPluginStatusCtr().GetValue()
 	if len(status.Plugins) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(status.Plugins))
@@ -174,6 +191,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 		t.Fatal("failed generation should not report running")
 	}
 
+	// A fresh running generation clears the terminal failure.
 	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
 	status = ctrl.GetPluginStatusCtr().GetValue()
 	plugin = status.Plugins[0]
@@ -186,6 +204,7 @@ func TestPluginStatusRecordsTerminalWorkerFailureUntilFreshGenerationRuns(t *tes
 }
 
 func TestIsPluginRunning(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -194,11 +213,13 @@ func TestIsPluginRunning(t *testing.T) {
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// A requested plugin does not report running.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_REQUESTED)
 	if ctrl.IsPluginRunning("notes") {
 		t.Fatal("requested plugin should not report running")
 	}
 
+	// A running plugin reports running.
 	ctrl.setPluginStatus("notes", "left", bldr_plugin.PluginState_PluginState_RUNNING)
 	if !ctrl.IsPluginRunning("notes") {
 		t.Fatal("running plugin should report running")
@@ -206,6 +227,7 @@ func TestIsPluginRunning(t *testing.T) {
 }
 
 func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -214,10 +236,12 @@ func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// Mark the required plugins running and one other requested.
 	ctrl.setPluginStatusClearingError("spacewave-core", "", bldr_plugin.PluginState_PluginState_RUNNING)
 	ctrl.setPluginStatusClearingError("spacewave-e2e", "", bldr_plugin.PluginState_PluginState_RUNNING)
 	ctrl.setPluginStatus("debug-helper", "", bldr_plugin.PluginState_PluginState_REQUESTED)
 
+	// Waiting for the required plugins returns immediately.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := ctrl.WaitPluginsRunning(ctx, []string{"spacewave-core", "spacewave-e2e"}); err != nil {
@@ -226,6 +250,7 @@ func TestWaitPluginsRunningReturnsWhenRequiredPluginsRun(t *testing.T) {
 }
 
 func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -234,9 +259,11 @@ func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// Record a startup error on a requested plugin.
 	ctrl.setPluginStatus("spacewave-e2e", "", bldr_plugin.PluginState_PluginState_REQUESTED)
 	ctrl.recordPluginStatusError("spacewave-e2e", "", "fetch plugin manifest", errors.New("vite failed"))
 
+	// Waiting returns the recorded startup error.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	err := ctrl.WaitPluginsRunning(ctx, []string{"spacewave-e2e"})
@@ -249,6 +276,7 @@ func TestWaitPluginsRunningReturnsRecordedStartupError(t *testing.T) {
 }
 
 func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
+	// Build a controller with an equal-compared status snapshot.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -257,21 +285,26 @@ func TestPluginStatusSnapshotEqualIncludesLastError(t *testing.T) {
 		pluginStatus: make(map[string]*bldr_plugin.PluginStatus),
 	}
 
+	// Snapshot the status before and after recording an error.
 	ctrl.setPluginStatus("notes", "", bldr_plugin.PluginState_PluginState_REQUESTED)
 	before := ctrl.GetPluginStatusCtr().GetValue()
 	ctrl.recordPluginStatusError("notes", "", "execute plugin", errors.New("boom"))
 	after := ctrl.GetPluginStatusCtr().GetValue()
 
+	// The snapshots differ because the last error changed.
 	if before.EqualVT(after) {
 		t.Fatal("expected snapshots with different last errors to differ")
 	}
 }
 
 func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
+	// Build a controller with no status map or container.
 	ctrl := &Controller{}
 
+	// Record an error on the uninitialized controller.
 	ctrl.recordPluginStatusError("notes", "", "startup manifest refs", errors.New("skipped"))
 
+	// The recorded error is visible in the rebuilt snapshot.
 	if len(ctrl.pluginStatus) != 1 {
 		t.Fatalf("expected one plugin status, got %d", len(ctrl.pluginStatus))
 	}
@@ -285,6 +318,7 @@ func TestPluginStatusUpdateToleratesUninitializedController(t *testing.T) {
 }
 
 func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *testing.T) {
+	// Build a controller with recovery status tracking and test object refs.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -296,6 +330,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 	executeRef := testObjectRef(t, "execute")
 	downloadRef := testObjectRef(t, "download")
 
+	// Record recovery status with ignored, quarantined, and unsafe candidates.
 	ctrl.recordPluginManifestRecoveryStatus(
 		"spacewave-app",
 		"",
@@ -320,6 +355,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 		},
 	)
 
+	// The recovery row carries the refs and candidate summaries.
 	status := ctrl.GetPluginStatusCtr().GetValue()
 	if len(status.ManifestRecovery) != 1 {
 		t.Fatalf("recovery rows = %d, want 1", len(status.ManifestRecovery))
@@ -341,6 +377,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 		t.Fatalf("unexpected quarantined summary: %#v", row)
 	}
 
+	// Clearing the recovery status changes the snapshot.
 	before := status
 	ctrl.recordPluginManifestRecoveryStatus("spacewave-app", "", nil, nil, nil)
 	after := ctrl.GetPluginStatusCtr().GetValue()
@@ -350,6 +387,7 @@ func TestPluginManifestRecoveryStatusReportsSelectionAndRetainedCandidates(t *te
 }
 
 func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
+	// Build a controller with recovery status tracking.
 	ctrl := &Controller{
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&bldr_plugin.PluginStatusSnapshot{},
@@ -358,6 +396,8 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 		pluginStatus:                 make(map[string]*bldr_plugin.PluginStatus),
 		pluginManifestRecoveryStatus: make(map[string]*bldr_plugin.PluginManifestRecoveryStatus),
 	}
+
+	// Record a recovery row for a running plugin instance.
 	ctrl.updatePluginStatus(
 		"spacewave-app",
 		"",
@@ -372,6 +412,7 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 		t.Fatalf("expected recovery row before cleanup: %#v", ctrl.GetPluginStatusCtr().GetValue())
 	}
 
+	// Removing the plugin instance clears its recovery rows.
 	ctrl.updatePluginStatus(
 		"spacewave-app",
 		"",
@@ -387,6 +428,7 @@ func TestPluginManifestRecoveryStatusClearsWithPluginInstance(t *testing.T) {
 	}
 }
 
+// testObjectRef builds a deterministic bucket object ref for a seed.
 func testObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 	t.Helper()
 	ref, err := block.BuildBlockRef([]byte(seed), nil)
@@ -400,9 +442,11 @@ func testObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 }
 
 func TestResolveLoadPluginScopesUnqualifiedDirectiveToScheduler(t *testing.T) {
+	// Build a Space scheduler controller.
 	conf := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, conf)
 
+	// An unqualified LoadPlugin directive resolves on the scheduler.
 	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPlugin("notes"))
 	if err != nil {
 		t.Fatal(err)
@@ -415,9 +459,11 @@ func TestResolveLoadPluginScopesUnqualifiedDirectiveToScheduler(t *testing.T) {
 // TestResolveLoadPluginResolvesOtherInstances keeps per-object plugin
 // instances, such as one V86 runtime per VM, loadable on a Space scheduler.
 func TestResolveLoadPluginResolvesOtherInstances(t *testing.T) {
+	// Build a Space scheduler controller.
 	conf := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, conf)
 
+	// An instanced LoadPlugin directive resolves for another object instance.
 	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPluginInstanced("spacewave-v86", "vm-1"))
 	if err != nil {
 		t.Fatal(err)
