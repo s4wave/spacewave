@@ -84,6 +84,7 @@ func buildBrowserScript(
 	buildDir string,
 	spec browserScriptSpec,
 ) (*bldr_web_bundler_rolldown.BuildResult, error) {
+	// Default the Bun state directory to a sibling of the build directory.
 	if stateDir == "" {
 		stateDir = filepath.Join(buildDir, ".bun")
 	}
@@ -116,6 +117,7 @@ func directRendererRequest(
 	buildDir string,
 	opts ConfigFreeRendererOpts,
 ) *bldr_web_bundler_rolldown.BuildRequest {
+	// Choose the sourcemap mode, extend the shared Bldr external package list, and build the direct renderer request.
 	sourcemap := "none"
 	if opts.Sourcemaps {
 		sourcemap = "external"
@@ -161,6 +163,7 @@ func BuildRenderer(
 	buildDir string,
 	opts ConfigFreeRendererOpts,
 ) (*RendererResult, error) {
+	// Resolve the renderer output directory relative to the build directory, run the direct Rolldown build, and require its entrypoint output.
 	outputDirRel, err := rendererOutputDirRelative(buildDir, opts.OutputDir)
 	if err != nil {
 		return nil, err
@@ -184,6 +187,7 @@ func BuildRenderer(
 		return nil, errors.New("renderer build produced no entrypoint.mjs role")
 	}
 
+	// Collect the renderer output paths under the relative output directory.
 	outputs := make([]string, 0, len(result.GetOutputs()))
 	for _, output := range result.GetOutputs() {
 		outputs = append(outputs, filepath.Join(outputDirRel, output.GetPath()))

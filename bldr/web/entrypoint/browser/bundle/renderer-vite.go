@@ -49,6 +49,7 @@ func rendererProjectRoot(bldrDistRoot string) string {
 }
 
 func configFreeRendererRequest(bldrDistRoot, workingPath string, opts ConfigFreeRendererOpts) *bldr_vite.BuildRequest {
+	// Choose the sourcemap mode, extend the shared Bldr external package list, and build the config-free Vite request.
 	sourcemapMode := "none"
 	if opts.Sourcemaps {
 		sourcemapMode = "external"
@@ -96,10 +97,13 @@ func BuildConfigFreeRenderer(
 	buildDir string,
 	opts ConfigFreeRendererOpts,
 ) (*RendererResult, error) {
+	// Resolve the renderer output directory relative to the build directory.
 	outputDirRel, err := rendererOutputDirRelative(buildDir, opts.OutputDir)
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the config-free Vite request and run the one-shot Vite build.
 	workingPath := filepath.Join(stateDir, "vite-renderer")
 	request := configFreeRendererRequest(bldrDistRoot, workingPath, opts)
 	var response *bldr_vite.BuildResponse
@@ -110,6 +114,7 @@ func BuildConfigFreeRenderer(
 		bldrDistRoot,
 		workingPath,
 		func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
+			// Run the Vite build and require a successful response.
 			var err error
 			response, err = client.Build(ctx, request)
 			if err != nil {
@@ -124,11 +129,15 @@ func BuildConfigFreeRenderer(
 	if err != nil {
 		return nil, err
 	}
+
+	// Remove the generated Vite manifest that the build leaves behind.
 	manifestPath := filepath.Join(opts.OutputDir, ".vite", "manifest.json")
 	if err := os.Remove(manifestPath); err != nil && !os.IsNotExist(err) {
 		return nil, errors.Wrap(err, "remove internal Vite manifest")
 	}
 	_ = os.Remove(filepath.Dir(manifestPath))
+
+	// Select the entrypoint output whose JS file is entrypoint.mjs.
 	var entrypoint *bldr_vite.EntrypointOutput
 	for _, output := range response.GetEntrypointOutputs() {
 		if output.GetJsOutput() == "entrypoint.mjs" {
@@ -140,6 +149,7 @@ func BuildConfigFreeRenderer(
 		return nil, errors.Errorf("renderer build produced no entrypoint.mjs role among %d entrypoints", len(response.GetEntrypointOutputs()))
 	}
 
+	// Collect the input, output, and CSS file paths under their roots.
 	inputs := make([]string, 0, len(response.GetInputFiles()))
 	for _, input := range response.GetInputFiles() {
 		inputs = append(inputs, filepath.Join(bldrDistRoot, input))
