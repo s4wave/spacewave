@@ -54,6 +54,7 @@ func PrepareTypeScriptProject(ctx context.Context, le *logrus.Entry, sourceRoot,
 	if err := os.Symlink(filepath.Join(install, "node_modules"), filepath.Join(distRoot, "node_modules")); err != nil {
 		return err
 	}
+
 	// Generated compiler services run under .bldr and use the SDK's dependencies.
 	// The project's own install must not shadow the compiler's runtime packages.
 	buildRoot := filepath.Join(sourceRoot, ".bldr")
@@ -64,6 +65,7 @@ func PrepareTypeScriptProject(ctx context.Context, le *logrus.Entry, sourceRoot,
 		return err
 	}
 
+	// Reinstall the project's own dependencies when it declares a package.json.
 	projectPackage := filepath.Join(sourceRoot, "package.json")
 	if _, err := os.Stat(projectPackage); err == nil {
 		install, err = npm.EnsureSharedBunInstall(ctx, le, distRoot, projectPackage, filepath.Join(distRoot, "project-deps"))

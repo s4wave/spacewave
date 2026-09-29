@@ -45,6 +45,7 @@ type DistSourceSyncConfig struct {
 // SyncDistSources syncs embedded Bldr dist sources into DistRoot and
 // materializes the vendor tree used by non-local @go/* TypeScript imports.
 func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncConfig) error {
+	// Reject a configuration missing the repository or dist root.
 	if conf.RepoRoot == "" {
 		return errors.New("repo root is required")
 	}
@@ -52,9 +53,11 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return errors.New("dist root is required")
 	}
 
+	// Build the FS handle over the embedded dist sources.
 	distSourcesHandle := BuildDistSourcesFSHandle(ctx, le)
 	defer distSourcesHandle.Release()
 
+	// Sync the embedded sources into the dist root, keeping the owned paths.
 	if err := os.MkdirAll(conf.DistRoot, 0o755); err != nil {
 		return err
 	}
@@ -68,7 +71,9 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return err
 	}
 
+	// Run each go mod step through a command wired to the debug log.
 	runGoMod := func(cmd string) error {
+		// Build the go mod command and wire its output to the debug log.
 		le.Infof("bldr sources: running go mod %s", cmd)
 		goVendorCmd := exec.NewCmd(ctx, "go", "mod", cmd)
 		goVendorCmd.Dir = conf.DistRoot
@@ -76,6 +81,8 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		goVendorCmd.Stderr = goModWriter
 		goVendorCmd.Stdout = goModWriter
 		goVendorCmd.Env = os.Environ()
+
+		// Run the command and report the run or writer-close error.
 		runErr := goVendorCmd.Run()
 		closeErr := goModWriter.Close()
 		if runErr != nil {
@@ -84,6 +91,7 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return closeErr
 	}
 
+	// Parse the repository go.mod and retarget its module path for the dist copy.
 	distGoModPath := filepath.Join(conf.DistRoot, "go.mod")
 	sourceGoModPath := filepath.Join(conf.RepoRoot, "go.mod")
 	sourceGoModData, err := os.ReadFile(sourceGoModPath)
@@ -97,10 +105,12 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	sourceModPath := distModFile.Module.Mod.Path
 	distModFile.Module.Mod.Path = DistGoMod
 
+	// Resolve relative replace targets against the repository root.
 	if err := absolutizeRelativeReplaces(distModFile, conf.RepoRoot); err != nil {
 		return err
 	}
 
+	// Declare the dist module and pin the source module by path or version.
 	if err := distModFile.AddModuleStmt(DistGoMod); err != nil {
 		return err
 	}
@@ -117,12 +127,14 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		}
 	}
 
+	// Clean up and format the dist go.mod.
 	distModFile.Cleanup()
 	updatedDistGoMod, err := distModFile.Format()
 	if err != nil {
 		return err
 	}
 
+	// Read the repository go.sum to copy into the dist checkout.
 	sourceGoSumPath := filepath.Join(conf.RepoRoot, "go.sum")
 	sourceGoSumData, err := os.ReadFile(sourceGoSumPath)
 	if err != nil {
@@ -138,6 +150,7 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 	syncHashPath := filepath.Join(conf.DistRoot, ".sync-hash")
 	vendorDir := filepath.Join(conf.DistRoot, "vendor")
 
+	// Skip tidy and vendor when the recorded hash and vendor tree are current.
 	existingHash, hashReadErr := os.ReadFile(syncHashPath)
 	_, vendorStatErr := os.Stat(vendorDir)
 	if hashReadErr == nil && strings.TrimSpace(string(existingHash)) == hashStr && vendorStatErr == nil {
@@ -151,12 +164,15 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		return err
 	}
 
+	// Write the dist go.sum beside the dist go.mod.
 	distGoSumPath := filepath.Join(conf.DistRoot, "go.sum")
+
 	// #nosec G703 -- this fixed filename is written in the caller-owned dist checkout.
 	if err := os.WriteFile(distGoSumPath, sourceGoSumData, 0o644); err != nil {
 		return err
 	}
 
+	// Append the Bldr module checksums when vendoring a pinned version.
 	if conf.BldrSum != "" {
 		goModSum := sha256.Sum256(sourceGoModData)
 		goModInner := hex.EncodeToString(goModSum[:]) + "  go.mod\n"
@@ -188,6 +204,7 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 		}
 	}
 
+	// Vendor the dependencies into the dist checkout.
 	if err := runGoMod("vendor"); err != nil {
 		return err
 	}
@@ -203,6 +220,7 @@ func SyncDistSources(ctx context.Context, le *logrus.Entry, conf DistSourceSyncC
 // distSyncHash digests the inputs of tidy and vendor: the dist go.mod, the repo
 // go.sum, the Bldr module checksum and every synced dist source file.
 func distSyncHash(distRoot string, distGoMod, goSum []byte, bldrSum string) (string, error) {
+	// Digest the fixed inputs: the dist go.mod, the repo go.sum and the Bldr sum.
 	h := sha256.New()
 	writeField := func(name string, data []byte) {
 		_, _ = fmt.Fprintf(h, "%s %d\n", name, len(data))
@@ -212,24 +230,30 @@ func distSyncHash(distRoot string, distGoMod, goSum []byte, bldrSum string) (str
 	writeField("go.sum", goSum)
 	writeField("bldr-sum", []byte(bldrSum))
 
+	// Walk the dist tree and hash every regular file outside the owned paths.
 	root, err := os.OpenRoot(distRoot)
 	if err != nil {
 		return "", err
 	}
 	defer root.Close()
 	err = fs.WalkDir(root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
+		// Bail out on walk errors and skip the root directory entry.
 		if err != nil {
 			return err
 		}
 		if p == "." {
 			return nil
 		}
+
+		// Skip the sync-owned metadata files at the dist root.
 		if !strings.Contains(p, "/") && slices.Contains(distSyncOwnedPaths, p) {
 			if d.IsDir() {
 				return fs.SkipDir
 			}
 			return nil
 		}
+
+		// Hash each regular file's contents under its path.
 		if !d.Type().IsRegular() {
 			return nil
 		}
