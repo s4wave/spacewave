@@ -28,6 +28,7 @@ func newSpaceWorldCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 		},
 		Subcommands: []*cli.Command{
+			newSpaceWorldExportCommand(statePath, sessionIdx, &spaceID),
 			buildSpaceWorldChangelogCommand(statePath, sessionIdx, &spaceID),
 			buildSpaceWorldRollbackPlanCommand(statePath, sessionIdx, &spaceID),
 		},
