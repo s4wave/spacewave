@@ -36,7 +36,7 @@ service SpaceResourceService {
   rpc RemoveSpacePlugin(RemoveSpacePluginRequest) returns (RemoveSpacePluginResponse) {}
 
   // BuildSpacePlugin pins the source and queues a native build on a registered
-  // device. Progress and outputs use the existing Forge Execution resource.
+  // device as a Forge Job. Progress and outputs use the Job and its Task.
   rpc BuildSpacePlugin(BuildSpacePluginRequest) returns (BuildSpacePluginResponse) {}
 
   // OpenPluginFrontend retains a source-backed compiler on the selected device.
@@ -46,20 +46,36 @@ service SpaceResourceService {
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
 message BuildSpacePluginRequest {
-  // SourceKey is a UnixFS directory containing a TypeScript Bldr project.
+  // SourceKey is a UnixFS directory containing a Bldr project.
   string source_key = 1;
   // DeviceKey identifies a Device with a selectable Forge worker capability.
   string device_key = 2;
-  // ManifestId selects the JavaScript plugin manifest in the project.
+  // ManifestId selects the plugin manifest in the project.
   string manifest_id = 3;
   // ConfigPath is relative to the source directory; empty selects bldr.yaml.
   string config_path = 4;
+  // ClusterKey is the Forge Cluster that receives the build Job. It must
+  // contain the Device's Worker. If empty, the Worker must belong to one Cluster.
+  // Ignored by OpenPluginFrontend.
+  string cluster_key = 5;
+  // PlatformId selects the platform to build: js or the Device's native
+  // platform. If empty, the Device's native platform is built.
+  // Ignored by OpenPluginFrontend.
+  string platform_id = 6;
+  // MilliCpu is the CPU the build requests from the Worker in milli-cores.
+  // Ignored by OpenPluginFrontend.
+  uint64 milli_cpu = 7;
+  // MemoryBytes is the memory the build requests from the Worker in bytes.
+  // Ignored by OpenPluginFrontend.
+  uint64 memory_bytes = 8;
 }
 
 // BuildSpacePluginResponse identifies the durable queued build.
 message BuildSpacePluginResponse {
-  // ExecutionKey identifies the Forge Execution with logs and build results.
-  string execution_key = 1;
+  // JobKey identifies the Forge Job with the build Task, logs, and results.
+  string job_key = 1;
+  // TaskKey identifies the Job's build Task.
+  string task_key = 2;
 }
 
 // OpenPluginFrontendResponse identifies the authoring attachment and its logs.

@@ -15,7 +15,7 @@ import { Value } from '../../../forge/value/value.pb.js'
  */
 export interface PluginBuildConfig {
   /**
-   * ManifestId selects the JavaScript plugin manifest for an immutable build.
+   * ManifestId selects the plugin manifest for an immutable build.
    *
    * @generated from field: string manifest_id = 1;
    */
@@ -46,6 +46,25 @@ export interface PluginBuildConfig {
    * @generated from field: string frontend_route_prefix = 5;
    */
   frontendRoutePrefix?: string
+  /**
+   * PlatformId is the platform of the immutable build, such as js or
+   * desktop/linux/amd64. Required unless FrontendId is set.
+   *
+   * @generated from field: string platform_id = 6;
+   */
+  platformId?: string
+  /**
+   * MilliCpu is the CPU the build requests from its Worker in milli-cores.
+   *
+   * @generated from field: uint64 milli_cpu = 7;
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the memory the build requests from its Worker in bytes.
+   *
+   * @generated from field: uint64 memory_bytes = 8;
+   */
+  memoryBytes?: bigint
 }
 
 export const PluginBuildConfig: MessageType<PluginBuildConfig> =
@@ -62,6 +81,9 @@ export const PluginBuildConfig: MessageType<PluginBuildConfig> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      { no: 6, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 8, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 

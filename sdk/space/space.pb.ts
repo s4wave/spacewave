@@ -100,7 +100,7 @@ export const SpacePluginLifecycleState_Enum = /* @__PURE__ */ createEnumType(
  */
 export interface BuildSpacePluginRequest {
   /**
-   * SourceKey is a UnixFS directory containing a TypeScript Bldr project.
+   * SourceKey is a UnixFS directory containing a Bldr project.
    *
    * @generated from field: string source_key = 1;
    */
@@ -112,7 +112,7 @@ export interface BuildSpacePluginRequest {
    */
   deviceKey?: string
   /**
-   * ManifestId selects the JavaScript plugin manifest in the project.
+   * ManifestId selects the plugin manifest in the project.
    *
    * @generated from field: string manifest_id = 3;
    */
@@ -123,6 +123,36 @@ export interface BuildSpacePluginRequest {
    * @generated from field: string config_path = 4;
    */
   configPath?: string
+  /**
+   * ClusterKey is the Forge Cluster that receives the build Job. It must
+   * contain the Device's Worker. If empty, the Worker must belong to one Cluster.
+   * Ignored by OpenPluginFrontend.
+   *
+   * @generated from field: string cluster_key = 5;
+   */
+  clusterKey?: string
+  /**
+   * PlatformId selects the platform to build: js or the Device's native
+   * platform. If empty, the Device's native platform is built.
+   * Ignored by OpenPluginFrontend.
+   *
+   * @generated from field: string platform_id = 6;
+   */
+  platformId?: string
+  /**
+   * MilliCpu is the CPU the build requests from the Worker in milli-cores.
+   * Ignored by OpenPluginFrontend.
+   *
+   * @generated from field: uint64 milli_cpu = 7;
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the memory the build requests from the Worker in bytes.
+   * Ignored by OpenPluginFrontend.
+   *
+   * @generated from field: uint64 memory_bytes = 8;
+   */
+  memoryBytes?: bigint
 }
 
 export const BuildSpacePluginRequest: MessageType<BuildSpacePluginRequest> =
@@ -133,6 +163,10 @@ export const BuildSpacePluginRequest: MessageType<BuildSpacePluginRequest> =
       { no: 2, name: 'device_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'config_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 8, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -143,18 +177,25 @@ export const BuildSpacePluginRequest: MessageType<BuildSpacePluginRequest> =
  */
 export interface BuildSpacePluginResponse {
   /**
-   * ExecutionKey identifies the Forge Execution with logs and build results.
+   * JobKey identifies the Forge Job with the build Task, logs, and results.
    *
-   * @generated from field: string execution_key = 1;
+   * @generated from field: string job_key = 1;
    */
-  executionKey?: string
+  jobKey?: string
+  /**
+   * TaskKey identifies the Job's build Task.
+   *
+   * @generated from field: string task_key = 2;
+   */
+  taskKey?: string
 }
 
 export const BuildSpacePluginResponse: MessageType<BuildSpacePluginResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.BuildSpacePluginResponse',
     fields: [
-      { no: 1, name: 'execution_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 1, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

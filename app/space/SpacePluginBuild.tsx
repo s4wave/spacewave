@@ -3,8 +3,8 @@ import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource
 
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
-import { watchExecution } from '@s4wave/sdk/forge/execution.js'
-import { State } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
+import { watchTask } from '@s4wave/sdk/forge/task.js'
+import { State } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 import {
   SpaceContainerContext,
   type SpaceContainerContextValue,
@@ -24,9 +24,14 @@ import { SpacePluginWorkbench } from './SpacePluginWorkbench.js'
 import { SpacePluginObjects } from './SpacePluginObjects.js'
 
 interface SubmittedBuild {
-  key: string
+  jobKey: string
+  taskKey: string
   manifestId: string
 }
+
+// The build asks its Worker for this much capacity: one core and 2 GiB.
+const BUILD_MILLI_CPU = 1000n
+const BUILD_MEMORY_BYTES = 2n << 30n
 
 /** SpacePluginBuild uses the open Space's inventory and existing Forge execution. */
 export function SpacePluginBuild({
@@ -68,7 +73,7 @@ function BuildPanel({
     spaceWorldResource,
     async function* (world, signal) {
       if (submitted) {
-        yield* watchExecution(world, submitted.key, signal)
+        yield* watchTask(world, submitted.taskKey, signal)
       }
     },
     [submitted],
@@ -79,11 +84,10 @@ function BuildPanel({
   )
 
   // Show only the current submission's state while a new watch starts.
-  const execution = status.loading ? undefined : status.value
-  const result = execution?.result
+  const task = status.loading ? undefined : status.value
+  const result = task?.result
   const building =
-    submitted != null &&
-    execution?.executionState !== State.ExecutionState_COMPLETE
+    submitted != null && task?.taskState !== State.TaskState_COMPLETE
   const ready = result?.success === true
   const canBuild =
     sourceKey !== '' &&
@@ -98,10 +102,17 @@ function BuildPanel({
     setPending(true)
     setError('')
     try {
-      const response = await space.buildSpacePlugin(request)
-      if (!response.executionKey) throw new Error('Build returned no execution')
+      const response = await space.buildSpacePlugin({
+        ...request,
+        milliCpu: BUILD_MILLI_CPU,
+        memoryBytes: BUILD_MEMORY_BYTES,
+      })
+      if (!response.jobKey || !response.taskKey) {
+        throw new Error('Build returned no job')
+      }
       setSubmitted({
-        key: response.executionKey,
+        jobKey: response.jobKey,
+        taskKey: response.taskKey,
         manifestId: manifestId.trim(),
       })
       setInstalled(false)
@@ -118,7 +129,7 @@ function BuildPanel({
     setPending(true)
     setError('')
     try {
-      const manifestKey = execution?.valueSet?.outputs?.find(
+      const manifestKey = task?.valueSet?.outputs?.find(
         (output) => output.name === 'manifest',
       )?.worldObjectSnapshot?.key
       if (!manifestKey) throw new Error('Build returned no manifest artifact')
@@ -239,7 +250,7 @@ function BuildPanel({
               size="sm"
               variant="ghost"
               className={touchTargetClass}
-              onClick={() => navigateToObjects([submitted.key])}
+              onClick={() => navigateToObjects([submitted.jobKey])}
             >
               Build logs
             </Button>

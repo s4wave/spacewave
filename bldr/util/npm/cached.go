@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/sirupsen/logrus"
@@ -104,18 +105,8 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 
 		// Recreate the install directory and seed it with the package
 		// manifest and lockfile.
-		if err := fsutil.CleanCreateDir(targetDir); err != nil {
+		if err := seedInstallDir(targetDir, packageJSON, bunLock, lockFound); err != nil {
 			return err
-		}
-		// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), packageJSON, 0o644); err != nil {
-			return err
-		}
-		if lockFound {
-			// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-			if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), bunLock, 0o644); err != nil {
-				return err
-			}
 		}
 
 		// Freeze the install to the seeded lockfile when one exists.
@@ -134,6 +125,57 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 		// Record the hash so a later install can skip this directory.
 		return writeInstallHash(targetDir, hash)
 	})
+}
+
+// seedInstallDir recreates targetDir with the package manifest and, when
+// lockFound, the lockfile. The manifest omits root scripts: they expect the
+// project checkout, which the cache does not contain.
+func seedInstallDir(targetDir string, packageJSON, bunLock []byte, lockFound bool) error {
+	// Recreate the managed cache directory.
+	if err := fsutil.CleanCreateDir(targetDir); err != nil {
+		return err
+	}
+
+	// Write the manifest without the project's lifecycle scripts.
+	seedJSON, err := withoutRootScripts(packageJSON)
+	if err != nil {
+		return err
+	}
+	if err := writeSeedFile(targetDir, "package.json", seedJSON); err != nil {
+		return err
+	}
+
+	// Write the lockfile the frozen install verifies against.
+	if !lockFound {
+		return nil
+	}
+	return writeSeedFile(targetDir, "bun.lock", bunLock)
+}
+
+// writeSeedFile writes one file of the install directory seed.
+func writeSeedFile(targetDir, name string, data []byte) error {
+	// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir.
+	return os.WriteFile(filepath.Join(targetDir, name), data, 0o644)
+}
+
+// withoutRootScripts removes the scripts field from a package manifest so a
+// bun install cannot run the project's root lifecycle scripts.
+func withoutRootScripts(packageJSON []byte) ([]byte, error) {
+	// Parse the manifest as an object.
+	var parser fastjson.Parser
+	manifest, err := parser.ParseBytes(packageJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	// Leave a manifest without scripts byte for byte unchanged.
+	if manifest.Get("scripts") == nil {
+		return packageJSON, nil
+	}
+
+	// Re-encode the manifest without the scripts.
+	manifest.Del("scripts")
+	return manifest.MarshalTo(nil), nil
 }
 
 // readSiblingBunLock reads the bun.lock file beside srcPackageJson. It

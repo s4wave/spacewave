@@ -24,6 +24,7 @@ import (
 // OpenPluginFrontend grants one Resource a live compiler on the selected device.
 // The source stays in this World; the Resource owns the temporary execution grant.
 func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_space.BuildSpacePluginRequest) (*s4wave_space.OpenPluginFrontendResponse, error) {
+	// Require the calling Resource client, the mounted Session, and its shared object.
 	resources, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -37,6 +38,7 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 		return nil, errors.New("frontend authoring requires the mounted Session transport")
 	}
 
+	// Resolve the Session's transport for the attachment's lifetime.
 	lifetime, cancel := context.WithCancel(resources.Context())
 	transportBus, releaseTransport, err := transport.ResolveSessionBus(ctx, r.b, sender, cancel)
 	if err != nil {
@@ -51,7 +53,7 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 	if pluginID := r.resolveHostPluginID(ctx); pluginID != "" {
 		serviceID = bldr_plugin.PluginServiceID(pluginID, serviceID)
 	}
-	queued, err := r.queuePluginBuild(ctx, request, &space_exec.PluginBuildConfig{
+	queued, err := r.queuePluginFrontend(ctx, request, &space_exec.PluginBuildConfig{
 		FrontendId: id, FrontendRoutePrefix: frontend.ServiceRoutePrefix(serviceID),
 	})
 	if err != nil {
@@ -59,6 +61,8 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 		cancel()
 		return nil, err
 	}
+
+	// Forward calls to the device's compiler over the Session transport.
 	client := srpc.NewClient(stream_srpc.NewOpenStreamFunc(transportBus, space_exec.PluginFrontendProtocol(id), sender, queued.peer, 0))
 	var forward srpc.Invoker = srpc.NewClientInvoker(client)
 	if sender == queued.peer {
@@ -86,6 +90,8 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 		defer stop()
 		return forward.InvokeMethod(serviceID, methodID, srpc.NewStreamWithContext(stream, callCtx))
 	})
+
+	// Close the attachment by releasing the transport and route and cancelling the execution.
 	var releaseRoute func()
 	closeAttachment := func() {
 		cancel()
@@ -118,6 +124,8 @@ func (r *SpaceResource) OpenPluginFrontend(ctx context.Context, request *s4wave_
 		closeAttachment()
 		return nil, err
 	}
+
+	// Hand the attachment to the Resource client, which owns its release.
 	resourceID, err := resources.AddResource(mux, closeAttachment)
 	if err != nil {
 		closeAttachment()

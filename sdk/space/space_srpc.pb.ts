@@ -155,7 +155,7 @@ export const SpaceResourceServiceDefinition = {
     },
     /**
      * BuildSpacePlugin pins the source and queues a native build on a registered
-     * device. Progress and outputs use the existing Forge Execution resource.
+     * device as a Forge Job. Progress and outputs use the Job and its Task.
      *
      * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
      */
@@ -279,7 +279,7 @@ export interface SpaceResourceService {
 
   /**
    * BuildSpacePlugin pins the source and queues a native build on a registered
-   * device. Progress and outputs use the existing Forge Execution resource.
+   * device as a Forge Job. Progress and outputs use the Job and its Task.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
@@ -410,7 +410,7 @@ export interface SpaceResourceServiceHandler {
 
   /**
    * BuildSpacePlugin pins the source and queues a native build on a registered
-   * device. Progress and outputs use the existing Forge Execution resource.
+   * device as a Forge Job. Progress and outputs use the Job and its Task.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
@@ -649,7 +649,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
 
   /**
    * BuildSpacePlugin pins the source and queues a native build on a registered
-   * device. Progress and outputs use the existing Forge Execution resource.
+   * device as a Forge Job. Progress and outputs use the Job and its Task.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
