@@ -60,6 +60,7 @@ type manifest struct {
 
 // marshal encodes the manifest into one slot.
 func (m *manifest) marshal() []byte {
+	// Append each field and the slot checksum in fixed order.
 	b := make([]byte, 0, slotSize)
 	b = binary.LittleEndian.AppendUint64(b, m.gen)
 	b = binary.LittleEndian.AppendUint64(b, m.checkpoint)
@@ -72,6 +73,7 @@ func (m *manifest) marshal() []byte {
 
 // unmarshalManifest decodes a slot, reporting false for a torn or empty slot.
 func unmarshalManifest(b []byte) (manifest, bool) {
+	// Reject a slot shorter than the fixed size or with a checksum mismatch.
 	if len(b) < slotSize {
 		return manifest{}, false
 	}
@@ -80,6 +82,8 @@ func unmarshalManifest(b []byte) (manifest, bool) {
 	if crc32.Checksum(body, castagnoli) != sum {
 		return manifest{}, false
 	}
+
+	// Decode the fields and report an all-zero slot as empty.
 	m := manifest{
 		gen:           binary.LittleEndian.Uint64(body[0:]),
 		checkpoint:    binary.LittleEndian.Uint64(body[8:]),
@@ -93,6 +97,7 @@ func unmarshalManifest(b []byte) (manifest, bool) {
 
 // appendRecord appends a log record holding ops at seq.
 func appendRecord(b []byte, seq uint64, ops []memtable.Op) []byte {
+	// Reserve the header and encode each operation's kind and fields.
 	start := len(b)
 	b = append(b, make([]byte, recordHeader)...)
 	for _, op := range ops {
@@ -105,6 +110,8 @@ func appendRecord(b []byte, seq uint64, ops []memtable.Op) []byte {
 		b = appendBytes(b, op.Key)
 		b = appendBytes(b, op.Value)
 	}
+
+	// Fill the reserved header with the body length, sequence, and checksum.
 	header := b[start : start+recordHeader]
 	binary.LittleEndian.PutUint32(header[0:], uint32(len(b)-start-recordHeader)) //nolint:gosec
 	binary.LittleEndian.PutUint64(header[8:], seq)
@@ -116,6 +123,7 @@ func appendRecord(b []byte, seq uint64, ops []memtable.Op) []byte {
 // its operations, and its length. It reports false for a torn, partial, or
 // absent record.
 func readRecord(b []byte) (uint64, []memtable.Op, int, bool) {
+	// Reject a truncated header, an oversized body, or a checksum mismatch.
 	if len(b) < recordHeader {
 		return 0, nil, 0, false
 	}
@@ -127,6 +135,8 @@ func readRecord(b []byte) (uint64, []memtable.Op, int, bool) {
 	if crc32.Checksum(b[8:end], castagnoli) != binary.LittleEndian.Uint32(b[4:]) {
 		return 0, nil, 0, false
 	}
+
+	// Decode each length-prefixed operation in the record body.
 	seq := binary.LittleEndian.Uint64(b[8:])
 	var ops []memtable.Op
 	for body := b[recordHeader:end]; len(body) != 0; {

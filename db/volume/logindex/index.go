@@ -79,6 +79,7 @@ type Index struct {
 // Open recovers the index from dev, creating it when dev has none. ctx
 // bounds the index's background checkpoints until Close.
 func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) {
+	// Apply the default checkpoint size and create the index and its table.
 	if opts.CheckpointBytes <= 0 {
 		opts.CheckpointBytes = defaultCheckpointBytes
 	}
@@ -146,6 +147,7 @@ func Open(ctx context.Context, dev device.Device, opts Options) (*Index, error) 
 // readManifest returns the valid manifest slot with the highest generation,
 // or the empty index's manifest when there is none.
 func readManifest(ctx context.Context, dev device.Device, size int64) (manifest, error) {
+	// Read both slots and keep the valid one with the highest generation.
 	best := manifest{log: 1}
 	for slot := range int64(2) {
 		off := slot * slotSpacing
@@ -166,6 +168,7 @@ func readManifest(ctx context.Context, dev device.Device, size int64) (manifest,
 // loadCheckpoint loads the manifest's checkpoint into the table. The entries
 // alias the file buffer.
 func (i *Index) loadCheckpoint(ctx context.Context) error {
+	// Read the checkpoint file and verify its checksum.
 	b := make([]byte, i.man.checkpointLen)
 	name := fileName(checkpointPrefix, i.man.checkpoint)
 	if err := i.dev.Read(ctx, []device.Read{{Name: name, Offset: 0, Data: b}}); err != nil {
@@ -174,6 +177,8 @@ func (i *Index) loadCheckpoint(ctx context.Context) error {
 	if crc32.Checksum(b, castagnoli) != i.man.checkpointSum {
 		return errors.New("checkpoint checksum mismatch")
 	}
+
+	// Load each length-prefixed key and value into the table.
 	for len(b) != 0 {
 		key, rest, err := readBytes(b)
 		if err != nil {
@@ -192,10 +197,13 @@ func (i *Index) loadCheckpoint(ctx context.Context) error {
 // replayLog applies the records of log file n that continue the sequence,
 // stopping at the first torn or absent record.
 func (i *Index) replayLog(ctx context.Context, n uint64, size int64) error {
+	// Read the whole log file into memory.
 	b := make([]byte, size)
 	if err := i.dev.Read(ctx, []device.Read{{Name: fileName(logPrefix, n), Offset: 0, Data: b}}); err != nil {
 		return errors.Wrap(err, "read log")
 	}
+
+	// Apply each record that continues the sequence until one does not.
 	for {
 		seq, ops, l, ok := readRecord(b)
 		if !ok || seq != i.seq+1 {
@@ -211,6 +219,7 @@ func (i *Index) replayLog(ctx context.Context, n uint64, size int64) error {
 // the log is long enough. Unless ordered is set, a flush barrier precedes the
 // record and the record is flushed.
 func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtable.Op, ordered bool) error {
+	// Reserve the next sequence and log position under the index lock.
 	i.mtx.Lock()
 	seq, log, off, err := i.seq+1, i.log, i.logSize, i.err
 	i.mtx.Unlock()
@@ -252,6 +261,8 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 	}
 	log = i.log
 	i.mtx.Unlock()
+
+	// Return without a checkpoint when this commit did not start one.
 	if !start {
 		return nil
 	}
@@ -275,6 +286,7 @@ func (i *Index) commit(ctx context.Context, next memtable.Snapshot, ops []memtab
 // checkpoint number log, then a manifest naming it with log as the first log to
 // replay, and removes the files that manifest replaces.
 func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, log uint64) error {
+	// Clear the checkpointing flag when the checkpoint finishes.
 	defer func() {
 		i.mtx.Lock()
 		i.checkpointing = false
@@ -286,7 +298,10 @@ func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, lo
 	sum := crc32.New(castagnoli)
 	var off int64
 	var buf []byte
+
+	// Write one chunk and advance the checksum and offset.
 	flushChunk := func(flush bool) error {
+		// Checksum the chunk and write it at the current offset.
 		_, _ = sum.Write(buf)
 		w := device.Write{Name: name, Offset: off, Data: buf}
 		if err := i.dev.Write(ctx, []device.Write{w}, flush); err != nil {
@@ -296,6 +311,8 @@ func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, lo
 		buf = buf[:0]
 		return nil
 	}
+
+	// Stream the table's entries into chunked checkpoint writes.
 	var err error
 	table.Scan(func(key, value []byte) bool {
 		buf = appendBytes(buf, key)
@@ -316,6 +333,8 @@ func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, lo
 	i.mtx.Lock()
 	prev := i.man
 	i.mtx.Unlock()
+
+	// Encode the new manifest and write it to the free slot.
 	m := manifest{
 		gen:           prev.gen + 1,
 		checkpoint:    log,
@@ -329,6 +348,8 @@ func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, lo
 	if err := i.dev.Write(ctx, []device.Write{w}, true); err != nil {
 		return errors.Wrap(err, "write manifest")
 	}
+
+	// Retain the written manifest under the index lock.
 	i.mtx.Lock()
 	i.man = m
 	i.mtx.Unlock()
