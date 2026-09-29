@@ -75,6 +75,7 @@ func (s *InmemStorage) DeleteVolume(id string) error {
 // openVolume leases the store for the volume id, creating it when absent and
 // waiting while another volume holds it. The returned release ends the lease.
 func (s *InmemStorage) openVolume(ctx context.Context, id string) (store_kvtx.Store, func(), error) {
+	// Find or create the volume entry under the store lock.
 	s.mtx.Lock()
 	vol := s.volumes[id]
 	if vol == nil {
@@ -83,6 +84,7 @@ func (s *InmemStorage) openVolume(ctx context.Context, id string) (store_kvtx.St
 	}
 	s.mtx.Unlock()
 
+	// Lease the volume so concurrent openers serialize on its store.
 	release, err := vol.lease.Lock(ctx)
 	if err != nil {
 		return nil, nil, err

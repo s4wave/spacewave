@@ -19,6 +19,7 @@ import (
 // TestVolumeRestart checks that a restarted volume controller reopens the
 // volume's identity and data, and that DeleteVolume drops them.
 func TestVolumeRestart(t *testing.T) {
+	// Bound the test and build the core bus with the in-memory storage attached.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 	le := logrus.NewEntry(logrus.New())
@@ -26,6 +27,8 @@ func TestVolumeRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Attach the in-memory storage and its storage controller to the bus.
 	st := NewInmemStorage("test")
 	st.AddFactories(b, sr)
 	info := controller.NewInfo(ControllerID, Version, "")
@@ -35,6 +38,7 @@ func TestVolumeRestart(t *testing.T) {
 	}
 	t.Cleanup(release)
 
+	// Start the volume, record its peer id, and write one synced block.
 	vol, stop := startTestVolume(ctx, t, b, st)
 	peerID := vol.GetPeerID()
 	ref, _, err := vol.PutBlock(ctx, []byte("kept"), &block.PutOpts{Sync: true})
@@ -43,6 +47,7 @@ func TestVolumeRestart(t *testing.T) {
 	}
 	stop()
 
+	// Restart the volume and assert it keeps its peer id and block.
 	vol, stop = startTestVolume(ctx, t, b, st)
 	if got := vol.GetPeerID(); got != peerID {
 		t.Fatalf("restarted peer id = %s, want %s", got, peerID)
@@ -56,6 +61,7 @@ func TestVolumeRestart(t *testing.T) {
 	}
 	stop()
 
+	// Delete the volume and assert a fresh volume gets a new peer id.
 	if err := st.DeleteVolume("vol"); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +75,10 @@ func TestVolumeRestart(t *testing.T) {
 // startTestVolume runs a volume controller for the volume "vol" and returns
 // its volume with a function that stops the controller.
 func startTestVolume(ctx context.Context, t *testing.T, b bus.Bus, st *InmemStorage) (volume.Volume, func()) {
+	// Mark the helper and build the volume config and its controller.
 	t.Helper()
+
+	// Build the volume config and construct its controller.
 	conf, err := st.BuildVolumeConfig("vol", &volume_controller.Config{GcIntervalDur: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +87,8 @@ func startTestVolume(ctx context.Context, t *testing.T, b bus.Bus, st *InmemStor
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Add the controller to the bus and wait for its volume.
 	release, err := b.AddController(ctx, ctrl, nil)
 	if err != nil {
 		t.Fatal(err)

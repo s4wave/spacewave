@@ -99,12 +99,14 @@ func (f *VolumeFactory) GetVersion() controller.Version {
 // openVolume finds the InmemStorage named by conf and opens the volume over
 // its leased store. Closing the volume ends the lease.
 func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (volume.Volume, error) {
+	// Resolve the storage reference named by the volume config.
 	storages, _, ref, err := storage.ExLookupStorage(ctx, f.b, conf.GetStorageId(), true)
 	if err != nil {
 		return nil, err
 	}
 	ref.Release()
 
+	// Select the InmemStorage implementation from the resolved candidates.
 	var st *InmemStorage
 	for _, candidate := range storages {
 		if inmem, ok := candidate.(*InmemStorage); ok {
@@ -116,6 +118,7 @@ func (f *VolumeFactory) openVolume(ctx context.Context, conf *VolumeConfig) (vol
 		return nil, errors.Errorf("no in-memory storage with id %q", conf.GetStorageId())
 	}
 
+	// Lease the in-memory volume's store for the new volume.
 	store, release, err := st.openVolume(ctx, conf.GetStorageVolumeId())
 	if err != nil {
 		return nil, err
