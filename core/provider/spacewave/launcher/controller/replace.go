@@ -56,25 +56,22 @@ func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
 	return stagedPath, nil
 }
 
-// prepareDaemonUpdate rechecks the selected CLI artifact before the launcher
-// publishes acceptance to the daemon's independent serving lifetime.
-func (c *Controller) prepareDaemonUpdate() (*spacewave_launcher.UpdateState, error) {
-	// Require the separately selected daemon artifact and its signed manifest.
+// prepareDaemonUpdate rechecks the selected daemon executable before the
+// launcher publishes acceptance to the daemon's independent serving lifetime.
+func (c *Controller) prepareDaemonUpdate(ctx context.Context) (*spacewave_launcher.UpdateState, error) {
+	// Require the separately selected daemon artifact.
 	info := c.launcherInfoCtr.GetValue()
 	if info == nil {
 		return nil, errors.New("launcher info not available")
 	}
 	state := info.GetDaemonUpdateState()
+	stagedPath := state.GetStagedPath()
 	if state.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON ||
 		(state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED &&
 			state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR) ||
-		state.GetArtifactManifestId() != cliEntrypointManifestID ||
-		state.GetStagedPath() == "" ||
-		state.GetStagedPath() != info.GetFetchStatus().GetSelectedCliBinaryPath() {
+		stagedPath == "" {
 		return nil, errors.New("no staged daemon update available")
 	}
-
-	// Recheck the selected path inside its version-specific CLI checkout.
 	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
 		return nil, err
@@ -83,11 +80,33 @@ func (c *Controller) prepareDaemonUpdate() (*spacewave_launcher.UpdateState, err
 	if err != nil {
 		return nil, err
 	}
-	cliDistPath := filepath.Join(stageRoot, "cli-dist")
-	if err := verifyStagedCLIEntrypoint(stageRoot, cliDistPath, state.GetStagedPath()); err != nil {
-		return nil, err
+
+	// Recheck the executable inside the checkout of its selected manifest.
+	fetch := info.GetFetchStatus()
+	switch state.GetArtifactManifestId() {
+	case cliEntrypointManifestID:
+		if stagedPath != fetch.GetSelectedCliBinaryPath() {
+			return nil, errors.New("no staged daemon update available")
+		}
+		if err := verifyStagedExecutable(stageRoot, filepath.Join(stageRoot, "cli-dist"), stagedPath); err != nil {
+			return nil, err
+		}
+	case fetch.GetSelectedEntrypointManifestId():
+		bundle, appPath := appbundle.Detect(stagedPath)
+		if !bundle {
+			return nil, errors.New("staged daemon executable is outside an app bundle")
+		}
+		distPath := filepath.Join(stageRoot, "dist")
+		if err := verifyStagedExecutable(stageRoot, distPath, stagedPath); err != nil {
+			return nil, err
+		}
+		if err := c.verifyStagedReleaseEntrypoint(ctx, fetch.GetSelectedEntrypointPlatformId(), stageRoot, appPath); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("no staged daemon update available")
 	}
-	digest, err := stagedExecutableSHA256(state.GetStagedPath())
+	digest, err := stagedExecutableSHA256(stagedPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "hash staged daemon executable")
 	}

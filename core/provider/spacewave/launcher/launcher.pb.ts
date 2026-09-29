@@ -68,6 +68,7 @@ export enum DistConfigSource {
 export const DistConfigSource_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.DistConfigSource',
   DistConfigSource,
+  'DIST_CONFIG_SOURCE_',
 )
 
 /**
@@ -150,6 +151,7 @@ export enum ReleaseMetadataOutcome {
 export const ReleaseMetadataOutcome_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.ReleaseMetadataOutcome',
   ReleaseMetadataOutcome,
+  'RELEASE_METADATA_OUTCOME_',
 )
 
 /**
@@ -197,6 +199,7 @@ export enum UpdatePhase {
 export const UpdatePhase_Enum = /* @__PURE__ */ createEnumType(
   'spacewave.launcher.UpdatePhase',
   UpdatePhase,
+  'UPDATE_PHASE_',
 )
 
 /**
@@ -583,6 +586,43 @@ export const FetchStatus: MessageType<FetchStatus> =
   })
 
 /**
+ * DaemonUpdateWait reports the work keeping an accepted daemon update from
+ * its handoff. The desktop shell is not counted: the handoff reopens it.
+ *
+ * @generated from message spacewave.launcher.DaemonUpdateWait
+ */
+export interface DaemonUpdateWait {
+  /**
+   * OtherClients is the number of connected daemon clients.
+   *
+   * @generated from field: uint32 other_clients = 1;
+   */
+  otherClients?: number
+  /**
+   * OtherServices is the number of persistent services besides the desktop.
+   *
+   * @generated from field: uint32 other_services = 2;
+   */
+  otherServices?: number
+  /**
+   * RestartNow asks the daemon to hand off without waiting for other work.
+   *
+   * @generated from field: bool restart_now = 3;
+   */
+  restartNow?: boolean
+}
+
+export const DaemonUpdateWait: MessageType<DaemonUpdateWait> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.DaemonUpdateWait',
+    fields: [
+      { no: 1, name: 'other_clients', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'other_services', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'restart_now', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * LauncherInfo contains information about the state of the launcher.
  *
  * @generated from message spacewave.launcher.LauncherInfo
@@ -613,6 +653,12 @@ export interface LauncherInfo {
    * @generated from field: spacewave.launcher.UpdateState daemon_update_state = 4;
    */
   daemonUpdateState?: UpdateState
+  /**
+   * DaemonUpdateWait describes an accepted daemon update waiting for other work.
+   *
+   * @generated from field: spacewave.launcher.DaemonUpdateWait daemon_update_wait = 5;
+   */
+  daemonUpdateWait?: DaemonUpdateWait
 }
 
 export const LauncherInfo: MessageType<LauncherInfo> =
@@ -623,8 +669,98 @@ export const LauncherInfo: MessageType<LauncherInfo> =
       { no: 2, name: 'update_state', kind: 'message', T: UpdateState },
       { no: 3, name: 'fetch_status', kind: 'message', T: FetchStatus },
       { no: 4, name: 'daemon_update_state', kind: 'message', T: UpdateState },
+      {
+        no: 5,
+        name: 'daemon_update_wait',
+        kind: 'message',
+        T: DaemonUpdateWait,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * ReportDaemonUpdateWaitRequest identifies the accepted selection and its wait.
+ *
+ * @generated from message spacewave.launcher.ReportDaemonUpdateWaitRequest
+ */
+export interface ReportDaemonUpdateWaitRequest {
+  /**
+   * Selection is the APPLYING state observed by the serving daemon.
+   *
+   * @generated from field: spacewave.launcher.UpdateState selection = 1;
+   */
+  selection?: UpdateState
+  /**
+   * OtherClients is the number of connected daemon clients.
+   *
+   * @generated from field: uint32 other_clients = 2;
+   */
+  otherClients?: number
+  /**
+   * OtherServices is the number of persistent services besides the desktop.
+   *
+   * @generated from field: uint32 other_services = 3;
+   */
+  otherServices?: number
+}
+
+export const ReportDaemonUpdateWaitRequest: MessageType<ReportDaemonUpdateWaitRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ReportDaemonUpdateWaitRequest',
+    fields: [
+      { no: 1, name: 'selection', kind: 'message', T: UpdateState },
+      { no: 2, name: 'other_clients', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'other_services', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReportDaemonUpdateWaitResponse says whether the current selection was updated.
+ *
+ * @generated from message spacewave.launcher.ReportDaemonUpdateWaitResponse
+ */
+export interface ReportDaemonUpdateWaitResponse {
+  /**
+   * Reported is false if the accepted selection has already changed.
+   *
+   * @generated from field: bool reported = 1;
+   */
+  reported?: boolean
+}
+
+export const ReportDaemonUpdateWaitResponse: MessageType<ReportDaemonUpdateWaitResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.launcher.ReportDaemonUpdateWaitResponse',
+    fields: [
+      { no: 1, name: 'reported', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * RestartDaemonUpdateNowRequest asks the waiting daemon update to proceed.
+ *
+ * @generated from message spacewave.launcher.RestartDaemonUpdateNowRequest
+ */
+export interface RestartDaemonUpdateNowRequest {}
+
+export const RestartDaemonUpdateNowRequest: MessageType<RestartDaemonUpdateNowRequest> =
+  /* @__PURE__ */ createEmptyMessageType<RestartDaemonUpdateNowRequest>(
+    'spacewave.launcher.RestartDaemonUpdateNowRequest',
+    true,
+  )
+
+/**
+ * RestartDaemonUpdateNowResponse is returned once the request is published.
+ *
+ * @generated from message spacewave.launcher.RestartDaemonUpdateNowResponse
+ */
+export interface RestartDaemonUpdateNowResponse {}
+
+export const RestartDaemonUpdateNowResponse: MessageType<RestartDaemonUpdateNowResponse> =
+  /* @__PURE__ */ createEmptyMessageType<RestartDaemonUpdateNowResponse>(
+    'spacewave.launcher.RestartDaemonUpdateNowResponse',
+    true,
+  )
 
 /**
  * ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.

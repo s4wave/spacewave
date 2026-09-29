@@ -73,7 +73,7 @@ func (l *LauncherServer) ApplyUpdate(
 			}
 			return &desktop_update.ApplyUpdateResponse{}, nil
 		}
-		state, err := l.c.prepareDaemonUpdate()
+		state, err := l.c.prepareDaemonUpdate(ctx)
 		if err != nil {
 			l.c.setDaemonUpdateError(err)
 			return nil, err
@@ -118,6 +118,29 @@ func (l *LauncherServer) ClaimDaemonUpdate(
 	return &spacewave_launcher.ClaimDaemonUpdateResponse{
 		Claimed: l.c.claimAcceptedDaemonUpdate(req.GetSelection()),
 	}, nil
+}
+
+// ReportDaemonUpdateWait publishes the work an accepted daemon update waits
+// for. The selection comparison rejects reports from an older acceptance.
+func (l *LauncherServer) ReportDaemonUpdateWait(
+	_ context.Context,
+	req *spacewave_launcher.ReportDaemonUpdateWaitRequest,
+) (*spacewave_launcher.ReportDaemonUpdateWaitResponse, error) {
+	return &spacewave_launcher.ReportDaemonUpdateWaitResponse{
+		Reported: l.c.setDaemonUpdateWait(req.GetSelection(), req.GetOtherClients(), req.GetOtherServices()),
+	}, nil
+}
+
+// RestartDaemonUpdateNow asks the waiting daemon to hand off without waiting
+// for its other clients and services.
+func (l *LauncherServer) RestartDaemonUpdateNow(
+	context.Context,
+	*spacewave_launcher.RestartDaemonUpdateNowRequest,
+) (*spacewave_launcher.RestartDaemonUpdateNowResponse, error) {
+	if err := l.c.setDaemonUpdateRestartNow(); err != nil {
+		return nil, err
+	}
+	return &spacewave_launcher.RestartDaemonUpdateNowResponse{}, nil
 }
 
 // _ is a type assertion

@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	"github.com/s4wave/spacewave/core/daemon"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -21,16 +22,22 @@ import (
 type daemonUpdateHandoff struct {
 	selected string
 	fallback string
+	// reopen reopens the desktop shell closed by the handoff, if any.
+	reopen *desktop_control.OpenOrFocusDesktopRequest
 }
 
 // watchDaemonUpdate retains accepted intent beyond its short launcher RPC.
-// A disposed launcher service is reacquired through its bus owner directive.
+// While an accepted update waits for other clients and services, it reports
+// them to the launcher and claims the handoff when they finish or the user
+// asks to restart now. A disposed launcher service is reacquired through its
+// bus owner directive.
 func watchDaemonUpdate(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	statePath string,
 	idle *daemonIdleTracker,
+	desktop *daemonDesktopControl,
 ) (*daemonUpdateHandoff, error) {
 	const ownerRPCTimeout = 5 * time.Second
 	for {
@@ -69,58 +76,113 @@ func watchDaemonUpdate(
 		}
 		le.Info("daemon update watcher attached to launcher state")
 
-		// The stream starts with the owner's current snapshot, so an acceptance
-		// preceding registration is still observed.
-		var observed *spacewave_launcher.UpdateState
-		var handoff *daemonUpdateHandoff
-		var watchErr error
-		for {
-			info, recvErr := stream.Recv()
-			if recvErr != nil {
-				watchErr = recvErr
-				break
+		// Receive launcher snapshots alongside idle tracker changes. The stream
+		// starts with the owner's current snapshot, so an acceptance preceding
+		// registration is still observed.
+		infos := make(chan *spacewave_launcher.LauncherInfo)
+		recvErr := make(chan error, 1)
+		go func() {
+			for {
+				info, err := stream.Recv()
+				if err != nil {
+					recvErr <- err
+					return
+				}
+				select {
+				case infos <- info:
+				case <-serviceCtx.Done():
+					return
+				}
 			}
-			observed = info.GetDaemonUpdateState().CloneVT()
-			if observed.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
-				continue
-			}
+		}()
 
-			le.Info("daemon update accepted; preparing selected and fallback CLI artifacts")
-			handoff, err = prepareDaemonUpdateHandoff(statePath, observed)
-			if err != nil {
-				failure := errors.Wrap(err, "prepare accepted daemon update")
-				reportCtx, reportCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
-				response, reportErr := client.ReportDaemonUpdateFailure(reportCtx, &spacewave_launcher.ReportDaemonUpdateFailureRequest{
-					Selection:    observed,
-					ErrorMessage: failure.Error(),
-				})
-				reportCancel()
-				if reportErr != nil {
-					watchErr = errors.Wrapf(reportErr, "report daemon update failure (%v)", failure)
+		var observed *spacewave_launcher.UpdateState
+		var prepared, handoff *daemonUpdateHandoff
+		var restartNow bool
+		var reported *daemonIdleSnapshot
+		var watchErr error
+		for handoff == nil && watchErr == nil {
+			// Claim the handoff once the other work finishes or restart is requested.
+			var idleChanged <-chan struct{}
+			if prepared != nil {
+				claimed, others, changed := idle.claimDaemonUpdate(restartNow)
+				if claimed {
+					handoff = prepared
+					if others.desktop {
+						handoff.reopen = desktop.reopenRequest()
+					}
+					claimCtx, claimCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
+					resp, claimErr := client.ClaimDaemonUpdate(claimCtx, &spacewave_launcher.ClaimDaemonUpdateRequest{Selection: observed})
+					claimCancel()
+					if claimErr != nil || !resp.GetClaimed() {
+						le.WithError(claimErr).Warn("launcher could not record daemon update claim")
+					}
+					le.WithField("restart-now", restartNow).Info("daemon update claimed; draining old listener")
 					break
 				}
-				if response.GetReported() {
-					le.WithError(failure).Warn("daemon update rejected before idle claim")
+				if others.stopping {
+					watchErr = errors.New("daemon stopped before update handoff")
+					break
 				}
-				continue
-			}
-			le.Info("daemon update waiting for all clients and services to finish")
-			if !idle.waitDaemonUpdate(ctx) {
-				if err := ctx.Err(); err != nil {
-					watchErr = err
-				} else {
-					watchErr = errors.New("daemon stopped before update reached idle")
+				idleChanged = changed
+
+				// Publish the other work the handoff waits for.
+				if reported == nil || reported.clients != others.clients || reported.services != others.services {
+					reportCtx, reportCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
+					_, reportErr := client.ReportDaemonUpdateWait(reportCtx, &spacewave_launcher.ReportDaemonUpdateWaitRequest{
+						Selection:     observed,
+						OtherClients:  uint32(others.clients),  // #nosec G115 -- hold counts are non-negative
+						OtherServices: uint32(others.services), // #nosec G115 -- hold counts are non-negative
+					})
+					reportCancel()
+					if reportErr != nil {
+						le.WithError(reportErr).Warn("could not report daemon update wait")
+					}
+					reported = &others
 				}
-				break
 			}
-			claimCtx, claimCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
-			claimed, claimErr := client.ClaimDaemonUpdate(claimCtx, &spacewave_launcher.ClaimDaemonUpdateRequest{Selection: observed})
-			claimCancel()
-			if claimErr != nil || !claimed.GetClaimed() {
-				le.WithError(claimErr).Warn("launcher could not record daemon idle claim")
+
+			select {
+			case <-ctx.Done():
+				watchErr = ctx.Err()
+			case err := <-recvErr:
+				watchErr = err
+			case <-idleChanged:
+			case info := <-infos:
+				state := info.GetDaemonUpdateState()
+				if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+					observed, prepared, restartNow, reported = state.CloneVT(), nil, false, nil
+					continue
+				}
+				restartNow = info.GetDaemonUpdateWait().GetRestartNow()
+				if prepared != nil && state.EqualVT(observed) {
+					continue
+				}
+
+				// Prepare both executables before waiting for the handoff.
+				observed, prepared, reported = state.CloneVT(), nil, nil
+				le.Info("daemon update accepted; preparing selected and fallback executables")
+				next, err := prepareDaemonUpdateHandoff(statePath, observed)
+				if err != nil {
+					failure := errors.Wrap(err, "prepare accepted daemon update")
+					reportCtx, reportCancel := context.WithTimeout(serviceCtx, ownerRPCTimeout)
+					response, reportErr := client.ReportDaemonUpdateFailure(reportCtx, &spacewave_launcher.ReportDaemonUpdateFailureRequest{
+						Selection:    observed,
+						ErrorMessage: failure.Error(),
+					})
+					reportCancel()
+					if reportErr != nil {
+						watchErr = errors.Wrapf(reportErr, "report daemon update failure (%v)", failure)
+						break
+					}
+					if response.GetReported() {
+						le.WithError(failure).Warn("daemon update rejected before handoff claim")
+					}
+					continue
+				}
+				prepared = next
+				le.Info("daemon update waiting for other clients and services to finish")
 			}
-			le.Info("daemon update claimed full idle; draining old listener")
-			break
 		}
 
 		// A failed stream may have missed acceptance. Report against the last
@@ -139,7 +201,7 @@ func watchDaemonUpdate(
 		_ = stream.Close()
 		ref.Release()
 		serviceCancel()
-		if handoff != nil && watchErr == nil {
+		if handoff != nil {
 			return handoff, nil
 		}
 		if ctx.Err() != nil {
@@ -154,7 +216,23 @@ func watchDaemonUpdate(
 	}
 }
 
-// prepareDaemonUpdateHandoff preserves the running CLI before claiming idle.
+// reopenDesktop asks the replacement daemon to open the desktop shell that
+// the handoff closed. It never starts another daemon.
+func reopenDesktop(ctx context.Context, statePath string, req *desktop_control.OpenOrFocusDesktopRequest) error {
+	connector := daemon.NewConnector(nil, func(context.Context, string) error {
+		return errors.New("replacement daemon is not running")
+	})
+	client, err := connector.Connect(ctx, statePath, "")
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	_, err = desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(ctx, req)
+	return err
+}
+
+// prepareDaemonUpdateHandoff preserves the running executable before the
+// handoff claim.
 func prepareDaemonUpdateHandoff(statePath string, selected *spacewave_launcher.UpdateState) (*daemonUpdateHandoff, error) {
 	oldSource, err := os.Executable()
 	if err != nil {

@@ -227,7 +227,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 		return err
 	}
 	if cliManifestRef != nil {
-		if err := verifyStagedCLIEntrypoint(stageRoot, cliDistPath, cliStagedPath); err != nil {
+		if err := verifyStagedExecutable(stageRoot, cliDistPath, cliStagedPath); err != nil {
 			return err
 		}
 		if err := c.writeManagedCLIReleaseSidecar(stagingDir, metadata, cliManifestRef, cliStagedPath); err != nil {
@@ -237,18 +237,8 @@ func (c *Controller) stageReleaseManifestUpdate(
 
 	// Publish each selected target only after its own artifact is verified.
 	c.setSelectedCLIManifestRef(cliManifestRef, cliStagedPath)
-	if cliManifestRef != nil {
-		currentCLI, err := c.stagedDaemonReleaseIsCurrent(cliStagedPath)
-		if err != nil {
-			return err
-		}
-		if !currentCLI {
-			digest, err := stagedExecutableSHA256(cliStagedPath)
-			if err != nil {
-				return errors.Wrap(err, "hash staged daemon executable")
-			}
-			c.setDaemonUpdateStaged(metadata.GetVersion(), cliStagedPath, digest)
-		}
+	if err := c.stageDaemonUpdate(metadata.GetVersion(), manifestRef.GetMeta().GetManifestId(), stageRoot, distPath, stagedPath, cliStagedPath); err != nil {
+		return err
 	}
 	// The daemon cannot identify Electron's installed app. Its executable
 	// bytes must never suppress the separately selected desktop artifact.
@@ -301,9 +291,10 @@ func (c *Controller) setUpdateStaged(version, stagedPath string) {
 	c.setReleaseMetadataOutcome(spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED)
 }
 
-// setDaemonUpdateStaged identifies the verified CLI artifact separately from
-// the installed app. A later release cannot replace an accepted handoff.
-func (c *Controller) setDaemonUpdateStaged(version, stagedPath, sha256 string) {
+// setDaemonUpdateStaged identifies the verified daemon executable and the
+// manifest that carries it, separately from the installed-app target. A later
+// release cannot replace an accepted handoff.
+func (c *Controller) setDaemonUpdateStaged(version, manifestID, stagedPath, sha256 string) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		if info.GetDaemonUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
 			return false, nil
@@ -315,7 +306,7 @@ func (c *Controller) setDaemonUpdateStaged(version, stagedPath, sha256 string) {
 			StagedPath:         stagedPath,
 			StagedSha256:       sha256,
 			Target:             desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON,
-			ArtifactManifestId: cliEntrypointManifestID,
+			ArtifactManifestId: manifestID,
 		}
 		return true, nil
 	})
@@ -433,13 +424,13 @@ func prepareReleaseStagingRoot(stagingDir string, stageRoot string, checkoutRoot
 	return nil
 }
 
-// verifyStagedCLIEntrypoint requires a regular executable inside its checkout.
-func verifyStagedCLIEntrypoint(stageRoot string, cliDistPath string, stagedPath string) error {
+// verifyStagedExecutable requires a regular executable inside its checkout.
+func verifyStagedExecutable(stageRoot string, distPath string, stagedPath string) error {
 	if err := requireDirectoryNotSymlink(stageRoot, "release staging root"); err != nil {
 		_ = os.RemoveAll(stageRoot)
 		return err
 	}
-	if err := requireDirectoryNotSymlink(cliDistPath, "staged cli dist root"); err != nil {
+	if err := requireDirectoryNotSymlink(distPath, "staged dist root"); err != nil {
 		_ = os.RemoveAll(stageRoot)
 		return err
 	}
@@ -447,7 +438,7 @@ func verifyStagedCLIEntrypoint(stageRoot string, cliDistPath string, stagedPath 
 		_ = os.RemoveAll(stageRoot)
 		return err
 	}
-	if err := verifyNoSymlinkPath(cliDistPath, stagedPath); err != nil {
+	if err := verifyNoSymlinkPath(distPath, stagedPath); err != nil {
 		_ = os.RemoveAll(stageRoot)
 		return err
 	}
@@ -455,24 +446,24 @@ func verifyStagedCLIEntrypoint(stageRoot string, cliDistPath string, stagedPath 
 	// Reject non-file entrypoints without following the final path component.
 	stagedInfo, err := os.Lstat(stagedPath)
 	if err != nil {
-		return errors.Wrap(err, "stat staged cli entrypoint")
+		return errors.Wrap(err, "stat staged executable")
 	}
 	if stagedInfo.Mode()&os.ModeSymlink != 0 {
 		_ = os.RemoveAll(stageRoot)
-		return errors.New("staged cli entrypoint must not be a symlink")
+		return errors.New("staged executable must not be a symlink")
 	}
 	if stagedInfo.IsDir() {
 		_ = os.RemoveAll(stageRoot)
-		return errors.New("staged cli entrypoint must be a file")
+		return errors.New("staged executable must be a file")
 	}
 	if !stagedInfo.Mode().IsRegular() {
 		_ = os.RemoveAll(stageRoot)
-		return errors.New("staged cli entrypoint must be a regular file")
+		return errors.New("staged executable must be a regular file")
 	}
 
 	// Grant executable permissions only after validating the complete path.
 	if err := os.Chmod(stagedPath, 0o755); err != nil {
-		return errors.Wrap(err, "chmod staged cli entrypoint")
+		return errors.Wrap(err, "chmod staged executable")
 	}
 	return nil
 }
@@ -521,14 +512,14 @@ func validateDirectoryNotSymlink(info os.FileInfo, label string) error {
 	return nil
 }
 
-// verifyNoSymlinkPath rejects symlinks in the entrypoint parent chain.
+// verifyNoSymlinkPath rejects symlinks in a staged path's parent chain.
 func verifyNoSymlinkPath(rootPath string, filePath string) error {
 	rel, err := filepath.Rel(rootPath, filePath)
 	if err != nil {
 		return err
 	}
 	if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return errors.New("staged cli entrypoint escapes cli dist root")
+		return errors.New("staged path escapes its checkout root")
 	}
 
 	// Inspect every parent component without resolving symlinks.
@@ -541,13 +532,13 @@ func verifyNoSymlinkPath(rootPath string, filePath string) error {
 		dir = filepath.Join(dir, elem)
 		info, err := os.Lstat(dir)
 		if err != nil {
-			return errors.Wrap(err, "stat staged cli entrypoint parent")
+			return errors.Wrap(err, "stat staged path parent")
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
-			return errors.New("staged cli entrypoint parent must not be a symlink")
+			return errors.New("staged path parent must not be a symlink")
 		}
 		if !info.IsDir() {
-			return errors.New("staged cli entrypoint parent must be a directory")
+			return errors.New("staged path parent must be a directory")
 		}
 	}
 	return nil

@@ -15,6 +15,6 @@ func (c *Controller) prepareAppUpdate(ctx context.Context) (string, error) {
 }
 
 // prepareDaemonUpdate is not supported in browser environments.
-func (c *Controller) prepareDaemonUpdate() (*spacewave_launcher.UpdateState, error) {
+func (c *Controller) prepareDaemonUpdate(ctx context.Context) (*spacewave_launcher.UpdateState, error) {
 	return nil, errors.New("daemon update not supported in browser")
 }

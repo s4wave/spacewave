@@ -257,6 +257,8 @@ type LauncherInfo struct {
 	FetchStatus *FetchStatus `protobuf:"bytes,3,opt,name=fetch_status,json=fetchStatus,proto3" json:"fetchStatus,omitempty"`
 	// DaemonUpdateState describes the separately staged daemon artifact.
 	DaemonUpdateState *UpdateState `protobuf:"bytes,4,opt,name=daemon_update_state,json=daemonUpdateState,proto3" json:"daemonUpdateState,omitempty"`
+	// DaemonUpdateWait describes an accepted daemon update waiting for other work.
+	DaemonUpdateWait *DaemonUpdateWait `protobuf:"bytes,5,opt,name=daemon_update_wait,json=daemonUpdateWait,proto3" json:"daemonUpdateWait,omitempty"`
 }
 
 func (x *LauncherInfo) Reset() {
@@ -291,6 +293,52 @@ func (x *LauncherInfo) GetDaemonUpdateState() *UpdateState {
 		return x.DaemonUpdateState
 	}
 	return nil
+}
+
+func (x *LauncherInfo) GetDaemonUpdateWait() *DaemonUpdateWait {
+	if x != nil {
+		return x.DaemonUpdateWait
+	}
+	return nil
+}
+
+// DaemonUpdateWait reports the work keeping an accepted daemon update from
+// its handoff. The desktop shell is not counted: the handoff reopens it.
+type DaemonUpdateWait struct {
+	unknownFields []byte
+	// OtherClients is the number of connected daemon clients.
+	OtherClients uint32 `protobuf:"varint,1,opt,name=other_clients,json=otherClients,proto3" json:"otherClients,omitempty"`
+	// OtherServices is the number of persistent services besides the desktop.
+	OtherServices uint32 `protobuf:"varint,2,opt,name=other_services,json=otherServices,proto3" json:"otherServices,omitempty"`
+	// RestartNow asks the daemon to hand off without waiting for other work.
+	RestartNow bool `protobuf:"varint,3,opt,name=restart_now,json=restartNow,proto3" json:"restartNow,omitempty"`
+}
+
+func (x *DaemonUpdateWait) Reset() {
+	*x = DaemonUpdateWait{}
+}
+
+func (*DaemonUpdateWait) ProtoMessage() {}
+
+func (x *DaemonUpdateWait) GetOtherClients() uint32 {
+	if x != nil {
+		return x.OtherClients
+	}
+	return 0
+}
+
+func (x *DaemonUpdateWait) GetOtherServices() uint32 {
+	if x != nil {
+		return x.OtherServices
+	}
+	return 0
+}
+
+func (x *DaemonUpdateWait) GetRestartNow() bool {
+	if x != nil {
+		return x.RestartNow
+	}
+	return false
 }
 
 // FetchStatus describes the launcher's DistConfig fetch and Release World
@@ -582,6 +630,86 @@ func (x *UpdateState) GetStagedSha256() string {
 	return ""
 }
 
+// ReportDaemonUpdateWaitRequest identifies the accepted selection and its wait.
+type ReportDaemonUpdateWaitRequest struct {
+	unknownFields []byte
+	// Selection is the APPLYING state observed by the serving daemon.
+	Selection *UpdateState `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+	// OtherClients is the number of connected daemon clients.
+	OtherClients uint32 `protobuf:"varint,2,opt,name=other_clients,json=otherClients,proto3" json:"otherClients,omitempty"`
+	// OtherServices is the number of persistent services besides the desktop.
+	OtherServices uint32 `protobuf:"varint,3,opt,name=other_services,json=otherServices,proto3" json:"otherServices,omitempty"`
+}
+
+func (x *ReportDaemonUpdateWaitRequest) Reset() {
+	*x = ReportDaemonUpdateWaitRequest{}
+}
+
+func (*ReportDaemonUpdateWaitRequest) ProtoMessage() {}
+
+func (x *ReportDaemonUpdateWaitRequest) GetSelection() *UpdateState {
+	if x != nil {
+		return x.Selection
+	}
+	return nil
+}
+
+func (x *ReportDaemonUpdateWaitRequest) GetOtherClients() uint32 {
+	if x != nil {
+		return x.OtherClients
+	}
+	return 0
+}
+
+func (x *ReportDaemonUpdateWaitRequest) GetOtherServices() uint32 {
+	if x != nil {
+		return x.OtherServices
+	}
+	return 0
+}
+
+// ReportDaemonUpdateWaitResponse says whether the current selection was updated.
+type ReportDaemonUpdateWaitResponse struct {
+	unknownFields []byte
+	// Reported is false if the accepted selection has already changed.
+	Reported bool `protobuf:"varint,1,opt,name=reported,proto3" json:"reported,omitempty"`
+}
+
+func (x *ReportDaemonUpdateWaitResponse) Reset() {
+	*x = ReportDaemonUpdateWaitResponse{}
+}
+
+func (*ReportDaemonUpdateWaitResponse) ProtoMessage() {}
+
+func (x *ReportDaemonUpdateWaitResponse) GetReported() bool {
+	if x != nil {
+		return x.Reported
+	}
+	return false
+}
+
+// RestartDaemonUpdateNowRequest asks the waiting daemon update to proceed.
+type RestartDaemonUpdateNowRequest struct {
+	unknownFields []byte
+}
+
+func (x *RestartDaemonUpdateNowRequest) Reset() {
+	*x = RestartDaemonUpdateNowRequest{}
+}
+
+func (*RestartDaemonUpdateNowRequest) ProtoMessage() {}
+
+// RestartDaemonUpdateNowResponse is returned once the request is published.
+type RestartDaemonUpdateNowResponse struct {
+	unknownFields []byte
+}
+
+func (x *RestartDaemonUpdateNowResponse) Reset() {
+	*x = RestartDaemonUpdateNowResponse{}
+}
+
+func (*RestartDaemonUpdateNowResponse) ProtoMessage() {}
+
 // ClaimDaemonUpdateRequest identifies the accepted selection claimed by the daemon.
 type ClaimDaemonUpdateRequest struct {
 	unknownFields []byte
@@ -836,6 +964,7 @@ func (m *LauncherInfo) CloneVT() *LauncherInfo {
 	r.UpdateState = protobuf_go_lite.CloneVTValue(m.UpdateState)
 	r.FetchStatus = protobuf_go_lite.CloneVTValue(m.FetchStatus)
 	r.DaemonUpdateState = protobuf_go_lite.CloneVTValue(m.DaemonUpdateState)
+	r.DaemonUpdateWait = protobuf_go_lite.CloneVTValue(m.DaemonUpdateWait)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -843,6 +972,24 @@ func (m *LauncherInfo) CloneVT() *LauncherInfo {
 }
 
 func (m *LauncherInfo) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DaemonUpdateWait) CloneVT() *DaemonUpdateWait {
+	if m == nil {
+		return (*DaemonUpdateWait)(nil)
+	}
+	r := new(DaemonUpdateWait)
+	r.OtherClients = m.OtherClients
+	r.OtherServices = m.OtherServices
+	r.RestartNow = m.RestartNow
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DaemonUpdateWait) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -901,6 +1048,70 @@ func (m *UpdateState) CloneVT() *UpdateState {
 }
 
 func (m *UpdateState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportDaemonUpdateWaitRequest) CloneVT() *ReportDaemonUpdateWaitRequest {
+	if m == nil {
+		return (*ReportDaemonUpdateWaitRequest)(nil)
+	}
+	r := new(ReportDaemonUpdateWaitRequest)
+	r.OtherClients = m.OtherClients
+	r.OtherServices = m.OtherServices
+	r.Selection = protobuf_go_lite.CloneVTValue(m.Selection)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportDaemonUpdateWaitRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportDaemonUpdateWaitResponse) CloneVT() *ReportDaemonUpdateWaitResponse {
+	if m == nil {
+		return (*ReportDaemonUpdateWaitResponse)(nil)
+	}
+	r := new(ReportDaemonUpdateWaitResponse)
+	r.Reported = m.Reported
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportDaemonUpdateWaitResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RestartDaemonUpdateNowRequest) CloneVT() *RestartDaemonUpdateNowRequest {
+	if m == nil {
+		return (*RestartDaemonUpdateNowRequest)(nil)
+	}
+	r := new(RestartDaemonUpdateNowRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RestartDaemonUpdateNowRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RestartDaemonUpdateNowResponse) CloneVT() *RestartDaemonUpdateNowResponse {
+	if m == nil {
+		return (*RestartDaemonUpdateNowResponse)(nil)
+	}
+	r := new(RestartDaemonUpdateNowResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RestartDaemonUpdateNowResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1097,11 +1308,40 @@ func (this *LauncherInfo) EqualVT(that *LauncherInfo) bool {
 	if !protobuf_go_lite.IsEqualVT(this.DaemonUpdateState, that.DaemonUpdateState) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.DaemonUpdateWait, that.DaemonUpdateWait) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *LauncherInfo) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*LauncherInfo)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DaemonUpdateWait) EqualVT(that *DaemonUpdateWait) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OtherClients != that.OtherClients {
+		return false
+	}
+	if this.OtherServices != that.OtherServices {
+		return false
+	}
+	if this.RestartNow != that.RestartNow {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DaemonUpdateWait) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DaemonUpdateWait)
 	if !ok {
 		return false
 	}
@@ -1220,6 +1460,86 @@ func (this *UpdateState) EqualVT(that *UpdateState) bool {
 
 func (this *UpdateState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*UpdateState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportDaemonUpdateWaitRequest) EqualVT(that *ReportDaemonUpdateWaitRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Selection, that.Selection) {
+		return false
+	}
+	if this.OtherClients != that.OtherClients {
+		return false
+	}
+	if this.OtherServices != that.OtherServices {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportDaemonUpdateWaitRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportDaemonUpdateWaitRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportDaemonUpdateWaitResponse) EqualVT(that *ReportDaemonUpdateWaitResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Reported != that.Reported {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportDaemonUpdateWaitResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportDaemonUpdateWaitResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RestartDaemonUpdateNowRequest) EqualVT(that *RestartDaemonUpdateNowRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RestartDaemonUpdateNowRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RestartDaemonUpdateNowRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RestartDaemonUpdateNowResponse) EqualVT(that *RestartDaemonUpdateNowResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RestartDaemonUpdateNowResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RestartDaemonUpdateNowResponse)
 	if !ok {
 		return false
 	}
@@ -1697,6 +2017,11 @@ func (x *LauncherInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("daemonUpdateState")
 		x.DaemonUpdateState.MarshalProtoJSON(s.WithField("daemonUpdateState"))
 	}
+	if x.DaemonUpdateWait != nil || s.HasField("daemonUpdateWait") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("daemonUpdateWait")
+		x.DaemonUpdateWait.MarshalProtoJSON(s.WithField("daemonUpdateWait"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1742,12 +2067,77 @@ func (x *LauncherInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.DaemonUpdateState = &UpdateState{}
 			x.DaemonUpdateState.UnmarshalProtoJSON(s.WithField("daemon_update_state", true))
+		case "daemon_update_wait", "daemonUpdateWait":
+			if s.ReadNil() {
+				x.DaemonUpdateWait = nil
+				return
+			}
+			x.DaemonUpdateWait = &DaemonUpdateWait{}
+			x.DaemonUpdateWait.UnmarshalProtoJSON(s.WithField("daemon_update_wait", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the LauncherInfo from JSON.
 func (x *LauncherInfo) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DaemonUpdateWait message to JSON.
+func (x *DaemonUpdateWait) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OtherClients != 0 || s.HasField("otherClients") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherClients")
+		s.WriteUint32(x.OtherClients)
+	}
+	if x.OtherServices != 0 || s.HasField("otherServices") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherServices")
+		s.WriteUint32(x.OtherServices)
+	}
+	if x.RestartNow || s.HasField("restartNow") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("restartNow")
+		s.WriteBool(x.RestartNow)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DaemonUpdateWait to JSON.
+func (x *DaemonUpdateWait) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DaemonUpdateWait message from JSON.
+func (x *DaemonUpdateWait) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "other_clients", "otherClients":
+			s.AddField("other_clients")
+			x.OtherClients = s.ReadUint32()
+		case "other_services", "otherServices":
+			s.AddField("other_services")
+			x.OtherServices = s.ReadUint32()
+		case "restart_now", "restartNow":
+			s.AddField("restart_now")
+			x.RestartNow = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DaemonUpdateWait from JSON.
+func (x *DaemonUpdateWait) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2044,6 +2434,170 @@ func (x *UpdateState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the UpdateState from JSON.
 func (x *UpdateState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportDaemonUpdateWaitRequest message to JSON.
+func (x *ReportDaemonUpdateWaitRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Selection != nil || s.HasField("selection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("selection")
+		x.Selection.MarshalProtoJSON(s.WithField("selection"))
+	}
+	if x.OtherClients != 0 || s.HasField("otherClients") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherClients")
+		s.WriteUint32(x.OtherClients)
+	}
+	if x.OtherServices != 0 || s.HasField("otherServices") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("otherServices")
+		s.WriteUint32(x.OtherServices)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportDaemonUpdateWaitRequest to JSON.
+func (x *ReportDaemonUpdateWaitRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportDaemonUpdateWaitRequest message from JSON.
+func (x *ReportDaemonUpdateWaitRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "selection":
+			if s.ReadNil() {
+				x.Selection = nil
+				return
+			}
+			x.Selection = &UpdateState{}
+			x.Selection.UnmarshalProtoJSON(s.WithField("selection", true))
+		case "other_clients", "otherClients":
+			s.AddField("other_clients")
+			x.OtherClients = s.ReadUint32()
+		case "other_services", "otherServices":
+			s.AddField("other_services")
+			x.OtherServices = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportDaemonUpdateWaitRequest from JSON.
+func (x *ReportDaemonUpdateWaitRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportDaemonUpdateWaitResponse message to JSON.
+func (x *ReportDaemonUpdateWaitResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Reported || s.HasField("reported") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reported")
+		s.WriteBool(x.Reported)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportDaemonUpdateWaitResponse to JSON.
+func (x *ReportDaemonUpdateWaitResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportDaemonUpdateWaitResponse message from JSON.
+func (x *ReportDaemonUpdateWaitResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "reported":
+			s.AddField("reported")
+			x.Reported = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportDaemonUpdateWaitResponse from JSON.
+func (x *ReportDaemonUpdateWaitResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RestartDaemonUpdateNowRequest message to JSON.
+func (x *RestartDaemonUpdateNowRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RestartDaemonUpdateNowRequest to JSON.
+func (x *RestartDaemonUpdateNowRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RestartDaemonUpdateNowRequest message from JSON.
+func (x *RestartDaemonUpdateNowRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RestartDaemonUpdateNowRequest from JSON.
+func (x *RestartDaemonUpdateNowRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RestartDaemonUpdateNowResponse message to JSON.
+func (x *RestartDaemonUpdateNowResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RestartDaemonUpdateNowResponse to JSON.
+func (x *RestartDaemonUpdateNowResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RestartDaemonUpdateNowResponse message from JSON.
+func (x *RestartDaemonUpdateNowResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the RestartDaemonUpdateNowResponse from JSON.
+func (x *RestartDaemonUpdateNowResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2537,6 +3091,16 @@ func (m *LauncherInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DaemonUpdateWait != nil {
+		size, err := m.DaemonUpdateWait.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.DaemonUpdateState != nil {
 		size, err := m.DaemonUpdateState.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2576,6 +3140,53 @@ func (m *LauncherInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DaemonUpdateWait) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DaemonUpdateWait) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DaemonUpdateWait) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RestartNow {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RestartNow)
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.OtherServices != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherServices))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.OtherClients != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherClients))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -2795,6 +3406,159 @@ func (m *UpdateState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Phase))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportDaemonUpdateWaitRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportDaemonUpdateWaitRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportDaemonUpdateWaitRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.OtherServices != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherServices))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.OtherClients != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.OtherClients))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Selection != nil {
+		size, err := m.Selection.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportDaemonUpdateWaitResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportDaemonUpdateWaitResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportDaemonUpdateWaitResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Reported {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Reported)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RestartDaemonUpdateNowRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RestartDaemonUpdateNowRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RestartDaemonUpdateNowRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RestartDaemonUpdateNowResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RestartDaemonUpdateNowResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RestartDaemonUpdateNowResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -3197,6 +3961,23 @@ func (m *LauncherInfo) SizeVT() (n int) {
 		l = m.DaemonUpdateState.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.DaemonUpdateWait != nil {
+		l = m.DaemonUpdateWait.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DaemonUpdateWait) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherClients)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherServices)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.RestartNow)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3248,6 +4029,53 @@ func (m *UpdateState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Target)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ArtifactManifestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StagedSha256)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportDaemonUpdateWaitRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Selection != nil {
+		l = m.Selection.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherClients)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.OtherServices)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportDaemonUpdateWaitResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Reported)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RestartDaemonUpdateNowRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RestartDaemonUpdateNowResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -3445,10 +4273,36 @@ func (x *LauncherInfo) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_state")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.DaemonUpdateState)
 	}
+	if x.DaemonUpdateWait != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "daemon_update_wait")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.DaemonUpdateWait)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *LauncherInfo) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DaemonUpdateWait) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DaemonUpdateWait")
+	if x.OtherClients != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_clients")
+		protobuf_go_lite.TextWriteUint(&sb, x.OtherClients)
+	}
+	if x.OtherServices != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_services")
+		protobuf_go_lite.TextWriteUint(&sb, x.OtherServices)
+	}
+	if x.RestartNow != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "restart_now")
+		protobuf_go_lite.TextWriteBool(&sb, x.RestartNow)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DaemonUpdateWait) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3581,6 +4435,62 @@ func (x *UpdateState) MarshalProtoText() string {
 }
 
 func (x *UpdateState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportDaemonUpdateWaitRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportDaemonUpdateWaitRequest")
+	if x.Selection != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selection")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Selection)
+	}
+	if x.OtherClients != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_clients")
+		protobuf_go_lite.TextWriteUint(&sb, x.OtherClients)
+	}
+	if x.OtherServices != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "other_services")
+		protobuf_go_lite.TextWriteUint(&sb, x.OtherServices)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportDaemonUpdateWaitRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportDaemonUpdateWaitResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportDaemonUpdateWaitResponse")
+	if x.Reported != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reported")
+		protobuf_go_lite.TextWriteBool(&sb, x.Reported)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportDaemonUpdateWaitResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RestartDaemonUpdateNowRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "RestartDaemonUpdateNowRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RestartDaemonUpdateNowRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RestartDaemonUpdateNowResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "RestartDaemonUpdateNowResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RestartDaemonUpdateNowResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3917,6 +4827,92 @@ func (m *LauncherInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DaemonUpdateWait", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.DaemonUpdateWait == nil {
+				m.DaemonUpdateWait = &DaemonUpdateWait{}
+			}
+			if err := m.DaemonUpdateWait.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DaemonUpdateWait) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DaemonUpdateWait: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DaemonUpdateWait: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherClients", wireType)
+			}
+			m.OtherClients = 0
+			m.OtherClients, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherServices", wireType)
+			}
+			m.OtherServices = 0
+			m.OtherServices, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RestartNow", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RestartNow = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4286,6 +5282,221 @@ func (m *UpdateState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.StagedSha256 = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportDaemonUpdateWaitRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportDaemonUpdateWaitRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportDaemonUpdateWaitRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Selection", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Selection == nil {
+				m.Selection = &UpdateState{}
+			}
+			if err := m.Selection.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherClients", wireType)
+			}
+			m.OtherClients = 0
+			m.OtherClients, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherServices", wireType)
+			}
+			m.OtherServices = 0
+			m.OtherServices, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportDaemonUpdateWaitResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportDaemonUpdateWaitResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportDaemonUpdateWaitResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reported", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reported = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RestartDaemonUpdateNowRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RestartDaemonUpdateNowRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RestartDaemonUpdateNowRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RestartDaemonUpdateNowResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RestartDaemonUpdateNowResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RestartDaemonUpdateNowResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

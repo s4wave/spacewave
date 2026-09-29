@@ -3,7 +3,6 @@
 package spacewave_cli
 
 import (
-	"context"
 	"os"
 	"sync"
 	"time"
@@ -25,6 +24,8 @@ type daemonIdleSnapshot struct {
 	revision uint64
 	// stopping indicates that no new hold can be admitted.
 	stopping bool
+	// desktop indicates that the desktop shell holds the daemon.
+	desktop bool
 }
 
 // daemonServiceHold identifies one persistent service in the idle tracker.
@@ -45,6 +46,9 @@ func (h *daemonServiceHold) release() {
 	}
 
 	h.released = true
+	if t.desktop == h {
+		t.desktop = nil
+	}
 	t.services--
 	t.active--
 	t.publishLocked()
@@ -63,6 +67,8 @@ type daemonIdleTracker struct {
 	connections map[*trackedConn]struct{}
 	// services counts persistent daemon services.
 	services int
+	// desktop identifies the desktop shell's service hold, if any.
+	desktop *daemonServiceHold
 	// revision increases on each observable state change.
 	revision uint64
 	// changed closes when revision increases.
@@ -171,65 +177,70 @@ func (t *daemonIdleTracker) attachService() *daemonServiceHold {
 	return hold
 }
 
+// setDesktop marks a live service hold as the desktop shell's hold until it
+// is released. Stop decisions for the desktop exclude that hold.
+func (t *daemonIdleTracker) setDesktop(hold *daemonServiceHold) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if hold.tracker != t || hold.released || t.desktop == hold {
+		return
+	}
+	t.desktop = hold
+	t.publishLocked()
+}
+
 // claimDesktopQuit decides the final busy result while Electron can report it.
 // Only the identified requester and live desktop hold are excluded. A winning
 // claim fences later admission; teardown waits for the shell and RPC reply.
-func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn, desktop *daemonServiceHold) (bool, daemonIdleSnapshot) {
+func (t *daemonIdleTracker) claimDesktopQuit(requester *trackedConn) (bool, daemonIdleSnapshot) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	snapshot := t.snapshotLocked()
-	if t.stopping || desktop == nil || desktop.tracker != t || desktop.released {
+	snapshot := t.otherHoldsLocked()
+	if t.stopping || !snapshot.desktop {
 		return false, snapshot
 	}
 	if _, ok := t.connections[requester]; requester != nil && ok {
 		snapshot.clients--
 	}
-	snapshot.services--
 	if snapshot.clients != 0 || snapshot.services != 0 {
 		return false, snapshot
 	}
-
-	t.stopping = true
-	t.cancelIdleLocked()
-	t.publishLocked()
+	t.claimStopLocked()
 	snapshot.stopping = true
 	return true, snapshot
 }
 
-// claimDaemonUpdate fences admission only after every client and persistent
-// service has released its hold. A failed claim leaves the daemon serving.
-func (t *daemonIdleTracker) claimDaemonUpdate() bool {
+// claimDaemonUpdate fences admission for an accepted update once every hold
+// except the desktop shell is released, or at once when restartNow is set.
+// The handoff reopens the desktop. The snapshot counts only the other holds,
+// and the returned channel closes on the tracker's next change.
+func (t *daemonIdleTracker) claimDaemonUpdate(restartNow bool) (bool, daemonIdleSnapshot, <-chan struct{}) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.stopping || t.active != 0 {
-		return false
+	snapshot := t.otherHoldsLocked()
+	if t.stopping || (!restartNow && (snapshot.clients != 0 || snapshot.services != 0)) {
+		return false, snapshot, t.changed
 	}
+	t.claimStopLocked()
+	snapshot.stopping = true
+	return true, snapshot, t.changed
+}
+
+// otherHoldsLocked returns the current state without the desktop hold while
+// mu is held.
+func (t *daemonIdleTracker) otherHoldsLocked() daemonIdleSnapshot {
+	snapshot := t.snapshotLocked()
+	if snapshot.desktop {
+		snapshot.services--
+	}
+	return snapshot
+}
+
+// claimStopLocked fences admission and cancels the deadline while mu is held.
+func (t *daemonIdleTracker) claimStopLocked() {
 	t.stopping = true
 	t.cancelIdleLocked()
 	t.publishLocked()
-	return true
-}
-
-// waitDaemonUpdate waits on the owner's change event and claims full idle
-// atomically with the admission fence. Cancellation leaves admission open.
-func (t *daemonIdleTracker) waitDaemonUpdate(ctx context.Context) bool {
-	for {
-		if ctx.Err() != nil {
-			return false
-		}
-		snapshot, changed := t.observe()
-		if snapshot.stopping {
-			return false
-		}
-		if snapshot.clients == 0 && snapshot.services == 0 && t.claimDaemonUpdate() {
-			return true
-		}
-		select {
-		case <-ctx.Done():
-			return false
-		case <-changed:
-		}
-	}
 }
 
 // snapshotLocked returns the current state while mu is held.
@@ -239,6 +250,7 @@ func (t *daemonIdleTracker) snapshotLocked() daemonIdleSnapshot {
 		services: t.services,
 		revision: t.revision,
 		stopping: t.stopping,
+		desktop:  t.desktop != nil,
 	}
 }
 
@@ -287,9 +299,7 @@ func (t *daemonIdleTracker) close() {
 	if t.stopping {
 		return
 	}
-	t.stopping = true
-	t.cancelIdleLocked()
-	t.publishLocked()
+	t.claimStopLocked()
 }
 
 // getDaemonIdleTimeout returns the configured idle timeout.

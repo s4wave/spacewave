@@ -77,7 +77,7 @@ func TestDaemonApplyingSelectionSurvivesReleaseRefresh(t *testing.T) {
 	// Refresh clears an old selection before staging the next release. A
 	// missing daemon target can also clear it after staging completes.
 	ctrl.clearDaemonUpdateState()
-	ctrl.setDaemonUpdateStaged("0.2.0", "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
+	ctrl.setDaemonUpdateStaged("0.2.0", cliEntrypointManifestID, "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
 	ctrl.setUpdateStaged("0.2.0", "/selected/0.2.0/Spacewave.app")
 	ctrl.clearDaemonUpdateState()
 	info := ctrl.launcherInfoCtr.GetValue()
@@ -92,7 +92,7 @@ func TestDaemonApplyingSelectionSurvivesReleaseRefresh(t *testing.T) {
 	if !ctrl.setAcceptedDaemonUpdateError(accepted, "selected copy failed") {
 		t.Fatal("accepted failure did not publish")
 	}
-	ctrl.setDaemonUpdateStaged("0.2.0", "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
+	ctrl.setDaemonUpdateStaged("0.2.0", cliEntrypointManifestID, "/selected/0.2.0/spacewave", strings.Repeat("b", 64))
 	if state := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState(); state.GetVersion() != "0.2.0" || state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("later daemon selection did not stage after failure: %v", state)
 	}
@@ -393,6 +393,39 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	if ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome() != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
 		t.Fatal("matching daemon executable misclassified the app as current")
+	}
+
+	// A daemon running from an app bundle copy moves to the same executable in
+	// the staged app bundle, and matching bundle bytes offer no daemon update.
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	installedApp := filepath.Join(t.TempDir(), "Spacewave.app")
+	installedExecutable := filepath.Join(installedApp, "Contents", "MacOS", "spacewave")
+	if err := os.MkdirAll(filepath.Dir(installedExecutable), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(installedExecutable, []byte("previous app daemon"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
+		return installedExecutable, true, installedApp, nil
+	}
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	bundleState := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()
+	if bundleState.GetArtifactManifestId() != nativeEntrypointManifestID || bundleState.GetStagedPath() != appExecutable {
+		t.Fatalf("bundle daemon selection = %#v", bundleState)
+	}
+	if err := os.WriteFile(installedExecutable, got, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState() != nil {
+		t.Fatal("offered matching app bundle daemon bytes as an update")
 	}
 }
 
@@ -818,7 +851,7 @@ func TestStagedManifestEntrypointPathRejectsEscapes(t *testing.T) {
 	}
 }
 
-func TestVerifyStagedCLIEntrypointRejectsSymlink(t *testing.T) {
+func TestVerifyStagedExecutableRejectsSymlink(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires elevated privileges on some Windows hosts")
 	}
@@ -835,7 +868,7 @@ func TestVerifyStagedCLIEntrypointRejectsSymlink(t *testing.T) {
 	if err := os.Symlink(outside, stagedPath); err != nil {
 		t.Fatal(err.Error())
 	}
-	err := verifyStagedCLIEntrypoint(stageRoot, cliDistPath, stagedPath)
+	err := verifyStagedExecutable(stageRoot, cliDistPath, stagedPath)
 	if err == nil {
 		t.Fatal("expected symlink entrypoint error")
 	}

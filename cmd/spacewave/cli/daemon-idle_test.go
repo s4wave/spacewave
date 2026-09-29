@@ -44,19 +44,20 @@ func TestDaemonIdleTrackerClaimDesktopQuit(t *testing.T) {
 	tracker.clientAttached()
 	t.Cleanup(tracker.clientDetached)
 	desktop := tracker.attachService()
+	tracker.setDesktop(desktop)
 	releaseOther := tracker.serviceAttached()
 	t.Cleanup(releaseOther)
 	t.Cleanup(desktop.release)
 
 	// Count only the client and service outside the requesting desktop.
-	claimed, snapshot := tracker.claimDesktopQuit(requester, desktop)
+	claimed, snapshot := tracker.claimDesktopQuit(requester)
 	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
 		t.Fatalf("admitted requester demand = %+v", snapshot)
 	}
 
 	// A disconnected requester must not subtract a different live client.
 	tracker.trackedClientDetached(requester)
-	claimed, snapshot = tracker.claimDesktopQuit(requester, desktop)
+	claimed, snapshot = tracker.claimDesktopQuit(requester)
 	if claimed || snapshot.clients != 1 || snapshot.services != 1 {
 		t.Fatalf("disconnected requester demand = %+v", snapshot)
 	}
@@ -70,6 +71,7 @@ func TestDaemonIdleTrackerDesktopClaimFencesAdmission(t *testing.T) {
 		requester := &trackedConn{}
 		tracker.trackedClientAttached(requester)
 		desktop := tracker.attachService()
+		tracker.setDesktop(desktop)
 		start := make(chan struct{})
 		var workers sync.WaitGroup
 		var admitted, claimed bool
@@ -83,7 +85,7 @@ func TestDaemonIdleTrackerDesktopClaimFencesAdmission(t *testing.T) {
 		go func() {
 			defer workers.Done()
 			<-start
-			claimed, snapshot = tracker.claimDesktopQuit(requester, desktop)
+			claimed, snapshot = tracker.claimDesktopQuit(requester)
 		}()
 		close(start)
 		workers.Wait()
@@ -156,59 +158,65 @@ func TestDaemonIdleTrackerReportsHoldsAndChanges(t *testing.T) {
 	}
 }
 
-// TestDaemonUpdateWaitRetainsClientsAndServices verifies that accepted update
-// demand waits for every hold, including a client admitted before the claim.
-func TestDaemonUpdateWaitRetainsClientsAndServices(t *testing.T) {
+// TestDaemonUpdateClaimWaitsForOtherHolds verifies that an accepted update
+// waits for every client and service except the desktop shell, which the
+// handoff reopens.
+func TestDaemonUpdateClaimWaitsForOtherHolds(t *testing.T) {
 	tracker := newDaemonIdleTracker(time.Minute, nil)
 	t.Cleanup(tracker.close)
+	desktop := tracker.attachService()
+	tracker.setDesktop(desktop)
 	client := &trackedConn{}
 	if !tracker.trackedClientAttached(client) {
 		t.Fatal("initial client was rejected")
 	}
 	service := tracker.attachService()
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
-	claimed := make(chan bool, 1)
-	go func() { claimed <- tracker.waitDaemonUpdate(ctx) }()
 
-	// Releasing the first client leaves the persistent service in charge.
+	// Both other holds keep the old daemon serving.
+	claimed, others, changed := tracker.claimDaemonUpdate(false)
+	if claimed || others.clients != 1 || others.services != 1 || !others.desktop {
+		t.Fatalf("busy claim = %t, others = %+v", claimed, others)
+	}
 	tracker.trackedClientDetached(client)
-	snapshot, changed := tracker.observe()
-	if snapshot.clients != 0 || snapshot.services != 1 || snapshot.stopping {
-		t.Fatalf("service hold after client exit = %+v", snapshot)
-	}
-	select {
-	case <-claimed:
-		t.Fatal("update claimed while service was active")
-	default:
-	}
-
-	// A late client admitted before the final service release keeps serving.
-	late := &trackedConn{}
-	if !tracker.trackedClientAttached(late) {
-		t.Fatal("late client was rejected before idle commitment")
-	}
 	select {
 	case <-changed:
 	default:
-		t.Fatal("late attachment did not publish the owner event")
+		t.Fatal("client release did not publish the owner event")
 	}
+	claimed, others, _ = tracker.claimDaemonUpdate(false)
+	if claimed || others.clients != 0 || others.services != 1 {
+		t.Fatalf("service claim = %t, others = %+v", claimed, others)
+	}
+
+	// The desktop hold alone does not block the handoff.
 	service.release()
-	snapshot, _ = tracker.observe()
-	if snapshot.clients != 1 || snapshot.services != 0 || snapshot.stopping {
-		t.Fatalf("late client after service exit = %+v", snapshot)
-	}
-	tracker.trackedClientDetached(late)
-	select {
-	case won := <-claimed:
-		if !won {
-			t.Fatal("update did not claim final idle")
-		}
-	case <-ctx.Done():
-		t.Fatal("update claim canceled")
+	claimed, others, _ = tracker.claimDaemonUpdate(false)
+	if !claimed || !others.desktop || !others.stopping {
+		t.Fatalf("desktop-only claim = %t, others = %+v", claimed, others)
 	}
 	if tracker.clientAttached() {
 		t.Fatal("client admitted after update claim")
+	}
+}
+
+// TestDaemonUpdateClaimRestartNow claims a busy daemon at once when the user
+// asks to restart now, and reports the holds it interrupts.
+func TestDaemonUpdateClaimRestartNow(t *testing.T) {
+	tracker := newDaemonIdleTracker(time.Minute, nil)
+	t.Cleanup(tracker.close)
+	if !tracker.clientAttached() {
+		t.Fatal("client was rejected")
+	}
+	defer tracker.clientDetached()
+	claimed, others, _ := tracker.claimDaemonUpdate(true)
+	if !claimed || others.clients != 1 || others.desktop {
+		t.Fatalf("restart-now claim = %t, others = %+v", claimed, others)
+	}
+	if tracker.clientAttached() {
+		t.Fatal("client admitted after restart-now claim")
+	}
+	if claimed, _, _ := tracker.claimDaemonUpdate(true); claimed {
+		t.Fatal("stopping daemon claimed the update twice")
 	}
 }
 
@@ -229,7 +237,7 @@ func TestDaemonUpdateClaimRacesClientAdmission(t *testing.T) {
 		go func() {
 			defer workers.Done()
 			<-start
-			claimed = tracker.claimDaemonUpdate()
+			claimed, _, _ = tracker.claimDaemonUpdate(false)
 		}()
 		close(start)
 		workers.Wait()
@@ -241,24 +249,6 @@ func TestDaemonUpdateClaimRacesClientAdmission(t *testing.T) {
 		}
 		tracker.close()
 	}
-}
-
-// TestDaemonUpdateWaitCancellation keeps admission open when the serving
-// context ends before all holds leave.
-func TestDaemonUpdateWaitCancellation(t *testing.T) {
-	tracker := newDaemonIdleTracker(time.Minute, nil)
-	t.Cleanup(tracker.close)
-	hold := tracker.attachService()
-	defer hold.release()
-	ctx, cancel := context.WithCancel(t.Context())
-	cancel()
-	if tracker.waitDaemonUpdate(ctx) {
-		t.Fatal("canceled update claimed idle")
-	}
-	if !tracker.clientAttached() {
-		t.Fatal("canceled update fenced admission")
-	}
-	tracker.clientDetached()
 }
 
 // TestDaemonIdleTrackerDeadlinePolicy checks final-release expiry against an

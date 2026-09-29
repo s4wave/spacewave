@@ -156,4 +156,41 @@ describe('UpdateNotifier', () => {
       ),
     )
   })
+  it('shows what an accepted daemon update waits for and restarts now', async () => {
+    mocks.serverStreamingRequest.mockImplementation(() =>
+      asyncValues(
+        LauncherInfo.toBinary({
+          daemonUpdateState: {
+            phase: UpdatePhase.APPLYING,
+            version: '1.2.3',
+            target: UpdateTarget.DAEMON,
+          },
+          daemonUpdateWait: { otherClients: 2, otherServices: 1 },
+        }),
+      ),
+    )
+
+    render(<UpdateNotifier />)
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
+    const [title, options] = mocks.toast.mock.calls[0]
+    expect(title).toBe('Daemon update accepted')
+    expect(options?.id).toBe('daemon-update')
+    expect(options?.description).toBe(
+      'Waiting for 2 other clients and 1 service to finish before restarting.',
+    )
+    const action = options?.action
+    if (!action || typeof action !== 'object' || !('onClick' in action)) {
+      throw new Error('Waiting daemon update toast has no action')
+    }
+    expect(action.label).toBe('Restart now')
+    action.onClick({} as React.MouseEvent<HTMLButtonElement>)
+    await waitFor(() =>
+      expect(mocks.request).toHaveBeenCalledWith(
+        'plugin/spacewave-launcher/' + LauncherServiceName,
+        'RestartDaemonUpdateNow',
+        new Uint8Array(),
+        undefined,
+      ),
+    )
+  })
 })

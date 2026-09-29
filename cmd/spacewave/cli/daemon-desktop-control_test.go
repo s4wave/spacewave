@@ -432,11 +432,11 @@ func TestDesktopControlLostQuitReply(t *testing.T) {
 		t.Fatal("requester was not admitted")
 	}
 	hold := idle.attachService()
+	idle.setDesktop(hold)
 	stopped := make(chan *trackedConn, 1)
 	control := &daemonDesktopControl{
 		idleTracker:   idle,
 		demandRelease: hold.release,
-		demandHold:    hold,
 		watchSequence: 1,
 		status: &desktop_control.WatchDesktopStatusResponse{
 			Presence: &bldr_web_plugin.WatchDesktopPresenceResponse{

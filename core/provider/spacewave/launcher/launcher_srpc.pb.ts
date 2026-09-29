@@ -12,6 +12,10 @@ import {
   RecheckDistConfigResponse,
   ReportDaemonUpdateFailureRequest,
   ReportDaemonUpdateFailureResponse,
+  ReportDaemonUpdateWaitRequest,
+  ReportDaemonUpdateWaitResponse,
+  RestartDaemonUpdateNowRequest,
+  RestartDaemonUpdateNowResponse,
   WatchLauncherInfoRequest,
 } from './launcher.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
@@ -100,6 +104,28 @@ export const LauncherDefinition = {
       O: ClaimDaemonUpdateResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ReportDaemonUpdateWait publishes the work an accepted daemon update waits for.
+     *
+     * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateWait
+     */
+    ReportDaemonUpdateWait: {
+      name: 'ReportDaemonUpdateWait',
+      I: ReportDaemonUpdateWaitRequest,
+      O: ReportDaemonUpdateWaitResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * RestartDaemonUpdateNow asks the daemon to hand off without waiting.
+     *
+     * @generated from rpc spacewave.launcher.Launcher.RestartDaemonUpdateNow
+     */
+    RestartDaemonUpdateNow: {
+      name: 'RestartDaemonUpdateNow',
+      I: RestartDaemonUpdateNowRequest,
+      O: RestartDaemonUpdateNowResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -168,6 +194,26 @@ export interface Launcher {
     request: ClaimDaemonUpdateRequest,
     abortSignal?: AbortSignal,
   ): Promise<ClaimDaemonUpdateResponse>
+
+  /**
+   * ReportDaemonUpdateWait publishes the work an accepted daemon update waits for.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateWait
+   */
+  ReportDaemonUpdateWait(
+    request: ReportDaemonUpdateWaitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportDaemonUpdateWaitResponse>
+
+  /**
+   * RestartDaemonUpdateNow asks the daemon to hand off without waiting.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.RestartDaemonUpdateNow
+   */
+  RestartDaemonUpdateNow(
+    request: RestartDaemonUpdateNowRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RestartDaemonUpdateNowResponse>
 }
 
 /**
@@ -241,6 +287,28 @@ export interface LauncherHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ClaimDaemonUpdateResponse>
+
+  /**
+   * ReportDaemonUpdateWait publishes the work an accepted daemon update waits for.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateWait
+   */
+  ReportDaemonUpdateWait(
+    request: ReportDaemonUpdateWaitRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReportDaemonUpdateWaitResponse>
+
+  /**
+   * RestartDaemonUpdateNow asks the daemon to hand off without waiting.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.RestartDaemonUpdateNow
+   */
+  RestartDaemonUpdateNow(
+    request: RestartDaemonUpdateNowRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RestartDaemonUpdateNowResponse>
 }
 
 export const LauncherServiceName = LauncherDefinition.typeName
@@ -257,6 +325,8 @@ export class LauncherClient implements Launcher {
     this.ApplyUpdate = this.ApplyUpdate.bind(this)
     this.ReportDaemonUpdateFailure = this.ReportDaemonUpdateFailure.bind(this)
     this.ClaimDaemonUpdate = this.ClaimDaemonUpdate.bind(this)
+    this.ReportDaemonUpdateWait = this.ReportDaemonUpdateWait.bind(this)
+    this.RestartDaemonUpdateNow = this.RestartDaemonUpdateNow.bind(this)
   }
   /**
    * WatchLauncherInfo streams the launcher state on every change.
@@ -370,5 +440,43 @@ export class LauncherClient implements Launcher {
       abortSignal || undefined,
     )
     return ClaimDaemonUpdateResponse.fromBinary(result)
+  }
+
+  /**
+   * ReportDaemonUpdateWait publishes the work an accepted daemon update waits for.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.ReportDaemonUpdateWait
+   */
+  async ReportDaemonUpdateWait(
+    request: ReportDaemonUpdateWaitRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReportDaemonUpdateWaitResponse> {
+    const requestMsg = ReportDaemonUpdateWaitRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LauncherDefinition.methods.ReportDaemonUpdateWait.name,
+      ReportDaemonUpdateWaitRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReportDaemonUpdateWaitResponse.fromBinary(result)
+  }
+
+  /**
+   * RestartDaemonUpdateNow asks the daemon to hand off without waiting.
+   *
+   * @generated from rpc spacewave.launcher.Launcher.RestartDaemonUpdateNow
+   */
+  async RestartDaemonUpdateNow(
+    request: RestartDaemonUpdateNowRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RestartDaemonUpdateNowResponse> {
+    const requestMsg = RestartDaemonUpdateNowRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LauncherDefinition.methods.RestartDaemonUpdateNow.name,
+      RestartDaemonUpdateNowRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RestartDaemonUpdateNowResponse.fromBinary(result)
   }
 }

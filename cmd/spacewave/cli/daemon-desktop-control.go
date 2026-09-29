@@ -37,8 +37,8 @@ type daemonDesktopControl struct {
 	pluginRelease func()
 	// demandRelease counts the current Electron shell as a daemon service.
 	demandRelease func()
-	// demandHold identifies the current shell's exact service hold.
-	demandHold *daemonServiceHold
+	// installedApp is the app bundle named by the latest open request.
+	installedApp string
 	// watchCancel stops the daemon-owned observation of the latest shell.
 	watchCancel context.CancelFunc
 	// watchClient identifies the web plugin instance that issued watchGeneration.
@@ -150,6 +150,9 @@ func (d *daemonDesktopControl) OpenOrFocusDesktop(
 	if err != nil {
 		return nil, err
 	}
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		d.installedApp = req.GetInstalledApp()
+	})
 
 	// Return the daemon executable and UI manifest that served this request.
 	return &desktop_control.OpenOrFocusDesktopResponse{
@@ -178,7 +181,7 @@ func (d *daemonDesktopControl) QuitDesktop(
 		active = !d.closed && d.demandRelease != nil &&
 			d.status.GetPresence().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE
 		if active {
-			claimed, snapshot = d.idleTracker.claimDesktopQuit(requester, d.demandHold)
+			claimed, snapshot = d.idleTracker.claimDesktopQuit(requester)
 			if claimed {
 				d.quitRequester = requester
 			}
@@ -242,7 +245,7 @@ func (d *daemonDesktopControl) retainDesktop(
 		// Retain demand even if the first presence receive fails after Electron opened.
 		if d.demandRelease == nil {
 			d.demandRelease = releaseDemand
-			d.demandHold = hold
+			d.idleTracker.setDesktop(hold)
 			demandRetained = true
 		}
 		previousCancel = d.watchCancel
@@ -382,7 +385,6 @@ func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *
 		d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation, Presence: state}
 		release = d.demandRelease
 		d.demandRelease = nil
-		d.demandHold = nil
 		cancel = d.watchCancel
 		d.watchCancel = nil
 		requester = d.quitRequester
@@ -457,6 +459,16 @@ func (d *daemonDesktopControl) WatchDesktopStatus(
 	}
 }
 
+// reopenRequest returns the request that reopens the current desktop shell
+// on a replacement daemon.
+func (d *daemonDesktopControl) reopenRequest() *desktop_control.OpenOrFocusDesktopRequest {
+	var req *desktop_control.OpenOrFocusDesktopRequest
+	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		req = &desktop_control.OpenOrFocusDesktopRequest{InstalledApp: d.installedApp}
+	})
+	return req
+}
+
 // close releases desktop demand and the retained plugin when serve stops.
 func (d *daemonDesktopControl) close() {
 	// Remove daemon-owned references before running their release callbacks.
@@ -468,7 +480,6 @@ func (d *daemonDesktopControl) close() {
 		releasePlugin = d.pluginRelease
 		cancel = d.watchCancel
 		d.demandRelease = nil
-		d.demandHold = nil
 		d.pluginRelease = nil
 		d.watchCancel = nil
 		d.watchClient = nil

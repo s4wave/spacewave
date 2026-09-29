@@ -21,6 +21,7 @@ func (c *Controller) setDaemonUpdateApplying(selected *spacewave_launcher.Update
 		}
 		info.DaemonUpdateState.Phase = spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING
 		info.DaemonUpdateState.ErrorMessage = ""
+		info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
 		return true, nil
 	})
 	if err == nil {
@@ -55,6 +56,7 @@ func (c *Controller) attachDaemonUpdateWatcher() func() {
 			}
 			info.DaemonUpdateState.Phase = spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR
 			info.DaemonUpdateState.ErrorMessage = "daemon update owner watch ended before idle handoff"
+			info.DaemonUpdateWait = nil
 			return true, nil
 		})
 	}
@@ -105,11 +107,49 @@ func (c *Controller) setAcceptedDaemonUpdateError(selected *spacewave_launcher.U
 		}
 		info.DaemonUpdateState.Phase = spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR
 		info.DaemonUpdateState.ErrorMessage = message
+		info.DaemonUpdateWait = nil
 		return true, nil
 	})
 	return changed
 }
 
+// setDaemonUpdateWait publishes the other work the accepted selection waits
+// for. A report for any other selection changes nothing.
+func (c *Controller) setDaemonUpdateWait(selected *spacewave_launcher.UpdateState, clients, services uint32) bool {
+	var current bool
+	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		current = selected.GetPhase() == spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING &&
+			info.GetDaemonUpdateState().EqualVT(selected)
+		if !current {
+			return false, nil
+		}
+		if info.DaemonUpdateWait == nil {
+			info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
+		}
+		info.DaemonUpdateWait.OtherClients = clients
+		info.DaemonUpdateWait.OtherServices = services
+		return true, nil
+	})
+	return current
+}
+
+// setDaemonUpdateRestartNow asks the serving daemon to claim the accepted
+// update without waiting for its other clients and services.
+func (c *Controller) setDaemonUpdateRestartNow() error {
+	_, _, err := c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.GetDaemonUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING {
+			return false, errors.New("no accepted daemon update is waiting")
+		}
+		if info.DaemonUpdateWait == nil {
+			info.DaemonUpdateWait = &spacewave_launcher.DaemonUpdateWait{}
+		}
+		info.DaemonUpdateWait.RestartNow = true
+		return true, nil
+	})
+	return err
+}
+
+// setUpdateError reports a failed installed-app update.
 func (c *Controller) setUpdateError(err error) {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		info.UpdateState = &spacewave_launcher.UpdateState{
@@ -129,6 +169,7 @@ func (c *Controller) clearDaemonUpdateState() {
 			return false, nil
 		}
 		info.DaemonUpdateState = nil
+		info.DaemonUpdateWait = nil
 		return true, nil
 	})
 }

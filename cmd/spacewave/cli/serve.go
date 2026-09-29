@@ -346,7 +346,7 @@ func runServeCommand(
 	releaseStartupDemand()
 	updatePath := make(chan *daemonUpdateHandoff, 1)
 	go func() {
-		handoff, err := watchDaemonUpdate(serveCtx, le, cliBus.GetBus(), resolved, idleTracker)
+		handoff, err := watchDaemonUpdate(serveCtx, le, cliBus.GetBus(), resolved, idleTracker, desktopControl)
 		if err != nil {
 			if serveCtx.Err() == nil {
 				le.WithError(err).Warn("daemon update watch ended")
@@ -367,13 +367,20 @@ func runServeCommand(
 		// Both bus implementations run caller cleanup in registration order;
 		// the earlier lease release therefore precedes this readiness handoff.
 		cliBus.AddRelease(func() {
-			le.Info("old daemon state lease released; starting selected CLI artifact")
+			le.Info("old daemon state lease released; starting selected daemon executable")
 			startCtx := context.WithoutCancel(ctx)
 			if err := daemon.StartExecutable(startCtx, resolved, handoff.selected); err != nil {
-				le.WithError(err).Error("updated daemon did not become ready; restoring previous CLI")
+				le.WithError(err).Error("updated daemon did not become ready; restoring previous executable")
 				if fallbackErr := daemon.StartExecutable(startCtx, resolved, handoff.fallback); fallbackErr != nil {
 					le.WithError(errors.Wrapf(fallbackErr, "updated daemon failed: %v", err)).Error("failed to restore previous daemon")
+					return
 				}
+			}
+			if handoff.reopen == nil {
+				return
+			}
+			if err := reopenDesktop(startCtx, resolved, handoff.reopen); err != nil {
+				le.WithError(err).Warn("could not reopen the desktop on the replacement daemon")
 			}
 		})
 	default:
