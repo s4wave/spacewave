@@ -78,8 +78,8 @@ func NewFactory(b bus.Bus) controller.Factory {
 	goModText := string(goModData)
 	for _, want := range []string{
 		"module github.com/s4wave/spacewave/bldr/plugin/generated/openmind-core",
-		"replace example.com/openmind => " + filepath.ToSlash(sourceDir),
-		"replace github.com/s4wave/spacewave => " + filepath.ToSlash(spacewaveRoot),
+		"replace example.com/openmind => " + localReplacePath(codegenDir, sourceDir),
+		"replace github.com/s4wave/spacewave => " + localReplacePath(codegenDir, spacewaveRoot),
 	} {
 		if !strings.Contains(goModText, want) {
 			t.Fatalf("generated go.mod missing %q:\n%s", want, goModText)

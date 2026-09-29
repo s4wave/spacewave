@@ -157,7 +157,7 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	if err != nil {
 		return err
 	}
-	if err := absolutizeModuleReplaces(modFile, analysis.workDir); err != nil {
+	if err := relocateModuleReplaces(modFile, analysis.workDir, m.pluginCodegenPath); err != nil {
 		return err
 	}
 
@@ -173,7 +173,7 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	if err != nil {
 		return err
 	}
-	if err := modFile.AddReplace(sourceModulePath, "", sourceModuleDir, ""); err != nil {
+	if err := modFile.AddReplace(sourceModulePath, "", localReplacePath(m.pluginCodegenPath, sourceModuleDir), ""); err != nil {
 		return err
 	}
 
@@ -204,33 +204,66 @@ func (m *ModuleCompiler) writeModuleFiles(analysis *Analysis) error {
 	return root.WriteFile("go.sum", sourceGoSumData, 0o644)
 }
 
-// absolutizeModuleReplaces keeps local replacements relative to the source module.
-func absolutizeModuleReplaces(modFile *modfile.File, sourceDir string) error {
+// relocateModuleReplaces rewrites local replacements to resolve from the
+// generated module. Go embeds a replacement path in the binary, so a path
+// relative to the generated module keeps the build the same in any checkout.
+func relocateModuleReplaces(modFile *modfile.File, sourceDir, moduleDir string) error {
 	// Resolve replacements against the original module's absolute directory.
 	absSourceDir, err := filepath.Abs(sourceDir)
 	if err != nil {
 		return err
 	}
 
-	// Versioned and already absolute replacements retain their original meaning.
+	// Versioned replacements name a module, not a directory.
 	for _, replace := range modFile.Replace {
 		if replace.New.Version != "" {
 			continue
 		}
 		replacePath := replace.New.Path
-		if filepath.IsAbs(replacePath) {
+		if !filepath.IsAbs(replacePath) && !strings.HasPrefix(replacePath, ".") {
 			continue
 		}
-		if !strings.HasPrefix(replacePath, ".") {
-			continue
+		if !filepath.IsAbs(replacePath) {
+			replacePath = filepath.Join(absSourceDir, replacePath)
 		}
-		absReplacePath := filepath.Clean(filepath.Join(absSourceDir, replacePath))
-		replace.New.Path = absReplacePath
+		replacePath = localReplacePath(moduleDir, replacePath)
+		replace.New.Path = replacePath
 		if replace.Syntax != nil && len(replace.Syntax.Token) > 0 {
-			replace.Syntax.Token[len(replace.Syntax.Token)-1] = absReplacePath
+			replace.Syntax.Token[len(replace.Syntax.Token)-1] = replacePath
 		}
 	}
 	return nil
+}
+
+// localReplacePath returns the go.mod replacement path from moduleDir to
+// targetDir, or the absolute targetDir when no relative path exists.
+//
+// Go resolves the path from the physical module directory, so both directories
+// are resolved through symbolic links first.
+func localReplacePath(moduleDir, targetDir string) string {
+	moduleDir = resolveDir(moduleDir)
+	targetDir = resolveDir(targetDir)
+	rel, err := filepath.Rel(moduleDir, targetDir)
+	if err != nil {
+		return filepath.ToSlash(targetDir)
+	}
+
+	// Go reads a path without a dot prefix as a module path.
+	rel = filepath.ToSlash(rel)
+	if rel != "." && !strings.HasPrefix(rel, "./") && !strings.HasPrefix(rel, "../") {
+		rel = "./" + rel
+	}
+	return rel
+}
+
+// resolveDir returns dir with symbolic links resolved, or dir when it cannot be
+// resolved.
+func resolveDir(dir string) string {
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return dir
+	}
+	return resolved
 }
 
 // generatedPluginModulePath maps a plugin ID into the generated-module namespace.
