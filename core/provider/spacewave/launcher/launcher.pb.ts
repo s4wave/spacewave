@@ -63,6 +63,14 @@ export enum DistConfigSource {
    * @generated from enum value: DIST_CONFIG_SOURCE_ENDPOINT = 5;
    */
   ENDPOINT = 5,
+
+  /**
+   * DIST_CONFIG_SOURCE_PUSH means the config was pushed to the launcher,
+   * such as by a linked peer.
+   *
+   * @generated from enum value: DIST_CONFIG_SOURCE_PUSH = 6;
+   */
+  PUSH = 6,
 }
 
 export const DistConfigSource_Enum = /* @__PURE__ */ createEnumType(
@@ -659,6 +667,13 @@ export interface LauncherInfo {
    * @generated from field: spacewave.launcher.DaemonUpdateWait daemon_update_wait = 5;
    */
   daemonUpdateWait?: DaemonUpdateWait
+  /**
+   * DistConfigMsg is the signed packedmsg dist_config was parsed from.
+   * Empty when dist_config is empty.
+   *
+   * @generated from field: string dist_config_msg = 6;
+   */
+  distConfigMsg?: string
 }
 
 export const LauncherInfo: MessageType<LauncherInfo> =
@@ -675,6 +690,7 @@ export const LauncherInfo: MessageType<LauncherInfo> =
         kind: 'message',
         T: DaemonUpdateWait,
       },
+      { no: 6, name: 'dist_config_msg', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -930,33 +946,27 @@ export const PushDistConfigRequest: MessageType<PushDistConfigRequest> =
 
 /**
  * PushDistConfigResponse is the response to PushDistConfigRequest.
+ * A body without a valid packedmsg fails the call instead.
  *
  * @generated from message spacewave.launcher.PushDistConfigResponse
  */
 export interface PushDistConfigResponse {
   /**
-   * Valid indicates that a valid packedmsg was found in the body.
-   *
-   * @generated from field: bool valid = 1;
-   */
-  valid?: boolean
-  /**
    * Updated indicates that the found packedmsg is now the latest.
-   * Will be false if valid=false.
    *
-   * @generated from field: bool updated = 2;
+   * @generated from field: bool updated = 1;
    */
   updated?: boolean
   /**
-   * Rev was the revision of the found app config object. 0 if none.
+   * Rev is the revision of the found app config object.
    *
-   * @generated from field: uint64 rev = 3;
+   * @generated from field: uint64 rev = 2;
    */
   rev?: bigint
   /**
-   * PrevRev was the revision of the old app config object. 0 if none.
+   * PrevRev is the revision of the previous app config object. 0 if none.
    *
-   * @generated from field: uint64 prev_rev = 4;
+   * @generated from field: uint64 prev_rev = 3;
    */
   prevRev?: bigint
 }
@@ -965,9 +975,8 @@ export const PushDistConfigResponse: MessageType<PushDistConfigResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 'spacewave.launcher.PushDistConfigResponse',
     fields: [
-      { no: 1, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 2, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 3, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 4, name: 'prev_rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 1, name: 'updated', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'prev_rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })

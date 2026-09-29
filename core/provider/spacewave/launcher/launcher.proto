@@ -49,6 +49,9 @@ message LauncherInfo {
   UpdateState daemon_update_state = 4;
   // DaemonUpdateWait describes an accepted daemon update waiting for other work.
   DaemonUpdateWait daemon_update_wait = 5;
+  // DistConfigMsg is the signed packedmsg dist_config was parsed from.
+  // Empty when dist_config is empty.
+  string dist_config_msg = 6;
 }
 
 // DaemonUpdateWait reports the work keeping an accepted daemon update from
@@ -136,6 +139,9 @@ enum DistConfigSource {
   DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT = 4;
   // DIST_CONFIG_SOURCE_ENDPOINT means the config came from a dist endpoint.
   DIST_CONFIG_SOURCE_ENDPOINT = 5;
+  // DIST_CONFIG_SOURCE_PUSH means the config was pushed to the launcher,
+  // such as by a linked peer.
+  DIST_CONFIG_SOURCE_PUSH = 6;
 }
 
 // ReleaseMetadataOutcome is the state of Release World metadata resolution
@@ -289,14 +295,12 @@ message PushDistConfigRequest {
 }
 
 // PushDistConfigResponse is the response to PushDistConfigRequest.
+// A body without a valid packedmsg fails the call instead.
 message PushDistConfigResponse {
-  // Valid indicates that a valid packedmsg was found in the body.
-  bool valid = 1;
   // Updated indicates that the found packedmsg is now the latest.
-  // Will be false if valid=false.
-  bool updated = 2;
-  // Rev was the revision of the found app config object. 0 if none.
-  uint64 rev = 3;
-  // PrevRev was the revision of the old app config object. 0 if none.
-  uint64 prev_rev = 4;
+  bool updated = 1;
+  // Rev is the revision of the found app config object.
+  uint64 rev = 2;
+  // PrevRev is the revision of the previous app config object. 0 if none.
+  uint64 prev_rev = 3;
 }

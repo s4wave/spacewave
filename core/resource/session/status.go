@@ -606,6 +606,8 @@ func distConfigSourceString(source spacewave_launcher.DistConfigSource) string {
 		return "embedded-default"
 	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_ENDPOINT:
 		return "endpoint"
+	case spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_PUSH:
+		return "push"
 	default:
 		return ""
 	}

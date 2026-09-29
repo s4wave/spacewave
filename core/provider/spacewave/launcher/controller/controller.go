@@ -56,6 +56,8 @@ type Controller struct {
 	stagingDirFunc func() (string, error)
 	// currentExecutableBundleFunc overrides current executable bundle detection in tests.
 	currentExecutableBundleFunc func() (execPath string, isBundle bool, bundleRoot string, err error)
+	// adoptMtx orders adoptDistConf calls.
+	adoptMtx sync.Mutex
 	// mtx guards below fields
 	mtx sync.Mutex
 	// confFetcherRefetch is a timer to restart confFetcherRoutine on success
@@ -126,7 +128,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	c.le.Info("launcher starting")
 
 	// load the built-in app dist config
-	defDistConf, _, defDistConfSigner, err := c.conf.ParseInitDistConfig(c.conf.GetProjectId(), c.distPeerIDs)
+	defDistConf, defDistConfMsg, defDistConfSigner, err := c.conf.ParseInitDistConfig(c.conf.GetProjectId(), c.distPeerIDs)
 	if err == nil && defDistConf != nil {
 		c.le.Debug("loaded default app dist config")
 	}
@@ -136,6 +138,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// load the initial app dist config
 	var distConf *spacewave_launcher.DistConfig
+	var distConfMsg string
 	distConfSource := spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_NONE
 	loadedPackageDistConf := false
 	distConfDat, err := c.loadDistConf(ctx)
@@ -161,7 +164,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	if len(distConfDat) != 0 {
 		var distConfSigner peer.ID
-		distConf, _, distConfSigner, err = c.parseDistConf(distConfDat)
+		distConf, distConfMsg, distConfSigner, err = c.parseDistConf(distConfDat)
 		if err == nil {
 			c.le.
 				WithField("conf-rev", distConf.GetRev()).
@@ -184,6 +187,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	}
 	if defDistConf != nil && distConfRev < defDistConf.GetRev() {
 		distConf = defDistConf
+		distConfMsg = defDistConfMsg
 		distConfSource = spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_EMBEDDED_DEFAULT
 		c.le.
 			WithField("defconf-rev", defDistConf.GetRev()).
@@ -198,7 +202,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	// DistConfig was found so watchers start in the right state: with a
 	// config the loader skips its retry UI, without one it shows connecting.
 	c.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
-		DistConfig: distConf,
+		DistConfig:    distConf,
+		DistConfigMsg: distConfMsg,
 		FetchStatus: &spacewave_launcher.FetchStatus{
 			HasConfig:              distConf.GetRev() != 0,
 			SelectedConfigRev:      distConf.GetRev(),
@@ -297,56 +302,77 @@ func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStat
 	})
 }
 
-// PushDistConf pushes an updated dist configuration signed packedmsg.
+// PushDistConf adopts the newest valid signed DistConfig found in body when
+// its revision is higher than the current one.
 //
-// Returns the updated config, found packedmsg substring, signer peer, updated, currentRev, and any error.
-// If updated=false the current dist config had equal and/or newer rev and/or the given was invalid.
-//
-// Finds the latest valid signed dist config in the body.
-func (c *Controller) PushDistConf(ctx context.Context, body []byte) (*spacewave_launcher.DistConfig, string, peer.ID, bool, uint64, error) {
+// Returns the found config, whether it was adopted, and the previous
+// revision. An invalid body, including a config for another channel, returns
+// an error.
+func (c *Controller) PushDistConf(ctx context.Context, body []byte) (*spacewave_launcher.DistConfig, bool, uint64, error) {
 	currLauncherInfo, err := c.launcherInfoCtr.WaitValue(ctx, nil)
 	if err != nil {
-		return nil, "", "", false, 0, err
+		return nil, false, 0, err
 	}
-	currDistConf := currLauncherInfo.GetDistConfig()
-	currRev := currDistConf.GetRev()
+	currRev := currLauncherInfo.GetDistConfig().GetRev()
 
-	updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, updated, err := spacewave_launcher.ResolvePushedDistConfig(
-		c.le.WithField("endpoint", "PushDistConf"),
-		body,
-		c.distPeerIDs,
-		c.conf.GetProjectId(),
-		currRev,
-	)
-	if err != nil || updatedAppDistConf.GetRev() == 0 {
-		return nil, "", "", false, currRev, err
-	}
-	if !updated {
-		return updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, false, currRev, nil
+	// Verify the signature, project and channel as for an endpoint response.
+	distConf, distConfMsg, distConfSigner, err := c.parseDistConf(body)
+	if err != nil {
+		return nil, false, currRev, err
 	}
 
-	// valid and updated
-	if err := c.storeDistConf(ctx, []byte(updatedAppDistConfMsg)); err != nil {
-		c.le.WithError(err).Warn("failed to store updated app dist config")
+	// Adopt the config if it is newer.
+	if !c.adoptDistConf(ctx, distConf, distConfMsg, spacewave_launcher.DistConfigSource_DIST_CONFIG_SOURCE_PUSH) {
+		return distConf, false, currRev, nil
 	}
-	_, _ = c.swapDistConf(updatedAppDistConf)
-	c.RecheckReleaseMetadata()
-	return updatedAppDistConf, updatedAppDistConfMsg, updatedAppDistConfPeer, true, currRev, nil
+	c.le.
+		WithField("prev-conf-rev", currRev).
+		WithField("conf-rev", distConf.GetRev()).
+		WithField("conf-signer", distConfSigner.String()).
+		Info("adopted pushed app dist config")
+	return distConf, true, currRev, nil
 }
 
-// swapDistConf swaps in a new dist conf to the launcher info if the revision is higher.
+// adoptDistConf selects conf, parsed from the signed msg, when its revision
+// is higher than the current one. It then persists msg, records source in the
+// fetch status and rechecks the release metadata. adoptMtx orders the swap
+// and the store so storage never regresses to an older revision.
 //
-// Returns the stored config and a bool if updated.
-// Does not store the updated config in storage.
-func (c *Controller) swapDistConf(updConf *spacewave_launcher.DistConfig) (*spacewave_launcher.DistConfig, bool) {
-	nextVal, changed, _ := c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (commit bool, cbErr error) {
-		if info.GetDistConfig().GetRev() >= updConf.GetRev() {
+// Returns true if conf was adopted.
+func (c *Controller) adoptDistConf(
+	ctx context.Context,
+	conf *spacewave_launcher.DistConfig,
+	msg string,
+	source spacewave_launcher.DistConfigSource,
+) bool {
+	c.adoptMtx.Lock()
+	defer c.adoptMtx.Unlock()
+
+	// Select the config only if it is newer.
+	_, adopted, _ := c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.GetDistConfig().GetRev() >= conf.GetRev() {
 			return false, nil
 		}
-		info.DistConfig = updConf
+		info.DistConfig = conf
+		info.DistConfigMsg = msg
+		if info.FetchStatus == nil {
+			info.FetchStatus = &spacewave_launcher.FetchStatus{}
+		}
+		info.FetchStatus.HasConfig = true
+		info.FetchStatus.SelectedConfigRev = conf.GetRev()
+		info.FetchStatus.SelectedConfigSource = source
 		return true, nil
 	})
-	return nextVal.GetDistConfig(), changed
+	if !adopted {
+		return false
+	}
+
+	// Persist the config and resolve its release.
+	if err := c.storeDistConf(ctx, []byte(msg)); err != nil {
+		c.le.WithError(err).Warn("failed to store updated app dist config")
+	}
+	c.RecheckReleaseMetadata()
+	return true
 }
 
 // modifyLauncherInfo atomically modifies & swaps a new launcher info in if changed.

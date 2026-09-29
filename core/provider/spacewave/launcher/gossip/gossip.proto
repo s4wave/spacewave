@@ -1,0 +1,36 @@
+syntax = "proto3";
+package spacewave.launcher.gossip;
+
+// Message is one message on a DistConfig gossip stream. Each side announces
+// its current config, requests a peer's config when the peer announces a
+// newer one, and offers its signed config when asked.
+message Message {
+  // Body is the message body.
+  oneof body {
+    // Announce reports the sender's current DistConfig.
+    Announce announce = 1;
+    // Request asks the receiver to offer its current signed DistConfig.
+    Request request = 2;
+    // Offer carries the sender's current signed DistConfig.
+    Offer offer = 3;
+  }
+}
+
+// Announce reports the sender's current DistConfig. The sender sends it when
+// the stream opens and whenever its config changes.
+message Announce {
+  // Rev is the revision of the sender's DistConfig.
+  // Unverified: only the offered message is trusted.
+  uint64 rev = 1;
+  // Hash is the SHA-256 of the sender's signed DistConfig packedmsg.
+  bytes hash = 2;
+}
+
+// Request asks the receiver to offer its current signed DistConfig.
+message Request {}
+
+// Offer carries the sender's current signed DistConfig.
+message Offer {
+  // DistConfigMsg is the signed DistConfig packedmsg.
+  string dist_config_msg = 1;
+}

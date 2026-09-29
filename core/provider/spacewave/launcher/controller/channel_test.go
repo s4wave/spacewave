@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/net/peer"
@@ -11,7 +12,8 @@ import (
 )
 
 // TestDistConfigAuthority checks the same signature and channel contract for
-// embedded, stored, package-shipped and endpoint-fetched configurations.
+// embedded, stored, package-shipped, endpoint-fetched and pushed
+// configurations.
 func TestDistConfigAuthority(t *testing.T) {
 	trusted, err := peer.NewPeer(nil)
 	if err != nil {
@@ -47,10 +49,22 @@ func TestDistConfigAuthority(t *testing.T) {
 			packed := packedmsg.EncodePackedMessage(encoded)
 			conf := &Config{ProjectId: "spacewave", ChannelKey: "staging", InitDistConfig: packed}
 			peers := []peer.ID{trusted.GetPeerID()}
-			ctrl := &Controller{conf: conf, distPeerIDs: peers, le: logrus.NewEntry(logrus.New())}
+			// The launcher already holds rev 1, so a valid push is not adopted.
+			ctrl := &Controller{
+				conf:        conf,
+				distPeerIDs: peers,
+				le:          logrus.NewEntry(logrus.New()),
+				launcherInfoCtr: ccontainer.NewCContainer(&spacewave_launcher.LauncherInfo{
+					DistConfig: &spacewave_launcher.DistConfig{ProjectId: "spacewave", Rev: 1},
+				}),
+			}
 			_, _, _, storedErr := ctrl.parseDistConf([]byte(packed))
 			_, _, _, initErr := conf.ParseInitDistConfig(conf.ProjectId, peers)
-			for path, err := range map[string]error{"stored/fetched": storedErr, "embedded": initErr} {
+			_, pushAdopted, _, pushErr := ctrl.PushDistConf(t.Context(), []byte(packed))
+			if pushAdopted {
+				t.Fatal("pushed config with the current rev was adopted")
+			}
+			for path, err := range map[string]error{"stored/fetched": storedErr, "embedded": initErr, "pushed": pushErr} {
 				if test.wantErr == "" {
 					if err != nil {
 						t.Fatalf("%s: %v", path, err)

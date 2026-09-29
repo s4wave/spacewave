@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	spacewave_launcher_gossip "github.com/s4wave/spacewave/core/provider/spacewave/launcher/gossip"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
@@ -444,6 +445,16 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	defer solicitRef.Release()
+
+	t.setStartupStage("dist-config-gossip")
+
+	// Gossip the launcher's signed DistConfig with linked peers.
+	gossipCtrl := spacewave_launcher_gossip.NewController(le, b)
+	releaseGossip, err := b.AddController(ctx, gossipCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer releaseGossip()
 
 	// Attach process-local packet routes before announcing transport readiness.
 	if t.startLocalTransport != nil {
