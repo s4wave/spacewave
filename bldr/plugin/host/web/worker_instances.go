@@ -29,11 +29,13 @@ func removeWebWorkerInstances(
 	pluginWebWorkerID string,
 	shouldRemove func(generation string) bool,
 ) (map[string]web_worker.WebWorker, error) {
+	// Read the current web worker snapshot from the document.
 	docWebWorkers, err := doc.GetWebWorkers(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Clone the snapshot and remove every worker outside the plugin ID or the removal filter.
 	docWebWorkers = maps.Clone(docWebWorkers)
 	for id, worker := range docWebWorkers {
 		if worker.GetId() != pluginWebWorkerID || !shouldRemove(worker.GetGeneration()) {
@@ -41,6 +43,7 @@ func removeWebWorkerInstances(
 			continue
 		}
 
+		// Remove the matching worker, tolerating removal errors as warnings.
 		le.
 			WithFields(logrus.Fields{
 				"web-document": doc.GetWebDocumentUuid(),

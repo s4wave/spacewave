@@ -56,6 +56,7 @@ const (
 // generation fence: tracking startup removed the ready worker the current
 // execution had just created, closing it under the app mid body mount.
 func TestTrackingStartupKeepsReadyOwnGenerationWorker(t *testing.T) {
+	// Build a document holding the ready own-generation worker and another plugin's worker.
 	own := &sweepTestWorker{
 		id:    sweepTestPluginWorkerID,
 		gen:   sweepTestOwnGeneration,
@@ -66,6 +67,7 @@ func TestTrackingStartupKeepsReadyOwnGenerationWorker(t *testing.T) {
 		gen: sweepTestOwnGeneration,
 	})
 
+	// Sweep stale predecessors and keep the ready own-generation worker.
 	got, err := removeStaleWebWorkerInstances(
 		context.Background(), doc,
 		logrus.WithField("test", t.Name()),
@@ -89,6 +91,7 @@ func TestTrackingStartupKeepsReadyOwnGenerationWorker(t *testing.T) {
 // ready worker from a previous execution is stale under the scheduler's
 // single-execution-per-plugin contract and must be removed at startup.
 func TestTrackingStartupReclaimsStalePredecessor(t *testing.T) {
+	// Build a document holding only a ready stale predecessor worker.
 	stale := &sweepTestWorker{
 		id:    sweepTestPluginWorkerID,
 		gen:   sweepTestOldGeneration,
@@ -96,6 +99,7 @@ func TestTrackingStartupReclaimsStalePredecessor(t *testing.T) {
 	}
 	doc := newSweepTestDoc(stale)
 
+	// Sweep stale predecessors and reclaim the previous execution's worker.
 	got, err := removeStaleWebWorkerInstances(
 		context.Background(), doc,
 		logrus.WithField("test", t.Name()),
@@ -115,6 +119,7 @@ func TestTrackingStartupReclaimsStalePredecessor(t *testing.T) {
 // TestExecutionCleanupRemovesOnlyOwnGeneration pins the exit path: cleanup
 // removes this execution's worker and leaves other generations alone.
 func TestExecutionCleanupRemovesOnlyOwnGeneration(t *testing.T) {
+	// Remove this execution's own-generation worker from a fresh document.
 	own := &sweepTestWorker{id: sweepTestPluginWorkerID, gen: sweepTestOwnGeneration}
 	if _, err := removeOwnWebWorkerInstances(
 		context.Background(), newSweepTestDoc(own),
@@ -127,6 +132,7 @@ func TestExecutionCleanupRemovesOnlyOwnGeneration(t *testing.T) {
 		t.Fatal("execution cleanup did not remove its own generation")
 	}
 
+	// Run cleanup against a foreign-generation worker and confirm it survives.
 	foreign := &sweepTestWorker{
 		id:    sweepTestPluginWorkerID,
 		gen:   sweepTestOldGeneration,
