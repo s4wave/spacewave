@@ -22,9 +22,12 @@ func writeReadCheckpoint(
 	localPeer peer.ID,
 	previous, next *sobject.SOState,
 ) error {
+	// Skip commits that do not change this peer's readability.
 	if localPeer == "" {
 		return nil
 	}
+
+	// Detect whether this peer can read each state.
 	readable := func(state *sobject.SOState) bool {
 		for _, participant := range state.GetConfig().GetParticipants() {
 			if participant.GetPeerId() == localPeer.String() {
@@ -37,6 +40,8 @@ func writeReadCheckpoint(
 	if wasReadable == isReadable {
 		return nil
 	}
+
+	// Delete the checkpoint on readmission; retain the readable root on departure.
 	key := readCheckpointKey(sharedObjectID)
 	if isReadable {
 		return tx.Delete(ctx, key)
@@ -62,6 +67,7 @@ func writeReadCheckpoint(
 // GetSharedObjectReadCheckpoint returns the last readable snapshot retained at departure.
 // A nil snapshot means this provider has no retained history for this participant.
 func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobject.SharedObjectReadCheckpoint, error) {
+	// Read the retained checkpoint or build one from the current state.
 	read, err := s.objStore.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -71,6 +77,8 @@ func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobj
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the retained checkpoint or snapshot the current denied state.
 	state := &sobject.SOState{}
 	if found {
 		if err := state.UnmarshalVT(data); err != nil {
@@ -92,6 +100,8 @@ func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobj
 			}
 		}
 	}
+
+	// Validate and return the checkpoint handle.
 	if err := state.Validate(s.GetSharedObjectID()); err != nil {
 		return nil, err
 	}
