@@ -17,10 +17,12 @@ func (t *pluginInstance) setExecutePluginState(args *executePluginArgs) bool {
 
 // setExecutePluginStateLocked applies candidate ordering under pluginUpdateMtx.
 func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bool {
+	// Reject a candidate the binding no longer accepts.
 	if !t.acceptsManifest(args) {
 		return false
 	}
 
+	// Retain the running generation when the replacement is an older revision.
 	current := t.executePluginRoutine.GetState()
 	if t.selectedManifest.Load() == nil && current != nil && args != nil {
 		currentMeta := current.manifestSnapshot.GetManifest().GetMeta()
@@ -36,6 +38,7 @@ func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bo
 		}
 	}
 
+	// Replace immediately when unguarded, unchanged, or nothing runs.
 	if args == nil || current == nil || executePluginArgsEqual(current, args) ||
 		!slices.Contains(t.c.conf.GetUpdateGuardPluginIds(), t.pluginID) {
 		if t.updatePluginRoutine != nil {
@@ -45,6 +48,7 @@ func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bo
 		return changed
 	}
 
+	// Route the guarded replacement through the update routine.
 	_, changed, _, _ := t.updatePluginRoutine.SetState(args)
 	return changed
 }
@@ -52,19 +56,24 @@ func (t *pluginInstance) setExecutePluginStateLocked(args *executePluginArgs) bo
 // execGuardedPluginUpdate asks the current generation to quiesce before the
 // execution owner cancels it. A failed request leaves that generation running.
 func (t *pluginInstance) execGuardedPluginUpdate(ctx context.Context, args *executePluginArgs) error {
+	// Skip updates that carry no candidate.
 	if args == nil {
 		return nil
 	}
 
+	// Wait for the running plugin and ask it to quiesce.
 	running, err := t.runningPluginCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
+
+	// Prepare the running generation for replacement.
 	client := bldr_plugin.NewSRPCUpdateGuardClient(running.GetRpcClient())
 	if _, err := client.Prepare(ctx, &bldr_plugin.PrepareUpdateRequest{}); err != nil {
 		return err
 	}
 
+	// Apply the replacement only if the binding still accepts it.
 	t.pluginUpdateMtx.Lock()
 	defer t.pluginUpdateMtx.Unlock()
 	if err := ctx.Err(); err != nil {

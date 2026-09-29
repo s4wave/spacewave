@@ -45,6 +45,7 @@ func (c *Controller) materializeManifest(
 	dest, src *bucket_lookup.Cursor,
 	concurrency int,
 ) (*bucket.ObjectRef, bucket_lookup.ObjectCopyStats, error) {
+	// Retain the latest copy statistics across every return path.
 	var stats bucket_lookup.ObjectCopyStats
 
 	// Run the whole operation on a child context so the request-scoped source
@@ -62,6 +63,7 @@ func (c *Controller) materializeManifest(
 	)); err != nil {
 		return nil, stats, errors.Wrap(err, "register source block store rpc handler")
 	}
+
 	// Accept the plugin's direct server identity and, when the plugin runs in
 	// a browser worker, the exact web-worker identity carrying the scheduler's
 	// instance key. Both alternatives are anchored and fully escaped.
@@ -100,9 +102,11 @@ func (c *Controller) materializeManifest(
 	sourceRef.TransformConfRef = nil
 	sourceRef.TransformConf = src.GetTransformConf().CloneVT()
 
+	// Point the destination at the plugin-host proxy volume.
 	destOpArgs := dest.GetOpArgs()
 	destOpArgs.VolumeId = bldr_plugin.PluginVolumeID
 
+	// Address the materializer service inside the plugin.
 	materializerServiceID := bldr_plugin.PluginServiceID(pluginID, bldr_manifest_materializer.SRPCMaterializerServiceID)
 	req := &bldr_manifest_materializer.MaterializeManifestRequest{
 		Source:                   sourceRef,
@@ -130,6 +134,7 @@ func (c *Controller) materializeManifest(
 	}
 	defer strm.Close()
 
+	// Collect the latest statistics and terminal copied root from the stream.
 	var copiedRef *bucket.ObjectRef
 	for {
 		resp, err := strm.Recv()
@@ -139,6 +144,8 @@ func (c *Controller) materializeManifest(
 			}
 			break
 		}
+
+		// Retain the latest coalesced statistics.
 		if wireStats := resp.GetStats(); wireStats != nil {
 			stats = bucket_lookup.ObjectCopyStats{
 				BlocksSeen:         wireStats.GetBlocksSeen(),
@@ -150,6 +157,8 @@ func (c *Controller) materializeManifest(
 				LogicalSourceBytes: wireStats.GetLogicalSourceBytes(),
 			}
 		}
+
+		// Retain the terminal copied root.
 		if resp.GetCopiedRef() != nil {
 			copiedRef = resp.GetCopiedRef()
 		}
@@ -165,6 +174,7 @@ func (c *Controller) materializeManifest(
 	if copiedRef.GetRootRef().GetEmpty() {
 		return nil, stats, errors.New("materializer copied root has an empty root block ref")
 	}
+
 	// Copying preserves block encoding, so the copied root must match the source.
 	if !copiedRef.GetRootRef().EqualsRef(sourceRef.GetRootRef()) {
 		return nil, stats, errors.Errorf(

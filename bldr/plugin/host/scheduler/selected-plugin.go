@@ -19,6 +19,7 @@ type executionReference struct {
 
 // newExecution constructs one immutable worker without manifest-selection loops.
 func (t *pluginInstance) newExecution(key executionReference) (keyed.Routine, *pluginInstance) {
+	// Build a physical worker keyed by the candidate's manifest root.
 	root := manifestRootKey(key.args.manifestSnapshot.GetManifestRef())
 	worker := newPluginState(t.c, t.le, t.pluginID, t.instanceKey+"/generation/"+root, t.manifestRoot)
 	worker.bindingKey = t.bindingKey
@@ -88,9 +89,11 @@ func (t *pluginInstance) incompatibleManifest(ref *bucket.ObjectRef) bool {
 // Legacy plugins retain their in-place replacement contract; typed plugins
 // publish their complete registration scope only after startup succeeds.
 func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *executePluginArgs, recovery bool) (rerr error) {
+	// Reject a candidate the binding no longer accepts.
 	if !t.acceptsManifest(args) {
 		return context.Canceled
 	}
+
 	// An explicit removal releases the binding; candidate cancellation does not.
 	if args == nil || args.manifestSnapshot == nil {
 		t.clearExecution(nil)
@@ -123,6 +126,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 
 	// The logical binding owns workers beyond this selection attempt. Until
 	// admission, canceling or failing this attempt releases only the candidate.
+
+	// Register the candidate as an execution and admit it when unprepared.
 	ref, worker, _ := t.executions.AddKeyRef(executionReference{args: args, prepared: prepared})
 	admitted := false
 	defer func() {
@@ -136,6 +141,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 			return context.Canceled
 		}
 	}
+
+	// Wait for startup to complete or fail before activation.
 	state, err := worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
 		if state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed {
 			if err := state.GetStartupError(); err != nil {
@@ -167,6 +174,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 			return context.Canceled
 		}
 	}
+
+	// Publish the admitted manifest root and clear startup bookkeeping.
 	t.emitPluginManifestRoot(args.manifestSnapshot.GetManifestRef().GetRootRef().GetHash().MarshalString())
 	if !recovery {
 		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
@@ -175,6 +184,8 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 
 	// The worker's callback keeps public state current even while another
 	// candidate is preparing. A crashed admitted worker is released before retry.
+
+	// Wait for the admitted worker to report a failed registration.
 	_, err = worker.pluginLoadStateCtr.WaitValueWithValidator(ctx, func(state plugin.PluginLoadState) (bool, error) {
 		return state.GetInitialCapabilityRegistrationState() == plugin.InitialCapabilityRegistrationFailed, nil
 	}, nil)
@@ -188,9 +199,11 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 // admitExecution switches the family alias and filesystem access to a worker.
 // Its load-state lock precedes pluginUpdateMtx, matching the worker callback.
 func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), args *executePluginArgs) bool {
+	// Swap the admitted worker under the load-state lock.
 	var previous func()
 	var admitted bool
 	worker.pluginLoadStateCtr.SwapValue(func(state plugin.PluginLoadState) plugin.PluginLoadState {
+		// Admit the worker only while the binding is open and accepts the manifest.
 		t.pluginUpdateMtx.Lock()
 		defer t.pluginUpdateMtx.Unlock()
 		if t.executionsClosed || !t.acceptsManifest(args) {
@@ -200,12 +213,16 @@ func (t *pluginInstance) admitExecution(worker *pluginInstance, release func(), 
 		previous = t.releaseExecution
 		t.activeExecution = worker
 		t.releaseExecution = release
+
+		// Switch the family alias and file access to the new worker.
 		t.ensureAccessProviders()
 		t.distAccess.SetCurrent(worker.distAccess.AccessUnixFS)
 		t.assetsAccess.SetCurrent(worker.assetsAccess.AccessUnixFS)
 		t.updatePluginLoadState(func(plugin.PluginLoadState) plugin.PluginLoadState { return state })
 		return state
 	})
+
+	// Release the previously admitted worker after the swap commits.
 	if previous != nil {
 		previous()
 	}
@@ -222,11 +239,14 @@ func (t *pluginInstance) closeExecutions() {
 
 // clearExecution releases the admitted worker and clears the logical binding.
 func (t *pluginInstance) clearExecution(expected *pluginInstance) {
+	// Return unchanged when no worker or a different worker is admitted.
 	t.pluginUpdateMtx.Lock()
 	if t.activeExecution == nil || expected != nil && t.activeExecution != expected {
 		t.pluginUpdateMtx.Unlock()
 		return
 	}
+
+	// Clear the admitted worker and block file access until the next admission.
 	release := t.releaseExecution
 	t.releaseExecution = nil
 	t.activeExecution = nil
@@ -235,6 +255,8 @@ func (t *pluginInstance) clearExecution(expected *pluginInstance) {
 	t.assetsAccess.SetBlocked()
 	t.beginInitialCapabilityRegistration()
 	t.pluginUpdateMtx.Unlock()
+
+	// Release the replaced worker outside the update lock.
 	if release != nil {
 		release()
 	}
