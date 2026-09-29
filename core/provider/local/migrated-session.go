@@ -46,6 +46,7 @@ func migrationOffer(transition *provider.AccountTransition) *pairing.AccountOffe
 // AttachMigratedSession rewraps this machine's existing key and obtains verified
 // destination grants. A returning client uses its old authenticated transport.
 func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source session.Session, transition *provider.AccountTransition) (*session.SessionRef, error) {
+	// Validate the transition and require this account as its destination.
 	if err := transition.Validate(); err != nil {
 		return nil, err
 	}
@@ -56,13 +57,19 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	if destination.GetProviderId() != a.GetProviderID() || destination.GetProviderAccountId() != a.GetAccountID() || transition.GetDestinationEndpoint() != "" {
 		return nil, errors.New("account transition names another destination provider")
 	}
+
+	// Build the destination Session reference and storage key.
 	credential, ok := source.(provider_migration.CredentialSource)
 	if !ok {
 		return nil, errors.New("source provider cannot move this Session's protected credential")
 	}
+
+	// Build the destination Session reference.
 	ref := source.GetSessionRef().CloneVT()
 	ref.ProviderResourceRef.ProviderId = a.GetProviderID()
 	ref.ProviderResourceRef.ProviderAccountId = a.GetAccountID()
+
+	// Resolve the destination storage peer and derive its key.
 	storagePeer, err := a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return nil, err
@@ -75,6 +82,8 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the destination object store and copy the credential.
 	handle, _, releaseStore, err := volume.ExBuildObjectStoreAPI(ctx, a.t.p.b, false, SessionObjectStoreID(a.GetProviderID(), a.GetAccountID()), a.vol.GetID(), nil)
 	if err != nil {
 		return nil, err
@@ -83,6 +92,8 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	if err := session_lock.CopyCredential(ctx, credential.SessionCredentialStore(), handle.GetObjectStore(), source.GetSessionRef().GetProviderResourceRef().GetId(), ref.GetProviderResourceRef().GetId(), source.GetPrivKey(), storageKey); err != nil {
 		return nil, err
 	}
+
+	// Bind the settings object and read the current settings.
 	offer := migrationOffer(transition)
 	if err := a.bindPairingSettings(ctx, offer); err != nil {
 		return nil, err
@@ -91,6 +102,8 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	if err != nil {
 		return nil, err
 	}
+
+	// Enroll this Session when the destination already accepted the migration.
 	if settings.FindAccountMigration(transition.GetOperationId()) != nil {
 		transport := a.GetSessionTransport()
 		if transport == nil {
@@ -111,9 +124,12 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	} else if err := a.fetchMigratedEnrollment(ctx, source, transition, ref, storagePrivate); err != nil {
 		return nil, err
 	}
+
+	// Retire the source transport before the preserved Session mounts.
 	if err := credential.RetireAccountTransport(ctx); err != nil {
 		return nil, err
 	}
+
 	// The destination's temporary enrollment must retire before the preserved
 	// Session mounts. Its mount then starts transport and sync on the same bus.
 	if transport := a.GetSessionTransport(); transport != nil && transport.GetPeerID() != source.GetPeerId() {
@@ -134,6 +150,8 @@ func (a *ProviderAccount) AttachMigratedSession(ctx context.Context, source sess
 	defer reference.Release()
 	tracker.ref.SetResult(ref, nil)
 	tracker.unlockProm.SetResult(slices.Clone(keyData), nil)
+
+	// Mount the destination Session and start its transport and sync.
 	mounted, releaseSession, err := a.MountSession(ctx, ref, nil)
 	if err != nil {
 		return nil, err
@@ -162,11 +180,14 @@ func (a *ProviderAccount) EnrollMigratedSession(ctx context.Context, request *pr
 }
 
 func (a *ProviderAccount) enrollMigratedSession(ctx context.Context, transition *provider.AccountTransition, identity *pairing.Identity, server, caller peer.ID) (*provider_migration.MigratedSessionResponse, error) {
+	// Authorize the caller against the destination's migration record.
 	release, err := a.replicaAuth.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
+
+	// Validate the transition and read the destination settings.
 	if err := a.validateMigrationDestination(ctx, transition); err != nil {
 		return nil, err
 	}
@@ -183,6 +204,8 @@ func (a *ProviderAccount) enrollMigratedSession(ctx context.Context, transition 
 	if err := pairing.ValidateIdentity(migrationOffer(transition), identity, server, caller); err != nil {
 		return nil, err
 	}
+
+	// Grant the member on every local object and commit the binding.
 	member := &account_settings.AccountSession{PeerId: caller.String(), StoragePeerId: identity.GetStorageProof().GetResponderPeerId()}
 	if current := settings.FindAccountSession(caller.String()); current != nil && (current.GetRevoked() || current.GetStoragePeerId() != member.GetStoragePeerId()) {
 		return nil, errors.New("this Session already has another destination storage binding")
@@ -195,6 +218,8 @@ func (a *ProviderAccount) enrollMigratedSession(ctx context.Context, transition 
 	if err := a.commitMigrationSettings(ctx, &account_settings.AccountSettingsOp{Op: &account_settings.AccountSettingsOp_UpsertAccountSession{UpsertAccountSession: member}}); err != nil {
 		return nil, err
 	}
+
+	// Export each enrolled object's checkpoint to the caller.
 	response := &provider_migration.MigratedSessionResponse{}
 	for _, entry := range a.soListCtr.GetValue().GetSharedObjects() {
 		object, err := a.enrollAccountMemberObject(ctx, entry, member)
@@ -207,6 +232,7 @@ func (a *ProviderAccount) enrollMigratedSession(ctx context.Context, transition 
 }
 
 func (a *ProviderAccount) fetchMigratedEnrollment(ctx context.Context, source session.Session, transition *provider.AccountTransition, ref *session.SessionRef, storageKey crypto.PrivKey) error {
+	// Connect to the destination through the source's pairing transport.
 	owner, ok := source.(pairing.Session)
 	if !ok {
 		return errors.New("source Session cannot connect to the destination account")
@@ -215,6 +241,8 @@ func (a *ProviderAccount) fetchMigratedEnrollment(ctx context.Context, source se
 	if err != nil {
 		return err
 	}
+
+	// Enroll with each destination peer until one accepts this Session.
 	var lastErr error
 	for _, id := range transition.GetDestinationPeerIds() {
 		server, _, err := peer.ParsePeerIDWithPubKey(id)
@@ -236,6 +264,8 @@ func (a *ProviderAccount) fetchMigratedEnrollment(ctx context.Context, source se
 			lastErr = err
 			continue
 		}
+
+		// Install the returned checkpoints and require the settings object.
 		settingsReceived := false
 		for _, object := range response.GetObjects() {
 			if err := a.installPairingObject(ctx, migrationOffer(transition), object, server); err != nil {
@@ -248,6 +278,8 @@ func (a *ProviderAccount) fetchMigratedEnrollment(ctx context.Context, source se
 		}
 		return nil
 	}
+
+	// Report the last failure when no destination peer accepted.
 	if lastErr == nil {
 		lastErr = errors.New("no destination Session is reachable")
 	}
