@@ -16,14 +16,18 @@ func Marshal(adds, removes []block_gc.RefEdge) []byte {
 
 // Unmarshal decodes a journal entry written by Marshal.
 func Unmarshal(b []byte) (adds, removes []block_gc.RefEdge, err error) {
+	// Read the added edges from the head of the entry.
 	adds, b, err = readEdges(b)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Read the removed edges from the remainder of the entry.
 	removes, _, err = readEdges(b)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return adds, removes, nil
 }
 
@@ -42,11 +46,14 @@ func appendEdges(b []byte, edges []block_gc.RefEdge) []byte {
 
 // readEdges decodes edges written by appendEdges and returns the rest of b.
 func readEdges(b []byte) ([]block_gc.RefEdge, []byte, error) {
+	// Read the edge count and trim it from the buffer.
 	n, size := binary.Uvarint(b)
 	if size <= 0 || n > uint64(len(b)) {
 		return nil, nil, errors.New("invalid journal entry")
 	}
 	b = b[size:]
+
+	// Decode each edge's length-prefixed subject and object fields.
 	edges := make([]block_gc.RefEdge, n)
 	for i := range edges {
 		var fields [2]string
@@ -61,5 +68,6 @@ func readEdges(b []byte) ([]block_gc.RefEdge, []byte, error) {
 		}
 		edges[i] = block_gc.RefEdge{Subject: fields[0], Object: fields[1]}
 	}
+
 	return edges, b, nil
 }
