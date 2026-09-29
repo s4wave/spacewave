@@ -33,6 +33,7 @@ type InfoWatcher struct {
 // NewInfoWatcher constructs an InfoWatcher for the launcher on b. It watches
 // nothing until SetContext. le logs routine exits and may be nil.
 func NewInfoWatcher(le *logrus.Entry, b bus.Bus) *InfoWatcher {
+	// Configure the watch routine's retry and optional exit logger.
 	opts := []routine.Option{
 		routine.WithRetry(&backoff.Backoff{
 			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
@@ -46,6 +47,7 @@ func NewInfoWatcher(le *logrus.Entry, b bus.Bus) *InfoWatcher {
 		opts = append(opts, routine.WithExitLogger(le.WithField("routine", "launcher-info-watcher")))
 	}
 
+	// Build the watcher and start its routine.
 	w := &InfoWatcher{b: b}
 	w.rc = routine.NewRoutineContainer(opts...)
 	w.rc.SetRoutine(w.watch)
@@ -60,6 +62,7 @@ func (w *InfoWatcher) SetContext(ctx context.Context) {
 // Snapshot returns a copy of the latest LauncherInfo, nil when no launcher is
 // reachable, and a channel closed on the next change.
 func (w *InfoWatcher) Snapshot() (*LauncherInfo, <-chan struct{}) {
+	// Snapshot the latest info and the change channel under the lock.
 	var info *LauncherInfo
 	var waitCh <-chan struct{}
 	w.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -71,6 +74,7 @@ func (w *InfoWatcher) Snapshot() (*LauncherInfo, <-chan struct{}) {
 
 // watch streams LauncherInfo from the Launcher service until the stream ends.
 func (w *InfoWatcher) watch(ctx context.Context) error {
+	// Clear the snapshot when the watch routine exits.
 	defer w.set(nil)
 
 	// Wait for a Launcher service on the bus.
