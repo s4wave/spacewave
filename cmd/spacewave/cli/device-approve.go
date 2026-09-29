@@ -16,6 +16,7 @@ import (
 
 // decodeDeviceLocalCompletion decodes a prefixed local SpaceLink completion.
 func decodeDeviceLocalCompletion(encoded string) (*s4wave_session.LocalSpaceLinkCompletion, error) {
+	// Decode the base64 completion and unmarshal its proto record.
 	raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(encoded, deviceLocalCompletionPrefix))
 	if err != nil {
 		return nil, errors.Wrap(err, "decode local SpaceLink completion")
@@ -70,6 +71,7 @@ func (a *deviceApproveArgs) BuildFlags() []cli.Flag {
 
 // Run consumes one SpaceLink ticket through the mounted session approval API.
 func (a *deviceApproveArgs) Run(c *cli.Context) error {
+	// Collect the ticket text from the flag or the single argument.
 	if c.NArg() > 1 {
 		return errors.New("device approve accepts one ticket")
 	}
@@ -80,6 +82,8 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	if ticketText == "" {
 		return errors.New("device approve ticket is required")
 	}
+
+	// Decode the ticket and reject an empty payload.
 	ticket, err := base64.StdEncoding.DecodeString(ticketText)
 	if err != nil {
 		return errors.Wrap(err, "decode SpaceLink ticket")
@@ -87,6 +91,8 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	if len(ticket) == 0 {
 		return errors.New("device approve ticket is empty")
 	}
+
+	// Connect to the daemon and mount the owner session for the Space.
 	ctx := c.Context
 	client, err := connectDaemonFromContext(ctx, c, a.statePath)
 	if err != nil {
@@ -98,20 +104,27 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		return err
 	}
 	defer sess.Release()
+
+	// Resolve the Space's resource ID and the session's provider.
 	resourceID, err := client.resolveSpaceID(ctx, sess, a.spaceID)
 	if err != nil {
 		return err
 	}
+
+	// Read the session's provider ID from its info record.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
 	}
 	providerID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 
+	// Resolve the session's RPC client for the provider's approval service.
 	sessionClient, err := sess.GetResourceRef().GetClient()
 	if err != nil {
 		return errors.Wrap(err, "session client")
 	}
+
+	// Approve the ticket through the cloud session service and print its completion.
 	var payload []byte
 	switch providerID {
 	case "spacewave":
@@ -138,6 +151,7 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		return errors.Errorf("session provider %q does not support SpaceLink Device approval", providerID)
 	}
 
+	// Approve the ticket through the local session service and print its completion.
 	service := s4wave_session.NewSRPCLocalSessionResourceServiceClient(sessionClient)
 	response, err := service.ApproveSpaceLink(ctx, &s4wave_session.ApproveLocalSpaceLinkRequest{
 		Ticket:     ticket,
@@ -146,6 +160,8 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "approve SpaceLink Device")
 	}
+
+	// Reject a response without a completion and encode it.
 	completion := response.GetCompletion()
 	if completion == nil {
 		return errors.New("SpaceLink approval returned no completion")
