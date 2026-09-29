@@ -40,6 +40,8 @@ func Prepare(repoDir, environment string) (string, error) {
 		return "", err
 	}
 	defer root.Close()
+
+	// Read the base bldr.star build definition and the staging overlay.
 	source, err := root.ReadFile("bldr.star")
 	if err != nil {
 		return "", err
@@ -48,6 +50,8 @@ func Prepare(repoDir, environment string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "read staging release overlay")
 	}
+
+	// Write the combined bldr.star and a staging bldr.yaml into the export directory.
 	dir := filepath.Join(".tmp", "native-release-config", "staging")
 	if err := root.MkdirAll(dir, 0o755); err != nil {
 		return "", err
@@ -56,6 +60,8 @@ func Prepare(repoDir, environment string) (string, error) {
 	if err := root.WriteFile(filepath.Join(dir, "bldr.star"), content, 0o644); err != nil {
 		return "", err
 	}
+
+	// Write the staging bldr.yaml manifest and return its slash path.
 	path := filepath.Join(dir, "bldr.yaml")
 	if err := root.WriteFile(path, []byte("id: spacewave\n"), 0o644); err != nil {
 		return "", err
