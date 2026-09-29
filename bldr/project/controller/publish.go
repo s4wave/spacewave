@@ -21,6 +21,7 @@ import (
 // Filters manifests to the given build type.
 // If the given build type is empty, skips filtering.
 func (c *Controller) PublishTargets(ctx context.Context, remote string, targets []string, buildType bldr_manifest.BuildType) error {
+	// Reject calls without a remote id or target list.
 	if len(remote) == 0 {
 		return bldr_project.ErrEmptyRemoteID
 	}
@@ -28,17 +29,19 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		return errors.New("publish called with no targets")
 	}
 
+	// Load the project's publish target configuration.
 	conf := c.GetConfig()
 	projConfig := conf.GetProjectConfig()
 	publishTargets := projConfig.GetPublish()
 
-	// add a reference to the source remote
+	// Attach to the source remote and hold its reference until publish ends.
 	remoteWorld, remoteRef, err := c.WaitRemote(ctx, remote)
 	if err != nil {
 		return err
 	}
 	defer remoteRef.Release()
 
+	// Prepare each target's remotes, manifests, platforms, and storage.
 	remoteObjKey := remoteRef.GetRemoteConfig().GetObjectKey()
 	for _, target := range targets {
 		target = strings.TrimSpace(target)
@@ -86,24 +89,28 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			manifestStorage[manifestID] = baseConfig
 		}
 
-		// search for all manifests for manifestIDs
+		// Collect the source manifests from the remote's World in one transaction.
 		var cmanifests map[string][]*bldr_manifest_world.CollectedManifest
 		var cmanifestErrs []error
 		if err := func() error {
+			// Open a read transaction on the source remote's World.
 			wtx, err := remoteWorld.NewTransaction(ctx, false)
 			if err != nil {
 				return err
 			}
 			defer wtx.Discard()
 
+			// Collect the manifests reachable from each source object key.
 			cmanifests, cmanifestErrs, err = bldr_manifest_world.CollectManifests(ctx, wtx, platformIDs, srcObjectKeys...)
 			return err
 		}(); err != nil {
 			return err
 		}
+		// Log each collected manifest's validation error without failing.
 		for _, manifestErr := range cmanifestErrs {
 			le.WithError(manifestErr).Warn("skipping invalid manifest")
 		}
+		// Filter the collected manifests by build type, platform, and revision.
 
 		// filter by build type
 		if buildType != "" {
@@ -124,6 +131,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 			}
 		}
 
+		// Drop manifest ids with no collected manifests and skip when none remain.
 		// warn for no manifests found
 		var anyManifests bool
 		for _, manifestID := range manifestIDs {
@@ -150,6 +158,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 				return errors.Wrap(err, "remote "+destRemoteID)
 			}
 
+			// Resolve the destination remote's peer id and object keys.
 			destRemoteConf := destRemoteRef.GetRemoteConfig()
 			destRemotePeerID, err := destRemoteConf.ParsePeerID()
 			if err != nil {
@@ -200,6 +209,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 								ctx,
 								baseRef,
 								func(bls *bucket_lookup.Cursor) error {
+									// Clone the base reference and retarget it at this bucket.
 									nextRef := bls.GetRef().Clone()
 									nextRef.BucketId = bls.GetOpArgs().GetBucketId()
 									nextRef.RootRef = nil
@@ -214,6 +224,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 										nextRef.TransformConfRef = nil
 									}
 
+									// Follow the adjusted reference and run the callback on it.
 									nextCs, err := bls.FollowRef(ctx, nextRef)
 									if err != nil {
 										return err
@@ -225,6 +236,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							)
 						}
 
+						// Default the manifest timestamp to now when storage omits one.
 						manifestTs := storageConf.GetTimestamp()
 						if manifestTs.GetEmpty() {
 							manifestTs = timestamp.Now()
@@ -243,6 +255,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							destRemotePeerID,
 							manifestTs.CloneVT(),
 						)
+						// Commit the copied manifest and drop the returned object reference.
 						if err == nil {
 							err = destRemoteTx.Commit(ctx)
 						}

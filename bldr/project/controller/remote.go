@@ -39,6 +39,7 @@ func (c *Controller) newRemoteTracker(key string) (keyed.Routine, *remoteTracker
 
 // execute executes the tracker.
 func (t *remoteTracker) execute(ctx context.Context) error {
+	// Publish the result promise so waiters observe every outcome.
 	t.c.le.WithField("remote-id", t.remoteID).Debug("remote tracker starting")
 	resultPromise := promise.NewPromise[*world.Engine]()
 	t.resultPromise.SetPromise(resultPromise)
@@ -48,6 +49,7 @@ func (t *remoteTracker) execute(ctx context.Context) error {
 		return err
 	}
 
+	// Apply the remote's host config set, releasing it when the tracker exits.
 	// apply config set if necessary
 	configSetMap := t.remote.GetHostConfigSet()
 	if len(configSetMap) != 0 {
@@ -65,6 +67,7 @@ func (t *remoteTracker) execute(ctx context.Context) error {
 		defer configSetRef.Release()
 	}
 
+	// Look up the World engine handle and publish it as the tracker result.
 	// build world engine handle
 	worldEngineID := t.remote.GetEngineId()
 	engineHandle, _, engineRef, err := world.ExLookupWorldEngine(ctx, t.c.bus, false, worldEngineID, nil)
@@ -74,10 +77,11 @@ func (t *remoteTracker) execute(ctx context.Context) error {
 	}
 	defer engineRef.Release()
 
+	// Publish the engine handle as the tracker result.
 	engine := engineHandle
 	resultPromise.SetResult(&engine, nil)
 
-	// wait for ctx to be canceled
+	// Hold the engine until the tracker's context is canceled.
 	<-ctx.Done()
 	t.c.le.WithField("remote-id", t.remoteID).Debug("remote tracker exiting")
 	return nil

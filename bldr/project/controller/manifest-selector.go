@@ -18,6 +18,7 @@ func ForManifestSelector(manifestIDs, platformIDs []string, cb func(manifestID, 
 	slices.Sort(platformIDs)
 	platformIDs = slices.Compact(platformIDs)
 
+	// Iterate every manifest id for each platform id until the callback stops.
 	for _, platformID := range platformIDs {
 		for _, manifestID := range manifestIDs {
 			cntu, err := cb(manifestID, platformID)

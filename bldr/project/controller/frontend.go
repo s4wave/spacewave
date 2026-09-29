@@ -78,6 +78,7 @@ func newFrontendService(le *logrus.Entry, b bus.Bus) *FrontendService {
 
 // configure replaces the graph only when its configured inputs change.
 func (f *FrontendService) configure(cc *Config) error {
+	// Build the compiler configuration from the project's JS manifests.
 	conf := &vite.DevelopmentConfig{
 		RootDir:      cc.GetSourcePath(),
 		DistDir:      filepath.Join(cc.GetWorkingPath(), "src"),
@@ -87,6 +88,8 @@ func (f *FrontendService) configure(cc *Config) error {
 		// An attached compiler's source owner reports each edit through Change.
 		ExternalChanges: cc.GetFrontendRoutePrefix() != "",
 	}
+
+	// Collect each JS builder's excluded web packages and frontend modules.
 	configured := false
 	for id, manifest := range cc.GetProjectConfig().GetManifests() {
 		builder := manifest.GetBuilder()
@@ -122,6 +125,8 @@ func (f *FrontendService) configure(cc *Config) error {
 			configured = true
 		}
 	}
+
+	// Sort and deduplicate the collected entrypoints and excluded web packages.
 	slices.Sort(conf.Entrypoints)
 	conf.Entrypoints = slices.Compact(conf.Entrypoints)
 	slices.Sort(conf.WebPkgIds)
@@ -129,6 +134,8 @@ func (f *FrontendService) configure(cc *Config) error {
 	if len(conf.Entrypoints) == 0 {
 		conf = nil
 	}
+
+	// Replace the compiler state, clearing it when no entrypoints remain.
 	f.run.SetState(conf)
 
 	// Release attachment calls only after the first configuration is visible.
@@ -143,11 +150,14 @@ func (f *FrontendService) configure(cc *Config) error {
 
 // execute publishes one session and joins its compiler before any replacement.
 func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentConfig) error {
+	// Reset the environment promise so a new session cannot serve the old one.
 	f.ready.SetPromise(nil)
 	defer func() {
 		f.active.Store(nil)
 		f.ready.SetPromise(nil)
 	}()
+
+	// Start a compiler controller that owns the managed compiler process.
 	compiler, err := vite_compiler.NewController(f.le, f.bus, &vite_compiler.Config{})
 	if err != nil {
 		f.ready.SetResult(nil, err)
@@ -159,16 +169,20 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 		return err
 	}
 
+	// Clone the config and assign a short unique development session id.
 	conf := config.CloneVT()
+
 	// The session id appears in every module URL; 40 random bits keep it short
 	// while still distinguishing one environment from the one it replaced.
 	conf.SessionId = strings.ToLower(rand.Text()[:8])
 	err = compiler.RunDevelopment(ctx, conf, func(client vite.SRPCViteBundlerClient, result *vite.DevelopmentResult) {
+		// Publish each ready compiler session as the service's active environment.
 		target, parseErr := url.Parse(result.GetPrivateUrl())
 		if parseErr != nil || target.Scheme != "http" || target.Hostname() != "127.0.0.1" {
 			f.ready.SetResult(nil, errors.New("frontend compiler returned an invalid private address"))
 			return
 		}
+
 		// The authenticated Bldr route targets Vite's private listener. Its Host
 		// must name that listener, independently of the browser's public origin.
 		env := &frontendEnvironment{ctx: ctx, client: client, result: result, proxy: &httputil.ReverseProxy{
@@ -178,6 +192,8 @@ func (f *FrontendService) execute(ctx context.Context, config *vite.DevelopmentC
 		f.active.Store(env)
 		f.ready.SetResult(env, nil)
 	})
+
+	// Report a failure only when the session itself failed, not cancellation.
 	if err != nil && ctx.Err() == nil {
 		f.ready.SetResult(nil, err)
 	}
@@ -268,12 +284,15 @@ func (f *FrontendService) Fetch(stream frontend.SRPCFrontend_FetchStream) error 
 
 // ServeHTTP forwards only the current same-origin module namespace.
 func (f *FrontendService) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Reject module requests that are not read-only GET or HEAD.
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
 		rw.Header().Set("Allow", "GET, HEAD")
 		http.Error(rw, "frontend modules are read-only", http.StatusMethodNotAllowed)
 		return
 	}
 	env := f.active.Load()
+
+	// Redirect entrypoint paths to the session's route prefix.
 	if env != nil && env.ctx.Err() == nil && strings.HasPrefix(req.URL.Path, "/b/fe/entrypoint/") {
 		entrypoint := strings.TrimPrefix(req.URL.Path, "/b/fe/entrypoint/")
 		if !slices.Contains(env.result.GetSession().GetEntrypoints(), entrypoint) {
@@ -297,12 +316,15 @@ func (f *FrontendService) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			"export const {"+refreshExports+"} = runtime; export default runtime;\n")
 		return
 	}
+
+	// Forward all other requests through the environment's reverse proxy.
 	env.proxy.ServeHTTP(rw, req)
 }
 
 // ServeBootstrap establishes React Refresh before the canonical renderer loads.
 // Only compiler runtime code uses this route; application modules use Fetch.
 func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Request, entrypoint string) {
+	// Serve a passthrough boot module when the frontend is disabled.
 	if f.run.GetState() == nil {
 		rw.Header().Set("Content-Type", "text/javascript")
 		rw.Header().Set("Cache-Control", "no-store")
@@ -315,10 +337,13 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 		http.Error(rw, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
+
+	// Await the ready environment and set the module response headers.
 	rw.Header().Set("Content-Type", "text/javascript")
 	rw.Header().Set("Cache-Control", "no-store")
 	refreshPath := "/bldr-dev/frontend-refresh/" + env.result.GetSession().GetId() + ".mjs"
 	switch req.URL.Path {
+	// Serve the frontend boot module and its per-session refresh runtime.
 	case "/bldr-dev/frontend-boot.mjs":
 		refresh := strconv.Quote(refreshPath)
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))

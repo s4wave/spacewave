@@ -49,6 +49,7 @@ func (c *Controller) addManifestBuilderRefs(confs []*ManifestBuilderConfig, reus
 // addManifestBuilderRefsLocked selects and registers builders with lifecycleMtx
 // and mtx held. It validates the whole set before creating any references.
 func (c *Controller) addManifestBuilderRefsLocked(confs []*ManifestBuilderConfig, reuseActive bool) ([]*ManifestBuilderRef, error) {
+	// Reject a closed controller before touching its registries.
 	if c.closed {
 		return nil, errControllerClosed
 	}

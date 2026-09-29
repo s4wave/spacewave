@@ -39,6 +39,7 @@ func (r *ManifestBuilderRef) Release() {
 
 // ReleaseAfter releases the reference after delay or when ctx is canceled.
 func (r *ManifestBuilderRef) ReleaseAfter(ctx context.Context, delay time.Duration) {
+	// Release exactly once, whether the timer fires or the context cancels.
 	var once sync.Once
 	release := func() {
 		once.Do(r.Release)
