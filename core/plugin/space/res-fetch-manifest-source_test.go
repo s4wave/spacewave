@@ -50,8 +50,11 @@ func (c *sourceManifestController) HandleDirective(
 		return nil, nil
 	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		// Signal the test that the source demand started and record release.
 		c.started <- struct{}{}
 		defer func() { c.released <- struct{}{} }()
+
+		// Publish the manifest value until the directive context ends.
 		_, _ = handler.AddValue(&bldr_manifest.FetchManifestValue{ManifestRefs: []*bldr_manifest.ManifestRef{{}}})
 		handler.MarkIdle(true)
 		<-ctx.Done()
@@ -60,6 +63,7 @@ func (c *sourceManifestController) HandleDirective(
 }
 
 func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
+	// Bound the test and build the parent bus with the source controller.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	parent, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
@@ -73,6 +77,7 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	}
 	defer parentRef()
 
+	// Start the child Space controller with the parent as manifest source.
 	child, resolver, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
@@ -84,11 +89,11 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	}
 	defer ctrlRef.Release()
 
+	// The Space World resolver never idles without a World engine, so watch
+	// values as they arrive.
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
 	values := make(chan []*bldr_manifest.ManifestRef, 2)
-	// The Space World resolver never idles without a World engine, so watch
-	// values as they arrive.
 	_, release, err := bus.ExecCollectValuesWatch[*bldr_manifest.FetchManifestValue](
 		watchCtx,
 		child,
@@ -112,11 +117,14 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 	}
 	defer release()
 
+	// Assert the unapproved manifest did not demand the parent source.
 	select {
 	case <-source.started:
 		t.Fatal("unapproved manifest fetched from parent")
 	default:
 	}
+
+	// Approve the manifest and wait for it to resolve from the parent.
 	setSourcePluginIDs(ctrl, []string{sourceManifestID})
 	for {
 		select {
@@ -129,6 +137,7 @@ func TestFetchManifestSourceRequiresSpaceApproval(t *testing.T) {
 		}
 	}
 
+	// After the manifest resolved, assert the parent source demand started.
 resolved:
 	select {
 	case <-source.started:
@@ -136,6 +145,7 @@ resolved:
 		t.Fatal("approved manifest did not demand the parent source")
 	}
 
+	// Remove the approval and assert the parent demand releases.
 	setSourcePluginIDs(ctrl, nil)
 	select {
 	case <-source.released:
@@ -145,6 +155,7 @@ resolved:
 }
 
 func setSourcePluginIDs(c *Controller, ids []string) {
+	// Publish the SpaceSettings plugin IDs and wake the watchers.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.pluginIDs = ids
 		broadcast()
@@ -152,6 +163,7 @@ func setSourcePluginIDs(c *Controller, ids []string) {
 }
 
 func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
+	// Bound the test and start the Space controller.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	b, resolver, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
@@ -182,11 +194,14 @@ func TestRequestedPluginIDsFollowFetchManifest(t *testing.T) {
 		}
 	}
 
+	// Add a FetchManifest demand and watch the requested IDs track it.
 	_, ref, err := b.AddDirective(bldr_manifest.NewFetchManifest("unlisted-plugin", nil, nil, 0), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	waitRequested("unlisted-plugin")
+
+	// Release the demand and assert the requested IDs empty again.
 	ref.Release()
 	waitRequested()
 }

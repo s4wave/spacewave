@@ -38,9 +38,12 @@ func (c *Controller) resolveSourceFetchManifest(
 			dir,
 			true,
 			func(_ []error, vals []*manifest.FetchManifestValue) error {
+				// Skip updates after the demand context canceled.
 				if demandCtx.Err() != nil {
 					return nil
 				}
+
+				// Republish the collected manifest refs as one value.
 				refs := make([]*manifest.ManifestRef, 0)
 				for _, val := range vals {
 					refs = append(refs, val.GetManifestRefs()...)
@@ -83,6 +86,7 @@ func (c *Controller) resolveSourceFetchManifest(
 
 // getManifestSourceApproval snapshots the parent source and SpaceSettings gate.
 func (c *Controller) getManifestSourceApproval(manifestID string) (bus.Bus, bool, <-chan struct{}) {
+	// Snapshot the parent source, approval, and wait channel under the lock.
 	var source bus.Bus
 	var approved bool
 	var waitCh <-chan struct{}

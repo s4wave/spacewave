@@ -77,12 +77,15 @@ func (c *CloudBlockStoreForwarder) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller goroutine.
 func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
+	// Require a plugin id when the forwarder targets a bucket.
 	if c.bucketID == "" {
 		return nil
 	}
 	if c.pluginID == "" {
 		return errors.New("host_plugin_id is required when world_bucket_id is set")
 	}
+
+	// Build the service id and the request logger.
 	serviceID := cloudBlockStoreServiceID(c.spaceID)
 	le := c.le.
 		WithField("bucket-id", c.bucketID).
@@ -92,11 +95,15 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 	// Each call borrows the current mounted store. Looking up its local bucket
 	// would discard Session read-through and strand artifacts built on a peer.
 	invoker := srpc.InvokerFunc(func(requestService, method string, stream srpc.Stream) (bool, error) {
+		// Ignore requests for another service.
 		if requestService != serviceID {
 			return false, nil
 		}
+
+		// Serve the request through a read-through store on the mounted cursor.
 		var handled bool
 		err := c.access(stream.Context(), nil, func(cursor *bucket_lookup.Cursor) error {
+			// Invoke the block store handler over the read-only store.
 			readOnly := block_store.NewStoreReadThrough(func() block.StoreOps { return cursor.GetBlockStore() }, nil, false)
 			handler := block_rpc.NewSRPCBlockStoreHandler(block_rpc_server.NewBlockStore(readOnly), serviceID)
 			var err error
@@ -105,6 +112,8 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 		})
 		return handled, err
 	})
+
+	// Run the RPC service controller for the forwarded service.
 	server := bifrost_rpc.NewRpcServiceController(c.GetControllerInfo(),
 		bifrost_rpc.NewRpcServiceBuilder(invoker), nil, false, nil, []string{serviceID}, nil)
 	serverRelease, err := c.b.AddController(ctx, server, nil)
@@ -113,11 +122,13 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 	}
 	defer serverRelease()
 
+	// Build the bucket config for the forwarded bucket.
 	bucketConf, err := bucket.NewConfig(c.bucketID, 1, nil)
 	if err != nil {
 		return err
 	}
 
+	// Build the host's read-only block store RPC and bucket controller configs.
 	hostRpcConf := &block_store_rpc.Config{
 		BlockStoreId:  c.bucketID,
 		ServiceId:     bldr_plugin.PluginServiceID(c.pluginID, serviceID),
@@ -139,6 +150,7 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Apply the host configset that mounts the read-only store in the plugin.
 	hostConfigSet := &plugin_host_configset.Config{
 		ConfigSet: map[string]*configset_proto.ControllerConfig{
 			"plugin-space-cloud-block-store-rpc/" + c.bucketID:    hostRpcCtrlConf,
@@ -156,6 +168,7 @@ func (c *CloudBlockStoreForwarder) Execute(ctx context.Context) error {
 	}
 	defer hostConfigSetRef.Release()
 
+	// Wait for the lifecycle context to cancel.
 	le.Info("forwarding Space cloud block store to plugin host")
 	<-ctx.Done()
 	return ctx.Err()

@@ -27,6 +27,7 @@ type resolverEntry struct {
 
 // processResolvers processes all active FetchManifest resolvers against the current world state.
 func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) {
+	// Trace the resolver processing task.
 	ctx, task := trace.NewTask(ctx, "core/plugin-space/fetch-manifest/process-resolvers")
 	defer task.End()
 
@@ -41,18 +42,23 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 		ids = c.pluginIDs
 	})
 
+	// Log the resolver and plugin counts.
 	le := c.GetLogger()
 	le.WithField("entries", len(entries)).WithField("plugin-ids", ids).Debug("processResolvers called")
 	trace.Logf(ctx, "resolver-count", "%d", len(entries))
 	trace.Log(ctx, "plugin-ids", strings.Join(ids, ","))
 
+	// Return when no resolvers are active.
 	if len(entries) == 0 {
 		return
 	}
 
+	// Read the controller config for the manifest search roots.
 	conf := c.GetConfig()
 
+	// Resolve each entry against the current World state.
 	for _, entry := range entries {
+		// Trace one resolver entry and skip a canceled one.
 		entryCtx, entryTask := trace.NewTask(ctx, "core/plugin-space/fetch-manifest/resolve")
 		if entry.ctx.Err() != nil {
 			entryTask.End()

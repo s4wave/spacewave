@@ -143,6 +143,7 @@ func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
 // changes. A requested plugin that SpaceSettings does not list waits until it
 // is listed.
 func (c *Controller) GetRequestedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
+	// Collect the requested manifest IDs and the change channel under the lock.
 	var ids []string
 	var waitCh <-chan struct{}
 	c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -153,6 +154,8 @@ func (c *Controller) GetRequestedPluginIDsAndWaitCh() ([]string, <-chan struct{}
 		}
 		waitCh = getWaitCh()
 	})
+
+	// Return the sorted IDs.
 	slices.Sort(ids)
 	return ids, waitCh
 }
@@ -220,11 +223,14 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Skip a controller with no World engine configured.
 	conf := c.GetConfig()
 	engineID := conf.GetEngineId()
 	if engineID == "" {
 		return nil
 	}
+
+	// Serve the Space's object type lookups.
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	objectTypeRef, err := c.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
@@ -232,6 +238,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer objectTypeRef()
 
+	// Forward the World bucket to the host plugin when configured.
 	if conf.GetWorldBucketId() != "" {
 		if conf.GetHostPluginId() == "" {
 			return errors.New("host_plugin_id is required when world_bucket_id is set")
@@ -277,15 +284,19 @@ func (c *Controller) resolveListAvailablePlugins(
 	_ directive.Instance,
 	dir plugin_list.ListAvailablePlugins,
 ) ([]directive.Resolver, error) {
+	// Ignore requests for another Space.
 	conf := c.GetConfig()
 	if dir.ListAvailablePluginsSpaceID() != conf.GetSpaceId() {
 		return nil, nil
 	}
+
 	// Use current SpaceSettings plugin_ids.
 	var ids []string
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ids = slices.Clone(c.pluginIDs)
 	})
+
+	// Resolve the plugin list from the current IDs.
 	return directive.R(
 		plugin_list.NewResolver(c.GetBus(), dir, ids, conf.GetVolumeId(), conf.GetObjectStoreId()),
 		nil,
@@ -346,6 +357,7 @@ func (c *Controller) resolveWorldFetchManifest(
 	handler directive.ResolverHandler,
 	dir manifest.FetchManifest,
 ) error {
+	// Register the resolver entry and wake the resolver watchers.
 	entry := &resolverEntry{ctx: ctx, dir: dir, handler: handler}
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.resolvers[entry] = struct{}{}
@@ -354,6 +366,8 @@ func (c *Controller) resolveWorldFetchManifest(
 	c.resolverBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
+
+	// Deregister the entry when the directive context ends.
 	defer func() {
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			delete(c.resolvers, entry)
@@ -364,6 +378,7 @@ func (c *Controller) resolveWorldFetchManifest(
 		})
 	}()
 
+	// Wait for the directive context to end.
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -372,8 +387,8 @@ func (c *Controller) resolveWorldFetchManifest(
 // directives from SpaceSettings and processes FetchManifest resolvers.
 // Always runs while the controller is alive (not gated on resolver presence).
 func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) error {
+	// Release the process set and plugin references when the loop ends.
 	le := c.GetLogger()
-
 	refs := make(map[string]pluginReference)
 	defer func() {
 		c.processes.ClearContext()
@@ -384,6 +399,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 	}()
 	c.processes.SetContext(ctx, true)
 
+	// Reconcile plugins, resolvers, and processes on every World state change.
 	watchLoop := world_control.NewWatchLoop(le, "", world_control.NewWaitForStateHandler(func(
 		ctx context.Context,
 		ws world.WorldState,
@@ -396,6 +412,8 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 		c.reconcileProcesses(ctx, ws)
 		return true, nil
 	}))
+
+	// Publish the watch loop and clear it on return.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.watchLoop = watchLoop
 		broadcast()
@@ -409,6 +427,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 
 	// Wake the watch loop when the resolver set changes.
 	go func() {
+		// Wait for each resolver-set change and wake the loop.
 		for {
 			var ch <-chan struct{}
 			c.resolverBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
@@ -430,15 +449,16 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 // reconcilePlugins reads SpaceSettings from the world and reconciles
 // LoadPlugin directives based on the current plugin_ids.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]pluginReference) {
+	// Read SpaceSettings from the World state.
 	le := c.GetLogger()
 	conf := c.GetConfig()
-
 	settings, err := space_world.LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to lookup SpaceSettings")
 		return
 	}
 
+	// Filter the configured plugin IDs.
 	var ids []string
 	if settings != nil {
 		ids = pluginids.FilterValid(le, settings.GetPluginIds())
@@ -457,6 +477,8 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	for _, pid := range ids {
 		desired[pid] = struct{}{}
 	}
+
+	// Reconcile the loaded plugin state tracker with the desired IDs.
 	c.loadedPlugins.Reconcile(ids)
 
 	// Release directives for plugins removed from SpaceSettings.
@@ -492,6 +514,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			demand = bldr_plugin.NewLoadPluginWithManifests(pid, conf.GetSpaceId(), selected...)
 		}
 
+		// Add the LoadPlugin directive to the plugin bus.
 		di, ref, err := c.pluginBus().AddDirective(
 			demand,
 			nil,
@@ -501,6 +524,8 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			c.loadedPlugins.SetPluginState(pid, false, true)
 			continue
 		}
+
+		// Track the previous reference for release once the replacement runs.
 		pluginID := pid
 		releasePrevious := sync.OnceFunc(func() {
 			if existed {
@@ -529,6 +554,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 				releasePrevious()
 			}
 		})
+		// Record the new plugin reference.
 		refs[pid] = pluginReference{
 			ref:             ref,
 			releaseState:    releaseState,
@@ -543,9 +569,9 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 // binding whose World object no longer exists is deleted, and its process
 // stops.
 func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState) {
+	// Resolve the binding store's volume and object store ids.
 	le := c.GetLogger()
 	conf := c.GetConfig()
-
 	volumeID := conf.GetVolumeId()
 	if volumeID == "" {
 		volumeID = bldr_plugin.PluginVolumeID
@@ -555,6 +581,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 		objectStoreID = "platform-account"
 	}
 
+	// Open the ObjectStore API for the process bindings.
 	handle, _, ref, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		c.GetBus(),
@@ -577,6 +604,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	}
 	defer ref.Release()
 
+	// List the Space's process bindings and drop the orphaned ones.
 	spaceID := conf.GetSpaceId()
 	store := handle.GetObjectStore()
 	bindings, err := process_binding.ListProcessBindings(ctx, store, spaceID)
@@ -600,6 +628,8 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 			}
 		}
 	}
+
+	// Reconcile the process routines with the desired bindings.
 	c.reconcileProcessConfigs(le, desired)
 }
 
@@ -614,6 +644,7 @@ func (c *Controller) deleteOrphanedBindings(
 	spaceID string,
 	bindings []*s4wave_process.ProcessBinding,
 ) ([]*s4wave_process.ProcessBinding, error) {
+	// Batch-check which bindings' World objects still exist.
 	keys := make([]string, len(bindings))
 	for i, binding := range bindings {
 		keys[i] = binding.GetObjectKey()
@@ -623,6 +654,7 @@ func (c *Controller) deleteOrphanedBindings(
 		return nil, err
 	}
 
+	// Delete each orphaned binding and keep the rest.
 	kept := make([]*s4wave_process.ProcessBinding, 0, len(bindings))
 	var deleted bool
 	for i, binding := range bindings {
@@ -636,6 +668,8 @@ func (c *Controller) deleteOrphanedBindings(
 		le.WithField("object-key", binding.GetObjectKey()).Info("deleted process binding of deleted object")
 		deleted = true
 	}
+
+	// Notify binding views when any binding was deleted.
 	if deleted && c.bindingsChanged != nil {
 		c.bindingsChanged()
 	}
@@ -644,19 +678,23 @@ func (c *Controller) deleteOrphanedBindings(
 
 // reconcileProcessConfigs starts and stops process routines to match desired.
 func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[string]processConfig) {
+	// Log the reconciliation inputs.
 	active := c.processes.GetKeysWithData()
 	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconciling space processes")
 
+	// Store the desired process configs.
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		c.processConfigs = desired
 	})
 
+	// Sync the keyed process routines with the desired object keys.
 	desiredKeys := make([]string, 0, len(desired))
 	for key := range desired {
 		desiredKeys = append(desiredKeys, key)
 	}
 	added, removed := c.processes.SyncKeys(desiredKeys, false)
 
+	// Log the stopped and started processes.
 	for _, key := range removed {
 		le.WithField("object-key", key).Debug("stopping process (removed or disabled)")
 	}
@@ -664,6 +702,8 @@ func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[strin
 		cfg := desired[key]
 		le.WithField("object-key", key).WithField("type-id", cfg.typeID).Debug("starting process")
 	}
+
+	// Restart routines whose binding type changed.
 	for _, entry := range c.processes.GetKeysWithData() {
 		cfg, ok := desired[entry.Key]
 		if !ok {
@@ -715,6 +755,7 @@ func (c *Controller) getProcessConfig(objectKey string) processConfig {
 // runProcess resolves the ObjectType, creates an SRPC client, and runs
 // the Execute streaming RPC until the stream closes or an error occurs.
 func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, objectKey, typeID string) error {
+	// Capture the controller's bus for the object type lookup.
 	b := c.GetBus()
 
 	// Inject session peer ID, engine ID and plugin bus into context for factories.
@@ -728,12 +769,14 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 	}
 	var engine world.Engine
 	if eid := conf.GetEngineId(); eid != "" {
+		// Attach the World engine to the context for the factory.
 		ctx = objecttype.WithEngineID(ctx, eid)
 		busEngine := world.NewBusEngine(ctx, b, eid)
 		defer busEngine.ClearContext()
 		engine = busEngine
 	}
 
+	// Resolve the object type and reject a missing one.
 	ot, otRef, err := objecttype.ExLookupObjectType(ctx, b, typeID)
 	if err != nil {
 		return errors.Wrap(err, "lookup object type")
@@ -743,6 +786,7 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 	}
 	defer otRef.Release()
 
+	// Build the process invoker with the object type's factory.
 	le := c.GetLogger()
 	factory := ot.GetFactory()
 	invoker, cleanup, err := factory(ctx, le, b, engine, ws, objectKey)
@@ -765,6 +809,7 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 	client := srpc.NewClient(srpc.NewServerPipe(srv))
 	execClient := s4wave_process.NewSRPCPersistentExecutionServiceClient(client)
 
+	// Start the persistent Execute stream.
 	strm, err := execClient.Execute(ctx, &s4wave_process.ExecuteRequest{})
 	if err != nil {
 		return errors.Wrap(err, "execute RPC")

@@ -77,6 +77,7 @@ func (c *pluginReadinessLoadController) HandleDirective(
 		return nil, nil
 	}
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		// Signal the test that the plugin load started and fetch its manifest.
 		close(c.loadStarted)
 		manifestValue, _, manifestRef, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 			ctx,
@@ -105,13 +106,16 @@ func (c *pluginReadinessLoadController) HandleDirective(
 		if len(manifestValue.GetManifestRefs()) == 0 {
 			return nil
 		}
-		close(c.manifestResolved)
 
+		// Signal the test that the manifest resolved and wait for registration.
+		close(c.manifestResolved)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-c.allowRegistration:
 		}
+
+		// Register the object type the test waits for.
 		registered := objecttype.NewObjectType(pluginReadinessTypeID, nil)
 		objectTypeCtrl := objecttype_controller.NewController(func(
 			_ context.Context,
@@ -128,6 +132,7 @@ func (c *pluginReadinessLoadController) HandleDirective(
 		}
 		defer objectTypeRef()
 
+		// Publish the running plugin until the directive context ends.
 		_, _ = handler.AddValue(bldr_plugin.NewRunningPlugin(nil))
 		handler.MarkIdle(true)
 		<-ctx.Done()
