@@ -8,10 +8,13 @@ import (
 )
 
 func TestBrowserReleaseOverridesKeepDeferredFunctions(t *testing.T) {
+	// Evaluate the repository bldr.star manifest.
 	result, err := Evaluate("../../../bldr.star")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the core plugin keeps both deferred function boundaries.
 	core := mustGoPluginConfig(t, result.Config.GetManifests()["spacewave-core"].GetBuilder().GetConfig())
 	for _, fn := range []string{
 		"github.com/s4wave/spacewave/core/git.LookupCreateGitRepoWizardOp",
@@ -21,6 +24,8 @@ func TestBrowserReleaseOverridesKeepDeferredFunctions(t *testing.T) {
 			t.Errorf("core plugin missing deferred boundary %s", fn)
 		}
 	}
+
+	// Assert each release dist config keeps the v86 copy deferred boundary.
 	for _, name := range []string{"release-web", "release-web-e2e-goscript"} {
 		conf := mustDistConfig(t, result.Config.GetBuild()[name].GetManifestOverrides()["spacewave-browser"].GetConfig())
 		for _, fn := range []string{

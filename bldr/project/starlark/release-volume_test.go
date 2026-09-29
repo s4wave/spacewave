@@ -27,6 +27,7 @@ func TestReleaseEntrypointsEmbedVolume(t *testing.T) {
 		} {
 			buildID := target.prefix + platform
 			t.Run(buildID, func(t *testing.T) {
+				// Resolve the build target and its manifest override.
 				build := result.Config.GetBuild()[buildID]
 				if build == nil {
 					t.Fatalf("release target %s is missing", buildID)

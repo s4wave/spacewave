@@ -17,6 +17,7 @@ import (
 // TestDesktopOfflineE2EConfig audits the composed fixture before its artifact
 // can be used to launch a desktop daemon.
 func TestDesktopOfflineE2EConfig(t *testing.T) {
+	// Read the base manifest, the offline overlay, and the fixture YAML.
 	root, err := os.ReadFile("../../../bldr.star")
 	if err != nil {
 		t.Fatal(err)
@@ -29,9 +30,13 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the fixture YAML adds no configuration of its own.
 	if string(yaml) != "id: spacewave\n" {
 		t.Fatalf("offline fixture YAML adds configuration: %s", yaml)
 	}
+
+	// Evaluate the overlayed manifest from a temporary file.
 	starPath := filepath.Join(t.TempDir(), "bldr.star")
 	if err := os.WriteFile(starPath, append(append(root, '\n'), overlay...), 0o644); err != nil {
 		t.Fatal(err)
@@ -41,6 +46,7 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read the fixture's asset and distribution build targets.
 	assets := result.Config.GetBuild()["desktop-offline-e2e-assets"]
 	dist := result.Config.GetBuild()["desktop-offline-e2e-dist"]
 	if assets == nil || dist == nil {
@@ -62,6 +68,7 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		t.Fatalf("distribution manifests: %v", got)
 	}
 
+	// Assert the fixture uses effective manifests and resolves every override.
 	if len(assets.GetManifestOverrides()) != 0 {
 		t.Fatal("fixture assets must use the effective manifest definitions")
 	}
@@ -81,6 +88,7 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		}
 	}
 
+	// Assert the offline launcher mounts no Release World provider.
 	var launcher bldr_plugin_compiler_go.Config
 	if err := launcher.UnmarshalJSON(launcherManifest.GetBuilder().GetConfig()); err != nil {
 		t.Fatal(err)
@@ -96,6 +104,7 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		t.Fatalf("offline launcher can fetch a distribution: %s", launcherManifest.GetBuilder().GetConfig())
 	}
 
+	// Assert the offline core keeps only the empty local provider.
 	var core bldr_plugin_compiler_go.Config
 	if err := core.UnmarshalJSON(coreManifest.GetBuilder().GetConfig()); err != nil {
 		t.Fatal(err)
@@ -108,6 +117,7 @@ func TestDesktopOfflineE2EConfig(t *testing.T) {
 		t.Fatalf("offline core local provider has signaling config: %v", local)
 	}
 
+	// Assert the distribution bundles exactly the fixture's startup plugins.
 	var bundle bldr_dist_compiler.Config
 	if err := bundle.UnmarshalJSON(distOverride.GetConfig()); err != nil {
 		t.Fatal(err)

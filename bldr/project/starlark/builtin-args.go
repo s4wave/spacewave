@@ -15,6 +15,7 @@ func popPositionalID(
 	args starlark.Tuple,
 	kwargs []starlark.Tuple,
 ) (string, []starlark.Tuple, error) {
+	// Accept at most one positional argument and read it as the id.
 	var id string
 	if len(args) > 1 {
 		return "", nil, errors.Errorf("%s() accepts at most 1 positional argument (id)", fnName)
@@ -27,6 +28,7 @@ func popPositionalID(
 		id = string(s)
 	}
 
+	// Strip the id kwarg, rejecting a second id specification.
 	remaining := make([]starlark.Tuple, 0, len(kwargs))
 	for _, kv := range kwargs {
 		key := string(kv[0].(starlark.String))
