@@ -112,11 +112,12 @@ func BuildWebPkgsViteWithManagedRoot(
 			Debug("building web pkg bundle with vite")
 
 		// Generate ESM wrappers for CJS imports so Rolldown produces
-		// named exports. Keep wrappers outside pkgOutputPath because Vite
-		// empties OutDir before building and wrapper files are build inputs.
+		// named exports. Keep wrappers in the build cache: Vite empties OutDir
+		// before building, and the wrappers embed absolute paths, so they must
+		// not ship in the output.
 		pkgRoot := webPkgRef.GetWebPkgRoot()
 		imports := webPkgRef.GetImports()
-		wrapperDir := filepath.Join(outputPath, ".cjs-wrappers")
+		wrapperDir := filepath.Join(cacheDir, ".cjs-wrappers")
 		imports, wrapperSources, generatedWrappers, wrapperErr := generateCjsWrappers(le, pkgRoot, imports, wrapperDir, isRelease)
 		if wrapperErr != nil {
 			return nil, nil, nil, errors.Wrapf(wrapperErr, "generate cjs wrappers for %s", webPkgID)
@@ -143,6 +144,10 @@ func BuildWebPkgsViteWithManagedRoot(
 		}
 		if !resp.GetSuccess() {
 			return nil, nil, nil, errors.Errorf("vite build web pkg %s failed: %s", webPkgID, resp.GetError())
+		}
+
+		if err := removeViteManifest(pkgOutputPath); err != nil {
+			return nil, nil, nil, errors.Wrapf(err, "remove vite manifest for %s", webPkgID)
 		}
 
 		// Collect stable source inputs without recording generated CJS wrappers.
@@ -182,6 +187,22 @@ func BuildWebPkgsViteWithManagedRoot(
 	webPkgIDs = slices.Compact(webPkgIDs)
 
 	return webPkgIDs, sourceFilesList, importMapEntries, nil
+}
+
+// removeViteManifest deletes the build-time Vite manifest from a web pkg
+// output. Its keys are paths from the build directory to the generated CJS
+// wrappers, so it differs between machines, and the runtime resolves web pkgs
+// through the import map instead. It leaves the rest of the .vite directory,
+// which holds debug output when enabled.
+func removeViteManifest(pkgOutputPath string) error {
+	viteDir := filepath.Join(pkgOutputPath, ".vite")
+	err := os.Remove(filepath.Join(viteDir, "manifest.json"))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	// Remove the directory only when the manifest was its last file.
+	_ = os.Remove(viteDir)
+	return nil
 }
 
 func canonicalSourcePath(rootPath, sourcePath string) (string, error) {

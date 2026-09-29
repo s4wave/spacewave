@@ -142,123 +142,6 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 	if want := []string{"node_modules/stable-cjs/index.cjs"}; !slices.Equal(sourceFiles, want) {
 		t.Fatalf("source files = %v, want %v", sourceFiles, want)
 	}
-	if err := os.RemoveAll(filepath.Join(workingDir, "relative-output")); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(wrapperPath); !os.IsNotExist(err) {
-		t.Fatalf("generated wrapper survived cleanup: %v", err)
-	}
-}
-
-func TestBuildWebPkgsViteIgnoresGeneratedOutputSources(t *testing.T) {
-	codeRootPath := t.TempDir()
-	oldWorkingDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(codeRootPath); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(oldWorkingDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
-	pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-pkg")
-	stableSource := filepath.Join(pkgRoot, "index.cjs")
-	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(stableSource, []byte("exports.stable = true\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	build := func(outputName string, outputThroughSymlink, reportThroughSymlink bool) []string {
-		realOutput := filepath.Join(codeRootPath, ".bldr", "build", outputName)
-		aliasOutput := filepath.Join(codeRootPath, ".bldr", "aliases", outputName)
-		if err := os.MkdirAll(filepath.Dir(aliasOutput), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.MkdirAll(realOutput, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Symlink(realOutput, aliasOutput); err != nil {
-			t.Fatal(err)
-		}
-		outputPath := realOutput
-		if outputThroughSymlink {
-			outputPath = aliasOutput
-		}
-		relativeOutput := filepath.Join(".bldr", "build", outputName)
-		if outputThroughSymlink {
-			relativeOutput = filepath.Join(".bldr", "aliases", outputName)
-		}
-		var generatedPath string
-		client := &fakeViteBundlerClient{
-			buildResp: func(req *bldr_vite.BuildWebPkgRequest) *bldr_vite.BuildWebPkgResponse {
-				generatedPath = req.GetImports()[0]
-				generatedAbs, absErr := filepath.Abs(generatedPath)
-				if absErr != nil {
-					t.Fatal(absErr)
-				}
-				reportedGenerated := generatedAbs
-				if reportThroughSymlink != outputThroughSymlink {
-					rel, relErr := filepath.Rel(outputPath, generatedAbs)
-					if relErr != nil {
-						t.Fatal(relErr)
-					}
-					if reportThroughSymlink {
-						reportedGenerated = filepath.Join(aliasOutput, rel)
-					} else {
-						reportedGenerated = filepath.Join(realOutput, rel)
-					}
-				}
-				return &bldr_vite.BuildWebPkgResponse{
-					Success:     true,
-					SourceFiles: []string{stableSource, reportedGenerated},
-				}
-			},
-		}
-		_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
-			context.Background(),
-			logrus.NewEntry(logrus.New()),
-			codeRootPath,
-			filepath.Join(codeRootPath, ".state"),
-			[]*web_pkg.WebPkgRef{{
-				WebPkgId:   "stable-pkg",
-				WebPkgRoot: pkgRoot,
-				Imports:    []string{"index.cjs"},
-			}},
-			nil,
-			relativeOutput,
-			"/b/pkg/",
-			false,
-			false,
-			true,
-			client,
-			filepath.Join(t.TempDir(), "cache"),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := os.Stat(generatedPath); err != nil {
-			t.Fatalf("generated wrapper was not created: %v", err)
-		}
-		if err := os.RemoveAll(realOutput); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := os.Stat(generatedPath); !os.IsNotExist(err) {
-			t.Fatalf("generated wrapper survived output cleanup: %v", err)
-		}
-		return sourceFiles
-	}
-
-	first := build("plugin-C2-b7nSr", true, false)
-	second := build("plugin-B9-x4kLm", false, true)
-	want := []string{"node_modules/stable-pkg/index.cjs"}
-	if !slices.Equal(first, want) || !slices.Equal(second, want) {
-		t.Fatalf("startup sources changed with generated output: first=%v second=%v want=%v", first, second, want)
-	}
 }
 
 func TestBuildWebPkgsViteLegacyCall(t *testing.T) {
@@ -404,6 +287,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	}
 
 	outDir := filepath.Join(t.TempDir(), "out")
+	cacheDir := filepath.Join(t.TempDir(), "cache")
 	client := &fakeViteBundlerClient{
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
@@ -425,7 +309,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		false,
 		true,
 		client,
-		filepath.Join(t.TempDir(), "cache"),
+		cacheDir,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -449,7 +333,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 	if strings.HasPrefix(wrapperPath, outPrefix) {
 		t.Fatalf("wrapper path %s is inside outDir %s", wrapperPath, req.GetOutDir())
 	}
-	expectedPrefix, err := filepath.EvalSymlinks(filepath.Join(outDir, ".cjs-wrappers"))
+	expectedPrefix, err := filepath.EvalSymlinks(filepath.Join(cacheDir, ".cjs-wrappers"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -547,5 +431,42 @@ func TestBuildWebPkgsViteKeepsProvidedPkgsExternal(t *testing.T) {
 	want := []string{"shiki", "@s4wave/web"}
 	if req.GetPkgId() != "@s4wave/code" || !slices.Equal(req.GetSiblingPkgIds(), want) {
 		t.Fatalf("siblings of %s: got %v want %v", req.GetPkgId(), req.GetSiblingPkgIds(), want)
+	}
+}
+
+func TestBuildWebPkgsViteDropsBuildManifest(t *testing.T) {
+	codeRootPath := t.TempDir()
+	pkgRoot := filepath.Join(codeRootPath, "node_modules", "manifest-pkg")
+	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outDir := filepath.Join(t.TempDir(), "out")
+	pkgOut := filepath.Join(outDir, "manifest-pkg")
+	client := &fakeViteBundlerClient{buildResp: func(*bldr_vite.BuildWebPkgRequest) *bldr_vite.BuildWebPkgResponse {
+		if err := os.MkdirAll(filepath.Join(pkgOut, ".vite"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(pkgOut, ".vite", "manifest.json"), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(pkgOut, "index.mjs"), []byte("export {}\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return &bldr_vite.BuildWebPkgResponse{Success: true}
+	}}
+
+	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
+		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
+		[]*web_pkg.WebPkgRef{{WebPkgId: "manifest-pkg", WebPkgRoot: pkgRoot}},
+		nil, outDir, "/b/pkg/", true, false, true, client, filepath.Join(t.TempDir(), "cache"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(pkgOut, ".vite")); !os.IsNotExist(err) {
+		t.Fatalf(".vite still shipped: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(pkgOut, "index.mjs")); err != nil {
+		t.Fatalf("runtime file missing: %v", err)
 	}
 }
