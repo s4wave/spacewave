@@ -29,10 +29,12 @@ func (a *ProviderAccount) ConsumeSpaceLinkNonce(
 	payload []byte,
 	expiresAt time.Time,
 ) error {
+	// Require a nonce and open the session object store.
 	if len(nonce) == 0 {
 		return errors.New("spacelink nonce is required")
 	}
 
+	// Open the session object store for the nonce record.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		a.t.p.b,
@@ -46,6 +48,7 @@ func (a *ProviderAccount) ConsumeSpaceLinkNonce(
 	}
 	defer diRef.Release()
 
+	// Record the nonce atomically, rejecting replays.
 	key := spacelinkNonceKey(nonce)
 	value := fmt.Sprintf("%s\x00%s", agentPeerID, hex.EncodeToString(payload))
 	err = kvtx.RunTransaction(ctx, true,
@@ -53,6 +56,7 @@ func (a *ProviderAccount) ConsumeSpaceLinkNonce(
 			return objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Reject a replayed nonce and record a fresh one.
 			found, err := tx.Exists(ctx, key)
 			if err != nil {
 				return errors.Wrap(err, "check spacelink nonce")
