@@ -17,6 +17,7 @@ func (a *ProviderAccount) PrepareDirectInvite(
 	ownerKey crypto.PrivKey,
 	invite *sobject.SOInviteMessage,
 ) error {
+	// Start the account's Session transport and its P2P sync.
 	if err := a.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
 		return errors.Wrap(err, "start invitation transport")
 	}
@@ -27,6 +28,8 @@ func (a *ProviderAccount) PrepareDirectInvite(
 	if err := a.StartPersistentP2PSync(ctx, transport); err != nil {
 		return errors.Wrap(err, "start invitation server")
 	}
+
+	// Retain the invitation's target peer while it connects.
 	if target := invite.GetTargetPeerId(); target != "" {
 		targetPeer, err := peer.IDB58Decode(target)
 		if err != nil {

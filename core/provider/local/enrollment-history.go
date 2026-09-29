@@ -12,6 +12,7 @@ import (
 // retainEnrollmentHistory keeps the authenticated checkpoint's earlier lineage
 // so this replica can prove later account changes to an offline participant.
 func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoint *pairing.SharedObject) error {
+	// Require a history base and a valid suffix.
 	base := checkpoint.GetHistoryBase()
 	if base == nil {
 		return nil
@@ -20,6 +21,8 @@ func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoin
 	if err := sobject.VerifyConfigChainSuffix(base, next, checkpoint.GetHistory()); err != nil {
 		return err
 	}
+
+	// Mount the object and write the retained lineage durably.
 	object, release, err := a.MountSharedObject(ctx, checkpoint.GetEntry().GetRef(), nil)
 	if err != nil {
 		return err
@@ -29,6 +32,7 @@ func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoin
 	return kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) {
 		return local.objStore.NewTransaction(ctx, true)
 	}, func(ctx context.Context, tx kvtx.Tx) error {
+		// Verify and store the genesis entry when the checkpoint carries one.
 		if genesis := checkpoint.GetGenesis(); genesis != nil {
 			if err := sobject.VerifyConfigChain([]*sobject.SOConfigChange{genesis}); err != nil {
 				return err
@@ -48,6 +52,8 @@ func (a *ProviderAccount) retainEnrollmentHistory(ctx context.Context, checkpoin
 				return err
 			}
 		}
+
+		// Store the history entries and the checkpoint.
 		if err := WriteSOConfigHistory(ctx, tx, local.GetSharedObjectID(), base, next, checkpoint.GetHistory()); err != nil {
 			return err
 		}

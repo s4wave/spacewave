@@ -23,6 +23,8 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 	if index == -1 {
 		return sobject.ErrSharedObjectNotFound
 	}
+
+	// Mount the object and read its host state.
 	entry := list.GetSharedObjects()[index]
 	mounted, release, err := a.MountSharedObject(ctx, entry.GetRef(), nil)
 	if err != nil {
@@ -51,6 +53,8 @@ func (a *ProviderAccount) LeaveSharedObject(ctx context.Context, sessionKey cryp
 			departing = append(departing, id.String())
 		}
 	}
+
+	// Build the signed leave request from the consenting keys.
 	if len(keys) == 0 {
 		return nil
 	}
