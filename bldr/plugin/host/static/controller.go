@@ -45,11 +45,14 @@ func (c *Controller) HandleDirective(
 	_ context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
+
+	// Ignore directives other than a plugin host lookup.
 	dir, ok := inst.GetDirective().(plugin_host.LookupPluginHost)
 	if !ok {
 		return nil, nil
 	}
 
+	// Select the hosts whose platform ID matches the directive's request.
 	platformIDs := dir.LookupPluginHostPlatformIDs()
 	var hosts []plugin_host.PluginHost
 	for _, host := range c.hosts {
@@ -60,6 +63,8 @@ func (c *Controller) HandleDirective(
 	if len(hosts) == 0 {
 		return nil, nil
 	}
+
+	// Publish the matching host set as one static resolver value.
 	return directive.R(directive.NewValueResolver(hosts), nil)
 }
 
