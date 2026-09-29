@@ -261,11 +261,13 @@ func (c *Client) attachResource(
 	label string,
 	mux srpc.Invoker,
 ) (uint32, *attachSession, error) {
+	// Ensure an attach session is open for the client.
 	sess, err := c.attach.ensureSession()
 	if err != nil {
 		return 0, nil, err
 	}
 
+	// Register a pending attach ack.
 	attachID, ch := sess.pending.add()
 
 	// Send Add.
@@ -308,16 +310,19 @@ func (c *Client) attachResource(
 
 // DetachResource withdraws a previously attached resource.
 func (c *Client) DetachResource(ctx context.Context, resourceID uint32) error {
+	// Load the current attach session.
 	sess := c.attach.currentSession()
 	if sess == nil {
 		return errors.New("no attach session")
 	}
 
+	// Send Detach and release the client-side attachment.
 	err := sess.sendDetach(resourceID)
 	if err != nil {
 		return err
 	}
 
+	// Drop the client-side attachment after the server accepted the detach.
 	sess.releaseAttachedResource(resourceID)
 	return nil
 }
@@ -390,6 +395,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 		return nil, ack.GetFailure()
 	}
 
+	// Build the routed invoker carrying the attached resource owner.
 	owner := &attachedResourceOwner{client: c}
 	router := resource.NewRoutedInvokerWithContext(func(ctx context.Context, _ uint32) context.Context {
 		return resource_server.WithResourceClientContext(ctx, owner)
@@ -423,8 +429,10 @@ func newAttachSession(
 }
 
 func (s *attachSession) start() error {
+	// Run the send loop for outgoing attach requests.
 	go s.executeSendLoop()
 
+	// Open the multiplexed connection over the attach stream.
 	mc, err := srpc.NewMuxedConnWithRwc(s.ctx, s.newRWC(), false, nil)
 	if err != nil {
 		s.close()
@@ -432,6 +440,7 @@ func (s *attachSession) start() error {
 	}
 	s.mc = mc
 
+	// Accept incoming muxed connections until the session closes.
 	go s.executeAccept()
 	return nil
 }
@@ -476,9 +485,11 @@ func (c *Client) setAttachedRelease(resourceID uint32, releaseFn func()) {
 }
 
 func (s *attachSession) setMux(resourceID uint32, mux srpc.Invoker) error {
+	// Register the resource's invoker unless the session already released.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Reject the registration on a released session.
 	if s.released {
 		return context.Canceled
 	}
@@ -491,6 +502,7 @@ func (s *attachSession) setMux(resourceID uint32, mux srpc.Invoker) error {
 }
 
 func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
+	// Ignore a missing release function.
 	if releaseFn == nil {
 		return
 	}
@@ -505,6 +517,7 @@ func (s *attachSession) setRelease(resourceID uint32, releaseFn func()) {
 }
 
 func (s *attachSession) releaseAttachedResource(resourceID uint32) {
+	// Remove the resource's mux registration and release function.
 	s.mu.Lock()
 	releaseFn := s.releaseFns[resourceID]
 	_, hasMux := s.muxes[resourceID]
@@ -512,6 +525,7 @@ func (s *attachSession) releaseAttachedResource(resourceID uint32) {
 	delete(s.muxes, resourceID)
 	s.mu.Unlock()
 
+	// Remove the router mux and run the release function outside the lock.
 	if hasMux {
 		s.router.RemoveMux(resourceID)
 	}
@@ -526,6 +540,7 @@ func (s *attachSession) releaseAllAttachedResources() {
 }
 
 func (s *attachSession) drainAttachedResources() ([]uint32, []func()) {
+	// Mark the session released and collect every attached resource.
 	s.mu.Lock()
 	if s.released {
 		s.mu.Unlock()
@@ -546,10 +561,12 @@ func (s *attachSession) drainAttachedResources() ([]uint32, []func()) {
 	}
 	s.mu.Unlock()
 
+	// Return the drained ids and release functions to the caller.
 	return muxIDs, releaseFns
 }
 
 func (s *attachSession) releaseDrainedAttachedResources(muxIDs []uint32, releaseFns []func()) {
+	// Remove each mux registration and run each release function.
 	for _, id := range muxIDs {
 		s.router.RemoveMux(id)
 	}
@@ -559,7 +576,9 @@ func (s *attachSession) releaseDrainedAttachedResources(muxIDs []uint32, release
 }
 
 func (s *attachSession) close() {
+	// Close the session exactly once, releasing its resources and stream.
 	s.closeOnce.Do(func() {
+		// Drain the attached resources before tearing down the transport.
 		muxIDs, releaseFns := s.drainAttachedResources()
 		s.cancel()
 		if s.mc != nil {

@@ -56,7 +56,9 @@ func (q *resourceControlQueue) enqueue(req *resource.ResourceClientRequest) bool
 }
 
 func (q *resourceControlQueue) finish() {
+	// Mark the queue closing so waiting senders stop enqueueing.
 	q.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Skip a queue that already stopped accepting controls.
 		if q.retired || q.closing {
 			return
 		}
@@ -69,6 +71,7 @@ func (q *resourceControlQueue) retire(err error) {
 	// Retire the queue and discard controls that were never transmitted.
 	var retired bool
 	q.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Skip a queue that already retired.
 		if q.retired {
 			return
 		}

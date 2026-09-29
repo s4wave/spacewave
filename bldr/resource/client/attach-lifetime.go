@@ -104,9 +104,11 @@ func newAttachPendingAcks() *attachPendingAcks {
 }
 
 func (p *attachPendingAcks) add() (uint32, <-chan attachResult) {
+	// Register a new pending attach with its buffered result channel.
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
+	// Allocate the next correlation id and result channel.
 	p.nextID++
 	ch := make(chan attachResult, 1)
 	p.pending[p.nextID] = &pendingAttach{ch: ch}
@@ -120,9 +122,11 @@ func (p *attachPendingAcks) remove(attachID uint32) {
 }
 
 func (p *attachPendingAcks) cancel(attachID uint32) (uint32, bool) {
+	// Return a resolved attach's resource ID and cancel unresolved ones.
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
+	// Fail an unknown attach id.
 	pending := p.pending[attachID]
 	if pending == nil {
 		return 0, false
@@ -145,11 +149,13 @@ func (p *attachPendingAcks) complete(attachID uint32) {
 }
 
 func (p *attachPendingAcks) failAll(err error) {
+	// Swap out every pending attach and fail the unresolved entries.
 	p.mtx.Lock()
 	pending := p.pending
 	p.pending = make(map[uint32]*pendingAttach)
 	p.mtx.Unlock()
 
+	// Deliver the failure to each entry that still waits for a result.
 	for _, entry := range pending {
 		if entry.resolved {
 			continue
@@ -159,8 +165,10 @@ func (p *attachPendingAcks) failAll(err error) {
 }
 
 func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint32, bool) {
+	// Drop the ack when no pending attach or an already-resolved one matches.
 	attachID := addAck.GetAttachId()
 
+	// Look up the pending attach under the lock.
 	p.mtx.Lock()
 	pending := p.pending[attachID]
 	if pending == nil {
@@ -172,6 +180,7 @@ func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint
 		return 0, false
 	}
 
+	// Complete a canceled attach without delivering the result.
 	if pending.canceled {
 		delete(p.pending, attachID)
 		if addAck.GetFailure() == nil {
@@ -182,12 +191,14 @@ func (p *attachPendingAcks) resolve(addAck *resource.ResourceAttachAddAck) (uint
 		return 0, false
 	}
 
+	// Record the resolution and deliver it to the waiting caller.
 	pending.resolved = true
 	pending.result = attachResult{resourceID: addAck.GetResourceId()}
 	if addAck.GetFailure() != nil {
 		pending.result = attachResult{err: addAck.GetFailure()}
 	}
 
+	// Send the result outside the lock.
 	ch := pending.ch
 	result := pending.result
 	p.mtx.Unlock()

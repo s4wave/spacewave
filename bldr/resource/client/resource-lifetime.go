@@ -50,6 +50,7 @@ func newResourceLifetime(
 }
 
 func (l *resourceLifetime) createReference(resourceID uint32) ResourceRef {
+	// Return a pre-released reference when the lifetime already retired.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if l.released {
@@ -92,6 +93,8 @@ func (l *resourceLifetime) releaseAll() {
 			ref.released = true
 		}
 	}
+
+	// Cancel each resource's call context and drop the cached clients.
 	for _, cancel := range l.resourceContexts {
 		cancel()
 	}
@@ -100,6 +103,7 @@ func (l *resourceLifetime) releaseAll() {
 	clear(l.resourceContexts)
 	l.mtx.Unlock()
 
+	// Enqueue one Release control per retired resource id.
 	// Preserve deterministic control order when the generation closes.
 	slices.Sort(ids)
 	for _, id := range ids {
@@ -110,6 +114,7 @@ func (l *resourceLifetime) releaseAll() {
 }
 
 func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
+	// Retire every local reference to a server-released resource.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	set := l.resources[resourceID]
@@ -123,6 +128,7 @@ func (l *resourceLifetime) releaseFromServer(resourceID uint32) {
 }
 
 func (l *resourceLifetime) releaseRef(ref *resourceRef) {
+	// Drop one local reference and release the resource with its last one.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if ref.released {
@@ -147,6 +153,7 @@ func (l *resourceLifetime) clientForRef(ref *resourceRef) (srpc.Client, error) {
 }
 
 func (l *resourceLifetime) releaseRefLocked(ref *resourceRef) (uint32, bool) {
+	// Remove the reference and release the resource when its set empties.
 	id := ref.resourceID
 	set := l.resources[id]
 	if set == nil {
@@ -170,12 +177,17 @@ func (l *resourceLifetime) clearResourceLocked(id uint32) {
 }
 
 func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Client, error) {
+	// Reuse the resource's cached ResourceRpc client.
 	if client := l.srpcClients[resourceID]; client != nil {
 		return client, nil
 	}
+
+	// Reject an unknown resource id.
 	if l.resources[resourceID] == nil {
 		return nil, resource.ErrResourceNotFound
 	}
+
+	// Build the ResourceRpc client bound to a per-resource context.
 	resourceCtx, cancel := context.WithCancel(l.ctx)
 	l.resourceContexts[resourceID] = cancel
 	client := resource.NewResourceRpcClient(func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
@@ -191,14 +203,18 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 			release:                               releaseCallCtx,
 		}, nil
 	}, resourceID)
+
+	// Cache the ordered client wrapper for later calls.
 	client = &orderedResourceClient{lifetime: l, client: client}
 	l.srpcClients[resourceID] = client
 	return client, nil
 }
 
 func (l *resourceLifetime) enqueueControl(req *resource.ResourceClientRequest) bool {
+	// Assign the control's sequence id under the lock.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
+
 	return l.enqueueControlLocked(req)
 }
 
@@ -209,12 +225,15 @@ func (l *resourceLifetime) enqueueControlLocked(req *resource.ResourceClientRequ
 }
 
 func (l *resourceLifetime) acknowledgeControl(controlID uint32) error {
+	// Accept only the next in-order control acknowledgment.
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 	if controlID == 0 || controlID != l.controlAcked+1 || controlID > l.controlIDCtr {
 		return errors.Errorf("unexpected ResourceClient control acknowledgment %d after %d", controlID, l.controlAcked)
 	}
 	l.controlAcked = controlID
+
+	// Wake every waiter whose controls are now acknowledged.
 	for target, waiter := range l.controlWaiters {
 		if target <= controlID {
 			close(waiter)
@@ -225,6 +244,7 @@ func (l *resourceLifetime) acknowledgeControl(controlID uint32) error {
 }
 
 func (l *resourceLifetime) waitForControls(ctx context.Context) error {
+	// Return immediately when every queued control is already acknowledged.
 	l.mtx.Lock()
 	target := l.controlIDCtr
 	if target <= l.controlAcked {
@@ -238,6 +258,7 @@ func (l *resourceLifetime) waitForControls(ctx context.Context) error {
 	}
 	l.mtx.Unlock()
 
+	// Wait for the target control's acknowledgment or context cancellation.
 	select {
 	case <-waiter:
 		return nil
