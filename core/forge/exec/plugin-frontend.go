@@ -48,6 +48,7 @@ func NewPluginFrontend(service frontend.SRPCFrontendServer, stop context.CancelF
 
 // Watch owns the attachment until its stream ends, including startup failure.
 func (f *PluginFrontend) Watch(request *frontend.WatchRequest, stream frontend.SRPCFrontend_WatchStream) error {
+	// Claim the single authoring attachment slot under the broadcast lock.
 	var attached bool
 	f.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		attached = f.attached
@@ -73,6 +74,7 @@ func (f *PluginFrontend) Fetch(stream frontend.SRPCFrontend_FetchStream) error {
 // runFrontend serves the selected Session and follows accepted source roots.
 // The Forge context and the authoring Watch both cancel and join the compiler.
 func (h *buildPluginHandler) runFrontend(ctx context.Context, directory string, service *project_controller.FrontendService) error {
+	// Resolve the transport bus for a remote authoring Session.
 	if service == nil {
 		return errors.New("project has no live frontend compiler")
 	}
@@ -88,6 +90,8 @@ func (h *buildPluginHandler) runFrontend(ctx context.Context, directory string, 
 		}
 		defer releaseTransport()
 	}
+
+	// Register the frontend attachment on an SRPC mux that cancels pending calls.
 	attachment := NewPluginFrontend(service, stop)
 	mux := srpc.NewMux()
 	if err := frontend.SRPCRegisterFrontend(mux, attachment); err != nil {
@@ -96,6 +100,7 @@ func (h *buildPluginHandler) runFrontend(ctx context.Context, directory string, 
 
 	// Ending the execution closes pending calls even when a caller stops reading.
 	invoker := srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+		// Cancel the call context and close the stream when the execution ends.
 		callCtx, cancel := context.WithCancel(stream.Context())
 		stopCancel := context.AfterFunc(runCtx, func() {
 			cancel()
@@ -109,6 +114,8 @@ func (h *buildPluginHandler) runFrontend(ctx context.Context, directory string, 
 	})
 
 	// The execution owns its compiler route until source watching ends.
+
+	// Serve the frontend route and follow accepted source roots until Watch ends.
 	release, err := transportBus.AddController(runCtx, h.frontendServer(transportBus, invoker), nil)
 	if err != nil {
 		return err
@@ -151,6 +158,7 @@ func (h *buildPluginHandler) frontendServer(transportBus bus.Bus, invoker srpc.I
 // watchFrontendSource copies complete accepted roots into the checkout and
 // reports each changed file to the compiler, which does not watch the checkout.
 func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory string, service *project_controller.FrontendService) error {
+	// Open the source World object and track its last synced root.
 	ws := world.NewEngineWorldState(h.engine, false)
 	object, err := world.MustGetObject(ctx, ws, h.source.GetKey())
 	if err != nil {
@@ -159,6 +167,7 @@ func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory 
 	defer world.ReleaseObjectState(object)
 	previous := h.source.GetRootRef()
 	for {
+		// Wait for each new root and sync changed files into the checkout.
 		root, revision, err := object.GetRootRef(ctx)
 		if err != nil {
 			return err
@@ -166,6 +175,7 @@ func (h *buildPluginHandler) watchFrontendSource(ctx context.Context, directory 
 		if !root.EqualVT(previous) {
 			var changes []*vite.DevelopmentChange
 			err = h.handle.AccessStorage(ctx, root, func(cursor *bucket_lookup.Cursor) error {
+				// Sync the new root into the checkout and report each changed file.
 				filesystem := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cursor.Clone(), nil)
 				source, err := unixfs.NewFSHandle(filesystem)
 				if err != nil {
