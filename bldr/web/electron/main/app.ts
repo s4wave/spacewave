@@ -1,142 +1,144 @@
-import os from 'os'
-import path from 'path'
+import os from "os";
+import path from "path";
 import http, {
   type IncomingMessage,
   type Server,
   type ServerResponse,
-} from 'http'
+} from "http";
 import electron, {
   dialog,
   ipcMain,
   nativeTheme,
   session,
   shell,
-} from 'electron'
+} from "electron";
 import {
   Client as SRPCClient,
   OpenStreamCtr,
   StreamConn,
   buildRpcStreamOpenStream,
-} from 'starpc'
-import type { Message } from '@aptre/protobuf-es-lite'
+} from "starpc";
+import type { Message } from "@aptre/protobuf-es-lite";
 
-import { DesktopControlServiceClient } from '../../../desktop/control/control_srpc.pb.js'
+import { DesktopControlServiceClient } from "../../../desktop/control/control_srpc.pb.js";
 import {
   ApplyUpdateRequest,
   ApplyUpdateResponse,
   UpdateTarget,
-} from '../../../desktop/update/update.pb.js'
-import { connectUnixResourceClient } from '../../../sdk/resource/unix-client.js'
-import { WebRuntime } from '../../bldr/web-runtime.js'
-import { ServiceWorkerFetchTracker } from '../../bldr/service-worker-fetch-tracker.js'
+} from "../../../desktop/update/update.pb.js";
+import { connectUnixResourceClient } from "../../../sdk/resource/unix-client.js";
+import { WebRuntime } from "../../bldr/web-runtime.js";
+import { ServiceWorkerFetchTracker } from "../../bldr/service-worker-fetch-tracker.js";
 import {
   CreateWebDocumentRequest,
   CreateWebDocumentResponse,
   RemoveWebDocumentRequest,
   RemoveWebDocumentResponse,
   WebRuntimeClientInit,
-} from '../../runtime/runtime.pb.js'
-import { WebRuntimeHostClient } from '../../runtime/runtime_srpc.pb.js'
-import { WebDocumentHostClient } from '../../document/document_srpc.pb.js'
+} from "../../runtime/runtime.pb.js";
+import { WebRuntimeHostClient } from "../../runtime/runtime_srpc.pb.js";
+import { WebDocumentHostClient } from "../../document/document_srpc.pb.js";
 import type {
   DesktopRuntimeState,
   OpenOrFocusMainWindowRequest,
-} from '../desktop-runtime/desktop-runtime.pb.js'
-import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
-import { proxyFetch } from '../../fetch/fetch.js'
+} from "../desktop-runtime/desktop-runtime.pb.js";
+import { ServiceWorkerHostClient } from "../../runtime/sw/sw_srpc.pb.js";
+import { proxyFetch } from "../../fetch/fetch.js";
 import {
   buildPipeName,
   connectToPipe,
-} from '@go/github.com/aperturerobotics/util/pipesock/pipesock.js'
+} from "@go/github.com/aperturerobotics/util/pipesock/pipesock.js";
 import {
   DesktopPresencePolicy,
   ExternalLinks,
   type ElectronInit,
-} from '../../plugin/electron/electron.pb.js'
+} from "../../plugin/electron/electron.pb.js";
 
-import { APP_SCHEME, appRequestHandler } from './protocol.js'
-import { messagePortMainToMessagePort } from './ipc.js'
+import { APP_SCHEME, appRequestHandler } from "./protocol.js";
+import { messagePortMainToMessagePort } from "./ipc.js";
 import {
   buildDesktopCLIInstallDetector,
   buildDesktopCLIInstallProbe,
   buildManagedCLIReleaseResolver,
   readManagedCLIReleaseBinary,
-} from './desktop-cli-install-node.js'
-import { DesktopRuntimeResource } from './desktop-runtime.js'
+} from "./desktop-cli-install-node.js";
+import { DesktopRuntimeResource } from "./desktop-runtime.js";
 import {
   buildDesktopTrayEntriesFromRuntimeState,
   desktopRuntimeCLISettingsRoute,
   iconStateForRuntimeHealth,
-} from './desktop-tray-runtime-projection.js'
-import { DesktopTrayController } from './desktop-tray.js'
-import { buildApplicationMenuTemplate } from './app-menu.js'
-import { startAppBundleUpdate } from './app-update.js'
+} from "./desktop-tray-runtime-projection.js";
+import { DesktopTrayController } from "./desktop-tray.js";
+import { buildApplicationMenuTemplate } from "./app-menu.js";
+import { startAppBundleUpdate } from "./app-update.js";
 
 // isMac reports whether the app runs on macOS.
-export const isMac = os.platform() === 'darwin'
+export const isMac = os.platform() === "darwin";
 // BLDR_DEBUG is set if this is a debug build.
-declare const BLDR_DEBUG: boolean | undefined
+declare const BLDR_DEBUG: boolean | undefined;
 
 // isDebug reports whether this is a debug build.
-export const isDebug = BLDR_DEBUG ?? false
-const proxyFetchHeaderTimeoutMs = 30_000
+export const isDebug = BLDR_DEBUG ?? false;
+const proxyFetchHeaderTimeoutMs = 30_000;
 const logRendererEvents =
-  isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
-const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
-const desktopDaemonSocketEnv = 'SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH'
+  isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === "1";
+const e2eControlPortEnv = "BLDR_ELECTRON_E2E_CONTROL_PORT";
+const desktopDaemonSocketEnv = "SPACEWAVE_DESKTOP_DAEMON_SOCKET_PATH";
 const runtimeDownloadPathPattern =
-  /^\/p\/[^/]+\/(?:export|export-batch|fs)(?:\/|$)/
+  /^\/p\/[^/]+\/(?:export|export-batch|fs)(?:\/|$)/;
 // BLDR_ELECTRON_WINDOW_TITLE overrides the OS window title for this instance
 // so external tooling driving multiple concurrent app windows can tell them
 // apart. The override also pins the title against renderer document.title
 // updates.
-const windowTitleOverride = process.env.BLDR_ELECTRON_WINDOW_TITLE || ''
+const windowTitleOverride = process.env.BLDR_ELECTRON_WINDOW_TITLE || "";
 // BLDR_ELECTRON_WINDOW_SIZE ("1600x1000") overrides the initial window size,
 // e.g. for QA tooling that needs app width left over after docked devtools.
 const windowSizeOverride = (() => {
   const match = /^(\d{3,5})x(\d{3,5})$/.exec(
-    process.env.BLDR_ELECTRON_WINDOW_SIZE || '',
-  )
+    process.env.BLDR_ELECTRON_WINDOW_SIZE || "",
+  );
   return match
     ? { width: Number(match[1]), height: Number(match[2]) }
-    : undefined
-})()
+    : undefined;
+})();
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
   // app contains the reference to the bldr electron app
-  public readonly app: Electron.App
+  public readonly app: Electron.App;
   // webRuntime is the web runtime instance.
-  public readonly webRuntime: WebRuntime
+  public readonly webRuntime: WebRuntime;
   // webRuntimeHostOpenStreamCtr contains the OpenStreamFn for the WebRuntimeHost.
   // this is the Go runtime that is managing the Bldr Electron instance.
-  public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr
+  public readonly webRuntimeHostOpenStreamCtr: OpenStreamCtr;
   // webRuntimeHostClient contacts the Go WebRuntimeHost via the runtime socket.
-  public readonly webRuntimeHostClient: SRPCClient
+  public readonly webRuntimeHostClient: SRPCClient;
   // webRuntimeHostServiceClient is the RPC wrapper for webRuntimeHostClient.
-  public readonly webRuntimeHostServiceClient: WebRuntimeHostClient
+  public readonly webRuntimeHostServiceClient: WebRuntimeHostClient;
   // serviceWorkerHostClient contacts the ServiceWorkerHost via the webRuntime
-  public readonly serviceWorkerHostClient: SRPCClient
+  public readonly serviceWorkerHostClient: SRPCClient;
   // serviceWorkerHostClient is the ServiceWorkerHost RPC wrapper for serviceWorkerHostClient.
-  public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient
+  public readonly serviceWorkerHostServiceClient: ServiceWorkerHostClient;
   // electronInit contains initialization config from Go runtime.
-  private readonly electronInit: ElectronInit
+  private readonly electronInit: ElectronInit;
   // desktopRuntimeResource exposes Electron main desktop-shell lifecycle.
-  public readonly desktopRuntimeResource: DesktopRuntimeResource
+  public readonly desktopRuntimeResource: DesktopRuntimeResource;
   // desktopTrayController owns the process-lifetime native status icon.
-  private desktopTrayController?: DesktopTrayController
+  private desktopTrayController?: DesktopTrayController;
   // e2eControlServer exposes test-only desktop runtime controls on loopback.
-  private e2eControlServer?: Server
+  private e2eControlServer?: Server;
 
   // browserWindows contains the list of created browser windows.
-  private browserWindows: Record<string, electron.BrowserWindow> = {}
-  private routeWindowCounter = 0
+  private browserWindows: Record<string, electron.BrowserWindow> = {};
+  // installedApp is the app bundle whose launch last opened this desktop.
+  private installedApp = "";
+  private routeWindowCounter = 0;
   // fetchTracker aborts proxied fetches when their owning WebDocument closes.
-  private readonly fetchTracker = new ServiceWorkerFetchTracker()
+  private readonly fetchTracker = new ServiceWorkerFetchTracker();
 
   // distPath is the path to the electron app dist files.
   public get distPath() {
-    return this.app.getAppPath()
+    return this.app.getAppPath();
   }
 
   constructor(
@@ -144,39 +146,39 @@ export class BldrElectronApp {
     webRuntimeID: string,
     electronInit: ElectronInit,
   ) {
-    this.app = app
-    this.electronInit = electronInit
+    this.app = app;
+    this.electronInit = electronInit;
 
     // openStreamCtr will contain the runtime open stream func.
-    this.webRuntimeHostOpenStreamCtr = new OpenStreamCtr(undefined)
+    this.webRuntimeHostOpenStreamCtr = new OpenStreamCtr(undefined);
     this.webRuntimeHostClient = new SRPCClient(
       this.webRuntimeHostOpenStreamCtr.openStreamFunc,
-    )
+    );
     this.webRuntimeHostServiceClient = new WebRuntimeHostClient(
       this.webRuntimeHostClient,
-    )
+    );
 
     this.webRuntime = new WebRuntime(
       webRuntimeID,
       this.webRuntimeHostOpenStreamCtr.openStreamFunc,
       this.createWebDocument.bind(this),
       this.removeWebDocument.bind(this),
-    )
+    );
 
     // swHostClient contacts the ServiceWorkerHost via the webRuntime.
     this.serviceWorkerHostClient = new SRPCClient(() =>
       this.webRuntime.openServiceWorkerHostStream(webRuntimeID),
-    )
+    );
 
     // swHost is the RPC client for the ServiceWorkerHost.
     this.serviceWorkerHostServiceClient = new ServiceWorkerHostClient(
       this.serviceWorkerHostClient,
-    )
+    );
 
-    const cliInstallProbe = buildDesktopCLIInstallProbe()
+    const cliInstallProbe = buildDesktopCLIInstallProbe();
     const cliReleaseResolver = buildManagedCLIReleaseResolver(
       this.electronInit.managedCliRelease,
-    )
+    );
     this.desktopRuntimeResource = new DesktopRuntimeResource({
       openOrFocusMainWindow: this.openOrFocusMainWindow.bind(this),
       quitDesktopRuntime: this.quitDesktopRuntime.bind(this),
@@ -190,49 +192,49 @@ export class BldrElectronApp {
             route:
               desktopRuntimeCLISettingsRoute(
                 this.desktopRuntimeResource.getState(),
-              ) || '/',
+              ) || "/",
           }),
         readReleaseBinary: readManagedCLIReleaseBinary(cliReleaseResolver),
         probe: cliInstallProbe,
       },
-    })
+    });
     this.webRuntime.registerServerExtension(
       this.desktopRuntimeResource.resourceServer,
-    )
-    void this.desktopRuntimeResource.desktopCLIInstallResource.recheck()
+    );
+    void this.desktopRuntimeResource.desktopCLIInstallResource.recheck();
   }
 
   // init initializes the app
   public init() {
-    const app = this.app
-    const init = this.electronInit
+    const app = this.app;
+    const init = this.electronInit;
 
-    app.on('ready', this.onAppReady.bind(this))
+    app.on("ready", this.onAppReady.bind(this));
 
     if (init.appName) {
-      app.setName(init.appName)
+      app.setName(init.appName);
     }
 
     if (init.themeSource) {
-      nativeTheme.themeSource = init.themeSource as 'dark' | 'light' | 'system'
+      nativeTheme.themeSource = init.themeSource as "dark" | "light" | "system";
     }
 
     if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
-      app.quit()
-      return
+      app.quit();
+      return;
     }
 
-    app.on('second-instance', () => {
-      void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
-    })
-    app.on('activate', () => {
-      void this.desktopRuntimeResource.OpenOrFocusMainWindow({})
-    })
-    app.on('before-quit', () => {
-      this.desktopTrayController?.dispose()
-      this.desktopRuntimeResource.setQuitting(true)
-    })
-    app.on('window-all-closed', this.onWindowAllClosed.bind(this))
+    app.on("second-instance", () => {
+      void this.desktopRuntimeResource.OpenOrFocusMainWindow({});
+    });
+    app.on("activate", () => {
+      void this.desktopRuntimeResource.OpenOrFocusMainWindow({});
+    });
+    app.on("before-quit", () => {
+      this.desktopTrayController?.dispose();
+      this.desktopRuntimeResource.setQuitting(true);
+    });
+    app.on("window-all-closed", this.onWindowAllClosed.bind(this));
   }
 
   // serviceWorkerFetch performs a request as if it was sent from the ServiceWorker.
@@ -244,18 +246,18 @@ export class BldrElectronApp {
       return proxyFetch(
         this.serviceWorkerHostServiceClient,
         req,
-        'electron-main',
+        "electron-main",
         {
           headerTimeoutMs: proxyFetchHeaderTimeoutMs,
         },
-      )
+      );
     }
 
-    const trackedFetch = this.fetchTracker.trackFetch(clientId)
+    const trackedFetch = this.fetchTracker.trackFetch(clientId);
     return proxyFetch(this.serviceWorkerHostServiceClient, req, clientId, {
       abortSignal: trackedFetch.abortController.signal,
       headerTimeoutMs: proxyFetchHeaderTimeoutMs,
-    }).finally(() => trackedFetch.release())
+    }).finally(() => trackedFetch.release());
   }
 
   // onAppReady handles when the app becomes ready.
@@ -271,82 +273,82 @@ export class BldrElectronApp {
           isDebug,
           isMac,
           quitDesktopRuntime: () => {
-            void this.desktopRuntimeResource.QuitDesktopRuntime({})
+            void this.desktopRuntimeResource.QuitDesktopRuntime({});
           },
         }),
       ),
-    )
+    );
 
     // init the app protocol for fetching index.html and .js.map files
     electron.protocol.handle(APP_SCHEME, (req) =>
       appRequestHandler(this.serviceWorkerFetch.bind(this), req),
-    )
+    );
 
     // setup the IPC socket to the WebRuntimeHost
-    this.setupWebRuntimeHostSocket()
+    this.setupWebRuntimeHostSocket();
     // setup the web runtime client port
-    this.setupWebRuntimeClientPort()
+    this.setupWebRuntimeClientPort();
     // setup native filesystem picker ipc
-    this.setupNativeDirectoryPicker()
+    this.setupNativeDirectoryPicker();
     // setup native downloads before renderer windows can navigate to export URLs
-    this.setupDesktopDownloads()
+    this.setupDesktopDownloads();
     // setup renderer desktop runtime lifecycle ipc
-    this.setupDesktopRuntimeIpc()
+    this.setupDesktopRuntimeIpc();
     // setup installed-app replacement under this Electron process's custody
-    this.setupAppUpdateIpc()
+    this.setupAppUpdateIpc();
     // setup test-only control surface for windowless Electron e2e assertions
-    this.setupE2EControlServer()
+    this.setupE2EControlServer();
 
     if (this.hasTrayBackgroundPresence()) {
       this.desktopTrayController = new DesktopTrayController({
         init: this.electronInit,
         resource: this.desktopRuntimeResource,
-      })
-      this.desktopTrayController.init()
+      });
+      this.desktopTrayController.init();
     }
 
     // create the first window
-    this.createWebDocument({ id: 'electron-init' })
+    this.createWebDocument({ id: "electron-init" });
   }
 
   private onWindowAllClosed() {
     if (this.hasTrayBackgroundPresence()) {
-      return
+      return;
     }
-    this.app.quit()
+    this.app.quit();
   }
 
   private setupNativeDirectoryPicker() {
-    ipcMain.handle('BLDR_ELECTRON_OPEN_DIRECTORY', async () => {
+    ipcMain.handle("BLDR_ELECTRON_OPEN_DIRECTORY", async () => {
       const result = await dialog.showOpenDialog({
-        properties: ['openDirectory', 'showHiddenFiles'],
-      })
+        properties: ["openDirectory", "showHiddenFiles"],
+      });
       if (result.canceled || result.filePaths.length === 0) {
-        return null
+        return null;
       }
-      return result.filePaths[0] ?? null
-    })
+      return result.filePaths[0] ?? null;
+    });
   }
 
   private setupDesktopRuntimeIpc() {
-    ipcMain.handle('BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME', async () => {
-      await this.desktopRuntimeResource.QuitDesktopRuntime({})
-    })
+    ipcMain.handle("BLDR_ELECTRON_QUIT_DESKTOP_RUNTIME", async () => {
+      await this.desktopRuntimeResource.QuitDesktopRuntime({});
+    });
   }
 
   /** setupAppUpdateIpc obtains the verified artifact through Electron's own host route. */
   private setupAppUpdateIpc() {
     ipcMain.handle(
-      'BLDR_ELECTRON_APPLY_APP_UPDATE',
+      "BLDR_ELECTRON_APPLY_APP_UPDATE",
       async (event, webViewId: string) => {
         if (!isMac) {
-          throw new Error('installed .app updates are only supported on macOS')
+          throw new Error("installed .app updates are only supported on macOS");
         }
         const documentId = Object.entries(this.browserWindows).find(
           ([, win]) => win.webContents === event.sender,
-        )?.[0]
+        )?.[0];
         if (!documentId || !webViewId) {
-          throw new Error('app update requires an active desktop view')
+          throw new Error("app update requires an active desktop view");
         }
 
         // Request the app target through the same daemon plugin route as its watch.
@@ -354,59 +356,59 @@ export class BldrElectronApp {
           new SRPCClient(() =>
             this.webRuntime.openWebDocumentHostStream(documentId),
           ),
-        )
+        );
         const launcher = new SRPCClient(
           buildRpcStreamOpenStream(
             webViewId,
             documentHost.WebViewRpc.bind(documentHost),
           ),
-        )
+        );
         const reply = await launcher.request(
-          'plugin/spacewave-launcher/spacewave.launcher.Launcher',
-          'ApplyUpdate',
+          "plugin/spacewave-launcher/spacewave.launcher.Launcher",
+          "ApplyUpdate",
           ApplyUpdateRequest.toBinary({ target: UpdateTarget.APP }),
-        )
-        const update = ApplyUpdateResponse.fromBinary(reply)
+        );
+        const update = ApplyUpdateResponse.fromBinary(reply);
         await startAppBundleUpdate(
-          update.stagedPath ?? '',
-          process.execPath,
-          this.app.getPath('userData'),
+          update.stagedPath ?? "",
+          this.installedApp,
+          this.app.getPath("userData"),
           process.pid,
-        )
-        this.app.quit()
+        );
+        this.app.quit();
       },
-    )
+    );
   }
 
   private setupDesktopDownloads() {
-    session.defaultSession.on('will-download', (_event, item) => {
+    session.defaultSession.on("will-download", (_event, item) => {
       item.setSaveDialogOptions({
-        title: 'Save Download',
+        title: "Save Download",
         defaultPath: item.getFilename(),
-        buttonLabel: 'Save',
-      })
-    })
+        buttonLabel: "Save",
+      });
+    });
   }
 
   private setupE2EControlServer() {
-    const portRaw = process.env[e2eControlPortEnv]?.trim()
+    const portRaw = process.env[e2eControlPortEnv]?.trim();
     if (!portRaw || this.e2eControlServer) {
-      return
+      return;
     }
-    const port = Number(portRaw)
+    const port = Number(portRaw);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      console.error(`${e2eControlPortEnv} must be a TCP port, got ${portRaw}`)
-      return
+      console.error(`${e2eControlPortEnv} must be a TCP port, got ${portRaw}`);
+      return;
     }
 
     this.e2eControlServer = http.createServer((req, res) => {
-      void this.handleE2EControlRequest(req, res)
-    })
-    this.e2eControlServer.on('error', (err) => {
-      console.error('electron e2e control server failed', err)
-    })
-    this.e2eControlServer.listen(port, '127.0.0.1')
-    this.e2eControlServer.unref()
+      void this.handleE2EControlRequest(req, res);
+    });
+    this.e2eControlServer.on("error", (err) => {
+      console.error("electron e2e control server failed", err);
+    });
+    this.e2eControlServer.listen(port, "127.0.0.1");
+    this.e2eControlServer.unref();
   }
 
   private async handleE2EControlRequest(
@@ -414,134 +416,134 @@ export class BldrElectronApp {
     res: ServerResponse,
   ) {
     try {
-      const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-      if (req.method === 'GET' && url.pathname === '/desktop-state') {
-        sendE2EJSON(res, 200, this.desktopRuntimeResource.getState())
-        return
+      const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      if (req.method === "GET" && url.pathname === "/desktop-state") {
+        sendE2EJSON(res, 200, this.desktopRuntimeResource.getState());
+        return;
       }
-      if (req.method === 'POST' && url.pathname === '/desktop-state') {
-        const state = await readE2EJSON<DesktopRuntimeState>(req)
-        await this.desktopRuntimeResource.SetDesktopState({ state })
+      if (req.method === "POST" && url.pathname === "/desktop-state") {
+        const state = await readE2EJSON<DesktopRuntimeState>(req);
+        await this.desktopRuntimeResource.SetDesktopState({ state });
         this.desktopRuntimeResource.desktopTrayResource.replaceStateForE2E({
           entries: buildDesktopTrayEntriesFromRuntimeState(state),
           iconState: iconStateForRuntimeHealth(state.health),
-          statusText: state.statusText || 'Running',
-        })
-        sendE2EJSON(res, 200, { ok: true })
-        return
+          statusText: state.statusText || "Running",
+        });
+        sendE2EJSON(res, 200, { ok: true });
+        return;
       }
-      if (req.method === 'DELETE' && url.pathname === '/desktop-state') {
-        this.desktopRuntimeResource.resetProjectedDesktopStateForE2E()
+      if (req.method === "DELETE" && url.pathname === "/desktop-state") {
+        this.desktopRuntimeResource.resetProjectedDesktopStateForE2E();
         this.desktopRuntimeResource.desktopTrayResource.replaceStateForE2E(
           undefined,
-        )
-        sendE2EJSON(res, 200, { ok: true })
-        return
+        );
+        sendE2EJSON(res, 200, { ok: true });
+        return;
       }
-      if (req.method === 'GET' && url.pathname === '/tray-state') {
+      if (req.method === "GET" && url.pathname === "/tray-state") {
         sendE2EJSON(
           res,
           200,
           this.desktopRuntimeResource.desktopTrayResource.getState(),
-        )
-        return
+        );
+        return;
       }
       // The renderer key dispatcher handles command keybindings, so no
       // main-process shortcut registry may claim the leader or the palette key.
       // This route reports what globalShortcut currently holds, since a key
       // injected through the debugging protocol reaches the renderer whether or
       // not a native shortcut would have stolen it first.
-      if (req.method === 'GET' && url.pathname === '/globalshortcut-state') {
+      if (req.method === "GET" && url.pathname === "/globalshortcut-state") {
         sendE2EJSON(res, 200, {
           leaderRegistered:
-            electron.globalShortcut.isRegistered('Control+Space'),
+            electron.globalShortcut.isRegistered("Control+Space"),
           paletteRegistered:
-            electron.globalShortcut.isRegistered('CommandOrControl+K'),
-        })
-        return
+            electron.globalShortcut.isRegistered("CommandOrControl+K"),
+        });
+        return;
       }
-      if (req.method === 'POST' && url.pathname === '/open-or-focus') {
+      if (req.method === "POST" && url.pathname === "/open-or-focus") {
         await this.desktopRuntimeResource.OpenOrFocusMainWindow({
-          route: url.searchParams.get('route') || undefined,
-        })
-        sendE2EJSON(res, 200, { ok: true })
-        return
+          route: url.searchParams.get("route") || undefined,
+        });
+        sendE2EJSON(res, 200, { ok: true });
+        return;
       }
-      if (req.method === 'POST' && url.pathname === '/activate') {
-        this.app.emit('activate')
-        sendE2EJSON(res, 200, { ok: true })
-        return
+      if (req.method === "POST" && url.pathname === "/activate") {
+        this.app.emit("activate");
+        sendE2EJSON(res, 200, { ok: true });
+        return;
       }
-      if (req.method === 'POST' && url.pathname === '/quit') {
-        await this.desktopRuntimeResource.QuitDesktopRuntime({})
-        sendE2EJSON(res, 200, { ok: true })
-        return
+      if (req.method === "POST" && url.pathname === "/quit") {
+        await this.desktopRuntimeResource.QuitDesktopRuntime({});
+        sendE2EJSON(res, 200, { ok: true });
+        return;
       }
-      sendE2EJSON(res, 404, { error: 'not found' })
+      sendE2EJSON(res, 404, { error: "not found" });
     } catch (err) {
-      console.error('electron e2e control request failed', err)
-      sendE2EError(res, 500)
+      console.error("electron e2e control request failed", err);
+      sendE2EError(res, 500);
     }
   }
 
   private setupWebRuntimeClientPort() {
-    ipcMain.on('BLDR_ELECTRON_CLIENT_OPEN', async (event, init: Uint8Array) => {
-      const initMsg = WebRuntimeClientInit.fromBinary(init)
-      const clientPort = event.ports[0]
+    ipcMain.on("BLDR_ELECTRON_CLIENT_OPEN", async (event, init: Uint8Array) => {
+      const initMsg = WebRuntimeClientInit.fromBinary(init);
+      const clientPort = event.ports[0];
       this.webRuntime.handleClient(
         initMsg,
         messagePortMainToMessagePort(clientPort),
-      )
-    })
+      );
+    });
   }
 
   // setupWebRuntimeHostSocket sets up the socket to the WebRuntimeHost.
   private setupWebRuntimeHostSocket() {
     // workdir is the directory we will look for the socket
-    const runtimeUuid = this.webRuntime.webRuntimeId
-    let workdir = this.distPath
-    if (path.extname(workdir) === '.asar') {
-      workdir = path.dirname(workdir)
+    const runtimeUuid = this.webRuntime.webRuntimeId;
+    let workdir = this.distPath;
+    if (path.extname(workdir) === ".asar") {
+      workdir = path.dirname(workdir);
     }
 
-    const pipeRoot = process.env.BLDR_PIPE_ROOT || workdir
+    const pipeRoot = process.env.BLDR_PIPE_ROOT || workdir;
 
     // Build the IPC path using the pipesock utility
-    const ipcPath = buildPipeName(pipeRoot, runtimeUuid)
+    const ipcPath = buildPipeName(pipeRoot, runtimeUuid);
 
     // socketConn reads and writes to the socket.
     const socketConn = new StreamConn(this.webRuntime.getWebRuntimeServer(), {
-      direction: 'inbound',
-    })
+      direction: "inbound",
+    });
 
     // Connect to the pipe and set up bidirectional communication
     const sock = connectToPipe(ipcPath, socketConn, () => {
-      this.webRuntimeHostOpenStreamCtr.set(socketConn.buildOpenStreamFunc())
-    })
+      this.webRuntimeHostOpenStreamCtr.set(socketConn.buildOpenStreamFunc());
+    });
 
     // Handle socket end (process exit)
-    sock.on('end', () => {
+    sock.on("end", () => {
       // assume we are exiting
-      process.exit(0)
-    })
+      process.exit(0);
+    });
 
     // Handle socket errors (process exit with error)
-    sock.on('error', (err) => {
-      console.error(err)
+    sock.on("error", (err) => {
+      console.error(err);
       // ...but also exit if this happens.
-      process.exit(1)
-    })
+      process.exit(1);
+    });
   }
 
   // createWindow creates a new browser window.
   // hash is an optional URL hash to navigate to after loading (without the # prefix).
   private createWindow(webDocumentId?: string, hash?: string) {
-    const init = this.electronInit
-    const preload = path.join(this.distPath, 'preload.mjs')
+    const init = this.electronInit;
+    const preload = path.join(this.distPath, "preload.mjs");
     const nwindow = new electron.BrowserWindow({
       // Only show the OS window frame on MacOS.
       frame: isMac,
-      titleBarStyle: isMac ? 'hidden' : undefined,
+      titleBarStyle: isMac ? "hidden" : undefined,
 
       title:
         windowTitleOverride || init.windowTitle || init.appName || undefined,
@@ -560,114 +562,114 @@ export class BldrElectronApp {
         // However, this could be set to false to prevent background throttling altogether.
         backgroundThrottling: true,
       },
-    })
+    });
 
     if (windowTitleOverride) {
       // Without preventDefault the renderer's document.title replaces the
       // override as soon as the page loads.
-      nwindow.on('page-title-updated', (event) => {
-        event.preventDefault()
-      })
+      nwindow.on("page-title-updated", (event) => {
+        event.preventDefault();
+      });
     }
 
     if (isDebug && init.devTools) {
-      nwindow.webContents.openDevTools()
+      nwindow.webContents.openDevTools();
     }
     if (logRendererEvents) {
-      const label = webDocumentId ?? 'main'
-      nwindow.webContents.on('console-message', (event) => {
-        const { level, message, sourceId, lineNumber } = event
+      const label = webDocumentId ?? "main";
+      nwindow.webContents.on("console-message", (event) => {
+        const { level, message, sourceId, lineNumber } = event;
         console.log(
           `[renderer:${label}:console:${level}] ${message} (${sourceId}:${lineNumber})`,
-        )
-      })
-      nwindow.webContents.on('did-navigate-in-page', (_event, url) => {
-        console.log(`[renderer:${label}:navigate-in-page] ${url}`)
-      })
+        );
+      });
+      nwindow.webContents.on("did-navigate-in-page", (_event, url) => {
+        console.log(`[renderer:${label}:navigate-in-page] ${url}`);
+      });
     }
-    nwindow.webContents.once('did-finish-load', () => {
+    nwindow.webContents.once("did-finish-load", () => {
       if (!nwindow.isDestroyed()) {
-        nwindow.show()
+        nwindow.show();
       }
-    })
+    });
 
     // Build URL with optional hash
-    nwindow.loadURL(this.buildWindowUrl(webDocumentId, hash))
+    nwindow.loadURL(this.buildWindowUrl(webDocumentId, hash));
     if (webDocumentId) {
-      this.attachWebDocumentWindowLifecycle(webDocumentId, nwindow)
+      this.attachWebDocumentWindowLifecycle(webDocumentId, nwindow);
     }
 
     // Handle navigation to external URLs (clicked links)
-    nwindow.webContents.on('will-navigate', (event, targetUrl) => {
+    nwindow.webContents.on("will-navigate", (event, targetUrl) => {
       // Prevent navigation to the same URL (spurious reload).
       // This can happen during initial load when ServiceWorker isn't yet controlling.
-      const currentUrl = nwindow.webContents.getURL()
+      const currentUrl = nwindow.webContents.getURL();
       if (targetUrl === currentUrl) {
-        event.preventDefault()
-        return
+        event.preventDefault();
+        return;
       }
 
       if (this.isRuntimeDownloadUrl(targetUrl)) {
-        event.preventDefault()
-        nwindow.webContents.downloadURL(targetUrl)
-        return
+        event.preventDefault();
+        nwindow.webContents.downloadURL(targetUrl);
+        return;
       }
       if (!this.isInternalUrl(targetUrl)) {
-        event.preventDefault()
+        event.preventDefault();
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
-          shell.openExternal(targetUrl)
+          shell.openExternal(targetUrl);
         }
-        return
+        return;
       }
 
       // SPA guard: the app only works at /index.html with hash routing.
       // If something tries to navigate to e.g. app://index.html/feed.xml,
       // block it and redirect back to the correct base URL.
       try {
-        const parsed = new URL(targetUrl)
-        if (parsed.pathname !== '/index.html') {
-          event.preventDefault()
-          nwindow.loadURL(this.buildWindowUrl(webDocumentId))
+        const parsed = new URL(targetUrl);
+        if (parsed.pathname !== "/index.html") {
+          event.preventDefault();
+          nwindow.loadURL(this.buildWindowUrl(webDocumentId));
         }
       } catch {
         // Invalid URL, block navigation
-        event.preventDefault()
+        event.preventDefault();
       }
-    })
+    });
 
     // Handle window.open() calls - only allow same-origin with different hash
     nwindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
       if (this.isRuntimeDownloadUrl(targetUrl)) {
-        nwindow.webContents.downloadURL(targetUrl)
-        return { action: 'deny' }
+        nwindow.webContents.downloadURL(targetUrl);
+        return { action: "deny" };
       }
       // Handle external URLs
       if (!this.isInternalUrl(targetUrl)) {
         if (this.electronInit.externalLinks !== ExternalLinks.DENY) {
-          shell.openExternal(targetUrl)
+          shell.openExternal(targetUrl);
         }
-        return { action: 'deny' }
+        return { action: "deny" };
       }
 
       try {
-        const parsed = new URL(targetUrl)
+        const parsed = new URL(targetUrl);
 
         // Extract hash (remove leading #)
-        const hash = parsed.hash ? parsed.hash.slice(1) : ''
+        const hash = parsed.hash ? parsed.hash.slice(1) : "";
 
         // Create popout window with preserved hash
-        const popoutDocId = `popout-${Date.now()}`
-        const popoutWindow = this.createWindow(popoutDocId, hash)
-        this.browserWindows[popoutDocId] = popoutWindow
+        const popoutDocId = `popout-${Date.now()}`;
+        const popoutWindow = this.createWindow(popoutDocId, hash);
+        this.browserWindows[popoutDocId] = popoutWindow;
       } catch {
         // Invalid URL, deny
       }
 
       // Deny the default behavior, we handle it ourselves
-      return { action: 'deny' }
-    })
+      return { action: "deny" };
+    });
 
-    return nwindow
+    return nwindow;
   }
 
   // attachWebDocumentWindowLifecycle invalidates runtime clients for window teardown and reload.
@@ -675,106 +677,109 @@ export class BldrElectronApp {
     webDocumentId: string,
     nwindow: electron.BrowserWindow,
   ) {
-    const state = { invalidated: false }
+    const state = { invalidated: false };
     const invalidate = (reason: string) => {
       if (state.invalidated) {
-        return
+        return;
       }
-      state.invalidated = true
-      const err = new Error(reason)
-      this.abortWebDocumentFetches(webDocumentId, reason)
-      this.webRuntime.invalidateClient(webDocumentId, err)
-    }
+      state.invalidated = true;
+      const err = new Error(reason);
+      this.abortWebDocumentFetches(webDocumentId, reason);
+      this.webRuntime.invalidateClient(webDocumentId, err);
+    };
 
-    nwindow.webContents.on('did-start-navigation', (details) => {
+    nwindow.webContents.on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) {
-        return
+        return;
       }
-      invalidate(`navigation started: ${details.url}`)
-    })
-    nwindow.webContents.on('render-process-gone', (_event, details) => {
-      invalidate(`renderer gone: ${details.reason}`)
-    })
-    nwindow.on('closed', () => {
-      invalidate(`window closed: ${webDocumentId}`)
+      invalidate(`navigation started: ${details.url}`);
+    });
+    nwindow.webContents.on("render-process-gone", (_event, details) => {
+      invalidate(`renderer gone: ${details.reason}`);
+    });
+    nwindow.on("closed", () => {
+      invalidate(`window closed: ${webDocumentId}`);
       if (this.browserWindows[webDocumentId] === nwindow) {
-        delete this.browserWindows[webDocumentId]
+        delete this.browserWindows[webDocumentId];
       }
-      if (webDocumentId === 'electron-init') {
-        this.desktopRuntimeResource.setMainWindowOpen(false)
+      if (webDocumentId === "electron-init") {
+        this.desktopRuntimeResource.setMainWindowOpen(false);
       }
-    })
+    });
   }
 
   // abortWebDocumentFetches aborts in-flight proxied fetches for a WebDocument.
   private abortWebDocumentFetches(webDocumentId?: string, reason?: string) {
     if (!webDocumentId) {
-      return
+      return;
     }
     this.fetchTracker.abortClient(
       webDocumentId,
       new Error(reason ?? `web document closed: ${webDocumentId}`),
-    )
+    );
   }
 
   private async openOrFocusMainWindow(request?: OpenOrFocusMainWindowRequest) {
-    const routeHash = this.normalizeRouteHash(request?.route)
+    if (request?.installedApp) {
+      this.installedApp = request.installedApp;
+    }
+    const routeHash = this.normalizeRouteHash(request?.route);
     if (routeHash) {
-      await this.createRouteWindow(routeHash)
-      return
+      await this.createRouteWindow(routeHash);
+      return;
     }
 
-    const nwindow = this.browserWindows['electron-init']
+    const nwindow = this.browserWindows["electron-init"];
     if (!nwindow || nwindow.isDestroyed()) {
-      await this.createWebDocument({ id: 'electron-init' })
-      return
+      await this.createWebDocument({ id: "electron-init" });
+      return;
     }
 
     if (nwindow.isMinimized()) {
-      nwindow.restore()
+      nwindow.restore();
     }
-    nwindow.show()
-    nwindow.focus()
+    nwindow.show();
+    nwindow.focus();
   }
 
   /** quitDesktopRuntime closes the shell after the daemon's Quit decision, even if its reply is lost. */
   private async quitDesktopRuntime(): Promise<void> {
     try {
       // Ask the daemon to decide stop or busy before this shell begins exiting.
-      const daemonSocket = process.env[desktopDaemonSocketEnv]
+      const daemonSocket = process.env[desktopDaemonSocketEnv];
       if (daemonSocket) {
-        let clients = 0n
-        let services = 0n
+        let clients = 0n;
+        let services = 0n;
 
         // Release the requesting connection before Electron begins its exit.
         {
           using connection = await connectUnixResourceClient(
             `unix://${daemonSocket}`,
             new AbortController().signal,
-          )
+          );
           const result = await new DesktopControlServiceClient(
             connection.rpc,
-          ).QuitDesktop({})
-          clients = result.otherClients ?? 0n
-          services = result.otherServices ?? 0n
+          ).QuitDesktop({});
+          clients = result.otherClients ?? 0n;
+          services = result.otherServices ?? 0n;
         }
 
         // Explain any retained work while the desktop can still show a dialog.
         if (clients || services) {
           await dialog.showMessageBox({
-            type: 'info',
-            title: 'Spacewave daemon is in use',
-            message: 'The desktop will close. Other work is still running.',
+            type: "info",
+            title: "Spacewave daemon is in use",
+            message: "The desktop will close. Other work is still running.",
             detail: `${clients} other client(s) and ${services} other service(s) are using it.`,
-            buttons: ['Quit desktop'],
-          })
+            buttons: ["Quit desktop"],
+          });
         }
       }
     } catch (error) {
-      console.error('desktop Quit could not confirm daemon demand', error)
+      console.error("desktop Quit could not confirm daemon demand", error);
     } finally {
       // Shell exit releases the owner's desktop service demand even if the reply was lost.
-      this.app.quit()
+      this.app.quit();
     }
   }
 
@@ -782,57 +787,57 @@ export class BldrElectronApp {
     return (
       this.electronInit.desktopPresencePolicy ===
       DesktopPresencePolicy.TRAY_BACKGROUND
-    )
+    );
   }
 
   private async createRouteWindow(routeHash: string): Promise<void> {
-    this.routeWindowCounter += 1
+    this.routeWindowCounter += 1;
     await this.createWebDocument(
       { id: `electron-route-${this.routeWindowCounter}` },
       routeHash,
-    )
+    );
   }
 
   private buildWindowUrl(webDocumentId?: string, hash?: string): string {
     let url = webDocumentId
       ? `${APP_SCHEME}://index.html?webDocumentId=${encodeURIComponent(webDocumentId)}`
-      : `${APP_SCHEME}://index.html`
+      : `${APP_SCHEME}://index.html`;
 
     if (hash) {
-      url += `#${hash}`
+      url += `#${hash}`;
     }
-    return url
+    return url;
   }
 
   private normalizeRouteHash(route?: string): string {
     if (!route) {
-      return ''
+      return "";
     }
-    if (route.startsWith('#')) {
-      return route.slice(1)
+    if (route.startsWith("#")) {
+      return route.slice(1);
     }
-    return route
+    return route;
   }
 
   // isInternalUrl checks if a URL is internal to the app.
   private isInternalUrl(url: string): boolean {
     try {
-      const parsed = new URL(url)
-      return parsed.protocol === `${APP_SCHEME}:`
+      const parsed = new URL(url);
+      return parsed.protocol === `${APP_SCHEME}:`;
     } catch {
-      return false
+      return false;
     }
   }
 
   private isRuntimeDownloadUrl(url: string): boolean {
     try {
-      const parsed = new URL(url)
+      const parsed = new URL(url);
       return (
         parsed.protocol === `${APP_SCHEME}:` &&
         runtimeDownloadPathPattern.test(parsed.pathname)
-      )
+      );
     } catch {
-      return false
+      return false;
     }
   }
 
@@ -841,53 +846,53 @@ export class BldrElectronApp {
     req: Message<CreateWebDocumentRequest>,
     hash?: string,
   ): Promise<CreateWebDocumentResponse> {
-    const id = req.id
+    const id = req.id;
     if (!id) {
-      return { created: false }
+      return { created: false };
     }
-    const nwindow = this.createWindow(id, hash)
-    this.browserWindows[id] = nwindow
-    if (id === 'electron-init') {
-      this.desktopRuntimeResource.setMainWindowOpen(true)
+    const nwindow = this.createWindow(id, hash);
+    this.browserWindows[id] = nwindow;
+    if (id === "electron-init") {
+      this.desktopRuntimeResource.setMainWindowOpen(true);
     }
-    return { created: true }
+    return { created: true };
   }
 
   // removeWebDocument is called to remove a browser window.
   private async removeWebDocument(
     req: Message<RemoveWebDocumentRequest>,
   ): Promise<RemoveWebDocumentResponse> {
-    const doc = req.id && this.browserWindows[req.id]
+    const doc = req.id && this.browserWindows[req.id];
     if (!doc) {
-      return { removed: false }
+      return { removed: false };
     }
-    this.abortWebDocumentFetches(req.id)
+    this.abortWebDocumentFetches(req.id);
     // NOTE: the close() might not work if !closable or interrupted
     // this behaves the same as if the user clicked the X
-    doc.close()
-    return { removed: true }
+    doc.close();
+    return { removed: true };
   }
 }
 
 function sendE2EJSON(res: ServerResponse, statusCode: number, value: unknown) {
-  res.statusCode = statusCode
-  res.setHeader('content-type', 'application/json')
+  res.statusCode = statusCode;
+  res.setHeader("content-type", "application/json");
   res.end(
     JSON.stringify(value, (_key, val) =>
-      typeof val === 'bigint' ? val.toString() : val,
+      typeof val === "bigint" ? val.toString() : val,
     ),
-  )
+  );
 }
 
 function sendE2EError(res: ServerResponse, statusCode: number) {
-  sendE2EJSON(res, statusCode, { error: 'internal server error' })
+  sendE2EJSON(res, statusCode, { error: "internal server error" });
 }
 
 async function readE2EJSON<T>(req: IncomingMessage): Promise<T> {
-  const chunks: Buffer[] = []
+  const chunks: Buffer[] = [];
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  const raw = Buffer.concat(chunks).toString('utf8').trim()
-  return raw ? (JSON.parse(raw) as T) : ({} as T)
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  return raw ? (JSON.parse(raw) as T) : ({} as T);
 }

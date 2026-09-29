@@ -6,6 +6,10 @@ pub struct OpenOrFocusDesktopRequest {
     /// Route is an optional in-app route; empty opens or focuses the main window.
     #[prost(string, tag="1")]
     pub route: ::prost::alloc::string::String,
+    /// InstalledApp is the application bundle that requested the desktop.
+    /// Desktop app updates replace this bundle; empty when not launched from one.
+    #[prost(string, tag="2")]
+    pub installed_app: ::prost::alloc::string::String,
 }
 /// OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

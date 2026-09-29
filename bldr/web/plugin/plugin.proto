@@ -29,6 +29,9 @@ service WebPlugin {
 message OpenOrFocusDesktopRequest {
   // Route is an optional in-app route; empty opens or focuses the main window.
   string route = 1;
+  // InstalledApp is the application bundle that requested the desktop.
+  // Desktop app updates replace this bundle; empty when not launched from one.
+  string installed_app = 2;
 }
 
 // OpenOrFocusDesktopResponse acknowledges Electron main's open or focus operation.

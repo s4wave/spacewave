@@ -19,6 +19,9 @@ service DesktopControlService {
 message OpenOrFocusDesktopRequest {
   // Route is the optional application route to open.
   string route = 1;
+  // InstalledApp is the application bundle that requested the desktop.
+  // Desktop app updates replace this bundle; empty when not launched from one.
+  string installed_app = 2;
 }
 
 // OpenOrFocusDesktopResponse identifies the daemon and UI artifact that opened.

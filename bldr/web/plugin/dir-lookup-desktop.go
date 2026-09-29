@@ -11,7 +11,7 @@ import (
 // Desktop opens or focuses the desktop shell owned by this plugin.
 type Desktop interface {
 	// OpenOrFocusMainWindow acknowledges Electron main and returns its shell generation.
-	OpenOrFocusMainWindow(ctx context.Context, route string) (uint64, error)
+	OpenOrFocusMainWindow(ctx context.Context, req *OpenOrFocusDesktopRequest) (uint64, error)
 	// DesktopPresence returns one generation's state, or nil for an older ended generation.
 	// The returned container retains its terminal result across later opens.
 	DesktopPresence(generation uint64) *ccontainer.CContainer[*WatchDesktopPresenceResponse]

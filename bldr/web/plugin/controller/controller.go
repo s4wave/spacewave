@@ -126,7 +126,7 @@ func (c *Controller) OpenOrFocusDesktop(
 	defer ref.Release()
 
 	// Return the Electron owner's acknowledgement and shell identity.
-	generation, err := desktop.OpenOrFocusMainWindow(ctx, req.GetRoute())
+	generation, err := desktop.OpenOrFocusMainWindow(ctx, req)
 	if err != nil {
 		return nil, err
 	}

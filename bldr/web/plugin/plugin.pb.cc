@@ -113,6 +113,9 @@ inline constexpr OpenOrFocusDesktopRequest::Impl_::Impl_(
       : _cached_size_{0},
         route_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        installed_app_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -428,9 +431,11 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::OpenOrFocusDesktopRequest, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::OpenOrFocusDesktopRequest, _impl_.route_),
+        PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::OpenOrFocusDesktopRequest, _impl_.installed_app_),
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::web::plugin::OpenOrFocusDesktopResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -516,19 +521,19 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::web::plugin::OpenOrFocusDesktopRequest)},
-        {5, sizeof(::bldr::web::plugin::OpenOrFocusDesktopResponse)},
-        {10, sizeof(::bldr::web::plugin::WatchDesktopPresenceRequest)},
-        {15, sizeof(::bldr::web::plugin::WatchDesktopPresenceResponse)},
-        {22, sizeof(::bldr::web::plugin::HandleWebViewViaPluginRequest)},
-        {29, sizeof(::bldr::web::plugin::HandleWebViewViaPluginResponse)},
-        {33, sizeof(::bldr::web::plugin::HandleWebPkgViaPluginRequest)},
-        {44, sizeof(::bldr::web::plugin::HandleWebPkgViaPluginResponse)},
-        {48, sizeof(::bldr::web::plugin::HandleRpcViaPluginRequest)},
-        {59, sizeof(::bldr::web::plugin::HandleRpcViaPluginResponse)},
-        {63, sizeof(::bldr::web::plugin::HandleWebViewViaHandlersRequest)},
-        {68, sizeof(::bldr::web::plugin::HandleWebViewViaHandlersResponse)},
-        {72, sizeof(::bldr::web::plugin::HandleWebPkgsViaPluginAssetsRequest)},
-        {81, sizeof(::bldr::web::plugin::HandleWebPkgsViaPluginAssetsResponse)},
+        {7, sizeof(::bldr::web::plugin::OpenOrFocusDesktopResponse)},
+        {12, sizeof(::bldr::web::plugin::WatchDesktopPresenceRequest)},
+        {17, sizeof(::bldr::web::plugin::WatchDesktopPresenceResponse)},
+        {24, sizeof(::bldr::web::plugin::HandleWebViewViaPluginRequest)},
+        {31, sizeof(::bldr::web::plugin::HandleWebViewViaPluginResponse)},
+        {35, sizeof(::bldr::web::plugin::HandleWebPkgViaPluginRequest)},
+        {46, sizeof(::bldr::web::plugin::HandleWebPkgViaPluginResponse)},
+        {50, sizeof(::bldr::web::plugin::HandleRpcViaPluginRequest)},
+        {61, sizeof(::bldr::web::plugin::HandleRpcViaPluginResponse)},
+        {65, sizeof(::bldr::web::plugin::HandleWebViewViaHandlersRequest)},
+        {70, sizeof(::bldr::web::plugin::HandleWebViewViaHandlersResponse)},
+        {74, sizeof(::bldr::web::plugin::HandleWebPkgsViaPluginAssetsRequest)},
+        {83, sizeof(::bldr::web::plugin::HandleWebPkgsViaPluginAssetsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::web::plugin::_OpenOrFocusDesktopRequest_default_instance_._instance,
@@ -552,64 +557,64 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "lugin/plugin.proto\022\017bldr.web.plugin\0326git"
     "hub.com/aperturerobotics/util/backoff/ba"
     "ckoff.proto\032\?github.com/s4wave/spacewave"
-    "/bldr/web/view/handler/handler.proto\"*\n\031"
+    "/bldr/web/view/handler/handler.proto\"A\n\031"
     "OpenOrFocusDesktopRequest\022\r\n\005route\030\001 \001(\t"
-    "\"0\n\032OpenOrFocusDesktopResponse\022\022\n\ngenera"
-    "tion\030\001 \001(\004\"1\n\033WatchDesktopPresenceReques"
-    "t\022\022\n\ngeneration\030\001 \001(\004\"c\n\034WatchDesktopPre"
-    "senceResponse\0224\n\005state\030\001 \001(\0162%.bldr.web."
-    "plugin.DesktopPresenceState\022\r\n\005error\030\002 \001"
-    "(\t\"Q\n\035HandleWebViewViaPluginRequest\022\030\n\020h"
-    "andle_plugin_id\030\001 \001(\t\022\026\n\016web_view_id_re\030"
-    "\002 \001(\t\"9\n\036HandleWebViewViaPluginResponse\022"
-    "\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"\205\001\n\034HandleWebPk"
-    "gViaPluginRequest\022\030\n\020handle_plugin_id\030\001 "
-    "\001(\t\022\025\n\rweb_pkg_id_re\030\002 \001(\t\022\033\n\023web_pkg_id"
-    "_prefixes\030\003 \003(\t\022\027\n\017web_pkg_id_list\030\004 \003(\t"
-    "\"8\n\035HandleWebPkgViaPluginResponse\022\017\n\005rea"
-    "dy\030\001 \001(\010H\000B\006\n\004body\"\205\001\n\031HandleRpcViaPlugi"
-    "nRequest\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n\rse"
-    "rvice_id_re\030\002 \001(\t\022\024\n\014server_id_re\030\003 \001(\t\022"
-    "!\n\007backoff\030\004 \001(\0132\020.backoff.Backoff\"5\n\032Ha"
-    "ndleRpcViaPluginResponse\022\017\n\005ready\030\001 \001(\010H"
-    "\000B\006\n\004body\"Z\n\037HandleWebViewViaHandlersReq"
-    "uest\0227\n\006config\030\001 \001(\0132\'.web.view.handler."
-    "WebViewHandlersConfig\";\n HandleWebViewVi"
-    "aHandlersResponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004bo"
-    "dy\"o\n#HandleWebPkgsViaPluginAssetsReques"
-    "t\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n\rweb_pkgs_"
-    "path\030\002 \001(\t\022\027\n\017web_pkg_id_list\030\003 \003(\t\"\?\n$H"
-    "andleWebPkgsViaPluginAssetsResponse\022\017\n\005r"
-    "eady\030\001 \001(\010H\000B\006\n\004body*\177\n\024DesktopPresenceS"
-    "tate\022\"\n\036DESKTOP_PRESENCE_STATE_UNKNOWN\020\000"
-    "\022!\n\035DESKTOP_PRESENCE_STATE_ACTIVE\020\001\022 \n\034D"
-    "ESKTOP_PRESENCE_STATE_ENDED\020\0022\355\007\n\tWebPlu"
-    "gin\022o\n\022OpenOrFocusDesktop\022*.bldr.web.plu"
-    "gin.OpenOrFocusDesktopRequest\032+.bldr.web"
-    ".plugin.OpenOrFocusDesktopResponse\"\000\022w\n\024"
-    "WatchDesktopPresence\022,.bldr.web.plugin.W"
-    "atchDesktopPresenceRequest\032-.bldr.web.pl"
-    "ugin.WatchDesktopPresenceResponse\"\0000\001\022p\n"
-    "\017WaitDesktopExit\022,.bldr.web.plugin.Watch"
-    "DesktopPresenceRequest\032-.bldr.web.plugin"
-    ".WatchDesktopPresenceResponse\"\000\022}\n\026Handl"
-    "eWebViewViaPlugin\022..bldr.web.plugin.Hand"
-    "leWebViewViaPluginRequest\032/.bldr.web.plu"
-    "gin.HandleWebViewViaPluginResponse\"\0000\001\022z"
-    "\n\025HandleWebPkgViaPlugin\022-.bldr.web.plugi"
-    "n.HandleWebPkgViaPluginRequest\032..bldr.we"
-    "b.plugin.HandleWebPkgViaPluginResponse\"\000"
-    "0\001\022q\n\022HandleRpcViaPlugin\022*.bldr.web.plug"
-    "in.HandleRpcViaPluginRequest\032+.bldr.web."
-    "plugin.HandleRpcViaPluginResponse\"\0000\001\022\203\001"
-    "\n\030HandleWebViewViaHandlers\0220.bldr.web.pl"
-    "ugin.HandleWebViewViaHandlersRequest\0321.b"
-    "ldr.web.plugin.HandleWebViewViaHandlersR"
-    "esponse\"\0000\001\022\217\001\n\034HandleWebPkgsViaPluginAs"
-    "sets\0224.bldr.web.plugin.HandleWebPkgsViaP"
-    "luginAssetsRequest\0325.bldr.web.plugin.Han"
-    "dleWebPkgsViaPluginAssetsResponse\"\0000\001b\006p"
-    "roto3"
+    "\022\025\n\rinstalled_app\030\002 \001(\t\"0\n\032OpenOrFocusDe"
+    "sktopResponse\022\022\n\ngeneration\030\001 \001(\004\"1\n\033Wat"
+    "chDesktopPresenceRequest\022\022\n\ngeneration\030\001"
+    " \001(\004\"c\n\034WatchDesktopPresenceResponse\0224\n\005"
+    "state\030\001 \001(\0162%.bldr.web.plugin.DesktopPre"
+    "senceState\022\r\n\005error\030\002 \001(\t\"Q\n\035HandleWebVi"
+    "ewViaPluginRequest\022\030\n\020handle_plugin_id\030\001"
+    " \001(\t\022\026\n\016web_view_id_re\030\002 \001(\t\"9\n\036HandleWe"
+    "bViewViaPluginResponse\022\017\n\005ready\030\001 \001(\010H\000B"
+    "\006\n\004body\"\205\001\n\034HandleWebPkgViaPluginRequest"
+    "\022\030\n\020handle_plugin_id\030\001 \001(\t\022\025\n\rweb_pkg_id"
+    "_re\030\002 \001(\t\022\033\n\023web_pkg_id_prefixes\030\003 \003(\t\022\027"
+    "\n\017web_pkg_id_list\030\004 \003(\t\"8\n\035HandleWebPkgV"
+    "iaPluginResponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004bod"
+    "y\"\205\001\n\031HandleRpcViaPluginRequest\022\030\n\020handl"
+    "e_plugin_id\030\001 \001(\t\022\025\n\rservice_id_re\030\002 \001(\t"
+    "\022\024\n\014server_id_re\030\003 \001(\t\022!\n\007backoff\030\004 \001(\0132"
+    "\020.backoff.Backoff\"5\n\032HandleRpcViaPluginR"
+    "esponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"Z\n\037Hand"
+    "leWebViewViaHandlersRequest\0227\n\006config\030\001 "
+    "\001(\0132\'.web.view.handler.WebViewHandlersCo"
+    "nfig\";\n HandleWebViewViaHandlersResponse"
+    "\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004body\"o\n#HandleWebPk"
+    "gsViaPluginAssetsRequest\022\030\n\020handle_plugi"
+    "n_id\030\001 \001(\t\022\025\n\rweb_pkgs_path\030\002 \001(\t\022\027\n\017web"
+    "_pkg_id_list\030\003 \003(\t\"\?\n$HandleWebPkgsViaPl"
+    "uginAssetsResponse\022\017\n\005ready\030\001 \001(\010H\000B\006\n\004b"
+    "ody*\177\n\024DesktopPresenceState\022\"\n\036DESKTOP_P"
+    "RESENCE_STATE_UNKNOWN\020\000\022!\n\035DESKTOP_PRESE"
+    "NCE_STATE_ACTIVE\020\001\022 \n\034DESKTOP_PRESENCE_S"
+    "TATE_ENDED\020\0022\355\007\n\tWebPlugin\022o\n\022OpenOrFocu"
+    "sDesktop\022*.bldr.web.plugin.OpenOrFocusDe"
+    "sktopRequest\032+.bldr.web.plugin.OpenOrFoc"
+    "usDesktopResponse\"\000\022w\n\024WatchDesktopPrese"
+    "nce\022,.bldr.web.plugin.WatchDesktopPresen"
+    "ceRequest\032-.bldr.web.plugin.WatchDesktop"
+    "PresenceResponse\"\0000\001\022p\n\017WaitDesktopExit\022"
+    ",.bldr.web.plugin.WatchDesktopPresenceRe"
+    "quest\032-.bldr.web.plugin.WatchDesktopPres"
+    "enceResponse\"\000\022}\n\026HandleWebViewViaPlugin"
+    "\022..bldr.web.plugin.HandleWebViewViaPlugi"
+    "nRequest\032/.bldr.web.plugin.HandleWebView"
+    "ViaPluginResponse\"\0000\001\022z\n\025HandleWebPkgVia"
+    "Plugin\022-.bldr.web.plugin.HandleWebPkgVia"
+    "PluginRequest\032..bldr.web.plugin.HandleWe"
+    "bPkgViaPluginResponse\"\0000\001\022q\n\022HandleRpcVi"
+    "aPlugin\022*.bldr.web.plugin.HandleRpcViaPl"
+    "uginRequest\032+.bldr.web.plugin.HandleRpcV"
+    "iaPluginResponse\"\0000\001\022\203\001\n\030HandleWebViewVi"
+    "aHandlers\0220.bldr.web.plugin.HandleWebVie"
+    "wViaHandlersRequest\0321.bldr.web.plugin.Ha"
+    "ndleWebViewViaHandlersResponse\"\0000\001\022\217\001\n\034H"
+    "andleWebPkgsViaPluginAssets\0224.bldr.web.p"
+    "lugin.HandleWebPkgsViaPluginAssetsReques"
+    "t\0325.bldr.web.plugin.HandleWebPkgsViaPlug"
+    "inAssetsResponse\"\0000\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_deps[2] = {
@@ -620,7 +625,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto = {
     false,
     false,
-    2445,
+    2468,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto,
     "github.com/s4wave/spacewave/bldr/web/plugin/plugin.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fweb_2fplugin_2fplugin_2eproto_once,
@@ -667,7 +672,8 @@ PROTOBUF_NDEBUG_INLINE OpenOrFocusDesktopRequest::Impl_::Impl_(
     [[maybe_unused]] const ::bldr::web::plugin::OpenOrFocusDesktopRequest& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        route_(arena, from.route_) {}
+        route_(arena, from.route_),
+        installed_app_(arena, from.installed_app_) {}
 
 OpenOrFocusDesktopRequest::OpenOrFocusDesktopRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -689,7 +695,8 @@ PROTOBUF_NDEBUG_INLINE OpenOrFocusDesktopRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        route_(arena) {}
+        route_(arena),
+        installed_app_(arena) {}
 
 inline void OpenOrFocusDesktopRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -706,6 +713,7 @@ inline void OpenOrFocusDesktopRequest::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.route_.Destroy();
+  this_._impl_.installed_app_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -752,16 +760,16 @@ OpenOrFocusDesktopRequest::GetClassData() const {
   return OpenOrFocusDesktopRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 55, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 68, 2>
 OpenOrFocusDesktopRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(OpenOrFocusDesktopRequest, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     OpenOrFocusDesktopRequest_class_data_.base(),
@@ -771,6 +779,10 @@ OpenOrFocusDesktopRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::bldr::web::plugin::OpenOrFocusDesktopRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // string installed_app = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(OpenOrFocusDesktopRequest, _impl_.installed_app_)}},
     // string route = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -780,12 +792,15 @@ OpenOrFocusDesktopRequest::_table_ = {
   }}, {{
     // string route = 1;
     {PROTOBUF_FIELD_OFFSET(OpenOrFocusDesktopRequest, _impl_.route_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string installed_app = 2;
+    {PROTOBUF_FIELD_OFFSET(OpenOrFocusDesktopRequest, _impl_.installed_app_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\51\5\0\0\0\0\0\0"
+    "\51\5\15\0\0\0\0\0"
     "bldr.web.plugin.OpenOrFocusDesktopRequest"
     "route"
+    "installed_app"
   }},
 };
 PROTOBUF_NOINLINE void OpenOrFocusDesktopRequest::Clear() {
@@ -796,8 +811,13 @@ PROTOBUF_NOINLINE void OpenOrFocusDesktopRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.route_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.route_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.installed_app_.ClearNonDefaultToEmpty();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -832,6 +852,16 @@ PROTOBUF_NOINLINE void OpenOrFocusDesktopRequest::Clear() {
     }
   }
 
+  // string installed_app = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_installed_app().empty()) {
+      const ::std::string& _s = this_._internal_installed_app();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -855,13 +885,21 @@ PROTOBUF_NOINLINE void OpenOrFocusDesktopRequest::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string route = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_route().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_route());
+      }
+    }
+    // string installed_app = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_installed_app().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_installed_app());
       }
     }
   }
@@ -883,12 +921,23 @@ void OpenOrFocusDesktopRequest::MergeImpl(::google::protobuf::MessageLite& to_ms
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_route().empty()) {
-      _this->_internal_set_route(from._internal_route());
-    } else {
-      if (_this->_impl_.route_.IsDefault()) {
-        _this->_internal_set_route("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_route().empty()) {
+        _this->_internal_set_route(from._internal_route());
+      } else {
+        if (_this->_impl_.route_.IsDefault()) {
+          _this->_internal_set_route("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_installed_app().empty()) {
+        _this->_internal_set_installed_app(from._internal_installed_app());
+      } else {
+        if (_this->_impl_.installed_app_.IsDefault()) {
+          _this->_internal_set_installed_app("");
+        }
       }
     }
   }
@@ -912,6 +961,7 @@ void OpenOrFocusDesktopRequest::InternalSwap(OpenOrFocusDesktopRequest* PROTOBUF
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.route_, &other->_impl_.route_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.installed_app_, &other->_impl_.installed_app_, arena);
 }
 
 ::google::protobuf::Metadata OpenOrFocusDesktopRequest::GetMetadata() const {

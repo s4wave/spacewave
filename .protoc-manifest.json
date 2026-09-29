@@ -44,7 +44,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/desktop/control": {
-      "hash": "26681e1ce3fc298ebe25c772ba6f9327c0e94ed5e0b95d0feeff4a3caddc91c6",
+      "hash": "a6549d58d60f2c7915c89c9c124f4261dba3e6e731e91efe5d6c360673f80ae4",
       "generatedFiles": [
         "bldr/desktop/control/control.pb.go",
         "bldr/desktop/control/control.pb.ts",
@@ -643,7 +643,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
-      "hash": "ff97834d197ae82e0e3df89eef874304ae4fe8d1bf7d1953eb5aadd0a3ada88b",
+      "hash": "db595cc026e51cd174fc085b7632c2bb558d4d715d2f529f9fde29a5b879ac5c",
       "generatedFiles": [
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.go",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.ts",
@@ -749,7 +749,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin": {
-      "hash": "a563cdc2d986b2ed5db5c7c6db54d9d7934957b2344a2b31c59ffd0f1a15b974",
+      "hash": "96cbc1676aa5cd27d0ab5c1ace19c4a90763401d9667bb481081aca9417d87ab",
       "generatedFiles": [
         "bldr/web/plugin/plugin.pb.go",
         "bldr/web/plugin/plugin.pb.ts",

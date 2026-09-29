@@ -30,7 +30,7 @@ type socketDesktop struct {
 }
 
 // OpenOrFocusMainWindow acknowledges the current shell after the test gate opens.
-func (d *socketDesktop) OpenOrFocusMainWindow(ctx context.Context, route string) (uint64, error) {
+func (d *socketDesktop) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_plugin.OpenOrFocusDesktopRequest) (uint64, error) {
 	// Start one generation for concurrent requests.
 	d.mtx.Lock()
 	if d.presence == nil || d.presence.GetValue().GetState() == bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ENDED {
@@ -44,7 +44,7 @@ func (d *socketDesktop) OpenOrFocusMainWindow(ctx context.Context, route string)
 	d.mtx.Unlock()
 
 	// Hold each acknowledgement until both socket requests reached the plugin.
-	d.entered <- route
+	d.entered <- req.GetRoute()
 	select {
 	case <-d.gate:
 		if d.endOnOpen {

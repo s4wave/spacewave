@@ -19,10 +19,12 @@ DESKTOP_PRESENCE_STATE_ACTIVE: DesktopPresenceState
 DESKTOP_PRESENCE_STATE_ENDED: DesktopPresenceState
 
 class OpenOrFocusDesktopRequest(_message.Message):
-    __slots__ = ("route",)
+    __slots__ = ("route", "installed_app")
     ROUTE_FIELD_NUMBER: _ClassVar[int]
+    INSTALLED_APP_FIELD_NUMBER: _ClassVar[int]
     route: str
-    def __init__(self, route: _Optional[str] = ...) -> None: ...
+    installed_app: str
+    def __init__(self, route: _Optional[str] = ..., installed_app: _Optional[str] = ...) -> None: ...
 
 class OpenOrFocusDesktopResponse(_message.Message):
     __slots__ = ("generation",)

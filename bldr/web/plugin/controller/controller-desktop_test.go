@@ -15,15 +15,15 @@ import (
 
 // desktopHandler resolves a plugin-local desktop request and records its route.
 type desktopHandler struct {
-	// routes records forwarded application routes.
-	routes chan string
+	// requests records forwarded desktop requests.
+	requests chan *bldr_web_plugin.OpenOrFocusDesktopRequest
 	// presence supplies the shell state and terminal result.
 	presence *ccontainer.CContainer[*bldr_web_plugin.WatchDesktopPresenceResponse]
 }
 
 // OpenOrFocusMainWindow forwards the test request.
-func (h *desktopHandler) OpenOrFocusMainWindow(ctx context.Context, route string) (uint64, error) {
-	h.routes <- route
+func (h *desktopHandler) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_plugin.OpenOrFocusDesktopRequest) (uint64, error) {
+	h.requests <- req
 	return 1, nil
 }
 
@@ -53,7 +53,7 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	defer b.Close()
 
 	// Register the plugin's desktop controller through its lookup directive.
-	handler := &desktopHandler{routes: make(chan string, 1), presence: ccontainer.NewCContainerVT(&bldr_web_plugin.WatchDesktopPresenceResponse{State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE})}
+	handler := &desktopHandler{requests: make(chan *bldr_web_plugin.OpenOrFocusDesktopRequest, 1), presence: ccontainer.NewCContainerVT(&bldr_web_plugin.WatchDesktopPresenceResponse{State: bldr_web_plugin.DesktopPresenceState_DESKTOP_PRESENCE_STATE_ACTIVE})}
 	release, err := b.AddHandler(handler)
 	if err != nil {
 		t.Fatal(err)
@@ -64,15 +64,18 @@ func TestOpenOrFocusDesktopForwardsThroughPluginRPC(t *testing.T) {
 	ctrl := NewController(le, b, &Config{})
 	client := bldr_web_plugin.NewSRPCWebPluginClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(ctrl.mux))))
-	opened, err := client.OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{Route: "/settings"})
+	opened, err := client.OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{
+		Route:        "/settings",
+		InstalledApp: "/Applications/Spacewave.app",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if opened.GetGeneration() != 1 {
 		t.Fatalf("generation = %d, want 1", opened.GetGeneration())
 	}
-	if route := <-handler.routes; route != "/settings" {
-		t.Fatalf("route = %q, want /settings", route)
+	if req := <-handler.requests; req.GetRoute() != "/settings" || req.GetInstalledApp() != "/Applications/Spacewave.app" {
+		t.Fatalf("request = %v, want the route and installed app", req)
 	}
 
 	// The plugin stream confirms this shell and reports its completion.

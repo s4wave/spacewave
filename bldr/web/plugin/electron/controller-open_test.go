@@ -128,7 +128,7 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	results := make(chan openResult, 2)
 	for range 2 {
 		go func() {
-			generation, err := r.OpenOrFocusMainWindow(ctx, "")
+			generation, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 			results <- openResult{generation: generation, err: err}
 		}()
 	}
@@ -169,7 +169,7 @@ func TestControllerOpenDeduplicatesAndWarmReopens(t *testing.T) {
 	}
 
 	// A warm reopen advances generation without reviving the first one.
-	secondGeneration, err := r.OpenOrFocusMainWindow(ctx, "")
+	secondGeneration, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,10 +201,10 @@ func TestControllerLaunchFailureReleasesDemand(t *testing.T) {
 	r.run = func(context.Context) error { return want }
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
-	if _, err := r.OpenOrFocusMainWindow(ctx, ""); !errors.Is(err, want) {
+	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, want) {
 		t.Fatalf("first open = %v, want launch failure", err)
 	}
-	if _, err := r.OpenOrFocusMainWindow(ctx, ""); !errors.Is(err, want) {
+	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, want) {
 		t.Fatalf("second open = %v, want fresh launch failure", err)
 	}
 	cancel()
@@ -224,7 +224,7 @@ func TestControllerCleanExitBeforeReadyFailsOpen(t *testing.T) {
 	r.run = func(context.Context) error { return nil }
 	done := make(chan error, 1)
 	go func() { done <- r.Execute(ctx) }()
-	if _, err := r.OpenOrFocusMainWindow(ctx, ""); !errors.Is(err, errDesktopClosed) {
+	if _, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{}); !errors.Is(err, errDesktopClosed) {
 		t.Fatalf("open = %v, want closed before acknowledgement", err)
 	}
 	cancel()
@@ -257,7 +257,7 @@ func TestControllerExitCancelsOpenWaitingForReadiness(t *testing.T) {
 	go func() { done <- r.Execute(ctx) }()
 	opened := make(chan error, 1)
 	go func() {
-		_, err := r.OpenOrFocusMainWindow(ctx, "")
+		_, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 		opened <- err
 	}()
 	<-started

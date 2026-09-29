@@ -23,6 +23,13 @@ export interface OpenOrFocusDesktopRequest {
    * @generated from field: string route = 1;
    */
   route?: string
+  /**
+   * InstalledApp is the application bundle that requested the desktop.
+   * Desktop app updates replace this bundle; empty when not launched from one.
+   *
+   * @generated from field: string installed_app = 2;
+   */
+  installedApp?: string
 }
 
 export const OpenOrFocusDesktopRequest: MessageType<OpenOrFocusDesktopRequest> =
@@ -30,6 +37,7 @@ export const OpenOrFocusDesktopRequest: MessageType<OpenOrFocusDesktopRequest> =
     typeName: 'bldr.desktop.control.OpenOrFocusDesktopRequest',
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'installed_app', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -134,8 +134,11 @@ func (d *daemonDesktopControl) OpenOrFocusDesktop(
 		}
 	}()
 
-	// Forward the route and wait for the Electron owner's open acknowledgement.
-	opened, err := client.OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{Route: req.GetRoute()})
+	// Forward the request and wait for the Electron owner's open acknowledgement.
+	opened, err := client.OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{
+		Route:        req.GetRoute(),
+		InstalledApp: req.GetInstalledApp(),
+	})
 	if err != nil {
 		err = errors.Wrap(err, "desktop capability or launch failed in the running daemon's web plugin; update its UI artifact or inspect the daemon log")
 		d.reportFailure(err)

@@ -427,6 +427,9 @@ message SetDesktopStateResponse {}
 message OpenOrFocusMainWindowRequest {
   // Route is the app route to open after focusing the singleton window.
   string route = 1;
+  // InstalledApp is the application bundle that requested the desktop.
+  // Desktop app updates replace this bundle; empty keeps the last one.
+  string installed_app = 2;
 }
 
 // OpenOrFocusMainWindowResponse is the response for OpenOrFocusMainWindow.

@@ -905,6 +905,7 @@ class OpenOrFocusDesktopRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kRouteFieldNumber = 1,
+    kInstalledAppFieldNumber = 2,
   };
   // string route = 1;
   void clear_route() ;
@@ -921,12 +922,27 @@ class OpenOrFocusDesktopRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_route();
 
   public:
+  // string installed_app = 2;
+  void clear_installed_app() ;
+  const ::std::string& installed_app() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_installed_app(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_installed_app();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_installed_app();
+  void set_allocated_installed_app(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_installed_app() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_installed_app(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_installed_app();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.web.plugin.OpenOrFocusDesktopRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 55,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 68,
                                    2>
       _table_;
 
@@ -948,6 +964,7 @@ class OpenOrFocusDesktopRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr route_;
+    ::google::protobuf::internal::ArenaStringPtr installed_app_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3204,6 +3221,71 @@ inline void OpenOrFocusDesktopRequest::set_allocated_route(::std::string* PROTOB
     _impl_.route_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.OpenOrFocusDesktopRequest.route)
+}
+
+// string installed_app = 2;
+inline void OpenOrFocusDesktopRequest::clear_installed_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.installed_app_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& OpenOrFocusDesktopRequest::installed_app() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app)
+  return _internal_installed_app();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void OpenOrFocusDesktopRequest::set_installed_app(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.installed_app_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app)
+}
+inline ::std::string* PROTOBUF_NONNULL OpenOrFocusDesktopRequest::mutable_installed_app()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_installed_app();
+  // @@protoc_insertion_point(field_mutable:bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app)
+  return _s;
+}
+inline const ::std::string& OpenOrFocusDesktopRequest::_internal_installed_app() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.installed_app_.Get();
+}
+inline void OpenOrFocusDesktopRequest::_internal_set_installed_app(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.installed_app_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL OpenOrFocusDesktopRequest::_internal_mutable_installed_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.installed_app_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE OpenOrFocusDesktopRequest::release_installed_app() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.installed_app_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.installed_app_.Set("", GetArena());
+  }
+  return released;
+}
+inline void OpenOrFocusDesktopRequest::set_allocated_installed_app(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.installed_app_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.installed_app_.IsDefault()) {
+    _impl_.installed_app_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:bldr.web.plugin.OpenOrFocusDesktopRequest.installed_app)
 }
 
 // -------------------------------------------------------------------

@@ -1521,6 +1521,13 @@ export interface OpenOrFocusMainWindowRequest {
    * @generated from field: string route = 1;
    */
   route?: string
+  /**
+   * InstalledApp is the application bundle that requested the desktop.
+   * Desktop app updates replace this bundle; empty keeps the last one.
+   *
+   * @generated from field: string installed_app = 2;
+   */
+  installedApp?: string
 }
 
 export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequest> =
@@ -1528,6 +1535,7 @@ export const OpenOrFocusMainWindowRequest: MessageType<OpenOrFocusMainWindowRequ
     typeName: 'electron.desktop_runtime.OpenOrFocusMainWindowRequest',
     fields: [
       { no: 1, name: 'route', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'installed_app', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

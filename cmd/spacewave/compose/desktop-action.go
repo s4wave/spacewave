@@ -5,11 +5,13 @@ package spacewave_compose
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	desktop_control "github.com/s4wave/spacewave/bldr/desktop/control"
 	"github.com/s4wave/spacewave/core/daemon"
+	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/appbundle"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +38,7 @@ func openDesktopWithConnector(ctx context.Context, connector *daemon.Connector) 
 	defer client.Close()
 
 	_, err = desktop_control.NewSRPCDesktopControlServiceClient(client.RPC()).OpenOrFocusDesktop(
-		ctx, &desktop_control.OpenOrFocusDesktopRequest{},
+		ctx, &desktop_control.OpenOrFocusDesktopRequest{InstalledApp: installedApp()},
 	)
 	if err == nil {
 		return nil
@@ -45,4 +47,19 @@ func openDesktopWithConnector(ctx context.Context, connector *daemon.Connector) 
 		return errors.New("running Spacewave daemon lacks desktop control; upgrade and restart it before opening the desktop")
 	}
 	return errors.Wrap(err, "open Spacewave desktop")
+}
+
+// installedApp returns the application bundle containing this executable, the
+// destination for desktop app updates, or empty outside a bundle.
+func installedApp() string {
+	executable, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	executable, err = filepath.EvalSymlinks(executable)
+	if err != nil {
+		return ""
+	}
+	_, appDir := appbundle.Detect(executable)
+	return appDir
 }

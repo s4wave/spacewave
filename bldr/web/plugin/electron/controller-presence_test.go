@@ -44,7 +44,7 @@ func TestControllerPresenceRetainsShellFailure(t *testing.T) {
 	})
 
 	// Capture the acknowledged shell before allowing its process to fail.
-	generation, err := r.OpenOrFocusMainWindow(ctx, "")
+	generation, err := r.OpenOrFocusMainWindow(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}

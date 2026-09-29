@@ -154,7 +154,7 @@ func (r *Controller) Execute(ctx context.Context) error {
 
 // OpenOrFocusMainWindow starts one Electron process on cold or warm demand and
 // returns its generation after Electron main acknowledges the operation.
-func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, route string) (uint64, error) {
+func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_plugin.OpenOrFocusDesktopRequest) (uint64, error) {
 	// Join the current launch or signal the idle controller to start one.
 	var generation uint64
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -238,7 +238,10 @@ func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, route string) (u
 
 	// Acknowledge only after Electron main has opened or focused the shell.
 	service := desktop_runtime.NewSRPCDesktopRuntimeResourceServiceClient(client)
-	_, err = service.OpenOrFocusMainWindow(opCtx, &desktop_runtime.OpenOrFocusMainWindowRequest{Route: route})
+	_, err = service.OpenOrFocusMainWindow(opCtx, &desktop_runtime.OpenOrFocusMainWindowRequest{
+		Route:        req.GetRoute(),
+		InstalledApp: req.GetInstalledApp(),
+	})
 	if err != nil {
 		return 0, err
 	}
