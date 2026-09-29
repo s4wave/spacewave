@@ -13,6 +13,7 @@ import (
 // span between its first and last keys. Existing page/cursor snapshot ownership
 // and the scalar path's canonical page-boundary rules remain unchanged.
 func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry) error {
+	// Require a live write transaction and a usable context.
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
@@ -22,6 +23,7 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
 	// Validate the entire input first and collapse overwrites before building
 	// values. Sorting only the private slice never changes the caller's batch.
 	last := make(map[string]kvtx.WriteBatchEntry, len(entries))
@@ -37,6 +39,7 @@ func (t *Tx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry
 	}
 	slices.SortFunc(ordered, func(a, b kvtx.WriteBatchEntry) int { return bytes.Compare(a.Key, b.Key) })
 
+	// Seed the node builder, adding the anchor for an empty tree.
 	oldKeys := make([]okraNodeKey, 0, len(ordered))
 	nodes := make([]okraLevelNode, 0, len(ordered)+1)
 	empty := t.root.GetSize() == 0

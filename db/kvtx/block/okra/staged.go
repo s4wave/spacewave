@@ -26,6 +26,7 @@ func stagedStore(ctx context.Context, tree *block.Cursor) *block.BufferedStore {
 // stagedCursor returns a cursor in a private transaction that writes into the
 // staging store of the tree cursor's transaction.
 func stagedCursor(ctx context.Context, tree *block.Cursor) *block.Cursor {
+	// Open a private transaction over the tree's staging store.
 	btx := tree.GetTransaction()
 	staged := stagedStore(ctx, tree)
 	stagedTx, cursor := block.NewTransaction(staged, btx.GetTransformer(), nil, btx.GetPutOpts())

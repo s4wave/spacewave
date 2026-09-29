@@ -6,6 +6,7 @@ package kvtx_block_okra
 // or update the old page. This replaces allocation layout, not CloneVT semantics
 // or the durable encoding. Call only with the new page's private pointer slice.
 func clonePageEntries(entries []*Entry) {
+	// Size one backing allocation for every entry's byte fields.
 	bytesNeeded := 0
 	for _, entry := range entries {
 		if entry != nil {
@@ -14,7 +15,10 @@ func clonePageEntries(entries []*Entry) {
 	}
 	owned := make([]Entry, len(entries))
 	storage := make([]byte, bytesNeeded)
+
+	// Copy each byte field into the shared allocation.
 	copyBytes := func(src []byte) []byte {
+		// Leave a nil field nil.
 		if src == nil {
 			return nil
 		}
@@ -24,6 +28,8 @@ func clonePageEntries(entries []*Entry) {
 		storage = storage[n:]
 		return dst
 	}
+
+	// Clone every entry into the owned slice.
 	for i, src := range entries {
 		if src == nil {
 			continue

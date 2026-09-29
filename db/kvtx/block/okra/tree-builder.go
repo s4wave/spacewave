@@ -56,9 +56,12 @@ func (b *treeBuilder) add(level uint32, entry *Entry) error {
 // buildPage writes the level's open page with the upper bound and stages the
 // entry referencing it on the next level.
 func (b *treeBuilder) buildPage(level uint32, upper []byte) error {
+	// Reject a tree deeper than the root level.
 	if level >= maxRootLevel {
 		return errors.New("okra tree exceeded maximum height")
 	}
+
+	// Write the open page and hash its entry range.
 	entries := b.levels[level].entries
 	page, ref, err := b.createPage(level, entries, upper)
 	if err != nil {
@@ -68,6 +71,8 @@ func (b *treeBuilder) buildPage(level uint32, upper []byte) error {
 	if err != nil {
 		return err
 	}
+
+	// Add the page's parent entry to the next level and reset this one.
 	parent := &Entry{
 		Anchor:   page.GetStartsAtAnchor(),
 		Key:      slices.Clone(entries[0].GetKey()),
@@ -100,6 +105,7 @@ func (b *treeBuilder) finish() (*block.BlockRef, *Entry, uint32, error) {
 // createPage writes one page over the staged entries. The page takes the
 // entries without copying them.
 func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte) (*Page, *block.BlockRef, error) {
+	// Assemble the page over the staged entries.
 	page := &Page{
 		Level:          level,
 		UpperBound:     slices.Clone(upper),
@@ -112,6 +118,8 @@ func (b *treeBuilder) createPage(level uint32, entries []*Entry, upper []byte) (
 			page.LowerBound = slices.Clone(entry.GetKey())
 		}
 	}
+
+	// Hash the page and write it to the staging store.
 	pageHash, err := hashPage(page)
 	if err != nil {
 		return nil, nil, err

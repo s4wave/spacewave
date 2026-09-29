@@ -31,11 +31,14 @@ func NewTxWithInlineValues(
 // buildValueEntry chooses the value's storage layout. An inline value borrows
 // the caller's bytes; the tree builder copies them before the next entry.
 func (t *Tx) buildValueEntry(ctx context.Context, key, value []byte) (BuildEntry, error) {
+	// Store small values inline when the transaction allows it.
 	entry := BuildEntry{Key: key, ValueIsBlob: true}
 	if t.inlineValues && len(value) <= inlineValueLimit {
 		entry.ValueBlob = blob.NewRawBlob(value)
 		return entry, ctx.Err()
 	}
+
+	// Otherwise write the value as a blob and reference it.
 	ref, err := t.buildBlobValue(ctx, value)
 	entry.ValueRef = ref
 	return entry, err

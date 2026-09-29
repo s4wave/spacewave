@@ -40,12 +40,15 @@ func (t *Tx) ReplaceAllBlocks(ctx context.Context, values iter.Seq2[[]byte, bloc
 // replaceAll replaces every key with a tree built from sorted entries. The
 // first entry error stops the build and is returned.
 func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]) error {
+	// Require a live write transaction.
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
 	if t.commitOnce.Load() {
 		return kvtx.ErrDiscarded
 	}
+
+	// Adapt the value sequence, remembering the first error or cancellation.
 	var valueErr error
 	entries := func(yield func(BuildEntry) bool) {
 		for entry, err := range values {
@@ -61,6 +64,8 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 			}
 		}
 	}
+
+	// Build the tree and stage its pages.
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
 		return writeStagedBlock(ctx, t.bcs, page)
 	})
@@ -70,9 +75,12 @@ func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]
 	if err != nil {
 		return err
 	}
+
+	// Install the new root, or clear it for an empty tree.
 	if root.GetSize() == 0 {
 		return t.setEmptyRoot(ctx)
 	}
+
 	// The root references its staged top page; reads follow it on demand.
 	t.replaceRoot(root, nil)
 	return ctx.Err()
