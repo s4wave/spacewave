@@ -3,7 +3,22 @@ import { copyFile, lstat, mkdir, mkdtemp, chmod } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-const verifyCodesign = promisify(execFile);
+const execFileAsync = promisify(execFile);
+
+/** installedAppVersion reads the short version of an installed app bundle. */
+export async function installedAppVersion(
+  installedAppDir: string,
+): Promise<string> {
+  const { stdout } = await execFileAsync("plutil", [
+    "-extract",
+    "CFBundleShortVersionString",
+    "raw",
+    "-o",
+    "-",
+    path.join(installedAppDir, "Contents", "Info.plist"),
+  ]);
+  return stdout.trim();
+}
 
 /** startAppBundleUpdate replaces the installed app that opened the desktop. */
 export async function startAppBundleUpdate(
@@ -30,7 +45,7 @@ export async function startAppBundleUpdate(
   if (!stagedInfo.isDirectory() || stagedInfo.isSymbolicLink()) {
     throw new Error("staged update is not a real .app directory");
   }
-  await verifyCodesign("codesign", [
+  await execFileAsync("codesign", [
     "--verify",
     "--deep",
     "--strict",

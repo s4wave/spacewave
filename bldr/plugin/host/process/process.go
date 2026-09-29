@@ -30,9 +30,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// hostExecutableDirEnv overrides the plugin executable directory for tests.
-const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
-
 // Controller is the plugin host controller type.
 type Controller = host_controller.Controller
 
@@ -238,7 +235,7 @@ func (h *ProcessHost) ExecutePlugin(
 		"BLDR_PLUGIN_STATE_PATH="+pluginStateDir,
 	)
 	if exe, err := os.Executable(); err == nil {
-		entrypointProc.Env = append(entrypointProc.Env, hostExecutableDirEnv+"="+filepath.Dir(exe))
+		entrypointProc.Env = append(entrypointProc.Env, bldr_plugin.HostExecutableEnv+"="+exe)
 	}
 
 	// write start info to a file as well

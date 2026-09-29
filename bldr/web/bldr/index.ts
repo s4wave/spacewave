@@ -35,6 +35,7 @@ export {
   openElectronDirectory,
   quitDesktopRuntime,
   applyElectronAppUpdate,
+  installedElectronAppVersion,
 } from '../electron/electron.js'
 export {
   pathSeparator,

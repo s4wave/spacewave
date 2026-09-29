@@ -36,10 +36,17 @@ async function applyElectronAppUpdate(webViewId: string): Promise<void> {
   await ipcRenderer.invoke('BLDR_ELECTRON_APPLY_APP_UPDATE', webViewId)
 }
 
+// installedAppVersion returns the version of the app that opened this desktop,
+// or an empty string when it is unknown.
+async function installedAppVersion(): Promise<string> {
+  return await ipcRenderer.invoke('BLDR_ELECTRON_INSTALLED_APP_VERSION')
+}
+
 const exposeContext: BldrElectron = {
   openClientPort,
   openDirectory,
   quitDesktopRuntime,
   applyElectronAppUpdate,
+  installedAppVersion,
 }
 contextBridge.exposeInMainWorld('BLDR_ELECTRON', exposeContext)

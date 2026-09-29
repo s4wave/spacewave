@@ -32,6 +32,9 @@ export interface BldrElectron {
   quitDesktopRuntime(): Promise<void>
   // applyElectronAppUpdate replaces this app using its view's daemon plugin route.
   applyElectronAppUpdate(webViewId: string): Promise<void>
+  // installedAppVersion returns the version of the app that opened this
+  // desktop, or an empty string when it is unknown.
+  installedAppVersion(): Promise<string>
 }
 
 // BLDR_ELECTRON is declared if this is Electron.
@@ -110,6 +113,16 @@ export async function applyElectronAppUpdate(webViewId: string): Promise<void> {
   }
 
   await BLDR_ELECTRON.applyElectronAppUpdate(webViewId)
+}
+
+// installedElectronAppVersion returns the version of the app that opened this
+// desktop, or an empty string when it is unknown.
+export async function installedElectronAppVersion(): Promise<string> {
+  if (!BLDR_ELECTRON) {
+    throw new Error('not running in electron')
+  }
+
+  return BLDR_ELECTRON.installedAppVersion()
 }
 
 // handleElectronWorkerPort handles the other end of the WebDocument.webRuntimePort.

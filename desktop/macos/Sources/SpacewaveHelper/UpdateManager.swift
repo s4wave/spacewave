@@ -24,34 +24,36 @@ class UpdateManager {
     func execute() throws {
         waitForProcessExit(pid)
 
-        let fm = FileManager.default
-        let backupPath = currentPath + ".old"
-
         // User-writable parent (typical ~/Applications install) -> in-process
         // swap. Otherwise escalate through SMJobBless.
-        let needsElevation = !fm.isWritableFile(atPath: (currentPath as NSString).deletingLastPathComponent)
-        if needsElevation {
-            try executeElevated()
+        let parent = (currentPath as NSString).deletingLastPathComponent
+        if FileManager.default.isWritableFile(atPath: parent) {
+            try performBundleSwap(
+                fileManager: FileManager.default,
+                currentPath: currentPath,
+                stagedPath: stagedPath
+            )
         } else {
-            try executeNormal(fm: fm, backupPath: backupPath)
+            try executeElevated()
         }
 
+        relaunch()
+    }
+
+    // relaunch opens the swapped bundle and waits for Launch Services to
+    // answer, because the helper process exits as soon as execute returns.
+    private func relaunch() {
+        let done = DispatchSemaphore(value: 0)
         let url = URL(fileURLWithPath: currentPath)
-        let config = NSWorkspace.OpenConfiguration()
-        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
             if let error = error {
                 fputs("relaunch error: \(error)\n", stderr)
             }
+            done.signal()
         }
-    }
-
-    private func executeNormal(fm: FileManager, backupPath: String) throws {
-        _ = backupPath
-        try performBundleSwap(
-            fileManager: fm,
-            currentPath: currentPath,
-            stagedPath: stagedPath
-        )
+        if done.wait(timeout: .now() + 30) == .timedOut {
+            fputs("relaunch error: timed out waiting for launch\n", stderr)
+        }
     }
 
     // executeElevated uses SMJobBless to install a short-lived privileged

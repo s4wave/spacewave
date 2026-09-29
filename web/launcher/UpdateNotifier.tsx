@@ -6,7 +6,12 @@ import {
   useState,
 } from 'react'
 import { useBldrContext, useWatchStateRpc } from '@aptre/bldr-react'
-import { applyElectronAppUpdate, isDesktop, UpdateTarget } from '@aptre/bldr'
+import {
+  applyElectronAppUpdate,
+  installedElectronAppVersion,
+  isDesktop,
+  UpdateTarget,
+} from '@aptre/bldr'
 import { Client as SRPCClient } from 'starpc'
 
 import {
@@ -66,9 +71,21 @@ function UpdateNotifierInner() {
     { errorCb: handleWatchError },
   )
 
+  // The installed app version suppresses a staged release it already runs.
+  // An empty version means the installed app is unknown.
+  const [installedVersion, setInstalledVersion] = useState<string | null>(null)
+  useEffect(() => {
+    installedElectronAppVersion()
+      .catch(() => '')
+      .then(setInstalledVersion)
+  }, [])
+
   // Announce the installed-app target with Electron's own update action.
   const announceApp = useEffectEvent((appPhase: UpdatePhase | undefined) => {
     if (appPhase === UpdatePhase.STAGED) {
+      if (info?.updateState?.version === installedVersion) {
+        return
+      }
       const version = info?.updateState?.version || 'new version'
       toast('App update ready', {
         description: `Spacewave app ${version} is ready to install. The shared daemon will keep running.`,
@@ -155,8 +172,10 @@ function UpdateNotifierInner() {
   const appPhase = info?.updateState?.phase
   const appVersion = info?.updateState?.version
   useEffect(() => {
-    announceApp(appPhase)
-  }, [appPhase, appVersion])
+    if (installedVersion !== null) {
+      announceApp(appPhase)
+    }
+  }, [appPhase, appVersion, installedVersion])
 
   const daemonPhase = info?.daemonUpdateState?.phase
   const daemonVersion = info?.daemonUpdateState?.version

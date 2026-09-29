@@ -25,8 +25,6 @@ const ControllerID = "spacewave/loader/controller"
 // Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
-const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
-
 // Controller spawns the spacewave-helper in --loading mode and drives its
 // progress bar by observing LoadPlugin directive state for each configured
 // watch plugin. The helper is terminated on context cancellation.
@@ -231,29 +229,27 @@ func loaderFetchStatus(status *spacewave_launcher.FetchStatus) *ui.FetchStatus {
 // executable, then beside the host executable when the loader runs as a
 // downloaded plugin. Returns false when no binary exists at the expected path.
 func resolveHelperPath(overrideName string) (string, bool) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", false
-	}
-	return ui.ResolveHelperPathFromDirs(
-		[]string{filepath.Dir(exe), os.Getenv(hostExecutableDirEnv)},
-		overrideName,
-		runtime.GOOS,
-	)
+	return ui.ResolveHelperPathFromDirs(executableDirs(), overrideName, runtime.GOOS)
 }
 
 func resolveIconPath(overridePath string) string {
 	if overridePath != "" {
 		return overridePath
 	}
-	exe, err := os.Executable()
-	if err != nil {
-		return ""
+	return ui.ResolveIconPathFromDirs(executableDirs())
+}
+
+// executableDirs returns the directories of the running executable and of the
+// plugin host executable, skipping any that are unknown.
+func executableDirs() []string {
+	var dirs []string
+	if exe, err := os.Executable(); err == nil {
+		dirs = append(dirs, filepath.Dir(exe))
 	}
-	return ui.ResolveIconPathFromDirs([]string{
-		filepath.Dir(exe),
-		os.Getenv(hostExecutableDirEnv),
-	})
+	if exe, err := bldr_plugin.HostExecutable(); err == nil {
+		dirs = append(dirs, filepath.Dir(exe))
+	}
+	return dirs
 }
 
 // _ is a type assertion

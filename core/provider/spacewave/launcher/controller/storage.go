@@ -2,11 +2,11 @@ package spacewave_launcher_controller
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/localdist"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -92,12 +92,13 @@ func (c *Controller) loadDistConf(ctx context.Context) ([]byte, error) {
 	return data, err
 }
 
-// loadLocalDistConf loads a package-shipped dist config next to the entrypoint.
+// loadLocalDistConf loads a package-shipped dist config next to the daemon
+// executable.
 func (c *Controller) loadLocalDistConf() ([]byte, string, error) {
 	if runtime.GOOS == "js" {
 		return nil, "", nil
 	}
-	exePath, err := os.Executable()
+	exePath, err := bldr_plugin.HostExecutable()
 	if err != nil {
 		return nil, "", err
 	}

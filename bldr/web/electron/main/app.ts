@@ -70,7 +70,7 @@ import {
 } from "./desktop-tray-runtime-projection.js";
 import { DesktopTrayController } from "./desktop-tray.js";
 import { buildApplicationMenuTemplate } from "./app-menu.js";
-import { startAppBundleUpdate } from "./app-update.js";
+import { installedAppVersion, startAppBundleUpdate } from "./app-update.js";
 
 // isMac reports whether the app runs on macOS.
 export const isMac = os.platform() === "darwin";
@@ -338,6 +338,13 @@ export class BldrElectronApp {
 
   /** setupAppUpdateIpc obtains the verified artifact through Electron's own host route. */
   private setupAppUpdateIpc() {
+    // An empty version means the installed app is unknown.
+    ipcMain.handle("BLDR_ELECTRON_INSTALLED_APP_VERSION", async () => {
+      if (!isMac || !this.installedApp) {
+        return "";
+      }
+      return installedAppVersion(this.installedApp);
+    });
     ipcMain.handle(
       "BLDR_ELECTRON_APPLY_APP_UPDATE",
       async (event, webViewId: string) => {
