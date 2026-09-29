@@ -75,6 +75,9 @@ message Config {
   // ExternalPluginIds lists plugins another controller on the bus supplies.
   // The scheduler leaves their LoadPlugin directives to that controller.
   repeated string external_plugin_ids = 19;
+  // HostExportPluginIds lists plugins that may execute plugins on this
+  // scheduler's plugin hosts through the HostExport service.
+  repeated string host_export_plugin_ids = 20;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

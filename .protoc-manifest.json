@@ -330,6 +330,18 @@
         "bldr/plugin/host/configset/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/plugin/host/export": {
+      "hash": "4a8a876460f55d49d6e270974ee082a79d715149a12f5aa0f1874727378e5685",
+      "generatedFiles": [
+        "bldr/plugin/host/export/export.pb.go",
+        "bldr/plugin/host/export/export.pb.ts",
+        "bldr/plugin/host/export/export_srpc.pb.go",
+        "bldr/plugin/host/export/export_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/plugin/host/export/export.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/plugin/host/logs": {
       "hash": "3214612d49d35f92b13e311e00a337752f62f6c19137a694a532ef1045523bc4",
       "generatedFiles": [
@@ -351,7 +363,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "32a300189a12d3a360a6348922a252317a24851c3a679e5f8b879caea04879de",
+      "hash": "fdc4519561c7f3c3c9e015c708f3a3d6198c8883d69f5ff0309ab359e57e3e78",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"

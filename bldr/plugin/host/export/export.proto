@@ -1,0 +1,58 @@
+syntax = "proto3";
+package plugin.host.export;
+
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
+
+// Config configures the controller that resolves the host's exported plugin
+// hosts on a plugin's bus.
+message Config {}
+
+// HostExport lets a plugin execute plugins on its host's plugin hosts.
+//
+// Available on the plugin host at service ID plugin-host/plugin.host.export.HostExport.
+service HostExport {
+  // WatchHosts streams the platform IDs of the host's plugin hosts.
+  rpc WatchHosts(WatchHostsRequest) returns (stream WatchHostsResponse);
+  // ExecutePlugin carries one execution session as a multiplexed connection.
+  // The caller serves the plugin's host mux, including its dist and assets
+  // file services. The host serves Execution and forwards every other call to
+  // the running plugin.
+  rpc ExecutePlugin(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
+}
+
+// Execution runs one plugin within an ExecutePlugin session.
+service Execution {
+  // Start executes the plugin and reports its RPC readiness until it exits.
+  rpc Start(StartRequest) returns (stream StartResponse);
+}
+
+// WatchHostsRequest is the request for WatchHosts.
+message WatchHostsRequest {}
+
+// WatchHostsResponse lists the current plugin host platforms.
+message WatchHostsResponse {
+  // PlatformIds are the platform IDs of the available plugin hosts.
+  repeated string platform_ids = 1;
+}
+
+// StartRequest carries the PluginHost.ExecutePlugin arguments.
+message StartRequest {
+  // PlatformId selects the plugin host.
+  string platform_id = 1;
+  // PluginId is the plugin to execute.
+  string plugin_id = 2;
+  // InstanceKey is the logical instance key passed to the plugin.
+  string instance_key = 3;
+  // ExecutionKey distinguishes concurrent executions of one instance.
+  string execution_key = 4;
+  // ManifestRoot identifies the exact files used by this execution.
+  string manifest_root = 5;
+  // Entrypoint is the entrypoint path within the dist files.
+  string entrypoint = 6;
+}
+
+// StartResponse reports a change in the running plugin's RPC readiness.
+message StartResponse {
+  // RpcReady is set while the running plugin accepts calls on the session.
+  bool rpc_ready = 1;
+}

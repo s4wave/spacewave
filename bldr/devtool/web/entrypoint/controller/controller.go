@@ -4,6 +4,7 @@ package devtool_web_entrypoint_controller
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -312,6 +313,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			policy.CloneVT(),
 		)
 	}
+	// Startup plugins may run their own plugins, such as a Space's, on the
+	// browser's plugin hosts.
+	pluginSchedConf.HostExportPluginIds = slices.Clone(devtoolInfo.GetStartPlugins())
 	pluginSchedCtrl := plugin_host_scheduler.NewController(le, b, pluginSchedConf)
 	pluginSchecCtrlRel, err := b.AddController(ctx, pluginSchedCtrl, func(err error) {
 		le.WithError(err).Error("plugin scheduler controller failed")

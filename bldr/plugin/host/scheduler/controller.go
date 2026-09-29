@@ -19,6 +19,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_export "github.com/s4wave/spacewave/bldr/plugin/host/export"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -571,6 +572,11 @@ func (c *Controller) buildPluginMux(
 	)
 	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
 	_ = resourceSrv.Register(mux)
+
+	// export this scheduler's plugin hosts to trusted plugins
+	if slices.Contains(c.conf.GetHostExportPluginIds(), pluginID) {
+		_ = plugin_host_export.SRPCRegisterHostExport(mux, plugin_host_export.NewServer(c.le, c.bus, c))
+	}
 
 	return mux, pluginHostRoot.Release
 }

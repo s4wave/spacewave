@@ -119,9 +119,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 
 	// build the plugin scheduler
-	sched, relSched, err := plugin_host_default.StartNativeDesktopPluginScheduler(
-		ctx,
-		b.GetBus(),
+	schedConf := plugin_host_default.NewNativeDesktopSchedulerConfig(
 		"",
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
@@ -132,6 +130,10 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		true,
 		nativeDesktopQuickJSPluginIDs(projCtrl.GetConfig().GetProjectConfig()),
 	)
+	// Startup plugins may run their own plugins, such as a Space's, on the
+	// devtool's plugin hosts.
+	schedConf.HostExportPluginIds = startPlugins
+	sched, relSched, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, b.GetBus(), schedConf)
 	if err != nil {
 		return err
 	}

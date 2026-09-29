@@ -404,6 +404,9 @@ func BuildDistBus(
 		vol.GetPeerID().String(),
 	)
 	pluginSchedConf.UpdateGuardPluginIds = slices.Clone(distMeta.GetUpdateGuardPluginIds())
+	// Startup plugins ship with the distribution, so they may run their own
+	// plugins, such as a Space's, on the distribution's plugin hosts.
+	pluginSchedConf.HostExportPluginIds = slices.Clone(distMeta.GetStartupPlugins())
 	pluginSchedCtrl, _, pluginSchedCtrlRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
 		ctx,
 		b,

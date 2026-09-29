@@ -211,6 +211,13 @@ export interface Config {
    * @generated from field: repeated string external_plugin_ids = 19;
    */
   externalPluginIds?: string[]
+  /**
+   * HostExportPluginIds lists plugins that may execute plugins on this
+   * scheduler's plugin hosts through the HostExport service.
+   *
+   * @generated from field: repeated string host_export_plugin_ids = 20;
+   */
+  hostExportPluginIds?: string[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -275,6 +282,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     {
       no: 19,
       name: 'external_plugin_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 20,
+      name: 'host_export_plugin_ids',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
