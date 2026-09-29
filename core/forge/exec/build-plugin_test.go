@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -138,7 +140,7 @@ func TestBuildSpacePlugin(t *testing.T) {
 
 	// Queue the build with an explicit platform and capacity request.
 	createTestExecutionWithValueSet(t, ctx, tb.WorldState, sender, "build-colors", BuildPluginConfigID,
-		[]byte(`{"manifest_id":"space-colors","platform_id":"js","milli_cpu":1000,"memory_bytes":1073741824}`), &forge_target.ValueSet{
+		[]byte(`{"manifest_id":"space-colors","platform_id":"js","milli_cpu":1000,"memory_bytes":1073741824,"installer_peer_id":"`+sender.String()+`"}`), &forge_target.ValueSet{
 			Inputs: forge_value.ValueSlice{forge_value.NewValueWithWorldObjectSnapshot("source", source)},
 		})
 
@@ -162,6 +164,15 @@ func TestBuildSpacePlugin(t *testing.T) {
 		t.Fatal("build omitted the manifest or builder result")
 	}
 	assertBuildProvenance(t, ctx, tb, output, root)
+
+	// The build installed its immutable artifact as the submitting Session.
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, tb.WorldState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keys := settings.GetPluginInstallations()["space-colors"].GetManifestKeys(); !slices.Equal(keys, []string{manifest.NewManifestArtifactKey(output)}) {
+		t.Fatalf("build did not install its artifact: %v", keys)
+	}
 
 	// Open the built manifest and check its identity and entrypoint.
 	err = manifest_world.AccessManifest(ctx, tb.Logger, tb.WorldState.AccessWorldState, output,

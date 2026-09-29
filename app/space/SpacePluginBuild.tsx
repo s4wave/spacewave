@@ -26,7 +26,6 @@ import { SpacePluginObjects } from './SpacePluginObjects.js'
 interface SubmittedBuild {
   jobKey: string
   taskKey: string
-  manifestId: string
 }
 
 // The build asks its Worker for this much capacity: one core and 2 GiB.
@@ -65,7 +64,6 @@ function BuildPanel({
   const [submitted, setSubmitted] = useState<SubmittedBuild | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [installed, setInstalled] = useState(false)
   const [authoring, setAuthoring] = useState(false)
 
   // The subscription releases on panel close; an immutable build keeps running.
@@ -113,28 +111,7 @@ function BuildPanel({
       setSubmitted({
         jobKey: response.jobKey,
         taskKey: response.taskKey,
-        manifestId: manifestId.trim(),
       })
-      setInstalled(false)
-    } catch (cause) {
-      setError(String(cause))
-    } finally {
-      setPending(false)
-    }
-  }
-
-  // Install only the manifest that belongs to the completed submission.
-  async function install() {
-    if (!submitted || !ready || pending) return
-    setPending(true)
-    setError('')
-    try {
-      const manifestKey = task?.valueSet?.outputs?.find(
-        (output) => output.name === 'manifest',
-      )?.worldObjectSnapshot?.key
-      if (!manifestKey) throw new Error('Build returned no manifest artifact')
-      await space.addSpacePlugin(submitted.manifestId, manifestKey)
-      setInstalled(true)
     } catch (cause) {
       setError(String(cause))
     } finally {
@@ -153,8 +130,8 @@ function BuildPanel({
       </summary>
       <div className="mt-3 space-y-3">
         <p className="text-foreground-alt/70 text-xs">
-          Choose a source folder with bldr.yaml and a registered build device.
-          Install the completed plugin into this Space.
+          Choose a source folder with bldr.yaml and a registered build device. A
+          completed build installs into this Space.
         </p>
         <div className="space-y-1">
           <label htmlFor={`${id}-source`} className="text-xs">
@@ -255,28 +232,16 @@ function BuildPanel({
               Build logs
             </Button>
           )}
-          {ready && !installed && (
-            <Button
-              size="sm"
-              className={touchTargetClass}
-              disabled={pending}
-              onClick={() => void install()}
-            >
-              Install in this Space
-            </Button>
-          )}
         </div>
         <div role="status" className="text-foreground-alt/70 text-xs">
-          {installed
-            ? 'Plugin added. Its status appears in the installed list.'
-            : ready
-              ? 'Build complete. Ready to install.'
-              : result?.canceled
-                ? 'Build canceled. You can build again.'
-                : result?.failError ||
-                  (building
-                    ? 'The build continues on your device if you leave this page.'
-                    : '')}
+          {ready
+            ? 'Plugin installed. Its status appears in the installed list.'
+            : result?.canceled
+              ? 'Build canceled. You can build again.'
+              : result?.failError ||
+                (building
+                  ? 'The build continues on your device and installs when it completes.'
+                  : '')}
         </div>
         <SpacePluginObjects
           space={space}

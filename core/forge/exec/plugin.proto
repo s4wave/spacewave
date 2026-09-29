@@ -26,6 +26,11 @@ message PluginBuildConfig {
   uint64 milli_cpu = 7;
   // MemoryBytes is the memory the build requests from its Worker in bytes.
   uint64 memory_bytes = 8;
+  // InstallerPeerId is the Session that submitted the build with the authority
+  // to install plugins in the Space. When set, a successful immutable build
+  // installs its manifest in the Space as that Session in the same transaction
+  // that retains the build. A failed or canceled build installs nothing.
+  string installer_peer_id = 9;
 }
 
 // PluginExecConfig configures the generic plugin execution bridge.

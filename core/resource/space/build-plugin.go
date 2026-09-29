@@ -33,7 +33,8 @@ const pluginBuildTaskName = "build"
 
 // BuildSpacePlugin queues a plugin build as a Forge Job in the Space World.
 // The mounted session supplies the sender; the selected Device supplies the
-// Worker, peer, and native platform. Forge owns the Job after the commit.
+// Worker, peer, and native platform. Forge owns the Job after the commit, and a
+// successful build installs its artifact in the Space.
 func (r *SpaceResource) BuildSpacePlugin(ctx context.Context, req *s4wave_space.BuildSpacePluginRequest) (*s4wave_space.BuildSpacePluginResponse, error) {
 	// Open the transaction that commits the Job and its checks together.
 	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, true)
@@ -63,12 +64,15 @@ func (r *SpaceResource) BuildSpacePlugin(ctx context.Context, req *s4wave_space.
 	}
 
 	// The Task retains the source snapshot and build request for the Worker.
+	// The mounted Session holds the authority to install plugins in this Space,
+	// so a successful build installs as that Session.
 	configData, err := (&space_exec.PluginBuildConfig{
-		ManifestId:  req.GetManifestId(),
-		ConfigPath:  selection.configPath,
-		PlatformId:  platformID,
-		MilliCpu:    req.GetMilliCpu(),
-		MemoryBytes: req.GetMemoryBytes(),
+		ManifestId:      req.GetManifestId(),
+		ConfigPath:      selection.configPath,
+		PlatformId:      platformID,
+		MilliCpu:        req.GetMilliCpu(),
+		MemoryBytes:     req.GetMemoryBytes(),
+		InstallerPeerId: selection.sender.String(),
 	}).MarshalJSON()
 	if err != nil {
 		return nil, err

@@ -36,6 +36,11 @@ type PluginBuildConfig struct {
 	MilliCpu uint64 `protobuf:"varint,7,opt,name=milli_cpu,json=milliCpu,proto3" json:"milliCpu,omitempty"`
 	// MemoryBytes is the memory the build requests from its Worker in bytes.
 	MemoryBytes uint64 `protobuf:"varint,8,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
+	// InstallerPeerId is the Session that submitted the build with the authority
+	// to install plugins in the Space. When set, a successful immutable build
+	// installs its manifest in the Space as that Session in the same transaction
+	// that retains the build. A failed or canceled build installs nothing.
+	InstallerPeerId string `protobuf:"bytes,9,opt,name=installer_peer_id,json=installerPeerId,proto3" json:"installerPeerId,omitempty"`
 }
 
 func (x *PluginBuildConfig) Reset() {
@@ -98,6 +103,13 @@ func (x *PluginBuildConfig) GetMemoryBytes() uint64 {
 		return x.MemoryBytes
 	}
 	return 0
+}
+
+func (x *PluginBuildConfig) GetInstallerPeerId() string {
+	if x != nil {
+		return x.InstallerPeerId
+	}
+	return ""
 }
 
 // PluginExecConfig configures the generic plugin execution bridge.
@@ -314,6 +326,7 @@ func (m *PluginBuildConfig) CloneVT() *PluginBuildConfig {
 	r.PlatformId = m.PlatformId
 	r.MilliCpu = m.MilliCpu
 	r.MemoryBytes = m.MemoryBytes
+	r.InstallerPeerId = m.InstallerPeerId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -443,6 +456,9 @@ func (this *PluginBuildConfig) EqualVT(that *PluginBuildConfig) bool {
 		return false
 	}
 	if this.MemoryBytes != that.MemoryBytes {
+		return false
+	}
+	if this.InstallerPeerId != that.InstallerPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -637,6 +653,11 @@ func (x *PluginBuildConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("memoryBytes")
 		s.WriteUint64(x.MemoryBytes)
 	}
+	if x.InstallerPeerId != "" || s.HasField("installerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("installerPeerId")
+		s.WriteString(x.InstallerPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -678,6 +699,9 @@ func (x *PluginBuildConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "memory_bytes", "memoryBytes":
 			s.AddField("memory_bytes")
 			x.MemoryBytes = s.ReadUint64()
+		case "installer_peer_id", "installerPeerId":
+			s.AddField("installer_peer_id")
+			x.InstallerPeerId = s.ReadString()
 		}
 	})
 }
@@ -1098,6 +1122,11 @@ func (m *PluginBuildConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.InstallerPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.InstallerPeerId)
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.MemoryBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MemoryBytes))
 		i--
@@ -1423,6 +1452,7 @@ func (m *PluginBuildConfig) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PlatformId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MilliCpu)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MemoryBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InstallerPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1539,6 +1569,10 @@ func (x *PluginBuildConfig) MarshalProtoText() string {
 	if x.MemoryBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "memory_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.MemoryBytes)
+	}
+	if x.InstallerPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "installer_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.InstallerPeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1791,6 +1825,16 @@ func (m *PluginBuildConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstallerPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.InstallerPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

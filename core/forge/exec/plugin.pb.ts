@@ -65,6 +65,15 @@ export interface PluginBuildConfig {
    * @generated from field: uint64 memory_bytes = 8;
    */
   memoryBytes?: bigint
+  /**
+   * InstallerPeerId is the Session that submitted the build with the authority
+   * to install plugins in the Space. When set, a successful immutable build
+   * installs its manifest in the Space as that Session in the same transaction
+   * that retains the build. A failed or canceled build installs nothing.
+   *
+   * @generated from field: string installer_peer_id = 9;
+   */
+  installerPeerId?: string
 }
 
 export const PluginBuildConfig: MessageType<PluginBuildConfig> =
@@ -84,6 +93,12 @@ export const PluginBuildConfig: MessageType<PluginBuildConfig> =
       { no: 6, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 8, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 9,
+        name: 'installer_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
