@@ -17,6 +17,8 @@ type managedSourceRoot struct {
 }
 
 func newManagedSourceRoot(codeRootPath, managedRootPath string) (*managedSourceRoot, error) {
+
+	// Canonicalize the managed root path and record its filesystem identity.
 	path, err := canonicalSourcePath(codeRootPath, managedRootPath)
 	if err != nil {
 		return nil, err
