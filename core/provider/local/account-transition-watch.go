@@ -14,6 +14,7 @@ import (
 // waitAccountTransition follows the canonical signed redirect under this
 // unlocked Session's lifetime. Provider retry retains recoverable source data.
 func (s *Session) waitAccountTransition(ctx context.Context) error {
+	// Follow the settings binding through a retrying state routine.
 	a := s.tkr.a
 	watcher := routine.NewStateRoutineContainerWithLoggerVT[*sobject.SharedObjectRef](a.le.WithField("routine", "account-transition"), routine.WithRetry(providerBackoff))
 	watcher.SetStateRoutine(s.followAccountTransition)
@@ -42,10 +43,13 @@ func (s *Session) waitAccountTransition(ctx context.Context) error {
 }
 
 func (s *Session) followAccountTransition(ctx context.Context, ref *sobject.SharedObjectRef) error {
+	// Follow each settings state change until the Session is reattached.
 	a := s.tkr.a
 	if ref == nil {
 		return nil
 	}
+
+	// Mount the settings object and watch its state for changes.
 	object, release, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
 		return err
@@ -56,6 +60,8 @@ func (s *Session) followAccountTransition(ctx context.Context, ref *sobject.Shar
 		return err
 	}
 	defer releaseStates()
+
+	// Decode each settings snapshot and validate its redirect.
 	var previous sobject.SharedObjectStateSnapshot
 	for {
 		previous, err = states.WaitValueChange(ctx, previous, nil)
@@ -103,6 +109,8 @@ func (s *Session) followAccountTransition(ctx context.Context, ref *sobject.Shar
 				}
 			}
 		}
+
+		// Resolve the destination provider and its account.
 		p, releaseProvider, err := provider.ExLookupProvider(ctx, a.t.p.b, transition.GetDestination().GetProviderId(), false, nil)
 		if err != nil {
 			return err
@@ -120,6 +128,8 @@ func (s *Session) followAccountTransition(ctx context.Context, ref *sobject.Shar
 		if !ok {
 			return errors.New("destination provider cannot accept a returning Session")
 		}
+
+		// Attach this Session to the destination and rebind its provider.
 		next, err := target.AttachMigratedSession(ctx, s, transition)
 		if err != nil {
 			return err
