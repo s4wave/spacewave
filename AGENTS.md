@@ -48,6 +48,29 @@ Look for existing testbeds before constructing mocks: `testbed/`, `db/testbed/`,
 
 The default branch is `master`. The `release` branch is a separate publication target; advancing it requires an explicit release instruction.
 
+## Go Code Paragraphs
+
+Write every multi-action Go function body, including tests, as a sequence of code paragraphs. A paragraph is one semantic action: several statements, or a control structure and its error return. Put a purpose comment directly above each paragraph and exactly one blank line after it. Read in order, the comments outline the function. A comment describes only the paragraph below it and names the concrete component or record; it never paraphrases a single statement. A `defer` that releases what the paragraph acquired stays in that paragraph.
+
+A single-action function (a direct return, delegated call, small adapter, or constructor) stays one condensed paragraph under its declaration comment.
+
+```go
+// Start a testbed whose block store holds the encrypted World.
+tb, err := testbed.NewTestbed(ctx, le)
+if err != nil {
+	t.Fatal(err)
+}
+defer tb.Release()
+
+// Encrypt every block with an inline transform the snapshot can carry.
+transform, err := block_transform.NewConfig(confs)
+if err != nil {
+	t.Fatal(err)
+}
+```
+
+Braces and `if err != nil` blocks do not separate paragraphs. When you edit a Go file, bring the functions you touch up to this shape. Comment every top-level declaration with a sentence that starts with its identifier.
+
 ## Dependency Tooling
 
 `.tools/` is a generated Go module for linters and generators. Its module files and `deps.go` come from the embedded tools module in `github.com/aperturerobotics/common`. `bun install` removes stale copies; `aptre` recreates them. Fix missing linter dependency hashes in that upstream tools module, run its `bash embed.bash`, and update the dependency here.
