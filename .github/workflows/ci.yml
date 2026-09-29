@@ -394,6 +394,7 @@ jobs:
                   "spacewave_resource/py.typed",
                   "spacewave_resource/resource.py",
                   "spacewave_resource/root.py",
+                  "spacewave_resource/rpc_stream.py",
                   "spacewave_resource/server.py",
                   "spacewave_resource/session.py",
               }
