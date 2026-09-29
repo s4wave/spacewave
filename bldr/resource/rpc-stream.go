@@ -36,6 +36,8 @@ func NewResourceRpcClient[T ResourceRpcStream](caller func(context.Context) (T, 
 			}
 		}
 		if err != nil {
+
+			// Release the failed stream before reporting the negotiation error.
 			_ = stream.Close()
 			return nil, err
 		}
@@ -50,6 +52,7 @@ func NewResourceRpcClient[T ResourceRpcStream](caller func(context.Context) (T, 
 // HandleResourceRpc acknowledges a route before serving its SRPC data frames.
 // The handler waits for active methods before releasing their resource context.
 func HandleResourceRpc(stream ResourceRpcStream, lookup func(context.Context, uint32) (srpc.Invoker, error)) error {
+	// Read the init packet and require a valid resource handshake.
 	request, err := stream.Recv()
 	if err != nil {
 		return err
@@ -59,6 +62,7 @@ func HandleResourceRpc(stream ResourceRpcStream, lookup func(context.Context, ui
 		return errors.New("expected ResourceRpc init")
 	}
 
+	// Resolve the route for the requested resource and acknowledge the result.
 	// Publish a typed refusal without starting a second handshake.
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
@@ -73,6 +77,7 @@ func HandleResourceRpc(stream ResourceRpcStream, lookup func(context.Context, ui
 		return nil
 	}
 
+	// Pump SRPC data through the negotiated stream until the session ends.
 	// The SRPC owner drains active methods before the route returns.
 	data := &resourceRpcDataStream{stream}
 	server := srpc.NewServerRPC(ctx, mux, rpcstream.NewRpcStreamWriter(data))
@@ -100,6 +105,7 @@ func (s *resourceRpcDataStream) Send(packet *rpcstream.RpcStreamPacket) error {
 
 // Recv rejects a repeated handshake after the route has been acknowledged.
 func (s *resourceRpcDataStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	// Read the next packet and accept only data frames.
 	packet, err := s.ResourceRpcStream.Recv()
 	if err != nil {
 		return nil, err
