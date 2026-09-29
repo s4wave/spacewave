@@ -16,6 +16,7 @@ import (
 // existing DEX read-through store. Cached blocks survive cancellation and restart;
 // a persisted completion record is valid only for its exact immutable head.
 func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.SharedObject, state *p2pSyncState) error {
+	// Open the copy's local progress store and the object state stream.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-copy", nil)
 	if err != nil {
 		return err
@@ -36,6 +37,8 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 			<-exited
 		}
 	}()
+
+	// Copy each new World head as its state arrives.
 	var snapshot sobject.SharedObjectStateSnapshot
 	var previousHead *bucket.ObjectRef
 	for {
@@ -46,6 +49,8 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 		if snapshot == nil {
 			continue
 		}
+
+		// Skip empty snapshots and roots.
 		inner, err := snapshot.GetRootInner(ctx)
 		if err != nil {
 			return err
@@ -53,6 +58,8 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 		if inner == nil {
 			continue
 		}
+
+		// Decode the World head and skip unchanged heads.
 		head := &sobject_world_engine.InnerState{}
 		if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
 			return err
@@ -60,6 +67,8 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 		if head.GetHeadRef() == nil || head.GetHeadRef().EqualVT(previousHead) {
 			continue
 		}
+
+		// Start the copy for this new head.
 		previousHead = head.GetHeadRef().CloneVT()
 		copier.SetRoutine(func(ctx context.Context) error {
 			return a.copyAndPersistAccountWorld(ctx, so, state, local, head.GetHeadRef())
@@ -69,6 +78,7 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, so sobject.
 
 // copyAndPersistAccountWorld records completion only after the block fence.
 func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sobject.SharedObject, state *p2pSyncState, local kvtx.Store, head *bucket.ObjectRef) error {
+	// Read the persisted progress record for this head.
 	progress := &AccountReplicaCopyState{}
 	err := kvtx.RunTransaction(ctx, false, func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, false) }, func(ctx context.Context, tx kvtx.Tx) error {
 		data, found, err := tx.Get(ctx, []byte("account-replica-copy/progress"))
@@ -80,6 +90,8 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	if err != nil {
 		return err
 	}
+
+	// Retain the head and republish when this head already completed.
 	if progress.GetComplete() && progress.GetHead().EqualVT(head) {
 		if err := block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef()); err != nil {
 			return err
@@ -87,12 +99,16 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 		state.publishCopyProgress(progress)
 		return nil
 	}
+
+	// Copy the World and retain its root on success.
 	progress = &AccountReplicaCopyState{ObjectId: so.GetSharedObjectID(), Head: head.CloneVT()}
 	state.publishCopyProgress(progress)
 	err = a.copyAccountWorld(ctx, so, progress, func() { state.publishCopyProgress(progress) })
 	if err == nil {
 		err = block.SetRetainedRoot(ctx, so.GetBlockStore(), "account-world", head.GetRootRef())
 	}
+
+	// Record the outcome in the progress state.
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -101,6 +117,7 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 	} else {
 		progress.Complete = true
 	}
+
 	// The block fence precedes this transaction, so a crash cannot retain
 	// a completion claim whose data was still buffered.
 	persistErr := kvtx.RunTransaction(ctx, true, func(ctx context.Context) (kvtx.Tx, error) { return local.NewTransaction(ctx, true) }, func(ctx context.Context, tx kvtx.Tx) error {
@@ -114,6 +131,8 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 		progress.Complete = false
 		progress.Error = persistErr.Error()
 	}
+
+	// Publish the final progress and report the copy or persistence error.
 	state.publishCopyProgress(progress)
 	if err != nil {
 		return err
@@ -124,11 +143,14 @@ func (a *ProviderAccount) copyAndPersistAccountWorld(ctx context.Context, so sob
 // copyAccountWorld shares durable graph retention with World publication.
 // Its private proof store belongs to the serialized account replica copy routine.
 func (a *ProviderAccount) copyAccountWorld(ctx context.Context, so sobject.SharedObject, progress *AccountReplicaCopyState, changed func()) error {
+	// Open the shared retention store for the copy.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-retention", nil)
 	if err != nil {
 		return err
 	}
 	defer release()
+
+	// Retain the World head, publishing progress while blocks copy.
 	lastUpdate := time.Now()
 	return sobject_world_engine.RetainWorld(ctx, so, progress.GetHead(), local, func(_ *block.BlockRef, data []byte) {
 		progress.Blocks++
