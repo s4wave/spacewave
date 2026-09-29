@@ -13,6 +13,7 @@ import (
 
 // Measure runs one scalar or diagnostic projected-image sample after Restart.
 func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Measurement, error) {
+	// Delegate scalar requests to the untraced measurement path.
 	if !request.Trace {
 		sample, err := p.MeasureUntraced(ctx, request)
 		if err != nil {
@@ -20,6 +21,8 @@ func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Me
 		}
 		return Measurement{Sample: sample}, nil
 	}
+
+	// Validate the context and resolve the diagnostic sample identity and URL.
 	if err := ctx.Err(); err != nil {
 		return Measurement{}, err
 	}
@@ -32,10 +35,13 @@ func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Me
 		return Measurement{}, err
 	}
 
-	// Capture the runtime trace and optional Chromium profile around one browser action.
+	// Declare the sample evidence captured inside the trace closure.
 	var sample Sample
 	var browserCPUProfile []byte
+
+	// Capture the runtime trace and optional Chromium profile around one browser action.
 	runtimeTrace, err := p.session.CaptureTrace(ctx, "goscriptbench-"+id, func(traceCtx context.Context) error {
+		// Measure the projected image with optional CPU profiling.
 		measured, profile, err := p.captureBrowserCPUProfile(
 			traceCtx,
 			func(measureCtx context.Context) (Sample, error) {
@@ -51,6 +57,8 @@ func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Me
 		if err != nil {
 			return err
 		}
+
+		// Record the sample and profile evidence for the measurement.
 		sample = measured
 		browserCPUProfile = profile
 		return nil
@@ -58,6 +66,8 @@ func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Me
 	if err != nil {
 		return Measurement{}, errors.Wrap(err, "capture projected-image diagnostic")
 	}
+
+	// Mark the sample traced and bundle it with the captured evidence.
 	sample.Traced = true
 	return Measurement{
 		Sample:            sample,
@@ -72,9 +82,12 @@ func (p *ProjectedImage) Validate(
 	request SampleRequest,
 	sample Sample,
 ) error {
+	// Delegate scalar requests to the untraced validation path.
 	if !request.Trace {
 		return p.ValidateUntraced(ctx, request, sample)
 	}
+
+	// Require the diagnostic sample ID and its trace state.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -93,6 +106,7 @@ func (p *ProjectedImage) Validate(
 
 // MeasureUntraced runs one scalar projected-image sample after Restart.
 func (p *ProjectedImage) MeasureUntraced(ctx context.Context, request SampleRequest) (Sample, error) {
+	// Validate the context and resolve the scalar sample identity and URL.
 	if err := ctx.Err(); err != nil {
 		return Sample{}, err
 	}
@@ -104,6 +118,8 @@ func (p *ProjectedImage) MeasureUntraced(ctx context.Context, request SampleRequ
 	if err != nil {
 		return Sample{}, err
 	}
+
+	// Run the scalar measurement on the projected image URL.
 	return p.measureProjectedImageURL(
 		ctx,
 		id,
@@ -119,6 +135,7 @@ func (p *ProjectedImage) ValidateUntraced(
 	request SampleRequest,
 	sample Sample,
 ) error {
+	// Require the scalar sample ID and its untraced state.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -136,6 +153,7 @@ func (p *ProjectedImage) ValidateUntraced(
 }
 
 func (p *ProjectedImage) projectedImageSampleURL(id string) (string, error) {
+	// Require a completed runtime restart and an unmeasured sample token.
 	if !p.readyToMeasure {
 		return "", errors.New("projected-image sample requires a completed runtime restart")
 	}
@@ -153,6 +171,7 @@ func (p *ProjectedImage) projectedImageSampleURL(id string) (string, error) {
 }
 
 func projectedImageDiagnosticSampleID(request SampleRequest) (string, error) {
+	// Require a traced first diagnostic sample request.
 	if !request.Trace {
 		return "", errors.New("projected-image diagnostic sample requires tracing")
 	}
@@ -163,6 +182,7 @@ func projectedImageDiagnosticSampleID(request SampleRequest) (string, error) {
 }
 
 func projectedImageUntracedSampleID(request SampleRequest) (string, error) {
+	// Reject tracing and validate the scalar sample kind and number.
 	if request.Trace {
 		return "", errors.New("projected-image scalar samples cannot enable tracing")
 	}
@@ -190,6 +210,7 @@ func (p *ProjectedImage) measureProjectedImageURL(
 	expectedWidth int,
 	expectedHeight int,
 ) (Sample, error) {
+	// Require a live session and a complete measurement identity.
 	if err := ctx.Err(); err != nil {
 		return Sample{}, err
 	}
@@ -243,11 +264,13 @@ func (s projectedImageBrowserSample) validateRequest(id, projectedURL string) er
 }
 
 func projectedImageSampleFromBrowser(raw any) (projectedImageBrowserSample, error) {
+	// Require the browser result to be a JSON object.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		return projectedImageBrowserSample{}, errors.Errorf("unexpected projected-image sample %T", raw)
 	}
 
+	// Decode each sample field from the browser result object.
 	var sample projectedImageBrowserSample
 	var err error
 	if sample.projectedURL, err = projectedImageBrowserString(result, "projectedUrl"); err != nil {
@@ -259,6 +282,8 @@ func projectedImageSampleFromBrowser(raw any) (projectedImageBrowserSample, erro
 	if sample.sample.ID, err = projectedImageBrowserString(result, "id"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
+
+	// Decode the sample timing fields.
 	if sample.sample.RequestStartMs, err = projectedImageBrowserNumber(result, "requestStartMs"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
@@ -280,6 +305,8 @@ func projectedImageSampleFromBrowser(raw any) (projectedImageBrowserSample, erro
 	if sample.sample.DisplayReadyMs, err = projectedImageBrowserNumber(result, "displayReadyMs"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
+
+	// Decode the sample image dimensions and transfer sizes.
 	if sample.sample.NaturalWidth, err = projectedImageBrowserInt(result, "naturalWidth"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
@@ -292,6 +319,8 @@ func projectedImageSampleFromBrowser(raw any) (projectedImageBrowserSample, erro
 	if sample.sample.DecodedBodySize, err = projectedImageBrowserInt64(result, "decodedBodySize"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
+
+	// Decode the trace state and return the sample.
 	if sample.sample.Traced, err = projectedImageBrowserBool(result, "traced"); err != nil {
 		return projectedImageBrowserSample{}, err
 	}
@@ -320,6 +349,7 @@ func projectedImageBrowserNumber(result map[string]any, field string) (float64, 
 }
 
 func projectedImageBrowserInt(result map[string]any, field string) (int, error) {
+	// Read the numeric field and require an integral value.
 	number, err := projectedImageBrowserNumber(result, field)
 	if err != nil {
 		return 0, err
@@ -332,6 +362,7 @@ func projectedImageBrowserInt(result map[string]any, field string) (int, error) 
 }
 
 func projectedImageBrowserInt64(result map[string]any, field string) (int64, error) {
+	// Read the numeric field and require an integral value.
 	number, err := projectedImageBrowserNumber(result, field)
 	if err != nil {
 		return 0, err

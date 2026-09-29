@@ -22,6 +22,7 @@ type ProjectedImageConfig struct {
 
 // Validate checks the workload identity before browser setup begins.
 func (c ProjectedImageConfig) Validate() error {
+	// Require a safe run ID and a supported Playwright engine.
 	if !validArtifactID(c.RunID) {
 		return errors.New("run ID must be a safe artifact path component")
 	}
@@ -33,6 +34,8 @@ func (c ProjectedImageConfig) Validate() error {
 	if c.BrowserCPUProfile && c.Engine != "chromium" {
 		return errors.New("browser CPU profile requires Chromium")
 	}
+
+	// Require source revisions and valid optional-field names.
 	if c.SpacewaveRevision == "" || c.GoScriptRevision == "" {
 		return errors.New("Spacewave and GoScript revisions are required")
 	}

@@ -30,6 +30,7 @@ type EngineCapability struct {
 
 // Validate checks that an unsupported capability record is complete.
 func (c EngineCapability) Validate() error {
+	// Check the record's schema version and identity fields.
 	if c.SchemaVersion != engineCapabilitySchemaVersion {
 		return errors.Errorf("engine capability schema version %d is unsupported", c.SchemaVersion)
 	}
@@ -45,11 +46,13 @@ func (c EngineCapability) Validate() error {
 	if c.Reason == "" {
 		return errors.New("engine capability reason is required")
 	}
+
 	return nil
 }
 
 // PublishEngineCapability atomically exposes one unsupported engine record.
 func PublishEngineCapability(outputRoot string, capability EngineCapability) (string, error) {
+	// Validate the record and resolve the output root.
 	if outputRoot == "" {
 		return "", errors.New("capability output root is required")
 	}
@@ -64,6 +67,8 @@ func PublishEngineCapability(outputRoot string, capability EngineCapability) (st
 	if err := os.MkdirAll(runDir, 0o755); err != nil {
 		return "", errors.Wrap(err, "create capability run directory")
 	}
+
+	// Reject an existing destination and reserve a hidden temporary directory.
 	finalDir := filepath.Join(runDir, capability.Engine)
 	if _, err := os.Lstat(finalDir); err == nil {
 		return "", errors.Errorf("capability destination already exists: %s", finalDir)
@@ -75,6 +80,8 @@ func PublishEngineCapability(outputRoot string, capability EngineCapability) (st
 		return "", errors.Wrap(err, "create temporary capability directory")
 	}
 	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	// Write the record and publish it with one rename.
 	if err := os.WriteFile(filepath.Join(tempDir, engineCapabilityFile), marshalEngineCapability(capability), 0o644); err != nil {
 		return "", errors.Wrap(err, "write engine capability")
 	}
@@ -86,6 +93,7 @@ func PublishEngineCapability(outputRoot string, capability EngineCapability) (st
 
 // ReadEngineCapability validates one published unsupported engine record.
 func ReadEngineCapability(dir string) (EngineCapability, error) {
+	// Require the directory to hold only the capability record.
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return EngineCapability{}, errors.Wrap(err, "read engine capability directory")
@@ -93,6 +101,8 @@ func ReadEngineCapability(dir string) (EngineCapability, error) {
 	if len(entries) != 1 || entries[0].IsDir() || entries[0].Name() != engineCapabilityFile {
 		return EngineCapability{}, errors.New("engine capability directory has unexpected contents")
 	}
+
+	// Read, decode, and validate the record.
 	data, err := os.ReadFile(filepath.Join(dir, engineCapabilityFile))
 	if err != nil {
 		return EngineCapability{}, errors.Wrap(err, "read engine capability")
@@ -108,8 +118,11 @@ func ReadEngineCapability(dir string) (EngineCapability, error) {
 }
 
 func marshalEngineCapability(capability EngineCapability) []byte {
+	// Allocate the record's JSON object in the fastjson arena.
 	var arena fastjson.Arena
 	value := arena.NewObject()
+
+	// Set each record field on the JSON object.
 	value.Set("schemaVersion", arena.NewNumberInt(capability.SchemaVersion))
 	value.Set("runId", arena.NewString(capability.RunID))
 	value.Set("engine", arena.NewString(capability.Engine))
@@ -117,10 +130,13 @@ func marshalEngineCapability(capability EngineCapability) []byte {
 	value.Set("capability", arena.NewString(capability.Capability))
 	value.Set("status", arena.NewString(capability.Status))
 	value.Set("reason", arena.NewString(capability.Reason))
+
+	// Marshal the object and terminate it with a newline.
 	return append(value.MarshalTo(nil), '\n')
 }
 
 func parseEngineCapability(data []byte) (EngineCapability, error) {
+	// Parse the JSON and require an object root.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
@@ -129,10 +145,14 @@ func parseEngineCapability(data []byte) (EngineCapability, error) {
 	if value.Type() != fastjson.TypeObject {
 		return EngineCapability{}, errors.New("engine capability JSON root must be an object")
 	}
+
+	// Decode the schema version into the record.
 	capability := EngineCapability{}
 	if capability.SchemaVersion, err = parseInt(value, "schemaVersion"); err != nil {
 		return EngineCapability{}, err
 	}
+
+	// Decode each string field into its record target.
 	fields := []struct {
 		name   string
 		target *string

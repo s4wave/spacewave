@@ -52,6 +52,7 @@ type ProjectedImage struct {
 
 // NewProjectedImage constructs the retained-OPFS image workload.
 func NewProjectedImage(t testing.TB, harness *wasm.Harness, config ProjectedImageConfig) (*ProjectedImage, error) {
+	// Require a test owner, harness, and a valid configuration.
 	if t == nil {
 		return nil, errors.New("test owner is required")
 	}
@@ -64,6 +65,8 @@ func NewProjectedImage(t testing.TB, harness *wasm.Harness, config ProjectedImag
 	if name := harness.BrowserName(); name != config.Engine {
 		return nil, errors.Errorf("configured engine %q differs from browser harness %q", config.Engine, name)
 	}
+
+	// Construct the workload with a private measured-sample cache.
 	config.UnavailableFields = slices.Clone(config.UnavailableFields)
 	return &ProjectedImage{
 		t:               t,
@@ -75,7 +78,10 @@ func NewProjectedImage(t testing.TB, harness *wasm.Harness, config ProjectedImag
 
 // Setup generates, uploads, and reads back the fixture before sampling begins.
 func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
+	// Mark helper status for harness failure reporting.
 	p.t.Helper()
+
+	// Require a live context and an unprepared workload.
 	if err := ctx.Err(); err != nil {
 		return RunMetadata{}, err
 	}
@@ -96,7 +102,7 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 		return RunMetadata{}, errors.Wrap(err, "compile projected-image browser scripts")
 	}
 
-	// Create the retained BrowserContext and the Drive that receives the fixture.
+	// Create the retained BrowserContext and navigate to the Drive quickstart.
 	p.session = p.harness.NewRetainedStatePageSession(p.t)
 	if _, err := p.session.Page().Evaluate(`() => {
 		window.location.hash = '#/quickstart/drive'
@@ -104,6 +110,8 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 		return RunMetadata{}, errors.Wrap(err, "navigate to Drive quickstart")
 	}
 	wasm.WaitForDriveShell(p.t, p.session.Page())
+
+	// Record the created Drive route and its direct hash target.
 	if err := p.requireDedicatedRuntime(); err != nil {
 		return RunMetadata{}, err
 	}
@@ -122,6 +130,8 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 	if err := proof.validate("upload", fixture); err != nil {
 		return RunMetadata{}, errors.Wrap(err, "validate uploaded fixture")
 	}
+
+	// Record the dedicated worker generation created by setup.
 	p.priorWorkers = p.session.Workers()
 	if len(p.priorWorkers) == 0 {
 		return RunMetadata{}, errors.New("setup observed no dedicated GoScript worker")
@@ -176,7 +186,10 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 
 // Restart replaces the page and dedicated runtime, then verifies the retained fixture.
 func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
+	// Mark helper status for harness failure reporting.
 	p.t.Helper()
+
+	// Require a live context and a set-up workload.
 	if err := ctx.Err(); err != nil {
 		return err
 	}

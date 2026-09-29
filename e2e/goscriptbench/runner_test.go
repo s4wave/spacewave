@@ -33,6 +33,7 @@ func (w *deterministicWorkload) Restart(_ context.Context, request SampleRequest
 }
 
 func (w *deterministicWorkload) Measure(_ context.Context, request SampleRequest) (Measurement, error) {
+	// Record the request and choose its deterministic value by kind.
 	w.events = append(w.events, "measure:"+sampleRequestName(request))
 	value := 11.0
 	if request.Kind == SampleKindRetained {
@@ -57,6 +58,7 @@ func (w *deterministicWorkload) Validate(_ context.Context, request SampleReques
 }
 
 func TestRunnerPublishesPerEngineArtifact(t *testing.T) {
+	// Run the deterministic workload through the runner.
 	runner, err := NewRunner(t.TempDir())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -90,6 +92,8 @@ func TestRunnerPublishesPerEngineArtifact(t *testing.T) {
 	if want := []string{artifactDiagnosticFile, artifactManifestFile, artifactResultFile, artifactRuntimeTraceFile}; !slices.Equal(files, want) {
 		t.Fatalf("artifact files = %q, want %q", files, want)
 	}
+
+	// Read the artifact back and require its identity and samples.
 	bundle, err := ReadArtifact(artifactDir)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -145,6 +149,7 @@ func TestArtifactRequiresTruthfulMetadata(t *testing.T) {
 }
 
 func TestSamplingContractRetainsRawRows(t *testing.T) {
+	// Build retained samples and snapshot their raw values.
 	samples := make([]Sample, len(retainedTestValues))
 	for idx, value := range retainedTestValues {
 		samples[idx] = testSample("retained-"+strconv.Itoa(idx+1), value, false)
@@ -154,10 +159,13 @@ func TestSamplingContractRetainsRawRows(t *testing.T) {
 		before[idx] = samples[idx].DisplayReadyMs
 	}
 
+	// Summarize the samples through the nearest-rank contract.
 	summary, err := SummarizeSamples(samples)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require nearest-rank summaries and unchanged raw rows.
 	if summary.Method != SummaryMethodNearestRank || summary.SampleCount != RetainedSampleCount {
 		t.Fatalf("summary contract = %q/%d", summary.Method, summary.SampleCount)
 	}
@@ -169,6 +177,8 @@ func TestSamplingContractRetainsRawRows(t *testing.T) {
 			t.Fatalf("source row %d moved from %v to %v", idx, before[idx], samples[idx].DisplayReadyMs)
 		}
 	}
+
+	// Require the fixed sampling policy to match the contract.
 	policy := fixedSamplingPolicy()
 	if policy.WarmupSamples != 1 || policy.RetainedSamples != 10 || policy.DiagnosticSamples != 1 {
 		t.Fatalf("sampling policy = %+v", policy)
@@ -180,6 +190,7 @@ func TestArtifactRejectsInvalidRuns(t *testing.T) {
 		name   string
 		mutate func(*ArtifactBundle)
 	}{
+		// Reject each invalid artifact mutation during validation.
 		{name: "partial sample", mutate: func(b *ArtifactBundle) { b.Result.Samples[0].LoadMs = 0 }},
 		{name: "duplicate identity", mutate: func(b *ArtifactBundle) { b.Result.Samples[1].ID = b.Result.Samples[0].ID }},
 		{name: "non-finite timing", mutate: func(b *ArtifactBundle) { b.Result.Samples[0].DisplayReadyMs = math.NaN() }},
@@ -217,6 +228,7 @@ func TestArtifactRejectsInvalidRuns(t *testing.T) {
 }
 
 func TestArtifactPublicationIsAtomic(t *testing.T) {
+	// Publish artifacts atomically into a temporary root.
 	root := t.TempDir()
 	publisher, err := NewArtifactPublisher(root)
 	if err != nil {
@@ -240,6 +252,8 @@ func TestArtifactPublicationIsAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Reject a second publication without changing the complete first result.
 	if _, err := publisher.Publish(bundle); err == nil {
 		t.Fatal("duplicate artifact publication succeeded")
 	}
@@ -261,11 +275,13 @@ func TestReadArtifactRejectsCorruption(t *testing.T) {
 		file       string
 		cpuProfile bool
 	}{
+		// Reject a corrupted artifact file during readback.
 		{name: "result", file: artifactResultFile},
 		{name: "runtime trace", file: artifactRuntimeTraceFile},
 		{name: "browser CPU profile", file: artifactBrowserCPUProfileFile, cpuProfile: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// Publish a valid bundle, adding the CPU profile when requested.
 			publisher, err := NewArtifactPublisher(t.TempDir())
 			if err != nil {
 				t.Fatal(err.Error())
@@ -279,6 +295,8 @@ func TestReadArtifactRejectsCorruption(t *testing.T) {
 			if err != nil {
 				t.Fatal(err.Error())
 			}
+
+			// Corrupt the middle of the target file and require readback to fail.
 			path := filepath.Join(artifactDir, test.file)
 			data, err := os.ReadFile(path)
 			if err != nil {
@@ -296,6 +314,7 @@ func TestReadArtifactRejectsCorruption(t *testing.T) {
 }
 
 func TestReadArtifactRejectsUnmanifestedFile(t *testing.T) {
+	// Publish a valid artifact, then add an unmanifested file.
 	publisher, err := NewArtifactPublisher(t.TempDir())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -312,8 +331,13 @@ func TestReadArtifactRejectsUnmanifestedFile(t *testing.T) {
 	}
 }
 
+// validArtifactBundle builds a valid artifact bundle from the fixed test
+// metadata.
 func validArtifactBundle(t *testing.T) ArtifactBundle {
+	// Mark this helper so failures point at the caller.
 	t.Helper()
+
+	// Build the retained sample rows and their summary.
 	metadata := testRunMetadata()
 	samples := make([]Sample, len(retainedTestValues))
 	for idx, value := range retainedTestValues {
@@ -395,6 +419,7 @@ func testSample(id string, displayReadyMs float64, traced bool) Sample {
 }
 
 func testSampleRequests() []SampleRequest {
+	// Build one request per warm-up, retained, and diagnostic sample.
 	requests := make([]SampleRequest, 0, WarmupSampleCount+RetainedSampleCount+DiagnosticSampleCount)
 	requests = append(requests, SampleRequest{Kind: SampleKindWarmup, Number: 1})
 	for number := 1; number <= RetainedSampleCount; number++ {

@@ -40,6 +40,7 @@ type Sample struct {
 
 // Validate checks that the sample is complete for the run metadata.
 func (s Sample) Validate(metadata RunMetadata) error {
+	// Require a sample ID and finite non-negative timing values.
 	if s.ID == "" {
 		return errors.New("sample ID is required")
 	}
@@ -60,6 +61,8 @@ func (s Sample) Validate(metadata RunMetadata) error {
 			return errors.Errorf("sample %q has invalid %s", s.ID, timing.name)
 		}
 	}
+
+	// Check the response timings against the engine's available fields.
 	responseStartUnavailable := metadata.fieldUnavailable("responseStartMs")
 	if responseStartUnavailable && s.ResponseStartMs != 0 {
 		return errors.Errorf("sample %q reports unavailable responseStartMs", s.ID)
@@ -74,12 +77,16 @@ func (s Sample) Validate(metadata RunMetadata) error {
 	if !responseEndUnavailable && s.ResponseEndMs < s.ResponseStartMs {
 		return errors.Errorf("sample %q response ends before it starts", s.ID)
 	}
+
+	// Require the display timeline to advance in order.
 	if s.LoadMs <= s.RequestStartMs || s.DecodeMs < s.LoadMs || s.FrameMs < s.DecodeMs {
 		return errors.Errorf("sample %q has an incomplete display timeline", s.ID)
 	}
 	if s.DisplayReadyMs != s.FrameMs {
 		return errors.Errorf("sample %q displayReadyMs differs from frameMs", s.ID)
 	}
+
+	// Require fixture dimensions and non-negative resource sizes.
 	if s.NaturalWidth != metadata.Fixture.Width || s.NaturalHeight != metadata.Fixture.Height {
 		return errors.Errorf("sample %q dimensions differ from the fixture", s.ID)
 	}

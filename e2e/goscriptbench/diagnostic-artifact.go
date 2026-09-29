@@ -22,6 +22,7 @@ type DiagnosticArtifact struct {
 
 // Validate checks that the diagnostic is complete and traced.
 func (d DiagnosticArtifact) Validate(metadata RunMetadata) error {
+	// Check the diagnostic's identity and trace contract.
 	if d.SchemaVersion != artifactSchemaVersion {
 		return errors.Errorf("diagnostic schema version %d is unsupported", d.SchemaVersion)
 	}
@@ -37,6 +38,8 @@ func (d DiagnosticArtifact) Validate(metadata RunMetadata) error {
 	if d.BrowserCPUProfileFile != "" && d.Engine != "chromium" {
 		return errors.New("diagnostic browser CPU profile requires Chromium")
 	}
+
+	// Validate the traced sample against the run's metadata.
 	if err := d.Sample.Validate(metadata); err != nil {
 		return errors.Wrap(err, "validate diagnostic sample")
 	}

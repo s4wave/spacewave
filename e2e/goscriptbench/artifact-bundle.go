@@ -18,6 +18,7 @@ type ArtifactBundle struct {
 
 // Validate checks both artifacts and unique sample custody across them.
 func (b ArtifactBundle) Validate() error {
+	// Validate each artifact and the diagnostic's trace files.
 	if err := b.Result.Validate(); err != nil {
 		return errors.Wrap(err, "validate result artifact")
 	}
@@ -33,6 +34,8 @@ func (b ArtifactBundle) Validate() error {
 	if len(b.BrowserCPUProfile) != 0 && b.Diagnostic.BrowserCPUProfileFile != artifactBrowserCPUProfileFile {
 		return errors.New("diagnostic browser CPU profile filename is invalid")
 	}
+
+	// Reject duplicated sample identities across the bundle.
 	identities := make(map[string]struct{}, len(b.Result.Samples)+2)
 	identities[b.Result.Warmup.ID] = struct{}{}
 	for _, sample := range b.Result.Samples {

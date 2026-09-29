@@ -16,18 +16,23 @@ type Measurement struct {
 
 // Validate checks sample trace state and diagnostic evidence custody.
 func (m Measurement) Validate(request SampleRequest, metadata RunMetadata) error {
+	// Check the sample against the request and run metadata.
 	if m.Sample.Traced != request.Trace {
 		return errors.New("measurement trace state differs from its request")
 	}
 	if err := m.Sample.Validate(metadata); err != nil {
 		return err
 	}
+
+	// Reject diagnostic evidence when the measurement was not traced.
 	if !request.Trace {
 		if len(m.RuntimeTrace) != 0 || len(m.BrowserCPUProfile) != 0 {
 			return errors.New("untraced measurement contains diagnostic evidence")
 		}
 		return nil
 	}
+
+	// Require a runtime trace and Chromium custody for any browser profile.
 	if len(m.RuntimeTrace) == 0 {
 		return errors.New("traced measurement has no runtime trace")
 	}

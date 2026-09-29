@@ -22,30 +22,37 @@ type artifactManifest struct {
 }
 
 func marshalArtifactData(artifact Artifact) []byte {
+	// Open the arena and set the artifact's identity fields.
 	var arena fastjson.Arena
 	value := arena.NewObject()
 	value.Set("schemaVersion", arena.NewNumberInt(artifact.SchemaVersion))
 	value.Set("metadata", marshalRunMetadataValue(&arena, artifact.Metadata))
 	value.Set("sampling", marshalSamplingPolicyValue(&arena, artifact.Sampling))
 	value.Set("warmup", marshalSampleValue(&arena, artifact.Warmup))
+
+	// Set the artifact's samples and summary, then marshal with a newline.
 	value.Set("samples", marshalSamplesValue(&arena, artifact.Samples))
 	value.Set("summary", marshalSummaryValue(&arena, artifact.Summary))
 	return append(value.MarshalTo(nil), '\n')
 }
 
 func marshalDiagnosticData(diagnostic DiagnosticArtifact) []byte {
+	// Set the diagnostic's identity and sample fields.
 	var arena fastjson.Arena
 	value := arena.NewObject()
 	value.Set("schemaVersion", arena.NewNumberInt(diagnostic.SchemaVersion))
 	value.Set("runId", arena.NewString(diagnostic.RunID))
 	value.Set("engine", arena.NewString(diagnostic.Engine))
 	value.Set("sample", marshalSampleValue(&arena, diagnostic.Sample))
+
+	// Set the diagnostic's trace file names, then marshal with a newline.
 	value.Set("runtimeTraceFile", arena.NewString(diagnostic.RuntimeTraceFile))
 	value.Set("browserCpuProfileFile", arena.NewString(diagnostic.BrowserCPUProfileFile))
 	return append(value.MarshalTo(nil), '\n')
 }
 
 func marshalManifestData(manifest artifactManifest) []byte {
+	// Set the manifest's schema version and artifact file names.
 	var arena fastjson.Arena
 	value := arena.NewObject()
 	value.Set("schemaVersion", arena.NewNumberInt(manifest.SchemaVersion))
@@ -53,6 +60,8 @@ func marshalManifestData(manifest artifactManifest) []byte {
 	value.Set("resultSha256", arena.NewString(manifest.ResultSHA256))
 	value.Set("diagnosticFile", arena.NewString(manifest.DiagnosticFile))
 	value.Set("diagnosticSha256", arena.NewString(manifest.DiagnosticSHA256))
+
+	// Set the manifest's trace file names, then marshal with a newline.
 	value.Set("runtimeTraceFile", arena.NewString(manifest.RuntimeTraceFile))
 	value.Set("runtimeTraceSha256", arena.NewString(manifest.RuntimeTraceSHA256))
 	value.Set("browserCpuProfileFile", arena.NewString(manifest.BrowserCPUProfileFile))
@@ -61,6 +70,7 @@ func marshalManifestData(manifest artifactManifest) []byte {
 }
 
 func marshalRunMetadataValue(arena *fastjson.Arena, metadata RunMetadata) *fastjson.Value {
+	// Set the run's identity and engine fields.
 	value := arena.NewObject()
 	value.Set("runId", arena.NewString(metadata.RunID))
 	value.Set("engine", arena.NewString(metadata.Engine))
@@ -68,8 +78,12 @@ func marshalRunMetadataValue(arena *fastjson.Arena, metadata RunMetadata) *fastj
 	value.Set("compiler", arena.NewString(metadata.Compiler))
 	value.Set("spacewaveRevision", arena.NewString(metadata.SpacewaveRevision))
 	value.Set("goScriptRevision", arena.NewString(metadata.GoScriptRevision))
+
+	// Set the run's build mode fields.
 	value.Set("buildMode", arena.NewString(metadata.BuildMode))
 	value.Set("workerMode", arena.NewString(metadata.WorkerMode))
+
+	// Set the run's storage, runtime, and fixture fields.
 	value.Set("storageBackend", arena.NewString(metadata.StorageBackend))
 	value.Set("runtimeState", arena.NewString(metadata.RuntimeState))
 	value.Set("projectedUrlTemplate", arena.NewString(metadata.ProjectedURLTemplate))
@@ -80,12 +94,15 @@ func marshalRunMetadataValue(arena *fastjson.Arena, metadata RunMetadata) *fastj
 }
 
 func marshalFixtureValue(arena *fastjson.Arena, fixture Fixture) *fastjson.Value {
+	// Set the fixture's generator and encoder fields.
 	value := arena.NewObject()
 	value.Set("generator", arena.NewString(fixture.Generator))
 	value.Set("generatorRevision", arena.NewString(fixture.GeneratorRevision))
 	value.Set("encoder", arena.NewString(fixture.Encoder))
 	value.Set("encoderEnvironment", arena.NewString(fixture.EncoderEnvironment))
 	value.Set("sha256", arena.NewString(fixture.SHA256))
+
+	// Set the fixture's image fields.
 	value.Set("encodedBytes", arena.NewNumberString(strconv.FormatInt(fixture.EncodedBytes, 10)))
 	value.Set("width", arena.NewNumberInt(fixture.Width))
 	value.Set("height", arena.NewNumberInt(fixture.Height))
@@ -102,6 +119,7 @@ func marshalStateBoundaryValue(arena *fastjson.Arena, state StateBoundary) *fast
 }
 
 func marshalSamplingPolicyValue(arena *fastjson.Arena, sampling SamplingPolicy) *fastjson.Value {
+	// Set the sampling policy's fields.
 	value := arena.NewObject()
 	value.Set("warmupSamples", arena.NewNumberInt(sampling.WarmupSamples))
 	value.Set("retainedSamples", arena.NewNumberInt(sampling.RetainedSamples))
@@ -119,19 +137,26 @@ func marshalSamplesValue(arena *fastjson.Arena, samples []Sample) *fastjson.Valu
 }
 
 func marshalSampleValue(arena *fastjson.Arena, sample Sample) *fastjson.Value {
+	// Set the sample's identity and timing fields.
 	value := arena.NewObject()
 	value.Set("id", arena.NewString(sample.ID))
 	value.Set("requestStartMs", arena.NewNumberFloat64(sample.RequestStartMs))
 	value.Set("responseStartMs", arena.NewNumberFloat64(sample.ResponseStartMs))
 	value.Set("responseEndMs", arena.NewNumberFloat64(sample.ResponseEndMs))
+
+	// Set the sample's remaining timing fields.
 	value.Set("loadMs", arena.NewNumberFloat64(sample.LoadMs))
 	value.Set("decodeMs", arena.NewNumberFloat64(sample.DecodeMs))
 	value.Set("frameMs", arena.NewNumberFloat64(sample.FrameMs))
 	value.Set("displayReadyMs", arena.NewNumberFloat64(sample.DisplayReadyMs))
+
+	// Set the sample's image and transfer fields.
 	value.Set("naturalWidth", arena.NewNumberInt(sample.NaturalWidth))
 	value.Set("naturalHeight", arena.NewNumberInt(sample.NaturalHeight))
 	value.Set("transferSize", arena.NewNumberString(strconv.FormatInt(sample.TransferSize, 10)))
 	value.Set("decodedBodySize", arena.NewNumberString(strconv.FormatInt(sample.DecodedBodySize, 10)))
+
+	// Set the sample's traced flag.
 	traced := arena.NewFalse()
 	if sample.Traced {
 		traced = arena.NewTrue()
@@ -141,6 +166,7 @@ func marshalSampleValue(arena *fastjson.Arena, sample Sample) *fastjson.Value {
 }
 
 func marshalSummaryValue(arena *fastjson.Arena, summary Summary) *fastjson.Value {
+	// Set the summary's fields.
 	value := arena.NewObject()
 	value.Set("method", arena.NewString(summary.Method))
 	value.Set("sampleCount", arena.NewNumberInt(summary.SampleCount))
@@ -158,6 +184,7 @@ func marshalStringSliceValue(arena *fastjson.Arena, values []string) *fastjson.V
 }
 
 func parseArtifactData(data []byte) (Artifact, error) {
+	// Parse the JSON and require an object root.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
@@ -166,6 +193,8 @@ func parseArtifactData(data []byte) (Artifact, error) {
 	if value.Type() != fastjson.TypeObject {
 		return Artifact{}, errors.New("result JSON root must be an object")
 	}
+
+	// Decode each artifact section.
 	artifact := Artifact{}
 	if artifact.SchemaVersion, err = parseInt(value, "schemaVersion"); err != nil {
 		return Artifact{}, err
@@ -189,6 +218,7 @@ func parseArtifactData(data []byte) (Artifact, error) {
 }
 
 func parseDiagnosticData(data []byte) (DiagnosticArtifact, error) {
+	// Parse the JSON and require an object root.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
@@ -197,6 +227,8 @@ func parseDiagnosticData(data []byte) (DiagnosticArtifact, error) {
 	if value.Type() != fastjson.TypeObject {
 		return DiagnosticArtifact{}, errors.New("diagnostic JSON root must be an object")
 	}
+
+	// Decode the diagnostic's fields.
 	diagnostic := DiagnosticArtifact{}
 	if diagnostic.SchemaVersion, err = parseInt(value, "schemaVersion"); err != nil {
 		return DiagnosticArtifact{}, err
@@ -220,6 +252,7 @@ func parseDiagnosticData(data []byte) (DiagnosticArtifact, error) {
 }
 
 func parseManifestData(data []byte) (artifactManifest, error) {
+	// Parse the JSON and require an object root.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
@@ -228,6 +261,8 @@ func parseManifestData(data []byte) (artifactManifest, error) {
 	if value.Type() != fastjson.TypeObject {
 		return artifactManifest{}, errors.New("artifact manifest root must be an object")
 	}
+
+	// Decode the manifest's schema version and result file names.
 	manifest := artifactManifest{}
 	if manifest.SchemaVersion, err = parseInt(value, "schemaVersion"); err != nil {
 		return artifactManifest{}, err
@@ -238,6 +273,8 @@ func parseManifestData(data []byte) (artifactManifest, error) {
 	if manifest.ResultSHA256, err = parseString(value, "resultSha256"); err != nil {
 		return artifactManifest{}, err
 	}
+
+	// Decode the manifest's diagnostic file names.
 	if manifest.DiagnosticFile, err = parseString(value, "diagnosticFile"); err != nil {
 		return artifactManifest{}, err
 	}
@@ -260,9 +297,12 @@ func parseManifestData(data []byte) (artifactManifest, error) {
 }
 
 func parseRunMetadata(value *fastjson.Value) (RunMetadata, error) {
+	// Require an object value.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return RunMetadata{}, errors.New("metadata must be an object")
 	}
+
+	// Decode the run's identity fields.
 	metadata := RunMetadata{}
 	var err error
 	if metadata.RunID, err = parseString(value, "runId"); err != nil {
@@ -271,6 +311,8 @@ func parseRunMetadata(value *fastjson.Value) (RunMetadata, error) {
 	if metadata.Engine, err = parseString(value, "engine"); err != nil {
 		return RunMetadata{}, err
 	}
+
+	// Decode the run's engine fields.
 	if metadata.EngineVersion, err = parseString(value, "engineVersion"); err != nil {
 		return RunMetadata{}, err
 	}
@@ -283,6 +325,8 @@ func parseRunMetadata(value *fastjson.Value) (RunMetadata, error) {
 	if metadata.GoScriptRevision, err = parseString(value, "goScriptRevision"); err != nil {
 		return RunMetadata{}, err
 	}
+
+	// Decode the run's build mode fields.
 	if metadata.BuildMode, err = parseString(value, "buildMode"); err != nil {
 		return RunMetadata{}, err
 	}
@@ -298,6 +342,8 @@ func parseRunMetadata(value *fastjson.Value) (RunMetadata, error) {
 	if metadata.ProjectedURLTemplate, err = parseString(value, "projectedUrlTemplate"); err != nil {
 		return RunMetadata{}, err
 	}
+
+	// Decode the run's fixture, state, and unavailable fields.
 	if metadata.Fixture, err = parseFixture(value.Get("fixture")); err != nil {
 		return RunMetadata{}, errors.Wrap(err, "parse fixture")
 	}
@@ -311,9 +357,12 @@ func parseRunMetadata(value *fastjson.Value) (RunMetadata, error) {
 }
 
 func parseFixture(value *fastjson.Value) (Fixture, error) {
+	// Require an object value.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return Fixture{}, errors.New("fixture must be an object")
 	}
+
+	// Decode the fixture's generator and encoder fields.
 	fixture := Fixture{}
 	var err error
 	if fixture.Generator, err = parseString(value, "generator"); err != nil {
@@ -331,6 +380,8 @@ func parseFixture(value *fastjson.Value) (Fixture, error) {
 	if fixture.SHA256, err = parseString(value, "sha256"); err != nil {
 		return Fixture{}, err
 	}
+
+	// Decode the fixture's image fields.
 	if fixture.EncodedBytes, err = parseInt64(value, "encodedBytes"); err != nil {
 		return Fixture{}, err
 	}
@@ -350,6 +401,7 @@ func parseFixture(value *fastjson.Value) (Fixture, error) {
 }
 
 func parseStateBoundary(value *fastjson.Value) (StateBoundary, error) {
+	// Require an object value and decode both state lists.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return StateBoundary{}, errors.New("state boundary must be an object")
 	}
@@ -365,9 +417,12 @@ func parseStateBoundary(value *fastjson.Value) (StateBoundary, error) {
 }
 
 func parseSamplingPolicy(value *fastjson.Value) (SamplingPolicy, error) {
+	// Require an object value.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return SamplingPolicy{}, errors.New("sampling policy must be an object")
 	}
+
+	// Decode the policy's fields.
 	policy := SamplingPolicy{}
 	var err error
 	if policy.WarmupSamples, err = parseInt(value, "warmupSamples"); err != nil {
@@ -386,6 +441,7 @@ func parseSamplingPolicy(value *fastjson.Value) (SamplingPolicy, error) {
 }
 
 func parseSamples(value *fastjson.Value) ([]Sample, error) {
+	// Require an array value and decode its entries.
 	if value == nil || value.Type() != fastjson.TypeArray {
 		return nil, errors.New("samples must be an array")
 	}
@@ -403,9 +459,12 @@ func parseSamples(value *fastjson.Value) ([]Sample, error) {
 }
 
 func parseSample(value *fastjson.Value) (Sample, error) {
+	// Require an object value.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return Sample{}, errors.New("sample must be an object")
 	}
+
+	// Decode the sample's fields.
 	sample := Sample{}
 	var err error
 	if sample.ID, err = parseString(value, "id"); err != nil {
@@ -420,6 +479,8 @@ func parseSample(value *fastjson.Value) (Sample, error) {
 	if sample.ResponseEndMs, err = parseFloat64(value, "responseEndMs"); err != nil {
 		return Sample{}, err
 	}
+
+	// Decode the sample's remaining timing fields.
 	if sample.LoadMs, err = parseFloat64(value, "loadMs"); err != nil {
 		return Sample{}, err
 	}
@@ -438,6 +499,8 @@ func parseSample(value *fastjson.Value) (Sample, error) {
 	if sample.NaturalHeight, err = parseInt(value, "naturalHeight"); err != nil {
 		return Sample{}, err
 	}
+
+	// Decode the sample's transfer fields.
 	if sample.TransferSize, err = parseInt64(value, "transferSize"); err != nil {
 		return Sample{}, err
 	}
@@ -451,9 +514,12 @@ func parseSample(value *fastjson.Value) (Sample, error) {
 }
 
 func parseSummary(value *fastjson.Value) (Summary, error) {
+	// Require an object value.
 	if value == nil || value.Type() != fastjson.TypeObject {
 		return Summary{}, errors.New("summary must be an object")
 	}
+
+	// Decode the summary's fields.
 	summary := Summary{}
 	var err error
 	if summary.Method, err = parseString(value, "method"); err != nil {
@@ -472,6 +538,7 @@ func parseSummary(value *fastjson.Value) (Summary, error) {
 }
 
 func parseString(value *fastjson.Value, field string) (string, error) {
+	// Read the field as a string.
 	item := value.Get(field)
 	if item == nil || item.Type() != fastjson.TypeString {
 		return "", errors.Errorf("field %q must be a string", field)
@@ -484,6 +551,7 @@ func parseString(value *fastjson.Value, field string) (string, error) {
 }
 
 func parseInt(value *fastjson.Value, field string) (int, error) {
+	// Read the field as an integer.
 	item := value.Get(field)
 	if item == nil || item.Type() != fastjson.TypeNumber {
 		return 0, errors.Errorf("field %q must be a number", field)
@@ -496,6 +564,7 @@ func parseInt(value *fastjson.Value, field string) (int, error) {
 }
 
 func parseInt64(value *fastjson.Value, field string) (int64, error) {
+	// Read the field as a 64-bit integer.
 	item := value.Get(field)
 	if item == nil || item.Type() != fastjson.TypeNumber {
 		return 0, errors.Errorf("field %q must be a number", field)
@@ -508,6 +577,7 @@ func parseInt64(value *fastjson.Value, field string) (int64, error) {
 }
 
 func parseFloat64(value *fastjson.Value, field string) (float64, error) {
+	// Read the field as a number.
 	item := value.Get(field)
 	if item == nil || item.Type() != fastjson.TypeNumber {
 		return 0, errors.Errorf("field %q must be a number", field)
@@ -520,6 +590,7 @@ func parseFloat64(value *fastjson.Value, field string) (float64, error) {
 }
 
 func parseBool(value *fastjson.Value, field string) (bool, error) {
+	// Read the field as a boolean.
 	item := value.Get(field)
 	if item == nil || (item.Type() != fastjson.TypeTrue && item.Type() != fastjson.TypeFalse) {
 		return false, errors.Errorf("field %q must be a boolean", field)
@@ -532,6 +603,7 @@ func parseBool(value *fastjson.Value, field string) (bool, error) {
 }
 
 func parseStringSlice(value *fastjson.Value, field string) ([]string, error) {
+	// Require an array field.
 	item := value.Get(field)
 	if item == nil || item.Type() != fastjson.TypeArray {
 		return nil, errors.Errorf("field %q must be an array", field)
@@ -540,6 +612,8 @@ func parseStringSlice(value *fastjson.Value, field string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "read array field %q", field)
 	}
+
+	// Copy each string entry into the result.
 	result := make([]string, len(values))
 	for idx, entry := range values {
 		if entry.Type() != fastjson.TypeString {

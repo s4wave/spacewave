@@ -24,6 +24,7 @@ type Artifact struct {
 
 // Validate checks that the scalar result is complete and internally consistent.
 func (a Artifact) Validate() error {
+	// Check the artifact's schema version and section validators.
 	if a.SchemaVersion != artifactSchemaVersion {
 		return errors.Errorf("artifact schema version %d is unsupported", a.SchemaVersion)
 	}
@@ -33,6 +34,8 @@ func (a Artifact) Validate() error {
 	if err := a.Sampling.Validate(); err != nil {
 		return errors.Wrap(err, "validate sampling policy")
 	}
+
+	// Check the retained sample count and the untraced warm-up.
 	if len(a.Samples) != a.Sampling.RetainedSamples {
 		return errors.Errorf("artifact has %d retained samples, expected %d", len(a.Samples), a.Sampling.RetainedSamples)
 	}
@@ -42,6 +45,8 @@ func (a Artifact) Validate() error {
 	if err := a.Warmup.Validate(a.Metadata); err != nil {
 		return errors.Wrap(err, "validate discarded warm-up")
 	}
+
+	// Validate each retained sample and the summary.
 	for idx, sample := range a.Samples {
 		if sample.Traced {
 			return errors.Errorf("retained sample %q cannot be traced", sample.ID)

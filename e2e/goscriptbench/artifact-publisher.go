@@ -40,6 +40,7 @@ func NewArtifactPublisher(outputRoot string) (*ArtifactPublisher, error) {
 
 // Publish validates and atomically exposes one per-engine artifact bundle.
 func (p *ArtifactPublisher) Publish(bundle ArtifactBundle) (string, error) {
+	// Check the publisher and validate the bundle.
 	if p == nil || p.root == "" {
 		return "", errors.New("artifact publisher is not initialized")
 	}
@@ -75,6 +76,8 @@ func (p *ArtifactPublisher) Publish(bundle ArtifactBundle) (string, error) {
 			data []byte
 		}{name: artifactBrowserCPUProfileFile, data: bundle.BrowserCPUProfile})
 	}
+
+	// Add the manifest itself to the file list.
 	manifestData := marshalManifestData(manifest)
 	files = append(files, struct {
 		name string
@@ -98,6 +101,8 @@ func (p *ArtifactPublisher) Publish(bundle ArtifactBundle) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "create temporary artifact directory")
 	}
+
+	// Remove the temporary directory when the publish fails.
 	defer func() {
 		if tempDir != "" {
 			// A failed temporary cleanup cannot make an unpublished artifact visible.
@@ -120,6 +125,7 @@ func (p *ArtifactPublisher) Publish(bundle ArtifactBundle) (string, error) {
 
 // ReadArtifact verifies and decodes one published per-engine artifact directory.
 func ReadArtifact(dir string) (*ArtifactBundle, error) {
+	// Read the manifest and validate its schema and file names.
 	manifestData, err := os.ReadFile(filepath.Join(dir, artifactManifestFile))
 	if err != nil {
 		return nil, errors.Wrap(err, "read artifact manifest")
@@ -153,6 +159,8 @@ func ReadArtifact(dir string) (*ArtifactBundle, error) {
 		}
 		files[idx] = entry.Name()
 	}
+
+	// Compare the directory's files with the manifest's expected names.
 	expectedFiles := []string{
 		artifactDiagnosticFile,
 		artifactManifestFile,

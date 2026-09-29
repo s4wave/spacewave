@@ -8,23 +8,32 @@ import (
 )
 
 func TestProjectedImageFixtureDeterministic(t *testing.T) {
+	// Generate the fixture twice and require identical bytes and metadata.
 	firstData, firstFixture, err := GenerateProjectedImageFixture()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Generate the fixture a second time for comparison.
 	secondData, secondFixture, err := GenerateProjectedImageFixture()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require identical fixture bytes and metadata across generations.
 	if !bytes.Equal(firstData, secondData) {
 		t.Fatal("fixture bytes changed between generations")
 	}
 	if firstFixture != secondFixture {
 		t.Fatalf("fixture metadata changed: %+v != %+v", firstFixture, secondFixture)
 	}
+
+	// Require the fixture dimensions to match the fixed workload.
 	if firstFixture.Width != ProjectedImageWidth || firstFixture.Height != ProjectedImageHeight {
 		t.Fatalf("fixture dimensions = %dx%d", firstFixture.Width, firstFixture.Height)
 	}
+
+	// Require the encoded PNG size and hash to match the pinned values.
 	if firstFixture.EncodedBytes != 4_198_217 {
 		t.Fatalf("fixture size = %d bytes, want 4198217", firstFixture.EncodedBytes)
 	}
@@ -34,16 +43,20 @@ func TestProjectedImageFixtureDeterministic(t *testing.T) {
 }
 
 func TestProjectedImageFixtureRejectsCorruption(t *testing.T) {
+	// Reject a fixture whose bytes were corrupted.
 	data, fixture, err := GenerateProjectedImageFixture()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Flip one byte and require validation to fail.
 	corrupt := bytes.Clone(data)
 	corrupt[len(corrupt)/2] ^= 1
 	if err := ValidateProjectedImageFixture(corrupt, fixture); err == nil {
 		t.Fatal("corrupted fixture validated")
 	}
 
+	// Require a dimensionally inconsistent fixture to fail validation.
 	wrongDimensions := fixture
 	wrongDimensions.Width++
 	if err := ValidateProjectedImageFixture(data, wrongDimensions); err == nil {

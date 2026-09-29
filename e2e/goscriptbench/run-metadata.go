@@ -49,12 +49,15 @@ type RunMetadata struct {
 
 // Validate checks that the run identity and state boundary are complete.
 func (m RunMetadata) Validate() error {
+	// Require safe run and engine artifact identities.
 	if !validArtifactID(m.RunID) {
 		return errors.New("run ID must be a safe artifact path component")
 	}
 	if !validArtifactID(m.Engine) {
 		return errors.New("engine must be a safe artifact path component")
 	}
+
+	// Require the engine, source, mode, and state identification fields.
 	if m.EngineVersion == "" || m.Compiler == "" {
 		return errors.New("engine version and compiler are required")
 	}
@@ -67,6 +70,8 @@ func (m RunMetadata) Validate() error {
 	if m.RuntimeState == "" || m.ProjectedURLTemplate == "" {
 		return errors.New("runtime state and projected URL template are required")
 	}
+
+	// Validate the fixture, state boundary, and optional-field list.
 	if err := m.Fixture.Validate(); err != nil {
 		return errors.Wrap(err, "validate fixture")
 	}
@@ -79,14 +84,19 @@ func (m RunMetadata) Validate() error {
 	return nil
 }
 
+// fieldUnavailable reports whether one optional sample field is omitted.
 func (m RunMetadata) fieldUnavailable(field string) bool {
 	return slices.Contains(m.UnavailableFields, field)
 }
 
+// validateUnavailableFields checks names and duplicates in the optional-field list.
 func validateUnavailableFields(fields []string) error {
+	// Require the optional-field list to be present.
 	if fields == nil {
 		return errors.New("unavailable-field metadata is required")
 	}
+
+	// Require each field to be a known, non-duplicated sample field.
 	for idx, field := range fields {
 		if !slices.Contains(optionalSampleFields, field) {
 			return errors.Errorf("unavailable sample field %q is unknown", field)
@@ -98,10 +108,14 @@ func validateUnavailableFields(fields []string) error {
 	return nil
 }
 
+// validArtifactID reports whether a value is a safe artifact path component.
 func validArtifactID(value string) bool {
+	// Reject empty and relative-path values.
 	if value == "" || value == "." || value == ".." {
 		return false
 	}
+
+	// Allow alphanumerics and interior separators only.
 	for idx, char := range value {
 		if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') {
 			continue

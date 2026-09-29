@@ -16,6 +16,7 @@ func (p *ProjectedImage) captureBrowserCPUProfile(
 	ctx context.Context,
 	work func(context.Context) (Sample, error),
 ) (sample Sample, data []byte, retErr error) {
+	// Run the untraced action directly when profiling is not requested.
 	if !p.config.BrowserCPUProfile || p.config.Engine != "chromium" {
 		sample, retErr = work(ctx)
 		return sample, nil, retErr
@@ -38,7 +39,7 @@ func (p *ProjectedImage) captureBrowserCPUProfile(
 		return Sample{}, nil, errors.Wrap(err, "start projected-image CPU profiler")
 	}
 
-	// Stop the profiler even when the measured action fails.
+	// Run the measured action, then stop the profiler and check the context.
 	sample, workErr := work(ctx)
 	response, stopErr := cdp.Send("Profiler.stop", nil)
 	if workErr != nil {
@@ -58,6 +59,8 @@ func (p *ProjectedImage) captureBrowserCPUProfile(
 			profile = value
 		}
 	}
+
+	// Encode the returned profile without reflection.
 	data, err = marshalProjectedImageCPUProfile(profile)
 	if err != nil {
 		return Sample{}, nil, err
@@ -66,6 +69,7 @@ func (p *ProjectedImage) captureBrowserCPUProfile(
 }
 
 func marshalProjectedImageCPUProfile(profile any) ([]byte, error) {
+	// Encode the profile value into a fresh fastjson arena.
 	var arena fastjson.Arena
 	value, err := marshalProjectedImageCDPValue(&arena, profile)
 	if err != nil {
@@ -75,6 +79,7 @@ func marshalProjectedImageCPUProfile(profile any) ([]byte, error) {
 }
 
 func marshalProjectedImageCDPValue(arena *fastjson.Arena, value any) (*fastjson.Value, error) {
+	// Encode null, boolean, string, and number scalars.
 	switch typed := value.(type) {
 	case nil:
 		return arena.NewNull(), nil
@@ -96,6 +101,8 @@ func marshalProjectedImageCDPValue(arena *fastjson.Arena, value any) (*fastjson.
 			return nil, errors.New("projected-image CPU profile contains a non-finite number")
 		}
 		return arena.NewNumberString(strconv.FormatFloat(typed, 'f', -1, 64)), nil
+
+	// Encode arrays by marshaling each item in order.
 	case []any:
 		array := arena.NewArray()
 		for idx, item := range typed {
@@ -106,6 +113,8 @@ func marshalProjectedImageCDPValue(arena *fastjson.Arena, value any) (*fastjson.
 			array.SetArrayItem(idx, encoded)
 		}
 		return array, nil
+
+	// Encode objects by marshaling keys in sorted order.
 	case map[string]any:
 		object := arena.NewObject()
 		keys := make([]string, 0, len(typed))

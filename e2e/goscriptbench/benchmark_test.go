@@ -21,6 +21,7 @@ const (
 )
 
 func TestGoScriptStorageBenchmark(t *testing.T) {
+	// Skip unless the benchmark environment gate is enabled.
 	if !benchmarkEnvEnabled(projectedImageSmokeEnv) {
 		t.Skipf("set %s=true to run the GoScript storage benchmark", projectedImageSmokeEnv)
 	}
@@ -58,6 +59,8 @@ func TestGoScriptStorageBenchmark(t *testing.T) {
 		t.Logf("GoScript storage benchmark capability artifact: %s", artifactDir)
 		return
 	}
+
+	// Build the workload and runner, then publish the artifact.
 	workload, err := NewProjectedImage(t, harness, ProjectedImageConfig{
 		RunID:             runID,
 		Engine:            engine,
@@ -96,8 +99,12 @@ func TestGoScriptStorageBenchmark(t *testing.T) {
 	t.Logf("GoScript storage benchmark artifact: %s", artifactDir)
 }
 
+// probeBenchmarkOPFS reports whether the harness browser supports OPFS.
 func probeBenchmarkOPFS(t *testing.T, harness *wasm.Harness) (bool, string) {
+	// Mark this helper so failures point at the caller.
 	t.Helper()
+
+	// Serve an isolated capability document and probe OPFS in the page.
 	session := harness.NewCleanBlankSession(t)
 	defer session.Release()
 	page := session.Page()
@@ -116,6 +123,8 @@ func probeBenchmarkOPFS(t *testing.T, harness *wasm.Harness) (bool, string) {
 	if err := <-routeResult; err != nil {
 		t.Fatalf("serve OPFS capability document: %v", err)
 	}
+
+	// Evaluate the OPFS capability probe inside the browser.
 	raw, err := page.Evaluate(`async () => {
 		if (typeof navigator.storage?.getDirectory !== 'function') {
 			return {
@@ -135,6 +144,8 @@ func probeBenchmarkOPFS(t *testing.T, harness *wasm.Harness) (bool, string) {
 	if err != nil {
 		t.Fatalf("probe browser OPFS capability: %v", err)
 	}
+
+	// Decode the probe result and require consistent support and reason.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("OPFS capability result has type %T", raw)
@@ -155,6 +166,7 @@ func probeBenchmarkOPFS(t *testing.T, harness *wasm.Harness) (bool, string) {
 
 func requireBenchmarkEnv(t *testing.T, name string) string {
 	t.Helper()
+	// Read an environment variable and require it to be set.
 	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
 		t.Fatalf("%s is required", name)

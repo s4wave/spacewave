@@ -16,6 +16,7 @@ type Runner struct {
 
 // NewRunner constructs a runner rooted at outputRoot.
 func NewRunner(outputRoot string) (*Runner, error) {
+	// Construct the artifact publisher rooted at the output directory.
 	publisher, err := NewArtifactPublisher(outputRoot)
 	if err != nil {
 		return nil, err
@@ -25,6 +26,7 @@ func NewRunner(outputRoot string) (*Runner, error) {
 
 // Run executes one workload and returns its published engine directory.
 func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
+	// Require an initialized runner and a workload.
 	if r == nil || r.publisher == nil {
 		return "", errors.New("runner is not initialized")
 	}
@@ -79,6 +81,7 @@ func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
 		browserCPUProfileFile = artifactBrowserCPUProfileFile
 	}
 
+	// Summarize the retained sample population.
 	summary, err := SummarizeSamples(samples)
 	if err != nil {
 		return "", errors.Wrap(err, "summarize retained samples")
@@ -111,6 +114,7 @@ func (r *Runner) runSample(
 	metadata RunMetadata,
 	request SampleRequest,
 ) (Measurement, error) {
+	// Restart the workload and measure the requested sample.
 	if err := ctx.Err(); err != nil {
 		return Measurement{}, err
 	}
@@ -124,6 +128,8 @@ func (r *Runner) runSample(
 	if err := workload.Validate(ctx, request, measurement.Sample); err != nil {
 		return Measurement{}, errors.Wrapf(err, "workload validation failed for %s sample %d", request.Kind, request.Number)
 	}
+
+	// Validate the measurement against the request and run metadata.
 	if err := measurement.Validate(request, metadata); err != nil {
 		return Measurement{}, errors.Wrapf(err, "validate %s sample %d", request.Kind, request.Number)
 	}

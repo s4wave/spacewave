@@ -25,6 +25,7 @@ func TestProjectedImageUntracedSampleID(t *testing.T) {
 			want:    "retained-10",
 		},
 	} {
+		// Require each valid request to produce its expected sample ID.
 		got, err := projectedImageUntracedSampleID(test.request)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -34,6 +35,7 @@ func TestProjectedImageUntracedSampleID(t *testing.T) {
 		}
 	}
 
+	// Reject invalid sample requests.
 	for _, request := range []SampleRequest{
 		{Kind: SampleKindWarmup, Number: 2},
 		{Kind: SampleKindRetained, Number: 0},
@@ -49,7 +51,10 @@ func TestProjectedImageUntracedSampleID(t *testing.T) {
 }
 
 func TestProjectedImageBrowserSampleRejectsInvalidEvidence(t *testing.T) {
+	// Validate a well-formed browser sample and its request.
 	valid := testProjectedImageBrowserSample()
+
+	// Decode the valid sample and validate it end to end.
 	result, err := projectedImageSampleFromBrowser(valid)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -61,6 +66,7 @@ func TestProjectedImageBrowserSampleRejectsInvalidEvidence(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Reject resource entry counts other than one.
 	for _, count := range []int{0, 2} {
 		invalid := maps.Clone(valid)
 		invalid["resourceEntryCount"] = count
@@ -73,6 +79,7 @@ func TestProjectedImageBrowserSampleRejectsInvalidEvidence(t *testing.T) {
 		}
 	}
 
+	// Reject a sample with an incomplete timeline.
 	incomplete := maps.Clone(valid)
 	incomplete["loadMs"] = 0.0
 	result, err = projectedImageSampleFromBrowser(incomplete)
@@ -83,6 +90,7 @@ func TestProjectedImageBrowserSampleRejectsInvalidEvidence(t *testing.T) {
 		t.Fatal("incomplete projected-image timeline validated")
 	}
 
+	// Reject a sample missing a required field.
 	missing := maps.Clone(valid)
 	delete(missing, "frameMs")
 	if _, err := projectedImageSampleFromBrowser(missing); err == nil {

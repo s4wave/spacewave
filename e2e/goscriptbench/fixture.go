@@ -30,12 +30,15 @@ type Fixture struct {
 
 // Validate checks that the fixture has a complete byte identity.
 func (f Fixture) Validate() error {
+	// Require the fixture's generator and encoder identity.
 	if f.Generator == "" || f.GeneratorRevision == "" {
 		return errors.New("fixture generator identity is incomplete")
 	}
 	if f.Encoder == "" || f.EncoderEnvironment == "" {
 		return errors.New("fixture encoder identity is incomplete")
 	}
+
+	// Require a well-formed 64-character lowercase hexadecimal SHA-256 digest.
 	if len(f.SHA256) != 64 {
 		return errors.New("fixture SHA-256 must contain 64 lowercase hexadecimal characters")
 	}
@@ -44,6 +47,8 @@ func (f Fixture) Validate() error {
 			return errors.New("fixture SHA-256 must contain 64 lowercase hexadecimal characters")
 		}
 	}
+
+	// Require positive encoded size and decoded dimensions.
 	if f.EncodedBytes <= 0 {
 		return errors.New("fixture encoded byte count must be positive")
 	}
