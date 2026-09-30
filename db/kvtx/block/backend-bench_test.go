@@ -26,6 +26,7 @@ type benchBlockStore struct {
 	putBlocks        atomic.Int64
 	putBytes         atomic.Int64
 	putRefs          atomic.Int64
+	putNewBlocks     atomic.Int64
 	putBatchCalls    atomic.Int64
 	putBatchEntries  atomic.Int64
 	putBatchMax      atomic.Int64
@@ -55,6 +56,9 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 	if err == nil {
 		s.putBlocks.Add(1)
 		s.putBytes.Add(int64(len(data)))
+		if !found {
+			s.putNewBlocks.Add(1)
+		}
 		if opts != nil {
 			s.putRefs.Add(int64(len(opts.Refs)))
 		}
@@ -63,20 +67,35 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 }
 
 func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	err := s.inner.PutBlockBatch(ctx, entries)
+	// Probe which entries already exist, since batches do not report it.
+	refs := make([]*block.BlockRef, len(entries))
+	for i, entry := range entries {
+		refs[i] = entry.Ref
+	}
+	existed, err := s.inner.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		return err
 	}
+
+	// Store the batch.
+	if err := s.inner.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+
+	// Count the stored entries and the ones that were new.
 	s.putBatchCalls.Add(1)
 	s.putBatchEntries.Add(int64(len(entries)))
 	recordBenchMax(&s.putBatchMax, int64(len(entries)))
-	for _, entry := range entries {
+	for i, entry := range entries {
 		if entry.Tombstone {
 			continue
 		}
 		s.putBlocks.Add(1)
 		s.putBytes.Add(int64(len(entry.Data)))
 		s.putRefs.Add(int64(len(entry.Refs)))
+		if !existed[i] {
+			s.putNewBlocks.Add(1)
+		}
 	}
 	return nil
 }
@@ -148,38 +167,52 @@ func (s *benchBlockStore) EndDeferFlush(ctx context.Context) error {
 }
 
 func (s *benchBlockStore) resetCounts() {
+	// Reset the read and existence counters.
 	s.getBlocks.Store(0)
 	s.getBytes.Store(0)
 	s.existsBlocks.Store(0)
 	s.existsBatchCalls.Store(0)
 	s.existsBatchRefs.Store(0)
+
+	// Reset the write counters.
 	s.putBlocks.Store(0)
 	s.putBytes.Store(0)
 	s.putRefs.Store(0)
+	s.putNewBlocks.Store(0)
 	s.putBatchCalls.Store(0)
 	s.putBatchEntries.Store(0)
 	s.putBatchMax.Store(0)
+
+	// Reset the remove, stat, and sync counters.
 	s.rmBlocks.Store(0)
 	s.statBlocks.Store(0)
 	s.syncCalls.Store(0)
 }
 
 func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
+	// Report nothing when no operations ran.
 	if ops == 0 {
 		return
 	}
+
+	// Report the read and existence counters.
 	denom := float64(ops)
 	b.ReportMetric(float64(s.getBlocks.Load())/denom, "get-blocks/op")
 	b.ReportMetric(float64(s.getBytes.Load())/denom, "get-bytes/op")
 	b.ReportMetric(float64(s.existsBlocks.Load())/denom, "exists-blocks/op")
 	b.ReportMetric(float64(s.existsBatchCalls.Load())/denom, "exists-batches/op")
 	b.ReportMetric(float64(s.existsBatchRefs.Load())/denom, "exists-batch-refs/op")
+
+	// Report the write counters.
 	b.ReportMetric(float64(s.putBlocks.Load())/denom, "put-blocks/op")
 	b.ReportMetric(float64(s.putBytes.Load())/denom, "put-bytes/op")
 	b.ReportMetric(float64(s.putRefs.Load())/denom, "put-refs/op")
+	b.ReportMetric(float64(s.putNewBlocks.Load())/denom, "put-new-blocks/op")
 	b.ReportMetric(float64(s.putBatchCalls.Load())/denom, "put-batches/op")
 	b.ReportMetric(float64(s.putBatchEntries.Load())/denom, "put-batch-entries/op")
 	b.ReportMetric(float64(s.putBatchMax.Load()), "put-batch-max")
+
+	// Report the remove, stat, and sync counters.
 	b.ReportMetric(float64(s.rmBlocks.Load())/denom, "rm-blocks/op")
 	b.ReportMetric(float64(s.statBlocks.Load())/denom, "stat-blocks/op")
 	b.ReportMetric(float64(s.syncCalls.Load())/denom, "syncs/op")
@@ -389,7 +422,7 @@ func BenchmarkKVTXBackendGetCursorAtKey(b *testing.B) {
 }
 
 func BenchmarkKVTXBackendGetValue(b *testing.B) {
-	for _, size := range []int{16, 1024} {
+	for _, size := range []int{16, 1024, 16384} {
 		for _, impl := range benchKVImpls() {
 			b.Run(benchKVName(impl, "cold", size), func(b *testing.B) {
 				ctx := context.Background()
@@ -681,10 +714,60 @@ func BenchmarkKVTXBackendUpdateCommitGC(b *testing.B) {
 	}
 }
 
+// BenchmarkKVTXBackendAdvancingCommit commits one change per iteration and
+// advances the root, so churn accumulates like a live store instead of
+// forking every commit from the same root.
+func BenchmarkKVTXBackendAdvancingCommit(b *testing.B) {
+	workloads := []struct {
+		name string
+		key  func(tree *benchKVTree, i int) []byte
+	}{
+		{"update_1", func(tree *benchKVTree, i int) []byte {
+			return tree.keys[benchLookupIndex(i, len(tree.keys))]
+		}},
+		{"insert-random_1", func(_ *benchKVTree, i int) []byte {
+			return makeSequentialBenchKey(int(uint64(i+1) * 0x9e3779b185ebca87 >> 1))
+		}},
+		{"append_1", func(tree *benchKVTree, i int) []byte {
+			return makeSequentialBenchKey(len(tree.keys) + i)
+		}},
+	}
+	for _, size := range []int{1024, 16384} {
+		for _, impl := range benchKVImpls() {
+			for _, workload := range workloads {
+				b.Run(benchKVName(impl, workload.name, size), func(b *testing.B) {
+					// Build the starting tree and clear its build counts.
+					ctx := context.Background()
+					tree := buildBenchKVTree(b, impl, makeBenchKeys(size, benchKeySequential), false, false)
+					tree.store.resetCounts()
+
+					// Commit one change per iteration and advance the root.
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := range b.N {
+						btx, tx := newBenchKVWriteTx(b, ctx, tree)
+						if err := tx.Set(ctx, workload.key(tree, i), benchValue(i+size)); err != nil {
+							tx.Discard()
+							b.Fatal(err)
+						}
+						tree.rootRef = commitBenchKVTx(b, ctx, btx, tx)
+					}
+
+					// Report the store traffic and the final tree shape.
+					b.StopTimer()
+					tree.store.reportMetrics(b, int64(b.N))
+					reportBenchKVRoot(b, ctx, tree)
+				})
+			}
+		}
+	}
+}
+
 func benchKVImpls() []KVImplType {
 	return []KVImplType{
 		KVImplType_KV_IMPL_TYPE_IAVL,
 		KVImplType_KV_IMPL_TYPE_OKRA,
+		KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
 	}
 }
 
@@ -870,41 +953,53 @@ func runBenchKVIndexedLogAppend(tb testing.TB, ctx context.Context, tree *benchK
 	commitBenchKVTx(tb, ctx, btx, tx)
 }
 
-func commitBenchKVTx(tb testing.TB, ctx context.Context, btx *block.Transaction, tx kvtx.BlockTx) {
+// commitBenchKVTx commits the write transaction and returns the new root.
+func commitBenchKVTx(tb testing.TB, ctx context.Context, btx *block.Transaction, tx kvtx.BlockTx) *block.BlockRef {
+	// Commit the key-value changes into the block transaction.
 	tb.Helper()
-
 	if err := tx.Commit(ctx); err != nil {
 		tx.Discard()
 		tb.Fatal(err)
 	}
 	tx.Discard()
-	if _, _, err := btx.Write(ctx, true); err != nil {
+
+	// Write the block transaction and return its root.
+	rootRef, _, err := btx.Write(ctx, true)
+	if err != nil {
 		tb.Fatal(err)
 	}
+	return rootRef
 }
 
 func measureBenchKVRoot(tb testing.TB, ctx context.Context, tree *benchKVTree) benchRootMetrics {
+	// Load the root key-value store.
 	tb.Helper()
-
 	_, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 	root, err := LoadKeyValueStore(ctx, rootCursor)
 	if err != nil {
 		tb.Fatal(err)
 	}
+
+	// Read the tree height from the implementation root.
 	metrics := benchRootMetrics{}
 	switch tree.impl {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		metrics.height = root.GetIavlRoot().GetHeight()
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		metrics.height = root.GetOkraRoot().GetHeight()
 	}
+
+	// Walk the DAG, counting stored blocks, their bytes, and the depth.
 	err = block_traverse.Visit(ctx, root, rootCursor, func(loc *block_traverse.Location) error {
+		// Track the deepest location, including inline sub-blocks.
 		if loc.Depth > metrics.maxDepth {
 			metrics.maxDepth = loc.Depth
 		}
 		if loc.Cursor.IsSubBlock() || loc.Cursor.GetRef().GetEmpty() {
 			return nil
 		}
+
+		// Count the stored block and its size.
 		metrics.dagBlocks++
 		stat, err := tree.storeOps().StatBlock(ctx, loc.Cursor.GetRef())
 		if err != nil {
