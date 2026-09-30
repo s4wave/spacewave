@@ -155,5 +155,16 @@ func (e *RefCountEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, e
 	return seqno, err
 }
 
+// WaitObjectRev waits until the object at key reaches rev.
+func (e *RefCountEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	var objRev uint64
+	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+		var err error
+		objRev, err = (*val).WaitObjectRev(ctx, key, rev, ignoreNotFound)
+		return err
+	})
+	return objRev, err
+}
+
 // _ is a type assertion
 var _ Engine = (*RefCountEngine)(nil)

@@ -330,6 +330,11 @@ func (e *soEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) 
 	return e.bengine.WaitSeqno(ctx, value)
 }
 
+// WaitObjectRev waits until the object at key reaches rev.
+func (e *soEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return e.bengine.WaitObjectRev(ctx, key, rev, ignoreNotFound)
+}
+
 // updateEngineState installs an accepted head using this participant's block store.
 func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.ObjectRef) error {
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/update-engine-state")

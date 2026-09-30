@@ -89,6 +89,13 @@ func (e *SDKEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error)
 	return resp.Seqno, nil
 }
 
+// WaitObjectRev waits until the object at key reaches rev. Remote clients
+// watching one object should use the object state resource's WaitRev, which
+// the server answers with a key-scoped watch.
+func (e *SDKEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)
+}
+
 // GetWorldRootSnapshot returns the current committed World root snapshot.
 func (e *SDKEngine) GetWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
 	return e.service.GetWorldRootSnapshot(ctx, &s4wave_world.GetWorldRootSnapshotRequest{})

@@ -129,6 +129,11 @@ type Engine struct {
 	headWatchDone chan struct{}
 	// headWatchErr is the latest refresh failure, guarded by bcast.
 	headWatchErr error
+	// keyWatch wakes object revision waiters by key. It is nil while no
+	// waiter is registered. Guarded by bcast.
+	keyWatch *engineKeyWatch
+	// keyWatches counts key watch goroutines that Close must join.
+	keyWatches int
 	// closed rejects new operations while Close drains resources.
 	closed bool
 }
@@ -1083,6 +1088,7 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 
 // Close releases root cursors and active transaction state owned by the engine.
 func (e *Engine) Close() error {
+	// A nil Engine owns nothing to release.
 	if e == nil {
 		return nil
 	}
@@ -1107,6 +1113,12 @@ func (e *Engine) Close() error {
 	}
 	e.closed = true
 	e.signalHeadLocked()
+
+	// Cancel the key watch comparison in flight and wake its waiters.
+	if e.keyWatch != nil {
+		e.keyWatch.cancel()
+		e.stopKeyWatchLocked(e.keyWatch)
+	}
 
 	// Detach every Engine-owned resource while publication is closed.
 	retirements := make([]engineRetirement, 0, len(e.snapshotTxs)+1)
@@ -1140,9 +1152,10 @@ func (e *Engine) Close() error {
 		<-e.headWatchDone
 	}
 
-	// Join detached work and in-flight commit publication before baseRoot release.
+	// Join detached work, in-flight commit publication and key watches before
+	// baseRoot release.
 	locked = e.bcast.Lock()
-	for e.retiring != 0 || e.committing != 0 {
+	for e.retiring != 0 || e.committing != 0 || e.keyWatches != 0 {
 		wait := locked.WaitCh()
 		locked.Unlock()
 		<-wait

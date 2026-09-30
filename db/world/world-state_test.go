@@ -570,6 +570,10 @@ func (e *staleRetryEngine) WaitSeqno(ctx context.Context, value uint64) (uint64,
 	return value, nil
 }
 
+func (e *staleRetryEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)
+}
+
 type staleRetryTx struct {
 	engine  *staleRetryEngine
 	write   bool

@@ -1123,6 +1123,11 @@ func (e *releaseWorldTestEngine) NewTransaction(context.Context, bool) (world.Tx
 	return &releaseWorldTestTx{WorldState: e.WorldState}, nil
 }
 
+// WaitObjectRev rereads the fixture after each revision.
+func (e *releaseWorldTestEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error) {
+	return world.WaitObjectRevBySeqno(ctx, e, key, rev, ignoreNotFound)
+}
+
 type releaseWorldTestTx struct {
 	world.WorldState
 }

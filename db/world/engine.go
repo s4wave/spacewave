@@ -32,6 +32,12 @@ type Engine interface {
 
 	// WorldWaitSeqno allows waiting for the world seqno to change.
 	WorldWaitSeqno
+
+	// WaitObjectRev waits until the object at key reaches rev and returns its
+	// revision. Returns ErrObjectNotFound if the object does not exist, unless
+	// ignoreNotFound is set, in which case it waits for the object to appear.
+	// Use WaitObjectRevBySeqno when the engine cannot watch individual keys.
+	WaitObjectRev(ctx context.Context, key string, rev uint64, ignoreNotFound bool) (uint64, error)
 }
 
 // EngineResolver is a function which resolves an engine for a ref count.

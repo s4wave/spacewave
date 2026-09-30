@@ -178,53 +178,7 @@ func (e *engineWorldStateObject) WaitRev(
 	rev uint64,
 	ignoreNotFound bool,
 ) (uint64, error) {
-	for {
-		if err := ctx.Err(); err != nil {
-			return 0, ctx.Err()
-		}
-		var found bool
-		var nSeqno uint64
-		var currRev uint64
-		err := e.e.performOp(ctx, false, func(tx Tx) error {
-			seqno, err := tx.GetSeqno(ctx)
-			if err != nil {
-				return err
-			}
-			nSeqno = seqno + 1
-			objState, objFound, err := tx.GetObject(ctx, e.key)
-			defer ReleaseObjectState(objState)
-			if err != nil {
-				return err
-			}
-			found = objFound
-			if !objFound {
-				currRev = 0
-			} else {
-				_, currRev, err = objState.GetRootRef(ctx)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			return 0, err
-		}
-		if found {
-			if currRev >= rev {
-				return currRev, nil
-			}
-		} else if !ignoreNotFound {
-			return 0, ErrObjectNotFound
-		}
-
-		// currRev < rev: wait for currRev >= rev
-		// ignoreNotFound: wait for object to exist
-		_, err = e.e.e.WaitSeqno(ctx, nSeqno)
-		if err != nil {
-			return 0, err
-		}
-	}
+	return e.e.e.WaitObjectRev(ctx, e.key, rev, ignoreNotFound)
 }
 
 // _ is a type assertion
