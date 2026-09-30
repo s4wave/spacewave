@@ -3,6 +3,7 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
@@ -140,23 +141,22 @@ func (p *Page) containsKey(key []byte) bool {
 	return true
 }
 
+// searchEntry returns the index of the last entry at or before key, or -1
+// when key sorts before every entry. The anchor sorts before every key.
 func (p *Page) searchEntry(key []byte) int {
-	idx := -1
-	for i, ent := range p.GetEntries() {
-		if ent.GetAnchor() {
-			idx = i
-			continue
-		}
-		cmp := bytes.Compare(ent.GetKey(), key)
-		if cmp > 0 {
-			break
-		}
-		idx = i
-		if cmp == 0 {
-			break
-		}
+	idx, found := slices.BinarySearchFunc(p.GetEntries(), key, compareEntryKey)
+	if found {
+		return idx
 	}
-	return idx
+	return idx - 1
+}
+
+// compareEntryKey orders an entry against key, placing the anchor first.
+func compareEntryKey(ent *Entry, key []byte) int {
+	if ent.GetAnchor() {
+		return -1
+	}
+	return bytes.Compare(ent.GetKey(), key)
 }
 
 // rawInlineValue returns the entry's raw inline value, borrowed from the page.
