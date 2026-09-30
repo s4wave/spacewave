@@ -524,7 +524,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 			// Encode the final hooked block and retain its immutable reference.
 			blkRef := bn.ref
-			if bn.blk != nil {
+			if bn.blk != nil && !bn.moved {
 				blkRef = nil
 				bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
 				if bnpwOk {
@@ -604,6 +604,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 			// Release written cursor data when the caller requested clearing.
 			bn.dirty = false
+			bn.moved = false
 			if clearTree {
 				bn.refHandles = nil
 				bn.blkPreWrite = nil

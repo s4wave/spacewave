@@ -17,6 +17,9 @@ type handle struct {
 	refHandles map[uint32]*refHandle
 	// dirty indicates the block has been changed.
 	dirty bool
+	// moved indicates only the parents changed. The block still matches ref,
+	// so writes reuse ref instead of encoding the block again.
+	moved bool
 
 	// blk is the decoded block or sub-block pointer, when known.
 	blk any
@@ -37,6 +40,7 @@ func (h *handle) Clone() *handle {
 		isSubBlock:  h.isSubBlock,
 		refHandles:  make(map[uint32]*refHandle),
 		dirty:       h.dirty,
+		moved:       h.moved,
 		blk:         h.blk,
 		blkPreWrite: h.blkPreWrite,
 	}

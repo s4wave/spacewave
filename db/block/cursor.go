@@ -297,8 +297,10 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 // SetRef sets a block reference to the handle at the cursor.
 // Adds c to the list of parents for cursor.
 // The cursors must be from the same transaction.
+// A clean stored block moved under c keeps its ref and is not encoded again.
 // Note: this should only be used if refID and cursor are not sub-blocks.
 func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
+	// Clear the reference for a nil target and ignore invalid targets.
 	if c == nil {
 		return
 	}
@@ -306,11 +308,7 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 		c.ClearRef(refID)
 		return
 	}
-	if cursor == c || cursor.pos == c.pos {
-		return
-	}
-	if cursor.t != c.t {
-		// cannot set across transactions
+	if cursor == c || cursor.pos == c.pos || cursor.t != c.t {
 		return
 	}
 	if c.t != nil {
@@ -318,33 +316,31 @@ func (c *Cursor) SetRef(refID uint32, cursor *Cursor) {
 		defer c.t.mtx.Unlock()
 	}
 
+	// Detach the previous target of refID from c.
 	if c.pos.refHandles == nil {
 		c.pos.refHandles = make(map[uint32]*refHandle)
-	} else {
-		// clear old destination parent relation
-		if r, ok := c.pos.refHandles[refID]; ok {
-			// value is changed below, clear old parent ref
-			if tgt := r.target; tgt != nil {
-				tgtCs := newCursor(c.t, tgt, c.store)
-				_ = tgtCs.removeParent(c)
-			}
-		}
+	} else if r, ok := c.pos.refHandles[refID]; ok && r.target != nil {
+		_ = newCursor(c.t, r.target, c.store).removeParent(c)
 	}
 
-	// if cursor is a sub-block: make it into a regular block
-	if cursor.pos.isSubBlock {
+	// A sub-block moved under a reference becomes a regular block.
+	wasSubBlock := cursor.pos.isSubBlock
+	if wasSubBlock {
 		cursor.pos.isSubBlock = false
 		cursor.pos.parents = nil
 	}
 
-	// add parent relation
-	np := cursor.addParent(c, refID)
-	if np != nil {
-		cursor.markDirty()
-	} else {
-		// failed to add parent, delete the ref
+	// Link the target to c, dropping the reference if linking fails.
+	if cursor.addParent(c, refID) == nil {
 		delete(c.pos.refHandles, refID)
+		return
 	}
+
+	// A clean stored block keeps its ref; only its new parents change.
+	unchanged := !cursor.pos.dirty || cursor.pos.moved
+	moved := !wasSubBlock && unchanged && !cursor.pos.ref.GetEmpty()
+	cursor.markDirty()
+	cursor.pos.moved = moved
 }
 
 // MarkDirty marks the cursor location dirty, so that it will be re-written.
@@ -901,23 +897,30 @@ func (c *Cursor) GetAllRefs(existingOnly bool) (map[uint32]*Cursor, error) {
 	return m, nil
 }
 
-// markDirty assumes c.t.mtx is locked
+// markDirty marks the position and its ancestors dirty, clearing moved.
+// Assumes c.t.mtx is locked.
 func (c *Cursor) markDirty() {
+	// Ephemeral cursors have nothing to write.
 	if c == nil || c.t == nil {
 		return
 	}
 	c.t.dirty = true
-	if c.pos != nil {
-		stk := []*handle{c.pos}
-		for len(stk) != 0 {
-			v := stk[len(stk)-1]
-			stk = stk[:len(stk)-1]
-			if !v.dirty {
-				v.dirty = true
-				for _, ref := range v.parents {
-					stk = append(stk, ref.src)
-				}
-			}
+	if c.pos == nil {
+		return
+	}
+
+	// Walk up until reaching positions already dirty with changed content.
+	stk := []*handle{c.pos}
+	for len(stk) != 0 {
+		v := stk[len(stk)-1]
+		stk = stk[:len(stk)-1]
+		if v.dirty && !v.moved {
+			continue
+		}
+		v.dirty = true
+		v.moved = false
+		for _, ref := range v.parents {
+			stk = append(stk, ref.src)
 		}
 	}
 }
