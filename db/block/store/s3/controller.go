@@ -41,7 +41,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, conf *Config) block_store_controller
 		if err != nil {
 			return nil, nil, err
 		}
-		packs := NewPackStore(le, client, conf.GetBucketName(), conf.GetObjectPrefix())
+		packs := NewPackStore(le, client, conf.GetBucketName(), conf.GetObjectPrefix(), nil)
 		return block_store.NewStore(conf.GetBlockStoreId(), packs), packs.Close, nil
 	}
 }

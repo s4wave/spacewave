@@ -13,7 +13,7 @@ import (
 // test ends.
 func newTestPackStore(t *testing.T, client *Client) *PackStore {
 	t.Helper()
-	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/")
+	store := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", nil)
 	t.Cleanup(store.Close)
 	return store
 }

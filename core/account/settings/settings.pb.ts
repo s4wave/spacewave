@@ -7,6 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SharedObjectListEntry } from '../../sobject/sobject.pb.js'
+import { Pricing } from '../../../db/block/store/s3/s3.pb.js'
 import { Secret } from '../../../sdk/secret/secret.pb.js'
 import { EntityKeypair } from '../../session/session.pb.js'
 import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
@@ -220,6 +221,13 @@ export interface S3Location {
    * @generated from field: bool disable_ssl = 5;
    */
   disableSsl?: boolean
+  /**
+   * Pricing overrides the price list storage reclaim uses. Empty uses the
+   * published prices of the service the endpoint names.
+   *
+   * @generated from field: block.store.s3.Pricing pricing = 6;
+   */
+  pricing?: Pricing
 }
 
 export const S3Location: MessageType<S3Location> =
@@ -231,6 +239,7 @@ export const S3Location: MessageType<S3Location> =
       { no: 3, name: 'bucket', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'object_prefix', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'disable_ssl', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'pricing', kind: 'message', T: () => Pricing },
     ] satisfies readonly PartialFieldInfo[],
   })
 

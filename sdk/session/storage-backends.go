@@ -1,6 +1,10 @@
 package s4wave_session
 
-import "context"
+import (
+	"context"
+
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
+)
 
 // WatchStorageBackends streams the account's storage backends.
 func (s *Session) WatchStorageBackends(ctx context.Context) (SRPCSessionResourceService_WatchStorageBackendsClient, error) {
@@ -33,6 +37,17 @@ func (s *Session) WatchSpaceStorage(ctx context.Context, sharedObjectID string) 
 // account's own storage when storageBackendID is empty.
 func (s *Session) SetDefaultStorageBackend(ctx context.Context, storageBackendID string) error {
 	_, err := s.service.SetDefaultStorageBackend(ctx, &SetDefaultStorageBackendRequest{StorageBackendId: storageBackendID})
+	return err
+}
+
+// SetStorageBackendPricing overrides the price list storage reclaim uses for
+// a backend, or returns it to the endpoint's published prices when pricing
+// is nil.
+func (s *Session) SetStorageBackendPricing(ctx context.Context, storageBackendID string, pricing *block_store_s3.Pricing) error {
+	_, err := s.service.SetStorageBackendPricing(ctx, &SetStorageBackendPricingRequest{
+		StorageBackendId: storageBackendID,
+		Pricing:          pricing,
+	})
 	return err
 }
 

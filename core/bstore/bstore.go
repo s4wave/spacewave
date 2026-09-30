@@ -2,6 +2,7 @@ package bstore
 
 import (
 	"context"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -19,8 +20,12 @@ type BlockStore interface {
 	// before it drops any; when fence returns, every writer that may still
 	// reference a dropped block must upload it again. A store without a
 	// storage backend, or whose backend judges the pass would cost more than
-	// the storage it frees, returns nil without calling fence.
-	ReclaimStorage(ctx context.Context, fence func(context.Context) error) error
+	// the storage it frees, returns without calling fence.
+	//
+	// Returns the time a pass next comes due if the store is not written
+	// again, or zero when none will. Asking again at that time runs the last
+	// pass an idle store needs.
+	ReclaimStorage(ctx context.Context, fence func(context.Context) error) (time.Time, error)
 }
 
 // Validate validates the block store ref.

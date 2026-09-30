@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -97,12 +98,12 @@ func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 }
 
 // ReclaimStorage drops the blocks the local store no longer holds from the
-// storage backend's bucket. Returns nil without calling fence when no storage
+// storage backend's bucket. Returns zero without calling fence when no storage
 // backend is open.
-func (b *BlockStore) ReclaimStorage(ctx context.Context, fence func(context.Context) error) error {
+func (b *BlockStore) ReclaimStorage(ctx context.Context, fence func(context.Context) error) (time.Time, error) {
 	remote := b.placement.remote.Load()
 	if remote == nil {
-		return nil
+		return time.Time{}, nil
 	}
 	return remote.store.Reclaim(ctx, fence, b.placement.local.GetBlockExistsBatch)
 }

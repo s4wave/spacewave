@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -147,12 +148,13 @@ func (a *ProviderAccount) runPlacedUploads(ctx context.Context) error {
 type backendStore interface {
 	block.StoreOps
 	// Reclaim drops the blocks live reports dead from the bucket, calling
-	// fence after listing the bucket and before dropping any.
+	// fence after listing the bucket and before dropping any. Returns the
+	// time a pass next comes due without further writes, or zero.
 	Reclaim(
 		ctx context.Context,
 		fence func(context.Context) error,
 		live func(context.Context, []*block.BlockRef) ([]bool, error),
-	) error
+	) (time.Time, error)
 	// Close releases the store's open readers.
 	Close()
 }

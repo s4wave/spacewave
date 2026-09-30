@@ -79,7 +79,7 @@ func (a *FsRestoreArgs) Run(c *cli.Context) error {
 	}
 	ctx := c.Context
 	le := logrus.NewEntry(logrus.New())
-	store := block_store_s3.NewPackStore(le, client, a.bucket, a.prefix)
+	store := block_store_s3.NewPackStore(le, client, a.bucket, a.prefix, nil)
 	defer store.Close()
 
 	// Open the saved World root and a read transaction on it.

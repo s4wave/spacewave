@@ -366,3 +366,65 @@ export const ReclaimState: MessageType<ReclaimState> =
       { no: 5, name: 'blocks', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * Pricing is the price list of an S3-compatible service in dollars. Storage
+ * reclaim weighs the storage a pass frees against the requests and egress it
+ * costs.
+ *
+ * @generated from message block.store.s3.Pricing
+ */
+export interface Pricing {
+  /**
+   * StorageGbMonth is the price of storing one GiB for one month.
+   *
+   * @generated from field: double storage_gb_month = 1;
+   */
+  storageGbMonth?: number
+  /**
+   * EgressGb is the price of reading one GiB out of the service.
+   *
+   * @generated from field: double egress_gb = 2;
+   */
+  egressGb?: number
+  /**
+   * ClassAPerMillion is the price of one million PUT or LIST requests.
+   *
+   * @generated from field: double class_a_per_million = 3;
+   */
+  classAPerMillion?: number
+  /**
+   * ClassBPerMillion is the price of one million GET requests.
+   *
+   * @generated from field: double class_b_per_million = 4;
+   */
+  classBPerMillion?: number
+  /**
+   * MinStorageDays is the storage duration billed for an object deleted
+   * sooner.
+   *
+   * @generated from field: uint32 min_storage_days = 5;
+   */
+  minStorageDays?: number
+}
+
+export const Pricing: MessageType<Pricing> = /* @__PURE__ */ createMessageType({
+  typeName: 'block.store.s3.Pricing',
+  fields: [
+    { no: 1, name: 'storage_gb_month', kind: 'scalar', T: ScalarType.DOUBLE },
+    { no: 2, name: 'egress_gb', kind: 'scalar', T: ScalarType.DOUBLE },
+    {
+      no: 3,
+      name: 'class_a_per_million',
+      kind: 'scalar',
+      T: ScalarType.DOUBLE,
+    },
+    {
+      no: 4,
+      name: 'class_b_per_million',
+      kind: 'scalar',
+      T: ScalarType.DOUBLE,
+    },
+    { no: 5, name: 'min_storage_days', kind: 'scalar', T: ScalarType.UINT32 },
+  ] satisfies readonly PartialFieldInfo[],
+})

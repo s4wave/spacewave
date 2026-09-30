@@ -4,6 +4,7 @@ package account.settings;
 import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/provider/provider.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/db/block/store/s3/s3.proto";
 import "github.com/s4wave/spacewave/sdk/command/command.proto";
 import "github.com/s4wave/spacewave/sdk/secret/secret.proto";
 
@@ -69,6 +70,9 @@ message S3Location {
   string object_prefix = 4;
   // DisableSsl connects with HTTP instead of HTTPS.
   bool disable_ssl = 5;
+  // Pricing overrides the price list storage reclaim uses. Empty uses the
+  // published prices of the service the endpoint names.
+  .block.store.s3.Pricing pricing = 6;
 }
 
 // BlockStorePlacement places one block store on a storage backend.

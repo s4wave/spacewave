@@ -50,6 +50,7 @@ export const SharedObjectSelfEnrollmentErrorCategory_Enum =
   /* @__PURE__ */ createEnumType(
     's4wave.session.SharedObjectSelfEnrollmentErrorCategory',
     SharedObjectSelfEnrollmentErrorCategory,
+    'SHARED_OBJECT_SELF_ENROLLMENT_ERROR_CATEGORY_',
   )
 
 /**

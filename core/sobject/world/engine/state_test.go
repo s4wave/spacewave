@@ -249,8 +249,8 @@ func (s *testBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return s.decodedBlocks
 }
 
-func (s *testBlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
-	return nil
+func (s *testBlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 func (s *testSharedObject) GetBus() bus.Bus {

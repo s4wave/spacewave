@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 )
@@ -65,7 +66,7 @@ func TestPackStoreReclaim(t *testing.T) {
 	}
 
 	// Run one pass.
-	if err := store.Reclaim(ctx, fence, live); err != nil {
+	if _, err := store.Reclaim(ctx, fence, live); err != nil {
 		t.Fatal(err)
 	}
 	if fences != 1 {
@@ -108,7 +109,8 @@ func TestPackStoreReclaim(t *testing.T) {
 // TestPackStoreReclaimSchedule runs the first pass at once, skips the fence
 // when no packfile is worth reclaiming, and skips later passes until the
 // blocks expected to die cost more to store than a pass costs, including in a
-// new store that reads the recorded state.
+// new store that reads the recorded state. A store no block died in expects
+// no further pass until it is written again.
 func TestPackStoreReclaimSchedule(t *testing.T) {
 	// Write a live packfile to a bucket priced as Amazon S3.
 	ctx := t.Context()
@@ -132,12 +134,17 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 		return nil
 	}
 
-	// Run the first pass and check it recorded one state.
-	if err := store.Reclaim(ctx, fence, live); err != nil {
+	// Run the first pass and check it recorded one state and expects no
+	// other.
+	next, err := store.Reclaim(ctx, fence, live)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if checks != 1 {
 		t.Fatalf("first pass checked %d packfiles, want 1", checks)
+	}
+	if !next.IsZero() {
+		t.Fatalf("first pass expects another at %v", next)
 	}
 	states := reclaimStateKeys(bucket)
 	if len(states) != 1 {
@@ -148,22 +155,36 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 	reader := newTestPackStore(t, client)
 	reader.pricing = awsPricing
 	for _, s := range []*PackStore{store, reader} {
-		if err := s.Reclaim(ctx, fence, live); err != nil {
+		next, err := s.Reclaim(ctx, fence, live)
+		if err != nil {
 			t.Fatal(err)
+		}
+		if !next.IsZero() {
+			t.Fatalf("skipped pass expects another at %v", next)
 		}
 	}
 	if checks != 1 {
 		t.Fatalf("skipped passes checked %d packfiles", checks-1)
 	}
 
+	// Check a write schedules a pass reclaimMaxInterval after the last.
+	putPack(t, bucket, store, "b0")
+	next, err = store.Reclaim(ctx, fence, live)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if until := time.Until(next); until < reclaimMaxInterval-time.Hour || until > reclaimMaxInterval {
+		t.Fatalf("written store expects a pass in %v", until)
+	}
+
 	// Check a self-hosted bucket, where a pass costs nothing, runs it and
 	// replaces the recorded state.
 	selfHosted := newTestPackStore(t, client)
-	if err := selfHosted.Reclaim(ctx, fence, live); err != nil {
+	if _, err := selfHosted.Reclaim(ctx, fence, live); err != nil {
 		t.Fatal(err)
 	}
-	if checks != 2 {
-		t.Fatalf("self-hosted pass checked %d packfiles, want 1", checks-1)
+	if checks != 3 {
+		t.Fatalf("self-hosted pass checked %d packfiles, want 2", checks-1)
 	}
 	if next := reclaimStateKeys(bucket); len(next) != 1 || next[0] == states[0] {
 		t.Fatalf("bucket holds reclaim states %v after %v", next, states)
@@ -171,7 +192,8 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 }
 
 // TestPackStoreReclaimFenceFailure records a pass whose fence failed, so the
-// next request does not scan the bucket again before a pass is due.
+// next request does not scan the bucket again before a pass is due, and
+// returns the time it comes due.
 func TestPackStoreReclaimFenceFailure(t *testing.T) {
 	// Write a dead 1 MiB block to a bucket priced as Amazon S3.
 	ctx := t.Context()
@@ -189,20 +211,28 @@ func TestPackStoreReclaimFenceFailure(t *testing.T) {
 	errNotReady := errors.New("not ready")
 	fence := func(context.Context) error { return errNotReady }
 
-	// Run a pass and check it returns the fence error.
-	if err := store.Reclaim(ctx, fence, live); !errors.Is(err, errNotReady) {
+	// Run a pass and check it returns the fence error and a due time.
+	next, err := store.Reclaim(ctx, fence, live)
+	if !errors.Is(err, errNotReady) {
 		t.Fatalf("Reclaim = %v, want the fence error", err)
 	}
 	if len(reclaimStateKeys(bucket)) != 1 {
 		t.Fatal("failed pass was not recorded")
 	}
+	if until := time.Until(next); until <= 0 || until >= reclaimMaxInterval {
+		t.Fatalf("failed pass expects the next in %v", until)
+	}
 
-	// Check the next request skips the scan.
-	if err := store.Reclaim(ctx, fence, live); err != nil {
+	// Check the next request skips the scan and keeps the due time.
+	skipped, err := store.Reclaim(ctx, fence, live)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if checks != 1 {
 		t.Fatalf("passes checked %d packfiles, want 1", checks)
+	}
+	if !skipped.Equal(next) {
+		t.Fatalf("skipped pass expects the next at %v, want %v", skipped, next)
 	}
 }
 

@@ -252,6 +252,10 @@ class SessionResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
+    async def set_storage_backend_pricing(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetStorageBackendPricingRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetStorageBackendPricingResponse: ...
     def watch_space_storage(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,
@@ -506,6 +510,10 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetDefaultStorageBackendResponse: ...
+    async def set_storage_backend_pricing(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.SetStorageBackendPricingRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.SetStorageBackendPricingResponse: ...
     def watch_space_storage(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSpaceStorageRequest,

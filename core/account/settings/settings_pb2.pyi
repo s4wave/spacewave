@@ -1,6 +1,7 @@
 from core.session import session_pb2 as _session_pb2
 from core.provider import provider_pb2 as _provider_pb2
 from core.sobject import sobject_pb2 as _sobject_pb2
+from db.block.store.s3 import s3_pb2 as _s3_pb2
 from sdk.command import command_pb2 as _command_pb2
 from sdk.secret import secret_pb2 as _secret_pb2
 from google.protobuf.internal import containers as _containers
@@ -54,18 +55,20 @@ class StorageBackend(_message.Message):
     def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ...) -> None: ...
 
 class S3Location(_message.Message):
-    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl")
+    __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing")
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     REGION_FIELD_NUMBER: _ClassVar[int]
     BUCKET_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PREFIX_FIELD_NUMBER: _ClassVar[int]
     DISABLE_SSL_FIELD_NUMBER: _ClassVar[int]
+    PRICING_FIELD_NUMBER: _ClassVar[int]
     endpoint: str
     region: str
     bucket: str
     object_prefix: str
     disable_ssl: bool
-    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ...) -> None: ...
+    pricing: _s3_pb2.Pricing
+    def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ...) -> None: ...
 
 class BlockStorePlacement(_message.Message):
     __slots__ = ("block_store_id", "storage_backend_id")

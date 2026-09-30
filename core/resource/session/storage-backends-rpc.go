@@ -176,6 +176,25 @@ func (r *SessionResource) SetDefaultStorageBackend(
 	return &s4wave_session.SetDefaultStorageBackendResponse{}, nil
 }
 
+// SetStorageBackendPricing overrides the price list storage reclaim uses for
+// a backend.
+func (r *SessionResource) SetStorageBackendPricing(
+	ctx context.Context,
+	req *s4wave_session.SetStorageBackendPricingRequest,
+) (*s4wave_session.SetStorageBackendPricingResponse, error) {
+	// Record the price list on the account.
+	localAcc, err := r.localProviderAccount()
+	if err != nil {
+		return nil, err
+	}
+	if err := localAcc.SetStorageBackendPricing(ctx, req.GetStorageBackendId(), req.GetPricing()); err != nil {
+		return nil, err
+	}
+
+	// Acknowledge the change.
+	return &s4wave_session.SetStorageBackendPricingResponse{}, nil
+}
+
 // localProviderAccount returns the session's local provider account.
 func (r *SessionResource) localProviderAccount() (*provider_local.ProviderAccount, error) {
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)

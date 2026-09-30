@@ -100,3 +100,17 @@ class ReclaimState(_message.Message):
     packs: int
     blocks: int
     def __init__(self, passed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., dead_bytes: _Optional[int] = ..., dead_bytes_per_day: _Optional[int] = ..., packs: _Optional[int] = ..., blocks: _Optional[int] = ...) -> None: ...
+
+class Pricing(_message.Message):
+    __slots__ = ("storage_gb_month", "egress_gb", "class_a_per_million", "class_b_per_million", "min_storage_days")
+    STORAGE_GB_MONTH_FIELD_NUMBER: _ClassVar[int]
+    EGRESS_GB_FIELD_NUMBER: _ClassVar[int]
+    CLASS_A_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    CLASS_B_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    MIN_STORAGE_DAYS_FIELD_NUMBER: _ClassVar[int]
+    storage_gb_month: float
+    egress_gb: float
+    class_a_per_million: float
+    class_b_per_million: float
+    min_storage_days: int
+    def __init__(self, storage_gb_month: _Optional[float] = ..., egress_gb: _Optional[float] = ..., class_a_per_million: _Optional[float] = ..., class_b_per_million: _Optional[float] = ..., min_storage_days: _Optional[int] = ...) -> None: ...

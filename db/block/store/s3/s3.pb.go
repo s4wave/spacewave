@@ -7,6 +7,7 @@ package block_store_s3
 import (
 	fmt "fmt"
 	io "io"
+	math "math"
 	slices "slices"
 	strconv "strconv"
 
@@ -373,6 +374,65 @@ func (x *ReclaimState) GetBlocks() uint64 {
 	return 0
 }
 
+// Pricing is the price list of an S3-compatible service in dollars. Storage
+// reclaim weighs the storage a pass frees against the requests and egress it
+// costs.
+type Pricing struct {
+	unknownFields []byte
+	// StorageGbMonth is the price of storing one GiB for one month.
+	StorageGbMonth float64 `protobuf:"fixed64,1,opt,name=storage_gb_month,json=storageGbMonth,proto3" json:"storageGbMonth,omitempty"`
+	// EgressGb is the price of reading one GiB out of the service.
+	EgressGb float64 `protobuf:"fixed64,2,opt,name=egress_gb,json=egressGb,proto3" json:"egressGb,omitempty"`
+	// ClassAPerMillion is the price of one million PUT or LIST requests.
+	ClassAPerMillion float64 `protobuf:"fixed64,3,opt,name=class_a_per_million,json=classAPerMillion,proto3" json:"classAPerMillion,omitempty"`
+	// ClassBPerMillion is the price of one million GET requests.
+	ClassBPerMillion float64 `protobuf:"fixed64,4,opt,name=class_b_per_million,json=classBPerMillion,proto3" json:"classBPerMillion,omitempty"`
+	// MinStorageDays is the storage duration billed for an object deleted
+	// sooner.
+	MinStorageDays uint32 `protobuf:"varint,5,opt,name=min_storage_days,json=minStorageDays,proto3" json:"minStorageDays,omitempty"`
+}
+
+func (x *Pricing) Reset() {
+	*x = Pricing{}
+}
+
+func (*Pricing) ProtoMessage() {}
+
+func (x *Pricing) GetStorageGbMonth() float64 {
+	if x != nil {
+		return x.StorageGbMonth
+	}
+	return 0
+}
+
+func (x *Pricing) GetEgressGb() float64 {
+	if x != nil {
+		return x.EgressGb
+	}
+	return 0
+}
+
+func (x *Pricing) GetClassAPerMillion() float64 {
+	if x != nil {
+		return x.ClassAPerMillion
+	}
+	return 0
+}
+
+func (x *Pricing) GetClassBPerMillion() float64 {
+	if x != nil {
+		return x.ClassBPerMillion
+	}
+	return 0
+}
+
+func (x *Pricing) GetMinStorageDays() uint32 {
+	if x != nil {
+		return x.MinStorageDays
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -484,6 +544,26 @@ func (m *ReclaimState) CloneVT() *ReclaimState {
 }
 
 func (m *ReclaimState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Pricing) CloneVT() *Pricing {
+	if m == nil {
+		return (*Pricing)(nil)
+	}
+	r := new(Pricing)
+	r.StorageGbMonth = m.StorageGbMonth
+	r.EgressGb = m.EgressGb
+	r.ClassAPerMillion = m.ClassAPerMillion
+	r.ClassBPerMillion = m.ClassBPerMillion
+	r.MinStorageDays = m.MinStorageDays
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Pricing) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -655,6 +735,38 @@ func (this *ReclaimState) EqualVT(that *ReclaimState) bool {
 
 func (this *ReclaimState) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReclaimState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Pricing) EqualVT(that *Pricing) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageGbMonth != that.StorageGbMonth {
+		return false
+	}
+	if this.EgressGb != that.EgressGb {
+		return false
+	}
+	if this.ClassAPerMillion != that.ClassAPerMillion {
+		return false
+	}
+	if this.ClassBPerMillion != that.ClassBPerMillion {
+		return false
+	}
+	if this.MinStorageDays != that.MinStorageDays {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Pricing) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Pricing)
 	if !ok {
 		return false
 	}
@@ -1117,6 +1229,80 @@ func (x *ReclaimState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the Pricing message to JSON.
+func (x *Pricing) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageGbMonth != 0 || s.HasField("storageGbMonth") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageGbMonth")
+		s.WriteFloat64(x.StorageGbMonth)
+	}
+	if x.EgressGb != 0 || s.HasField("egressGb") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("egressGb")
+		s.WriteFloat64(x.EgressGb)
+	}
+	if x.ClassAPerMillion != 0 || s.HasField("classAPerMillion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("classAPerMillion")
+		s.WriteFloat64(x.ClassAPerMillion)
+	}
+	if x.ClassBPerMillion != 0 || s.HasField("classBPerMillion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("classBPerMillion")
+		s.WriteFloat64(x.ClassBPerMillion)
+	}
+	if x.MinStorageDays != 0 || s.HasField("minStorageDays") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("minStorageDays")
+		s.WriteUint32(x.MinStorageDays)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Pricing to JSON.
+func (x *Pricing) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Pricing message from JSON.
+func (x *Pricing) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_gb_month", "storageGbMonth":
+			s.AddField("storage_gb_month")
+			x.StorageGbMonth = s.ReadFloat64()
+		case "egress_gb", "egressGb":
+			s.AddField("egress_gb")
+			x.EgressGb = s.ReadFloat64()
+		case "class_a_per_million", "classAPerMillion":
+			s.AddField("class_a_per_million")
+			x.ClassAPerMillion = s.ReadFloat64()
+		case "class_b_per_million", "classBPerMillion":
+			s.AddField("class_b_per_million")
+			x.ClassBPerMillion = s.ReadFloat64()
+		case "min_storage_days", "minStorageDays":
+			s.AddField("min_storage_days")
+			x.MinStorageDays = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Pricing from JSON.
+func (x *Pricing) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1451,6 +1637,63 @@ func (m *ReclaimState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *Pricing) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Pricing) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Pricing) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MinStorageDays != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MinStorageDays))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.ClassBPerMillion != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.ClassBPerMillion))))
+		i--
+		dAtA[i] = 0x21
+	}
+	if m.ClassAPerMillion != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.ClassAPerMillion))))
+		i--
+		dAtA[i] = 0x19
+	}
+	if m.EgressGb != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.EgressGb))))
+		i--
+		dAtA[i] = 0x11
+	}
+	if m.StorageGbMonth != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.StorageGbMonth))))
+		i--
+		dAtA[i] = 0x9
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1543,6 +1786,21 @@ func (m *ReclaimState) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.DeadBytesPerDay)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Packs)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Blocks)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Pricing) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.StorageGbMonth)
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.EgressGb)
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.ClassAPerMillion)
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.ClassBPerMillion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MinStorageDays)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1708,6 +1966,36 @@ func (x *ReclaimState) MarshalProtoText() string {
 }
 
 func (x *ReclaimState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Pricing) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Pricing")
+	if x.StorageGbMonth != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_gb_month")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.StorageGbMonth)
+	}
+	if x.EgressGb != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "egress_gb")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.EgressGb)
+	}
+	if x.ClassAPerMillion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "class_a_per_million")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.ClassAPerMillion)
+	}
+	if x.ClassBPerMillion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "class_b_per_million")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.ClassBPerMillion)
+	}
+	if x.MinStorageDays != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "min_storage_days")
+		protobuf_go_lite.TextWriteUint(&sb, x.MinStorageDays)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Pricing) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2198,6 +2486,106 @@ func (m *ReclaimState) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Blocks = 0
 			m.Blocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Pricing) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Pricing: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Pricing: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageGbMonth", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.StorageGbMonth = float64(math.Float64frombits(v))
+		case 2:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EgressGb", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.EgressGb = float64(math.Float64frombits(v))
+		case 3:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClassAPerMillion", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.ClassAPerMillion = float64(math.Float64frombits(v))
+		case 4:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClassBPerMillion", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.ClassBPerMillion = float64(math.Float64frombits(v))
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinStorageDays", wireType)
+			}
+			m.MinStorageDays = 0
+			m.MinStorageDays, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

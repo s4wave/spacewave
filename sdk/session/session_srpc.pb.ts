@@ -73,6 +73,8 @@ import {
   SetDirectP2PEnabledResponse,
   SetLockModeRequest,
   SetLockModeResponse,
+  SetStorageBackendPricingRequest,
+  SetStorageBackendPricingResponse,
   StartTransferRequest,
   StartTransferResponse,
   UnlinkDeviceRequest,
@@ -559,6 +561,18 @@ export const SessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SetStorageBackendPricing overrides the price list storage reclaim uses
+     * for a backend.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.SetStorageBackendPricing
+     */
+    SetStorageBackendPricing: {
+      name: 'SetStorageBackendPricing',
+      I: SetStorageBackendPricingRequest,
+      O: SetStorageBackendPricingResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * WatchSpaceStorage streams where a Space's blocks are stored and the
      * progress of their upload.
      *
@@ -984,6 +998,17 @@ export interface SessionResourceService {
     request: SetDefaultStorageBackendRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetDefaultStorageBackendResponse>
+
+  /**
+   * SetStorageBackendPricing overrides the price list storage reclaim uses
+   * for a backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetStorageBackendPricing
+   */
+  SetStorageBackendPricing(
+    request: SetStorageBackendPricingRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetStorageBackendPricingResponse>
 
   /**
    * WatchSpaceStorage streams where a Space's blocks are stored and the
@@ -1456,6 +1481,18 @@ export interface SessionResourceServiceHandler {
   ): Promise<SetDefaultStorageBackendResponse>
 
   /**
+   * SetStorageBackendPricing overrides the price list storage reclaim uses
+   * for a backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetStorageBackendPricing
+   */
+  SetStorageBackendPricing(
+    request: SetStorageBackendPricingRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetStorageBackendPricingResponse>
+
+  /**
    * WatchSpaceStorage streams where a Space's blocks are stored and the
    * progress of their upload.
    *
@@ -1537,6 +1574,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.AddStorageBackend = this.AddStorageBackend.bind(this)
     this.RemoveStorageBackend = this.RemoveStorageBackend.bind(this)
     this.SetDefaultStorageBackend = this.SetDefaultStorageBackend.bind(this)
+    this.SetStorageBackendPricing = this.SetStorageBackendPricing.bind(this)
     this.WatchSpaceStorage = this.WatchSpaceStorage.bind(this)
     this.MoveSpaceStorage = this.MoveSpaceStorage.bind(this)
   }
@@ -2356,6 +2394,26 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return SetDefaultStorageBackendResponse.fromBinary(result)
+  }
+
+  /**
+   * SetStorageBackendPricing overrides the price list storage reclaim uses
+   * for a backend.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.SetStorageBackendPricing
+   */
+  async SetStorageBackendPricing(
+    request: SetStorageBackendPricingRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetStorageBackendPricingResponse> {
+    const requestMsg = SetStorageBackendPricingRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetStorageBackendPricing.name,
+      SetStorageBackendPricingRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetStorageBackendPricingResponse.fromBinary(result)
   }
 
   /**

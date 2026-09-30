@@ -5,7 +5,9 @@ package spacewave_cli
 import (
 	"bufio"
 	"context"
+	"math"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -46,6 +48,7 @@ func newStorageCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newStorageListCommand(&statePath, &sessionIdx),
 			newStorageTestCommand(&statePath, &sessionIdx),
 			newStorageDefaultCommand(&statePath, &sessionIdx),
+			newStoragePricingCommand(&statePath, &sessionIdx),
 			newStorageRemoveCommand(&statePath, &sessionIdx),
 		},
 	}
@@ -358,6 +361,134 @@ func newStorageDefaultCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			})
 		},
 	}
+}
+
+// priceFlags names the flags of storage pricing that set one price.
+var priceFlags = []string{"storage", "egress", "class-a", "class-b", "min-storage-days"}
+
+// newStoragePricingCommand builds the storage pricing command.
+func newStoragePricingCommand(statePath *string, sessionIdx *uint) *cli.Command {
+	var reset bool
+	return &cli.Command{
+		Name:      "pricing",
+		Usage:     "show or override the prices storage reclaim weighs",
+		ArgsUsage: "<name>",
+		Description: "Storage reclaim rewrites a packfile only when the storage it frees\n" +
+			"costs more than the requests and egress of rewriting it. The prices\n" +
+			"default to the published list of the service the endpoint names.\n" +
+			"Override them when the bill differs, such as free egress to a\n" +
+			"device in the bucket's region. Unset prices keep their current value.",
+		Flags: []cli.Flag{
+			outputFlag(),
+			&cli.Float64Flag{Name: "storage", Usage: "dollars per GiB stored for a month"},
+			&cli.Float64Flag{Name: "egress", Usage: "dollars per GiB read out of the service"},
+			&cli.Float64Flag{Name: "class-a", Usage: "dollars per million PUT or LIST requests"},
+			&cli.Float64Flag{Name: "class-b", Usage: "dollars per million GET requests"},
+			&cli.UintFlag{Name: "min-storage-days", Usage: "days billed for an object deleted sooner"},
+			&cli.BoolFlag{
+				Name:        "reset",
+				Usage:       "return to the published prices of the endpoint's service",
+				Destination: &reset,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			return withStorageBackend(c, *statePath, *sessionIdx, func(ctx context.Context, sess *s4wave_session.Session, backend *account_settings.StorageBackend) error {
+				// Build the new price list from the flags.
+				pricing := backend.GetS3().GetPricing()
+				set := slices.ContainsFunc(priceFlags, c.IsSet)
+				if reset && set {
+					return errors.New("--reset takes no prices")
+				}
+				if set {
+					var err error
+					pricing, err = applyPriceFlags(c, effectivePricing(backend))
+					if err != nil {
+						return err
+					}
+				}
+				if reset {
+					pricing = nil
+				}
+
+				// Record it.
+				if reset || set {
+					if err := sess.SetStorageBackendPricing(ctx, backend.GetId(), pricing); err != nil {
+						return errors.Wrap(err, "set storage backend pricing")
+					}
+				}
+
+				// Print the prices in effect.
+				effective := pricing
+				if effective == nil {
+					effective = block_store_s3.PricingForEndpoint(backend.GetS3().GetEndpoint())
+				}
+				if format := c.String("output"); format == "json" || format == "yaml" {
+					data, err := effective.MarshalJSON()
+					if err != nil {
+						return err
+					}
+					return formatOutput(data, format)
+				}
+				writePricing(backend.GetDisplayName(), effective, pricing != nil)
+				return nil
+			})
+		},
+	}
+}
+
+// effectivePricing returns the price list storage reclaim uses for backend:
+// its override, or the published prices of its endpoint's service.
+func effectivePricing(backend *account_settings.StorageBackend) *block_store_s3.Pricing {
+	if pricing := backend.GetS3().GetPricing(); pricing != nil {
+		return pricing
+	}
+	return block_store_s3.PricingForEndpoint(backend.GetS3().GetEndpoint())
+}
+
+// applyPriceFlags returns a copy of pricing with the prices the flags set.
+func applyPriceFlags(c *cli.Context, pricing *block_store_s3.Pricing) (*block_store_s3.Pricing, error) {
+	// Set each price given.
+	pricing = pricing.CloneVT()
+	if c.IsSet("storage") {
+		pricing.StorageGbMonth = c.Float64("storage")
+	}
+	if c.IsSet("egress") {
+		pricing.EgressGb = c.Float64("egress")
+	}
+	if c.IsSet("class-a") {
+		pricing.ClassAPerMillion = c.Float64("class-a")
+	}
+	if c.IsSet("class-b") {
+		pricing.ClassBPerMillion = c.Float64("class-b")
+	}
+
+	// Bound the minimum storage duration to its field.
+	if c.IsSet("min-storage-days") {
+		days := c.Uint("min-storage-days")
+		if days > math.MaxUint32 {
+			return nil, errors.New("--min-storage-days is too large")
+		}
+		pricing.MinStorageDays = uint32(days)
+	}
+	return pricing, pricing.Validate()
+}
+
+// writePricing prints the prices storage reclaim uses for the named backend.
+func writePricing(name string, pricing *block_store_s3.Pricing, override bool) {
+	source := "published prices of the endpoint's service"
+	if override {
+		source = "overridden"
+	}
+	dollars := func(v float64) string { return "$" + strconv.FormatFloat(v, 'f', -1, 64) }
+	writeFields(os.Stdout, [][2]string{
+		{"Backend", name},
+		{"Prices", source},
+		{"Storage", dollars(pricing.GetStorageGbMonth()) + " per GiB-month"},
+		{"Egress", dollars(pricing.GetEgressGb()) + " per GiB"},
+		{"Class A", dollars(pricing.GetClassAPerMillion()) + " per million PUT or LIST requests"},
+		{"Class B", dollars(pricing.GetClassBPerMillion()) + " per million GET requests"},
+		{"Min storage", strconv.FormatUint(uint64(pricing.GetMinStorageDays()), 10) + " days"},
+	})
 }
 
 // newStorageRemoveCommand builds the storage remove command.

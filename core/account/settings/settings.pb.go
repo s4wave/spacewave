@@ -14,6 +14,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	session "github.com/s4wave/spacewave/core/session"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	command "github.com/s4wave/spacewave/sdk/command"
 	secret "github.com/s4wave/spacewave/sdk/secret"
 )
@@ -214,6 +215,9 @@ type S3Location struct {
 	ObjectPrefix string `protobuf:"bytes,4,opt,name=object_prefix,json=objectPrefix,proto3" json:"objectPrefix,omitempty"`
 	// DisableSsl connects with HTTP instead of HTTPS.
 	DisableSsl bool `protobuf:"varint,5,opt,name=disable_ssl,json=disableSsl,proto3" json:"disableSsl,omitempty"`
+	// Pricing overrides the price list storage reclaim uses. Empty uses the
+	// published prices of the service the endpoint names.
+	Pricing *s3.Pricing `protobuf:"bytes,6,opt,name=pricing,proto3" json:"pricing,omitempty"`
 }
 
 func (x *S3Location) Reset() {
@@ -255,6 +259,13 @@ func (x *S3Location) GetDisableSsl() bool {
 		return x.DisableSsl
 	}
 	return false
+}
+
+func (x *S3Location) GetPricing() *s3.Pricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
 }
 
 // BlockStorePlacement places one block store on a storage backend.
@@ -955,6 +966,7 @@ func (m *S3Location) CloneVT() *S3Location {
 	r.Bucket = m.Bucket
 	r.ObjectPrefix = m.ObjectPrefix
 	r.DisableSsl = m.DisableSsl
+	r.Pricing = protobuf_go_lite.CloneVTValue(m.Pricing)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1513,6 +1525,9 @@ func (this *S3Location) EqualVT(that *S3Location) bool {
 		return false
 	}
 	if this.DisableSsl != that.DisableSsl {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Pricing, that.Pricing) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2565,6 +2580,11 @@ func (x *S3Location) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableSsl")
 		s.WriteBool(x.DisableSsl)
 	}
+	if x.Pricing != nil || s.HasField("pricing") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pricing")
+		x.Pricing.MarshalProtoJSON(s.WithField("pricing"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2597,6 +2617,13 @@ func (x *S3Location) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_ssl", "disableSsl":
 			s.AddField("disable_ssl")
 			x.DisableSsl = s.ReadBool()
+		case "pricing":
+			if s.ReadNil() {
+				x.Pricing = nil
+				return
+			}
+			x.Pricing = &s3.Pricing{}
+			x.Pricing.UnmarshalProtoJSON(s.WithField("pricing", true))
 		}
 	})
 }
@@ -3746,6 +3773,16 @@ func (m *S3Location) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Pricing != nil {
+		size, err := m.Pricing.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.DisableSsl {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableSsl)
 		i--
@@ -4842,6 +4879,10 @@ func (m *S3Location) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Bucket)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectPrefix)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableSsl)
+	if m.Pricing != nil {
+		l = m.Pricing.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5450,6 +5491,10 @@ func (x *S3Location) MarshalProtoText() string {
 	if x.DisableSsl != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_ssl")
 		protobuf_go_lite.TextWriteBool(&sb, x.DisableSsl)
+	}
+	if x.Pricing != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pricing")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Pricing)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6182,6 +6227,21 @@ func (m *S3Location) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableSsl = bool(v)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pricing", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Pricing == nil {
+				m.Pricing = &s3.Pricing{}
+			}
+			if err := m.Pricing.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

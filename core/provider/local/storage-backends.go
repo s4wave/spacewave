@@ -175,6 +175,32 @@ func (a *ProviderAccount) SetDefaultStorageBackend(ctx context.Context, backendI
 	})
 }
 
+// SetStorageBackendPricing overrides the price list storage reclaim uses for
+// a backend, or returns it to the published prices of the endpoint's service
+// when pricing is nil. The backend's open stores reopen with the new prices.
+func (a *ProviderAccount) SetStorageBackendPricing(
+	ctx context.Context,
+	backendID string,
+	pricing *block_store_s3.Pricing,
+) error {
+	// Find the backend.
+	settings, err := a.readAccountSettings(ctx)
+	if err != nil {
+		return err
+	}
+	backend := settings.FindStorageBackend(backendID)
+	if backend == nil {
+		return account_settings.ErrStorageBackendNotFound
+	}
+
+	// Record it with the new price list.
+	backend = backend.CloneVT()
+	backend.S3.Pricing = pricing.CloneVT()
+	return a.commitAccountSettingsOps(ctx, &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_UpsertStorageBackend{UpsertStorageBackend: backend},
+	})
+}
+
 // ResolveNewSpaceStorageBackend returns the backend a new Space's blocks go
 // on: the requested backend, else the account's default, else none. When
 // accountStorage is set, returns none.

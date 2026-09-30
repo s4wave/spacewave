@@ -972,6 +972,18 @@ class SetDefaultStorageBackendResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
+class SetStorageBackendPricingRequest(_message.Message):
+    __slots__ = ("storage_backend_id", "pricing")
+    STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
+    PRICING_FIELD_NUMBER: _ClassVar[int]
+    storage_backend_id: str
+    pricing: _s3_pb2.Pricing
+    def __init__(self, storage_backend_id: _Optional[str] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ...) -> None: ...
+
+class SetStorageBackendPricingResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class WatchSpaceStorageRequest(_message.Message):
     __slots__ = ("shared_object_id",)
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]

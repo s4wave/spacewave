@@ -92,9 +92,9 @@ func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return b.decodedBlocks
 }
 
-// ReclaimStorage returns nil: the cloud collects its own storage.
-func (b *BlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
-	return nil
+// ReclaimStorage returns zero: the cloud collects its own storage.
+func (b *BlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 // InvalidateDecodedBlockRef removes decoded-cache entries for ref.

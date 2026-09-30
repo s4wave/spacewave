@@ -1,6 +1,7 @@
 package block_store_s3
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 func TestPricingForEndpoint(t *testing.T) {
 	cases := []struct {
 		endpoint string
-		want     Pricing
+		want     *Pricing
 	}{
 		{"s3.us-east-1.amazonaws.com", awsPricing},
 		{"https://acct.r2.cloudflarestorage.com", r2Pricing},
@@ -49,7 +50,7 @@ func TestWorthReclaim(t *testing.T) {
 	// Judge each on each service.
 	cases := []struct {
 		name    string
-		pricing Pricing
+		pricing *Pricing
 		pack    *packJudgment
 		want    bool
 	}{
@@ -68,6 +69,61 @@ func TestWorthReclaim(t *testing.T) {
 		s := &PackStore{pricing: c.pricing}
 		if got := s.worthReclaim(c.pack, now); got != c.want {
 			t.Errorf("%s: worthReclaim = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// TestPricingValidate accepts free and priced lists and rejects negative or
+// unbounded prices.
+func TestPricingValidate(t *testing.T) {
+	cases := []struct {
+		name    string
+		pricing *Pricing
+		valid   bool
+	}{
+		{"unset", nil, true},
+		{"free same-region egress", &Pricing{StorageGbMonth: 0.023, ClassAPerMillion: 5, ClassBPerMillion: 0.4}, true},
+		{"negative storage", &Pricing{StorageGbMonth: -1}, false},
+		{"infinite egress", &Pricing{EgressGb: math.Inf(1)}, false},
+		{"not a number", &Pricing{ClassBPerMillion: math.NaN()}, false},
+	}
+	for _, c := range cases {
+		if err := c.pricing.Validate(); (err == nil) != c.valid {
+			t.Errorf("%s: Validate = %v, want valid %v", c.name, err, c.valid)
+		}
+	}
+}
+
+// TestReclaimDueAt schedules the next pass when the storage of the blocks
+// expected to die reaches the cost of a pass, no later than
+// reclaimMaxInterval.
+func TestReclaimDueAt(t *testing.T) {
+	// Describe a Space of 128 packfiles holding 4 KiB blocks.
+	passedAt := time.Now().Truncate(time.Second)
+	state := func(perDay uint64) *ReclaimState {
+		return &ReclaimState{
+			PassedAt:        timestamppb.New(passedAt),
+			DeadBytesPerDay: perDay,
+			Packs:           128,
+			Blocks:          128 * 4096,
+		}
+	}
+
+	// Check the due time sits where the gate opens.
+	s := &PackStore{pricing: awsPricing}
+	prev := state(100 << 20)
+	due := s.reclaimDueAt(prev)
+	if due.Sub(passedAt) < 8*24*time.Hour || due.Sub(passedAt) > 10*24*time.Hour {
+		t.Fatalf("pass due %v after the last, want about 8.8 days", due.Sub(passedAt))
+	}
+	if s.reclaimDue(prev, due.Add(-time.Minute)) || !s.reclaimDue(prev, due.Add(time.Minute)) {
+		t.Fatal("reclaimDue disagrees with reclaimDueAt")
+	}
+
+	// Check a slow or zero death rate waits reclaimMaxInterval.
+	for _, perDay := range []uint64{0, 1} {
+		if due := s.reclaimDueAt(state(perDay)); !due.Equal(passedAt.Add(reclaimMaxInterval)) {
+			t.Errorf("%d bytes a day: pass due %v after the last", perDay, due.Sub(passedAt))
 		}
 	}
 }
