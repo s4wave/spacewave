@@ -143,8 +143,14 @@ func (o *ObjectIterator) Seek(k string) error {
 	return nil
 }
 
-// Close releases the iterator.
+// Close releases the iterator. It waits for a concurrent Next or Seek, which
+// holds the WorldState lock while it uses the underlying iterator.
 func (o *ObjectIterator) Close() {
+	// Wait for any in-flight Next or Seek.
+	o.w.mtx.Lock()
+	defer o.w.mtx.Unlock()
+
+	// Release the underlying iterator and end iteration.
 	if o.iter != nil {
 		o.iter.Close()
 		o.iter = nil

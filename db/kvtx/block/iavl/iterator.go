@@ -33,6 +33,8 @@ type Iterator struct {
 	node *Node
 	// hasVal indicates if val is cached
 	hasVal bool
+	// positioned indicates Next or Seek has placed the traversal.
+	positioned bool
 
 	// stack tracks traversal
 	stack []stackEntry
@@ -139,12 +141,21 @@ func (i *Iterator) ValueCursor() *block.Cursor {
 
 // Next advances to the next entry and returns Valid.
 func (i *Iterator) Next() bool {
+	// Stop once the context ends.
 	if err := i.checkContext(); err != nil {
 		return false
 	}
 
-	// XXX: possible optimization: skip sub-trees that do not match prefix
+	// Start a prefixed scan at the prefix bound instead of the tree's first key.
+	if !i.positioned && len(i.prefix) != 0 {
+		if err := i.Seek(nil); err != nil {
+			return false
+		}
+		return i.Valid()
+	}
 
+	// Walk in order from the current traversal to the next matching leaf.
+	i.positioned = true
 	i.resetState()
 	for len(i.stack) != 0 {
 		lastIdx := len(i.stack) - 1
@@ -211,15 +222,18 @@ func (i *Iterator) Next() bool {
 // Pass nil to seek to the beginning (or end if reversed).
 // It is not necessary to call Next() after seek.
 func (i *Iterator) Seek(k []byte) error {
+	// Stop once the context ends.
 	if err := i.checkContext(); err != nil {
 		return err
 	}
 
-	// reset the state
+	// Reset the traversal to the root.
+	i.positioned = true
 	i.resetState()
 	i.stack = i.stack[:1]
 	i.stack[0] = stackEntry{node: i.t.root, cursor: i.t.bcs}
 
+	// An empty key seeks to the prefix bound in the iteration direction.
 	if len(k) == 0 {
 		if len(i.prefix) != 0 {
 			if i.rev {
@@ -234,6 +248,7 @@ func (i *Iterator) Seek(k []byte) error {
 		}
 	}
 
+	// Without a key or prefix, seek to the first entry in the iteration direction.
 	if len(k) == 0 {
 		if i.rev {
 			return i.seekToEnd()
@@ -241,6 +256,7 @@ func (i *Iterator) Seek(k []byte) error {
 		return i.seekToBeginning()
 	}
 
+	// Descend toward k, skipping subtrees that cannot hold the target.
 	for len(i.stack) > 0 {
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
