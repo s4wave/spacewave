@@ -5,7 +5,8 @@ import Spacewave.SObject.State
 
 Mirrors `core/sobject/host.go` with historical-root retention and snapshot
 nonce-progress corrections. `importPeerSnapshot`, `applyConfigChange`,
-`installInviteSnapshot`, and `hostUpdateRootState` clone before admission.
+`installInviteSnapshot`, `hostUpdateRootState` and `hostQueueOperation` clone
+before admission.
 Ordinary failure is `none`; committed revocation is a successful `HostResult`
 with `revoked = true`, matching Go's write followed by ErrParticipantRevoked.
 
@@ -172,6 +173,25 @@ def hostUpdateRootState (previous : State) (root : Root) (enforce : String)
   if !lockOK then none
   else
     let next ← updateRootState previous root enforce rejected accepted
+    publishHost next false writeOK
+
+/-- ProcessedRoot is one validator pass over a queued state: its root and results. -/
+structure ProcessedRoot where
+  root : Root
+  rejected : List Operation
+  accepted : List Operation
+  deriving DecidableEq, Repr
+
+/-- hostQueueOperation queues a callback-built operation and, when a validator pass is
+supplied, admits its root in the same write. A failed pass writes the queued state alone. -/
+def hostQueueOperation (previous : State) (operation : Option Operation) (validator : String)
+    (processed : Option ProcessedRoot) (lockOK writeOK : Bool) : Option HostResult := do
+  if !lockOK then none
+  else
+    let o ← operation
+    let queued ← queueOperation previous o
+    let next := (processed.bind fun p =>
+      updateRootState queued p.root validator p.rejected p.accepted).getD queued
     publishHost next false writeOK
 
 /-- Queue reconstruction cannot edit authority or local invitation capabilities. -/
@@ -476,7 +496,8 @@ theorem importPeerSnapshot_config_monotone {previous candidate : State} {entries
 /-- A proved removal commits without examining the root or access callback. -/
 theorem importPeerSnapshot_revoked {previous candidate : State} {entries : List Entry}
     {peer : String} {bytes history : Nat} (accessOK : Bool)
-    (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧ history ≤ 8 * 1024 * 1024)
+    (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧
+      history ≤ 8 * 1024 * 1024)
     (chain : verifySuffix previous.config candidate.config entries = true)
     (removed : readableBy candidate.config peer = false) (nonempty : entries ≠ []) :
     importPeerSnapshot previous candidate entries peer bytes history true accessOK true =
@@ -493,7 +514,8 @@ theorem importPeerSnapshot_target {previous candidate : State} {entries : List E
     (h : importPeerSnapshot previous candidate entries peer bytes history
       lockOK accessOK writeOK = some out) :
     out.state.config = candidate.config ∧ out.state.root.seqno = candidate.root.seqno ∧
-      out.state.root.sameContent candidate.root = true ∧ out.state.invites = previous.invites := by
+      out.state.root.sameContent candidate.root = true ∧
+      out.state.invites = previous.invites := by
   unfold importPeerSnapshot at h
   split at h
   · contradiction
@@ -504,7 +526,8 @@ theorem importPeerSnapshot_target {previous candidate : State} {entries : List E
       | none => simp [prepared] at h
       | some next =>
         simp only [prepared, Option.bind_eq_bind, Option.bind_some] at h
-        obtain ⟨root, accepted, config, rootEq, invites⟩ := prepareReadableSnapshot_spec prepared
+        obtain ⟨root, accepted, config, rootEq, invites⟩ :=
+          prepareReadableSnapshot_spec prepared
         obtain ⟨_, seq, content, _⟩ := importRoot_spec accepted
         have reached : next.config = candidate.config ∧ next.root.seqno = candidate.root.seqno ∧
             next.root.sameContent candidate.root = true ∧ next.invites = previous.invites := by
@@ -566,7 +589,8 @@ theorem prepareReadableSnapshot_clean {previous candidate : State}
 /-- A newer compatible clean checkpoint is installed without assuming import success. -/
 theorem cleanExchange_converges {older newer : State} {entries : List Entry} {peer : String}
     {bytes history : Nat}
-    (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧ history ≤ 8 * 1024 * 1024)
+    (bounded : bytes ≤ 10 * 1024 * 1024 ∧ entries.length ≤ 4096 ∧
+      history ≤ 8 * 1024 * 1024)
     (chain : verifySuffix older.config newer.config entries = true)
     (readable : readableBy newer.config peer = true)
     (root : importRoot older.root newer.root newer.config = some newer.root)
@@ -667,5 +691,57 @@ theorem hostUpdateRootState_spec {previous : State} {root : Root} {enforce : Str
     | some next =>
       simp only [updated, Option.bind_eq_bind, Option.bind_some] at h
       exact congrArg some (publishHost_spec h).1.symm
+
+/-- A queued write is the accepted queue step, optionally followed by the validator's root. -/
+theorem hostQueueOperation_spec {previous : State} {operation : Option Operation}
+    {validator : String} {processed : Option ProcessedRoot} {lockOK writeOK : Bool}
+    {out : HostResult}
+    (h : hostQueueOperation previous operation validator processed lockOK writeOK = some out) :
+    ∃ o queued, operation = some o ∧ queueOperation previous o = some queued ∧
+      (out.state = queued ∨ ∃ p, processed = some p ∧
+        updateRootState queued p.root validator p.rejected p.accepted = some out.state) := by
+  unfold hostQueueOperation at h
+  split at h
+  · contradiction
+  · cases operation with
+    | none => simp at h
+    | some o =>
+      cases accepted : queueOperation previous o with
+      | none => simp [accepted] at h
+      | some queued =>
+        simp only [accepted, Option.bind_eq_bind, Option.bind_some] at h
+        have state := (publishHost_spec h).1
+        refine ⟨o, queued, rfl, accepted, ?_⟩
+        cases processed with
+        | none => exact .inl (by simpa using state)
+        | some p =>
+          cases updated : updateRootState queued p.root validator p.rejected p.accepted with
+          | none => exact .inl (by simpa [updated] using state)
+          | some next => exact .inr ⟨p, rfl, by simpa [updated] using state.symm⟩
+
+/-- A failed validator pass still publishes the queued operation for the next pass. -/
+theorem hostQueueOperation_fallback {previous queued : State} {o : Operation}
+    {validator : String} {processed : Option ProcessedRoot} {writeOK : Bool}
+    (accepted : queueOperation previous o = some queued)
+    (failed : ∀ p, processed = some p →
+      updateRootState queued p.root validator p.rejected p.accepted = none) :
+    hostQueueOperation previous (some o) validator processed true writeOK =
+      publishHost queued false writeOK := by
+  unfold hostQueueOperation
+  cases processed with
+  | none => simp [accepted]
+  | some p => simp [accepted, failed p rfl]
+
+/-- Queue-and-process writes are composed of accepted state transitions only. -/
+theorem hostQueueOperation_steps {previous : State} {operation : Option Operation}
+    {validator : String} {processed : Option ProcessedRoot} {lockOK writeOK : Bool}
+    {out : HostResult}
+    (h : hostQueueOperation previous operation validator processed lockOK writeOK = some out) :
+    StateSteps previous out.state := by
+  obtain ⟨o, queued, _, accepted, result⟩ := hostQueueOperation_spec h
+  have first := StateSteps.tail (.refl previous) (.queue accepted)
+  rcases result with same | ⟨p, _, admitted⟩
+  · exact same ▸ first
+  · exact first.tail (.root admitted)
 
 end Spacewave.SObject

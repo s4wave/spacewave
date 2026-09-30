@@ -4,6 +4,7 @@ import Spacewave.SObject.Crypto
 import Spacewave.SObject.ResolvedOps
 import Spacewave.SObject.State
 import Spacewave.SObject.Host
+import Spacewave.SObject.Process
 import Spacewave.SObject.KeyRotation
 import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant

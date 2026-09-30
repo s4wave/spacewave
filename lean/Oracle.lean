@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Spacewave.SObject.Host
+import Spacewave.SObject.Process
 import Spacewave.SObject.KeyRotation
 import Spacewave.SObject.Invite
 import Spacewave.SObject.RemoveParticipant
@@ -35,6 +36,9 @@ per line. A request names a model function in `op` and carries its inputs:
 - `installInviteSnapshot`: `previous`, `candidate`, `checkpoint`, `lockOK`, `writeOK`.
 - `hostUpdateRootState`: `previous`, `root`, `enforce`, `rejected`, `accepted`,
   `lockOK`, `writeOK`.
+- `hostQueueOperation`: `previous`, nullable `operation`, `validator`, nullable
+  `processed`, `lockOK`, `writeOK`.
+- `processOperations`: `state`, `input`; result `{"ok", "processed"}`.
 - `validateJournalRecord`: `record`; result `{"ok"}`.
 - `applyJournal`: `state`, `record`; result `{"ok", "state"}`.
 - `replayJournalFrom`: restored `state`, `sequence`, suffix `records`.
@@ -45,22 +49,29 @@ per line. A request names a model function in `op` and carries its inputs:
 - `checkpointJournalWriter`: held writer/storage state and preparation/publication primitives.
 - `validateOutgoingJournalMarker`: marker metadata before serialization.
 - `encodeJournalMarker`: marker metadata and primitive CRC before decoding its fixed header.
-- `publishJournalCheckpoint`: prepared state, generation and injected fault; result `{"ok", "publication"}`.
+- `publishJournalCheckpoint`: prepared state, generation and injected fault; result
+  `{"ok", "publication"}`.
 - `readJournalMarker`: decoded marker fields and primitive checksum.
 - `openJournalPipeline`: public capabilities, recovery and retained authority/activation inputs.
 - `checkpointAndOpenJournal`: publication followed by optional crash and public recovery.
 - `advanceSyncExchange`: held-state reads and one selected production loop event.
 - `joinSyncWorkers`: optional routine exit channels and observed body acknowledgments.
 - `watchSyncAuthority`: host retention, current state reads and transport deadline observations.
-- `prepareSyncOutgoing`, `receiveSyncExchange`: sole-owner protocol state and primitive observations.
-- `writeSyncFrames`: endpoint identities and current-authority/transport trace; result `{"ok", "writer"}`.
+- `prepareSyncOutgoing`, `receiveSyncExchange`: sole-owner protocol state and primitive
+  observations.
+- `writeSyncFrames`: endpoint identities and current-authority/transport trace; result
+  `{"ok", "writer"}`.
 - `startSyncStream`: authentication inputs and deadline observations; result `{"ok", "started"}`.
-- `authenticateSync`: wire and primitive authentication observations; result `{"ok", "authentication"}`.
+- `authenticateSync`: wire and primitive authentication observations; result
+  `{"ok", "authentication"}`.
 - `authorizeSync`: participants, held hash and endpoint identities; result `{"ok"}`.
 - `verifySyncProof`: exact-transcript proof observation; result `{"ok", "remote"}`.
-- `receiveSyncPages`: initial receive buffer and complete page sequence; result `{"ok", "received"}`.
-- `acceptSyncResponse`: complete pinned response, decoded bytes and host observations; result `{"ok", "accepted"}`.
-- `prepareSyncResponse`: pinned state, history read and encoding observations; result `{"ok", "response"}`.
+- `receiveSyncPages`: initial receive buffer and complete page sequence; result
+  `{"ok", "received"}`.
+- `acceptSyncResponse`: complete pinned response, decoded bytes and host observations; result
+  `{"ok", "accepted"}`.
+- `prepareSyncResponse`: pinned state, history read and encoding observations; result
+  `{"ok", "response"}`.
 - `syncStateHash`: stripped-state encoding and digest observations; result `{"ok", "digest"}`.
 - `syncResponseObsolete`: observed state and pinned head; result `{"ok"}`.
 - `appendSyncPage`: receive buffer and raw page projection; result `{"ok", "received"}`.
@@ -113,36 +124,50 @@ open Lean Spacewave.SObject
 deriving instance ToJson, FromJson for Participant, Config, Sig, Entry
 deriving instance ToJson, FromJson for AccountNonce, Operation, Rejections, Grant, Root
 deriving instance ToJson, FromJson for Invite, State
-deriving instance ToJson, FromJson for HostResult
+deriving instance ToJson, FromJson for HostResult, ProcessedRoot
+deriving instance ToJson, FromJson for ProcessOp, OpResult, RejectionRef, ProcessInput, Processed
 deriving instance ToJson, FromJson for RewrapInput, RemovalCrypto, RemovalResult
 deriving instance ToJson, FromJson for RotationPeer, KeyGrant, KeyEpoch, Rotation
 deriving instance ToJson, FromJson for PlainRoot, ReencryptInput, Reencrypted
 
-deriving instance ToJson, FromJson for LeaveRequest, LeaveChange, LeaveAttempt, LeaveResult, LeaveTrace
+deriving instance ToJson, FromJson for LeaveRequest, LeaveChange, LeaveAttempt, LeaveResult
+deriving instance ToJson, FromJson for LeaveTrace
 
 deriving instance ToJson, FromJson for RecoveryMaterial, RecoveryEnvelope, RecoveryGrant
 
-deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Version, Journal.Payload
-deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement, Journal.Projection
+deriving instance ToJson, FromJson for Journal.Key, Journal.Lineage, Journal.Version
+deriving instance ToJson, FromJson for Journal.Payload
+deriving instance ToJson, FromJson for Journal.Receipt, Journal.Lookup, Journal.Acknowledgement
+deriving instance ToJson, FromJson for Journal.Projection
 deriving instance ToJson, FromJson for Journal.Record, Journal.Attempt, Journal.CompactCheckpoint
-deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.FramePrimitives, Journal.ScanResult, Journal.MemoryBytes
+deriving instance ToJson, FromJson for Journal.FrameObservation, Journal.FramePrimitives
+deriving instance ToJson, FromJson for Journal.ScanResult, Journal.MemoryBytes
 deriving instance ToJson, FromJson for Journal.PublicationState, Journal.PublicationResult
 
-deriving instance ToJson, FromJson for Journal.GenerationMarker, Journal.MarkerObservation, Journal.PendingActivation
-deriving instance ToJson, FromJson for Journal.FrameEncoding, Journal.WriterState, Journal.AppendEffects
-deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentContent, Journal.Authentication
-deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.ActivationResult, Journal.AuthenticationEntry
-deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult, Journal.PipelineOpenResult
-deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint, Journal.CheckpointResult
+deriving instance ToJson, FromJson for Journal.GenerationMarker, Journal.MarkerObservation
+deriving instance ToJson, FromJson for Journal.PendingActivation
+deriving instance ToJson, FromJson for Journal.FrameEncoding, Journal.WriterState
+deriving instance ToJson, FromJson for Journal.AppendEffects
+deriving instance ToJson, FromJson for Journal.AppendResult, Journal.IntentContent
+deriving instance ToJson, FromJson for Journal.Authentication
+deriving instance ToJson, FromJson for Journal.ActivationInput, Journal.ActivationResult
+deriving instance ToJson, FromJson for Journal.AuthenticationEntry
+deriving instance ToJson, FromJson for Journal.OpenInput, Journal.OpenResult
+deriving instance ToJson, FromJson for Journal.PipelineOpenResult
+deriving instance ToJson, FromJson for Journal.CheckpointInput, Journal.PreparedCheckpoint
+deriving instance ToJson, FromJson for Journal.CheckpointResult
 deriving instance ToJson, FromJson for Journal.CheckpointRecoveryResult
-deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult, Sync.StreamStart
+deriving instance ToJson, FromJson for Sync.AuthenticationInput, Sync.AuthenticationResult
+deriving instance ToJson, FromJson for Sync.StreamStart
 deriving instance ToJson, FromJson for Sync.AuthorityRead, Sync.AuthorityWatch
 deriving instance ToJson, FromJson for Sync.WorkerJoin, Sync.JoinResult, Sync.StreamFinish
-deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage, Sync.ReceiveResult
+deriving instance ToJson, FromJson for Sync.Head, Sync.HistoryChange, Sync.Receive, Sync.HistoryPage
+deriving instance ToJson, FromJson for Sync.ReceiveResult
 deriving instance ToJson, FromJson for Sync.Snapshot, Sync.Response, Sync.NextMessage
 deriving instance ToJson, FromJson for Sync.Request, Sync.AcceptanceInput, Sync.AcceptanceResult
 deriving instance ToJson, FromJson for Sync.WriterAttempt, Sync.WriterResult
-deriving instance ToJson, FromJson for Sync.ExchangeFrame, Sync.Exchange, Sync.ExchangePrimitives, Sync.ExchangeResult
+deriving instance ToJson, FromJson for Sync.ExchangeFrame, Sync.Exchange, Sync.ExchangePrimitives
+deriving instance ToJson, FromJson for Sync.ExchangeResult
 deriving instance ToJson, FromJson for Sync.LoopInput, Sync.LoopResult, Sync.LoopObservation
 
 /-- respond evaluates one request against the model. -/
@@ -184,7 +209,8 @@ def respond (req : Json) : Except String Json := do
     return json% {ok: $(result.ok), message: $result}
   | "prepareSyncOutgoing" =>
     let result := Sync.prepareOutgoing (← req.getObjValAs? Sync.Exchange "before")
-      (← req.getObjValAs? (Option State) "current") (← req.getObjValAs? Sync.ExchangePrimitives "input")
+      (← req.getObjValAs? (Option State) "current")
+      (← req.getObjValAs? Sync.ExchangePrimitives "input")
     return json% {ok: $(result.ok), exchange: $result}
   | "receiveSyncExchange" =>
     let input ← req.getObjValAs? Sync.ExchangePrimitives "input"
@@ -194,23 +220,27 @@ def respond (req : Json) : Except String Json := do
       some ((result.imported.map (·.host)).getD (visibleHost input.acceptance.previous none))
     return json% {ok: $(result.ok), exchange: $result, host: $host}
   | "joinSyncWorkers" =>
-    return json% {joining: $(Sync.joinWorkers (← req.getObjValAs? (List Sync.WorkerJoin) "workers"))}
+    let joining := Sync.joinWorkers (← req.getObjValAs? (List Sync.WorkerJoin) "workers")
+    return json% {joining: $joining}
   | "advanceSyncExchange" =>
     let input ← req.getObjValAs? Sync.LoopInput "loop"
     let some result := Sync.advanceExchange (← req.getObjValAs? Sync.Exchange "before")
       (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote") input
       (← req.getObjValAs? Sync.ExchangeFrame "frame") | throw "impossible selected event"
     let host := if result.exchange.operation then none else
-      some ((result.exchange.imported.map (·.host)).getD (visibleHost input.reception.acceptance.previous none))
+      some ((result.exchange.imported.map (·.host)).getD
+        (visibleHost input.reception.acceptance.previous none))
     return json% {ok: $(result.exchange.ok), exchange: $(result.exchange), host: $host,
       denial: $(result.denial), handed: $(result.handed)}
   | "watchSyncAuthority" =>
-    let watcher := Sync.watchStreamAuthority (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+    let watcher := Sync.watchStreamAuthority (← req.getObjValAs? String "local")
+      (← req.getObjValAs? String "remote")
       (← req.getObjValAs? Int "retainError") (← req.getObjValAs? Bool "deadlineOK")
       (← req.getObjValAs? (List Sync.AuthorityRead) "reads")
     return json% {watcher: $watcher}
   | "writeSyncFrames" =>
-    let writer := Sync.writeFrames (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+    let writer := Sync.writeFrames (← req.getObjValAs? String "local")
+      (← req.getObjValAs? String "remote")
       (← req.getObjValAs? (List Sync.WriterAttempt) "attempts")
     return json% {ok: $(writer.waiting), writer: $writer}
   | "startSyncStream" =>
@@ -221,8 +251,10 @@ def respond (req : Json) : Except String Json := do
     let result := Sync.authenticate (← req.getObjValAs? Sync.AuthenticationInput "input")
     return json% {ok: $(result.ok), authentication: $result}
   | "authorizeSync" =>
-    let result := Sync.authorizeParticipants (← req.getObjValAs? (List Participant) "participants")
-      (← req.getObjValAs? String "hash") (← req.getObjValAs? String "local") (← req.getObjValAs? String "remote")
+    let result := Sync.authorizeParticipants
+      (← req.getObjValAs? (List Participant) "participants")
+      (← req.getObjValAs? String "hash") (← req.getObjValAs? String "local")
+      (← req.getObjValAs? String "remote")
     return json% {ok: $result}
   | "verifySyncProof" =>
     let result := Sync.verifyParticipantProof (← req.getObjValAs? (Option Sig) "proof")
@@ -232,8 +264,10 @@ def respond (req : Json) : Except String Json := do
     let receiptOK ← req.getObjValAs? Bool "receiptOK"
     let lookupOK ← req.getObjValAs? Bool "lookupOK"
     let result := Journal.checkpointAndOpen (← req.getObjValAs? Journal.PublicationState "before")
-      (← req.getObjValAs? Journal.CheckpointInput "preparation") (← req.getObjValAs? Journal.OpenInput "input")
-      (← req.getObjValAs? Journal.ActivationInput "activation") (← req.getObjValAs? Bool "crash")
+      (← req.getObjValAs? Journal.CheckpointInput "preparation")
+      (← req.getObjValAs? Journal.OpenInput "input")
+      (← req.getObjValAs? Journal.ActivationInput "activation")
+      (← req.getObjValAs? Bool "crash")
       (← req.getObjValAs? Nat "markerCRC") (← req.getObjValAs? Bool "receiptAvailable")
       (← req.getObjValAs? Bool "lookupAvailable") (Journal.findAuthentication entries)
       (fun _ _ => receiptOK) (fun _ _ => lookupOK)
@@ -244,7 +278,8 @@ def respond (req : Json) : Except String Json := do
     let entries ← req.getObjValAs? (List Journal.AuthenticationEntry) "auth"
     let receiptOK ← req.getObjValAs? Bool "receiptOK"
     let lookupOK ← req.getObjValAs? Bool "lookupOK"
-    let result := Journal.openPipeline input activation (← req.getObjValAs? Bool "receiptAvailable")
+    let result := Journal.openPipeline input activation
+      (← req.getObjValAs? Bool "receiptAvailable")
       (← req.getObjValAs? Bool "lookupAvailable") (Journal.findAuthentication entries)
       (fun _ _ => receiptOK) (fun _ _ => lookupOK)
     return json% {ok: $(result.writer.isSome), pipeline: $result}
@@ -252,7 +287,8 @@ def respond (req : Json) : Except String Json := do
     let input ← req.getObjValAs? Journal.OpenInput "input"
     let entries ← req.getObjValAs? (List Journal.AuthenticationEntry) "auth"
     let auth := Journal.findAuthentication entries
-    let result := Journal.openWriter input (fun record => Journal.authenticateRecord record (auth record))
+    let result := Journal.openWriter input
+      (fun record => Journal.authenticateRecord record (auth record))
       (fun state => Journal.authenticateSnapshots input.crypto input.identity (state.map some) auth)
     return json% {ok: $(result.writer.isSome), opened: $result}
   | "observeJournalFrame" =>
@@ -291,7 +327,8 @@ def respond (req : Json) : Except String Json := do
     let record ← req.getObjValAs? (Option Journal.Record) "record"
     let auth ← req.getObjValAs? Journal.Authentication "auth"
     let effects ← req.getObjValAs? Journal.AppendEffects "effects"
-    let result := Journal.appendWriter before record (fun value => Journal.authenticateRecord value auth) effects
+    let result := Journal.appendWriter before record
+      (fun value => Journal.authenticateRecord value auth) effects
     return json% {ok: $(result.ok), writer: $(result.result)}
   | "journalPayloadCodec" =>
     let bytes ← req.getObjValAs? (List Nat) "bytes"
@@ -308,7 +345,8 @@ def respond (req : Json) : Except String Json := do
       (← req.getObjValAs? Nat "crc")
     return json% {ok: $(result.isSome), marker: $result}
   | "validateOutgoingJournalMarker" =>
-    return json% {ok: $(Journal.validOutgoingMarker (← req.getObjValAs? Journal.GenerationMarker "marker"))}
+    let marker ← req.getObjValAs? Journal.GenerationMarker "marker"
+    return json% {ok: $(Journal.validOutgoingMarker marker)}
   | "publishJournalCheckpoint" =>
     let result := Journal.publishCheckpoint (← req.getObjValAs? Journal.PublicationState "before")
       (← req.getObjValAs? Nat "generation") (← req.getObjValAs? Int "fault")
@@ -324,7 +362,8 @@ def respond (req : Json) : Except String Json := do
       let value := json% {code: $code, records: [], offset: 0}
       return json% {ok: false, scan: $value}
   | "scanJournalBytes" =>
-    let result := Journal.scanBytes (← req.getObjValAs? Nat "initial") (← req.getObjValAs? (List Nat) "bytes")
+    let result := Journal.scanBytes (← req.getObjValAs? Nat "initial")
+      (← req.getObjValAs? (List Nat) "bytes")
       (← req.getObjValAs? (List Journal.FramePrimitives) "frames")
     match result with
     | .ok scan =>
@@ -359,10 +398,12 @@ def respond (req : Json) : Except String Json := do
     return json% {ok: $(result.isSome), state: $result}
   | "replayJournalFrom" =>
     let result := Journal.replayFrom (← req.getObjValAs? Journal.State "state")
-      (← req.getObjValAs? Nat "sequence") (← req.getObjValAs? (List (Option Journal.Record)) "records")
+      (← req.getObjValAs? Nat "sequence")
+      (← req.getObjValAs? (List (Option Journal.Record)) "records")
     return json% {ok: $(result.isSome), state: $result}
   | "replayJournal" =>
-    let result := Journal.reduceJournal (← req.getObjValAs? (List (Option Journal.Record)) "records")
+    let records ← req.getObjValAs? (List (Option Journal.Record)) "records"
+    let result := Journal.reduceJournal records
     return json% {ok: $(result.isSome), state: $result}
   | "journalCheckpoint" =>
     let identity ← req.getObjValAs? String "identity"
@@ -377,7 +418,8 @@ def respond (req : Json) : Except String Json := do
     let identity ← req.getObjValAs? String "identity"
     let generation ← req.getObjValAs? Nat "generation"
     let nextSequence ← req.getObjValAs? Nat "nextSequence"
-    let result := checkpoint.bind (fun value => Journal.readCheckpoint value identity generation nextSequence)
+    let result := checkpoint.bind
+      (fun value => Journal.readCheckpoint value identity generation nextSequence)
     return json% {ok: $(result.isSome), state: $result}
   | "validateJournalCheckpoint" =>
     let result := Journal.validCheckpointAttempt (← req.getObjValAs? Journal.Attempt "attempt")
@@ -513,6 +555,13 @@ def respond (req : Json) : Except String Json := do
       (← req.getObjValAs? (List Operation) "accepted") (← req.getObjValAs? Bool "lockOK")
       (← req.getObjValAs? Bool "writeOK")
     return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
+  | "hostQueueOperation" =>
+    let previous ← req.getObjValAs? State "previous"
+    let result := hostQueueOperation previous (← req.getObjValAs? (Option Operation) "operation")
+      (← req.getObjValAs? String "validator")
+      (← req.getObjValAs? (Option ProcessedRoot) "processed") (← req.getObjValAs? Bool "lockOK")
+      (← req.getObjValAs? Bool "writeOK")
+    return json% {ok: $(result.isSome), outcome: $(visibleHost previous result)}
   | "verifyChange" =>
     let result := verifyChange (← req.getObjValAs? Config "current")
       (← req.getObjValAs? Entry "entry")
@@ -544,6 +593,10 @@ def respond (req : Json) : Except String Json := do
       (← req.getObjValAs? (List Operation) "rejected")
       (← req.getObjValAs? (List Operation) "accepted")
     return json% {ok: $(result.isSome), state: $result}
+  | "processOperations" =>
+    let result := processOperations (← req.getObjValAs? State "state")
+      (← req.getObjValAs? ProcessInput "input")
+    return json% {ok: $(result.isSome), processed: $result}
   | "clearOperationResult" =>
     let result := clearOperationResult (← req.getObjValAs? State "state")
       (← req.getObjValAs? String "peer") (← req.getObjValAs? String "localId")

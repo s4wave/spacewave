@@ -234,7 +234,8 @@ theorem removalRoot_content {config : Config} {targets : List String} {signer : 
     {crypto : RemovalCrypto} {root out : Root}
     (h : removalRoot config targets signer crypto root = some out) :
     out.content = root.content ∧ out.seqno = root.seqno ∧ out.nonces = root.nonces ∧
-      (root.hasInner = true → config.participants ≠ [] → rootAuthorized config out = true) := by
+      (root.hasInner = true → config.participants ≠ [] →
+        rootAuthorized config out = true) := by
   unfold removalRoot at h
   dsimp only at h
   split at h
