@@ -32,6 +32,8 @@ github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 h1:JOVV25Fr
 github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
 github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337 h1:e9kZ8XRvAXoVYNc73tytyT+XD/bRZiVxC2c+PbPAGes=
 github.com/aperturerobotics/common v0.35.5-0.20260914230232-3a275288c337/go.mod h1:Nl6r+XZVA/SX2FmhXYBU2Y8+hf3RZIJQh2ZnCBwNa24=
+github.com/aperturerobotics/common v0.35.5-0.20260929213603-e672dd21ed6d h1:9gwe2tW9f2SXCNfIytKiDFAMmMPt1onVWi2Swz5MGKo=
+github.com/aperturerobotics/common v0.35.5-0.20260929213603-e672dd21ed6d/go.mod h1:Nl6r+XZVA/SX2FmhXYBU2Y8+hf3RZIJQh2ZnCBwNa24=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20260927093214-06e46d81f006 h1:xPYZ9TGxquQmBl+ZazsrUnZwjOd3s8OMd/CSAY72JUA=
 github.com/aperturerobotics/controllerbus v0.53.6-0.20260927093214-06e46d81f006/go.mod h1:oMdVjwUwfKUo9XgnO7GbDk6cVMvrlnVaRDp/epb7ydU=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
@@ -88,6 +90,8 @@ github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phq
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
 github.com/aperturerobotics/starpc v0.52.2-0.20260927191206-60aebb7f3a14 h1:Zp6vO25gSE2lFXaYsgLjHlA2zs9PD7Vh2Php+u4/eZQ=
 github.com/aperturerobotics/starpc v0.52.2-0.20260927191206-60aebb7f3a14/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
+github.com/aperturerobotics/starpc v0.52.2-0.20260929200700-ec671dd793c6 h1:Vy7MoO3kNQ5jL3beDfp7+QKQt2y7oDdlC+Fv0Gn4P58=
+github.com/aperturerobotics/starpc v0.52.2-0.20260929200700-ec671dd793c6/go.mod h1:RuRFctJOFKaEqxvTufdpGR4r7uiW2Z0wta2iIJkyL0Q=
 github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357 h1:JEAoOhgohIkgxFMBqL9zxthEFf7OSJcShqhQKUUKTtk=
 github.com/aperturerobotics/util v1.34.10-0.20260924000454-918a9e70b357/go.mod h1:2uIQA8dHn5EQgEtRqcTS4zxJ51dEVehY9O++bJfU2hs=
 github.com/aperturerobotics/vitess v0.0.0-20260922203758-a3c6c653303d h1:9UIhsGTL9o/dBAi60BRp8mWOmG2RkX5ik08aZHDU3zQ=
