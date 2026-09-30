@@ -45,8 +45,10 @@ func MainWithRunner(
 	composition *compose.Composition,
 	runner NativeRunner,
 ) {
+	// Wrap the asset filesystem with executable-backed lookups.
 	assetsFS = nativeAssetsFS{FS: assetsFS, executable: os.Executable}
 
+	// Run the CLI entrypoint when commands exist and arguments were passed.
 	if len(composition.Commands) != 0 && len(os.Args) > 1 {
 		if err := func() error {
 			distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
@@ -61,12 +63,14 @@ func MainWithRunner(
 		return
 	}
 
+	// Build the base logger with a text formatter.
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    false,
 		DisableTimestamp: false,
 	})
 
+	// Unmarshal the dist metadata and take the project identity from it.
 	distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
 	if err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
@@ -120,6 +124,7 @@ func MainWithRunner(
 		}
 	}
 
+	// Bind the process lifetime to interrupt and kill signals.
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 
@@ -127,6 +132,7 @@ func MainWithRunner(
 	red := fcolor.New(fcolor.FgRed)
 	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
+	// Run the dist bus with the native action's build and start hooks.
 	run := func(ctx context.Context, preBuildHooks, postStartHooks []DistBusHook) error {
 		return Run(ctx, le, distMeta, assetsFS, "", composition, preBuildHooks, postStartHooks)
 	}
@@ -144,25 +150,31 @@ func newStaticBlockStoreReaderBuilder(
 	rootRef *block.BlockRef,
 ) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
+		// Open the embedded assets.kvfile from the asset filesystem.
 		f, err := assetsFS.Open("assets.kvfile")
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Stat the asset file to size the kvfile reader.
 		fi, err := f.Stat()
 		if err != nil {
 			_ = f.Close()
 			return nil, nil, err
 		}
 
+		// Read the asset file through its ReaderAt interface.
 		readerAt := f.(io.ReaderAt)
 		fileSize := uint64(fi.Size()) //nolint:gosec
 
+		// Build the kvfile reader over the asset bytes.
 		rdr, err := kvfile.BuildReader(readerAt, fileSize)
 		if err != nil {
 			_ = f.Close()
 			return nil, nil, err
 		}
+
+		// Validate the kvfile root against the expected dist root ref.
 		if err := validateStaticBlockStoreRoot(rdr, rootRef); err != nil {
 			_ = f.Close()
 			return nil, nil, err

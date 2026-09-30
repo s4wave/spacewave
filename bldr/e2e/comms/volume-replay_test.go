@@ -35,15 +35,22 @@ func volumeBrowsers(t *testing.T) []string {
 func TestGoScriptVolumeStorage(t *testing.T) {
 	for _, browser := range volumeBrowsers(t) {
 		t.Run(browser, func(t *testing.T) {
+			// Ensure the compiled GoScript fixture worker is up to date.
 			ensureGoScriptFixtureWorker(t, &volumeReplayGoScriptFixtureWorker)
+
+			// Run the volume storage fixture in check mode for this browser.
 			results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
 				persistent: true,
 				query:      "mode=check",
 				timeout:    100 * time.Second,
 			})
+
+			// Fail the test when the fixture reports a check failure.
 			if pass, ok := results["pass"].(bool); !ok || !pass {
 				t.Fatalf("volume storage fixture failed: %v", results["detail"])
 			}
+
+			// Assert each device and record-store check reports ok.
 			report := parseReport(t, results)
 			for _, check := range []string{"opfs-device", "idb-device", "idb-records"} {
 				if got := string(report.GetStringBytes(check)); got != "ok" {
@@ -63,10 +70,13 @@ var volumeTargets = []string{"e1-opfs", "e1-idb", "e5-idb", "e4-opfs", "e3-sqlit
 // behind a device worker relay, from a GoScript worker, and logs each
 // replay's report.
 func TestGoScriptVolumeReplay(t *testing.T) {
+	// Skip when no workload trace directory was configured.
 	dir := os.Getenv("WORKLOAD_TRACES")
 	if dir == "" {
 		t.Skip("WORKLOAD_TRACES is not set")
 	}
+
+	// Collect the trace files the replay will run against.
 	paths, err := filepath.Glob(filepath.Join(dir, "*.trace"))
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +85,8 @@ func TestGoScriptVolumeReplay(t *testing.T) {
 		t.Fatalf("no traces in %s", dir)
 	}
 
-	// Serve each trace as text records the worker parses.
+	// Convert each trace into the text records the worker parses.
+	// Serve them from the dist directory alongside the fixture.
 	if err := os.MkdirAll(filepath.Join(distDir, "traces"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -100,14 +111,18 @@ func TestGoScriptVolumeReplay(t *testing.T) {
 		for _, name := range names {
 			for _, target := range volumeTargets {
 				t.Run(browser+"/"+name+"/"+target, func(t *testing.T) {
+					// Run the replay fixture for this trace and target.
 					results := runFixtureWith(t, browser, "goscript-volume-replay", fixtureRun{
 						persistent: true,
 						query:      "mode=replay:" + name + "/" + target,
 						timeout:    110 * time.Second,
 					})
+					// Fail the test when the fixture reports a replay failure.
 					if pass, ok := results["pass"].(bool); !ok || !pass {
 						t.Fatalf("volume replay fixture failed: %v", results["detail"])
 					}
+
+					// Log each replay report and surface any replay error.
 					for _, rep := range parseReport(t, results).GetArray() {
 						t.Logf("REPORT %s %s", browser, rep)
 						if msg := rep.GetStringBytes("error"); len(msg) != 0 {

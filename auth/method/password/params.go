@@ -117,6 +117,7 @@ func deriveKey(params *Parameters, password []byte) (crypto.PrivKey, error) {
 
 // Validate validates the parameters.
 func (p *Parameters) Validate() error {
+	// Validate the salt length and each KDF cost parameter against its bound.
 	if len(p.GetSalt()) != saltLen {
 		return errors.Errorf("expected salt len %d but got %d", saltLen, len(p.GetSalt()))
 	}

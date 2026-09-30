@@ -20,6 +20,7 @@ func buildTestParametersWithUsernamePassword(username string, password []byte) (
 }
 
 func TestBuildParametersWithUsernamePassword(t *testing.T) {
+	// Build and validate the test parameters and expect a private key.
 	params, priv, err := buildTestParametersWithUsernamePassword("alice", []byte("hunter2"))
 	if err != nil {
 		t.Fatal(err)
@@ -30,6 +31,8 @@ func TestBuildParametersWithUsernamePassword(t *testing.T) {
 	if priv == nil {
 		t.Fatal("expected private key")
 	}
+
+	// Derive the peer ID from the private key and expect it to be non-empty.
 	pid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +43,7 @@ func TestBuildParametersWithUsernamePassword(t *testing.T) {
 }
 
 func TestDeterministic(t *testing.T) {
+	// Build the same username and password twice and expect equal peer IDs.
 	_, priv1, err := buildTestParametersWithUsernamePassword("bob", []byte("password123"))
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +53,7 @@ func TestDeterministic(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Derive the peer IDs and expect them to be equal.
 	pid1, _ := peer.IDFromPrivateKey(priv1)
 	pid2, _ := peer.IDFromPrivateKey(priv2)
 	if pid1 != pid2 {
@@ -57,6 +62,7 @@ func TestDeterministic(t *testing.T) {
 }
 
 func TestDifferentPasswords(t *testing.T) {
+	// Build the same username with two passwords and expect distinct peer IDs.
 	_, priv1, err := buildTestParametersWithUsernamePassword("carol", []byte("pass1"))
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +72,7 @@ func TestDifferentPasswords(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Derive the peer IDs and expect them to differ.
 	pid1, _ := peer.IDFromPrivateKey(priv1)
 	pid2, _ := peer.IDFromPrivateKey(priv2)
 	if pid1 == pid2 {
@@ -74,6 +81,7 @@ func TestDifferentPasswords(t *testing.T) {
 }
 
 func TestDifferentUsernames(t *testing.T) {
+	// Build two usernames with the same password and expect distinct peer IDs.
 	_, priv1, err := buildTestParametersWithUsernamePassword("dave", []byte("samepass"))
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +91,7 @@ func TestDifferentUsernames(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Derive the peer IDs and expect them to differ.
 	pid1, _ := peer.IDFromPrivateKey(priv1)
 	pid2, _ := peer.IDFromPrivateKey(priv2)
 	if pid1 == pid2 {
@@ -91,11 +100,13 @@ func TestDifferentUsernames(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
+	// Build the reference parameters and private key.
 	params, priv, err := buildTestParametersWithUsernamePassword("frank", []byte("mypassword"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Round-trip the parameters through the method's parameter codec.
 	m := NewPasswordMethod()
 	paramsBytes, err := params.MarshalBlock()
 	if err != nil {
@@ -106,11 +117,13 @@ func TestAuthenticate(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Authenticate with the unmarshaled parameters and compare peer IDs.
 	authPriv, err := m.Authenticate(unmarshaled, []byte("mypassword"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Derive the peer IDs and expect them to be equal.
 	pid1, _ := peer.IDFromPrivateKey(priv)
 	pid2, _ := peer.IDFromPrivateKey(authPriv)
 	if pid1 != pid2 {
@@ -120,16 +133,22 @@ func TestAuthenticate(t *testing.T) {
 
 // TestValidateScryptBounds tests that oversized scrypt parameters are rejected.
 func TestValidateScryptBounds(t *testing.T) {
+	// Collect parameter sets that should pass validation.
 	salt := make([]byte, saltLen)
 	valid := []*Parameters{
 		{Salt: salt},
 		{Salt: salt, ScryptN: DefaultScryptN, ScryptR: DefaultScryptR, ScryptP: DefaultScryptP},
 	}
+
+	// Validate each accepted parameter set.
 	for i, params := range valid {
 		if err := params.Validate(); err != nil {
 			t.Fatalf("valid[%d]: %v", i, err)
 		}
 	}
+
+	// Collect parameter sets that should fail validation, marshaling, and
+	// authentication.
 	invalid := []*Parameters{
 		{Salt: salt, ScryptN: MaxScryptN + 1},
 		{Salt: salt, ScryptN: 63},
@@ -137,6 +156,8 @@ func TestValidateScryptBounds(t *testing.T) {
 		{Salt: salt, ScryptP: MaxScryptP + 1},
 	}
 	method := NewPasswordMethod()
+
+	// Reject each oversized parameter set at every entry point.
 	for i, params := range invalid {
 		if err := params.Validate(); err == nil {
 			t.Fatalf("invalid[%d]: expected validate error", i)

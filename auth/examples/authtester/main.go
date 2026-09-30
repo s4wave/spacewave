@@ -17,6 +17,7 @@ import (
 )
 
 func main() {
+	// Construct the CLI application and its flags.
 	app := cli.NewApp()
 	app.Name = "logintester"
 	app.Usage = "networked login testing"
@@ -24,6 +25,7 @@ func main() {
 	app.Action = runAuthTester
 	app.Flags = []cli.Flag{}
 
+	// Run the CLI application and exit fatally on failure.
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err.Error())
 	}
@@ -46,6 +48,7 @@ func runAuthTester(c *cli.Context) error {
 	// Construct the password method and derive its parameters.
 	le.Info("scrypt...")
 
+	// Construct the password authentication method.
 	var handler auth_method.Handler // TODO
 	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
 	if err != nil {

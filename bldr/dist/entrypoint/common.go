@@ -29,6 +29,7 @@ func Run(
 	preBuildHooks []DistBusHook,
 	postStartHooks []DistBusHook,
 ) error {
+	// Validate the dist metadata before reading assets.
 	if err := distMeta.Validate(); err != nil {
 		return errors.Wrap(err, "dist_meta")
 	}
@@ -51,11 +52,13 @@ func Run(
 		configSetData = nil
 	}
 
+	// Unmarshal the config set from the asset bytes.
 	configSetProto := &configset_proto.ConfigSet{}
 	if err := configSetProto.UnmarshalVT(configSetData); err != nil {
 		return err
 	}
 
+	// Build the static block store reader for the embedded assets.
 	verbose := false // TODO
 	staticBlockStoreReaderBuilder := newStaticBlockStoreReaderBuilder(
 		le,
@@ -64,6 +67,7 @@ func Run(
 		distMeta.GetDistWorldRef().GetRootRef(),
 	)
 
+	// Build the distribution bus and release it on return.
 	distBus, err := BuildDistBus(
 		ctx,
 		le,
@@ -105,9 +109,12 @@ func Run(
 }
 
 func validateStaticBlockStoreRoot(rdr *kvfile.Reader, rootRef *block.BlockRef) error {
+	// An empty root ref needs no validation.
 	if rootRef == nil || rootRef.GetEmpty() {
 		return nil
 	}
+
+	// Expect the root block to exist in the static store.
 	rootKey, err := rootRef.MarshalKey()
 	if err != nil {
 		return err

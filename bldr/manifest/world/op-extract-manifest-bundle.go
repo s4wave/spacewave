@@ -73,12 +73,14 @@ func (o *ExtractManifestBundleOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// store the object for the manifest
+	// Extract the manifest bundle into the World object.
 	obj, _, _, err := ExtractManifestBundle(ctx, ws, sender, o.GetObjectKey(), o.GetManifestBundle())
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
 
+	// Link the manifest object under each link object key.
 	for _, objKey := range o.GetLinkObjectKeys() {
 		quad := NewManifestQuad(objKey, o.GetObjectKey(), "")
 		if err := ws.SetGraphQuad(ctx, quad); err != nil {

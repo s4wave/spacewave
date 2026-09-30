@@ -17,10 +17,12 @@ import (
 // TestCommitDistDirManifestPacksAppBundle checks that a packaged app bundle
 // keeps the built manifest identity and its executable permissions.
 func TestCommitDistDirManifestPacksAppBundle(t *testing.T) {
+	// Build the test World state.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := newTestWorld(t, ctx, le)
 
+	// Write an app bundle with an executable into the dist directory.
 	distDir := t.TempDir()
 	macosDir := filepath.Join(distDir, "Spacewave.app", "Contents", "MacOS")
 	if err := os.MkdirAll(macosDir, 0o755); err != nil {
@@ -30,6 +32,7 @@ func TestCommitDistDirManifestPacksAppBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Commit the dist directory as a manifest and check its meta.
 	meta := &bldr_manifest.ManifestMeta{
 		ManifestId: "spacewave-dist",
 		BuildType:  "release",
@@ -45,6 +48,7 @@ func TestCommitDistDirManifestPacksAppBundle(t *testing.T) {
 		t.Fatalf("meta = %v, want %v", ref.GetMeta(), meta)
 	}
 
+	// Open the packed manifest and verify entrypoint and permissions.
 	err = bldr_manifest_world.AccessManifest(ctx, le, ws.AccessWorldState, ref.GetManifestRef(), func(
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,

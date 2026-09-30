@@ -17,6 +17,7 @@ import (
 )
 
 func TestManifestBuilderDesktopAliasAdvancesCanonicalRevision(t *testing.T) {
+	// Build the testbed and seed the canonical platform manifest.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(logrus.New()))
@@ -44,6 +45,8 @@ func TestManifestBuilderDesktopAliasAdvancesCanonicalRevision(t *testing.T) {
 			},
 		},
 	}
+
+	// Run the project controller and request a manifest build.
 	source := t.TempDir()
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), NewConfig(source, source, project, true, false))
 	release, err := tb.GetBus().AddController(ctx, ctrl, nil)
@@ -56,6 +59,8 @@ func TestManifestBuilderDesktopAliasAdvancesCanonicalRevision(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer build.Release()
+
+	// Await the build and assert the canonical metadata and working path.
 	result, err := build.GetResultPromiseContainer().Await(ctx)
 	if err != nil {
 		t.Fatal(err)

@@ -48,9 +48,11 @@ func newCliSubprocessSupervisor(
 
 // start launches the CLI subprocess.
 func (s *cliSubprocessSupervisor) start() error {
+	// Refuse to start after the supervisor context is canceled.
 	if err := s.ctx.Err(); err != nil {
 		return err
 	}
+
 	// The supervisor launches the devtool-configured CLI binary with its own
 	// configured arguments, not caller-supplied input.
 	cmd := exec.Command(s.binaryPath, s.args...) //nolint:gosec // G204: binary path and args are devtool-owned config
@@ -63,11 +65,13 @@ func (s *cliSubprocessSupervisor) start() error {
 // startCommand starts the command and records it as the supervised
 // process.
 func (s *cliSubprocessSupervisor) startCommand(cmd *exec.Cmd) error {
+	// Start the process and close the stderr writer if it fails.
 	if err := cmd.Start(); err != nil {
 		s.closeStderr()
 		return err
 	}
 
+	// Record the process and relay its exit through the done channel.
 	s.cmd = cmd
 	s.done = make(chan error, 1)
 	go func() {
@@ -92,14 +96,17 @@ func (s *cliSubprocessSupervisor) terminate() error {
 // terminateAfter signals the subprocess and escalates to kill once the
 // timeout expires.
 func (s *cliSubprocessSupervisor) terminateAfter(timeout time.Duration) error {
+	// Nothing to terminate when no process is running.
 	if s.cmd == nil || s.cmd.Process == nil {
 		return nil
 	}
 
+	// Signal the process to terminate and bound the wait with a timer.
 	_ = s.cmd.Process.Signal(syscall.SIGTERM)
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	// Return the exit error, killing the process when the timer expires.
 	select {
 	case err := <-s.done:
 		return err

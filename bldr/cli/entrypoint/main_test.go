@@ -14,8 +14,10 @@ import (
 )
 
 func TestMainLogsTerminalCommandError(t *testing.T) {
+	// Re-enter as the child process and run the requested failure mode.
 	const childEnv = "SPACEWAVE_TEST_TERMINAL_COMMAND_ERROR"
 	if mode := os.Getenv(childEnv); mode != "" {
+		// Point the entrypoint at the child's state path and log file.
 		os.Args = []string{
 			"test-entrypoint",
 			"--state-path", os.Getenv(childEnv + "_STATE"),
@@ -26,6 +28,7 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 		} else {
 			os.Args = append(os.Args, "serve")
 		}
+		// Run the entrypoint with a serve command that fails per the mode.
 		Main(
 			"test-entrypoint",
 			"test-entrypoint",
@@ -75,6 +78,7 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 		return
 	}
 
+	// Enumerate the failure modes and their expected exit codes and logs.
 	tests := []struct {
 		name           string
 		mode           string
@@ -122,8 +126,10 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 			wantError: "panic drain marker",
 		},
 	}
+	// Run each failure mode in a child process and check its exit and log.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Launch the child process with the mode and log path set.
 			tempDir := t.TempDir()
 			logPath := filepath.Join(tempDir, "entrypoint.log")
 			cmd := exec.Command(os.Args[0], "-test.run=^TestMainLogsTerminalCommandError$")
@@ -133,11 +139,14 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 				childEnv+"_LOG="+logPath,
 				childEnv+"_STATE="+filepath.Join(tempDir, "state"),
 			)
+
+			// Run the child and expect the requested exit code.
 			out, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != tt.exitCode {
 				t.Fatalf("child exit = %v, want status %d; output: %s", err, tt.exitCode, out)
 			}
 
+			// Read the log and check the error and terminal records.
 			data, err := os.ReadFile(logPath)
 			if err != nil {
 				t.Fatal(err)

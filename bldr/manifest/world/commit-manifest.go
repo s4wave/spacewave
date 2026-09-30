@@ -27,6 +27,7 @@ func CommitManifest(
 	opPeerID peer.ID,
 	ts *timestamp.Timestamp,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
+	// Create the manifest bundle in the output bucket at the object key.
 	manifestRef, err := world.AccessObject(ctx, access, nil, func(bcs *block.Cursor) error {
 		return manifest.CreateManifestWithBilly(ctx, bcs, out, distFs, assetsFs, ts)
 	})
@@ -34,6 +35,7 @@ func CommitManifest(
 		return nil, manifestRef, err
 	}
 
+	// Store the manifest at the object key through a world op.
 	out.Meta.Logger(le).
 		WithField("object-key", manifestObjKey).
 		WithField("link-object-keys", linkObjKeys).

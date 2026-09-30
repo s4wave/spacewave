@@ -20,16 +20,19 @@ import (
 var Version = "dev"
 
 func main() {
+	// Build the base logger at info level.
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 	le := logrus.NewEntry(log)
 
+	// Hold the CLI flag destinations.
 	var (
 		stateDir   string
 		bunVersion string
 		verbose    bool
 	)
 
+	// Configure the autobun CLI application and its flags.
 	app := cli.NewApp()
 	app.Name = "autobun"
 	app.Usage = "automatically download and run bun"
@@ -62,7 +65,9 @@ func main() {
 		},
 	}
 
+	// Run bun with the parsed flags and arguments.
 	app.Action = func(c *cli.Context) error {
+		// Enable debug logging for the verbose flag.
 		if verbose {
 			log.SetLevel(logrus.DebugLevel)
 		}
@@ -82,10 +87,11 @@ func main() {
 			}
 		}
 
-		// Create context with signal handling
+		// Create a context canceled by SIGINT and SIGTERM.
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		// Cancel the context when a termination signal arrives.
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
@@ -99,6 +105,7 @@ func main() {
 		return autobun.RunBun(ctx, le, resolvedStateDir, bunVersion, args)
 	}
 
+	// Run the CLI and map a child exit code or error to the exit status.
 	if err := app.Run(os.Args); err != nil {
 		if exitCode, ok := childExitCode(err); ok {
 			os.Exit(exitCode)

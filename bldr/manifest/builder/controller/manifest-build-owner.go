@@ -53,6 +53,7 @@ func newManifestBuildOwner(
 // beginAttempt registers a new build attempt as the current one,
 // canceling any prior attempt.
 func (o *manifestBuildOwner) beginAttempt(ctx context.Context) *manifestBuildAttempt {
+	// Create the attempt with its own cancelable context.
 	attemptCtx, cancel := context.WithCancel(ctx)
 	attempt := &manifestBuildAttempt{
 		owner:  o,
@@ -60,6 +61,7 @@ func (o *manifestBuildOwner) beginAttempt(ctx context.Context) *manifestBuildAtt
 		cancel: cancel,
 	}
 
+	// Install the attempt as the current one.
 	o.mtx.Lock()
 	o.current = attempt
 	o.mtx.Unlock()
@@ -84,6 +86,8 @@ func (o *manifestBuildOwner) buildArgs() *bldr_manifest_builder.BuildManifestArg
 	if previous := o.prevResult.GetManifest().GetMeta(); previous != nil && previous.GetRev() >= config.GetManifestMeta().GetRev() {
 		config.ManifestMeta.Rev = previous.GetRev() + 1
 	}
+
+	// Assemble the build arguments and clear the changed-file set.
 	args := &bldr_manifest_builder.BuildManifestArgs{
 		BuilderConfig:     config,
 		PrevBuilderResult: o.prevResult,
@@ -110,6 +114,7 @@ func (o *manifestBuildOwner) setChangedFiles(changedFiles []*bldr_manifest_build
 
 // rebuildReasonSnapshot returns the current rebuild reason.
 func (o *manifestBuildOwner) rebuildReasonSnapshot() string {
+	// Read the rebuild reason under the owner mutex.
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 	return o.rebuildReason
@@ -117,6 +122,7 @@ func (o *manifestBuildOwner) rebuildReasonSnapshot() string {
 
 // setRebuildReason records why the next build is needed.
 func (o *manifestBuildOwner) setRebuildReason(reason string) {
+	// Write the rebuild reason under the owner mutex.
 	o.mtx.Lock()
 	o.rebuildReason = reason
 	o.mtx.Unlock()
@@ -134,7 +140,10 @@ func (o *manifestBuildOwner) publishResult(
 	fullRebuild bool,
 	hotRebuild bool,
 ) error {
+	// Snapshot the rebuild reason recorded for this build.
 	rebuildReason := o.rebuildReasonSnapshot()
+
+	// On success, validate and store the result, then resolve the promise.
 	if err == nil {
 		if result != nil {
 			if err := result.Validate(); err != nil {
@@ -148,6 +157,8 @@ func (o *manifestBuildOwner) publishResult(
 		resultPromise.SetResult(result, nil)
 		o.prevResult = result
 		o.prevErr = nil
+
+		// Report the completed build in the lifecycle status.
 		o.c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 			State:                   ManifestBuilderLifecycleStateDone,
 			CacheHit:                cacheHit,
@@ -159,6 +170,7 @@ func (o *manifestBuildOwner) publishResult(
 		return nil
 	}
 
+	// On failure, resolve the promise with the error and report it.
 	resultPromise.SetResult(nil, err)
 	o.prevErr = err
 	o.c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
@@ -175,6 +187,7 @@ func (o *manifestBuildOwner) publishResult(
 // restart cancels the attempt so its loop begins a new pass, recording
 // reason. The first restart takes effect; later ones are ignored.
 func (a *manifestBuildAttempt) restart(reason string) {
+	// Record the reason and claim the first restart under the owner mutex.
 	var cancel context.CancelFunc
 	a.owner.mtx.Lock()
 	a.owner.rebuildReason = reason
@@ -184,6 +197,7 @@ func (a *manifestBuildAttempt) restart(reason string) {
 	}
 	a.owner.mtx.Unlock()
 
+	// Cancel the context outside the mutex when this attempt won the restart.
 	if cancel != nil {
 		cancel()
 	}
@@ -191,6 +205,7 @@ func (a *manifestBuildAttempt) restart(reason string) {
 
 // wasRestarted reports whether this attempt was restarted.
 func (a *manifestBuildAttempt) wasRestarted() bool {
+	// Read the restarted flag under the owner mutex.
 	a.owner.mtx.Lock()
 	defer a.owner.mtx.Unlock()
 	return a.restarted
@@ -198,6 +213,7 @@ func (a *manifestBuildAttempt) wasRestarted() bool {
 
 // release cancels the attempt and clears it as the current attempt.
 func (a *manifestBuildAttempt) release() {
+	// Cancel the attempt and clear it as the current attempt.
 	a.cancel()
 	a.owner.mtx.Lock()
 	if a.owner.current == a {

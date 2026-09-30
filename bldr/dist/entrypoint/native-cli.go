@@ -31,15 +31,18 @@ func runCliMain(
 	assetsFS fs.FS,
 	composition *compose.Composition,
 ) error {
+	// Bind the CLI lifetime to interrupt handling.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	// Resolve the project identity and state path defaults.
 	projectID := distMeta.GetProjectId()
 	appName := projectID
 	defaultStatePath := cli_entrypoint.DefaultStatePath(projectID)
 	statePathEnvVars := cli_entrypoint.StatePathEnvVars(projectID)
 	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
 
+	// Hold the CLI flag state the bus initialization reads.
 	var dtBus *DistBus
 	var statePath string
 	var statePathSet bool
@@ -47,30 +50,38 @@ func runCliMain(
 	var logLevelName string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
+
+	// Track bus initialization state and the shared logger entry.
 	var busInitErr error
 	var busInitOnce sync.Once
 	var le *logrus.Entry
 
+	// Initialize the dist bus once from the resolved state path and assets.
+	// The closure reads the flag variables set by the CLI parser.
 	ensureBus := func() error {
 		busInitOnce.Do(func() {
+			// Resolve the state root from the CLI flags and environment.
 			root, err := storagepath.ResolveStatePath(projectID, statePath, socketPath, statePathSet)
 			if err != nil {
 				busInitErr = err
 				return
 			}
 
+			// Read the embedded config set, treating a missing file as empty.
 			configSetData, err := fs.ReadFile(assetsFS, "config-set.bin")
 			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				busInitErr = err
 				return
 			}
 
+			// Unmarshal the config set proto from the asset bytes.
 			configSetProto := &configset_proto.ConfigSet{}
 			if err := configSetProto.UnmarshalVT(configSetData); err != nil {
 				busInitErr = err
 				return
 			}
 
+			// Build the dist bus with the embedded block store reader.
 			distBus, err := BuildDistBus(
 				ctx,
 				le,
@@ -91,6 +102,7 @@ func runCliMain(
 		return busInitErr
 	}
 
+	// Return the dist bus after initializing it.
 	getBus := func() cli_entrypoint.CliBus {
 		if err := ensureBus(); err != nil {
 			return nil
@@ -98,6 +110,7 @@ func runCliMain(
 		return dtBus
 	}
 
+	// Configure the CLI application and its flags.
 	app := cli.NewApp()
 	app.Name = appName
 	app.HideVersion = true
@@ -140,10 +153,14 @@ func runCliMain(
 		},
 	}
 
+	// Prepare logging and state paths before each command.
 	app.Before = func(c *cli.Context) error {
+		// Skip logger setup for the version command.
 		if c.Command != nil && c.Command.Name == "version" {
 			return nil
 		}
+
+		// Build the logger from the parsed log level.
 		log := logrus.New()
 		log.SetFormatter(&logrus.TextFormatter{
 			DisableColors:    false,
@@ -162,6 +179,7 @@ func runCliMain(
 			return err
 		}
 
+		// Attach explicitly configured log files.
 		if raw := logFiles.Value(); len(raw) != 0 {
 			specs, err := logfile.ParseLogFileSpecs(raw, time.Now())
 			if err != nil {
@@ -199,8 +217,10 @@ func runCliMain(
 		return nil
 	}
 
+	// Register the version command and release state after each run.
 	app.Commands = append(app.Commands, newDistVersionCommand(distMeta))
 	app.After = func(c *cli.Context) error {
+		// Release the dist bus and log files after the command completes.
 		if dtBus != nil {
 			dtBus.Release()
 			dtBus = nil
@@ -212,6 +232,7 @@ func runCliMain(
 		return nil
 	}
 
+	// Register the composition's CLI commands.
 	for _, builder := range composition.Commands {
 		if builder == nil {
 			continue
@@ -219,6 +240,7 @@ func runCliMain(
 		app.Commands = append(app.Commands, builder(getBus)...)
 	}
 
+	// Run the CLI application.
 	return app.RunContext(ctx, os.Args)
 }
 
@@ -245,6 +267,7 @@ func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 			&cli.BoolFlag{Name: "json", Usage: "print machine-readable JSON"},
 		},
 		Action: func(c *cli.Context) error {
+			// Assemble the version identity from the dist metadata.
 			identity := distVersionIdentity{
 				SchemaVersion:  1,
 				ProjectID:      distMeta.GetProjectId(),
@@ -257,6 +280,7 @@ func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 					Rev:        distMeta.GetManifestRev(),
 				},
 			}
+			// Write the identity as JSON or plain text.
 			if c.Bool("json") {
 				_, err := c.App.Writer.Write(marshalDistVersionIdentity(identity))
 				return err
@@ -268,6 +292,7 @@ func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 }
 
 func marshalDistVersionIdentity(identity distVersionIdentity) []byte {
+	// Encode the scalar identity fields into a JSON object.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	obj.Set("schemaVersion", arena.NewNumberInt(identity.SchemaVersion))
@@ -275,6 +300,8 @@ func marshalDistVersionIdentity(identity distVersionIdentity) []byte {
 	obj.Set("entrypointRole", arena.NewString(identity.EntrypointRole))
 	obj.Set("channelKey", arena.NewString(identity.ChannelKey))
 	obj.Set("platformId", arena.NewString(identity.PlatformID))
+
+	// Encode the startup plugins and manifest identity.
 	plugins := arena.NewArray()
 	for idx, plugin := range identity.StartupPlugins {
 		plugins.SetArrayItem(idx, arena.NewString(plugin))

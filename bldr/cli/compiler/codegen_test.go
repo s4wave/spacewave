@@ -247,6 +247,7 @@ func TestFormatCliEntrypoint(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Generate the entrypoint code for the test case.
 			dat, err := FormatCliEntrypoint(tc.appName, tc.projectID, tc.factoryImports, tc.cliImports, tc.composePackage)
 			if err != nil {
 				t.Fatal(err.Error())

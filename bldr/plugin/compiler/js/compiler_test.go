@@ -37,18 +37,21 @@ import (
 )
 
 func TestPluginCompilerJs(t *testing.T) {
+	// Bound the test and build the testbed with a debug logger.
 	ctx, ctxCancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer ctxCancel()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Build the testbed and release it when the test ends.
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Register the JS compiler and its supporting factories.
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(bldr_plugin_compiler_js.NewFactory(b))
 	sr.AddFactory(bldr_manifest_builder_controller.NewFactory(b))
@@ -72,6 +75,7 @@ func TestPluginCompilerJs(t *testing.T) {
 	pluginID := "test-plugin"
 	platformID := quickjsHost.GetPluginHost().GetPlatformId()
 
+	// Load the plugin through the plugin scheduler directive.
 	_, pluginRef, err := b.AddDirective(bldr_plugin.NewLoadPlugin(pluginID), nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -108,6 +112,7 @@ func TestPluginCompilerJs(t *testing.T) {
 	manifestID := pluginID
 	projectID := pluginID
 
+	// Build the manifest meta against the plugin host object key.
 	pluginHostKey := tb.GetPluginHostObjKey()
 	manifestMeta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, 1)
 
@@ -150,6 +155,7 @@ func TestPluginCompilerJs(t *testing.T) {
 		nil,
 	)
 
+	// Start the manifest builder controller for the plugin.
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_manifest_builder_controller.Controller](
 		ctx,
 		tb.GetBus(),
@@ -161,6 +167,7 @@ func TestPluginCompilerJs(t *testing.T) {
 	}
 	defer ctrlRef.Release()
 
+	// Await the build result and check the persisted Vite result.
 	buildResult, err := builderCtrl.GetResultPromise().Await(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -168,6 +175,8 @@ func TestPluginCompilerJs(t *testing.T) {
 	if buildResult.GetSubManifestResults()["vite"] == nil {
 		t.Fatal("expected persisted Vite builder result")
 	}
+
+	// Assert the startup inputs cover the module, entrypoint, and dist deps.
 	var foundModuleInput, foundEntrypointInput, foundDistDepsInput bool
 	for _, inputFile := range buildResult.GetInputManifest().GetFiles() {
 		inputPath := filepath.ToSlash(inputFile.GetPath())
@@ -196,6 +205,7 @@ func TestPluginCompilerJs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Log the compiled manifest for debugging.
 	le.Infof("compiled js plugin manifest: %v", string(jdat))
 
 	// wait for the plugin to load fully
@@ -206,6 +216,7 @@ func TestPluginCompilerJs(t *testing.T) {
 	defer pluginClientRef.Release()
 	_ = pluginClient
 
+	// Log the successful plugin load.
 	le.Infof("plugin %q loaded successfully", pluginID)
 
 	// wait for rpc to be called
@@ -218,11 +229,13 @@ func TestPluginCompilerJs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Log the RPC call the plugin made to the host.
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
 }
 
 func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		// Start the JS compiler controller on an in-memory bus.
 		le := logrus.NewEntry(logrus.New())
 		dc := directivecontroller.NewController(t.Context(), le)
 		b := inmem.NewBus(dc)
@@ -235,6 +248,7 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Prepare the build arguments with a configured working path.
 		workDir := t.TempDir()
 		args := &bldr_manifest_builder.BuildManifestArgs{
 			BuilderConfig: &bldr_manifest_builder.BuilderConfig{
@@ -244,6 +258,8 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 				WorkingPath:    workDir,
 			},
 		}
+
+		// Gate the admitted build behind a pre-build hook.
 		buildStarted := make(chan struct{})
 		continueBuild := make(chan struct{})
 		sentinelErr := errors.New("stop after release ordering check")
@@ -260,6 +276,7 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 			return nil, sentinelErr
 		})
 
+		// Start the build and wait for the hook to admit it.
 		buildErr := make(chan error, 1)
 		go func() {
 			_, err := ctrl.BuildManifest(t.Context(), args, nil)
@@ -267,6 +284,7 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 		}()
 		<-buildStarted
 
+		// Release the controller while the build is still admitted.
 		releaseReturned := make(chan struct{})
 		go func() {
 			release()
@@ -279,6 +297,8 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 			releasedEarly = true
 		default:
 		}
+
+		// Start a concurrent Close and assert it blocks on the build.
 		secondCloseReturned := make(chan struct{})
 		go func() {
 			_ = ctrl.Close()
@@ -291,6 +311,7 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 		default:
 		}
 
+		// Finish the build and assert both teardowns then complete.
 		close(continueBuild)
 		synctest.Wait()
 		if err := <-buildErr; !errors.Is(err, sentinelErr) {
@@ -306,6 +327,8 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 		default:
 			t.Fatal("concurrent Close did not return after the admitted build finished")
 		}
+
+		// Assert the pre-build hook wrote its marker into the working path.
 		marker, err := os.ReadFile(filepath.Join(workDir, "marker"))
 		if err != nil {
 			t.Fatal(err)
@@ -316,9 +339,13 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 		if releasedEarly {
 			t.Error("controller release returned before the admitted build finished")
 		}
+
+		// Builds after release must fail with the closed error.
 		if _, err := ctrl.BuildManifest(t.Context(), args, nil); err == nil || err.Error() != "js compiler is closed" {
 			t.Fatalf("BuildManifest after release error = %v, want closed", err)
 		}
+
+		// Removing the working path must leave no configured directory.
 		if err := os.RemoveAll(workDir); err != nil {
 			t.Fatal(err)
 		}
@@ -329,10 +356,13 @@ func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
 }
 
 func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
+	// A controller without hooks supports the startup cache.
 	ctrl := &bldr_plugin_compiler_js.Controller{}
 	if !ctrl.SupportsStartupManifestCache() {
 		t.Fatal("JS compiler with static inputs should support startup cache")
 	}
+
+	// An undeclared pre-build hook must bypass the startup cache.
 	ctrl.AddPreBuildHook(func(
 		context.Context,
 		*bldr_manifest_builder.BuilderConfig,
@@ -346,6 +376,7 @@ func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
 }
 
 func TestPluginCompilerJsStartupCacheHonorsDeclaredProvenance(t *testing.T) {
+	// Build a no-op pre-build hook shared by both cases.
 	noopHook := func(
 		context.Context,
 		*bldr_manifest_builder.BuilderConfig,
@@ -372,12 +403,14 @@ func TestPluginCompilerJsStartupCacheHonorsDeclaredProvenance(t *testing.T) {
 }
 
 func TestPreBuildHookProvenanceResolvesStartupInputs(t *testing.T) {
+	// Declare input files and env vars with blank entries.
 	t.Setenv("BLDR_TEST_HOOK_ENV", "declared-value")
 	provenance := &bldr_plugin_compiler_js.PreBuildHookProvenance{
 		InputFiles: []string{"hook/input.json", "", "/abs/input.txt"},
 		EnvVars:    []string{"BLDR_TEST_HOOK_ENV", ""},
 	}
 
+	// Resolve the startup input paths and check the filtering.
 	paths := provenance.StartupInputPaths("/src/root")
 	wantPaths := []string{
 		filepath.Join("/src/root", "hook", "input.json"),
@@ -392,6 +425,7 @@ func TestPreBuildHookProvenanceResolvesStartupInputs(t *testing.T) {
 		}
 	}
 
+	// Resolve the env startup inputs and check their values.
 	envInputs := provenance.EnvStartupInputs()
 	if len(envInputs) != 1 {
 		t.Fatalf("expected 1 env startup input, got %d", len(envInputs))
@@ -414,6 +448,7 @@ func TestPreBuildHookProvenanceResolvesStartupInputs(t *testing.T) {
 }
 
 func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
+	// Create entrypoints from a single backend Vite output.
 	backend, frontend, err := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
 		t.TempDir(),
 		[]*bldr_plugin_compiler_js.JsModule{{
@@ -432,6 +467,7 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert one backend entrypoint with the asset-backed import path.
 	if len(frontend) != 0 {
 		t.Fatalf("expected no frontend entrypoints, got %d", len(frontend))
 	}
@@ -444,9 +480,11 @@ func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {
 }
 
 func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
+	// Write the frontend asset and create entrypoints from both outputs.
 	assetsDir := t.TempDir()
 	writeCompilerAsset(t, assetsDir, "v/b/fe/spacewave-app/App-def456.mjs", "export default function App() {}")
 
+	// Create entrypoints from the backend and frontend outputs.
 	backend, frontend, err := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
 		assetsDir,
 		[]*bldr_plugin_compiler_js.JsModule{
@@ -482,6 +520,7 @@ func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert one entrypoint of each kind was produced.
 	if len(backend) != 1 {
 		t.Fatalf("expected one backend entrypoint, got %d", len(backend))
 	}
@@ -489,6 +528,7 @@ func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
 		t.Fatalf("expected one frontend entrypoint, got %d", len(frontend))
 	}
 
+	// The backend import path must point at backend assets only.
 	if got := backend[0].GetImportPath(); got != "/assets/v/b/be/spacewave-app/backend-abc123.mjs" {
 		t.Fatalf("unexpected backend import path: %q", got)
 	}
@@ -496,6 +536,7 @@ func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
 		t.Fatalf("backend import path must not point at frontend bundle assets: %q", backend[0].GetImportPath())
 	}
 
+	// Check the frontend render mode and its script URL metadata.
 	setRenderMode := frontend[0].GetSetRenderMode()
 	if setRenderMode.GetRenderMode() != web_view.RenderMode_RenderMode_REACT_COMPONENT {
 		t.Fatalf("unexpected render mode: %v", setRenderMode.GetRenderMode())
@@ -514,6 +555,7 @@ func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
 		t.Fatalf("frontend script path must remain WebView asset metadata, got %q", setRenderMode.GetScriptPath())
 	}
 
+	// Check the frontend HTML links carry the CSS asset.
 	links := frontend[0].GetSetHtmlLinks().GetSetLinks()
 	link := links["css-App-def456.css"]
 	if link == nil {
@@ -525,17 +567,20 @@ func TestCreateEntrypointsFromViteOutputsQuickJSFrontendBoundary(t *testing.T) {
 }
 
 func TestPluginCompilerJsSupportedPlatforms(t *testing.T) {
+	// Read the supported platforms from a bare controller.
 	ctrl, err := bldr_plugin_compiler_js.NewController(nil, nil, &bldr_plugin_compiler_js.Config{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	supported := ctrl.GetSupportedPlatforms()
 
+	// The browser target must select the wasm platform.
 	browserTarget := bldr_platform.GetBuiltinTarget(bldr_platform.TargetID_Browser)
 	if got := browserTarget.SelectPlatformForCompiler(supported); got != "web/js/wasm" {
 		t.Fatalf("browser target selected platform = %q, want web/js/wasm", got)
 	}
 
+	// The desktop target must fall back to the JS platform.
 	desktopTarget := bldr_platform.GetBuiltinTarget(bldr_platform.TargetID_Desktop)
 	if got := desktopTarget.SelectPlatformForCompiler(supported); got != bldr_platform.PlatformID_JS {
 		t.Fatalf("desktop target selected platform = %q, want js", got)
@@ -543,10 +588,12 @@ func TestPluginCompilerJsSupportedPlatforms(t *testing.T) {
 }
 
 func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
+	// Write the frontend asset referenced by the entrypoints.
 	assetsDir := t.TempDir()
 	const entryPath = "v/b/fe/app/App.mjs"
 	writeCompilerAsset(t, assetsDir, entryPath, `import "./chunk-old.mjs"`)
 
+	// Build configured, absolute, and external frontend entrypoints.
 	configured := &bldr_plugin_compiler_js.FrontendEntrypoint{
 		SetRenderMode: &web_view.SetRenderModeRequest{
 			RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
@@ -570,12 +617,16 @@ func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Assert three frontend entrypoints and no backend entrypoints.
 	if len(backend) != 0 {
 		t.Fatalf("expected no backend entrypoints, got %d", len(backend))
 	}
 	if len(frontend) != 3 {
 		t.Fatalf("expected three frontend entrypoints, got %d", len(frontend))
 	}
+
+	// The configured entrypoint keeps its path, gains content identity,
+	// keeps its query, and does not force a refresh.
 	firstScriptPath := frontend[0].GetSetRenderMode().GetScriptPath()
 	firstURL, err := url.Parse(firstScriptPath)
 	if err != nil {
@@ -596,6 +647,8 @@ func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
 	if configured.GetSetRenderMode().GetScriptPath() != entryPath+"?configured=https://example.com" {
 		t.Fatalf("configured frontend entrypoint was mutated: %q", configured.GetSetRenderMode().GetScriptPath())
 	}
+
+	// Absolute and external script URLs pass through unchanged.
 	if got := frontend[1].GetSetRenderMode().GetScriptPath(); got != absolute.GetSetRenderMode().GetScriptPath() {
 		t.Fatalf("absolute frontend script URL changed: %q", got)
 	}
@@ -603,6 +656,7 @@ func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
 		t.Fatalf("external frontend script URL changed: %q", got)
 	}
 
+	// Rewrite the asset and recompute the entrypoints.
 	writeCompilerAsset(t, assetsDir, entryPath, `import "./chunk-new.mjs"`)
 	_, changedFrontend, err := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
 		assetsDir,
@@ -614,6 +668,8 @@ func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The path stays stable while the content identity changes.
 	changedScriptPath := changedFrontend[0].GetSetRenderMode().GetScriptPath()
 	changedURL, err := url.Parse(changedScriptPath)
 	if err != nil {
@@ -628,6 +684,7 @@ func TestCreateEntrypointsFromViteOutputsFrontendContentIdentity(t *testing.T) {
 }
 
 func TestCreateEntrypointsFromViteOutputsMissingFrontendAsset(t *testing.T) {
+	// Create entrypoints for a frontend output with no written asset.
 	_, _, err := bldr_plugin_compiler_js.CreateEntrypointsFromViteOutputs(
 		t.TempDir(),
 		[]*bldr_plugin_compiler_js.JsModule{{
@@ -651,6 +708,7 @@ func TestCreateEntrypointsFromViteOutputsMissingFrontendAsset(t *testing.T) {
 }
 
 func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
+	// Write the script and CSS assets the entrypoint references.
 	dir := t.TempDir()
 	for _, relPath := range []string{
 		"v/b/fe/app/App-abc123.mjs",
@@ -665,6 +723,7 @@ func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
 		}
 	}
 
+	// Validate the closure of an entrypoint referencing both assets.
 	frontend := []*bldr_plugin_compiler_js.FrontendEntrypoint{{
 		SetRenderMode: &web_view.SetRenderModeRequest{
 			RenderMode: web_view.RenderMode_RenderMode_REACT_COMPONENT,
@@ -680,6 +739,7 @@ func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A missing script asset must fail validation naming the path.
 	frontend[0].SetRenderMode.ScriptPath = "v/b/fe/app/Missing-abc123.mjs"
 	err := bldr_plugin_compiler_js.ValidateFrontendEntrypointAssetClosure(dir, frontend)
 	if err == nil {
@@ -689,6 +749,7 @@ func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
 		t.Fatalf("missing asset error did not name path: %v", err)
 	}
 
+	// Absolute and external script URLs skip asset validation.
 	for _, scriptPath := range []string{
 		"/b/pa/app/v/b/fe/app/App.mjs?bldr_content=external",
 		"https://example.com/App.mjs?bldr_content=external",
@@ -699,6 +760,7 @@ func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
 		}
 	}
 
+	// A traversal outside the asset root must fail validation.
 	frontend[0].SetRenderMode.ScriptPath = "../App.mjs?bldr_content=escape"
 	if err := bldr_plugin_compiler_js.ValidateFrontendEntrypointAssetClosure(dir, frontend); err == nil {
 		t.Fatal("expected queried frontend traversal validation error")
@@ -706,7 +768,10 @@ func TestValidateFrontendEntrypointAssetClosure(t *testing.T) {
 }
 
 func writeCompilerAsset(t *testing.T, assetsDir, assetPath, contents string) {
+	// Mark the failure path on the test.
 	t.Helper()
+
+	// Create the parent directory and write the asset contents.
 	fullPath := filepath.Join(assetsDir, filepath.FromSlash(assetPath))
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		t.Fatal(err)

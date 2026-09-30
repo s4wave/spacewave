@@ -3,10 +3,12 @@ package bldr_platform
 import "testing"
 
 func TestParseCloudflarePlatform(t *testing.T) {
+	// The bare cloudflare platform id is ambiguous and must fail.
 	if _, err := ParsePlatform("cloudflare"); err == nil {
 		t.Fatal("expected ambiguous cloudflare platform id to fail")
 	}
 
+	// Parse the cloudflare-workers platform and check its type.
 	p, err := ParsePlatform("cloudflare-workers")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -28,6 +30,7 @@ func TestParseCloudflarePlatform(t *testing.T) {
 		t.Fatalf("unexpected input platform id: %s", plat.GetInputPlatformID())
 	}
 
+	// An unrecognized suffix must fail to parse.
 	if _, err := ParsePlatform("cloudflare-workers/extra"); err == nil {
 		t.Fatal("expected unrecognized suffix to fail")
 	}

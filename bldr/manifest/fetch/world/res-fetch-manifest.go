@@ -25,6 +25,7 @@ type fetchManifestResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Register the resolver and clear any previously emitted values.
 	r.c.addResolver(r)
 	defer r.c.removeResolver(r)
 	_ = handler.ClearValues()
@@ -34,6 +35,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	le.Debug("starting watch world for manifest details")
 	defer le.Debug("exiting watch world for manifest details")
 
+	// Build the watch loop that reconciles manifests on each state change.
 	watchLoop := world_control.NewWatchLoop(r.c.le, "", world_control.NewWaitForStateHandler(func(
 		ctx context.Context,
 		ws world.WorldState,

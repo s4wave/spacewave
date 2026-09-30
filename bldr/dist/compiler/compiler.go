@@ -216,9 +216,9 @@ func (c *Controller) BuildManifest(
 		meta.GetRev(),
 	)
 
+	// Record the plugin ids guarding update rollback.
 	distMeta.UpdateGuardPluginIds = slices.Clone(conf.GetUpdateGuardPluginIds())
 
-	// FetchManifest owns build-type and platform selection, readiness, and errors.
 	// Resolve each immutable reference before copying its DAG into the bundle.
 	embedManifests := make([]*bldr_manifest.ManifestRef, len(embedSpecs))
 	for i, em := range embedSpecs {

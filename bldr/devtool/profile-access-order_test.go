@@ -20,6 +20,7 @@ import (
 )
 
 func TestRecordDynamicImportsRecordsEntrypointMatchesAndChunkDirectory(t *testing.T) {
+	// Build a dist tree with an entrypoint, workers, and chunk modules.
 	ctx := context.Background()
 	distFS := newProfileAccessOrderTestFS(t, map[string][]byte{
 		"entrypoint.mjs": []byte(`
@@ -39,6 +40,7 @@ import("chunks/not-js.css");
 	})
 	defer distFS.Release()
 
+	// Record the entrypoint and its dynamic imports.
 	recorder := newStartupAccessRecorder()
 	recorder.add(
 		packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
@@ -50,10 +52,13 @@ import("chunks/not-js.css");
 		t.Fatalf("recordDynamicImports: %v", err)
 	}
 
+	// Expect the entrypoint, workers, and chunk accesses in first-access order.
 	entries := recorder.entries
 	if len(entries) != 8 {
 		t.Fatalf("got %d entries, want 8", len(entries))
 	}
+
+	// Check the entrypoint, deduplicated imports, and worker accesses.
 	assertProfileAccessEntry(t, entries[0], 0, "entrypoint.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "startup", 1)
 	assertProfileAccessEntry(t, entries[1], 1, "chunks/dot.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/dot.mjs", 1)
 	assertProfileAccessEntry(t, entries[2], 2, "chunks/zeta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/zeta.mjs", 3)
@@ -65,6 +70,7 @@ import("chunks/not-js.css");
 }
 
 func TestRecordDynamicImportsResolvesRelativeChunkSpecifiers(t *testing.T) {
+	// Build a dist tree whose runtime module imports chunks in several forms.
 	ctx := context.Background()
 	distFS := newProfileAccessOrderTestFS(t, map[string][]byte{
 		"entrypoint/a/b/runtime.mjs": []byte(`
@@ -80,11 +86,13 @@ import("../chunks/not-module.js");
 	})
 	defer distFS.Release()
 
+	// Record the dynamic imports of the nested runtime module.
 	recorder := newStartupAccessRecorder()
 	if err := recordDynamicImportsFromFile(ctx, recorder, distFS, "entrypoint/a/b/runtime.mjs"); err != nil {
 		t.Fatalf("recordDynamicImportsFromFile: %v", err)
 	}
 
+	// Expect the five resolvable chunk imports in source order.
 	entries := recorder.entries
 	if len(entries) != 5 {
 		t.Fatalf("got %d entries, want 5: %v", len(entries), entries)
@@ -97,6 +105,7 @@ import("../chunks/not-module.js");
 }
 
 func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEntries(t *testing.T) {
+	// Create dist and assets filesystems sharing one path.
 	ctx := context.Background()
 	const sharedPath = "shared.txt"
 	distBillyFS := newProfileAccessOrderTestBillyFS(t, map[string][]byte{
@@ -106,6 +115,7 @@ func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEn
 		sharedPath: []byte("asset startup bytes with a distinct block graph\n"),
 	})
 
+	// Build a manifest holding the same path in dist and assets.
 	bls := bucket_lookup.NewCursor(
 		ctx,
 		nil,
@@ -135,6 +145,7 @@ func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEn
 		t.Fatalf("write manifest: %v", err)
 	}
 
+	// Record the shared path for both filesystems.
 	distEntry := &packfile_order.AccessOrderEntry{
 		Filesystem: packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
 		Path:       sharedPath,
@@ -149,10 +160,12 @@ func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEn
 		Entries: []*packfile_order.AccessOrderEntry{distEntry, assetsEntry},
 	}
 
+	// Resolve each entry's block references.
 	if err := resolveStartupAccessRefs(ctx, bls, manifest, record); err != nil {
 		t.Fatalf("resolveStartupAccessRefs: %v", err)
 	}
 
+	// Expect the dist and assets entries to resolve to distinct refs.
 	distRefs := assertProfileAccessResolvedRefs(t, ctx, bls, distEntry)
 	assetsRefs := assertProfileAccessResolvedRefs(t, ctx, bls, assetsEntry)
 	if refsOverlap(distRefs, assetsRefs) {
@@ -166,12 +179,16 @@ func assertProfileAccessResolvedRefs(
 	bls *bucket_lookup.Cursor,
 	entry *packfile_order.AccessOrderEntry,
 ) map[string]struct{} {
+	// Mark this function as a test helper.
 	t.Helper()
 
+	// Expect the entry to have resolved references.
 	refs := entry.GetResolvedRefs()
 	if len(refs) == 0 {
 		t.Fatalf("%s %q resolved refs are empty", entry.GetFilesystem(), entry.GetPath())
 	}
+
+	// Verify each reference exists in the bucket and collect its keys.
 	keys := make(map[string]struct{}, len(refs))
 	for idx, ref := range refs {
 		if ref == nil || ref.GetEmpty() {
@@ -211,7 +228,10 @@ func assertProfileAccessEntry(
 	detail string,
 	accessCount uint64,
 ) {
+	// Mark this function as a test helper.
 	t.Helper()
+
+	// Compare every recorded field of the entry.
 	if entry.GetOrdinal() != ordinal {
 		t.Fatalf("ordinal = %d, want %d", entry.GetOrdinal(), ordinal)
 	}

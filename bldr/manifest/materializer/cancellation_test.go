@@ -65,6 +65,7 @@ func buildTestDirManifest(
 	ctx context.Context,
 	srcCursor *bucket_lookup.Cursor,
 ) *bucket.ObjectRef {
+	// Mark the failure path on the test.
 	t.Helper()
 
 	// Store 70 unique empty directory children with distinct permissions.
@@ -120,6 +121,8 @@ func buildTestDirManifest(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Root the source cursor at the manifest and return its ref.
 	srcCursor.SetRootRef(manifestRef)
 	srcRef := srcCursor.GetRef()
 	if srcRef.GetRootRef().GetEmpty() {
@@ -132,19 +135,23 @@ func buildTestDirManifest(
 // large copy is actively traversing and asserts the RPC ends with the canceled
 // error and never emits a copied root.
 func TestMaterializeManifestCancelActiveCopy(t *testing.T) {
+	// Build the testbed and its source bucket.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
+	// Build the testbed and release it when the test ends.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Apply the test bucket configs and build the large source manifest.
 	applyTestBucketConfigs(t, ctx, tb)
 	srcCursor := buildTestSourceCursor(t, ctx, tb, nil)
 	defer srcCursor.Release()
 
+	// Build the large directory manifest in the source bucket.
 	srcRef := buildTestDirManifest(t, ctx, srcCursor)
 
 	// Serve the Materializer over an in-memory srpc pipe with the canceling
@@ -157,6 +164,7 @@ func TestMaterializeManifestCancelActiveCopy(t *testing.T) {
 	}
 	srpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 
+	// Start the MaterializeManifest stream against the source ref.
 	client := NewSRPCMaterializerClient(srpcClient)
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{
 		Source:      srcRef,
@@ -168,8 +176,7 @@ func TestMaterializeManifestCancelActiveCopy(t *testing.T) {
 	}
 	defer strm.Close()
 
-	// Drain the stream: at least one progress response with at least 64
-	// blocks seen, no copied root, and a terminal canceled error.
+	// Drain the stream until it terminates, counting the responses.
 	progressCount := 0
 	maxBlocksSeen := int64(0)
 	copiedCount := 0
@@ -191,6 +198,8 @@ func TestMaterializeManifestCancelActiveCopy(t *testing.T) {
 			}
 		}
 	}
+
+	// Assert the terminal error is canceled and no root was copied.
 	if streamErr == nil {
 		t.Fatal("stream ended without error, want canceled error")
 	}

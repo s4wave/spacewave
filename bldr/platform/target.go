@@ -73,9 +73,12 @@ var builtinTargets = map[string]*Target{
 // GetBuiltinTarget returns a builtin target by ID.
 // For targets that depend on the host platform (like "desktop"), this computes the correct platform IDs.
 func GetBuiltinTarget(id string) *Target {
+	// Return the static builtin target when one matches.
 	if target, ok := builtinTargets[id]; ok {
 		return target
 	}
+
+	// Compute the desktop target from the host platform.
 	if id == TargetID_Desktop {
 		return &Target{
 			ID:          TargetID_Desktop,
@@ -89,6 +92,7 @@ func GetBuiltinTarget(id string) *Target {
 // ParseTarget parses a target string, supporting built-in and parameterized targets.
 // Examples: "browser", "desktop", "desktop/darwin/arm64"
 func ParseTarget(id string) (*Target, error) {
+	// Trim and require a non-empty target ID.
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return nil, errors.New("target ID cannot be empty")
@@ -122,6 +126,7 @@ func ParseTarget(id string) (*Target, error) {
 		}, nil
 	}
 
+	// Reject any other target ID.
 	return nil, errors.Errorf("unknown target: %s", id)
 }
 
@@ -143,15 +148,18 @@ func GetAllNativePlatformIDs() []string {
 // Returns the first platform ID from the target that matches a supported base platform.
 // Returns empty string if no match found.
 func (t *Target) SelectPlatformForCompiler(supportedBasePlatforms []string) string {
+	// A nil target or empty support list selects nothing.
 	if t == nil || len(supportedBasePlatforms) == 0 {
 		return ""
 	}
 
+	// Index the supported base platforms for lookup.
 	supportedSet := make(map[string]struct{}, len(supportedBasePlatforms))
 	for _, bp := range supportedBasePlatforms {
 		supportedSet[bp] = struct{}{}
 	}
 
+	// Return the first target platform with a supported base platform.
 	for _, platformID := range t.PlatformIDs {
 		platform, err := ParsePlatform(platformID)
 		if err != nil {

@@ -22,11 +22,13 @@ const (
 )
 
 func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
+	// Re-enter as the child process for the requested lock role.
 	if role := os.Getenv(stateLockTestRoleEnv); role != "" {
 		runDevtoolStateLockRole(t, role)
 		return
 	}
 
+	// Start the holder process against a fresh state root.
 	stateRoot := t.TempDir()
 	holder := stateLockTestCommand(t, stateRoot, "hold")
 	holderIn, err := holder.StdinPipe()
@@ -37,11 +39,15 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture the holder's stderr and start it.
 	var holderErr bytes.Buffer
 	holder.Stderr = &holderErr
 	if err := holder.Start(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect the holder to report readiness before the waiter starts.
 	holderOut := bufio.NewReader(holderOutPipe)
 	ready, err := holderOut.ReadString('\n')
 	if err != nil {
@@ -51,6 +57,7 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 		t.Fatalf("unexpected holder readiness output: %q", ready)
 	}
 
+	// Start the waiter process and capture its output pipes.
 	waiter := stateLockTestCommand(t, stateRoot, "wait")
 	waiterOutPipe, err := waiter.StdoutPipe()
 	if err != nil {
@@ -65,6 +72,8 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 	}
 	waiterOut := bufio.NewReader(waiterOutPipe)
 	waiterErr := bufio.NewReader(waiterErrPipe)
+
+	// Expect the waiter to report the held state lock and state root.
 	diagnostic, err := waiterErr.ReadString('\n')
 	if err != nil {
 		t.Fatalf("waiter did not report the held state lock: %v", err)
@@ -76,6 +85,7 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 		t.Fatalf("diagnostic does not name state root %q: %q", stateRoot, diagnostic)
 	}
 
+	// Release the holder and expect the waiter to acquire the lock.
 	if err := holderIn.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -86,6 +96,8 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 	if strings.TrimSpace(acquired) != "acquired" {
 		t.Fatalf("unexpected waiter acquire output: %q", acquired)
 	}
+
+	// Expect both child processes to exit cleanly.
 	if err := waiter.Wait(); err != nil {
 		t.Fatalf("waiter failed after acquiring lock: %v", err)
 	}
@@ -95,21 +107,26 @@ func TestDevtoolStateLockSerializesAndReportsHolder(t *testing.T) {
 }
 
 func runDevtoolStateLockRole(t *testing.T, role string) {
+	// Run the requested lock role against the shared state root.
 	t.Helper()
 	stateRoot := os.Getenv(stateLockTestRootEnv)
 	if stateRoot == "" {
 		t.Fatal("state lock test root is required")
 	}
+
 	// Plumb a logger writing to stderr so the collision diagnostic still
 	// reaches the parent process's captured stderr.
 	logger := logrus.New()
 	logger.SetOutput(os.Stderr)
+
+	// Acquire the state lock and release it when the role completes.
 	lock, err := acquireStateLock(context.Background(), logrus.NewEntry(logger), stateRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lock.release()
 
+	// Perform the role's lock hold or wait behavior.
 	switch role {
 	case "hold":
 		if _, err := os.Stdout.Write([]byte("ready\n")); err != nil {
@@ -128,6 +145,7 @@ func runDevtoolStateLockRole(t *testing.T, role string) {
 }
 
 func stateLockTestCommand(t *testing.T, stateRoot, role string) *exec.Cmd {
+	// Build the child command with the role and state root set.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)

@@ -61,18 +61,21 @@ func (a *DevtoolArgs) BuildProfileAccessOrderCommand() *cli.Command {
 
 // ExecuteProfileAccessOrder records startup access order for one built manifest.
 func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error) {
+	// Initialize the devtool repository root and state directory.
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err
 	}
 
+	// Build the devtool bus and release it when profiling completes.
 	b, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, false)
 	if err != nil {
 		return err
 	}
 	defer b.Release()
 
+	// Resolve the manifest and platform ids from the flags.
 	manifestID := a.AccessOrderManifestID
 	if manifestID == "" {
 		manifestID = "spacewave-browser"
@@ -82,6 +85,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 		platformID = "web/js/wasm"
 	}
 
+	// Collect the built manifests matching the manifest and platform ids.
 	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		b.GetWorldState(),
@@ -99,6 +103,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 		return errors.Errorf("manifest not found: %s %s", manifestID, platformID)
 	}
 
+	// Resolve the output path and create its directory.
 	outPath := a.AccessOrderOutputPath
 	if outPath == "" {
 		outPath = filepath.Join(stateDir, "access-order", accessOrderFilename(manifestID, platformID))
@@ -110,6 +115,7 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 		return errors.Wrap(err, "create access-order output directory")
 	}
 
+	// Record the startup access order for the first collected manifest.
 	collected := manifests[0]
 	var record *packfile_order.AccessOrderRecord
 	err = bldr_manifest_world.AccessManifest(
@@ -132,6 +138,8 @@ func (a *DevtoolArgs) ExecuteProfileAccessOrder(ctx context.Context) (err error)
 	if err != nil {
 		return err
 	}
+
+	// Write the record to the output file.
 	if record == nil {
 		return errors.New("profile did not produce an access-order record")
 	}
@@ -146,6 +154,7 @@ func buildStartupAccessOrderRecord(
 	distFS *unixfs.FSHandle,
 	assetsFS *unixfs.FSHandle,
 ) (*packfile_order.AccessOrderRecord, error) {
+	// Record the entrypoint, dynamic imports, and asset root accesses.
 	meta := manifest.GetMeta()
 	r := newStartupAccessRecorder()
 	entrypoint := manifest.GetEntrypoint()
@@ -153,13 +162,17 @@ func buildStartupAccessOrderRecord(
 		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, entrypoint, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, entrypoint)
 	}
 
+	// Record the dynamic imports reachable from the dist tree.
 	if err := recordDynamicImports(ctx, r, distFS, entrypoint); err != nil {
 		return nil, err
 	}
+
+	// Record the asset root directory entries.
 	if err := recordAssetRoot(ctx, r, assetsFS); err != nil {
 		return nil, err
 	}
 
+	// Assemble the record and resolve each entry's block references.
 	record := &packfile_order.AccessOrderRecord{
 		ManifestId:      meta.GetManifestId(),
 		PlatformId:      meta.GetPlatformId(),
@@ -175,6 +188,7 @@ func buildStartupAccessOrderRecord(
 }
 
 func resolveStartupAccessRefs(ctx context.Context, bls *bucket_lookup.Cursor, manifest *bldr_manifest.Manifest, record *packfile_order.AccessOrderRecord) error {
+	// Select each entry's filesystem root from the manifest.
 	for _, entry := range record.GetEntries() {
 		var rootRef *block.BlockRef
 		switch entry.GetFilesystem() {
@@ -185,6 +199,7 @@ func resolveStartupAccessRefs(ctx context.Context, bls *bucket_lookup.Cursor, ma
 		default:
 			continue
 		}
+		// Resolve the entry's path to its block references.
 		refs, ok, err := startupAccessPathRefs(ctx, bls, rootRef, entry.GetPath())
 		if err != nil {
 			return errors.Wrap(err, "resolve access-order path refs")
@@ -197,6 +212,7 @@ func resolveStartupAccessRefs(ctx context.Context, bls *bucket_lookup.Cursor, ma
 }
 
 func startupAccessPathRefs(ctx context.Context, bls *bucket_lookup.Cursor, rootRef *block.BlockRef, fpath string) ([]*block.BlockRef, bool, error) {
+	// Open the filesystem tree at the root reference.
 	if rootRef == nil || rootRef.GetEmpty() {
 		return nil, false, nil
 	}
@@ -205,6 +221,8 @@ func startupAccessPathRefs(ctx context.Context, bls *bucket_lookup.Cursor, rootR
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Walk each path component to the target node.
 	for part := range strings.SplitSeq(path.Clean(strings.TrimPrefix(fpath, "/")), "/") {
 		if part == "." || part == "" {
 			continue
@@ -219,6 +237,7 @@ func startupAccessPathRefs(ctx context.Context, bls *bucket_lookup.Cursor, rootR
 		ftree = next
 	}
 
+	// Walk the target node's blocks and collect unique references.
 	seen := make(map[string]struct{})
 	var refs []*block.BlockRef
 	xfrm := bls.GetTransformer()
@@ -229,12 +248,15 @@ func startupAccessPathRefs(ctx context.Context, bls *bucket_lookup.Cursor, rootR
 		ctx,
 		bucket_lookup.NewWalkObjectBlocksWithRef(ftree.GetCursorRef(), unixfs_block.NewFSNodeBlock),
 		func(ent *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+			// Skip walk errors and non-reference entries.
 			if ent.Err != nil {
 				return false, ent.Err
 			}
 			if ent.IsSubBlock || !ent.Found || ent.Ref == nil || ent.Ref.GetEmpty() || len(ent.Data) == 0 {
 				return true, nil
 			}
+
+			// Collect each unique block reference once.
 			key := ent.Ref.MarshalString()
 			if _, ok := seen[key]; ok {
 				return true, nil
@@ -264,15 +286,20 @@ func newStartupAccessRecorder() *startupAccessRecorder {
 }
 
 func (r *startupAccessRecorder) add(filesystem packfile_order.AccessOrderFilesystem, fpath string, reason packfile_order.AccessOrderReason, detail string) {
+	// Skip empty paths after normalizing the record path.
 	fpath = path.Clean(strings.TrimPrefix(fpath, "./"))
 	if fpath == "." || fpath == "" {
 		return
 	}
+
+	// Count a repeat access on the existing entry.
 	key := filesystem.String() + "\x00" + fpath + "\x00" + reason.String()
 	if entry := r.byKey[key]; entry != nil {
 		entry.AccessCount++
 		return
 	}
+
+	// Append a new entry with the next ordinal.
 	entry := &packfile_order.AccessOrderEntry{
 		Ordinal:      uint64(len(r.entries)),
 		Filesystem:   filesystem,
@@ -286,12 +313,14 @@ func (r *startupAccessRecorder) add(filesystem packfile_order.AccessOrderFilesys
 }
 
 func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS *unixfs.FSHandle, entrypoint string) error {
+	// Record the entrypoint module and its dynamic imports.
 	if entrypoint != "" {
 		if err := recordDynamicImportsFromFile(ctx, r, distFS, entrypoint); err != nil {
 			return err
 		}
 	}
 
+	// Record the runtime worker modules and their dynamic imports.
 	workerPaths, err := listRuntimeWorkerPaths(ctx, distFS)
 	if err != nil {
 		return err
@@ -303,6 +332,7 @@ func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS 
 		}
 	}
 
+	// Record every chunk module as a dynamic import access.
 	chunkPaths, err := listChunkModulePaths(ctx, distFS)
 	if err != nil {
 		return err
@@ -314,6 +344,7 @@ func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS 
 }
 
 func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder, distFS *unixfs.FSHandle, filePath string) error {
+	// Read the module file, ignoring a missing path.
 	fileHandle, _, err := distFS.LookupPath(ctx, filePath)
 	if err != nil {
 		if stderrors.Is(err, fs.ErrNotExist) {
@@ -323,10 +354,13 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 	}
 	defer fileHandle.Release()
 
+	// Read the module contents and resolve its dynamic imports.
 	dat, err := unixfs.ReadFile(ctx, fileHandle)
 	if err != nil {
 		return errors.Wrap(err, "read startup module")
 	}
+
+	// Resolve each dynamic import specifier against the module directory.
 	baseDir := path.Dir(filePath)
 	for _, match := range dynamicImportPattern.FindAllStringSubmatch(string(dat), -1) {
 		specifier := match[1]
@@ -335,6 +369,8 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 			modulePath = modulePath[:suffix]
 		}
 		resolvedPath := path.Clean(path.Join(baseDir, modulePath))
+
+		// Record only relative chunk module specifiers.
 		if path.Ext(modulePath) != ".mjs" ||
 			strings.HasPrefix(modulePath, "/") ||
 			strings.HasPrefix(resolvedPath, "../") ||
@@ -347,6 +383,7 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 }
 
 func recordAssetRoot(ctx context.Context, r *startupAccessRecorder, assetsFS *unixfs.FSHandle) error {
+	// Record every entry of the assets root directory.
 	if assetsFS == nil {
 		return nil
 	}
@@ -364,6 +401,7 @@ func recordAssetRoot(ctx context.Context, r *startupAccessRecorder, assetsFS *un
 }
 
 func listRuntimeWorkerPaths(ctx context.Context, distFS *unixfs.FSHandle) ([]string, error) {
+	// Collect the runtime worker module paths from the dist tree.
 	var paths []string
 	err := walkManifestFiles(ctx, distFS, "", func(fpath string) {
 		switch path.Base(fpath) {
@@ -379,6 +417,7 @@ func listRuntimeWorkerPaths(ctx context.Context, distFS *unixfs.FSHandle) ([]str
 }
 
 func listChunkModulePaths(ctx context.Context, distFS *unixfs.FSHandle) ([]string, error) {
+	// Collect the chunk module paths from the dist tree.
 	var paths []string
 	err := walkManifestFiles(ctx, distFS, "", func(fpath string) {
 		if strings.HasSuffix(fpath, ".mjs") && (strings.HasPrefix(fpath, "chunks/") || strings.Contains(fpath, "/chunks/")) {
@@ -393,6 +432,7 @@ func listChunkModulePaths(ctx context.Context, distFS *unixfs.FSHandle) ([]strin
 }
 
 func walkManifestFiles(ctx context.Context, root *unixfs.FSHandle, dirPath string, cb func(string)) error {
+	// Open the walk directory, ignoring a missing path.
 	dir := root
 	if dirPath != "" {
 		var err error
@@ -406,11 +446,13 @@ func walkManifestFiles(ctx context.Context, root *unixfs.FSHandle, dirPath strin
 		defer dir.Release()
 	}
 
+	// Get the directory operations for the walk.
 	_, ops, err := dir.GetOps(ctx)
 	if err != nil {
 		return err
 	}
 	return ops.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
+		// Recurse into directories and report each file path.
 		if ent.GetName() == "" {
 			return nil
 		}
@@ -426,6 +468,7 @@ func walkManifestFiles(ctx context.Context, root *unixfs.FSHandle, dirPath strin
 }
 
 func readDirNames(ctx context.Context, root *unixfs.FSHandle, dirPath string) ([]string, error) {
+	// Open the directory to list.
 	dir := root
 	if dirPath != "" {
 		var err error
@@ -436,6 +479,7 @@ func readDirNames(ctx context.Context, root *unixfs.FSHandle, dirPath string) ([
 		defer dir.Release()
 	}
 
+	// Collect and sort the directory entry names.
 	_, ops, err := dir.GetOps(ctx)
 	if err != nil {
 		return nil, err

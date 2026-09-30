@@ -28,6 +28,7 @@ type DesktopTray struct {
 
 // NewDesktopTray creates a new DesktopTray.
 func NewDesktopTray() *DesktopTray {
+	// Construct the tray and register its RPC service on a new mux.
 	r := &DesktopTray{
 		registrations: make(map[uint32]*desktopTrayRegistration),
 	}
@@ -47,6 +48,7 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 	ctx context.Context,
 	req *RegisterDesktopTrayEntryRequest,
 ) (*RegisterDesktopTrayEntryResponse, error) {
+	// Validate the entry reference and its identifier.
 	entry := req.GetEntry()
 	if entry == nil {
 		return nil, ErrDesktopTrayEntryRequired
@@ -55,11 +57,13 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 		return nil, ErrDesktopTrayEntryIdRequired
 	}
 
+	// Resolve the registering resource client context.
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reject an entry id that is already registered.
 	var duplicate bool
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		duplicate = r.hasEntryIDLocked(entry.GetId(), 0)
@@ -68,6 +72,7 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 		return nil, ErrDesktopTrayEntryDuplicate
 	}
 
+	// Construct the entry resource and its registration record.
 	entryResource := NewDesktopTrayEntryResource(r)
 	reg := &desktopTrayRegistration{
 		entry:                    entry.CloneVT(),
@@ -75,6 +80,7 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 		client:                   client,
 	}
 
+	// Publish the entry resource and release its registration on release.
 	var released bool
 	var resourceID uint32
 	resourceID, err = client.AddResourceValue(entryResource.GetMux(), entryResource, func() {
@@ -91,6 +97,7 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 		return nil, err
 	}
 
+	// Record the resource on the entry and register it unless it raced.
 	entryResource.SetResourceID(resourceID)
 	reg.resourceID = resourceID
 	var releasedBeforeRegistration bool
@@ -127,6 +134,7 @@ func (r *DesktopTray) WatchDesktopTray(
 ) error {
 	ctx := strm.Context()
 
+	// Snapshot the tray state under the lock and wait for the next change.
 	for {
 		var state *DesktopTrayState
 		var waitCh <-chan struct{}
@@ -136,6 +144,7 @@ func (r *DesktopTray) WatchDesktopTray(
 			waitCh = getWaitCh()
 		})
 
+		// Send the snapshot outside the lock and wait for change or cancel.
 		if err := strm.Send(&WatchDesktopTrayResponse{
 			State: state,
 		}); err != nil {
@@ -155,11 +164,13 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 	ctx context.Context,
 	req *InvokeDesktopTrayEntryRequest,
 ) (*InvokeDesktopTrayEntryResponse, error) {
+	// Validate the requested entry identifier.
 	entryID := req.GetEntryId()
 	if entryID == "" {
 		return nil, ErrDesktopTrayEntryIdRequired
 	}
 
+	// Find the registration with the requested entry id.
 	var reg *desktopTrayRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, candidate := range r.registrations {
@@ -176,6 +187,7 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 		return nil, ErrDesktopTrayEntryNotFound
 	}
 
+	// Reject an entry that is not an enabled attached-handler action.
 	entry := reg.entry.CloneVT()
 	if entry.GetKind() != DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION || !entry.GetEnabled() {
 		return nil, ErrDesktopTrayEntryNotInvokable
@@ -188,6 +200,7 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 		return nil, ErrDesktopTrayActionHandlerRequired
 	}
 
+	// Forward the action to the attached handler resource.
 	client, err := reg.client.GetAttachedResource(reg.attachedActionResourceID)
 	if err != nil {
 		return nil, err
@@ -205,9 +218,11 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 }
 
 func (r *DesktopTray) setEntry(resourceID uint32, entry *DesktopTrayEntry) error {
+	// Replace the registration's entry and reject duplicate ids.
 	var found bool
 	var duplicate bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Replace the entry only when the registration still exists.
 		reg := r.registrations[resourceID]
 		if reg == nil {
 			return
@@ -230,8 +245,10 @@ func (r *DesktopTray) setEntry(resourceID uint32, entry *DesktopTrayEntry) error
 }
 
 func (r *DesktopTray) setActive(resourceID uint32, active bool) error {
+	// Set the registration's active flag and broadcast a change.
 	var found bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Update the flag only when the registration still exists.
 		reg := r.registrations[resourceID]
 		if reg == nil {
 			return
@@ -251,8 +268,10 @@ func (r *DesktopTray) setActive(resourceID uint32, active bool) error {
 }
 
 func (r *DesktopTray) setEnabled(resourceID uint32, enabled bool) error {
+	// Set the registration's enabled flag and broadcast a change.
 	var found bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Update the flag only when the registration still exists.
 		reg := r.registrations[resourceID]
 		if reg == nil {
 			return
@@ -272,6 +291,7 @@ func (r *DesktopTray) setEnabled(resourceID uint32, enabled bool) error {
 }
 
 func (r *DesktopTray) snapshot() *DesktopTrayState {
+	// Snapshot the tray state under the broadcast lock.
 	var state *DesktopTrayState
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		state = r.snapshotLocked()
@@ -280,6 +300,7 @@ func (r *DesktopTray) snapshot() *DesktopTrayState {
 }
 
 func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
+	// Collect the valid registrations in deterministic order.
 	regs := make([]*desktopTrayRegistration, 0, len(r.registrations))
 	for _, reg := range r.registrations {
 		if reg == nil || reg.entry == nil {
@@ -287,7 +308,10 @@ func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
 		}
 		regs = append(regs, reg)
 	}
+
+	// Order entries by path, group, order, id, then resource id.
 	sort.Slice(regs, func(i, j int) bool {
+		// Compare the entries by their joined path first.
 		left := regs[i].entry
 		right := regs[j].entry
 		leftPath := strings.Join(left.GetPath(), "\x00")
@@ -295,6 +319,8 @@ func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
 		if leftPath != rightPath {
 			return leftPath < rightPath
 		}
+
+		// Break ties by group, order, id, then resource id.
 		if left.GetGroup() != right.GetGroup() {
 			return left.GetGroup() < right.GetGroup()
 		}
@@ -307,6 +333,7 @@ func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
 		return regs[i].resourceID < regs[j].resourceID
 	})
 
+	// Clone the entries and fold them into the tray icon state.
 	entries := make([]*DesktopTrayEntry, 0, len(regs))
 	iconState := DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_NORMAL
 	var statusText string
@@ -332,6 +359,7 @@ func desktopTrayTitleStatusText(label string) string {
 }
 
 func (r *DesktopTray) hasEntryIDLocked(entryID string, exceptResourceID uint32) bool {
+	// Report whether another registration already uses the entry id.
 	for resourceID, reg := range r.registrations {
 		if resourceID == exceptResourceID || reg == nil || reg.entry == nil {
 			continue

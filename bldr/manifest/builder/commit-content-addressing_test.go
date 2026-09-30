@@ -18,10 +18,13 @@ import (
 )
 
 func TestCommitManifestUsesContentAddressing(t *testing.T) {
+	// Fix the commit timestamp so identical builds produce identical refs.
 	ctx := withManifestCommitTimestamp(
 		context.Background(),
 		timestamp.New(time.Unix(1700000000, 0)),
 	)
+
+	// Build two independent testbed Worlds for the comparison.
 	firstWorld, err := testbed.BuildTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
@@ -33,13 +36,17 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 	}
 	t.Cleanup(secondWorld.Release)
 
+	// Write identical dist and assets files into fresh directories.
 	distPath := filepath.Join(t.TempDir(), "dist")
 	assetsPath := filepath.Join(t.TempDir(), "assets")
 	writeCommitTestFile(t, distPath, "plugin-HASH.mjs", "export const value = 1;\n")
 	writeCommitTestFile(t, assetsPath, "asset.txt", "asset\n")
 
+	// Commit the same contents to both Worlds and compare the results.
 	firstManifest, firstRef := commitManifestForTest(t, ctx, firstWorld, distPath, assetsPath)
 	secondManifest, secondRef := commitManifestForTest(t, ctx, secondWorld, distPath, assetsPath)
+
+	// Assert identical builds produce identical refs and filesystem refs.
 	if !secondRef.EqualVT(firstRef) {
 		t.Fatalf("identical build ref = %v, want %v", secondRef, firstRef)
 	}
@@ -50,6 +57,7 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 		t.Fatal("identical build produced a different assets filesystem ref")
 	}
 
+	// Copy the first manifest into both Worlds and assert the copies match.
 	// Dist copying uses this same timestamp policy and preserves content identity.
 	var copiedRoot *bucket.ObjectRef
 	for _, target := range []*testbed.Testbed{firstWorld, secondWorld} {
@@ -67,6 +75,7 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 		copiedRoot = copied
 	}
 
+	// Change the dist contents and assert the ref changes.
 	writeCommitTestFile(t, distPath, "plugin-HASH.mjs", "export const value = 2;\n")
 	_, changedRef := commitManifestForTest(t, ctx, secondWorld, distPath, assetsPath)
 	if changedRef.EqualVT(firstRef) {
@@ -76,6 +85,8 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 	// A same-revision build must leave both exact implementations rooted in the
 	// World, including after callers release their build results.
 	ws := secondWorld.GetWorldState()
+
+	// Look up both committed refs and assert neither replaced the other.
 	for _, ref := range []*bucket.ObjectRef{secondRef, changedRef} {
 		key := bldr_manifest.NewManifestArtifactKey(ref)
 		_, retained, err := bldr_manifest_world.LookupManifest(ctx, ws, key)
@@ -86,6 +97,8 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 			t.Fatal("a same-revision build replaced an immutable artifact")
 		}
 	}
+
+	// Assert both artifacts remain linked under the plugin host object key.
 	linked, err := bldr_manifest_world.ListManifests(ctx, ws, secondWorld.GetPluginHostObjKey())
 	if err != nil {
 		t.Fatal(err)
@@ -102,8 +115,10 @@ func commitManifestForTest(
 	distPath string,
 	assetsPath string,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef) {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Build a manifest meta and a builder config pointing at the testbed.
 	meta := bldr_manifest.NewManifestMeta(
 		"spacewave-js-plugin",
 		bldr_manifest.BuildType_DEV,
@@ -119,6 +134,8 @@ func commitManifestForTest(
 		LinkObjectKeys: []string{tb.GetPluginHostObjKey()},
 		PeerId:         tb.GetVolume().GetPeerID().String(),
 	}
+
+	// Commit the manifest with the prepared dist and assets paths.
 	manifestValue, manifestRef, err := builderConfig.CommitManifestWithPaths(
 		ctx,
 		tb.GetLogger(),
@@ -137,6 +154,7 @@ func commitManifestForTest(
 func writeCommitTestFile(t *testing.T, rootPath, relPath, contents string) {
 	t.Helper()
 
+	// Create the parent directory and write the file contents.
 	filePath := filepath.Join(rootPath, relPath)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		t.Fatal(err)

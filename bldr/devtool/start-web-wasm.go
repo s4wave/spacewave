@@ -103,12 +103,13 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 		stopTUI()
 	}()
 
+	// Sync the generated dist sources into the repository.
 	err = d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
 	if err != nil {
 		return err
 	}
 
-	// Execute the project controller.
+	// Start the project controller and wait for it to run.
 	projCtrl, projCtrlRef, err := d.StartFrontendProjectController(
 		ctx,
 		d.GetBus(),
@@ -123,11 +124,13 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	}
 	defer projCtrlRef.Release()
 
+	// Wait for the running project controller.
 	currProjCtrl, err := projCtrl.GetProjectController().WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
+	// Collect the project startup configuration.
 	// TODO: reload these if ProjectController restarts?
 	currProjConf := currProjCtrl.GetConfig().GetProjectConfig()
 	appID := currProjConf.GetId()
@@ -140,6 +143,7 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	)
 	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
+	// Start the web wasm dev server for the project.
 	buildType := bldr_manifest.BuildType(a.BuildType)
 	a.writeBannerTo(os.Stderr)
 	return d.executeWebWasm(
@@ -198,6 +202,7 @@ func (d *DevtoolBus) executeWebWasm(
 	frontendService *bldr_project_controller.FrontendService,
 	onListening func(string) error,
 ) error {
+	// Resolve the state, dist source, and entrypoint directories.
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
 	distSrcDir := d.GetDistSrcDir()
@@ -260,6 +265,7 @@ func (d *DevtoolBus) executeWebWasm(
 	tinygoCompatible := false
 	useTinygo := entryBuildType.IsRelease() && minifyEntrypoint && tinygoCompatible
 
+	// Create the wasm runtime output directory.
 	wasmRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(wasmRuntimeDir, 0o755); err != nil {
 		return err
@@ -282,6 +288,7 @@ func (d *DevtoolBus) executeWebWasm(
 	}
 	defer wsRef.Release()
 
+	// Resolve the websocket transport from the running controller.
 	wsTpt := wsCtrl.(*transport_controller.Controller)
 	tpt, err := wsTpt.GetTransport(ctx)
 	if err != nil {
@@ -302,6 +309,7 @@ func (d *DevtoolBus) executeWebWasm(
 	}
 	defer holdOpenRef.Release()
 
+	// Start the cached manifest fetch controller.
 	relCachedManifestFetch, err := d.startCachedManifestFetchController(ctx)
 	if err != nil {
 		return err
@@ -423,6 +431,7 @@ func (d *DevtoolBus) executeWebWasm(
 	entryFs := http.Dir(entrypointDir)
 	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
 
+	// Serve each request from the entrypoint assets or a devtool endpoint.
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
 		// Set the Cross-Origin Isolation headers required for
 		// SharedArrayBuffer, which enables SAB-based communication between
@@ -431,6 +440,7 @@ func (d *DevtoolBus) executeWebWasm(
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 
+		// Serve the encoded init info at the info path.
 		if req.URL.Path == infoPath {
 			le.Info("received info request from frontend")
 			rw.Header().Add("Content-Type", "application/x-protobuf")
@@ -439,12 +449,15 @@ func (d *DevtoolBus) executeWebWasm(
 			_, _ = rw.Write(browserInitBin)
 			return
 		}
+
+		// Hand websocket upgrade requests to the transport.
 		if req.URL.Path == linkWsPath {
 			le.Info("received websocket connection from frontend")
 			ws.ServeHTTP(rw, req)
 			return
 		}
 
+		// Serve the frontend bootstrap for frontend-prefixed paths.
 		if frontendService != nil && strings.HasPrefix(req.URL.Path, "/bldr-dev/frontend-") {
 			frontendService.ServeBootstrap(rw, req, bundleResult.EntrypointPath)
 			return
@@ -465,6 +478,7 @@ func (d *DevtoolBus) executeWebWasm(
 	// Run the HTTP server until ctx is canceled.
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
+
 	// Manifest preflights start after listening so they cannot gate shell
 	// delivery.
 	var startupManifestRefs []directive.Reference
@@ -521,6 +535,7 @@ func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (fu
 // listenAndServeDevtoolHTTP serves the HTTP server until ctx is canceled and
 // calls onListening with the bound address once listening.
 func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListening func(string) error) error {
+	// Bind the server listener.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -556,6 +571,7 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 			_ = server.Close()
 		}
 	}
+
 	// Collect the serve and shutdown results.
 	serveErr := <-serveErrCh
 	close(stopShutdownCh)

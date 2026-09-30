@@ -162,12 +162,14 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	}
 	defer c.lifecycleMtx.Unlock()
 
+	// Take the controller mutex for the reconciliation.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
 	// Reconcile startup plugins with the replacement configuration.
 	c.startup.SetState(nextConf.GetStart())
 
+	// Skip the update when the configuration is unchanged.
 	prevCtrlConf := c.conf.Load()
 	prevConf := prevCtrlConf.GetProjectConfig()
 	if nextConf.EqualVT(prevConf) {
@@ -222,12 +224,14 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 						return true
 					}
 
+					// Reset when the remote is unresolved or changed.
 					currRemoteConf := trk.remoteConf.Load()
 					if currRemoteConf == nil {
 						// An unresolved remote must read the replacement configuration.
 						return true
 					}
 
+					// Reset when the remote configuration changed.
 					if !remoteConf.EqualVT(currRemoteConf) {
 						return true
 					}
@@ -321,10 +325,12 @@ func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
 	c.lifecycleMtx.Lock()
 	defer c.lifecycleMtx.Unlock()
 
+	// Reject references after the controller closes.
 	if c.closed {
 		return nil, errControllerClosed
 	}
 
+	// Take the controller mutex for the remote registry.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -335,6 +341,7 @@ func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
 		return nil, bldr_project.ErrRemoteNotFound
 	}
 
+	// Add a reference to the remote tracker.
 	ref, tracker, _ := c.remotes.AddKeyRef(remoteID)
 	return newRemoteRef(ref, tracker), nil
 }
@@ -347,6 +354,7 @@ func (c *Controller) WaitRemote(ctx context.Context, remoteID string) (world.Eng
 		return nil, nil, err
 	}
 
+	// Await the remote world engine and return it with the reference.
 	remoteEngPtr, err := remoteRef.GetResultPromise().Await(ctx)
 	if err != nil {
 		remoteRef.Release()
@@ -365,11 +373,13 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		return nil, nil, errors.Wrap(bldr_project.ErrEmptyRemoteID, "fetch_manifest: in project controller config")
 	}
 
+	// Wait for the manifest remote's world engine.
 	_, remoteRef, err := c.WaitRemote(ctx, manifestRemoteID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Read the remote's base object key and require it to be set.
 	baseObjKey := remoteRef.tracker.remote.GetObjectKey()
 	if baseObjKey == "" {
 		remoteRef.Release()
@@ -408,6 +418,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return context.Canceled
 	}
 
+	// Reconfigure and run the frontend with the current configuration.
 	if c.frontend != nil {
 		if err := c.frontend.configure(c.GetConfig()); err != nil {
 			c.lifecycleMtx.Unlock()
@@ -422,6 +433,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	start := c.GetConfig().GetStart()
 	c.lifecycleMtx.Unlock()
 
+	// Start the startup plugin loader when requested.
 	if start {
 		c.StartStartup(ctx)
 	}

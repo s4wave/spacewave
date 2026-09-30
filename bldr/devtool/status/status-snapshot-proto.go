@@ -260,9 +260,12 @@ func buildDevtoolStatusAttentionSeverity(
 }
 
 func splitStatusList(value string) []string {
+	// Return no entries for an empty list.
 	if value == "" {
 		return nil
 	}
+
+	// Split the value and drop blank entries.
 	parts := strings.Split(value, ",")
 	out := make([]string, 0, len(parts))
 	for _, part := range parts {

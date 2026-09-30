@@ -79,6 +79,7 @@ func collectStartupManifestEligibilityForManifestID(
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*StartupManifestCandidateEligibility, error) {
+	// Collect the manifest graph and its candidate edge labels.
 	edges, candidates, err := collectStartupManifestGraph(ctx, ws, manifestID, objKeys...)
 	if err != nil {
 		return nil, err
@@ -119,12 +120,15 @@ func collectStartupManifestEligibilityForManifestID(
 
 // SummarizeStartupManifestEligibility builds a compact status string.
 func SummarizeStartupManifestEligibility(candidates []*StartupManifestCandidateEligibility, maxItems int) string {
+	// Clamp the item count to the candidate list.
 	if len(candidates) == 0 || maxItems == 0 {
 		return ""
 	}
 	if maxItems < 0 || maxItems > len(candidates) {
 		maxItems = len(candidates)
 	}
+
+	// Summarize the leading candidates.
 	items := make([]string, 0, maxItems)
 	for _, candidate := range candidates[:maxItems] {
 		items = append(items, candidate.Summary())
@@ -138,9 +142,12 @@ func SummarizeStartupManifestEligibility(candidates []*StartupManifestCandidateE
 
 // Summary returns one compact diagnostic item.
 func (c *StartupManifestCandidateEligibility) Summary() string {
+	// A nil candidate summarizes as a placeholder.
 	if c == nil {
 		return "<nil>"
 	}
+
+	// Join the candidate fields and optional manifest identity.
 	parts := []string{
 		c.ObjectKey,
 		string(c.Eligibility),
@@ -198,6 +205,7 @@ func SelectableStartupManifests(candidates []*StartupManifestCandidateEligibilit
 }
 
 func startupManifestCandidateEdgeLabels(edges []startupManifestGraphEdge, manifestID string) map[string]string {
+	// Prefer the exact manifest ID label for each candidate.
 	labels := make(map[string]string)
 	exactLabel := ""
 	if manifestID != "" {
@@ -254,6 +262,7 @@ func classifyDirectStartupManifestEligibility(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (*StartupManifestCandidateEligibility, error) {
+	// Look up the manifest object for the candidate.
 	manifest, manifestRef, err := lookupStartupManifestObjectForEligibility(ctx, ws, candidate.ObjectKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
@@ -281,6 +290,7 @@ func classifyManifestRefStartupEligibility(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (*StartupManifestCandidateEligibility, error) {
+	// Look up the manifest ref stored on the candidate object.
 	manifestRef, objectRef, err := lookupManifestRefForStartupEligibility(ctx, ws, candidate.ObjectKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
@@ -301,6 +311,7 @@ func classifyManifestRefStartupEligibility(
 		return candidate, nil
 	}
 
+	// Snapshot the manifest meta fields onto the candidate.
 	meta := manifestRef.GetMeta()
 	snapshotMeta := func(eligibility StartupManifestEligibility, reason string) {
 		candidate.ManifestID = meta.GetManifestId()
@@ -310,6 +321,7 @@ func classifyManifestRefStartupEligibility(
 		candidate.Reason = reason
 	}
 
+	// Quarantine a manifest ID mismatch and ignore a filtered platform.
 	if expectedManifestID != "" && meta.GetManifestId() != expectedManifestID {
 		snapshotMeta(StartupManifestEligibilityQuarantined, "manifest-id-mismatch:"+meta.GetManifestId())
 		return candidate, nil
@@ -319,6 +331,7 @@ func classifyManifestRefStartupEligibility(
 		return candidate, nil
 	}
 
+	// Read the manifest bundle locally through the manifest ref.
 	manifest, err := lookupStartupManifestObjectRefLocalForEligibility(ctx, ws, manifestRef.GetManifestRef())
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
@@ -347,6 +360,7 @@ func classifyUnknownTypedStartupCandidate(
 	filterPlatformIDs []string,
 	refErr error,
 ) (*StartupManifestCandidateEligibility, error) {
+	// Try reading the manifest object and validate it when present.
 	manifest, manifestRef, manifestErr := lookupStartupManifestObjectForEligibility(ctx, ws, candidate.ObjectKey)
 	if manifestErr == nil && manifest != nil {
 		candidate.Manifest = manifest
@@ -374,9 +388,12 @@ func classifyReadableStartupManifest(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) *StartupManifestCandidateEligibility {
+	// Copy the manifest meta fields onto the candidate.
 	candidate.ManifestID = meta.GetManifestId()
 	candidate.PlatformID = meta.GetPlatformId()
 	candidate.Rev = meta.GetRev()
+
+	// Quarantine a manifest ID mismatch and ignore a filtered platform.
 	if expectedManifestID != "" && candidate.ManifestID != expectedManifestID {
 		candidate.Eligibility = StartupManifestEligibilityQuarantined
 		candidate.Reason = "manifest-id-mismatch:" + candidate.ManifestID

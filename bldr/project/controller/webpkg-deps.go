@@ -21,9 +21,11 @@ import (
 func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.ManifestConfig) map[string][]string {
 	// providers maps webPkg ID -> manifest ID that provides it.
 	providers := make(map[string]string)
+
 	// consumers maps manifest ID -> list of excluded webPkg IDs.
 	consumers := make(map[string][]string)
 
+	// Classify each manifest's web packages as providers or consumers.
 	for manifestID, manifestConf := range manifests {
 		for _, webPkg := range readCompilerWebPkgs(le, manifestID, manifestConf.GetBuilder()) {
 			pkgID := webPkg.GetId()
@@ -112,9 +114,12 @@ type compilerConfig interface {
 // VT based on the leading byte; an empty payload is a no-op. Failures are
 // logged, not returned: dep resolution is best effort.
 func unmarshalBuilderConfig(le *logrus.Entry, manifestID, compilerName string, configData []byte, conf compilerConfig) error {
+	// Empty config data leaves the compiler config untouched.
 	if len(configData) == 0 {
 		return nil
 	}
+
+	// Decode JSON or binary proto config depending on the first byte.
 	var err error
 	if configData[0] == '{' {
 		err = conf.UnmarshalJSON(configData)

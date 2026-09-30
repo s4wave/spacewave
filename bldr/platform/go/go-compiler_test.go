@@ -22,12 +22,14 @@ func TestTinyGoTarget(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.platformID, func(t *testing.T) {
+			// Parse the platform under test.
 			plat, err := bldr_platform.ParsePlatform(tc.platformID)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
 				return
 			}
 
+			// Convert to a TinyGo target and check the result.
 			target, err := PlatformToTinyGoTarget(plat)
 			if tc.expectError {
 				if err == nil {
@@ -64,12 +66,14 @@ func TestGoCompilerEnvVars(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.platformID, func(t *testing.T) {
+			// Parse the platform under test.
 			plat, err := bldr_platform.ParsePlatform(tc.platformID)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())
 				return
 			}
 
+			// Convert to Go env vars and check the result.
 			genv, err := PlatformToGoEnv(plat)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %s", tc.platformID, err.Error())

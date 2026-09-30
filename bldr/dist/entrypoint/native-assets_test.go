@@ -20,7 +20,7 @@ import (
 // TestNativeAssetsResource resolves a real volume in both native layouts,
 // independently of the current directory and any obsolete sidecar.
 func TestNativeAssetsResource(t *testing.T) {
-	// External volumes follow the executable through a symlink.
+	// Resolve the volume next to the executable through a symlink.
 	dir := t.TempDir()
 	executable := filepath.Join(dir, "app")
 	if err := os.WriteFile(executable, nil, 0o755); err != nil {
@@ -49,6 +49,8 @@ func TestNativeAssetsResource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the root block into a kvfile volume beside the executable.
 	var volume bytes.Buffer
 	writer := kvfile.NewWriter(&volume)
 	if err := writer.WriteValue(store_kvkey.NewDefaultKVKey().GetBlockKey(key), bytes.NewReader(data)); err != nil {
@@ -84,6 +86,8 @@ func TestNativeAssetsResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	closeReader()
+
+	// Reject a volume whose root does not match the expected reference.
 	otherRef, err := block.BuildBlockRef([]byte("other root"), nil)
 	if err != nil {
 		t.Fatal(err)

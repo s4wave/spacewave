@@ -16,7 +16,10 @@ import (
 )
 
 func makeJSManifestConfig(t *testing.T, webPkgs []*bldr_web_bundler.WebPkgRefConfig) *bldr_project.ManifestConfig {
+	// Mark the failure path on the test.
 	t.Helper()
+
+	// Marshal the JS compiler config into a manifest config.
 	conf := &js_compiler.Config{WebPkgs: webPkgs}
 	data, err := conf.MarshalVT()
 	if err != nil {
@@ -31,7 +34,10 @@ func makeJSManifestConfig(t *testing.T, webPkgs []*bldr_web_bundler.WebPkgRefCon
 }
 
 func makeGoManifestConfig(t *testing.T, webPkgs []*bldr_web_bundler.WebPkgRefConfig) *bldr_project.ManifestConfig {
+	// Mark the failure path on the test.
 	t.Helper()
+
+	// Marshal the Go compiler config into a manifest config.
 	conf := &go_compiler.Config{WebPkgs: webPkgs}
 	data, err := conf.MarshalVT()
 	if err != nil {
@@ -46,6 +52,7 @@ func makeGoManifestConfig(t *testing.T, webPkgs []*bldr_web_bundler.WebPkgRefCon
 }
 
 func TestResolveWebPkgDeps(t *testing.T) {
+	// Build manifests that provide and exclude shared web packages.
 	manifests := map[string]*bldr_project.ManifestConfig{
 		"spacewave-web": makeJSManifestConfig(t, []*bldr_web_bundler.WebPkgRefConfig{
 			{Id: "@s4wave/web"},
@@ -65,6 +72,7 @@ func TestResolveWebPkgDeps(t *testing.T) {
 		},
 	}
 
+	// Resolve the dependency graph.
 	deps := resolveWebPkgDeps(logrus.NewEntry(logrus.StandardLogger()), manifests)
 
 	// spacewave-app depends on spacewave-web
@@ -89,6 +97,7 @@ func TestResolveWebPkgDeps(t *testing.T) {
 }
 
 func TestResolveWebPkgDepsIncludesGoCompilerConfigs(t *testing.T) {
+	// Build Go and JS manifests that provide and exclude web packages.
 	manifests := map[string]*bldr_project.ManifestConfig{
 		"goscript-shared-provider": makeGoManifestConfig(t, []*bldr_web_bundler.WebPkgRefConfig{
 			{Id: web_runtime_goscript_build.GoScriptSharedWebPkgID},
@@ -104,8 +113,10 @@ func TestResolveWebPkgDepsIncludesGoCompilerConfigs(t *testing.T) {
 		}),
 	}
 
+	// Resolve the dependency graph.
 	deps := resolveWebPkgDeps(logrus.NewEntry(logrus.StandardLogger()), manifests)
 
+	// Assert each consumer resolves to its provider.
 	goDeps := deps["goscript-consumer"]
 	if len(goDeps) != 1 || goDeps[0] != "goscript-shared-provider" {
 		t.Fatalf("expected goscript-consumer -> [goscript-shared-provider], got %v", goDeps)
@@ -120,6 +131,7 @@ func TestResolveWebPkgDepsIncludesGoCompilerConfigs(t *testing.T) {
 }
 
 func TestResolveWebPkgDepsMultipleProviders(t *testing.T) {
+	// Build two providers and one consumer excluding both packages.
 	manifests := map[string]*bldr_project.ManifestConfig{
 		"provider-a": makeJSManifestConfig(t, []*bldr_web_bundler.WebPkgRefConfig{
 			{Id: "@pkg/a"},
@@ -133,6 +145,7 @@ func TestResolveWebPkgDepsMultipleProviders(t *testing.T) {
 		}),
 	}
 
+	// Resolve the graph and assert the consumer depends on both providers.
 	deps := resolveWebPkgDeps(logrus.NewEntry(logrus.StandardLogger()), manifests)
 	consumerDeps := deps["consumer"]
 	slices.Sort(consumerDeps)
@@ -145,6 +158,7 @@ func TestResolveWebPkgDepsMultipleProviders(t *testing.T) {
 }
 
 func TestFindDepCycle(t *testing.T) {
+	// Build an acyclic dependency graph and check each start node.
 	deps := map[string][]string{
 		"app":   {"code", "web"},
 		"code":  {"web"},
@@ -156,6 +170,7 @@ func TestFindDepCycle(t *testing.T) {
 		}
 	}
 
+	// Add a cycle and expect the full cycle path back.
 	deps["web"] = []string{"notes"}
 	cycle := findDepCycle(deps, "code")
 	if !slices.Equal(cycle, []string{"code", "web", "notes", "code"}) {

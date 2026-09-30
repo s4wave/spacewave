@@ -32,16 +32,20 @@ type fetchManifestResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Fetch the manifest through the owning plugin's RPC client.
 	err := plugin.ExPluginLoadAccessClient(
 		ctx,
 		r.c.bus,
 		r.c.conf.GetPluginId(),
 		func(ctx context.Context, client srpc.Client) error {
+			// Clear any previously emitted values for the directive.
 			_ = handler.ClearValues()
 
+			// Log the fetch and stream each matching manifest response.
 			r.c.le.Debugf("fetching manifest %s via plugin %s", r.dir.GetManifestId(), r.c.conf.GetPluginId())
 			defer r.c.le.Debugf("exited fetching manifest %s via plugin %s", r.dir.GetManifestId(), r.c.conf.GetPluginId())
 
+			// Fetch the manifest through the plugin RPC client.
 			fetchClient := manifest.NewSRPCManifestFetchClient(client)
 			return manifest.FetchManifestViaRpc(
 				ctx,

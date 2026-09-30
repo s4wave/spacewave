@@ -107,6 +107,7 @@ func (c *testStartupCacheBuilder) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Count the build call and derive the input path and bucket from the meta.
 	testStartupCacheBuilderState.buildCalls.Add(1)
 	builderConfig := args.GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta().CloneVT()
@@ -116,6 +117,8 @@ func (c *testStartupCacheBuilder) BuildManifest(
 		inputPath = "child.ts"
 		bucketID = "built-child-bucket"
 	}
+
+	// Optionally build the child sub-manifest for the demo manifest.
 	if testStartupCacheBuilderState.buildSubManifest.Load() && meta.GetManifestId() == "demo" {
 		childBuilderConfig, err := configset_proto.NewControllerConfig(
 			configset.NewControllerConfig(1, &testStartupCacheBuilderConfig{}),
@@ -134,6 +137,8 @@ func (c *testStartupCacheBuilder) BuildManifest(
 			return nil, err
 		}
 	}
+
+	// Return the built manifest result.
 	return bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/demo"),
 		&bucket.ObjectRef{BucketId: bucketID},
@@ -191,7 +196,10 @@ func (startupCacheBlockingLookupResolver) Resolve(
 // writeSettledFile writes a fixture input dated a second back, so builds the
 // test starts do not see it as modified during the build.
 func writeSettledFile(t *testing.T, filePath, content string) {
+	// Mark the failure path on the test.
 	t.Helper()
+
+	// Write the file and backdate its modification time.
 	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -202,12 +210,14 @@ func writeSettledFile(t *testing.T, filePath, content string) {
 }
 
 func TestValidateStartupFilesHashFallback(t *testing.T) {
+	// Write the fixture input file.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.ts")
 	if err := os.WriteFile(filePath, []byte("console.log('ok');\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Capture identities and validate the unchanged file.
 	inputManifest := bldr_manifest_builder.NewInputManifest([]string{"main.ts"}, nil)
 	if err := captureFileIdentities(tmpDir, inputManifest); err != nil {
 		t.Fatal(err)
@@ -216,6 +226,7 @@ func TestValidateStartupFilesHashFallback(t *testing.T) {
 		t.Fatalf("validate unchanged: %v", err)
 	}
 
+	// Touch the file without changing its contents and validate again.
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		t.Fatal(err)
@@ -228,6 +239,7 @@ func TestValidateStartupFilesHashFallback(t *testing.T) {
 		t.Fatalf("validate modtime-only change: %v", err)
 	}
 
+	// Change the contents and expect validation to fail.
 	if err := os.WriteFile(filePath, []byte("console.log('changed');\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -270,6 +282,7 @@ func TestValidateStartupFilesInvalidatesOnlyOwningArtifacts(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Write the fixture files into a fresh directory.
 			tmpDir := t.TempDir()
 			files := map[string]string{
 				"main.go":     "package main\n",
@@ -283,6 +296,7 @@ func TestValidateStartupFilesInvalidatesOnlyOwningArtifacts(t *testing.T) {
 				}
 			}
 
+			// Capture identities for each artifact's input manifest.
 			manifests := make(map[string]*bldr_manifest_builder.InputManifest, len(artifactInputs))
 			for artifact, paths := range artifactInputs {
 				inputManifest := bldr_manifest_builder.NewInputManifest(paths, nil)
@@ -292,6 +306,7 @@ func TestValidateStartupFilesInvalidatesOnlyOwningArtifacts(t *testing.T) {
 				manifests[artifact] = inputManifest
 			}
 
+			// Change one input and assert only its owning artifacts miss.
 			if err := os.WriteFile(filepath.Join(tmpDir, test.path), []byte(test.content), 0o644); err != nil {
 				t.Fatal(err)
 			}
@@ -306,6 +321,7 @@ func TestValidateStartupFilesInvalidatesOnlyOwningArtifacts(t *testing.T) {
 }
 
 func TestValidateStartupFilesEscapedRelativePath(t *testing.T) {
+	// Write a nested fixture file inside the temporary directory.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(
 		tmpDir,
@@ -323,6 +339,7 @@ func TestValidateStartupFilesEscapedRelativePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Capture identities for a manifest whose path escapes the source root.
 	inputManifest := bldr_manifest_builder.NewInputManifest(
 		[]string{"../../../../../../../../node_modules/@aptre/it-ws/dist/src/duplex.js"},
 		nil,
@@ -336,6 +353,7 @@ func TestValidateStartupFilesEscapedRelativePath(t *testing.T) {
 }
 
 func TestValidateStartupFilesEscapedBldrDistPath(t *testing.T) {
+	// Write a fixture file under the generated .bldr/src tree.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(
 		tmpDir,
@@ -352,6 +370,7 @@ func TestValidateStartupFilesEscapedBldrDistPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Capture identities for a manifest whose path escapes into .bldr/src.
 	inputManifest := bldr_manifest_builder.NewInputManifest(
 		[]string{"../../../../../../../src/web/bldr-react/DebugInfo.tsx"},
 		nil,
@@ -365,6 +384,7 @@ func TestValidateStartupFilesEscapedBldrDistPath(t *testing.T) {
 }
 
 func TestValidateStartupInputs(t *testing.T) {
+	// Marshal a digest for an empty controller configuration.
 	t.Setenv("BLDR_TEST_ENV", "expected")
 	controllerConfig := &configset_proto.ControllerConfig{}
 	controllerConfigDigest, err := marshalStartupConfigDigest(controllerConfig, nil)
@@ -372,6 +392,7 @@ func TestValidateStartupInputs(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Record the config digest, cache format, and env var as startup inputs.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
@@ -381,14 +402,18 @@ func TestValidateStartupInputs(t *testing.T) {
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_ENV", "expected"),
 	)
 
+	// Validate the inputs against the unchanged configuration.
 	if err := validateStartupInputs(controllerConfig, nil, inputManifest); err != nil {
 		t.Fatalf("validate startup inputs: %v", err)
 	}
 
+	// A changed build policy must invalidate the cached result.
 	policy := &bldr_manifest_build.BuildPolicy{JsMinification: enabled.Enabled_ENABLE}
 	if err := validateStartupInputs(controllerConfig, policy, inputManifest); err == nil {
 		t.Fatal("expected rebuild after build policy changed")
 	}
+
+	// Recording the new policy digest restores validation success.
 	policyDigest, err := marshalStartupConfigDigest(controllerConfig, policy)
 	if err != nil {
 		t.Fatal(err)
@@ -398,6 +423,7 @@ func TestValidateStartupInputs(t *testing.T) {
 		t.Fatalf("unchanged build policy: %v", err)
 	}
 
+	// A changed environment variable must invalidate the cached result.
 	t.Setenv("BLDR_TEST_ENV", "changed")
 	if err := validateStartupInputs(controllerConfig, policy, inputManifest); err == nil {
 		t.Fatal("expected env validation error")
@@ -405,12 +431,14 @@ func TestValidateStartupInputs(t *testing.T) {
 }
 
 func TestValidateStartupInputsRequiresCacheFormat(t *testing.T) {
+	// Marshal a digest for an empty controller configuration.
 	controllerConfig := &configset_proto.ControllerConfig{}
 	controllerConfigDigest, err := marshalStartupConfigDigest(controllerConfig, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record only the config digest and expect validation to fail.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
@@ -421,12 +449,14 @@ func TestValidateStartupInputsRequiresCacheFormat(t *testing.T) {
 }
 
 func TestValidateStartupInputsRejectsOldCacheFormat(t *testing.T) {
+	// Marshal a digest for an empty controller configuration.
 	controllerConfig := &configset_proto.ControllerConfig{}
 	controllerConfigDigest, err := marshalStartupConfigDigest(controllerConfig, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Record the config digest and a stale cache format marker.
 	inputManifest := bldr_manifest_builder.NewInputManifest(nil, nil)
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewControllerConfigDigestStartupInput(controllerConfigDigest),
@@ -435,6 +465,7 @@ func TestValidateStartupInputsRejectsOldCacheFormat(t *testing.T) {
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_STARTUP_CACHE_FORMAT_V10", ""),
 	)
 
+	// Validation must fail with the missing-format-marker error.
 	err = validateStartupInputs(controllerConfig, nil, inputManifest)
 	if err == nil || !strings.Contains(err.Error(), "missing startup cache format marker") {
 		t.Fatalf("validate startup inputs error = %v, want missing current cache format", err)
@@ -442,6 +473,7 @@ func TestValidateStartupInputsRejectsOldCacheFormat(t *testing.T) {
 }
 
 func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
+	// Write a settled hook input file and declare its env var.
 	t.Setenv("BLDR_TEST_HOOK_ENV", "declared-value")
 	tmpDir := t.TempDir()
 	hookInputPath := filepath.Join(tmpDir, "hook", "input.json")
@@ -450,6 +482,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 	}
 	writeSettledFile(t, hookInputPath, "{\"v\":1}\n")
 
+	// Build a builder config pointing at the fixture directory.
 	controllerConfig := &configset_proto.ControllerConfig{}
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	builderConfig := &bldr_manifest_builder.BuilderConfig{ManifestMeta: meta, SourcePath: tmpDir}
@@ -458,6 +491,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 	// declared file becomes an input file and the declared env var a startup
 	// input, then generic enrichment adds the config digest and format marker.
 	buildInputManifest := func() *bldr_manifest_builder.InputManifest {
+		// Record the declared file and env var, then enrich the result.
 		inputManifest := bldr_manifest_builder.NewInputManifest([]string{"hook/input.json"}, nil)
 		inputManifest.AddStartupInput(
 			bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_HOOK_ENV", os.Getenv("BLDR_TEST_HOOK_ENV")),
@@ -496,6 +530,7 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 	if err := validateStartupInputs(controllerConfig, nil, fresh); err == nil {
 		t.Fatal("expected rebuild after declared env var changed")
 	}
+
 	// An unset declared environment variable still participates in identity.
 	if err := os.Unsetenv("BLDR_TEST_HOOK_ENV"); err != nil {
 		t.Fatal(err)
@@ -508,9 +543,11 @@ func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
 }
 
 func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
+	// Write a settled source file for the input manifest.
 	tmpDir := t.TempDir()
 	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 
+	// Build a result whose input manifest has no captured identities.
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	builderResult := bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/demo"),
@@ -522,10 +559,12 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 		SourcePath:   tmpDir,
 	}
 
+	// Enrich the result for startup reuse.
 	if _, err := enrichBuilderResultForStartupReuse(builderConfig, &configset_proto.ControllerConfig{}, builderResult, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Assert the enriched manifest carries the file identity and inputs.
 	inputManifest := builderResult.GetInputManifest()
 	if len(inputManifest.GetFiles()) != 1 {
 		t.Fatalf("expected 1 file, got %d", len(inputManifest.GetFiles()))
@@ -536,6 +575,8 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	if len(inputManifest.GetStartupInputs()) != 2 {
 		t.Fatalf("expected 2 startup inputs, got %d", len(inputManifest.GetStartupInputs()))
 	}
+
+	// Assert the digest and cache format marker startup inputs are present.
 	var foundControllerDigest bool
 	var foundCacheFormat bool
 	for _, input := range inputManifest.GetStartupInputs() {
@@ -559,12 +600,14 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 // that lands while the compiler runs: the captured hash matches the new
 // content, but the output was built from the old content.
 func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
+	// Record the build start time and write the source file.
 	tmpDir := t.TempDir()
 	buildStart := time.Now()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build a result whose input manifest has no captured identities.
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	builderResult := bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/demo"),
@@ -577,10 +620,13 @@ func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
 	}
 	controllerConfig := &configset_proto.ControllerConfig{}
 
+	// Enrich against the build start time and expect the changed input.
 	changedInput, err := enrichBuilderResultForStartupReuse(builderConfig, controllerConfig, builderResult, buildStart)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Startup validation must reject the stale result.
 	if changedInput != "main.go" {
 		t.Fatalf("expected main.go reported as changed, got %q", changedInput)
 	}
@@ -590,10 +636,13 @@ func TestEnrichBuilderResultRejectsInputChangedDuringBuild(t *testing.T) {
 }
 
 func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
+	// Prepare the source file and a startup builder result.
 	tmpDir := t.TempDir()
 	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
+
+	// Run the controller with the cached result and assert no build ran.
 	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 0 {
 		t.Fatalf("expected 0 build calls, got %d", buildCalls)
@@ -604,17 +653,20 @@ func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 }
 
 func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
+	// Write the parent and child source files.
 	tmpDir := t.TempDir()
 	mainPath := filepath.Join(tmpDir, "main.go")
 	childPath := filepath.Join(tmpDir, "child.ts")
 	writeSettledFile(t, mainPath, "package main\n")
 	writeSettledFile(t, childPath, "export const child = true;\n")
 
+	// Enable sub-manifest builds for this test.
 	testStartupCacheBuilderState.buildSubManifest.Store(true)
 	t.Cleanup(func() {
 		testStartupCacheBuilderState.buildSubManifest.Store(false)
 	})
 
+	// Run the initial build and assert both parent and child were built.
 	startupResult, buildCalls := runStartupExecuteTest(t, tmpDir, nil, true)
 	if buildCalls != 2 {
 		t.Fatalf("initial build calls = %d, want parent and child", buildCalls)
@@ -622,6 +674,8 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 	if startupResult.GetSubManifestResults()["child"] == nil {
 		t.Fatal("parent result did not persist child builder result")
 	}
+
+	// Assert the parent input manifest retains the child startup input.
 	var childStartupFile bool
 	for _, inputFile := range startupResult.GetInputManifest().GetFiles() {
 		if inputFile.GetPath() == "child.ts" && inputFile.GetStartupOnly() {
@@ -632,11 +686,13 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 		t.Fatal("parent result did not retain child input for startup validation")
 	}
 
+	// An unchanged rerun must hit the cache for both manifests.
 	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true)
 	if buildCalls != 0 {
 		t.Fatalf("unchanged build calls = %d, want 0", buildCalls)
 	}
 
+	// A parent-only mutation rebuilds the parent only.
 	if err := os.WriteFile(mainPath, []byte("package main\n// changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -645,6 +701,7 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 		t.Fatalf("parent-only mutation build calls = %d, want parent only", buildCalls)
 	}
 
+	// A child mutation rebuilds both parent and child.
 	if err := os.WriteFile(mainPath, []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -658,11 +715,14 @@ func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
 }
 
 func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T) {
+	// Prepare the source file, cached result, and lifecycle sink.
 	tmpDir := t.TempDir()
 	writeSettledFile(t, filepath.Join(tmpDir, "main.go"), "package main\n")
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
 	sink := newRecordingLifecycleSink()
+
+	// Run the controller and record the lifecycle statuses.
 	result, buildCalls := runStartupExecuteWithLifecycle(
 		t,
 		tmpDir,
@@ -677,6 +737,8 @@ func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T)
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "startup-bucket" {
 		t.Fatal("expected startup builder result to be reused")
 	}
+
+	// Assert the lifecycle summaries and the final cache-hit status.
 	assertLifecycleSummaries(t, sink.nonEmptySnapshot(), []string{
 		"queued",
 		"starting builder controller",
@@ -690,6 +752,7 @@ func TestControllerStartupCacheHitPublishesLifecycleStatusOrdering(t *testing.T)
 }
 
 func TestControllerStartupFileMissRebuilds(t *testing.T) {
+	// Capture a startup result, then change the source file.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.go")
 	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
@@ -700,6 +763,8 @@ func TestControllerStartupFileMissRebuilds(t *testing.T) {
 	if err := os.WriteFile(filePath, []byte("package main\n// changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the controller and assert the rebuild happened.
 	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 1 {
 		t.Fatalf("expected 1 build call, got %d", buildCalls)
@@ -710,6 +775,7 @@ func TestControllerStartupFileMissRebuilds(t *testing.T) {
 }
 
 func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
+	// Capture a startup result, then change the source file.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.go")
 	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
@@ -720,6 +786,8 @@ func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
 	if err := os.WriteFile(filePath, []byte("package main\n// changed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the controller with a lifecycle sink and record the statuses.
 	sink := newRecordingLifecycleSink()
 	result, buildCalls := runStartupExecuteWithLifecycle(
 		t,
@@ -735,6 +803,8 @@ func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
 	}
+
+	// Assert the full-rebuild lifecycle summaries and final statuses.
 	assertLifecycleSummaries(t, sink.nonEmptySnapshot(), []string{
 		"queued",
 		"starting builder controller",
@@ -752,15 +822,18 @@ func TestControllerStartupFileMissPublishesFullBuildLifecycle(t *testing.T) {
 }
 
 func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *testing.T) {
+	// Write the watched source file.
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "main.go")
 	if err := os.WriteFile(filePath, []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Bound the test with a timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed and register the test builder factory.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -769,10 +842,12 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	}
 	defer tb.Release()
 
+	// Reset the builder state and register the test builder factory.
 	testStartupCacheBuilderState.cacheSafe.Store(true)
 	testStartupCacheBuilderState.buildCalls.Store(0)
 	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
 
+	// Construct the watching controller and attach the lifecycle sink.
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	builderConfig := &bldr_manifest_builder.BuilderConfig{
 		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
@@ -789,11 +864,13 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	sink := newRecordingLifecycleSink()
 	ctrl.SetManifestBuilderLifecycleSink(sink)
 
+	// Run the controller and await the initial build result.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ctrl.Execute(ctx)
 	}()
 
+	// Await the initial build result from the controller.
 	firstResult, err := ctrl.GetResultPromise().Await(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -801,6 +878,8 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	if firstResult.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected initial build result")
 	}
+
+	// Hold the first promise and wait for the watch to settle.
 	firstPromise, waitCh := ctrl.GetResultPromise().GetPromise()
 	if firstPromise == nil {
 		t.Fatal("expected first result promise")
@@ -809,6 +888,7 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 		return status.Summary == "watching for changes"
 	})
 
+	// Change the watched file until the result promise is replaced.
 	writeWatchedFileUntilPromiseReplaced(t, ctx, filePath, waitCh)
 	secondPromise, _ := ctrl.GetResultPromise().GetPromise()
 	if secondPromise == nil {
@@ -818,6 +898,7 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 		t.Fatal("expected result promise to be replaced on rebuild")
 	}
 
+	// Await the rebuilt result and assert the revision advanced.
 	secondResult, err := secondPromise.Await(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -831,6 +912,8 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 	if builderConfig.GetManifestMeta().GetRev() != 1 {
 		t.Fatal("a watch rebuild mutated the shared builder configuration")
 	}
+
+	// Assert the hot-rebuild lifecycle status and build call count.
 	hot := sink.waitFor(t, ctx, func(status ManifestBuilderLifecycleStatus) bool {
 		return status.HotRebuild && status.DependencyRebuildReason == changedFilesSummary(1)
 	})
@@ -841,6 +924,7 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 		t.Fatalf("build calls = %d, want 2", got)
 	}
 
+	// Cancel the context and wait for Execute to exit.
 	cancel()
 	if execErr := waitForControllerExecuteExit(t, errCh); execErr != nil && execErr != context.Canceled {
 		t.Fatalf("execute: %v", execErr)
@@ -848,6 +932,7 @@ func TestControllerFileChangeRebuildReplacesResultPromiseAndPublishesReason(t *t
 }
 
 func TestControllerStartupEnvMissRebuilds(t *testing.T) {
+	// Capture a startup result that records the old env value.
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -858,6 +943,8 @@ func TestControllerStartupEnvMissRebuilds(t *testing.T) {
 	startupBuilderResult.GetInputManifest().AddStartupInput(
 		bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_ENV", "old"),
 	)
+
+	// Change the env value and assert the rebuild happened.
 	t.Setenv("BLDR_TEST_ENV", "new")
 	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, true)
 	if buildCalls != 1 {
@@ -869,12 +956,15 @@ func TestControllerStartupEnvMissRebuilds(t *testing.T) {
 }
 
 func TestControllerStartupUnsafeBuilderRebuilds(t *testing.T) {
+	// Capture a startup result for a builder that disallows cache reuse.
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStartupBuilderResult(t, tmpDir, builderControllerConfig)
+
+	// Run the controller with cache reuse disabled and assert the rebuild.
 	result, buildCalls := runStartupExecuteTest(t, tmpDir, startupBuilderResult, false)
 	if buildCalls != 1 {
 		t.Fatalf("expected 1 build call, got %d", buildCalls)
@@ -885,14 +975,17 @@ func TestControllerStartupUnsafeBuilderRebuilds(t *testing.T) {
 }
 
 func TestControllerStartupMissingManifestRebuilds(t *testing.T) {
+	// Write the source file for the build.
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build the testbed for the stored manifest lookup.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed with a debug logger.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -901,11 +994,13 @@ func TestControllerStartupMissingManifestRebuilds(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Corrupt the cached manifest root ref so the lookup misses.
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
 	startupBuilderResult.ManifestRef.ManifestRef = startupBuilderResult.GetManifestRef().GetManifestRef().CloneVT()
 	startupBuilderResult.ManifestRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 
+	// Run the controller and assert the rebuild happened.
 	result, buildCalls := runStartupExecuteWithTestbed(
 		t,
 		tb,
@@ -923,14 +1018,17 @@ func TestControllerStartupMissingManifestRebuilds(t *testing.T) {
 }
 
 func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
+	// Write the source file for the build.
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build the testbed for the stored manifest lookup.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed with a debug logger.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -939,11 +1037,13 @@ func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Change the cached manifest bucket ID so the lookup misses.
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
 	startupBuilderResult.ManifestRef.ManifestRef = startupBuilderResult.GetManifestRef().GetManifestRef().CloneVT()
 	startupBuilderResult.ManifestRef.ManifestRef.BucketId = "other-bucket"
 
+	// Run the controller and assert the rebuild happened.
 	result, buildCalls := runStartupExecuteWithTestbed(
 		t,
 		tb,
@@ -961,14 +1061,17 @@ func TestControllerStartupManifestBucketMismatchRebuilds(t *testing.T) {
 }
 
 func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t *testing.T) {
+	// Write the source file for the build.
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build the testbed for the stored manifest lookup.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed with a debug logger.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -977,15 +1080,19 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 	}
 	defer tb.Release()
 
+	// Install a controller that blocks every network bucket lookup.
 	ctrlRel, err := tb.GetBus().AddController(ctx, startupCacheBlockingLookupController{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ctrlRel()
 
+	// Store the cached manifest in the testbed World.
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	startupBuilderResult := buildStoredStartupBuilderResult(t, tb, tmpDir, builderControllerConfig)
 	cachedBucketID := startupBuilderResult.GetManifestRef().GetManifestRef().GetBucketId()
+
+	// Apply a lookup-backed bucket config for the cached bucket.
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
 		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
 	}))
@@ -1001,6 +1108,7 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 		t.Fatal(err)
 	}
 
+	// Load the bucket lookup so the bucket config is locally available.
 	waitCtx, waitCancel := context.WithTimeout(ctx, time.Second)
 	lookupHandle, _, lookupHandleRef, err := bucket_lookup.ExBuildBucketLookup(waitCtx, tb.GetBus(), false, cachedBucketID, nil)
 	waitCancel()
@@ -1012,9 +1120,11 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 		t.Fatal("lookup bucket config was not loaded")
 	}
 
+	// Corrupt the cached manifest root ref so the lookup misses.
 	startupBuilderResult.ManifestRef.ManifestRef = startupBuilderResult.GetManifestRef().GetManifestRef().CloneVT()
 	startupBuilderResult.ManifestRef.ManifestRef.RootRef.Hash.Hash[0] ^= 0xff
 
+	// Build a controller configured with the cached startup result.
 	builderConfig := &bldr_manifest_builder.BuilderConfig{
 		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
 		SourcePath:   tmpDir,
@@ -1029,6 +1139,7 @@ func TestValidateStartupManifestAvailabilitySkipsUnavailableLookupBucketBlock(t 
 	)
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
 
+	// Validate availability with a short timeout and inspect the reason.
 	validateCtx, validateCancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer validateCancel()
 	reason, err := ctrl.validateStartupManifestAvailability(validateCtx, tb.GetLogger(), startupBuilderResult)
@@ -1051,8 +1162,10 @@ func buildStartupBuilderResult(
 	sourcePath string,
 	controllerConfig *configset_proto.ControllerConfig,
 ) *bldr_manifest_builder.BuilderResult {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Build a result and enrich it for startup reuse.
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	builderResult := bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/demo"),
@@ -1079,8 +1192,10 @@ func buildStoredStartupBuilderResult(
 	sourcePath string,
 	controllerConfig *configset_proto.ControllerConfig,
 ) *bldr_manifest_builder.BuilderResult {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Write the dist output into an in-memory filesystem.
 	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
 	distFS := memfs.New()
 	if err := distFS.MkdirAll("dist", 0o755); err != nil {
@@ -1097,6 +1212,7 @@ func buildStoredStartupBuilderResult(
 		t.Fatal(err)
 	}
 
+	// Commit the manifest to the testbed World.
 	manifest, manifestRef, err := tb.CreateManifestWithBilly(
 		tb.GetContext(),
 		meta,
@@ -1109,6 +1225,7 @@ func buildStoredStartupBuilderResult(
 		t.Fatal(err)
 	}
 
+	// Build the result and enrich it for startup reuse.
 	builderResult := bldr_manifest_builder.NewBuilderResult(
 		manifest,
 		manifestRef.GetManifestRef(),
@@ -1130,8 +1247,10 @@ func buildStoredStartupBuilderResult(
 }
 
 func newTestBuilderControllerProto(t *testing.T) *configset_proto.ControllerConfig {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Wrap the test builder config in a controller config proto.
 	builderControllerConfig, err := configset_proto.NewControllerConfig(
 		configset.NewControllerConfig(1, &testStartupCacheBuilderConfig{}),
 		true,
@@ -1148,11 +1267,14 @@ func runStartupExecuteTest(
 	startupBuilderResult *bldr_manifest_builder.BuilderResult,
 	cacheSafe bool,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Build a fresh testbed for the controller run.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed with a debug logger.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -1161,6 +1283,7 @@ func runStartupExecuteTest(
 	}
 	defer tb.Release()
 
+	// Delegate to the testbed runner.
 	return runStartupExecuteWithTestbed(
 		t,
 		tb,
@@ -1179,14 +1302,17 @@ func runStartupExecuteWithTestbed(
 	cacheSafe bool,
 	engineID string,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Reset the builder state and register the factories.
 	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
 	testStartupCacheBuilderState.buildCalls.Store(0)
 	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
 	tb.GetStaticResolver().AddFactory(NewFactory(tb.GetBus()))
 	ctx := tb.GetContext()
 
+	// Wrap the test builder config in a controller config proto.
 	builderControllerConfig, err := configset_proto.NewControllerConfig(
 		configset.NewControllerConfig(1, &testStartupCacheBuilderConfig{}),
 		true,
@@ -1195,6 +1321,7 @@ func runStartupExecuteWithTestbed(
 		t.Fatal(err)
 	}
 
+	// Build the controller configuration from the builder config.
 	builderConfig := &bldr_manifest_builder.BuilderConfig{
 		ManifestMeta:   bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
 		SourcePath:     sourcePath,
@@ -1209,12 +1336,14 @@ func runStartupExecuteWithTestbed(
 		startupBuilderResult,
 	)
 
+	// Run the controller and await its result promise.
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ctrl.Execute(ctx)
 	}()
 
+	// Await the build result from the controller.
 	result, err := ctrl.GetResultPromise().Await(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1233,11 +1362,14 @@ func runStartupExecuteWithLifecycle(
 	watch bool,
 	sink *recordingLifecycleSink,
 ) (*bldr_manifest_builder.BuilderResult, int32) {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Build a fresh testbed for the controller run.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Build the testbed with a debug logger.
 	rootLogger := logrus.New()
 	rootLogger.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
@@ -1246,10 +1378,12 @@ func runStartupExecuteWithLifecycle(
 	}
 	defer tb.Release()
 
+	// Reset the builder state and register the test builder factory.
 	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
 	testStartupCacheBuilderState.buildCalls.Store(0)
 	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
 
+	// Build the controller configuration from the builder config.
 	builderControllerConfig := newTestBuilderControllerProto(t)
 	builderConfig := &bldr_manifest_builder.BuilderConfig{
 		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
@@ -1263,6 +1397,7 @@ func runStartupExecuteWithLifecycle(
 		startupBuilderResult,
 	)
 
+	// Run the controller with the lifecycle sink and await the result.
 	ctrl := NewController(tb.GetLogger(), tb.GetBus(), controllerConfig)
 	ctrl.SetManifestBuilderLifecycleSink(sink)
 	errCh := make(chan error, 1)
@@ -1270,6 +1405,7 @@ func runStartupExecuteWithLifecycle(
 		errCh <- ctrl.Execute(ctx)
 	}()
 
+	// Await the build result from the controller.
 	result, err := ctrl.GetResultPromise().Await(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -1283,7 +1419,10 @@ func runStartupExecuteWithLifecycle(
 }
 
 func assertLifecycleSummaries(t *testing.T, statuses []ManifestBuilderLifecycleStatus, want []string) {
+	// Mark the failure path on the test.
 	t.Helper()
+
+	// Compare the status count and each summary in order.
 	if len(statuses) != len(want) {
 		t.Fatalf("lifecycle status count = %d, want %d: %#v", len(statuses), len(want), statuses)
 	}
@@ -1300,13 +1439,16 @@ func writeWatchedFileUntilPromiseReplaced(
 	filePath string,
 	waitCh <-chan struct{},
 ) {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Set up the retry ticker and the replacement timeout.
 	retry := time.NewTicker(150 * time.Millisecond)
 	defer retry.Stop()
 	timeout := time.NewTimer(5 * time.Second)
 	defer timeout.Stop()
 
+	// Write successive contents until the watch replaces the promise.
 	for i := 1; ; i++ {
 		content := []byte("package main\n// changed " + strconv.Itoa(i) + "\n")
 		if err := os.WriteFile(filePath, content, 0o644); err != nil {
@@ -1325,11 +1467,14 @@ func writeWatchedFileUntilPromiseReplaced(
 }
 
 func waitForControllerExecuteExit(t *testing.T, errCh <-chan error) error {
+	// Mark the failure path on the test.
 	t.Helper()
 
+	// Wait for the controller Execute error or time out.
 	timeout := time.NewTimer(5 * time.Second)
 	defer timeout.Stop()
 
+	// Return the Execute error or fail on timeout.
 	select {
 	case err := <-errCh:
 		return err

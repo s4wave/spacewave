@@ -23,6 +23,7 @@ type StartupManifestPreflight struct {
 func startupManifestPlatformSelectionPolicies(
 	preflights []StartupManifestPreflight,
 ) []*plugin_host_scheduler.PlatformSelectionPolicy {
+	// Collect the distinct platform ids across the preflights.
 	var platformIDs []string
 	for _, preflight := range preflights {
 		platformIDs = append(platformIDs, preflight.PlatformIDs...)
@@ -30,6 +31,7 @@ func startupManifestPlatformSelectionPolicies(
 	slices.Sort(platformIDs)
 	platformIDs = slices.Compact(platformIDs)
 
+	// Deny plugins not targeting each platform.
 	policies := make([]*plugin_host_scheduler.PlatformSelectionPolicy, 0, len(platformIDs))
 	for _, platformID := range platformIDs {
 		var deniedPluginIDs []string
@@ -54,6 +56,7 @@ func startupManifestPlatformSelectionPolicies(
 // projectOwnedStartupPlugins returns the plugin ids owned by the project's
 // start configuration.
 func projectOwnedStartupPlugins(projectConfig *bldr_project.ProjectConfig) []string {
+	// Keep only start plugins that the project builds itself.
 	startPlugins := projectConfig.GetStart().GetPlugins()
 	if len(startPlugins) == 0 {
 		return nil
@@ -88,11 +91,13 @@ func ProjectOwnedStartupManifestPreflight(
 // ProjectOwnedStartupManifestPreflights returns the browser-mode startup
 // manifest requests owned by the project.
 func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectConfig, wasmPlatformID string) []StartupManifestPreflight {
+	// Collect a preflight for each project-owned startup plugin.
 	pluginIDs := projectOwnedStartupPlugins(projectConfig)
 	if len(pluginIDs) == 0 {
 		return nil
 	}
 
+	// Append a preflight for each plugin that has one.
 	preflights := make([]StartupManifestPreflight, 0, len(pluginIDs))
 	for _, pluginID := range pluginIDs {
 		preflight, ok := ProjectOwnedStartupManifestPreflight(projectConfig, pluginID, wasmPlatformID)
@@ -110,7 +115,10 @@ func ProjectOwnedStartupManifestPreflightsForPlatforms(
 	goPluginPlatformID,
 	wasmPlatformID string,
 ) []StartupManifestPreflight {
+	// Collect a preflight for each project-owned startup plugin.
 	pluginIDs := projectOwnedStartupPlugins(projectConfig)
+
+	// Build one preflight per manifest with the narrowed platforms.
 	preflights := make([]StartupManifestPreflight, 0, len(pluginIDs))
 	for _, pluginID := range pluginIDs {
 		manifest := projectConfig.GetManifests()[pluginID]
@@ -132,6 +140,7 @@ func startupManifestPlatformIDs(
 	goPluginPlatformID,
 	wasmPlatformID string,
 ) []string {
+	// Select the platform ids from the manifest's builder type.
 	switch manifest.GetBuilder().GetId() {
 	case bldr_plugin_compiler_js.ConfigID:
 		if goPluginPlatformID == "" && wasmPlatformID != "" && wasmPlatformID != "js" {

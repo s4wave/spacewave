@@ -14,31 +14,36 @@ const manifestBuilderRetainAfterFetch = 30 * time.Second
 
 // resolveFetchManifest resolves a FetchManifest directive.
 func (c *Controller) resolveFetchManifest(di directive.Instance, dir bldr_manifest.FetchManifest) directive.Resolver {
+	// Read the controller configuration.
 	manifestID := dir.GetManifestId()
-
 	conf := c.GetConfig()
+
+	// Skip building when the project start config disables builds.
 	isStart := conf.GetStart()
 	if isStart && conf.GetProjectConfig().GetStart().GetDisableBuild() {
 		c.le.Infof("not building manifest %s because project.start.disableBuild is set", manifestID)
 		return nil
 	}
 
+	// Skip when no remote is configured for fetching manifests.
 	manifestRemoteID := conf.GetFetchManifestRemote()
 	if manifestRemoteID == "" {
 		return nil
 	}
 
+	// Skip when the manifest is not declared in the project config.
 	manifestSet := conf.GetProjectConfig().GetManifests()
 	if _, ok := manifestSet[manifestID]; !ok {
 		return nil
 	}
 
-	// we need to know a platform id
+	// Skip when the directive names no platform IDs.
 	if len(dir.GetPlatformIds()) == 0 {
 		c.le.Debugf("not building manifest %s because list of platform ids is empty", manifestID)
 		return nil
 	}
 
+	// Otherwise resolve the directive with a meta resolver.
 	return &fetchManifestResolver{
 		c:   c,
 		di:  di,
@@ -89,6 +94,7 @@ type fetchManifestWithMetaResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Add a reference to the manifest builder for this meta.
 	le := r.meta.Logger(r.c.le)
 	manifestBuilderRef, remoteRef, err := r.c.AddFetchManifestBuilderRef(ctx, r.meta)
 	if err != nil {
@@ -102,6 +108,7 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 		}
 	}()
 
+	// Watch the builder's result promise, re-resolving when it changes.
 	conf := r.c.GetConfig()
 	watch := conf.GetWatch()
 	for {

@@ -58,12 +58,14 @@ func NewFactory(b bus.Bus) controller.Factory {
 func marshalConfigSetDeterministic(
 	configs map[string]*configset_proto.ControllerConfig,
 ) ([]byte, error) {
+	// Collect the config keys in sorted order.
 	keys := make([]string, 0, len(configs))
 	for key := range configs {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
 
+	// Encode each entry as a length-delimited key-value record.
 	var result []byte
 	for _, key := range keys {
 		value, err := configs[key].MarshalVT()
@@ -95,6 +97,7 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the manifest meta and target platform.
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -102,11 +105,13 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Extract the manifest identity and source paths.
 	platformID := meta.GetPlatformId()
 	manifestID := meta.GetManifestId()
 	sourcePath := builderConf.GetSourcePath()
 	workingPath := builderConf.GetWorkingPath()
 
+	// Log the build with the manifest and platform identifiers.
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
 		WithField("platform-id", platformID)
@@ -141,6 +146,7 @@ func (c *Controller) BuildManifest(
 	// analyze go packages for factory discovery
 	// AnalyzePackages handles ./ relative path resolution internally
 	le.Debug("analyzing packages for factory discovery")
+
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags are excluded from the generated factory
 	// list when targeting js/wasm or another non-host platform.
@@ -243,6 +249,7 @@ func (c *Controller) BuildManifest(
 	}
 	defer tx.Discard()
 
+	// Commit the compiled manifest into the World transaction.
 	le.Debug("committing CLI manifest")
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
@@ -257,10 +264,12 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Commit the transaction and return the builder result.
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
+	// Report the completed build and return the builder result.
 	le.Debug("CLI build complete")
 	return bldr_manifest_builder.NewBuilderResult(
 		committedManifest,

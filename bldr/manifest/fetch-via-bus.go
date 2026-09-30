@@ -51,10 +51,12 @@ func (f *ManifestFetchViaBus) FetchManifest(
 	req *FetchManifestRequest,
 	strm SRPCManifestFetch_FetchManifestStream,
 ) error {
+	// Validate the request before fetching.
 	if err := req.Validate(); err != nil {
 		return err
 	}
 
+	// Log the fetch and stream each matching manifest response.
 	manifestID := req.GetManifestId()
 	f.le.Debugf("host is fetching manifest: %s", manifestID)
 	defer f.le.Debugf("exited host is fetching manifest: %s", manifestID)

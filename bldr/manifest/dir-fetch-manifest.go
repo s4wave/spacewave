@@ -58,6 +58,7 @@ func NewFetchManifestValue(manifestRefs []*ManifestRef) *FetchManifestValue {
 // of build type and platform ID specified in the directive.
 // Returns one meta per build type x platform ID combination.
 func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
+	// Read the build types and platform IDs from the directive.
 	buildTypes := directive.GetBuildTypes()
 	platformIds := directive.GetPlatformIds()
 
@@ -93,6 +94,7 @@ func NewFetchManifestBuildMatrix(directive FetchManifest) []*ManifestMeta {
 		}
 	}
 
+	// Build one meta per platform ID.
 	var metas []*ManifestMeta
 	for _, platformId := range platformIds {
 		meta := NewManifestMeta(
@@ -152,6 +154,7 @@ func (d *fetchManifest) GetRev() uint64 {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *fetchManifest) IsEquivalent(other directive.Directive) bool {
+	// Require the other directive to be a FetchManifest.
 	od, ok := other.(FetchManifest)
 	if !ok {
 		return false
@@ -208,9 +211,11 @@ func (d *fetchManifest) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *fetchManifest) GetDebugVals() directive.DebugValues {
+	// Record the manifest ID in the debug values.
 	vals := directive.DebugValues{}
 	vals["manifest-id"] = []string{d.GetManifestId()}
 
+	// Record the build type names when any are set.
 	if len(d.GetBuildTypes()) != 0 {
 		buildTypeStrs := make([]string, len(d.GetBuildTypes()))
 		for i, bt := range d.GetBuildTypes() {
@@ -219,10 +224,12 @@ func (d *fetchManifest) GetDebugVals() directive.DebugValues {
 		vals["build-types"] = buildTypeStrs
 	}
 
+	// Record the platform IDs when any are set.
 	if len(d.GetPlatformIds()) != 0 {
 		vals["platform-ids"] = d.GetPlatformIds()
 	}
 
+	// Record the revision when it is nonzero.
 	if d.GetRev() != 0 {
 		vals["rev"] = []string{strconv.FormatUint(d.GetRev(), 10)}
 	}

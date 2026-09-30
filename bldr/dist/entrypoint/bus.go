@@ -111,6 +111,7 @@ func BuildDistBus(
 	composition *compose.Composition,
 	preBuildHooks []DistBusHook,
 ) (*DistBus, error) {
+	// Log the distribution identity and bound the lifetime with a context.
 	projectID := distMeta.GetProjectId()
 	platformID := distMeta.GetPlatformId()
 	le.
@@ -118,6 +119,7 @@ func BuildDistBus(
 		Info("initializing application and storage...")
 	ctx, ctxCancel := context.WithCancel(rctx)
 
+	// Build the release stack holding the distribution's cleanup order.
 	rels := &distReleaseStack{}
 	rels.add(ctxCancel)
 	rel := rels.release
@@ -131,6 +133,7 @@ func BuildDistBus(
 	}
 	composition.AddFactories(b, sr)
 
+	// Construct the DistBus with the bus and storage identity.
 	storageID := default_storage.StorageID
 	distBus := &DistBus{
 		ctx:        ctx,
@@ -187,6 +190,7 @@ func BuildDistBus(
 		}
 	}
 
+	// Run the pre-build hooks and retain their cleanup functions.
 	for _, hook := range preBuildHooks {
 		hookRels, err := hook(distBus)
 		if err != nil {
@@ -220,6 +224,7 @@ func BuildDistBus(
 		st.AddFactories(b, sr)
 	}
 
+	// Read the embedded world root and object key from the dist metadata.
 	distBundleWorldRootRef := distMeta.GetDistWorldRef()
 	distBundleObjKey := distMeta.GetDistObjectKey()
 
@@ -263,12 +268,14 @@ func BuildDistBus(
 	}
 	rels.add(diRef.Release)
 
+	// Resolve the volume from the running controller.
 	volCtrl, ok := volCtrli.(volume.Controller)
 	if !ok {
 		rel()
 		return nil, errors.New("volume controller returned invalid value")
 	}
 
+	// Get the live volume handle for the distribution state.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		rel()
@@ -282,6 +289,8 @@ func BuildDistBus(
 		rel()
 		return nil, err
 	}
+
+	// Apply the embedded manifest bucket schema to the volume.
 	_, _, _, err = vol.ApplyBucketConfig(ctx, distBundleBucketConf)
 	if err != nil {
 		rel()
@@ -301,6 +310,7 @@ func BuildDistBus(
 	)
 	embedEngineConf.DisableLookup = true
 
+	// Start the embedded world engine controller.
 	_, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -353,9 +363,11 @@ func BuildDistBus(
 		return nil, err
 	}
 
+	// Recover a missing persisted head instead of failing startup.
 	engConf.DisableLookup = true
 	engConf.RecoverMissingPersistedHead = true
 
+	// Start the shared project World engine.
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,
@@ -367,6 +379,7 @@ func BuildDistBus(
 	}
 	rels.add(worldCtrlRef.Release)
 
+	// Resolve the engine and build its world state handle.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		rel()
@@ -404,6 +417,7 @@ func BuildDistBus(
 		vol.GetPeerID().String(),
 	)
 	pluginSchedConf.UpdateGuardPluginIds = slices.Clone(distMeta.GetUpdateGuardPluginIds())
+
 	// Startup plugins ship with the distribution, so they may run their own
 	// plugins, such as a Space's, on the distribution's plugin hosts.
 	pluginSchedConf.HostExportPluginIds = slices.Clone(distMeta.GetStartupPlugins())
@@ -447,15 +461,20 @@ func BuildDistBus(
 		}
 		rels.add(pluginRef.Release)
 	}
+
+	// Start the startup group after its plugins are loading.
 	if err := startupGroup.Start(ctx); err != nil {
 		rel()
 		return nil, err
 	}
 
+	// Record the engine and bucket identifiers on the DistBus.
 	distBus.worldEngineID = engineID
 	distBus.engineBucketID = engineBucketID
 	distBus.engineObjectStoreID = engineObjStoreID
 	distBus.pluginHostObjectKey = pluginHostObjectKey
+
+	// Record the plugin host and volume state on the DistBus.
 	distBus.pluginSchedCtrl = pluginSchedCtrl
 	distBus.pluginHostCtrl = pluginHostCtrl
 	distBus.vol = vol

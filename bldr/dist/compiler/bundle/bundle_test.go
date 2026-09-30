@@ -39,18 +39,21 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start the testbed holding the scratch volume.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Build the base bucket cursor from the testbed.
 	baseCursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(baseCursor.Release)
 
+	// Build the object cursor and the World block engine over it.
 	ocs := bucket_lookup.NewCursor(
 		ctx,
 		tb.Bus,
@@ -78,6 +81,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(assetDir, "asset.bin"), assetData, 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the manifest into a transaction and record its root ref.
 	btx, bcs := ocs.BuildTransactionAtRef(nil, nil)
 	err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, bldr_manifest.NewManifest(bldr_manifest.NewManifestMeta("fixture", bldr_manifest.BuildType_DEV, "js", 1), ""), nil, osfs.New(assetDir), timestamp.New(time.Unix(1700000000, 0)))
 	if err != nil {
@@ -96,6 +101,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer wtx.Discard()
+
+	// Create the bundle root object and the manifest fixture object.
 	{
 		createdObject, err := wtx.CreateObject(ctx, "bundle-root-closure-object", &bucket.ObjectRef{BucketId: tb.BucketId})
 		world.ReleaseObjectState(createdObject)
@@ -110,12 +117,16 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Type the manifest fixture and commit the transaction.
 	if err := world_types.SetObjectType(ctx, wtx, "manifest-fixture", bldr_manifest_world.ManifestTypeID); err != nil {
 		t.Fatal(err)
 	}
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Expect the committed World root to be non-empty.
 	rootRef := eng.GetRootRef().GetRootRef()
 	if rootRef == nil || rootRef.GetEmpty() {
 		t.Fatal("test setup did not create a non-empty world root ref")
@@ -128,6 +139,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		t.Fatalf("testbed volume type %T does not expose a kvtx store", tb.Volume)
 	}
 
+	// Pack and read back the live world root.
 	t.Run("live world root", func(t *testing.T) {
 		// Pack accepted writes into an independent archive.
 		var buf bytes.Buffer
@@ -156,6 +168,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		}
 		store := block_store_kvfile.NewKvfileBlock(ctx, store_kvkey.NewDefaultKVKey(), rdr)
 		_, packedCursor := block.NewTransaction(store, nil, manifestRoot, nil)
+
+		// Unmarshal the manifest and open its asset tree.
 		manifest, err := bldr_manifest.UnmarshalManifest(ctx, packedCursor)
 		if err != nil {
 			t.Fatal(err)
@@ -168,6 +182,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Read the packaged asset and compare it with the input bytes.
 		handle, err := assetTree.BuildFileHandle(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -187,6 +203,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Write the orphan block directly to the backing store.
 		tx, err := kvtxVol.GetKvtxStore().NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
@@ -199,6 +217,8 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
+
+		// Repack after the unrelated history and expect identical bytes.
 		var repeated bytes.Buffer
 		repeatedWriter := kvfile.NewWriter(&repeated)
 		if err := dist_compiler_bundle.BundleManifestsKvfile(ctx, le, repeatedWriter, store_kvkey.NewDefaultKVKey().GetBlockFullPrefix(), eng); err != nil {
@@ -212,6 +232,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		}
 	})
 
+	// Delete the root and expect packing to fail.
 	t.Run("missing world root", func(t *testing.T) {
 		// Losing the durable root must fail packing instead of emitting an archive.
 		// Bucket RmBlock only releases ownership, so delete the stored bytes.
@@ -227,10 +248,13 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
+
+		// Expect packing to fail with the missing root reference.
 		var buf bytes.Buffer
 		kvfileWriter := kvfile.NewWriter(&buf)
 		t.Cleanup(func() { _ = kvfileWriter.Close() })
 
+		// Pack the world and expect block.ErrNotFound naming the root.
 		err = dist_compiler_bundle.BundleManifestsKvfile(
 			ctx,
 			le,

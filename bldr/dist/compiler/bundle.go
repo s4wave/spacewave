@@ -171,6 +171,7 @@ func BuildDistBundle(
 		return err
 	}
 
+	// Select the first available storage option and register its factories.
 	storageOpts := default_storage.BuildStorage(workBus, workingDbDir)
 	if len(storageOpts) == 0 {
 		return errors.New("no available storage types for build system")
@@ -209,6 +210,7 @@ func BuildDistBundle(
 		return err
 	}
 
+	// Run the working volume controller and resolve its volume.
 	workingVolCtrli, _, workingVolRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,
@@ -255,6 +257,7 @@ func BuildDistBundle(
 		false,
 	)
 
+	// Run the embedded world engine controller.
 	embedEngineCtrli, _, embedEngineCtrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,
@@ -265,6 +268,8 @@ func BuildDistBundle(
 		return err
 	}
 	defer embedEngineCtrlRef.Release()
+
+	// Resolve the block engine from the running controller.
 	embedEngineCtrl, ok := embedEngineCtrli.(*world_block_engine.Controller)
 	if !ok {
 		return errors.New("unexpected type for world block engine controller")
@@ -601,6 +606,7 @@ func resolveDistGoCompiler(
 	buildPlatform bldr_platform.Platform,
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 ) (gocompiler.GoCompiler, error) {
+	// Resolve the configured compiler then the platform's default compiler.
 	resolvedGoCompilerOpt, err := goCompilerOpt.GoCompiler()
 	if err != nil {
 		return "", err
