@@ -13,7 +13,12 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 )
 
+// rootPinPrefix prefixes the owner node of one process's reader pins.
 const rootPinPrefix = "reader:"
+
+// RootOwnerPrefix prefixes the owner node of each named bucket root. A bucket
+// that owns such a node retains its blocks through its named roots.
+const RootOwnerPrefix = "head:"
 
 // completeWorldNode is a graph-only proof target. Sweeping a root removes its
 // proof edge together with its other immutable dependencies.
@@ -68,12 +73,15 @@ func (v *Volume) SetBucketRoot(ctx context.Context, bucketID, name string, ref *
 
 // setBucketRoot requires a shared physical transaction for bytes and graph.
 func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID, name string, ref *block.BlockRef) error {
-	owner := "head:" + base64.RawURLEncoding.EncodeToString([]byte(bucketID)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(name))
+	// Read the root the owner node holds now.
+	owner := RootOwnerPrefix + base64.RawURLEncoding.EncodeToString([]byte(bucketID)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(name))
 	bucket := block_gc.BucketIRI(bucketID)
 	old, err := rg.GetOutgoingRefs(ctx, owner)
 	if err != nil {
 		return err
 	}
+
+	// Move a present root under the owner node, or drop an emptied owner.
 	var adds, removes []block_gc.RefEdge
 	next := block_gc.BlockIRI(ref)
 	if !ref.GetEmpty() {
@@ -95,6 +103,8 @@ func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefG
 	} else {
 		removes = append(removes, block_gc.RefEdge{Subject: bucket, Object: owner})
 	}
+
+	// Release the previous roots in the same batch.
 	for _, previous := range old {
 		if previous != next {
 			removes = append(removes, block_gc.RefEdge{Subject: owner, Object: previous})

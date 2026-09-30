@@ -17,9 +17,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// volumeUsageOpenTimeout bounds the wait for the volume file lock. A running
+// volumeOpenTimeout bounds the wait for the volume file lock. A running
 // daemon holds the lock for its whole lifetime, so waiting longer never helps.
-const volumeUsageOpenTimeout = time.Second
+const volumeOpenTimeout = time.Second
 
 // volumeKeyClass accumulates the keys that share one grouping prefix.
 type volumeKeyClass struct {
@@ -111,7 +111,7 @@ func runDebugVolumeUsage(
 	fileBytes := uint64(fi.Size()) //nolint:gosec // Stat sizes are never negative.
 
 	// Open read-only and fail fast when a daemon holds the lock.
-	db, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Timeout: volumeUsageOpenTimeout})
+	db, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Timeout: volumeOpenTimeout})
 	if errors.Is(err, bbolt_errors.ErrTimeout) {
 		return errors.Errorf("%s is locked by a running daemon; scan a copy instead", path)
 	}

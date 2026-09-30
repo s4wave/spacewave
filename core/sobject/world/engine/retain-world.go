@@ -79,6 +79,10 @@ func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.Obje
 	return block.MarkRootComplete(ctx, store, head.GetRootRef())
 }
 
+// LocalProofKeyPrefix prefixes the completion proofs RetainWorld keeps in the
+// caller's local state store when the block store cannot hold them itself.
+const LocalProofKeyPrefix = "world-publication-v3/"
+
 // retainProofBatchEntries is the number of proofs, and of buffered block
 // writes, per durability fence.
 const retainProofBatchEntries = 1024
@@ -119,7 +123,7 @@ func newRetainProofs(store block.StoreOps, bucketID string, local kvtx.Store) *r
 
 // key returns the local proof key of ref.
 func (p *retainProofs) key(ref *block.BlockRef) string {
-	return "world-publication-v3/" + p.bucketID + "/" + ref.MarshalString()
+	return LocalProofKeyPrefix + p.bucketID + "/" + ref.MarshalString()
 }
 
 // known reports which refs have a durable or pending completion proof.
