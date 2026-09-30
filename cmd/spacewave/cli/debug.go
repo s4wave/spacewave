@@ -23,11 +23,12 @@ const debugTraceStopTimeout = 10 * time.Second
 func newDebugCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "debug",
-		Usage: "debug a running daemon",
+		Usage: "debug a running daemon or its volume",
 		Subcommands: []*cli.Command{
 			newDebugTraceCommand(),
 			newDebugCPUProfileCommand(),
 			newDebugMemoryProfileCommand(),
+			newDebugVolumeUsageCommand(),
 		},
 	}
 }
