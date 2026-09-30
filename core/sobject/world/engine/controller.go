@@ -39,8 +39,8 @@ type Controller struct {
 
 	// processOpsAsValidator is the routine to process incoming operations as a validator.
 	processOpsAsValidator *routine.RoutineContainer
-	// gcSweepMaintenance is the routine to periodically queue GC sweep txs.
-	gcSweepMaintenance *routine.RoutineContainer
+	// storageReclaim is the routine that schedules storage reclaim passes.
+	storageReclaim *routine.RoutineContainer
 
 	// sfs constructs the World block transformers.
 	sfs *block_transform.StepFactorySet
@@ -50,8 +50,7 @@ type Controller struct {
 	staticLookupOp world.LookupOp
 
 	// writeBcast is broadcast after local commits and authoritative state updates.
-	// Used by the GC sweep maintenance routine to detect world-state changes that
-	// may leave pending GC journal entries.
+	// The storage reclaim routine schedules a pass after each broadcast.
 	writeBcast broadcast.Broadcast
 
 	// writeMtx guards write transactions / updating local state due to watching SOState.
@@ -102,7 +101,7 @@ func NewController(
 			routine.WithExitLogger(le),
 			routine.WithRetry(processBackoff),
 		),
-		gcSweepMaintenance: routine.NewRoutineContainer(
+		storageReclaim: routine.NewRoutineContainer(
 			routine.WithExitLogger(le),
 			routine.WithRetry(processBackoff),
 		),
@@ -153,8 +152,8 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Scope the routines to this execution.
 	le := c.le
-
 	rctx, rctxCancel := context.WithCancel(ctx)
 	defer rctxCancel()
 
@@ -220,6 +219,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer blkEngine.Release()
 
+	// Log the initial root when verbose.
 	verbose := c.conf.GetVerbose()
 	if verbose {
 		le.
@@ -245,12 +245,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
 
-	// start the gc sweep maintenance routine (gated on validator/owner role)
-	_, _ = c.gcSweepMaintenance.SetRoutine(func(ctx context.Context) error {
-		return c.executeGCSweepMaintenance(ctx, so, blkEngine.bengine)
+	// Start the storage reclaim routine, gated on the validator or owner role.
+	_, _ = c.storageReclaim.SetRoutine(func(ctx context.Context) error {
+		return c.executeStorageReclaim(ctx, so)
 	})
-	_ = c.gcSweepMaintenance.SetContext(rctx, true)
-	defer c.gcSweepMaintenance.ClearContext()
+	_ = c.storageReclaim.SetContext(rctx, true)
+	defer c.storageReclaim.ClearContext()
 
 	// Watch the SOState for changes.
 	return c.executeWatchSOState(rctx, soStateCtr, engine)

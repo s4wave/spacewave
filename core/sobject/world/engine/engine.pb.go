@@ -97,13 +97,10 @@ type Config struct {
 	// ProcessOpsBackoff is the backoff for processing ops as a validator.
 	// Defaults to reasonable defaults if unset.
 	ProcessOpsBackoff *backoff.Backoff `protobuf:"bytes,8,opt,name=process_ops_backoff,json=processOpsBackoff,proto3" json:"processOpsBackoff,omitempty"`
-	// GcSweepIdleWindowDur is the idle window duration after the last write
-	// before a GC sweep is triggered if garbage exists.
-	// Duration in nanoseconds. If zero, defaults to 5 seconds.
-	GcSweepIdleWindowDur uint64 `protobuf:"varint,9,opt,name=gc_sweep_idle_window_dur,json=gcSweepIdleWindowDur,proto3" json:"gcSweepIdleWindowDur,omitempty"`
-	// GcSweepBackstopIntervalDur is the periodic backstop interval for GC sweeps.
-	// Duration in nanoseconds. If zero, defaults to 5 minutes.
-	GcSweepBackstopIntervalDur uint64 `protobuf:"varint,10,opt,name=gc_sweep_backstop_interval_dur,json=gcSweepBackstopIntervalDur,proto3" json:"gcSweepBackstopIntervalDur,omitempty"`
+	// EnableStorageReclaim runs storage reclaim passes as the validator. A pass
+	// drops the blocks the local store no longer holds from the storage backend,
+	// five minutes after a write and at most once an hour.
+	EnableStorageReclaim bool `protobuf:"varint,11,opt,name=enable_storage_reclaim,json=enableStorageReclaim,proto3" json:"enableStorageReclaim,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -168,18 +165,11 @@ func (x *Config) GetProcessOpsBackoff() *backoff.Backoff {
 	return nil
 }
 
-func (x *Config) GetGcSweepIdleWindowDur() uint64 {
+func (x *Config) GetEnableStorageReclaim() bool {
 	if x != nil {
-		return x.GcSweepIdleWindowDur
+		return x.EnableStorageReclaim
 	}
-	return 0
-}
-
-func (x *Config) GetGcSweepBackstopIntervalDur() uint64 {
-	if x != nil {
-		return x.GcSweepBackstopIntervalDur
-	}
-	return 0
+	return false
 }
 
 // InnerState contains the inner state object for the SharedObject.
@@ -580,8 +570,7 @@ func (m *Config) CloneVT() *Config {
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
 	r.DisableApplyObjectOp = m.DisableApplyObjectOp
 	r.Verbose = m.Verbose
-	r.GcSweepIdleWindowDur = m.GcSweepIdleWindowDur
-	r.GcSweepBackstopIntervalDur = m.GcSweepBackstopIntervalDur
+	r.EnableStorageReclaim = m.EnableStorageReclaim
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.InitWorldOp = protobuf_go_lite.CloneVTValue(m.InitWorldOp)
 	r.ProcessOpsBackoff = protobuf_go_lite.CloneVTValue(m.ProcessOpsBackoff)
@@ -812,10 +801,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if !protobuf_go_lite.IsEqualVT(this.ProcessOpsBackoff, that.ProcessOpsBackoff) {
 		return false
 	}
-	if this.GcSweepIdleWindowDur != that.GcSweepIdleWindowDur {
-		return false
-	}
-	if this.GcSweepBackstopIntervalDur != that.GcSweepBackstopIntervalDur {
+	if this.EnableStorageReclaim != that.EnableStorageReclaim {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1189,15 +1175,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("processOpsBackoff")
 		x.ProcessOpsBackoff.MarshalProtoJSON(s.WithField("processOpsBackoff"))
 	}
-	if x.GcSweepIdleWindowDur != 0 || s.HasField("gcSweepIdleWindowDur") {
+	if x.EnableStorageReclaim || s.HasField("enableStorageReclaim") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcSweepIdleWindowDur")
-		s.WriteUint64(x.GcSweepIdleWindowDur)
-	}
-	if x.GcSweepBackstopIntervalDur != 0 || s.HasField("gcSweepBackstopIntervalDur") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcSweepBackstopIntervalDur")
-		s.WriteUint64(x.GcSweepBackstopIntervalDur)
+		s.WriteObjectField("enableStorageReclaim")
+		s.WriteBool(x.EnableStorageReclaim)
 	}
 	s.WriteObjectEnd()
 }
@@ -1252,12 +1233,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ProcessOpsBackoff = &backoff.Backoff{}
 			x.ProcessOpsBackoff.UnmarshalProtoJSON(s.WithField("process_ops_backoff", true))
-		case "gc_sweep_idle_window_dur", "gcSweepIdleWindowDur":
-			s.AddField("gc_sweep_idle_window_dur")
-			x.GcSweepIdleWindowDur = s.ReadUint64()
-		case "gc_sweep_backstop_interval_dur", "gcSweepBackstopIntervalDur":
-			s.AddField("gc_sweep_backstop_interval_dur")
-			x.GcSweepBackstopIntervalDur = s.ReadUint64()
+		case "enable_storage_reclaim", "enableStorageReclaim":
+			s.AddField("enable_storage_reclaim")
+			x.EnableStorageReclaim = s.ReadBool()
 		}
 	})
 }
@@ -1855,15 +1833,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.GcSweepBackstopIntervalDur != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GcSweepBackstopIntervalDur))
+	if m.EnableStorageReclaim {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.EnableStorageReclaim)
 		i--
-		dAtA[i] = 0x50
-	}
-	if m.GcSweepIdleWindowDur != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GcSweepIdleWindowDur))
-		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x58
 	}
 	if m.ProcessOpsBackoff != nil {
 		size, err := m.ProcessOpsBackoff.MarshalToSizedBufferVT(dAtA[:i])
@@ -2463,8 +2436,7 @@ func (m *Config) SizeVT() (n int) {
 		l = m.ProcessOpsBackoff.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.GcSweepIdleWindowDur)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.GcSweepBackstopIntervalDur)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.EnableStorageReclaim)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2694,13 +2666,9 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "process_ops_backoff")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ProcessOpsBackoff)
 	}
-	if x.GcSweepIdleWindowDur != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_sweep_idle_window_dur")
-		protobuf_go_lite.TextWriteUint(&sb, x.GcSweepIdleWindowDur)
-	}
-	if x.GcSweepBackstopIntervalDur != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_sweep_backstop_interval_dur")
-		protobuf_go_lite.TextWriteUint(&sb, x.GcSweepBackstopIntervalDur)
+	if x.EnableStorageReclaim != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enable_storage_reclaim")
+		protobuf_go_lite.TextWriteBool(&sb, x.EnableStorageReclaim)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3027,24 +2995,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 9:
+		case 11:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcSweepIdleWindowDur", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableStorageReclaim", wireType)
 			}
-			m.GcSweepIdleWindowDur = 0
-			m.GcSweepIdleWindowDur, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcSweepBackstopIntervalDur", wireType)
-			}
-			m.GcSweepBackstopIntervalDur = 0
-			m.GcSweepBackstopIntervalDur, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
+			m.EnableStorageReclaim = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

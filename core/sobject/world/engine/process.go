@@ -66,9 +66,6 @@ func (c *Controller) processOp(
 		if body.ApplyTxOp.GetStorageGeneration() != headState.GetStorageGeneration() {
 			return rejectOp(ole, peerID, nonce, "storage generation is stale")
 		}
-		if c.gcSweepMaintenanceDisabled() && world_block_tx.ContainsGCSweep(body.ApplyTxOp.GetTx()) {
-			return rejectOp(ole, peerID, nonce, "gc sweep maintenance disabled")
-		}
 
 		// Build world state with engine once for all operations
 		var ws *blkEngine

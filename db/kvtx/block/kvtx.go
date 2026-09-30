@@ -34,15 +34,13 @@ const (
 	WorkloadClassCursorValueRead
 	// WorkloadClassWriteChurn is for repeated set/delete/commit workloads.
 	WorkloadClassWriteChurn
-	// WorkloadClassGCRefGraph is for GC/refgraph metadata stores.
-	WorkloadClassGCRefGraph
 )
 
 // DefaultKeyValueStoreImplForWorkload returns the measured backend policy for a
 // new KVTX root.
 func DefaultKeyValueStoreImplForWorkload(workload WorkloadClass) KVImplType {
 	switch workload {
-	case WorkloadClassGraphPrefixRead, WorkloadClassGCRefGraph:
+	case WorkloadClassGraphPrefixRead:
 		return KVImplType_KV_IMPL_TYPE_OKRA_INLINE
 	default:
 		return DefaultKeyValueStoreImpl

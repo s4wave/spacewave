@@ -2,11 +2,9 @@ package world_block_test
 
 import (
 	"context"
-	"slices"
 	"testing"
 
 	"github.com/pkg/errors"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -179,22 +177,6 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected rename change %q -> %q, got %q -> %q", oldKey, newKey, changes[0].GetKey(), changes[0].GetNewKey())
 	}
 
-	reconcileGCTestWorld(t, ctx, ws)
-
-	rg := ws.GetRefGraph()
-	if rg == nil {
-		t.Fatal("expected ref graph")
-	}
-	worldRefs, err := rg.GetOutgoingRefs(ctx, "world")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if slices.Contains(worldRefs, block_gc.ObjectIRI(oldKey)) {
-		t.Fatalf("expected world refs not to contain old object iri")
-	}
-	if !slices.Contains(worldRefs, block_gc.ObjectIRI(newKey)) {
-		t.Fatalf("expected world refs to contain new object iri")
-	}
 }
 
 // TestWorldState_RenameGitRepoWithWizardChildren tests renaming the parent

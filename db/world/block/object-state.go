@@ -4,11 +4,9 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
-	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -109,35 +107,6 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		prevBcs := o.bcs.Detach(false) // clone bcs for previous revision
 		prevBcs.SetBlock(prevBlk, true)
 		changeBcs.SetRef(6, prevBcs)
-	}
-
-	// Record the object root ownership swap with the world transaction.
-	if o.w.refGraph != nil {
-		taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/object-state/set-root-ref/update-gc-refs")
-		oldBlockRef := prevBlk.GetRootRef().GetRootRef()
-		newBlockRef := nref.GetRootRef()
-		objIRI := block_gc.ObjectIRI(o.key)
-		var adds []block_gc.RefEdge
-		var removes []block_gc.RefEdge
-		if oldBlockRef != nil && !oldBlockRef.GetEmpty() {
-			removes = append(removes, block_gc.RefEdge{
-				Subject: objIRI,
-				Object:  block_gc.BlockIRI(oldBlockRef),
-			})
-		}
-		if newBlockRef != nil && !newBlockRef.GetEmpty() {
-			newIRI := block_gc.BlockIRI(newBlockRef)
-			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: newIRI})
-			removes = append(removes, block_gc.RefEdge{
-				Subject: block_gc.NodeUnreferenced,
-				Object:  newIRI,
-			})
-		}
-		err := o.w.applyRefBatch(taskCtx, adds, removes)
-		subtask.End()
-		if err != nil {
-			return r, err
-		}
 	}
 
 	return r, nil

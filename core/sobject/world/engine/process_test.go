@@ -21,6 +21,7 @@ import (
 )
 
 func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
+	// Build the operation author and an object creation transaction.
 	priv, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
@@ -29,10 +30,12 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 	if err != nil {
 		t.Fatalf("derive peer id: %v", err)
 	}
-	tx, err := world_block_tx.NewMaintenanceTxGCSweep()
+	tx, err := world_block_tx.NewTxCreateObject("object", &bucket.ObjectRef{})
 	if err != nil {
 		t.Fatalf("build tx: %v", err)
 	}
+
+	// Encode the transaction as an ApplyTx operation.
 	opData, err := (&SOWorldOp{
 		Body: &SOWorldOp_ApplyTxOp{
 			ApplyTxOp: &ApplyTxOp{Tx: tx},
@@ -42,6 +45,7 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 		t.Fatalf("marshal op: %v", err)
 	}
 
+	// Process the operation against an uninitialized World.
 	_, res, err := (&Controller{}).processOp(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
@@ -133,76 +137,20 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 	}
 }
 
-func TestProcessOpRejectsDisabledMaintenanceGCSweepBeforeBlockEngine(t *testing.T) {
-	pid := newProcessTestPeerID(t)
-	headState, err := BuildInitialInnerState(nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	gcTx, err := world_block_tx.NewMaintenanceTxGCSweep()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	explicitTx, err := world_block_tx.NewExplicitTxGCSweep()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ordinaryTx, err := world_block_tx.NewTxCreateObject("object", &bucket.ObjectRef{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	batchTx, err := world_block_tx.NewTxBatch(&world_block_tx.TxBatch{Txs: []*world_block_tx.Tx{ordinaryTx, gcTx}})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	for _, test := range []struct {
-		name string
-		tx   *world_block_tx.Tx
-	}{
-		{name: "top-level", tx: gcTx},
-		{name: "batch", tx: batchTx},
-		{name: "explicit-reserved", tx: explicitTx},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			opData := marshalApplyTxOpForProcessTest(t, test.tx)
-			nextState, res, err := (&Controller{conf: &Config{}}).processOp(
-				context.Background(),
-				logrus.NewEntry(logrus.New()),
-				nil,
-				opData,
-				"test-op",
-				pid,
-				1,
-				0,
-				headState,
-			)
-			if err != nil {
-				t.Fatalf("process op returned error: %v", err)
-			}
-			if nextState != nil {
-				t.Fatal("expected disabled maintenance rejection to leave state unchanged")
-			}
-			if res == nil || res.GetSuccess() {
-				t.Fatalf("expected rejection result, got %#v", res)
-			}
-			if got := res.GetErrorDetails().GetErrorMsg(); got != "gc sweep maintenance disabled" {
-				t.Fatalf("expected disabled maintenance rejection, got %q", got)
-			}
-		})
-	}
-}
-
-func TestProcessOpDisabledMaintenanceAllowsOrdinaryApplyTx(t *testing.T) {
+// TestProcessOpAppliesOrdinaryTx checks that the validator applies an ordinary
+// World transaction and produces the next World state.
+func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
+	// Build the World and an object creation transaction.
 	ctx := context.Background()
 	pid := newProcessTestPeerID(t)
 	c, so, headState := newProcessTestWorld(t, ctx)
-
 	objectRef := headState.GetHeadRef().CloneVT()
 	objectTx, err := world_block_tx.NewTxCreateObject("ordinary-object", objectRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Process the transaction and check it produced a new head.
 	nextState, res, err := c.processOp(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -379,159 +327,6 @@ func TestProcessOpCandidateRequiresSharedObjectRootUpdate(t *testing.T) {
 	}
 	if bytes.Equal(rootInner.GetStateData(), baseStateData) {
 		t.Fatal("SharedObject root state should change only after UpdateRootState accepts the candidate")
-	}
-}
-
-func TestProcessOpDisabledMaintenanceDurablyRejectsGCSweep(t *testing.T) {
-	ctx := context.Background()
-	sharedObjectID := "test-disabled-gc-sweep"
-	priv, _, err := crypto.GenerateEd25519Key(nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	pid, err := peer.IDFromPrivateKey(priv)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	pub, err := pid.ExtractPublicKey()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	c, _, headState := newProcessTestWorld(t, ctx)
-	stateData, err := headState.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
-	grant, err := sobject.EncryptSOGrant(
-		priv,
-		pub,
-		sharedObjectID,
-		&sobject.SOGrantInner{TransformConf: transformConf},
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_gzip.NewStepFactory())
-	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{
-		Logger: logrus.NewEntry(logrus.New()),
-	}, sfs, transformConf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	rootInnerData, err := (&sobject.SORootInner{
-		Seqno:     1,
-		StateData: stateData,
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	encodedStateData, err := xfrm.EncodeBlock(rootInnerData)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	state := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{{
-				PeerId: pid.String(),
-				Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
-			}},
-		},
-		Root: &sobject.SORoot{
-			Inner:      encodedStateData,
-			InnerSeqno: 1,
-		},
-		RootGrants: []*sobject.SOGrant{grant},
-	}
-	snap := sobject.NewSOStateParticipantHandle(
-		logrus.NewEntry(logrus.New()),
-		sfs,
-		sharedObjectID,
-		state,
-		priv,
-		pid,
-	)
-
-	gcTx, err := world_block_tx.NewMaintenanceTxGCSweep()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	encodedOpData, err := xfrm.EncodeBlock(marshalApplyTxOpForProcessTest(t, gcTx))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	op, err := sobject.BuildSOOperation(
-		sharedObjectID,
-		priv,
-		encodedOpData,
-		1,
-		sobject.NewSOOperationLocalID(),
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := state.QueueOperation(sharedObjectID, op); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
-		ctx,
-		[]*sobject.SOOperation{op},
-		func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
-			if len(ops) != 1 {
-				t.Fatalf("expected 1 op, got %d", len(ops))
-			}
-			currentHead := &InnerState{}
-			if err := currentHead.UnmarshalVT(currentStateData); err != nil {
-				t.Fatal(err.Error())
-			}
-			nextState, res, err := c.processOp(
-				ctx,
-				logrus.NewEntry(logrus.New()),
-				nil,
-				ops[0].GetOpData(),
-				ops[0].GetLocalId(),
-				pid,
-				ops[0].GetNonce(),
-				0,
-				currentHead,
-			)
-			if err != nil {
-				return nil, nil, err
-			}
-			if nextState != nil {
-				t.Fatal("expected disabled sweep rejection to leave state unchanged")
-			}
-			return nil, []*sobject.SOOperationResult{res}, nil
-		},
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(rejectedOps) != 1 {
-		t.Fatalf("expected 1 rejected op, got %d", len(rejectedOps))
-	}
-	if len(acceptedOps) != 0 {
-		t.Fatalf("expected no accepted ops, got %d", len(acceptedOps))
-	}
-
-	if err := state.UpdateRootState(sharedObjectID, nextRoot, pid.String(), rejectedOps, acceptedOps); err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(state.GetOps()) != 0 {
-		t.Fatalf("expected rejected sweep op to be cleared, got %d queued ops", len(state.GetOps()))
-	}
-	rootInner, err := snap.GetRootInner(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if string(rootInner.GetStateData()) != string(stateData) {
-		t.Fatal("expected rejection to preserve world state data")
 	}
 }
 

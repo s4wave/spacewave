@@ -68,8 +68,6 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			blockCursor,
 			blockStore,
 			nil,
-			nil,
-			nil,
 			world_mock.LookupMockOp,
 			false,
 		)

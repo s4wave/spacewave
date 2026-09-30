@@ -90,12 +90,6 @@ type World struct {
 	// If set, last_change will be empty, except for the seqno field.
 	// NOTE: the seqno field will not be empty on LastChange.
 	LastChangeDisable bool `protobuf:"varint,4,opt,name=last_change_disable,json=lastChangeDisable,proto3" json:"lastChangeDisable,omitempty"`
-	// GcGraph is the gc reference graph key/value store.
-	// Stores gc/ref quads for garbage collection of unreferenced blocks.
-	GcGraph *block.KeyValueStore `protobuf:"bytes,5,opt,name=gc_graph,json=gcGraph,proto3" json:"gcGraph,omitempty"`
-	// GcJournal is the deferred GC journal key/value store.
-	// Stores pending ref edge batches that are reconciled into gc_graph later.
-	GcJournal *block.KeyValueStore `protobuf:"bytes,6,opt,name=gc_journal,json=gcJournal,proto3" json:"gcJournal,omitempty"`
 }
 
 func (x *World) Reset() {
@@ -130,20 +124,6 @@ func (x *World) GetLastChangeDisable() bool {
 		return x.LastChangeDisable
 	}
 	return false
-}
-
-func (x *World) GetGcGraph() *block.KeyValueStore {
-	if x != nil {
-		return x.GcGraph
-	}
-	return nil
-}
-
-func (x *World) GetGcJournal() *block.KeyValueStore {
-	if x != nil {
-		return x.GcJournal
-	}
-	return nil
 }
 
 // Object is an atomic unit for a object in a World graph.
@@ -409,8 +389,6 @@ func (m *World) CloneVT() *World {
 	r.ObjectKeyValue = protobuf_go_lite.CloneVTValue(m.ObjectKeyValue)
 	r.GraphKeyValue = protobuf_go_lite.CloneVTValue(m.GraphKeyValue)
 	r.LastChange = protobuf_go_lite.CloneVTValue(m.LastChange)
-	r.GcGraph = protobuf_go_lite.CloneVTValue(m.GcGraph)
-	r.GcJournal = protobuf_go_lite.CloneVTValue(m.GcJournal)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -517,12 +495,6 @@ func (this *World) EqualVT(that *World) bool {
 		return false
 	}
 	if this.LastChangeDisable != that.LastChangeDisable {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.GcGraph, that.GcGraph) {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.GcJournal, that.GcJournal) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -732,16 +704,6 @@ func (x *World) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("lastChangeDisable")
 		s.WriteBool(x.LastChangeDisable)
 	}
-	if x.GcGraph != nil || s.HasField("gcGraph") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcGraph")
-		x.GcGraph.MarshalProtoJSON(s.WithField("gcGraph"))
-	}
-	if x.GcJournal != nil || s.HasField("gcJournal") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("gcJournal")
-		x.GcJournal.MarshalProtoJSON(s.WithField("gcJournal"))
-	}
 	s.WriteObjectEnd()
 }
 
@@ -783,20 +745,6 @@ func (x *World) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "last_change_disable", "lastChangeDisable":
 			s.AddField("last_change_disable")
 			x.LastChangeDisable = s.ReadBool()
-		case "gc_graph", "gcGraph":
-			if s.ReadNil() {
-				x.GcGraph = nil
-				return
-			}
-			x.GcGraph = &block.KeyValueStore{}
-			x.GcGraph.UnmarshalProtoJSON(s.WithField("gc_graph", true))
-		case "gc_journal", "gcJournal":
-			if s.ReadNil() {
-				x.GcJournal = nil
-				return
-			}
-			x.GcJournal = &block.KeyValueStore{}
-			x.GcJournal.UnmarshalProtoJSON(s.WithField("gc_journal", true))
 		}
 	})
 }
@@ -1188,26 +1136,6 @@ func (m *World) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.GcJournal != nil {
-		size, err := m.GcJournal.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x32
-	}
-	if m.GcGraph != nil {
-		size, err := m.GcGraph.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x2a
-	}
 	if m.LastChangeDisable {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LastChangeDisable)
 		i--
@@ -1545,14 +1473,6 @@ func (m *World) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.LastChangeDisable)
-	if m.GcGraph != nil {
-		l = m.GcGraph.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	if m.GcJournal != nil {
-		l = m.GcJournal.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1669,14 +1589,6 @@ func (x *World) MarshalProtoText() string {
 	if x.LastChangeDisable != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_change_disable")
 		protobuf_go_lite.TextWriteBool(&sb, x.LastChangeDisable)
-	}
-	if x.GcGraph != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_graph")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GcGraph)
-	}
-	if x.GcJournal != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "gc_journal")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GcJournal)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1888,36 +1800,6 @@ func (m *World) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LastChangeDisable = bool(v)
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcGraph", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.GcGraph == nil {
-				m.GcGraph = &block.KeyValueStore{}
-			}
-			if err := m.GcGraph.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GcJournal", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.GcJournal == nil {
-				m.GcJournal = &block.KeyValueStore{}
-			}
-			if err := m.GcJournal.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

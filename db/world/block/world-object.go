@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -107,23 +106,6 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 		changeBcs.SetRef(5, nbcs)
 	}
 
-	// One logical world object create applies one refgraph batch; logical edges
-	// match the former per-edge writes exactly.
-	if t.refGraph != nil {
-		objIRI := block_gc.ObjectIRI(key)
-		adds := []block_gc.RefEdge{{Subject: "world", Object: objIRI}}
-		var removes []block_gc.RefEdge
-		rootBlockRef := rootRef.GetRootRef()
-		if rootBlockRef != nil && !rootBlockRef.GetEmpty() {
-			rootBlockIRI := block_gc.BlockIRI(rootBlockRef)
-			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: rootBlockIRI})
-			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: rootBlockIRI})
-		}
-		if err := t.applyRefBatch(ctx, adds, removes); err != nil {
-			return nil, err
-		}
-	}
-
 	// The object now exists for the rest of the transaction.
 	t.markObjectExists(key)
 
@@ -207,26 +189,6 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	if changeBcs != nil {
 		changeBcs.SetRef(5, newBcs)
 		changeBcs.SetRef(6, oldObj.bcs)
-	}
-
-	if t.refGraph != nil {
-		rootBlockRef := oldRoot.GetRootRef().GetRootRef()
-		oldObjIRI := block_gc.ObjectIRI(oldKey)
-		newObjIRI := block_gc.ObjectIRI(newKey)
-		adds := []block_gc.RefEdge{
-			{Subject: "world", Object: newObjIRI},
-		}
-		removes := []block_gc.RefEdge{
-			{Subject: "world", Object: oldObjIRI},
-		}
-		if rootBlockRef != nil && !rootBlockRef.GetEmpty() {
-			rootBlockIRI := block_gc.BlockIRI(rootBlockRef)
-			adds = append(adds, block_gc.RefEdge{Subject: newObjIRI, Object: rootBlockIRI})
-			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: rootBlockIRI})
-		}
-		if err := t.applyRefBatch(ctx, adds, removes); err != nil {
-			return nil, err
-		}
 	}
 
 	return NewObjectState(ctx, t, newBcs)
@@ -356,17 +318,6 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		return false, block.ErrUnexpectedType
 	}
 	nbcs := objs.bcs
-
-	// Record removal of the world ownership edge with the world transaction.
-	if t.refGraph != nil {
-		removes := []block_gc.RefEdge{{
-			Subject: "world",
-			Object:  block_gc.ObjectIRI(key),
-		}}
-		if err := t.applyRefBatch(ctx, nil, removes); err != nil {
-			return false, err
-		}
-	}
 
 	// Remove graph links that refer to the object.
 	err = t.DeleteGraphObject(ctx, key)

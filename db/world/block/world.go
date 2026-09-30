@@ -2,7 +2,6 @@ package world_block
 
 import (
 	"context"
-	"slices"
 	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -11,14 +10,11 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
-	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	kvtx_cayley "github.com/s4wave/spacewave/db/kvtx/cayley"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/tx"
@@ -29,15 +25,6 @@ import (
 
 // objectKeyPrefix is the prefix used for object keys in storage
 var objectKeyPrefix = "o/"
-
-const (
-	defaultGCJournalReconcileEntryLimit uint64 = 128
-	defaultGCJournalReconcileEdgeLimit  uint64 = 4096
-)
-
-type worldRefGraph interface {
-	block_gc.RefGraphOps
-}
 
 // WorldState implements world state backed by a block graph.
 // Note: GetRoot, WaitSeqno are concurrency safe.
@@ -51,24 +38,13 @@ type WorldState struct {
 	discarded   atomic.Bool
 	readRelease func()
 
-	// store is the raw block store (unwrapped).
+	// store is the block store the World writes through. The volume behind it
+	// owns physical reachability.
 	store block.StoreOps
-	// xfrm is the block transformer.
-	xfrm block.Transformer
-	// onSwept is called for each node swept during GC (optional).
-	onSwept func(context.Context, string) error
 
-	objTree        kvtx.BlockTx
-	graphTree      kvtx.BlockTx
-	graphHd        *cayley.Handle
-	gcTree         kvtx.BlockTx
-	gcTreeIsolated bool
-	refGraph       worldRefGraph
-	gcJournalTree  kvtx.BlockTx
-	gcJournal      *gcJournal
-	gcJournalDirty bool
-	// trackGC enables the legacy World-local reference graph for direct callers.
-	trackGC bool
+	objTree   kvtx.BlockTx
+	graphTree kvtx.BlockTx
+	graphHd   *cayley.Handle
 
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
@@ -95,9 +71,7 @@ type WorldState struct {
 // btx can be nil to not write during Commit()
 // bcs is located at the root of the world (the World block).
 // if bcs is empty, creates a new empty world.
-// store is the raw block store (for GC wrapping).
-// xfrm is the block transformer (may be nil).
-// onSwept is called per swept node during GC (may be nil).
+// store is the block store the World writes through.
 // if verbose is true, verbose logging of the graph key/value is enabled.
 func NewWorldState(
 	ctx context.Context,
@@ -106,28 +80,9 @@ func NewWorldState(
 	btx *block.Transaction,
 	bcs *block.Cursor,
 	store block.StoreOps,
-	xfrm block.Transformer,
-	onSwept func(context.Context, string) error,
 	storage world.WorldStorage,
 	lookupOp world.LookupOp,
 	verbose bool,
-) (*WorldState, error) {
-	return newWorldState(ctx, le, write, btx, bcs, store, xfrm, onSwept, storage, lookupOp, verbose, true)
-}
-
-// newWorldState can leave physical ownership entirely to the backing volume.
-func newWorldState(
-	ctx context.Context,
-	le *logrus.Entry,
-	write bool,
-	btx *block.Transaction,
-	bcs *block.Cursor,
-	store block.StoreOps,
-	xfrm block.Transformer,
-	onSwept func(context.Context, string) error,
-	storage world.WorldStorage,
-	lookupOp world.LookupOp,
-	verbose, trackGC bool,
 ) (*WorldState, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/new")
 	defer task.End()
@@ -139,11 +94,7 @@ func newWorldState(
 		le:      le,
 		write:   write,
 		verbose: verbose,
-		trackGC: trackGC,
-
 		store:   store,
-		xfrm:    xfrm,
-		onSwept: onSwept,
 
 		storage:  storage,
 		lookupOp: lookupOp,
@@ -168,14 +119,16 @@ func BuildWorldStateFromCursor(
 	lookupOp world.LookupOp,
 	verbose bool,
 ) (*WorldState, error) {
+	// Pin the cursor's root for the life of the state.
 	store := bls.GetBucket()
-	xfrm := bls.GetTransformer()
 	btx, bcs := bls.BuildTransaction(nil)
 	releaseRoot, err := block.PinRoot(ctx, store, bls.GetRef().GetRootRef())
 	if err != nil {
 		return nil, err
 	}
-	state, err := NewWorldState(ctx, le, write, btx, bcs, store, xfrm, nil, storage, lookupOp, verbose)
+
+	// Build the state, which releases the pin on Discard.
+	state, err := NewWorldState(ctx, le, write, btx, bcs, store, storage, lookupOp, verbose)
 	if err != nil {
 		releaseRoot()
 		return nil, err
@@ -198,7 +151,7 @@ func (t *WorldState) Sync(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 	fenced, err := t.store.Sync(ctx)
-	if err == nil && fenced && t.write && !t.trackGC {
+	if err == nil && fenced && t.write {
 		err = block.MarkRootComplete(ctx, t.store, t.GetRootRef())
 	}
 	return fenced, err
@@ -210,6 +163,7 @@ func (t *WorldState) Sync(ctx context.Context) (bool, error) {
 // (see volume.WriteOrderer). States without a buffered store have nothing to
 // write.
 func (t *WorldState) Flush(ctx context.Context) error {
+	// Write the buffered blocks.
 	store, ok := t.store.(*block.BufferedStore)
 	if !ok {
 		return nil
@@ -217,7 +171,9 @@ func (t *WorldState) Flush(ctx context.Context) error {
 	if err := store.Flush(ctx); err != nil {
 		return err
 	}
-	if t.write && !t.trackGC {
+
+	// Record the written root's completion proof.
+	if t.write {
 		return block.MarkRootComplete(ctx, t.store, t.GetRootRef())
 	}
 	return nil
@@ -375,10 +331,12 @@ func (t *WorldState) ApplyWorldOp(
 //
 // Creates a new block transaction.
 func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
+	// A discarded state cannot fork.
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
 
+	// Detach a copy of the World root the fork owns.
 	bcs := t.bcs.DetachTransaction()
 	blk, _ := bcs.GetBlock()
 	var blkv *World
@@ -396,23 +354,22 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		blkv = &World{}
 		bcs.SetBlock(blkv, true)
 	}
+
+	// Pin the root and build the fork on it.
 	release, err := block.PinRoot(ctx, t.store, t.GetRootRef())
 	if err != nil {
 		return nil, err
 	}
-	ows, err := newWorldState(
+	ows, err := NewWorldState(
 		ctx,
 		t.le,
 		t.write,
 		bcs.GetTransaction(),
 		bcs,
 		t.store,
-		t.xfrm,
-		t.onSwept,
 		t.storage,
 		t.lookupOp,
 		t.verbose,
-		t.trackGC,
 	)
 	if err != nil {
 		release()
@@ -424,8 +381,6 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 }
 
 // SetBlockTransaction loads the state from the given block transaction and cursor.
-//
-// The block transaction store is overridden with one wrapped with the GC store ops.
 func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
 	return t.setBlockTransaction(ctx, btx, bcs)
 }
@@ -460,65 +415,6 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
-	// Build GC ref graph for writable transactions with a store.
-	var gcTree kvtx.BlockTx
-	var refGraph *block_gc.RefGraph
-	var initGCRootEdge bool
-	var gcTreeIsolated bool
-	if t.write && t.store != nil && t.trackGC {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
-		gcTree, refGraph, initGCRootEdge, gcTreeIsolated, err = t.buildGCTree(taskCtx, bcs)
-		subtask.End()
-		if err != nil {
-			_ = graphHandle.Close()
-			graphTree.Discard()
-			objTree.Discard()
-			return err
-		}
-	}
-
-	// Build the deferred GC journal tree at sub-block 6.
-	// Read-side uses it for Entries(); write-side also uses it as a WAL.
-	var journalTree kvtx.BlockTx
-	var journal *gcJournal
-	if t.store != nil && t.trackGC {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-journal")
-		journalTree, err = kvtx_block.BuildKvTransaction(taskCtx, bcs.FollowSubBlock(gcJournalSubBlock), t.write)
-		subtask.End()
-		if err != nil {
-			if refGraph != nil {
-				_ = refGraph.Close()
-			}
-			if gcTree != nil {
-				gcTree.Discard()
-			}
-			_ = graphHandle.Close()
-			graphTree.Discard()
-			objTree.Discard()
-			return err
-		}
-		journal, err = newGCJournal(ctx, journalTree, t.write)
-		if err != nil {
-			journalTree.Discard()
-			if refGraph != nil {
-				_ = refGraph.Close()
-			}
-			if gcTree != nil {
-				gcTree.Discard()
-			}
-			_ = graphHandle.Close()
-			graphTree.Discard()
-			objTree.Discard()
-			return err
-		}
-		// Wrap the transaction's store with GCStoreOps using the journal as WAL (write path only).
-		if t.write && btx != nil {
-			gcOps := block_gc.NewGCStoreOpsWithTraceTask(t.store, refGraph, block_gc.WorldFlushTask())
-			gcOps.SetWALAppender(journal)
-			btx.SetStoreOps(gcOps)
-		}
-	}
-
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/swap-handles")
 	t.btx, t.bcs = btx, bcs
 	if t.graphHd != nil {
@@ -530,37 +426,10 @@ func (t *WorldState) setBlockTransaction(
 	if t.objTree != nil {
 		t.objTree.Discard()
 	}
-	if t.refGraph != nil {
-		_ = t.refGraph.Close()
-	}
-	if t.gcTree != nil {
-		t.gcTree.Discard()
-	}
-	if t.gcJournalTree != nil {
-		t.gcJournalTree.Discard()
-	}
-	var activeRefGraph worldRefGraph
-	if refGraph != nil {
-		activeRefGraph = refGraph
-	}
 	t.objTree, t.graphTree, t.graphHd = objTree, graphTree, graphHandle
-	t.gcTree, t.gcTreeIsolated, t.refGraph = gcTree, gcTreeIsolated, activeRefGraph
-	t.gcJournalTree, t.gcJournal = journalTree, journal
 	// The rebuilt block state supersedes any transaction-local object memo.
 	t.objectExistsMemo = nil
 	subtask.End()
-
-	// Initialize the permanent gcroot -> world edge only when the
-	// GC graph backing store is first created. Replaying this
-	// idempotent Cayley write on every rebuild is expensive.
-	if refGraph != nil && initGCRootEdge {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/add-gc-root-ref")
-		err := refGraph.AddRef(taskCtx, block_gc.NodeGCRoot, "world")
-		subtask.End()
-		if err != nil {
-			return err
-		}
-	}
 
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/update-seqno")
 	t.updateSeqno(root)
@@ -579,15 +448,6 @@ func (t *WorldState) Discard() {
 	if t.graphTree != nil {
 		t.graphTree.Discard()
 	}
-	if t.refGraph != nil {
-		_ = t.refGraph.Close()
-	}
-	if t.gcTree != nil {
-		t.gcTree.Discard()
-	}
-	if t.gcJournalTree != nil {
-		t.gcJournalTree.Discard()
-	}
 	t.btx.DiscardStagedWrites()
 	if t.readRelease != nil {
 		t.readRelease()
@@ -602,20 +462,23 @@ func (t *WorldState) Discard() {
 // Commit commits the current pending changes to the block cursor.
 // updates the WorldState with the new root
 func (t *WorldState) Commit(ctx context.Context) error {
+	// Trace the commit.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/commit")
 	defer task.End()
 
+	// Commit needs a live write state. It does not discard the state, which
+	// stays usable after Commit.
 	if !t.write {
 		return tx.ErrNotWrite
 	}
-	// Note: we do NOT discard after commit in WorldState.
-	// We can re-use the state immediately after Commit.
 	if t.discarded.Load() {
 		return tx.ErrDiscarded
 	}
 	if err := ctx.Err(); err != nil {
 		return context.Canceled
 	}
+
+	// Load the World root the pending changes apply to.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/commit/get-root")
 	w, err := t.GetRoot(taskCtx)
 	subtask.End()
@@ -623,6 +486,7 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		return err
 	}
 
+	// Record the pending changes in the World root.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-world-changes")
 	err = t.flushWorldChanges(taskCtx, w)
 	subtask.End()
@@ -630,302 +494,20 @@ func (t *WorldState) Commit(ctx context.Context) error {
 		return err
 	}
 
-	// Defer bucket-level GC flushes during the block write so they
-	// accumulate and flush once at the end instead of per-PutBlock.
-	block.BeginDeferFlush(t.store)
-
-	journalEntriesBefore := t.GetGCJournalEntries()
-	var bcs *block.Cursor
-	if t.gcTreeIsolated && t.gcTree != nil && t.gcTree.GetCursor().IsDirty() {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/commit-isolated-gc-tree")
-		err = t.gcTree.Commit(taskCtx)
-		subtask.End()
-		if err != nil {
-			if endErr := block.EndDeferFlush(ctx, t.store); endErr != nil {
-				return errors.Wrap(endErr, err.Error())
-			}
-			return err
-		}
-	}
+	// Write the dirty blocks and release the tree data. Write batches the
+	// volume's reference updates into one flush.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/block-write")
-	_, bcs, err = t.btx.Write(taskCtx, false)
-	subtask.End()
-	if err != nil {
-		// End the deferred scope even on error to flush any partial work.
-		if endErr := block.EndDeferFlush(ctx, t.store); endErr != nil {
-			return errors.Wrap(endErr, err.Error())
-		}
-		return err
-	}
-
-	// End the deferred bucket-level flush scope: one batched flush.
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending/bucket-batch")
-	err = block.EndDeferFlush(taskCtx, t.store)
+	_, bcs, err := t.btx.Write(taskCtx, true)
 	subtask.End()
 	if err != nil {
 		return err
 	}
 
-	// Flush buffered world-level GC ref graph operations after Write
-	// releases the cursor mutex. With the deferred journal wired,
-	// FlushPending appends to the journal instead of mutating the
-	// Cayley graph directly.
-	if gcOps, ok := t.btx.GetStoreOps().(*block_gc.GCStoreOps); ok {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-gc-pending")
-		err := gcOps.FlushPending(taskCtx)
-		subtask.End()
-		if err != nil {
-			return err
-		}
-	}
-	journalTreeDirty := false
-	if t.gcJournalTree != nil && t.gcJournalTree.GetCursor() != nil {
-		journalTreeDirty = t.gcJournalTree.GetCursor().IsDirty()
-	}
-	journalChanged := t.gcJournalTree != nil && (t.GetGCJournalEntries() != journalEntriesBefore || journalTreeDirty || t.gcJournalDirty)
-	if journalChanged {
-		// The world GC flush appends to the journal after the primary write.
-		// Persist that journal update through the inner store so it does not
-		// recursively append another WAL entry.
-		prevStore := t.btx.GetStoreOps()
-		t.btx.SetStoreOps(t.store)
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/persist-gc-journal")
-		err = t.gcJournalTree.Commit(taskCtx)
-		if err == nil {
-			_, bcs, err = t.btx.Write(taskCtx, true)
-		}
-		subtask.End()
-		t.btx.SetStoreOps(prevStore)
-		if err != nil {
-			return err
-		}
-		t.gcJournalDirty = false
-	}
-	if !journalChanged {
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/clear-block-tree")
-		_, bcs, err = t.btx.Write(taskCtx, true)
-		subtask.End()
-		if err != nil {
-			return err
-		}
-	}
+	// Rebuild the state on the written root.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/set-block-transaction")
 	err = t.setBlockTransaction(taskCtx, t.btx, bcs)
 	subtask.End()
 	return err
-}
-
-// applyRefBatch records one ownership transition in the world GC journal.
-// Worlds without a journal retain the direct reference-graph path.
-func (t *WorldState) applyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
-	if t.refGraph == nil {
-		return nil
-	}
-	if t.gcJournal != nil {
-		return t.gcJournal.Append(ctx, adds, removes)
-	}
-	return t.refGraph.ApplyRefBatch(ctx, adds, removes)
-}
-
-// GetRefGraph returns the GC reference graph, or nil if not initialized.
-// Journaled ownership transitions become visible after GarbageCollect reconciles them.
-func (t *WorldState) GetRefGraph() block_gc.RefGraphOps {
-	if t.refGraph == nil {
-		return nil
-	}
-	return t.refGraph
-}
-
-// GetGCJournalEntries returns the number of pending GC journal entries.
-// Returns 0 if the journal is not initialized.
-func (t *WorldState) GetGCJournalEntries() uint64 {
-	if t.gcJournal == nil {
-		return 0
-	}
-	return t.gcJournal.Entries()
-}
-
-// GarbageCollect sweeps unreferenced nodes from the GC ref graph.
-// Only valid on writable WorldState instances with GC enabled.
-// Returns nil stats if GC is not enabled.
-// Reconciles any pending GC journal entries before collecting.
-func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error) {
-	if t.refGraph == nil {
-		return nil, nil
-	}
-	release, err := t.pinCurrentWorldRootForGC(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if release != nil {
-		defer release()
-	}
-	// Reconcile one bounded deferred-journal chunk before collecting.
-	reconcile, err := t.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
-	if err != nil {
-		return nil, errors.Wrap(err, "reconcile gc journal before collect")
-	}
-	if reconcile.remainingEntries != 0 {
-		trace.Logf(
-			ctx,
-			"gc-journal",
-			"defer collect: remaining_entries=%d applied_entries=%d applied_edges=%d",
-			reconcile.remainingEntries,
-			reconcile.appliedEntries,
-			reconcile.appliedEdges,
-		)
-		return &block_gc.Stats{}, nil
-	}
-	if err := t.removeCurrentWorldRootUnreferenced(ctx); err != nil {
-		return nil, errors.Wrap(err, "mark pinned world root for gc")
-	}
-	// A World ref graph covers one retained root, while the physical store is
-	// shared by engine snapshots, transactions, forks, and coordinated heads.
-	// CollectGraphOnly prunes the ref graph and deletes no blocks.
-	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
-	return c.CollectGraphOnly(ctx)
-}
-
-func (t *WorldState) pinCurrentWorldRootForGC(ctx context.Context) (func(), error) {
-	if t.refGraph == nil || t.bcs == nil {
-		return nil, nil
-	}
-	rootRef := t.bcs.GetRef()
-	if rootRef == nil || rootRef.GetEmpty() {
-		return nil, nil
-	}
-	rootIRI := block_gc.BlockIRI(rootRef)
-	if rootIRI == "" {
-		return nil, nil
-	}
-	if err := t.refGraph.AddRef(ctx, "world", rootIRI); err != nil {
-		return nil, errors.Wrap(err, "pin world root for gc")
-	}
-	return func() {
-		_ = t.refGraph.RemoveRef(context.Background(), "world", rootIRI)
-	}, nil
-}
-
-func (t *WorldState) removeCurrentWorldRootUnreferenced(ctx context.Context) error {
-	if t.refGraph == nil || t.bcs == nil {
-		return nil
-	}
-	rootRef := t.bcs.GetRef()
-	if rootRef == nil || rootRef.GetEmpty() {
-		return nil
-	}
-	rootIRI := block_gc.BlockIRI(rootRef)
-	if rootIRI == "" {
-		return nil
-	}
-	return t.refGraph.RemoveRef(ctx, block_gc.NodeUnreferenced, rootIRI)
-}
-
-// ReconcileGCJournal applies one bounded pending GC journal chunk to the Cayley
-// ref graph. Call during idle periods or forced checkpoints. The caller must
-// commit the world state afterward to persist the reconciled graph and journal
-// cursor.
-//
-// Returns the number of journal entries applied, or 0 if the journal was empty
-// or GC is not enabled.
-func (t *WorldState) ReconcileGCJournal(ctx context.Context) (int, error) {
-	result, err := t.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
-	return result.appliedEntries, err
-}
-
-func (t *WorldState) reconcileGCJournal(ctx context.Context, maxEntries, maxEdges uint64) (gcJournalReconcileResult, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/reconcile-gc-journal")
-	defer task.End()
-
-	if t.refGraph == nil || t.gcJournal == nil {
-		return gcJournalReconcileResult{}, nil
-	}
-
-	entries, err := t.gcJournal.Take(ctx, maxEntries, maxEdges)
-	if err != nil {
-		return gcJournalReconcileResult{}, errors.Wrap(err, "iterate gc journal")
-	}
-	if len(entries) == 0 {
-		return gcJournalReconcileResult{}, nil
-	}
-	appliedEdges := 0
-	// Entries commute unless a later operation reverses an exact edge from the
-	// current group. Flush at that boundary so add-before-remove processing in
-	// ApplyRefBatch cannot invert ordered transitions such as A to B to A.
-	var groupAdds, groupRemoves []block_gc.RefEdge
-	groupAddsSet := make(map[block_gc.RefEdge]struct{})
-	groupRemovesSet := make(map[block_gc.RefEdge]struct{})
-	flushGroup := func() error {
-		if len(groupAdds) == 0 && len(groupRemoves) == 0 {
-			return nil
-		}
-		if err := t.refGraph.ApplyRefBatch(ctx, groupAdds, groupRemoves); err != nil {
-			return errors.Wrap(err, "apply gc journal entries")
-		}
-		groupAdds = nil
-		groupRemoves = nil
-		clear(groupAddsSet)
-		clear(groupRemovesSet)
-		return nil
-	}
-	for _, entry := range entries {
-		conflicts := false
-		for _, edge := range entry.adds {
-			if _, found := groupRemovesSet[edge]; found {
-				conflicts = true
-				break
-			}
-		}
-		if !conflicts {
-			for _, edge := range entry.removes {
-				if _, found := groupAddsSet[edge]; found {
-					conflicts = true
-					break
-				}
-			}
-		}
-		if conflicts {
-			if err := flushGroup(); err != nil {
-				return gcJournalReconcileResult{}, err
-			}
-		}
-		groupAdds = append(groupAdds, entry.adds...)
-		groupRemoves = append(groupRemoves, entry.removes...)
-		for _, edge := range entry.adds {
-			groupAddsSet[edge] = struct{}{}
-		}
-		for _, edge := range entry.removes {
-			groupRemovesSet[edge] = struct{}{}
-		}
-		appliedEdges += len(entry.adds) + len(entry.removes)
-	}
-	if err := flushGroup(); err != nil {
-		return gcJournalReconcileResult{}, err
-	}
-	if err := t.gcJournal.DeleteApplied(ctx, entries); err != nil {
-		return gcJournalReconcileResult{}, errors.Wrap(err, "delete applied gc journal entries")
-	}
-	t.gcJournalDirty = true
-	result := gcJournalReconcileResult{
-		appliedEntries:   len(entries),
-		appliedEdges:     appliedEdges,
-		remainingEntries: t.gcJournal.Entries(),
-	}
-	trace.Logf(
-		ctx,
-		"gc-journal",
-		"applied_entries=%d applied_edges=%d remaining_entries=%d",
-		result.appliedEntries,
-		result.appliedEdges,
-		result.remainingEntries,
-	)
-	return result, nil
-}
-
-type gcJournalReconcileResult struct {
-	appliedEntries   int
-	appliedEdges     int
-	remainingEntries uint64
 }
 
 // buildObjectTree builds the object tree handle.
@@ -933,89 +515,6 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-object-tree")
 	defer task.End()
 	return kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
-}
-
-// buildGCTree builds the GC reference graph tree and RefGraph handle.
-// Returns whether the caller should initialize the gcroot -> world edge and
-// whether the tree commits through an isolated block transaction.
-func (t *WorldState) buildGCTree(
-	ctx context.Context,
-	bcs *block.Cursor,
-) (kvtx.BlockTx, *block_gc.RefGraph, bool, bool, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree")
-	defer task.End()
-
-	gcTreeBcs := bcs.FollowSubBlock(5)
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/load-kv-store")
-	kvs, err := kvtx_block.LoadKeyValueStore(taskCtx, gcTreeBcs)
-	subtask.End()
-	if err != nil {
-		return nil, nil, false, false, err
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/build-kv-transaction")
-	ktx, isolated, err := t.buildGCKvTransaction(taskCtx, kvs, gcTreeBcs)
-	subtask.End()
-	if err != nil {
-		return nil, nil, false, false, err
-	}
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/size")
-	gcTreeSize, err := ktx.Size(taskCtx)
-	subtask.End()
-	if err != nil {
-		ktx.Discard()
-		return nil, nil, false, false, err
-	}
-	initGCRootEdge := gcTreeSize == 0
-	if initGCRootEdge && t.refGraph != nil {
-		outgoing, err := t.refGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
-		if err != nil {
-			ktx.Discard()
-			return nil, nil, false, false, err
-		}
-		if slices.Contains(outgoing, "world") {
-			initGCRootEdge = false
-		}
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
-	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
-	subtask.End()
-	if err != nil {
-		ktx.Discard()
-		return nil, nil, false, false, err
-	}
-	return ktx, rg, initGCRootEdge, isolated, nil
-}
-
-func (t *WorldState) buildGCKvTransaction(
-	ctx context.Context,
-	kvs *kvtx_block.KeyValueStore,
-	gcTreeBcs *block.Cursor,
-) (kvtx.BlockTx, bool, error) {
-	impl := kvs.GetImplType()
-	isOkra := impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA || impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE
-	if !isOkra || t.btx == nil || t.store == nil {
-		ktx, err := kvs.BuildKvTransaction(ctx, gcTreeBcs, true)
-		return ktx, false, err
-	}
-
-	isolatedTx, isolatedRoot := block.NewTransaction(t.store, t.btx.GetTransformer(), nil, t.btx.GetPutOpts())
-	isolatedKVS := kvs.CloneVT()
-	isolatedRoot.SetBlock(isolatedKVS, false)
-	treeBcs := isolatedRoot.FollowSubBlock(3)
-	newTx := kvtx_block_okra.NewTx
-	if impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
-		newTx = kvtx_block_okra.NewTxWithInlineValues
-	}
-	ktx, err := newTx(ctx, treeBcs, isolatedTx, true, func(ncs *block.Cursor) {
-		_ = ncs.SetAsSubBlock(3, isolatedRoot)
-		gcTreeBcs.SetBlock(isolatedKVS.CloneVT(), true)
-	})
-	if err != nil {
-		return nil, false, err
-	}
-	return ktx, true, nil
 }
 
 // buildGraphTree builds the graph tree (kv storage) handle.
