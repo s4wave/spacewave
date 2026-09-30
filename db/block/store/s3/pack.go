@@ -56,14 +56,19 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 // the packfiles other writers added or merged since.
 //
 // After each write a background routine merges small packfiles, as
-// compact describes.
+// compact describes. Reclaim drops dead blocks when that saves money on the
+// service's price list.
 type PackStore struct {
+	// le is the logger.
+	le *logrus.Entry
 	// client sends the signed requests.
 	client *Client
 	// bucket is the bucket holding the objects.
 	bucket string
 	// prefix precedes every object key.
 	prefix string
+	// pricing is the price list of the service holding the bucket.
+	pricing Pricing
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
 	// compactor runs compact after writes.
@@ -80,8 +85,14 @@ type PackStore struct {
 	listMtx csync.Mutex
 	// listings counts the entry listings started.
 	listings atomic.Uint64
-	// compactMtx serializes compaction passes.
+	// compactMtx serializes compaction and reclaim passes.
 	compactMtx csync.Mutex
+	// reclaimLoaded reports whether reclaimState was read from the bucket.
+	// Guarded by compactMtx.
+	reclaimLoaded bool
+	// reclaimState is the last reclaim pass, or nil before the first.
+	// Guarded by compactMtx.
+	reclaimState *ReclaimState
 }
 
 // compactBackoff spaces the retries of a failed compaction pass.
@@ -97,16 +108,21 @@ var compactBackoff = &backoff.Backoff{
 // NewPackStore builds a packfile block store on the bucket. Close stops its
 // compaction routine.
 func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string) *PackStore {
+	// Price the bucket's service from its endpoint.
 	s := &PackStore{
+		le:      le,
 		client:  client,
 		bucket:  bucket,
 		prefix:  prefix,
+		pricing: PricingForEndpoint(client.endpoint),
 		entries: make(map[string]*packfile.PackfileEntry),
 		compactor: routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-compaction"),
 			routine.WithRetry(compactBackoff),
 		),
 	}
+
+	// Read the known packfiles and start compaction.
 	s.packs = packfile_store.NewPackfileStore(s.openPack, nil)
 	s.compactor.SetRoutine(s.runCompaction)
 	s.compactor.SetContext(context.Background(), false)

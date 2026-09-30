@@ -1,6 +1,8 @@
 syntax = "proto3";
 package block.store.s3;
 
+import "google/protobuf/timestamp.proto";
+
 // Config configures the s3 block store controller.
 message Config {
   // BlockStoreId is the block store id to use on the bus.
@@ -11,7 +13,8 @@ message Config {
   string bucket_name = 3;
   // ObjectPrefix is the prefix to use for object names.
   // Packfiles are {objectPrefix}packs/{id}, and their entries are
-  // {objectPrefix}entries/{id}.
+  // {objectPrefix}entries/{id}. The storage reclaim state is
+  // {objectPrefix}reclaim/{time}.
   string object_prefix = 4;
   // BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
   repeated string bucket_ids = 7;
@@ -89,4 +92,21 @@ message ObjectUsage {
   int64 objects = 1;
   // Bytes is the total size of the objects.
   int64 bytes = 2;
+}
+
+// ReclaimState records the last storage reclaim pass on a bucket prefix, so
+// the next pass runs only once the dead bytes it would drop cost more to keep
+// than the pass costs to run.
+message ReclaimState {
+  // PassedAt is when the pass ran.
+  .google.protobuf.Timestamp passed_at = 1;
+  // DeadBytes is the dead block bytes the pass left in place.
+  uint64 dead_bytes = 2;
+  // DeadBytesPerDay is the rate blocks died between the previous pass and
+  // this one.
+  uint64 dead_bytes_per_day = 3;
+  // Packs is the number of packfiles the pass judged.
+  uint64 packs = 4;
+  // Blocks is the number of blocks in those packfiles.
+  uint64 blocks = 5;
 }

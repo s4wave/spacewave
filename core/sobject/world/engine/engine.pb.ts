@@ -166,14 +166,6 @@ export interface Config {
    * @generated from field: backoff.Backoff process_ops_backoff = 8;
    */
   processOpsBackoff?: Backoff
-  /**
-   * EnableStorageReclaim runs storage reclaim passes as the validator. A pass
-   * drops the blocks the local store no longer holds from the storage backend,
-   * five minutes after a write and at most once an hour.
-   *
-   * @generated from field: bool enable_storage_reclaim = 11;
-   */
-  enableStorageReclaim?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -197,12 +189,6 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'process_ops_backoff', kind: 'message', T: () => Backoff },
-    {
-      no: 11,
-      name: 'enable_storage_reclaim',
-      kind: 'scalar',
-      T: ScalarType.BOOL,
-    },
   ] satisfies readonly PartialFieldInfo[],
 })
 

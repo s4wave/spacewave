@@ -97,10 +97,6 @@ type Config struct {
 	// ProcessOpsBackoff is the backoff for processing ops as a validator.
 	// Defaults to reasonable defaults if unset.
 	ProcessOpsBackoff *backoff.Backoff `protobuf:"bytes,8,opt,name=process_ops_backoff,json=processOpsBackoff,proto3" json:"processOpsBackoff,omitempty"`
-	// EnableStorageReclaim runs storage reclaim passes as the validator. A pass
-	// drops the blocks the local store no longer holds from the storage backend,
-	// five minutes after a write and at most once an hour.
-	EnableStorageReclaim bool `protobuf:"varint,11,opt,name=enable_storage_reclaim,json=enableStorageReclaim,proto3" json:"enableStorageReclaim,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -163,13 +159,6 @@ func (x *Config) GetProcessOpsBackoff() *backoff.Backoff {
 		return x.ProcessOpsBackoff
 	}
 	return nil
-}
-
-func (x *Config) GetEnableStorageReclaim() bool {
-	if x != nil {
-		return x.EnableStorageReclaim
-	}
-	return false
 }
 
 // InnerState contains the inner state object for the SharedObject.
@@ -570,7 +559,6 @@ func (m *Config) CloneVT() *Config {
 	r.DisableApplyWorldOp = m.DisableApplyWorldOp
 	r.DisableApplyObjectOp = m.DisableApplyObjectOp
 	r.Verbose = m.Verbose
-	r.EnableStorageReclaim = m.EnableStorageReclaim
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.InitWorldOp = protobuf_go_lite.CloneVTValue(m.InitWorldOp)
 	r.ProcessOpsBackoff = protobuf_go_lite.CloneVTValue(m.ProcessOpsBackoff)
@@ -799,9 +787,6 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.ProcessOpsBackoff, that.ProcessOpsBackoff) {
-		return false
-	}
-	if this.EnableStorageReclaim != that.EnableStorageReclaim {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1175,11 +1160,6 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("processOpsBackoff")
 		x.ProcessOpsBackoff.MarshalProtoJSON(s.WithField("processOpsBackoff"))
 	}
-	if x.EnableStorageReclaim || s.HasField("enableStorageReclaim") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enableStorageReclaim")
-		s.WriteBool(x.EnableStorageReclaim)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -1233,9 +1213,6 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ProcessOpsBackoff = &backoff.Backoff{}
 			x.ProcessOpsBackoff.UnmarshalProtoJSON(s.WithField("process_ops_backoff", true))
-		case "enable_storage_reclaim", "enableStorageReclaim":
-			s.AddField("enable_storage_reclaim")
-			x.EnableStorageReclaim = s.ReadBool()
 		}
 	})
 }
@@ -1832,11 +1809,6 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.EnableStorageReclaim {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.EnableStorageReclaim)
-		i--
-		dAtA[i] = 0x58
 	}
 	if m.ProcessOpsBackoff != nil {
 		size, err := m.ProcessOpsBackoff.MarshalToSizedBufferVT(dAtA[:i])
@@ -2436,7 +2408,6 @@ func (m *Config) SizeVT() (n int) {
 		l = m.ProcessOpsBackoff.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.EnableStorageReclaim)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2665,10 +2636,6 @@ func (x *Config) MarshalProtoText() string {
 	if x.ProcessOpsBackoff != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "process_ops_backoff")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ProcessOpsBackoff)
-	}
-	if x.EnableStorageReclaim != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enable_storage_reclaim")
-		protobuf_go_lite.TextWriteBool(&sb, x.EnableStorageReclaim)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2995,16 +2962,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EnableStorageReclaim", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.EnableStorageReclaim = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

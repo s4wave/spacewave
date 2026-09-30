@@ -18,7 +18,8 @@ type BlockStore interface {
 	// storage backend. fence runs after the backend lists its blocks and
 	// before it drops any; when fence returns, every writer that may still
 	// reference a dropped block must upload it again. A store without a
-	// storage backend returns nil without calling fence.
+	// storage backend, or whose backend judges the pass would cost more than
+	// the storage it frees, returns nil without calling fence.
 	ReclaimStorage(ctx context.Context, fence func(context.Context) error) error
 }
 
