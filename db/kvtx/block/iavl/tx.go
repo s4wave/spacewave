@@ -239,53 +239,43 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 // ScanPrefix iterates over keys with a prefix.
 // Ascending.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, val []byte) error) error {
-	if t.root.GetSize() == 0 {
-		return nil
-	}
-	end := make([]byte, len(prefix)+1)
-	copy(end, prefix)
-	end[len(end)-1] = 255
-	return t.traverseFromNode(
-		ctx,
-		t.bcs,
-		t.root,
-		prefix,
-		end,
-		true, true, 0,
-		func(bcs *block.Cursor, n *Node, _ uint8) error {
-			if n.GetHeight() == 0 && len(n.GetKey()) != 0 {
-				nodValue, err := t.nodeToValue(ctx, bcs, n)
-				if err != nil {
-					return err
-				}
-				return cb(n.GetKey(), nodValue)
-			}
-			return nil
-		},
-	)
+	return t.scanPrefixLeaves(ctx, prefix, func(bcs *block.Cursor, n *Node) error {
+		nodValue, err := t.nodeToValue(ctx, bcs, n)
+		if err != nil {
+			return err
+		}
+		return cb(n.GetKey(), nodValue)
+	})
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
 // Ascending.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	return t.scanPrefixLeaves(ctx, prefix, func(_ *block.Cursor, n *Node) error {
+		return cb(n.GetKey())
+	})
+}
+
+// scanPrefixLeaves calls cb with each leaf whose key has the prefix, in
+// ascending order. The range ends before the prefix successor, or at the end
+// of the tree when the prefix has none.
+func (t *Tx) scanPrefixLeaves(ctx context.Context, prefix []byte, cb func(*block.Cursor, *Node) error) error {
 	if t.root.GetSize() == 0 {
 		return nil
 	}
-	end := make([]byte, len(prefix)+1)
-	copy(end, prefix)
-	end[len(end)-1] = 255
+	end, _ := kvtx.PrefixSuccessor(prefix)
 	return t.traverseFromNode(
 		ctx,
 		t.bcs,
 		t.root,
 		prefix,
 		end,
-		true, true, 0,
+		true, false, 0,
 		func(bcs *block.Cursor, n *Node, _ uint8) error {
-			if n.GetHeight() == 0 && len(n.GetKey()) != 0 {
-				return cb(n.GetKey())
+			if n.GetHeight() != 0 || len(n.GetKey()) == 0 {
+				return nil
 			}
-			return nil
+			return cb(bcs, n)
 		},
 	)
 }

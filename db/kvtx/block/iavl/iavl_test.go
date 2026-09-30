@@ -756,3 +756,93 @@ func assertIteratorKeys(t *testing.T, iter kvtx.Iterator, expected []string) {
 		t.Fatalf("iterator returned extra key %s", iter.Key())
 	}
 }
+
+// TestScanPrefixHighBytes checks that prefix scans include keys that continue
+// the prefix with 0xff bytes and stop at the prefix successor.
+func TestScanPrefixHighBytes(t *testing.T) {
+	// Start a testbed volume for the tree.
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	// Open an empty tree in the testbed bucket.
+	oc, _, err := bucket_lookup.BuildEmptyCursor(
+		ctx,
+		tb.Bus,
+		tb.Logger,
+		tb.StepFactorySet,
+		tb.BucketId,
+		tb.Volume.GetID(),
+		&block_transform.Config{},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer oc.Release()
+	tr := NewAVLTree(oc)
+
+	// Write keys at the 0xff edges of each prefix.
+	btx, err := tr.NewAVLTreeTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	keys := [][]byte{
+		[]byte("a/x"),
+		{'a', '/', 0xff},
+		{'a', '/', 0xff, 0x01},
+		{'a', '/', 0xff, 0xff, 0x02},
+		[]byte("a0"),
+		{0xff, 0x01},
+	}
+	for _, key := range keys {
+		if err := btx.Set(ctx, key, []byte("value")); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	if err := btx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Scan each prefix with both scan methods and compare the keys.
+	rtx, err := tr.NewAVLTreeTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rtx.Discard()
+	for _, tc := range []struct {
+		prefix []byte
+		want   [][]byte
+	}{
+		{prefix: []byte("a/"), want: keys[:4]},
+		{prefix: []byte{0xff}, want: keys[5:]},
+		{prefix: nil, want: keys},
+	} {
+		// Collect the keys from both scans.
+		var keyScan, valueScan [][]byte
+		if err := rtx.ScanPrefixKeys(ctx, tc.prefix, func(key []byte) error {
+			keyScan = append(keyScan, slices.Clone(key))
+			return nil
+		}); err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := rtx.ScanPrefix(ctx, tc.prefix, func(key, _ []byte) error {
+			valueScan = append(valueScan, slices.Clone(key))
+			return nil
+		}); err != nil {
+			t.Fatal(err.Error())
+		}
+
+		// Both scans return exactly the prefix range.
+		if !slices.EqualFunc(keyScan, tc.want, bytes.Equal) {
+			t.Fatalf("ScanPrefixKeys(%x) = %x, want %x", tc.prefix, keyScan, tc.want)
+		}
+		if !slices.EqualFunc(valueScan, tc.want, bytes.Equal) {
+			t.Fatalf("ScanPrefix(%x) = %x, want %x", tc.prefix, valueScan, tc.want)
+		}
+	}
+}
