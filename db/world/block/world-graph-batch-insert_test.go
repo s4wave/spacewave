@@ -16,9 +16,9 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 	var wantRevisions []uint64
 	var wantChanges []*WorldChange
 	for _, batch := range []bool{false, true} {
-		ws, cursor, cleanup := newRefBatchTestWorld(t, ctx)
+		ws, cursor, cleanup := newTestWorld(t, ctx)
 		defer cleanup()
-		ref := writeRefBatchTestBlock(t, ctx, cursor, "body")
+		ref := writeTestBlock(t, ctx, cursor, "body")
 		keys := []string{"from", "to"}
 		for _, key := range keys {
 			object, err := ws.CreateObject(ctx, key, ref)
@@ -94,15 +94,18 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 // TestGraphInsertionValidatesBatch rejects missing endpoints before insertion
 // and rejects repeated relationships without changing SetGraphQuad idempotence.
 func TestGraphInsertionValidatesBatch(t *testing.T) {
+	// Build a World with one object.
 	ctx := t.Context()
-	ws, cursor, cleanup := newRefBatchTestWorld(t, ctx)
+	ws, cursor, cleanup := newTestWorld(t, ctx)
 	defer cleanup()
-	ref := writeRefBatchTestBlock(t, ctx, cursor, "body")
+	ref := writeTestBlock(t, ctx, cursor, "body")
 	object, err := ws.CreateObject(ctx, "from", ref)
 	world.ReleaseObjectState(object)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject a batch with a missing endpoint without inserting any of it.
 	valid := world.NewGraphQuadWithKeys("from", "<edge>", "from", "")
 	invalid := world.NewGraphQuadWithKeys("from", "<edge>", "missing", "")
 	if err := ws.InsertGraphQuads(ctx, []world.GraphQuad{valid, invalid}); err == nil {
@@ -112,6 +115,8 @@ func TestGraphInsertionValidatesBatch(t *testing.T) {
 	if err != nil || len(found) != 0 {
 		t.Fatalf("inserted a partial batch: %v, %v", found, err)
 	}
+
+	// Reject a batch that repeats a relationship.
 	if err := ws.InsertGraphQuads(ctx, []world.GraphQuad{valid, valid}); err == nil {
 		t.Fatal("accepted repeated relationship")
 	}

@@ -36,13 +36,13 @@ message Config {
   // Defaults to reasonable defaults if unset.
   .backoff.Backoff process_ops_backoff = 8;
 
-  // GcSweepIdleWindowDur is the idle window duration after the last write
-  // before a GC sweep is triggered if garbage exists.
-  // Duration in nanoseconds. If zero, defaults to 5 seconds.
-  uint64 gc_sweep_idle_window_dur = 9;
-  // GcSweepBackstopIntervalDur is the periodic backstop interval for GC sweeps.
-  // Duration in nanoseconds. If zero, defaults to 5 minutes.
-  uint64 gc_sweep_backstop_interval_dur = 10;
+  // Fields 9 and 10 timed the World-local GC sweep.
+  reserved 9, 10;
+
+  // EnableStorageReclaim runs storage reclaim passes as the validator. A pass
+  // drops the blocks the local store no longer holds from the storage backend,
+  // five minutes after a write and at most once an hour.
+  bool enable_storage_reclaim = 11;
 }
 
 // InnerState contains the inner state object for the SharedObject.

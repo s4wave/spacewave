@@ -214,7 +214,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Wake maintenance only after the accepted World is visible locally.
-	t.eng.c.notifyGCSweepMaintenance()
+	t.eng.c.notifyWrite()
 	return nil
 }
 

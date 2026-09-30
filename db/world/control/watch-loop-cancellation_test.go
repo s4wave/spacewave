@@ -80,10 +80,10 @@ func (s *wrappedCancelWaitState) GetSeqno(context.Context) (uint64, error) { ret
 func (s *wrappedCancelWaitState) WaitSeqno(ctx context.Context, _ uint64) (uint64, error) {
 	s.entered <- struct{}{}
 	if s.failure != nil {
-		return 0, fmt.Errorf("get gc journal sequence: %w", s.failure)
+		return 0, fmt.Errorf("read world root: %w", s.failure)
 	}
 	<-ctx.Done()
-	return 0, fmt.Errorf("get gc journal sequence: %w", ctx.Err())
+	return 0, fmt.Errorf("read world root: %w", ctx.Err())
 }
 
 func (s *wrappedCancelWaitState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {

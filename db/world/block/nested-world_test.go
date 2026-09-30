@@ -150,11 +150,14 @@ func TestNestedWorldPublication(t *testing.T) {
 // TestNestedWorldReplacementGC verifies that replacing a published local root
 // drops the old block graph while retaining the new snapshot.
 func TestNestedWorldReplacementGC(t *testing.T) {
+	// Build the World testbed.
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 	const outerKey = "projection/replaced"
 
+	// publish imports a snapshot and stores it as the outer object's nested World.
 	publish := func(content string) *block.BlockRef {
+		// Import the snapshot.
 		t.Helper()
 		ref, err := world_block.ImportSnapshot(ctx, tb.Engine, maps.All(map[string]block.Block{
 			"inner": block_mock.NewExample(content),
@@ -162,6 +165,8 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Point the outer object at the snapshot.
 		if err := world.ExecTransaction(ctx, tb.Engine, true, func(ctx context.Context, state world.WorldState) error {
 			_, _, err := world.AccessWorldObject(ctx, state, outerKey, true, func(cursor *block.Cursor) error {
 				nested, err := world_block.NewNestedWorld(tb.EngineBucketID, ref, nil)
@@ -178,27 +183,20 @@ func TestNestedWorldReplacementGC(t *testing.T) {
 		return ref.GetRootRef()
 	}
 
+	// Publish a snapshot, then replace it.
 	oldRoot := publish("before")
 	newRoot := publish("after")
 	if oldRoot.EqualsRef(newRoot) {
 		t.Fatal("replacement produced the same root")
 	}
-	// World GC reconciles the publication before the volume sweeps blocks.
-	gcTx, err := tb.Engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer gcTx.Discard()
-	if err := gcTx.(*world_block.EngineTx).GarbageCollect(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := gcTx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+
+	// The volume collects the replaced root without World-local bookkeeping.
 	collector := block_gc.NewCollector(tb.Volume.GetRefGraph(), tb.Volume, nil)
 	if _, err := collector.Collect(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Check the old root is gone and the new root is retained.
 	oldExists, err := tb.Volume.GetBlockExists(ctx, oldRoot)
 	if err != nil {
 		t.Fatal(err)

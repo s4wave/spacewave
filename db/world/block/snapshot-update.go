@@ -83,7 +83,7 @@ func updateWorld(
 	// Open a write transaction at the base root with a World state over it.
 	local := world.NewWorldStorageFromCursor(bucketCursor)
 	transaction, cursor := bucketCursor.BuildTransactionAtRef(nil, base.GetRootRef())
-	state, err := NewWorldState(ctx, le, true, nil, cursor, nil, nil, nil, local, nil, false)
+	state, err := NewWorldState(ctx, le, true, nil, cursor, nil, local, nil, false)
 	if err != nil {
 		return nil, err
 	}

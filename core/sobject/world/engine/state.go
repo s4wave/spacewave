@@ -75,7 +75,7 @@ func (c *Controller) executeWatchSOStateOnce(
 	err = soEngine.updateEngineState(taskCtx, head)
 	task2.End()
 	if err == nil {
-		c.notifyGCSweepMaintenance()
+		c.notifyWrite()
 	}
 	return err
 }

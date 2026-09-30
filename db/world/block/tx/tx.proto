@@ -41,9 +41,8 @@ message Tx {
   // TxBatch is a batch of multiple txs.
   TxBatch tx_batch = 10;
 
-  // TxGCSweep triggers a garbage collection sweep.
-  // TxType_GC_SWEEP
-  TxGCSweep tx_gc_sweep = 11;
+  // Field 11 held a World-local GC sweep.
+  reserved 11;
 }
 
 // TxType indicates the kind of transaction.
@@ -74,18 +73,8 @@ enum TxType {
   // TxType_BATCH applies multiple sub-transactions.
   TxType_BATCH = 9;
 
-  // TxType_GC_SWEEP triggers a garbage collection sweep.
-  TxType_GC_SWEEP = 10;
-}
-
-// TxGCSweepIntent indicates why a GC sweep transaction was created.
-enum TxGCSweepIntent {
-  // TxGCSweepIntent_LEGACY_MAINTENANCE is the default for old empty payloads.
-  TxGCSweepIntent_LEGACY_MAINTENANCE = 0;
-  // TxGCSweepIntent_MAINTENANCE is created by background maintenance.
-  TxGCSweepIntent_MAINTENANCE = 1;
-  // TxGCSweepIntent_EXPLICIT is reserved for deliberate operator/admin sweeps.
-  TxGCSweepIntent_EXPLICIT = 2;
+  // Value 10 was the World-local GC sweep.
+  reserved 10;
 }
 
 // TxBatch is a batch of multiple transactions.
@@ -175,9 +164,3 @@ message TxDeleteGraphQuad {
   .quad.Quad quad = 1;
 }
 
-// TxGCSweep triggers a garbage collection sweep of unreferenced nodes.
-// TxType: TxType_GC_SWEEP
-message TxGCSweep {
-  // Intent indicates why this sweep was created.
-  TxGCSweepIntent intent = 1;
-}

@@ -167,20 +167,13 @@ export interface Config {
    */
   processOpsBackoff?: Backoff
   /**
-   * GcSweepIdleWindowDur is the idle window duration after the last write
-   * before a GC sweep is triggered if garbage exists.
-   * Duration in nanoseconds. If zero, defaults to 5 seconds.
+   * EnableStorageReclaim runs storage reclaim passes as the validator. A pass
+   * drops the blocks the local store no longer holds from the storage backend,
+   * five minutes after a write and at most once an hour.
    *
-   * @generated from field: uint64 gc_sweep_idle_window_dur = 9;
+   * @generated from field: bool enable_storage_reclaim = 11;
    */
-  gcSweepIdleWindowDur?: bigint
-  /**
-   * GcSweepBackstopIntervalDur is the periodic backstop interval for GC sweeps.
-   * Duration in nanoseconds. If zero, defaults to 5 minutes.
-   *
-   * @generated from field: uint64 gc_sweep_backstop_interval_dur = 10;
-   */
-  gcSweepBackstopIntervalDur?: bigint
+  enableStorageReclaim?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -205,16 +198,10 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 7, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     { no: 8, name: 'process_ops_backoff', kind: 'message', T: () => Backoff },
     {
-      no: 9,
-      name: 'gc_sweep_idle_window_dur',
+      no: 11,
+      name: 'enable_storage_reclaim',
       kind: 'scalar',
-      T: ScalarType.UINT64,
-    },
-    {
-      no: 10,
-      name: 'gc_sweep_backstop_interval_dur',
-      kind: 'scalar',
-      T: ScalarType.UINT64,
+      T: ScalarType.BOOL,
     },
   ] satisfies readonly PartialFieldInfo[],
 })

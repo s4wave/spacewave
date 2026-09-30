@@ -299,20 +299,6 @@ export interface World {
    * @generated from field: bool last_change_disable = 4;
    */
   lastChangeDisable?: boolean
-  /**
-   * GcGraph is the gc reference graph key/value store.
-   * Stores gc/ref quads for garbage collection of unreferenced blocks.
-   *
-   * @generated from field: kvtx.block.KeyValueStore gc_graph = 5;
-   */
-  gcGraph?: KeyValueStore
-  /**
-   * GcJournal is the deferred GC journal key/value store.
-   * Stores pending ref edge batches that are reconciled into gc_graph later.
-   *
-   * @generated from field: kvtx.block.KeyValueStore gc_journal = 6;
-   */
-  gcJournal?: KeyValueStore
 }
 
 export const World: MessageType<World> = /* @__PURE__ */ createMessageType({
@@ -327,8 +313,6 @@ export const World: MessageType<World> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'graph_key_value', kind: 'message', T: () => KeyValueStore },
     { no: 3, name: 'last_change', kind: 'message', T: ChangeLogLL },
     { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
-    { no: 5, name: 'gc_graph', kind: 'message', T: () => KeyValueStore },
-    { no: 6, name: 'gc_journal', kind: 'message', T: () => KeyValueStore },
   ] satisfies readonly PartialFieldInfo[],
 })
 

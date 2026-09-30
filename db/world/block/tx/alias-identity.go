@@ -37,11 +37,6 @@ func (t *TxDeleteObject) BlockAliasIdentity() *block.AliasIdentityToken {
 	return &t.unknownFields
 }
 
-// BlockAliasIdentity returns the in-memory alias token for TxGCSweep.
-func (t *TxGCSweep) BlockAliasIdentity() *block.AliasIdentityToken {
-	return &t.unknownFields
-}
-
 // BlockAliasIdentity returns the in-memory alias token for TxObjectIncRev.
 func (t *TxObjectIncRev) BlockAliasIdentity() *block.AliasIdentityToken {
 	return &t.unknownFields

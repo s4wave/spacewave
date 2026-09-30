@@ -28,7 +28,7 @@ func (e *Engine) validatePreparedRoot(ctx context.Context, ref *bucket.ObjectRef
 	_, bcs := cursor.BuildTransactionWithStore(nil, store)
 
 	// Open a read-only WorldState over that store.
-	ws, err := NewWorldState(ctx, e.le, false, nil, bcs, store, cursor.GetTransformer(), nil, nil, e.lookupOp, e.verbose)
+	ws, err := NewWorldState(ctx, e.le, false, nil, bcs, store, nil, e.lookupOp, e.verbose)
 	if err != nil {
 		return err
 	}

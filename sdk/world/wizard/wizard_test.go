@@ -150,16 +150,17 @@ func setupWizardWorldEngine(ctx context.Context, t *testing.T) (*resource_client
 	return resClient, engine, cleanup
 }
 
+// setupWizardWatchWorld builds a World holding the wizard state at objKey.
+// It returns the World as a Tx, which is safe for the concurrent watcher.
 func setupWizardWatchWorld(
 	t *testing.T,
 	ctx context.Context,
 	objKey string,
 	state *s4wave_wizard.WizardState,
-) (*world_block.WorldState, func()) {
+) (*world_block.Tx, func()) {
+	// Build an empty World on a testbed.
 	t.Helper()
-
-	log := logrus.New()
-	le := logrus.NewEntry(log)
+	le := logrus.NewEntry(logrus.New())
 	tb, err := db_testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -169,47 +170,51 @@ func setupWizardWatchWorld(
 		tb.Release()
 		t.Fatal(err.Error())
 	}
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
+
+	// Build the World state on the cursor.
+	cleanup := func() {
 		ocs.Release()
 		tb.Release()
+	}
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		cleanup()
 		t.Fatal(err.Error())
 	}
-	var createdObject world.ObjectState
-	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+
+	// Create the wizard object and commit it.
+	tx := world_block.NewTx(ws)
+	createdObject, _, err := world.CreateWorldObject(ctx, tx, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
 	})
 	world.ReleaseObjectState(createdObject)
 	if err == nil {
-		err = ws.Commit(ctx)
+		err = tx.Commit(ctx)
 	}
 	if err != nil {
-		ocs.Release()
-		tb.Release()
+		cleanup()
 		t.Fatal(err.Error())
 	}
-	return ws, func() {
-		ocs.Release()
-		tb.Release()
-	}
+	return tx, cleanup
 }
 
+// setWizardWatchWorldState writes state to objKey and commits it.
 func setWizardWatchWorldState(
 	t *testing.T,
 	ctx context.Context,
-	ws *world_block.WorldState,
+	tx *world_block.Tx,
 	objKey string,
 	state *s4wave_wizard.WizardState,
 ) {
+	// Replace the object state and commit it.
 	t.Helper()
-
-	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+	_, _, err := world.AccessWorldObject(ctx, tx, objKey, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
 	})
 	if err == nil {
-		err = ws.Commit(ctx)
+		err = tx.Commit(ctx)
 	}
 	if err != nil {
 		t.Fatal(err.Error())

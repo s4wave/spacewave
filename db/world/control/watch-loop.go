@@ -167,18 +167,18 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 // long-running object would otherwise accumulate one handle per revision for as
 // long as it runs.
 func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool, error) {
-	var rootRef *bucket.ObjectRef
-	var rev uint64
-
+	// Stop once the loop is canceled.
 	if ctx.Err() != nil {
 		return true, context.Canceled
 	}
 
+	// Record the World sequence number the handler observes.
 	seqno, err := ws.GetSeqno(ctx)
 	if err != nil {
 		return true, err
 	}
 
+	// Look up the watched object, if any, for this iteration.
 	var objState world.ObjectState
 	var objFound bool
 	if c.objectKey != "" {
@@ -188,6 +188,10 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 			return true, err
 		}
 	}
+
+	// Read the object's root and revision, or pass no object when it is absent.
+	var rootRef *bucket.ObjectRef
+	var rev uint64
 	if objFound {
 		rootRef, rev, err = objState.GetRootRef(ctx)
 		if err != nil {
@@ -202,6 +206,8 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		objState = nil
 	}
 
+	// Run the handler. An unhandled operation waits for the next change, and
+	// any other error is logged unless it reflects cancellation.
 	waitForChanges, err := c.handler(
 		ctx, c.le,
 		ws, objState,
@@ -228,11 +234,13 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		return true, err
 	}
 
+	// Begin the wait, unless a wake arrived during the iteration.
 	wakeCtx, finishWake, skipWait := c.wake.beginWait(ctx)
 	if skipWait {
 		return false, nil
 	}
 
+	// Wait for the next object revision, or the next World change without one.
 	if objState != nil {
 		_, err = objState.WaitRev(wakeCtx, rev+1, !objFound)
 		if err == world.ErrObjectNotFound && objFound {
@@ -244,8 +252,9 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 		_, err = ws.WaitSeqno(wakeCtx, seqno+1)
 	}
 	finishWake()
+
 	// Wake cancels the wait context. Storage snapshot initialization may wrap
-	// that cancellation (for example while reading the GC journal), but it is
+	// that cancellation (for example while reading the World root), but it is
 	// still a request to reconcile again, not a terminal controller failure.
 	if err != nil && !errors.Is(err, context.Canceled) {
 		return true, err

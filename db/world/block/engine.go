@@ -347,21 +347,6 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	return fenced, nil
 }
 
-// GetGCJournalEntries returns the number of pending GC journal entries.
-// Safe to call concurrently. Returns 0 if the read tx or journal is not initialized.
-func (e *Engine) GetGCJournalEntries() uint64 {
-	locked := e.bcast.Lock()
-	var rtx *Tx
-	if e.head != nil {
-		rtx = e.head.readTx
-	}
-	locked.Unlock()
-	if rtx == nil {
-		return 0
-	}
-	return rtx.state.GetGCJournalEntries()
-}
-
 // SetRootRef updates the root cursor to point to a new reference.
 // Re-creates the internal read transaction with the updated state.
 // Cancels any ongoing write tx (to be re-created against new state).
@@ -622,25 +607,8 @@ func (e *Engine) worldStateForRootRefLocked(ctx context.Context, ref *bucket.Obj
 
 	// Give the candidate WorldState its own storage transaction.
 	store := nextRoot.GetBucket()
-	xfrm := nextRoot.GetTransformer()
 	_, bcs := nextRoot.BuildTransactionWithStore(nil, store)
-	ws, err := NewWorldState(
-		ctx,
-		e.le,
-		false,
-		nil,
-		bcs,
-		store,
-		xfrm,
-		nil,
-		e,
-		e.lookupOp,
-		e.verbose,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ws, nil
+	return NewWorldState(ctx, e.le, false, nil, bcs, store, e, e.lookupOp, e.verbose)
 }
 
 // NewTransaction returns a new transaction against the store.
@@ -1217,24 +1185,23 @@ func (e *Engine) buildWorldStateForRoot(
 	root *bucket_lookup.Cursor,
 	transactionStore block.StoreOps,
 ) (*WorldState, error) {
+	// Trace the build.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
 	defer task.End()
 
-	// Read the bucket under the existing transaction authority.
+	// Select the store under the existing transaction authority. Both read and
+	// write transactions read and write through writeBlockStore so that, in the
+	// single-writer deferred path, reads see blocks that are committed in memory
+	// but not yet drained to durable storage (read your writes before Sync). It
+	// is the bucket store directly in coordinator and self-buffered modes.
 	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
-	// Both read and write transactions read and write through writeBlockStore so
-	// that, in the single-writer deferred path, reads see blocks that are
-	// committed in memory but not yet drained to durable storage (read your
-	// writes before Sync). It is the bucket store directly in coordinator and
-	// self-buffered modes.
 	store := transactionStore
 	if store == nil {
 		store = e.writeBlockStore
 	}
 	subtask.End()
-	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
-	xfrm := root.GetTransformer()
-	subtask.End()
+
+	// Build the transaction. A read-only state pins its root until Discard.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
 	btx, bcs := root.BuildTransactionWithStore(nil, store)
 	subtask.End()
@@ -1258,41 +1225,20 @@ func (e *Engine) buildWorldStateForRoot(
 		}
 		bcs.SetBlock(rootBlock.CloneVT(), false)
 	}
+
+	// Build the state. A read-only state writes nothing.
 	if readOnly {
 		btx = nil
-	} else {
-		rootBlock, err := UnmarshalWorld(ctx, bcs)
-		if err != nil {
-			releaseRoot()
-			return nil, err
-		}
-		if rootBlock.GetGcGraph() != nil || rootBlock.GetGcJournal() != nil {
-			rootBlock = rootBlock.CloneVT()
-			rootBlock.GcGraph, rootBlock.GcJournal = nil, nil
-			bcs.SetBlock(rootBlock, true)
-		}
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
-	// Physical reachability belongs to the volume. Replicating a graph of
-	// our own block writes cannot reclaim shared bytes and amplifies writes.
-	ws, err := newWorldState(
-		taskCtx,
-		e.le,
-		!readOnly,
-		btx, bcs,
-		store,
-		xfrm,
-		nil,
-		e,
-		e.lookupOp,
-		e.verbose,
-		false,
-	)
+	ws, err := NewWorldState(taskCtx, e.le, !readOnly, btx, bcs, store, e, e.lookupOp, e.verbose)
 	subtask.End()
 	if err != nil {
 		releaseRoot()
 		return nil, err
 	}
+
+	// The state owns the root pin and resolves same-bucket objects locally.
 	ws.readRelease = releaseRoot
 	ws.localBucketID = root.GetRefWithOpArgs().GetBucketId()
 	return ws, nil

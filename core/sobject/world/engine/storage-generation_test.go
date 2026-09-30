@@ -172,8 +172,8 @@ func TestFinalizeSpaceWorldCandidateRejectedAfterAdvanceIsStale(t *testing.T) {
 func TestAdvanceStorageGenerationWaitsForLocalWorld(t *testing.T) {
 	// Fence a World whose store cannot prove it complete.
 	c := &Controller{le: logrus.NewEntry(logrus.New()), conf: &Config{}}
-	so := &testGCSweepSharedObject{
-		snapshot: &testGCSweepSnapshot{role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
+	so := &testMaintenanceSharedObject{
+		snapshot: &testMaintenanceSnapshot{role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
 	}
 	err := c.advanceStorageGeneration(t.Context(), so)
 

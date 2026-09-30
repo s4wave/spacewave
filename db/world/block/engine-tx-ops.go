@@ -215,15 +215,6 @@ func (e *EngineTx) HasObject(ctx context.Context, key string) (bool, error) {
 	return found, err
 }
 
-// GarbageCollect sweeps unreferenced nodes from the GC ref graph.
-// Only valid on writable EngineTx instances with GC enabled.
-func (e *EngineTx) GarbageCollect(ctx context.Context) error {
-	return e.performOp(ctx, func(tx *Tx) error {
-		_, err := tx.state.GarbageCollect(ctx)
-		return err
-	})
-}
-
 // performOp preserves the read revision across storage retries and invalidates
 // coordinated writes whose backing snapshot is stale.
 func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
