@@ -47,9 +47,8 @@ func FuzzLeanLeave(f *testing.F) {
 
 // runLeanLeaveScenario retains actual signatures and verifies complete returned history and state.
 func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
-	t.Helper()
-
 	// Keep signing identities stable through the observed configuration history.
+	t.Helper()
 	projection := &configChainScenario{t: t}
 	a := &projection.arena
 	keys := make([]crypto.PrivKey, len(peers))
@@ -61,7 +60,7 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 		keys[i] = key
 	}
 
-	// Start with grants and a root authenticated for the default test object.
+	// Start with an owner and seed-selected roles for the default test object.
 	base := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_WRITER,
@@ -71,6 +70,8 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 	base.Config.ConfigChainSeqno = seed%19 + 1
 	base.Config.Participants[1].Role = SOParticipantRole(seed%3 + 1)
 	base.Config.Participants[2].Role = SOParticipantRole(seed/3%3 + 1)
+
+	// Sign the head and authenticate the root and grants as the owner.
 	signed := leanLeaveSignedHead(t, base.Config)
 	base.Root = createMockSORoot(t, 1, peers[0])
 	_, grants, _, err := RotateTransformKey(keys[0], mockSharedObjectID, base.Config.Participants, 1, 1)
@@ -136,6 +137,11 @@ func runLeanLeaveScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCa
 			if err != nil {
 				t.Fatal(err)
 			}
+		}
+
+		// Pending proofs must be pruned against the departed audience.
+		if seed%2 == 1 && hostID == mockSharedObjectID {
+			previous.Ops, previous.OpRejections = leanPrunablePending(t, peers[:3])
 		}
 
 		// Mutate already signed consent to exercise receiver validation separately.

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -36,6 +37,7 @@ func FuzzLeanRemoval(f *testing.F) {
 
 // runLeanRemovalScenario projects primitive crypto results independently of membership admission.
 func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []leanCase {
+	// Project every variant through one arena, signing grants as the creator.
 	t.Helper()
 	projection := &configChainScenario{t: t}
 	a := &projection.arena
@@ -43,6 +45,8 @@ func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start with two owners and a reader holding a root and grants for the default object.
 	base := createMockSOState(peers[:3], []SOParticipantRole{
 		SOParticipantRole_SOParticipantRole_OWNER,
 		SOParticipantRole_SOParticipantRole_OWNER,
@@ -55,8 +59,10 @@ func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 		t.Fatal(err)
 	}
 	base.RootGrants = grants
+
+	// Compare each removal variant, including pending proofs from removed signers.
 	var cases []leanCase
-	for variant := range 30 {
+	for variant := range 32 {
 		previous := base.CloneVT()
 		targets := []string{peers[0].GetPeerID().String()}
 		signer := peers[1]
@@ -124,6 +130,11 @@ func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 			previous.Root = nil
 		case 29:
 			previous.Root.InnerSeqno += seed % 7
+		case 30:
+			previous.Ops, previous.OpRejections = leanPrunablePending(t, peers[:3])
+		case 31:
+			targets = []string{peers[1].GetPeerID().String(), peers[2].GetPeerID().String()}
+			previous.Ops, previous.OpRejections = leanPrunablePending(t, peers[:3])
 		}
 		snapshot := previous.CloneVT()
 		key, err := signer.GetPrivKey(t.Context())
@@ -239,4 +250,39 @@ func runLeanRemovalScenario(t *testing.T, peers []peer.Peer, seed uint64) []lean
 		}
 	}
 	return cases
+}
+
+// leanPrunablePending signs one operation per peer and cross-peer rejections so
+// removal pruning must decide each proof against the remaining audience.
+func leanPrunablePending(t *testing.T, peers []peer.Peer) ([]*SOOperation, []*SOPeerOpRejections) {
+	// Sign one operation from each peer, including peers without write access.
+	t.Helper()
+	keys := make([]crypto.PrivKey, len(peers))
+	var ops []*SOOperation
+	for i, p := range peers {
+		key, err := p.GetPrivKey(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys[i] = key
+		ops = append(ops, signedLeanOperation(t, key, p.GetPeerID().String(), 1, NewSOOperationLocalID()))
+	}
+
+	// Reject each peer's operation from every other peer, including non-validators.
+	var groups []*SOPeerOpRejections
+	for i, submitter := range peers {
+		group := &SOPeerOpRejections{PeerId: submitter.GetPeerID().String()}
+		for j, key := range keys {
+			if i == j {
+				continue
+			}
+			rejection, err := BuildSOOperationRejection(key, mockSharedObjectID, submitter.GetPeerID(), 2, NewSOOperationLocalID(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			group.Rejections = append(group.Rejections, rejection)
+		}
+		groups = append(groups, group)
+	}
+	return ops, groups
 }

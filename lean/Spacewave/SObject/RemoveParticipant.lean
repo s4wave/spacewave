@@ -4,9 +4,11 @@ import Spacewave.SObject.KeyRotation
 /-!
 # Participant removal
 
-Mirrors `core/sobject/remove-participant.go` at Spacewave `79e5a444d`.
+Mirrors `core/sobject/remove-participant.go` at Spacewave `c9eaf16de`.
 Removal filters recipients and replaces proofs from removed signers under the
-existing host lock. It does not rotate the content key. Future-epoch exclusion
+existing host lock. Pending operations and rejections that no longer verify
+under the next audience are dropped, so the validator can still admit the
+resulting state. It does not rotate the content key. Future-epoch exclusion
 composes removal's audience with KeyRotation's recipient theorem.
 
 Public-key extraction, decryption, encryption, signing and serialized output
@@ -66,10 +68,24 @@ def rewrapGrants (oldConfig nextConfig : Config) (targets : List String)
     let tail ← rewrapGrants oldConfig nextConfig targets signer own decrypted inputs.tail rest
     some (next :: tail)
 
+/-- retainOperation mirrors SOOperation.ValidateSignature against the next audience. -/
+def retainOperation (config : Config) (o : Operation) : Bool :=
+  o.parsed && o.peer == o.sig.signer &&
+    o.signedBy config.participants [Role.writer, Role.validator, Role.owner]
+
+/-- retainRejection mirrors SOOperationRejection.ValidateSignature against the next audience. -/
+def retainRejection (config : Config) (r : Operation) : Bool :=
+  r.innerValid && r.signedBy config.participants [Role.validator, Role.owner]
+
+/-- pruneRejections drops unverifiable rejections and the groups they leave empty. -/
+def pruneRejections (config : Config) (groups : List Rejections) : List Rejections :=
+  (groups.map fun g => {g with entries := g.entries.filter (retainRejection config)}).filter
+    (!·.entries.isEmpty)
+
 /-- removalRoot retains surviving proofs or signs the unchanged content once. -/
 def removalRoot (config : Config) (targets : List String) (signer : String)
     (crypto : RemovalCrypto) (root : Root) : Option Root :=
-  if !root.hasInner then some root
+  if !root.hasInner || config.participants.isEmpty then some root
   else if root.sigs.any (·.signer == "") then none
   else
     let retained := root.sigs.filter fun sig => !removalTarget targets sig.signer
@@ -81,17 +97,25 @@ def removalRoot (config : Config) (targets : List String) (signer : String)
         format := crypto.rootFormat}
       if rootAuthorized config next then some next else none
 
-/-- removalCallback owns grant/proof edits and leaves the verified configuration intact. -/
-def removalCallback (oldConfig nextConfig : Config) (targets : List String)
+/--
+pruneRemovedParticipants mirrors the Go function of the same name. The state
+already holds the next configuration; oldConfig authenticates the signer's own
+grant. Pending operations, rejections, grants and the root must remain valid
+under the next configuration.
+-/
+def pruneRemovedParticipants (oldConfig : Config) (targets : List String)
     (signer : String) (crypto : RemovalCrypto) (s : State) : Option State := do
   if signer = "" then none
   else
     let retained := s.grants.filter fun g => !removalTarget targets g.peer
     let own := retained.find? (·.peer == signer)
-    let grants ← rewrapGrants oldConfig nextConfig targets signer own crypto.decrypted
+    let grants ← rewrapGrants oldConfig s.config targets signer own crypto.decrypted
       crypto.wraps retained
-    let root ← removalRoot nextConfig targets signer crypto s.root
-    some {s with grants, root}
+    let root ← removalRoot s.config targets signer crypto s.root
+    some {s with
+      ops := s.ops.filter (retainOperation s.config)
+      rejections := pruneRejections s.config s.rejections
+      grants, root}
 
 /-- RemovalResult includes no-op results and the exact ordered removed audience. -/
 structure RemovalResult where
@@ -119,10 +143,9 @@ def removeParticipants (previous : State) (snapshot : Option Config) (targets : 
     if removed.isEmpty then some noop
     else if !buildOK then none
     else
-      let nextConfig := removalConfig oldConfig targets
       let entry := removalEntry oldConfig targets sig hash
       let outcome ← applyConfigChange previous (some entry)
-        (removalCallback oldConfig nextConfig targets sig.signer crypto) lockOK writeOK
+        (pruneRemovedParticipants oldConfig targets sig.signer crypto) lockOK writeOK
       some ⟨removed, outcome⟩
 
 /-- The removal audience contains exactly old participants not targeted for removal. -/
@@ -211,13 +234,14 @@ theorem removalRoot_content {config : Config} {targets : List String} {signer : 
     {crypto : RemovalCrypto} {root out : Root}
     (h : removalRoot config targets signer crypto root = some out) :
     out.content = root.content ∧ out.seqno = root.seqno ∧ out.nonces = root.nonces ∧
-      (root.hasInner = true → rootAuthorized config out = true) := by
+      (root.hasInner = true → config.participants ≠ [] → rootAuthorized config out = true) := by
   unfold removalRoot at h
   dsimp only at h
   split at h
   · rename_i empty
     cases h
-    exact ⟨rfl, rfl, rfl, by simp_all⟩
+    refine ⟨rfl, rfl, rfl, fun inner nonempty => ?_⟩
+    simp_all
   · split at h
     · contradiction
     · split at h
@@ -226,39 +250,88 @@ theorem removalRoot_content {config : Config} {targets : List String} {signer : 
         · split at h
           · rename_i authorized
             cases h
-            exact ⟨rfl, rfl, rfl, fun _ => authorized⟩
+            exact ⟨rfl, rfl, rfl, fun _ _ => authorized⟩
           · contradiction
         · split at h
           · rename_i authorized
             cases h
-            exact ⟨rfl, rfl, rfl, fun _ => authorized⟩
+            exact ⟨rfl, rfl, rfl, fun _ _ => authorized⟩
           · contradiction
 
-/-- A callback removes precisely targeted grant recipients and preserves authority and content. -/
-theorem removalCallback_spec {oldConfig nextConfig : Config} {targets : List String}
+/-- Pruning removes precisely targeted grant recipients and preserves authority and content. -/
+theorem pruneRemovedParticipants_spec {oldConfig : Config} {targets : List String}
     {signer : String} {crypto : RemovalCrypto} {s out : State}
-    (h : removalCallback oldConfig nextConfig targets signer crypto s = some out) :
+    (h : pruneRemovedParticipants oldConfig targets signer crypto s = some out) :
     out.config = s.config ∧
       out.grants.map (·.peer) =
         (s.grants.filter fun g => !removalTarget targets g.peer).map (·.peer) ∧
       out.root.content = s.root.content ∧ out.root.seqno = s.root.seqno ∧
       out.root.nonces = s.root.nonces := by
-  unfold removalCallback at h
+  unfold pruneRemovedParticipants at h
   split at h
   · contradiction
-  · cases wraps : rewrapGrants oldConfig nextConfig targets signer
+  · cases wraps : rewrapGrants oldConfig s.config targets signer
         ((s.grants.filter fun g => !removalTarget targets g.peer).find? (·.peer == signer))
         crypto.decrypted crypto.wraps (s.grants.filter fun g => !removalTarget targets g.peer) with
     | none => simp only [Option.bind_eq_bind, wraps, Option.bind_none] at h; cases h
     | some grants =>
       simp only [Option.bind_eq_bind, wraps, Option.bind_some] at h
-      cases root : removalRoot nextConfig targets signer crypto s.root with
+      cases root : removalRoot s.config targets signer crypto s.root with
       | none => simp [root] at h
       | some next =>
         simp [root] at h
         subst out
         obtain ⟨content, seqno, nonces, _⟩ := removalRoot_content root
         exact ⟨rfl, rewrapGrants_recipients wraps, content, seqno, nonces⟩
+
+/-- Pruning keeps exactly the pending proofs that verify under the next audience. -/
+theorem pruneRemovedParticipants_pending_eq {oldConfig : Config} {targets : List String}
+    {signer : String} {crypto : RemovalCrypto} {s out : State}
+    (h : pruneRemovedParticipants oldConfig targets signer crypto s = some out) :
+    out.ops = s.ops.filter (retainOperation s.config) ∧
+      out.rejections = pruneRejections s.config s.rejections := by
+  unfold pruneRemovedParticipants at h
+  split at h
+  · contradiction
+  · cases wraps : rewrapGrants oldConfig s.config targets signer
+        ((s.grants.filter fun g => !removalTarget targets g.peer).find? (·.peer == signer))
+        crypto.decrypted crypto.wraps (s.grants.filter fun g => !removalTarget targets g.peer) with
+    | none => simp only [Option.bind_eq_bind, wraps, Option.bind_none] at h; cases h
+    | some grants =>
+      simp only [Option.bind_eq_bind, wraps, Option.bind_some] at h
+      cases root : removalRoot s.config targets signer crypto s.root with
+      | none => simp [root] at h
+      | some next =>
+        simp [root] at h
+        subst out
+        exact ⟨rfl, rfl⟩
+
+/-- Pending operations and rejections that were well formed remain admissible after pruning,
+so a removal cannot leave validation wedged on proofs from departed signers. -/
+theorem pruneRemovedParticipants_pending {oldConfig : Config} {targets : List String}
+    {signer : String} {crypto : RemovalCrypto} {s out : State}
+    (h : pruneRemovedParticipants oldConfig targets signer crypto s = some out)
+    (ops : s.ops.all (·.valid oldConfig)) (rejections : s.rejections.all (·.valid oldConfig)) :
+    out.ops.all (·.valid out.config) ∧ out.rejections.all (·.valid out.config) := by
+  obtain ⟨opsEq, rejectionsEq⟩ := pruneRemovedParticipants_pending_eq h
+  rw [(pruneRemovedParticipants_spec h).1, opsEq, rejectionsEq]
+  constructor
+  · simp only [List.all_eq_true, List.mem_filter]
+    intro o ⟨member, keep⟩
+    have old := List.all_eq_true.mp ops o member
+    simp only [Operation.valid, retainOperation, Bool.and_eq_true] at old keep ⊢
+    exact ⟨old.1, keep.2, keep.1.2⟩
+  · simp only [pruneRejections, List.all_eq_true, List.mem_filter, List.mem_map]
+    rintro _ ⟨⟨g, member, rfl⟩, _⟩
+    have old := List.all_eq_true.mp rejections g member
+    simp only [Rejections.valid, Bool.and_eq_true, List.all_eq_true, List.mem_filter,
+      decide_eq_true_eq] at old ⊢
+    refine ⟨⟨⟨old.1.1.1, fun r ⟨entry, keep⟩ => ?_⟩, ?_⟩, ?_⟩
+    · have := old.1.1.2 r entry
+      simp only [retainRejection, Bool.and_eq_true] at keep this ⊢
+      exact ⟨this.1, keep.2⟩
+    · exact (List.filter_sublist.map _).nodup old.1.2
+    · exact (List.filter_sublist.map _).nodup old.2
 
 /-- Every published removal passes the signed host transition; no-op results never publish. -/
 theorem removeParticipants_published {previous : State} {snapshot : Option Config}
@@ -269,7 +342,7 @@ theorem removeParticipants_published {previous : State} {snapshot : Option Confi
     (wrote : out.outcome.wrote = true) :
     ∃ config, snapshot = some config ∧
       applyConfigChange previous (some (removalEntry config targets sig hash))
-        (removalCallback config (removalConfig config targets) targets sig.signer crypto)
+        (pruneRemovedParticipants config targets sig.signer crypto)
         lockOK writeOK = some out.outcome := by
   unfold removeParticipants at h
   dsimp only at h
@@ -287,7 +360,7 @@ theorem removeParticipants_published {previous : State} {snapshot : Option Confi
           · contradiction
           · cases applied : applyConfigChange previous
                 (some (removalEntry config targets sig hash))
-                (removalCallback config (removalConfig config targets) targets sig.signer crypto)
+                (pruneRemovedParticipants config targets sig.signer crypto)
                 lockOK writeOK with
             | none => simp only [Option.bind_eq_bind, applied, Option.bind_none] at h; cases h
             | some result =>
@@ -307,7 +380,7 @@ theorem removeParticipants_authorized {previous : State} {snapshot : Option Conf
         out.outcome.state.config.participants = (removalConfig config targets).participants := by
   obtain ⟨config, snapshotEq, applied⟩ := removeParticipants_published h wrote
   obtain ⟨entry, equal, verified⟩ := applyConfigChange_authorized
-    (fun _ _ accepted => (removalCallback_spec accepted).1) applied
+    (fun _ _ accepted => (pruneRemovedParticipants_spec accepted).1) applied
   cases equal
   obtain ⟨signed, present, valid, owner⟩ := verifyChange_authorized verified
   simp only [removalEntry, Option.some.injEq] at present
@@ -332,7 +405,7 @@ theorem removeParticipants_state {previous : State} {snapshot : Option Config}
       ∀ grant ∈ out.outcome.state.grants, removalTarget targets grant.peer = false := by
   obtain ⟨_, _, applied⟩ := removeParticipants_published h wrote
   obtain ⟨_, _, _, _, called, _, _⟩ := applyConfigChange_spec applied
-  obtain ⟨_, recipients, content, seqno, nonces⟩ := removalCallback_spec called
+  obtain ⟨_, recipients, content, seqno, nonces⟩ := pruneRemovedParticipants_spec called
   refine ⟨content, seqno, nonces, ?_⟩
   intro grant member
   have present : grant.peer ∈ out.outcome.state.grants.map (·.peer) :=
