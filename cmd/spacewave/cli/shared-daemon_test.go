@@ -164,7 +164,7 @@ func TestAppBundleReplacementRetainsSharedDaemon(t *testing.T) {
 func TestSharedDaemonStarters(t *testing.T) {
 	for _, mode := range []string{"native", "distribution"} {
 		t.Run(mode, func(t *testing.T) {
-			// Subscribe before launch and constrain every child to a private root.
+			// Constrain every child to a private state root.
 			statePath := shortSocketDir(t)
 			if err := os.Chmod(statePath, 0o755); err != nil {
 				t.Fatal(err)
@@ -174,6 +174,8 @@ func TestSharedDaemonStarters(t *testing.T) {
 			t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 			t.Setenv(daemonIdleTimeoutEnvVar, "30s")
 			t.Setenv(daemon.StartupTimeoutEnvVar, "15s")
+
+			// Subscribe to the state root before launch.
 			ctx, cancel := context.WithTimeout(t.Context(), 35*time.Second)
 			defer cancel()
 			watcher, err := fsnotify.NewWatcher()
@@ -197,6 +199,8 @@ func TestSharedDaemonStarters(t *testing.T) {
 				}
 				return daemon.StartProcess(ctx, root)
 			})
+
+			// Launch both starters and release them together once both arrive.
 			type result struct {
 				// client retains a successfully initialized starter connection.
 				client *daemon.Client
@@ -218,6 +222,8 @@ func TestSharedDaemonStarters(t *testing.T) {
 				}
 			}
 			close(start)
+
+			// Retain both clients and stop the daemon when the test ends.
 			first, second := <-results, <-results
 			if first.client != nil {
 				defer first.client.Close()
@@ -288,7 +294,7 @@ func TestSharedDaemonStarters(t *testing.T) {
 			if openErr == nil {
 				t.Fatal("desktop opened without a UI artifact")
 			}
-			if !strings.Contains(openErr.Error(), "desktop UI artifact unavailable") {
+			if openErr.Error() != ErrDesktopUIUnavailable.Error() {
 				t.Fatalf("missing desktop artifact: %v", openErr)
 			}
 

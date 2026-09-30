@@ -17,6 +17,10 @@ import (
 	"github.com/s4wave/spacewave/core/appversion"
 )
 
+// ErrDesktopUIUnavailable reports that the running daemon has no web plugin
+// to host the desktop. A launcher receives this exact message over RPC.
+var ErrDesktopUIUnavailable = errors.New("desktop UI artifact unavailable: the running daemon has no web plugin")
+
 // daemonDesktopControl serves desktop requests on the daemon's protected Resource socket.
 // Its plugin reference and desktop demand belong to the daemon, not the calling connection.
 type daemonDesktopControl struct {
@@ -68,7 +72,7 @@ func newDaemonDesktopControl(ctx context.Context, b bus.Bus, idleTracker *daemon
 				return nil, "", nil, errors.Wrap(err, "desktop UI artifact unavailable; inspect the daemon plugin catalog")
 			}
 			if running == nil {
-				return nil, "", nil, errors.New("desktop UI artifact unavailable; install the web plugin for this daemon")
+				return nil, "", nil, ErrDesktopUIUnavailable
 			}
 
 			// Load the shared web plugin and retain its reference until the daemon stops.

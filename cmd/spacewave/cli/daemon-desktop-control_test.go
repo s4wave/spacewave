@@ -559,6 +559,7 @@ func TestDesktopControlFailuresKeepResource(t *testing.T) {
 // TestDesktopControlMissingWebPlugin reports an absent UI artifact from the
 // real LoadPlugin directive without constructing an Electron runtime.
 func TestDesktopControlMissingWebPlugin(t *testing.T) {
+	// Start a core bus that has no web plugin manifest.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
@@ -566,12 +567,16 @@ func TestDesktopControlMissingWebPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer b.Close()
+
+	// Bind desktop control to that bus.
 	idle := newDaemonIdleTracker(0, nil)
 	defer idle.close()
 	control := newDaemonDesktopControl(ctx, b, idle)
 	defer control.close()
+
+	// Loading the desktop reports the fixed missing web plugin error.
 	_, _, _, err = control.load(ctx)
-	if err == nil || !strings.Contains(err.Error(), "desktop UI artifact unavailable") {
+	if !errors.Is(err, ErrDesktopUIUnavailable) {
 		t.Fatalf("missing web plugin error = %v", err)
 	}
 }
