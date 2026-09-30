@@ -23,87 +23,55 @@ import (
 // TypedObjectResource implements TypedObjectResourceService.
 // It provides access to typed resources from world objects.
 type TypedObjectResource struct {
-	le                 *logrus.Entry
-	b                  bus.Bus
-	ws                 world.WorldState
-	engine             world.Engine
-	sessionPeerID      peer.ID
+	// le logs Resource and controller lifecycle failures.
+	le *logrus.Entry
+	// b resolves World and typed handler directives.
+	b bus.Bus
+	// ws holds the granted World snapshot and write authority.
+	ws world.WorldState
+	// engine retains the granted transactional World capability.
+	engine world.Engine
+	// sessionPeerID is the authenticated peer selected by the granting mount.
+	sessionPeerID peer.ID
+	// sessionPeerIDBound prevents request context from replacing the mount peer.
 	sessionPeerIDBound bool
-	lifecycleCtx       context.Context
-	lifecycleCancel    context.CancelFunc
-	closed             atomic.Bool
-	objects            *keyed.KeyedRefCount[typedObjectResourceKey, *typedObjectHandle]
+	// engineID is the registry scope selected by the granting mount.
+	engineID string
+	// engineIDBound prevents caller context from replacing the mount registry scope.
+	engineIDBound bool
+	// lifecycleCtx retains the parent mount lifecycle for typed factories.
+	lifecycleCtx context.Context
+	// lifecycleCancel withdraws typed demand when the mount closes.
+	lifecycleCancel context.CancelFunc
+	// closed guards the effectless transition to the closed state.
+	closed atomic.Bool
+	// objects shares typed invokers until their last Resource reference is released.
+	objects *keyed.KeyedRefCount[typedObjectResourceKey, *typedObjectHandle]
 }
 
-// NewTypedObjectResource creates a new TypedObjectResource.
-func NewTypedObjectResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, engine world.Engine) *TypedObjectResource {
-	return newTypedObjectResourceWithContextAndSessionPeerID(context.Background(), le, b, ws, engine, peer.ID(""), false)
+// NewTypedObjectResource creates typed access with trusted mount options.
+func NewTypedObjectResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, engine world.Engine, opts ...WorldStateResourceOption) *TypedObjectResource {
+	return NewTypedObjectResourceWithContext(context.Background(), le, b, ws, engine, opts...)
 }
 
-// NewTypedObjectResourceWithContext creates a TypedObjectResource with a parent lifecycle context.
-func NewTypedObjectResourceWithContext(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	ws world.WorldState,
-	engine world.Engine,
-) *TypedObjectResource {
-	return newTypedObjectResourceWithContextAndSessionPeerID(ctx, le, b, ws, engine, peer.ID(""), false)
-}
-
-func newTypedObjectResourceWithSessionPeerID(
-	le *logrus.Entry,
-	b bus.Bus,
-	ws world.WorldState,
-	engine world.Engine,
-	sessionPeerID peer.ID,
-	sessionPeerIDBound bool,
-) *TypedObjectResource {
-	return newTypedObjectResourceWithContextAndSessionPeerID(
-		context.Background(),
-		le,
-		b,
-		ws,
-		engine,
-		sessionPeerID,
-		sessionPeerIDBound,
-	)
-}
-
-func newTypedObjectResourceWithContextAndSessionPeerID(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
-	ws world.WorldState,
-	engine world.Engine,
-	sessionPeerID peer.ID,
-	sessionPeerIDBound bool,
-) *TypedObjectResource {
-	// Normalize the parent context and create resource lifecycle state.
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// Construct the typed-object resource.
+// NewTypedObjectResourceWithContext binds typed access to the mount lifecycle and scope.
+func NewTypedObjectResourceWithContext(ctx context.Context, le *logrus.Entry, b bus.Bus, ws world.WorldState, engine world.Engine, opts ...WorldStateResourceOption) *TypedObjectResource {
+	// Capture trusted access options with the mount lifecycle.
+	access := new(WorldStateResource)
+	applyWorldStateResourceOptions(access, opts...)
 	lifecycleCtx, lifecycleCancel := context.WithCancel(ctx)
 	r := &TypedObjectResource{
-		le:                 le,
-		b:                  b,
-		ws:                 ws,
-		engine:             engine,
-		lifecycleCtx:       lifecycleCtx,
-		lifecycleCancel:    lifecycleCancel,
-		sessionPeerID:      sessionPeerID,
-		sessionPeerIDBound: sessionPeerIDBound,
+		le: le, b: b, ws: ws, engine: engine,
+		lifecycleCtx: lifecycleCtx, lifecycleCancel: lifecycleCancel,
+		sessionPeerID: access.sessionPeerID, sessionPeerIDBound: access.sessionPeerIDBound,
+		engineID: access.engineID, engineIDBound: access.engineIDBound,
 	}
 
-	// Initialize keyed typed-object handles.
+	// Track shared unary handles until the granting mount closes.
 	r.objects = keyed.NewKeyedRefCount(
 		r.buildTypedObjectHandle,
 		keyed.WithExitLoggerWithNameFn[typedObjectResourceKey, *typedObjectHandle](le, typedObjectResourceKey.String),
 	)
-
-	// Start handle tracking under the lifecycle context.
 	r.objects.SetContext(lifecycleCtx, false)
 	return r
 }
@@ -131,7 +99,9 @@ func (r *TypedObjectResource) Close() {
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.
 // Handles special prefixes:
 //   - plugin-dist/{plugin-id}: accesses the plugin's distribution filesystem
-//   - plugin-assets/{plugin-id}: accesses the plugin's assets filesystem
+//   - plugin-assets/{plugin-id}: accesses the plugin's assets filesystem.
+//
+// The returned child owns its typed handle until Resource release.
 func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
 	// Acquire the caller resource context.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
@@ -178,12 +148,16 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 	if r.sessionPeerIDBound {
 		sessionPeerID = r.sessionPeerID
 	}
+	engineID := objecttype.EngineIDFromContext(ctx)
+	if r.engineIDBound {
+		engineID = r.engineID
+	}
 	key := typedObjectResourceKey{
 		typeID:        typeID,
 		objectKey:     objectKey,
 		readOnly:      ws.GetReadOnly(),
 		sessionPeerID: sessionPeerID,
-		engineID:      objecttype.EngineIDFromContext(ctx),
+		engineID:      engineID,
 	}
 
 	// Acquire a shared typed-object handle.
@@ -210,20 +184,29 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 	}, nil
 }
 
+// typedObjectResourceKey separates unary handles by object, snapshot authority and trusted scope.
 type typedObjectResourceKey struct {
-	typeID        string
-	objectKey     string
-	readOnly      bool
+	// typeID identifies the registered object type.
+	typeID string
+	// objectKey identifies the object granted to the handler.
+	objectKey string
+	// readOnly retains the World snapshot write restriction.
+	readOnly bool
+	// sessionPeerID is the authenticated peer selected by the granting mount.
 	sessionPeerID peer.ID
-	engineID      string
+	// engineID is the registry scope selected by the granting mount.
+	engineID string
 }
 
+// String describes the typed handle identity for lifecycle logging.
 func (k typedObjectResourceKey) String() string {
+	// Format the typed handle key with its snapshot write authority.
 	readOnly := "false"
 	if k.readOnly {
 		readOnly = "true"
 	}
 
+	// Include the trusted session and registry scope in the typed handle description.
 	name := "typed-object type=" + k.typeID + " object=" + k.objectKey + " readOnly=" + readOnly
 	if k.sessionPeerID != "" {
 		name += " sessionPeerID=" + k.sessionPeerID.String()
@@ -234,13 +217,19 @@ func (k typedObjectResourceKey) String() string {
 	return name
 }
 
+// typedObjectHandle retains one registered invoker until its final Resource reference is released.
 type typedObjectHandle struct {
+	// invoker forwards calls to the registered typed handler.
 	invoker srpc.Invoker
+	// cleanup releases the registered typed handler.
 	cleanup func()
-	closed  atomic.Bool
-	err     error
+	// closed guards the effectless transition to the closed state.
+	closed atomic.Bool
+	// err records the input or typed factory resolution error.
+	err error
 }
 
+// close releases the registered invoker exactly once.
 func (h *typedObjectHandle) close() {
 	if !h.closed.CompareAndSwap(false, true) {
 		return
@@ -250,18 +239,19 @@ func (h *typedObjectHandle) close() {
 	}
 }
 
+// buildTypedObjectHandle resolves the factory with the trusted unary handle scope.
 func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey) (keyed.Routine, *typedObjectHandle) {
+	// Rebuild the trusted factory context from the typed handle key.
 	ctx := r.lifecycleCtx
 	if key.sessionPeerID != "" {
 		ctx = objecttype.WithSessionPeerID(ctx, key.sessionPeerID)
 	}
-	if key.engineID != "" {
-		ctx = objecttype.WithEngineID(ctx, key.engineID)
-	}
+	ctx = objecttype.WithEngineID(ctx, key.engineID)
 
 	// A typed factory receives the same state that resolved its object and type.
 	ws := r.ws
 
+	// Resolve the object type under the selected engine scope.
 	objType, ref, err := objecttype.ExLookupObjectType(ctx, r.b, key.typeID)
 	if err != nil {
 		return nil, &typedObjectHandle{err: err}
@@ -271,6 +261,7 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 	}
 	defer ref.Release()
 
+	// Construct the typed invoker from the registered factory.
 	invoker, cleanup, err := objType.GetFactory()(ctx, r.le, r.b, r.engine, ws, key.objectKey)
 	if err != nil {
 		return nil, &typedObjectHandle{err: err}
@@ -279,6 +270,7 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 		cleanup = func() {}
 	}
 
+	// Retain the invoker until the mount releases its last typed handle.
 	handle := &typedObjectHandle{
 		invoker: invoker,
 		cleanup: cleanup,
@@ -320,6 +312,7 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 	// Create the FSHandle resource which mirrors hydra/unixfs.FSHandle
 	resource := resource_unixfs.NewFSHandleResource(fsHandle)
 
+	// Bind filesystem cleanup to the registered typed Resource.
 	cleanup := func() {
 		handleCleanup()
 		ref.Release()

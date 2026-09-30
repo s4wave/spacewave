@@ -20,20 +20,19 @@ func (i *InputWorld) Validate() error {
 // if lookupImmediate is set, looks up the world engine immediately
 // otherwise, uses a BusEngine to look up the world engine on-demand.
 func (i *InputWorld) ResolveValue(ctx context.Context, b bus.Bus) (InputValueWorld, func(), error) {
+	// Resolve the selected engine eagerly when the input requests immediate access.
 	engineID := i.GetEngineId()
-
-	// lookup the world on the bus
 	if i.GetLookupImmediate() {
 		v, _, ref, err := world.ExLookupWorldEngine(ctx, b, false, engineID, nil)
 		if err != nil {
 			return nil, nil, err
 		}
 		ws := world.NewEngineWorldState(v, true)
-		return NewInputValueWorld(v, ws), ref.Release, nil
+		return NewInputValueWorld(engineID, v, ws), ref.Release, nil
 	}
 
-	// deferred lookup
+	// Retain the selected ID with the deferred engine and release its demand with the input.
 	eng := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(eng, true)
-	return NewInputValueWorld(eng, ws), func() {}, nil
+	return NewInputValueWorld(engineID, eng, ws), eng.ClearContext, nil
 }

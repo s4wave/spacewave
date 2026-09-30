@@ -16,15 +16,20 @@ import (
 
 // execControllerHandle implements ExecControllerHandle from target.
 type execControllerHandle struct {
-	ctx        context.Context
-	c          *Controller
-	ws         world.WorldState
-	ts         *timestamp.Timestamp
+	// ctx is the execution lifecycle that revokes this handle on cancellation.
+	ctx context.Context
+	// c provides the Execution identity, peer, and claim ID.
+	c *Controller
+	// ws is the World state used for claim-fenced Execution writes.
+	ws world.WorldState
+	// ts is the immutable timestamp of the Execution snapshot.
+	ts *timestamp.Timestamp
+	// claimEpoch is the granted snapshot's epoch, never a later claim's epoch.
 	claimEpoch uint64
 }
 
 // newExecControllerHandle constructs an ExecControllerHandle.
-// ts cannot be nil
+// ts cannot be nil. claimEpoch comes from the granted Execution snapshot.
 func newExecControllerHandle(
 	ctx context.Context,
 	c *Controller,
@@ -51,6 +56,11 @@ func (h *execControllerHandle) GetExecutionObjectKey() string {
 	return h.c.conf.GetObjectKey()
 }
 
+// GetExecutionClaimEpoch returns the epoch granted to this handle.
+func (h *execControllerHandle) GetExecutionClaimEpoch() uint64 {
+	return h.claimEpoch
+}
+
 // GetPeerId returns the peer id that this exec controller is operating as.
 func (h *execControllerHandle) GetPeerId() peer.ID {
 	return h.c.peerID
@@ -71,6 +81,7 @@ func (h *execControllerHandle) AccessStorage(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	// Reject storage access after the Execution or request was canceled.
 	select {
 	case <-h.ctx.Done():
 		return h.ctx.Err()
@@ -79,9 +90,8 @@ func (h *execControllerHandle) AccessStorage(
 	default:
 	}
 
-	// TODO: access target world state?
-	access := h.ws.AccessWorldState
-	return access(ctx, ref, cb)
+	// Use the World state already granted to this Execution.
+	return h.ws.AccessWorldState(ctx, ref, cb)
 }
 
 // SetOutputs changes the outputs according to the given ValueSlice.
@@ -93,6 +103,7 @@ func (h *execControllerHandle) SetOutputs(
 	outps forge_value.ValueSlice,
 	clearOld bool,
 ) error {
+	// Reject output writes after the Execution or request was canceled.
 	select {
 	case <-h.ctx.Done():
 		return h.ctx.Err()
@@ -101,12 +112,14 @@ func (h *execControllerHandle) SetOutputs(
 	default:
 	}
 
+	// Retain the Execution object for the claim-fenced output write.
 	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
 
+	// Build the output write with this handle's granted claim epoch.
 	tx, err := execution_transaction.NewTxSetOutputs(
 		outps,
 		clearOld,
@@ -119,13 +132,14 @@ func (h *execControllerHandle) SetOutputs(
 		return err
 	}
 
-	// execution_transaction.ExecutionTxType_EXECUTION_TX_TYPE_SET_OUTPUTS
+	// Apply the output transaction as the Execution's authenticated peer.
 	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
 	return err
 }
 
 // WriteLog appends a log entry to the execution.
 func (h *execControllerHandle) WriteLog(ctx context.Context, level, message string) error {
+	// Reject log writes after the Execution or request was canceled.
 	select {
 	case <-h.ctx.Done():
 		return h.ctx.Err()
@@ -134,18 +148,21 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 	default:
 	}
 
+	// Timestamp the Execution log entry at the write request.
 	entry := &forge_execution.LogEntry{
 		Timestamp: timestamp.Now(),
 		Level:     level,
 		Message:   message,
 	}
 
+	// Retain the Execution object for the claim-fenced log write.
 	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
 
+	// Build the log write with this handle's granted claim epoch.
 	tx, err := execution_transaction.NewTxAppendLog(
 		[]*forge_execution.LogEntry{entry},
 		&forge_execution.Claim{
@@ -157,12 +174,14 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 		return err
 	}
 
+	// Apply the log transaction as the Execution's authenticated peer.
 	_, _, err = obj.ApplyObjectOp(ctx, tx, h.c.peerID)
 	return err
 }
 
 // SetWaitingPlugin records the plugin load wait on the Execution object.
 func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID string) error {
+	// Reject wait-status writes after the Execution or request was canceled.
 	select {
 	case <-h.ctx.Done():
 		return h.ctx.Err()
@@ -171,12 +190,14 @@ func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID st
 	default:
 	}
 
+	// Retain the Execution object for the claim-fenced wait-status write.
 	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
 
+	// Write the wait status using this handle's granted claim epoch.
 	tx := execution_transaction.NewTxSetWaitingPlugin(pluginID, &forge_execution.Claim{
 		ClaimId: h.c.claimID,
 		Epoch:   h.claimEpoch,
@@ -185,5 +206,5 @@ func (h *execControllerHandle) SetWaitingPlugin(ctx context.Context, pluginID st
 	return err
 }
 
-// _ is a type assertion
+// _ verifies the execution handle contract.
 var _ forge_target.ExecControllerHandle = (*execControllerHandle)(nil)

@@ -8,6 +8,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	sdk_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // executeWithWorld lends the execution's World through a client-owned Resource
@@ -18,7 +19,10 @@ func (h *pluginExecHandler) executeWithWorld(ctx context.Context, client SRPCPlu
 	if !ok || input.GetWorldEngine() == nil {
 		return errors.New("plugin execution requires a transactional World input")
 	}
-	engine := resource_world.NewEngineResource(h.le, h.b, input.GetWorldEngine(), nil, nil)
+	if err := input.Validate(); err != nil {
+		return err
+	}
+	engine := resource_world.NewEngineResource(h.le, h.b, input.GetWorldEngine(), nil, &sdk_world.EngineInfo{EngineId: input.GetWorldEngineID()})
 	defer engine.Close()
 
 	// Open the plugin's Resource service through its execution-service route.

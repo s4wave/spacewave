@@ -6,45 +6,14 @@ import (
 	"reflect"
 	"slices"
 	"testing"
-
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
-	forge_value "github.com/s4wave/spacewave/forge/value"
-	"github.com/s4wave/spacewave/net/peer"
 )
 
-// recordingAdmission supplies an offline admission boundary to Docker tests.
-type recordingAdmission struct {
-	name         string
-	release      func(context.Context) error
-	executionKey string
-	request      *Config
-}
-
-// Reserve returns a deterministic named runtime grant.
-func (a *recordingAdmission) Reserve(_ context.Context, key string, conf *Config) (Reservation, error) {
-	a.executionKey = key
-	a.request = conf.CloneVT()
-	return a, nil
-}
-
-// Launch executes Docker creation under the fake's grant.
-func (a *recordingAdmission) Launch(_ context.Context, createAndStart func(string) error) error {
-	return createAndStart(a.name)
-}
-
-// Release records the configured stop effect when this test needs one.
-func (a *recordingAdmission) Release(ctx context.Context) error {
-	if a.release != nil {
-		return a.release(ctx)
-	}
-	return nil
-}
-
+// TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand preserves explicit container options.
 func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
+	// Seed a host environment value that must not reach Docker.
 	t.Setenv("FORGE_DOCKER_SENTINEL", "host-secret")
 
+	// Configure explicit container options for the Docker create command.
 	conf := &Config{
 		Image:       "ghbot:dev",
 		Workdir:     "/work/repo",
@@ -61,6 +30,7 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 		Command: []string{"ghbot-agent", "-h"},
 	}
 
+	// Compare the Docker create arguments with their explicit configuration.
 	got := buildCreateArgs(conf, "")
 	want := []string{
 		"create",
@@ -83,9 +53,12 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	}
 }
 
+// TestBuildDockerEnvIsExplicit excludes the host environment from Docker commands.
 func TestBuildDockerEnvIsExplicit(t *testing.T) {
+	// Seed a host environment value that must not reach Docker.
 	t.Setenv("FORGE_DOCKER_SENTINEL", "host-secret")
 
+	// Require Docker CLI environment to contain only configured entries.
 	got := BuildDockerEnv(&Config{
 		DockerEnv: map[string]string{
 			"DOCKER_HOST": "unix:///var/run/docker.sock",
@@ -103,10 +76,13 @@ func TestBuildDockerEnvIsExplicit(t *testing.T) {
 // TestExecuteRejectsMissingRequestBeforeCreate keeps the Docker effect behind
 // the target's explicit capacity declaration.
 func TestExecuteRejectsMissingRequestBeforeCreate(t *testing.T) {
+	// Configure an offline Docker runner and execution admission grant.
 	runner := &recordingRunner{}
 	ctrl := NewController(nil, nil, &Config{Image: "img"}, &recordingAdmission{name: "unused"})
 	ctrl.runner = runner
 	ctrl.handle = noopExecHandle{}
+
+	// Reject execution before any Docker effect when admission data is absent.
 	if err := ctrl.Execute(t.Context()); err == nil {
 		t.Fatal("missing capacity request was accepted")
 	}
@@ -115,7 +91,9 @@ func TestExecuteRejectsMissingRequestBeforeCreate(t *testing.T) {
 	}
 }
 
+// TestExecuteRunsCreateStartWait retains admitted Docker output after a successful run.
 func TestExecuteRunsCreateStartWait(t *testing.T) {
+	// Configure an offline Docker runner and execution admission grant.
 	runner := &recordingRunner{
 		outputs: map[string][]byte{
 			"create": []byte("container-123\n"),
@@ -143,13 +121,15 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 	handle := &recordingExecHandle{}
 	ctrl.handle = handle
 
-	if err := ctrl.Execute(context.Background()); err != nil {
+	// Execute the admitted Docker commands and inspect their retained output.
+	if err := ctrl.Execute(t.Context()); err != nil {
 		t.Fatal(err.Error())
 	}
 	if admission.executionKey != "exec/test" || admission.request.GetMilliCpu() != 1000 || admission.request.GetMemoryBytes() != 1<<20 {
 		t.Fatalf("Docker request did not reach admission: key=%q request=%+v", admission.executionKey, admission.request)
 	}
 
+	// Compare the complete Docker command sequence with the admitted runtime name.
 	want := []recordedCommand{
 		{
 			name: "docker-test",
@@ -178,6 +158,7 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 // TestExecuteRetainsOutputOnFailure verifies failed command output survives in
 // the Execution log along with its nonzero result.
 func TestExecuteRetainsOutputOnFailure(t *testing.T) {
+	// Configure an offline Docker runner and execution admission grant.
 	runner := &recordingRunner{outputs: map[string][]byte{
 		"create": []byte("container-123\n"),
 		"wait":   []byte("2\n"),
@@ -188,7 +169,8 @@ func TestExecuteRetainsOutputOnFailure(t *testing.T) {
 	handle := &recordingExecHandle{}
 	ctrl.handle = handle
 
-	err := ctrl.Execute(context.Background())
+	// Preserve logs when the Docker container exits with a failure.
+	err := ctrl.Execute(t.Context())
 	if err == nil || err.Error() != "docker container exited with status 2" {
 		t.Fatalf("unexpected exit result: %v", err)
 	}
@@ -202,6 +184,7 @@ func TestExecuteRetainsOutputOnFailure(t *testing.T) {
 func TestExecuteLaunchFailuresReleaseNamedGrant(t *testing.T) {
 	for _, stage := range []string{"create", "start"} {
 		t.Run(stage, func(t *testing.T) {
+			// Configure an offline Docker runner and execution admission grant.
 			runner := &recordingRunner{
 				outputs: map[string][]byte{"create": []byte("container-123\n")},
 				errors:  map[string]error{stage: context.Canceled},
@@ -214,6 +197,8 @@ func TestExecuteLaunchFailuresReleaseNamedGrant(t *testing.T) {
 			ctrl := NewController(nil, nil, &Config{Image: "img", MilliCpu: 1000, MemoryBytes: 1 << 20}, grant)
 			ctrl.runner = runner
 			ctrl.handle = noopExecHandle{}
+
+			// Execute the failed Docker launch and inspect release of its named grant.
 			if err := ctrl.Execute(t.Context()); err == nil {
 				t.Fatal("failed Docker launch returned no error")
 			}
@@ -227,8 +212,13 @@ func TestExecuteLaunchFailuresReleaseNamedGrant(t *testing.T) {
 	}
 }
 
+// TestExecuteStopsContainerOnCancel releases the runtime grant after cancellation.
 func TestExecuteStopsContainerOnCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Give the offline runner a cancellation gate at container wait.
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	// Configure an offline Docker runner and execution admission grant.
 	runner := &recordingRunner{
 		outputs: map[string][]byte{
 			"create": []byte("container-123\n"),
@@ -251,16 +241,19 @@ func TestExecuteStopsContainerOnCancel(t *testing.T) {
 	ctrl.runner = runner
 	ctrl.handle = noopExecHandle{}
 
+	// Join the Docker execution after the runner signals cancellation.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ctrl.Execute(ctx)
 	}()
 
+	// Observe the runner's wait gate and join cancellation.
 	<-runner.waitStarted
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 
+	// Require release of the named Docker runtime with its configured stop timeout.
 	wantStop := recordedCommand{
 		name: "docker-test",
 		args: []string{"stop", "--time", "3", "test-runtime"},
@@ -273,6 +266,7 @@ func TestExecuteStopsContainerOnCancel(t *testing.T) {
 	}
 }
 
+// TestDockerIntegrationSkippedWithoutDaemon runs only with explicit daemon opt-in.
 func TestDockerIntegrationSkippedWithoutDaemon(t *testing.T) {
 	if os.Getenv("FORGE_DOCKER_INTEGRATION") == "" {
 		t.Skip("set FORGE_DOCKER_INTEGRATION=1 to run docker daemon integration")
@@ -281,103 +275,3 @@ func TestDockerIntegrationSkippedWithoutDaemon(t *testing.T) {
 		t.Skip(err.Error())
 	}
 }
-
-type recordedCommand struct {
-	name string
-	args []string
-	env  []string
-}
-
-type recordingRunner struct {
-	outputs     map[string][]byte
-	errors      map[string]error
-	stderr      []byte
-	commands    []recordedCommand
-	waitStarted chan struct{}
-	waitCancel  func()
-}
-
-// Logs records the Docker log read and returns its separate output streams.
-func (r *recordingRunner) Logs(ctx context.Context, name, containerID string, env []string) ([]byte, []byte, error) {
-	stdout, err := r.Run(ctx, name, []string{"logs", containerID}, env)
-	return stdout, r.stderr, err
-}
-
-// recordedLog is one retained Execution log entry.
-type recordedLog struct {
-	level   string
-	message string
-}
-
-// recordingExecHandle records output written by the Docker controller.
-type recordingExecHandle struct {
-	noopExecHandle
-	logs []recordedLog
-}
-
-// WriteLog records one container output stream.
-func (h *recordingExecHandle) WriteLog(ctx context.Context, level, message string) error {
-	h.logs = append(h.logs, recordedLog{level, message})
-	return nil
-}
-
-func (r *recordingRunner) Run(ctx context.Context, name string, args []string, env []string) ([]byte, error) {
-	cmd := recordedCommand{
-		name: name,
-		args: slices.Clone(args),
-		env:  slices.Clone(env),
-	}
-	r.commands = append(r.commands, cmd)
-	if len(args) == 0 {
-		return nil, nil
-	}
-	if args[0] == "wait" && r.waitStarted != nil {
-		close(r.waitStarted)
-		r.waitCancel()
-		<-ctx.Done()
-		return nil, context.Canceled
-	}
-	if err := r.errors[args[0]]; err != nil {
-		return nil, err
-	}
-	return r.outputs[args[0]], nil
-}
-
-type noopExecHandle struct{}
-
-func (noopExecHandle) GetExecutionUniqueId() string {
-	return "test-exec"
-}
-
-// GetExecutionObjectKey identifies the fake's one durable attempt.
-func (noopExecHandle) GetExecutionObjectKey() string { return "exec/test" }
-
-func (noopExecHandle) GetPeerId() peer.ID {
-	return ""
-}
-
-func (noopExecHandle) GetTimestamp() *timestamp.Timestamp {
-	return &timestamp.Timestamp{}
-}
-
-func (noopExecHandle) AccessStorage(
-	ctx context.Context,
-	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
-) error {
-	return nil
-}
-
-func (noopExecHandle) SetOutputs(
-	ctx context.Context,
-	outps forge_value.ValueSlice,
-	clearOld bool,
-) error {
-	return nil
-}
-
-func (noopExecHandle) WriteLog(ctx context.Context, level, message string) error {
-	return nil
-}
-
-func (noopExecHandle) SetWaitingPlugin(context.Context, string) error { return nil }

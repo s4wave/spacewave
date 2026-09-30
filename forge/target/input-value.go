@@ -12,7 +12,7 @@ type InputValue interface {
 	GetInputType() InputType
 	// Validate checks the input value.
 	Validate() error
-	// IsEmpty checks if the value is "empty."
+	// IsEmpty reports whether the value is empty.
 	IsEmpty() bool
 }
 
@@ -28,6 +28,8 @@ type InputValueInline interface {
 type InputValueWorld interface {
 	// InputValue indicates this is an InputValue.
 	InputValue
+	// GetWorldEngineID returns the authoritative selected engine ID, or empty for an unscoped state.
+	GetWorldEngineID() string
 	// GetWorldEngine returns the world engine, if available.
 	// May return nil if unavailable.
 	GetWorldEngine() world.Engine
@@ -134,10 +136,12 @@ func InputValueToWorldObject(iv InputValue) (InputValueWorldObject, error) {
 // Does not attempt to resolve dynamic values.
 // Returns nil, nil if the value is empty or nil.
 func InlineValueToValue(iv InputValue) (*forge_value.Value, error) {
+	// Ignore absent inline inputs before converting their value.
 	if iv == nil {
 		return nil, nil
 	}
 
+	// Require the inline value contract before reading its payload.
 	vw, ok := iv.(InputValueInline)
 	if !ok {
 		if vw.IsEmpty() {
@@ -147,6 +151,7 @@ func InlineValueToValue(iv InputValue) (*forge_value.Value, error) {
 		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
 	}
 
+	// Validate the inline payload before exposing it.
 	if err := iv.Validate(); err != nil {
 		return nil, err
 	}

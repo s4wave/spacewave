@@ -16,15 +16,23 @@ import (
 // TxResource wraps a Tx for resource access.
 // It embeds WorldStateResource and adds Commit/Discard operations.
 type TxResource struct {
+	// WorldStateResource serves transaction-scoped World operations.
 	*WorldStateResource
-	tx     world.Tx
-	mux    srpc.Mux
+	// tx is the transaction released by this Resource.
+	tx world.Tx
+	// mux serves the mounted Resource RPCs.
+	mux srpc.Mux
+	// engine retains the granted transactional World capability.
 	engine world.Engine
 
-	typedResource  *TypedObjectResource
-	released       atomic.Bool
+	// typedResource owns the typed handles created under this mount.
+	typedResource *TypedObjectResource
+	// released guards the effectless transition to released state.
+	released atomic.Bool
+	// terminalLocker serializes terminal transaction operations.
 	terminalLocker sync.Locker
-	terminal       bool
+	// terminal records acceptance of a commit or discard under terminalLocker.
+	terminal bool
 }
 
 // NewTxResource creates a new TxResource.
@@ -38,6 +46,7 @@ func NewTxResource(
 	engine world.Engine,
 	opts ...WorldStateResourceOption,
 ) *TxResource {
+	// Construct the transaction Resource with the granting World options.
 	wsResource := NewWorldStateResource(le, b, tx, lookupOp, opts...)
 	if engine != nil {
 		wsResource.storage = engine
@@ -50,18 +59,13 @@ func NewTxResource(
 		engine:             engine,
 		terminalLocker:     &sync.Mutex{},
 	}
-	// Register TxResourceService on the same mux
+
+	// Register transaction control on the World Resource mux.
 	_ = s4wave_world.SRPCRegisterTxResourceService(mux, txResource)
-	// Register TypedObjectResourceService if engine is available
+
+	// Bind typed descendants to the transaction and granting engine options.
 	if engine != nil {
-		typedResource := newTypedObjectResourceWithSessionPeerID(
-			le,
-			b,
-			tx,
-			engine,
-			wsResource.sessionPeerID,
-			wsResource.sessionPeerIDBound,
-		)
+		typedResource := NewTypedObjectResource(le, b, tx, engine, opts...)
 		txResource.typedResource = typedResource
 		_ = s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
 	}
@@ -88,6 +92,7 @@ func (r *TxResource) CommitMutations(
 		}
 	}()
 
+	// Apply every requested mutation to the transaction before committing it.
 	results := make([]*s4wave_world.TransactionMutationResult, 0, len(req.GetMutations()))
 	for i, mutation := range req.GetMutations() {
 		// Stop before the next mutation when the caller cancels the request.
@@ -150,6 +155,7 @@ func (r *TxResource) CommitMutations(
 		}
 	}
 
+	// Fence terminal transaction operations under the transaction lock.
 	if err := r.tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -159,6 +165,7 @@ func (r *TxResource) CommitMutations(
 
 // Commit commits the transaction.
 func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest) (*s4wave_world.CommitResponse, error) {
+	// Fence terminal transaction operations under the transaction lock.
 	r.terminalLocker.Lock()
 	if r.terminal {
 		r.terminalLocker.Unlock()
@@ -170,6 +177,7 @@ func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest
 		r.Release()
 	}()
 
+	// Close typed descendants and commit after this terminal operation wins the lock.
 	if r.typedResource != nil {
 		r.typedResource.Close()
 	}
@@ -182,6 +190,7 @@ func (r *TxResource) Commit(ctx context.Context, req *s4wave_world.CommitRequest
 
 // Discard discards the transaction without committing changes.
 func (r *TxResource) Discard(ctx context.Context, req *s4wave_world.DiscardRequest) (*s4wave_world.DiscardResponse, error) {
+	// Release typed descendants and discard the transaction exactly once.
 	r.terminalLocker.Lock()
 	if r.terminal {
 		r.terminalLocker.Unlock()

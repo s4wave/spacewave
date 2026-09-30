@@ -32,7 +32,11 @@ type ExecControllerHandle interface {
 	// GetExecutionUniqueId returns a unique identifier for the execution pass.
 	GetExecutionUniqueId() string
 	// GetExecutionObjectKey returns the durable Execution attempt key used by admission.
+	// Access-only handles return their synthetic caller identity.
 	GetExecutionObjectKey() string
+	// GetExecutionClaimEpoch returns the epoch granted to this handle at construction.
+	// It never follows a later claim. Zero means the handle has no execution claim.
+	GetExecutionClaimEpoch() uint64
 	// GetPeerId returns the peer id that this exec controller is operating as.
 	GetPeerId() peer.ID
 	// GetTimestamp returns the timestamp for the execution and all execution ops.
@@ -49,7 +53,6 @@ type ExecControllerHandle interface {
 	// SetOutputs changes the outputs according to the given ValueSlice.
 	// Note: the slice contents will be copied before the call returns.
 	// Note: each Value must be named.
-	// Use the writeCursor to write output objects, then SetOutputs with the refs.
 	// If clearOld is set, all old Output values will be cleared.
 	// Returns context.Canceled if the handle ctx is canceled.
 	SetOutputs(

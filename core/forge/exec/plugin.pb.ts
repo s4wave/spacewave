@@ -177,6 +177,21 @@ export interface PluginExecRequest {
    * @generated from field: uint32 attached_engine_resource_id = 4;
    */
   attachedEngineResourceId?: number
+  /**
+   * ExecutionObjectKey identifies the Execution attempt that granted this call.
+   * An access-only handle supplies its synthetic caller identity.
+   *
+   * @generated from field: string execution_object_key = 5;
+   */
+  executionObjectKey?: string
+  /**
+   * ClaimEpoch is the Execution claim epoch granted to the caller's handle.
+   * It is fixed for this invocation, even if the stored Execution is reclaimed.
+   * Zero indicates an access-only handle with no Execution claim.
+   *
+   * @generated from field: uint64 claim_epoch = 6;
+   */
+  claimEpoch?: bigint
 }
 
 export const PluginExecRequest: MessageType<PluginExecRequest> =
@@ -198,6 +213,13 @@ export const PluginExecRequest: MessageType<PluginExecRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
+      {
+        no: 5,
+        name: 'execution_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 6, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })
 

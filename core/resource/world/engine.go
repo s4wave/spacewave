@@ -16,14 +16,22 @@ import (
 
 // EngineResource wraps an Engine for resource access.
 type EngineResource struct {
-	le                *logrus.Entry
-	b                 bus.Bus
-	mux               srpc.Invoker
-	engine            world.Engine
-	lookupOp          world.LookupOp
-	engineInfo        *s4wave_world.EngineInfo
+	// le logs Resource and controller lifecycle failures.
+	le *logrus.Entry
+	// b resolves World and typed handler directives.
+	b bus.Bus
+	// mux serves the mounted Resource RPCs.
+	mux srpc.Invoker
+	// engine retains the granted transactional World capability.
+	engine world.Engine
+	// lookupOp resolves World operations under the granting mount.
+	lookupOp world.LookupOp
+	// engineInfo describes the engine selected by the granting mount.
+	engineInfo *s4wave_world.EngineInfo
+	// worldStateOptions carries trusted access options into World descendants.
 	worldStateOptions []WorldStateResourceOption
-	typedResource     *TypedObjectResource
+	// typedResource owns the typed handles created under this mount.
+	typedResource *TypedObjectResource
 }
 
 // NewEngineResource creates a new EngineResource.
@@ -35,8 +43,12 @@ func NewEngineResource(
 	engineInfo *s4wave_world.EngineInfo,
 	opts ...WorldStateResourceOption,
 ) *EngineResource {
+	// Bind the granting mount identity before constructing any World descendants.
+	if engineInfo != nil {
+		opts = append(opts, WithEngineID(engineInfo.GetEngineId()))
+	}
+
 	// Capture trusted access options and initialize the resource wrapper.
-	sessionPeerID, sessionPeerIDBound := worldStateResourceSessionPeerID(opts...)
 	engineResource := &EngineResource{
 		le:                le,
 		b:                 b,
@@ -47,14 +59,7 @@ func NewEngineResource(
 	}
 
 	// Attach typed-object access to the world engine.
-	engineResource.typedResource = newTypedObjectResourceWithSessionPeerID(
-		le,
-		b,
-		world.NewEngineWorldState(w, true),
-		w,
-		sessionPeerID,
-		sessionPeerIDBound,
-	)
+	engineResource.typedResource = NewTypedObjectResource(le, b, world.NewEngineWorldState(w, true), w, opts...)
 
 	// Register world, watch, and typed-object RPC services.
 	engineResource.mux = resource_server.NewResourceMux(
@@ -185,6 +190,7 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 		return nil, err
 	}
 
+	// Acquire the transaction and transfer its release to the Resource client.
 	wtx, err := r.engine.NewTransaction(ctx, req.GetWrite())
 	if err != nil {
 		return nil, err
@@ -211,6 +217,7 @@ func (r *EngineResource) BuildStorageCursor(ctx context.Context, req *s4wave_wor
 		return nil, err
 	}
 
+	// Acquire the storage cursor and transfer its release to the Resource client.
 	cursor, err := r.engine.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, err
@@ -248,6 +255,7 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
 }
 
+// loadWorldRootSnapshot reads the committed root through one engine read scope.
 func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
 	// Read the root sequence and storage reference.
 	wtx, err := r.engine.NewTransaction(ctx, false)

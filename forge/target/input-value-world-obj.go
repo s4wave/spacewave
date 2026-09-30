@@ -1,17 +1,20 @@
 package forge_target
 
 import (
-	"errors"
-
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 // ivWorldObject is a input value for a world object.
 type ivWorldObject struct {
+	// InputValueInline retains the resolved inline object value.
 	InputValueInline
+	// InputValueWorld retains the object World and its selected engine identity.
 	InputValueWorld
+	// objs retains the resolved object state.
 	objs world.ObjectState
-	err  error
+	// err records the input or typed factory resolution error.
+	err error
 }
 
 // NewInputValueWorldObject constructs a new InputValueWorldObject from its
@@ -24,12 +27,12 @@ func NewInputValueWorldObject(
 	objs world.ObjectState,
 	err error,
 ) InputValueWorldObject {
-	// ensure no nil references on interfaces
+	// Replace missing components with honest empty input values.
 	if inline == nil {
 		inline = NewInputValueInline(nil)
 	}
 	if wrld == nil {
-		wrld = NewInputValueWorld(nil, nil)
+		wrld = NewInputValueWorld("", nil, nil)
 	}
 	return &ivWorldObject{InputValueInline: inline, InputValueWorld: wrld, objs: objs, err: err}
 }
@@ -41,6 +44,7 @@ func (i *ivWorldObject) GetInputType() InputType {
 
 // Validate checks the input value.
 func (i *ivWorldObject) Validate() error {
+	// Report object resolution failures before validating the input components.
 	if i.err != nil {
 		return i.err
 	}
@@ -58,7 +62,7 @@ func (i *ivWorldObject) Validate() error {
 	return nil
 }
 
-// IsEmpty checks if the value is "empty."
+// IsEmpty reports whether the value is empty.
 func (i *ivWorldObject) IsEmpty() bool {
 	return i.objs == nil
 }

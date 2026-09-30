@@ -10,37 +10,11 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_target "github.com/s4wave/spacewave/forge/target"
-	forge_value "github.com/s4wave/spacewave/forge/value"
-	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
-// attachedWorldService writes through the engine supplied by the real bridge.
-type attachedWorldService struct {
-	entered chan struct{}
-	exited  chan struct{}
-}
-
-func (s *attachedWorldService) Execute(ctx context.Context, req *PluginExecRequest) (*PluginExecResponse, error) {
-	engine, err := sdk_world_engine.NewAttachedEngine(ctx, req.GetAttachedEngineResourceId())
-	if err != nil {
-		return nil, err
-	}
-	defer engine.Release()
-	if s.entered != nil {
-		defer close(s.exited)
-		close(s.entered)
-		<-ctx.Done()
-		return nil, ctx.Err()
-	}
-	err = world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
-		obj, err := ws.CreateObject(ctx, "plugin/result", nil)
-		world.ReleaseObjectState(obj)
-		return err
-	})
-	return &PluginExecResponse{Outputs: []*forge_value.Value{forge_value.NewValue("result")}}, err
-}
-
+// TestPluginExecAttachedWorldCancellationReachesPlugin observes cancellation through the real borrowed Resource tree.
 func TestPluginExecAttachedWorldCancellationReachesPlugin(t *testing.T) {
+	// Serve a plugin that waits after acquiring its attached World.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	tb := world_testbed.MustDefault(t, ctx)
@@ -50,11 +24,15 @@ func TestPluginExecAttachedWorldCancellationReachesPlugin(t *testing.T) {
 	})
 	server := resource_server.NewResourceServer(root)
 	mux := resource_server.NewResourceMux(server.Register)
+
+	// Connect the plugin and grant its selected transactional World.
 	client := NewSRPCPluginExecServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 	handler := &pluginExecHandler{
 		b: tb.Bus, le: tb.Logger, handle: &pluginExecHandleStub{},
-		inputs: forge_target.InputMap{"world": forge_target.NewInputValueWorld(tb.Engine, tb.WorldState)},
+		inputs: forge_target.InputMap{"world": forge_target.NewInputValueWorld(tb.EngineID, tb.Engine, tb.WorldState)},
 	}
+
+	// Wait for plugin acquisition before canceling the borrowed execution.
 	done := make(chan error, 1)
 	go func() { done <- handler.executeWithWorld(ctx, client, &PluginExecRequest{}) }()
 	select {
@@ -62,6 +40,8 @@ func TestPluginExecAttachedWorldCancellationReachesPlugin(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("plugin did not acquire its World")
 	}
+
+	// Cancel execution and join the bridge and plugin event barriers.
 	cancel()
 	select {
 	case err := <-done:
@@ -78,15 +58,9 @@ func TestPluginExecAttachedWorldCancellationReachesPlugin(t *testing.T) {
 	}
 }
 
-func (s *attachedWorldService) ExecuteStream(req *PluginExecRequest, stream SRPCPluginExecService_ExecuteStreamStream) error {
-	resp, err := s.Execute(stream.Context(), req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(resp)
-}
-
+// TestPluginExecAttachedWorldPublishesBeforeReturningOutput checks the committed World result before exposing outputs.
 func TestPluginExecAttachedWorldPublishesBeforeReturningOutput(t *testing.T) {
+	// Serve the plugin and lend its selected transactional World.
 	ctx := t.Context()
 	tb := world_testbed.MustDefault(t, ctx)
 	root := resource_server.NewResourceMux(func(mux srpc.Mux) error {
@@ -95,16 +69,20 @@ func TestPluginExecAttachedWorldPublishesBeforeReturningOutput(t *testing.T) {
 	server := resource_server.NewResourceServer(root)
 	mux := resource_server.NewResourceMux(server.Register)
 	client := NewSRPCPluginExecServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
+
+	// Execute through the production borrowed World bridge.
 	handle := &pluginExecHandleStub{}
 	handler := &pluginExecHandler{
 		b:      tb.Bus,
 		le:     tb.Logger,
 		handle: handle,
-		inputs: forge_target.InputMap{"world": forge_target.NewInputValueWorld(tb.Engine, tb.WorldState)},
+		inputs: forge_target.InputMap{"world": forge_target.NewInputValueWorld(tb.EngineID, tb.Engine, tb.WorldState)},
 	}
 	if err := handler.executeWithWorld(ctx, client, &PluginExecRequest{}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the committed object and execution output after the bridge returns.
 	obj, found, err := tb.WorldState.GetObject(ctx, "plugin/result")
 	world.ReleaseObjectState(obj)
 	if err != nil || !found {

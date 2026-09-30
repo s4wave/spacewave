@@ -58,6 +58,16 @@ func WithSessionPeerID(sessionPeerID peer.ID) WorldStateResourceOption {
 	}
 }
 
+// WithEngineID binds typed access to the registry scope selected by the granting mount.
+// An empty ID binds global scope; callers cannot override a trusted binding.
+func WithEngineID(engineID string) WorldStateResourceOption {
+	return func(r *WorldStateResource) {
+		r.engineID = engineID
+		r.engineIDBound = true
+	}
+}
+
+// applyWorldStateResourceOptions applies the granting component's access options.
 func applyWorldStateResourceOptions(r *WorldStateResource, opts ...WorldStateResourceOption) {
 	for _, opt := range opts {
 		if opt != nil {
@@ -66,6 +76,7 @@ func applyWorldStateResourceOptions(r *WorldStateResource, opts ...WorldStateRes
 	}
 }
 
+// worldStateResourceSessionPeerID reads the trusted session binding from resource options.
 func worldStateResourceSessionPeerID(opts ...WorldStateResourceOption) (peer.ID, bool) {
 	r := new(WorldStateResource)
 	applyWorldStateResourceOptions(r, opts...)
