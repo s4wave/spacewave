@@ -264,20 +264,7 @@ func (t *Tx) scanPrefixLeaves(ctx context.Context, prefix []byte, cb func(*block
 		return nil
 	}
 	end, _ := kvtx.PrefixSuccessor(prefix)
-	return t.traverseFromNode(
-		ctx,
-		t.bcs,
-		t.root,
-		prefix,
-		end,
-		true, false, 0,
-		func(bcs *block.Cursor, n *Node, _ uint8) error {
-			if n.GetHeight() != 0 || len(n.GetKey()) == 0 {
-				return nil
-			}
-			return cb(bcs, n)
-		},
-	)
+	return t.scanLeaves(ctx, t.bcs, t.root, prefix, end, cb)
 }
 
 // Iterate returns an iterator with a given key prefix.
@@ -889,79 +876,48 @@ func (t *Tx) nodeToValue(ctx context.Context, bcs *block.Cursor, n *Node) ([]byt
 	return dat, err
 }
 
-// traverseFromNode traverses the tree starting at the node (recursively)
-func (t *Tx) traverseFromNode(
+// scanLeaves calls cb with each keyed leaf under nod in [start, end), in
+// ascending order. An empty start or end leaves that side unbounded.
+func (t *Tx) scanLeaves(
 	ctx context.Context,
 	bcs *block.Cursor, nod *Node,
 	start, end []byte,
-	ascending, inclusive bool,
-	depth uint8,
-	cb func(*block.Cursor, *Node, uint8) error,
+	cb func(*block.Cursor, *Node) error,
 ) error {
-	hasStart := len(start) != 0
-	hasEnd := len(end) != 0
+	// Compare the node key with both bounds.
 	nkey := nod.GetKey()
-	afterStart := !hasStart || bytes.Compare(start, nkey) < 0
-	startOrAfter := !hasStart || bytes.Compare(start, nkey) <= 0
-	beforeEnd := !hasEnd || bytes.Compare(nkey, end) < 0
-	if inclusive {
-		beforeEnd = !hasEnd || bytes.Compare(nod.GetKey(), end) <= 0
-	}
+	afterStart := len(start) == 0 || bytes.Compare(start, nkey) < 0
+	startOrAfter := len(start) == 0 || bytes.Compare(start, nkey) <= 0
+	beforeEnd := len(end) == 0 || bytes.Compare(nkey, end) < 0
 
-	leaf := nod.IsLeaf()
-	if !leaf || (startOrAfter && beforeEnd) {
-		if err := cb(bcs, nod, depth); err != nil {
-			return err
+	// Report a leaf inside the range.
+	if nod.IsLeaf() {
+		if len(nkey) == 0 || !startOrAfter || !beforeEnd {
+			return nil
 		}
-	}
-	if leaf {
-		return nil
+		return cb(bcs, nod)
 	}
 
-	trav := func(ln *Node, lnCs *block.Cursor) error {
-		return t.traverseFromNode(
-			ctx,
-			lnCs, ln,
-			start, end,
-			ascending, inclusive,
-			depth+1, cb,
-		)
-	}
-	chk := func(follow func(ctx context.Context, bcs *block.Cursor) (*Node, *block.Cursor, error)) error {
-		ln, lncs, err := follow(ctx, bcs)
+	// Visit the left subtree when it can hold keys at or after start.
+	if afterStart {
+		left, leftCs, err := nod.FollowLeft(ctx, bcs)
 		if err != nil {
 			return err
 		}
-		return trav(ln, lncs)
-	}
-
-	if ascending {
-		// check lower nodes, then higher
-		if afterStart {
-			if err := chk(nod.FollowLeft); err != nil {
-				return err
-			}
-		}
-		if beforeEnd {
-			if err := chk(nod.FollowRight); err != nil {
-				return err
-			}
-		}
-	} else {
-		// check the higher nodes first
-		if beforeEnd {
-			if err := chk(nod.FollowRight); err != nil {
-				return err
-			}
-		}
-		if afterStart {
-			if err := chk(nod.FollowLeft); err != nil {
-				return err
-			}
+		if err := t.scanLeaves(ctx, leftCs, left, start, end, cb); err != nil {
+			return err
 		}
 	}
 
-	return nil
+	// Visit the right subtree when it can hold keys before end.
+	if !beforeEnd {
+		return nil
+	}
+	right, rightCs, err := nod.FollowRight(ctx, bcs)
+	if err != nil {
+		return err
+	}
+	return t.scanLeaves(ctx, rightCs, right, start, end, cb)
 }
 
 // _ is a type assertion
