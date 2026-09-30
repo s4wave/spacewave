@@ -880,8 +880,18 @@ message WaitRevResponse {
   uint64 rev = 1;
 }
 
+// TypedObjectResourceService exposes typed children within the mounted World's authority.
 service TypedObjectResourceService {
+  // AccessTypedObject returns one typed child or fails if the object or handler is absent.
   rpc AccessTypedObject(AccessTypedObjectRequest) returns (AccessTypedObjectResponse);
+
+  // WatchTypedObject reports initial and changing typed-handler availability.
+  // Live Worlds follow object creation, type changes and deletion; immutable
+  // World snapshots retain their object state while handler availability changes.
+  // Loss or replacement releases the previous child before the next snapshot.
+  // Canceling the stream releases its lookup demand and current child.
+  // The stream never invokes or replays methods on a typed child.
+  rpc WatchTypedObject(WatchTypedObjectRequest) returns (stream WatchTypedObjectResponse);
 }
 
 // AccessTypedObjectRequest is the request type for AccessTypedObject.
@@ -896,6 +906,25 @@ message AccessTypedObjectResponse {
   // The resource implements the RPC service appropriate for the object type.
   uint32 resource_id = 1;
   // TypeId is the type identifier of the object.
+  string type_id = 2;
+}
+
+// WatchTypedObjectRequest selects an object within the mounted World and registry scope.
+message WatchTypedObjectRequest {
+  // ObjectKey identifies the object whose typed handler is watched.
+  string object_key = 1;
+}
+
+// WatchTypedObjectResponse describes the current typed-handler generation or its absence.
+message WatchTypedObjectResponse {
+  // ResourceId identifies a child bound to this handler generation, or zero if
+  // the object, its type or its handler is absent. Each available generation
+  // receives a new child; the child implements the RPC service for TypeId.
+  // The consumer adopts and releases its reference; the watch also releases
+  // the child on loss, replacement or cancellation, including adopted children.
+  uint32 resource_id = 1;
+  // TypeId identifies the object's type even when its handler is absent.
+  // It is empty when the object is absent or has no type.
   string type_id = 2;
 }
 

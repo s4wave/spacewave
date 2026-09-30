@@ -96,6 +96,39 @@ func (r *TypedObjectResource) Close() {
 	r.lifecycleCancel()
 }
 
+// WatchTypedObject retains scoped handler demand and revokes obsolete children.
+func (r *TypedObjectResource) WatchTypedObject(req *s4wave_world.WatchTypedObjectRequest, stream s4wave_world.SRPCTypedObjectResourceService_WatchTypedObjectStream) error {
+	// Bind the watch to the stream, client generation and granting mount.
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+	stopMount := context.AfterFunc(r.lifecycleCtx, cancel)
+	defer stopMount()
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return err
+	}
+	stopClient := context.AfterFunc(resourceCtx.Context(), cancel)
+	defer stopClient()
+
+	// Require an object key and preserve the trusted factory scope.
+	objectKey := req.GetObjectKey()
+	if objectKey == "" {
+		return world.ErrEmptyObjectKey
+	}
+	engineID := objecttype.EngineIDFromContext(ctx)
+	if r.engineIDBound {
+		engineID = r.engineID
+	}
+	ctx = objecttype.WithEngineID(ctx, engineID)
+	if r.sessionPeerIDBound {
+		ctx = objecttype.WithSessionPeerID(ctx, r.sessionPeerID)
+	}
+
+	// Run the typed resource's watch against the exact granted World state.
+	watch := newTypedObjectWatch(r, objectKey, engineID, resourceCtx)
+	return watch.execute(ctx, cancel, stream)
+}
+
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.
 // Handles special prefixes:
 //   - plugin-dist/{plugin-id}: accesses the plugin's distribution filesystem

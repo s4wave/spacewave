@@ -30,6 +30,8 @@ type WorldStateResource struct {
 	mux srpc.Invoker
 	// ws holds the granted World snapshot and write authority.
 	ws world.WorldState
+	// typedResource owns typed watches attached to this snapshot mount.
+	typedResource *TypedObjectResource
 	// lookupOp resolves World operations under the granting mount.
 	lookupOp world.LookupOp
 	// storage accesses the outer World or Engine to open nested World snapshots.
@@ -102,6 +104,7 @@ func newWorldStateResource(
 	}
 	if engine != nil {
 		typedResource := NewTypedObjectResource(le, b, ws, engine, opts...)
+		wsResource.typedResource = typedResource
 		register = append(register, func(mux srpc.Mux) error {
 			return s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
 		})
@@ -109,6 +112,13 @@ func newWorldStateResource(
 	mux := resource_server.NewResourceMux(register...)
 	wsResource.mux = mux
 	return wsResource
+}
+
+// Close withdraws typed demand owned by this World snapshot mount.
+func (r *WorldStateResource) Close() {
+	if r.typedResource != nil {
+		r.typedResource.Close()
+	}
 }
 
 // GetMux returns the rpc mux.
