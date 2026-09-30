@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 type replicaDestination struct {
@@ -73,5 +74,32 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	data, found, err := local.GetBlock(ctx, leaf)
 	if err != nil || !found || string(data) != string(payload) {
 		t.Fatalf("local leaf after copy: found=%v err=%v", found, err)
+	}
+}
+
+// TestSharedObjectBlockStoreRetainsRoots checks that the write-back layer
+// exposes the volume's root retention, so replacing a World head releases the
+// superseded graph to the collector.
+func TestSharedObjectBlockStoreRetainsRoots(t *testing.T) {
+	// Start a provider account on a test volume.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+
+	// Create and mount a Space shared object.
+	ref, err := account.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	so, releaseSO, err := account.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseSO()
+
+	// Its block store must reach the volume's root retention.
+	if !block.SupportsRootRetention(so.GetBlockStore()) {
+		t.Fatal("shared object block store hides root retention")
 	}
 }

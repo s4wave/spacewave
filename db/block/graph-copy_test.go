@@ -18,6 +18,8 @@ type graphTestStore struct {
 	refs map[string][]*block.BlockRef
 	// reads counts GetStoredBlock calls.
 	reads int
+	// puts lists the refs of written blocks in write order.
+	puts []string
 }
 
 func newGraphTestStore() *graphTestStore {
@@ -37,15 +39,19 @@ func (s *graphTestStore) PutBlockBatch(ctx context.Context, entries []*block.Put
 }
 
 func (s *graphTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Store the bytes in the backing memory store.
 	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Record the write order and the refs the write declared.
+	s.mu.Lock()
+	s.puts = append(s.puts, ref.MarshalString())
 	if opts.GetRefs() != nil {
-		s.mu.Lock()
 		s.refs[ref.MarshalString()] = opts.GetRefs()
-		s.mu.Unlock()
 	}
+	s.mu.Unlock()
 	return ref, existed, nil
 }
 
@@ -75,6 +81,7 @@ func (s *graphTestStore) put(t *testing.T, data string, refs ...*block.BlockRef)
 }
 
 func TestCopyGraphRebuildsGraphInPostOrder(t *testing.T) {
+	// Build a source graph with a shared child and a known subtree.
 	ctx := t.Context()
 	src := newGraphTestStore()
 	shared := src.put(t, "shared")
@@ -83,6 +90,7 @@ func TestCopyGraphRebuildsGraphInPostOrder(t *testing.T) {
 	skipped := src.put(t, "skipped")
 	root := src.put(t, "root", left, right, skipped)
 
+	// Copy it, skipping the known subtree and recording completions.
 	dst := newGraphTestStore()
 	var completed []string
 	err := block.CopyGraph(ctx, src, dst, root, &block.GraphCopyOptions{
@@ -102,6 +110,7 @@ func TestCopyGraphRebuildsGraphInPostOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The destination holds every unknown block with its refs, read once.
 	for _, ref := range []*block.BlockRef{root, left, right, shared} {
 		want := src.refs[ref.MarshalString()]
 		got, ok := dst.refs[ref.MarshalString()]
@@ -115,21 +124,25 @@ func TestCopyGraphRebuildsGraphInPostOrder(t *testing.T) {
 	if src.reads != 4 {
 		t.Fatalf("source reads = %d, want 4", src.reads)
 	}
-	index := func(ref *block.BlockRef) int {
-		for i, key := range completed {
-			if key == ref.MarshalString() {
-				return i
+
+	// Both writes and completions must reach a child before its parents.
+	for name, order := range map[string][]string{"completion": completed, "write": dst.puts} {
+		index := func(ref *block.BlockRef) int {
+			for i, key := range order {
+				if key == ref.MarshalString() {
+					return i
+				}
 			}
+			t.Fatalf("%s order misses %s", name, ref.MarshalString())
+			return -1
 		}
-		t.Fatalf("%s did not complete", ref.MarshalString())
-		return -1
-	}
-	if len(completed) != 4 {
-		t.Fatalf("completed %d blocks, want 4", len(completed))
-	}
-	if index(shared) > index(left) || index(shared) > index(right) ||
-		index(left) > index(root) || index(right) > index(root) {
-		t.Fatalf("completion order %v is not post-order", completed)
+		if len(order) != 4 {
+			t.Fatalf("%s order has %d blocks, want 4", name, len(order))
+		}
+		if index(shared) > index(left) || index(shared) > index(right) ||
+			index(left) > index(root) || index(right) > index(root) {
+			t.Fatalf("%s order %v is not post-order", name, order)
+		}
 	}
 }
 

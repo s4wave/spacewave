@@ -22,7 +22,7 @@ type GraphCopyOptions struct {
 	// Complete runs after a block and every block under it are written, in
 	// post-order.
 	Complete func(ctx context.Context, ref *BlockRef) error
-	// Visited observes each block after its write.
+	// Visited observes each block after its read.
 	Visited func(ref *BlockRef, data []byte)
 }
 
@@ -38,6 +38,11 @@ type CopySource interface {
 // outgoing refs src reports, and writes each block with its refs, so dst
 // rebuilds the same ref graph. It never decodes a block. A src that is a
 // CopySource is read through its copy source.
+//
+// Each block is written only after every block under it, in post-order, the
+// order a tree write produces. A destination that stages new blocks under a
+// temporary owner hands each child to its parent when the parent lands, and a
+// written parent always finds its children present.
 //
 // Returns ErrNotFound for a missing block and ErrRefsUnknown for a block src
 // holds without its refs, each wrapped with the block ref. Known, Complete
@@ -80,6 +85,9 @@ type graphCopy struct {
 // graphCopyNode is one block of the copy.
 type graphCopyNode struct {
 	ref *BlockRef
+	// data and refs hold the block read from src until it is written.
+	data []byte
+	refs []*BlockRef
 	// waiting counts children not yet complete.
 	waiting int
 	// parents wait for this block to complete.
@@ -88,7 +96,7 @@ type graphCopyNode struct {
 	done bool
 }
 
-// graphCopyRead is the result of reading and writing one block.
+// graphCopyRead is the result of reading one block.
 type graphCopyRead struct {
 	node *graphCopyNode
 	data []byte
@@ -132,7 +140,7 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 			c.queue = c.queue[:len(c.queue)-1]
 			inFlight++
 			go func() {
-				results <- c.copyBlock(ctx, node)
+				results <- c.readBlock(ctx, node)
 			}()
 		}
 		if inFlight == 0 {
@@ -148,15 +156,15 @@ func (c *graphCopy) run(ctx context.Context, root *BlockRef) error {
 		if c.opts.Visited != nil {
 			c.opts.Visited(res.node.ref, res.data)
 		}
-		if err := c.expand(ctx, res.node, res.refs); err != nil {
+		if err := c.expand(ctx, res.node, res.data, res.refs); err != nil {
 			return err
 		}
 	}
 }
 
-// copyBlock reads one block with its refs from src and writes both to dst.
-func (c *graphCopy) copyBlock(ctx context.Context, node *graphCopyNode) graphCopyRead {
-	// Read the block with its refs from the source.
+// readBlock reads one block with its refs from src.
+func (c *graphCopy) readBlock(ctx context.Context, node *graphCopyNode) graphCopyRead {
+	// Read the block and require the refs a post-order write carries.
 	stored, err := c.src.GetStoredBlock(ctx, node.ref)
 	if err == nil && stored == nil {
 		err = ErrNotFound
@@ -164,24 +172,18 @@ func (c *graphCopy) copyBlock(ctx context.Context, node *graphCopyNode) graphCop
 	if err == nil && !stored.RefsKnown {
 		err = ErrRefsUnknown
 	}
-
-	// Write the block with its refs to the destination.
-	if err == nil {
-		err = c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
-			Ref:  node.ref,
-			Data: stored.Data,
-			Refs: stored.Refs,
-		}})
-	}
 	if err != nil {
 		return graphCopyRead{err: errors.Wrap(err, node.ref.MarshalString())}
 	}
 	return graphCopyRead{node: node, data: stored.Data, refs: stored.Refs}
 }
 
-// expand queues the children of a written block that are neither seen nor
-// known, and completes the block when none remain.
-func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*BlockRef) error {
+// expand holds a read block until its write, queues its children that are
+// neither seen nor known, and completes the block when none remain.
+func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, data []byte, refs []*BlockRef) error {
+	// Hold the block until its subtree completes.
+	node.data, node.refs = data, refs
+
 	// Link the children into the copy graph, collecting unseen ones.
 	var fresh []*graphCopyNode
 	for _, ref := range refs {
@@ -230,14 +232,23 @@ func (c *graphCopy) expand(ctx context.Context, node *graphCopyNode, refs []*Blo
 	return nil
 }
 
-// complete marks a block complete and completes each parent that no longer
-// waits on a child.
+// complete writes a block whose subtree is written, marks it complete, and
+// completes each parent that no longer waits on a child.
 func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
-	// Complete each node, then any parent it fully released.
+	// Write and complete each node, then any parent it fully released.
 	stack := []*graphCopyNode{node}
 	for len(stack) != 0 {
 		node := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
+		err := c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
+			Ref:  node.ref,
+			Data: node.data,
+			Refs: node.refs,
+		}})
+		if err != nil {
+			return errors.Wrap(err, node.ref.MarshalString())
+		}
+		node.data, node.refs = nil, nil
 		node.done = true
 		if c.opts.Complete != nil {
 			if err := c.opts.Complete(ctx, node.ref); err != nil {

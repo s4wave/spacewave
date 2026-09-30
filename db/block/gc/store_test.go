@@ -1031,3 +1031,52 @@ func TestGCStoreOpsGetStoredBlock(t *testing.T) {
 		t.Fatalf("missing = %+v/%v, want not found", got, err)
 	}
 }
+
+// flushingStore flushes each batch like a bounded buffered writer, so a copy
+// spans many ownership flushes.
+type flushingStore struct {
+	*GCStoreOps
+}
+
+func (s flushingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Write the batch, then deliver its ownership changes.
+	if err := s.GCStoreOps.PutBlockBatch(ctx, entries); err != nil {
+		return err
+	}
+	return s.FlushPending(ctx)
+}
+
+// TestGCStoreOps_ParentIRI_CopyGraphHandsChildrenToParents tests that a graph
+// copied into a parented store leaves the parent owning only the root, so
+// replacing the root releases the whole copy.
+func TestGCStoreOps_ParentIRI_CopyGraphHandsChildrenToParents(t *testing.T) {
+	// Build a source graph with recorded edges.
+	src := newGCTestEnv(t)
+	put := func(data string, refs ...*block.BlockRef) *block.BlockRef {
+		ref, _, err := src.gcStore.PutBlock(src.ctx, []byte(data), &block.PutOpts{Refs: refs})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		return ref
+	}
+	leaf := put("leaf")
+	mid := put("mid", leaf)
+	root := put("root", mid, put("side"))
+	src.flush(t)
+
+	// Copy it into a bucket store that flushes after every write.
+	parent := BucketIRI("copy-bucket")
+	dst := newGCTestEnvWithParent(t, parent)
+	if err := block.CopyGraph(src.ctx, src.gcStore, flushingStore{dst.gcStore}, root, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Every copied child belongs to its parent block, not the bucket.
+	owned, err := dst.refGraph.GetOutgoingRefs(dst.ctx, parent)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !slices.Equal(owned, []string{BlockIRI(root)}) {
+		t.Fatalf("parent owns %v, want only the root %s", owned, BlockIRI(root))
+	}
+}
