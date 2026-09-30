@@ -159,10 +159,20 @@ func (p *Page) searchEntry(key []byte) int {
 	return idx
 }
 
+// rawInlineValue returns the entry's raw inline value, borrowed from the page.
+func (p *Page) rawInlineValue(index int) ([]byte, bool) {
+	value := p.GetEntries()[index].GetValueBlob()
+	if value == nil || value.GetBlobType() != blob.BlobType_BlobType_RAW {
+		return nil, false
+	}
+	return value.GetRawData(), true
+}
+
+// entryToValue returns an owned copy of the entry's value.
 func (t *Tx) entryToValue(ctx context.Context, page *Page, cursor *block.Cursor, index int) ([]byte, error) {
 	// Raw inline values need neither a cursor handle nor a storage round trip.
-	if value := page.GetEntries()[index].GetValueBlob(); value != nil && value.GetBlobType() == blob.BlobType_BlobType_RAW {
-		return bytes.Clone(value.GetRawData()), ctx.Err()
+	if raw, ok := page.rawInlineValue(index); ok {
+		return bytes.Clone(raw), ctx.Err()
 	}
 	valueCursor := page.FollowValue(cursor, index)
 	if page.GetEntries()[index].GetValueIsBlob() {

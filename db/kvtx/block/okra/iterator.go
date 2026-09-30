@@ -85,6 +85,17 @@ func (i *Iterator) Value() ([]byte, error) {
 
 // ValueCopy copies the value to the given byte slice and returns it.
 func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
+	// Copy raw inline values straight from the page into buf.
+	if i.Valid() {
+		if raw, ok := i.current.page.rawInlineValue(i.current.index); ok {
+			if err := i.checkContext(); err != nil {
+				return nil, err
+			}
+			return append(buf[:0], raw...), nil
+		}
+	}
+
+	// Copy other values out of their owned fetch result.
 	val, err := i.Value()
 	if err != nil {
 		return nil, err

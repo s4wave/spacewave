@@ -39,6 +39,7 @@ func newTxScanIterator(ctx context.Context, tx kvtx.Tx, prefix []byte) *txScanIt
 
 // Next advances an iterator.
 func (i *txScanIterator) Next(ctx context.Context) bool {
+	// Stop after an earlier error or a canceled context.
 	if i.err != nil {
 		return false
 	}
@@ -46,9 +47,12 @@ func (i *txScanIterator) Next(ctx context.Context) bool {
 		i.err = err
 		return false
 	}
+
+	// Clear the previous entry.
 	i.key = nil
 	i.value = nil
 
+	// Run the start hook once, then resolve the underlying iterator.
 	if !i.started && i.beforeStart != nil {
 		if err := i.beforeStart(ctx); err != nil {
 			i.err = err
@@ -60,6 +64,7 @@ func (i *txScanIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
+	// Seek to the first entry on the first call and advance afterward.
 	if !i.started {
 		i.started = true
 		if err := iter.Seek(nil); err != nil {
@@ -71,6 +76,7 @@ func (i *txScanIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
+	// Copy the value, which ValueCopy into a nil buffer already owns.
 	if !iter.Valid() {
 		i.err = iter.Err()
 		return false
@@ -80,8 +86,10 @@ func (i *txScanIterator) Next(ctx context.Context) bool {
 		i.err = err
 		return false
 	}
+
+	// Keep an owned key and the owned value.
 	i.key = kv.Key(iter.Key()).Clone()
-	i.value = kv.Value(value).Clone()
+	i.value = kv.Value(value)
 	return true
 }
 
