@@ -2,13 +2,14 @@ package resource_space
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/starpc/srpc"
-	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
+	"github.com/aperturerobotics/controllerbus/controller/callback"
+	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
-	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -19,7 +20,6 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
 )
@@ -39,9 +39,10 @@ func (p *bindingTestPolicy) WaitDevicePolicy(ctx context.Context, last []byte) (
 	return nil, "", 0, ctx.Err()
 }
 
-// addBindingTestWorkerPolicyHost serves the policy Resource route through the
-// Space scheduler's plugin-host client.
-func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, runtime *plugin_space_runtime.Controller, workerKey string) {
+// addBindingTestWorkerPolicyHost publishes the native host Root with a bound
+// policy source on the daemon bus, as the native daemon does.
+func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, workerKey string) {
+	// Bind one policy revision to a fresh host Root.
 	t.Helper()
 	policy, err := (&device_policy.DevicePolicy{Revision: 1, ForgeWorker: &device_policy.ForgeWorkerPolicy{
 		WorkerObjectKey: workerKey, MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker"},
@@ -51,22 +52,29 @@ func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testb
 	}
 	hostRoot := plugin_host_root.NewRoot()
 	hostRoot.SetDevicePolicySource(&bindingTestPolicy{data: policy})
-	pluginRoot := plugin_host_resource.NewPluginHostRoot(tb.Bus, "spacewave-core", "", nil, nil, nil,
-		hostRoot, "test-policy", tb.Volume.GetID(), nil)
-	t.Cleanup(pluginRoot.Release)
-	hostMux := srpc.NewMux()
-	if err := resource_server.NewResourceServer(pluginRoot.GetMux()).Register(hostMux); err != nil {
-		t.Fatal(err)
-	}
-	gen := waitSpaceRuntimeGeneration(t, runtime, nil)
-	hostServer := bifrost_rpc.NewInvokerController(tb.Logger, gen.GetBus(),
-		controller.NewInfo("test/worker-policy-server", controller.MustParseVersion("0.0.1"), ""),
-		hostMux, nil)
-	releaseServer, err := gen.GetBus().AddController(ctx, hostServer, nil)
+
+	// Resolve native host Root lookups with that Root.
+	platformID := (&bldr_platform.NativePlatform{}).GetPlatformID()
+	rootCtrl := callback.NewCallbackController(
+		controller.NewInfo("test/native-host-root", controller.MustParseVersion("0.0.1"), ""),
+		nil,
+		func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			d, ok := inst.GetDirective().(plugin_host_root.LookupRoot)
+			if !ok {
+				return nil, nil
+			}
+			if ids := d.LookupRootPlatformIDs(); len(ids) != 0 && !slices.Contains(ids, platformID) {
+				return nil, nil
+			}
+			return directive.R(directive.NewValueResolver([]plugin_host_root.LookupRootValue{hostRoot}), nil)
+		},
+		nil,
+	)
+	releaseRoot, err := tb.Bus.AddController(ctx, rootCtrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(releaseServer)
+	t.Cleanup(releaseRoot)
 }
 
 // bindingTestBody presents the test World under one stable Space identity.

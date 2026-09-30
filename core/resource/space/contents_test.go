@@ -635,7 +635,11 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	}
 }
 
+// TestSpaceContentsResource_SetProcessBindingStartsForgeWorker checks that
+// approving a Worker binding runs the Worker with daemon policy and completes
+// its sample Job after the submitting mount releases.
 func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) {
+	// Start the Space runtime testbed.
 	ctx, tb := newSpaceRuntimeTestbed(t, time.Minute)
 
 	// Create the Worker and sample Job that its binding will execute.
@@ -659,6 +663,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	addSpaceRuntimeController(t, tb.Bus, manifestSource)
 	approveSpaceRuntimePlugin(t, ctx, tb)
 
+	// Mount the Space contents and publish the daemon policy host.
 	conf := &plugin_space.Config{
 		SpaceId:       "space-test",
 		VolumeId:      tb.EngineVolumeID,
@@ -669,13 +674,16 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	addBindingTestWorkerPolicyHost(t, ctx, tb, resource.runtime, "session-worker")
+	addBindingTestWorkerPolicyHost(t, ctx, tb, "session-worker")
+
+	// Wait for the desired plugin to request its missing manifest.
 	select {
 	case <-manifestSource.started:
 	case <-ctx.Done():
 		t.Fatal("desired plugin did not request its missing manifest")
 	}
 
+	// Confirm no Pass runs before the binding is approved.
 	taskKeys, err := forge_job.ListJobTasks(ctx, tb.WorldState, "sample-job")
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)
@@ -690,6 +698,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		}
 	}
 
+	// Approve the Worker binding.
 	_, err = resource.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: "session-worker",
 		TypeId:    "forge/worker",
@@ -699,6 +708,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatalf("SetProcessBinding: %v", err)
 	}
 
+	// Read one contents state from a watch.
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	stream := newTestWatchSpaceContentsStateStream(watchCtx)
 	errCh := make(chan error, 1)
@@ -706,6 +716,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		errCh <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
 	}()
 
+	// Wait for the state, then stop the watch.
 	var resp *s4wave_space.SpaceContentsState
 	select {
 	case resp = <-stream.msgs:
@@ -714,6 +725,8 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatal("timed out waiting for space contents state")
 	}
 	watchCancel()
+
+	// Confirm the watch stopped cleanly and reported the approved binding.
 	select {
 	case err := <-errCh:
 		if err != nil && err != context.Canceled {
@@ -740,6 +753,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 		t.Fatalf("observed Worker capacity = %#v", capacity)
 	}
 
+	// Confirm the Worker completed the sample Job.
 	passState, execState := waitForForgeExecutionState(
 		ctx,
 		t,

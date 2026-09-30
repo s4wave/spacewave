@@ -7,65 +7,68 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	"github.com/s4wave/spacewave/bldr/resource"
-	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
-	plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
-// workerPolicyWatch owns one plugin-host stream and its Resource references.
+// workerPolicyWatch follows the daemon policy bound to the native host Root.
 type workerPolicyWatch struct {
-	stream  plugin_host.SRPCPluginHostResourceService_WatchDevicePolicyClient
+	// ctx ends pending waits when the watch closes.
+	ctx context.Context
+	// source supplies the current and changed policy snapshots.
+	source plugin_host_root.DevicePolicySource
+	// last is the most recently received encoded policy.
+	last []byte
+	// release cancels ctx and releases the Root reference.
 	release func()
 }
 
-// openWorkerPolicyWatch subscribes to daemon policy through the existing host transport.
+// openWorkerPolicyWatch looks up the native host Root, which the Space runtime
+// bridges into its generation, and waits for the daemon to bind its policy.
 func openWorkerPolicyWatch(ctx context.Context, b bus.Bus) (*workerPolicyWatch, error) {
-	service := resource.NewSRPCResourceServiceClientWithServiceID(
-		bifrost_rpc.NewBusClient(b), bldr_plugin.HostServiceIDPrefix+resource.SRPCResourceServiceServiceID,
+	// Find the Root that owns this process's daemon policy.
+	ctx, cancel := context.WithCancel(ctx)
+	root, _, rootRef, err := plugin_host_root.ExLookupRootByPlatform(
+		ctx, b, false, (&bldr_platform.NativePlatform{}).GetPlatformID(), nil,
 	)
-	client, err := resource_client.NewClient(ctx, service)
 	if err != nil {
-		return nil, errors.Wrap(err, "connect to plugin host")
+		cancel()
+		return nil, errors.Wrap(err, "look up native host root")
 	}
-	rootRef := client.AccessRootResource()
-	rootClient, err := rootRef.GetClient()
+
+	// Wait for the daemon to bind its policy source.
+	source, err := root.WaitDevicePolicySource(ctx)
 	if err != nil {
 		rootRef.Release()
-		client.Release()
+		cancel()
 		return nil, err
 	}
-	host := plugin_host.NewSRPCPluginHostResourceServiceClient(rootClient)
-	stream, err := host.WatchDevicePolicy(ctx, &plugin_host.WatchDevicePolicyRequest{})
-	if err != nil {
+	return &workerPolicyWatch{ctx: ctx, source: source, release: func() {
+		cancel()
 		rootRef.Release()
-		client.Release()
-		return nil, err
-	}
-	return &workerPolicyWatch{stream: stream, release: func() {
-		stream.Close()
-		rootRef.Release()
-		client.Release()
 	}}, nil
 }
 
-// Recv decodes one complete policy snapshot and its enrolled Device identity.
+// Recv waits for the first or next policy snapshot and its enrolled Device identity.
 func (w *workerPolicyWatch) Recv() (*device_policy.DevicePolicy, string, error) {
-	update, err := w.stream.Recv()
+	// Wait for a revision other than the last one received.
+	data, deviceKey, revision, err := w.source.WaitDevicePolicy(w.ctx, w.last)
 	if err != nil {
 		return nil, "", err
 	}
+
+	// Decode it and check it against the reported revision.
 	policy := &device_policy.DevicePolicy{}
-	if err := policy.UnmarshalVT(update.GetPolicy()); err != nil {
+	if err := policy.UnmarshalVT(data); err != nil {
 		return nil, "", errors.Wrap(err, "decode daemon policy")
 	}
-	if policy.GetRevision() != update.GetRevision() {
+	if policy.GetRevision() != revision {
 		return nil, "", errors.New("device policy revision mismatch")
 	}
-	return policy, update.GetDeviceObjectKey(), nil
+	w.last = data
+	return policy, deviceKey, nil
 }
 
-// Close releases the host stream and its root Resource references.
+// Close ends pending waits and releases the Root reference.
 func (w *workerPolicyWatch) Close() { w.release() }
