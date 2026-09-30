@@ -18,6 +18,11 @@ func NewPageBlock() block.Block {
 	return &Page{}
 }
 
+// DecodedBlockCacheTypeKey returns the decoded-block cache type key.
+func (p *Page) DecodedBlockCacheTypeKey() string {
+	return "db/kvtx/block/okra.Page"
+}
+
 func entryChildRefID(index int) uint32 {
 	return entryChildRefIDBase + uint32(index) //nolint:gosec // page entry indexes are bounded by the in-memory page representation.
 }
