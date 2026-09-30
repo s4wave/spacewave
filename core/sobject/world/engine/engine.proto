@@ -36,13 +36,9 @@ message Config {
   // Defaults to reasonable defaults if unset.
   .backoff.Backoff process_ops_backoff = 8;
 
-  // Fields 9 and 10 timed the World-local GC sweep.
-  reserved 9, 10;
-
-  // EnableStorageReclaim runs storage reclaim passes as the validator. A pass
-  // drops the blocks the local store no longer holds from the storage backend,
-  // five minutes after a write and at most once an hour.
-  bool enable_storage_reclaim = 11;
+  // Fields 9 and 10 timed the World-local GC sweep. Field 11 enabled storage
+  // reclaim, which now always runs.
+  reserved 9, 10, 11;
 }
 
 // InnerState contains the inner state object for the SharedObject.

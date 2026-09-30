@@ -12,6 +12,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
 // CheckOutcome classifies a bucket connectivity check.
@@ -89,7 +90,8 @@ type Config struct {
 	BucketName string `protobuf:"bytes,3,opt,name=bucket_name,json=bucketName,proto3" json:"bucketName,omitempty"`
 	// ObjectPrefix is the prefix to use for object names.
 	// Packfiles are {objectPrefix}packs/{id}, and their entries are
-	// {objectPrefix}entries/{id}.
+	// {objectPrefix}entries/{id}. The storage reclaim state is
+	// {objectPrefix}reclaim/{time}.
 	ObjectPrefix string `protobuf:"bytes,4,opt,name=object_prefix,json=objectPrefix,proto3" json:"objectPrefix,omitempty"`
 	// BucketIds is a list of bucket ids to serve LookupBlockFromNetwork directives.
 	BucketIds []string `protobuf:"bytes,7,rep,name=bucket_ids,json=bucketIds,proto3" json:"bucketIds,omitempty"`
@@ -312,6 +314,65 @@ func (x *ObjectUsage) GetBytes() int64 {
 	return 0
 }
 
+// ReclaimState records the last storage reclaim pass on a bucket prefix, so
+// the next pass runs only once the dead bytes it would drop cost more to keep
+// than the pass costs to run.
+type ReclaimState struct {
+	unknownFields []byte
+	// PassedAt is when the pass ran.
+	PassedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=passed_at,json=passedAt,proto3" json:"passedAt,omitempty"`
+	// DeadBytes is the dead block bytes the pass left in place.
+	DeadBytes uint64 `protobuf:"varint,2,opt,name=dead_bytes,json=deadBytes,proto3" json:"deadBytes,omitempty"`
+	// DeadBytesPerDay is the rate blocks died between the previous pass and
+	// this one.
+	DeadBytesPerDay uint64 `protobuf:"varint,3,opt,name=dead_bytes_per_day,json=deadBytesPerDay,proto3" json:"deadBytesPerDay,omitempty"`
+	// Packs is the number of packfiles the pass judged.
+	Packs uint64 `protobuf:"varint,4,opt,name=packs,proto3" json:"packs,omitempty"`
+	// Blocks is the number of blocks in those packfiles.
+	Blocks uint64 `protobuf:"varint,5,opt,name=blocks,proto3" json:"blocks,omitempty"`
+}
+
+func (x *ReclaimState) Reset() {
+	*x = ReclaimState{}
+}
+
+func (*ReclaimState) ProtoMessage() {}
+
+func (x *ReclaimState) GetPassedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PassedAt
+	}
+	return nil
+}
+
+func (x *ReclaimState) GetDeadBytes() uint64 {
+	if x != nil {
+		return x.DeadBytes
+	}
+	return 0
+}
+
+func (x *ReclaimState) GetDeadBytesPerDay() uint64 {
+	if x != nil {
+		return x.DeadBytesPerDay
+	}
+	return 0
+}
+
+func (x *ReclaimState) GetPacks() uint64 {
+	if x != nil {
+		return x.Packs
+	}
+	return 0
+}
+
+func (x *ReclaimState) GetBlocks() uint64 {
+	if x != nil {
+		return x.Blocks
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -403,6 +464,26 @@ func (m *ObjectUsage) CloneVT() *ObjectUsage {
 }
 
 func (m *ObjectUsage) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReclaimState) CloneVT() *ReclaimState {
+	if m == nil {
+		return (*ReclaimState)(nil)
+	}
+	r := new(ReclaimState)
+	r.DeadBytes = m.DeadBytes
+	r.DeadBytesPerDay = m.DeadBytesPerDay
+	r.Packs = m.Packs
+	r.Blocks = m.Blocks
+	r.PassedAt = protobuf_go_lite.CloneVTValue(m.PassedAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReclaimState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -542,6 +623,38 @@ func (this *ObjectUsage) EqualVT(that *ObjectUsage) bool {
 
 func (this *ObjectUsage) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ObjectUsage)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReclaimState) EqualVT(that *ReclaimState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.PassedAt, that.PassedAt) {
+		return false
+	}
+	if this.DeadBytes != that.DeadBytes {
+		return false
+	}
+	if this.DeadBytesPerDay != that.DeadBytesPerDay {
+		return false
+	}
+	if this.Packs != that.Packs {
+		return false
+	}
+	if this.Blocks != that.Blocks {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReclaimState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReclaimState)
 	if !ok {
 		return false
 	}
@@ -926,6 +1039,84 @@ func (x *ObjectUsage) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ReclaimState message to JSON.
+func (x *ReclaimState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PassedAt != nil || s.HasField("passedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("passedAt")
+		x.PassedAt.MarshalProtoJSON(s.WithField("passedAt"))
+	}
+	if x.DeadBytes != 0 || s.HasField("deadBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deadBytes")
+		s.WriteUint64(x.DeadBytes)
+	}
+	if x.DeadBytesPerDay != 0 || s.HasField("deadBytesPerDay") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deadBytesPerDay")
+		s.WriteUint64(x.DeadBytesPerDay)
+	}
+	if x.Packs != 0 || s.HasField("packs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packs")
+		s.WriteUint64(x.Packs)
+	}
+	if x.Blocks != 0 || s.HasField("blocks") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blocks")
+		s.WriteUint64(x.Blocks)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReclaimState to JSON.
+func (x *ReclaimState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReclaimState message from JSON.
+func (x *ReclaimState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "passed_at", "passedAt":
+			if s.ReadNil() {
+				x.PassedAt = nil
+				return
+			}
+			x.PassedAt = &timestamppb.Timestamp{}
+			x.PassedAt.UnmarshalProtoJSON(s.WithField("passed_at", true))
+		case "dead_bytes", "deadBytes":
+			s.AddField("dead_bytes")
+			x.DeadBytes = s.ReadUint64()
+		case "dead_bytes_per_day", "deadBytesPerDay":
+			s.AddField("dead_bytes_per_day")
+			x.DeadBytesPerDay = s.ReadUint64()
+		case "packs":
+			s.AddField("packs")
+			x.Packs = s.ReadUint64()
+		case "blocks":
+			s.AddField("blocks")
+			x.Blocks = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReclaimState from JSON.
+func (x *ReclaimState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1198,6 +1389,68 @@ func (m *ObjectUsage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ReclaimState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReclaimState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReclaimState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Blocks != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Blocks))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Packs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Packs))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.DeadBytesPerDay != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DeadBytesPerDay))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.DeadBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DeadBytes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.PassedAt != nil {
+		size, err := m.PassedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1272,6 +1525,24 @@ func (m *ObjectUsage) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Objects)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Bytes)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReclaimState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PassedAt != nil {
+		l = m.PassedAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DeadBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DeadBytesPerDay)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Packs)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Blocks)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1407,6 +1678,36 @@ func (x *ObjectUsage) MarshalProtoText() string {
 }
 
 func (x *ObjectUsage) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReclaimState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReclaimState")
+	if x.PassedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "passed_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.PassedAt)
+	}
+	if x.DeadBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dead_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.DeadBytes)
+	}
+	if x.DeadBytesPerDay != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dead_bytes_per_day")
+		protobuf_go_lite.TextWriteUint(&sb, x.DeadBytesPerDay)
+	}
+	if x.Packs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "packs")
+		protobuf_go_lite.TextWriteUint(&sb, x.Packs)
+	}
+	if x.Blocks != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "blocks")
+		protobuf_go_lite.TextWriteUint(&sb, x.Blocks)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReclaimState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1803,6 +2104,100 @@ func (m *ObjectUsage) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Bytes = 0
 			m.Bytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReclaimState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReclaimState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReclaimState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PassedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.PassedAt == nil {
+				m.PassedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.PassedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeadBytes", wireType)
+			}
+			m.DeadBytes = 0
+			m.DeadBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DeadBytesPerDay", wireType)
+			}
+			m.DeadBytesPerDay = 0
+			m.DeadBytesPerDay, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Packs", wireType)
+			}
+			m.Packs = 0
+			m.Packs, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Blocks", wireType)
+			}
+			m.Blocks = 0
+			m.Blocks, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

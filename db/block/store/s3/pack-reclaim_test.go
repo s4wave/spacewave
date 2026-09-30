@@ -2,6 +2,7 @@ package block_store_s3
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -102,6 +103,114 @@ func TestPackStoreReclaim(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestPackStoreReclaimSchedule runs the first pass at once, skips the fence
+// when no packfile is worth reclaiming, and skips later passes until the
+// blocks expected to die cost more to store than a pass costs, including in a
+// new store that reads the recorded state.
+func TestPackStoreReclaimSchedule(t *testing.T) {
+	// Write a live packfile to a bucket priced as Amazon S3.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	store := newTestPackStore(t, client)
+	store.pricing = awsPricing
+	putPack(t, bucket, store, "a0", "a1")
+
+	// Count the liveness checks and fail on any fence.
+	checks := 0
+	live := func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+		checks++
+		alive := make([]bool, len(refs))
+		for i := range alive {
+			alive[i] = true
+		}
+		return alive, nil
+	}
+	fence := func(context.Context) error {
+		t.Error("fence ran with no packfile worth reclaiming")
+		return nil
+	}
+
+	// Run the first pass and check it recorded one state.
+	if err := store.Reclaim(ctx, fence, live); err != nil {
+		t.Fatal(err)
+	}
+	if checks != 1 {
+		t.Fatalf("first pass checked %d packfiles, want 1", checks)
+	}
+	states := reclaimStateKeys(bucket)
+	if len(states) != 1 {
+		t.Fatalf("bucket holds reclaim states %v", states)
+	}
+
+	// Check no block died, so neither this store nor a new one runs a pass.
+	reader := newTestPackStore(t, client)
+	reader.pricing = awsPricing
+	for _, s := range []*PackStore{store, reader} {
+		if err := s.Reclaim(ctx, fence, live); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if checks != 1 {
+		t.Fatalf("skipped passes checked %d packfiles", checks-1)
+	}
+
+	// Check a self-hosted bucket, where a pass costs nothing, runs it and
+	// replaces the recorded state.
+	selfHosted := newTestPackStore(t, client)
+	if err := selfHosted.Reclaim(ctx, fence, live); err != nil {
+		t.Fatal(err)
+	}
+	if checks != 2 {
+		t.Fatalf("self-hosted pass checked %d packfiles, want 1", checks-1)
+	}
+	if next := reclaimStateKeys(bucket); len(next) != 1 || next[0] == states[0] {
+		t.Fatalf("bucket holds reclaim states %v after %v", next, states)
+	}
+}
+
+// TestPackStoreReclaimFenceFailure records a pass whose fence failed, so the
+// next request does not scan the bucket again before a pass is due.
+func TestPackStoreReclaimFenceFailure(t *testing.T) {
+	// Write a dead 1 MiB block to a bucket priced as Amazon S3.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	store := newTestPackStore(t, client)
+	store.pricing = awsPricing
+	putPack(t, bucket, store, strings.Repeat("x", 1<<20))
+
+	// Count the liveness checks, report every block dead, and fail the fence.
+	checks := 0
+	live := func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+		checks++
+		return make([]bool, len(refs)), nil
+	}
+	errNotReady := errors.New("not ready")
+	fence := func(context.Context) error { return errNotReady }
+
+	// Run a pass and check it returns the fence error.
+	if err := store.Reclaim(ctx, fence, live); !errors.Is(err, errNotReady) {
+		t.Fatalf("Reclaim = %v, want the fence error", err)
+	}
+	if len(reclaimStateKeys(bucket)) != 1 {
+		t.Fatal("failed pass was not recorded")
+	}
+
+	// Check the next request skips the scan.
+	if err := store.Reclaim(ctx, fence, live); err != nil {
+		t.Fatal(err)
+	}
+	if checks != 1 {
+		t.Fatalf("passes checked %d packfiles, want 1", checks)
+	}
+}
+
+// reclaimStateKeys returns the keys of the reclaim states in the bucket.
+func reclaimStateKeys(bucket *fakeBucket) []string {
+	return slices.DeleteFunc(bucket.keys(), func(key string) bool {
+		return !strings.HasPrefix(key, "p/"+reclaimDir)
+	})
 }
 
 // testPack is one packfile a test wrote.

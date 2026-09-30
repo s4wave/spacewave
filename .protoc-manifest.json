@@ -1437,7 +1437,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/sobject/world/engine": {
-      "hash": "4136fd5389189a1c80f56c9b4ea757ec2d052cfcf69f8ae5b70108b090e9bff7",
+      "hash": "866855746377e877dc4379d6d6b352734ae7059900623f7c48c7ac684f4cb453",
       "generatedFiles": [
         "core/sobject/world/engine/engine.pb.go",
         "core/sobject/world/engine/engine.pb.ts"
@@ -1791,7 +1791,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/store/s3": {
-      "hash": "82629368896f6d806cc5c1395824cb49e20c8c4267c143062c24c65e7f02f0ff",
+      "hash": "fd3f256fb2517d3a953d074050f5c4d9d598fe03aa7fa9fbb4f250d5fce42ae6",
       "generatedFiles": [
         "db/block/store/s3/s3.pb.go",
         "db/block/store/s3/s3.pb.ts"

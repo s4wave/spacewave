@@ -7,6 +7,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
  * CheckOutcome classifies a bucket connectivity check.
@@ -78,6 +79,7 @@ export enum CheckOutcome {
 export const CheckOutcome_Enum = /* @__PURE__ */ createEnumType(
   'block.store.s3.CheckOutcome',
   CheckOutcome,
+  'CHECK_OUTCOME_',
 )
 
 /**
@@ -195,7 +197,8 @@ export interface Config {
   /**
    * ObjectPrefix is the prefix to use for object names.
    * Packfiles are {objectPrefix}packs/{id}, and their entries are
-   * {objectPrefix}entries/{id}.
+   * {objectPrefix}entries/{id}. The storage reclaim state is
+   * {objectPrefix}reclaim/{time}.
    *
    * @generated from field: string object_prefix = 4;
    */
@@ -303,5 +306,63 @@ export const CheckResult: MessageType<CheckResult> =
       { no: 1, name: 'outcome', kind: 'enum', T: CheckOutcome_Enum },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'usage', kind: 'message', T: ObjectUsage },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReclaimState records the last storage reclaim pass on a bucket prefix, so
+ * the next pass runs only once the dead bytes it would drop cost more to keep
+ * than the pass costs to run.
+ *
+ * @generated from message block.store.s3.ReclaimState
+ */
+export interface ReclaimState {
+  /**
+   * PassedAt is when the pass ran.
+   *
+   * @generated from field: google.protobuf.Timestamp passed_at = 1;
+   */
+  passedAt?: Date
+  /**
+   * DeadBytes is the dead block bytes the pass left in place.
+   *
+   * @generated from field: uint64 dead_bytes = 2;
+   */
+  deadBytes?: bigint
+  /**
+   * DeadBytesPerDay is the rate blocks died between the previous pass and
+   * this one.
+   *
+   * @generated from field: uint64 dead_bytes_per_day = 3;
+   */
+  deadBytesPerDay?: bigint
+  /**
+   * Packs is the number of packfiles the pass judged.
+   *
+   * @generated from field: uint64 packs = 4;
+   */
+  packs?: bigint
+  /**
+   * Blocks is the number of blocks in those packfiles.
+   *
+   * @generated from field: uint64 blocks = 5;
+   */
+  blocks?: bigint
+}
+
+export const ReclaimState: MessageType<ReclaimState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.store.s3.ReclaimState',
+    fields: [
+      { no: 1, name: 'passed_at', kind: 'message', T: () => Timestamp },
+      { no: 2, name: 'dead_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 3,
+        name: 'dead_bytes_per_day',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 4, name: 'packs', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 5, name: 'blocks', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
   })

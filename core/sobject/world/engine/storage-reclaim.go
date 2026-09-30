@@ -14,7 +14,7 @@ import (
 // first.
 const storageReclaimDelay = 5 * time.Minute
 
-// storageReclaimInterval is the minimum time between storage reclaim passes.
+// storageReclaimInterval is the minimum time between storage reclaim requests.
 // A pass reads the key index of every packfile on the storage backend.
 const storageReclaimInterval = time.Hour
 
@@ -22,16 +22,11 @@ const storageReclaimInterval = time.Hour
 // is not completely local.
 var errStorageReclaimNotReady = errors.New("accepted World is not completely local")
 
-// executeStorageReclaim runs a storage reclaim pass storageReclaimDelay after a
-// write, and no sooner than storageReclaimInterval after the previous pass. It
-// idles while the config leaves storage reclaim off.
+// executeStorageReclaim asks the block store for a storage reclaim pass
+// storageReclaimDelay after a write, and no sooner than storageReclaimInterval
+// after the previous request. The block store decides whether a pass pays for
+// itself.
 func (c *Controller) executeStorageReclaim(ctx context.Context, so sobject.SharedObject) error {
-	// Idle until shutdown while storage reclaim is off.
-	if !c.conf.GetEnableStorageReclaim() {
-		<-ctx.Done()
-		return ctx.Err()
-	}
-
 	// Track the pending pass and the time of the previous one.
 	var reclaimTimer *time.Timer
 	var lastReclaim time.Time
@@ -83,8 +78,8 @@ func (c *Controller) notifyWrite() {
 
 // reclaimStorage drops the blocks the local store no longer holds from the
 // Space's storage backend. Only the validator or an owner runs a pass, because
-// the pass advances the storage generation. A failed pass is logged, and the next write
-// schedules another.
+// the pass advances the storage generation. A failed pass is logged, and the
+// next write schedules another.
 func (c *Controller) reclaimStorage(ctx context.Context, so sobject.SharedObject) error {
 	// Only the validator or owner reclaims.
 	canRun, err := c.isValidatorOrOwner(ctx, so)

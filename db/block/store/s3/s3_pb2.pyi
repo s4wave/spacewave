@@ -1,3 +1,6 @@
+import datetime
+
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -83,3 +86,17 @@ class ObjectUsage(_message.Message):
     objects: int
     bytes: int
     def __init__(self, objects: _Optional[int] = ..., bytes: _Optional[int] = ...) -> None: ...
+
+class ReclaimState(_message.Message):
+    __slots__ = ("passed_at", "dead_bytes", "dead_bytes_per_day", "packs", "blocks")
+    PASSED_AT_FIELD_NUMBER: _ClassVar[int]
+    DEAD_BYTES_FIELD_NUMBER: _ClassVar[int]
+    DEAD_BYTES_PER_DAY_FIELD_NUMBER: _ClassVar[int]
+    PACKS_FIELD_NUMBER: _ClassVar[int]
+    BLOCKS_FIELD_NUMBER: _ClassVar[int]
+    passed_at: _timestamp_pb2.Timestamp
+    dead_bytes: int
+    dead_bytes_per_day: int
+    packs: int
+    blocks: int
+    def __init__(self, passed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., dead_bytes: _Optional[int] = ..., dead_bytes_per_day: _Optional[int] = ..., packs: _Optional[int] = ..., blocks: _Optional[int] = ...) -> None: ...
