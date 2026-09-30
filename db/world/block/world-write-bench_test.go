@@ -9,14 +9,17 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
 )
 
 func BenchmarkWorldStateSetGraphQuadWrite(b *testing.B) {
-	// Build a World with the two objects every quad links.
+	// Open a write transaction with the two objects every quad links.
 	ctx := context.Background()
-	ws, cleanup := setupWorldWriteBench(ctx, b)
+	eng, cleanup := setupWorldWriteBench(ctx, b)
 	defer cleanup()
+	ws := newWorldWriteBenchTx(ctx, b, eng)
+	defer ws.Discard()
 	createWorldWriteBenchObject(ctx, b, ws, "bench/set-graph/source")
 	createWorldWriteBenchObject(ctx, b, ws, "bench/set-graph/target")
 
@@ -49,10 +52,12 @@ func BenchmarkWorldStateSetGraphQuadWrite(b *testing.B) {
 }
 
 func BenchmarkWorldStateCreateObjectWrite(b *testing.B) {
-	// Build an empty World and one object key per iteration.
+	// Open a write transaction and prepare one object key per iteration.
 	ctx := context.Background()
-	ws, cleanup := setupWorldWriteBench(ctx, b)
+	eng, cleanup := setupWorldWriteBench(ctx, b)
 	defer cleanup()
+	ws := newWorldWriteBenchTx(ctx, b, eng)
+	defer ws.Discard()
 	keys := make([]string, b.N)
 	for i := range keys {
 		keys[i] = "bench/create-object/" + strconv.Itoa(i)
@@ -76,7 +81,7 @@ func BenchmarkWorldStateCreateObjectWrite(b *testing.B) {
 func BenchmarkWorldStateMultiOpWriteTransaction(b *testing.B) {
 	// Build an empty World.
 	ctx := context.Background()
-	ws, cleanup := setupWorldWriteBench(ctx, b)
+	eng, cleanup := setupWorldWriteBench(ctx, b)
 	defer cleanup()
 
 	// Prepare two object keys and the quad linking them per iteration.
@@ -94,12 +99,13 @@ func BenchmarkWorldStateMultiOpWriteTransaction(b *testing.B) {
 		)
 	}
 
-	// Create both objects, link them, and commit per iteration.
+	// Create both objects, link them, and commit one transaction per iteration.
 	b.ReportAllocs()
 	b.ResetTimer()
 	var counts worldWriteBenchCounts
 	for i := range b.N {
 		opCtx, readCounter, writeCounter := withWorldWriteBenchCounters(ctx)
+		ws := newWorldWriteBenchTx(opCtx, b, eng)
 		createWorldWriteBenchObject(opCtx, b, ws, subjectKeys[i])
 		createWorldWriteBenchObject(opCtx, b, ws, objectKeys[i])
 		if err := ws.SetGraphQuad(opCtx, quads[i]); err != nil {
@@ -108,6 +114,7 @@ func BenchmarkWorldStateMultiOpWriteTransaction(b *testing.B) {
 		if err := ws.Commit(opCtx); err != nil {
 			b.Fatal(err.Error())
 		}
+		ws.Discard()
 		counts.add(readCounter, writeCounter)
 	}
 
@@ -118,7 +125,40 @@ func BenchmarkWorldStateMultiOpWriteTransaction(b *testing.B) {
 	counts.report(b)
 }
 
-func setupWorldWriteBench(ctx context.Context, tb testing.TB) (*world_block.WorldState, func()) {
+// setupWorldWriteBench builds a World Engine on an empty testbed bucket, as
+// production does.
+func setupWorldWriteBench(ctx context.Context, tb testing.TB) (*world_block.Engine, func()) {
+	// Start a testbed with an empty bucket cursor.
+	tb.Helper()
+	le := logrus.NewEntry(logrus.New())
+	tbed, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		tb.Fatal(err.Error())
+	}
+	ocs, err := tbed.BuildEmptyCursor(ctx)
+	if err != nil {
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+
+	// Build the Engine on the cursor.
+	eng, err := world_block.NewEngine(ctx, le, ocs, world_mock.LookupMockOp, nil, false)
+	if err != nil {
+		ocs.Release()
+		tbed.Release()
+		tb.Fatal(err.Error())
+	}
+	cleanup := func() {
+		eng.Close()
+		ocs.Release()
+		tbed.Release()
+	}
+	return eng, cleanup
+}
+
+// setupWorldState builds a WorldState that tracks the World-local GC graph
+// directly on an empty testbed bucket.
+func setupWorldState(ctx context.Context, tb testing.TB) (*world_block.WorldState, func()) {
 	// Start a testbed with an empty bucket cursor.
 	tb.Helper()
 	le := logrus.NewEntry(logrus.New())
@@ -147,8 +187,19 @@ func setupWorldWriteBench(ctx context.Context, tb testing.TB) (*world_block.Worl
 	return ws, cleanup
 }
 
+// newWorldWriteBenchTx opens a write transaction on the Engine.
+func newWorldWriteBenchTx(ctx context.Context, tb testing.TB, eng *world_block.Engine) world.Tx {
+	// Open the transaction or fail the benchmark.
+	tb.Helper()
+	tx, err := eng.NewTransaction(ctx, true)
+	if err != nil {
+		tb.Fatal(err.Error())
+	}
+	return tx
+}
+
 // createWorldWriteBenchObject creates an empty object and releases its state.
-func createWorldWriteBenchObject(ctx context.Context, tb testing.TB, ws *world_block.WorldState, key string) {
+func createWorldWriteBenchObject(ctx context.Context, tb testing.TB, ws world.WorldState, key string) {
 	// Create the object and release its state.
 	tb.Helper()
 	obj, err := ws.CreateObject(ctx, key, nil)

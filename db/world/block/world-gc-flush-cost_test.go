@@ -76,34 +76,43 @@ const (
 
 var worldCommitCostCheckpoints = []int{1, 8, 16, 32, 64, 96, 128}
 
+// runWorldCommitCostTrial commits 128 times and returns the trailing average
+// commit time at each checkpoint.
 func runWorldCommitCostTrial(t *testing.T) map[int]time.Duration {
+	// Build a World that tracks its GC graph.
 	t.Helper()
 	ctx := context.Background()
-	ws, cleanup := setupWorldWriteBench(ctx, t)
+	ws, cleanup := setupWorldState(ctx, t)
 	defer cleanup()
 
+	// Index the checkpoints and prepare the trailing window.
 	checkpoints := make(map[int]struct{}, len(worldCommitCostCheckpoints))
 	for _, checkpoint := range worldCommitCostCheckpoints {
 		checkpoints[checkpoint] = struct{}{}
 	}
 	windowDurations := make([]time.Duration, 0, worldCommitCostWindow)
 	values := make(map[int]time.Duration, len(checkpoints))
+
+	// Commit one new object at a time and sample the commit cost.
 	for i := 1; i <= 128; i++ {
-		{
-			createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-flush-cost/"+strconv.Itoa(i))
-			world.ReleaseObjectState(createdObject)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
+		// Create one object and time its commit.
+		createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-flush-cost/"+strconv.Itoa(i))
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
 		}
 		start := time.Now()
 		if err := ws.Commit(ctx); err != nil {
 			t.Fatal(err.Error())
 		}
+
+		// Keep the last window of commit times.
 		windowDurations = append(windowDurations, time.Since(start))
 		if len(windowDurations) > worldCommitCostWindow {
 			windowDurations = windowDurations[1:]
 		}
+
+		// Record the window average at each checkpoint.
 		if _, ok := checkpoints[i]; ok {
 			var total time.Duration
 			for _, sample := range windowDurations {

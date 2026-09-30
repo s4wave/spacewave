@@ -10,9 +10,9 @@ import (
 // TestWorldStateSetGraphQuadValidatesAndDeduplicates checks endpoint validation
 // and revision stability when an existing relationship is inserted again.
 func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
-	// Open a fresh write state through the shared setup helper.
+	// Open a fresh write state.
 	ctx := context.Background()
-	ws, cleanup := setupWorldWriteBench(ctx, t)
+	ws, cleanup := setupWorldState(ctx, t)
 	defer cleanup()
 
 	// Create the source and target objects in the write state.
