@@ -49,6 +49,7 @@ type ProducerConfig struct {
 
 // ProduceManifestPack resolves one tuple and writes its manifest-pack artifact.
 func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPackMetadata, error) {
+	// Validate the producer config and resolve the manifest tuple.
 	if err := conf.Validate(); err != nil {
 		return nil, err
 	}
@@ -56,12 +57,16 @@ func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPa
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve manifest tuple")
 	}
+
+	// Replace the built manifest with the dist-dir artifact when configured.
 	if conf.DistDir != "" {
 		manifestRef, err = commitDistDirManifest(ctx, conf, manifestRef.GetMeta())
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	// Store the manifest bundle at the resolved revision.
 	tuple := conf.Tuple.CloneVT()
 	tuple.Rev = manifestRef.GetMeta().GetRev()
 	_, bundleRef, err := StoreManifestBundle(
@@ -75,6 +80,8 @@ func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPa
 	if err != nil {
 		return nil, err
 	}
+
+	// Pack the bundle bytes and build the pack metadata.
 	entry, packSHA, err := PackManifestBundle(
 		ctx,
 		conf.WorldState,
@@ -100,6 +107,7 @@ func ProduceManifestPack(ctx context.Context, conf *ProducerConfig) (*ManifestPa
 
 // Validate validates the producer config.
 func (c *ProducerConfig) Validate() error {
+	// Require the core collaborators.
 	if c == nil {
 		return errors.New("producer config is nil")
 	}
@@ -109,6 +117,8 @@ func (c *ProducerConfig) Validate() error {
 	if c.WorldState == nil {
 		return errors.New("world state is nil")
 	}
+
+	// Require a valid tuple and identity fields.
 	if err := c.Tuple.ValidateRequest(); err != nil {
 		return err
 	}
@@ -127,6 +137,8 @@ func (c *ProducerConfig) Validate() error {
 	if c.Writer == nil {
 		return errors.New("writer is nil")
 	}
+
+	// Require the dist dir and entrypoint together.
 	if (c.DistDir == "") != (c.Entrypoint == "") {
 		return errors.New("dist_dir and entrypoint must be set together")
 	}
@@ -141,11 +153,13 @@ func commitDistDirManifest(
 	conf *ProducerConfig,
 	meta *bldr_manifest.ManifestMeta,
 ) (*bldr_manifest.ManifestRef, error) {
+	// Stat the entrypoint within the dist directory.
 	entrypointPath := filepath.Join(conf.DistDir, filepath.FromSlash(conf.Entrypoint))
 	if _, err := os.Stat(entrypointPath); err != nil {
 		return nil, errors.Wrap(err, "stat dist dir entrypoint")
 	}
 
+	// Commit the manifest whose dist tree is the dist directory.
 	manifest := bldr_manifest.NewManifest(meta.CloneVT(), conf.Entrypoint)
 	distFs := osfs.New(conf.DistDir, osfs.WithBoundOS())
 	ref, err := world.AccessObject(ctx, conf.WorldState.AccessWorldState, nil, func(bcs *block.Cursor) error {

@@ -126,6 +126,7 @@ func (c *Config) Alloc() {
 
 // Merge merges the given build config into c.
 func (c *Config) Merge(o *Config) {
+	// Merge nothing from a nil config.
 	if o == nil {
 		return
 	}
@@ -175,6 +176,7 @@ func (c *Config) Merge(o *Config) {
 
 // Normalize sorts and deduplicates the fields.
 func (c *Config) Normalize() {
+	// Normalize nothing on a nil config.
 	if c == nil {
 		return
 	}

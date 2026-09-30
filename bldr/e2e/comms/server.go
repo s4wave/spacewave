@@ -39,19 +39,24 @@ func newTestServerNoCOI(distDir string) (*httptest.Server, error) {
 // Binds to localhost (not 127.0.0.1) so the server is a secure context for
 // ServiceWorker registration on all browsers.
 func newFixtureServer(distDir string, coi bool) (*httptest.Server, error) {
+	// Build the static file handler and its request mux.
 	fs := http.FileServer(http.Dir(distDir))
 	mux := http.NewServeMux()
 
+	// Select the root message from the isolation mode.
 	rootMessage := "worker-comms test server"
 	if !coi {
 		rootMessage = "worker-comms test server (no COI)"
 	}
 
+	// Route each request to COI headers, the root page, fixtures, or static files.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Apply Cross-Origin Isolation headers in COI mode.
 		if coi {
 			setCOIHeaders(w)
 		}
 
+		// Serve a plain root page identifying the server mode.
 		path := r.URL.Path
 		if path == "/" {
 			w.Header().Set("Content-Type", "text/plain")
@@ -82,6 +87,7 @@ func newFixtureServer(distDir string, coi bool) (*httptest.Server, error) {
 		fs.ServeHTTP(w, r)
 	})
 
+	// Start the server on a localhost port chosen by the kernel.
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return nil, err
@@ -101,9 +107,12 @@ func setCOIHeaders(w http.ResponseWriter) {
 }
 
 func fixtureNameFromPath(path string) (string, bool) {
+	// Require a .html path long enough to name a fixture.
 	if filepath.Ext(path) != ".html" || len(path) < len("/a.html") {
 		return "", false
 	}
+
+	// Reject fixture names outside alphanumerics and dashes.
 	name := path[1 : len(path)-len(".html")]
 	if name == "" {
 		return "", false

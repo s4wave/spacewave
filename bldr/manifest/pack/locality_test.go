@@ -14,6 +14,7 @@ import (
 // TestManifestPackStartsAtBundleRoot verifies physical layout and deterministic
 // output through the real manifest pack writer, including a filesystem tree.
 func TestManifestPackStartsAtBundleRoot(t *testing.T) {
+	// Store a manifest with dist content and bundle it.
 	ctx := t.Context()
 	ws := newTestWorld(t, ctx, logrus.NewEntry(logrus.New()))
 	tuple := testManifestPackTuple()
@@ -23,6 +24,7 @@ func TestManifestPackStartsAtBundleRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Pack the bundle repeatedly and expect identical output.
 	var first []byte
 	for range 4 {
 		var out bytes.Buffer
@@ -36,6 +38,7 @@ func TestManifestPackStartsAtBundleRoot(t *testing.T) {
 		first = bytes.Clone(out.Bytes())
 	}
 
+	// Expect the bundle root to be the first payload block.
 	reader, err := kvfile.BuildReader(bytes.NewReader(first), uint64(len(first)))
 	if err != nil {
 		t.Fatal(err)

@@ -49,6 +49,7 @@ func TestLogRetentionDaysEnvVar(t *testing.T) {
 }
 
 func TestDetermineStorageRootPrefersStatePath(t *testing.T) {
+	// Prefer the state path environment variable when it is set.
 	statePath := filepath.Join(t.TempDir(), "state")
 	dataDir := filepath.Join(t.TempDir(), "data")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
@@ -57,6 +58,7 @@ func TestDetermineStorageRootPrefersStatePath(t *testing.T) {
 		t.Fatalf("DetermineStorageRoot = %q, %v; want state path %q", got, err, statePath)
 	}
 
+	// Fall back to the data directory when the state path is empty.
 	t.Setenv("SPACEWAVE_STATE_PATH", "")
 	if got, err := DetermineStorageRoot("spacewave"); err != nil || got != dataDir {
 		t.Fatalf("DetermineStorageRoot = %q, %v; want data dir %q", got, err, dataDir)
@@ -64,14 +66,18 @@ func TestDetermineStorageRootPrefersStatePath(t *testing.T) {
 }
 
 func TestResolveStatePathPublishesAbsoluteRoot(t *testing.T) {
+	// Reset the project environment in an empty working directory.
 	t.Chdir(t.TempDir())
 	t.Setenv("SPACEWAVE_STATE_PATH", "")
 	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
 
+	// Resolve a relative state path with an explicit socket path.
 	root, err := ResolveStatePath("spacewave", "state", "/tmp/sw.sock", true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect the published environment and created directory.
 	if !filepath.IsAbs(root) || filepath.Base(root) != "state" {
 		t.Fatalf("root = %q, want absolute path ending in state", root)
 	}
@@ -93,13 +99,17 @@ func TestResolveStatePathPublishesAbsoluteRoot(t *testing.T) {
 // stays out of the environment, so subcommand flags that read it still
 // report whether the user chose a state path.
 func TestResolveStatePathKeepsDefaultUnpublished(t *testing.T) {
+	// Reset the project environment in an empty working directory.
 	t.Chdir(t.TempDir())
 	t.Setenv("SPACEWAVE_STATE_PATH", "")
 
+	// Resolve a default state path without publishing it.
 	root, err := ResolveStatePath("spacewave", "state", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect the directory to exist and the environment to stay unset.
 	if info, err := os.Stat(root); err != nil || !info.IsDir() {
 		t.Fatalf("state root not created: %v", err)
 	}

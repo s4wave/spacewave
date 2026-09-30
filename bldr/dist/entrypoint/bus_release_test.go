@@ -9,6 +9,7 @@ import (
 // TestDistBusReleaseOrdersLeaseBeforeRelaunch covers the real distribution
 // bus callback queue used by the daemon handoff after listener drain.
 func TestDistBusReleaseOrdersLeaseBeforeRelaunch(t *testing.T) {
+	// Register the context cancel, bus resources, state lease, and relaunch releases.
 	ctx, cancel := context.WithCancel(t.Context())
 	stack := &distReleaseStack{}
 	stack.add(cancel)
@@ -22,6 +23,8 @@ func TestDistBusReleaseOrdersLeaseBeforeRelaunch(t *testing.T) {
 		order = append(order, "state lease")
 	})
 	bus.AddRelease(func() { order = append(order, "relaunch") })
+
+	// Release the bus and expect the recorded release order.
 	bus.Release()
 	if want := []string{"bus resources", "state lease", "relaunch"}; !slices.Equal(order, want) {
 		t.Fatalf("distribution release order = %v, want %v", order, want)

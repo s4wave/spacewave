@@ -45,6 +45,7 @@ func NewBuildPolicy(jsMinification, jsSourcemaps, goScriptCodeSplitting enabled.
 
 // Validate validates the BuildPolicy.
 func (p *BuildPolicy) Validate() error {
+	// Accept a nil policy and validate each option.
 	if p == nil {
 		return nil
 	}
@@ -62,6 +63,7 @@ func (p *BuildPolicy) Validate() error {
 
 // Merge merges override into p using enabled.Enabled DEFAULT as "not set".
 func (p *BuildPolicy) Merge(override *BuildPolicy) *BuildPolicy {
+	// Start from a clone of p.
 	merged := &BuildPolicy{}
 	if p != nil {
 		merged = p.CloneVT()
@@ -69,6 +71,8 @@ func (p *BuildPolicy) Merge(override *BuildPolicy) *BuildPolicy {
 	if override == nil {
 		return merged
 	}
+
+	// Merge each override field into the clone.
 	merged.FrontendDevelopment = merged.GetFrontendDevelopment() || override.GetFrontendDevelopment()
 	merged.JsMinification = merged.GetJsMinification().Merge(override.GetJsMinification())
 	merged.JsSourcemaps = merged.GetJsSourcemaps().Merge(override.GetJsSourcemaps())

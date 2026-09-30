@@ -44,6 +44,7 @@ if (finished()) {
 // "DONE" in #log, and returns window.__results as a map. Safari's WebDriver
 // exposes no console, so failures surface only through the results.
 func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
+	// Require a safaridriver endpoint and resolve the fixture timeout.
 	t.Helper()
 	driver := os.Getenv("SAFARIDRIVER_URL")
 	if driver == "" {
@@ -54,6 +55,7 @@ func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
 		timeout = 30 * time.Second
 	}
 
+	// Build the Safari session capabilities.
 	var a fastjson.Arena
 	caps := a.NewObject()
 	always := a.NewObject()
@@ -61,6 +63,8 @@ func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
 	match := a.NewObject()
 	match.Set("alwaysMatch", always)
 	caps.Set("capabilities", match)
+
+	// Open the Safari WebDriver session and delete it when the test ends.
 	session, err := webDriver(http.MethodPost, driver+"/session", caps)
 	if err != nil {
 		t.Fatalf("safari session: %v", err)
@@ -68,6 +72,7 @@ func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
 	base := driver + "/session/" + string(session.GetStringBytes("sessionId"))
 	t.Cleanup(func() { _, _ = webDriver(http.MethodDelete, base, nil) })
 
+	// Apply the script timeout and navigate to the fixture page.
 	timeouts := a.NewObject()
 	timeouts.Set("script", a.NewNumberInt(int(timeout.Milliseconds())))
 	if _, err := webDriver(http.MethodPost, base+"/timeouts", timeouts); err != nil {
@@ -82,6 +87,8 @@ func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
 	if _, err := webDriver(http.MethodPost, base+"/url", target); err != nil {
 		t.Fatalf("goto %s: %v", page, err)
 	}
+
+	// Run the done script and decode its results object.
 	script := a.NewObject()
 	script.Set("script", a.NewString(safariDoneScript))
 	script.Set("args", a.NewArray())
@@ -99,6 +106,7 @@ func runSafari(t *testing.T, fixture string, run fixtureRun) map[string]any {
 // webDriver sends one WebDriver command with an optional body and returns
 // the value of its reply.
 func webDriver(method, endpoint string, body *fastjson.Value) (*fastjson.Value, error) {
+	// Send the WebDriver command with a JSON body.
 	var payload []byte
 	if body != nil {
 		payload = body.MarshalTo(nil)
@@ -114,6 +122,7 @@ func webDriver(method, endpoint string, body *fastjson.Value) (*fastjson.Value, 
 	}
 	defer resp.Body.Close()
 
+	// Parse the reply and return its value or an error for non-200 statuses.
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -133,9 +142,12 @@ func webDriver(method, endpoint string, body *fastjson.Value) (*fastjson.Value, 
 // jsonAny converts a JSON value to the Go values Playwright's Evaluate
 // returns: maps, slices, strings, float64 numbers, bools, and nil.
 func jsonAny(v *fastjson.Value) any {
+	// Convert nothing for a nil value.
 	if v == nil {
 		return nil
 	}
+
+	// Convert each JSON type to its plain Go equivalent.
 	switch v.Type() {
 	case fastjson.TypeObject:
 		out := make(map[string]any)
@@ -167,6 +179,7 @@ func jsonAny(v *fastjson.Value) any {
 // profile's context. The device reaches the test server through adb reverse
 // on the same port. Cleanup clears the test origin and removes the forwards.
 func androidContext(t *testing.T) playwright.BrowserContext {
+	// Connect to the device Chrome and register cleanup for its origin.
 	t.Helper()
 	server, err := url.Parse(testServer.url)
 	if err != nil {

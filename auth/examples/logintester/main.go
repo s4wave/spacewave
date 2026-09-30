@@ -34,6 +34,7 @@ import (
 var username, password string
 
 func main() {
+	// Configure the CLI application flags for username and password.
 	app := cli.NewApp()
 	app.Name = "logintester"
 	app.Usage = "test authentication against a network domain"
@@ -52,6 +53,7 @@ func main() {
 		},
 	}
 
+	// Run the authentication tester and exit fatally on failure.
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err.Error())
 	}
@@ -159,6 +161,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	defer serverRef.Release()
 
+	// Collect the server peer IDs for the SRPC client configuration.
 	serverPeerIDs := []string{serverPeerID.String()}
 
 	// Publish the target entity through the static authentication list.

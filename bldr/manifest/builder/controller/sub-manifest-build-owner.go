@@ -47,15 +47,18 @@ func (o *subManifestBuildOwner) setManifestConfig(
 	manifestConf *bldr_project.ManifestConfig,
 	restartFn func(string),
 ) (*promise.PromiseContainer[*bldr_manifest_builder.BuilderResult], error) {
+	// Take the lock for the whole update.
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 
+	// Update the builder state and reject a changed configuration after a resolved value.
 	_, changed, _, _ := o.builderRoutine.SetState(manifestConf)
 	if changed && o.observed && (o.result != nil || o.resultErr != nil) {
 		// don't allow this, could cause infinite loops
 		return nil, errors.New("called BuildSubManifest with different configuration after a value was already resolved")
 	}
 
+	// Record the observation and restart hook, then return the result promise.
 	o.observed = true
 	if restartFn != nil {
 		o.restartFn = restartFn
@@ -87,13 +90,16 @@ func (o *subManifestBuildOwner) observedResult() (*bldr_manifest_builder.Builder
 }
 
 func (o *subManifestBuildOwner) setResult(val *bldr_manifest_builder.BuilderResult, err error) {
+	// Take the lock for the whole update.
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 
+	// Ignore an unchanged result and error.
 	if o.result.EqualVT(val) && o.resultErr == err {
 		return
 	}
 
+	// Restart the parent build when an observed result changes.
 	if o.observed && (o.result != nil || o.resultErr != nil) {
 		if o.restartFn != nil {
 			o.restartFn("sub-manifest changed: " + o.tracker.subManifestID)
@@ -102,6 +108,7 @@ func (o *subManifestBuildOwner) setResult(val *bldr_manifest_builder.BuilderResu
 		o.observed = false
 	}
 
+	// Store the new result and publish it on the promise.
 	o.result = val
 	o.resultErr = err
 	o.resultPc.SetResult(val, err)

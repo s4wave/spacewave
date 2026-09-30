@@ -46,6 +46,7 @@ func (c *Config) EqualsConfig(c2 config.Config) bool {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the controller, builder, and backoff configurations.
 	if err := c.GetControllerConfig().Validate(); err != nil {
 		return err
 	}
@@ -55,6 +56,8 @@ func (c *Config) Validate() error {
 	if err := c.GetBuildBackoff().Validate(true); err != nil {
 		return err
 	}
+
+	// Validate the optional startup builder result.
 	if startupBuilderResult := c.GetStartupBuilderResult(); startupBuilderResult != nil {
 		if err := startupBuilderResult.Validate(); err != nil {
 			return err

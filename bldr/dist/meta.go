@@ -44,6 +44,7 @@ func NewDistEntrypointMeta(
 	manifestID string,
 	manifestRev uint64,
 ) *DistMeta {
+	// Fill the entrypoint identity fields on the base dist meta.
 	meta := NewDistMeta(projectID, platformID, startupPlugins, distWorldRef, distObjKey)
 	meta.EntrypointRole = entrypointRole
 	meta.ChannelKey = channelKey
@@ -55,6 +56,7 @@ func NewDistEntrypointMeta(
 // UnmarshalDistMetaB58 unmarshals a b58 dist meta.
 // Note: we compress with s2 compression.
 func UnmarshalDistMetaB58(str string) (*DistMeta, error) {
+	// Decode the base58 string, decompress it, and unmarshal the proto.
 	m := &DistMeta{}
 	data, err := b58.Decode(str)
 	if err != nil {
@@ -72,6 +74,7 @@ func UnmarshalDistMetaB58(str string) (*DistMeta, error) {
 
 // Validate checks the dist meta.
 func (m *DistMeta) Validate() error {
+	// Validate each identity field of the dist meta.
 	if err := labels.ValidateDNSLabel(m.GetProjectId()); err != nil {
 		return errors.Wrap(err, "project_id")
 	}

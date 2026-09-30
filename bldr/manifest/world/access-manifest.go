@@ -29,6 +29,7 @@ func AccessManifest(
 ) error {
 	if manifestRef != nil && manifestRef.GetBucketId() != "" {
 		return accessFunc(ctx, nil, func(root *bucket_lookup.Cursor) error {
+			// Follow the manifest ref within the current bucket.
 			if manifestRef.GetBucketId() == root.GetOpArgs().GetBucketId() {
 				le.WithField("bucket-id", manifestRef.GetBucketId()).Debug("following manifest ref in current bucket")
 				manifest, err := root.FollowRef(ctx, manifestRef)
@@ -40,6 +41,7 @@ func AccessManifest(
 				return bldr_manifest.AccessManifest(ctx, le, manifest, cb)
 			}
 
+			// Follow the manifest ref in its external bucket.
 			opArgs := opArgsForRef(root, manifestRef)
 			le.WithFields(logrus.Fields{
 				"bucket-id":      manifestRef.GetBucketId(),
@@ -82,15 +84,18 @@ func AccessStartupManifest(
 	}
 
 	return accessFunc(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		// Follow the manifest ref and access it with local-only reads.
 		manifestCursor, err := followStartupManifestRef(ctx, root, manifestRef)
 		if err != nil {
 			return err
 		}
 		defer manifestCursor.Release()
 
+		// Clone the cursor with local-only reads for fail-fast behavior.
 		localManifestCursor := manifestCursor.CloneWithLocalOnlyReads()
 		defer localManifestCursor.Release()
 
+		// Access the manifest through the local-only cursor.
 		return bldr_manifest.AccessManifest(ctx, le, localManifestCursor, cb)
 	})
 }

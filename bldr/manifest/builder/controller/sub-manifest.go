@@ -73,16 +73,19 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		return err
 	}
 
+	// Build the sub-manifest builder config from the parent's config.
 	manifestBuilderConf := parentBuilderConfig.CloneVT()
 	manifestBuilderConf.ManifestMeta = meta
 	manifestBuilderConf.LinkObjectKeys = nil // TODO should we link this?
 	manifestBuilderConf.WorkingPath = workingPath
 
+	// Reuse the parent's cached startup result for this sub-manifest.
 	var startupBuilderResult *bldr_manifest_builder.BuilderResult
 	if parentStartupResult := ctrlConf.GetStartupBuilderResult(); parentStartupResult != nil {
 		startupBuilderResult = parentStartupResult.GetSubManifestResults()[subManifestID]
 	}
 
+	// Assemble the builder controller config.
 	builderConf := NewConfig(
 		manifestBuilderConf,
 		manifestConfig.GetBuilder(),
@@ -91,6 +94,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		startupBuilderResult,
 	)
 
+	// Load and run the sub-manifest builder controller.
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](
 		ctx,
 		t.c.bus,
@@ -108,10 +112,13 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 		return err
 	}
 
+	// Wait for each builder result and republish it until the context ends.
 	for {
+		// Read the builder's current result promise.
 		resultPromiseCtr := builderCtrl.GetResultPromise()
 		resultPromise, resultPromiseChanged := resultPromiseCtr.GetPromise()
 
+		// Publish each builder result on the owner's promise.
 		if resultPromise != nil {
 			result, err := resultPromise.Await(ctx)
 			if ctx.Err() != nil {
@@ -127,6 +134,7 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 			}
 		}
 
+		// Wait for the next rebuild or context cancellation.
 		select {
 		case <-ctx.Done():
 			return context.Canceled

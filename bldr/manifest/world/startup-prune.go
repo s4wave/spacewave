@@ -44,6 +44,7 @@ func PruneStartupManifestCandidate(
 	proof StartupManifestPruneProof,
 	rootObjKeys ...string,
 ) (*StartupManifestPruneResult, error) {
+	// Reject an empty or missing candidate before touching the graph.
 	if candidate == nil {
 		return nil, errors.New("startup manifest prune candidate is nil")
 	}
@@ -53,6 +54,7 @@ func PruneStartupManifestCandidate(
 		return res, nil
 	}
 
+	// Require a derived, quarantined candidate with every proof gate.
 	provenance := classifyStartupManifestGraphProvenance(ctx, ws, candidate.ObjectKey)
 	if !provenance.derived || provenance.protected {
 		res.Reason = "source-protected:" + provenance.source
@@ -75,6 +77,7 @@ func PruneStartupManifestCandidate(
 		return res, nil
 	}
 
+	// Look up the inbound graph references to the candidate.
 	inbound, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys("", PredManifest.String(), candidate.ObjectKey, ""),
@@ -88,6 +91,7 @@ func PruneStartupManifestCandidate(
 		return res, nil
 	}
 
+	// Require every inbound reference to come from a configured root.
 	rootSet := make(map[string]struct{}, len(rootObjKeys))
 	for _, root := range rootObjKeys {
 		if root != "" {
@@ -109,6 +113,7 @@ func PruneStartupManifestCandidate(
 		}
 	}
 
+	// Look up the candidate's outbound graph references.
 	outbound, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(candidate.ObjectKey, PredManifest.String(), "", ""),
@@ -122,6 +127,7 @@ func PruneStartupManifestCandidate(
 		return res, nil
 	}
 
+	// Delete the inbound graph edges and the candidate object.
 	for _, q := range inbound {
 		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
 			return nil, err

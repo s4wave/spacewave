@@ -45,10 +45,12 @@ func (r *devtoolTUIRunner) start(
 	ctx context.Context,
 	producer *devtool_status.BldrDevtoolStatusProducer,
 ) (context.Context, func()) {
+	// Create the UI context, status updates channel, and completion signal.
 	uiCtx, cancel := context.WithCancel(ctx)
 	updates := make(chan *devtool_status.BldrDevtoolStatus, 16)
 	done := make(chan struct{}, 1)
 
+	// Stream each producer status change onto the updates channel until the context ends.
 	go func() {
 		defer close(updates)
 		current := producer.GetStatus()
@@ -69,6 +71,7 @@ func (r *devtoolTUIRunner) start(
 		}
 	}()
 
+	// Run the terminal UI loop with the key handler until it exits.
 	go func() {
 		defer func() { done <- struct{}{} }()
 		_ = termui.RunWithKeys(

@@ -125,6 +125,7 @@ func NewDevtoolArgs() *DevtoolArgs {
 
 // FillDefaults fills the args defaults.
 func (a *DevtoolArgs) FillDefaults() {
+	// Default to a stdout info-level logger when none is configured.
 	if a.Logger == nil {
 		log := logrus.New()
 		log.SetLevel(logrus.InfoLevel)
@@ -134,12 +135,15 @@ func (a *DevtoolArgs) FillDefaults() {
 		a.LogLevel = "info"
 	}
 
+	// Set the default devtool paths and build type.
 	a.OutputPath = "output"
 	a.ConfigPath = "bldr.yaml"
 	a.StatePath = ".bldr/"
 	a.BuildType = "dev"
 	a.Remote = "devtool"
 	a.UseGitRoot = true
+
+	// Set the default web entrypoint and JavaScript build settings.
 	a.WebListenAddr = "127.0.0.1:5593"
 	a.MinifyEntrypoint = true
 	a.JSMinification = "default"
@@ -147,6 +151,7 @@ func (a *DevtoolArgs) FillDefaults() {
 	a.GoScriptCodeSplitting = "default"
 	a.Watch = true
 
+	// Fill the Bldr version and checksum from the build metadata.
 	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "(devel)" {
 		a.BldrVersion = buildInfo.Main.Version
 		a.BldrVersionSum = buildInfo.Main.Sum
@@ -505,17 +510,22 @@ func (a *DevtoolArgs) BuildPublishCommand() *cli.Command {
 
 // Validate validates the arguments.
 func (a *DevtoolArgs) Validate() error {
+	// Require the output and state paths to be set.
 	if a.OutputPath == "" {
 		return errors.New("output path must be set")
 	}
 	if a.StatePath == "" {
 		return errors.New("state path must be set")
 	}
+
+	// Require a relative Bldr source path.
 	if a.BldrSrcPath != "" {
 		if !strings.HasPrefix(a.BldrSrcPath, ".") {
 			return errors.New("bldr-src-path must be a relative path")
 		}
 	}
+
+	// Validate the build policy override.
 	if _, err := a.BuildPolicyOverride(); err != nil {
 		return err
 	}
@@ -561,8 +571,10 @@ func (a *DevtoolArgs) InitRepoRoot() (
 	repoRoot, stateRoot string,
 	err error,
 ) {
+	// Apply the configured log level to the logger.
 	a.applyLogLevel()
 
+	// Resolve the repository root for the state directory.
 	repoRoot, err = a.FindRepoRoot()
 	if err != nil {
 		return
@@ -573,7 +585,7 @@ func (a *DevtoolArgs) InitRepoRoot() (
 		a.LogFiles.Set("level=DEBUG;path=.bldr/logs/{ts}.log")
 	}
 
-	// Attach log file hooks.
+	// Attach log file hooks for each parsed spec, remembering the primary path.
 	raw := a.LogFiles.Value()
 	if len(raw) != 0 {
 		specs, specErr := logfile.ParseLogFileSpecs(raw, time.Now())
@@ -598,6 +610,7 @@ func (a *DevtoolArgs) InitRepoRoot() (
 		}
 	}
 
+	// Create the state root and write its license and gitignore files.
 	stateRoot = a.GetStateRoot(repoRoot)
 	err = os.MkdirAll(stateRoot, 0o755)
 	if err == nil {

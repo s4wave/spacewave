@@ -26,8 +26,10 @@ type manifestBuildStatusAdapter struct {
 func (a *manifestBuildStatusAdapter) SetManifestBuilderStatus(
 	status bldr_project_controller.ManifestBuilderStatus,
 ) {
+	// Convert the builder status into a devtool row and publish it.
 	row := manifestBuildStatusRow(status)
 	a.producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
+		// Replace the matching row or append the new one, then sort by ID.
 		rows := current.GetManifestBuildRows()
 		replaced := false
 		for idx, existing := range rows {

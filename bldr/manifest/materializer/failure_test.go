@@ -18,15 +18,18 @@ import (
 // points at a block that was never stored and asserts the RPC fails with the
 // missing-block error and never emits a copied root.
 func TestMaterializeManifestMissingChildBlock(t *testing.T) {
+	// Start a testbed with the fixture bucket configs.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
+	// Build the testbed and release it when the test ends.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
 
+	// Open the source bucket cursor.
 	applyTestBucketConfigs(t, ctx, tb)
 	srcCursor := buildTestSourceCursor(t, ctx, tb, nil)
 	defer srcCursor.Release()
@@ -66,6 +69,7 @@ func TestMaterializeManifestMissingChildBlock(t *testing.T) {
 	}
 	srpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 
+	// Open the materialize stream over the in-memory client.
 	client := NewSRPCMaterializerClient(srpcClient)
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{
 		Source:      srcRef,

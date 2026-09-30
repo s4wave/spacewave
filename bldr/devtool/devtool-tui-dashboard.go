@@ -120,6 +120,7 @@ type tuiFailure struct {
 // failureSection lists every failing surface with its full error text wrapped
 // on screen, so the developer sees what failed and where without opening logs.
 func failureSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, width int) []string {
+	// Render each collected failure as a titled wrapped list.
 	failures := collectFailures(snapshot)
 	if len(failures) == 0 {
 		return nil
@@ -140,7 +141,10 @@ func failureSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, wid
 
 // collectFailures gathers actionable errors from the existing status snapshot.
 func collectFailures(snapshot *devtool_status.BldrDevtoolStatus) []tuiFailure {
+	// Collect failures from every status surface into one list.
 	var failures []tuiFailure
+
+	// Add the command error with its log path.
 	command := snapshot.GetCommand()
 	if command.Error != "" {
 		failures = append(failures, tuiFailure{
@@ -150,6 +154,8 @@ func collectFailures(snapshot *devtool_status.BldrDevtoolStatus) []tuiFailure {
 			kind:    tuiStatusError,
 		})
 	}
+
+	// Add each failing manifest fetch and build row.
 	for _, row := range snapshot.GetManifestFetchRows() {
 		if row.Error != "" {
 			failures = append(failures, tuiFailure{
@@ -168,6 +174,8 @@ func collectFailures(snapshot *devtool_status.BldrDevtoolStatus) []tuiFailure {
 			})
 		}
 	}
+
+	// Add each failing plugin and controller row.
 	for _, row := range snapshot.GetPluginRows() {
 		if row.Error != "" {
 			where := "plugin " + row.PluginID
@@ -186,6 +194,8 @@ func collectFailures(snapshot *devtool_status.BldrDevtoolStatus) []tuiFailure {
 			})
 		}
 	}
+
+	// Add warning and error attention rows.
 	for _, row := range snapshot.GetAttentionRows() {
 		if row.Severity != devtool_status.BldrDevtoolAttentionSeverityWarning &&
 			row.Severity != devtool_status.BldrDevtoolAttentionSeverityError {
@@ -294,6 +304,7 @@ func collectTargets(snapshot *devtool_status.BldrDevtoolStatus) []tuiTarget {
 
 // buildDetail describes current build work without repeating strategy labels.
 func buildDetail(row devtool_status.BldrDevtoolManifestBuildRow) string {
+	// Map the finished states to fixed detail text.
 	if row.State == devtool_status.BldrDevtoolManifestStateError {
 		return "build failed"
 	}
@@ -329,6 +340,7 @@ func buildDetail(row devtool_status.BldrDevtoolManifestBuildRow) string {
 
 // fetchDetail describes artifact availability and unresolved local dependencies.
 func fetchDetail(row devtool_status.BldrDevtoolManifestFetchRow) string {
+	// Report a fetch failure before its availability details.
 	if row.Error != "" {
 		return "fetch failed"
 	}
@@ -367,6 +379,7 @@ func targetLine(th tuiTheme, target tuiTarget, nameWidth, width int) string {
 // runtimeSection collapses plugin and controller detail into a scannable count
 // summary; individual failures already appear in the failures section.
 func runtimeSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, width int) []string {
+	// Summarize the plugin and controller row counts under one section title.
 	plugins := snapshot.GetPluginRows()
 	controllers := snapshot.GetControllerRows()
 	if len(plugins) == 0 && len(controllers) == 0 {
@@ -411,6 +424,7 @@ func sectionTitle(th tuiTheme, title string, width int) string {
 
 // countSummary formats runtime counts in a stable status order.
 func countSummary(counts map[tuiStatusKind]int) string {
+	// Build the summary parts in a stable status order.
 	order := []struct {
 		kind  tuiStatusKind
 		label string
@@ -480,6 +494,7 @@ func commandName(command devtool_status.BldrDevtoolCommandStatus) string {
 // final line absorbs any overflow, truncated to width, so no text is silently
 // dropped without a trailing ellipsis.
 func wrapText(text string, width int) []string {
+	// Fit the width and bail out on empty text before wrapping words.
 	if width < 8 {
 		width = 8
 	}
@@ -513,6 +528,7 @@ func fit(value string, width int) string {
 
 // truncateDisplay marks text omitted at the right edge with an ellipsis.
 func truncateDisplay(value string, width int) string {
+	// Return short values and empty widths without truncation.
 	if width <= 0 {
 		return ""
 	}

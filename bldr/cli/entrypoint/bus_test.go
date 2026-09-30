@@ -20,6 +20,7 @@ func TestReleaseClosesStorage(t *testing.T) {
 			name = "canceled parent"
 		}
 		t.Run(name, func(t *testing.T) {
+			// Build the CLI bus and resolve its Bolt database.
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), "test", t.TempDir())
@@ -31,6 +32,8 @@ func TestReleaseClosesStorage(t *testing.T) {
 			if db == nil {
 				t.Fatal("CLI storage did not provide a Bolt database")
 			}
+
+			// Verify on release that caller cleanup runs after storage closes.
 			b.AddRelease(func() {
 				if b.GetContext().Err() == nil {
 					t.Error("caller cleanup ran before bus cancellation")

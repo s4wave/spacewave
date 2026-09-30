@@ -41,6 +41,7 @@ func BundleManifestsKvfile(
 			ctx,
 			bucket_lookup.NewWalkObjectBlocksWithRef(ref, ctor),
 			func(ent *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+				// Propagate walk errors and skip sub-blocks and empty refs.
 				if ent.Err != nil {
 					return false, ent.Err
 				}
@@ -50,6 +51,8 @@ func BundleManifestsKvfile(
 				if !ent.Found {
 					return false, errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
+
+				// Write each first-seen block under the kvfile block prefix.
 				key := ent.Ref.MarshalString()
 				if _, ok := seen[key]; ok {
 					return true, nil
@@ -67,16 +70,21 @@ func BundleManifestsKvfile(
 
 	// Pack the World root followed by the referenced manifest DAGs.
 	return blkEng.AccessWorldState(ctx, nextRootRef, func(bls *bucket_lookup.Cursor) error {
+		// Write the World root's blocks into the kvfile.
 		if err := walkWriteBlocks(bls, nextRootRef.GetRootRef(), world_block.NewWorldBlock); err != nil {
 			return err
 		}
+
+		// Open a read transaction to enumerate the manifest objects.
 		wtx, err := blkEng.NewTransaction(ctx, false)
 		if err != nil {
 			return err
 		}
 		defer wtx.Discard()
 
+		// Pack each manifest object's block DAG after the World root.
 		return world_types.IterateObjectsWithType(ctx, wtx, bldr_manifest_world.ManifestTypeID, func(objKey string) (bool, error) {
+			// Load the manifest object and its root ref.
 			obj, err := world.MustGetObject(ctx, wtx, objKey)
 			defer world.ReleaseObjectState(obj)
 			if err != nil {
@@ -89,6 +97,8 @@ func BundleManifestsKvfile(
 			if rootRef.GetEmpty() {
 				return true, nil
 			}
+
+			// Pack the manifest block DAG into the kvfile.
 			rootBls, err := bls.FollowRef(ctx, rootRef)
 			if err != nil {
 				return false, err

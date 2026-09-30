@@ -16,6 +16,7 @@ type DesktopTrayEntryResource struct {
 
 // NewDesktopTrayEntryResource creates a new DesktopTrayEntryResource.
 func NewDesktopTrayEntryResource(tray *DesktopTray) *DesktopTrayEntryResource {
+	// Register the entry resource service on a new SRPC mux.
 	r := &DesktopTrayEntryResource{
 		tray: tray,
 	}
@@ -45,6 +46,7 @@ func (r *DesktopTrayEntryResource) SetDesktopTrayEntry(
 	ctx context.Context,
 	req *SetDesktopTrayEntryRequest,
 ) (*SetDesktopTrayEntryResponse, error) {
+	// Validate and apply the replacement entry.
 	entry := req.GetEntry()
 	if entry == nil {
 		return nil, ErrDesktopTrayEntryRequired

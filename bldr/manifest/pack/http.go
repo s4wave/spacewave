@@ -43,6 +43,7 @@ func (h *HTTPHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // NewHTTPHandlersFromFS builds browser-compatible handlers from a manifest-pack artifact tree.
 func NewHTTPHandlersFromFS(fsys fs.FS) (*HTTPHandlers, error) {
+	// Read and decode the metadata artifact.
 	metaData, err := fs.ReadFile(fsys, ArtifactMetadataFilename)
 	if err != nil {
 		return nil, err
@@ -51,6 +52,8 @@ func NewHTTPHandlersFromFS(fsys fs.FS) (*HTTPHandlers, error) {
 	if err := meta.UnmarshalVT(metaData); err != nil {
 		return nil, err
 	}
+
+	// Read the pack artifact and build the handlers.
 	packBytes, err := fs.ReadFile(fsys, ArtifactPackFilename)
 	if err != nil {
 		return nil, err
@@ -60,12 +63,15 @@ func NewHTTPHandlersFromFS(fsys fs.FS) (*HTTPHandlers, error) {
 
 // NewHTTPHandlers builds browser-compatible handlers for a manifest-pack artifact.
 func NewHTTPHandlers(meta *ManifestPackMetadata, packBytes []byte) (*HTTPHandlers, error) {
+	// Validate the metadata and verify the pack contents.
 	if err := meta.Validate(); err != nil {
 		return nil, err
 	}
 	if err := verifyPackBytes(meta, packBytes); err != nil {
 		return nil, err
 	}
+
+	// Build handlers serving the encoded metadata and pack bytes.
 	metadata, err := meta.MarshalJSON()
 	if err != nil {
 		return nil, err
@@ -98,6 +104,7 @@ func serveBytes(rw http.ResponseWriter, req *http.Request, name, contentType str
 
 // setBrowserReadableHeaders sets the headers needed for browser access to the served bytes.
 func setBrowserReadableHeaders(h http.Header, contentType string) {
+	// Set the headers browsers need to read the served bytes.
 	h.Set("Accept-Ranges", "bytes")
 	h.Set("Content-Type", contentType)
 	h.Set("Access-Control-Allow-Headers", "Range")

@@ -35,26 +35,35 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the project ID when set.
 	if projID := c.GetProjectId(); projID != "" {
 		if err := bldr_project.ValidateProjectID(projID); err != nil {
 			return errors.Wrap(err, "project_id")
 		}
 	}
+
+	// Validate the ConfigSet map.
 	if err := configset_proto.ConfigSetMap(c.GetConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "config_set")
 	}
+
+	// Validate each Go package import path.
 	for i, impPath := range c.GetGoPkgs() {
 		impPath = strings.TrimPrefix(impPath, "./")
 		if err := module.CheckImportPath(impPath); err != nil {
 			return errors.Wrapf(err, "go_pkgs[%d]: invalid import path", i)
 		}
 	}
+
+	// Validate each CLI package import path.
 	for i, impPath := range c.GetCliPkgs() {
 		impPath = strings.TrimPrefix(impPath, "./")
 		if err := module.CheckImportPath(impPath); err != nil {
 			return errors.Wrapf(err, "cli_pkgs[%d]: invalid import path", i)
 		}
 	}
+
+	// Validate the compose package import path when set.
 	if pkg := c.GetComposePackage(); pkg != "" {
 		if err := module.CheckImportPath(strings.TrimPrefix(pkg, "./")); err != nil {
 			return errors.Wrap(err, "compose_package")

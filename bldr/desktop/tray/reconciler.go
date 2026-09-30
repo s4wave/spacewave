@@ -20,6 +20,7 @@ func ReconcileDesktopTray(
 	target SRPCDesktopTrayResourceServiceClient,
 	targetResources *resource_client.Client,
 ) error {
+	// Construct the reconciler with its entry map.
 	r := &desktopTrayReconciler{
 		source:          source,
 		target:          target,
@@ -28,11 +29,13 @@ func ReconcileDesktopTray(
 	}
 	defer r.releaseAll(context.Background())
 
+	// Stream tray snapshots from the source and apply each state to the target.
 	strm, err := source.WatchDesktopTray(ctx, &WatchDesktopTrayRequest{})
 	if err != nil {
 		return err
 	}
 
+	// Apply each received tray state to the target.
 	for {
 		resp, err := strm.Recv()
 		if err != nil {
@@ -52,6 +55,7 @@ type desktopTrayReconciler struct {
 }
 
 func (r *desktopTrayReconciler) apply(ctx context.Context, state *DesktopTrayState) error {
+	// Collect the valid entries from the incoming state.
 	next := make(map[string]*DesktopTrayEntry)
 	for _, entry := range state.GetEntries() {
 		if entry.GetId() == "" {
@@ -60,6 +64,7 @@ func (r *desktopTrayReconciler) apply(ctx context.Context, state *DesktopTraySta
 		next[entry.GetId()] = entry.CloneVT()
 	}
 
+	// Register new entries and refresh or re-register the existing ones.
 	for id, entry := range next {
 		current := r.entries[id]
 		if current == nil {
@@ -87,6 +92,7 @@ func (r *desktopTrayReconciler) apply(ctx context.Context, state *DesktopTraySta
 		}
 	}
 
+	// Release entries that disappeared from the source state.
 	for id, current := range r.entries {
 		if next[id] != nil {
 			continue
@@ -101,6 +107,7 @@ func (r *desktopTrayReconciler) register(
 	ctx context.Context,
 	entry *DesktopTrayEntry,
 ) (*reconciledDesktopTrayEntry, error) {
+	// Attach a forwarding action handler for attached-handler entries.
 	var attachedActionResourceID uint32
 	if entryUsesAttachedHandler(entry) {
 		handler := &forwardingDesktopTrayActionHandler{
@@ -122,6 +129,7 @@ func (r *desktopTrayReconciler) register(
 		}
 	}
 
+	// Register the entry on the target and detach the handler on failure.
 	resp, err := r.target.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
 		Entry:                    entry,
 		AttachedActionResourceId: attachedActionResourceID,
@@ -133,6 +141,7 @@ func (r *desktopTrayReconciler) register(
 		return nil, err
 	}
 
+	// Hold a resource reference to the registered entry.
 	ref := r.targetResources.CreateResourceReference(resp.GetResourceId())
 	client, err := ref.GetClient()
 	if err != nil {
@@ -142,6 +151,8 @@ func (r *desktopTrayReconciler) register(
 		}
 		return nil, err
 	}
+
+	// Hold a resource reference to the registered entry.
 	return &reconciledDesktopTrayEntry{
 		ref:                      ref,
 		service:                  NewSRPCDesktopTrayEntryResourceServiceClient(client),

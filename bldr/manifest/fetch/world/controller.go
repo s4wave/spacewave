@@ -132,12 +132,14 @@ func (c *Controller) collectManifests(
 	ws world.WorldState,
 ) (*manifestCollectionSnapshot, error) {
 	for {
+		// Read the World sequence and build the collection key.
 		seqno, err := ws.GetSeqno(ctx)
 		if err != nil {
 			return nil, err
 		}
 		key := c.collectionKey(seqno)
 
+		// Return the cached snapshot or join the matching collection.
 		var snapshot *manifestCollectionSnapshot
 		c.mtx.Lock()
 		if c.collectionClosed {
@@ -165,6 +167,7 @@ func (c *Controller) collectManifests(
 			}
 		}
 
+		// Re-read the sequence to detect a World update during collection.
 		// A World update or resolver lifecycle change re-enters the loop with
 		// a new key. The completed snapshot never leaks across either fence.
 		seqno, err = ws.GetSeqno(ctx)
@@ -178,6 +181,7 @@ func (c *Controller) collectManifests(
 }
 
 func (c *Controller) collectionKey(seqno uint64) manifestCollectionKey {
+	// Snapshot the configured object keys in sorted order.
 	key := manifestCollectionKey{
 		seqno:      seqno,
 		objectKeys: slices.Clone(c.conf.GetObjectKeys()),
@@ -185,6 +189,7 @@ func (c *Controller) collectionKey(seqno uint64) manifestCollectionKey {
 	slices.Sort(key.objectKeys)
 	key.objectKeys = slices.Compact(key.objectKeys)
 
+	// Add the active resolver manifest IDs under the lock.
 	c.mtx.Lock()
 	key.manifestIDs = c.activeManifestIDsLocked()
 	c.mtx.Unlock()
@@ -192,6 +197,7 @@ func (c *Controller) collectionKey(seqno uint64) manifestCollectionKey {
 }
 
 func (c *Controller) activeManifestIDsLocked() []string {
+	// Collect the requested manifest IDs from the active resolvers.
 	manifestIDs := make([]string, 0, len(c.resolvers))
 	for resolver := range c.resolvers {
 		if manifestID := resolver.dir.GetManifestId(); manifestID != "" {
@@ -203,12 +209,14 @@ func (c *Controller) activeManifestIDsLocked() []string {
 }
 
 func (c *Controller) addResolver(resolver *fetchManifestResolver) {
+	// Register the resolver in the set.
 	c.mtx.Lock()
 	c.resolvers[resolver] = struct{}{}
 	c.mtx.Unlock()
 }
 
 func (c *Controller) removeResolver(resolver *fetchManifestResolver) {
+	// Remove the resolver from the set.
 	c.mtx.Lock()
 	delete(c.resolvers, resolver)
 	c.mtx.Unlock()
@@ -222,6 +230,7 @@ func (c *Controller) collectManifestsAsync(
 	ws world.WorldState,
 	collection *manifestCollection,
 ) {
+	// Traverse the manifest graph for the collection's key.
 	manifests, manifestErrs, err := bldr_manifest_world.CollectStartupManifestsForManifestIDsResettingUnsupportedHash(
 		ctx,
 		c.le,
@@ -230,6 +239,8 @@ func (c *Controller) collectManifestsAsync(
 		nil,
 		collection.key.objectKeys...,
 	)
+
+	// Build the snapshot from the collected manifests.
 	if err == nil && ctx.Err() != nil {
 		err = context.Canceled
 	}
@@ -239,6 +250,7 @@ func (c *Controller) collectManifestsAsync(
 		manifestErrs: manifestErrs,
 	}
 
+	// Cache the snapshot when this collection is still current.
 	c.mtx.Lock()
 	if c.collection == collection {
 		c.collection = nil
@@ -248,6 +260,7 @@ func (c *Controller) collectManifestsAsync(
 	}
 	c.mtx.Unlock()
 
+	// Publish the snapshot to every waiting resolver.
 	collection.promise.SetResult(snapshot, err)
 }
 

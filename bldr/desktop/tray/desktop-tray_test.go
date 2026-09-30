@@ -39,6 +39,7 @@ func (c *testResourceClientContext) AddResource(mux srpc.Invoker, releaseFn func
 }
 
 func (c *testResourceClientContext) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Allocate the next resource ID and record the value and release hook.
 	c.nextID++
 	resourceID := c.nextID
 	c.values[resourceID] = value
@@ -47,6 +48,7 @@ func (c *testResourceClientContext) AddResourceValue(mux srpc.Invoker, value any
 }
 
 func (c *testResourceClientContext) ReleaseResource(resourceID uint32) bool {
+	// Invoke and forget the release hook when the resource exists.
 	releaseFn := c.releases[resourceID]
 	if releaseFn == nil {
 		return false
@@ -150,11 +152,13 @@ func (s *testWatchStream) SendAndClose(resp *WatchDesktopTrayResponse) error {
 }
 
 func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
+	// Build the request context and the tray under test.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register a status entry and an action entry.
 	statusResp, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:        "status",
@@ -186,6 +190,7 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect the action entry to sort before the status entry with an active icon.
 	state := tray.snapshot()
 	entries := state.GetEntries()
 	if len(entries) != 2 {
@@ -198,6 +203,7 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 		t.Fatalf("expected active icon state, got %s", state.GetIconState())
 	}
 
+	// Toggle the action entry active and disabled through its resource.
 	value, err := client.GetResourceValue(actionResp.GetResourceId())
 	if err != nil {
 		t.Fatal(err)
@@ -210,6 +216,7 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect the snapshot to reflect the active and disabled flags.
 	state = tray.snapshot()
 	entries = state.GetEntries()
 	if !entries[0].GetActive() {
@@ -219,6 +226,7 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 		t.Fatal("expected disabled entry")
 	}
 
+	// Release the status entry and expect only the action entry left.
 	if !client.ReleaseResource(statusResp.GetResourceId()) {
 		t.Fatal("expected release to unregister entry")
 	}
@@ -230,11 +238,13 @@ func TestDesktopTrayRegistryOrdersEntriesAndUpdatesState(t *testing.T) {
 }
 
 func TestDesktopTrayRegistryDerivesStatusTextFromTitleEntry(t *testing.T) {
+	// Build the request context and the tray under test.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register a title entry with an active icon state.
 	_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:        "title",
@@ -247,6 +257,7 @@ func TestDesktopTrayRegistryDerivesStatusTextFromTitleEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect the status text and icon state to derive from the title entry.
 	state := tray.snapshot()
 	if state.GetStatusText() != "Syncing" {
 		t.Fatalf("status text = %q, want Syncing", state.GetStatusText())
@@ -257,9 +268,11 @@ func TestDesktopTrayRegistryDerivesStatusTextFromTitleEntry(t *testing.T) {
 }
 
 func TestDesktopTrayRegistryWatchStreamsSnapshots(t *testing.T) {
+	// Cancel the context when the test finishes.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start the watch stream in the background.
 	client := newTestResourceClientContext(ctx)
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
@@ -269,11 +282,13 @@ func TestDesktopTrayRegistryWatchStreamsSnapshots(t *testing.T) {
 		errCh <- tray.WatchDesktopTray(&WatchDesktopTrayRequest{}, strm)
 	}()
 
+	// Expect an empty initial snapshot.
 	resp := <-strm.updates
 	if len(resp.GetState().GetEntries()) != 0 {
 		t.Fatalf("expected empty initial snapshot, got %d entries", len(resp.GetState().GetEntries()))
 	}
 
+	// Register a runtime entry after the watch started.
 	_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:      "runtime",
@@ -286,12 +301,14 @@ func TestDesktopTrayRegistryWatchStreamsSnapshots(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect the new entry to appear in the streamed snapshot.
 	resp = <-strm.updates
 	entries := resp.GetState().GetEntries()
 	if len(entries) != 1 || entries[0].GetId() != "runtime" {
 		t.Fatalf("unexpected watch snapshot: %#v", entries)
 	}
 
+	// Cancel the context and expect the watch to stop with the error.
 	cancel()
 	if err := <-errCh; err != context.Canceled {
 		t.Fatalf("expected canceled watch, got %v", err)
@@ -299,6 +316,7 @@ func TestDesktopTrayRegistryWatchStreamsSnapshots(t *testing.T) {
 }
 
 func TestDesktopTrayRegistryInvokesAttachedActionHandlers(t *testing.T) {
+	// Build the request context with an attached action client.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	actionClient := &testActionClient{}
@@ -306,6 +324,7 @@ func TestDesktopTrayRegistryInvokesAttachedActionHandlers(t *testing.T) {
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register an action entry referencing the attached handler resource.
 	_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		AttachedActionResourceId: 7,
 		Entry: &DesktopTrayEntry{
@@ -323,6 +342,7 @@ func TestDesktopTrayRegistryInvokesAttachedActionHandlers(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Invoke the entry and expect one request to reach the handler.
 	_, err = tray.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{EntryId: "open"})
 	if err != nil {
 		t.Fatal(err)
@@ -339,6 +359,7 @@ func TestDesktopTrayRegistryInvokesAttachedActionHandlers(t *testing.T) {
 }
 
 func TestDesktopTrayRegistryRejectsNonInvokableEntries(t *testing.T) {
+	// Build the request context with an attached action client.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	actionClient := &testActionClient{}
@@ -346,6 +367,7 @@ func TestDesktopTrayRegistryRejectsNonInvokableEntries(t *testing.T) {
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register a disabled action entry and a status entry.
 	_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		AttachedActionResourceId: 7,
 		Entry: &DesktopTrayEntry{
@@ -372,6 +394,7 @@ func TestDesktopTrayRegistryRejectsNonInvokableEntries(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect both entries to reject invocation without touching the handler.
 	if _, err := tray.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{EntryId: "disabled"}); err != ErrDesktopTrayEntryNotInvokable {
 		t.Fatalf("expected disabled entry to be non-invokable, got %v", err)
 	}
@@ -384,11 +407,13 @@ func TestDesktopTrayRegistryRejectsNonInvokableEntries(t *testing.T) {
 }
 
 func TestDesktopTrayRegistryRejectsDuplicateEntryIDs(t *testing.T) {
+	// Build the request context and the tray under test.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register an entry and expect a duplicate registration to fail.
 	first, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:    "same",
@@ -410,6 +435,7 @@ func TestDesktopTrayRegistryRejectsDuplicateEntryIDs(t *testing.T) {
 		t.Fatalf("expected duplicate entry error, got %v", err)
 	}
 
+	// Rename a separate entry onto the held ID through its resource.
 	value, err := client.GetResourceValue(first.GetResourceId())
 	if err != nil {
 		t.Fatal(err)
@@ -438,11 +464,13 @@ func TestDesktopTrayRegistryRejectsDuplicateEntryIDs(t *testing.T) {
 }
 
 func TestDesktopTrayRegistrySortsTiesByEntryIDThenResourceID(t *testing.T) {
+	// Build the request context and the tray under test.
 	ctx := context.Background()
 	client := newTestResourceClientContext(ctx)
 	reqCtx := resource_server.WithResourceClientContext(ctx, client)
 	tray := NewDesktopTray()
 
+	// Register three entries that tie on path, group, and order.
 	for _, id := range []string{"zeta", "alpha", "middle"} {
 		_, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
 			Entry: &DesktopTrayEntry{
@@ -460,6 +488,7 @@ func TestDesktopTrayRegistrySortsTiesByEntryIDThenResourceID(t *testing.T) {
 		}
 	}
 
+	// Expect the snapshot to order the entries by ID.
 	entries := tray.snapshot().GetEntries()
 	got := []string{entries[0].GetId(), entries[1].GetId(), entries[2].GetId()}
 	want := []string{"alpha", "middle", "zeta"}
@@ -471,19 +500,23 @@ func TestDesktopTrayRegistrySortsTiesByEntryIDThenResourceID(t *testing.T) {
 }
 
 func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
+	// Cancel the context when the test finishes.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build the source and target tray resource clients.
 	sourceClient, source, sourceRelease := newTestDesktopTrayResourceClient(t)
 	defer sourceRelease()
 	targetClient, target, targetRelease := newTestDesktopTrayResourceClient(t)
 	defer targetRelease()
 
+	// Start the reconciler in the background.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ReconcileDesktopTray(ctx, source, target, targetClient)
 	}()
 
+	// Drain the initial empty target snapshot.
 	targetStream, err := target.WatchDesktopTray(ctx, &WatchDesktopTrayRequest{})
 	if err != nil {
 		t.Fatalf("watch target tray: %v", err)
@@ -492,6 +525,7 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 		t.Fatalf("recv target initial snapshot: %v", err)
 	}
 
+	// Register a status entry on the source tray.
 	first, err := source.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:      "status",
@@ -504,6 +538,7 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 		t.Fatalf("register source entry: %v", err)
 	}
 
+	// Expect the entry to mirror onto the target.
 	state := recvTrayState(t, targetStream)
 	if len(state.GetEntries()) != 1 {
 		t.Fatalf("target entries = %d, want 1", len(state.GetEntries()))
@@ -512,6 +547,7 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 		t.Fatalf("target label = %q, want mirrored source label", state.GetEntries()[0].GetLabel())
 	}
 
+	// Update the source entry label through its resource.
 	firstRef := sourceClient.CreateResourceReference(first.GetResourceId())
 	defer firstRef.Release()
 	firstClient, err := firstRef.GetClient()
@@ -531,6 +567,7 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 		t.Fatalf("update source entry: %v", err)
 	}
 
+	// Expect the updated label to mirror onto the target.
 	state = recvTrayState(t, targetStream)
 	if len(state.GetEntries()) != 1 {
 		t.Fatalf("target entries after update = %d, want 1", len(state.GetEntries()))
@@ -539,12 +576,14 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 		t.Fatalf("target label after update = %q, want updated source label", state.GetEntries()[0].GetLabel())
 	}
 
+	// Release the source entry and expect the target to drop it.
 	firstRef.Release()
 	state = recvTrayState(t, targetStream)
 	if len(state.GetEntries()) != 0 {
 		t.Fatalf("target entries after source release = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Cancel the context and expect the reconciler to stop.
 	cancel()
 	if err := <-errCh; err == nil {
 		t.Fatalf("expected reconciler to stop on context cancel")
@@ -552,14 +591,17 @@ func TestReconcileDesktopTrayMirrorsEntriesToTargetResource(t *testing.T) {
 }
 
 func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
+	// Cancel the context when the test finishes.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build the source and target tray resource clients.
 	sourceClient, source, sourceRelease := newTestDesktopTrayResourceClient(t)
 	defer sourceRelease()
 	targetClient, target, targetRelease := newTestDesktopTrayResourceClient(t)
 	defer targetRelease()
 
+	// Attach a test action handler to the source client.
 	handler := &testActionHandler{}
 	handlerMux := srpc.NewMux()
 	if err := SRPCRegisterDesktopTrayActionHandlerService(handlerMux, handler); err != nil {
@@ -573,6 +615,7 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 		_ = sourceClient.DetachResource(context.Background(), attachedActionResourceID)
 	}()
 
+	// Register an attached-handler action entry on the source tray.
 	_, err = source.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
 		AttachedActionResourceId: attachedActionResourceID,
 		Entry: &DesktopTrayEntry{
@@ -590,11 +633,13 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 		t.Fatalf("register source entry: %v", err)
 	}
 
+	// Start the reconciler in the background.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ReconcileDesktopTray(ctx, source, target, targetClient)
 	}()
 
+	// Watch the target tray and drain the initial snapshot.
 	targetStream, err := target.WatchDesktopTray(ctx, &WatchDesktopTrayRequest{})
 	if err != nil {
 		t.Fatalf("watch target tray: %v", err)
@@ -607,6 +652,7 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 		t.Fatalf("target entries = %#v", state.GetEntries())
 	}
 
+	// Invoke the entry on the target and expect the source handler to run.
 	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
 		EntryId: "copy-diagnostics",
 	})
@@ -620,6 +666,7 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 		t.Fatalf("source handler entry id = %q", handler.requests[0].GetEntryId())
 	}
 
+	// Cancel the context and expect the reconciler to stop.
 	cancel()
 	if err := <-errCh; err == nil {
 		t.Fatalf("expected reconciler to stop on context cancel")
@@ -627,14 +674,17 @@ func TestReconcileDesktopTrayForwardsAttachedActionHandlers(t *testing.T) {
 }
 
 func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *testing.T) {
+	// Cancel the context when the test finishes.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build the source and target tray resource clients.
 	sourceClient, source, sourceRelease := newTestDesktopTrayResourceClient(t)
 	defer sourceRelease()
 	targetClient, target, targetRelease := newTestDesktopTrayResourceClient(t)
 	defer targetRelease()
 
+	// Attach a test action handler to the source client.
 	handler := &testActionHandler{}
 	handlerMux := srpc.NewMux()
 	if err := SRPCRegisterDesktopTrayActionHandlerService(handlerMux, handler); err != nil {
@@ -648,6 +698,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		_ = sourceClient.DetachResource(context.Background(), attachedActionResourceID)
 	}()
 
+	// Register an attached-handler action entry on the source tray.
 	first, err := source.RegisterDesktopTrayEntry(ctx, &RegisterDesktopTrayEntryRequest{
 		AttachedActionResourceId: attachedActionResourceID,
 		Entry: &DesktopTrayEntry{
@@ -667,17 +718,21 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 	firstRef := sourceClient.CreateResourceReference(first.GetResourceId())
 	defer firstRef.Release()
 
+	// Start the reconciler in the background.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- ReconcileDesktopTray(ctx, source, target, targetClient)
 	}()
 
+	// Watch the target tray with a timeout.
 	watchCtx, watchCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer watchCancel()
 	targetStream, err := target.WatchDesktopTray(watchCtx, &WatchDesktopTrayRequest{})
 	if err != nil {
 		t.Fatalf("watch target tray: %v", err)
 	}
+
+	// Expect the attached-handler entry to mirror onto the target.
 	state := recvTrayStateWithActionKind(
 		t,
 		targetStream,
@@ -688,6 +743,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		t.Fatalf("target initial entry = %#v", state.GetEntries())
 	}
 
+	// Invoke the entry on the target and expect the source handler to run.
 	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
 		EntryId: "dynamic",
 	})
@@ -698,6 +754,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		t.Fatalf("initial source handler requests = %d, want 1", len(handler.requests))
 	}
 
+	// Replace the entry action with an open-route action.
 	firstClient, err := firstRef.GetClient()
 	if err != nil {
 		t.Fatalf("source entry client: %v", err)
@@ -719,6 +776,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		t.Fatalf("update source entry: %v", err)
 	}
 
+	// Expect the replaced entry to mirror onto the target.
 	state = recvTrayStateWithActionKind(
 		t,
 		targetStream,
@@ -729,6 +787,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		t.Fatalf("target updated entry = %#v", state.GetEntries())
 	}
 
+	// Expect the replaced route entry to reject attached-handler invocation.
 	_, err = target.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{
 		EntryId: "dynamic",
 	})
@@ -739,6 +798,7 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 		t.Fatalf("source handler requests after replace = %d, want 1", len(handler.requests))
 	}
 
+	// Cancel the context and expect the reconciler to stop.
 	cancel()
 	if err := <-errCh; err == nil {
 		t.Fatalf("expected reconciler to stop on context cancel")
@@ -746,9 +806,11 @@ func TestReconcileDesktopTrayReplacesEntryWhenAttachedHandlerModeChanges(t *test
 }
 
 func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *testing.T) {
+	// Register an open-route entry on the source tray.
 	_, source, sourceRelease := newTestDesktopTrayResourceClient(t)
 	defer sourceRelease()
 
+	// Register the "space" route entry on the source tray resource.
 	_, err := source.RegisterDesktopTrayEntry(t.Context(), &RegisterDesktopTrayEntryRequest{
 		Entry: &DesktopTrayEntry{
 			Id:      "space",
@@ -765,6 +827,7 @@ func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *test
 		t.Fatalf("register source entry: %v", err)
 	}
 
+	// Watch the first target and confirm it starts empty.
 	firstTargetClient, firstTarget, firstTargetRelease := newTestDesktopTrayResourceClient(t)
 	defer firstTargetRelease()
 	firstStream, err := firstTarget.WatchDesktopTray(t.Context(), &WatchDesktopTrayRequest{})
@@ -775,17 +838,20 @@ func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *test
 		t.Fatalf("first target initial entries = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Run the first reconciler and expect the entry to mirror.
 	firstCtx, firstCancel := context.WithCancel(t.Context())
 	firstErrCh := make(chan error, 1)
 	go func() {
 		firstErrCh <- ReconcileDesktopTray(firstCtx, source, firstTarget, firstTargetClient)
 	}()
 
+	// Receive the mirrored tray state from the first target stream.
 	state := recvTrayState(t, firstStream)
 	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetLabel() != "My Drive" {
 		t.Fatalf("first target mirrored entries = %#v", state.GetEntries())
 	}
 
+	// Stop the first reconciler and expect the target tray to clear.
 	firstCancel()
 	if err := <-firstErrCh; err == nil {
 		t.Fatalf("expected first reconciler to stop on context cancel")
@@ -795,6 +861,7 @@ func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *test
 		t.Fatalf("first target entries after reconciler stop = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Watch the second target and confirm it starts empty.
 	secondTargetClient, secondTarget, secondTargetRelease := newTestDesktopTrayResourceClient(t)
 	defer secondTargetRelease()
 	secondStream, err := secondTarget.WatchDesktopTray(t.Context(), &WatchDesktopTrayRequest{})
@@ -805,17 +872,20 @@ func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *test
 		t.Fatalf("second target initial entries = %d, want 0", len(state.GetEntries()))
 	}
 
+	// Run the second reconciler and expect the entry to mirror again.
 	secondCtx, secondCancel := context.WithCancel(t.Context())
 	secondErrCh := make(chan error, 1)
 	go func() {
 		secondErrCh <- ReconcileDesktopTray(secondCtx, source, secondTarget, secondTargetClient)
 	}()
 
+	// Receive the mirrored tray state from the second target stream.
 	state = recvTrayState(t, secondStream)
 	if len(state.GetEntries()) != 1 || state.GetEntries()[0].GetLabel() != "My Drive" {
 		t.Fatalf("second target mirrored entries = %#v", state.GetEntries())
 	}
 
+	// Stop the second reconciler.
 	secondCancel()
 	if err := <-secondErrCh; err == nil {
 		t.Fatalf("expected second reconciler to stop on context cancel")
@@ -825,14 +895,18 @@ func TestReconcileDesktopTrayMirrorsExistingEntriesAcrossTargetReconnect(t *test
 func newTestDesktopTrayResourceClient(
 	t *testing.T,
 ) (*resource_client.Client, SRPCDesktopTrayResourceServiceClient, func()) {
+	// Mark the helper so test failures attribute to the caller.
 	t.Helper()
 
+	// Serve the tray resource over an in-memory SRPC server.
 	tray := NewDesktopTray()
 	server := resource_server.NewResourceServer(tray.GetMux())
 	serverMux := srpc.NewMux()
 	if err := server.Register(serverMux); err != nil {
 		t.Fatalf("register resource server: %v", err)
 	}
+
+	// Connect a resource client to the server.
 	resourceService := resource.NewSRPCResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
 	)
@@ -840,6 +914,8 @@ func newTestDesktopTrayResourceClient(
 	if err != nil {
 		t.Fatalf("new resource client: %v", err)
 	}
+
+	// Access the root resource and return the tray service client.
 	rootRef := client.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {

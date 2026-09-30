@@ -24,11 +24,14 @@ import (
 )
 
 func TestImportManifestPackReconstructsCollectableManifest(t *testing.T) {
+	// Import a pack into a fresh world and verify its manifests.
 	ctx := context.Background()
 	dest, meta, tuple := importTestManifestPack(t, ctx)
 	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect one collectable manifest for the tuple.
 	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		dest,
@@ -48,6 +51,7 @@ func TestImportManifestPackReconstructsCollectableManifest(t *testing.T) {
 }
 
 func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
+	// Store a manifest bundle and pack its bytes.
 	ctx := context.Background()
 	source := newTestWorld(t, ctx, logrus.NewEntry(logrus.New()))
 	sender := peer.ID("sender")
@@ -57,11 +61,15 @@ func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Pack the bundle into a byte buffer.
 	var buf bytes.Buffer
 	entry, packDigest, err := PackManifestBundle(ctx, source, "ci-release", bundleRef, &buf)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the pack metadata over the packed bytes.
 	meta, err := NewMetadata(
 		"0123456789abcdef0123456789abcdef01234567",
 		"production",
@@ -76,6 +84,8 @@ func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the packfile store over an in-memory transport.
 	transport := manifestPackBytesTransport{data: buf.Bytes()}
 	opener := func(packID string, size int64) (*packfile_store.PackReader, error) {
 		return packfile_store.NewPackReader(packID, size, transport), nil
@@ -84,6 +94,8 @@ func TestNewPackfileStoreServesManifestBundleBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect the store to serve the bundle root block.
 	got, found, err := store.GetBlock(ctx, bundleRef.GetRootRef())
 	if err != nil {
 		t.Fatal(err)
@@ -109,11 +121,14 @@ func (t manifestPackBytesTransport) Fetch(_ context.Context, off int64, length i
 }
 
 func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {
+	// Import a bucket-scoped manifest pack and verify its manifests.
 	ctx := context.Background()
 	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, true, false)
 	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect one collectable manifest for the tuple.
 	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		dest,
@@ -133,12 +148,15 @@ func TestImportManifestPackIncludesBucketScopedManifestRoot(t *testing.T) {
 }
 
 func TestImportManifestPackIncludesManifestFileTrees(t *testing.T) {
+	// Import a pack with dist content and verify its manifests.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	dest, meta, tuple := importTestManifestPackWithOptions(t, ctx, false, true)
 	if err := VerifyImportedManifests(ctx, dest, meta); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect one collectable manifest for the tuple.
 	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		dest,
@@ -155,6 +173,8 @@ func TestImportManifestPackIncludesManifestFileTrees(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("manifest count = %d", len(got))
 	}
+
+	// Access the imported manifest and resolve its entrypoint.
 	err = bldr_manifest_world.AccessManifest(ctx, le, dest.AccessWorldState, got[0].ManifestRef, func(
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,
@@ -172,6 +192,7 @@ func TestImportManifestPackIncludesManifestFileTrees(t *testing.T) {
 }
 
 func TestStoreManifestBundleCreatesMissingLinkManifestStore(t *testing.T) {
+	// Store a manifest in a fresh world without a link store.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	sender := peer.ID("test")
@@ -179,12 +200,15 @@ func TestStoreManifestBundleCreatesMissingLinkManifestStore(t *testing.T) {
 	tuple := testManifestPackTuple()
 	manifestRef := storeTestManifest(t, ctx, source, tuple, false, false)
 
+	// Store the bundle and expect the link manifest store to exist.
 	if _, _, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if err := bldr_manifest_world.CheckManifestStoreType(ctx, source, tuple.GetLinkObjectKeys()[0]); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expect one collectable manifest for the tuple.
 	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		source,
@@ -204,6 +228,7 @@ func TestStoreManifestBundleCreatesMissingLinkManifestStore(t *testing.T) {
 }
 
 func TestImportManifestPackCreatesMissingLinkManifestStore(t *testing.T) {
+	// Import a pack into a fresh world and check the link store type.
 	ctx := context.Background()
 	dest, _, tuple := importTestManifestPackWithOptions(t, ctx, false, false)
 
@@ -213,10 +238,13 @@ func TestImportManifestPackCreatesMissingLinkManifestStore(t *testing.T) {
 }
 
 func TestVerifyImportedManifestsRejectsWrongPlatform(t *testing.T) {
+	// Import a pack and rewrite its tuple's platform ID.
 	ctx := context.Background()
 	dest, meta, _ := importTestManifestPack(t, ctx)
 	meta = meta.CloneVT()
 	meta.Manifests[0].PlatformId = "desktop/linux/amd64"
+
+	// Expect verification to reject the mismatched platform.
 	err := VerifyImportedManifests(ctx, dest, meta)
 	if err == nil {
 		t.Fatal("VerifyImportedManifests accepted wrong platform")
@@ -227,10 +255,13 @@ func TestVerifyImportedManifestsRejectsWrongPlatform(t *testing.T) {
 }
 
 func TestVerifyImportedManifestsRejectsMissingImport(t *testing.T) {
+	// Verify metadata against a world that never imported the pack.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	dest := newTestWorld(t, ctx, le)
 	meta := testManifestPackMetadata(t)
+
+	// Expect verification to reject the missing import.
 	err := VerifyImportedManifests(ctx, dest, meta)
 	if err == nil {
 		t.Fatal("VerifyImportedManifests accepted missing import")
@@ -238,9 +269,11 @@ func TestVerifyImportedManifestsRejectsMissingImport(t *testing.T) {
 }
 
 func TestVerifyImportedManifestsRejectsSkippedNormalManifest(t *testing.T) {
+	// Import a pack and add a corrupted manifest under the link key.
 	ctx := context.Background()
 	dest, meta, tuple := importTestManifestPack(t, ctx)
 
+	// Store the corrupted manifest and link it to the tuple's object key.
 	badRef := storeTestManifest(t, ctx, dest, tuple, false, false).GetManifestRef().CloneVT()
 	badRef.RootRef.Hash.Hash[0] ^= 0xff
 	const badManifestKey = "ci/manifest-pack/bad"
@@ -251,6 +284,7 @@ func TestVerifyImportedManifestsRejectsSkippedNormalManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Expect verification to reject the skipped manifest by key.
 	err := VerifyImportedManifests(ctx, dest, meta)
 	if err == nil {
 		t.Fatal("VerifyImportedManifests accepted skipped normal manifest")
@@ -264,7 +298,10 @@ func TestVerifyImportedManifestsRejectsSkippedNormalManifest(t *testing.T) {
 }
 
 func TestImportManifestPackRejectsCorruptPackDigest(t *testing.T) {
+	// Import bytes that cannot match the metadata digest.
 	meta := testManifestPackMetadata(t)
+
+	// Expect the import to fail with a size mismatch.
 	err := ImportManifestPack(context.Background(), nil, peer.ID("test"), meta, []byte("corrupt"))
 	if err == nil {
 		t.Fatal("ImportManifestPack accepted corrupt pack")
@@ -278,6 +315,7 @@ func importTestManifestPack(
 	t *testing.T,
 	ctx context.Context,
 ) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
+	// Delegate to the option-aware helper with defaults.
 	t.Helper()
 	return importTestManifestPackWithOptions(t, ctx, false, false)
 }
@@ -288,17 +326,24 @@ func importTestManifestPackWithOptions(
 	bucketScopedManifest bool,
 	withDist bool,
 ) (world.WorldState, *ManifestPackMetadata, *ManifestTuple) {
+	// Attribute test failures to the caller.
 	t.Helper()
+
+	// Build the source and destination worlds.
 	le := logrus.NewEntry(logrus.New())
 	sender := peer.ID("test")
 	source := newTestWorld(t, ctx, le)
 	dest := newTestWorld(t, ctx, le)
 	tuple := testManifestPackTuple()
+
+	// Store the source manifest and bundle it.
 	manifestRef := storeTestManifest(t, ctx, source, tuple, bucketScopedManifest, withDist)
 	_, bundleRef, err := StoreManifestBundle(ctx, source, sender, tuple, manifestRef, timestamppb.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Pack the bundle and build the pack metadata.
 	var buf bytes.Buffer
 	entry, packDigest, err := PackManifestBundle(ctx, source, "ci-release", bundleRef, &buf)
 	if err != nil {
@@ -319,6 +364,7 @@ func importTestManifestPackWithOptions(
 		t.Fatal(err)
 	}
 
+	// Import the pack into the destination world.
 	if err := ImportManifestPack(ctx, dest, sender, meta, buf.Bytes()); err != nil {
 		t.Fatal(err)
 	}
@@ -326,6 +372,7 @@ func importTestManifestPackWithOptions(
 }
 
 func testManifestPackTuple() *ManifestTuple {
+	// Return the fixture manifest tuple.
 	return &ManifestTuple{
 		ManifestId:     "spacewave-web",
 		PlatformId:     "js",
@@ -340,6 +387,7 @@ func newTestWorld(
 	ctx context.Context,
 	le *logrus.Entry,
 ) world.WorldState {
+	// Build a testbed and an empty bucket cursor for the world.
 	t.Helper()
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -351,6 +399,8 @@ func newTestWorld(
 		t.Fatal(err)
 	}
 	t.Cleanup(ocs.Release)
+
+	// Build the mock world state over the cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err)
@@ -366,13 +416,18 @@ func storeTestManifest(
 	bucketScopedManifest bool,
 	withDist bool,
 ) *bldr_manifest.ManifestRef {
+	// Attribute test failures to the caller.
 	t.Helper()
+
+	// Build the manifest metadata from the tuple.
 	meta := &bldr_manifest.ManifestMeta{
 		ManifestId: tuple.GetManifestId(),
 		BuildType:  "production",
 		PlatformId: tuple.GetPlatformId(),
 		Rev:        tuple.GetRev(),
 	}
+
+	// Scope the manifest to the bucket when requested.
 	var initRef *bucket.ObjectRef
 	if bucketScopedManifest {
 		err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
@@ -383,12 +438,17 @@ func storeTestManifest(
 			t.Fatal(err)
 		}
 	}
+
+	// Access the object and write the manifest into it.
 	entrypoint := "entrypoint"
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, initRef, func(bcs *block.Cursor) error {
+		// Write the bare manifest without dist content.
 		if !withDist {
 			bcs.SetBlock(bldr_manifest.NewManifest(meta, entrypoint), true)
 			return nil
 		}
+
+		// Write the entrypoint file into an in-memory dist filesystem.
 		distFS := memfs.New()
 		f, err := distFS.Create(entrypoint)
 		if err != nil {

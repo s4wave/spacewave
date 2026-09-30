@@ -53,12 +53,13 @@ func DeepCopyManifest(
 				manifestMeta = manifest.GetMeta()
 			}
 
-			// Adapt both source filesystems to the destination commit interface.
+			// Resolve the write timestamp for the destination filesystems.
 			writeTs := ts.AsTime()
 			if writeTs.IsZero() {
 				writeTs = time.Now()
 			}
 
+			// Adapt both source filesystems to the destination commit interface.
 			distBfs := unixfs_billy.NewBillyFilesystem(ctx, distFS, "", writeTs)
 			assetsBfs := unixfs_billy.NewBillyFilesystem(ctx, assetsFS, "", writeTs)
 

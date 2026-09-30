@@ -41,6 +41,7 @@ func TestAnalyzeCliImports(t *testing.T) {
 	// Exercise the CLI adapter rather than duplicating its validation in the test.
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Analyze the fixture package and compare the result to the case.
 			pkgPath := "./" + tc.name
 			imports, err := AnalyzeCliImports(t.Context(), logrus.NewEntry(logrus.New()), root, []string{pkgPath}, "linux", "amd64")
 			if tc.wantError != "" {

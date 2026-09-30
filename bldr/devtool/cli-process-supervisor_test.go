@@ -19,12 +19,14 @@ import (
 )
 
 func TestCliSubprocessSupervisorWaitReturnsExitError(t *testing.T) {
+	// Start a helper that exits with code 7 under the supervisor.
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	cmd := cliSubprocessSupervisorTestCommand(t, "exit", "7")
 	if err := supervisor.startCommand(cmd); err != nil {
 		t.Fatalf("start helper: %v", err)
 	}
 
+	// Expect the wait channel to report the exit code.
 	err := <-supervisor.wait()
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
@@ -36,8 +38,10 @@ func TestCliSubprocessSupervisorWaitReturnsExitError(t *testing.T) {
 }
 
 func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T) {
+	// Start a helper that waits on SIGTERM under a cancellable context.
 	t.Setenv("BLDR_DEVTOOL_CLI_PROCESS_HELPER", "1")
 
+	// Start the term-exit helper under a cancellable supervisor context.
 	ctx, cancel := context.WithCancel(context.Background())
 	readyPath := filepath.Join(t.TempDir(), "ready")
 	supervisor := newCliSubprocessSupervisor(
@@ -51,6 +55,7 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 	}
 	waitForCliSubprocessHelperReady(t, readyPath)
 
+	// Cancel the context and expect the process to survive until termination.
 	cancel()
 	select {
 	case err := <-supervisor.wait():
@@ -58,12 +63,14 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Terminate the surviving helper process.
 	if err := supervisor.terminateAfter(5 * time.Second); err != nil {
 		t.Fatalf("terminate after context cancel: %v", err)
 	}
 }
 
 func TestCliSubprocessSupervisorClosesStderrAfterWait(t *testing.T) {
+	// Run a helper to completion with a recording stderr writer.
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	stderr := newCliSubprocessSupervisorCloseRecorder()
 	supervisor.stderr = stderr
@@ -74,10 +81,13 @@ func TestCliSubprocessSupervisorClosesStderrAfterWait(t *testing.T) {
 	if err := <-supervisor.wait(); err != nil {
 		t.Fatalf("wait helper: %v", err)
 	}
+
+	// Expect the stderr writer to be closed after the wait.
 	stderr.expectClosed(t)
 }
 
 func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
+	// Attempt to start a missing helper with a recording stderr writer.
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	stderr := newCliSubprocessSupervisorCloseRecorder()
 	supervisor.stderr = stderr
@@ -85,10 +95,13 @@ func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
 	if err == nil {
 		t.Fatal("start missing helper returned nil, want error")
 	}
+
+	// Expect the stderr writer to be closed after the start error.
 	stderr.expectClosed(t)
 }
 
 func TestCliSubprocessSupervisorTerminateWaitsForSignalExit(t *testing.T) {
+	// Start a helper that exits on SIGTERM.
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	readyPath := filepath.Join(t.TempDir(), "ready")
 	cmd := cliSubprocessSupervisorTestCommand(t, "term-exit", readyPath)
@@ -97,12 +110,14 @@ func TestCliSubprocessSupervisorTerminateWaitsForSignalExit(t *testing.T) {
 	}
 	waitForCliSubprocessHelperReady(t, readyPath)
 
+	// Expect termination to complete through the signal exit.
 	if err := supervisor.terminateAfter(5 * time.Second); err != nil {
 		t.Fatalf("terminate: %v", err)
 	}
 }
 
 func TestCliSubprocessSupervisorTerminateKillsAfterTimeout(t *testing.T) {
+	// Start a helper that ignores SIGTERM.
 	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	readyPath := filepath.Join(t.TempDir(), "ready")
 	cmd := cliSubprocessSupervisorTestCommand(t, "ignore-term", readyPath)
@@ -111,6 +126,7 @@ func TestCliSubprocessSupervisorTerminateKillsAfterTimeout(t *testing.T) {
 	}
 	waitForCliSubprocessHelperReady(t, readyPath)
 
+	// Expect termination to kill the process within a bounded timeout.
 	started := time.Now()
 	err := supervisor.terminateAfter(50 * time.Millisecond)
 	if err == nil {
@@ -125,10 +141,12 @@ func TestCliSubprocessSupervisorTerminateKillsAfterTimeout(t *testing.T) {
 }
 
 func TestCliSubprocessSupervisorHelper(t *testing.T) {
+	// Run only as the re-executed helper process.
 	if os.Getenv("BLDR_DEVTOOL_CLI_PROCESS_HELPER") != "1" {
 		return
 	}
 
+	// Dispatch on the requested helper mode.
 	args := cliSubprocessSupervisorHelperArgs()
 	if len(args) == 0 {
 		os.Exit(2)
@@ -157,8 +175,10 @@ func TestCliSubprocessSupervisorHelper(t *testing.T) {
 }
 
 func cliSubprocessSupervisorTestCommand(t *testing.T, mode string, args ...string) *exec.Cmd {
+	// Attribute test failures to the caller.
 	t.Helper()
 
+	// Build a re-executed test command running the helper entry point.
 	cmdArgs := append([]string{"-test.run=TestCliSubprocessSupervisorHelper", "--", mode}, args...)
 	executable, err := os.Executable()
 	if err != nil {
@@ -170,6 +190,7 @@ func cliSubprocessSupervisorTestCommand(t *testing.T, mode string, args ...strin
 }
 
 func cliSubprocessSupervisorTestExecutable(t *testing.T) string {
+	// Resolve this test binary's path for re-execution.
 	t.Helper()
 
 	executable, err := os.Executable()
@@ -180,10 +201,12 @@ func cliSubprocessSupervisorTestExecutable(t *testing.T) string {
 }
 
 func cliSubprocessSupervisorTestArgs(mode string, args ...string) []string {
+	// Build the helper re-execution arguments for the given mode.
 	return append([]string{"-test.run=TestCliSubprocessSupervisorHelper", "--", mode}, args...)
 }
 
 func cliSubprocessSupervisorHelperArgs() []string {
+	// Return the arguments after the -- separator.
 	args := os.Args
 	for i, arg := range args {
 		if arg == "--" {
@@ -194,6 +217,7 @@ func cliSubprocessSupervisorHelperArgs() []string {
 }
 
 func markCliSubprocessHelperReady(path string) {
+	// Write the ready marker file at the given path.
 	if err := os.WriteFile(path, []byte("ready"), 0o644); err != nil {
 		os.Exit(2)
 	}
@@ -226,6 +250,7 @@ func (r *cliSubprocessSupervisorCloseRecorder) expectClosed(t *testing.T) {
 }
 
 func waitForCliSubprocessHelperReady(t *testing.T, path string) {
+	// Poll for the ready marker until the deadline.
 	t.Helper()
 
 	deadline := time.Now().Add(time.Second)

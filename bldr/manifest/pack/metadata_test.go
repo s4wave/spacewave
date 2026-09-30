@@ -16,6 +16,7 @@ import (
 )
 
 func TestManifestPackMetadataValidateAcceptsCleanMetadata(t *testing.T) {
+	// Expect clean fixture metadata to validate.
 	meta := testManifestPackMetadata(t)
 	if err := meta.Validate(); err != nil {
 		t.Fatalf("Validate clean metadata = %v", err)
@@ -23,6 +24,7 @@ func TestManifestPackMetadataValidateAcceptsCleanMetadata(t *testing.T) {
 }
 
 func TestManifestPackMetadataValidateAcceptsZeroManifestRev(t *testing.T) {
+	// Expect a zero manifest revision to validate.
 	meta := testManifestPackMetadata(t)
 	meta.Manifests[0].Rev = 0
 	if err := meta.Validate(); err != nil {
@@ -31,6 +33,7 @@ func TestManifestPackMetadataValidateAcceptsZeroManifestRev(t *testing.T) {
 }
 
 func TestManifestPackMetadataValidateRejectsWrongPackDigestLength(t *testing.T) {
+	// Shorten the pack digest and expect validation to reject it.
 	meta := testManifestPackMetadata(t)
 	meta.PackSha256 = []byte("short")
 	err := meta.Validate()
@@ -43,6 +46,7 @@ func TestManifestPackMetadataValidateRejectsWrongPackDigestLength(t *testing.T) 
 }
 
 func TestManifestPackMetadataValidateAcceptsInlineCompressionTransformConfig(t *testing.T) {
+	// Attach a gzip transform config to the bundle ref.
 	meta := testManifestPackMetadata(t)
 	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
@@ -55,6 +59,7 @@ func TestManifestPackMetadataValidateAcceptsInlineCompressionTransformConfig(t *
 }
 
 func TestManifestPackMetadataValidateRejectsBlockEncTransformConfig(t *testing.T) {
+	// Attach a block encryption transform config to the bundle ref.
 	meta := testManifestPackMetadata(t)
 	conf, err := block_transform.NewConfig([]config.Config{&transform_blockenc.Config{
 		BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -74,6 +79,7 @@ func TestManifestPackMetadataValidateRejectsBlockEncTransformConfig(t *testing.T
 }
 
 func TestManifestPackMetadataValidateRejectsTransformConfigRef(t *testing.T) {
+	// Attach a transform config ref to the bundle ref.
 	meta := testManifestPackMetadata(t)
 	ref, err := block.BuildBlockRef([]byte("transform config"), nil)
 	if err != nil {
@@ -90,6 +96,7 @@ func TestManifestPackMetadataValidateRejectsTransformConfigRef(t *testing.T) {
 }
 
 func TestNewMetadataPreservesSafeManifestBundleTransformConfig(t *testing.T) {
+	// Attach a gzip transform config to a cloned bundle ref.
 	meta := testManifestPackMetadata(t)
 	ref := meta.GetManifestBundleRef().Clone()
 	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
@@ -97,6 +104,8 @@ func TestNewMetadataPreservesSafeManifestBundleTransformConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	ref.TransformConf = conf
+
+	// Expect the safe transform config to survive NewMetadata.
 	clean, err := NewMetadata(
 		meta.GetGitSha(),
 		meta.GetBuildType(),
@@ -117,6 +126,7 @@ func TestNewMetadataPreservesSafeManifestBundleTransformConfig(t *testing.T) {
 }
 
 func testManifestPackMetadata(t *testing.T) *ManifestPackMetadata {
+	// Build a valid fixture manifest-pack metadata record.
 	t.Helper()
 
 	rootRef, err := block.BuildBlockRef([]byte("manifest bundle"), nil)

@@ -40,9 +40,10 @@ func FormatCliEntrypoint(
 	cliImports map[string]CliImport,
 	composePackage string,
 ) ([]byte, error) {
+	// Start the generated file with an empty declaration list.
 	var allDecls []gast.Decl
 
-	// merge and sort all dynamic imports
+	// Merge the factory and CLI import aliases into one path-keyed map.
 	allImports := make(map[string]string)
 	for pkg, fi := range factoryImports {
 		allImports[pkg] = fi.Alias
@@ -50,6 +51,8 @@ func FormatCliEntrypoint(
 	for pkg, ci := range cliImports {
 		allImports[pkg] = ci.Alias
 	}
+
+	// Check the fixed imports against the discovered aliases for conflicts.
 	fixedImports := []struct{ alias, path string }{
 		{"", "embed"},
 		{"cli_entrypoint", "github.com/s4wave/spacewave/bldr/cli/entrypoint"},
@@ -65,6 +68,8 @@ func FormatCliEntrypoint(
 		}
 		allImports[imp.path] = imp.alias
 	}
+
+	// Collect and sort the import paths for a stable output file.
 	importPkgs := make([]string, 0, len(allImports))
 	for pkg := range allImports {
 		importPkgs = append(importPkgs, pkg)
@@ -72,6 +77,7 @@ func FormatCliEntrypoint(
 	slices.Sort(importPkgs)
 
 	// build single parenthesized import declaration
+	// Build one parenthesized import declaration from the sorted paths.
 	var importSpecs []gast.Spec
 	for _, pkg := range importPkgs {
 		alias := allImports[pkg]
@@ -87,12 +93,14 @@ func FormatCliEntrypoint(
 			},
 		})
 	}
+
+	// Append the import declaration to the file.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Tok:   token.IMPORT,
 		Specs: importSpecs,
 	})
 
-	// configSetFS: embed configset.bin
+	// Embed the compiled configset.bin through a configSetFS variable.
 	var embedComment strings.Builder
 	embedComment.WriteString("// configSetFS contains the embedded configset.\n")
 	embedComment.WriteString("//\n")
@@ -116,6 +124,7 @@ func FormatCliEntrypoint(
 	})
 
 	// build factory func lit elements
+	// Collect the discovered factories and sort them by import alias.
 	factories := make([]FactoryImport, 0, len(factoryImports))
 	for _, fi := range factoryImports {
 		factories = append(factories, fi)
@@ -124,6 +133,7 @@ func FormatCliEntrypoint(
 		return strings.Compare(a.Alias, b.Alias)
 	})
 
+	// Build one factory function literal per discovered factory.
 	var factoryElts []gast.Expr
 	for _, fi := range factories {
 		call := &gast.CallExpr{
@@ -169,7 +179,7 @@ func FormatCliEntrypoint(
 		})
 	}
 
-	// factories var
+	// Append the factories var declaration.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: commentGroup("// factories are the factories included in the binary.\n"),
 		Tok: token.VAR,
@@ -191,7 +201,7 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	// configSets var
+	// Append the configSets var declaration loading configset.bin.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: commentGroup("// configSets are the configuration sets to apply on startup.\n"),
 		Tok: token.VAR,
@@ -227,13 +237,14 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	// build cli command elements
+	// Collect and sort the CLI package aliases.
 	cliAliases := make([]string, 0, len(cliImports))
 	for _, ci := range cliImports {
 		cliAliases = append(cliAliases, ci.Alias)
 	}
 	slices.Sort(cliAliases)
 
+	// Build one NewCliCommands selector per CLI package.
 	var cliElts []gast.Expr
 	for _, alias := range cliAliases {
 		cliElts = append(cliElts, &gast.SelectorExpr{
@@ -242,7 +253,7 @@ func FormatCliEntrypoint(
 		})
 	}
 
-	// cliCommands var
+	// Append the cliCommands var declaration.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: commentGroup("// cliCommands are the CLI command builders.\n"),
 		Tok: token.VAR,
@@ -264,7 +275,7 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	// main function
+	// Append the generated main function and format the file.
 	mainFn, err := mainDecl(appName, projectID, composePackage != "")
 	if err != nil {
 		return nil, err
@@ -286,6 +297,7 @@ func commentGroup(lines ...string) *gast.CommentGroup {
 // mainDecl builds the main entrypoint. With a compose package it calls
 // Compose once and appends its factories and commands.
 func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
+	// Start from the plain factories and cliCommands sources.
 	factoriesSrc, commandsSrc := "factories", "cliCommands"
 	var stmts []gast.Stmt
 	if composed {
@@ -301,6 +313,7 @@ func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 		commandsSrc = "append(cliCommands, composition.Commands...)"
 	}
 
+	// Parse the cli_entrypoint.Main call expression and return the main decl.
 	mainCall, err := parser.ParseExpr("cli_entrypoint.Main(" +
 		strconv.Quote(appName) + ", " +
 		strconv.Quote(projectID) + ", " +
@@ -323,11 +336,13 @@ func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 // It creates a FileSet with line position info and assigns positions to each
 // declaration so that go/format sees line gaps and inserts blank lines.
 func formatFileWithSpacing(decls []gast.Decl) ([]byte, error) {
+	// Lay out a synthetic file with wide lines and gaps between declarations.
 	const lineWidth = 1000
 	const lineGap = 10
 	totalLines := 3 + len(decls)*lineGap + 10
 	totalSize := totalLines * lineWidth
 
+	// Create the file set and register the synthetic line offsets.
 	fset := token.NewFileSet()
 	tokFile := fset.AddFile("main.go", -1, totalSize)
 	offsets := make([]int, totalLines)
@@ -338,6 +353,7 @@ func formatFileWithSpacing(decls []gast.Decl) ([]byte, error) {
 		return nil, errors.New("set line offsets for generated entrypoint")
 	}
 
+	// Assign each declaration a position on its own spaced line.
 	base := tokFile.Base()
 	for i, d := range decls {
 		line := 3 + i*lineGap
@@ -353,12 +369,14 @@ func formatFileWithSpacing(decls []gast.Decl) ([]byte, error) {
 		}
 	}
 
+	// Assemble the AST file from the positioned declarations.
 	astFile := &gast.File{
 		Name:    gast.NewIdent("main"),
 		Package: token.Pos(base),
 		Decls:   decls,
 	}
 
+	// Format the file and normalize the embed import spacing.
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, astFile); err != nil {
 		return nil, err

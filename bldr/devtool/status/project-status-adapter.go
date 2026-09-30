@@ -23,6 +23,7 @@ type projectStatusSink struct {
 }
 
 func (s projectStatusSink) SetProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
+	// Publish the converted project snapshot through the producer.
 	project := BuildProjectStatus(projectConfig)
 	s.producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithProject(project)
@@ -31,6 +32,7 @@ func (s projectStatusSink) SetProjectConfigStatus(projectConfig *bldr_project.Pr
 
 // BuildProjectStatus converts ProjectConfig into the read-only devtool project snapshot.
 func BuildProjectStatus(projectConfig *bldr_project.ProjectConfig) BldrDevtoolProjectStatus {
+	// Snapshot the project identity and startup settings.
 	projectStatus := BldrDevtoolProjectStatus{
 		ProjectID:      projectConfig.GetId(),
 		StartupPlugins: slices.Clone(projectConfig.GetStart().GetPlugins()),
@@ -38,6 +40,7 @@ func BuildProjectStatus(projectConfig *bldr_project.ProjectConfig) BldrDevtoolPr
 		ManifestIDs:    sortedMapKeys(projectConfig.GetManifests()),
 	}
 
+	// Build one row per configured build target.
 	buildTargets := projectConfig.GetBuild()
 	buildTargetIDs := sortedMapKeys(buildTargets)
 	projectStatus.BuildTargets = make([]BldrDevtoolBuildTargetRow, 0, len(buildTargetIDs))

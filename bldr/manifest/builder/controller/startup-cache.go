@@ -132,8 +132,11 @@ func (c *Controller) validateStartupManifestAvailability(
 		return "startup builder result has no manifest ref", nil
 	}
 
+	// Open the engine World state and identify the cached bucket.
 	ws := world.NewEngineWorldState(world.NewBusEngine(ctx, c.bus, engineID), false)
 	cachedBucketID := manifestRef.GetManifestRef().GetBucketId()
+
+	// Resolve the current volume from the builder peer or the storage cursor.
 	var currentVolumeID string
 	if builderConfig.GetPeerId() != "" {
 		peerID, err := peer.IDB58Decode(builderConfig.GetPeerId())
@@ -152,6 +155,8 @@ func (c *Controller) validateStartupManifestAvailability(
 		currentVolumeID = storageCursor.GetOpArgs().GetVolumeId()
 		currentBucketID = storageCursor.GetRefWithOpArgs().GetBucketId()
 	}
+
+	// Verify the cached manifest bucket exists in the current volume.
 	if currentVolumeID != "" && cachedBucketID != "" {
 		le.WithFields(logrus.Fields{
 			"bucket-id": cachedBucketID,
@@ -172,6 +177,8 @@ func (c *Controller) validateStartupManifestAvailability(
 			).Error(), nil
 		}
 	}
+
+	// Reject a cached bucket that no longer matches the current bucket.
 	if currentBucketID != "" && cachedBucketID != "" && currentBucketID != cachedBucketID {
 		return errors.Errorf(
 			"startup manifest bucket changed: %q != %q",
@@ -195,14 +202,19 @@ func (c *Controller) validateStartupManifestAvailability(
 			distFS,
 			_ *unixfs.FSHandle,
 		) error {
+			// Skip validation when no entrypoint is configured.
 			if entrypoint == "" {
 				return nil
 			}
+
+			// Look up the entrypoint path in the dist filesystem.
 			entrypointHandle, _, err := distFS.LookupPath(ctx, entrypoint)
 			if err != nil {
 				return errors.Wrap(err, "lookup startup entrypoint")
 			}
 			defer entrypointHandle.Release()
+
+			// Stat the entrypoint to confirm it remains readable.
 			if _, err := entrypointHandle.GetFileInfo(ctx); err != nil {
 				return errors.Wrap(err, "stat startup entrypoint")
 			}
@@ -499,6 +511,7 @@ func marshalStartupConfigDigest(
 	controllerConfig *configset_proto.ControllerConfig,
 	buildPolicy *bldr_manifest_build.BuildPolicy,
 ) ([]byte, error) {
+	// Marshal each input into its binary form.
 	var controllerConfigBin []byte
 	if controllerConfig != nil {
 		var err error

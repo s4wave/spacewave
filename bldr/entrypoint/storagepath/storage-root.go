@@ -40,6 +40,7 @@ func SocketPathEnvVar(projectID string) string {
 // socketPath may be empty when no explicit socket path was requested.
 // Returns the absolute state root.
 func ResolveStatePath(projectID, statePath, socketPath string, explicit bool) (string, error) {
+	// Resolve the absolute state root and create it.
 	root, err := filepath.Abs(statePath)
 	if err != nil {
 		return "", err
@@ -47,6 +48,8 @@ func ResolveStatePath(projectID, statePath, socketPath string, explicit bool) (s
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return "", err
 	}
+
+	// Publish the chosen root and socket path to the project environment.
 	if explicit {
 		if err := os.Setenv(StatePathEnvVar(projectID), root); err != nil {
 			return "", err
@@ -73,6 +76,7 @@ var projectIDAllowedChars = regexp.MustCompile(`[a-zA-Z0-9_-]+`)
 // projectIDPrefix sanitizes projectID into the upper-cased prefix used by
 // project-scoped environment variables (e.g. "spacewave" -> "SPACEWAVE").
 func projectIDPrefix(projectID string) string {
+	// Sanitize the project ID into an upper-cased prefix.
 	matches := projectIDAllowedChars.FindAllString(projectID, -1)
 	projectName := strings.Join(matches, "")
 	projectName = strings.ReplaceAll(projectName, "-", "_")

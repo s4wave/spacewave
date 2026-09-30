@@ -31,9 +31,11 @@ func Main(
 	configSets []BuildConfigSetFunc,
 	commandBuilders []BuildCommandsFunc,
 ) {
+	// Run until the process is interrupted.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	// Declare the CLI state the flag and command closures mutate.
 	var dtBus *CliBusImpl
 	var statePath string
 	var statePathSet bool
@@ -41,25 +43,33 @@ func Main(
 	var startSocketPath string
 	var logLevel string
 	var logFiles cli.StringSlice
+
+	// Declare the log file cleanup hook and release it on exit.
 	var logFileCleanup func()
 	defer func() {
 		if logFileCleanup != nil {
 			logFileCleanup()
 		}
 	}()
+
+	// Declare the bus initialization state shared across closures.
 	var configSetRefs []directive.Reference
 	var busInitErr error
 	var busInitOnce sync.Once
 	var le *logrus.Entry
 
+	// ensureBus initializes the CliBus once and registers factories and config sets.
 	ensureBus := func() error {
+		// Initialize the bus state exactly once per process.
 		busInitOnce.Do(func() {
+			// Resolve the state root for the project.
 			root, err := storagepath.ResolveStatePath(projectID, statePath, socketPath, statePathSet)
 			if err != nil {
 				busInitErr = err
 				return
 			}
 
+			// Build the CliBus against the resolved state root.
 			b, err := BuildCliBus(ctx, le, projectID, root)
 			if err != nil {
 				busInitErr = err
@@ -67,6 +77,7 @@ func Main(
 			}
 			dtBus = b
 
+			// Register every discovered controller factory on the bus resolver.
 			for _, fn := range factories {
 				if fn == nil {
 					continue
@@ -76,6 +87,7 @@ func Main(
 				}
 			}
 
+			// Merge the config sets produced by every build function.
 			if len(configSets) == 0 {
 				return
 			}
@@ -90,6 +102,8 @@ func Main(
 				}
 				merged = append(merged, cs...)
 			}
+
+			// Apply the merged config set on the bus and retain its reference.
 			if len(merged) == 0 {
 				return
 			}
@@ -108,6 +122,8 @@ func Main(
 		})
 		return busInitErr
 	}
+
+	// getBus returns the initialized CliBus or nil on failure.
 	getBus := func() CliBus {
 		if err := ensureBus(); err != nil {
 			return nil
@@ -115,6 +131,7 @@ func Main(
 		return dtBus
 	}
 
+	// Configure the CLI application metadata and error handler.
 	app := cli.NewApp()
 	app.Name = appName
 	app.HideVersion = true
@@ -128,6 +145,8 @@ func Main(
 			terminalCommand = c.Command.HelpName
 		}
 	}
+
+	// Declare the CLI flags for state, socket, logging, and output.
 	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
 	defaultStatePath := DefaultStatePath(projectID)
 	statePathEnvVars := StatePathEnvVars(projectID)
@@ -169,7 +188,9 @@ func Main(
 		},
 	}
 
+	// app.Before initializes logging and attaches log file hooks.
 	app.Before = func(c *cli.Context) error {
+		// Skip initialization for the version command.
 		if c.Command != nil && c.Command.Name == "version" {
 			return nil
 		}
@@ -231,7 +252,9 @@ func Main(
 		return nil
 	}
 
+	// app.After releases the config set references and the CliBus.
 	app.After = func(c *cli.Context) error {
+		// Release every applied config set reference.
 		for _, ref := range configSetRefs {
 			ref.Release()
 		}
@@ -243,6 +266,7 @@ func Main(
 		return nil
 	}
 
+	// Register the version command and the daemon start command.
 	var runtimeTracePath string
 	app.Commands = append(app.Commands, newStandaloneVersionCommand(projectID))
 	app.Commands = append(app.Commands, &cli.Command{
@@ -263,7 +287,9 @@ func Main(
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Run the daemon under an optional runtime trace until interrupted.
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
+				// Apply the start-specific socket path and ensure the bus is up.
 				if startSocketPath != "" {
 					socketPath = startSocketPath
 				}
@@ -289,6 +315,7 @@ func Main(
 		},
 	})
 
+	// Append the commands contributed by the linked CLI packages.
 	for _, builder := range commandBuilders {
 		if builder == nil {
 			continue
@@ -296,6 +323,7 @@ func Main(
 		app.Commands = append(app.Commands, builder(getBus)...)
 	}
 
+	// Run the CLI application and log the terminal command on failure.
 	err := app.RunContext(ctx, os.Args)
 	if err != nil && le != nil {
 		command := terminalCommand
@@ -304,6 +332,8 @@ func Main(
 		}
 		le.WithError(err).Error(command + " stopped")
 	}
+
+	// Release the log file hooks and exit with the CLI error code.
 	if logFileCleanup != nil {
 		logFileCleanup()
 		logFileCleanup = nil
@@ -352,6 +382,7 @@ func newStandaloneVersionCommand(projectID string) *cli.Command {
 }
 
 func marshalStandaloneVersionIdentity(identity standaloneVersionIdentity) []byte {
+	// Marshal the top-level identity fields into a JSON object.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	obj.Set("schemaVersion", arena.NewNumberInt(identity.SchemaVersion))
@@ -359,6 +390,8 @@ func marshalStandaloneVersionIdentity(identity standaloneVersionIdentity) []byte
 	obj.Set("entrypointRole", arena.NewString(identity.EntrypointRole))
 	obj.Set("channelKey", arena.NewString(identity.ChannelKey))
 	obj.Set("platformId", arena.NewString(identity.PlatformID))
+
+	// Marshal the nested manifest identity object.
 	manifest := arena.NewObject()
 	manifest.Set("manifestId", arena.NewString(identity.Manifest.ManifestID))
 	manifest.Set("rev", arena.NewNumberString(strconv.FormatUint(identity.Manifest.Rev, 10)))

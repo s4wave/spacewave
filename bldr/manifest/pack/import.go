@@ -25,6 +25,7 @@ func ImportManifestPack(
 	meta *ManifestPackMetadata,
 	packBytes []byte,
 ) error {
+	// Verify the metadata and pack bytes before importing.
 	if err := meta.Validate(); err != nil {
 		return err
 	}
@@ -62,9 +63,12 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 	}
 	return ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		return rdr.ScanPrefixEntries(nil, func(entry *kvfile.IndexEntry, idx int) error {
+			// Stop on context cancellation between entries.
 			if err := ctx.Err(); err != nil {
 				return err
 			}
+
+			// Decode the entry's block ref and value.
 			ref, err := parsePackBlockRef(entry)
 			if err != nil {
 				return errors.Wrapf(err, "pack entry %d", idx)
@@ -77,6 +81,8 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 			if err != nil {
 				return errors.Wrapf(err, "pack entry %d", idx)
 			}
+
+			// Put the block into the bucket, which verifies the key.
 			_, _, err = bls.GetBucket().PutBlock(ctx, stored.Data, stored.PutOpts(ref))
 			return err
 		})
@@ -90,6 +96,7 @@ func applyManifestBundle(
 	sender peer.ID,
 	meta *ManifestPackMetadata,
 ) error {
+	// Read the bundle and require one ref per manifest tuple.
 	bundle, err := readManifestBundle(ctx, ws, meta.GetManifestBundleRef())
 	if err != nil {
 		return err
@@ -97,6 +104,8 @@ func applyManifestBundle(
 	if len(bundle.GetManifestRefs()) != len(meta.GetManifests()) {
 		return errors.Errorf("manifest bundle count mismatch: got %d want %d", len(bundle.GetManifestRefs()), len(meta.GetManifests()))
 	}
+
+	// Create or update the bundle object at the first tuple's key.
 	obj, objOk, err := ws.GetObject(ctx, meta.GetManifests()[0].GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -112,6 +121,8 @@ func applyManifestBundle(
 	if err != nil {
 		return errors.Wrap(err, "store manifest bundle")
 	}
+
+	// Store each bundle manifest and link it to its object key.
 	for i, tuple := range meta.GetManifests() {
 		manifestRef := bundle.GetManifestRefs()[i]
 		if err := validateManifestRefMatchesTuple(manifestRef, tuple, meta.GetBuildType()); err != nil {
@@ -130,6 +141,8 @@ func applyManifestBundle(
 			return errors.Wrap(err, "link bundle manifest")
 		}
 	}
+
+	// Link each linked object key to the manifest object.
 	for _, tuple := range meta.GetManifests() {
 		for _, objKey := range tuple.GetLinkObjectKeys() {
 			if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {

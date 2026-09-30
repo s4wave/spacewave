@@ -47,6 +47,8 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Select the release-web browser fixture build and its browser override.
 	build := result.Config.GetBuild()["release-web-lazy-plugin-fixture"]
 	if build == nil {
 		t.Fatal("missing browser bootstrap release fixture")
@@ -55,6 +57,8 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	if browserOverride == nil {
 		t.Fatal("missing browser override")
 	}
+
+	// Verify the browser override embeds the launcher and materializer manifests.
 	var distConf bldr_dist_compiler.Config
 	if err := distConf.UnmarshalJSON(browserOverride.GetConfig()); err != nil {
 		t.Fatalf("verify browser bootstrap embedded config: %v", err)
@@ -65,6 +69,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		t.Fatalf("embedded manifests = %#v, want launcher and materializer on js", embeds)
 	}
 
+	// Verify the embedded launcher override and its release-world-fetch config.
 	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
 	if launcherOverride == nil {
 		t.Fatal("missing launcher override")
@@ -124,6 +129,8 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	}
 	fetchConf.EngineId = tb.GetWorldEngineID()
 	fetchConf.ObjectKeys = []string{releaseObjectKey}
+
+	// Apply the fetch config set through the plugin-host bus.
 	fetchEntry, err := configset_proto.NewControllerConfig(
 		configset.NewControllerConfig(embeddedFetch.GetRev(), fetchConf),
 		false,
@@ -141,6 +148,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	}
 	t.Cleanup(fetchSetRef.Release)
 
+	// Fetch the remote Core manifest through the launcher's controller.
 	fetchValue, _, fetchRef, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 		ctx,
 		tb.GetBus(),
@@ -230,6 +238,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	}
 	waitForManifestBucket(t, ctx, tb, "transient-plugin", worldBucketID(t, ctx, tb))
 	waitForManifestBucket(t, ctx, tb, "spacewave-core", worldBucketID(t, ctx, tb))
+
 	// Materializing the same executable locally must preserve the running plugin.
 	select {
 	case pluginID := <-host.started:
@@ -246,8 +255,8 @@ func buildRemoteManifest(
 	le *logrus.Entry,
 	bucketID, manifestID string,
 ) *bldr_manifest.ManifestRef {
-	t.Helper()
 	// Supply a minimal executable through the ordinary manifest builder.
+	t.Helper()
 	distFS := memfs.New()
 	f, err := distFS.Create("core.js")
 	if err != nil {
@@ -265,6 +274,8 @@ func buildRemoteManifest(
 	if _, _, _, err := tb.GetVolume().ApplyBucketConfig(ctx, &bucket.Config{Id: bucketID, Rev: 1}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Build an empty bucket cursor to write the manifest into.
 	cursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.GetBus(),
@@ -279,6 +290,8 @@ func buildRemoteManifest(
 		t.Fatal(err)
 	}
 	defer cursor.Release()
+
+	// Write the manifest and commit the bucket transaction.
 	tx, blocks := cursor.BuildTransaction(nil)
 	if err := bldr_manifest.CreateManifestWithBilly(ctx, blocks, bldr_manifest.NewManifest(meta, "core.js"), distFS, nil, timestamppb.Now()); err != nil {
 		t.Fatal(err)
@@ -392,6 +405,7 @@ func assertOnlyManifestBucket(
 	tb *testbed.Testbed,
 	manifestID, bucketID string,
 ) {
+	// Attribute test failures to the caller.
 	t.Helper()
 	manifests, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
