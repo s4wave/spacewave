@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -64,5 +65,31 @@ func TestDevicePolicyHostSourceForwardsEnrolledIdentityAndRemoval(t *testing.T) 
 	}
 	if key != "devices/self" || revision != 2 || decoded.GetForgeWorker() != nil {
 		t.Fatalf("removed policy: key=%q revision=%d policy=%+v", key, revision, decoded)
+	}
+}
+
+// TestDevicePolicyHostSourceWaitsAfterEmptyPolicy checks that a caller holding
+// the zero-length encoding of the empty policy waits instead of rereading it.
+func TestDevicePolicyHostSourceWaitsAfterEmptyPolicy(t *testing.T) {
+	// Read the current policy of a daemon that has no policy file.
+	statePath := t.TempDir()
+	store, err := device_policy.NewPolicyStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := &devicePolicyHostSource{store: store, statePath: statePath}
+	data, _, _, err := source.WaitDevicePolicy(t.Context(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data == nil || len(data) != 0 {
+		t.Fatalf("empty policy encoding: %v", data)
+	}
+
+	// The next read waits for a change until its deadline.
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+	if _, _, _, err := source.WaitDevicePolicy(ctx, data); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("wait after empty policy: %v", err)
 	}
 }

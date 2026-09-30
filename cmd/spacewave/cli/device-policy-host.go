@@ -18,11 +18,12 @@ type devicePolicyHostSource struct {
 }
 
 // WaitDevicePolicy waits for the first or next policy revision and attaches the
-// enrolled Device identity from the daemon's local setup record.
+// enrolled Device identity from the daemon's local setup record. A nil last
+// reads the current policy; an empty last is the encoded empty policy.
 func (s *devicePolicyHostSource) WaitDevicePolicy(ctx context.Context, last []byte) ([]byte, string, uint64, error) {
 	// Decode the caller's last-seen policy as the wait baseline.
 	var previous *device_policy.DevicePolicy
-	if len(last) != 0 {
+	if last != nil {
 		previous = &device_policy.DevicePolicy{}
 		if err := previous.UnmarshalVT(last); err != nil {
 			return nil, "", 0, errors.Wrap(err, "decode previous policy")
