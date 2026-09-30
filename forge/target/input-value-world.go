@@ -4,18 +4,20 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// ivWorld is a input value for a world.
+// ivWorld retains a selected World capability and its registry scope.
 type ivWorld struct {
-	// eng is the world engine
+	// engineID is the authoritative ID selected when resolving the World.
+	engineID string
+	// eng is the World engine, or nil for a nontransactional state.
 	eng world.Engine
-	// ws is the world state
+	// ws is the granted World state, or nil for an empty input.
 	ws world.WorldState
 }
 
 // NewInputValueWorld constructs a new InputValueWorld with a world handle.
-// eng can be nil
-func NewInputValueWorld(eng world.Engine, ws world.WorldState) InputValueWorld {
-	return &ivWorld{eng: eng, ws: ws}
+// engineID is selected by the granting component; eng may be nil.
+func NewInputValueWorld(engineID string, eng world.Engine, ws world.WorldState) InputValueWorld {
+	return &ivWorld{engineID: engineID, eng: eng, ws: ws}
 }
 
 // GetInputType returns the input type of this value.
@@ -25,13 +27,20 @@ func (i *ivWorld) GetInputType() InputType {
 
 // Validate checks the input value.
 func (i *ivWorld) Validate() error {
-	// noop
+	if i.eng != nil && i.engineID == "" {
+		return world.ErrEmptyEngineID
+	}
 	return nil
 }
 
-// IsEmpty checks if the value is "empty."
+// IsEmpty reports whether the value is empty.
 func (i *ivWorld) IsEmpty() bool {
 	return i.ws == nil
+}
+
+// GetWorldEngineID returns the selected World registry scope.
+func (i *ivWorld) GetWorldEngineID() string {
+	return i.engineID
 }
 
 // GetWorldEngine returns the world engine, if available.

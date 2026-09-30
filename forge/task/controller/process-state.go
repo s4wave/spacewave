@@ -24,6 +24,7 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Keep the task watcher attached until its object exists.
 	objKey := c.objKey
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
@@ -50,6 +51,7 @@ func (c *Controller) ProcessState(
 	if currState != forge_task.State_TaskState_RUNNING {
 		c.syncWatchPassStates(nil)
 	}
+
 	// Explicit cancellation remains stopped until the operator retries it.
 	if currState == forge_task.State_TaskState_COMPLETE && taskState.GetResult().GetCanceled() {
 		c.syncWatchInputObjects(nil, false)
@@ -82,7 +84,7 @@ func (c *Controller) ProcessState(
 	if err != nil {
 		return true, errors.Wrap(err, "stored inputs")
 	}
-	defWorld := forge_target.NewInputValueWorld(nil, ws)
+	defWorld := forge_target.NewInputValueWorld(c.conf.GetEngineId(), nil, ws)
 	inputMap, unsetInputs, inputMapRel, err := forge_target.ResolveInputMap(ctx, c.bus, defWorld, tgt, storedInputs)
 	if err != nil {
 		return true, errors.Wrap(err, "resolve inputs")
@@ -218,6 +220,7 @@ func taskInputsDirty(
 func buildUpdateInputValueSet(
 	inputSet, addedInputs, changedInputs, removedInputs forge_value.ValueSlice,
 ) *forge_target.ValueSet {
+	// Build the input delta, preserving deletions and a complete initial value set.
 	valueSet := forge_target.NewValueSet()
 	valueSet.Inputs = append(valueSet.Inputs, addedInputs...)
 	valueSet.Inputs = append(valueSet.Inputs, changedInputs...)
@@ -230,6 +233,8 @@ func buildUpdateInputValueSet(
 	if len(valueSet.Inputs) == 0 && len(inputSet) != 0 {
 		valueSet.Inputs = slices.Clone(inputSet)
 	}
+
+	// Canonicalize the input delta before storing it on the Task.
 	valueSet.SortValues()
 	return valueSet
 }

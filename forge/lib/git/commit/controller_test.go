@@ -1,7 +1,6 @@
 package forge_lib_git_commit
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -11,66 +10,25 @@ import (
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_target "github.com/s4wave/spacewave/forge/target"
-	forge_value "github.com/s4wave/spacewave/forge/value"
-	"github.com/s4wave/spacewave/net/peer"
 	s4wave_git "github.com/s4wave/spacewave/sdk/git"
 	resource_git "github.com/s4wave/spacewave/sdk/git/resource"
 	"github.com/sirupsen/logrus"
 )
 
-type captureHandle struct {
-	peerID     peer.ID
-	ts         *timestamp.Timestamp
-	accessFunc world.AccessWorldStateFunc
-	outputs    forge_value.ValueSlice
-}
-
-func (h *captureHandle) GetExecutionUniqueId() string {
-	return "test-git-commit"
-}
-
-// GetExecutionObjectKey identifies the synthetic test attempt.
-func (h *captureHandle) GetExecutionObjectKey() string { return "exec/test-git-commit" }
-
-func (h *captureHandle) GetPeerId() peer.ID {
-	return h.peerID
-}
-
-func (h *captureHandle) GetTimestamp() *timestamp.Timestamp {
-	return h.ts
-}
-
-func (h *captureHandle) AccessStorage(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
-	return h.accessFunc(ctx, ref, cb)
-}
-
-func (h *captureHandle) SetOutputs(ctx context.Context, outps forge_value.ValueSlice, clearOld bool) error {
-	if clearOld {
-		h.outputs = nil
-	}
-	h.outputs = append(h.outputs, outps.Clone()...)
-	return nil
-}
-
-func (h *captureHandle) WriteLog(ctx context.Context, level, message string) error {
-	return nil
-}
-
-func (h *captureHandle) SetWaitingPlugin(context.Context, string) error { return nil }
-
+// TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult commits staged files and retains the typed result.
 func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) {
-	ctx := context.Background()
+	// Open an isolated World backed by in-memory Git storage.
+	ctx := t.Context()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Retain the block store and World for the commit controller.
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
@@ -79,17 +37,23 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer wtb.Release()
+	t.Cleanup(wtb.Release)
 
+	// Register the World operations required by the commit controller.
 	unixfsOpc := world.NewLookupOpController("test-git-commit-unixfs", wtb.EngineID, unixfs_world.LookupFsOp)
-	if _, err := wtb.Bus.AddController(ctx, unixfsOpc, nil); err != nil {
+	unixfsRef, err := wtb.Bus.AddController(ctx, unixfsOpc, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(unixfsRef)
 	gitOpc := world.NewLookupOpController("test-git-commit-git", wtb.EngineID, git_world.LookupGitOp)
-	if _, err := wtb.Bus.AddController(ctx, gitOpc, nil); err != nil {
+	gitRef, err := wtb.Bus.AddController(ctx, gitOpc, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(gitRef)
 
+	// Initialize the repository and its owned worktree keys.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 	repoKey := "repo/forge-commit"
@@ -99,6 +63,7 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Seed the repository with a first commit to compare against the controller result.
 	workdir := memfs.New()
 	var firstHash string
 	_, _, err = git_world.AccessWorldObjectRepo(ctx, ws, repoKey, true, nil, workdir, nil, func(repo *git.Repository) error {
@@ -113,6 +78,7 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Check out the initial commit into the World worktree.
 	workdirRef := &unixfs_world.UnixfsRef{
 		ObjectKey: workdirKey,
 		FsType:    unixfs_world.FSType_FSType_FS_NODE,
@@ -132,7 +98,9 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Change the worktree file without staging it.
 	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), true, sender, func(repo *git.Repository, workdir billy.Filesystem) error {
+		// Write the changed README in the borrowed worktree.
 		f, err := workdir.Create("README.md")
 		if err != nil {
 			return err
@@ -147,13 +115,14 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Give the commit controller storage access and an output capture handle.
 	handle := &captureHandle{
 		peerID:     sender,
 		ts:         timestamp.Now(),
 		accessFunc: ws.AccessWorldState,
 	}
 	inputs := forge_target.InputMap{
-		inputNameWorld: forge_target.NewInputValueWorld(wtb.Engine, ws),
+		inputNameWorld: forge_target.NewInputValueWorld(wtb.EngineID, wtb.Engine, ws),
 	}
 	conf := &Config{
 		WorktreeObjectKey: worktreeKey,
@@ -174,6 +143,7 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatal("expected unstaged commit to fail")
 	}
 
+	// Stage the changed file and execute the commit through the controller.
 	resource := resource_git.NewGitWorktreeResource(ws, wtb.Engine, worktreeKey, &resource_git.WorktreeSnapshot{RepoObjectKey: repoKey})
 	if _, err := resource.StageFiles(ctx, &s4wave_git.StageFilesRequest{Paths: []string{"README.md"}}); err != nil {
 		t.Fatal(err)
@@ -184,6 +154,8 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 	if len(handle.outputs) != 1 {
 		t.Fatalf("expected one output, got %d", len(handle.outputs))
 	}
+
+	// Decode the controller's retained commit response.
 	out := handle.outputs[0]
 	if out.GetName() != outputNameCommit || out.IsEmpty() {
 		t.Fatalf("unexpected output: %+v", out)
@@ -206,11 +178,15 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 		t.Fatalf("commit response: %+v", &resp)
 	}
 
+	// Inspect the worktree after the committed update.
 	err = git_world.AccessWorldObjectRepoWithWorktree(ctx, le, ws, repoKey, worktreeKey, time.Now(), false, "", func(repo *git.Repository, workdir billy.Filesystem) error {
+		// Access the repository worktree to inspect its status.
 		wt, err := repo.Worktree()
 		if err != nil {
 			return err
 		}
+
+		// Require the committed worktree to have no remaining staged changes.
 		status, err := wt.Status()
 		if err != nil {
 			return err
@@ -225,11 +201,15 @@ func TestGitCommitControllerCommitsStagedWorktreeAndOutputsResult(t *testing.T) 
 	}
 }
 
+// commitTestReadme writes and commits a README in the in-memory repository.
 func commitTestReadme(repo *git.Repository, workdir billy.Filesystem, content, message string) (string, error) {
+	// Access the repository worktree for the initial commit.
 	wt, err := repo.Worktree()
 	if err != nil {
 		return "", err
 	}
+
+	// Write the README content before staging it.
 	f, err := workdir.Create("README.md")
 	if err != nil {
 		return "", err
@@ -241,6 +221,8 @@ func commitTestReadme(repo *git.Repository, workdir billy.Filesystem, content, m
 	if err := f.Close(); err != nil {
 		return "", err
 	}
+
+	// Stage and commit the README with the test author.
 	if _, err := wt.Add("README.md"); err != nil {
 		return "", err
 	}

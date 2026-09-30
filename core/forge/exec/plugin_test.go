@@ -3,18 +3,13 @@ package space_exec
 import (
 	"bytes"
 	"context"
-	"io"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/aperturerobotics/starpc/srpc"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -25,21 +20,24 @@ import (
 	execution_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
-	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
 // TestPluginExecWaitingStatus observes the same durable Execution while its
 // plugin client is unavailable and after the client becomes available.
 func TestPluginExecWaitingStatus(t *testing.T) {
+	// Gate the plugin load and execution stream independently.
 	const pluginID = "example-plugin"
 	available := make(chan struct{})
 	waitingPosted := make(chan struct{})
 	responses := make(chan *PluginExecResponse)
 	streamStarted := make(chan struct{})
 	client := &pluginExecClientStub{stream: &pluginExecStreamStub{ch: responses}, streamStarted: streamStarted}
+
+	// Register a plugin loader that records its wait before the client is available.
 	registry := NewRegistry()
 	registry.Register(PluginExecConfigID, newPluginExecHandler(nil, func(ctx context.Context, b bus.Bus, id string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
+		// Record the requested plugin's durable wait status.
 		if id != pluginID {
 			return nil, nil, errors.Errorf("unexpected plugin: %s", id)
 		}
@@ -47,6 +45,8 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 			return nil, nil, err
 		}
 		close(waitingPosted)
+
+		// Retain plugin demand until the client arrives or execution is canceled.
 		select {
 		case <-ctx.Done():
 			return nil, nil, ctx.Err()
@@ -54,7 +54,11 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 			return client, nil, nil
 		}
 	}))
+
+	// Start the native Execution controller with the gated plugin handler.
 	tb, peerID := setupIntegrationTest(t, registry)
+
+	// Build the plugin controller config for this execution.
 	conf := &PluginExecConfig{PluginId: pluginID, ControllerId: "example-controller"}
 	configData, err := conf.MarshalVT()
 	if err != nil {
@@ -62,13 +66,16 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 	}
 	const execKey = "exec/waiting-plugin"
 	createTestExecution(t, tb.Context, tb.WorldState, peerID, execKey, PluginExecConfigID, configData)
+
+	// Retain the native controller while the plugin remains unavailable.
 	controllerConf := execution_controller.NewConfig(tb.EngineID, execKey, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
 	_, ctrlRef, err := execution_controller.StartControllerWithConfig(t.Context(), tb.Bus, controllerConf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ctrlRef.Release()
+	t.Cleanup(ctrlRef.Release)
 
+	// Inspect the authoritative Execution after its plugin wait is posted.
 	<-waitingPosted
 	waiting, stateRef, err := forge_execution.LookupExecution(t.Context(), tb.WorldState, execKey)
 	if err != nil {
@@ -83,6 +90,7 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 		t.Fatalf("waiting execution state = %v", waiting.GetExecutionState())
 	}
 
+	// Release plugin demand and inspect the cleared wait status.
 	close(available)
 	<-streamStarted
 	proceeding, proceedingRef, err := forge_execution.LookupExecution(t.Context(), tb.WorldState, execKey)
@@ -94,6 +102,8 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 	if got := proceeding.GetWaitingPluginId(); got != "" {
 		t.Fatalf("proceeding waiting plugin = %q", got)
 	}
+
+	// Complete the plugin stream and verify the durable Execution result.
 	responses <- &PluginExecResponse{}
 	close(responses)
 	completed, err := forge_execution.WaitExecutionComplete(t.Context(), tb.Logger, tb.WorldState, execKey)
@@ -106,158 +116,26 @@ func TestPluginExecWaitingStatus(t *testing.T) {
 	}
 }
 
-type pluginExecClientStub struct {
-	req           *PluginExecRequest
-	resp          *PluginExecResponse
-	err           error
-	stream        *pluginExecStreamStub
-	streamErr     error
-	streamCalled  bool
-	streamStarted chan struct{}
-}
-
-func (s *pluginExecClientStub) SRPCClient() srpc.Client {
-	return nil
-}
-
-func (s *pluginExecClientStub) Execute(
-	ctx context.Context,
-	req *PluginExecRequest,
-) (*PluginExecResponse, error) {
-	s.req = req
-	return s.resp, s.err
-}
-
-func (s *pluginExecClientStub) ExecuteStream(
-	ctx context.Context,
-	req *PluginExecRequest,
-) (SRPCPluginExecService_ExecuteStreamClient, error) {
-	s.req = req
-	s.streamCalled = true
-	if s.streamStarted != nil {
-		close(s.streamStarted)
-	}
-	if s.streamErr != nil {
-		return nil, s.streamErr
-	}
-	return s.stream, nil
-}
-
-type pluginExecStreamStub struct {
-	resps []*PluginExecResponse
-	ch    chan *PluginExecResponse
-	idx   int
-}
-
-func (s *pluginExecStreamStub) Context() context.Context {
-	return context.Background()
-}
-
-func (s *pluginExecStreamStub) MsgSend(srpc.Message) error {
-	return nil
-}
-
-func (s *pluginExecStreamStub) MsgRecv(srpc.Message) error {
-	return nil
-}
-
-func (s *pluginExecStreamStub) CloseSend() error {
-	return nil
-}
-
-func (s *pluginExecStreamStub) Close() error {
-	return nil
-}
-
-func (s *pluginExecStreamStub) Recv() (*PluginExecResponse, error) {
-	if s.ch != nil {
-		resp, ok := <-s.ch
-		if !ok {
-			return nil, io.EOF
-		}
-		return resp, nil
-	}
-	if s.idx >= len(s.resps) {
-		return nil, io.EOF
-	}
-	resp := s.resps[s.idx]
-	s.idx++
-	return resp, nil
-}
-
-func (s *pluginExecStreamStub) RecvTo(resp *PluginExecResponse) error {
-	next, err := s.Recv()
-	if err != nil {
-		return err
-	}
-	*resp = *next
-	return nil
-}
-
-type pluginExecHandleStub struct {
-	logs    []*PluginExecLog
-	logCh   chan *PluginExecLog
-	outputs forge_value.ValueSlice
-	cursor  *bucket_lookup.Cursor
-}
-
-func (h *pluginExecHandleStub) SetWaitingPlugin(ctx context.Context, pluginID string) error {
-	return nil
-}
-
-func (h *pluginExecHandleStub) GetExecutionUniqueId() string {
-	return "test-exec"
-}
-
-// GetExecutionObjectKey identifies the synthetic plugin execution attempt.
-func (h *pluginExecHandleStub) GetExecutionObjectKey() string { return "exec/test" }
-
-func (h *pluginExecHandleStub) GetPeerId() peer.ID {
-	return ""
-}
-
-func (h *pluginExecHandleStub) GetTimestamp() *timestamp.Timestamp {
-	return &timestamp.Timestamp{}
-}
-
-func (h *pluginExecHandleStub) AccessStorage(
-	ctx context.Context,
-	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
-) error {
-	if h.cursor == nil {
-		return nil
-	}
-	if ref != nil && !ref.GetRootRef().GetEmpty() {
-		cs := h.cursor.Clone()
-		cs.SetRootRef(ref.GetRootRef())
-		return cb(cs)
-	}
-	return cb(h.cursor)
-}
-
-func (h *pluginExecHandleStub) SetOutputs(
-	ctx context.Context,
-	outputs forge_value.ValueSlice,
-	clearOld bool,
-) error {
-	h.outputs = outputs.Clone()
-	return nil
-}
-
+// TestPluginExecHandlerImportsOutputFiles retains plugin files in the output mount.
 func TestPluginExecHandlerImportsOutputFiles(t *testing.T) {
-	ctx := context.Background()
-	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.StandardLogger()))
+	// Configure the plugin handler within the test lifecycle.
+	ctx := t.Context()
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(tb.Release)
+
+	// Retain a writable storage cursor for the plugin output mount.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(cursor.Release)
 	handle := &pluginExecHandleStub{cursor: cursor}
 	handler := &pluginExecHandler{handle: handle}
 
+	// Apply plugin file outputs through the storage handle.
 	resp := &PluginExecResponse{
 		OutputFiles: []*PluginExecOutputFile{{
 			Path: "nested/result.txt",
@@ -275,15 +153,18 @@ func TestPluginExecHandlerImportsOutputFiles(t *testing.T) {
 		t.Fatalf("output value: %#v", out)
 	}
 
+	// Read the retained output file through the UnixFS mount.
 	cs := cursor.Clone()
 	cs.SetRootRef(out.GetBucketRef().GetRootRef())
 	fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, nil)
-	defer fs.Release()
+	t.Cleanup(fs.Release)
 	fh, err := unixfs.NewFSHandle(fs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer fh.Release()
+	t.Cleanup(fh.Release)
+
+	// Verify the plugin output content through the filesystem view.
 	bfs := unixfs_billy.NewBillyFS(ctx, fh, "", time.Now())
 	data, err := billy_util.ReadFile(bfs, "nested/result.txt")
 	if err != nil {
@@ -294,16 +175,9 @@ func TestPluginExecHandlerImportsOutputFiles(t *testing.T) {
 	}
 }
 
-func (h *pluginExecHandleStub) WriteLog(ctx context.Context, level, message string) error {
-	log := &PluginExecLog{Level: level, Message: message}
-	h.logs = append(h.logs, log)
-	if h.logCh != nil {
-		h.logCh <- log
-	}
-	return nil
-}
-
+// TestPluginExecConfigRoundTrip preserves plugin controller config through its codec.
 func TestPluginExecConfigRoundTrip(t *testing.T) {
+	// Build the plugin controller config for this execution.
 	conf := &PluginExecConfig{
 		PluginId:         "example-core",
 		ControllerId:     "example/exec-controller/v86/browser",
@@ -312,6 +186,8 @@ func TestPluginExecConfigRoundTrip(t *testing.T) {
 	if err := conf.Validate(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode the plugin config and compare its typed fields.
 	data, err := conf.MarshalBlock()
 	if err != nil {
 		t.Fatal(err)
@@ -325,8 +201,10 @@ func TestPluginExecConfigRoundTrip(t *testing.T) {
 	}
 }
 
+// TestPluginExecHandlerCallsPluginService forwards config and inputs and retains results.
 func TestPluginExecHandlerCallsPluginService(t *testing.T) {
-	ctx := context.Background()
+	// Configure the plugin handler within the test lifecycle.
+	ctx := t.Context()
 	client := &pluginExecClientStub{
 		stream: &pluginExecStreamStub{
 			resps: []*PluginExecResponse{{
@@ -339,6 +217,8 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 			}},
 		},
 	}
+
+	// Resolve the configured plugin service directly.
 	load := func(ctx context.Context, b bus.Bus, pluginID string, onWaiting func() error) (SRPCPluginExecServiceClient, directive.Reference, error) {
 		if pluginID != "example-core" {
 			t.Fatalf("plugin id: %s", pluginID)
@@ -346,6 +226,7 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 		return client, nil, nil
 	}
 
+	// Build the plugin controller config for this execution.
 	conf := &PluginExecConfig{
 		PluginId:         "example-core",
 		ControllerId:     "example/exec-controller/v86/browser",
@@ -355,6 +236,8 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Construct the bridge from its public handler factory.
 	handle := &pluginExecHandleStub{}
 	factory := newPluginExecHandler(
 		nil,
@@ -364,7 +247,7 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	)
 	handler, err := factory(
 		ctx,
-		logrus.NewEntry(logrus.StandardLogger()),
+		logrus.NewEntry(logrus.New()),
 		nil,
 		handle,
 		forge_target.InputMap{
@@ -375,6 +258,8 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the bridge and inspect the plugin request and retained response.
 	if err := handler.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -390,6 +275,8 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	if len(client.req.GetInputs()) != 1 || client.req.GetInputs()[0].GetName() != "source" {
 		t.Fatalf("inputs: %#v", client.req.GetInputs())
 	}
+
+	// Inspect the response forwarded through the Execution handle.
 	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "ran plugin controller" {
 		t.Fatalf("logs: %#v", handle.logs)
 	}
@@ -398,10 +285,14 @@ func TestPluginExecHandlerCallsPluginService(t *testing.T) {
 	}
 }
 
+// TestPluginExecHandlerStreamsLogsBeforeCompletion retains progress while execution is open.
 func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
-	ctx := context.Background()
+	// Configure the plugin handler within the test lifecycle.
+	ctx := t.Context()
 	ch := make(chan *PluginExecResponse)
 	client := &pluginExecClientStub{stream: &pluginExecStreamStub{ch: ch}}
+
+	// Build the plugin controller config for this execution.
 	conf := &PluginExecConfig{
 		PluginId:         "example-core",
 		ControllerId:     "example/workfront/runner/claude",
@@ -411,6 +302,8 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Record plugin progress as the gated execution stream runs.
 	logCh := make(chan *PluginExecLog, 2)
 	handle := &pluginExecHandleStub{logCh: logCh}
 	handler := &pluginExecHandler{
@@ -425,6 +318,8 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	if err := handler.conf.UnmarshalVT(configData); err != nil {
 		t.Fatal(err)
 	}
+
+	// Deliver the first progress entry without completing the plugin stream.
 	errs := make(chan error)
 	go func() {
 		errs <- handler.Execute(ctx)
@@ -446,6 +341,8 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 		t.Fatalf("handler returned before stream closed: %v", err)
 	default:
 	}
+
+	// Complete the stream and join the handler before checking its final outputs.
 	ch <- &PluginExecResponse{
 		Logs: []*PluginExecLog{{
 			Level:   "info",
@@ -470,8 +367,10 @@ func TestPluginExecHandlerStreamsLogsBeforeCompletion(t *testing.T) {
 	}
 }
 
+// TestPluginExecHandlerRejectsEmptyStream requires a plugin result before EOF.
 func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
-	ctx := context.Background()
+	// Configure the plugin handler within the test lifecycle.
+	ctx := t.Context()
 	client := &pluginExecClientStub{stream: &pluginExecStreamStub{}}
 	handler := &pluginExecHandler{
 		handle: &pluginExecHandleStub{},
@@ -485,6 +384,8 @@ func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
 			return client, nil, nil
 		},
 	}
+
+	// Require an explicit error for the empty plugin stream.
 	err := handler.Execute(ctx)
 	if err == nil {
 		t.Fatal("expected empty stream error")
@@ -494,8 +395,10 @@ func TestPluginExecHandlerRejectsEmptyStream(t *testing.T) {
 	}
 }
 
+// TestPluginExecHandlerFallsBackToUnaryExecute preserves unary-only plugin consumers.
 func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
-	ctx := context.Background()
+	// Configure the plugin handler within the test lifecycle.
+	ctx := t.Context()
 	client := &pluginExecClientStub{
 		streamErr: errors.New("stream unavailable"),
 		resp: &PluginExecResponse{
@@ -517,8 +420,13 @@ func TestPluginExecHandlerFallsBackToUnaryExecute(t *testing.T) {
 			return client, nil, nil
 		},
 	}
+
+	// Run the bridge and inspect the plugin request and retained response.
 	if err := handler.Execute(ctx); err != nil {
 		t.Fatal(err)
+	}
+	if client.req.GetExecutionObjectKey() != "exec/test" || client.req.GetClaimEpoch() != 0 {
+		t.Fatalf("standalone handle context changed: %+v", client.req)
 	}
 	handle := handler.handle.(*pluginExecHandleStub)
 	if len(handle.logs) != 1 || handle.logs[0].GetMessage() != "unary fallback" {
