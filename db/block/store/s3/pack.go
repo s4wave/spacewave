@@ -68,7 +68,7 @@ type PackStore struct {
 	// prefix precedes every object key.
 	prefix string
 	// pricing is the price list of the service holding the bucket.
-	pricing Pricing
+	pricing *Pricing
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
 	// compactor runs compact after writes.
@@ -93,6 +93,9 @@ type PackStore struct {
 	// reclaimState is the last reclaim pass, or nil before the first.
 	// Guarded by compactMtx.
 	reclaimState *ReclaimState
+	// passWrites is writes when this store last ran a reclaim pass.
+	// Guarded by compactMtx.
+	passWrites uint64
 }
 
 // compactBackoff spaces the retries of a failed compaction pass.
@@ -105,16 +108,20 @@ var compactBackoff = &backoff.Backoff{
 	},
 }
 
-// NewPackStore builds a packfile block store on the bucket. Close stops its
-// compaction routine.
-func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string) *PackStore {
-	// Price the bucket's service from its endpoint.
+// NewPackStore builds a packfile block store on the bucket. pricing is the
+// price list of the service holding the bucket; nil uses PricingForEndpoint.
+// Close stops its compaction routine.
+func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string, pricing *Pricing) *PackStore {
+	// Price the bucket's service from its endpoint unless overridden.
+	if pricing == nil {
+		pricing = PricingForEndpoint(client.endpoint)
+	}
 	s := &PackStore{
 		le:      le,
 		client:  client,
 		bucket:  bucket,
 		prefix:  prefix,
-		pricing: PricingForEndpoint(client.endpoint),
+		pricing: pricing,
 		entries: make(map[string]*packfile.PackfileEntry),
 		compactor: routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-compaction"),

@@ -45,7 +45,11 @@ import {
   S3Location,
   StorageBackend,
 } from '../../core/account/settings/settings.pb.js'
-import { CheckResult, Credentials } from '../../db/block/store/s3/s3.pb.js'
+import {
+  CheckResult,
+  Credentials,
+  Pricing,
+} from '../../db/block/store/s3/s3.pb.js'
 
 /**
  * SyncStatusState describes the aggregate session sync state.
@@ -3938,6 +3942,54 @@ export interface SetDefaultStorageBackendResponse {}
 export const SetDefaultStorageBackendResponse: MessageType<SetDefaultStorageBackendResponse> =
   /* @__PURE__ */ createEmptyMessageType<SetDefaultStorageBackendResponse>(
     's4wave.session.SetDefaultStorageBackendResponse',
+    true,
+  )
+
+/**
+ * SetStorageBackendPricingRequest is the request for SetStorageBackendPricing.
+ *
+ * @generated from message s4wave.session.SetStorageBackendPricingRequest
+ */
+export interface SetStorageBackendPricingRequest {
+  /**
+   * StorageBackendId identifies the backend.
+   *
+   * @generated from field: string storage_backend_id = 1;
+   */
+  storageBackendId?: string
+  /**
+   * Pricing is the new price list.
+   * Empty returns to the published prices of the endpoint's service.
+   *
+   * @generated from field: block.store.s3.Pricing pricing = 2;
+   */
+  pricing?: Pricing
+}
+
+export const SetStorageBackendPricingRequest: MessageType<SetStorageBackendPricingRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.SetStorageBackendPricingRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'storage_backend_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'pricing', kind: 'message', T: () => Pricing },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetStorageBackendPricingResponse is the response for SetStorageBackendPricing.
+ *
+ * @generated from message s4wave.session.SetStorageBackendPricingResponse
+ */
+export interface SetStorageBackendPricingResponse {}
+
+export const SetStorageBackendPricingResponse: MessageType<SetStorageBackendPricingResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetStorageBackendPricingResponse>(
+    's4wave.session.SetStorageBackendPricingResponse',
     true,
   )
 

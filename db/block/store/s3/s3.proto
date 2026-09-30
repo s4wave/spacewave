@@ -110,3 +110,20 @@ message ReclaimState {
   // Blocks is the number of blocks in those packfiles.
   uint64 blocks = 5;
 }
+
+// Pricing is the price list of an S3-compatible service in dollars. Storage
+// reclaim weighs the storage a pass frees against the requests and egress it
+// costs.
+message Pricing {
+  // StorageGbMonth is the price of storing one GiB for one month.
+  double storage_gb_month = 1;
+  // EgressGb is the price of reading one GiB out of the service.
+  double egress_gb = 2;
+  // ClassAPerMillion is the price of one million PUT or LIST requests.
+  double class_a_per_million = 3;
+  // ClassBPerMillion is the price of one million GET requests.
+  double class_b_per_million = 4;
+  // MinStorageDays is the storage duration billed for an object deleted
+  // sooner.
+  uint32 min_storage_days = 5;
+}

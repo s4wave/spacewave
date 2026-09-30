@@ -70,6 +70,9 @@ service SessionResourceService {
   rpc RemoveStorageBackend(RemoveStorageBackendRequest) returns (RemoveStorageBackendResponse);
   // SetDefaultStorageBackend selects the backend that new Spaces use.
   rpc SetDefaultStorageBackend(SetDefaultStorageBackendRequest) returns (SetDefaultStorageBackendResponse);
+  // SetStorageBackendPricing overrides the price list storage reclaim uses
+  // for a backend.
+  rpc SetStorageBackendPricing(SetStorageBackendPricingRequest) returns (SetStorageBackendPricingResponse);
   // WatchSpaceStorage streams where a Space's blocks are stored and the
   // progress of their upload.
   rpc WatchSpaceStorage(WatchSpaceStorageRequest) returns (stream WatchSpaceStorageResponse);
@@ -1030,6 +1033,18 @@ message SetDefaultStorageBackendRequest {
 
 // SetDefaultStorageBackendResponse is the response for SetDefaultStorageBackend.
 message SetDefaultStorageBackendResponse {}
+
+// SetStorageBackendPricingRequest is the request for SetStorageBackendPricing.
+message SetStorageBackendPricingRequest {
+  // StorageBackendId identifies the backend.
+  string storage_backend_id = 1;
+  // Pricing is the new price list.
+  // Empty returns to the published prices of the endpoint's service.
+  .block.store.s3.Pricing pricing = 2;
+}
+
+// SetStorageBackendPricingResponse is the response for SetStorageBackendPricing.
+message SetStorageBackendPricingResponse {}
 
 // WatchSpaceStorageRequest is the request for WatchSpaceStorage.
 message WatchSpaceStorageRequest {

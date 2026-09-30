@@ -199,7 +199,8 @@ func (b *StorageBackend) Validate() error {
 	return nil
 }
 
-// Validate checks that the S3 location names an endpoint and bucket.
+// Validate checks that the S3 location names an endpoint and bucket, and that
+// any price list override is valid.
 func (l *S3Location) Validate() error {
 	if l.GetEndpoint() == "" {
 		return errors.New("endpoint is required")
@@ -207,7 +208,7 @@ func (l *S3Location) Validate() error {
 	if l.GetBucket() == "" {
 		return errors.New("bucket is required")
 	}
-	return nil
+	return errors.Wrap(l.GetPricing().Validate(), "pricing")
 }
 
 // BlockStorePrefix returns the key prefix of the block store's objects.

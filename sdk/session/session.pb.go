@@ -3506,6 +3506,47 @@ func (x *SetDefaultStorageBackendResponse) Reset() {
 
 func (*SetDefaultStorageBackendResponse) ProtoMessage() {}
 
+// SetStorageBackendPricingRequest is the request for SetStorageBackendPricing.
+type SetStorageBackendPricingRequest struct {
+	unknownFields []byte
+	// StorageBackendId identifies the backend.
+	StorageBackendId string `protobuf:"bytes,1,opt,name=storage_backend_id,json=storageBackendId,proto3" json:"storageBackendId,omitempty"`
+	// Pricing is the new price list.
+	// Empty returns to the published prices of the endpoint's service.
+	Pricing *s3.Pricing `protobuf:"bytes,2,opt,name=pricing,proto3" json:"pricing,omitempty"`
+}
+
+func (x *SetStorageBackendPricingRequest) Reset() {
+	*x = SetStorageBackendPricingRequest{}
+}
+
+func (*SetStorageBackendPricingRequest) ProtoMessage() {}
+
+func (x *SetStorageBackendPricingRequest) GetStorageBackendId() string {
+	if x != nil {
+		return x.StorageBackendId
+	}
+	return ""
+}
+
+func (x *SetStorageBackendPricingRequest) GetPricing() *s3.Pricing {
+	if x != nil {
+		return x.Pricing
+	}
+	return nil
+}
+
+// SetStorageBackendPricingResponse is the response for SetStorageBackendPricing.
+type SetStorageBackendPricingResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetStorageBackendPricingResponse) Reset() {
+	*x = SetStorageBackendPricingResponse{}
+}
+
+func (*SetStorageBackendPricingResponse) ProtoMessage() {}
+
 // WatchSpaceStorageRequest is the request for WatchSpaceStorage.
 type WatchSpaceStorageRequest struct {
 	unknownFields []byte
@@ -5420,6 +5461,38 @@ func (m *SetDefaultStorageBackendResponse) CloneVT() *SetDefaultStorageBackendRe
 }
 
 func (m *SetDefaultStorageBackendResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetStorageBackendPricingRequest) CloneVT() *SetStorageBackendPricingRequest {
+	if m == nil {
+		return (*SetStorageBackendPricingRequest)(nil)
+	}
+	r := new(SetStorageBackendPricingRequest)
+	r.StorageBackendId = m.StorageBackendId
+	r.Pricing = protobuf_go_lite.CloneVTValue(m.Pricing)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetStorageBackendPricingRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetStorageBackendPricingResponse) CloneVT() *SetStorageBackendPricingResponse {
+	if m == nil {
+		return (*SetStorageBackendPricingResponse)(nil)
+	}
+	r := new(SetStorageBackendPricingResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetStorageBackendPricingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -7864,6 +7937,46 @@ func (this *SetDefaultStorageBackendResponse) EqualVT(that *SetDefaultStorageBac
 
 func (this *SetDefaultStorageBackendResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetDefaultStorageBackendResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetStorageBackendPricingRequest) EqualVT(that *SetStorageBackendPricingRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.StorageBackendId != that.StorageBackendId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Pricing, that.Pricing) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetStorageBackendPricingRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetStorageBackendPricingRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetStorageBackendPricingResponse) EqualVT(that *SetStorageBackendPricingResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetStorageBackendPricingResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetStorageBackendPricingResponse)
 	if !ok {
 		return false
 	}
@@ -13678,6 +13791,90 @@ func (x *SetDefaultStorageBackendResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetStorageBackendPricingRequest message to JSON.
+func (x *SetStorageBackendPricingRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.StorageBackendId != "" || s.HasField("storageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageBackendId")
+		s.WriteString(x.StorageBackendId)
+	}
+	if x.Pricing != nil || s.HasField("pricing") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pricing")
+		x.Pricing.MarshalProtoJSON(s.WithField("pricing"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetStorageBackendPricingRequest to JSON.
+func (x *SetStorageBackendPricingRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetStorageBackendPricingRequest message from JSON.
+func (x *SetStorageBackendPricingRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "storage_backend_id", "storageBackendId":
+			s.AddField("storage_backend_id")
+			x.StorageBackendId = s.ReadString()
+		case "pricing":
+			if s.ReadNil() {
+				x.Pricing = nil
+				return
+			}
+			x.Pricing = &s3.Pricing{}
+			x.Pricing.UnmarshalProtoJSON(s.WithField("pricing", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetStorageBackendPricingRequest from JSON.
+func (x *SetStorageBackendPricingRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetStorageBackendPricingResponse message to JSON.
+func (x *SetStorageBackendPricingResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetStorageBackendPricingResponse to JSON.
+func (x *SetStorageBackendPricingResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetStorageBackendPricingResponse message from JSON.
+func (x *SetStorageBackendPricingResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetStorageBackendPricingResponse from JSON.
+func (x *SetStorageBackendPricingResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchSpaceStorageRequest message to JSON.
 func (x *WatchSpaceStorageRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -18544,6 +18741,85 @@ func (m *SetDefaultStorageBackendResponse) MarshalToSizedBufferVT(dAtA []byte) (
 	return len(dAtA) - i, nil
 }
 
+func (m *SetStorageBackendPricingRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetStorageBackendPricingRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetStorageBackendPricingRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Pricing != nil {
+		size, err := m.Pricing.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.StorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StorageBackendId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetStorageBackendPricingResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetStorageBackendPricingResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetStorageBackendPricingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSpaceStorageRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -20065,6 +20341,31 @@ func (m *SetDefaultStorageBackendRequest) SizeVT() (n int) {
 }
 
 func (m *SetDefaultStorageBackendResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetStorageBackendPricingRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageBackendId)
+	if m.Pricing != nil {
+		l = m.Pricing.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetStorageBackendPricingResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -22137,6 +22438,34 @@ func (x *SetDefaultStorageBackendResponse) MarshalProtoText() string {
 }
 
 func (x *SetDefaultStorageBackendResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetStorageBackendPricingRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetStorageBackendPricingRequest")
+	if x.StorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.StorageBackendId)
+	}
+	if x.Pricing != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pricing")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Pricing)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetStorageBackendPricingRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetStorageBackendPricingResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetStorageBackendPricingResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetStorageBackendPricingResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -28810,6 +29139,117 @@ func (m *SetDefaultStorageBackendResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetDefaultStorageBackendResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetStorageBackendPricingRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetStorageBackendPricingRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetStorageBackendPricingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StorageBackendId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pricing", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Pricing == nil {
+				m.Pricing = &s3.Pricing{}
+			}
+			if err := m.Pricing.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetStorageBackendPricingResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetStorageBackendPricingResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetStorageBackendPricingResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

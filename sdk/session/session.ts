@@ -52,6 +52,7 @@ import {
 import { SessionLockMode, SessionRef } from '../../core/session/session.pb.js'
 import type { AccountOutcome } from '../../core/pairing/pairing.pb.js'
 import type { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
+import type { Pricing } from '../../db/block/store/s3/s3.pb.js'
 import { SharedObject, SharedObjectHealthError } from '../sobject/sobject.js'
 import { SystemStatus } from '../status/status.js'
 import { LocalSession } from './local-session.js'
@@ -188,6 +189,20 @@ export class Session extends Resource {
   ): Promise<void> {
     await this.service.SetDefaultStorageBackend(
       { storageBackendId },
+      abortSignal,
+    )
+  }
+
+  // setStorageBackendPricing overrides the price list storage reclaim uses
+  // for a backend. No pricing returns it to the published prices of the
+  // endpoint's service.
+  public async setStorageBackendPricing(
+    storageBackendId: string,
+    pricing?: Pricing,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.SetStorageBackendPricing(
+      { storageBackendId, pricing },
       abortSignal,
     )
   }

@@ -131,9 +131,9 @@ func (s *CdnBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return s.decodedBlocks
 }
 
-// ReclaimStorage returns nil: the CDN block store is read-only.
-func (s *CdnBlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
-	return nil
+// ReclaimStorage returns zero: the CDN block store is read-only.
+func (s *CdnBlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 // BeginReadOperation returns the CDN block store as the scoped read handle.

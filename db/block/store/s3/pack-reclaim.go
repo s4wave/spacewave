@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"slices"
 	"time"
 
@@ -44,15 +45,19 @@ const (
 //
 // Compaction merges the rewritten packfiles later. A packfile another writer
 // merged first is skipped; its blocks wait for the next pass.
+//
+// Returns the time the next pass comes due if the store is not written again,
+// or zero when none will. A caller that asks again at that time runs the last
+// pass a Space needs after it goes idle.
 func (s *PackStore) Reclaim(
 	ctx context.Context,
 	fence func(context.Context) error,
 	live func(context.Context, []*block.BlockRef) ([]bool, error),
-) error {
+) (time.Time, error) {
 	// Exclude compaction for the pass.
 	release, err := s.compactMtx.Lock(ctx)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	defer release()
 
@@ -60,16 +65,17 @@ func (s *PackStore) Reclaim(
 	now := time.Now()
 	prev, err := s.loadReclaimState(ctx)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	if !s.reclaimDue(prev, now) {
-		return nil
+		return s.nextReclaim(prev, s.writtenSincePass()), nil
 	}
 
 	// Judge the listed packfiles and pick the ones worth reclaiming.
+	writes := s.writeCount()
 	judged, err := s.judgeListed(ctx, live)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	picked := slices.DeleteFunc(slices.Clone(judged), func(j *packJudgment) bool {
 		return !s.worthReclaim(j, now)
@@ -92,31 +98,75 @@ func (s *PackStore) Reclaim(
 		"dead-bytes":         state.GetDeadBytes(),
 		"dead-bytes-per-day": state.GetDeadBytesPerDay(),
 	}).Info("storage reclaim pass")
-	if err := s.saveReclaimState(ctx, state); err != nil && reclaimErr == nil {
-		return err
+	if err := s.saveReclaimState(ctx, state); err != nil {
+		if reclaimErr == nil {
+			reclaimErr = err
+		}
+		return time.Time{}, reclaimErr
 	}
-	return reclaimErr
+	s.passWrites = writes
+	return s.nextReclaim(state, s.writtenSincePass()), reclaimErr
 }
 
-// reclaimDue reports whether a pass is due. The first pass is due at once.
-// Later, a pass is due when the blocks expected to die since prev would have
-// cost as much to store as a pass costs to run, which minimizes the sum of the
-// two, or when reclaimMaxInterval has passed.
+// reclaimDue reports whether a pass is due: the first pass at once, and later
+// ones at reclaimDueAt.
 func (s *PackStore) reclaimDue(prev *ReclaimState, now time.Time) bool {
-	// Run the first pass, and any pass reclaimMaxInterval after the last.
-	if prev == nil {
-		return true
-	}
-	elapsed := max(now.Sub(prev.GetPassedAt().AsTime()), 0)
-	if elapsed >= reclaimMaxInterval {
-		return true
+	return prev == nil || !now.Before(s.reclaimDueAt(prev))
+}
+
+// reclaimDueAt returns the time the pass after prev comes due.
+//
+// Blocks die at a steady rate r, so after T the ones that died were stored for
+// T/2 on average, costing k·T² for some k. The pass is due when that reaches
+// the cost of a pass, at T = sqrt(scan/k), which minimizes the sum of the
+// two. It is due no later than reclaimMaxInterval after prev.
+func (s *PackStore) reclaimDueAt(prev *ReclaimState) time.Time {
+	// Run a free pass at once.
+	passedAt := prev.GetPassedAt().AsTime()
+	scan := s.pricing.scanCost(prev.GetPacks(), prev.GetBlocks())
+	if scan <= 0 {
+		return passedAt
 	}
 
-	// Blocks die at a steady rate, so the ones that died were stored for half
-	// the elapsed time on average.
-	died := float64(prev.GetDeadBytesPerDay()) * elapsed.Hours() / 24
-	kept := s.pricing.storageCost(died/2, elapsed)
-	return kept >= s.pricing.scanCost(prev.GetPacks(), prev.GetBlocks())
+	// Find the storage cost of the blocks dying in the first hour.
+	perHour := float64(prev.GetDeadBytesPerDay()) / 24
+	k := s.pricing.storageCost(perHour/2, time.Hour)
+	if k <= 0 {
+		return passedAt.Add(reclaimMaxInterval)
+	}
+
+	// Solve k·T² = scan for T in hours, bounded by reclaimMaxInterval.
+	hours := math.Sqrt(scan / k)
+	if hours >= reclaimMaxInterval.Hours() {
+		return passedAt.Add(reclaimMaxInterval)
+	}
+	return passedAt.Add(time.Duration(hours * float64(time.Hour)))
+}
+
+// nextReclaim returns the time the pass after state comes due if the store is
+// not written again, or zero when none will. Blocks die only after writes, so
+// a pass that measured no deaths needs no successor unless the store was
+// written since.
+func (s *PackStore) nextReclaim(state *ReclaimState, written bool) time.Time {
+	if state.GetDeadBytesPerDay() == 0 && !written {
+		return time.Time{}
+	}
+	return s.reclaimDueAt(state)
+}
+
+// writeCount returns the count of packfiles this store wrote.
+func (s *PackStore) writeCount() uint64 {
+	var writes uint64
+	s.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		writes = s.writes
+	})
+	return writes
+}
+
+// writtenSincePass reports whether this store wrote a packfile since the last
+// pass it ran. Called with compactMtx.
+func (s *PackStore) writtenSincePass() bool {
+	return s.writeCount() != s.passWrites
 }
 
 // worthReclaim reports whether reclaiming the packfile of j pays for itself.
@@ -131,7 +181,7 @@ func (s *PackStore) worthReclaim(j *packJudgment, now time.Time) bool {
 	if j.dead == 0 || j.dead*2 < j.total {
 		return false
 	}
-	if now.Sub(j.entry.GetCreatedAt().AsTime()) < s.pricing.MinStorage {
+	if now.Sub(j.entry.GetCreatedAt().AsTime()) < s.pricing.minStorage() {
 		return false
 	}
 

@@ -23,21 +23,37 @@ const storageReclaimInterval = time.Hour
 var errStorageReclaimNotReady = errors.New("accepted World is not completely local")
 
 // executeStorageReclaim asks the block store for a storage reclaim pass
-// storageReclaimDelay after a write, and no sooner than storageReclaimInterval
-// after the previous request. The block store decides whether a pass pays for
-// itself.
+// storageReclaimDelay after startup and after each write, and at the time the
+// block store says the next pass comes due, so an idle Space still runs its
+// last pass. Requests are at least storageReclaimInterval apart. The block
+// store decides whether a pass pays for itself.
 func (c *Controller) executeStorageReclaim(ctx context.Context, so sobject.SharedObject) error {
-	// Track the pending pass and the time of the previous one.
+	// Track the pending request and the time of the previous one.
 	var reclaimTimer *time.Timer
-	var lastReclaim time.Time
+	var reclaimAt, lastReclaim time.Time
 	defer func() {
 		if reclaimTimer != nil {
 			reclaimTimer.Stop()
 		}
 	}()
 
-	// Schedule a pass after each write, and run it when it is due. Hold each
-	// wait channel until it fires, so a write during a pass is not missed.
+	// Arm the request for at, unless an earlier one is pending.
+	schedule := func(at time.Time) {
+		if earliest := lastReclaim.Add(storageReclaimInterval); at.Before(earliest) {
+			at = earliest
+		}
+		if reclaimTimer != nil {
+			if !at.Before(reclaimAt) {
+				return
+			}
+			reclaimTimer.Stop()
+		}
+		reclaimAt, reclaimTimer = at, time.NewTimer(time.Until(at))
+	}
+	schedule(time.Now().Add(storageReclaimDelay))
+
+	// Schedule a request after each write, and send it when it is due. Hold
+	// each wait channel until it fires, so a write during a pass is not missed.
 	var waitCh <-chan struct{}
 	for {
 		if waitCh == nil {
@@ -55,15 +71,16 @@ func (c *Controller) executeStorageReclaim(ctx context.Context, so sobject.Share
 			return ctx.Err()
 		case <-waitCh:
 			waitCh = nil
-			if reclaimTimer == nil {
-				delay := max(storageReclaimDelay, time.Until(lastReclaim.Add(storageReclaimInterval)))
-				reclaimTimer = time.NewTimer(delay)
-			}
+			schedule(time.Now().Add(storageReclaimDelay))
 		case <-reclaimCh:
 			reclaimTimer = nil
 			lastReclaim = time.Now()
-			if err := c.reclaimStorage(ctx, so); err != nil {
+			next, err := c.reclaimStorage(ctx, so)
+			if err != nil {
 				return err
+			}
+			if !next.IsZero() {
+				schedule(next)
 			}
 		}
 	}
@@ -78,26 +95,27 @@ func (c *Controller) notifyWrite() {
 
 // reclaimStorage drops the blocks the local store no longer holds from the
 // Space's storage backend. Only the validator or an owner runs a pass, because
-// the pass advances the storage generation. A failed pass is logged, and the
-// next write schedules another.
-func (c *Controller) reclaimStorage(ctx context.Context, so sobject.SharedObject) error {
+// the pass advances the storage generation. Returns the time the next pass
+// comes due without further writes, or zero. A failed pass is logged, and the
+// next write or due time schedules another.
+func (c *Controller) reclaimStorage(ctx context.Context, so sobject.SharedObject) (time.Time, error) {
 	// Only the validator or owner reclaims.
 	canRun, err := c.isValidatorOrOwner(ctx, so)
 	if err != nil || !canRun {
-		return err
+		return time.Time{}, err
 	}
 
 	// Run the pass, logging a failure.
-	err = so.GetBlockStore().ReclaimStorage(ctx, func(ctx context.Context) error {
+	next, err := so.GetBlockStore().ReclaimStorage(ctx, func(ctx context.Context) error {
 		return c.advanceStorageGeneration(ctx, so)
 	})
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return time.Time{}, ctx.Err()
 	}
 	if err != nil {
 		c.le.WithError(err).Warn("storage reclaim pass failed")
 	}
-	return nil
+	return next, nil
 }
 
 // advanceStorageGeneration commits an AdvanceStorageGenerationOp, so every

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/sobject"
+	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	s4wave_secret "github.com/s4wave/spacewave/sdk/secret"
 )
 
@@ -46,6 +47,7 @@ func applyOp(t *testing.T, s *AccountSettings, op *AccountSettingsOp) error {
 // TestStorageBackendOps checks the storage backend, default, and placement
 // rules together.
 func TestStorageBackendOps(t *testing.T) {
+	// Apply each kind of op to one settings value.
 	s := &AccountSettings{}
 	upsert := func(b *StorageBackend) error {
 		return applyOp(t, s, &AccountSettingsOp{Op: &AccountSettingsOp_UpsertStorageBackend{UpsertStorageBackend: b}})
@@ -81,7 +83,7 @@ func TestStorageBackendOps(t *testing.T) {
 		}
 	}
 
-	// Add two backends; a duplicate name and an incomplete backend fail.
+	// Add two backends; a duplicate name fails.
 	if err := upsert(testStorageBackend("a", "minio")); err != nil {
 		t.Fatal(err)
 	}
@@ -91,10 +93,17 @@ func TestStorageBackendOps(t *testing.T) {
 	if err := upsert(testStorageBackend("c", "minio")); err == nil {
 		t.Fatal("expected duplicate display name to fail")
 	}
+
+	// An incomplete backend or a negative price fails.
 	incomplete := testStorageBackend("d", "b2")
 	incomplete.S3.Bucket = ""
 	if err := upsert(incomplete); err == nil {
 		t.Fatal("expected a backend without a bucket to fail")
+	}
+	negative := testStorageBackend("d", "b2")
+	negative.S3.Pricing = &block_store_s3.Pricing{EgressGb: -0.01}
+	if err := upsert(negative); err == nil {
+		t.Fatal("expected a backend with a negative price to fail")
 	}
 
 	// Renaming a backend replaces it in place.

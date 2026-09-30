@@ -3,6 +3,7 @@ package cdn_bstore
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -89,9 +90,9 @@ func (s *SuppliedBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return nil
 }
 
-// ReclaimStorage returns nil: the supplying owner holds the storage.
-func (s *SuppliedBlockStore) ReclaimStorage(context.Context, func(context.Context) error) error {
-	return nil
+// ReclaimStorage returns zero: the supplying owner holds the storage.
+func (s *SuppliedBlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+	return time.Time{}, nil
 }
 
 // Pointer returns the currently-cached root pointer without triggering a
