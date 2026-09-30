@@ -130,6 +130,7 @@ func (r *LookupRpcClientResolver) Resolve(ctx context.Context, handler directive
 // when invalidation requires a replacement, false when the handler declines the
 // lookup, and an error when lookup or the parent context fails.
 func (r *LookupRpcClientResolver) resolveClient(ctx context.Context, handler directive.ResolverHandler) (bool, error) {
+	// A canceled parent context ends the resolution.
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
@@ -137,6 +138,8 @@ func (r *LookupRpcClientResolver) resolveClient(ctx context.Context, handler dir
 	// Client invalidation ends this publication without canceling the directive.
 	clientCtx, cancelClient := context.WithCancel(ctx)
 	defer cancelClient()
+
+	// Wait for the host or target plugin client.
 	var client srpc.Client
 	var release func()
 	var err error
@@ -164,6 +167,8 @@ func (r *LookupRpcClientResolver) resolveClient(ctx context.Context, handler dir
 	_, _ = handler.AddValue(client)
 	defer handler.ClearValues()
 	handler.MarkIdle(true)
+
+	// Publish until the client is invalidated.
 	<-clientCtx.Done()
 	return true, ctx.Err()
 }

@@ -54,9 +54,11 @@ func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
 		}
 	}()
 
+	// Derive a cancellable context for this execution.
 	ctx, ctxCancel := context.WithCancelCause(rctx)
 	defer ctxCancel(context.Canceled)
 
+	// Parse the plugin artifact id and detect self-hosted plugins.
 	pluginID := t.pluginID
 	familyID, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(pluginID, false)
 	if err != nil {
@@ -96,22 +98,19 @@ func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
 	// Resolve filesystem providers without waiting for backend registration.
 	assetsUnixFSID := bldr_plugin.PluginAssetsFsId(pluginID)
 	distUnixFSID := bldr_plugin.PluginDistFsId(pluginID)
-
 	assetsAccessFunc := t.accessFiles(ctx, assetsUnixFSID)
 	distAccessFunc := t.accessFiles(ctx, distUnixFSID)
 
 	// Retain cursors and their RPC services for this execution.
 	assetsFsCursor := unixfs_access.NewFSCursor(assetsAccessFunc)
 	defer assetsFsCursor.Release()
-
 	distFsCursor := unixfs_access.NewFSCursor(distAccessFunc)
 	defer distFsCursor.Release()
 
+	// Build the muxes and cursor services for both filesystems.
 	assetsMux, distMux := srpc.NewMux(nil), srpc.NewMux(nil)
-
 	assetsFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(assetsFsCursor)
 	defer assetsFsCursorServiceServer.Release(true)
-
 	distFsCursorServiceServer := unixfs_rpc_server.NewFSCursorService(distFsCursor)
 	defer distFsCursorServiceServer.Release(true)
 
@@ -119,6 +118,7 @@ func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
 	_ = unixfs_rpc.SRPCRegisterFSCursorService(assetsMux, assetsFsCursorServiceServer)
 	_ = unixfs_rpc.SRPCRegisterFSCursorService(distMux, distFsCursorServiceServer)
 
+	// Publish the filesystem services to waiters.
 	t.resultPromiseCtr.SetResult(&pluginHostServerFsTrackerResult{
 		assetsMux: assetsMux,
 		distMux:   distMux,
@@ -136,6 +136,7 @@ func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
 func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id string) unixfs_access.AccessUnixFSFunc {
 	access := unixfs_access.NewAccessUnixFSViaBusFunc(t.s.b, id, false)
 	return func(caller context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		// Bind the acquisition to the tracked execution lifetime.
 		ctx, cancel := context.WithCancelCause(caller)
 		stop := context.AfterFunc(lifetime, func() {
 			cancel(context.Cause(lifetime))
@@ -143,6 +144,8 @@ func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id str
 				released()
 			}
 		})
+
+		// Acquire the filesystem handle, reporting the tracked cause on failure.
 		handle, release, err := access(ctx, released)
 		if err != nil {
 			stop()
@@ -154,6 +157,7 @@ func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id str
 			return nil, nil, err
 		}
 
+		// Release the handle and the lifetime binding together.
 		return handle, func() {
 			stop()
 			cancel(context.Canceled)

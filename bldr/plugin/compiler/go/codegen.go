@@ -21,6 +21,7 @@ import (
 
 // FormatFile formats the output file.
 func FormatFile(gf *gast.File) ([]byte, error) {
+	// Merge the imports and format the file to the output buffer.
 	var outDat bytes.Buffer
 	mergeImports(gf)
 	fset := token.NewFileSet()
@@ -65,6 +66,7 @@ func CodegenPluginWrapperFromAnalysis(
 	goVarDefs []*vardef.PluginVar,
 	devInfoFile string,
 ) (*gast.File, error) {
+	// Collect the sorted unique import paths.
 	var allDecls []gast.Decl
 	importStrs := make([]string, 0, len(a.imports))
 	for impPkg := range a.imports {
@@ -73,6 +75,7 @@ func CodegenPluginWrapperFromAnalysis(
 	slices.Sort(importStrs)
 	importStrs = slices.Compact(importStrs)
 
+	// Emit one import declaration per path.
 	for _, impPath := range importStrs {
 		impPkg := a.imports[impPath]
 		// Empty aliases use the imported package name.
@@ -99,6 +102,7 @@ func CodegenPluginWrapperFromAnalysis(
 	staticFSFiles = append(staticFSFiles, configSetFiles...)
 
 	// StaticFS: embed static files in the binary.
+	// Build the go:embed comment group for the declaration.
 	var assetFSComment strings.Builder
 	_, _ = assetFSComment.WriteString("// StaticFS contains embedded static assets.\n")
 	if len(staticFSFiles) != 0 {
@@ -134,6 +138,8 @@ func CodegenPluginWrapperFromAnalysis(
 		controllerFactoriesPackages = append(controllerFactoriesPackages, fpkg)
 	}
 	slices.Sort(controllerFactoriesPackages)
+
+	// Emit one factory call per sorted package.
 	for _, fpkg := range controllerFactoriesPackages {
 		factoryPkg := a.controllerFactories[fpkg]
 		factoryCall, err := buildFactoryCall(factoryPkg)
@@ -201,6 +207,7 @@ func CodegenPluginWrapperFromAnalysis(
 		},
 	})
 
+	// Select the default log level from the build type.
 	logLevel := "DebugLevel"
 	if bldr_manifest.ToBuildType(pluginMeta.GetBuildType()).IsRelease() {
 		logLevel = "InfoLevel"

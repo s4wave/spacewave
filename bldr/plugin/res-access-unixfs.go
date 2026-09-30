@@ -39,10 +39,12 @@ func ParsePluginUnixfsID(unixfsID string) (pluginID string, matchedPrefix string
 // If allowEmpty is true, allows empty plugin ID which refers to current plugin.
 // Returns an error if the unixfsID is invalid.
 func ValidatePluginUnixfsID(unixfsID string, allowEmpty bool) (pluginID string, matchedPrefix string, err error) {
+	// An empty unixfs id is invalid.
 	if unixfsID == "" {
 		return "", "", errors.New("unixfs id must be set")
 	}
 
+	// The id must match a known prefix.
 	pluginID, matchedPrefix = ParsePluginUnixfsID(unixfsID)
 	if matchedPrefix == "" {
 		return "", "", errors.New("unixfs id prefix must be plugin-dist or plugin-assets")
@@ -65,6 +67,7 @@ func ValidatePluginUnixfsID(unixfsID string, allowEmpty bool) (pluginID string, 
 // Returns nil, nil if the service ID does not match any of the known prefixes.
 // Returns an error if the plugin id is invalid.
 func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h LookupRpcClientHandler) (directive.Resolver, error) {
+	// An empty unixfs id resolves nothing.
 	unixfsID := dir.AccessUnixFSID()
 	if unixfsID == "" {
 		return nil, nil
@@ -82,11 +85,13 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 	// Returns a release function.
 	// TODO: move this to a common place in unixfs_access or unixfs_rpc_client
 	accessFunc := func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		// Wait for the plugin host client for this resolution.
 		pluginHostClient, relFunc, err := h.WaitPluginHostClient(ctx, released)
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// Open the filesystem handle through the plugin host RPC.
 		pluginHostSvcClient := NewSRPCPluginHostClient(pluginHostClient)
 		fsClient := rpcstream.NewRpcStreamClient(pluginHostSvcClient.PluginFsRpc, unixfsID, true)
 		fsCursorSvcClient := unixfs_rpc.NewSRPCFSCursorServiceClient(fsClient)
@@ -98,6 +103,7 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 			return nil, nil, err
 		}
 
+		// Release the handle and the host client together.
 		return fsHandle, func() {
 			fsHandle.Release()
 			if relFunc != nil {
@@ -106,5 +112,6 @@ func ResolveAccessUnixfs(ctx context.Context, dir unixfs_access.AccessUnixFS, h 
 		}, nil
 	}
 
+	// Resolve the directive with the access function value.
 	return directive.NewValueResolver([]unixfs_access.AccessUnixFSValue{accessFunc}), nil
 }

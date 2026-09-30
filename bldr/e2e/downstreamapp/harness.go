@@ -116,6 +116,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (*Harness, error) {
 }
 
 func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness, retErr error) {
+	// Locate the repository root and reset the e2e state root.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "find repo root")
@@ -128,6 +129,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 		return nil, errors.Wrap(err, "create state root")
 	}
 
+	// Resolve the browser compiler, worker mode, and their env restore.
 	compiler, err := ResolveBrowserCompiler()
 	if err != nil {
 		return nil, err
@@ -141,6 +143,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 		return nil, err
 	}
 
+	// Build the harness around a derived context and release it on error.
 	started := time.Now()
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
@@ -158,6 +161,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 		}
 	}()
 
+	// Build the devtool bus and sync the dist sources into it.
 	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "build devtool bus")
@@ -167,6 +171,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 		return nil, errors.Wrap(err, "sync dist sources")
 	}
 
+	// Load the fixture project config and point its devtool remote at the bus.
 	projConfig, err := loadFixtureProjectConfig(repoRoot)
 	if err != nil {
 		return nil, err
@@ -185,6 +190,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	}
 	h.projConfig = projConfig
 
+	// Start the project controller and retain its reference.
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, stateRoot, projConfig, false, false)
 	projCtrlConf.FetchManifestRemote = "devtool"
 	_, _, ref, err := loader.WaitExecControllerRunning(
@@ -198,6 +204,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	}
 	h.ref = ref
 
+	// Start the blocking manifest preflight controller when configured.
 	if config.blockedManifestPreflight != nil {
 		releaseController, err := d.GetBus().AddController(hctx, config.blockedManifestPreflight, nil)
 		if err != nil {
@@ -206,6 +213,7 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 		h.blockedManifestControllerRelease = releaseController
 	}
 
+	// Pick a free loopback port for the wasm entrypoint.
 	port, err := findFreePort()
 	if err != nil {
 		return nil, errors.Wrap(err, "find free port")
@@ -213,12 +221,14 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	addr := "127.0.0.1:" + strconv.Itoa(port)
 	h.baseURL = "http://" + addr
 
+	// Collect the web startup path and startup manifest preflights.
 	webStartupSrcPath, _ := projConfig.GetStart().ParseWebStartupPath()
 	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflights(projConfig, "web/js/wasm")
 	if config.blockedManifestPreflight != nil {
 		startupManifestPreflights = append(startupManifestPreflights, config.blockedManifestPreflight.preflight())
 	}
 
+	// Execute the web wasm entrypoint and wait for readiness.
 	h.done = make(chan struct{})
 	go func() {
 		h.runErr = d.ExecuteWebWasm(
@@ -239,6 +249,8 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	if err := h.waitForReady(hctx); err != nil {
 		return nil, errors.Wrap(err, "wait for wasm readiness")
 	}
+
+	// Enable browser release auto-start and settle the startup manifests.
 	if err := h.enableBrowserReleaseAutoStart(); err != nil {
 		return nil, errors.Wrap(err, "enable browser release auto-start")
 	}
@@ -248,6 +260,8 @@ func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness,
 	if err := h.preflightStartupManifests(hctx); err != nil {
 		return nil, errors.Wrap(err, "settle startup manifests")
 	}
+
+	// Record the boot duration.
 	h.bootTime = time.Since(started)
 	return h, nil
 }
@@ -324,6 +338,7 @@ func (h *Harness) enableBrowserReleaseAutoStart() error {
 }
 
 func enableBrowserReleaseAutoStart(entryDir string) error {
+	// Open the entry directory and read the browser release descriptor.
 	root, err := os.OpenRoot(entryDir)
 	if err != nil {
 		return err
@@ -334,11 +349,15 @@ func enableBrowserReleaseAutoStart(entryDir string) error {
 	if err != nil {
 		return err
 	}
+
+	// Parse the descriptor JSON.
 	var parser fastjson.Parser
 	descriptor, err := parser.ParseBytes(data)
 	if err != nil {
 		return err
 	}
+
+	// Set autoStart and rewrite the descriptor file.
 	descriptor.GetObject().Set("autoStart", fastjson.MustParse("true"))
 	data = descriptor.MarshalTo(nil)
 	data = append(data, '\n')
@@ -414,6 +433,7 @@ func (p *blockingManifestPreflight) resolve(
 }
 
 func (p *blockingManifestPreflight) handleIdle(isIdle bool, errs []error) {
+	// Only complete once the directive is idle and released.
 	if !isIdle {
 		return
 	}
@@ -423,6 +443,7 @@ func (p *blockingManifestPreflight) handleIdle(isIdle bool, errs []error) {
 		return
 	}
 
+	// Select the first directive error as the completion result.
 	var completionErr error
 	for _, err := range errs {
 		if err != nil {
@@ -430,6 +451,8 @@ func (p *blockingManifestPreflight) handleIdle(isIdle bool, errs []error) {
 			break
 		}
 	}
+
+	// Complete the preflight with the selected error.
 	p.completeOnce.Do(func() {
 		p.completed <- completionErr
 		close(p.completed)
@@ -597,6 +620,7 @@ func (s *manifestWaitState) handleValueRemoved(v directive.TypedAttachedValue[*b
 }
 
 func (s *manifestWaitState) handleIdle(isIdle bool, errs []error) {
+	// Record the idle state and re-check the wait condition.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	s.idle = isIdle
@@ -639,11 +663,14 @@ func (s *manifestWaitState) signalLocked(err error) {
 }
 
 func (h *Harness) LaunchBrowser() error {
+	// Start the Playwright runtime.
 	pw, err := playwright.Run()
 	if err != nil {
 		return errors.Wrap(err, "start playwright")
 	}
 	h.pw = pw
+
+	// Launch headless Chromium with loopback peer connections allowed.
 	headless := true
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		Headless: &headless,
@@ -662,10 +689,13 @@ func (h *Harness) LaunchBrowser() error {
 }
 
 func (h *Harness) NewPage() (playwright.BrowserContext, playwright.Page, error) {
+	// Open a browser context for the page.
 	ctx, err := h.browser.NewContext()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "new browser context")
 	}
+
+	// Open a page in the context, closing it on error.
 	page, err := ctx.NewPage()
 	if err != nil {
 		ctx.Close()
@@ -679,6 +709,7 @@ func (h *Harness) BaseURL() string { return h.baseURL }
 func (h *Harness) BootTime() time.Duration { return h.bootTime }
 
 func (h *Harness) Release() {
+	// Release the blocking preflight and close the browser.
 	if h.blockedManifestPreflight != nil {
 		h.blockedManifestPreflight.Release()
 	}
@@ -688,12 +719,16 @@ func (h *Harness) Release() {
 	if h.pw != nil {
 		_ = h.pw.Stop()
 	}
+
+	// Cancel the harness context and wait for the entrypoint to exit.
 	if h.cancel != nil {
 		h.cancel()
 	}
 	if h.done != nil {
 		<-h.done
 	}
+
+	// Release manifest fetch references and controller references.
 	h.releaseManifestFetches()
 	if h.blockedManifestControllerRelease != nil {
 		h.blockedManifestControllerRelease()
@@ -704,6 +739,8 @@ func (h *Harness) Release() {
 	if h.devtool != nil {
 		h.devtool.Release()
 	}
+
+	// Restore the compiler environment.
 	if h.restore != nil {
 		h.restore()
 	}

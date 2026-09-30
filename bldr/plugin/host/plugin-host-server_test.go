@@ -28,9 +28,12 @@ func TestPluginHostServerResolvesCallerInstance(t *testing.T) {
 // TestPluginRpcMissingManifestFails keeps an exact RPC from becoming an ordinary
 // instance demand that waits forever for the newest version of the plugin.
 func TestPluginRpcMissingManifestFails(t *testing.T) {
+	// Bound the test with a three second timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
+
+	// Start a bus and serve the plugin host over an in-memory pipe.
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +46,8 @@ func TestPluginRpcMissingManifestFails(t *testing.T) {
 	if err := plugin.SRPCRegisterPluginHost(mux, &PluginHostServer{b: b, le: le, pluginID: "caller"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// The exact-manifest RPC must settle with an unavailable error.
 	host := plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
 	client := rpcstream.NewRpcStreamClient(host.PluginRpc,
 		plugin.BuildPluginRpcComponentID("colors", "space-a", root.MarshalString()), true)

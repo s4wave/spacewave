@@ -24,6 +24,7 @@ import (
 // on the source bus through a BlockStore RPC service, and the destination
 // volume never holds the source blocks before the copy.
 func TestMaterializeManifestSourceRpcService(t *testing.T) {
+	// Use the test context and a fresh logger.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 
@@ -39,6 +40,7 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 	}
 	t.Cleanup(destTB.Release)
 
+	// Apply the bucket configs and check the volume ids differ.
 	applyTestBucketConfigs(t, ctx, srcTB)
 	applyTestBucketConfigs(t, ctx, destTB)
 	if srcTB.Volume.GetID() == destTB.Volume.GetID() {
@@ -50,6 +52,8 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 	srcCursor := buildTestSourceCursor(t, ctx, srcTB, srcTransformConf)
 	defer srcCursor.Release()
 	srcRef, dirRef, srcManifest := buildTestSourceManifest(t, ctx, srcCursor)
+
+	// The copy must read every block over the source RPC service.
 
 	// Serve the source bucket's raw encoded blocks over a BlockStore RPC
 	// service on the source bus pipe.
@@ -77,8 +81,7 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 	}
 	defer rel()
 
-	// The destination bucket must not already hold the source root block:
-	// the copy must read every block over the RPC service.
+	// The destination bucket must not already hold the source root block.
 	rawDest, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		destTB.Bus,
@@ -112,6 +115,7 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 	srcRefWithOpArgs.TransformConf = srcCursor.GetTransformConf().CloneVT()
 	srcRefWithOpArgs.TransformConfRef = nil
 
+	// Call the RPC with the normalized source ref and the rpc-dest bucket.
 	strm, err := client.MaterializeManifest(ctx, &MaterializeManifestRequest{
 		Source:                   srcRefWithOpArgs,
 		SourceServiceId:          "plugin-host/fixture-source",
@@ -139,12 +143,16 @@ func TestMaterializeManifestSourceRpcService(t *testing.T) {
 			terminal = resp
 		}
 	}
+
+	// Exactly one terminal response with stats must arrive.
 	if terminalCount != 1 {
 		t.Fatalf("terminal copied_ref count = %d, want 1", terminalCount)
 	}
 	if terminal.GetStats() == nil {
 		t.Fatal("terminal response missing stats")
 	}
+
+	// The terminal stats must show two blocks seen and copied.
 	gotStats := terminal.GetStats()
 	if gotStats.GetBlocksSeen() != 2 || gotStats.GetBlocksCopied() != 2 {
 		t.Fatalf("terminal stats = %#v, want blocks_seen = 2 and blocks_copied = 2", gotStats)

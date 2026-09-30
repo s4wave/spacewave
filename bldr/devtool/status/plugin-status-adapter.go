@@ -18,6 +18,7 @@ func AttachPluginStatus(
 	producer *BldrDevtoolStatusProducer,
 	ctrl *plugin_host_scheduler.Controller,
 ) {
+	// Publish the current scheduler snapshot and watch for changes.
 	adapter := &pluginStatusAdapter{producer: producer}
 	statusCtr := ctrl.GetPluginStatusCtr()
 	current := statusCtr.GetValue()
@@ -49,6 +50,7 @@ func (a *pluginStatusAdapter) watch(
 func (a *pluginStatusAdapter) setPluginStatusSnapshotRows(
 	snapshot *bldr_plugin.PluginStatusSnapshot,
 ) {
+	// Replace the plugin rows in the status snapshot.
 	rows := pluginStatusRows(snapshot)
 	a.producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithPluginRows(rows)
@@ -58,9 +60,12 @@ func (a *pluginStatusAdapter) setPluginStatusSnapshotRows(
 func pluginStatusRows(
 	snapshot *bldr_plugin.PluginStatusSnapshot,
 ) []BldrDevtoolPluginRow {
+	// An empty or missing snapshot clears the plugin rows.
 	if snapshot == nil || len(snapshot.Plugins) == 0 {
 		return nil
 	}
+
+	// Build one row per plugin and sort them by row id.
 	rows := make([]BldrDevtoolPluginRow, 0, len(snapshot.Plugins))
 	for _, plugin := range snapshot.Plugins {
 		rows = append(rows, pluginStatusRow(plugin))

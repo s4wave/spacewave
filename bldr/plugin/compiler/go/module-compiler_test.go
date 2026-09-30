@@ -17,6 +17,7 @@ import (
 )
 
 func TestGenerateModuleWritesReadonlyBuildableHiddenModule(t *testing.T) {
+	// Create the fixture module directory inside a temp dir.
 	ctx := context.Background()
 	tempDir := t.TempDir()
 	sourceDir := filepath.Join(tempDir, "openmind")
@@ -25,6 +26,7 @@ func TestGenerateModuleWritesReadonlyBuildableHiddenModule(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write the plugin factory and module fixture files.
 	writeFile(t, sourceDir, "plugin/root/root.go", `package root
 
 import (
@@ -38,6 +40,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 `)
 	writeModuleCompilerFixtureGoMod(t, sourceDir, spacewaveRoot)
 
+	// Analyze the fixture module's plugin package.
 	le := logrus.NewEntry(logrus.New())
 	analysis, err := AnalyzePackages(
 		ctx,
@@ -53,6 +56,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		t.Fatal(err)
 	}
 
+	// Generate the module wrapper into the codegen directory.
 	codegenDir := filepath.Join(sourceDir, ".bldr", "build", "web", "js", "wasm", "openmind-core")
 	if err := os.MkdirAll(codegenDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -71,6 +75,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		t.Fatal(err)
 	}
 
+	// The generated go.mod must carry the module and replace directives.
 	goModData, err := os.ReadFile(filepath.Join(codegenDir, "go.mod"))
 	if err != nil {
 		t.Fatal(err)
@@ -86,6 +91,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		}
 	}
 
+	// The generated module must build with readonly modules.
 	cmd := exec.CommandContext(ctx, "go", "list", "-mod=readonly", ".")
 	cmd.Dir = codegenDir
 	cmd.Env = append(os.Environ(),
@@ -102,8 +108,10 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 func writeModuleCompilerFixtureGoMod(t *testing.T, sourceDir, spacewaveRoot string) {
+	// Mark the helper and write the fixture go.mod.
 	t.Helper()
 
+	// Read the repo go.mod and extract its required versions.
 	rootGoModPath := filepath.Join(spacewaveRoot, "go.mod")
 	rootGoModData, err := os.ReadFile(rootGoModPath)
 	if err != nil {
@@ -118,6 +126,7 @@ func writeModuleCompilerFixtureGoMod(t *testing.T, sourceDir, spacewaveRoot stri
 	}
 	controllerbusVersion := rootRequireVersion(t, rootGoMod, "github.com/aperturerobotics/controllerbus")
 
+	// Build the fixture go.mod from the repo directives.
 	fixtureGoMod := new(modfile.File)
 	if err := fixtureGoMod.AddModuleStmt("example.com/openmind"); err != nil {
 		t.Fatalf("add fixture module directive: %v", err)
@@ -134,6 +143,8 @@ func writeModuleCompilerFixtureGoMod(t *testing.T, sourceDir, spacewaveRoot stri
 	if err != nil {
 		t.Fatalf("format fixture go.mod: %v", err)
 	}
+
+	// Write the fixture go.mod and a temporary tools package.
 	writeFile(t, sourceDir, "go.mod", string(fixtureGoModData))
 	writeFile(t, sourceDir, "tools/tools.go", `//go:build tools
 
@@ -142,6 +153,7 @@ package tools
 import _ "github.com/s4wave/spacewave/bldr/web/bundler"
 `)
 
+	// Tidy the fixture module and drop the tools package.
 	cmd := exec.Command("go", "mod", "tidy")
 	cmd.Dir = sourceDir
 	cmd.Env = append(os.Environ(),
@@ -159,6 +171,8 @@ import _ "github.com/s4wave/spacewave/bldr/web/bundler"
 
 func rootRequireVersion(t *testing.T, modFile *modfile.File, modulePath string) string {
 	t.Helper()
+
+	// Return the required version for the module path.
 	for _, req := range modFile.Require {
 		if req.Mod.Path == modulePath {
 			return req.Mod.Version
@@ -169,7 +183,10 @@ func rootRequireVersion(t *testing.T, modFile *modfile.File, modulePath string) 
 }
 
 func testSpacewaveRoot(t *testing.T) string {
+	// Mark the helper and resolve the repository root.
 	t.Helper()
+
+	// Resolve the repository root from this file's path.
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("runtime.Caller failed")

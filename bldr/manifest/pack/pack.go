@@ -39,10 +39,13 @@ func PackManifestBundle(
 	graph := order.NewGraph()
 	var roots []*block.BlockRef
 	appendBlocks := func(rootRef *bucket.ObjectRef, ctor func() block.Block) error {
+		// Validate the root ref and record it for packing.
 		if err := ValidateCleanObjectRef("manifest_pack_root", rootRef); err != nil {
 			return err
 		}
 		roots = append(roots, rootRef.GetRootRef())
+
+		// Walk the object's blocks on the World state.
 		return ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
 			readXfrm := bls.GetTransformer()
 			if readXfrm == nil {
@@ -52,6 +55,7 @@ func PackManifestBundle(
 				ctx,
 				bucket_lookup.NewWalkObjectBlocksWithRef(rootRef.GetRootRef(), ctor),
 				func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+					// Stop on walk errors and skip non-block entries.
 					if entry.Err != nil {
 						return false, entry.Err
 					}

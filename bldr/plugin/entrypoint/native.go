@@ -28,6 +28,7 @@ func Main(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) {
+	// Configure the logger for the plugin entrypoint.
 	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors:    true,
@@ -40,7 +41,9 @@ func Main(
 	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer ctxCancel()
 
+	// Run the entrypoint and exit fatally on an unexpected error.
 	if err := func() error {
+		// Resolve the current working directory.
 		wd, err := os.Getwd()
 		if err != nil {
 			return err
@@ -59,16 +62,17 @@ func Main(
 			pluginStartInfoJsonB64 = string(startInfoBin)
 		}
 
+		// Unmarshal the plugin start info and meta.
 		pluginStartInfo, err := UnmarshalPluginStartInfo(pluginStartInfoJsonB64)
 		if err != nil {
 			return err
 		}
-
 		pluginMeta, err := UnmarshalPluginMeta(pluginMetaB58)
 		if err != nil {
 			return err
 		}
 
+		// Run the plugin entrypoint, treating expected shutdown as success.
 		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs)
 		if !isExpectedPluginEntrypointError(err) {
 			return err
@@ -92,15 +96,16 @@ func Run(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 ) error {
+	// Resolve the working directory and validate the start info.
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-
 	if err := pluginStartInfo.Validate(); err != nil {
 		return err
 	}
 
+	// Resolve the pipe socket root from the environment.
 	pipeRoot := os.Getenv("BLDR_PIPE_ROOT")
 	if pipeRoot == "" {
 		pipeRoot = wd
@@ -124,6 +129,7 @@ func Run(
 	}
 	defer muxedConn.Close()
 
+	// Run the plugin entrypoint over the muxed connection.
 	return ExecutePluginEntrypoint(
 		ctx,
 		le,

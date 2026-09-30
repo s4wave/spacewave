@@ -16,9 +16,12 @@ import (
 //
 // Returns if the string had the comment tag prefix.
 func TrimCommentArgs(tag, value string) (string, bool) {
+	// Strip the comment markers and surrounding whitespace.
 	value = strings.TrimSpace(value)
 	value = strings.TrimPrefix(value, "//")
 	value = strings.TrimSpace(value)
+
+	// Trim the tag prefix when the value starts with it.
 	if strings.HasPrefix(strings.ToLower(value), tag+" ") {
 		value = strings.TrimSpace(value[len(tag)+1:])
 		return value, true
@@ -40,6 +43,7 @@ func FindTagComments[T any](
 	codeFiles map[string][]*ast.File,
 	checkParseComments func(values []string, spec *ast.ValueSpec) (T, bool, error),
 ) (map[string](map[string]T), error) {
+	// Build one variable map per package.
 	packagesMap := make(map[string](map[string]T))
 	getPackageMap := func(pkg string) map[string]T {
 		m := packagesMap[pkg]
@@ -50,6 +54,7 @@ func FindTagComments[T any](
 		return m
 	}
 
+	// Scan each code file for tagged comments.
 	for pkgImportPath, pkgCodeFile := range codeFiles {
 		for _, codeFile := range pkgCodeFile {
 			// Avoid constructing a comment map for files without this annotation.
@@ -84,6 +89,7 @@ func FindTagComments[T any](
 							commentPts = append(commentPts, commentTxt)
 						}
 					}
+					// Parse the comment lines against each value spec.
 					if len(commentPts) != 0 {
 						decl, declOk := nod.(*ast.GenDecl)
 						if !declOk || len(decl.Specs) == 0 {
@@ -121,6 +127,7 @@ func FindTagComments[T any](
 		}
 	}
 
+	// Return the collected tagged variables by package.
 	return packagesMap, nil
 }
 
@@ -157,10 +164,13 @@ func FindTagCommentsWithTypes[T any](
 	for pkgPath, vars := range candidates {
 		pkg := analysis.typedPackages[pkgPath]
 		for name, candidate := range vars {
+			// Look up the object in the package scope.
 			obj := pkg.Scope().Lookup(name)
 			if obj == nil {
 				continue
 			}
+
+			// Parse the tagged values with the typed object.
 			value, found, err := processComments(candidate.values, obj)
 			if err != nil {
 				return nil, errors.Wrap(err, analysis.fset.Position(candidate.pos).String())
@@ -184,6 +194,7 @@ func FindTagCommentsWithTypes[T any](
 // Ignores any comments without the prefix.
 // This allows for multi-line shell-style arguments in comments to be combined.
 func CombineShellComments(tag string, comments []string) ([]string, bool, error) {
+	// Split each tagged comment into shell args.
 	var tagFound bool
 	var args []string
 	for _, cmt := range comments {

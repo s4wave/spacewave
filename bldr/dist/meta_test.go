@@ -8,15 +8,20 @@ import (
 )
 
 func TestDistMetaB58(t *testing.T) {
+	// Declare a dist meta with a project and platform id.
 	input := &DistMeta{
 		ProjectId:  "project",
 		PlatformId: "dist-platform",
 	}
+
+	// Round-trip the meta through its b58 encoding.
 	inputB58 := input.MarshalB58()
 	output, err := UnmarshalDistMetaB58(inputB58)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// The decoded meta must equal the input.
 	if !output.EqualVT(input) {
 		t.Fail()
 	}

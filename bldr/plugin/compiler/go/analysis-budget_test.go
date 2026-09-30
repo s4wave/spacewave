@@ -13,18 +13,24 @@ import (
 )
 
 func TestAnalyzePackagesWaitsForBuildBudget(t *testing.T) {
+	// Write a minimal module fixture and the shared build budget.
 	dir := t.TempDir()
 	writeFile(t, dir, "go.mod", "module example.test/budget\n\ngo 1.26.2\n")
 	budget, err := bldr_buildbudget.Default()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the budget wait inside a synthetic clock.
 	synctest.Test(t, func(t *testing.T) {
+		// Occupy the whole build budget for this test.
 		permit, err := budget.Acquire(t.Context(), budget.Capacity())
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer permit.Release()
+
+		// Start the analysis and check it does not complete while blocked.
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		done := make(chan error, 1)
@@ -38,6 +44,8 @@ func TestAnalyzePackagesWaitsForBuildBudget(t *testing.T) {
 			t.Fatalf("analysis ran while the build budget was occupied: %v", err)
 		default:
 		}
+
+		// Canceling the analysis must surface the context error.
 		cancel()
 		if err := <-done; !errors.Is(err, context.Canceled) {
 			t.Fatalf("cancel waiting analysis: %v", err)

@@ -122,16 +122,20 @@ func (s *PluginHostServer) LoadPlugin(
 	req *bldr_plugin.LoadPluginRequest,
 	strm bldr_plugin.SRPCPluginHost_LoadPluginStream,
 ) error {
+	// Validate the request.
 	if err := req.Validate(); err != nil {
 		return err
 	}
 
+	// Resolve the instance key into the request.
 	pluginID := req.GetPluginId()
 	instanceKey := s.resolveInstanceKey(req.GetInstanceKey())
 	if instanceKey != req.GetInstanceKey() {
 		req = req.CloneVT()
 		req.InstanceKey = instanceKey
 	}
+
+	// Handle the load request through the bus.
 	s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
 	return HandleLoadPluginRpc(s.b, req, strm)
 }
@@ -152,6 +156,7 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 	return rpcstream.HandleProxyRpcStream(
 		strm,
 		func(ctx context.Context, componentID string) (rpcstream.RpcStreamCaller[bldr_plugin.SRPCPlugin_PluginRpcClient], string, func(), error) {
+			// Parse the component id and reject self-calls.
 			pluginID, instanceKey, manifestRoot, err := bldr_plugin.ParsePluginRpcComponentID(componentID)
 			if err != nil {
 				return nil, "", nil, err
@@ -162,11 +167,15 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 			if pluginID == s.pluginID && instanceKey == "" {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
 			}
+
+			// Build the load directive for the target plugin.
 			instanceKey = s.resolveInstanceKey(instanceKey)
 			dir := bldr_plugin.NewLoadPluginInstanced(pluginID, instanceKey)
 			if manifestRoot != "" {
 				dir = bldr_plugin.NewLoadPluginAtManifest(pluginID, instanceKey, manifestRoot)
 			}
+
+			// Wait for the plugin to run and return its RPC client.
 			running, _, clientRef, err := bus.ExecWaitValue[bldr_plugin.RunningPlugin](
 				ctx, s.b, dir, bus.ReturnIfIdle(manifestRoot != ""), nil, nil,
 			)
@@ -193,10 +202,12 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			unixfsID string,
 			released func(),
 		) (srpc.Invoker, func(), error) {
+			// The component id must name a filesystem.
 			if unixfsID == "" {
 				return nil, nil, errors.New("component id must be set to filesystem id")
 			}
 
+			// Validate the unixfs id and resolve the owning plugin.
 			pluginID, matchedPrefix, err := bldr_plugin.ValidatePluginUnixfsID(unixfsID, true)
 			if err != nil {
 				return nil, nil, err
@@ -210,12 +221,14 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			// wait for reference to be ready
 			pluginRef, data, _ := s.pluginFsTracker.AddKeyRef(pluginID)
 
+			// Await the filesystem services for the plugin.
 			res, err := data.resultPromiseCtr.Await(ctx)
 			if err != nil {
 				pluginRef.Release()
 				return nil, nil, err
 			}
 
+			// Select the mux for the requested filesystem prefix.
 			var mux srpc.Mux
 			switch matchedPrefix {
 			case bldr_plugin.PluginDistFsIdPrefix:

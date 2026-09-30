@@ -42,9 +42,11 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Read the logger and cast the config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Construct the process host controller.
 	hostCtrl, _, err := NewProcessHostController(le, t.bus, cc)
 	if err != nil {
 		return nil, err

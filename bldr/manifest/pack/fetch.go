@@ -15,12 +15,15 @@ func ResolveManifestTuple(
 	tuple *ManifestTuple,
 	buildType string,
 ) (*bldr_manifest.ManifestRef, error) {
+	// Validate the tuple request and build type.
 	if err := tuple.ValidateRequest(); err != nil {
 		return nil, err
 	}
 	if buildType == "" {
 		return nil, errors.New("build_type is empty")
 	}
+
+	// Execute the FetchManifest directive for the tuple.
 	dir := bldr_manifest.NewFetchManifest(
 		tuple.GetManifestId(),
 		[]bldr_manifest.BuildType{bldr_manifest.BuildType(buildType)},
@@ -48,10 +51,14 @@ func ResolveManifestTuple(
 	if err != nil {
 		return nil, err
 	}
+
+	// The value must carry exactly one manifest ref.
 	refs := val.GetManifestRefs()
 	if len(refs) != 1 {
 		return nil, errors.Errorf("FetchManifest returned %d manifest refs, want 1", len(refs))
 	}
+
+	// Return the cloned ref after checking it matches the tuple.
 	manifestRef := refs[0].CloneVT()
 	if err := validateManifestRefMatchesTuple(manifestRef, tuple, buildType); err != nil {
 		return nil, err
@@ -61,6 +68,7 @@ func ResolveManifestTuple(
 
 // validateManifestRefMatchesTuple checks that a manifest ref matches the manifest id and build type of the tuple.
 func validateManifestRefMatchesTuple(ref *bldr_manifest.ManifestRef, tuple *ManifestTuple, buildType string) error {
+	// Validate the ref and compare its meta against the tuple.
 	if err := ref.Validate(); err != nil {
 		return err
 	}

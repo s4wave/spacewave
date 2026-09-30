@@ -81,10 +81,13 @@ func NewManifestArtifactKey(ref *bucket.ObjectRef) string {
 
 // NewManifestKey builds a key for a manifest associated with another object.
 func NewManifestKey(baseObjKey string, manifestMeta *ManifestMeta) string {
+	// Default the build type to dev when unset.
 	buildType := manifestMeta.GetBuildType()
 	if buildType == "" {
 		buildType = string(BuildType_DEV)
 	}
+
+	// Join the base key, manifest id, build type, rev, and optional platform.
 	manifestKeyPts := []string{
 		baseObjKey,
 		"manifest",
@@ -140,6 +143,7 @@ func CreateManifestWithIoFS(
 
 // Validate validates the Manifest.
 func (m *Manifest) Validate() error {
+	// Validate the meta and the dist and assets filesystem refs.
 	if err := m.GetMeta().Validate(false); err != nil {
 		return errors.Wrap(err, "meta")
 	}
@@ -149,6 +153,8 @@ func (m *Manifest) Validate() error {
 	if err := m.GetAssetsFsRef().Validate(true); err != nil {
 		return errors.Wrap(err, "assets_fs_ref")
 	}
+
+	// The entrypoint must be set.
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
 	}

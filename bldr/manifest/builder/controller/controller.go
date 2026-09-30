@@ -100,6 +100,7 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*bldr_manifest
 
 // SetManifestBuilderLifecycleSink sets the lifecycle status sink.
 func (c *Controller) SetManifestBuilderLifecycleSink(sink ManifestBuilderLifecycleSink) {
+	// Store the sink and replay the current status to it.
 	c.mtx.Lock()
 	c.lifecycleSink = sink
 	status := c.lifecycleStatus
@@ -113,6 +114,7 @@ func (c *Controller) SetManifestBuilderLifecycleSink(sink ManifestBuilderLifecyc
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Reset the sub-manifest trackers, result promise, and lifecycle status.
 	c.subManifestBuilderTrackers.SetContext(ctx, true)
 	c.resultPromise.SetPromise(nil)
 	c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
@@ -120,6 +122,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		Summary: "queued",
 	})
 
+	// Apply the environment's fixed manifest commit timestamp.
 	ctx, err := bldr_manifest_builder.WithManifestCommitTimestampFromEnvironment(ctx)
 	if err != nil {
 		c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
@@ -131,12 +134,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Collect the builder config, manifest id, and controller config.
 	builderConfig := c.GetConfig().GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta()
 	manifestID := meta.GetManifestId()
 	le := c.le.WithField("manifest-id", manifestID)
 	controllerConfig := c.GetConfig().GetControllerConfig()
 
+	// Mark the build running and resolve the builder controller config.
 	le.Debugf("starting manifest build controller: %s", manifestID)
 	c.setLifecycleStatus(ManifestBuilderLifecycleStatus{
 		State:   ManifestBuilderLifecycleStateRunning,
@@ -153,7 +158,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// cast to a manifest_builder config
+	// Cast the resolved config to a manifest_builder config.
 	pconf, ok := conf.GetConfig().(bldr_manifest_builder.ControllerConfig)
 	if !ok {
 		err := errors.Errorf(
@@ -169,8 +174,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// set build backoff config
+	// Set the build backoff config for the builder controller.
 	execBackoff := func() backoff.BackOff {
+		// Configure an exponential backoff with a ten second cap.
 		ebo := backoff.NewExponentialBackOff()
 		ebo.InitialInterval = time.Second
 		ebo.Multiplier = 2
@@ -178,9 +184,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return ebo
 	}
 
+	// Start the builder controller and wait for it to run.
 	nctx, nctxCancel := context.WithCancel(ctx)
 	defer nctxCancel()
 
+	// Track disposal and cancel the controller context on disposal.
 	var wasDisposed atomic.Bool
 	builderCtrlInter, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		nctx,
@@ -202,6 +210,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer ctrlRef.Release()
 
+	// Cast the running controller to a manifest builder controller.
 	builderCtrl, ok := builderCtrlInter.(bldr_manifest_builder.Controller)
 	if !ok {
 		err := errors.Errorf("builder must implement bldr_manifest_builder.Controller: %#v", builderCtrlInter)
@@ -214,14 +223,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Create the build owner and loop until the context ends.
 	var startupValidated bool
 	buildOwner := newManifestBuildOwner(c, builderConfig)
 
+	// Rebuild the manifest on every restart until the context ends.
 	for {
+		// Stop when the controller context is canceled.
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
 
+		// Take the next result promise and reset the attempt state.
 		resultPromise := buildOwner.nextResultPromise()
 
 		var result *bldr_manifest_builder.BuilderResult
@@ -229,6 +242,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		cacheHit := false
 		var buildStart time.Time
 
+		// On the first attempt, try to reuse the startup cache result.
 		if !startupValidated {
 			startupValidated = true
 			startupValidationResult, startupErr := c.validateStartupBuilderResult(ctx, le, builderCtrl)
@@ -261,6 +275,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 
+		// Begin the build attempt and publish its rebuild flags.
 		attempt := buildOwner.beginAttempt(ctx)
 		fullRebuild, hotRebuild := buildOwner.rebuildFlags(result)
 		if result == nil {
@@ -279,6 +294,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				tkr.build.prepareParentAttempt(attempt.restart)
 			}
 
+			// Acquire a plugin build permit for this builder.
 			pluginBuildPermit, acquireErr := c.pluginBuildLimiter.Acquire(
 				attempt.ctx,
 				pconf.GetConfigID(),
@@ -520,6 +536,7 @@ func (c *Controller) storeManifestBuildResult(
 	le *logrus.Entry,
 	result *bldr_manifest_builder.BuilderResult,
 ) error {
+	// Open a transaction on the builder's World engine.
 	builderConfig := c.c.GetBuilderConfig()
 	objectKey := bldr_manifest.NewManifestArtifactKey(result.GetManifestRef().GetManifestRef())
 	busEngine := world.NewBusEngine(ctx, c.bus, builderConfig.GetEngineId())
@@ -529,6 +546,7 @@ func (c *Controller) storeManifestBuildResult(
 	}
 	defer tx.Discard()
 
+	// Store the build result and commit the transaction.
 	ref, err := resultworld.SetManifestBuildResult(ctx, tx, objectKey, result)
 	if err != nil {
 		return err
@@ -563,6 +581,7 @@ func (c *Controller) Close() error {
 var _ controller.Controller = (*Controller)(nil)
 
 func (c *Controller) setLifecycleStatus(status ManifestBuilderLifecycleStatus) {
+	// Store the status and forward it to the sink.
 	c.mtx.Lock()
 	c.lifecycleStatus = status
 	sink := c.lifecycleSink

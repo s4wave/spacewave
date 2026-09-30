@@ -24,6 +24,7 @@ import (
 )
 
 func TestBldrDevtoolStatusClonesRows(t *testing.T) {
+	// Declare one fetch row and one plugin row to mutate.
 	fetchRows := []BldrDevtoolManifestFetchRow{{
 		ID:         "fetch:web",
 		ManifestID: "web",
@@ -35,6 +36,7 @@ func TestBldrDevtoolStatusClonesRows(t *testing.T) {
 		State:    BldrDevtoolPluginStateRequested,
 	}}
 
+	// Build a status snapshot from the two rows.
 	snapshot := NewBldrDevtoolStatus(
 		BldrDevtoolCommandStatus{Name: "start", State: BldrDevtoolCommandStateRunning},
 		fetchRows,
@@ -44,9 +46,11 @@ func TestBldrDevtoolStatusClonesRows(t *testing.T) {
 		nil,
 	)
 
+	// Mutate the original row slices after the snapshot copies them.
 	fetchRows[0].State = BldrDevtoolManifestStateError
 	pluginRows[0].State = BldrDevtoolPluginStateErrored
 
+	// The snapshot getters must return the unmutated rows.
 	gotFetchRows := snapshot.GetManifestFetchRows()
 	if gotFetchRows[0].State != BldrDevtoolManifestStateRunning {
 		t.Fatalf("expected immutable fetch row, got %s", gotFetchRows[0].State)
@@ -56,6 +60,7 @@ func TestBldrDevtoolStatusClonesRows(t *testing.T) {
 		t.Fatalf("expected immutable plugin row, got %s", gotPluginRows[0].State)
 	}
 
+	// Mutating a returned row must not change the snapshot.
 	gotFetchRows[0].State = BldrDevtoolManifestStateReady
 	if snapshot.GetManifestFetchRows()[0].State != BldrDevtoolManifestStateRunning {
 		t.Fatal("expected returned fetch rows to be cloned")
@@ -63,6 +68,7 @@ func TestBldrDevtoolStatusClonesRows(t *testing.T) {
 }
 
 func TestBldrDevtoolStatusWithRowsReturnsNewSnapshot(t *testing.T) {
+	// Start from an empty status snapshot and derive a new one.
 	initial := EmptyBldrDevtoolStatus()
 	next := initial.
 		WithCommand(BldrDevtoolCommandStatus{Name: "build", State: BldrDevtoolCommandStateStarting}).
@@ -77,12 +83,15 @@ func TestBldrDevtoolStatusWithRowsReturnsNewSnapshot(t *testing.T) {
 			Severity: BldrDevtoolAttentionSeverityError,
 		}})
 
+	// The initial snapshot must remain unchanged.
 	if initial.GetCommand().Name != "" {
 		t.Fatal("expected initial snapshot to remain unchanged")
 	}
 	if len(initial.GetManifestBuildRows()) != 0 {
 		t.Fatal("expected initial build rows to remain unchanged")
 	}
+
+	// The derived snapshot must carry the copied rows and command.
 	if next.GetCommand().Name != "build" {
 		t.Fatalf("expected copied command, got %q", next.GetCommand().Name)
 	}
@@ -92,14 +101,17 @@ func TestBldrDevtoolStatusWithRowsReturnsNewSnapshot(t *testing.T) {
 }
 
 func TestBldrDevtoolStatusProducerPublishesSnapshots(t *testing.T) {
+	// Create a producer and capture its initial snapshot.
 	producer := NewBldrDevtoolStatusProducer(nil)
 	initial := producer.GetStatus()
 
+	// Publish a running start command status.
 	producer.SetStatus(initial.WithCommand(BldrDevtoolCommandStatus{
 		Name:  "start",
 		State: BldrDevtoolCommandStateRunning,
 	}))
 
+	// Wait for the published change and check its command.
 	changed, err := producer.GetStatusCtr().WaitValueChange(context.Background(), initial, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +120,7 @@ func TestBldrDevtoolStatusProducerPublishesSnapshots(t *testing.T) {
 		t.Fatalf("expected start command, got %q", changed.GetCommand().Name)
 	}
 
+	// Publish plugin rows and then mutate the source snapshot's rows.
 	source := changed.WithPluginRows([]BldrDevtoolPluginRow{{
 		ID:       "plugin:desktop",
 		PluginID: "desktop",
@@ -117,6 +130,7 @@ func TestBldrDevtoolStatusProducerPublishesSnapshots(t *testing.T) {
 	sourceRows := source.GetPluginRows()
 	sourceRows[0].State = BldrDevtoolPluginStateErrored
 
+	// The published rows must not reflect the source mutation.
 	publishedRows := producer.GetStatus().GetPluginRows()
 	if publishedRows[0].State != BldrDevtoolPluginStateRunning {
 		t.Fatalf("expected producer to clone snapshots, got %s", publishedRows[0].State)
@@ -134,6 +148,7 @@ func TestBldrDevtoolStatusProducerUpdateStatus(t *testing.T) {
 		}})
 	})
 
+	// The returned and stored statuses must carry the fetch rows.
 	if len(updated.GetManifestFetchRows()) != 1 {
 		t.Fatal("expected updated fetch rows")
 	}
@@ -143,9 +158,11 @@ func TestBldrDevtoolStatusProducerUpdateStatus(t *testing.T) {
 }
 
 func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
+	// Attach the manifest build status adapter to a producer.
 	producer := NewBldrDevtoolStatusProducer(nil)
 	adapter := &manifestBuildStatusAdapter{producer: producer}
 
+	// Publish a running full-rebuild builder status.
 	adapter.SetManifestBuilderStatus(bldr_project_controller.ManifestBuilderStatus{
 		ID:                      "build:web",
 		BuildTargetIDs:          []string{"desktop"},
@@ -161,6 +178,7 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 		Summary:                 "full rebuild",
 	})
 
+	// The published row must carry the running lifecycle fields.
 	rows := producer.GetStatus().GetManifestBuildRows()
 	if len(rows) != 1 {
 		t.Fatalf("expected one build row, got %d", len(rows))
@@ -182,6 +200,7 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 		t.Fatalf("expected dependency rebuild reason, got %q", row.DependencyRebuildReason)
 	}
 
+	// Publish a completed cache-hit builder status.
 	adapter.SetManifestBuilderStatus(bldr_project_controller.ManifestBuilderStatus{
 		ID:                "build:web",
 		BuildTargetIDs:    []string{"desktop"},
@@ -195,6 +214,7 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 		Summary:           "build complete",
 	})
 
+	// The replacement row must carry the ready completion fields.
 	rows = producer.GetStatus().GetManifestBuildRows()
 	if len(rows) != 1 {
 		t.Fatalf("expected row replacement, got %d rows", len(rows))
@@ -207,6 +227,7 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 		t.Fatalf("expected finite build completion metadata, got %#v", row)
 	}
 
+	// Publish a canceled builder status with an error.
 	adapter.SetManifestBuilderStatus(bldr_project_controller.ManifestBuilderStatus{
 		ID:         "build:web",
 		ManifestID: "web",
@@ -217,6 +238,8 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 		Summary:    "build canceled",
 		Error:      context.Canceled.Error(),
 	})
+
+	// The row must report the canceled state.
 	row = producer.GetStatus().GetManifestBuildRows()[0]
 	if row.State != BldrDevtoolManifestStateCanceled {
 		t.Fatalf("expected canceled row, got %#v", row)
@@ -224,8 +247,10 @@ func TestManifestBuildStatusAdapterPublishesLifecycleFields(t *testing.T) {
 }
 
 func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
+	// Create a producer for the joined rows.
 	producer := NewBldrDevtoolStatusProducer(nil)
 
+	// Publish a running fetch row for two platforms.
 	producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithManifestFetchRows([]BldrDevtoolManifestFetchRow{{
 			ID:         "fetch:web",
@@ -235,6 +260,8 @@ func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
 			State:      BldrDevtoolManifestStateRunning,
 		}})
 	})
+
+	// Publish running and queued local build rows for the same manifest.
 	producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithManifestBuildRows([]BldrDevtoolManifestBuildRow{{
 			ID:         "build:web-browser",
@@ -253,6 +280,7 @@ func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
 		}})
 	})
 
+	// The fetch row must join the unfinished local build rows.
 	rows := producer.GetStatus().GetManifestFetchRows()
 	if len(rows) != 1 {
 		t.Fatalf("expected one fetch row, got %d", len(rows))
@@ -268,6 +296,7 @@ func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
 		t.Fatalf("unexpected remote id: %q", row.RemoteID)
 	}
 
+	// Mark every local build row ready and republish.
 	producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		rows := current.GetManifestBuildRows()
 		for idx := range rows {
@@ -275,6 +304,8 @@ func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
 		}
 		return current.WithManifestBuildRows(rows)
 	})
+
+	// The fetch row must no longer be blocked.
 	row = producer.GetStatus().GetManifestFetchRows()[0]
 	if row.BlockedOnLocalBuild {
 		t.Fatalf("expected ready local builds not to block fetch row: %+v", row)
@@ -282,10 +313,12 @@ func TestManifestFetchRowsJoinRelatedLocalBuildRows(t *testing.T) {
 }
 
 func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
+	// Attach the plugin status adapter to a producer.
 	producer := NewBldrDevtoolStatusProducer(nil)
 	adapter := &pluginStatusAdapter{producer: producer}
 	lastErrorAt := timestamp.New(time.Date(2026, 5, 8, 14, 15, 16, 17, time.UTC))
 
+	// Publish a scheduler snapshot with a running and an errored plugin.
 	adapter.setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
 			PluginId:    "web",
@@ -301,6 +334,7 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 		}},
 	})
 
+	// The errored plugin must sort first with its error and timestamp.
 	rows := producer.GetStatus().GetPluginRows()
 	if len(rows) != 2 {
 		t.Fatalf("expected two plugin rows, got %d", len(rows))
@@ -318,6 +352,7 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 		t.Fatalf("unexpected running plugin row: %+v", rows[1])
 	}
 
+	// An empty scheduler snapshot must clear the plugin rows.
 	adapter.setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{})
 	if rows := producer.GetStatus().GetPluginRows(); len(rows) != 0 {
 		t.Fatalf("expected empty scheduler snapshot to clear plugin rows: %+v", rows)
@@ -325,9 +360,11 @@ func TestPluginStatusAdapterPublishesSchedulerRows(t *testing.T) {
 }
 
 func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Build a scheduler controller and grab its writable status container.
 	producer := NewBldrDevtoolStatusProducer(nil)
 	scheduler := plugin_host_scheduler.NewController(
 		logrus.NewEntry(logrus.New()),
@@ -342,6 +379,7 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 		t.Fatal("expected scheduler plugin status container to be writable in test")
 	}
 
+	// Attach the status watcher and publish a running plugin snapshot.
 	AttachPluginStatus(ctx, producer, scheduler)
 	writableStatusCtr.SetValue(&bldr_plugin.PluginStatusSnapshot{
 		Plugins: []*bldr_plugin.PluginStatus{{
@@ -352,6 +390,7 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 		}},
 	})
 
+	// The producer must publish the watched plugin row.
 	status := waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		rows := status.GetPluginRows()
 		return len(rows) == 1 && rows[0].ID == "plugin:notes/left"
@@ -385,6 +424,7 @@ func TestPluginStatusRowMapsSchedulerStates(t *testing.T) {
 		want:  BldrDevtoolPluginStateErrored,
 	}}
 
+	// Each scheduler state must map to its row state.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := pluginStatusRow(tt.input)
@@ -396,8 +436,11 @@ func TestPluginStatusRowMapsSchedulerStates(t *testing.T) {
 }
 
 func TestBuildManifestFetchRowExtractsReadyRefs(t *testing.T) {
+	// Build a ready manifest ref with a bucket object ref.
 	meta := bldr_manifest.NewManifestMeta("web", bldr_manifest.BuildType_DEV, "browser", 1)
 	ref := bldr_manifest.NewManifestRef(meta, &bucket.ObjectRef{BucketId: "ready-bucket"})
+
+	// Build a fetch row from an attached fetch manifest value.
 	row := buildManifestFetchRow(
 		"fetch:web",
 		bldr_manifest.NewFetchManifest("web", []bldr_manifest.BuildType{bldr_manifest.BuildType_DEV}, []string{"browser"}, 0),
@@ -408,6 +451,7 @@ func TestBuildManifestFetchRowExtractsReadyRefs(t *testing.T) {
 		},
 	)
 
+	// The row must report the ready state and its ready refs.
 	if row.State != BldrDevtoolManifestStateReady {
 		t.Fatalf("expected ready fetch row, got %s", row.State)
 	}
@@ -420,6 +464,7 @@ func TestBuildManifestFetchRowExtractsReadyRefs(t *testing.T) {
 }
 
 func TestBuildManifestFetchRowReportsResolverErrors(t *testing.T) {
+	// Build a fetch row that reports a resolver error.
 	row := buildManifestFetchRow(
 		"fetch:web",
 		bldr_manifest.NewFetchManifest("web", nil, []string{"browser"}, 0),
@@ -428,6 +473,7 @@ func TestBuildManifestFetchRowReportsResolverErrors(t *testing.T) {
 		nil,
 	)
 
+	// The row must report the error state and message.
 	if row.State != BldrDevtoolManifestStateError {
 		t.Fatalf("expected error fetch row, got %s", row.State)
 	}
@@ -437,12 +483,15 @@ func TestBuildManifestFetchRowReportsResolverErrors(t *testing.T) {
 }
 
 func TestBldrDevtoolStatusObserverInitialScan(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start a test bus and a status producer.
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
 
+	// Add a fetch manifest directive to the bus.
 	_, fetchRef, err := b.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			"web",
@@ -457,6 +506,7 @@ func TestBldrDevtoolStatusObserverInitialScan(t *testing.T) {
 	}
 	defer fetchRef.Release()
 
+	// Add a load controller directive to the bus.
 	_, controllerRef, err := b.AddDirective(
 		resolver.NewLoadControllerWithConfig(&bldr_web_view_observer.Config{}),
 		nil,
@@ -466,6 +516,7 @@ func TestBldrDevtoolStatusObserverInitialScan(t *testing.T) {
 	}
 	defer controllerRef.Release()
 
+	// Start the status observer controller.
 	observer := NewBldrDevtoolStatusObserver(b, producer)
 	releaseObserver, err := b.AddController(ctx, observer, nil)
 	if err != nil {
@@ -473,26 +524,34 @@ func TestBldrDevtoolStatusObserverInitialScan(t *testing.T) {
 	}
 	defer releaseObserver()
 
+	// Wait for the initial scan to publish both rows.
 	status := waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 1 &&
 			len(status.GetControllerRows()) == 1
 	})
 
+	// The fetch row must carry the manifest and platform ids.
 	if got := status.GetManifestFetchRows()[0]; got.ManifestID != "web" || got.PlatformID != "browser" {
 		t.Fatalf("unexpected fetch row: %+v", got)
 	}
+
+	// Scheduler-owned plugin rows must remain untouched.
 	if got := status.GetPluginRows(); len(got) != 0 {
 		t.Fatalf("expected scheduler-owned plugin rows to remain untouched, got %+v", got)
 	}
+
+	// The controller row must carry the load controller config id.
 	if got := status.GetControllerRows()[0]; got.ControllerID != bldr_web_view_observer.ConfigID || got.Kind != "load" {
 		t.Fatalf("unexpected controller row: %+v", got)
 	}
 }
 
 func TestBldrDevtoolStatusObserverDoesNotOverwriteSchedulerPluginRows(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Publish scheduler-owned plugin rows before the observer starts.
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
 	(&pluginStatusAdapter{producer: producer}).setPluginStatusSnapshotRows(&bldr_plugin.PluginStatusSnapshot{
@@ -503,6 +562,7 @@ func TestBldrDevtoolStatusObserverDoesNotOverwriteSchedulerPluginRows(t *testing
 		}},
 	})
 
+	// Start the status observer controller.
 	observer := NewBldrDevtoolStatusObserver(b, producer)
 	releaseObserver, err := b.AddController(ctx, observer, nil)
 	if err != nil {
@@ -510,6 +570,7 @@ func TestBldrDevtoolStatusObserverDoesNotOverwriteSchedulerPluginRows(t *testing
 	}
 	defer releaseObserver()
 
+	// Add a fetch manifest directive to the bus.
 	_, fetchRef, err := b.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			"web",
@@ -524,22 +585,28 @@ func TestBldrDevtoolStatusObserverDoesNotOverwriteSchedulerPluginRows(t *testing
 	}
 	defer fetchRef.Release()
 
+	// Both the fetch row and the scheduler plugin row must be published.
 	status := waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 1 &&
 			len(status.GetPluginRows()) == 1
 	})
+
+	// The scheduler plugin row must remain intact.
 	if got := status.GetPluginRows()[0]; got.PluginID != "notes" || got.InstanceKey != "left" {
 		t.Fatalf("expected scheduler plugin row to remain intact, got %+v", got)
 	}
 }
 
 func TestBldrDevtoolStatusObserverReleaseClosesObservedDirectives(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start a test bus, a producer, and a fetch manifest directive.
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
 
+	// Add a fetch manifest directive to the bus.
 	di, fetchRef, err := b.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			"web",
@@ -553,21 +620,25 @@ func TestBldrDevtoolStatusObserverReleaseClosesObservedDirectives(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Start the status observer controller.
 	observer := NewBldrDevtoolStatusObserver(b, producer)
 	releaseObserver, err := b.AddController(ctx, observer, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Wait for the observer to publish the fetch row.
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 1
 	})
 
+	// Release the observer and wait for its rows to disappear.
 	releaseObserver()
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 0
 	})
 
+	// The released observer must not keep the directive referenced.
 	fetchRef.Release()
 	if !di.CloseIfUnreferenced(false) {
 		t.Fatal("expected released observer not to keep directive referenced")
@@ -575,12 +646,15 @@ func TestBldrDevtoolStatusObserverReleaseClosesObservedDirectives(t *testing.T) 
 }
 
 func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start a test bus, a producer, and a fetch manifest directive.
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
 
+	// Add a fetch manifest directive to the bus.
 	di, fetchRef, err := b.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			"web",
@@ -594,22 +668,26 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start the status observer controller.
 	observer := NewBldrDevtoolStatusObserver(b, producer)
 	releaseObserver, err := b.AddController(ctx, observer, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Wait for the observer to publish the queued fetch row.
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		rows := status.GetManifestFetchRows()
 		return len(rows) == 1 && rows[0].State == BldrDevtoolManifestStateQueued
 	})
 
+	// Close the observer and wait for its rows to disappear.
 	releaseObserver()
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 0
 	})
 
+	// Register a state callback that signals on attached values.
 	stateChanged := make(chan struct{}, 1)
 	releaseState := di.AddStateCallback(func(_ bool, _ []error, vals []directive.AttachedValue) {
 		if len(vals) != 0 {
@@ -621,6 +699,7 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 	})
 	defer releaseState()
 
+	// Add a controller that resolves the fetch manifest directive.
 	fetchCtrl := &testFetchManifestController{}
 	releaseFetchCtrl, err := b.AddController(ctx, fetchCtrl, nil)
 	if err != nil {
@@ -628,15 +707,19 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 	}
 	defer releaseFetchCtrl()
 
+	// Wait for the directive state to change after the observer closed.
 	select {
 	case <-stateChanged:
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
+
+	// The closed observer must not publish after the state change.
 	if rows := producer.GetStatus().GetManifestFetchRows(); len(rows) != 0 {
 		t.Fatalf("expected closed observer not to publish after directive state change: %+v", rows)
 	}
 
+	// The closed observer must not keep the directive referenced.
 	fetchRef.Release()
 	if !di.CloseIfUnreferenced(false) {
 		t.Fatal("expected closed observer not to keep directive referenced")
@@ -644,12 +727,15 @@ func TestBldrDevtoolStatusObserverCloseReleasesStateCallbacks(t *testing.T) {
 }
 
 func TestBldrDevtoolStatusObserverDisposeCallbackRemovesKeyedDirective(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start a test bus, a producer, and a fetch manifest directive.
 	b := newStatusObserverTestBus(t, ctx)
 	producer := NewBldrDevtoolStatusProducer(nil)
 
+	// Add a fetch manifest directive to the bus.
 	di, fetchRef, err := b.AddDirective(
 		bldr_manifest.NewFetchManifest(
 			"web",
@@ -663,6 +749,7 @@ func TestBldrDevtoolStatusObserverDisposeCallbackRemovesKeyedDirective(t *testin
 		t.Fatal(err)
 	}
 
+	// Start the status observer controller.
 	observer := NewBldrDevtoolStatusObserver(b, producer)
 	releaseObserver, err := b.AddController(ctx, observer, nil)
 	if err != nil {
@@ -670,15 +757,18 @@ func TestBldrDevtoolStatusObserverDisposeCallbackRemovesKeyedDirective(t *testin
 	}
 	defer releaseObserver()
 
+	// Wait for the observer to publish the fetch row.
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 1
 	})
 
+	// Release the directive's strong ref and let it close.
 	fetchRef.Release()
 	if !di.CloseIfUnreferenced(false) {
 		t.Fatal("expected directive to close after releasing its strong ref")
 	}
 
+	// The dispose callback must remove the keyed observer and its row.
 	waitForStatus(t, ctx, producer, func(status *BldrDevtoolStatus) bool {
 		return len(status.GetManifestFetchRows()) == 0
 	})
@@ -723,7 +813,10 @@ func (c *testFetchManifestController) Close() error {
 var _ cb_controller.Controller = (*testFetchManifestController)(nil)
 
 func newStatusObserverTestBus(t *testing.T, ctx context.Context) bus.Bus {
+	// Mark the helper and start a core controller bus with a discard logger.
 	t.Helper()
+
+	// Start a core controller bus with a discard logger.
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
@@ -739,6 +832,8 @@ func waitForStatus(
 	cond func(*BldrDevtoolStatus) bool,
 ) *BldrDevtoolStatus {
 	t.Helper()
+
+	// Poll the current snapshot and wait for each change until the condition holds.
 	for {
 		current := producer.GetStatus()
 		if cond(current) {

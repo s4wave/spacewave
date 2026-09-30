@@ -58,6 +58,7 @@ func NewPluginHostRoot(
 	stateAtomObjectStoreID, stateAtomVolumeID string,
 	registrationDone InitialCapabilityRegistrationDoneFunc,
 ) *PluginHostRoot {
+	// Store the host root fields.
 	r := &PluginHostRoot{
 		pluginID:         pluginID,
 		entrypoint:       entrypoint,
@@ -67,6 +68,8 @@ func NewPluginHostRoot(
 		hostRoot:         hostRoot,
 		registrationDone: registrationDone,
 	}
+
+	// Build the state atom manager and the resource mux.
 	r.stateAtomMgr = resource_state.NewStateAtomManager(b, stateAtomObjectStoreID, stateAtomVolumeID)
 	mux := resource_server.NewResourceMux(func(m srpc.Mux) error {
 		return sdk_plugin_host.SRPCRegisterPluginHostResourceService(m, r)
@@ -178,10 +181,13 @@ func (r *PluginHostRoot) AccessStateAtom(
 	ctx context.Context,
 	req *sdk_plugin_host.AccessStateAtomRequest,
 ) (*sdk_plugin_host.AccessStateAtomResponse, error) {
+	// Resolve the requested store id, defaulting when empty.
 	storeID := req.GetStoreId()
 	if storeID == "" {
 		storeID = resource_state.DefaultStateAtomStoreID
 	}
+
+	// Construct the child resource for the state atom store.
 	_, id, err := resource_server.ConstructChildResource(ctx, func(subCtx context.Context) (srpc.Invoker, struct{}, func(), error) {
 		store, err := r.stateAtomMgr.GetOrCreateStore(subCtx, storeID)
 		if err != nil {
@@ -226,13 +232,18 @@ func (r *PluginHostRoot) WatchDevicePolicy(
 	_ *sdk_plugin_host.WatchDevicePolicyRequest,
 	stream sdk_plugin_host.SRPCPluginHostResourceService_WatchDevicePolicyStream,
 ) error {
+	// Only the core plugin may watch the device policy.
 	if r.pluginID != "spacewave-core" {
 		return errors.New("Device policy watch is restricted to the core plugin")
 	}
+
+	// Wait for the daemon's device policy source.
 	source, err := r.hostRoot.WaitDevicePolicySource(stream.Context())
 	if err != nil {
 		return err
 	}
+
+	// Stream every policy revision to the caller.
 	var last []byte
 	for {
 		policy, deviceKey, revision, err := source.WaitDevicePolicy(stream.Context(), last)

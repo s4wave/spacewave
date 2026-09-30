@@ -76,6 +76,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 }
 
 func TestProjectOwnedStartupManifestPreflightsSelectActivePlatforms(t *testing.T) {
+	// Declare three startup plugins with web, js, and Go builders.
 	projectConfig := &bldr_project.ProjectConfig{
 		Start: &bldr_project.StartConfig{Plugins: []string{"web", "frontend", "core"}},
 		Manifests: map[string]*bldr_project.ManifestConfig{
@@ -85,15 +86,20 @@ func TestProjectOwnedStartupManifestPreflightsSelectActivePlatforms(t *testing.T
 		},
 	}
 
+	// Select preflights for the js and web/js/wasm platforms.
 	got := ProjectOwnedStartupManifestPreflightsForPlatforms(projectConfig, "js", "web/js/wasm")
 	want := []StartupManifestPreflight{
 		{PluginID: "web", PlatformIDs: []string{"web/js/wasm"}},
 		{PluginID: "frontend", PlatformIDs: []string{"js"}},
 		{PluginID: "core", PlatformIDs: []string{"js"}},
 	}
+
+	// The preflights must exclude plugins that did not select those platforms.
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ProjectOwnedStartupManifestPreflights() = %#v, want %#v", got, want)
 	}
+
+	// The selection policies must deny each platform to the plugins it excludes.
 	policies := startupManifestPlatformSelectionPolicies(got)
 	wantPolicies := []*plugin_host_scheduler.PlatformSelectionPolicy{
 		{PlatformId: "js", DeniedPluginIds: []string{"web"}},

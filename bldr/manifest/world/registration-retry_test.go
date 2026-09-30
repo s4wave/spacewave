@@ -18,6 +18,7 @@ import (
 func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 	for _, stage := range []string{"open", "body", "commit"} {
 		t.Run(stage, func(t *testing.T) {
+			// Start a World testbed and create the manifest store.
 			ctx := t.Context()
 			tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 			if err != nil {
@@ -29,6 +30,8 @@ func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 			if _, err := CreateManifestStore(ctx, ws, hostKey); err != nil {
 				t.Fatal(err)
 			}
+
+			// Write a manifest content block and record the host's root ref.
 			ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(cursor *block.Cursor) error {
 				cursor.SetBlock(block_mock.NewExample("manifest-content"), true)
 				return nil
@@ -54,9 +57,13 @@ func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 			if err := ExStoreManifestOp(ctx, retrying, "", key, []string{hostKey}, manifest.NewManifestRef(meta, ref)); err != nil {
 				t.Fatal(err)
 			}
+
+			// The registration must retry and open exactly two write attempts.
 			if engine.attempts != 2 {
 				t.Fatalf("registration opened %d write attempts, want two", engine.attempts)
 			}
+
+			// The registered manifest must hold the original content ref.
 			stored, err := world.MustGetObject(ctx, ws, key)
 			if err != nil {
 				t.Fatal(err)
@@ -66,13 +73,16 @@ func TestManifestRegistrationRetriesInvalidSnapshot(t *testing.T) {
 			if err != nil || !actual.EqualVT(ref) {
 				t.Fatalf("registered manifest reference: %v, error: %v", actual, err)
 			}
+
+			// The registration must link the manifest to the host exactly once.
 			quads, err := ws.LookupGraphQuads(ctx, NewManifestQuad(hostKey, key, meta.GetManifestId()), 0)
 			if err != nil || len(quads) != 1 {
 				t.Fatalf("registration links: %v, error: %v", quads, err)
 			}
-			_, after, err := host.GetRootRef(ctx)
+
 			// The graph insertion and explicit registration notification each
 			// advance the host once; discarded attempts must add neither.
+			_, after, err := host.GetRootRef(ctx)
 			if err != nil || after != before+2 {
 				t.Fatalf("host revision: before=%d after=%d error=%v", before, after, err)
 			}

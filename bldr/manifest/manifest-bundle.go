@@ -39,10 +39,13 @@ func NewManifestBundleSubBlockCtor(r **ManifestBundle) block.SubBlockCtor {
 		return nil
 	}
 	return func(create bool) block.SubBlock {
+		// Return the existing bundle or skip when not creating.
 		v := *r
 		if v != nil || !create {
 			return v
 		}
+
+		// Allocate the bundle and store it through the pointer.
 		v = &ManifestBundle{}
 		*r = v
 		return v

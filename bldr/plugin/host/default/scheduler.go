@@ -92,6 +92,7 @@ func NewNativeDesktopSchedulerConfig(
 	disableCopyManifest bool,
 	quickJSPluginIDs []string,
 ) *plugin_host_scheduler.Config {
+	// Build the scheduler config for the native desktop plugin host.
 	schedConf := NewSchedulerConfig(
 		instanceKey,
 		engineID,
@@ -102,6 +103,8 @@ func NewNativeDesktopSchedulerConfig(
 		disableStoreManifest,
 		disableCopyManifest,
 	)
+
+	// Allow the js platform only for the QuickJS plugin ids.
 	allowedPluginIDs := slices.Clone(quickJSPluginIDs)
 	slices.Sort(allowedPluginIDs)
 	allowedPluginIDs = slices.Compact(allowedPluginIDs)

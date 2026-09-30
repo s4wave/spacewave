@@ -9,11 +9,14 @@ import (
 )
 
 func TestManifestCommitTimestampFromSourceDateEpoch(t *testing.T) {
+	// Build a context from a fixed SOURCE_DATE_EPOCH.
 	t.Setenv(sourceDateEpochEnv, "1700000000")
 	ctx, err := WithManifestCommitTimestampFromEnvironment(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The commit timestamp must equal the epoch.
 	ts := ManifestCommitTimestamp(ctx)
 	if ts.GetSeconds() != 1700000000 || ts.GetNanos() != 0 {
 		t.Fatalf("manifest timestamp = %d.%09d, want 1700000000.000000000", ts.GetSeconds(), ts.GetNanos())

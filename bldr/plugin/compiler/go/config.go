@@ -58,6 +58,7 @@ func UpdateRelativeGoPackagePaths(goPkgsList []string, rootModule string) ([]str
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate the project id and config sets.
 	if projID := c.GetProjectId(); projID != "" {
 		if err := bldr_project.ValidateProjectID(projID); err != nil {
 			return errors.Wrap(err, "project_id")
@@ -69,6 +70,8 @@ func (c *Config) Validate() error {
 	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "host_config_set")
 	}
+
+	// Validate each go package import path.
 	for i, impPath := range c.GetGoPkgs() {
 		// relative paths will be resolved later
 		impPath = strings.TrimPrefix(impPath, "./")
@@ -76,6 +79,8 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "go_packages[%d]: invalid import path", i)
 		}
 	}
+
+	// Validate the delve address, esbuild flags, and compiler mode.
 	if dlvAddr := c.GetDelveAddr(); dlvAddr != "" {
 		if err := ValidateDelveAddr(dlvAddr); err != nil {
 			return errors.Wrap(err, "delve_addr")
@@ -87,6 +92,8 @@ func (c *Config) Validate() error {
 	if _, err := c.GetGoCompiler().GoCompiler(); err != nil {
 		return errors.Wrap(err, "go_compiler")
 	}
+
+	// Validate each build type and platform type override.
 	for buildTypeStr, buildTypeConf := range c.GetBuildTypes() {
 		if err := bldr_manifest.BuildType(buildTypeStr).Validate(false); err != nil {
 			return err
@@ -95,6 +102,8 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "build_types[%s]", buildTypeStr)
 		}
 	}
+
+	// Validate each platform type override.
 	for platformTypeStr, platformTypeConf := range c.GetPlatformTypes() {
 		if platformTypeStr == "" {
 			return errors.New("platform_types key cannot be empty")
@@ -128,6 +137,7 @@ func (c *Config) Alloc() {
 
 // Merge merges the given build config into c.
 func (c *Config) Merge(o *Config) {
+	// A nil config merges nothing.
 	if o == nil {
 		return
 	}
@@ -159,14 +169,15 @@ func (c *Config) Merge(o *Config) {
 		c.WebPluginId = webPluginID
 	}
 
+	// Merge the rpc fetch and delve address overrides.
 	if o.GetDisableRpcFetch() {
 		c.DisableRpcFetch = true
 	}
-
 	if daddr := o.GetDelveAddr(); daddr != "" {
 		c.DelveAddr = daddr
 	}
 
+	// Merge the feature flags and compiler mode.
 	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
 	if goCompiler := o.GetGoCompiler(); goCompiler != GoCompiler_GO_COMPILER_DEFAULT {
 		c.GoCompiler = goCompiler
@@ -174,6 +185,7 @@ func (c *Config) Merge(o *Config) {
 	c.EnableImportedFactoryDiscovery = c.EnableImportedFactoryDiscovery.Merge(o.GetEnableImportedFactoryDiscovery())
 	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
 
+	// Append the esbuild flags override.
 	if esbuildFlags := o.GetEsbuildFlags(); len(esbuildFlags) != 0 {
 		c.EsbuildFlags = append(c.EsbuildFlags, esbuildFlags...)
 	}
@@ -245,12 +257,14 @@ func (c *Config) FlattenBuildTypes(filterBuildType bldr_manifest.BuildType) {
 // platform ID (e.g., "desktop"). Full ID match is applied first, then base ID.
 // Clears the PlatformTypes field and applies all relevant overrides to c.
 func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
+	// Clear the platform types field before merging overrides.
 	platformTypes := c.GetPlatformTypes()
 	c.PlatformTypes = nil
 	if len(platformTypes) == 0 {
 		return
 	}
 
+	// Resolve the full and base platform ids.
 	fullID := buildPlatform.GetPlatformID()
 	baseID := buildPlatform.GetBasePlatformID()
 
@@ -259,6 +273,7 @@ func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
 		conf.PlatformTypes = nil
 		c.Merge(conf)
 	}
+
 	// Apply base platform ID match second (if different from full).
 	if baseID != fullID {
 		if conf, ok := platformTypes[baseID]; ok {

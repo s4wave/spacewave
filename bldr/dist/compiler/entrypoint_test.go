@@ -115,11 +115,13 @@ func TestDistEntrypointLDFlags(t *testing.T) {
 }
 
 func TestResolveDistGoCompiler(t *testing.T) {
+	// Parse the web platform for the compiler resolution.
 	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// The TinyGo compiler config must resolve to the TinyGo compiler.
 	goCompiler, err := resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
 	if err != nil {
 		t.Fatal(err)
@@ -128,6 +130,7 @@ func TestResolveDistGoCompiler(t *testing.T) {
 		t.Fatalf("goCompiler = %s, want %s", goCompiler, gocompiler.GoCompilerTinyGo)
 	}
 
+	// The GoScript compiler config must resolve to the GoScript compiler.
 	goCompiler, err = resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +142,7 @@ func TestResolveDistGoCompiler(t *testing.T) {
 
 // TestNewDistGoScriptBuildFlags verifies opt-in startup trace propagation for GoScript.
 func TestNewDistGoScriptBuildFlags(t *testing.T) {
+	// With the trace env unset, the flags must carry the GoScript tag only.
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "")
 	flags := strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE), " ")
 	if !strings.Contains(flags, gocompiler.GoScriptBuildTag) {
@@ -148,6 +152,7 @@ func TestNewDistGoScriptBuildFlags(t *testing.T) {
 		t.Fatalf("flags = %q, unexpected %s tag", flags, gocompiler.RuntimeStartupTraceBuildTag)
 	}
 
+	// With the trace env set, the flags must carry the startup trace tag.
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "1")
 	flags = strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE), " ")
 	if !strings.Contains(flags, gocompiler.RuntimeStartupTraceBuildTag) {
@@ -156,14 +161,19 @@ func TestNewDistGoScriptBuildFlags(t *testing.T) {
 }
 
 func TestNewDistGoScriptEnvUsesWebPlatform(t *testing.T) {
+	// Parse the web platform for the env.
 	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Build the GoScript env for the platform.
 	env, err := newDistGoScriptEnv(platform)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The env must select the js/wasm target.
 	for _, want := range []string{"GOOS=js", "GOARCH=wasm"} {
 		if !slices.Contains(env, want) {
 			t.Fatalf("env = %v, want %s", env, want)

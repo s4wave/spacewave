@@ -18,6 +18,7 @@ const (
 
 // Validate validates the manifest-pack metadata.
 func (m *ManifestPackMetadata) Validate() error {
+	// Check the schema version and the required metadata fields.
 	if m.GetFormatVersion() != MetadataFormatVersion {
 		return errors.Errorf("format_version must be %d", MetadataFormatVersion)
 	}
@@ -33,6 +34,8 @@ func (m *ManifestPackMetadata) Validate() error {
 	if m.GetCacheSchema() == "" {
 		return errors.New("cache_schema is empty")
 	}
+
+	// Validate the manifest tuples and the bundle and pack references.
 	if len(m.GetManifests()) == 0 {
 		return errors.New("manifests is empty")
 	}
@@ -47,6 +50,8 @@ func (m *ManifestPackMetadata) Validate() error {
 	if err := validatePackEntry(m.GetPack()); err != nil {
 		return errors.Wrap(err, "pack")
 	}
+
+	// The pack digest must be a full SHA-256 hash.
 	if len(m.GetPackSha256()) != PackSHA256Length {
 		return errors.New("pack_sha256 must be 32 bytes")
 	}
@@ -64,6 +69,7 @@ func (m *ManifestTuple) ValidateRequest() error {
 }
 
 func (m *ManifestTuple) validate() error {
+	// Validate the manifest id, platform id, and object key.
 	if err := bldr_manifest.ValidateManifestID(m.GetManifestId(), false); err != nil {
 		return errors.Wrap(err, "manifest_id")
 	}
@@ -73,6 +79,8 @@ func (m *ManifestTuple) validate() error {
 	if m.GetObjectKey() == "" {
 		return errors.New("object_key is empty")
 	}
+
+	// Every link object key must be non-empty.
 	for i, key := range m.GetLinkObjectKeys() {
 		if key == "" {
 			return errors.Errorf("link_object_keys[%d] is empty", i)
@@ -84,12 +92,15 @@ func (m *ManifestTuple) validate() error {
 // ValidateCleanObjectRef validates a manifest-pack object ref and rejects
 // transform configuration pointers or key-bearing transform steps.
 func ValidateCleanObjectRef(name string, ref *bucket.ObjectRef) error {
+	// Validate the ref and reject an empty root ref.
 	if ref.GetRootRef().GetEmpty() {
 		return errors.Errorf("%s root_ref is empty", name)
 	}
 	if err := ref.Validate(); err != nil {
 		return errors.Wrap(err, name)
 	}
+
+	// Reject transform config pointers and block encryption steps.
 	if !ref.GetTransformConfRef().GetEmpty() {
 		return errors.Errorf("%s contains transform config ref", name)
 	}
@@ -103,6 +114,7 @@ func ValidateCleanObjectRef(name string, ref *bucket.ObjectRef) error {
 
 // validatePackEntry validates one entry of a pack file.
 func validatePackEntry(entry *packfile.PackfileEntry) error {
+	// Validate the entry id and bloom filter.
 	if entry == nil {
 		return errors.New("is nil")
 	}
@@ -115,6 +127,8 @@ func validatePackEntry(entry *packfile.PackfileEntry) error {
 	if entry.GetBloomFormatVersion() != packfile.BloomFormatVersionV1 {
 		return errors.New("bloom_format_version is invalid")
 	}
+
+	// Validate the size, block count, and creation time.
 	if entry.GetBlockCount() == 0 {
 		return errors.New("block_count is empty")
 	}
@@ -124,6 +138,8 @@ func validatePackEntry(entry *packfile.PackfileEntry) error {
 	if err := entry.GetCreatedAt().Validate(false); err != nil {
 		return errors.Wrap(err, "created_at")
 	}
+
+	// The entry must not be superseded.
 	if entry.GetSupersededBy() != "" || entry.GetSupersededAt() != nil {
 		return errors.New("pack entry is superseded")
 	}

@@ -75,6 +75,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+
 	// Publish build progress while the project controller compiles its targets.
 	b.setCommandRunningWithLogFile(
 		"build",
@@ -93,6 +94,8 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 
 // buildCommandSummary describes the requested targets and explicit overrides.
 func buildCommandSummary(buildCSV, buildType, remote, targetsCSV string) string {
+	// Collect the target list, build type, remote, and explicit target override
+	// that are set.
 	parts := []string{"building targets"}
 	if buildCSV != "" {
 		parts = append(parts, strings.TrimSpace(buildCSV))
@@ -106,5 +109,7 @@ func buildCommandSummary(buildCSV, buildType, remote, targetsCSV string) string 
 	if targetsCSV != "" {
 		parts = append(parts, "targets="+strings.TrimSpace(targetsCSV))
 	}
+
+	// Join the summary fields with spaces.
 	return strings.Join(parts, " ")
 }

@@ -70,10 +70,12 @@ func (*failingController) HandleDirective(context.Context, directive.Instance) (
 func (*failingController) Close() error { return nil }
 
 func TestControllerReturnsConfigSetMemberError(t *testing.T) {
+	// Bound the test with a three second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 
+	// Start the host bus with the failing factory and config set controller.
 	hostBus, staticResolver, err := controllerbus_core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -89,6 +91,7 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 	}
 	defer releaseConfigSet()
 
+	// Serve the plugin host over an in-memory pipe.
 	serverExited := make(chan error, 1)
 	server := &observingPluginHostServer{
 		SRPCPluginHostServer: bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", "", nil, nil, "", false),
@@ -100,6 +103,7 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 	}
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 
+	// Bridge the plugin bus to the host through the client controller.
 	pluginBus, _, err := controllerbus_core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -117,9 +121,12 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 	}
 	defer releaseClient()
 
+	// Configure the controller with one failing member config.
 	conf := &Config{ConfigSet: map[string]*configset_proto.ControllerConfig{
 		"release-world-fetch": {Id: (&config.Placeholder{}).GetConfigID(), Rev: 1},
 	}}
+
+	// The controller must surface the member controller's failure.
 	baseFactory := NewFactory(pluginBus)
 	loaded, err := baseFactory.Construct(ctx, conf, controller.ConstructOpts{Logger: le})
 	if err != nil {
@@ -129,6 +136,8 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 	if got == nil || !strings.Contains(got.Error(), "injected controller failure") {
 		t.Fatalf("Execute error = %v, want injected controller failure", got)
 	}
+
+	// The host ExecController must have exited.
 	select {
 	case <-serverExited:
 	case <-time.After(time.Second):
@@ -137,9 +146,12 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 }
 
 func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
+	// Bound the test with a three second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
+
+	// Start the host bus with the failing factory and config set controller.
 	hostBus, staticResolver, err := controllerbus_core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +166,8 @@ func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer releaseConfigSet()
+
+	// Serve the plugin host and run the failing config set.
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(
 		mux,
@@ -171,6 +185,8 @@ func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer status.Close()
+
+	// The stream must report the injected member error.
 	for {
 		response, err := status.Recv()
 		if err != nil {
@@ -238,6 +254,7 @@ func TestIsWebRuntimeClientClosed(t *testing.T) {
 			want: false,
 		},
 	}
+	// Each error must match its expected close classification.
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if got := web_runtime.IsWebRuntimeClientClosed(test.err); got != test.want {

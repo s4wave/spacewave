@@ -71,6 +71,7 @@ func BuildDirectWebPkgs(
 	}
 	defer os.RemoveAll(viteWorkingPath)
 
+	// Run the one-shot Vite bundler and collect the built outputs.
 	var importMapEntries []web_pkg_vite.ImportMapEntry
 	var srcFiles []string
 	err = web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {

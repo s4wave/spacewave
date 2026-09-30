@@ -47,6 +47,7 @@ func NewConfig(
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the peer, engine, object key, and volume ids.
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
@@ -62,6 +63,8 @@ func (c *Config) Validate() error {
 	if len(c.GetVolumeId()) == 0 {
 		return volume.ErrVolumeIDEmpty
 	}
+
+	// Validate each platform selection policy.
 	for _, policy := range c.GetPlatformSelectionPolicies() {
 		if policy.GetPlatformId() == "" {
 			return errors.New("platform_selection_policies: platform_id is required")
@@ -81,6 +84,8 @@ func (c *Config) Validate() error {
 			}
 		}
 	}
+
+	// Validate the materializer plugin id and backoff configs.
 	if err := bldr_plugin.ValidatePluginID(c.GetMaterializerPluginId(), true); err != nil {
 		return errors.Wrap(err, "materializer_plugin_id")
 	}
@@ -90,6 +95,8 @@ func (c *Config) Validate() error {
 	if err := c.GetExecBackoff().Validate(true); err != nil {
 		return errors.Wrap(err, "exec_backoff")
 	}
+
+	// Validate the startup wait budget.
 	if _, err := c.BuildStartupWaitBudget(); err != nil {
 		return err
 	}
@@ -103,10 +110,13 @@ const DefaultStartupWaitBudget = time.Minute
 // BuildStartupWaitBudget gets the StartupWaitBudgetDur and fills the default
 // if unset. Rejects negative and unparseable durations.
 func (c *Config) BuildStartupWaitBudget() (time.Duration, error) {
+	// Parse the configured duration.
 	budget, err := confparse.ParseDuration(c.GetStartupWaitBudgetDur())
 	if err != nil {
 		return 0, errors.Wrap(err, "startup_wait_budget_dur")
 	}
+
+	// Reject negative budgets and fill the default.
 	if budget < 0 {
 		return 0, errors.New("startup_wait_budget_dur cannot be negative")
 	}
@@ -138,11 +148,13 @@ func (c *Config) BuildExecBackoff() *backoff.Backoff {
 
 // FilterPluginPlatformIDs filters platform IDs through PlatformSelectionPolicies.
 func (c *Config) FilterPluginPlatformIDs(pluginID string, platformIDs []string) []string {
+	// Without policies or platforms there is nothing to filter.
 	policies := c.GetPlatformSelectionPolicies()
 	if len(policies) == 0 || len(platformIDs) == 0 {
 		return platformIDs
 	}
 
+	// Keep the platform ids the plugin is allowed to use.
 	filtered := make([]string, 0, len(platformIDs))
 	for _, platformID := range platformIDs {
 		if c.pluginPlatformAllowed(pluginID, platformID) {
@@ -153,6 +165,7 @@ func (c *Config) FilterPluginPlatformIDs(pluginID string, platformIDs []string) 
 }
 
 func (c *Config) pluginPlatformAllowed(pluginID, platformID string) bool {
+	// The first matching policy decides the result.
 	for _, policy := range c.GetPlatformSelectionPolicies() {
 		if policy.GetPlatformId() != platformID {
 			continue
@@ -177,13 +190,18 @@ func (c *Config) buildBackoff(
 	conf *backoff.Backoff,
 	maxInterval uint32,
 ) *backoff.Backoff {
+	// Clone the configured backoff, allocating when unset.
 	backoffConf := conf.CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
 	}
+
+	// A configured kind is used as-is.
 	if backoffConf.BackoffKind != 0 {
 		return backoffConf
 	}
+
+	// Fill the exponential defaults with the max interval.
 	if backoffConf.Exponential == nil {
 		backoffConf.Exponential = &backoff.Exponential{}
 	}

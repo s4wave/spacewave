@@ -25,9 +25,11 @@ import (
 )
 
 func TestControllerCoalescesManifestCollection(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Build a World with manifests for five ids at sequence two.
 	const storeKey = "release/manifests"
 	ids := []string{"core", "web", "app", "cli", "notes"}
 	ws, tb := buildCollectionTestWorld(t, ctx, storeKey)
@@ -36,6 +38,7 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 	}
 	storeCollectionTestManifest(t, ctx, tb, ws, storeKey, ids[0], "desktop", 1)
 
+	// Start a controller with a counting world state and one resolver per id.
 	started := make(chan struct{})
 	release := make(chan struct{})
 	countedWS := &collectionCountingWorldState{
@@ -67,6 +70,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		snapshot, err := ctrl.collectManifests(ctx, countedWS)
 		leader <- collectionResult{snapshot: snapshot, err: err}
 	}()
+
+	// Wait for the leader to start its blocked traversal.
 	select {
 	case <-started:
 	case <-ctx.Done():
@@ -82,6 +87,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		canceled <- err
 	}()
 	cancelCollection()
+
+	// The canceled collection must report the context error.
 	select {
 	case err := <-canceled:
 		if !stderrors.Is(err, context.Canceled) {
@@ -114,6 +121,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 	// publish that sequence-one map; they must coalesce again at sequence two.
 	countedWS.setSeqno(2)
 	close(release)
+
+	// The leader must publish a sequence-two snapshot.
 	select {
 	case result := <-leader:
 		if result.err != nil {
@@ -125,6 +134,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
+
+	// Every concurrent resolver must observe its manifest at sequence two.
 	for range ids {
 		select {
 		case result := <-results:
@@ -136,9 +147,13 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
+
+	// The coalesced collections must traverse the graph four times.
 	if got := countedWS.traversals(); got != 4 {
 		t.Fatalf("manifest graph traversals across sequence advance = %d, want 4", got)
 	}
+
+	// The published snapshot must hold the sorted active ids at sequence two.
 	ctrl.mtx.Lock()
 	snapshot := ctrl.collectionSnapshot
 	ctrl.mtx.Unlock()
@@ -158,6 +173,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		}
 		assertCollectionTestManifest(t, handler, id, "js", 2)
 	}
+
+	// The sequential resolutions must not traverse the graph again.
 	if got := countedWS.traversals(); got != 4 {
 		t.Fatalf("sequential manifest graph traversals = %d, want 4", got)
 	}
@@ -173,15 +190,19 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		t.Fatalf("FetchManifest after sequence advance: %v", err)
 	}
 	assertCollectionTestManifest(t, handler, ids[0], "js", 2)
+
+	// The invalidated snapshot must add two more traversals.
 	if got := countedWS.traversals(); got != 6 {
 		t.Fatalf("manifest graph traversals after sequence advance = %d, want 6", got)
 	}
 }
 
 func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Build a World with thirteen stored manifests.
 	const storeKey = "release/manifests"
 	manifestIDs := []string{
 		"spacewave-app",
@@ -203,6 +224,7 @@ func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
 		storeCollectionTestManifest(t, ctx, tb, ws, storeKey, manifestID, "js", uint64(i+1))
 	}
 
+	// Start a controller with resolvers for two selected ids.
 	countedWS := &collectionCountingWorldState{WorldState: ws, seqno: 1}
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
 	t.Cleanup(func() { _ = ctrl.Close() })
@@ -212,6 +234,7 @@ func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
 		t.Cleanup(func() { ctrl.removeResolver(resolver) })
 	}
 
+	// The snapshot must hold only the selected ids and their manifests.
 	snapshot, err := ctrl.collectManifests(ctx, countedWS)
 	if err != nil {
 		t.Fatal(err)
@@ -222,15 +245,19 @@ func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
 	if len(snapshot.manifests) != 2 || len(snapshot.manifests["spacewave-core"]) != 1 || len(snapshot.manifests["spacewave-web"]) != 1 {
 		t.Fatalf("selected manifests = %#v", snapshot.manifests)
 	}
+
+	// The collection must read only the selected release refs.
 	if got := countedWS.manifestReads.Load(); got != 2 {
 		t.Fatalf("selected manifest reads = %d, want 2 of 13 release refs", got)
 	}
 }
 
 func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Store a manifest object whose block uses an unsupported hash type.
 	const storeKey = "release/manifests"
 	const badManifestKey = "release/manifests/bad"
 	ws, _ := buildCollectionTestWorld(t, ctx, storeKey)
@@ -251,6 +278,7 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Start a controller whose world state advances the seqno on delete.
 	countedWS := &collectionCountingWorldState{
 		WorldState:       ws,
 		seqno:            1,
@@ -262,6 +290,7 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	ctrl.addResolver(resolver)
 	defer ctrl.removeResolver(resolver)
 
+	// The reset must produce an empty snapshot at sequence two.
 	snapshot, err := ctrl.collectManifests(ctx, countedWS)
 	if err != nil {
 		t.Fatalf("collect manifests after unsupported hash reset: %v", err)
@@ -269,15 +298,19 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	if snapshot.key.seqno != 2 || len(snapshot.manifests) != 0 {
 		t.Fatalf("manifest snapshot after reset = %#v, want empty sequence 2", snapshot)
 	}
+
 	// Selected traversal reads the stale candidate and its empty replacement;
 	// resetting still performs one full candidate traversal.
 	if got := countedWS.traversals(); got != 4 {
 		t.Fatalf("manifest graph traversals across reset = %d, want 4", got)
 	}
+
+	// The manifest store must be reset and type-checked.
 	if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, storeKey); err != nil {
 		t.Fatalf("reset manifest store: %v", err)
 	}
 
+	// A cached post-reset collection must not traverse again.
 	if _, err := ctrl.collectManifests(ctx, countedWS); err != nil {
 		t.Fatalf("cached post-reset manifest collection: %v", err)
 	}
@@ -287,9 +320,11 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 }
 
 func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Start a controller whose graph traversals fail.
 	const storeKey = "release/manifests"
 	ws, _ := buildCollectionTestWorld(t, ctx, storeKey)
 	countedWS := &collectionCountingWorldState{
@@ -303,6 +338,7 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	ctrl.addResolver(resolver)
 	defer ctrl.removeResolver(resolver)
 
+	// The failed and canceled collections must report their errors.
 	if _, err := ctrl.collectManifests(ctx, countedWS); !stderrors.Is(err, countedWS.getTraversalErr()) {
 		t.Fatalf("failed collection error = %v, want graph error", err)
 	}
@@ -311,6 +347,7 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 		t.Fatalf("canceled collection error = %v, want context canceled", err)
 	}
 
+	// Clearing the error must allow a retry and then a cached collection.
 	countedWS.setTraversalErr(nil)
 	if _, err := ctrl.collectManifests(ctx, countedWS); err != nil {
 		t.Fatalf("retry manifest collection: %v", err)
@@ -318,9 +355,13 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	if _, err := ctrl.collectManifests(ctx, countedWS); err != nil {
 		t.Fatalf("cached manifest collection: %v", err)
 	}
+
+	// The retries must traverse the graph three times.
 	if got := countedWS.traversals(); got != 3 {
 		t.Fatalf("manifest graph traversals after retries = %d, want 3", got)
 	}
+
+	// Closing the controller must drop the collection snapshot.
 	if err := ctrl.Close(); err != nil {
 		t.Fatalf("close manifest collection controller: %v", err)
 	}
@@ -333,9 +374,11 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 }
 
 func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
+	// Bound the test with a five second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Build a World with two manifests and add resolvers for both.
 	const storeKey = "release/manifests"
 	ws, tb := buildCollectionTestWorld(t, ctx, storeKey)
 	storeCollectionTestManifest(t, ctx, tb, ws, storeKey, "core", "js", 2)
@@ -344,12 +387,14 @@ func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
 	defer func() { _ = ctrl.Close() }()
 
+	// Add a resolver per manifest id.
 	core := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("core", nil, nil, 0)}
 	web := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("web", nil, nil, 0)}
 	ctrl.addResolver(core)
 	ctrl.addResolver(web)
 	defer ctrl.removeResolver(core)
 
+	// The initial collection must hold both ids.
 	snapshot, err := ctrl.collectManifests(ctx, countedWS)
 	if err != nil {
 		t.Fatal(err)
@@ -358,6 +403,7 @@ func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
 		t.Fatalf("initial manifest snapshot = %#v", snapshot)
 	}
 
+	// Removing the web resolver must re-key the snapshot to core alone.
 	ctrl.removeResolver(web)
 	snapshot, err = ctrl.collectManifests(ctx, countedWS)
 	if err != nil {
@@ -366,6 +412,8 @@ func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
 	if !slices.Equal(snapshot.key.manifestIDs, []string{"core"}) || len(snapshot.manifests) != 1 || len(snapshot.manifests["core"]) != 1 {
 		t.Fatalf("post-removal manifest snapshot = %#v", snapshot)
 	}
+
+	// The re-key must traverse the graph twice more.
 	if got := countedWS.traversals(); got != 4 {
 		t.Fatalf("manifest traversals after resolver removal = %d, want 4", got)
 	}
@@ -376,7 +424,10 @@ func buildCollectionTestWorld(
 	ctx context.Context,
 	storeKey string,
 ) (world.WorldState, *testbed.Testbed) {
+	// Mark the helper and start a testbed.
 	t.Helper()
+
+	// Start a testbed and an empty cursor for the World state.
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
@@ -384,6 +435,7 @@ func buildCollectionTestWorld(
 	}
 	t.Cleanup(tb.Release)
 
+	// Build the World state on the empty cursor.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -393,6 +445,8 @@ func buildCollectionTestWorld(
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the manifest store in the World.
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err)
 	}
@@ -409,19 +463,25 @@ func storeCollectionTestManifest(
 	platformID string,
 	rev uint64,
 ) {
+	// Mark the helper and build the manifest meta for the stored manifest.
 	t.Helper()
+
+	// Build the manifest meta for the stored manifest.
 	meta := &manifest.ManifestMeta{
 		ManifestId: manifestID,
 		BuildType:  "production",
 		PlatformId: platformID,
 		Rev:        rev,
 	}
+
+	// Write the manifest block through a fresh cursor.
 	cursor, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cursor.Release()
 
+	// Write the manifest block into the cursor transaction.
 	tx, bcs := cursor.BuildTransaction(nil)
 	bcs.SetBlock(manifest.NewManifest(meta, "entrypoint"), true)
 	rootRef, _, err := tx.Write(ctx, true)
@@ -429,6 +489,8 @@ func storeCollectionTestManifest(
 		t.Fatal(err)
 	}
 	cursor.SetRootRef(rootRef)
+
+	// Store the manifest reference in the World under its key.
 	manifestRef := manifest.NewManifestRef(meta, cursor.GetRef())
 	manifestKey := manifest.NewManifestKey(storeKey, meta)
 	if err := bldr_manifest_world.ExStoreManifestOp(
@@ -450,6 +512,7 @@ func assertCollectionTestManifest(
 	platformID string,
 	rev uint64,
 ) {
+	// Mark the helper and check the single fetched value.
 	t.Helper()
 	if len(handler.values) != 1 {
 		t.Fatalf("FetchManifest %s values = %d, want 1", manifestID, len(handler.values))
@@ -458,6 +521,8 @@ func assertCollectionTestManifest(
 	if !ok {
 		t.Fatalf("FetchManifest %s value type = %T", manifestID, handler.values[0])
 	}
+
+	// The value must carry one manifest ref with the expected metadata.
 	refs := value.GetManifestRefs()
 	if len(refs) != 1 {
 		t.Fatalf("FetchManifest %s refs = %d, want 1", manifestID, len(refs))
@@ -530,6 +595,7 @@ func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
 	filters []world.GraphQuad,
 	limitPerFilter uint32,
 ) ([][]world.GraphQuad, error) {
+	// Count the traversal and snapshot the blocking state.
 	w.mtx.Lock()
 	w.traversalCount++
 	traversalErr := w.traversalErr
@@ -537,9 +603,12 @@ func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
 	started := w.started
 	w.mtx.Unlock()
 
+	// Signal the traversal start.
 	if started != nil {
 		w.startedOnce.Do(func() { close(started) })
 	}
+
+	// Block until the traversal is released or the context ends.
 	if release != nil {
 		select {
 		case <-ctx.Done():
@@ -547,6 +616,8 @@ func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
 		case <-release:
 		}
 	}
+
+	// Report the configured traversal error.
 	if traversalErr != nil {
 		return nil, traversalErr
 	}
@@ -558,6 +629,7 @@ func (w *collectionCountingWorldState) AccessCayleyGraph(
 	write bool,
 	cb func(context.Context, world.CayleyHandle) error,
 ) error {
+	// Count the traversal and snapshot the blocking state.
 	w.mtx.Lock()
 	w.traversalCount++
 	traversalErr := w.traversalErr
@@ -565,9 +637,12 @@ func (w *collectionCountingWorldState) AccessCayleyGraph(
 	started := w.started
 	w.mtx.Unlock()
 
+	// Signal the traversal start.
 	if started != nil {
 		w.startedOnce.Do(func() { close(started) })
 	}
+
+	// Block until the traversal is released or the context ends.
 	if release != nil {
 		select {
 		case <-ctx.Done():
@@ -575,6 +650,8 @@ func (w *collectionCountingWorldState) AccessCayleyGraph(
 		case <-release:
 		}
 	}
+
+	// Report the configured traversal error.
 	if traversalErr != nil {
 		return traversalErr
 	}

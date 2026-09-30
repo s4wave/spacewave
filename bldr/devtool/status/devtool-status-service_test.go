@@ -85,6 +85,7 @@ func recvDevtoolStatusResponse(
 }
 
 func TestDevtoolStatusWatchServiceEmitsInitialAndChanges(t *testing.T) {
+	// Create a producer seeded with a running start command.
 	producer := NewBldrDevtoolStatusProducer(
 		EmptyBldrDevtoolStatus().WithCommand(BldrDevtoolCommandStatus{
 			Name:    "start web",
@@ -93,21 +94,26 @@ func TestDevtoolStatusWatchServiceEmitsInitialAndChanges(t *testing.T) {
 			LogFile: ".bldr/logs/status.log",
 		}),
 	)
+
+	// Start the watch service on a test stream.
 	service := NewDevtoolStatusWatchService(producer)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	strm := newDevtoolStatusTestStream(ctx)
 	done := make(chan error, 1)
 
+	// Run the watch RPC in the background.
 	go func() {
 		done <- service.WatchDevtoolStatus(&WatchDevtoolStatusRequest{}, strm)
 	}()
 
+	// The first response must carry the initial command snapshot.
 	initial := recvDevtoolStatusResponse(t, strm)
 	if initial.GetSnapshot().GetCommand().GetName() != "start web" {
 		t.Fatalf("expected initial command snapshot, got %#v", initial.GetSnapshot().GetCommand())
 	}
 
+	// Publish a ready manifest build row.
 	producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithManifestBuildRows([]BldrDevtoolManifestBuildRow{{
 			ID:                "build:web",
@@ -122,6 +128,7 @@ func TestDevtoolStatusWatchServiceEmitsInitialAndChanges(t *testing.T) {
 		}})
 	})
 
+	// The changed snapshot must carry the build row and split platforms.
 	changed := recvDevtoolStatusResponse(t, strm)
 	buildRows := changed.GetSnapshot().GetManifestBuildRows()
 	if len(buildRows) != 1 || !buildRows[0].GetCacheHit() {
@@ -131,6 +138,7 @@ func TestDevtoolStatusWatchServiceEmitsInitialAndChanges(t *testing.T) {
 		t.Fatalf("expected split target platforms, got %#v", buildRows[0].GetTargetPlatformIds())
 	}
 
+	// Cancel the stream context and wait for the watch to stop.
 	cancel()
 	select {
 	case err := <-done:
@@ -143,21 +151,26 @@ func TestDevtoolStatusWatchServiceEmitsInitialAndChanges(t *testing.T) {
 }
 
 func TestDevtoolStatusWatchServiceClosesAfterTerminalCommand(t *testing.T) {
+	// Create a producer seeded with a running build command.
 	producer := NewBldrDevtoolStatusProducer(
 		EmptyBldrDevtoolStatus().WithCommand(BldrDevtoolCommandStatus{
 			Name:  "build",
 			State: BldrDevtoolCommandStateRunning,
 		}),
 	)
+
+	// Start the watch service on a test stream.
 	service := NewDevtoolStatusWatchService(producer)
 	ctx := t.Context()
 	strm := newDevtoolStatusTestStream(ctx)
 	done := make(chan error, 1)
 
+	// Run the watch RPC in the background and drain the initial snapshot.
 	go func() {
 		done <- service.WatchDevtoolStatus(&WatchDevtoolStatusRequest{}, strm)
 	}()
 
+	// Publish a done terminal command status.
 	recvDevtoolStatusResponse(t, strm)
 	producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.WithCommand(BldrDevtoolCommandStatus{
@@ -167,11 +180,14 @@ func TestDevtoolStatusWatchServiceClosesAfterTerminalCommand(t *testing.T) {
 		})
 	})
 
+	// The terminal snapshot must report the done state.
 	terminal := recvDevtoolStatusResponse(t, strm)
 	if terminal.GetSnapshot().GetCommand().GetState() !=
 		DevtoolStatusCommandState_DevtoolStatusCommandState_DONE {
 		t.Fatalf("expected terminal snapshot, got %#v", terminal.GetSnapshot().GetCommand())
 	}
+
+	// The watch must close cleanly after the terminal command.
 	select {
 	case err := <-done:
 		if err != nil {
@@ -183,6 +199,7 @@ func TestDevtoolStatusWatchServiceClosesAfterTerminalCommand(t *testing.T) {
 }
 
 func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
+	// Create a producer and register the status service on a mux.
 	producer := NewBldrDevtoolStatusProducer(
 		EmptyBldrDevtoolStatus().WithCommand(BldrDevtoolCommandStatus{
 			Name:  "start web",
@@ -194,6 +211,7 @@ func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Build a prefix-routed client for the host service id prefix.
 	client := srpc.NewPrefixClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
 		[]string{devtool_web.HostServiceIDPrefix},
@@ -202,6 +220,8 @@ func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
 		client,
 		devtool_web.HostServiceIDPrefix+SRPCDevtoolStatusServiceServiceID,
 	)
+
+	// Watch the status through the prefixed route.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	strm, err := service.WatchDevtoolStatus(ctx, &WatchDevtoolStatusRequest{})
@@ -210,6 +230,7 @@ func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
 	}
 	defer strm.Close()
 
+	// The first response must come through the prefixed host route.
 	resp, err := strm.Recv()
 	if err != nil {
 		t.Fatal(err)
@@ -220,6 +241,7 @@ func TestDevtoolStatusHostPrefixRoutesToRegisteredService(t *testing.T) {
 }
 
 func TestBuildProjectStatusNormalizesTargets(t *testing.T) {
+	// Build a project status from a config with manifests and build targets.
 	project := BuildProjectStatus(&bldr_project.ProjectConfig{
 		Id: "spacewave-devtool",
 		Start: &bldr_project.StartConfig{
@@ -239,12 +261,15 @@ func TestBuildProjectStatusNormalizesTargets(t *testing.T) {
 		},
 	})
 
+	// The project status must carry the project and sorted manifest ids.
 	if project.ProjectID != "spacewave-devtool" {
 		t.Fatalf("expected project id, got %q", project.ProjectID)
 	}
 	if !slices.Equal(project.ManifestIDs, []string{"spacewave-app", "spacewave-web"}) {
 		t.Fatalf("expected sorted manifest ids, got %#v", project.ManifestIDs)
 	}
+
+	// The web build target must resolve its platforms and build types.
 	if len(project.BuildTargets) != 1 {
 		t.Fatalf("expected one build target, got %#v", project.BuildTargets)
 	}
@@ -264,6 +289,7 @@ func TestBuildProjectStatusNormalizesTargets(t *testing.T) {
 }
 
 func TestBuildDevtoolStatusSnapshotMapsRows(t *testing.T) {
+	// Build a wire snapshot from a status with every row type.
 	wire := BuildDevtoolStatusSnapshot(
 		EmptyBldrDevtoolStatus().
 			WithCommand(BldrDevtoolCommandStatus{
@@ -329,6 +355,7 @@ func TestBuildDevtoolStatusSnapshotMapsRows(t *testing.T) {
 			}}),
 	)
 
+	// The wire snapshot must map each row's state and fields.
 	if wire.GetCommand().GetState() != DevtoolStatusCommandState_DevtoolStatusCommandState_ERROR {
 		t.Fatalf("expected command error state, got %#v", wire.GetCommand())
 	}

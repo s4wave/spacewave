@@ -94,11 +94,14 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 	defer projCtrlRef.Release()
 
+	// Wait for the evaluated project configuration.
 	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
+	// Preflight the project-owned startup plugin manifests before the scheduler
+	// starts, so startup keeps validated cached manifests.
 	preflightRemote := a.Remote
 	if preflightRemote == "" {
 		preflightRemote = "devtool"
@@ -130,9 +133,12 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		true,
 		nativeDesktopQuickJSPluginIDs(projCtrl.GetConfig().GetProjectConfig()),
 	)
+
 	// Startup plugins may run their own plugins, such as a Space's, on the
 	// devtool's plugin hosts.
 	schedConf.HostExportPluginIds = startPlugins
+
+	// Start the plugin scheduler and attach its status to the devtool producer.
 	sched, relSched, err := plugin_host_default.StartPluginSchedulerWithConfig(ctx, b.GetBus(), schedConf)
 	if err != nil {
 		return err
@@ -155,10 +161,12 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		defer relPluginHost()
 	}
 
+	// Start the project, open the desktop window, and publish the running status.
 	projCtrl.StartStartup(ctx)
 	go openDesktopWindow(ctx, le, b.GetBus())
 	b.setCommandRunningWithLogFile("start desktop", "desktop runtime active", commandLogFile)
 
+	// Block until the devtool bus context ends.
 	<-b.GetContext().Done()
 	return nil
 }
@@ -167,6 +175,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 // Electron starts only on demand, so the devtool supplies the demand a
 // launcher would. The plugin reference is held until ctx ends.
 func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
+	// Wait for the web plugin to load and hold its client reference.
 	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, b, "web", nil)
 	if err != nil {
 		if ctx.Err() == nil {
@@ -176,6 +185,7 @@ func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
 	}
 	defer ref.Release()
 
+	// Ask the web plugin to open or focus the desktop window.
 	_, err = bldr_web_plugin.NewSRPCWebPluginClient(client).
 		OpenOrFocusDesktop(ctx, &bldr_web_plugin.OpenOrFocusDesktopRequest{})
 	if err != nil {
@@ -184,6 +194,8 @@ func openDesktopWindow(ctx context.Context, le *logrus.Entry, b bus.Bus) {
 		}
 		return
 	}
+
+	// Hold the reference until the context ends.
 	<-ctx.Done()
 }
 

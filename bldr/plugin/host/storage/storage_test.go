@@ -31,6 +31,8 @@ func TestSelectedHostStorage(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	t.Cleanup(cancel)
 	le := logrus.NewEntry(logrus.New())
+
+	// Start the host bus with the volume RPC and config set controllers.
 	hostBus, hostResolver, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
@@ -45,6 +47,8 @@ func TestSelectedHostStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(release)
+
+	// Register one in-memory storage controller per provider id.
 	for _, id := range []string{"default", "left/app", "right/app"} {
 		st := storage_inmem.NewInmemStorage(id)
 		st.AddFactories(hostBus, hostResolver)
@@ -58,12 +62,17 @@ func TestSelectedHostStorage(t *testing.T) {
 
 	// Give each plugin its own bus and the ordinary host RPC transport.
 	mount := func(storageID string) (volume.Controller, error) {
+		// Mark the helper and mount the storage provider.
 		t.Helper()
+
+		// Start the plugin bus with the configset factory.
 		pluginBus, pluginResolver, err := core.NewCoreBus(ctx, le)
 		if err != nil {
 			return nil, err
 		}
 		pluginResolver.AddFactory(plugin_host_configset.NewFactory(pluginBus))
+
+		// Register the selected storage as the default storage controller.
 		selected := NewPluginHostStorage(storageID)
 		selected.AddFactories(pluginBus, pluginResolver)
 		info := controller.NewInfo("test/plugin-storage", controller.MustParseVersion("0.0.1"), "")
@@ -73,6 +82,8 @@ func TestSelectedHostStorage(t *testing.T) {
 			return nil, err
 		}
 		t.Cleanup(release)
+
+		// Bridge the plugin bus to the host through the plugin host RPC.
 		mux := srpc.NewMux(bifrost_rpc.NewInvoker(hostBus, "", true))
 		server := plugin_host.NewPluginHostServer(ctx, hostBus, le, "test-plugin", storageID, nil, nil, storageID, false)
 		if err := bldr_plugin.SRPCRegisterPluginHost(mux, server); err != nil {
@@ -85,6 +96,8 @@ func TestSelectedHostStorage(t *testing.T) {
 			return nil, err
 		}
 		t.Cleanup(release)
+
+		// Mount the shared volume name through the selected provider.
 		vol, ref, err := storage_volume.ExecVolumeController(ctx, pluginBus, &storage_volume.Config{
 			StorageId:       "default",
 			StorageVolumeId: "same/account",

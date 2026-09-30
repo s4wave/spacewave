@@ -15,6 +15,7 @@ import (
 // validations always compare the digest; size and modification time are
 // recorded as diagnostics.
 func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
+	// Stat the file and reject directories.
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return nil, err
@@ -23,12 +24,14 @@ func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 		return nil, errors.Errorf("path is a directory: %s", filePath)
 	}
 
+	// Open the file for hashing.
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
+	// Hash the contents and validate the recorded size.
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
 		return nil, err
@@ -36,6 +39,8 @@ func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 	if fileInfo.Size() < 0 {
 		return nil, errors.Errorf("negative file size: %d", fileInfo.Size())
 	}
+
+	// Return the identity with the digest and diagnostics.
 	return &InputManifest_FileIdentity{
 		// #nosec G115 -- fileInfo.Size() is validated as non-negative immediately above.
 		SizeBytes:       uint64(fileInfo.Size()),
@@ -49,9 +54,12 @@ func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 // It compares the SHA-256 digest on every validation. Size and modification
 // time remain recorded as diagnostics but are not trusted as content identity.
 func (id *InputManifest_FileIdentity) MatchesFile(filePath string) (bool, error) {
+	// An identity without a digest cannot match.
 	if len(id.GetSha256()) == 0 {
 		return false, nil
 	}
+
+	// Capture the current identity and compare digests.
 	current, err := CaptureFileIdentity(filePath)
 	if err != nil {
 		return false, err

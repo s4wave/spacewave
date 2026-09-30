@@ -43,12 +43,16 @@ func NewFactory(b bus.Bus) controller.Factory {
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Read the logger and the config set to apply.
 	le := c.GetLogger()
 	configSet := c.GetConfig().GetConfigSet()
+
+	// An empty config set has nothing to apply.
 	if len(configSet) == 0 {
 		return nil
 	}
 
+	// Look up the plugin host RPC client.
 	serviceID := plugin.HostServiceIDPrefix + plugin.SRPCPluginHostServiceID
 	hostClients, _, hostClientRef, err := bifrost_rpc.ExLookupRpcClient(
 		ctx,
@@ -63,7 +67,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer hostClientRef.Release()
 
+	// Log the config set size before applying it.
 	le.Debugf("applying configset with %d configs to plugin host", len(configSet))
+
+	// Execute the config set through the plugin host.
 	hostClient := hostClients[0]
 	pluginHostClient := plugin.NewSRPCPluginHostClientWithServiceID(hostClient, serviceID)
 	status, err := pluginHostClient.ExecController(ctx, &controller_exec.ExecControllerRequest{
@@ -76,6 +83,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	defer status.Close()
+
+	// Stream the exec status until it closes or reports an error.
 	for {
 		resp, err := status.Recv()
 		if err != nil {
@@ -84,6 +93,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 			return err
 		}
+		// Log the status and stop on a reported error.
 		if logStr := resp.FormatLogString(); logStr != "" {
 			le.Debug(logStr)
 		}

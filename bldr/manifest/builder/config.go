@@ -26,6 +26,7 @@ type manifestCommitTimestampContextKey struct{}
 
 // Validate validates the configuration.
 func (c *BuilderConfig) Validate() error {
+	// Validate the engine id, manifest meta, and build policy.
 	if len(c.GetEngineId()) == 0 {
 		return world.ErrEmptyEngineID
 	}
@@ -35,12 +36,16 @@ func (c *BuilderConfig) Validate() error {
 	if err := c.GetBuildPolicy().Validate(); err != nil {
 		return err
 	}
+
+	// Validate the peer id field.
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Validate the absolute source and working paths.
 	if c.GetSourcePath() == "" {
 		return errors.Wrap(manifest.ErrEmptyPath, "source path")
 	}
@@ -53,6 +58,8 @@ func (c *BuilderConfig) Validate() error {
 	if !filepath.IsAbs(c.GetWorkingPath()) {
 		return errors.New("working path must be absolute")
 	}
+
+	// Validate each dependency manifest id.
 	for i, dep := range c.GetDeps() {
 		if err := manifest.ValidateManifestID(dep, false); err != nil {
 			return errors.Wrapf(err, "deps[%d]", i)
@@ -61,10 +68,14 @@ func (c *BuilderConfig) Validate() error {
 	return nil
 }
 
+// withManifestCommitTimestamp stores a fixed commit timestamp in the context.
 func withManifestCommitTimestamp(ctx context.Context, ts *timestamp.Timestamp) context.Context {
+	// A nil timestamp leaves the context unchanged.
 	if ts == nil {
 		return ctx
 	}
+
+	// Store a clone of the timestamp under the context key.
 	return context.WithValue(ctx, manifestCommitTimestampContextKey{}, ts.CloneVT())
 }
 
@@ -84,12 +95,14 @@ func (c *BuilderConfig) CommitManifest(
 	distFs,
 	assetsFs billy.Filesystem,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
+	// Parse the peer id and capture the fixed commit timestamp.
 	pid, err := c.ParsePeerID()
 	if err != nil {
 		return nil, nil, err
 	}
 	ts := ManifestCommitTimestamp(ctx)
 
+	// Create the manifest in the World with the dist and assets filesystems.
 	manifestValue := manifest.NewManifest(meta, entrypointFilename)
 	manifestValue.Deps = slices.Clone(c.GetDeps())
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
@@ -99,6 +112,7 @@ func (c *BuilderConfig) CommitManifest(
 		return nil, manifestRef, err
 	}
 
+	// Apply the store manifest world op under the manifest's object key.
 	objectKey := manifest.NewManifestArtifactKey(manifestRef)
 	manifestValue.GetMeta().Logger(le).
 		WithField("object-key", objectKey).
@@ -132,16 +146,19 @@ func (c *BuilderConfig) CommitManifestWithPaths(
 	distFsPath,
 	assetsFsPath string,
 ) (*manifest.Manifest, *bucket.ObjectRef, error) {
+	// Open the dist filesystem when a path is given.
 	var distFs billy.Filesystem
 	if distFsPath != "" {
 		distFs = osfs.New(distFsPath, osfs.WithBoundOS())
 	}
 
+	// Open the assets filesystem when a path is given.
 	var assetsFs billy.Filesystem
 	if assetsFsPath != "" {
 		assetsFs = osfs.New(assetsFsPath, osfs.WithBoundOS())
 	}
 
+	// Commit the manifest from the opened filesystems.
 	return c.CommitManifest(ctx, le, ws, meta, entrypointFilename, distFs, assetsFs)
 }
 
@@ -175,9 +192,12 @@ func (c *BuilderConfig) CheckoutManifest(
 // ManifestCommitTimestamp returns the lifecycle's fixed build time when set,
 // otherwise the current time. Callers capture it once per build.
 func ManifestCommitTimestamp(ctx context.Context) *timestamp.Timestamp {
+	// Return the fixed timestamp when the context carries one.
 	ts, ok := ctx.Value(manifestCommitTimestampContextKey{}).(*timestamp.Timestamp)
 	if ok && ts != nil {
 		return ts.CloneVT()
 	}
+
+	// Otherwise use the current time.
 	return timestamp.Now()
 }

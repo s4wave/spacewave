@@ -58,6 +58,7 @@ func ExecutePluginEntrypoint(
 	pluginHostClient srpc.Client,
 	acceptPluginHostStreams AcceptPluginHostStreamsFunc,
 ) error {
+	// Build the release chain for every started controller.
 	var rels []func()
 	rel := func() {
 		for _, rel := range rels {
@@ -75,6 +76,7 @@ func ExecutePluginEntrypoint(
 		bldr_plugin.NewPluginContextInfo(meta.CloneVT()),
 	)
 
+	// Start the core controller bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
@@ -155,6 +157,8 @@ func ExecutePluginEntrypoint(
 		rel()
 		return err
 	}
+
+	// Record the manifest ref and the host storage id.
 	pluginManifestRef := pluginInfo.GetManifestRef()
 	if pluginInfo.GetHostStorageId() != "" {
 		ctx = storage.WithHostStorageID(ctx, "default")
@@ -169,6 +173,8 @@ func ExecutePluginEntrypoint(
 	handleErr := func(err error) {
 		handlePluginEntrypointError(errCh, err)
 	}
+
+	// Controller errors interrupt the entrypoint through errCh.
 
 	// Hosts without storage omit the volume capability.
 	if hostVolumeInfo := pluginInfo.GetHostVolumeInfo(); hostVolumeInfo != nil {
@@ -215,9 +221,8 @@ func ExecutePluginEntrypoint(
 	}
 	rels = append(rels, csetRel)
 
+	// Serve the plugin RPC mux and start initial capability registration.
 	rpcMux := newPluginRpcMux(le, b)
-
-	// Listen for incoming requests before publishing initial capabilities.
 	srv := srpc.NewServer(rpcMux)
 	err = startInitialCapabilityRegistration(
 		ctx,
@@ -278,6 +283,7 @@ func ExecutePluginEntrypoint(
 // newPluginRpcMux serves the plugin host's calls into this plugin. Unknown
 // services wait on the plugin bus for a LookupRpcService resolver.
 func newPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
+	// Build the mux around the bus-backed RPC invoker.
 	rpcMux := srpc.NewMux(bifrost_rpc.NewInvoker(b, bldr_plugin.HostServerIDPrefix+"default", true))
 
 	// Go plugins publish their registrations as they start, so they keep the
@@ -308,6 +314,8 @@ func newPluginRpcMux(le *logrus.Entry, b bus.Bus) srpc.Mux {
 
 	// handle incoming PluginRpc calls by forwarding to the bus
 	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
+
+	// Return the assembled mux.
 	return rpcMux
 }
 
@@ -334,10 +342,12 @@ func startInitialCapabilityRegistration(
 	errCh chan error,
 	complete func(context.Context) error,
 ) error {
+	// The stream handler is required to serve the plugin host.
 	if acceptPluginHostStreams == nil {
 		return errors.New("plugin host stream handler is not configured")
 	}
 
+	// Serve streams until the handler reports readiness.
 	readyCh := make(chan struct{})
 	var readyOnce sync.Once
 	go func() {
@@ -350,6 +360,7 @@ func startInitialCapabilityRegistration(
 		}
 	}()
 
+	// Wait for readiness, an error, or the context ending.
 	select {
 	case <-readyCh:
 	case err := <-errCh:
@@ -358,12 +369,14 @@ func startInitialCapabilityRegistration(
 		return ctx.Err()
 	}
 
+	// Complete the initial capability registration.
 	return complete(ctx)
 }
 
 // applyStartupConfigSet applies the plugin's startup controllers. The returned
 // channel closes once every controller in set is running or reported an error.
 func applyStartupConfigSet(b bus.Bus, set configset.ConfigSet) (<-chan struct{}, func(), error) {
+	// An empty set reports started immediately.
 	started := make(chan struct{})
 	if len(set) == 0 {
 		close(started)
@@ -371,6 +384,7 @@ func applyStartupConfigSet(b bus.Bus, set configset.ConfigSet) (<-chan struct{},
 	}
 
 	// Track the settled state of each controller key by directive value.
+	// The started channel closes once every key has settled.
 	var mtx sync.Mutex
 	var closed bool
 	settled := make(map[uint32]string)
@@ -388,16 +402,20 @@ func applyStartupConfigSet(b bus.Bus, set configset.ConfigSet) (<-chan struct{},
 		configset.NewApplyConfigSet(set),
 		directive.NewCallbackHandler(
 			func(v directive.AttachedValue) {
+				// Ignore attached values that are not settled states.
 				st, ok := v.GetValue().(configset.State)
 				if !ok || (st.GetController() == nil && st.GetError() == nil) {
 					return
 				}
+
+				// Record the settled controller key and check completion.
 				mtx.Lock()
 				settled[v.GetValueID()] = st.GetId()
 				update()
 				mtx.Unlock()
 			},
 			func(v directive.AttachedValue) {
+				// Drop the value's settled key when it detaches.
 				mtx.Lock()
 				delete(settled, v.GetValueID())
 				mtx.Unlock()
@@ -408,6 +426,8 @@ func applyStartupConfigSet(b bus.Bus, set configset.ConfigSet) (<-chan struct{},
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Release the directive reference to stop tracking the config set.
 	return started, ref.Release, nil
 }
 
@@ -425,6 +445,7 @@ func completeInitialCapabilityRegistration(ctx context.Context, b bus.Bus) error
 	}
 	defer client.Release()
 
+	// Access the plugin host root resource client.
 	rootRef := client.AccessRootResource()
 	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
@@ -445,9 +466,12 @@ func completeInitialCapabilityRegistration(ctx context.Context, b bus.Bus) error
 // handlePluginEntrypointError forwards an entrypoint error to errCh,
 // dropping normal client-close errors.
 func handlePluginEntrypointError(errCh chan<- error, err error) {
+	// Normal web runtime client closes are dropped.
 	if web_runtime.IsNormalWebRuntimeClientClose(err) {
 		return
 	}
+
+	// Forward the error without blocking when the channel is full.
 	select {
 	case errCh <- err:
 	default:
@@ -495,6 +519,7 @@ func BuildPluginDistFSController(le *logrus.Entry, b bus.Bus, pluginHostClient s
 // ConfigSetFuncFromFS builds a ConfigSetFunc which parses a file in a FS as a ConfigSet.
 func ConfigSetFuncFromFS(ifs fs.FS, fileName string) BuildConfigSetFunc {
 	return func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error) {
+		// Read and unmarshal the config set file.
 		data, err := fs.ReadFile(ifs, fileName)
 		if err != nil {
 			return nil, err
@@ -503,6 +528,8 @@ func ConfigSetFuncFromFS(ifs fs.FS, fileName string) BuildConfigSetFunc {
 		if err := set.UnmarshalVT(data); err != nil {
 			return nil, err
 		}
+
+		// Resolve the config set against the bus.
 		cset, err := set.Resolve(ctx, b)
 		if err != nil {
 			return nil, err
@@ -513,6 +540,7 @@ func ConfigSetFuncFromFS(ifs fs.FS, fileName string) BuildConfigSetFunc {
 
 // PluginDevInfoFromFile loads a PluginDevInfo object from a .bin file.
 func PluginDevInfoFromFile(filePath string) (*vardef.PluginDevInfo, error) {
+	// Read and unmarshal the dev info file.
 	dat, err := readFile(filePath)
 	if err != nil {
 		return nil, err

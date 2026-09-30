@@ -36,6 +36,7 @@ func (h *buildManifestHost) BuildSubManifest(
 	subManifestID string,
 	subManifestConfig *bldr_project.ManifestConfig,
 ) (promise.PromiseLike[*bldr_manifest_builder.BuilderResult], error) {
+	// Reject the call once the controller context is canceled.
 	if ctx.Err() != nil {
 		return nil, context.Canceled
 	}

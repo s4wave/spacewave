@@ -21,6 +21,7 @@ import (
 )
 
 func TestResolveBrowserCompiler(t *testing.T) {
+	// An unset compiler env selects GoScript.
 	t.Setenv(legacyCompilerEnv, "")
 	t.Setenv(CompilerEnv, "")
 	got, err := ResolveBrowserCompiler()
@@ -31,6 +32,7 @@ func TestResolveBrowserCompiler(t *testing.T) {
 		t.Fatalf("ResolveBrowserCompiler() = %q, want %q", got, BrowserCompilerGoScript)
 	}
 
+	// The go value selects the Go compiler.
 	t.Setenv(CompilerEnv, "go")
 	got, err = ResolveBrowserCompiler()
 	if err != nil {
@@ -40,6 +42,7 @@ func TestResolveBrowserCompiler(t *testing.T) {
 		t.Fatalf("ResolveBrowserCompiler(go) = %q, want %q", got, BrowserCompilerGo)
 	}
 
+	// An unknown value must fail.
 	t.Setenv(CompilerEnv, "wat")
 	if _, err := ResolveBrowserCompiler(); err == nil {
 		t.Fatal("ResolveBrowserCompiler(wat) error = nil, want unsupported compiler error")
@@ -47,6 +50,7 @@ func TestResolveBrowserCompiler(t *testing.T) {
 }
 
 func TestResolveBrowserCompilerRejectsLegacySelector(t *testing.T) {
+	// The legacy compiler env must be rejected.
 	t.Setenv(legacyCompilerEnv, "goscript")
 	t.Setenv(CompilerEnv, "")
 	_, err := ResolveBrowserCompiler()
@@ -59,6 +63,7 @@ func TestResolveBrowserCompilerRejectsLegacySelector(t *testing.T) {
 }
 
 func TestResolveWorkerMode(t *testing.T) {
+	// An unset worker mode env selects dedicated workers.
 	t.Setenv(WorkerModeEnv, "")
 	got, err := ResolveWorkerMode()
 	if err != nil {
@@ -68,6 +73,7 @@ func TestResolveWorkerMode(t *testing.T) {
 		t.Fatalf("ResolveWorkerMode() = %q, want %q", got, WorkerModeDedicated)
 	}
 
+	// The shared-worker value selects shared workers.
 	t.Setenv(WorkerModeEnv, "shared-worker")
 	got, err = ResolveWorkerMode()
 	if err != nil {
@@ -77,6 +83,7 @@ func TestResolveWorkerMode(t *testing.T) {
 		t.Fatalf("ResolveWorkerMode(shared-worker) = %q, want %q", got, WorkerModeShared)
 	}
 
+	// An unknown value must fail.
 	t.Setenv(WorkerModeEnv, "workerpool")
 	if _, err := ResolveWorkerMode(); err == nil {
 		t.Fatal("ResolveWorkerMode(workerpool) error = nil, want unsupported worker mode")
@@ -128,6 +135,7 @@ func TestRecordBrowserConsoleMessage(t *testing.T) {
 		},
 	}
 
+	// Each console message must match its expected recording decision.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := recordBrowserConsoleMessage(tt.msgType, tt.text); got != tt.want {
@@ -138,6 +146,7 @@ func TestRecordBrowserConsoleMessage(t *testing.T) {
 }
 
 func TestFixtureProjectConfig(t *testing.T) {
+	// Load the fixture project config from the repository.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		t.Fatalf("find repo root: %v", err)
@@ -150,11 +159,14 @@ func TestFixtureProjectConfig(t *testing.T) {
 		t.Fatalf("fixture project config did not validate: %v", err)
 	}
 
+	// The fixture must declare the downstream manifests.
 	for _, pluginID := range []string{"web", "downstream-core", "downstream-web"} {
 		if conf.GetManifests()[pluginID] == nil {
 			t.Fatalf("fixture manifest %q missing", pluginID)
 		}
 	}
+
+	// The fixture must not include product manifests.
 	for _, forbidden := range []string{"spacewave-core", "spacewave-web", "spacewave-app"} {
 		if conf.GetManifests()[forbidden] != nil {
 			t.Fatalf("fixture unexpectedly includes product manifest %q", forbidden)
@@ -163,6 +175,7 @@ func TestFixtureProjectConfig(t *testing.T) {
 }
 
 func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T) {
+	// Write a generated browser release descriptor into a temp entry dir.
 	entryDir := t.TempDir()
 	descriptorPath := filepath.Join(entryDir, "browser-release.json")
 	const generated = `{
@@ -182,10 +195,12 @@ func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T)
 		t.Fatalf("write descriptor: %v", err)
 	}
 
+	// Enable auto-start on the descriptor.
 	if err := enableBrowserReleaseAutoStart(entryDir); err != nil {
 		t.Fatalf("enable auto-start: %v", err)
 	}
 
+	// Parse the rewritten descriptor.
 	data, err := os.ReadFile(descriptorPath)
 	if err != nil {
 		t.Fatalf("read descriptor: %v", err)
@@ -195,6 +210,8 @@ func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T)
 	if err != nil {
 		t.Fatalf("parse descriptor: %v", err)
 	}
+
+	// autoStart must be set and the other fields preserved.
 	if !got.GetBool("autoStart") {
 		t.Fatal("autoStart = false, want true")
 	}
@@ -214,14 +231,17 @@ func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T)
 }
 
 func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
+	// Skip unless the downstream browser e2e is enabled.
 	if os.Getenv(RunEnv) != "1" {
 		t.Skipf("set %s=1 to run downstream browser e2e", RunEnv)
 	}
 
+	// Boot the downstream harness with a ten minute timeout.
 	started := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
+	// Boot the downstream harness.
 	le := logrus.New().WithField("package", "bldr/e2e/downstreamapp")
 	h, err := Boot(ctx, le)
 	if err != nil {
@@ -229,19 +249,23 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	}
 	defer h.Release()
 
+	// Launch Chromium.
 	if err := h.LaunchBrowser(); err != nil {
 		t.Fatalf("launch chromium: %v", err)
 	}
 
+	// Open a page in the browser.
 	browserCtx, page, err := h.NewPage()
 	if err != nil {
 		t.Fatalf("new page: %v", err)
 	}
 	defer browserCtx.Close()
 
+	// Wire browser diagnostics onto the context and page.
 	diag := &browserDiagnostics{}
 	wireDiagnostics(browserCtx, page, diag)
 
+	// Load the downstream app and wait for the sonner and SDK fallback text.
 	scenarioStart := time.Now()
 	if _, err := page.Goto(h.BaseURL(), playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
@@ -259,6 +283,7 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 		t.Fatalf("wait for SDK fallback text: %v\n%s\n%s", err, describePage(page), diag.String())
 	}
 
+	// The sonner module must load with a non-empty observed response.
 	probe, err := collectSonnerProbe(page, diag)
 	if err != nil {
 		t.Fatalf("collect sonner probe: %v\n%s", err, diag.String())
@@ -272,6 +297,8 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if !probe.BrowserObserved {
 		t.Fatalf("browser resource timing did not observe sonner module\n%s", diag.String())
 	}
+
+	// The SDK app probe must report the fixture catalog and lifecycle labels.
 	sdkProbe, err := collectSDKAppProbe(page)
 	if err != nil {
 		t.Fatalf("collect SDK app probe: %v\n%s\n%s", err, describePage(page), diag.String())
@@ -298,9 +325,12 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if !sdkProbe.FallbackRendered {
 		t.Fatalf("missing-viewer fallback did not render: %+v\n%s", sdkProbe, diag.String())
 	}
+
+	// The browser must report no failed HTTP requests.
 	diag.LogHTTP(t)
 	diag.AssertNoHTTPFailures(t)
 
+	// Log the harness timings.
 	t.Logf(
 		"downstream harness timings: package_wall=%s boot_ready=%s scenario_ready=%s sonner_bytes=%d sonner_url=%s",
 		time.Since(started).Round(time.Millisecond),
@@ -312,13 +342,16 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 }
 
 func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *testing.T) {
+	// Skip unless the downstream browser e2e is enabled.
 	if os.Getenv(RunEnv) != "1" {
 		t.Skipf("set %s=1 to run downstream browser e2e", RunEnv)
 	}
 
+	// Boot a minified release-shaped harness with a blocked synthetic manifest.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	t.Cleanup(cancel)
 
+	// Create a blocked synthetic manifest preflight.
 	const irrelevantPluginID = "downstream-e2e-irrelevant-manifest"
 	blockedManifest := newBlockingManifestPreflight(irrelevantPluginID, []string{"web/js/wasm"})
 	le := logrus.New().WithField("package", "bldr/e2e/downstreamapp")
@@ -330,6 +363,8 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 		t.Fatalf("boot release-shaped downstream harness: %v", err)
 	}
 	t.Cleanup(h.Release)
+
+	// The synthetic manifest must stay out of startup plugins and settle requests.
 	if slices.Contains(h.projConfig.GetStart().GetPlugins(), irrelevantPluginID) {
 		t.Fatalf("synthetic manifest %q unexpectedly appears in startPlugins", irrelevantPluginID)
 	}
@@ -340,6 +375,7 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 	}
 	t.Log("boot_shape=cold_release_shaped execute_web_wasm=true minify_entrypoint=true root_entry_build_type=RELEASE browser_release_auto_start=true dev_mode=true synthetic_not_in_start_plugins=true synthetic_not_in_required_settle=true")
 
+	// Wait for the blocked manifest resolver to start without completing.
 	startedCtx, cancelStarted := context.WithTimeout(ctx, 30*time.Second)
 	select {
 	case <-blockedManifest.started:
@@ -355,6 +391,7 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 	default:
 	}
 
+	// Launch Chromium, open a page, and load the app.
 	if err := h.LaunchBrowser(); err != nil {
 		t.Fatalf("launch chromium: %v", err)
 	}
@@ -366,6 +403,7 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 		_ = browserCtx.Close()
 	})
 
+	// Wire diagnostics and load the downstream app.
 	diag := &browserDiagnostics{}
 	wireDiagnostics(browserCtx, page, diag)
 	if _, err := page.Goto(h.BaseURL(), playwright.PageGotoOptions{
@@ -373,6 +411,8 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 	}); err != nil {
 		t.Fatalf("load downstream app: %v\n%s", err, diag.String())
 	}
+
+	// Click the startup interaction control and wait for its state change.
 	interaction := page.GetByTestId("downstream-startup-interaction").First()
 	if err := interaction.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(180000),
@@ -387,6 +427,8 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 	}); err != nil {
 		t.Fatalf("wait for interaction state change: %v\n%s\n%s", err, describePage(page), diag.String())
 	}
+
+	// The blocked manifest must still be incomplete after the interaction.
 	select {
 	case err := <-blockedManifest.completed:
 		t.Fatalf("irrelevant Manifest completed before interaction state changed: %v", err)
@@ -394,6 +436,7 @@ func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *
 		t.Log("event_order=2 interactive_click_state_changed state=\"Startup interactions: 1\" irrelevant_manifest_completed=false")
 	}
 
+	// Release the blocked manifest and wait for it to complete.
 	blockedManifest.Release()
 	t.Logf("event_order=3 irrelevant_manifest_released plugin=%s", irrelevantPluginID)
 	completedCtx, cancelCompleted := context.WithTimeout(ctx, 30*time.Second)
@@ -420,6 +463,7 @@ type sdkAppProbe struct {
 }
 
 func collectSDKAppProbe(page playwright.Page) (sdkAppProbe, error) {
+	// Evaluate the probe state in each frame until one publishes it.
 	for _, frame := range page.Frames() {
 		value, err := frame.Evaluate(`() => {
   const state = window.__downstreamE2E
@@ -438,6 +482,7 @@ func collectSDKAppProbe(page playwright.Page) (sdkAppProbe, error) {
 }
 
 func parseSDKAppProbe(data []byte) (sdkAppProbe, error) {
+	// Parse the probe JSON into typed fields.
 	var parser fastjson.Parser
 	v, err := parser.ParseBytes(data)
 	if err != nil {
@@ -471,6 +516,7 @@ type browserDiagnostics struct {
 }
 
 func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page, diag *browserDiagnostics) {
+	// recordConsole records a console message that matches the filter.
 	recordConsole := func(source string, msg playwright.ConsoleMessage) {
 		if !recordBrowserConsoleMessage(msg.Type(), msg.Text()) {
 			return
@@ -479,6 +525,8 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 		defer diag.mu.Unlock()
 		diag.console = append(diag.console, source+" "+msg.Type()+": "+msg.Text())
 	}
+
+	// Record context console messages with their worker source.
 	browserCtx.OnConsole(func(msg playwright.ConsoleMessage) {
 		source := "context"
 		if worker, err := msg.Worker(); err == nil && worker != nil {
@@ -486,6 +534,8 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 		}
 		recordConsole(source, msg)
 	})
+
+	// Record worker URLs and their console messages.
 	page.OnWorker(func(worker playwright.Worker) {
 		diag.mu.Lock()
 		diag.console = append(diag.console, "worker: "+worker.URL())
@@ -494,12 +544,17 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 			recordConsole("worker", msg)
 		})
 	})
+
+	// Record page errors.
 	page.On("pageerror", func(err error) {
 		diag.mu.Lock()
 		defer diag.mu.Unlock()
 		diag.errors = append(diag.errors, err.Error())
 	})
+
+	// Record HTTP requests.
 	page.OnRequest(func(req playwright.Request) {
+		// Record the request line for HTTP URLs.
 		url := req.URL()
 		if !isHTTPURL(url) {
 			return
@@ -508,7 +563,10 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 		defer diag.mu.Unlock()
 		diag.requests = append(diag.requests, "request "+req.Method()+" "+url)
 	})
+
+	// Record failed requests, excluding browser aborts.
 	page.OnRequestFailed(func(req playwright.Request) {
+		// Describe the failed request for HTTP URLs.
 		url := req.URL()
 		if !isHTTPURL(url) {
 			return
@@ -522,7 +580,10 @@ func wireDiagnostics(browserCtx playwright.BrowserContext, page playwright.Page,
 			diag.failed = append(diag.failed, msg)
 		}
 	})
+
+	// Record responses, capturing sonner responses and failures.
 	page.On("response", func(resp playwright.Response) {
+		// Capture sonner responses and record the response line.
 		url := resp.URL()
 		if strings.Contains(url, "sonner") {
 			diag.mu.Lock()
@@ -551,9 +612,12 @@ func isBrowserAbortedRequest(failure string) bool {
 }
 
 func recordBrowserConsoleMessage(msgType, text string) bool {
+	// Errors and warnings are always recorded.
 	if msgType == "error" || msgType == "warning" {
 		return true
 	}
+
+	// Messages matching a startup or plugin marker are recorded.
 	for _, marker := range []string{
 		"shared-worker: starting plugin:",
 		"Starting Bldr JS plugin entrypoint",
@@ -599,6 +663,7 @@ type sonnerProbe struct {
 }
 
 func collectSonnerProbe(page playwright.Page, diag *browserDiagnostics) (sonnerProbe, error) {
+	// Check each frame for a ready state that observed the sonner module.
 	observed := false
 	for _, frame := range page.Frames() {
 		value, err := frame.Evaluate(`() => {
@@ -615,6 +680,7 @@ func collectSonnerProbe(page playwright.Page, diag *browserDiagnostics) (sonnerP
 		}
 	}
 
+	// Read the last captured sonner response body.
 	diag.mu.Lock()
 	responses := append([]playwright.Response(nil), diag.sonner...)
 	diag.mu.Unlock()
@@ -626,6 +692,8 @@ func collectSonnerProbe(page playwright.Page, diag *browserDiagnostics) (sonnerP
 	if err != nil {
 		return sonnerProbe{}, err
 	}
+
+	// Describe the probe with a bounded body tail.
 	tail := string(body)
 	if len(tail) > 256 {
 		tail = tail[len(tail)-256:]
@@ -671,6 +739,7 @@ func (d *browserDiagnostics) LogHTTP(t *testing.T) {
 }
 
 func describePage(page playwright.Page) string {
+	// Describe the boot snapshot, body text, and each frame's body text.
 	var parts []string
 	if snapshot := describeBootSnapshot(page); snapshot != "" {
 		parts = append(parts, "boot:\n"+snapshot)
@@ -688,6 +757,7 @@ func describePage(page playwright.Page) string {
 }
 
 func describeBootSnapshot(page playwright.Page) string {
+	// Evaluate a boot state snapshot in the page.
 	value, err := page.Evaluate(`() => {
   const local = window.localStorage
   const session = window.sessionStorage
@@ -708,6 +778,8 @@ func describeBootSnapshot(page playwright.Page) string {
     resourceEntries,
   }, null, 2)
 }`)
+
+	// Return the snapshot string or a description of the failure.
 	if err != nil {
 		return "snapshot error: " + err.Error()
 	}

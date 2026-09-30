@@ -17,9 +17,11 @@ import (
 
 // TestAnalyzePackagesDoesNotRequireRootVendor analyzes a module without a vendor directory and loads no types for untagged declarations.
 func TestAnalyzePackagesDoesNotRequireRootVendor(t *testing.T) {
+	// Write a module fixture with a replaced dependency.
 	ctx := context.Background()
 	workDir := t.TempDir()
 
+	// Write the fixture source files.
 	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -47,6 +49,7 @@ import "example.com/dep"
 var Value = dep.Value
 `)
 
+	// Analyze the plugin package without type loading.
 	le := logrus.NewEntry(logrus.New())
 	an, err := AnalyzePackages(
 		ctx,
@@ -61,6 +64,8 @@ var Value = dep.Value
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Untagged declarations must load no types and no vendor dir must exist.
 	if len(an.typedPackages) != 0 {
 		t.Fatal("untagged ordinary declarations unexpectedly loaded types")
 	}
@@ -71,9 +76,11 @@ var Value = dep.Value
 
 // TestAnalyzePackagesHonorsBuildTags selects factory files by the target build tags.
 func TestAnalyzePackagesHonorsBuildTags(t *testing.T) {
+	// Write the module and dynamic package fixture files.
 	ctx := context.Background()
 	workDir := t.TempDir()
 
+	// Write the fixture source files.
 	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -93,6 +100,7 @@ package dynamic
 func NewFactory() {}
 `)
 
+	// The standard build tags must select the factory file.
 	le := logrus.NewEntry(logrus.New())
 	standard, err := AnalyzePackages(
 		ctx,
@@ -111,6 +119,7 @@ func NewFactory() {}
 		t.Fatalf("standard analysis factories: got %d, want 1", len(standard.controllerFactories))
 	}
 
+	// The tinygo tag must exclude the factory file.
 	tinygo, err := AnalyzePackages(
 		ctx,
 		le,
@@ -131,9 +140,11 @@ func NewFactory() {}
 
 // TestAnalyzePackagesScansImportedFactoriesOnlyWhenEnabled discovers imported same-module factories only when enabled.
 func TestAnalyzePackagesScansImportedFactoriesOnlyWhenEnabled(t *testing.T) {
+	// Write the module and root/child package fixture files.
 	ctx := context.Background()
 	workDir := t.TempDir()
 
+	// Write the fixture source files.
 	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -153,6 +164,7 @@ func NewFactory() {}
 func NewFactory() {}
 `)
 
+	// Analysis without imported factory discovery must find only the root factory.
 	le := logrus.NewEntry(logrus.New())
 	explicitOnly, err := AnalyzePackages(
 		ctx,
@@ -174,6 +186,7 @@ func NewFactory() {}
 		t.Fatal("explicit-only analysis unexpectedly included imported child factory")
 	}
 
+	// Analysis with imported factory discovery must include the child factory.
 	withImported, err := AnalyzePackages(
 		ctx,
 		le,
@@ -197,9 +210,11 @@ func NewFactory() {}
 
 // TestAnalysisProgramGoCodeFilesIncludesDependencies lists same-module dependency files as program sources.
 func TestAnalysisProgramGoCodeFilesIncludesDependencies(t *testing.T) {
+	// Write the module and root/dep package fixture files.
 	ctx := context.Background()
 	workDir := t.TempDir()
 
+	// Write the fixture source files.
 	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -219,6 +234,7 @@ var Value = dep.Value
 const Value = "dep"
 `)
 
+	// Analyze the root package with its same-module dependency.
 	le := logrus.NewEntry(logrus.New())
 	an, err := AnalyzePackages(
 		ctx,
@@ -234,6 +250,7 @@ const Value = "dep"
 		t.Fatal(err)
 	}
 
+	// The program sources must include the root and dependency files.
 	programFiles := an.GetProgramSourceFiles()
 	var programRelPaths []string
 	for _, pkgFiles := range programFiles {
@@ -251,6 +268,7 @@ const Value = "dep"
 		}
 	}
 
+	// The root package files must exclude the dependency package.
 	rootFiles := an.GetGoCodeFiles()
 	var rootRelPaths []string
 	for _, pkgFiles := range rootFiles {
@@ -269,11 +287,13 @@ const Value = "dep"
 
 // TestAnalysisProgramGoCodeFilesExcludesHelperModule omits files from a separate helper module.
 func TestAnalysisProgramGoCodeFilesExcludesHelperModule(t *testing.T) {
+	// Write plugin and helper module fixture directories.
 	ctx := context.Background()
 	testDir := t.TempDir()
 	workDir := filepath.Join(testDir, "plugin")
 	spacewaveDir := filepath.Join(testDir, "spacewave")
 
+	// Write the plugin module fixture files.
 	writeFile(t, workDir, "go.mod", `module example.com/plugin
 
 go 1.26.2
@@ -289,6 +309,7 @@ import "strings"
 var Value = strings.TrimSpace(" root ")
 `)
 
+	// Write the helper module fixture files.
 	writeFile(t, spacewaveDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -298,6 +319,7 @@ go 1.26.2
 type WebBundlerOutput struct{}
 `)
 
+	// Analyze the plugin module against the replaced helper module.
 	le := logrus.NewEntry(logrus.New())
 	an, err := AnalyzePackages(
 		ctx,
@@ -313,6 +335,7 @@ type WebBundlerOutput struct{}
 		t.Fatal(err)
 	}
 
+	// Collect the program source paths relative to the plugin module.
 	programFiles := an.GetProgramSourceFiles()
 	var programRelPaths []string
 	for _, pkgFiles := range programFiles {
@@ -325,6 +348,7 @@ type WebBundlerOutput struct{}
 		}
 	}
 
+	// The helper module files must stay out of the program sources.
 	if !slices.Contains(programRelPaths, "plugin/root/root.go") {
 		t.Fatalf("program files missing root package: %v", programRelPaths)
 	}
@@ -336,9 +360,11 @@ type WebBundlerOutput struct{}
 
 // TestAnalyzePackagesReportsLoadFailureContext names the target and patterns in load failures.
 func TestAnalyzePackagesReportsLoadFailureContext(t *testing.T) {
+	// Write the module and root package fixture files.
 	ctx := context.Background()
 	workDir := t.TempDir()
 
+	// Write the fixture source files.
 	writeFile(t, workDir, "go.mod", `module github.com/s4wave/spacewave
 
 go 1.26.2
@@ -354,6 +380,7 @@ import "example.invalid/missing"
 var Value = missing.Value
 `)
 
+	// Load the package with a missing import and capture the failure.
 	le := logrus.NewEntry(logrus.New())
 	_, err := AnalyzePackages(
 		ctx,
@@ -368,6 +395,8 @@ var Value = missing.Value
 	if err == nil {
 		t.Fatal("expected package load failure")
 	}
+
+	// The error must name the target, patterns, tags, and environment.
 	errText := err.Error()
 	for _, want := range []string{
 		"package load failed",
@@ -389,6 +418,7 @@ var Value = missing.Value
 
 // TestNewBuildTagsForAnalyzeIncludesTinyGoTag adds the tinygo tag for TinyGo targets.
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
+	// The TinyGo tags must carry the tinygo and compatibility tags.
 	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerTinyGo)
 	for _, want := range []string{
 		"build_type_release",
@@ -404,6 +434,8 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 
 	// Native Go keeps its assembly, including hardware hashing.
 	standardTags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerGo)
+
+	// The native tags must exclude purego, tinygo, and sql_lite.
 	if slices.Contains(standardTags, gocompiler.PureGoBuildTag) {
 		t.Fatalf("native Go analysis tags unexpectedly include purego: %v", standardTags)
 	}
@@ -417,6 +449,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 
 // TestNewBuildTagsForAnalyzeIncludesGoScriptTag adds the goscript tag for GoScript targets.
 func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
+	// The GoScript tags must carry the goscript and sql_lite tags.
 	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, gocompiler.GoCompilerGoScript)
 	for _, want := range []string{
 		"build_type_release",
@@ -433,6 +466,8 @@ func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
 // writeFile creates a fixture source file and its parent directories.
 func writeFile(t *testing.T, root, relPath, contents string) {
 	t.Helper()
+
+	// Create the parent directories and write the file.
 	absPath := filepath.Join(root, relPath)
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		t.Fatal(err)

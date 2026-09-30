@@ -119,9 +119,12 @@ type pluginHostSet struct {
 
 // toPlatformIDs converts the host set to a list of platform ids.
 func (s *pluginHostSet) toPlatformIDs() []string {
+	// An empty host set has no platform ids.
 	if s == nil || len(s.pluginHosts) == 0 {
 		return nil
 	}
+
+	// Collect the sorted unique platform ids.
 	ids := make([]string, len(s.pluginHosts))
 	for i, h := range s.pluginHosts {
 		ids[i] = h.GetPlatformId()
@@ -133,9 +136,12 @@ func (s *pluginHostSet) toPlatformIDs() []string {
 
 // toPlatformIDsMap converts the host set to a map of platform ids to plugin hosts.
 func (s *pluginHostSet) toPlatformIDsMap() map[string]bldr_plugin_host.PluginHost {
+	// An empty host set has no platform map.
 	if s == nil || len(s.pluginHosts) == 0 {
 		return nil
 	}
+
+	// Map each platform id to its host.
 	hostMap := make(map[string]bldr_plugin_host.PluginHost)
 	for _, h := range s.pluginHosts {
 		hostMap[h.GetPlatformId()] = h
@@ -146,6 +152,7 @@ func (s *pluginHostSet) toPlatformIDsMap() map[string]bldr_plugin_host.PluginHos
 // toPluginPlatformIDsMap converts the host set to a policy-filtered map of
 // platform ids to plugin hosts for one plugin.
 func (s *pluginHostSet) toPluginPlatformIDsMap(conf *Config, pluginID string) map[string]bldr_plugin_host.PluginHost {
+	// Build the platform map and drop disallowed platforms.
 	hostMap := s.toPlatformIDsMap()
 	if len(hostMap) == 0 {
 		return nil
@@ -160,12 +167,17 @@ func (s *pluginHostSet) toPluginPlatformIDsMap(conf *Config, pluginID string) ma
 
 // pluginHostSetEqual reports whether two plugin host sets are equal.
 func pluginHostSetEqual(a, b *pluginHostSet) bool {
+	// Nil sets are equal only to each other.
 	if a == nil || b == nil {
 		return a == b
 	}
+
+	// Different errors or lengths are unequal.
 	if a.err != b.err || len(a.pluginHosts) != len(b.pluginHosts) {
 		return false
 	}
+
+	// Compare the host multisets.
 	counts := make(map[bldr_plugin_host.PluginHost]int, len(a.pluginHosts))
 	for _, host := range a.pluginHosts {
 		counts[host]++
@@ -273,7 +285,10 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) (rerr error) {
+	// Log the scheduler start.
 	c.le.Info("starting plugin host scheduler")
+
+	// Derive the scheduler's context from the lifecycle context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -284,6 +299,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	}
 	defer volRef.Release()
 
+	// Describe the volume for the plugin host.
 	volInfo, err := volume.NewVolumeInfo(ctx, controller.NewInfo(
 		"hydra/volume/plugin-host",
 		volume_rpc_server.Version,
@@ -293,6 +309,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 		return err
 	}
 
+	// Publish the host volume to the scheduler's container.
 	c.hostVolumeCtr.SetValue(&hostVol{
 		vol:  vol,
 		info: volInfo,
@@ -306,6 +323,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	}
 	ws := world.NewEngineWorldState(busEngine, true)
 
+	// Publish the world state to the scheduler's container.
 	c.worldStateCtr.SetValue(ws)
 	defer c.worldStateCtr.SetValue(nil)
 
@@ -335,6 +353,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 		// true: wait for directive to be idle before emitting initial set of values.
 		true,
 		func(resErr []error, vals []bldr_plugin_host.PluginHost) error {
+			// Report resolver errors without dropping the host set.
 			if len(resErr) != 0 {
 				c.le.WithField("resolver-errs", resErr).Warn("one or more plugin hosts are erroring")
 			}

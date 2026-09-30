@@ -37,6 +37,7 @@ func UnmarshalBuilderResult(ctx context.Context, bcs *block.Cursor) (*BuilderRes
 
 // Validate validates the BuilderResult.
 func (r *BuilderResult) Validate() error {
+	// Validate the manifest and its reference meta.
 	if err := r.GetManifest().Validate(); err != nil {
 		return errors.Wrap(err, "manifest")
 	}
@@ -46,6 +47,8 @@ func (r *BuilderResult) Validate() error {
 	if !r.GetManifest().GetMeta().EqualVT(r.GetManifestRef().GetMeta()) {
 		return errors.New("manifest meta must match manifest ref meta")
 	}
+
+	// Validate the retained local source DAG when present.
 	if source := r.GetSourceRef(); !source.GetEmpty() {
 		if err := source.Validate(); err != nil {
 			return errors.Wrap(err, "source_ref")
@@ -54,6 +57,8 @@ func (r *BuilderResult) Validate() error {
 			return errors.New("source_ref must retain a local source DAG")
 		}
 	}
+
+	// Validate the input manifest and each sub manifest result.
 	if err := r.GetInputManifest().Validate(); err != nil {
 		return errors.Wrap(err, "input_manifest")
 	}
@@ -73,9 +78,12 @@ func (r *BuilderResult) Validate() error {
 
 // ApplyBlockRef updates the retained source DAG or its transform configuration.
 func (r *BuilderResult) ApplyBlockRef(id uint32, next *block.BlockRef) error {
+	// Ignore block refs other than the source DAG refs.
 	if id != 5 && id != 6 {
 		return nil
 	}
+
+	// Apply the root or transform config ref to the source ref.
 	if r.SourceRef == nil {
 		r.SourceRef = &bucket.ObjectRef{}
 	}
@@ -118,6 +126,7 @@ func (r *BuilderResult) UnmarshalBlock(data []byte) error {
 
 // Validate validates the InputManifest.
 func (m *InputManifest) Validate() error {
+	// Validate each file path, rejecting duplicates and empty identities.
 	seenPaths := make(map[string]struct{})
 	for i, file := range m.GetFiles() {
 		filePath := file.GetPath()
@@ -136,6 +145,7 @@ func (m *InputManifest) Validate() error {
 		}
 	}
 
+	// Validate each startup input, rejecting unknown kinds and duplicate keys.
 	seenStartupInputs := make(map[string]struct{})
 	for i, input := range m.GetStartupInputs() {
 		if input.GetKind() == InputManifest_StartupInputKind_UNKNOWN {

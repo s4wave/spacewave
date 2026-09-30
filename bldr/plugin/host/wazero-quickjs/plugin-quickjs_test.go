@@ -38,6 +38,7 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 }
 
 func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []string, withWebPkg bool) {
+	// Configure the test logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -50,6 +51,8 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	}
 	bldrRoot := filepath.Clean(filepath.Join(workingDir, "../../.."))
 	outputRoot := t.TempDir()
+
+	// Bundle the plugin fixture with Rolldown.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -78,6 +81,8 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the bundled fixture output.
 	outputPath := result.GetEntrypointOutputs()["plugin-quickjs-test"]
 	if outputPath == "" {
 		t.Fatal("direct owner produced no QuickJS fixture output")
@@ -88,17 +93,21 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	}
 	scriptContents := string(scriptBytes)
 
+	// Start the testbed and register the QuickJS host factory.
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Register the QuickJS host factory on the resolver.
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
 
 	// run a service on the plugin host that our plugin will call
 	calledPromise := promise.NewPromise[*starpc_mock.MockMsg]()
+
+	// Register the mock service on the testbed mux.
 	mockServer := &starpc_mock.MockServer{
 		MockRequestCb: func(ctx context.Context, msg *starpc_mock.MockMsg) (*starpc_mock.MockMsg, error) {
 			calledPromise.SetResult(msg, nil)
@@ -109,6 +118,7 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 	mockServer.Register(mux)
 
 	// load the plugin host
+	// Wait for the QuickJS host controller to run.
 	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		tb.GetBus(),
@@ -167,7 +177,6 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 		t.Fatal(err.Error())
 	}
 	defer runningPluginRef.Release()
-
 	le.Info("plugin started successfully")
 
 	// TODO call the plugin service
@@ -184,5 +193,6 @@ func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []stri
 		t.Fatal(err.Error())
 	}
 
+	// Log the message the plugin sent to the host.
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
 }

@@ -130,13 +130,14 @@ func TestIsExpectedPluginEntrypointError(t *testing.T) {
 }
 
 func TestStartInitialCapabilityRegistration(t *testing.T) {
+	// Set up the readiness and completion channels.
 	ctx := t.Context()
-
 	handlerReady := make(chan func(), 1)
 	completeCalled := make(chan struct{}, 1)
 	resultCh := make(chan error, 1)
 	errCh := make(chan error, 1)
 
+	// Run the registration in the background.
 	go func() {
 		resultCh <- startInitialCapabilityRegistration(
 			ctx,
@@ -154,6 +155,7 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 		)
 	}()
 
+	// Completion must wait for the handler to report readiness.
 	ready := <-handlerReady
 	select {
 	case <-completeCalled:
@@ -161,6 +163,7 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 	default:
 	}
 
+	// Signal readiness and check the registration completes.
 	ready()
 	if err := <-resultCh; err != nil {
 		t.Fatal(err)
@@ -173,9 +176,11 @@ func TestStartInitialCapabilityRegistration(t *testing.T) {
 }
 
 func TestStartInitialCapabilityRegistrationHandlerFailure(t *testing.T) {
+	// A failing stream handler must surface its error without completing.
 	wantErr := errors.New("stream handler failed")
 	completeCalled := false
 
+	// Run the registration with the failing handler.
 	err := startInitialCapabilityRegistration(
 		context.Background(),
 		nil,
@@ -197,11 +202,13 @@ func TestStartInitialCapabilityRegistrationHandlerFailure(t *testing.T) {
 }
 
 func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
+	// Cancel the registration after the stream handler starts.
 	ctx, cancel := context.WithCancel(context.Background())
 	handlerStarted := make(chan struct{})
 	resultCh := make(chan error, 1)
 	completeCalled := false
 
+	// Run the registration in the background.
 	go func() {
 		err := startInitialCapabilityRegistration(
 			ctx,
@@ -220,6 +227,7 @@ func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
 		resultCh <- err
 	}()
 
+	// The canceled registration must report the context error.
 	<-handlerStarted
 	cancel()
 	if err := <-resultCh; !errors.Is(err, context.Canceled) {
@@ -233,6 +241,7 @@ func TestStartInitialCapabilityRegistrationCancellation(t *testing.T) {
 // TestPluginActivationProbe checks that a Go plugin answers the scheduler's
 // replacement probe instead of waiting on its bus for an Activation service.
 func TestPluginActivationProbe(t *testing.T) {
+	// Build a bus and the plugin RPC mux over an in-memory pipe.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	b, _, err := controllerbus_core.NewCoreBus(ctx, le)
@@ -240,6 +249,8 @@ func TestPluginActivationProbe(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(newPluginRpcMux(le, b))))
+
+	// The activation probe must report in-place replacement.
 	_, err = bldr_plugin.NewSRPCActivationClient(client).Check(ctx, &bldr_plugin.CheckActivationRequest{})
 	if err == nil || err.Error() != srpc.ErrUnimplemented.Error() {
 		t.Fatal("probe did not report in-place replacement", err)

@@ -67,6 +67,7 @@ func (c *StaticBlockStore) HandleDirective(ctx context.Context, di directive.Ins
 
 // Execute executes the controller goroutine.
 func (c *StaticBlockStore) Execute(ctx context.Context) error {
+	// Build the static block store controller around the shared kvfile reader.
 	ctrl := block_store_controller.NewController(
 		c.le,
 		controller.NewInfo(
@@ -75,11 +76,13 @@ func (c *StaticBlockStore) Execute(ctx context.Context) error {
 			"entrypoint static block store",
 		),
 		func(ctx context.Context, released func()) (block_store.Store, func(), error) {
+			// Acquire the kvfile reader for the block store's lifetime.
 			reader, readerRel, err := c.buildReader(ctx, released)
 			if err != nil {
 				return nil, readerRel, err
 			}
 
+			// Wrap the reader in a kvfile block store.
 			storeOps := block_store_kvfile.NewKvfileBlock(ctx, c.kvkey, reader)
 			store := block_store.NewStore(bldr_dist.StaticBlockStoreID, storeOps)
 			return store, readerRel, nil
@@ -91,11 +94,13 @@ func (c *StaticBlockStore) Execute(ctx context.Context) error {
 		false,
 	)
 
+	// Add the block store controller to the bus.
 	relCtrl, err := c.b.AddController(ctx, ctrl, nil)
 	if err != nil {
 		return err
 	}
 
+	// Release the controller when the execution context ends.
 	context.AfterFunc(ctx, relCtrl)
 	return nil
 }

@@ -53,11 +53,13 @@ func FormatDistEntrypoint(
 	nativeRunnerPackage string,
 	composePackage string,
 ) string {
+	// Select the log level from the build type.
 	logLevel := "DebugLevel"
 	if buildType.IsRelease() {
 		logLevel = "WarnLevel"
 	}
 
+	// Format the go:embed directive for the static assets.
 	var goEmbedLine string
 	if len(embedAssetsFS) != 0 {
 		goEmbedLine = "go:embed " + strings.Join(embedAssetsFS, " ")
@@ -97,6 +99,7 @@ func FormatDistEntrypoint(
 		mainLines = append(mainLines, "composition.Commands = append(composition.Commands, cliCommands...)")
 	}
 
+	// Select the main call and add the native runner import.
 	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, composition)"
 	if nativeBuild && nativeRunnerPackage != "" {
 		importLines.WriteString("\tnative_runner " + strconv.Quote(nativeRunnerPackage) + "\n")
@@ -104,6 +107,7 @@ func FormatDistEntrypoint(
 	}
 	mainLines = append(mainLines, mainCall)
 
+	// Fill the entrypoint template with the collected parts.
 	return strings.NewReplacer(
 		"__IMPORTS__", importLines.String(),
 		"__META__", strconv.Quote(meta.MarshalB58()),

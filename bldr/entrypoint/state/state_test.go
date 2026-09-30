@@ -8,6 +8,7 @@ import (
 
 // TestVolumeConfig keeps catalog and host aliases on one store without deleting plugin blocks.
 func TestVolumeConfig(t *testing.T) {
+	// Build a volume config for the storage id.
 	conf := NewVolumeConfig("storage")
 	if conf.GetStorageId() != "storage" {
 		t.Fatalf("storage id = %q, want storage", conf.GetStorageId())
@@ -16,6 +17,7 @@ func TestVolumeConfig(t *testing.T) {
 		t.Fatalf("storage volume id = %q, want state", conf.GetStorageVolumeId())
 	}
 
+	// The volume config must disable GC and keep plugin and dist aliases.
 	volConf := conf.GetVolumeConfig()
 	if volConf.GetGcIntervalDur() != "0" {
 		t.Fatalf("gc interval = %q, want disabled", volConf.GetGcIntervalDur())

@@ -101,6 +101,8 @@ func BuildDevtoolBus(
 	repoRoot, stateRoot string,
 	watch bool,
 ) (*DevtoolBus, error) {
+	// Derive the devtool context and a release chain that unwinds every
+	// acquired controller, the state lock, and the context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	var stateLock *stateLock
@@ -115,6 +117,7 @@ func BuildDevtoolBus(
 		ctxCancel()
 	}
 
+	// Acquire the exclusive devtool state lock before touching storage.
 	var err error
 	stateLock, err = acquireStateLock(ctx, le, stateRoot)
 	if err != nil {
@@ -122,12 +125,14 @@ func BuildDevtoolBus(
 		return nil, err
 	}
 
+	// Start the core controller bus and static resolver.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		rel()
 		return nil, err
 	}
 
+	// Start the devtool status producer and its observer controller.
 	statusProducer := devtool_status.NewBldrDevtoolStatusProducer(nil)
 	statusObserver := devtool_status.NewBldrDevtoolStatusObserver(b, statusProducer)
 	relStatusObserver, err := b.AddController(ctx, statusObserver, nil)
@@ -186,6 +191,7 @@ func BuildDevtoolBus(
 		storageMethod.AddFactories(b, sr)
 	}
 
+	// Start the devtool storage volume on the default storage controller.
 	volCtrl, volCtrlRef, err := storage_volume.ExecVolumeController(ctx, b, &storage_volume.Config{
 		StorageId:       storageID,
 		StorageVolumeId: "devtool",
@@ -199,12 +205,14 @@ func BuildDevtoolBus(
 	}
 	rels = append(rels, volCtrlRef.Release)
 
+	// Wait for the volume handle.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		rel()
 		return nil, err
 	}
 
+	// Describe the volume for the devtool bus.
 	volInfo, err := volume.NewVolumeInfo(ctx, volCtrl.GetControllerInfo(), vol)
 	if err != nil {
 		rel()
@@ -248,6 +256,7 @@ func BuildDevtoolBus(
 		}
 	}
 
+	// Build the block transform config and the engine's initial object ref.
 	transformConf, err := block_transform.NewConfig(devtoolTransformConf)
 	if err != nil {
 		rel()
@@ -258,6 +267,7 @@ func BuildDevtoolBus(
 		TransformConf: transformConf,
 	}
 
+	// Configure the devtool World engine on the volume's bucket.
 	engConf := world_block_engine.NewConfig(
 		engineID,
 		vol.GetID(), engineBucketID,
@@ -267,6 +277,7 @@ func BuildDevtoolBus(
 		false,
 	)
 
+	// Start the World engine controller and wait for it to run.
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
 		b,
@@ -278,6 +289,7 @@ func BuildDevtoolBus(
 	}
 	rels = append(rels, worldCtrlRef.Release)
 
+	// Wait for the engine handle and wrap it in an engine world state.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		rel()
@@ -301,6 +313,7 @@ func BuildDevtoolBus(
 		return nil, err
 	}
 
+	// Create the plugin host manifest store if it does not exist yet.
 	_, err = bldr_manifest_world.CreateManifestStore(ctx, engTx, pluginHostObjectKey)
 	if err != nil {
 		engTx.Discard()
@@ -308,6 +321,7 @@ func BuildDevtoolBus(
 		return nil, err
 	}
 
+	// Commit the manifest store creation transaction.
 	if err := engTx.Commit(ctx); err != nil {
 		rel()
 		return nil, err
@@ -541,6 +555,7 @@ func (d *DevtoolBus) StartProjectControllerWithRemote(ctx context.Context, repoR
 
 // startProjectController selects the build mode before registering any builders.
 func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repoRoot, configPath, startWithRemote string, extraPlugins []string, start, frontendDevelopment bool, frontendRoutePrefix string, remotes map[string]*bldr_project.RemoteConfig) (*bldr_project_watcher.Controller, directive.Reference, error) {
+	// Resolve a relative config path against the repository root.
 	absConfigPath := configPath
 	if configPath != "" && !filepath.IsAbs(configPath) {
 		absConfigPath = filepath.Join(repoRoot, configPath)
@@ -565,6 +580,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 		}
 	}
 
+	// Build the base project config with the devtool remote and extra plugins.
 	baseProjectConfig := &bldr_project.ProjectConfig{
 		Remotes: map[string]*bldr_project.RemoteConfig{
 			"devtool": {
@@ -597,6 +613,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 		BoundRemotes:            remotes,
 	}
 
+	// Start the project watcher controller and wait for it to run.
 	ctrl, _, ctrlRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -607,6 +624,7 @@ func (d *DevtoolBus) startProjectController(ctx context.Context, b bus.Bus, repo
 		return nil, nil, err
 	}
 
+	// Wait for the project controller and attach its status producers.
 	projWatcher := ctrl.(*bldr_project_watcher.Controller)
 	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
 	if err != nil {

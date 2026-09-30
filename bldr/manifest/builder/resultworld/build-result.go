@@ -27,10 +27,12 @@ func SetManifestBuildResult(
 	manifestObjKey string,
 	result *bldr_manifest_builder.BuilderResult,
 ) (*bucket.ObjectRef, error) {
+	// Validate the build result before storing it.
 	if err := result.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Fetch the existing build result object, if any.
 	objKey := ManifestBuildResultKey(manifestObjKey)
 	obj, objOk, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(obj)
@@ -38,6 +40,7 @@ func SetManifestBuildResult(
 		return nil, err
 	}
 
+	// Overwrite the existing object's block with the new result.
 	if objOk {
 		ref, _, err := world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 			bcs.SetBlock(result.CloneVT(), true)
@@ -46,6 +49,7 @@ func SetManifestBuildResult(
 		return ref, err
 	}
 
+	// Create a new World object holding the result block.
 	ref, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
 		bcs.SetBlock(result.CloneVT(), true)
 		return nil
@@ -58,6 +62,8 @@ func SetManifestBuildResult(
 	if err != nil {
 		return nil, err
 	}
+
+	// Record the build result type on the object.
 	if err := world_types.SetObjectType(ctx, ws, objKey, ManifestBuildResultTypeID); err != nil {
 		return nil, err
 	}
@@ -70,11 +76,14 @@ func LookupManifestBuildResult(
 	ws world.WorldState,
 	manifestObjKey string,
 ) (*bldr_manifest_builder.BuilderResult, *bucket.ObjectRef, error) {
+	// Fetch the build result object.
 	obj, err := world.MustGetObject(ctx, ws, ManifestBuildResultKey(manifestObjKey))
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Unmarshal the result block from the object state.
 	var result *bldr_manifest_builder.BuilderResult
 	ref, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -84,6 +93,8 @@ func LookupManifestBuildResult(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Validate the decoded result before returning it.
 	if err := result.Validate(); err != nil {
 		return nil, ref, err
 	}

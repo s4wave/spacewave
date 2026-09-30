@@ -97,6 +97,7 @@ func (o *BldrDevtoolStatusObserver) HandleDirective(
 
 // Close releases observer callbacks.
 func (o *BldrDevtoolStatusObserver) Close() error {
+	// Mark the observer closed and drop every observed directive and row.
 	o.mtx.Lock()
 	if o.closed {
 		o.mtx.Unlock()
@@ -109,6 +110,7 @@ func (o *BldrDevtoolStatusObserver) Close() error {
 	o.controllerRows = make(map[string]BldrDevtoolControllerRow)
 	o.mtx.Unlock()
 
+	// Release the removed directives and publish the emptied snapshot.
 	for _, obs := range observed {
 		obs.release()
 	}
@@ -121,6 +123,7 @@ func (o *BldrDevtoolStatusObserver) newObservedDirective(key string) (keyed.Rout
 }
 
 func (o *BldrDevtoolStatusObserver) rescanDirectives() {
+	// Skip the rescan if the observer already closed.
 	o.mtx.Lock()
 	if o.closed {
 		o.mtx.Unlock()
@@ -128,6 +131,7 @@ func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 	}
 	o.mtx.Unlock()
 
+	// Collect a spec for each observable directive on the bus.
 	specs := make(map[string]observedDirectiveSpec)
 	var activeKeys []string
 	for _, di := range o.b.GetDirectives() {
@@ -142,6 +146,7 @@ func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 		activeKeys = append(activeKeys, spec.key)
 	}
 
+	// Sync the observed directives against the active keys and drop removed rows.
 	o.mtx.Lock()
 	if o.closed {
 		o.mtx.Unlock()
@@ -158,6 +163,7 @@ func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 	}
 	o.mtx.Unlock()
 
+	// Release removed directives and configure and attach the added ones.
 	for _, obs := range release {
 		obs.release()
 	}
@@ -173,6 +179,8 @@ func (o *BldrDevtoolStatusObserver) rescanDirectives() {
 			obs.release()
 		}
 	}
+
+	// Publish the refreshed status snapshot.
 	o.publishSnapshot()
 }
 
@@ -225,6 +233,7 @@ func (o *BldrDevtoolStatusObserver) buildObservedDirective(
 }
 
 func (o *BldrDevtoolStatusObserver) setManifestFetchRow(row BldrDevtoolManifestFetchRow) {
+	// Store the manifest fetch row unless the observer already closed.
 	o.mtx.Lock()
 	if o.closed {
 		o.mtx.Unlock()
@@ -232,10 +241,13 @@ func (o *BldrDevtoolStatusObserver) setManifestFetchRow(row BldrDevtoolManifestF
 	}
 	o.manifestFetchRows[row.ID] = row
 	o.mtx.Unlock()
+
+	// Publish the updated status snapshot.
 	o.publishSnapshot()
 }
 
 func (o *BldrDevtoolStatusObserver) setControllerRow(row BldrDevtoolControllerRow) {
+	// Store the controller row unless the observer already closed.
 	o.mtx.Lock()
 	if o.closed {
 		o.mtx.Unlock()
@@ -243,10 +255,13 @@ func (o *BldrDevtoolStatusObserver) setControllerRow(row BldrDevtoolControllerRo
 	}
 	o.controllerRows[row.ID] = row
 	o.mtx.Unlock()
+
+	// Publish the updated status snapshot.
 	o.publishSnapshot()
 }
 
 func (o *BldrDevtoolStatusObserver) disposeObservedDirective(key string) {
+	// Remove the observed directive and its status row.
 	var obs *observedDirective
 	o.mtx.Lock()
 	if o.closed {
@@ -260,6 +275,8 @@ func (o *BldrDevtoolStatusObserver) disposeObservedDirective(key string) {
 		}
 	}
 	o.mtx.Unlock()
+
+	// Release the directive and publish the updated snapshot.
 	if obs != nil {
 		obs.release()
 	}
@@ -275,6 +292,7 @@ func (o *BldrDevtoolStatusObserver) observedDataByKeyLocked() map[string]*observ
 }
 
 func (o *BldrDevtoolStatusObserver) observedStillActive(key string, obs *observedDirective) bool {
+	// The directive is still active if the keyed entry still holds it.
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 	if o.closed {
@@ -294,11 +312,13 @@ func (o *BldrDevtoolStatusObserver) deleteRowLocked(obs *observedDirective) {
 }
 
 func (o *BldrDevtoolStatusObserver) publishSnapshot() {
+	// Copy the manifest fetch and controller rows under the lock.
 	o.mtx.Lock()
 	fetchRows := manifestFetchRowValues(o.manifestFetchRows)
 	controllerRows := controllerRowValues(o.controllerRows)
 	o.mtx.Unlock()
 
+	// Sort both row sets by their row IDs.
 	slices.SortFunc(fetchRows, func(a, b BldrDevtoolManifestFetchRow) int {
 		return strings.Compare(a.ID, b.ID)
 	})
@@ -306,6 +326,7 @@ func (o *BldrDevtoolStatusObserver) publishSnapshot() {
 		return strings.Compare(a.ID, b.ID)
 	})
 
+	// Publish the sorted rows in the status snapshot.
 	o.producer.UpdateStatus(func(current *BldrDevtoolStatus) *BldrDevtoolStatus {
 		return current.
 			WithManifestFetchRows(fetchRows).
@@ -320,8 +341,11 @@ func buildManifestFetchRow(
 	errs []error,
 	vals []directive.AttachedValue,
 ) BldrDevtoolManifestFetchRow {
+	// Summarize the fetch errors and ready manifest refs.
 	errText := errorSummary(errs)
 	readyRefs := manifestFetchReadyRefs(vals)
+
+	// Select the row state from the errors, ready refs, and idle flag.
 	state := BldrDevtoolManifestStateRunning
 	if errText != "" {
 		state = BldrDevtoolManifestStateError
@@ -330,6 +354,8 @@ func buildManifestFetchRow(
 	} else if isIdle {
 		state = BldrDevtoolManifestStateQueued
 	}
+
+	// Return the manifest fetch row with its summary fields.
 	return BldrDevtoolManifestFetchRow{
 		ID:            key,
 		ManifestID:    dir.GetManifestId(),
@@ -385,6 +411,7 @@ func buildControllerRow(
 	errs []error,
 	vals []directive.AttachedValue,
 ) BldrDevtoolControllerRow {
+	// Inspect the attached exec controller values for errors and a running controller.
 	errText := errorSummary(errs)
 	running := false
 	for _, val := range vals {
@@ -400,6 +427,7 @@ func buildControllerRow(
 		}
 	}
 
+	// Select the row state from the errors, running flag, and idle flag.
 	state := BldrDevtoolControllerStateRequested
 	if errText != "" {
 		state = BldrDevtoolControllerStateError
@@ -409,6 +437,7 @@ func buildControllerRow(
 		state = BldrDevtoolControllerStateIdle
 	}
 
+	// Return the controller row with its summary fields.
 	return BldrDevtoolControllerRow{
 		ID:           key,
 		ControllerID: controllerID,

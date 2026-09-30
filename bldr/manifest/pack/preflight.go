@@ -16,6 +16,7 @@ func VerifyImportedManifests(
 	ws world.WorldState,
 	meta *ManifestPackMetadata,
 ) error {
+	// Validate the metadata and read the manifest bundle.
 	if err := meta.Validate(); err != nil {
 		return err
 	}
@@ -26,6 +27,8 @@ func VerifyImportedManifests(
 	if len(bundle.GetManifestRefs()) != len(meta.GetManifests()) {
 		return errors.Errorf("manifest bundle count mismatch: got %d want %d", len(bundle.GetManifestRefs()), len(meta.GetManifests()))
 	}
+
+	// Verify each tuple's refs and roots collect the expected manifests.
 	for i, tuple := range meta.GetManifests() {
 		if err := validateManifestRefMatchesTuple(bundle.GetManifestRefs()[i], tuple, meta.GetBuildType()); err != nil {
 			return errors.Wrapf(err, "manifest %d", i)
@@ -48,6 +51,7 @@ func verifyImportedManifestRoot(
 	root string,
 	expected *bldr_manifest.ManifestRef,
 ) error {
+	// Collect the manifests reachable from the root.
 	collected, manifestErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
 		ctx,
 		ws,
@@ -58,6 +62,8 @@ func verifyImportedManifestRoot(
 	if err != nil {
 		return errors.Wrapf(err, "collect manifests from %s", root)
 	}
+
+	// Skipped manifests are reported as a single joined error.
 	if len(manifestErrs) != 0 {
 		parts := make([]string, 0, len(manifestErrs))
 		for _, err := range manifestErrs {
@@ -67,6 +73,8 @@ func verifyImportedManifestRoot(
 		}
 		return errors.Errorf("collect manifests from %s had skipped manifests: %s", root, strings.Join(parts, "; "))
 	}
+
+	// Exactly one manifest must be collected and match the tuple.
 	if len(collected) != 1 {
 		return errors.Errorf("manifest tuple %s@%s not found from %s", tuple.GetManifestId(), tuple.GetPlatformId(), root)
 	}

@@ -25,14 +25,18 @@ import (
 // buildTestTransformConfs builds the source (gzip) and destination (lz4)
 // transform configurations.
 func buildTestTransformConfs(t *testing.T) (*block_transform.Config, *block_transform.Config) {
+	// Mark the helper and build both transform configurations.
 	t.Helper()
 
+	// Build the gzip source transform configuration.
 	srcTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the lz4 destination transform configuration.
 	destTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_lz4.Config{},
 	})
@@ -45,8 +49,10 @@ func buildTestTransformConfs(t *testing.T) (*block_transform.Config, *block_tran
 // applyTestBucketConfigs applies the source, direct-copy, and RPC-copy bucket
 // configs to the testbed volume.
 func applyTestBucketConfigs(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
+	// Mark the helper and apply the bucket configs.
 	t.Helper()
 
+	// Apply one bucket config per source and destination bucket.
 	const srcBucketID = "materializer-source"
 	const directDestBucketID = "materializer-direct-dest"
 	const rpcDestBucketID = "materializer-rpc-dest"
@@ -69,6 +75,7 @@ func buildTestSourceCursor(
 ) *bucket_lookup.Cursor {
 	t.Helper()
 
+	// Build the source cursor on the source bucket.
 	srcCursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -93,6 +100,7 @@ func buildTestSourceManifest(
 	ctx context.Context,
 	srcCursor *bucket_lookup.Cursor,
 ) (*bucket.ObjectRef, *block.BlockRef, *bldr_manifest.Manifest) {
+	// Mark the helper and build the source manifest.
 	t.Helper()
 
 	// Store one empty directory node: a valid FSNode with no children.
@@ -107,7 +115,7 @@ func buildTestSourceManifest(
 		t.Fatal(err.Error())
 	}
 
-	// Write the manifest root referencing the shared directory twice.
+	// Declare the manifest metadata and entrypoint.
 	srcManifest := &bldr_manifest.Manifest{
 		Meta: &bldr_manifest.ManifestMeta{
 			ManifestId: "test-manifest",
@@ -119,6 +127,8 @@ func buildTestSourceManifest(
 		DistFsRef:   dirRef,
 		AssetsFsRef: dirRef,
 	}
+
+	// Write the manifest block and set it as the cursor root.
 	btx, bcs := srcCursor.BuildTransaction(nil)
 	bcs.SetBlock(srcManifest, true)
 	manifestRef, _, err := btx.Write(ctx, true)
@@ -126,6 +136,8 @@ func buildTestSourceManifest(
 		t.Fatal(err.Error())
 	}
 	srcCursor.SetRootRef(manifestRef)
+
+	// Return the source ref after checking it is non-empty.
 	srcRef := srcCursor.GetRef()
 	if srcRef.GetRootRef().GetEmpty() {
 		t.Fatal("test setup: source ref is empty")
@@ -144,8 +156,10 @@ func copyDirectWithEngine(
 	dirRef *block.BlockRef,
 	destTransformConf *block_transform.Config,
 ) (*bucket.ObjectRef, []byte) {
+	// Mark the helper and run the direct copy.
 	t.Helper()
 
+	// Build the direct-dest cursor on the destination bucket.
 	directDest, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -160,11 +174,15 @@ func copyDirectWithEngine(
 		t.Fatal(err.Error())
 	}
 	defer directDest.Release()
+
+	// Follow the source ref into the destination bucket.
 	directSrc, err := bldr_manifest_world.FollowObjectRefReadOnly(ctx, directDest, srcRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer directSrc.Release()
+
+	// Copy the manifest object with the existing engine.
 	expectedRef, _, err := bucket_lookup.CopyObjectToBucketWithStats(
 		ctx,
 		directDest,
@@ -177,6 +195,8 @@ func copyDirectWithEngine(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Read the stored directory node bytes from the destination bucket.
 	gotNodeData, exists, err := directDest.GetBucket().GetBlock(ctx, dirRef)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -197,18 +217,18 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed and apply the bucket configs.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
-
 	srcTransformConf, destTransformConf := buildTestTransformConfs(t)
 	applyTestBucketConfigs(t, ctx, tb)
 
+	// Build the source cursor and its manifest.
 	srcCursor := buildTestSourceCursor(t, ctx, tb, srcTransformConf)
 	defer srcCursor.Release()
-
 	srcRef, dirRef, srcManifest := buildTestSourceManifest(t, ctx, srcCursor)
 
 	// Copy directly with the existing engine to compute the expected root and
@@ -250,6 +270,8 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 			terminal = resp
 		}
 	}
+
+	// Exactly one terminal response with stats must arrive.
 	if terminalCount != 1 {
 		t.Fatalf("terminal copied_ref count = %d, want 1", terminalCount)
 	}
@@ -279,6 +301,7 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 	// Verify the nested FSNode raw encoded bytes were copied to the dest
 	// bucket: blocks are stored with the source encoding, so the stored node
 	// bytes must be gzip-encoded and identical to the direct-copy result.
+	// Open the rpc-dest bucket to inspect the stored blocks.
 	rpcDest, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx,
 		tb.Bus,
@@ -293,6 +316,8 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer rpcDest.Release()
+
+	// The stored node bytes must match the direct copy result.
 	gotNodeData, exists, err := rpcDest.GetBucket().GetBlock(ctx, dirRef)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -306,6 +331,7 @@ func TestMaterializeManifestRPCCopy(t *testing.T) {
 
 	// Decode the manifest at the copied root through the dest transform and
 	// compare it with the source manifest.
+	// Decode the manifest at the copied root and compare it with the source.
 	gotCursor, err := rpcDest.FollowRef(ctx, gotRef)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -101,6 +101,7 @@ func NewWazeroQuickJsHost(b bus.Bus, le *logrus.Entry) (*WazeroQuickJsHost, erro
 
 // resolveQuickjsVm resolves the shared compilation cache for quickjs plugins.
 func (h *WazeroQuickJsHost) resolveQuickjsVm(ctx context.Context, released func()) (*quickjsVm, func(), error) {
+	// Create the compilation cache and its release func.
 	cache := wazero.NewCompilationCache()
 	rel := func() { _ = cache.Close(ctx) }
 
@@ -122,15 +123,19 @@ func (h *WazeroQuickJsHost) resolveQuickjsVm(ctx context.Context, released func(
 		return nil, nil, err
 	}
 
+	// Return the vm sharing the warmed cache.
 	return &quickjsVm{cache: cache}, rel, nil
 }
 
 // newPluginRuntime creates a per-plugin wazero.Runtime with the shared compilation cache.
 func (h *WazeroQuickJsHost) newPluginRuntime(ctx context.Context, cache wazero.CompilationCache) (wazero.Runtime, wazero.CompiledModule, error) {
+	// Build the runtime config with the shared cache.
 	runtimeConfig := wazero.NewRuntimeConfig().
 		WithCompilationCache(cache).
 		WithCloseOnContextDone(true)
 	r := wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
+
+	// Instantiate WASI and compile the QuickJS module.
 	_, err := wasi_snapshot_preview1.Instantiate(ctx, r)
 	if err != nil {
 		_ = r.Close(ctx)
@@ -150,6 +155,7 @@ func NewWazeroQuickJsHostController(
 	b bus.Bus,
 	c *Config,
 ) (*host_controller.Controller, *WazeroQuickJsHost, error) {
+	// Validate the config and construct the host.
 	if err := c.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -197,6 +203,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	hostMux srpc.Mux,
 	rpcInit plugin_host.PluginRpcInitCb,
 ) error {
+	// Derive the execution context from the lifecycle context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -221,6 +228,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		WithField("entrypoint", entrypoint).
 		Debug("quickjs plugin entrypoint lookup complete")
 
+	// Read the entrypoint file info and release the handle.
 	le.
 		WithField("entrypoint", entrypoint).
 		Debug("reading quickjs plugin entrypoint file info")
@@ -234,6 +242,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		WithField("mode", entrypointFi.Mode().String()).
 		Debug("quickjs plugin entrypoint file info ready")
 
+	// The entrypoint must be a regular file.
 	entrypointFiMode := entrypointFi.Mode()
 	if !entrypointFiMode.IsRegular() {
 		return errors.Errorf("entrypoint must be an executable regular file: %s", entrypointFiMode.String())
@@ -252,9 +261,13 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	}
 	pluginStartInfoB64 := base64.StdEncoding.EncodeToString(pluginStartInfoJson)
 
+	// Encode the start info for the plugin environment.
+
 	// Mount the RPC handler to the bus.
 	baseControllerID := ControllerID + "/" + pluginID
 	rpcServiceControllerID := baseControllerID + "/rpc-host"
+
+	// Build the RPC service controller for the plugin instance.
 	var hostInvoker srpc.Invoker = hostMux
 	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
 		controller.NewInfo(rpcServiceControllerID, Version, "rpc host for plugin"),
@@ -273,6 +286,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 	}
 	defer relRpcServiceCtrl()
 
+	// Add the instance id to the logger.
 	le = h.le.WithFields(logrus.Fields{
 		"plugin-instance-id": pluginInstanceID,
 		"plugin-id":          pluginID,
@@ -281,7 +295,9 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 	// this restarts if the quickjs vm is reloaded or unloaded
 	return h.quickjsVmRc.Access(ctx, func(ctx context.Context, val *quickjsVm) error {
+		// Log the runtime creation.
 		le.Debug("creating quickjs plugin runtime")
+
 		// Create a per-plugin runtime with the shared compilation cache.
 		// Each plugin gets its own runtime to avoid wazero module name collisions
 		// (the QuickJS library forces the module name to "qjs-wasi.wasm").
@@ -302,6 +318,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			WithFSMount(pluginDistIofs, DistFsMount).
 			WithFSMount(pluginAssetsIoFs, AssetsFsMount)
 
+		// Mount the web packages subdirectory when the plugin has one.
 		webPkgsInfo, err := fs.Stat(pluginAssetsIoFs, plugin.PluginAssetsWebPkgsDir)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return errors.Wrap(err, "stat project plugin web packages")
@@ -345,6 +362,8 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 			return err
 		}
 		defer muxedConn.Close()
+
+		// Mount the device filesystem for async output.
 
 		// NOTE stdin is currently the only fd which implements Poll.
 		// all other fds will call and block on read() (blocking I/O only).
@@ -418,6 +437,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		err = runLoopWithStdin(ctx, qjs, stdinBuf)
 		_ = remoteWrite.Close()
 
+		// Report the accept stream error before the loop error.
 		if errPtr := acceptStreamErr.Load(); errPtr != nil {
 			return *errPtr
 		}
