@@ -6,6 +6,16 @@ if [ -z "$files" ]; then
 	exit 0
 fi
 
+# node_bin holds the JS tools. A linked worktree has no node_modules, so it
+# runs the main checkout's tools.
+node_bin=$(pwd)/node_modules/.bin
+if [ ! -d node_modules ]; then
+	# Git points GIT_DIR at the worktree while a hook runs; clear it to ask about the main checkout.
+	common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
+	node_bin=$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$common_dir" rev-parse --show-toplevel)/node_modules/.bin
+fi
+PATH=$node_bin:$PATH
+
 # Format and restage only files whose worktree matches the index. Restaging a
 # partially staged file would fold its unstaged edits into the commit, so
 # compare its staged blob with the formatter output instead and refuse the
@@ -45,7 +55,7 @@ PARTIAL_FILES
 
 # oxfmt_stdin formats stdin as the file named by $1.
 oxfmt_stdin() {
-	node_modules/.bin/oxfmt --stdin-filepath="$1"
+	"$node_bin/oxfmt" --stdin-filepath="$1"
 }
 
 # gofmt_stdin formats Go source from stdin.
@@ -57,7 +67,7 @@ format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(t
 if [ -n "$format_files" ]; then
 	format_whole=$(whole_files "$format_files")
 	if [ -n "$format_whole" ]; then
-		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxfmt
+		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 "$node_bin/oxfmt"
 		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 git add
 	fi
 	check_partial_files "$format_files" oxfmt_stdin
@@ -65,7 +75,7 @@ fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxlint --no-error-on-unmatched-pattern
+	printf "%s\n" "$js_files" | tr '\n' '\0' | xargs -0 "$node_bin/oxlint" --no-error-on-unmatched-pattern
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)
