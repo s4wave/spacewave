@@ -20,5 +20,10 @@ func (s *scopedTypedObjectService) AccessTypedObject(ctx context.Context, req *s
 	return s.typed.AccessTypedObject(objecttype.WithEngineID(ctx, s.engineID), req)
 }
 
+// WatchTypedObject forwards standing demand under the real mount's trusted scope.
+func (s *scopedTypedObjectService) WatchTypedObject(req *sdk_world.WatchTypedObjectRequest, stream sdk_world.SRPCTypedObjectResourceService_WatchTypedObjectStream) error {
+	return s.typed.WatchTypedObject(req, stream)
+}
+
 // _ is a type assertion.
 var _ sdk_world.SRPCTypedObjectResourceServiceServer = (*scopedTypedObjectService)(nil)

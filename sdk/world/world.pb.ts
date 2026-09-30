@@ -51,6 +51,7 @@ export enum GraphEdgeBucketDirection {
 export const GraphEdgeBucketDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphEdgeBucketDirection',
   GraphEdgeBucketDirection,
+  'GRAPH_EDGE_BUCKET_DIRECTION_',
 )
 
 /**
@@ -91,6 +92,7 @@ export enum GraphPathDirection {
 export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.GraphPathDirection',
   GraphPathDirection,
+  'GRAPH_PATH_DIRECTION_',
 )
 
 /**
@@ -113,6 +115,7 @@ export enum WorldErrorCode {
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.world.WorldErrorCode',
   WorldErrorCode,
+  'WORLD_ERROR_CODE_',
 )
 
 /**
@@ -2927,6 +2930,62 @@ export interface AccessTypedObjectResponse {
 export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.world.AccessTypedObjectResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * WatchTypedObjectRequest selects an object within the mounted World and registry scope.
+ *
+ * @generated from message s4wave.world.WatchTypedObjectRequest
+ */
+export interface WatchTypedObjectRequest {
+  /**
+   * ObjectKey identifies the object whose typed handler is watched.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+}
+
+export const WatchTypedObjectRequest: MessageType<WatchTypedObjectRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.WatchTypedObjectRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * WatchTypedObjectResponse describes the current typed-handler generation or its absence.
+ *
+ * @generated from message s4wave.world.WatchTypedObjectResponse
+ */
+export interface WatchTypedObjectResponse {
+  /**
+   * ResourceId identifies a child bound to this handler generation, or zero if
+   * the object, its type or its handler is absent. Each available generation
+   * receives a new child; the child implements the RPC service for TypeId.
+   * The consumer adopts and releases its reference; the watch also releases
+   * the child on loss, replacement or cancellation, including adopted children.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * TypeId identifies the object's type even when its handler is absent.
+   * It is empty when the object is absent or has no type.
+   *
+   * @generated from field: string type_id = 2;
+   */
+  typeId?: string
+}
+
+export const WatchTypedObjectResponse: MessageType<WatchTypedObjectResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.WatchTypedObjectResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },

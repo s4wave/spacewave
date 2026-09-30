@@ -326,10 +326,12 @@ func (r *EngineResource) WatchWorldState(
 		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
 		txLease := newResourceLease(wtx.Discard)
 		resourceId, err := resourceCtx.AddResource(txLease.wrapInvoker(trackedResource.GetMux()), func() {
+			trackedResource.Close()
 			trackedWs.Close()
 			txLease.releaseRef()
 		})
 		if err != nil {
+			trackedResource.Close()
 			trackedWs.Close()
 			txLease.releaseRef()
 			return err
@@ -362,6 +364,11 @@ func (r *EngineResource) WatchWorldState(
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.
 func (r *EngineResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
 	return r.typedResource.AccessTypedObject(ctx, req)
+}
+
+// WatchTypedObject forwards standing typed demand under the Engine mount's authority.
+func (r *EngineResource) WatchTypedObject(req *s4wave_world.WatchTypedObjectRequest, stream s4wave_world.SRPCTypedObjectResourceService_WatchTypedObjectStream) error {
+	return r.typedResource.WatchTypedObject(req, stream)
 }
 
 // _ is a type assertion

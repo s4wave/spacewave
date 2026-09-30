@@ -96,6 +96,8 @@ import {
   WaitRevResponse,
   WaitSeqnoRequest,
   WaitSeqnoResponse,
+  WatchTypedObjectRequest,
+  WatchTypedObjectResponse,
   WatchWorldRootSnapshotsRequest,
   WatchWorldStateRequest,
   WatchWorldStateResponse,
@@ -2780,12 +2782,16 @@ export class ObjectStateResourceServiceClient implements ObjectStateResourceServ
   }
 }
 /**
+ * TypedObjectResourceService exposes typed children within the mounted World's authority.
+ *
  * @generated from service s4wave.world.TypedObjectResourceService
  */
 export const TypedObjectResourceServiceDefinition = {
   typeName: 's4wave.world.TypedObjectResourceService',
   methods: {
     /**
+     * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+     *
      * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
      */
     AccessTypedObject: {
@@ -2794,27 +2800,66 @@ export const TypedObjectResourceServiceDefinition = {
       O: AccessTypedObjectResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * WatchTypedObject reports initial and changing typed-handler availability.
+     * Live Worlds follow object creation, type changes and deletion; immutable
+     * World snapshots retain their object state while handler availability changes.
+     * Loss or replacement releases the previous child before the next snapshot.
+     * Canceling the stream releases its lookup demand and current child.
+     * The stream never invokes or replays methods on a typed child.
+     *
+     * @generated from rpc s4wave.world.TypedObjectResourceService.WatchTypedObject
+     */
+    WatchTypedObject: {
+      name: 'WatchTypedObject',
+      I: WatchTypedObjectRequest,
+      O: WatchTypedObjectResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
 /**
+ * TypedObjectResourceService exposes typed children within the mounted World's authority.
+ *
  * @generated from service s4wave.world.TypedObjectResourceService
  */
 export interface TypedObjectResourceService {
   /**
+   * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */
   AccessTypedObject(
     request: AccessTypedObjectRequest,
     abortSignal?: AbortSignal,
   ): Promise<AccessTypedObjectResponse>
+
+  /**
+   * WatchTypedObject reports initial and changing typed-handler availability.
+   * Live Worlds follow object creation, type changes and deletion; immutable
+   * World snapshots retain their object state while handler availability changes.
+   * Loss or replacement releases the previous child before the next snapshot.
+   * Canceling the stream releases its lookup demand and current child.
+   * The stream never invokes or replays methods on a typed child.
+   *
+   * @generated from rpc s4wave.world.TypedObjectResourceService.WatchTypedObject
+   */
+  WatchTypedObject(
+    request: WatchTypedObjectRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypedObjectResponse>
 }
 
 /**
+ * TypedObjectResourceService exposes typed children within the mounted World's authority.
+ *
  * @generated from service s4wave.world.TypedObjectResourceService
  */
 export interface TypedObjectResourceServiceHandler {
   /**
+   * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */
   AccessTypedObject(
@@ -2822,6 +2867,22 @@ export interface TypedObjectResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AccessTypedObjectResponse>
+
+  /**
+   * WatchTypedObject reports initial and changing typed-handler availability.
+   * Live Worlds follow object creation, type changes and deletion; immutable
+   * World snapshots retain their object state while handler availability changes.
+   * Loss or replacement releases the previous child before the next snapshot.
+   * Canceling the stream releases its lookup demand and current child.
+   * The stream never invokes or replays methods on a typed child.
+   *
+   * @generated from rpc s4wave.world.TypedObjectResourceService.WatchTypedObject
+   */
+  WatchTypedObject(
+    request: WatchTypedObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchTypedObjectResponse>
 }
 
 export const TypedObjectResourceServiceServiceName =
@@ -2834,8 +2895,11 @@ export class TypedObjectResourceServiceClient implements TypedObjectResourceServ
     this.service = opts?.service || TypedObjectResourceServiceServiceName
     this.rpc = rpc
     this.AccessTypedObject = this.AccessTypedObject.bind(this)
+    this.WatchTypedObject = this.WatchTypedObject.bind(this)
   }
   /**
+   * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */
   async AccessTypedObject(
@@ -2850,5 +2914,29 @@ export class TypedObjectResourceServiceClient implements TypedObjectResourceServ
       abortSignal || undefined,
     )
     return AccessTypedObjectResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchTypedObject reports initial and changing typed-handler availability.
+   * Live Worlds follow object creation, type changes and deletion; immutable
+   * World snapshots retain their object state while handler availability changes.
+   * Loss or replacement releases the previous child before the next snapshot.
+   * Canceling the stream releases its lookup demand and current child.
+   * The stream never invokes or replays methods on a typed child.
+   *
+   * @generated from rpc s4wave.world.TypedObjectResourceService.WatchTypedObject
+   */
+  WatchTypedObject(
+    request: WatchTypedObjectRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchTypedObjectResponse> {
+    const requestMsg = WatchTypedObjectRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      TypedObjectResourceServiceDefinition.methods.WatchTypedObject.name,
+      WatchTypedObjectRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchTypedObjectResponse)(result)
   }
 }

@@ -2,15 +2,12 @@ package resource_objecttype_registry
 
 import (
 	"context"
-	"io"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -324,11 +321,6 @@ func (s *pluginResourceSession) close() {
 	s.resetLocked()
 }
 
-// reset drops the current session so the next use reconnects.
-func (s *pluginResourceSession) reset() {
-	s.close()
-}
-
 // peekChildClient returns the connected child client without reconnecting.
 func (s *pluginResourceSession) peekChildClient() srpc.Client {
 	s.mtx.Lock()
@@ -339,12 +331,16 @@ func (s *pluginResourceSession) peekChildClient() srpc.Client {
 // currentClient returns a live child client, reconnecting when the session
 // was released or the plugin runtime dropped it.
 func (s *pluginResourceSession) currentClient(ctx context.Context) (srpc.Client, error) {
-	// Reuse a live typed child or connect a fresh plugin generation.
+	// Check the retained child before forwarding; Done closes after release drains.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if s.childClient != nil && (s.alive == nil || s.alive()) {
-		return s.childClient, nil
+	if s.childRef != nil && (s.alive == nil || s.alive()) {
+		if client, err := s.childRef.GetClient(); err == nil {
+			return client, nil
+		}
 	}
+
+	// Acquire a fresh generation before this new explicit caller operation.
 	if err := s.connectLocked(ctx); err != nil {
 		return nil, err
 	}
@@ -411,8 +407,8 @@ func (i *attachedObjectTypeInvoker) Close() {
 	i.session.close()
 }
 
-// pluginObjectTypeInvoker connects to the source plugin and proxies method
-// invokes, reconnecting when the plugin runtime drops the session.
+// pluginObjectTypeInvoker forwards explicit calls to the source plugin without replay.
+// A later call reconnects before forwarding if its ResourceClient generation ended.
 type pluginObjectTypeInvoker struct {
 	// session owns the nested client generation and typed child.
 	session pluginResourceSession
@@ -457,23 +453,16 @@ func newPluginObjectTypeInvoker(
 	return i
 }
 
-// InvokeMethod invokes a method on the plugin child resource, retrying once
-// through a fresh session when the plugin dropped the old one.
+// InvokeMethod forwards one explicit method call and returns its original result.
+// Reconnection precedes the call; an invocation failure never replays the method.
 func (i *pluginObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	// Forward the typed invocation through the current plugin generation.
+	// Acquire the current child before starting the caller's explicit operation.
 	childClient, err := i.session.currentClient(strm.Context())
 	if err != nil {
 		return false, err
 	}
-	found, err := srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
-	if err == nil || !shouldReconnectPluginInvoke(strm.Context(), err) {
-		return found, err
-	}
-	i.session.reset()
-	childClient, retryErr := i.session.currentClient(strm.Context())
-	if retryErr != nil {
-		return false, retryErr
-	}
+
+	// Forward the method once without inferring replay safety from its error.
 	return srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
 }
 
@@ -485,25 +474,6 @@ func (i *pluginObjectTypeInvoker) connect(ctx context.Context) error {
 // Close releases the currently connected plugin ObjectType resource.
 func (i *pluginObjectTypeInvoker) Close() {
 	i.session.close()
-}
-
-// shouldReconnectPluginInvoke reports whether the invoke failed because the
-// plugin dropped the resource session rather than the call itself.
-func shouldReconnectPluginInvoke(ctx context.Context, err error) bool {
-	// Distinguish released plugin Resources from unrelated invocation failures.
-	msg := err.Error()
-	if strings.Contains(msg, "resource not found") ||
-		strings.Contains(msg, "invalid resource id") ||
-		strings.Contains(msg, "resource or client was released") {
-		return true
-	}
-	if errors.Is(err, io.ErrClosedPipe) {
-		return true
-	}
-	if !errors.Is(err, context.Canceled) {
-		return false
-	}
-	return ctx.Err() == nil
 }
 
 // _ is a type assertion
