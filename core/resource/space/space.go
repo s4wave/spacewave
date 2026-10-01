@@ -154,12 +154,6 @@ func (r *SpaceResource) WatchSpaceState(
 			// Start a ready SpaceState response.
 			state = &s4wave_space.SpaceState{Ready: true, EngineId: r.space.GetWorldEngineID()}
 
-			// Build the world object list.
-			state.WorldContents, err = space_world.BuildWorldContents(ctx, wtx)
-			if err != nil {
-				return errors.Wrap(err, "read world contents")
-			}
-
 			// Load SpaceSettings when present.
 			state.Settings, err = space_world.LookupSpaceSettingsBody(ctx, wtx)
 			if err != nil {

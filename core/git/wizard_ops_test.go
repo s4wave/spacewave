@@ -6,7 +6,6 @@ import (
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	s4wave_git "github.com/s4wave/spacewave/core/git"
-	space_world "github.com/s4wave/spacewave/core/space/world"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -32,9 +31,11 @@ func setupGitWizardWorld(t *testing.T) (context.Context, *world_testbed.Testbed,
 }
 
 func TestCreateGitRepoWizardOpCreatesTypedRepo(t *testing.T) {
+	// Build a World with the git operation controller.
 	ctx, tb, ws := setupGitWizardWorld(t)
 	objectKey := "repo/wizard-init"
 
+	// Apply the wizard operation.
 	op := &s4wave_git.CreateGitRepoWizardOp{
 		ObjectKey: objectKey,
 		Timestamp: timestamppb.Now(),
@@ -44,6 +45,7 @@ func TestCreateGitRepoWizardOpCreatesTypedRepo(t *testing.T) {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
 
+	// Check the repo type.
 	typeID, err := world_types.GetObjectType(ctx, ws, objectKey)
 	if err != nil {
 		t.Fatalf("GetObjectType: %v", err)
@@ -52,23 +54,12 @@ func TestCreateGitRepoWizardOpCreatesTypedRepo(t *testing.T) {
 		t.Fatalf("expected type %q, got %q", git_world.GitRepoTypeID, typeID)
 	}
 
-	contents, err := space_world.BuildWorldContents(ctx, ws)
+	// Check the worktree type.
+	worktreeType, err := world_types.GetObjectType(ctx, ws, objectKey+"/worktree")
 	if err != nil {
-		t.Fatalf("BuildWorldContents: %v", err)
+		t.Fatalf("GetObjectType: %v", err)
 	}
-	if !worldContentsHasObject(contents, objectKey, git_world.GitRepoTypeID) {
-		t.Fatalf("world contents missing typed repo %q: %#v", objectKey, contents.GetObjects())
+	if worktreeType != git_world.GitWorktreeTypeID {
+		t.Fatalf("expected worktree type %q, got %q", git_world.GitWorktreeTypeID, worktreeType)
 	}
-	if !worldContentsHasObject(contents, objectKey+"/worktree", git_world.GitWorktreeTypeID) {
-		t.Fatalf("world contents missing typed worktree %q: %#v", objectKey+"/worktree", contents.GetObjects())
-	}
-}
-
-func worldContentsHasObject(contents *space_world.WorldContents, objectKey, typeID string) bool {
-	for _, obj := range contents.GetObjects() {
-		if obj.GetObjectKey() == objectKey && obj.GetObjectType() == typeID {
-			return true
-		}
-	}
-	return false
 }

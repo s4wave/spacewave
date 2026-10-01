@@ -159,8 +159,10 @@ type deviceQuickstartSpaceState struct {
 }
 
 func waitForDeviceQuickstartSurface(t testing.TB, page playwright.Page) deviceQuickstartSurfaceProof {
+	// Wait for the device Quickstart surface.
 	t.Helper()
 
+	// Poll the page until the Computers object and its route resource appear.
 	raw, err := page.Evaluate(`async (timeoutMS) => {
 		const deadline = Date.now() + timeoutMS
 
@@ -273,7 +275,10 @@ func waitForDeviceQuickstartSurface(t testing.TB, page playwright.Page) deviceQu
 				})
 				step = 'watchSpaceState'
 				const state = await firstStreamValue(space.watchSpaceState({}, abort))
-				const objects = state?.worldContents?.objects ?? []
+				step = 'listObjects'
+				const world = cleanup(await space.accessWorldState(true, abort))
+				const listing = await world.listObjects({ limit: 100 }, abort)
+				const objects = (listing.objects ?? []).filter((obj) => !obj.objectKey?.startsWith('types/'))
 				const computersObject = objects.find((obj) => obj.objectKey === 'computers') ?? null
 				return {
 					skipped: false,
@@ -283,7 +288,7 @@ func waitForDeviceQuickstartSurface(t testing.TB, page playwright.Page) deviceQu
 						ready: !!state?.ready,
 						indexPath: state?.settings?.indexPath ?? '',
 						objectKeys: objects.map((obj) => obj.objectKey ?? ''),
-						computersObjectType: computersObject?.objectType ?? '',
+						computersObjectType: computersObject?.typeId ?? '',
 					},
 				}
 			} catch (err) {

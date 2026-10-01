@@ -3087,8 +3087,10 @@ func assertReturnVisitorBodyRouteStartupMarks(t testing.TB, page playwright.Page
 }
 
 func assertReturnVisitorBodyRouteSpaceState(t testing.TB, page playwright.Page) {
+	// Probe the return visitor body route Space state.
 	t.Helper()
 
+	// Read the Space state and a World listing page in the browser.
 	raw, err := page.Evaluate(`async () => {
 		async function firstStreamValue(stream) {
 			for await (const value of stream) {
@@ -3132,10 +3134,14 @@ func assertReturnVisitorBodyRouteSpaceState(t testing.TB, page playwright.Page) 
 				cleanup,
 			})
 			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			const world = cleanup(await mountedResources.space.accessWorldState(true, abort))
+			const listing = await world.listObjects({ limit: 100 }, abort)
 			return {
 				ready: !!state?.ready,
 				indexPath: state?.settings?.indexPath ?? '',
-				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+				objectKeys: (listing.objects ?? [])
+					.map((obj) => obj.objectKey ?? '')
+					.filter((key) => !key.startsWith('types/')),
 			}
 		} catch (err) {
 			return { error: String(err?.stack ?? err) }

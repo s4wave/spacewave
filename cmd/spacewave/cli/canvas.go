@@ -18,8 +18,9 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
-	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
@@ -60,9 +61,7 @@ func canvasZIndex(value int) (int32, error) {
 // If uri.objectKey is empty, auto-discovers the canvas by finding exactly one
 // canvas-type object in the space.
 func mountCanvasContext(c *cli.Context, statePath string, uri fsURI) (*canvasContext, func(), error) {
-	mount, _, err := mountObjectChain(c, statePath, uri, func(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error) {
-		return discoverCanvasObject(ctx, spaceSvc)
-	})
+	mount, _, err := mountObjectChain(c, statePath, uri, discoverCanvasObject)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,32 +77,16 @@ func mountCanvasContext(c *cli.Context, statePath string, uri fsURI) (*canvasCon
 
 // discoverCanvasObject finds exactly one canvas-type object in the space.
 // Returns the object key or an error if zero or multiple canvas objects exist.
-func discoverCanvasObject(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error) {
-	// Open the space state watch stream.
-	strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
+func discoverCanvasObject(ctx context.Context, engine *sdk_engine.SDKEngine) (string, error) {
+	// List the canvas objects from one read transaction.
+	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
-		return "", errors.Wrap(err, "watch space state")
+		return "", errors.Wrap(err, "new transaction")
 	}
-	defer strm.Close()
-
-	// Receive one space state snapshot with the world contents.
-	resp, err := strm.Recv()
+	defer tx.Discard()
+	canvasKeys, err := world_types.ListObjectsWithType(ctx, tx, canvas_world.CanvasTypeID)
 	if err != nil {
-		return "", errors.Wrap(err, "recv space state")
-	}
-
-	// Reject a snapshot with no world contents.
-	wc := resp.GetWorldContents()
-	if wc == nil {
-		return "", errors.New("no canvas objects found; specify --canvas")
-	}
-
-	// Collect the object keys of canvas-type objects.
-	var canvasKeys []string
-	for _, obj := range wc.GetObjects() {
-		if obj.GetObjectType() == "canvas" {
-			canvasKeys = append(canvasKeys, obj.GetObjectKey())
-		}
+		return "", errors.Wrap(err, "list canvas objects")
 	}
 
 	// Reject zero or multiple canvas objects.

@@ -244,8 +244,6 @@ type SpaceState struct {
 	unknownFields []byte
 	// Ready indicates the state is ready, false for loading.
 	Ready bool `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
-	// WorldContents is the list of world objects.
-	WorldContents *world.WorldContents `protobuf:"bytes,2,opt,name=world_contents,json=worldContents,proto3" json:"worldContents,omitempty"`
 	// Settings is the space settings object, if it exists.
 	Settings *world.SpaceSettings `protobuf:"bytes,3,opt,name=settings,proto3" json:"settings,omitempty"`
 	// TransformInfo contains the space's encryption and compression config.
@@ -266,13 +264,6 @@ func (x *SpaceState) GetReady() bool {
 		return x.Ready
 	}
 	return false
-}
-
-func (x *SpaceState) GetWorldContents() *world.WorldContents {
-	if x != nil {
-		return x.WorldContents
-	}
-	return nil
 }
 
 func (x *SpaceState) GetSettings() *world.SpaceSettings {
@@ -1279,7 +1270,6 @@ func (m *SpaceState) CloneVT() *SpaceState {
 	r := new(SpaceState)
 	r.Ready = m.Ready
 	r.EngineId = m.EngineId
-	r.WorldContents = protobuf_go_lite.CloneVTValue(m.WorldContents)
 	r.Settings = protobuf_go_lite.CloneVTValue(m.Settings)
 	r.TransformInfo = protobuf_go_lite.CloneVTValue(m.TransformInfo)
 	if len(m.unknownFields) > 0 {
@@ -1902,9 +1892,6 @@ func (this *SpaceState) EqualVT(that *SpaceState) bool {
 		return false
 	}
 	if this.Ready != that.Ready {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.WorldContents, that.WorldContents) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Settings, that.Settings) {
@@ -2893,11 +2880,6 @@ func (x *SpaceState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ready")
 		s.WriteBool(x.Ready)
 	}
-	if x.WorldContents != nil || s.HasField("worldContents") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("worldContents")
-		x.WorldContents.MarshalProtoJSON(s.WithField("worldContents"))
-	}
 	if x.Settings != nil || s.HasField("settings") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("settings")
@@ -2933,13 +2915,6 @@ func (x *SpaceState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ready":
 			s.AddField("ready")
 			x.Ready = s.ReadBool()
-		case "world_contents", "worldContents":
-			if s.ReadNil() {
-				x.WorldContents = nil
-				return
-			}
-			x.WorldContents = &world.WorldContents{}
-			x.WorldContents.UnmarshalProtoJSON(s.WithField("world_contents", true))
 		case "settings":
 			if s.ReadNil() {
 				x.Settings = nil
@@ -4879,16 +4854,6 @@ func (m *SpaceState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1a
 	}
-	if m.WorldContents != nil {
-		size, err := m.WorldContents.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x12
-	}
 	if m.Ready {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Ready)
 		i--
@@ -6291,10 +6256,6 @@ func (m *SpaceState) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Ready)
-	if m.WorldContents != nil {
-		l = m.WorldContents.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	if m.Settings != nil {
 		l = m.Settings.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -6799,10 +6760,6 @@ func (x *SpaceState) MarshalProtoText() string {
 	if x.Ready != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ready")
 		protobuf_go_lite.TextWriteBool(&sb, x.Ready)
-	}
-	if x.WorldContents != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world_contents")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.WorldContents)
 	}
 	if x.Settings != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "settings")
@@ -7768,21 +7725,6 @@ func (m *SpaceState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Ready = bool(v)
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorldContents", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.WorldContents == nil {
-				m.WorldContents = &world.WorldContents{}
-			}
-			if err := m.WorldContents.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Settings", wireType)

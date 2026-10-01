@@ -11,10 +11,7 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { StepConfig } from '../../db/block/transform/transform.pb.js'
-import {
-  SpaceSettings,
-  WorldContents,
-} from '../../core/space/world/world.pb.js'
+import { SpaceSettings } from '../../core/space/world/world.pb.js'
 import type { SOParticipantRole } from '../../core/sobject/sobject.pb.js'
 import {
   SOInvite,
@@ -297,12 +294,6 @@ export interface SpaceState {
    */
   ready?: boolean
   /**
-   * WorldContents is the list of world objects.
-   *
-   * @generated from field: space.world.WorldContents world_contents = 2;
-   */
-  worldContents?: WorldContents
-  /**
    * Settings is the space settings object, if it exists.
    *
    * @generated from field: space.world.SpaceSettings settings = 3;
@@ -328,12 +319,6 @@ export const SpaceState: MessageType<SpaceState> =
     typeName: 's4wave.space.SpaceState',
     fields: [
       { no: 1, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
-      {
-        no: 2,
-        name: 'world_contents',
-        kind: 'message',
-        T: () => WorldContents,
-      },
       { no: 3, name: 'settings', kind: 'message', T: () => SpaceSettings },
       { no: 4, name: 'transform_info', kind: 'message', T: TransformInfo },
       { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },

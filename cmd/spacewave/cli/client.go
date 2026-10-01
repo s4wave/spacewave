@@ -773,12 +773,12 @@ func (m *objectMount) release() {
 // mountObjectChain connects to the daemon and mounts session -> space ->
 // world engine -> typed object for the URI. When resolveObjectKey is nil,
 // uri.objectKey is used verbatim; otherwise it resolves the key against
-// the mounted space service.
+// the mounted World engine.
 func mountObjectChain(
 	c *cli.Context,
 	statePath string,
 	uri fsURI,
-	resolveObjectKey func(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error),
+	resolveObjectKey func(ctx context.Context, engine *sdk_engine.SDKEngine) (string, error),
 ) (*objectMount, func(), error) {
 	// Connect to the daemon and prepare the unwind stack.
 	ctx := c.Context
@@ -822,21 +822,21 @@ func mountObjectChain(
 	}
 	rels = append(rels, spaceCleanup)
 
-	// Resolve the object key.
-	objectKey := uri.objectKey
-	if resolveObjectKey != nil {
-		objectKey, err = resolveObjectKey(ctx, spaceSvc)
-		if err != nil {
-			return fail(err)
-		}
-	}
-
 	// Access the world engine and register its cleanup.
 	engine, engineRef, engineCleanup, err := client.accessWorldEngineWithRef(ctx, spaceSvc)
 	if err != nil {
 		return fail(err)
 	}
 	rels = append(rels, engineCleanup)
+
+	// Resolve the object key.
+	objectKey := uri.objectKey
+	if resolveObjectKey != nil {
+		objectKey, err = resolveObjectKey(ctx, engine)
+		if err != nil {
+			return fail(err)
+		}
+	}
 
 	// Access the typed object and register its cleanup.
 	typedClient, _, _, typedCleanup, err := client.accessTypedObject(ctx, engineRef, objectKey)

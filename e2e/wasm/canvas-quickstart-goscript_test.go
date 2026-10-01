@@ -145,8 +145,10 @@ type canvasRouteCanvasState struct {
 }
 
 func waitForCanvasRouteResourceProbe(t testing.TB, page playwright.Page) canvasRouteResourceProbe {
+	// Wait for the canvas route resource.
 	t.Helper()
 
+	// Poll the page until the canvas object and its route resource appear.
 	raw, err := page.Evaluate(`async (timeoutMS) => {
 		const deadline = Date.now() + timeoutMS
 
@@ -214,10 +216,11 @@ func waitForCanvasRouteResourceProbe(t testing.TB, page playwright.Page) canvasR
 				})
 				step = 'watchSpaceState'
 				const state = await firstStreamValue(space.watchSpaceState({}, abort))
-				const objects = state?.worldContents?.objects ?? []
-				const canvasObject = objects.find((obj) => obj.objectKey === 'canvas-1') ?? null
 				step = 'accessWorldState'
 				const world = cleanup(await space.accessWorldState(true, abort))
+				const listing = await world.listObjects({ limit: 100 }, abort)
+				const objects = (listing.objects ?? []).filter((obj) => !obj.objectKey?.startsWith('types/'))
+				const canvasObject = objects.find((obj) => obj.objectKey === 'canvas-1') ?? null
 				step = 'accessTypedObject'
 				const access = await world.accessTypedObject('canvas-1', abort)
 				const canvasRef = access?.resourceId
@@ -231,7 +234,7 @@ func waitForCanvasRouteResourceProbe(t testing.TB, page playwright.Page) canvasR
 						ready: !!state?.ready,
 						indexPath: state?.settings?.indexPath ?? '',
 						objectKeys: objects.map((obj) => obj.objectKey ?? ''),
-						objectType: canvasObject?.objectType ?? '',
+						objectType: canvasObject?.typeId ?? '',
 					},
 					canvasAccess: {
 						typeId: access.typeId ?? '',

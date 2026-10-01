@@ -244,6 +244,7 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 				let sharedObject = null
 				let body = null
 				let space = null
+				let world = null
 				try {
 					const abort = AbortSignal.timeout(15000)
 					const mounted = await root.mountSessionByIdx({ sessionIdx }, abort)
@@ -255,6 +256,8 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 					const { Space } = await import('@s4wave/sdk/space/space.js')
 					space = new Space(body.resourceRef.createRef(body.id))
 					const state = await firstStreamValue(space.watchSpaceState({}, abort), abort)
+					world = await space.accessWorldState(true, abort)
+					const listing = await world.listObjects({ limit: 100 }, abort)
 					return {
 						skipped: false,
 						session: true,
@@ -263,12 +266,13 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 						spaceState: state ? {
 							ready: !!state.ready,
 							indexPath: state.settings?.indexPath ?? '',
-							objectKeys: (state.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+							objectKeys: (listing.objects ?? []).map((obj) => obj.objectKey ?? '').filter((key) => !key.startsWith('types/')),
 						} : null,
 					}
 				} catch (err) {
 					return { skipped: false, error: String(err?.stack ?? err) }
 				} finally {
+					world?.release?.()
 					space?.release?.()
 					body?.release?.()
 					sharedObject?.release?.()
@@ -448,6 +452,7 @@ func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 				let sharedObject = null
 				let body = null
 				let space = null
+				let world = null
 				let step = 'mountSessionByIdx'
 				try {
 					const abort = AbortSignal.timeout(15000)
@@ -464,6 +469,8 @@ func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 					space = new Space(body.resourceRef.createRef(body.id))
 					step = 'watchSpaceState'
 					const state = await firstStreamValue(space.watchSpaceState({}, abort))
+					world = await space.accessWorldState(true, abort)
+					const listing = await world.listObjects({ limit: 100 }, abort)
 					return {
 						skipped: false,
 						step,
@@ -473,12 +480,13 @@ func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 						spaceState: state ? {
 							ready: !!state.ready,
 							indexPath: state.settings?.indexPath ?? '',
-							objectKeys: (state.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+							objectKeys: (listing.objects ?? []).map((obj) => obj.objectKey ?? '').filter((key) => !key.startsWith('types/')),
 						} : null,
 					}
 				} catch (err) {
 					return { skipped: false, step, error: String(err?.stack ?? err) }
 				} finally {
+					world?.release?.()
 					space?.release?.()
 					body?.release?.()
 					sharedObject?.release?.()

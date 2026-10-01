@@ -55,12 +55,6 @@ describe('SpaceSettingsEditor', () => {
 
   const mockSpaceState: SpaceState = {
     ready: true,
-    worldContents: {
-      objects: [
-        { objectKey: 'object-layout/main', objectType: 'alpha/object-layout' },
-        { objectKey: 'files', objectType: 'unixfs/fs-node' },
-      ],
-    },
     settings: { indexPath: 'object-layout/main', pluginIds: ['spacewave-app'] },
   }
 
@@ -126,7 +120,6 @@ describe('SpaceSettingsEditor', () => {
   it('shows plain text "Not set" when canEdit is false and no indexPath', () => {
     const noIndexState: SpaceState = {
       ready: true,
-      worldContents: { objects: [] },
       settings: {},
     }
     renderEditor(false, noIndexState)
@@ -208,7 +201,6 @@ describe('SpaceSettingsEditor', () => {
     const user = userEvent.setup()
     const matchingState: SpaceState = {
       ready: true,
-      worldContents: { objects: [] },
       settings: { indexPath: 'new/path' },
     }
     renderEditor(true, matchingState)

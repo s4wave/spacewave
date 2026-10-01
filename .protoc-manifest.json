@@ -3891,7 +3891,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "d4033ef2e9ed6fc353fe0e6f950b2142d85e89f31eccfde9e680751e47a898bc",
+      "hash": "7c85cd68d0cf80cc57eab1bae60c2456d7e5dd8fb4beb3e5f8a8b4a1c34b52f9",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",

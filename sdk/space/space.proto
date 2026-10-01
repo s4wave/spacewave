@@ -104,8 +104,6 @@ message WatchSpaceStateRequest {}
 message SpaceState {
   // Ready indicates the state is ready, false for loading.
   bool ready = 1;
-  // WorldContents is the list of world objects.
-  .space.world.WorldContents world_contents = 2;
   // Settings is the space settings object, if it exists.
   .space.world.SpaceSettings settings = 3;
   // TransformInfo contains the space's encryption and compression config.

@@ -1914,10 +1914,14 @@ func assertDirectSharedObjectRouteSpaceState(t testing.TB, page playwright.Page)
 				cleanup,
 			})
 			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			const world = cleanup(await mountedResources.space.accessWorldState(true, abort))
+			const listing = await world.listObjects({ limit: 100 }, abort)
 			return {
 				ready: !!state?.ready,
 				indexPath: state?.settings?.indexPath ?? '',
-				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+				objectKeys: (listing.objects ?? [])
+					.map((obj) => obj.objectKey ?? '')
+					.filter((key) => !key.startsWith('types/')),
 			}
 		} catch (err) {
 			return { error: String(err?.stack ?? err) }
@@ -1995,10 +1999,14 @@ func assertDirectSpaceRouteSpaceState(t testing.TB, page playwright.Page) {
 				cleanup,
 			})
 			const state = await firstStreamValue(mountedResources.space.watchSpaceState({}, abort))
+			const world = cleanup(await mountedResources.space.accessWorldState(true, abort))
+			const listing = await world.listObjects({ limit: 100 }, abort)
 			return {
 				ready: !!state?.ready,
 				indexPath: state?.settings?.indexPath ?? '',
-				objectKeys: (state?.worldContents?.objects ?? []).map((obj) => obj.objectKey ?? ''),
+				objectKeys: (listing.objects ?? [])
+					.map((obj) => obj.objectKey ?? '')
+					.filter((key) => !key.startsWith('types/')),
 			}
 		} catch (err) {
 			return { error: String(err?.stack ?? err) }

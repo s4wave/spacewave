@@ -727,17 +727,6 @@ func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4
 	}
 	writeFields(w, fields)
 	if state.GetReady() {
-		if wc := state.GetWorldContents(); wc != nil {
-			objs := wc.GetObjects()
-			if len(objs) > 0 {
-				w.WriteString("\nObjects (" + strconv.Itoa(len(objs)) + ")\n")
-				rows := [][]string{{"KEY", "TYPE"}}
-				for _, obj := range objs {
-					rows = append(rows, []string{obj.GetObjectKey(), obj.GetObjectType()})
-				}
-				writeTable(w, "  ", rows)
-			}
-		}
 		if settings := state.GetSettings(); settings != nil {
 			plugins := settings.GetPluginIds()
 			if len(plugins) > 0 {

@@ -166,14 +166,6 @@ func (sa *SpaceArgs) RunStatus(c *appcli.Context) error {
 		}
 	}
 
-	wc := state.GetWorldContents()
-	if wc != nil {
-		objs := wc.GetObjects()
-		w.WriteString("world objects (" + strconv.Itoa(len(objs)) + "):\n")
-		for _, obj := range objs {
-			w.WriteString("  - key=" + obj.GetObjectKey() + " type=" + obj.GetObjectType() + "\n")
-		}
-	}
 	return nil
 }
 
