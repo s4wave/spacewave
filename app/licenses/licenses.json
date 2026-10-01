@@ -790,7 +790,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260927071131-f10d98b6e172",
+      "version": "v0.0.0-20261001005900-847bb6c1d9ea",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.6-0.20260927093214-06e46d81f006",
+      "version": "v0.53.6-0.20261001132229-9749f0cb054e",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -941,7 +941,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.52.2-0.20260929200700-ec671dd793c6",
+      "version": "v0.52.2-0.20261001132444-cebbd1012df3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1525,7 +1525,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.3.3",
+      "version": "v0.3.4-0.20261001131925-3ae331641901",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
