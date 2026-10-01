@@ -29,9 +29,9 @@ type soEngineWriteTx struct {
 	storageGeneration uint64
 	// unlockWriteMtx releases the write mutex once, including repeated Discard calls.
 	unlockWriteMtx func()
-	// candidateRoot is the committed candidate World root that authority did
-	// not accept, released by Discard. Nil once authority accepts it or while
-	// the outcome is unknown.
+	// candidateRoot is the committed candidate World root whose staging
+	// ownership Discard releases. Nil while the outcome is unknown and while
+	// an accepted candidate waits for the accepted head to hold it.
 	candidateRoot *block.BlockRef
 }
 
@@ -205,8 +205,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
-	// Refresh the base after a stale rejection. Keep the candidate root when
-	// authority accepted it unchanged.
+	// Refresh the base after a stale rejection.
 	if err := finalizationDecisionError(decision); err != nil {
 		if errors.Is(err, coord.ErrStaleGeneration) {
 			if refreshErr := t.eng.refreshFinalizationWorldRoot(ctx); refreshErr != nil {
@@ -215,11 +214,12 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 		return err
 	}
+
+	// Update the local state only after SharedObject authority accepts the
+	// root. An accepted candidate stays owned until the accepted head holds it.
 	if decision.GetAcceptedWorldRoot().GetRootRef().EqualVT(nroot) {
 		t.candidateRoot = nil
 	}
-
-	// Update the local state only after SharedObject authority accepts the root.
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/update-engine-state")
 		err := t.eng.updateEngineState(taskCtx, decision.GetAcceptedWorldRoot())
@@ -228,6 +228,11 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// The accepted head holds the World now, so release the candidate's
+	// staging ownership. A write that left the World unchanged commits the
+	// current head again, and installing an unchanged head keeps that edge.
+	t.candidateRoot = nroot
 
 	// Wake maintenance only after the accepted World is visible locally.
 	t.eng.c.notifyWrite()
@@ -251,7 +256,7 @@ func (t *soEngineWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, 
 
 // Discard cancels the transaction.
 // If called after Commit, releases the payloads of its operations and the
-// candidate root authority did not accept.
+// staging ownership of its candidate root.
 // Cannot return an error.
 // Can be called unlimited times.
 // Always call Discard or Commit when done with a tx.
