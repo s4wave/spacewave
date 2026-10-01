@@ -230,6 +230,7 @@ func TestGoScriptDedicatedWorkerLocalBundleSmoke(t *testing.T) {
 }
 
 func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
+	// Run only against the GoScript release build.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		t.Fatal(err)
@@ -238,12 +239,14 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		t.Skipf("set %s=true to run GoScript ServiceWorker plugin dist module probe", E2EReleaseWasmGoScriptEnv)
 	}
 
+	// Open the release root with HTTP tracing.
 	t.Setenv("E2E_RELEASE_WASM_HTTP_TRACE", "1")
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
 	}
 
+	// Boot the production bundle into the quickstart Drive route.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err = page.Evaluate(`() => {
@@ -252,11 +255,15 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start root production goscript bundle: %v", err)
 	}
+
+	// Wait for the probed plugins to run.
 	waitForLiveApp(t, page)
 	waitForPluginWorkersRunning(t, page, []string{
 		"plugin/spacewave-core",
 		"plugin/spacewave-launcher",
 	})
+
+	// Reach the quickstart Drive frame.
 	t.Log("drive gate: wait for quickstart route")
 	waitForQuickstartAppRoute(t, page)
 	t.Log("drive gate: complete intro if present")
@@ -269,6 +276,8 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart drive frame: %v", err)
 	}
+
+	// Exercise Drive so the plugins serve real traffic before the probe.
 	t.Log("drive gate: wait for content ready")
 	if _, quickstartErr := waitForQuickstartDriveContentReady(t, page); quickstartErr != "" {
 		t.Fatalf("wait for quickstart drive content ready: %s", quickstartErr)
@@ -278,6 +287,9 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		t.Fatalf("exercise quickstart drive golden path: %s", quickstartErr)
 	}
 
+	// Fetch each plugin entry and its relative module graph through the
+	// ServiceWorker. The entry is a small loader that imports the GoScript
+	// program chunks, so the size floor applies to the whole graph.
 	raw, err := page.Evaluate(`async (args) => {
 		await navigator.serviceWorker.ready
 		const controllerURL = navigator.serviceWorker.controller?.scriptURL || ''
@@ -288,49 +300,67 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		const hasDefaultExport = (text) =>
 			/\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}\s*;?\s*$/.test(text) ||
 			/\bexport\s+default\b/.test(text)
+		const relativeImports = (text, baseURL) =>
+			Array.from(
+				text.matchAll(/\b(?:from|import)\s*\(?\s*["'\x60](\.{1,2}\/[^"'\x60]+\.mjs)["'\x60]/g),
+				(match) => new URL(match[1], baseURL).href,
+			)
 		const failures = []
-		const results = []
-		const recordFailure = (result, reason) => {
-			failures.push({ ...result, reason })
+		const graphs = []
+
+		// fetchModule returns one module body, or '' after recording a failure.
+		const fetchModule = async (url, round) => {
+			const requestURL = url + '?sw_module_integrity=' + round + '-' + Date.now()
+			const response = await fetch(requestURL, { cache: 'reload' })
+			const text = await response.text()
+			const result = {
+				path: new URL(url).pathname,
+				round,
+				status: response.status,
+				contentType: response.headers.get('content-type') ?? '',
+				bodyLength: text.length,
+				head: text.slice(0, 120),
+			}
+			if (!response.ok) {
+				failures.push({ ...result, reason: 'non-OK response' })
+				return ''
+			}
+			if (/^\s*</.test(text)) {
+				failures.push({ ...result, reason: 'response looks like HTML instead of JavaScript' })
+				return ''
+			}
+			return text
 		}
 
 		for (let round = 0; round < args.rounds; round++) {
 			for (const path of args.paths) {
-				const requestURL =
-					path +
-					(path.includes('?') ? '&' : '?') +
-					'sw_module_integrity=' +
-					round +
-					'-' +
-					Date.now()
-				const response = await fetch(requestURL, { cache: 'reload' })
-				const text = await response.text()
-				const result = {
-					path,
-					requestURL,
-					round,
-					status: response.status,
-					ok: response.ok,
-					contentType: response.headers.get('content-type') ?? '',
-					contentLength: response.headers.get('content-length') ?? '',
-					bodyLength: text.length,
-					hasDefaultExport: hasDefaultExport(text),
-					head: text.slice(0, 120),
-					tail: text.slice(-180),
-				}
-				results.push(result)
-				if (!response.ok) {
-					recordFailure(result, 'non-OK response')
+				const entryURL = new URL(path, location.origin).href
+				const entry = await fetchModule(entryURL, round)
+				if (!entry) {
 					continue
 				}
-				if (text.length < args.minBodyLength) {
-					recordFailure(result, 'body shorter than expected minimum')
+				if (!hasDefaultExport(entry)) {
+					failures.push({ path, round, tail: entry.slice(-180), reason: 'module body has no default export shape' })
 				}
-				if (/^\s*</.test(text)) {
-					recordFailure(result, 'response looks like HTML instead of JavaScript')
+
+				const seen = new Set([entryURL])
+				const queue = relativeImports(entry, entryURL)
+				let graphLength = entry.length
+				while (queue.length) {
+					const url = queue.shift()
+					if (seen.has(url)) {
+						continue
+					}
+					seen.add(url)
+					const text = await fetchModule(url, round)
+					graphLength += text.length
+					queue.push(...relativeImports(text, url))
 				}
-				if (!result.hasDefaultExport) {
-					recordFailure(result, 'module body has no default export shape')
+
+				const graph = { path, round, moduleCount: seen.size, graphLength }
+				graphs.push(graph)
+				if (graphLength < args.minGraphLength) {
+					failures.push({ ...graph, reason: 'module graph shorter than expected minimum' })
 				}
 			}
 		}
@@ -338,25 +368,17 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		if (failures.length) {
 			throw new Error(
 				'ServiceWorker plugin dist module integrity probe failed: ' +
-					JSON.stringify(
-						{
-							controllerURL,
-							failures,
-							resultCount: results.length,
-						},
-						null,
-						2,
-					),
+					JSON.stringify({ controllerURL, failures, graphs }, null, 2),
 			)
 		}
-		return { controllerURL, results }
+		return { controllerURL, graphs }
 	}`, map[string]any{
 		"paths": []string{
 			"/b/pd/spacewave-core/spacewave-core.mjs",
 			"/b/pd/spacewave-launcher/spacewave-launcher.mjs",
 		},
-		"rounds":        3,
-		"minBodyLength": 1024 * 1024,
+		"rounds":         3,
+		"minGraphLength": 1024 * 1024,
 	})
 	if err != nil {
 		dumpPageState(t, page)
