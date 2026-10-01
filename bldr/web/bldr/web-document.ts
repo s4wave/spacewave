@@ -2057,16 +2057,25 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       reason: lost.reason,
     })
     this.clearResumeReadyState('dedicated-runtime-host-lost')
+
+    // Attach to the next elected host. The ServiceWorker holds the open until
+    // a host accepts it; if this document wins the election instead, the
+    // promotion cancels the pending attach and connects its own worker.
     if ('rerouteChannel' in this.webRuntimeClient) {
       void this.webRuntimeClient
         .rerouteChannel({ reconnect: false, runtimeLost: true })
+        .then(() => {
+          this.startWebRuntimeConnection()
+        })
         .catch((err: unknown) => {
           console.warn(
             'WebDocument: failed to reroute DedicatedWorker host',
             err,
           )
         })
+      return
     }
+    this.startWebRuntimeConnection()
   }
 
   // openWebRuntimeClient attempts to open a message port with the WebRuntime.

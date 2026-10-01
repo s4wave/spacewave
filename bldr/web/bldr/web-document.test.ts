@@ -1265,11 +1265,13 @@ describe('WebDocument plugin generation state', () => {
     expect(openClientChannel).toHaveBeenCalledWith(init)
   })
 
-  it('reroutes attached DedicatedWorker documents when the host relay closes', () => {
+  it('reattaches DedicatedWorker documents when the host relay closes', async () => {
     const doc = buildTestWebDocument()
     doc.runtimeConnected = true
     doc.resumeReady = true
+    doc.webDocumentLivenessLockState = 'held'
     const rerouteChannel = vi.fn().mockResolvedValue(undefined)
+    const waitConn = vi.fn().mockResolvedValue(undefined)
     doc.dedicatedRuntimeHost = {
       role: 'attached',
       connectedHostDocumentId: 'host-document',
@@ -1278,6 +1280,7 @@ describe('WebDocument plugin generation state', () => {
     doc.webRuntimeClient = {
       openStream: vi.fn(),
       rerouteChannel,
+      waitConn,
     }
 
     doc.onWebDocumentClientMessage({
@@ -1297,6 +1300,8 @@ describe('WebDocument plugin generation state', () => {
       reconnect: false,
       runtimeLost: true,
     })
+    await vi.waitFor(() => expect(waitConn).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(doc.runtimeConnected).toBe(true))
   })
 
   it('ignores host loss from an obsolete DedicatedWorker route', () => {

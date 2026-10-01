@@ -1575,28 +1575,28 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 		}
 	}
 
-	// Open a document that begins attaching to the host.
-	pageFail := testHarness.newPageInContext(t, ctx)
-	if _, err := pageFail.Goto(retainedURL); err != nil {
-		t.Fatalf("goto retained URL for relay-failure proof: %v", err)
+	// Open a document attached to the elected host.
+	pageAttached := testHarness.newPageInContext(t, ctx)
+	if _, err := pageAttached.Goto(retainedURL); err != nil {
+		t.Fatalf("goto retained URL for host-loss proof: %v", err)
 	}
-	waitForPrerenderRootOrLiveApp(t, pageFail)
-	waitForBootFunction(t, pageFail)
-	waitForLiveApp(t, pageFail)
-	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-start")
+	waitForPrerenderRootOrLiveApp(t, pageAttached)
+	waitForBootFunction(t, pageAttached)
+	waitForLiveApp(t, pageAttached)
+	waitForStartupMark(t, pageAttached, "dedicated-host.attach-open-ready")
 
-	// Close the host and check the attaching document fails over without a cold boot.
+	// Close the host and check the survivor is promoted.
 	if err := pageA.Close(); err != nil {
 		t.Fatalf("close elected host document: %v", err)
 	}
-	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-failed")
-	assertRelayFailureStayedCold(t, pageFail)
-
-	// Check the survivor is promoted and keeps the Shell inventory.
 	promotionGeneration := assertWarmPromotion(t, pageB, hostGeneration)
 	assertWarmPresentation(t, pageB, promotionGeneration, "", false)
-	waitForShellRecordCount(t, pageFail, 6)
-	expectedInventory := browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageFail))
+
+	// Check the attached document rejoins the promoted host without a cold boot
+	// and keeps the Shell inventory.
+	assertReattachedWithoutColdBoot(t, pageAttached, promotionGeneration)
+	waitForShellRecordCount(t, pageAttached, 6)
+	expectedInventory := browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageAttached))
 	if !sameStringSet(browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageB)), expectedInventory) {
 		t.Fatalf("Shell inventory did not survive host loss/promotion")
 	}
@@ -2575,40 +2575,27 @@ func assertWarmPromotion(t *testing.T, page playwright.Page, oldGeneration strin
 	return generation
 }
 
-func assertRelayFailureStayedCold(t *testing.T, page playwright.Page) {
+// assertReattachedWithoutColdBoot waits for an attached document to rejoin the
+// promoted host generation and checks it never started a runtime worker.
+func assertReattachedWithoutColdBoot(t *testing.T, page playwright.Page, generation string) {
+	// Wait for an attach to the promoted generation.
 	t.Helper()
+	_, err := page.WaitForFunction(`(generation) =>
+		(globalThis.__swStartupMarks ?? []).some((mark) =>
+			mark.label === 'dedicated-host.attach-open-ready' &&
+			mark.detail?.hostGeneration === generation)`,
+		generation, playwright.PageWaitForFunctionOptions{
+			Timeout: playwright.Float(browserWaitMS),
+		})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for attached document to rejoin promoted host %q: %v", generation, err)
+	}
 
-	marks := readComposedStartupMarks(t, page)
-	var failed composedStartupMark
-	for _, mark := range slices.Backward(marks) {
-		if mark.Label == "dedicated-host.attach-open-failed" {
-			failed = mark
-			break
-		}
-	}
-	if failed.Label == "" {
-		t.Fatalf("relay failure mark is missing")
-	}
-	var start composedStartupMark
-	for _, mark := range slices.Backward(marks) {
-		if mark.Label == "dedicated-host.attach-open-start" &&
-			mark.Sequence < failed.Sequence {
-			start = mark
-			break
-		}
-	}
-	if start.Label == "" {
-		t.Fatalf("relay failure has no preceding attach-open-start: %#v", marks)
-	}
-	for _, mark := range marks {
-		if mark.Sequence <= start.Sequence || mark.Sequence > failed.Sequence {
-			continue
-		}
-		if mark.Label == "dedicated-host.attach-open-ready" ||
-			mark.Label == "runtime.connected" ||
-			mark.Label == "webview.neutral-frame" ||
-			mark.Label == "webview.revealed" {
-			t.Fatalf("relay failure was silently accepted as warm presentation: start=%#v failed=%#v mark=%#v", start, failed, mark)
+	// An attached document relays to the host; a worker of its own is a cold boot.
+	for _, mark := range readComposedStartupMarks(t, page) {
+		if mark.Label == "runtime.worker-created" {
+			t.Fatalf("attached document cold-booted a runtime worker after host loss: %#v", mark)
 		}
 	}
 }
