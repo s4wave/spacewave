@@ -14,7 +14,8 @@ import (
 // StoreManifestOpId is the operation ID for StoreManifest.
 var StoreManifestOpId = "bldr/manifest/store"
 
-// ExStoreManifestOp stores a manifest to an object key.
+// ExStoreManifestOp stores a manifest to an object key and links it from
+// linkObjKeys. It applies no operation when the World already holds both.
 func ExStoreManifestOp(
 	ctx context.Context,
 	ws world.WorldState,
@@ -23,13 +24,51 @@ func ExStoreManifestOp(
 	linkObjKeys []string,
 	manifestRef *manifest.ManifestRef,
 ) error {
+	// Skip the World write when the manifest and its links are already stored.
 	op := NewStoreManifestOp(
 		objectKey,
 		linkObjKeys,
 		manifestRef,
 	)
-	_, _, err := ws.ApplyWorldOp(ctx, op, sender)
+	changes, err := op.ChangesWorld(ctx, ws)
+	if err != nil || !changes {
+		return err
+	}
+
+	// Store the manifest and link it.
+	_, _, err = ws.ApplyWorldOp(ctx, op, sender)
 	return err
+}
+
+// ChangesWorld reports whether applying the op would change ws. It reads ws
+// only, so a store of an already stored manifest needs no write transaction.
+func (o *StoreManifestOp) ChangesWorld(ctx context.Context, ws world.WorldState) (bool, error) {
+	// Check the manifest object and its root ref.
+	obj, objOk, err := ws.GetObject(ctx, o.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return false, err
+	}
+	if !objOk {
+		return true, nil
+	}
+	replace, err := manifestRootRefReplaces(ctx, ws, obj, o.GetManifestRef().GetManifestRef())
+	if err != nil || replace {
+		return replace, err
+	}
+
+	// Check each link from a linked object to the manifest.
+	manifestID := o.GetManifestRef().GetMeta().GetManifestId()
+	for _, objKey := range o.GetLinkObjectKeys() {
+		quads, err := ws.LookupGraphQuads(ctx, NewManifestQuad(objKey, o.GetObjectKey(), manifestID), 1)
+		if err != nil {
+			return false, err
+		}
+		if len(quads) == 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // NewStoreManifestOp constructs a new StoreManifestOp block.

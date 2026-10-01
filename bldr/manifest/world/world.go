@@ -359,35 +359,16 @@ func SetManifest(
 		return nil, false, err
 	}
 
-	// Update an existing object's root ref.
+	// Update an existing object's root ref when it changes the manifest.
 	if objOk {
-		var currRootRef *bucket.ObjectRef
-		currRootRef, _, err = obj.GetRootRef(ctx)
+		var replace bool
+		replace, err = manifestRootRefReplaces(ctx, ws, obj, rootRef)
 		if err != nil {
 			return nil, false, err
 		}
-		if !currRootRef.EqualVT(rootRef) {
-			if ManifestObjectRefsSameExecutable(currRootRef, rootRef) {
-				// A same-executable ref changes the object only when it moves
-				// the manifest from an external bucket to a local one.
-				var worldBucketID string
-				err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-					worldBucketID = bls.GetOpArgs().GetBucketId()
-					return nil
-				})
-				if err != nil {
-					return nil, false, err
-				}
-				currLocal := currRootRef.GetBucketId() == "" || currRootRef.GetBucketId() == worldBucketID
-				nextLocal := rootRef.GetBucketId() == "" || rootRef.GetBucketId() == worldBucketID
-				if !currLocal && nextLocal {
-					_, err = obj.SetRootRef(ctx, rootRef)
-					changed = err == nil
-				}
-			} else {
-				_, err = obj.SetRootRef(ctx, rootRef)
-				changed = err == nil
-			}
+		if replace {
+			_, err = obj.SetRootRef(ctx, rootRef)
+			changed = err == nil
 		}
 	} else {
 		// Create the object and its manifest type ref.
@@ -401,6 +382,42 @@ func SetManifest(
 		}
 	}
 	return nil, changed, err
+}
+
+// manifestRootRefReplaces reports whether storing rootRef replaces the root ref
+// of the existing manifest object obj. A different executable replaces it. A
+// same-executable ref replaces it only when it moves the manifest from an
+// external bucket into the World bucket.
+func manifestRootRefReplaces(
+	ctx context.Context,
+	ws world.WorldState,
+	obj world.ObjectState,
+	rootRef *bucket.ObjectRef,
+) (bool, error) {
+	// Compare the stored ref with rootRef.
+	currRootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return false, err
+	}
+	if currRootRef.EqualVT(rootRef) {
+		return false, nil
+	}
+	if !ManifestObjectRefsSameExecutable(currRootRef, rootRef) {
+		return true, nil
+	}
+
+	// Replace a same-executable ref only to move it into the World bucket.
+	var worldBucketID string
+	err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		worldBucketID = bls.GetOpArgs().GetBucketId()
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	currLocal := currRootRef.GetBucketId() == "" || currRootRef.GetBucketId() == worldBucketID
+	nextLocal := rootRef.GetBucketId() == "" || rootRef.GetBucketId() == worldBucketID
+	return !currLocal && nextLocal, nil
 }
 
 // LookupManifest looks up a Manifest in the world.
