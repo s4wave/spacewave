@@ -48,7 +48,6 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 	trace.Logf(ctx, "target-offset", "%d", off)
 	trace.Logf(ctx, "target-end", "%d", readEnd)
 	trace.Logf(ctx, "exact", "%t", exact)
-
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -95,7 +94,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		notifyStart()
 	}
 	if closed {
-		return nil, context.Canceled
+		return nil, ErrPackReaderClosed
 	}
 	if resident != nil {
 		trace.Log(ctx, "result", "resident")
@@ -122,7 +121,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		return nil, ctx.Err()
 	case <-e.ctx.Done():
 		trace.Log(ctx, "result", "owner-canceled")
-		return nil, context.Canceled
+		return nil, ErrPackReaderClosed
 	case <-load.done:
 		if load.err != nil {
 			trace.Log(ctx, "result", "wait-error")
@@ -140,22 +139,26 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 // startFetch runs one transport request under the PackReader lifetime.
 func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 	startOwnerWork(func() {
+		// Hold the reader open until this job finishes.
 		defer e.finishOwnerWork()
 
+		// Fetch the range under the reader's lifetime.
 		data, err := e.transport.Fetch(e.ctx, key.off, key.size)
 		var sp *span
 		if len(data) != 0 {
 			sp = newSpan(key.off, data)
 		}
 
+		// Publish the fetched span unless the reader closed during the fetch.
 		var notifyDone func()
 		var writeback func()
 		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// A closed reader drops the response; otherwise cache the span.
 			budget = e.budget
 			if e.closed {
 				sp = nil
-				err = context.Canceled
+				err = ErrPackReaderClosed
 			}
 			if err == nil && sp != nil {
 				e.insertSpanLocked(sp)

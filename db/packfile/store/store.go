@@ -275,9 +275,15 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 	return lookup.hit, err
 }
 
-// GetBlockExistsBatch checks whether each block exists.
+// GetBlockExistsBatch checks whether each block exists. A manifest change
+// that closes a probed reader restarts the batch on the new catalog.
 func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	return s.SnapshotManifest().GetBlockExistsBatch(ctx, refs)
+	for {
+		out, err := s.SnapshotManifest().GetBlockExistsBatch(ctx, refs)
+		if !errors.Is(err, ErrPackReaderClosed) {
+			return out, err
+		}
+	}
 }
 
 // getBlockExistsBatch shares one catalog snapshot across prefetch and all probes.
@@ -396,13 +402,23 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 // probePacks visits the engine of each pack whose bloom filter may hold key,
 // in manifest order, until visit reports a hit. It accumulates the probe into
 // lookup.
+//
+// A reader closes during a probe only when a manifest change removed its pack,
+// such as a compaction merging it or a reclaim dropping it. The probe then
+// restarts on the catalog that replaced it, which lists the merged pack or
+// omits the dropped one. Store shutdown ends the restarts with
+// ErrPackfileStoreClosed.
 func (s *PackfileStore) probePacks(
 	key []byte,
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
 ) error {
-
-	return s.probeCatalog(s.SnapshotManifest(), key, lookup, visit)
+	for {
+		err := s.probeCatalog(s.SnapshotManifest(), key, lookup, visit)
+		if !errors.Is(err, ErrPackReaderClosed) {
+			return err
+		}
+	}
 }
 
 // probeCatalog visits a stable catalog without holding a store lock during I/O.
