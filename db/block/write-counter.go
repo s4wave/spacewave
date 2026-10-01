@@ -43,12 +43,16 @@ func (c *WriteCounter) Snapshot() WriteCounterSnapshot {
 	}
 }
 
-// recordWriteCounter records one encoded block submitted for storage.
-func recordWriteCounter(ctx context.Context, bytes int) {
+// RecordWrite records one encoded block submitted for storage on the
+// counter attached to ctx, if any.
+func RecordWrite(ctx context.Context, bytes int) {
+	// Skip when no counter is attached.
 	counter, _ := ctx.Value(writeCounterContextKey{}).(*WriteCounter)
 	if counter == nil {
 		return
 	}
+
+	// Add the block and its bytes.
 	counter.count.Add(1)
 	counter.bytes.Add(nonNegativeReadBytes(bytes))
 }

@@ -118,17 +118,23 @@ func (a *chunkAppender) putOldest() error {
 // drains in bounded batches, one durable commit each, and the transaction
 // write drains the rest before the root that references them.
 func (a *chunkAppender) put(chk *pendingChunk) error {
+	// Fail with the chunk's encode error.
 	if chk.err != nil {
 		return chk.err
 	}
+
+	// Stage the chunk as a content block and count it as written.
 	opts := a.tx.GetPutOpts().CloneVT()
 	opts.ForceBlockRef = nil
 	opts.Refs = nil
 	staged := a.tx.StageWrites(a.ctx, a.tx.GetStoreOps())
+	block.RecordWrite(a.ctx, len(chk.data))
 	ref, _, err := staged.PutBlock(a.ctx, chk.data, opts)
 	if err != nil {
 		return err
 	}
+
+	// Record the chunk in the metrics and the chunk index.
 	recordMetric(a.ctx, Metric{
 		Stage:      "chunk-direct-put",
 		ChunkBytes: int(chk.size), //nolint:gosec // chunk sizes are bounded by the chunker buffer.

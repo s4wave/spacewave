@@ -584,7 +584,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							// Count the block, then write it to the buffered store.
 							writeCtx, writeTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/put-block")
 							putBlocks.Add(1)
-							recordWriteCounter(ctx, len(dat))
+							RecordWrite(ctx, len(dat))
 							_, _, err := buffered.putBlock(writeCtx, dat, putOpts, false)
 							writeTask.End()
 							if err != nil {
