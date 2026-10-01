@@ -91,6 +91,7 @@ import { PinUnlockOverlay } from './PinUnlockOverlay.js'
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
 import { SessionStorageStatsProvider } from './SessionStorageStatsContext.js'
+import { SessionBackgroundPluginsButton } from './SessionBackgroundPluginsButton.js'
 import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
 import { SessionSelfEnrollmentStatusProvider } from './SessionSelfEnrollmentStatusContext.js'
 import {
@@ -458,6 +459,7 @@ export function SessionContainer(props: SessionContainerProps) {
               >
                 <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
                   <SessionSelfEnrollmentStatusButton />
+                  <SessionBackgroundPluginsButton />
                   <SessionSyncStatusButton />
                   <AgentConnectButton />
                   <SystemStatusButton />

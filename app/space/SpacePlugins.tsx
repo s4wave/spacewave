@@ -3,10 +3,13 @@ import { useWatchStateRpc } from '@aptre/bldr-react'
 import { LuLoaderCircle, LuPlus, LuPuzzle, LuTrash2, LuX } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
+import { useBackgroundPlugins } from '@s4wave/app/session/useBackgroundPlugins.js'
 import {
   SpaceContentsContext,
   SpaceContext,
 } from '@s4wave/web/contexts/contexts.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { PluginLifecycleBadge } from '@s4wave/web/sdk/app/lifecycle.js'
 import { isValidSpacePluginId } from '@s4wave/core/space/world/world.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -68,6 +71,31 @@ function catalogSuggestions(
   return Array.from(catalogById.values())
     .filter((entry) => !installedIds.has(entry.id))
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// BackgroundChoice is the saved background choice for an installed plugin
+// that can run in the background.
+type BackgroundChoice = 'unconfirmed' | 'running' | 'suspended'
+
+// backgroundChoices maps each background plugin of the Space to the Session's
+// saved choice for it.
+function backgroundChoices(
+  available: NonNullable<SpaceContentsState['availablePlugins']>,
+  entries: BackgroundPlugin[],
+  spaceId: string,
+): Map<string, BackgroundChoice> {
+  const choices = new Map<string, BackgroundChoice>()
+  for (const plugin of available) {
+    if (plugin.background && plugin.pluginId) {
+      choices.set(plugin.pluginId, 'unconfirmed')
+    }
+  }
+  for (const entry of entries) {
+    const id = entry.pluginId ?? ''
+    if (entry.spaceId !== spaceId || !choices.has(id)) continue
+    choices.set(id, entry.suspended ? 'suspended' : 'running')
+  }
+  return choices
 }
 
 interface SpacePluginAddPanelProps {
@@ -261,20 +289,30 @@ interface InstalledPluginListProps {
   plugins: NonNullable<SpaceContentsState['plugins']>
   pending: string
   confirmingRemoveId: string
+  background: Map<string, BackgroundChoice>
+  askingBackgroundId: string
   onRequestRemove: (pluginId: string) => void
   onCancelRemove: () => void
   onConfirmRemove: (pluginId: string) => void
+  onAskBackground: (pluginId: string) => void
+  onDismissBackground: () => void
+  onAllowBackground: (pluginId: string) => void
 }
 
-// InstalledPluginList renders plugin lifecycle state and the inline removal
-// confirmation without owning mutation state.
+// InstalledPluginList renders plugin lifecycle state, the background choice,
+// and the inline removal confirmation without owning mutation state.
 function InstalledPluginList({
   plugins,
   pending,
   confirmingRemoveId,
+  background,
+  askingBackgroundId,
   onRequestRemove,
   onCancelRemove,
   onConfirmRemove,
+  onAskBackground,
+  onDismissBackground,
+  onAllowBackground,
 }: InstalledPluginListProps) {
   if (plugins.length === 0) {
     return (
@@ -294,6 +332,7 @@ function InstalledPluginList({
         const detail = plugin.detail ?? ''
         const confirming = confirmingRemoveId === id
         const isPending = pending === id
+        const choice = background.get(id)
 
         if (confirming) {
           return (
@@ -330,6 +369,41 @@ function InstalledPluginList({
           )
         }
 
+        if (askingBackgroundId === id && choice === 'unconfirmed') {
+          return (
+            <div
+              key={id}
+              className="border-brand/30 bg-brand/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+            >
+              <span className="text-foreground min-w-0 flex-1 text-xs select-none">
+                {meta.name} can keep running while this Space is closed. Allow?
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  variant="brandOutline"
+                  size="sm"
+                  onClick={() => onAllowBackground(id)}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                  ) : (
+                    'Allow'
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDismissBackground}
+                  disabled={isPending}
+                >
+                  Not now
+                </Button>
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div
             key={id}
@@ -349,6 +423,26 @@ function InstalledPluginList({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {choice === 'unconfirmed' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAskBackground(id)}
+                  disabled={!!pending}
+                >
+                  Allow background
+                </Button>
+              )}
+              {choice === 'running' && (
+                <span className="bg-brand/10 text-brand rounded-full px-2 py-0.5 text-xs">
+                  Background
+                </span>
+              )}
+              {choice === 'suspended' && (
+                <span className="bg-foreground/5 text-foreground-alt rounded-full px-2 py-0.5 text-xs">
+                  Suspended
+                </span>
+              )}
               <PluginLifecycleBadge plugin={plugin} />
               <button
                 type="button"
@@ -372,12 +466,15 @@ function InstalledPluginList({
 
 // SpacePlugins renders the plugin management UI for a space: the installed
 // plugins with lifecycle badges, an add-by-manifest-ID flow with known-plugin
-// suggestions, and a per-row remove with inline confirmation.
+// suggestions, a per-row remove with inline confirmation, and the background
+// prompt for plugins that can run while the Space is closed.
 export function SpacePlugins() {
   const spaceResource = SpaceContext.useContext()
   const space = useResourceValue(spaceResource)
   const contentsResource = SpaceContentsContext.useContext()
   const contents = useResourceValue(contentsResource)
+  const { spaceId } = SpaceContainerContext.useContext()
+  const backgroundPlugins = useBackgroundPlugins()
 
   const contentsState = useWatchStateRpc(
     useCallback(
@@ -393,6 +490,12 @@ export function SpacePlugins() {
   const plugins = contentsState?.plugins ?? []
   const installedIds = new Set(plugins.map((plugin) => plugin.pluginId ?? ''))
   const requestedIds = contentsState?.requestedPluginIds ?? []
+  const available = contentsState?.availablePlugins ?? []
+  const background = backgroundChoices(
+    available,
+    backgroundPlugins.entries,
+    spaceId,
+  )
 
   const [adding, setAdding] = useState(false)
   const [draftId, setDraftId] = useState('')
@@ -402,6 +505,9 @@ export function SpacePlugins() {
   // confirmingRemoveId holds the plugin ID whose remove row is showing the
   // inline confirm affordance.
   const [confirmingRemoveId, setConfirmingRemoveId] = useState('')
+  // askingBackgroundId holds the plugin ID whose row asks whether it may keep
+  // running while the Space is closed.
+  const [askingBackgroundId, setAskingBackgroundId] = useState('')
 
   const handleAdd = useCallback(
     async (pluginId: string) => {
@@ -411,13 +517,16 @@ export function SpacePlugins() {
         await space.addSpacePlugin(pluginId)
         setDraftId('')
         setAdding(false)
+        if (background.get(pluginId) === 'unconfirmed') {
+          setAskingBackgroundId(pluginId)
+        }
       } catch (err) {
         toast.error('Failed to add plugin', { description: String(err) })
       } finally {
         setPending('')
       }
     },
-    [space, pending],
+    [space, pending, background],
   )
 
   const handleRemove = useCallback(
@@ -427,13 +536,35 @@ export function SpacePlugins() {
       try {
         await space.removeSpacePlugin(pluginId)
         setConfirmingRemoveId('')
+        const choice = background.get(pluginId)
+        if (choice === 'running' || choice === 'suspended') {
+          await backgroundPlugins.set(spaceId, pluginId, false, false)
+        }
       } catch (err) {
         toast.error('Failed to remove plugin', { description: String(err) })
       } finally {
         setPending('')
       }
     },
-    [space, pending],
+    [space, pending, background, backgroundPlugins, spaceId],
+  )
+
+  const handleAllowBackground = useCallback(
+    async (pluginId: string) => {
+      if (pending) return
+      setPending(pluginId)
+      try {
+        await backgroundPlugins.set(spaceId, pluginId, true, false)
+        setAskingBackgroundId('')
+      } catch (err) {
+        toast.error('Failed to allow background', {
+          description: String(err),
+        })
+      } finally {
+        setPending('')
+      }
+    },
+    [pending, backgroundPlugins, spaceId],
   )
 
   const trimmedDraft = draftId.trim()
@@ -449,7 +580,6 @@ export function SpacePlugins() {
           : null
   const canSubmitDraft = draftValid && !draftDuplicate && !pending
 
-  const available = contentsState?.availablePlugins ?? []
   const suggestions = catalogSuggestions(available, installedIds)
 
   return (
@@ -502,9 +632,14 @@ export function SpacePlugins() {
         plugins={plugins}
         pending={pending}
         confirmingRemoveId={confirmingRemoveId}
+        background={background}
+        askingBackgroundId={askingBackgroundId}
         onRequestRemove={setConfirmingRemoveId}
         onCancelRemove={() => setConfirmingRemoveId('')}
         onConfirmRemove={(pluginId) => void handleRemove(pluginId)}
+        onAskBackground={setAskingBackgroundId}
+        onDismissBackground={() => setAskingBackgroundId('')}
+        onAllowBackground={(pluginId) => void handleAllowBackground(pluginId)}
       />
     </div>
   )

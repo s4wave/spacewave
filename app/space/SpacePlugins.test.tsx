@@ -1,20 +1,32 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   SpacePluginLifecycleState,
   type SpaceContentsState,
 } from '@s4wave/sdk/space/space.pb.js'
+import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
 
 const mocks = vi.hoisted(() => ({
   useResourceValue: vi.fn(),
   useWatchStateRpc: vi.fn(),
   addSpacePlugin: vi.fn().mockResolvedValue(undefined),
   removeSpacePlugin: vi.fn().mockResolvedValue(undefined),
+  setBackgroundPlugin: vi.fn().mockResolvedValue(undefined),
   toastError: vi.fn(),
 }))
 
 let contentsState: SpaceContentsState | null = null
+let backgroundPlugins: {
+  entries: BackgroundPlugin[]
+  set: typeof mocks.setBackgroundPlugin
+} = { entries: [], set: vi.fn() }
 
 const spaceResource = { kind: 'space' }
 const contentsResource = { kind: 'contents' }
@@ -36,6 +48,17 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   SpaceContentsContext: { useContext: () => contentsResource },
 }))
 
+vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
+  SpaceContainerContext: {
+    useContext: () => ({ spaceId: 'space-1' }),
+    useContextSafe: () => null,
+  },
+}))
+
+vi.mock('@s4wave/app/session/useBackgroundPlugins.js', () => ({
+  useBackgroundPlugins: () => backgroundPlugins,
+}))
+
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: { error: mocks.toastError },
 }))
@@ -45,6 +68,7 @@ import { SpacePlugins } from './SpacePlugins.js'
 describe('SpacePlugins', () => {
   beforeEach(() => {
     contentsState = null
+    backgroundPlugins = { entries: [], set: mocks.setBackgroundPlugin }
     mocks.useResourceValue.mockImplementation((res: unknown) =>
       res === spaceResource ? spaceMock : {},
     )
@@ -264,5 +288,96 @@ describe('SpacePlugins', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add glados-core' }))
 
     expect(mocks.addSpacePlugin).toHaveBeenCalledWith('glados-core')
+  })
+
+  it('asks to run an added background plugin while the Space is closed', async () => {
+    contentsState = {
+      plugins: [],
+      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+    }
+
+    const { rerender } = render(<SpacePlugins />)
+    fireEvent.click(screen.getByLabelText('Add plugin'))
+    fireEvent.click(screen.getByText('glados-matrix'))
+    await waitFor(() =>
+      expect(mocks.addSpacePlugin).toHaveBeenCalledWith('glados-matrix'),
+    )
+
+    contentsState = {
+      ...contentsState,
+      plugins: [
+        {
+          pluginId: 'glados-matrix',
+          state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
+        },
+      ],
+    }
+    rerender(<SpacePlugins />)
+    await screen.findByText(
+      'glados-matrix can keep running while this Space is closed. Allow?',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Allow' }))
+
+    await waitFor(() =>
+      expect(mocks.setBackgroundPlugin).toHaveBeenCalledWith(
+        'space-1',
+        'glados-matrix',
+        true,
+        false,
+      ),
+    )
+  })
+
+  it('offers the background choice again after Not now', async () => {
+    contentsState = {
+      plugins: [
+        {
+          pluginId: 'glados-matrix',
+          state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
+        },
+      ],
+      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+    }
+
+    render(<SpacePlugins />)
+    fireEvent.click(screen.getByRole('button', { name: 'Allow background' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
+
+    expect(mocks.setBackgroundPlugin).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('button', { name: 'Allow background' }),
+    ).toBeDefined()
+  })
+
+  it('shows the saved choice and withdraws it when the plugin is removed', async () => {
+    contentsState = {
+      plugins: [
+        {
+          pluginId: 'glados-matrix',
+          state: SpacePluginLifecycleState.SpacePluginLifecycleState_LOADED,
+        },
+      ],
+      availablePlugins: [{ pluginId: 'glados-matrix', background: true }],
+    }
+    backgroundPlugins = {
+      entries: [
+        { spaceId: 'space-1', pluginId: 'glados-matrix', suspended: true },
+      ],
+      set: mocks.setBackgroundPlugin,
+    }
+
+    render(<SpacePlugins />)
+    expect(screen.getByText('Suspended')).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Remove glados-matrix'))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() =>
+      expect(mocks.setBackgroundPlugin).toHaveBeenCalledWith(
+        'space-1',
+        'glados-matrix',
+        false,
+        false,
+      ),
+    )
   })
 })

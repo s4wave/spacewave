@@ -9,6 +9,7 @@ import {
   SpacePluginLifecycleState,
   type SpaceContentsState,
 } from '@s4wave/sdk/space/space.pb.js'
+import type { BackgroundPlugin } from '@s4wave/core/session/session.pb.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
 const mocks = vi.hoisted(() => ({
@@ -16,9 +17,14 @@ const mocks = vi.hoisted(() => ({
   useWatchStateRpc: vi.fn(),
   addSpacePlugin: vi.fn().mockResolvedValue(undefined),
   removeSpacePlugin: vi.fn().mockResolvedValue(undefined),
+  setBackgroundPlugin: vi.fn().mockResolvedValue(undefined),
 }))
 
 let contentsState: SpaceContentsState | null = null
+let backgroundPlugins: {
+  entries: BackgroundPlugin[]
+  set: typeof mocks.setBackgroundPlugin
+} = { entries: [], set: vi.fn() }
 
 const spaceResource = { kind: 'space' }
 const contentsResource = { kind: 'contents' }
@@ -45,6 +51,17 @@ vi.mock('@s4wave/web/contexts/contexts.js', async (importOriginal) => ({
   >()),
   SpaceContext: { useContext: () => spaceResource },
   SpaceContentsContext: { useContext: () => contentsResource },
+}))
+
+vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
+  SpaceContainerContext: {
+    useContext: () => ({ spaceId: 'space-1' }),
+    useContextSafe: () => null,
+  },
+}))
+
+vi.mock('@s4wave/app/session/useBackgroundPlugins.js', () => ({
+  useBackgroundPlugins: () => backgroundPlugins,
 }))
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
