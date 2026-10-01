@@ -10,41 +10,44 @@ import (
 
 // Iterator implements iteration by traversing the block graph.
 type Iterator struct {
-	// ctx is the context for operations
+	// ctx is the context for operations.
 	ctx context.Context
-	// t is the transaction
+	// t is the transaction.
 	t *Tx
-	// err holds any error that occurred
+	// err holds any error that occurred.
 	err error
-	// rev indicates reverse/descending order
+	// rev indicates descending order.
 	rev bool
-	// prefix is the key prefix constraint
+	// prefix is the key prefix constraint.
 	prefix []byte
 	// prefixEnd is the exclusive upper bound for prefix, when one exists.
 	prefixEnd []byte
 
-	// key is the current key
+	// key is the current key.
 	key []byte
-	// val is the cached value
+	// val is the cached value.
 	val []byte
-	// nodeCursor points to current node location
+	// nodeCursor points to the current node location.
 	nodeCursor *block.Cursor
-	// node is the current node
+	// node is the current node.
 	node *Node
-	// hasVal indicates if val is cached
+	// hasVal indicates if val is cached.
 	hasVal bool
 	// positioned indicates Next or Seek has placed the traversal.
 	positioned bool
 
-	// stack tracks traversal
+	// stack tracks traversal.
 	stack []stackEntry
 }
 
-// stackEntry represents a node in the traversal stack
+// stackEntry represents a node in the traversal stack.
 type stackEntry struct {
-	node    *Node
-	cursor  *block.Cursor
-	visited bool // if true we visited the "first child" (left for in-order, right for reverse)
+	// node is the reached tree node.
+	node *Node
+	// cursor locates the node in the block graph.
+	cursor *block.Cursor
+	// visited records descent into the left child, or the right child in reverse.
+	visited bool
 }
 
 // NewIterator constructs a new iterator. Initial key fetch is deferred to the
@@ -52,6 +55,7 @@ type stackEntry struct {
 //
 // Note: sort is ignored, the iavl iterator is always sorted.
 func NewIterator(ctx context.Context, t *Tx, prefix []byte, sort, reverse bool) *Iterator {
+	// Retain the transaction and query bounds without fetching the first key.
 	it := &Iterator{
 		ctx:       ctx,
 		t:         t,
@@ -59,11 +63,15 @@ func NewIterator(ctx context.Context, t *Tx, prefix []byte, sort, reverse bool) 
 		prefix:    prefix,
 		prefixEnd: nil,
 	}
+
+	// A prefix successor supplies the exclusive forward bound when one exists.
 	if len(prefix) != 0 {
 		if end, ok := kvtx.PrefixSuccessor(prefix); ok {
 			it.prefixEnd = end
 		}
 	}
+
+	// Seed the traversal with the embedded root and room for the usual tree height.
 	it.stack = make([]stackEntry, 1, 18)
 	it.stack[0] = stackEntry{node: it.t.root, cursor: it.t.bcs}
 	return it
@@ -94,12 +102,15 @@ func (i *Iterator) Key() []byte {
 //
 // May cache the value between calls, copy if modifying.
 func (i *Iterator) Value() ([]byte, error) {
+	// Invalid positions and cancelled operations cannot fetch a value.
 	if !i.Valid() {
 		return nil, i.err
 	}
 	if err := i.checkContext(); err != nil {
 		return nil, err
 	}
+
+	// Resolve the current leaf's value only on demand and cache successful reads.
 	if !i.hasVal {
 		val, err := i.t.nodeToValue(i.ctx, i.nodeCursor, i.node)
 		if err != nil {
@@ -129,12 +140,15 @@ func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
 // ValueCursor returns a cursor located at the "value" sub-block.
 // Returns nil if the iterator is not at a valid location.
 func (i *Iterator) ValueCursor() *block.Cursor {
+	// Only a valid uncancelled position can supply a value cursor.
 	if !i.Valid() {
 		return nil
 	}
 	if err := i.checkContext(); err != nil {
 		return nil
 	}
+
+	// Follow the leaf's value representation without fetching its payload.
 	valueCursor, _ := i.node.FollowValue(i.nodeCursor)
 	return valueCursor
 }
@@ -158,9 +172,11 @@ func (i *Iterator) Next() bool {
 	i.positioned = true
 	i.resetState()
 	for len(i.stack) != 0 {
+		// Inspect the next traversal frame before following or exposing its node.
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
 
+		// Pop a leaf before exposing it, leaving the remaining traversal ready to advance.
 		if entry.node.IsLeaf() {
 			i.stack = i.stack[:lastIdx]
 			if i.setCurrentNode(entry.node, entry.cursor) {
@@ -169,10 +185,12 @@ func (i *Iterator) Next() bool {
 			continue
 		}
 
+		// Visit the directional first child once, then continue through the second child.
 		if !entry.visited {
 			// Mark the parent before append can move the traversal stack.
 			entry.visited = true
-			// visit first child
+
+			// Load the first child before adding its traversal frame.
 			var firstNode *Node
 			var firstCursor *block.Cursor
 			var err error
@@ -192,7 +210,7 @@ func (i *Iterator) Next() bool {
 				})
 			}
 		} else {
-			// dequeue and visit second child
+			// Pop the completed parent before loading its second child.
 			i.stack = i.stack[:lastIdx]
 			var secondNode *Node
 			var secondCursor *block.Cursor
@@ -227,11 +245,10 @@ func (i *Iterator) Seek(k []byte) error {
 		return err
 	}
 
-	// Reset the traversal to the root.
+	// Reset to the root, reusing capacity or allocating after a prefix stop cleared it.
 	i.positioned = true
 	i.resetState()
-	i.stack = i.stack[:1]
-	i.stack[0] = stackEntry{node: i.t.root, cursor: i.t.bcs}
+	i.stack = append(i.stack[:0], stackEntry{node: i.t.root, cursor: i.t.bcs})
 
 	// An empty key seeks to the prefix bound in the iteration direction.
 	if len(k) == 0 {
@@ -258,9 +275,11 @@ func (i *Iterator) Seek(k []byte) error {
 
 	// Descend toward k, skipping subtrees that cannot hold the target.
 	for len(i.stack) > 0 {
+		// Inspect the next traversal frame before comparing it with the seek target.
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
 
+		// A reached leaf is eligible only on the requested side of the inclusive seek.
 		if entry.node.IsLeaf() {
 			i.stack = i.stack[:lastIdx]
 			cmp := bytes.Compare(entry.node.GetKey(), k)
@@ -272,44 +291,23 @@ func (i *Iterator) Seek(k []byte) error {
 			continue
 		}
 
-		// The Seek logic is equivalent to calling Next() until we find the target key.
-		//
-		// However: we can optimize this by skipping subtrees that we know cannot contain the target.
-		//
-		// In forward iteration, we are looking for key >= k
-		// In reverse iteration, we are looking for key <= k.
-		//
-		// AVL trees have the properties:
-		//  - keys left of a node are less than that node
-		//  - keys right of a node are greater than or equal to that node
-		//
-		// Therefore, we know that if we are seeking to key k:
-		// - In forward mode (looking for >= k):
-		//   - If k > node.key: we can skip the left subtree
-		//   - If k <= node.key: we must check both subtrees
-		// - In reverse mode (looking for <= k):
-		//   - If k < node.key: we can skip the right subtree
-		//   - If k >= node.key: we must check both subtrees
-
-		// Compare current node's key with search key to determine which subtrees to visit
+		// The separator is the right subtree minimum, so compare it to the seek target.
 		cmp := bytes.Compare(entry.node.GetKey(), k)
 
+		// Traverse eligible children in the requested direction.
 		if !entry.visited {
 			// Mark the parent before append can move the traversal stack.
 			entry.visited = true
+
+			// Skip the first child when it cannot satisfy this directional seek.
 			var shouldVisitFirst bool
 			if i.rev {
-				// In reverse mode (looking for <= k):
-				// - If k < node.key (cmp > 0): skip right subtree
-				// - If k >= node.key (cmp <= 0): check both subtrees
 				shouldVisitFirst = cmp <= 0
 			} else {
-				// In forward mode (looking for >= k):
-				// - If k > node.key (cmp < 0): skip left subtree
-				// - If k <= node.key (cmp >= 0): check both subtrees
 				shouldVisitFirst = cmp >= 0
 			}
 
+			// Load and queue the first child only when its interval can hold the target.
 			if shouldVisitFirst {
 				var firstNode *Node
 				var firstCursor *block.Cursor
@@ -330,11 +328,8 @@ func (i *Iterator) Seek(k []byte) error {
 				}
 			}
 		} else {
-			// dequeue and visit second child
+			// Pop the completed parent before loading its second child.
 			i.stack = i.stack[:lastIdx]
-
-			// XXX: Is there any situation where we can skip the second child?
-
 			var secondNode *Node
 			var secondCursor *block.Cursor
 			var err error
@@ -366,8 +361,9 @@ func (i *Iterator) Close() {
 	i.stack = nil
 }
 
-// setCurrentNode sets the current node state from a stack entry
+// setCurrentNode exposes a matching leaf or ends traversal at a prefix bound.
 func (i *Iterator) setCurrentNode(node *Node, cursor *block.Cursor) bool {
+	// Prefix mismatch ends the scan once the directional bound has been crossed.
 	key := node.GetKey()
 	if !i.matchesPrefix(key) {
 		if len(i.prefix) != 0 {
@@ -381,13 +377,15 @@ func (i *Iterator) setCurrentNode(node *Node, cursor *block.Cursor) bool {
 		}
 		return false
 	}
+
+	// Retain the leaf and its cursor without resolving its value.
 	i.key = key
 	i.node = node
 	i.nodeCursor = cursor
 	return true
 }
 
-// setError sets the error state and marks iterator as out of bounds
+// setError retains the first iterator error.
 func (i *Iterator) setError(err error) error {
 	if i.err != nil {
 		return i.err
@@ -396,7 +394,7 @@ func (i *Iterator) setError(err error) error {
 	return err
 }
 
-// checkContext checks if context is canceled and sets error state if it is
+// checkContext records cancellation before an iterator operation starts.
 func (i *Iterator) checkContext() error {
 	if i.ctx.Err() != nil {
 		return i.setError(context.Canceled)
@@ -404,8 +402,9 @@ func (i *Iterator) checkContext() error {
 	return nil
 }
 
-// resetState resets the iterator's state variables
+// resetState clears the current position and its cached value.
 func (i *Iterator) resetState() {
+	// Release the previous leaf and value while retaining the traversal stack.
 	i.key = nil
 	i.val = nil
 	i.nodeCursor = nil
@@ -413,12 +412,14 @@ func (i *Iterator) resetState() {
 	i.hasVal = false
 }
 
-// seekToEnd moves the iterator to the last key in the tree
+// seekToEnd moves the iterator to the last matching key in the tree.
 func (i *Iterator) seekToEnd() error {
 	for len(i.stack) > 0 {
+		// Inspect the next frame on the descending traversal.
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
 
+		// Expose a matching leaf after removing its traversal frame.
 		if entry.node.IsLeaf() {
 			i.stack = i.stack[:lastIdx]
 			if i.setCurrentNode(entry.node, entry.cursor) {
@@ -427,10 +428,12 @@ func (i *Iterator) seekToEnd() error {
 			continue
 		}
 
+		// Reverse traversal visits the right subtree before the left subtree.
 		if !entry.visited {
 			// Mark the parent before append can move the traversal stack.
 			entry.visited = true
-			// visit right child first in reverse mode
+
+			// Load the right child before adding its traversal frame.
 			rightNode, rightCursor, err := entry.node.FollowRight(i.ctx, entry.cursor)
 			if err != nil {
 				return i.setError(err)
@@ -442,7 +445,7 @@ func (i *Iterator) seekToEnd() error {
 				})
 			}
 		} else {
-			// dequeue and visit left child
+			// Pop the completed parent before loading its left child.
 			i.stack = i.stack[:lastIdx]
 			leftNode, leftCursor, err := entry.node.FollowLeft(i.ctx, entry.cursor)
 			if err != nil {
@@ -459,12 +462,14 @@ func (i *Iterator) seekToEnd() error {
 	return nil
 }
 
-// seekToBeginning moves the iterator to the first key in the tree
+// seekToBeginning moves the iterator to the first matching key in the tree.
 func (i *Iterator) seekToBeginning() error {
 	for len(i.stack) > 0 {
+		// Inspect the next frame on the ascending traversal.
 		lastIdx := len(i.stack) - 1
 		entry := &i.stack[lastIdx]
 
+		// Expose a matching leaf after removing its traversal frame.
 		if entry.node.IsLeaf() {
 			i.stack = i.stack[:lastIdx]
 			if i.setCurrentNode(entry.node, entry.cursor) {
@@ -473,10 +478,12 @@ func (i *Iterator) seekToBeginning() error {
 			continue
 		}
 
+		// Forward traversal visits the left subtree before the right subtree.
 		if !entry.visited {
 			// Mark the parent before append can move the traversal stack.
 			entry.visited = true
-			// visit left child first in forward mode
+
+			// Load the left child before adding its traversal frame.
 			leftNode, leftCursor, err := entry.node.FollowLeft(i.ctx, entry.cursor)
 			if err != nil {
 				return i.setError(err)
@@ -488,7 +495,7 @@ func (i *Iterator) seekToBeginning() error {
 				})
 			}
 		} else {
-			// dequeue and visit right child
+			// Pop the completed parent before loading its right child.
 			i.stack = i.stack[:lastIdx]
 			rightNode, rightCursor, err := entry.node.FollowRight(i.ctx, entry.cursor)
 			if err != nil {
@@ -505,10 +512,10 @@ func (i *Iterator) seekToBeginning() error {
 	return nil
 }
 
-// matchesPrefix checks if a key matches the iterator's prefix constraint
+// matchesPrefix checks a nonempty key against the iterator's prefix constraint.
 func (i *Iterator) matchesPrefix(key []byte) bool {
 	return len(key) > 0 && (len(i.prefix) == 0 || bytes.HasPrefix(key, i.prefix))
 }
 
-// _ is a type assertion
+// _ checks the public iterator implementation.
 var _ kvtx.Iterator = (*Iterator)(nil)
