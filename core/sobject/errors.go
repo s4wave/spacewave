@@ -67,6 +67,9 @@ var (
 	// ErrRejectedOp is returned if the op was rejected.
 	ErrRejectedOp = errors.New("rejected op")
 
+	// ErrDroppedOp is returned if the op left the queue without being accepted or rejected.
+	ErrDroppedOp = errors.New("op dropped from the queue without a decision")
+
 	// ErrInvalidValidator is returned if the required validator peer is not in the set of signatures.
 	ErrInvalidValidator = errors.New("required validator peer not in set of signatures")
 
