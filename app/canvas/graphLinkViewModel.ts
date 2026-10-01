@@ -1,5 +1,6 @@
 import type { Quad } from '@go/github.com/s4wave/spacewave/db/block/quad/quad.pb.js'
 import { iriToKey, keyToIRI } from '@s4wave/sdk/world/graph-utils.js'
+import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
 
 import {
   graphLinkPredicatePolicy,
@@ -25,15 +26,8 @@ export interface GraphLookupResult {
   incomingTruncated?: boolean
 }
 
-export interface GraphLinkObjectMetadata {
-  label: string
-  type?: string
-  typeLabel?: string
-}
-
 export interface BuildGraphLinkViewModelOptions {
   hiddenGraphLinks?: HiddenGraphLinkData[]
-  objectMetadata?: Map<string, GraphLinkObjectMetadata>
   policy?: GraphLinkPredicatePolicy
 }
 
@@ -132,7 +126,6 @@ export function buildGraphLinkViewModel(
         const direction = subject === selected.iri ? 'out' : 'in'
         const linkedIri = direction === 'out' ? object : subject
         const linkedObjectKey = iriToKey(linkedIri)
-        const metadata = opts.objectMetadata?.get(linkedObjectKey)
         const targetNodeId = nodesByObjectKey.get(linkedObjectKey)
         const stubOffset = sourceGroupOffset * 60 + 150
 
@@ -159,9 +152,7 @@ export function buildGraphLinkViewModel(
           hiddenCount: 0,
           direction,
           linkedObjectKey,
-          linkedObjectLabel: metadata?.label ?? linkedObjectKey,
-          linkedObjectType: metadata?.type,
-          linkedObjectTypeLabel: metadata?.typeLabel,
+          linkedObjectLabel: linkedObjectKey,
           hideable: policyResult.hideable,
           userRemovable: policyResult.userRemovable,
           protected: policyResult.protected,
@@ -182,4 +173,22 @@ export function buildGraphLinkViewModel(
     },
   )
   return edges
+}
+
+// withLinkedObjectTypes labels each edge with its linked object's type from
+// types, a map of object key to type ID.
+export function withLinkedObjectTypes(
+  edges: EphemeralEdge[],
+  types: Map<string, string>,
+): EphemeralEdge[] {
+  return edges.map((edge) => {
+    const type = types.get(edge.linkedObjectKey)
+    return type
+      ? {
+          ...edge,
+          linkedObjectType: type,
+          linkedObjectTypeLabel: getObjectTypeLabel(type),
+        }
+      : edge
+  })
 }

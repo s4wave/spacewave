@@ -38,16 +38,13 @@ it('reports the installation of a successful build and releases observation', as
   const navigateToObjects = vi.fn()
   mocks.context = {
     navigateToObjects,
-    spaceState: {
-      worldContents: {
-        objects: [
-          { objectKey: 'projects/colors', objectType: 'unixfs/fs-node' },
-          { objectKey: 'devices/local', objectType: 'spacewave/device' },
-        ],
-      },
-    },
     spaceWorldResource: {
       value: {
+        listObjectsWithType: async (typeID: string) =>
+          ({
+            'unixfs/fs-node': ['projects/colors'],
+            'spacewave/device': ['devices/local'],
+          })[typeID] ?? [],
         getObject: async () => ({
           [Symbol.dispose]: releaseObject,
           getRootRef: async () => ({ rev: 1n, rootRef: {} }),
@@ -78,6 +75,7 @@ it('reports the installation of a successful build and releases observation', as
   const space = { buildSpacePlugin } as unknown as Space
   const rendered = render(<SpacePluginBuild space={space} />)
   fireEvent.click(screen.getByText('Build a TypeScript plugin'))
+  expect(await screen.findByText('devices/local')).toBeDefined()
   expect(
     screen.getByRole('button', { name: 'Build' }).hasAttribute('disabled'),
   ).toBe(true)

@@ -46,6 +46,7 @@ import {
 } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 
 import { applySpaceIndexPath } from '../space/space-settings.js'
@@ -63,6 +64,8 @@ const DEVICE_APPROVAL_CLOUD_REQUIRED =
   'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.'
 const INSTALL_AGENT_UNAVAILABLE =
   'Install Agent is unavailable until secure bootstrap is configured.'
+
+const noKeys: string[] = []
 
 type AddDeviceWizardMode = 'spacelink' | 'ssh'
 type SshAuthMode = 'password' | 'private-key'
@@ -117,7 +120,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   } = useSessionInfo(session)
   const sharedObject = useResourceValue(SharedObjectContext.useContext())
   const sharedObjectId = sharedObject?.meta.sharedObjectId ?? ''
-  const { spaceState } = SpaceContainerContext.useContext()
+  const { spaceWorldResource } = SpaceContainerContext.useContext()
   const navigate = useNavigate()
   const handleSignIn = useCallback(() => {
     navigate({ path: '/login' })
@@ -152,20 +155,19 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const completeCommand = completion
     ? `spacewave device complete --completion ${quoteShellArg(completion)}`
     : 'spacewave device complete --completion <completion>'
-  const deviceObjects = useMemo(
-    () =>
-      (spaceState.worldContents?.objects ?? []).filter(
-        (obj) => obj.objectType === DeviceTypeID,
-      ),
-    [spaceState.worldContents?.objects],
-  )
-  const dashboardKey = useMemo(
-    () =>
-      (spaceState.worldContents?.objects ?? []).find(
-        (obj) => obj.objectType === ComputersDashboardTypeID,
-      )?.objectKey ?? '',
-    [spaceState.worldContents?.objects],
-  )
+  const computers = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [devices, dashboards] = await Promise.all([
+        world.listObjectsWithType(DeviceTypeID, signal),
+        world.listObjectsWithType(ComputersDashboardTypeID, signal),
+      ])
+      return { devices, dashboards }
+    },
+    [],
+  ).value
+  const deviceKeys = computers?.devices ?? noKeys
+  const dashboardKey = computers?.dashboards[0] ?? ''
 
   const handleConfigUpdate = useCallback(
     async (next: AddDeviceWizardConfig, step?: number) => {
@@ -245,7 +247,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         await replaceSpaceIndexIfWizardIsCurrent(ws, dashboardKey)
       }
       await ws.spaceWorld.deleteObject(ws.objectKey)
-      const deviceKey = deviceObjects[0]?.objectKey ?? ''
+      const deviceKey = deviceKeys[0] ?? ''
       const openKey = deviceKey || dashboardKey
       if (openKey) ws.navigateToObjects([openKey])
     } catch {
@@ -255,7 +257,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     } finally {
       ws.setCreating(false)
     }
-  }, [dashboardKey, deviceObjects, state, ws])
+  }, [dashboardKey, deviceKeys, state, ws])
 
   const createSshHostTerminalObjects = useCallback(
     async (terminalCommand?: string) => {
@@ -405,7 +407,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     completion,
     config,
     currentStep,
-    deviceObjects,
+    deviceKeys,
     handleCancel,
     handleConfigUpdate,
     handleFinalize,
@@ -454,7 +456,7 @@ function AddDeviceWizardSteps({
     completeCommand,
     config,
     currentStep,
-    deviceObjects,
+    deviceKeys,
     handleConfigUpdate,
     handleModeChange,
     handleSignIn,
@@ -567,23 +569,20 @@ function AddDeviceWizardSteps({
             command={completeCommand}
             icon={<LuTerminal className="size-3.5" />}
           />
-          {deviceObjects.length > 0 && (
+          {deviceKeys.length > 0 && (
             <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
               <div className="text-foreground text-xs font-medium">
                 Device Objects
               </div>
               <div className="mt-2 space-y-1">
-                {deviceObjects.map((objectInfo) => (
+                {deviceKeys.map((deviceKey) => (
                   <button
-                    key={objectInfo.objectKey}
+                    key={deviceKey}
                     type="button"
-                    onClick={() =>
-                      objectInfo.objectKey &&
-                      ws.navigateToObjects([objectInfo.objectKey])
-                    }
+                    onClick={() => ws.navigateToObjects([deviceKey])}
                     className="hover:bg-foreground/5 text-foreground flex w-full min-w-0 rounded px-2 py-1 text-left text-xs"
                   >
-                    <span className="truncate">{objectInfo.objectKey}</span>
+                    <span className="truncate">{deviceKey}</span>
                   </button>
                 ))}
               </div>

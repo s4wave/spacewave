@@ -6,7 +6,9 @@ import {
   SpaceContentsContext,
 } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { useObjectMetadata } from '@s4wave/web/hooks/useObjectMetadata.js'
 import { ViewerRegistryProvider } from '@s4wave/web/hooks/useViewerRegistry.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { ObjectViewer } from '@s4wave/web/object/ObjectViewer.js'
 import type {
   ObjectViewerComponent,
@@ -19,6 +21,9 @@ import { Button } from '@s4wave/web/ui/button.js'
 
 import { SpacePluginObjects } from './SpacePluginObjects.js'
 
+// previewObjectLimit bounds the preview picker to one World listing page.
+const previewObjectLimit = 1000
+
 /** SpacePluginWorkbench retains source editing and a live custom viewer together. */
 export function SpacePluginWorkbench({
   request,
@@ -29,14 +34,21 @@ export function SpacePluginWorkbench({
   const id = useId()
   const space = SpaceContext.useContext()
   const contents = SpaceContentsContext.useContext()
-  const { spaceId, spaceState, spaceWorldResource } =
-    SpaceContainerContext.useContext()
+  const { spaceId, spaceWorldResource } = SpaceContainerContext.useContext()
   const frontend = usePluginFrontend(space, request)
   const [sourcePath, setSourcePath] = useState('/')
   const [entry, setEntry] = useState('')
   const [objectKey, setObjectKey] = useState('')
-  const objects = spaceState.worldContents?.objects ?? []
-  const selected = objects.find((object) => object.objectKey === objectKey)
+  const objectKeys = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const page = await world.listObjects('', '', previewObjectLimit, signal)
+      return (page.objects ?? []).map((object) => object.objectKey ?? '')
+    },
+    [],
+  ).value
+  const selectedType = useObjectMetadata(spaceWorldResource, objectKey).value
+    ?.typeId
   const entrypoints = frontend.value?.session.entrypoints ?? []
   const entrypoint = entrypoints.includes(entry) ? entry : entrypoints[0]
 
@@ -54,23 +66,23 @@ export function SpacePluginWorkbench({
     () => ({
       info: {
         case: 'worldObjectInfo',
-        value: { objectKey, objectType: selected?.objectType },
+        value: { objectKey, objectType: selectedType },
       },
     }),
-    [objectKey, selected?.objectType],
+    [objectKey, selectedType],
   )
 
   // Each loaded module keeps its React identity through compatible Vite edits.
   // The override is confined to this preview; installed viewers keep their artifact.
   const viewers = useMemo<ObjectViewerComponent[]>(() => {
     const attached = frontend.loading ? null : frontend.value
-    if (!attached || !entrypoint || !selected?.objectType) {
+    if (!attached || !entrypoint || !selectedType) {
       return []
     }
     return [
       {
         componentID: `live/${attached.session.id}/${entrypoint}`,
-        typeID: selected.objectType,
+        typeID: selectedType,
         name: 'Live preview',
         component: lazy(async () => {
           const url = await attached.transport.resolve(entrypoint)
@@ -80,7 +92,7 @@ export function SpacePluginWorkbench({
         }),
       },
     ]
-  }, [frontend.value, frontend.loading, entrypoint, selected?.objectType])
+  }, [frontend.value, frontend.loading, entrypoint, selectedType])
 
   // Keep compiler feedback separate from source editing and accepted app data.
   return (
@@ -168,19 +180,19 @@ export function SpacePluginWorkbench({
               className="bg-background rounded border p-2"
             >
               <option value="">Choose an object created by this plugin</option>
-              {objects.flatMap((object) =>
-                object.objectKey === request.sourceKey
+              {objectKeys?.flatMap((key) =>
+                key === request.sourceKey
                   ? []
                   : [
-                      <option key={object.objectKey} value={object.objectKey}>
-                        {object.objectKey}
+                      <option key={key} value={key}>
+                        {key}
                       </option>,
                     ],
               )}
             </select>
           </div>
           <div className="min-h-0 flex-1">
-            {selected && viewers.length > 0 ? (
+            {viewers.length > 0 ? (
               <ViewerRegistryProvider staticViewers={viewers}>
                 <ObjectViewer
                   objectInfo={previewInfo}

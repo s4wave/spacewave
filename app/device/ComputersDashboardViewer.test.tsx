@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { type DependencyList } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
@@ -12,6 +12,7 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
+import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
 
 import {
   AddDeviceDefaultName,
@@ -46,11 +47,25 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContext: () => ({
       spaceState: { worldContents: { objects: h.objects } },
+      spaceWorldResource: {},
       spaceWorld: { applyWorldOp: h.applyWorldOp },
       navigateToObjects: h.navigateToObjects,
     }),
   },
 }))
+
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
+  const { typedObjectsWorld, useFakeWorldQuery } =
+    await import('@s4wave/web/test/world-query.js')
+  const world = typedObjectsWorld(() => h.objects)
+  return {
+    useWorldQuery: <T,>(
+      _world: unknown,
+      query: WorldQuery<T>,
+      deps: DependencyList,
+    ) => useFakeWorldQuery(world, query, deps),
+  }
+})
 
 vi.mock('../space/useVisibleObjectWizardTypeSet.js', () => ({
   useVisibleObjectWizardTypeSet: () => h.visibleWizardTypes,
@@ -78,7 +93,7 @@ describe('ComputersDashboardViewer', () => {
     return buttons[0]
   }
 
-  it('consolidates Device and SSH Host objects into one inventory', () => {
+  it('consolidates Device and SSH Host objects into one inventory', async () => {
     render(
       <ComputersDashboardViewer
         objectInfo={{}}
@@ -92,7 +107,7 @@ describe('ComputersDashboardViewer', () => {
     )
 
     expect(screen.getByText('Computers')).toBeTruthy()
-    expect(screen.getByText('devices/build-host')).toBeTruthy()
+    expect(await screen.findByText('devices/build-host')).toBeTruthy()
     expect(screen.getByText('hosts/prod')).toBeTruthy()
     expect(screen.getAllByText('1')).toHaveLength(2)
   })
@@ -117,6 +132,7 @@ describe('ComputersDashboardViewer', () => {
       />,
     )
 
+    expect(await screen.findByText('No computers added')).toBeTruthy()
     fireEvent.click(getHeaderAddDeviceButton())
 
     await waitFor(() =>
@@ -141,7 +157,7 @@ describe('ComputersDashboardViewer', () => {
       />,
     )
 
-    expect(screen.getByText('No computers added')).toBeTruthy()
+    expect(await screen.findByText('No computers added')).toBeTruthy()
     fireEvent.click(getHeaderAddDeviceButton())
 
     expect(h.applyWorldOp).toHaveBeenCalledWith(
@@ -164,7 +180,7 @@ describe('ComputersDashboardViewer', () => {
     )
   })
 
-  it('opens the Device row so DeviceViewer owns terminal capability actions', () => {
+  it('opens the Device row so DeviceViewer owns terminal capability actions', async () => {
     render(
       <ComputersDashboardViewer
         objectInfo={{}}
@@ -178,7 +194,7 @@ describe('ComputersDashboardViewer', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('button', { name: /devices\/build-host/i }),
+      await screen.findByRole('button', { name: /devices\/build-host/i }),
     )
 
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])

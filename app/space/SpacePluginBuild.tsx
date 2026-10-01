@@ -11,6 +11,7 @@ import {
 } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import {
   Dialog,
   DialogContent,
@@ -52,12 +53,20 @@ function BuildPanel({
 }) {
   const id = useId()
   // Selections remain personal; source and build state come from the open World.
-  const { spaceWorldResource, spaceState, navigateToObjects } = context
-  const objects = spaceState.worldContents?.objects ?? []
-  const sources = objects.filter(
-    (object) => object.objectType === 'unixfs/fs-node',
-  )
-  const devices = objects.filter((object) => object.objectType === DeviceTypeID)
+  const { spaceWorldResource, navigateToObjects } = context
+  const choices = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [sources, devices] = await Promise.all([
+        world.listObjectsWithType('unixfs/fs-node', signal),
+        world.listObjectsWithType(DeviceTypeID, signal),
+      ])
+      return { sources, devices }
+    },
+    [],
+  ).value
+  const sources = choices?.sources ?? []
+  const devices = choices?.devices ?? []
   const [sourceKey, setSourceKey] = useState('')
   const [deviceKey, setDeviceKey] = useState('')
   const [manifestId, setManifestId] = useState('')
@@ -150,8 +159,8 @@ function BuildPanel({
                 : 'Add a source folder to this Space'}
             </option>
             {sources.map((source) => (
-              <option key={source.objectKey} value={source.objectKey}>
-                {source.objectKey}
+              <option key={source} value={source}>
+                {source}
               </option>
             ))}
           </select>
@@ -183,8 +192,8 @@ function BuildPanel({
                 : 'Register a device in Computers first'}
             </option>
             {devices.map((device) => (
-              <option key={device.objectKey} value={device.objectKey}>
-                {device.objectKey}
+              <option key={device} value={device}>
+                {device}
               </option>
             ))}
           </select>

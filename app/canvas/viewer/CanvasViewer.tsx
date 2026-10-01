@@ -20,6 +20,7 @@ import { getObjectKey } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
 import { useUnixFSRootHandle } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 
 import { Canvas } from '../Canvas.js'
@@ -40,6 +41,7 @@ import {
 } from '../useCanvasMutationQueue.js'
 import {
   buildGraphLinkViewModel,
+  withLinkedObjectTypes,
   getSelectedGraphNodes,
 } from '../graphLinkViewModel.js'
 import { CanvasObjectNode } from './CanvasObjectNode.js'
@@ -212,9 +214,12 @@ export function CanvasViewer({
   >(null)
 
   const unixfsObjectKey =
-    spaceContainer?.spaceState.worldContents?.objects?.find(
-      (object) => object.objectType === UnixFSTypeID,
-    )?.objectKey ?? null
+    useWorldQuery(
+      worldState,
+      async (world, signal) =>
+        (await world.listObjectsWithType(UnixFSTypeID, signal))[0] ?? null,
+      [],
+    ).value ?? null
   const unixfsRoot = useUnixFSRootHandle(worldState, unixfsObjectKey)
   const imageSubItems: SubItemsCallback = useCallback(
     (query, signal) =>
@@ -259,24 +264,6 @@ export function CanvasViewer({
     }
     return m
   }, [canvasStateData])
-
-  const graphLinkObjectMetadata = useMemo(() => {
-    const m = new Map<
-      string,
-      { label: string; type?: string; typeLabel?: string }
-    >()
-    for (const obj of spaceContainer?.spaceState.worldContents?.objects ?? []) {
-      const key = obj.objectKey ?? ''
-      if (!key) continue
-      const type = obj.objectType ?? ''
-      m.set(key, {
-        label: key,
-        type: type || undefined,
-        typeLabel: type ? getObjectTypeLabel(type) : undefined,
-      })
-    }
-    return m
-  }, [spaceContainer?.spaceState.worldContents?.objects])
 
   const sendMutation = useCallback<SendMutationFn>(
     async (mutation) => {
@@ -390,14 +377,24 @@ export function CanvasViewer({
         const edges = buildGraphLinkViewModel(
           perNodeResults,
           nodesByObjectKey,
-          {
-            hiddenGraphLinks: effectiveState.hiddenGraphLinks,
-            objectMetadata: graphLinkObjectMetadata,
-          },
+          { hiddenGraphLinks: effectiveState.hiddenGraphLinks },
         )
+        const linkedKeys = [
+          ...new Set(edges.map((edge) => edge.linkedObjectKey)),
+        ]
+        const metadata = linkedKeys.length
+          ? await world.getObjectMetadataBatch(linkedKeys, signal)
+          : []
         if (!signal.aborted) {
+          const types = new Map(
+            metadata.flatMap((object) =>
+              object.objectKey && object.typeId
+                ? [[object.objectKey, object.typeId]]
+                : [],
+            ),
+          )
           startTransition(() => {
-            setEphemeralEdges(edges)
+            setEphemeralEdges(withLinkedObjectTypes(edges, types))
           })
         }
       })().catch((err: unknown) => {
@@ -411,7 +408,6 @@ export function CanvasViewer({
       effectiveState.hiddenGraphLinks,
       selectedNodeIds,
       nodesByObjectKey,
-      graphLinkObjectMetadata,
       graphLinkRefreshTick,
     ],
   )

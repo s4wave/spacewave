@@ -5,6 +5,7 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -25,36 +26,37 @@ export { ComputersDashboardTypeID }
 
 type InventoryFilter = 'all' | 'devices' | 'hosts'
 
+const noKeys: string[] = []
+
 export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
-  const { navigateToObjects, spaceState, spaceWorld } =
+  const { navigateToObjects, spaceState, spaceWorld, spaceWorldResource } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()
+  const computers = useWorldQuery(
+    spaceWorldResource,
+    async (world, signal) => {
+      const [devices, hosts, wizards] = await Promise.all([
+        world.listObjectsWithType(DeviceTypeID, signal),
+        world.listObjectsWithType(SshHostTypeID, signal),
+        world.listObjectsWithType(AddDeviceWizardTypeID, signal),
+      ])
+      return { devices, hosts, wizards }
+    },
+    [],
+  ).value
+  const devices = computers?.devices ?? noKeys
+  const hosts = computers?.hosts ?? noKeys
+  const seededAddDeviceWizardKey = computers?.wizards[0] ?? ''
   const rawObjects = spaceState.worldContents?.objects
-  const objects = useMemo(() => rawObjects ?? [], [rawObjects])
-  const devices = useMemo(
-    () => objects.filter((obj) => obj.objectType === DeviceTypeID),
-    [objects],
-  )
-  const hosts = useMemo(
-    () =>
-      objects.filter((obj) => {
-        const typeID = obj.objectType ?? ''
-        return typeID === SshHostTypeID
-      }),
-    [objects],
-  )
   const existingObjectKeys = useMemo(
-    () => objects.map((obj) => obj.objectKey ?? ''),
-    [objects],
-  )
-  const seededAddDeviceWizardKey = useMemo(
-    () =>
-      objects.find((obj) => obj.objectType === AddDeviceWizardTypeID)
-        ?.objectKey ?? '',
-    [objects],
+    () => rawObjects?.map((obj) => obj.objectKey ?? '') ?? [],
+    [rawObjects],
   )
   const canCreateAddDeviceWizard = visibleWizardTypeSet.has(DeviceTypeID)
-  const canAddDevice = !!seededAddDeviceWizardKey || canCreateAddDeviceWizard
+  // Until the World answers, a click could not tell a seeded wizard apart from
+  // none and would create a duplicate.
+  const canAddDevice =
+    !!computers && (!!seededAddDeviceWizardKey || canCreateAddDeviceWizard)
   const [opening, setOpening] = useState(false)
   const [openingError, setOpeningError] = useState('')
   const [filter, setFilter] = useState<InventoryFilter>('all')
@@ -105,13 +107,13 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
 
   const inventory = useMemo(() => {
     const entries = [
-      ...devices.map((obj) => ({
-        objectKey: obj.objectKey ?? '',
+      ...devices.map((objectKey) => ({
+        objectKey,
         kind: 'Managed Device',
         icon: <LuHardDrive className="size-3.5" />,
       })),
-      ...hosts.map((obj) => ({
-        objectKey: obj.objectKey ?? '',
+      ...hosts.map((objectKey) => ({
+        objectKey,
         kind: 'SSH Host',
         icon: <LuServer className="size-3.5" />,
       })),
@@ -163,7 +165,7 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
             />
           </section>
 
-          {objects.length === 0 ? (
+          {computers && devices.length + hosts.length === 0 ? (
             <InfoCard
               icon={<LuMonitor className="text-foreground-alt/60 size-3.5" />}
               title="No computers added"

@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'os'
 import { join } from 'path'
 
-import React from 'react'
+import React, { type DependencyList } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
@@ -37,6 +37,7 @@ import {
 import { CREATE_SSH_HOST_OP_ID } from '@s4wave/sdk/sshhost/create-ssh-host.js'
 import { CreateSshHostOp } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+import type { WorldQuery } from '@s4wave/sdk/world/world-query.js'
 import {
   CreateTerminalOp,
   TerminalTargetKind,
@@ -152,10 +153,23 @@ vi.mock('@s4wave/web/router/router.js', async (importOriginal) => ({
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContext: () => ({
-      spaceState: { worldContents: { objects: h.worldObjects } },
+      spaceWorldResource: {},
     }),
   },
 }))
+
+vi.mock('@s4wave/web/hooks/useWorldQuery.js', async () => {
+  const { typedObjectsWorld, useFakeWorldQuery } =
+    await import('@s4wave/web/test/world-query.js')
+  const world = typedObjectsWorld(() => h.worldObjects)
+  return {
+    useWorldQuery: <T,>(
+      _world: unknown,
+      query: WorldQuery<T>,
+      deps: DependencyList,
+    ) => useFakeWorldQuery(world, query, deps),
+  }
+})
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: {
@@ -415,6 +429,7 @@ printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${
     )
     renderViewer()
 
+    expect(await screen.findByText('Device Objects')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /open device/i }))
 
     await waitFor(() => expect(h.deleteObject).toHaveBeenCalled())

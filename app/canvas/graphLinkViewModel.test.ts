@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildGraphLinkViewModel,
+  withLinkedObjectTypes,
   getSelectedGraphNodes,
   type GraphLookupResult,
 } from './graphLinkViewModel.js'
@@ -116,21 +117,9 @@ describe('graphLinkViewModel', () => {
       },
     ]
 
-    const links = buildGraphLinkViewModel(
-      results,
-      new Map([['objects/a', 'node-a']]),
-      {
-        objectMetadata: new Map([
-          [
-            'objects/a',
-            {
-              label: 'Linked A',
-              type: 'git/repo',
-              typeLabel: 'Git Repository',
-            },
-          ],
-        ]),
-      },
+    const links = withLinkedObjectTypes(
+      buildGraphLinkViewModel(results, new Map([['objects/a', 'node-a']])),
+      new Map([['objects/a', 'git/repo']]),
     )
 
     expect(links).toEqual([
@@ -157,7 +146,7 @@ describe('graphLinkViewModel', () => {
         hiddenCount: 0,
         direction: 'in',
         linkedObjectKey: 'objects/a',
-        linkedObjectLabel: 'Linked A',
+        linkedObjectLabel: 'objects/a',
         linkedObjectType: 'git/repo',
         linkedObjectTypeLabel: 'Git Repository',
         hideable: true,
