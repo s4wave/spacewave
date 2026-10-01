@@ -11,11 +11,14 @@ export interface SpaceObjectNavigationActionHandlers {
 
 export interface SpaceObjectNavigationActionOptions extends SpaceObjectNavigationActionHandlers {
   targets: readonly SpaceObjectActionTarget[]
+  // moreTargets is set when the Space has visible objects past targets.
+  moreTargets?: boolean
   currentObjectKey?: string
 }
 
 export function createSpaceObjectNavigationActions({
   targets,
+  moreTargets,
   currentObjectKey,
   openDetails,
   openObject,
@@ -41,7 +44,13 @@ export function createSpaceObjectNavigationActions({
       type: 'group',
       id: 'browse-objects',
       label: 'Browse Objects',
-      items: targetActions(targets, currentObjectKey, 'open', openObject),
+      items: targetActions(
+        targets,
+        moreTargets,
+        currentObjectKey,
+        'open',
+        openObject,
+      ),
     })
   }
 
@@ -52,6 +61,7 @@ export function createSpaceObjectNavigationActions({
       label: 'Switch Object Here',
       items: targetActions(
         targets,
+        moreTargets,
         currentObjectKey,
         'switch',
         switchObjectHere,
@@ -64,6 +74,7 @@ export function createSpaceObjectNavigationActions({
 
 function targetActions(
   targets: readonly SpaceObjectActionTarget[],
+  moreTargets: boolean | undefined,
   currentObjectKey: string | undefined,
   actionIdPrefix: string,
   onSelect: (target: SpaceObjectActionTarget) => void | Promise<void>,
@@ -80,15 +91,22 @@ function targetActions(
     ]
   }
 
-  return targets.map((target) => {
-    const isCurrent = target.objectKey === currentObjectKey
-    return {
+  const items = targets.map((target): BottomBarContextMenuItem => ({
+    type: 'action',
+    id: `${actionIdPrefix}:${target.objectKey}`,
+    label: target.label,
+    icon: actionIdPrefix === 'switch' ? LuReplace : LuFolderOpen,
+    disabled: target.objectKey === currentObjectKey,
+    onSelect: () => onSelect(target),
+  }))
+  if (moreTargets) {
+    items.push({
       type: 'action',
-      id: `${actionIdPrefix}:${target.objectKey}`,
-      label: target.label,
-      icon: actionIdPrefix === 'switch' ? LuReplace : LuFolderOpen,
-      disabled: isCurrent,
-      onSelect: () => onSelect(target),
-    }
-  })
+      id: `${actionIdPrefix}-more`,
+      label: 'More objects in the object browser',
+      disabled: true,
+      onSelect: () => {},
+    })
+  }
+  return items
 }

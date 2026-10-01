@@ -27,12 +27,8 @@ import {
 } from '@s4wave/web/frame/bottom-bar-context.js'
 import type { BottomBarContextMenuItem } from '@s4wave/web/frame/bottom-bar-context.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import {
-  buildSpaceObjectActionTargets,
-  getObjectDisplayName,
-} from '@s4wave/web/space/object-tree.js'
+import { getObjectDisplayName } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
-import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { useTabContext } from './TabContext.js'
 import {
   hasObjectViewerSwitchOwner,
@@ -189,10 +185,6 @@ export function useObjectViewer({
     rootResource,
     spaceContext?.spaceState.engineId,
   )
-  const objectTypeMetadataById = useObjectTypeMetadata(
-    rootResource,
-    spaceContext?.spaceState.engineId,
-  )
 
   const unixfsComponents = useMemo(() => {
     if (!isUnixfs) return []
@@ -290,14 +282,8 @@ export function useObjectViewer({
     },
   )
   const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
-  const spaceObjectTargets = useMemo(
-    () =>
-      buildSpaceObjectActionTargets(
-        spaceContext?.spaceState.worldContents?.objects ?? [],
-        objectTypeMetadataById,
-      ),
-    [spaceContext?.spaceState.worldContents?.objects, objectTypeMetadataById],
-  )
+  const spaceObjectTargets = spaceContext?.spaceObjectTargets?.targets ?? []
+  const moreSpaceObjectTargets = !!spaceContext?.spaceObjectTargets?.more
   const handleOpenObject = useCallback(
     (target: { objectKey: string }) => {
       spaceContext?.navigateToObjects([target.objectKey])
@@ -460,6 +446,7 @@ export function useObjectViewer({
     () =>
       createSpaceObjectNavigationActions({
         targets: spaceObjectTargets,
+        moreTargets: moreSpaceObjectTargets,
         currentObjectKey: objectKey,
         openDetails: overlayContent ? () => {} : undefined,
         openObject: spaceContext?.navigateToObjects
@@ -471,6 +458,7 @@ export function useObjectViewer({
       }),
     [
       spaceObjectTargets,
+      moreSpaceObjectTargets,
       objectKey,
       overlayContent,
       spaceContext?.navigateToObjects,
@@ -490,6 +478,7 @@ export function useObjectViewer({
         spaceObjectTargets
           .map((target) => `${target.objectKey}:${target.objectType}`)
           .join('|'),
+        moreSpaceObjectTargets ? 'more' : 'all',
       ].join(':'),
     [
       displayKey,
@@ -498,6 +487,7 @@ export function useObjectViewer({
       spaceContext?.navigateToObjects,
       positionOwner,
       spaceObjectTargets,
+      moreSpaceObjectTargets,
     ],
   )
   const contextMenuLabel = `${displayKey} actions`

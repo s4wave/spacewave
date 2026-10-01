@@ -46,7 +46,10 @@ import {
 } from '../graphLinkViewModel.js'
 import { CanvasObjectNode } from './CanvasObjectNode.js'
 import { deleteCanvasGraphLink } from './graphLinkActions.js'
-import { isCanvasInsertableObject } from './object-picker.js'
+import {
+  isCanvasInsertableObject,
+  listCanvasPickerObjects,
+} from './object-picker.js'
 import { CanvasTypeID } from '../types.js'
 import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
 
@@ -488,33 +491,33 @@ export function CanvasViewer({
     [worldState.value],
   )
 
-  const objectSubItems: SubItemsCallback | undefined = useCallback(
-    (query: string) => {
-      const objects = spaceContainer?.spaceState.worldContents?.objects ?? []
+  const objectSubItems: SubItemsCallback = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      const world = worldState.value
+      if (!world) return []
+      const objects = await listCanvasPickerObjects(world, query, signal)
       const q = query.toLowerCase()
 
-      return Promise.resolve(
-        objects.flatMap((obj) => {
-          const key = obj.objectKey ?? ''
-          const type = obj.objectType ?? ''
-          const label = getObjectTypeLabel(type).toLowerCase()
-          if (
-            !isCanvasInsertableObject(key, type, objectKey) ||
-            (q && !key.toLowerCase().includes(q) && !label.includes(q))
-          ) {
-            return []
-          }
-          return [
-            {
-              id: key,
-              label: key,
-              description: getObjectTypeLabel(type),
-            },
-          ]
-        }),
-      )
+      return objects.flatMap((obj) => {
+        const key = obj.objectKey ?? ''
+        const type = obj.typeId ?? ''
+        const label = getObjectTypeLabel(type).toLowerCase()
+        if (
+          !isCanvasInsertableObject(key, type, objectKey) ||
+          (q && !key.toLowerCase().includes(q) && !label.includes(q))
+        ) {
+          return []
+        }
+        return [
+          {
+            id: key,
+            label: key,
+            description: getObjectTypeLabel(type),
+          },
+        ]
+      })
     },
-    [spaceContainer, objectKey],
+    [worldState.value, objectKey],
   )
 
   // Handle view path changes within embedded object nodes.

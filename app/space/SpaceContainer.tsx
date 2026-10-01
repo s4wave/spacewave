@@ -77,11 +77,13 @@ import { SpaceDataSection } from './SpaceTransformSection.js'
 import { CreateObjectButton } from './CreateObjectButton.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import {
-  buildSpaceObjectActionTargets,
   getObjectDisplayName,
+  listSpaceObjectTargets,
+  type SpaceObjectTargets,
 } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
+import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { canDeleteSpaceObject, canRenameSpace } from './permissions.js'
 import {
@@ -91,6 +93,9 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+
+// noSpaceObjectTargets stands in for the object targets while they load.
+const noSpaceObjectTargets: SpaceObjectTargets = { targets: [], more: false }
 
 const quickstartSpaceStartupLabels: Record<string, string> = {
   'quickstart route using space handoff': 'quickstart.space-handoff-used',
@@ -445,15 +450,13 @@ function useSpaceContainerController() {
     rootResource,
     spaceState?.engineId,
   )
-  const spaceObjectTargets = useMemo(
-    () =>
-      buildSpaceObjectActionTargets(
-        routeSpaceState?.worldContents?.objects ?? [],
-        objectTypeMetadataById,
-      ),
-    [routeSpaceState?.worldContents?.objects, objectTypeMetadataById],
-  )
-  const objectCount = spaceObjectTargets.length
+  const spaceObjectTargets =
+    useWorldQuery(
+      spaceWorldResource,
+      (world, signal) =>
+        listSpaceObjectTargets(world, objectTypeMetadataById, signal),
+      [objectTypeMetadataById],
+    ).value ?? noSpaceObjectTargets
 
   const handleRenameStart = useCallback(() => {
     if (!canRename) return
@@ -530,7 +533,8 @@ function useSpaceContainerController() {
     () =>
       ready
         ? createSpaceObjectNavigationActions({
-            targets: spaceObjectTargets,
+            targets: spaceObjectTargets.targets,
+            moreTargets: spaceObjectTargets.more,
             currentObjectKey: objectKey,
             openDetails: () => {},
             openObject: handleOpenSpaceObject,
@@ -550,9 +554,10 @@ function useSpaceContainerController() {
       [
         sharedObjectDisplayKey,
         objectKey ?? 'none',
-        spaceObjectTargets
+        spaceObjectTargets.targets
           .map((target) => `${target.objectKey}:${target.objectType}`)
           .join('|'),
+        spaceObjectTargets.more ? 'more' : 'all',
       ].join(':'),
     [sharedObjectDisplayKey, objectKey, spaceObjectTargets],
   )
@@ -596,6 +601,7 @@ function useSpaceContainerController() {
             spaceName={titleSpaceName}
             spaceWorldResource={spaceWorldResource}
             spaceWorld={spaceWorld}
+            spaceObjectTargets={spaceObjectTargets}
             navigateToRoot={navigateToRoot}
             navigateToObjects={navigateToObjects}
             switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}
@@ -654,7 +660,8 @@ function useSpaceContainerController() {
               }
               objectsBadge={
                 <span className="text-foreground-alt/50 text-xs">
-                  {objectCount}
+                  {spaceObjectTargets.targets.length}
+                  {spaceObjectTargets.more ? '+' : ''}
                 </span>
               }
               objectsActions={
@@ -710,7 +717,7 @@ function useSpaceContainerController() {
     canManageSharing,
     spaceName,
     handleRenameStart,
-    objectCount,
+    spaceObjectTargets,
     handleCreateObject,
     navigate,
     spaceOrgId,
@@ -765,6 +772,7 @@ function useSpaceContainerController() {
     spaceSharingState,
     spaceState,
     spaceWorld,
+    spaceObjectTargets,
     spaceWorldResource,
     switchObjectAtCurrentPosition,
     titleSpaceName,
@@ -817,6 +825,7 @@ export function SpaceContainer() {
     spaceSharingState,
     spaceState,
     spaceWorld,
+    spaceObjectTargets,
     spaceWorldResource,
     switchObjectAtCurrentPosition,
     titleSpaceName,
@@ -862,6 +871,7 @@ export function SpaceContainer() {
                 spaceName={titleSpaceName}
                 spaceWorldResource={spaceWorldResource}
                 spaceWorld={spaceWorld}
+                spaceObjectTargets={spaceObjectTargets}
                 navigateToRoot={navigateToRoot}
                 navigateToObjects={navigateToObjects}
                 switchObjectAtCurrentPosition={switchObjectAtCurrentPosition}

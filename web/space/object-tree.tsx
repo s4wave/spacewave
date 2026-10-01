@@ -56,6 +56,14 @@ export interface SpaceObjectActionTarget {
   objectTypeDescription: string
 }
 
+// SpaceObjectTargets is a bounded listing of a Space's visible objects.
+export interface SpaceObjectTargets {
+  // targets are the first visible objects in key order.
+  targets: SpaceObjectActionTarget[]
+  // more is set when the Space has visible objects past targets.
+  more: boolean
+}
+
 export type ObjectTypeMetadataById = ReadonlyMap<string, ObjectTypeMetadata>
 
 // HIDDEN_OBJECT_TYPES is the set of object types hidden from the tree.
@@ -254,6 +262,37 @@ export function buildSpaceObjectActionTargets(
       ]
     })
     .toSorted((a, b) => a.objectKey.localeCompare(b.objectKey))
+}
+
+// spaceObjectTargetLimit bounds how many objects an action menu lists.
+const spaceObjectTargetLimit = 100
+
+// spaceObjectTargetPages bounds how many pages a target listing reads to skip
+// hidden objects.
+const spaceObjectTargetPages = 5
+
+// listSpaceObjectTargets lists the first visible objects of a World.
+export async function listSpaceObjectTargets(
+  world: IWorldState,
+  metadataById?: ObjectTypeMetadataById,
+  signal?: AbortSignal,
+): Promise<SpaceObjectTargets> {
+  const targets: SpaceObjectActionTarget[] = []
+  let startAfter = ''
+  for (let page = 0; page < spaceObjectTargetPages; page++) {
+    const { objects = [], more } = await world.listObjects(
+      { startAfter, limit: spaceObjectTargetLimit + 1 },
+      signal,
+    )
+    targets.push(...buildSpaceObjectActionTargets(objects, metadataById))
+    if (targets.length > spaceObjectTargetLimit) {
+      return { targets: targets.slice(0, spaceObjectTargetLimit), more: true }
+    }
+
+    startAfter = objects.at(-1)?.objectKey ?? ''
+    if (!more || !startAfter) return { targets, more: false }
+  }
+  return { targets, more: true }
 }
 
 function humanizeObjectKeySegment(segment: string): string {

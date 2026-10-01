@@ -16,12 +16,6 @@ export function SpaceDebug() {
         Space Resource: {spaceResource.loading ? 'Loading' : 'Loaded'} (Error:{' '}
         {spaceResource.error ? 'Yes' : 'No'})
       </p>
-      <p>
-        World Contents:{' '}
-        {spaceState.worldContents
-          ? JSON.stringify(spaceState.worldContents)
-          : 'None'}
-      </p>
     </div>
   )
 }

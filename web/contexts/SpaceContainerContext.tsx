@@ -2,6 +2,7 @@ import React, { createContext, use, useMemo, type ReactNode } from 'react'
 import type { WatchOrganizationStateResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { SpaceSharingState, SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
+import type { SpaceObjectTargets } from '@s4wave/web/space/object-tree.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 // NavigateToObjectsFunc navigates to one or more objects in the space.
@@ -44,6 +45,8 @@ export interface SpaceContainerContextValue {
   spaceWorldResource: Resource<EngineWorldState>
   // spaceWorld is the world instance
   spaceWorld: EngineWorldState
+  // spaceObjectTargets are the first visible objects for action menus.
+  spaceObjectTargets?: SpaceObjectTargets
   // navigateToRoot navigates to the root of the space.
   navigateToRoot: () => void
   // navigateToObjects is the NavigateToObjectsFunc for the space.
@@ -81,6 +84,7 @@ const Provider: React.FC<
   canDeleteObjects,
   spaceWorldResource,
   spaceWorld,
+  spaceObjectTargets,
   objectKey,
   objectPath,
   navigateToSubPath,
@@ -100,6 +104,7 @@ const Provider: React.FC<
       canDeleteObjects,
       spaceWorldResource,
       spaceWorld,
+      spaceObjectTargets,
       objectKey,
       objectPath,
       navigateToSubPath,
@@ -118,6 +123,7 @@ const Provider: React.FC<
       canDeleteObjects,
       spaceWorldResource,
       spaceWorld,
+      spaceObjectTargets,
       objectKey,
       objectPath,
       navigateToSubPath,

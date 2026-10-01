@@ -15,6 +15,7 @@ import {
   getObjectDisplayName,
   isHiddenSpaceObject,
   listObjectLevel,
+  listSpaceObjectTargets,
 } from '@s4wave/web/space/object-tree.js'
 import { listingWorld } from '@s4wave/web/test/world-query.js'
 
@@ -342,5 +343,44 @@ describe('listObjectLevel', () => {
     const level = await listObjectLevel(listingWorld(objects), '', 3)
     expect(level.more).toBe(true)
     expect(level.nodes.map((node) => node.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('listSpaceObjectTargets', () => {
+  it('skips hidden and internal objects across pages', async () => {
+    const metadataById = buildObjectTypeMetadataMap([
+      {
+        typeId: 'plugin/internal',
+        registrationId: 1,
+        metadata: { visibility: ObjectTypeVisibility.INTERNAL },
+      },
+    ])
+    const world = listingWorld([
+      { objectKey: 'a-internal', objectType: 'plugin/internal' },
+      { objectKey: 'b-doc', objectType: 'canvas' },
+      { objectKey: 'settings', objectType: 'space/settings' },
+      { objectKey: 'z-doc', objectType: 'canvas' },
+    ])
+
+    const { targets, more } = await listSpaceObjectTargets(world, metadataById)
+    expect(targets.map((target) => target.objectKey)).toEqual([
+      'b-doc',
+      'z-doc',
+    ])
+    expect(more).toBe(false)
+  })
+
+  it('stops at the target limit and reports more', async () => {
+    const objects = Array.from({ length: 150 }, (_, i) => ({
+      objectKey: `doc-${String(i).padStart(3, '0')}`,
+      objectType: 'canvas',
+    }))
+
+    const { targets, more } = await listSpaceObjectTargets(
+      listingWorld(objects, 1000),
+    )
+    expect(targets).toHaveLength(100)
+    expect(targets.at(-1)?.objectKey).toBe('doc-099')
+    expect(more).toBe(true)
   })
 })
