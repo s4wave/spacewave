@@ -236,7 +236,10 @@ func newCrossProcessResourceClient(
 	}
 }
 
+// serveRemoteClaimTestbed serves a world testbed's resources to the parent
+// over the inherited listener until the parent hangs up.
 func serveRemoteClaimTestbed(t *testing.T) {
+	// Start the world testbed this process serves.
 	t.Helper()
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
@@ -245,6 +248,7 @@ func serveRemoteClaimTestbed(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Wrap the listener the parent passed as file descriptor 3.
 	listenerFile := os.NewFile(3, "remote-claim-listener")
 	if listenerFile == nil {
 		t.Fatal("remote claim listener file is missing")
@@ -255,16 +259,18 @@ func serveRemoteClaimTestbed(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer closeRemoteClaimTestResource(t, "helper listener", listener)
+
+	// Accept the parent's single connection.
 	conn, err := listener.Accept()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer closeRemoteClaimTestResource(t, "helper connection", conn)
 
-	logger := logrus.New()
+	// Register the testbed root behind the resource service.
 	root := resource_testbed.NewTestbedResourceServer(
 		ctx,
-		logrus.NewEntry(logger),
+		logrus.NewEntry(logrus.New()),
 		tb.Bus,
 		tb.Volume.GetID(),
 		tb.BucketId,
@@ -274,15 +280,25 @@ func serveRemoteClaimTestbed(t *testing.T) {
 	if err := resourceServer.Register(mux); err != nil {
 		t.Fatal(err)
 	}
+
+	// Serve the connection until the parent hangs up.
 	serverMux, err := srpc.NewMuxedConn(conn, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	server := srpc.NewServer(mux)
-	if err := server.AcceptMuxedConn(ctx, serverMux); err != nil &&
-		!errors.Is(err, io.EOF) &&
-		!errors.Is(err, io.ErrClosedPipe) &&
-		!errors.Is(err, net.ErrClosed) {
+	if err := server.AcceptMuxedConn(ctx, serverMux); err != nil && !isRemoteClaimHangup(err) {
 		t.Fatal(err)
 	}
+}
+
+// isRemoteClaimHangup reports whether err means the parent closed the
+// connection. The parent hangs up as soon as its assertions finish, which can
+// interrupt a reply the helper is still writing, so any socket error counts.
+func isRemoteClaimHangup(err error) bool {
+	var opErr *net.OpError
+	return errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrClosedPipe) ||
+		errors.Is(err, net.ErrClosed) ||
+		errors.As(err, &opErr)
 }
