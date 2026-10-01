@@ -29,6 +29,10 @@ type soEngineWriteTx struct {
 	storageGeneration uint64
 	// unlockWriteMtx releases the write mutex once, including repeated Discard calls.
 	unlockWriteMtx func()
+	// candidateRoot is the committed candidate World root that authority did
+	// not accept, released by Discard. Nil once authority accepts it or while
+	// the outcome is unknown.
+	candidateRoot *block.BlockRef
 }
 
 // newSoEngineWriteTx constructs a new shared object engine tx.
@@ -86,6 +90,10 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// The World bucket owns the candidate root until Discard releases it. An
+	// accepted root moves under the accepted-world head instead.
+	t.candidateRoot = nroot
 
 	// Fence pending block writes before the candidate root can enter the
 	// SharedObject operation queue. A queue write ordered after the block
@@ -191,9 +199,14 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		decision, err = t.eng.finalizeSpaceWorldCandidate(taskCtx, packet, opData)
 		task.End()
 		if err != nil {
+			// The authority may still accept the queued candidate.
+			t.candidateRoot = nil
 			return err
 		}
 	}
+
+	// Refresh the base after a stale rejection. Keep the candidate root when
+	// authority accepted it unchanged.
 	if err := finalizationDecisionError(decision); err != nil {
 		if errors.Is(err, coord.ErrStaleGeneration) {
 			if refreshErr := t.eng.refreshFinalizationWorldRoot(ctx); refreshErr != nil {
@@ -201,6 +214,9 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 			}
 		}
 		return err
+	}
+	if decision.GetAcceptedWorldRoot().GetRootRef().EqualVT(nroot) {
+		t.candidateRoot = nil
 	}
 
 	// Update the local state only after SharedObject authority accepts the root.
@@ -234,7 +250,8 @@ func (t *soEngineWriteTx) ApplyWorldOp(ctx context.Context, op world.Operation, 
 }
 
 // Discard cancels the transaction.
-// If called after Commit, releases the payloads of its operations.
+// If called after Commit, releases the payloads of its operations and the
+// candidate root authority did not accept.
 // Cannot return an error.
 // Can be called unlimited times.
 // Always call Discard or Commit when done with a tx.
@@ -247,9 +264,13 @@ func (t *soEngineWriteTx) Discard() {
 	// Commit has returned, so authority has accepted or rejected the
 	// operations and no replay needs their payloads. The accepted World keeps
 	// any payload it references.
-	payloads := t.TakePayloadRefs()
-	if err := block.ReleaseRoots(context.Background(), t.eng.so.GetBlockStore(), payloads); err != nil && t.eng.c != nil && t.eng.c.le != nil {
-		t.eng.c.le.WithError(err).Warn("unable to release operation payloads")
+	roots := t.TakePayloadRefs()
+	if t.candidateRoot != nil {
+		roots = append(roots, t.candidateRoot)
+		t.candidateRoot = nil
+	}
+	if err := block.ReleaseRoots(context.Background(), t.eng.so.GetBlockStore(), roots); err != nil && t.eng.c != nil && t.eng.c.le != nil {
+		t.eng.c.le.WithError(err).Warn("unable to release operation payloads and candidate root")
 	}
 }
 
