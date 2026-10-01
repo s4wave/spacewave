@@ -179,6 +179,11 @@ type soEngine struct {
 	// retained is the last head updateEngineState installed and retained,
 	// guarded by the controller's writer lock.
 	retained *bucket.ObjectRef
+	// unsettled holds candidate roots whose finalization failed while the
+	// authority could still accept them, guarded by the controller's writer
+	// lock. Once a later candidate is accepted, none of them can be, so that
+	// writer releases their staging ownership.
+	unsettled []*block.BlockRef
 }
 
 // newSoEngine constructs the shared object engine.

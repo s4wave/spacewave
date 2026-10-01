@@ -33,6 +33,9 @@ type soEngineWriteTx struct {
 	// ownership Discard releases. Nil while the outcome is unknown and while
 	// an accepted candidate waits for the accepted head to hold it.
 	candidateRoot *block.BlockRef
+	// settledRoots are earlier unsettled candidates this write's acceptance
+	// settled. Discard releases their staging ownership.
+	settledRoots []*block.BlockRef
 }
 
 // newSoEngineWriteTx constructs a new shared object engine tx.
@@ -202,7 +205,9 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		decision, err = t.eng.finalizeSpaceWorldCandidate(taskCtx, packet, opData)
 		task.End()
 		if err != nil {
-			// The authority may still accept the queued candidate.
+			// The authority may still accept the queued candidate, so it stays
+			// staged until a later candidate is accepted.
+			t.eng.unsettled = append(t.eng.unsettled, nroot)
 			t.candidateRoot = nil
 			return err
 		}
@@ -235,7 +240,10 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// The accepted head holds the World now, so release the candidate's
 	// staging ownership. A write that left the World unchanged commits the
 	// current head again, and installing an unchanged head keeps that edge.
+	// Earlier unsettled candidates were ordered before this one, so the
+	// authority can no longer accept them.
 	t.candidateRoot = nroot
+	t.settledRoots, t.eng.unsettled = t.eng.unsettled, nil
 
 	// Wake maintenance only after the accepted World is visible locally.
 	t.eng.c.notifyWrite()
@@ -272,7 +280,8 @@ func (t *soEngineWriteTx) Discard() {
 	// Commit has returned, so authority has accepted or rejected the
 	// operations and no replay needs their payloads. The accepted World keeps
 	// any payload it references.
-	roots := t.TakePayloadRefs()
+	roots := append(t.TakePayloadRefs(), t.settledRoots...)
+	t.settledRoots = nil
 	if t.candidateRoot != nil {
 		roots = append(roots, t.candidateRoot)
 		t.candidateRoot = nil

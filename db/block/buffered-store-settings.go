@@ -18,6 +18,10 @@ type BufferedStoreSettings struct {
 	MaxPendingMetadataBytes int
 	// DrainBatchEntries is the number of entries written per drain batch.
 	DrainBatchEntries int
+	// RecordWrites records every block written to the inner store, so the
+	// writer can release the ones its final root does not reach with
+	// ReleaseUnreached.
+	RecordWrites bool
 }
 
 // DefaultBufferedStoreSettings returns the default buffered store settings.

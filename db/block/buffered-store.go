@@ -59,6 +59,16 @@ type BufferedStore struct {
 
 	// drainErr captures the last drain error to surface on subsequent calls.
 	drainErr error
+
+	// written maps the ref key of each block written to inner to its outgoing
+	// refs. Nil unless the store records writes.
+	written map[string]*writtenBlock
+}
+
+// writtenBlock is a block the store wrote to its inner store.
+type writtenBlock struct {
+	ref  *BlockRef
+	refs []*BlockRef
 }
 
 // NewBufferedStore constructs a buffered store around an inner store.
@@ -73,7 +83,7 @@ func NewBufferedStoreWithSettings(
 	settings *BufferedStoreSettings,
 ) *BufferedStore {
 	settings = normalizeBufferedStoreSettings(settings)
-	return &BufferedStore{
+	s := &BufferedStore{
 		inner:                   inner,
 		pending:                 make(map[string]*pendingBlock),
 		maxPendingBytes:         settings.MaxPendingBytes,
@@ -81,6 +91,10 @@ func NewBufferedStoreWithSettings(
 		maxPendingBlocks:        settings.MaxPendingEntries,
 		drainBatchEntries:       settings.DrainBatchEntries,
 	}
+	if settings.RecordWrites {
+		s.written = make(map[string]*writtenBlock)
+	}
+	return s
 }
 
 // GetHashType returns the preferred hash type.
@@ -181,6 +195,9 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		if err != nil {
 			return nil, existed, err
 		}
+		s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			s.recordWriteLocked(key, ref, opts.GetRefs(), false)
+		})
 		return finish(ref, existed)
 	}
 
@@ -648,6 +665,9 @@ func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
 	for _, p := range batch.pending {
 		key, _ := marshalRefKey(p.ref)
 		p.borrowed = false
+		if err == nil {
+			s.recordWriteLocked(key, p.ref, p.refs, p.tombstone)
+		}
 		if s.pending[key] != p {
 			continue
 		}

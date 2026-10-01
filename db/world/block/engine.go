@@ -858,6 +858,7 @@ func (e *Engine) currentRootSeqnoLocked(ctx context.Context) (uint64, bool, erro
 
 // ForkBlockTransaction forks the transaction at the current state.
 func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, error) {
+	// Trace the fork.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction")
 	defer task.End()
 
@@ -870,20 +871,28 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 		return nil, ErrEngineClosed
 	}
 
-	// Build a distinct World state over the retained root.
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
 	// Buffer nested and root block writes per fork so they drain in one batch
-	// at Sync. Coordinator mode stays durable-on-write: its commit path
-	// validates the committed root against raw storage before publication.
+	// at Sync. The buffer records what it writes, so the fork releases blocks
+	// its final root does not reach when discarded. Coordinator mode stays
+	// durable-on-write: its commit path validates the committed root against
+	// raw storage before publication.
+	var buffered *block.BufferedStore
 	store := block.StoreOps(nil)
 	if write && e.writeCoordinator == nil {
-		store = block.NewBufferedStore(ctx, e.writeBlockStore)
+		buffered = block.NewBufferedStoreWithSettings(ctx, e.writeBlockStore, &block.BufferedStoreSettings{RecordWrites: true})
+		store = buffered
 	}
+
+	// Build a distinct World state over the retained root.
+	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
 	ws, err := e.buildWorldStateForRoot(taskCtx, !write, e.head.root, store)
 	subtask.End()
 	if err != nil {
 		return nil, err
 	}
+	ws.ownedStore = buffered
+
+	// Pin the base root for the lifetime of a write fork.
 	if write {
 		release, err := block.PinRoot(ctx, e.writeBlockStore, e.head.root.GetRef().GetRootRef())
 		if err != nil {
@@ -892,6 +901,8 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 		}
 		ws.readRelease = release
 	}
+
+	// Wrap the World state in a transaction.
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/new-tx")
 	tx := NewTx(ws)
 	subtask.End()
