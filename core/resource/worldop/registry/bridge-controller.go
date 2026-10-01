@@ -58,6 +58,7 @@ func (c *WorldOpRegistryBridgeController) Execute(ctx context.Context) error {
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *WorldOpRegistryBridgeController) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Match a named World operation lookup.
 	dir, ok := di.GetDirective().(world.LookupWorldOp)
 	if !ok {
 		return nil, nil
@@ -66,16 +67,23 @@ func (c *WorldOpRegistryBridgeController) HandleDirective(ctx context.Context, d
 	if opTypeID == "" {
 		return nil, nil
 	}
-	reg := c.registry.LookupRegistrationByOpType(opTypeID, dir.LookupWorldOpEngineID())
+
+	// Select the registered handler and its plugin instance, or the pinned
+	// executable named by the operation.
+	engineID := dir.LookupWorldOpEngineID()
+	reg, instanceKey := c.registry.lookupPluginInstance(opTypeID, engineID)
 	pluginID, manifestRoot, handlerID, pinned := s4wave_worldop_registry.ParsePinnedOperationID(opTypeID)
 	if pinned {
 		reg = &s4wave_worldop_registry.WorldOpRegistration{PluginId: pluginID, OperationTypeId: handlerID}
 	} else if reg == nil {
 		return nil, nil
 	}
-	engineID := dir.LookupWorldOpEngineID()
+
+	// Proxy each operation to the selected plugin.
 	lookupOp := func(ctx context.Context, operationTypeID string) (world.Operation, error) {
+		// Bind the operation to the selected plugin instance and executable.
 		op := newBridgeOperation(c.le, c.b, reg, operationTypeID, engineID)
+		op.instanceKey = instanceKey
 		op.manifestRoot = manifestRoot
 		if pinned {
 			op.handlerID = handlerID
@@ -99,6 +107,8 @@ type bridgeOperation struct {
 	opTypeID string
 	// handlerID is the plugin-local operation name, separate from accepted code identity.
 	handlerID string
+	// instanceKey is the plugin instance serving reg, empty for a global one.
+	instanceKey string
 	// manifestRoot pins the executable; empty uses a registered native/legacy handler.
 	manifestRoot string
 	opData       []byte
@@ -294,21 +304,22 @@ func (o *bridgeOperation) validateWithService(
 
 // connectPlugin connects to the TS plugin's resource service.
 func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.PluginResources, error) {
-	var resources *s4wave_plugin.PluginResources
-	var err error
+	// Connect to the registering instance when no executable is pinned.
 	if o.manifestRoot == "" {
-		resources, err = s4wave_plugin.ConnectPluginResources(ctx, o.b, o.reg.GetPluginId())
-	} else {
-		resources, err = s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
+		resources, err := s4wave_plugin.ConnectPluginInstanceResources(ctx, o.b, o.reg.GetPluginId(), o.instanceKey)
 		if err != nil {
-			return nil, &world.OperationRejection{
-				Code:    "UNAVAILABLE",
-				Message: "The exact application executable is unavailable: " + o.manifestRoot,
-			}
+			return nil, errors.Wrap(err, "connect to plugin")
 		}
+		return resources, nil
 	}
+
+	// Reject the operation when its pinned executable is unavailable.
+	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
 	if err != nil {
-		return nil, errors.Wrap(err, "connect to plugin")
+		return nil, &world.OperationRejection{
+			Code:    "UNAVAILABLE",
+			Message: "The exact application executable is unavailable: " + o.manifestRoot,
+		}
 	}
 	return resources, nil
 }

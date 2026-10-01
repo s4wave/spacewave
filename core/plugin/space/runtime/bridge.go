@@ -33,9 +33,24 @@ func bridgeDirective(dir directive.Directive, appPluginIDs []string) bool {
 	}
 }
 
-// schedulerLookupFilter forwards LookupPluginScheduler from the parent bus into
-// a generation so session status sees its scheduler.
-func schedulerLookupFilter(inst directive.Instance) (bool, error) {
-	_, ok := inst.GetDirective().(bldr_plugin.LookupPluginScheduler)
-	return ok, nil
+// parentFilter forwards parent lookups the generation answers into it.
+func parentFilter(instanceKey string, appPluginIDs []string) func(directive.Instance) (bool, error) {
+	return func(inst directive.Instance) (bool, error) {
+		return parentDirective(inst.GetDirective(), instanceKey, appPluginIDs), nil
+	}
+}
+
+// parentDirective reports whether dir on the parent bus resolves in the
+// generation: LookupPluginScheduler, so session status sees its scheduler, and
+// loads of this Space's plugin installation, so the daemon can reach a Space
+// plugin that registered a handler. App plugin loads stay on the parent.
+func parentDirective(dir directive.Directive, instanceKey string, appPluginIDs []string) bool {
+	switch d := dir.(type) {
+	case bldr_plugin.LookupPluginScheduler:
+		return true
+	case bldr_plugin.LoadPlugin:
+		return d.LoadPluginInstanceKey() == instanceKey && !slices.Contains(appPluginIDs, d.LoadPluginID())
+	default:
+		return false
+	}
 }

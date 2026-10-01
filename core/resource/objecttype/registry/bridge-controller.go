@@ -78,9 +78,11 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 		for {
 			// Read visibility and the wakeup position under the same admission lock.
 			var next *objectTypeRegistration
+			var instanceKey string
 			var wait <-chan struct{}
 			c.registry.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
 				next = c.registry.lookupRegistrationLocked(typeID, dir.LookupObjectTypeEngineID())
+				instanceKey = c.registry.generations.InstanceKeyLocked(next)
 				wait = getWait()
 			})
 
@@ -93,7 +95,7 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 				}
 				current = next
 				if next != nil {
-					factory := &registrationFactory{le: c.le, b: c.b, reg: next}
+					factory := &registrationFactory{le: c.le, b: c.b, reg: next, instanceKey: instanceKey}
 					valueID, _ = handler.AddValue(factory.objectType())
 				}
 			}
@@ -121,6 +123,8 @@ type registrationFactory struct {
 	b bus.Bus
 	// reg retains the admitted registration for this invoker generation.
 	reg *objectTypeRegistration
+	// instanceKey is the plugin instance serving reg, empty for a global one.
+	instanceKey string
 }
 
 // objectType binds factories to this exact registration capability.
@@ -168,7 +172,7 @@ func (r *registrationFactory) invokePlugin(
 	if resourceCtx != nil {
 		resourceClientCtx = resourceCtx.Context()
 	}
-	invoker := newPluginObjectTypeInvoker(resourceClientCtx, r.reg.registration, objectKey, engine, objecttype.EngineIDFromContext(ctx), r.b, r.le)
+	invoker := newPluginObjectTypeInvoker(resourceClientCtx, r.reg.registration, r.instanceKey, objectKey, engine, objecttype.EngineIDFromContext(ctx), r.b, r.le)
 	if err := invoker.connect(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -415,10 +419,11 @@ type pluginObjectTypeInvoker struct {
 }
 
 // newPluginObjectTypeInvoker creates an invoker that connects to the plugin
-// named by reg and reconnects on released sessions.
+// instance named by reg and instanceKey and reconnects on released sessions.
 func newPluginObjectTypeInvoker(
 	resourceClientCtx context.Context,
 	reg *s4wave_objecttype_registry.ObjectTypeRegistration,
+	instanceKey string,
 	objectKey string,
 	engine world.Engine,
 	engineID string,
@@ -435,7 +440,7 @@ func newPluginObjectTypeInvoker(
 		engineID:  engineID,
 		detachCtx: resourceClientCtx,
 		openResources: func(_ context.Context) (*resource_client.Client, func(), func() bool, error) {
-			resources, err := s4wave_plugin.ConnectPluginResources(resourceClientCtx, b, reg.GetPluginId())
+			resources, err := s4wave_plugin.ConnectPluginInstanceResources(resourceClientCtx, b, reg.GetPluginId(), instanceKey)
 			if err != nil {
 				return nil, nil, nil, err
 			}

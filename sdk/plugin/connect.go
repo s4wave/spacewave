@@ -42,17 +42,24 @@ func ConnectPluginResources(
 	b bus.Bus,
 	pluginID string,
 ) (*PluginResources, error) {
-	return connectPluginResources(ctx, b, pluginID, "")
+	return connectPluginResources(ctx, b, pluginID, "", "")
+}
+
+// ConnectPluginInstanceResources connects to the plugin instance named by
+// instanceKey, such as one Space's installation. An empty key selects the
+// instance the bus loads by default. The caller must call Release.
+func ConnectPluginInstanceResources(ctx context.Context, b bus.Bus, pluginID, instanceKey string) (*PluginResources, error) {
+	return connectPluginResources(ctx, b, pluginID, instanceKey, "")
 }
 
 // ConnectPluginResourcesAtManifest connects to an exact retained executable.
 // The caller releases both the resource connection and immutable plugin reference.
 func ConnectPluginResourcesAtManifest(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (*PluginResources, error) {
-	return connectPluginResources(ctx, b, pluginID, manifestRoot)
+	return connectPluginResources(ctx, b, pluginID, "", manifestRoot)
 }
 
 // connectPluginResources acquires a client within the selected executable's lifetime.
-func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (*PluginResources, error) {
+func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKey, manifestRoot string) (*PluginResources, error) {
 	var lastErr error
 	for range pluginResourceConnectAttempts {
 		if err := ctx.Err(); err != nil {
@@ -64,7 +71,7 @@ func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, manifestRo
 		var pluginRef directive.Reference
 		var err error
 		if manifestRoot == "" {
-			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadWaitClient(ctx, b, pluginID, nil)
+			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadInstancedWaitClient(ctx, b, pluginID, instanceKey, nil)
 		} else {
 			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadAtManifestWaitClient(ctx, b, pluginID, manifestRoot)
 		}

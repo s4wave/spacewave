@@ -69,6 +69,17 @@ func (r *Registry) GenerationLocked(member any) *Generation {
 	return r.members[member]
 }
 
+// InstanceKeyLocked returns the plugin instance that serves a registration,
+// empty for a global registration. A scoped registration's plugin runs in its
+// installation, so loads of its handler carry this key. The caller holds
+// Broadcast.
+func (r *Registry) InstanceKeyLocked(member any) string {
+	if generation := r.members[member]; generation != nil {
+		return generation.instanceKey
+	}
+	return ""
+}
+
 // priorityLocked returns zero for hidden registrations, one for a global
 // registration, and two for this installation's registration. The caller holds
 // Broadcast. Scoped definitions take precedence over global defaults.

@@ -95,6 +95,7 @@ func (g *Generation) start(
 	appPluginIDs []string,
 	bindingsChanged func(),
 ) error {
+	// Build the isolated child bus.
 	child, resolver, err := bldr_core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
@@ -124,8 +125,7 @@ func (g *Generation) start(
 		}
 	}
 
-	// Start the scheduler and expose it to LookupPluginScheduler on the parent so
-	// session status sees it.
+	// Configure the scheduler for this installation.
 	schedulerConf := plugin_host_default.NewSchedulerConfig(
 		conf.GetSpaceId(),
 		conf.GetEngineId(),
@@ -141,13 +141,16 @@ func (g *Generation) start(
 	if err := schedulerConf.Validate(); err != nil {
 		return err
 	}
+
+	// Start the scheduler and expose it and this installation's plugin loads
+	// to the parent.
 	scheduler := plugin_host_scheduler.NewController(le, child, schedulerConf)
 	scheduler.SetPluginHostBus(parent)
 	if err := g.addController(ctx, child, scheduler); err != nil {
 		return err
 	}
 	g.scheduler = scheduler
-	if err := g.addController(ctx, parent, bus_bridge.NewBusBridge(child, schedulerLookupFilter)); err != nil {
+	if err := g.addController(ctx, parent, bus_bridge.NewBusBridge(child, parentFilter(schedulerConf.GetInstanceKey(), appPluginIDs))); err != nil {
 		return err
 	}
 

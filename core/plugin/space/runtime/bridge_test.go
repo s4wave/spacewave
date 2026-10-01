@@ -94,3 +94,45 @@ func addTestDirective(t *testing.T, b bus.Bus, dir directive.Directive) {
 	}
 	t.Cleanup(ref.Release)
 }
+
+// TestParentFilterForwardsInstallationLoads checks that the parent reaches
+// this Space's plugin installation and scheduler and nothing else.
+func TestParentFilterForwardsInstallationLoads(t *testing.T) {
+	// Bridge a parent bus into a recorded child bus.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	parent, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Record what reaches the child through the parent filter.
+	recorder := newDirectiveRecorder()
+	addTestController(t, child, recorder)
+	addTestController(t, parent, bus_bridge.NewBusBridge(child, parentFilter("space-a", []string{"app"})))
+
+	// The scheduler lookup and this installation's loads reach the child.
+	forwarded := []directive.Directive{
+		bldr_plugin.NewLookupPluginScheduler(),
+		bldr_plugin.NewLoadPluginInstanced("plugin", "space-a"),
+	}
+	for _, dir := range forwarded {
+		addTestDirective(t, parent, dir)
+		recorder.waitFor(t, dir)
+	}
+
+	// Default, other installation, and app plugin loads stay on the parent.
+	kept := []directive.Directive{
+		bldr_plugin.NewLoadPlugin("plugin"),
+		bldr_plugin.NewLoadPluginInstanced("plugin", "space-b"),
+		bldr_plugin.NewLoadPluginInstanced("app", "space-a"),
+	}
+	for _, dir := range kept {
+		addTestDirective(t, parent, dir)
+	}
+	recorder.assertNoMore(t)
+}
