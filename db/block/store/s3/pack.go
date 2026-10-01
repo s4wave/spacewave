@@ -201,6 +201,7 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 // writePack writes the blocks next yields as one packfile, then its entry.
 // Returns nil when next yields no blocks.
 func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*packfile.PackfileEntry, error) {
+	// Pack the blocks in memory within the size limit.
 	var buf bytes.Buffer
 	result, err := writer.PackBlocks(&buf, next)
 	if err != nil {
@@ -213,10 +214,10 @@ func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*
 		return nil, errors.Errorf("packfile of %d bytes exceeds the %d byte limit", buf.Len(), writer.DefaultMaxPackBytes)
 	}
 
-	id, err := identity.BuildPackID(s.bucket+"/"+s.prefix, result)
-	if err != nil {
-		return nil, err
-	}
+	// Name the packfile randomly: compaction and reclaim delete packfiles by id,
+	// so an id derived from the blocks would let a rewrite of the same blocks
+	// land on a packfile being deleted and leave its entry without a packfile.
+	id := identity.NewPackID()
 	entry := &packfile.PackfileEntry{
 		Id:                 id,
 		BloomFilter:        result.BloomFilter,
@@ -229,6 +230,8 @@ func (s *PackStore) writePack(ctx context.Context, next writer.BlockIterator) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Upload the packfile before the entry that lists it.
 	if err := s.client.PutObject(ctx, s.bucket, s.prefix+packDir+id, buf.Bytes(), "application/octet-stream"); err != nil {
 		return nil, errors.Wrap(err, "write packfile")
 	}

@@ -1,6 +1,8 @@
 package block_store_s3
 
 import (
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -108,4 +110,36 @@ func checkBlocks(t *testing.T, store *PackStore, name string, refs []*block.Bloc
 			t.Fatalf("block %s%d = %q, %v, %v", name, i, data, found, err)
 		}
 	}
+}
+
+// TestPackStoreRewriteDuringReplace writes a block again while a replace of
+// its first packfile has deleted the entry but not yet the packfile, and the
+// block stays readable.
+func TestPackStoreRewriteDuringReplace(t *testing.T) {
+	// Write the block and note its packfile.
+	ctx := t.Context()
+	_, client := newFakeBucket(t, nil)
+	store := newTestPackStore(t, client)
+	refs := putBlocks(t, store, "block", 1)
+	var first []string
+	store.bcast.HoldLock(func(func(), func() <-chan struct{}) {
+		first = slices.Collect(maps.Keys(store.entries))
+	})
+	if len(first) != 1 {
+		t.Fatalf("store holds %d packfiles; want 1", len(first))
+	}
+
+	// Run a replace of that packfile with the same block written between its
+	// entry and packfile deletes.
+	if err := store.deleteObjects(ctx, entryDir, first); err != nil {
+		t.Fatal(err)
+	}
+	store.updateEntries(nil, first)
+	putBlocks(t, store, "block", 1)
+	if err := store.deleteObjects(ctx, packDir, first); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the block back through a fresh store.
+	checkBlocks(t, newTestPackStore(t, client), "block", refs)
 }

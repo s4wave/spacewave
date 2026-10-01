@@ -141,11 +141,8 @@ func (s *PackStore) knowsAll(entries []*packfile.PackfileEntry) bool {
 	return known
 }
 
-// merge writes the blocks of inputs as one packfile and replaces the inputs
-// with it. Returns ErrNotFound when an input is gone.
-//
-// The merged packfile holds the blocks in key order, so merging the same
-// inputs anywhere writes the same packfile id.
+// merge writes the blocks of inputs as one packfile, in key order, and replaces
+// the inputs with it. Returns ErrNotFound when an input is gone.
 func (s *PackStore) merge(ctx context.Context, inputs []*packfile.PackfileEntry) error {
 	// Read the inputs concurrently.
 	packs := make([]map[string][]byte, len(inputs))
@@ -205,14 +202,15 @@ func (s *PackStore) writeValues(ctx context.Context, keys []string, values map[s
 }
 
 // replace publishes output, which may be nil, then deletes the entries of
-// packfiles ids and then the packfiles. An id equal to output's is kept.
+// packfiles ids and then the packfiles. Deleting every entry first keeps each
+// listed entry's packfile in place.
 func (s *PackStore) replace(ctx context.Context, output *packfile.PackfileEntry, ids []string) error {
+	// Publish the output before its inputs disappear.
 	if output != nil {
 		s.updateEntries([]*packfile.PackfileEntry{output}, nil)
-		ids = slices.DeleteFunc(slices.Clone(ids), func(id string) bool {
-			return id == output.GetId()
-		})
 	}
+
+	// Unlist the inputs, then delete their packfiles.
 	if err := s.deleteObjects(ctx, entryDir, ids); err != nil {
 		return err
 	}
