@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +29,8 @@ const (
 	devicePolicyRefPrefix                 = "device-policy/"
 )
 
+// startDevicePolicyCapabilityProjection projects the local device policy into
+// the Device object of the setup Space for the life of ctx.
 func startDevicePolicyCapabilityProjection(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -42,6 +43,7 @@ func startDevicePolicyCapabilityProjection(
 		return
 	}
 	go func() {
+		// Connect the SDK client the projection reads the Space through.
 		client, err := buildSDKClientFromInvoker(ctx, invoker)
 		if err != nil {
 			if ctx.Err() == nil {
@@ -50,12 +52,16 @@ func startDevicePolicyCapabilityProjection(
 			return
 		}
 		defer client.close()
+
+		// Project each policy until ctx ends.
 		if err := runDevicePolicyCapabilityProjection(ctx, le, statePath, client, store); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("device policy capability projection stopped")
 		}
 	}()
 }
 
+// runDevicePolicyCapabilityProjection projects every policy revision. A
+// policy change abandons the pending projection of the previous one.
 func runDevicePolicyCapabilityProjection(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -65,6 +71,7 @@ func runDevicePolicyCapabilityProjection(
 ) error {
 	var last *device_policy.DevicePolicy
 	for {
+		// Wait for a policy the Space does not carry yet.
 		policy, err := store.WaitChange(ctx, last)
 		if err != nil {
 			if ctx.Err() != nil {
@@ -72,25 +79,34 @@ func runDevicePolicyCapabilityProjection(
 			}
 			return err
 		}
-		if err := projectDevicePolicyCapabilities(ctx, statePath, client, policy, time.Now()); err != nil {
-			if stderrors.Is(err, world.ErrObjectNotFound) {
-				le.WithError(err).Debug("device object not available for policy projection")
-				last = policy
-				continue
-			}
+		last = policy
+
+		// Project it until it lands or the policy changes again.
+		policyCtx, cancel := context.WithCancel(ctx)
+		go func() {
+			_, _ = store.WaitChange(policyCtx, policy)
+			cancel()
+		}()
+		err = projectDevicePolicyWhenReadable(policyCtx, le, statePath, client, policy)
+		cancel()
+		if err != nil && policyCtx.Err() == nil {
 			le.WithError(err).Warn("failed to project device policy capabilities")
 		}
-		last = policy
 	}
 }
 
-func projectDevicePolicyCapabilities(
+// projectDevicePolicyWhenReadable projects policy into the Device object,
+// retrying after each World change until the projection commits. A follower
+// can start before its World holds the Device object or the blocks the
+// projection reads; the next accepted World root may supply them.
+func projectDevicePolicyWhenReadable(
 	ctx context.Context,
+	le *logrus.Entry,
 	statePath string,
 	client *sdkClient,
 	policy *device_policy.DevicePolicy,
-	now time.Time,
 ) error {
+	// Resolve the Device this daemon set up.
 	record, ok, err := deviceLauncherProjectionTarget(statePath)
 	if err != nil || !ok {
 		return err
@@ -100,28 +116,60 @@ func projectDevicePolicyCapabilities(
 		return err
 	}
 
+	// Mount the session that owns the Space.
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Hold the Space and its World engine across every attempt.
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		return err
 	}
 	defer spaceCleanup()
-
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		return err
 	}
 	defer engineCleanup()
 
+	// Retry after each World change until the projection commits.
+	for {
+		// Attempt the projection against the current World root.
+		seqno, err := engine.GetSeqno(ctx)
+		if err != nil {
+			return errors.Wrap(err, "get world seqno")
+		}
+		err = projectDevicePolicyCapabilities(ctx, engine, record, policy, time.Now())
+		if err == nil || ctx.Err() != nil {
+			return err
+		}
+
+		// Wait for the World to change before trying again.
+		le.WithError(err).WithField("seqno", seqno).Debug("device policy projection waits for the next world change")
+		if _, err := engine.WaitSeqno(ctx, seqno+1); err != nil {
+			return err
+		}
+	}
+}
+
+// projectDevicePolicyCapabilities writes the capabilities of policy into the
+// Device object of record in one transaction.
+func projectDevicePolicyCapabilities(
+	ctx context.Context,
+	engine world.Engine,
+	record *deviceSetupRecord,
+	policy *device_policy.DevicePolicy,
+	now time.Time,
+) error {
+	// Open the write transaction that verifies and writes together.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
+	defer tx.Discard()
 
 	// Verify the declared Worker object inside the same transaction that
 	// writes the Device block, so verification and the capability write
@@ -131,8 +179,8 @@ func projectDevicePolicyCapabilities(
 			return err
 		}
 	}
-	defer tx.Discard()
 
+	// Read the Device object of this daemon.
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -141,6 +189,8 @@ func projectDevicePolicyCapabilities(
 	if !found {
 		return world.ErrObjectNotFound
 	}
+
+	// Check its identity and compute its projected capabilities.
 	existing, err := readDeviceBlock(ctx, objState)
 	if err != nil {
 		return err
@@ -153,6 +203,7 @@ func projectDevicePolicyCapabilities(
 		return err
 	}
 
+	// Write the Device block and commit.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(next, true)
 		return nil
