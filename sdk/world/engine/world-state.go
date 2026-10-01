@@ -179,6 +179,26 @@ func (ws *SDKWorldState) IterateObjects(ctx context.Context, prefix string, reve
 	return iter
 }
 
+// ListObjects returns one page of at most limit objects whose keys start with
+// prefix, in key order, beginning after startAfter. more reports that further
+// objects match; pass the last returned key as startAfter to read them.
+func (ws *SDKWorldState) ListObjects(
+	ctx context.Context,
+	prefix string,
+	startAfter string,
+	limit uint32,
+) (objects []*world_types.ObjectMetadata, more bool, err error) {
+	resp, err := ws.service.ListObjects(ctx, &s4wave_world.ListObjectsRequest{
+		Prefix:     prefix,
+		StartAfter: startAfter,
+		Limit:      limit,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return objectMetadataFromProto(resp.GetObjects()), resp.GetMore(), nil
+}
+
 // RenameObject renames an object key and updates associated graph quads.
 func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	resp, err := ws.service.RenameObject(ctx, &s4wave_world.RenameObjectRequest{
@@ -362,15 +382,20 @@ func (ws *SDKWorldState) GetObjectMetadataBatch(ctx context.Context, keys []stri
 		return nil, err
 	}
 
-	metadata := make([]*world_types.ObjectMetadata, len(resp.GetMetadata()))
-	for i, md := range resp.GetMetadata() {
+	return objectMetadataFromProto(resp.GetMetadata()), nil
+}
+
+// objectMetadataFromProto decodes object metadata from the World resource.
+func objectMetadataFromProto(in []*s4wave_world.ObjectMetadata) []*world_types.ObjectMetadata {
+	metadata := make([]*world_types.ObjectMetadata, len(in))
+	for i, md := range in {
 		metadata[i] = &world_types.ObjectMetadata{
 			ObjectKey:       md.GetObjectKey(),
 			TypeID:          md.GetTypeId(),
 			ParentObjectKey: md.GetParentObjectKey(),
 		}
 	}
-	return metadata, nil
+	return metadata
 }
 
 // ForEachObjectBodyPage calls cb with each page of serialized object bodies.

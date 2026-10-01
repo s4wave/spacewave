@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -366,6 +367,70 @@ func (r *WorldStateResource) IterateObjects(ctx context.Context, req *s4wave_wor
 	return &s4wave_world.IterateObjectsResponse{ResourceId: id}, nil
 }
 
+// maxListObjectsLimit bounds one ListObjects page so its response stays well
+// under the RPC message size limit.
+const maxListObjectsLimit = 1000
+
+// ListObjects returns one page of objects and their metadata in key order.
+func (r *WorldStateResource) ListObjects(ctx context.Context, req *s4wave_world.ListObjectsRequest) (*s4wave_world.ListObjectsResponse, error) {
+	// Validate the page bounds and cursor.
+	prefix, startAfter := req.GetPrefix(), req.GetStartAfter()
+	if req.GetLimit() == 0 {
+		return nil, errors.New("limit must be non-zero")
+	}
+	if startAfter != "" && !strings.HasPrefix(startAfter, prefix) {
+		return nil, errors.New("start_after must start with prefix")
+	}
+	limit := min(int(req.GetLimit()), maxListObjectsLimit)
+
+	// Position the iterator on the first key after the cursor.
+	it := r.ws.IterateObjects(ctx, prefix, false)
+	defer it.Close()
+	valid, err := advanceObjectIteratorPast(it, startAfter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect up to limit keys and note whether more remain.
+	keys := make([]string, 0, limit)
+	for valid && len(keys) < limit {
+		keys = append(keys, it.Key())
+		valid = it.Next()
+	}
+	if err := it.Err(); err != nil {
+		return nil, err
+	}
+
+	// Read the graph metadata for the page.
+	metadata, err := world_types.GetObjectMetadataBatch(ctx, r.ws, keys)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_world.ListObjectsResponse{
+		Objects: objectMetadataToProto(metadata),
+		More:    valid,
+	}, nil
+}
+
+// advanceObjectIteratorPast moves a fresh iterator to the first key after
+// startAfter, or to the first key when startAfter is empty, and reports
+// whether it points at a key.
+func advanceObjectIteratorPast(it world.ObjectIterator, startAfter string) (bool, error) {
+	// Without a cursor the first Next lands on the first key.
+	if startAfter == "" {
+		return it.Next(), nil
+	}
+
+	// Seek lands on the cursor key itself when it still exists.
+	if err := it.Seek(startAfter); err != nil {
+		return false, err
+	}
+	if it.Valid() && it.Key() == startAfter {
+		return it.Next(), nil
+	}
+	return it.Valid(), nil
+}
+
 // RenameObject renames an object key and associated graph quads.
 func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world.RenameObjectRequest) (*s4wave_world.RenameObjectResponse, error) {
 	// Require the Resource client that will own the renamed object.
@@ -598,7 +663,11 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 		return nil, err
 	}
 
-	// Encode the indexed object metadata for the Resource client.
+	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: objectMetadataToProto(metadata)}, nil
+}
+
+// objectMetadataToProto encodes object metadata for the Resource client.
+func objectMetadataToProto(metadata []*world_types.ObjectMetadata) []*s4wave_world.ObjectMetadata {
 	out := make([]*s4wave_world.ObjectMetadata, len(metadata))
 	for i, md := range metadata {
 		out[i] = &s4wave_world.ObjectMetadata{
@@ -607,8 +676,7 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 			ParentObjectKey: md.ParentObjectKey,
 		}
 	}
-
-	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: out}, nil
+	return out
 }
 
 // GetObjectBodiesBatch streams serialized object bodies for object keys.

@@ -684,6 +684,78 @@ func TestSDKEngine_LookupGraphQuadsBatch(t *testing.T) {
 	}
 }
 
+// TestSDKEngine_ListObjects tests paging object keys under a prefix.
+func TestSDKEngine_ListObjects(t *testing.T) {
+	// Start an SDK engine on a fresh testbed World.
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	// Create five objects under the listed prefix and one outside it.
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Write the objects and commit them.
+	want := []string{"list/a", "list/b", "list/c", "list/d", "list/e"}
+	for _, key := range append(slices.Clone(want), "other/x") {
+		createdObject, err := tx.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Open a read transaction on the SDK engine.
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+	sdkReadTx, ok := readTx.(*sdk_world_engine.SDKTx)
+	if !ok {
+		t.Fatal("expected SDKTx")
+	}
+
+	// Page through the prefix two keys at a time.
+	var got []string
+	var startAfter string
+	for {
+		objects, more, err := sdkReadTx.ListObjects(ctx, "list/", startAfter, 2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(objects) > 2 {
+			t.Fatalf("expected at most 2 objects per page, got %d", len(objects))
+		}
+		for _, obj := range objects {
+			got = append(got, obj.ObjectKey)
+		}
+		if !more {
+			break
+		}
+		startAfter = objects[len(objects)-1].ObjectKey
+	}
+
+	// Every key under the prefix arrives once and in order.
+	if !slices.Equal(got, want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+
+	// Reject a zero limit and a cursor outside the prefix.
+	if _, _, err := sdkReadTx.ListObjects(ctx, "list/", "", 0); err == nil {
+		t.Fatal("expected zero limit to fail")
+	}
+	if _, _, err := sdkReadTx.ListObjects(ctx, "list/", "other/x", 2); err == nil {
+		t.Fatal("expected cursor outside the prefix to fail")
+	}
+}
+
 // TestSDKEngine_GetObjectMetadataBatch tests remote-safe metadata fanout.
 func TestSDKEngine_GetObjectMetadataBatch(t *testing.T) {
 	ctx := context.Background()

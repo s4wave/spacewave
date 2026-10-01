@@ -62,6 +62,8 @@ import {
   KeyResponse,
   ListGraphEdgeBucketsRequest,
   ListGraphEdgeBucketsResponse,
+  ListObjectsRequest,
+  ListObjectsResponse,
   ListObjectsWithTypeRequest,
   ListObjectsWithTypeResponse,
   LookupGraphQuadsBatchRequest,
@@ -710,6 +712,17 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListObjects returns one page of objects and their metadata in key order.
+     *
+     * @generated from rpc s4wave.world.WorldStateResourceService.ListObjects
+     */
+    ListObjects: {
+      name: 'ListObjects',
+      I: ListObjectsRequest,
+      O: ListObjectsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.RenameObject
      */
     RenameObject: {
@@ -940,6 +953,16 @@ export interface WorldStateResourceService {
     request: IterateObjectsRequest,
     abortSignal?: AbortSignal,
   ): Promise<IterateObjectsResponse>
+
+  /**
+   * ListObjects returns one page of objects and their metadata in key order.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListObjects
+   */
+  ListObjects(
+    request: ListObjectsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsResponse>
 
   /**
    * @generated from rpc s4wave.world.WorldStateResourceService.RenameObject
@@ -1173,6 +1196,17 @@ export interface WorldStateResourceServiceHandler {
   ): Promise<IterateObjectsResponse>
 
   /**
+   * ListObjects returns one page of objects and their metadata in key order.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListObjects
+   */
+  ListObjects(
+    request: ListObjectsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListObjectsResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.RenameObject
    */
   RenameObject(
@@ -1320,6 +1354,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.CreateObject = this.CreateObject.bind(this)
     this.GetObject = this.GetObject.bind(this)
     this.IterateObjects = this.IterateObjects.bind(this)
+    this.ListObjects = this.ListObjects.bind(this)
     this.RenameObject = this.RenameObject.bind(this)
     this.DeleteObject = this.DeleteObject.bind(this)
     this.SetGraphQuad = this.SetGraphQuad.bind(this)
@@ -1543,6 +1578,25 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return IterateObjectsResponse.fromBinary(result)
+  }
+
+  /**
+   * ListObjects returns one page of objects and their metadata in key order.
+   *
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListObjects
+   */
+  async ListObjects(
+    request: ListObjectsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListObjectsResponse> {
+    const requestMsg = ListObjectsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.ListObjects.name,
+      ListObjectsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListObjectsResponse.fromBinary(result)
   }
 
   /**

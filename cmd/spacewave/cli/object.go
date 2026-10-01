@@ -3,8 +3,10 @@
 package spacewave_cli
 
 import (
+	"context"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -15,7 +17,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
 // newObjectCommand builds the object command group as a subcommand of space.
@@ -52,6 +54,10 @@ func buildObjectListCommand(statePath *string, sessionIdx *uint, spaceID *string
 		Name:  "list",
 		Usage: "list objects in a space (key + type)",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "prefix",
+				Usage: "list only object keys that start with this prefix",
+			},
 			&cli.BoolFlag{
 				Name:    "watch",
 				Usage:   "watch for changes (append mode)",
@@ -59,85 +65,132 @@ func buildObjectListCommand(statePath *string, sessionIdx *uint, spaceID *string
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Mount the session, Space and World engine.
 			ctx := c.Context
-			watch := c.Bool("watch")
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
 			}
 			defer client.close()
-
 			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
 
+			// Resolve the Space and access its World engine.
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
-
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
-
-			strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
+			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
-				return errors.Wrap(err, "watch space state")
+				return err
 			}
-			defer strm.Close()
+			defer engineCleanup()
 
-			w := os.Stdout
-			outputFormat := c.String("output")
+			// List once, or again after each World change when watching.
+			prefix, watch, outputFormat := c.String("prefix"), c.Bool("watch"), c.String("output")
 			for {
-				state, err := strm.Recv()
+				seqno, err := engine.GetSeqno(ctx)
 				if err != nil {
-					return errors.Wrap(err, "recv space state")
+					return errors.Wrap(err, "get world seqno")
 				}
-
-				wc := state.GetWorldContents()
-				if outputFormat == "json" || outputFormat == "yaml" {
-					// Each snapshot is one document: one JSON line when watching.
-					if wc == nil {
-						wc = &space_world.WorldContents{}
-					}
-					data, err := wc.MarshalJSON()
-					if err != nil {
-						return err
-					}
-					if err := formatOutput(data, outputFormat); err != nil {
-						return err
-					}
-					if !watch {
-						return nil
-					}
-					continue
+				wc, err := listWorldContents(ctx, engine, prefix)
+				if err != nil {
+					return err
 				}
-				if wc == nil {
-					w.WriteString("no objects\n")
-				} else {
-					objs := wc.GetObjects()
-					if len(objs) == 0 {
-						w.WriteString("no objects\n")
-					} else {
-						rows := [][]string{{"KEY", "TYPE"}}
-						for _, obj := range objs {
-							rows = append(rows, []string{obj.GetObjectKey(), obj.GetObjectType()})
-						}
-						writeTable(w, "", rows)
-					}
+				if err := writeWorldContents(wc, outputFormat); err != nil {
+					return err
 				}
-
 				if !watch {
 					return nil
 				}
-				w.WriteString("--- " + time.Now().Format(time.RFC3339) + " ---\n")
+
+				// Wait for the World to advance past the listed state.
+				if _, err := engine.WaitSeqno(ctx, seqno+1); err != nil {
+					return errors.Wrap(err, "wait world seqno")
+				}
+				if outputFormat != "json" && outputFormat != "yaml" {
+					os.Stdout.WriteString("--- " + time.Now().Format(time.RFC3339) + " ---\n")
+				}
 			}
 		},
 	}
+}
+
+// listObjectsPageSize is the number of objects requested per ListObjects page.
+const listObjectsPageSize = 500
+
+// listWorldContents reads the objects under prefix one bounded page at a time,
+// so a large Space never needs one oversized response. Object type
+// registrations are listed as types, as the Space state reports them.
+func listWorldContents(ctx context.Context, engine *sdk_engine.SDKEngine, prefix string) (*space_world.WorldContents, error) {
+	// Read every page from one World transaction.
+	tx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "new transaction")
+	}
+	defer tx.Discard()
+	sdkTx, ok := tx.(*sdk_engine.SDKTx)
+	if !ok {
+		return nil, errors.Errorf("unexpected world transaction type %T", tx)
+	}
+
+	// Page through the objects, splitting out the type registrations.
+	wc := &space_world.WorldContents{}
+	var startAfter string
+	for {
+		objects, more, err := sdkTx.ListObjects(ctx, prefix, startAfter, listObjectsPageSize)
+		if err != nil {
+			return nil, errors.Wrap(err, "list objects")
+		}
+		for _, obj := range objects {
+			if typeID, ok := strings.CutPrefix(obj.ObjectKey, world_types.TypesPrefix); ok {
+				wc.ObjectTypes = append(wc.ObjectTypes, &space_world.WorldContentsObjectType{ObjectType: typeID})
+				continue
+			}
+			wc.Objects = append(wc.Objects, &space_world.WorldContentsObject{
+				ObjectKey:       obj.ObjectKey,
+				ParentObjectKey: obj.ParentObjectKey,
+				ObjectType:      obj.TypeID,
+			})
+		}
+		if !more || len(objects) == 0 {
+			return wc, nil
+		}
+		startAfter = objects[len(objects)-1].ObjectKey
+	}
+}
+
+// writeWorldContents prints one listing as a document or a key and type table.
+func writeWorldContents(wc *space_world.WorldContents, outputFormat string) error {
+	// Each listing is one document: one JSON line when watching.
+	if outputFormat == "json" || outputFormat == "yaml" {
+		data, err := wc.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		return formatOutput(data, outputFormat)
+	}
+
+	// Print the objects as a table.
+	objs := wc.GetObjects()
+	if len(objs) == 0 {
+		_, err := os.Stdout.WriteString("no objects\n")
+		return err
+	}
+	rows := [][]string{{"KEY", "TYPE"}}
+	for _, obj := range objs {
+		rows = append(rows, []string{obj.GetObjectKey(), obj.GetObjectType()})
+	}
+	writeTable(os.Stdout, "", rows)
+	return nil
 }
 
 // buildObjectInfoCommand builds the object info subcommand.

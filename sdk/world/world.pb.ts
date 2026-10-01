@@ -1265,6 +1265,122 @@ export const IterateObjectsResponse: MessageType<IterateObjectsResponse> =
   })
 
 /**
+ * ListObjectsRequest is the request type for ListObjects.
+ *
+ * @generated from message s4wave.world.ListObjectsRequest
+ */
+export interface ListObjectsRequest {
+  /**
+   * Prefix limits the listing to object keys that start with this string.
+   * Empty prefix lists all objects.
+   *
+   * @generated from field: string prefix = 1;
+   */
+  prefix?: string
+  /**
+   * StartAfter resumes the listing after this object key. It must start with
+   * prefix. Empty starts at the first key.
+   *
+   * @generated from field: string start_after = 2;
+   */
+  startAfter?: string
+  /**
+   * Limit is the maximum number of objects in the page. It must be non-zero.
+   * The server may return a shorter page and set more.
+   *
+   * @generated from field: uint32 limit = 3;
+   */
+  limit?: number
+}
+
+export const ListObjectsRequest: MessageType<ListObjectsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ListObjectsRequest',
+    fields: [
+      { no: 1, name: 'prefix', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'start_after', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ObjectMetadata contains graph metadata for one object key.
+ *
+ * @generated from message s4wave.world.ObjectMetadata
+ */
+export interface ObjectMetadata {
+  /**
+   * ObjectKey is the object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * TypeId is the object type identifier, if present.
+   *
+   * @generated from field: string type_id = 2;
+   */
+  typeId?: string
+  /**
+   * ParentObjectKey is the parent object key, if present.
+   *
+   * @generated from field: string parent_object_key = 3;
+   */
+  parentObjectKey?: string
+}
+
+export const ObjectMetadata: MessageType<ObjectMetadata> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectMetadata',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'parent_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ListObjectsResponse is the response type for ListObjects.
+ *
+ * @generated from message s4wave.world.ListObjectsResponse
+ */
+export interface ListObjectsResponse {
+  /**
+   * Objects are the page's objects in ascending key order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectMetadata objects = 1;
+   */
+  objects?: ObjectMetadata[]
+  /**
+   * More reports that objects after the last one match the prefix. Pass the
+   * last object key as start_after to read the next page.
+   *
+   * @generated from field: bool more = 2;
+   */
+  more?: boolean
+}
+
+export const ListObjectsResponse: MessageType<ListObjectsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ListObjectsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'objects',
+        kind: 'message',
+        T: ObjectMetadata,
+        repeated: true,
+      },
+      { no: 2, name: 'more', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * DeleteGraphQuadRequest is the request type for DeleteGraphQuad.
  *
  * @generated from message s4wave.world.DeleteGraphQuadRequest
@@ -1740,47 +1856,6 @@ export const GetObjectRootRefsBatchResponse: MessageType<GetObjectRootRefsBatchR
         kind: 'message',
         T: ObjectRootRef,
         repeated: true,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * ObjectMetadata contains graph metadata for one object key.
- *
- * @generated from message s4wave.world.ObjectMetadata
- */
-export interface ObjectMetadata {
-  /**
-   * ObjectKey is the object key.
-   *
-   * @generated from field: string object_key = 1;
-   */
-  objectKey?: string
-  /**
-   * TypeId is the object type identifier, if present.
-   *
-   * @generated from field: string type_id = 2;
-   */
-  typeId?: string
-  /**
-   * ParentObjectKey is the parent object key, if present.
-   *
-   * @generated from field: string parent_object_key = 3;
-   */
-  parentObjectKey?: string
-}
-
-export const ObjectMetadata: MessageType<ObjectMetadata> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.world.ObjectMetadata',
-    fields: [
-      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 3,
-        name: 'parent_object_key',
-        kind: 'scalar',
-        T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

@@ -1174,6 +1174,77 @@ func (x *IterateObjectsResponse) GetResourceId() uint32 {
 	return 0
 }
 
+// ListObjectsRequest is the request type for ListObjects.
+type ListObjectsRequest struct {
+	unknownFields []byte
+	// Prefix limits the listing to object keys that start with this string.
+	// Empty prefix lists all objects.
+	Prefix string `protobuf:"bytes,1,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	// StartAfter resumes the listing after this object key. It must start with
+	// prefix. Empty starts at the first key.
+	StartAfter string `protobuf:"bytes,2,opt,name=start_after,json=startAfter,proto3" json:"startAfter,omitempty"`
+	// Limit is the maximum number of objects in the page. It must be non-zero.
+	// The server may return a shorter page and set more.
+	Limit uint32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+}
+
+func (x *ListObjectsRequest) Reset() {
+	*x = ListObjectsRequest{}
+}
+
+func (*ListObjectsRequest) ProtoMessage() {}
+
+func (x *ListObjectsRequest) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+func (x *ListObjectsRequest) GetStartAfter() string {
+	if x != nil {
+		return x.StartAfter
+	}
+	return ""
+}
+
+func (x *ListObjectsRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ListObjectsResponse is the response type for ListObjects.
+type ListObjectsResponse struct {
+	unknownFields []byte
+	// Objects are the page's objects in ascending key order.
+	Objects []*ObjectMetadata `protobuf:"bytes,1,rep,name=objects,proto3" json:"objects,omitempty"`
+	// More reports that objects after the last one match the prefix. Pass the
+	// last object key as start_after to read the next page.
+	More bool `protobuf:"varint,2,opt,name=more,proto3" json:"more,omitempty"`
+}
+
+func (x *ListObjectsResponse) Reset() {
+	*x = ListObjectsResponse{}
+}
+
+func (*ListObjectsResponse) ProtoMessage() {}
+
+func (x *ListObjectsResponse) GetObjects() []*ObjectMetadata {
+	if x != nil {
+		return x.Objects
+	}
+	return nil
+}
+
+func (x *ListObjectsResponse) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
+}
+
 // SetGraphQuadRequest is the request type for SetGraphQuad.
 type SetGraphQuadRequest struct {
 	unknownFields []byte
@@ -3691,6 +3762,41 @@ func (m *IterateObjectsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage 
 	return m.CloneVT()
 }
 
+func (m *ListObjectsRequest) CloneVT() *ListObjectsRequest {
+	if m == nil {
+		return (*ListObjectsRequest)(nil)
+	}
+	r := new(ListObjectsRequest)
+	r.Prefix = m.Prefix
+	r.StartAfter = m.StartAfter
+	r.Limit = m.Limit
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListObjectsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListObjectsResponse) CloneVT() *ListObjectsResponse {
+	if m == nil {
+		return (*ListObjectsResponse)(nil)
+	}
+	r := new(ListObjectsResponse)
+	r.More = m.More
+	r.Objects = protobuf_go_lite.CloneVTSlice(m.Objects)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListObjectsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *SetGraphQuadRequest) CloneVT() *SetGraphQuadRequest {
 	if m == nil {
 		return (*SetGraphQuadRequest)(nil)
@@ -5868,6 +5974,55 @@ func (this *IterateObjectsResponse) EqualVT(that *IterateObjectsResponse) bool {
 
 func (this *IterateObjectsResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*IterateObjectsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListObjectsRequest) EqualVT(that *ListObjectsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Prefix != that.Prefix {
+		return false
+	}
+	if this.StartAfter != that.StartAfter {
+		return false
+	}
+	if this.Limit != that.Limit {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListObjectsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListObjectsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListObjectsResponse) EqualVT(that *ListObjectsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Objects, that.Objects, func() *ObjectMetadata { return &ObjectMetadata{} }) {
+		return false
+	}
+	if this.More != that.More {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListObjectsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListObjectsResponse)
 	if !ok {
 		return false
 	}
@@ -9494,6 +9649,135 @@ func (x *IterateObjectsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the IterateObjectsResponse from JSON.
 func (x *IterateObjectsResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListObjectsRequest message to JSON.
+func (x *ListObjectsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Prefix != "" || s.HasField("prefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prefix")
+		s.WriteString(x.Prefix)
+	}
+	if x.StartAfter != "" || s.HasField("startAfter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startAfter")
+		s.WriteString(x.StartAfter)
+	}
+	if x.Limit != 0 || s.HasField("limit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limit")
+		s.WriteUint32(x.Limit)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListObjectsRequest to JSON.
+func (x *ListObjectsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListObjectsRequest message from JSON.
+func (x *ListObjectsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "prefix":
+			s.AddField("prefix")
+			x.Prefix = s.ReadString()
+		case "start_after", "startAfter":
+			s.AddField("start_after")
+			x.StartAfter = s.ReadString()
+		case "limit":
+			s.AddField("limit")
+			x.Limit = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListObjectsRequest from JSON.
+func (x *ListObjectsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListObjectsResponse message to JSON.
+func (x *ListObjectsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Objects) > 0 || s.HasField("objects") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objects")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Objects {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("objects"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.More || s.HasField("more") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("more")
+		s.WriteBool(x.More)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListObjectsResponse to JSON.
+func (x *ListObjectsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListObjectsResponse message from JSON.
+func (x *ListObjectsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "objects":
+			s.AddField("objects")
+			if s.ReadNil() {
+				x.Objects = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Objects = append(x.Objects, nil)
+					return
+				}
+				v := &ObjectMetadata{}
+				v.UnmarshalProtoJSON(s.WithField("objects", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Objects = append(x.Objects, v)
+			})
+		case "more":
+			s.AddField("more")
+			x.More = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListObjectsResponse from JSON.
+func (x *ListObjectsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -14873,6 +15157,102 @@ func (m *IterateObjectsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *ListObjectsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListObjectsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListObjectsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Limit != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Limit))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.StartAfter) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.StartAfter)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Prefix) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Prefix)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListObjectsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListObjectsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListObjectsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.More {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.More)
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Objects) > 0 {
+		for iNdEx := len(m.Objects) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Objects[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetGraphQuadRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -18391,6 +18771,34 @@ func (m *IterateObjectsResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ListObjectsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Prefix)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StartAfter)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Limit)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListObjectsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Objects {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.More)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *SetGraphQuadRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -19967,6 +20375,54 @@ func (x *IterateObjectsResponse) MarshalProtoText() string {
 }
 
 func (x *IterateObjectsResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListObjectsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListObjectsRequest")
+	if x.Prefix != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prefix")
+		protobuf_go_lite.TextWriteString(&sb, x.Prefix)
+	}
+	if x.StartAfter != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "start_after")
+		protobuf_go_lite.TextWriteString(&sb, x.StartAfter)
+	}
+	if x.Limit != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "limit")
+		protobuf_go_lite.TextWriteUint(&sb, x.Limit)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListObjectsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListObjectsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListObjectsResponse")
+	if len(x.Objects) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "objects")
+		for i, v := range x.Objects {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ObjectMetadata{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.More != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "more")
+		protobuf_go_lite.TextWriteBool(&sb, x.More)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListObjectsResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -23749,6 +24205,144 @@ func (m *IterateObjectsResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListObjectsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListObjectsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListObjectsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Prefix = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartAfter", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.StartAfter = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Limit", wireType)
+			}
+			m.Limit = 0
+			m.Limit, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListObjectsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListObjectsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListObjectsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Objects", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Objects = append(m.Objects, &ObjectMetadata{})
+			if err := m.Objects[len(m.Objects)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field More", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.More = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

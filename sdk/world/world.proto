@@ -172,6 +172,9 @@ service WorldStateResourceService {
 
   rpc IterateObjects(IterateObjectsRequest) returns (IterateObjectsResponse);
 
+  // ListObjects returns one page of objects and their metadata in key order.
+  rpc ListObjects(ListObjectsRequest) returns (ListObjectsResponse);
+
   rpc RenameObject(RenameObjectRequest) returns (RenameObjectResponse);
 
   rpc DeleteObject(DeleteObjectRequest) returns (DeleteObjectResponse);
@@ -380,6 +383,28 @@ message IterateObjectsRequest {
 message IterateObjectsResponse {
   // ResourceId is the ID of the ObjectIterator resource.
   uint32 resource_id = 1;
+}
+
+// ListObjectsRequest is the request type for ListObjects.
+message ListObjectsRequest {
+  // Prefix limits the listing to object keys that start with this string.
+  // Empty prefix lists all objects.
+  string prefix = 1;
+  // StartAfter resumes the listing after this object key. It must start with
+  // prefix. Empty starts at the first key.
+  string start_after = 2;
+  // Limit is the maximum number of objects in the page. It must be non-zero.
+  // The server may return a shorter page and set more.
+  uint32 limit = 3;
+}
+
+// ListObjectsResponse is the response type for ListObjects.
+message ListObjectsResponse {
+  // Objects are the page's objects in ascending key order.
+  repeated ObjectMetadata objects = 1;
+  // More reports that objects after the last one match the prefix. Pass the
+  // last object key as start_after to read the next page.
+  bool more = 2;
 }
 
 // SetGraphQuadRequest is the request type for SetGraphQuad.
