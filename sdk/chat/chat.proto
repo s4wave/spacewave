@@ -51,6 +51,9 @@ message ChatMessage {
   // RedactedByKey is the redaction message that removed this body, empty while intact.
   // A redacted body keeps only its variant, event type, and relation routing.
   string redacted_by_key = 7;
+  // ReplacesKey is the state message this state change replaced as current state.
+  // Empty for the first event of a state identity and for non-state messages.
+  string replaces_key = 8;
 }
 
 // ChatMessagePage stores a bounded page of channel message keys.

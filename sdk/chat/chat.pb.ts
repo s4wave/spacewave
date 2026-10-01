@@ -159,6 +159,13 @@ export interface ChatMessage {
    * @generated from field: string redacted_by_key = 7;
    */
   redactedByKey?: string
+  /**
+   * ReplacesKey is the state message this state change replaced as current state.
+   * Empty for the first event of a state identity and for non-state messages.
+   *
+   * @generated from field: string replaces_key = 8;
+   */
+  replacesKey?: string
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -172,6 +179,7 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'redacted_by_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 8, name: 'replaces_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

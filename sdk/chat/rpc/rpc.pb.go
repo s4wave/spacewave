@@ -70,6 +70,8 @@ type ChatMessageInfo struct {
 	PersonId string `protobuf:"bytes,8,opt,name=person_id,json=personId,proto3" json:"personId,omitempty"`
 	// RedactedByKey is the redaction message that removed this body, empty while intact.
 	RedactedByKey string `protobuf:"bytes,9,opt,name=redacted_by_key,json=redactedByKey,proto3" json:"redactedByKey,omitempty"`
+	// ReplacesKey is the state message this state change replaced, empty for the first of its identity.
+	ReplacesKey string `protobuf:"bytes,10,opt,name=replaces_key,json=replacesKey,proto3" json:"replacesKey,omitempty"`
 }
 
 func (x *ChatMessageInfo) Reset() {
@@ -137,6 +139,13 @@ func (x *ChatMessageInfo) GetPersonId() string {
 func (x *ChatMessageInfo) GetRedactedByKey() string {
 	if x != nil {
 		return x.RedactedByKey
+	}
+	return ""
+}
+
+func (x *ChatMessageInfo) GetReplacesKey() string {
+	if x != nil {
+		return x.ReplacesKey
 	}
 	return ""
 }
@@ -713,6 +722,7 @@ func (m *ChatMessageInfo) CloneVT() *ChatMessageInfo {
 	r.Index = m.Index
 	r.PersonId = m.PersonId
 	r.RedactedByKey = m.RedactedByKey
+	r.ReplacesKey = m.ReplacesKey
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.Content = protobuf_go_lite.CloneVTValue(m.Content)
 	if len(m.unknownFields) > 0 {
@@ -1082,6 +1092,9 @@ func (this *ChatMessageInfo) EqualVT(that *ChatMessageInfo) bool {
 		return false
 	}
 	if this.RedactedByKey != that.RedactedByKey {
+		return false
+	}
+	if this.ReplacesKey != that.ReplacesKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1632,6 +1645,11 @@ func (x *ChatMessageInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("redactedByKey")
 		s.WriteString(x.RedactedByKey)
 	}
+	if x.ReplacesKey != "" || s.HasField("replacesKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replacesKey")
+		s.WriteString(x.ReplacesKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1684,6 +1702,9 @@ func (x *ChatMessageInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "redacted_by_key", "redactedByKey":
 			s.AddField("redacted_by_key")
 			x.RedactedByKey = s.ReadString()
+		case "replaces_key", "replacesKey":
+			s.AddField("replaces_key")
+			x.ReplacesKey = s.ReadString()
 		}
 	})
 }
@@ -2819,6 +2840,11 @@ func (m *ChatMessageInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ReplacesKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ReplacesKey)
+		i--
+		dAtA[i] = 0x52
+	}
 	if len(m.RedactedByKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.RedactedByKey)
 		i--
@@ -3702,6 +3728,7 @@ func (m *ChatMessageInfo) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PersonId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RedactedByKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ReplacesKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4016,6 +4043,10 @@ func (x *ChatMessageInfo) MarshalProtoText() string {
 	if x.RedactedByKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "redacted_by_key")
 		protobuf_go_lite.TextWriteString(&sb, x.RedactedByKey)
+	}
+	if x.ReplacesKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "replaces_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ReplacesKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4601,6 +4632,16 @@ func (m *ChatMessageInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RedactedByKey = v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplacesKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReplacesKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

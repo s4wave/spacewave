@@ -60,6 +60,8 @@ message ChatMessageInfo {
   string person_id = 8;
   // RedactedByKey is the redaction message that removed this body, empty while intact.
   string redacted_by_key = 9;
+  // ReplacesKey is the state message this state change replaced, empty for the first of its identity.
+  string replaces_key = 10;
 }
 
 // GetChannelInfoRequest is a request for channel info.

@@ -11,12 +11,15 @@ import (
 
 // TestChatStateConditionalWrite checks that stale cleanup cannot replace newer state.
 func TestChatStateConditionalWrite(t *testing.T) {
+	// Start an isolated World.
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(wtb.Release)
+
+	// Create the channel both writers share.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	sender := wtb.Volume.GetPeerID().String()
@@ -36,6 +39,8 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// An unconditional write replaces it.
 	newer := request.CloneVT()
 	newer.ExpectedStateMessageKey = nil
 	newer.TransactionId = ""
@@ -55,11 +60,15 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	if conflict, err := cleaner.SendMessage(ctx, stale); err != nil || conflict.GetMessageKey() != "" {
 		t.Fatalf("stale cleanup = %v, %v; want state conflict", conflict, err)
 	}
+
+	// An absent-state condition fails once state exists.
 	absent := stale.CloneVT()
 	absent.ExpectedStateMessageKey = &empty
 	if conflict, err := cleaner.SendMessage(ctx, absent); err != nil || conflict.GetMessageKey() != "" {
 		t.Fatalf("absent-state condition = %v, %v; want state conflict", conflict, err)
 	}
+
+	// Current state is the second event, linked to the first it replaced.
 	current, err := writer.GetState(ctx, &spacewave_chat_rpc.GetStateRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +76,11 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	if len(current.GetMessages()) != 1 || current.GetMessages()[0].GetObjectKey() != second.GetMessageKey() {
 		t.Fatal("rejected cleanup changed current state")
 	}
+	if replaces := current.GetMessages()[0].GetReplacesKey(); replaces != first.GetMessageKey() {
+		t.Fatalf("current state replaces %q, want %q", replaces, first.GetMessageKey())
+	}
+
+	// Rejected writes leave history unchanged.
 	info, err := writer.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +97,8 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	if retried.GetMessageKey() != first.GetMessageKey() {
 		t.Fatal("accepted conditional retry lost its original event")
 	}
+
+	// A condition on the current event clears state.
 	stale.ExpectedStateMessageKey = &second.MessageKey
 	cleared, err := cleaner.SendMessage(ctx, stale)
 	if err != nil {
@@ -95,6 +111,8 @@ func TestChatStateConditionalWrite(t *testing.T) {
 	if len(current.GetMessages()) != 1 || current.GetMessages()[0].GetObjectKey() != cleared.GetMessageKey() || current.GetMessages()[0].GetContent().GetStateChange().GetContentJson() != `{}` {
 		t.Fatal("matching condition did not clear current state")
 	}
+
+	// Conditions apply only to state changes.
 	if _, err := cleaner.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "plain", ExpectedStateMessageKey: &empty}); err == nil {
 		t.Fatal("accepted a state condition on a non-state message")
 	}
