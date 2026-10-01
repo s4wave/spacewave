@@ -325,8 +325,10 @@ jobs:
           echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
           "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
 
+      # No release build compiles with TinyGo, so this step is disabled. Set
+      # the condition back to true to restore TinyGo builds.
       - name: Install TinyGo
-        if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
+        if: false
         shell: bash
         run: |
           set -euo pipefail

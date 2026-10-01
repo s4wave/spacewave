@@ -99,13 +99,15 @@ jobs:
             e2e_goscript: ''
             install_binaryen: false
             install_tinygo: false
-          - compiler: tinygo
-            build_script: build:release:web:e2e:tinygo
-            smoke_script: test:go:e2e:release-wasm
-            e2e_tinygo: true
-            e2e_goscript: ''
-            install_binaryen: true
-            install_tinygo: true
+          # TinyGo is unused for now, so its arm is disabled. Uncomment it to
+          # restore TinyGo coverage.
+          # - compiler: tinygo
+          #   build_script: build:release:web:e2e:tinygo
+          #   smoke_script: test:go:e2e:release-wasm
+          #   e2e_tinygo: true
+          #   e2e_goscript: ''
+          #   install_binaryen: true
+          #   install_tinygo: true
           - compiler: goscript
             build_script: build:release:web:e2e:goscript
             smoke_script: test:go:e2e:release-wasm:goscript
